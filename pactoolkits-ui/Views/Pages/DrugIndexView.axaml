@@ -1,0 +1,370 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
+             xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:conv="clr-namespace:pactoolkits_ui.Converters"
+             xmlns:behaviors="clr-namespace:pactoolkits_ui.Behaviors"
+             mc:Ignorable="d"
+             d:DesignWidth="1200" d:DesignHeight="800"
+             x:Class="pactoolkits_ui.Views.Pages.DrugIndexView"
+             x:DataType="vm:DrugIndexViewModel"
+             Focusable="True"
+             x:Name="Root">
+    <UserControl.Resources>
+        <conv:RowStateToBgBrushConverter x:Key="RowStateToBgBrush" />
+        <conv:RowIndexConverter x:Key="RowIndexPlusOne" />
+        <conv:BoolToDoneDangerBrushConverter x:Key="BoolToDoneDangerBrush" />
+    </UserControl.Resources>
+
+    <Grid Margin="18,14,18,18">
+            <Grid ColumnDefinitions="2.2*,1*" ColumnSpacing="14">
+
+                
+                <suki:GlassCard Classes="SectionCard" Grid.Column="0">
+                    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+
+                        
+                        <suki:GlassCard Grid.Row="0" Padding="12,10" Opacity="0.98">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                                <TextBox Height="36"
+                                         x:Name="DrugIndexSearchBox"
+                                         MinHeight="36"
+                                         MaxHeight="36"
+                                         Padding="10,0"
+                                         VerticalContentAlignment="Center"
+                                         TextWrapping="NoWrap"
+
+                                         AcceptsReturn="False"
+                                         Watermark="搜索：药品名 / 规格 / 简称 / 前缀 / 备注..."
+                                         KeyUp="DrugIndexSearchBox_OnKeyUp"
+                                         Text="{Binding Keyword, Mode=TwoWay}">
+                                    <TextBox.KeyBindings>
+                                        <KeyBinding Gesture="Enter" Command="{Binding SearchCommand}" />
+                                    </TextBox.KeyBindings>
+                                </TextBox>
+
+                                <Button Grid.Column="1" x:Name="DrugIndexSearchButton" Classes="Action" Height="36" MinWidth="{StaticResource MinWAction}"
+                                        Command="{Binding SearchCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <icons:MaterialIcon Kind="Magnify" Width="16" Height="16" />
+                                        <TextBlock Text="搜索" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Grid.Column="2" Classes="Action" Height="36" MinWidth="{StaticResource MinWAction}"
+                                        Command="{Binding ClearSearchCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <icons:MaterialIcon Kind="BackspaceOutline" Width="16" Height="16" />
+                                        <TextBlock Text="清空" />
+                                    </StackPanel>
+                                </Button>
+
+                            </Grid>
+                        </suki:GlassCard>
+
+                        
+                        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10"
+                              VerticalAlignment="Center">
+                            <TextBlock Text="药品列表" Classes="SectionTitle" />
+
+                            <WrapPanel Grid.Column="1" VerticalAlignment="Center" Opacity="{StaticResource SectionHintOpacity}" ItemSpacing="10">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="Circle"
+                                                        Width="10"
+                                                        Height="10"
+                                                        VerticalAlignment="Center"
+                                                        Foreground="{Binding !HasPendingChanges, Converter={StaticResource BoolToDoneDangerBrush}}" />
+                                    <Panel VerticalAlignment="Center">
+                                        <TextBlock Text="编辑中未保存" IsVisible="{Binding HasPendingChanges}" />
+                                        <TextBlock Text="已保存" IsVisible="{Binding !HasPendingChanges}" />
+                                    </Panel>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="Pill" Width="16" Height="16" />
+                                    <TextBlock Text="{Binding Items.Count}" FontWeight="SemiBold" />
+                                    <TextBlock Text="条" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="Mouse" Width="16" Height="16" />
+                                    <TextBlock Text="右键：特殊操作" />
+                                </StackPanel>
+                            </WrapPanel>
+
+                            <Button Grid.Column="2" Classes="Action" Height="34" MinWidth="{StaticResource MinWAction}"
+                                    ClickMode="Press"
+                                    Command="{Binding NewItemCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="Plus" Width="16" Height="16" />
+                                    <TextBlock Text="新建" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        
+                        <controls:EmptyStatePanel Grid.Row="2"
+                                                  IsEmpty="{Binding IsItemsEmpty}"
+                                                  EmptyText="暂无药品数据"
+                                                  EmptyHint="当前筛选条件下没有药品信息">
+                        <suki:BusyArea IsBusy="{Binding IsListBusy}">
+                            <DataGrid Classes="SectionGrid DrugGrid"
+                                      ItemsSource="{Binding Items}"
+                                      SelectedItem="{Binding Selected, Mode=TwoWay}"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="All"
+                                      SelectionMode="Extended"
+                                      CanUserResizeColumns="True"
+                                      x:Name="DrugGrid"
+                                      RowHeight="{StaticResource RowMinHeight}"
+                                      MinHeight="{StaticResource DgH10Rows}"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <DataGrid.Styles>
+                                <Style Selector="DataGrid.DrugGrid DataGridRow">
+                                    <Setter Property="ContextMenu">
+                                        <Setter.Value>
+                                            <ContextMenu>
+                                                <MenuItem Header="复制" Click="OnGridRowCopy"
+                                                          CommandParameter="{Binding}">
+                                                    <MenuItem.Icon>
+                                                        <icons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+
+                                                <MenuItem Header="全选" Click="OnGridSelectAll"
+                                                          CommandParameter="{Binding}">
+                                                    <MenuItem.Icon>
+                                                        <icons:MaterialIcon Kind="SelectAll" Width="16" Height="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+
+                                                <Separator />
+
+                                                <MenuItem Header="弃用 / 启用" Click="OnGridToggleDeprecated"
+                                                          CommandParameter="{Binding}">
+                                                    <MenuItem.Icon>
+                                                        <icons:MaterialIcon Kind="Cancel" Width="16" Height="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+
+                                                <MenuItem Header="未拆零 / 可拆零" Click="OnGridToggleNoSplit"
+                                                          CommandParameter="{Binding}">
+                                                    <MenuItem.Icon>
+                                                        <icons:MaterialIcon Kind="ContentCut" Width="16" Height="16" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                            </ContextMenu>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                                <Style Selector="DataGrid.DrugGrid DataGridCell">
+                                    <Setter Property="Background"
+                                            Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=15}" />
+                                </Style>
+
+                                <Style Selector="DataGrid.DrugGrid DataGridRow:pointerover DataGridCell">
+                                    <Setter Property="Background"
+                                            Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=25}" />
+                                </Style>
+
+                                <Style Selector="DataGrid.DrugGrid DataGridRow:selected DataGridCell">
+                                    <Setter Property="Background"
+                                            Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=35}" />
+                                </Style>
+
+                                <Style Selector="DataGrid.DrugGrid DataGridRow:selected:pointerover DataGridCell">
+                                    <Setter Property="Background"
+                                            Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=50}" />
+                                </Style>
+                            </DataGrid.Styles>
+
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="40"
+                                                        IsReadOnly="True"
+                                                        CanUserResize="False"
+                                                        CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Opacity="0.35"
+                                                FontSize="12"
+                                                FontWeight="Bold"
+                                                Text="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow},
+                               Path=Index,
+                               Converter={StaticResource RowIndexPlusOne}}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="2*" />
+                                <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.2*" />
+                                <DataGridTemplateColumn Header="单盒数量" Width="{StaticResource DgWRightSmall}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Qty}" Classes="DGRightCell DGNum" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="简称" Binding="{Binding RuleKey}" Width="1.2*" />
+                                <DataGridTextColumn Header="前缀" Binding="{Binding PreTc}" Width="1.2*" />
+                                <DataGridTextColumn Header="备注" Binding="{Binding EffectiveNote}" Width="1.4*" />
+                            </DataGrid.Columns>
+                            </DataGrid>
+                        </suki:BusyArea>
+                        </controls:EmptyStatePanel>
+                    </Grid>
+                </suki:GlassCard>
+
+                
+                <suki:GlassCard x:Name="EditorCard"
+                                Classes="SectionCard"
+                                behaviors:FocusClearBehavior.SuppressGridClear="True"
+                                Grid.Column="1">
+                    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto"
+                          RowSpacing="12"
+                          KeyboardNavigation.TabNavigation="Cycle">
+
+                        <TextBlock Grid.Row="0" Text="编辑" Classes="SectionTitle" />
+
+                        
+                        <suki:GlassCard Grid.Row="1" Padding="14" IsVisible="{Binding !HasEditor}" Opacity="0.9">
+                            <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <icons:MaterialIcon Kind="InformationOutline" Foreground="{StaticResource BrushWarning}" Width="22" Height="22" />
+                                <TextBlock Text="请选择左侧药品，或点击“新建”开始编辑" Opacity="0.82" />
+                            </StackPanel>
+                        </suki:GlassCard>
+
+                        
+                        <suki:GlassCard Grid.Row="1" Padding="12" IsVisible="{Binding HasEditor}">
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+
+                                <ToggleButton Grid.Column="0"
+                                              Height="34"
+                                              IsChecked="{Binding IsDeprecated, Mode=TwoWay}"
+                                              Command="{Binding ToggleDeprecatedCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                        <icons:MaterialIcon Kind="Cancel" Width="16" Height="16" />
+                                        <TextBlock Text="弃用" />
+                                    </StackPanel>
+                                </ToggleButton>
+
+                                <ToggleButton Grid.Column="1"
+                                              Height="34"
+                                              IsChecked="{Binding IsNoSplit, Mode=TwoWay}"
+                                              Command="{Binding ToggleNoSplitCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                        <icons:MaterialIcon Kind="ContentCut" Width="16" Height="16" />
+                                        <TextBlock Text="未拆零" />
+                                    </StackPanel>
+                                </ToggleButton>
+
+                            </Grid>
+                        </suki:GlassCard>
+
+                        
+                        <StackPanel Grid.Row="2" Spacing="4" Opacity="0.78" IsVisible="{Binding HasSelection}">
+                            <TextBlock>
+                                <Run Text="创建：" />
+                                <Run Text="{Binding CreatedAtLocalText}" />
+                            </TextBlock>
+                            <TextBlock>
+                                <Run Text="更新：" />
+                                <Run Text="{Binding UpdatedAtLocalText}" />
+                            </TextBlock>
+                        </StackPanel>
+
+                        
+                        <ScrollViewer Grid.Row="3" IsVisible="{Binding HasEditor}" VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel Spacing="10" Margin="0,0,0,6">
+
+                                <TextBox Height="34"
+                                         MinHeight="34"
+                                         MaxHeight="34"
+                                         Padding="10,0"
+                                         VerticalContentAlignment="Center"
+                                         TextWrapping="NoWrap"
+                                         AcceptsReturn="False"
+                                         Watermark="药品名（必填）"
+                                         Text="{Binding EditDrugId, Mode=TwoWay}" />
+
+                                <TextBox Height="34"
+                                         MinHeight="34"
+                                         MaxHeight="34"
+                                         Padding="10,0"
+                                         VerticalContentAlignment="Center"
+                                         TextWrapping="NoWrap"
+                                         AcceptsReturn="False"
+                                         Watermark="规格（必填）"
+                                         Text="{Binding EditSpec, Mode=TwoWay}" />
+
+                                <NumericUpDown Minimum="1"
+                                               Maximum="999999"
+                                               Value="{Binding EditQty, Mode=TwoWay}"
+                                               FormatString="0"
+                                               Watermark="单盒数量（必填）" />
+
+                                <TextBox Height="34"
+                                         MinHeight="34"
+                                         MaxHeight="34"
+                                         Padding="10,0"
+                                         VerticalContentAlignment="Center"
+                                         TextWrapping="NoWrap"
+                                         AcceptsReturn="False"
+                                         Watermark="简称（可选）"
+                                         Text="{Binding EditRuleKey, Mode=TwoWay}" />
+
+                                <TextBox Height="34"
+                                         MinHeight="34"
+                                         MaxHeight="34"
+                                         Padding="10,0"
+                                         VerticalContentAlignment="Center"
+                                         TextWrapping="NoWrap"
+                                         AcceptsReturn="False"
+                                         Watermark="追溯码前缀（可选）"
+                                         Text="{Binding EditPreTc, Mode=TwoWay}" />
+
+                                <TextBox AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         MinHeight="140"
+                                         Watermark="备注（可选，弃用/未拆零为特殊值）"
+                                         Text="{Binding EditNote, Mode=TwoWay}" />
+
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        
+                        <Grid Grid.Row="4" IsVisible="{Binding HasEditor}" ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <Button Grid.Column="0"
+                                    Classes="Action"
+                                    Height="38"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding SaveCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="Update" />
+                                    <TextBlock Text="保存" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Grid.Column="1"
+                                    Classes="Action"
+                                    Height="38"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding DeleteCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="DeleteEmpty" />
+                                    <TextBlock Text="删除" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                    </Grid>
+                </suki:GlassCard>
+
+            </Grid>
+        </Grid>
+</UserControl>

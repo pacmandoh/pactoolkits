@@ -1,0 +1,1233 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:conv="clr-namespace:pactoolkits_ui.Converters"
+             xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="1200" d:DesignHeight="820"
+             x:Class="pactoolkits_ui.Views.Pages.DashboardView"
+             x:Name="Root"
+             x:DataType="vm:DashboardViewModel">
+    <UserControl.Resources>
+        <conv:BadgeToIconKindConverter x:Key="BadgeToIconKind" />
+        <conv:BadgeToFgBrushConverter x:Key="BadgeToFgBrush" />
+        <conv:BadgeToBgBrushConverter x:Key="BadgeToBgBrush" />
+        
+        <conv:TraceEntryStateToIconKindConverter x:Key="TraceEntryStateToIconKind" />
+        <conv:TraceEntryStateToFgBrushConverter x:Key="TraceEntryStateToFgBrush" />
+        <conv:TraceEntryStateToBgBrushConverter x:Key="TraceEntryStateToBgBrush" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="DataGrid.CopySelectMenuGrid DataGridRow">
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu>
+                        <MenuItem Header="复制" Click="OnGridRowCopy" CommandParameter="{Binding}">
+                            <MenuItem.Icon>
+                                <icons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="全选" Click="OnGridSelectAll" CommandParameter="{Binding}">
+                            <MenuItem.Icon>
+                                <icons:MaterialIcon Kind="SelectAll" Width="16" Height="16" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Styles>
+
+    <suki:BusyArea BusyText="加载中..." IsBusy="{Binding IsBusy}">
+        <Grid RowDefinitions="Auto,Auto,*">
+            <Border Grid.Row="0"
+                    Padding="18,14,18,12">
+                <Grid ColumnDefinitions="150,150,1.3*,1.1*,1.1*,Auto"
+                      ColumnSpacing="12"
+                      RowDefinitions="Auto,Auto"
+                      VerticalAlignment="Center">
+
+                    <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" Spacing="6"
+                                VerticalAlignment="Center">
+                        <icons:MaterialIcon Kind="CalendarStartOutline"
+                                            Width="14"
+                                            Height="14"
+                                            Opacity="0.75" />
+                        <TextBlock Text="起始"
+                                   Opacity="0.75"
+                                   FontSize="12" />
+                    </StackPanel>
+                    <CalendarDatePicker Grid.Column="0" Grid.Row="1"
+                                        SelectedDate="{Binding FromDate}"
+                                        DisplayDateEnd="{Binding FromMaxDate}" />
+
+                    <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" Spacing="6"
+                                VerticalAlignment="Center">
+                        <icons:MaterialIcon Kind="CalendarEndOutline"
+                                            Width="14"
+                                            Height="14"
+                                            Opacity="0.75" />
+                        <TextBlock Text="结束"
+                                   Opacity="0.75"
+                                   FontSize="12" />
+                    </StackPanel>
+                    <CalendarDatePicker Grid.Column="1" Grid.Row="1"
+                                        SelectedDate="{Binding ToDate}"
+                                        DisplayDateStart="{Binding ToMinDate}"
+                                        SelectedDateFormat="Short" />
+
+                    <StackPanel Grid.Column="2" Grid.Row="0" Orientation="Horizontal" Spacing="6"
+                                VerticalAlignment="Center">
+                        <icons:MaterialIcon Kind="Pill"
+                                            Width="14"
+                                            Height="14"
+                                            Opacity="0.75" />
+                        <TextBlock Text="药品"
+                                   Opacity="0.75"
+                                   FontSize="12" />
+                    </StackPanel>
+                    <Border Grid.Column="2" Grid.Row="1"
+                            Height="36"
+                            Classes="AutoCompleteInputHost"
+                            Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Padding="8, 0">
+                        <AutoCompleteBox x:Name="DrugBox"
+                                         Height="32"
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         ItemsSource="{Binding DrugOptions}"
+                                         Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}"
+                                         FilterMode="Contains"
+                                         Watermark="全部药品"
+                                         KeyDown="DrugBox_OnKeyDown"
+                                         IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}">
+                            <AutoCompleteBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:OptionItem">
+                                    <TextBlock Text="{Binding Display}" />
+                                </DataTemplate>
+                            </AutoCompleteBox.ItemTemplate>
+                        </AutoCompleteBox>
+                    </Border>
+
+                    <StackPanel Grid.Column="3" Grid.Row="0" Orientation="Horizontal" Spacing="6"
+                                VerticalAlignment="Center">
+                        <icons:MaterialIcon Kind="TuneVariant"
+                                            Width="14"
+                                            Height="14"
+                                            Opacity="0.75" />
+                        <TextBlock Text="规格"
+                                   Opacity="0.75"
+                                   FontSize="12" />
+                    </StackPanel>
+                    <ComboBox Grid.Column="3" Grid.Row="1"
+                              x:Name="SpecBox"
+                              ItemsSource="{Binding SpecOptions}"
+                              SelectedItem="{Binding SelectedSpec}"
+                              DisplayMemberBinding="{Binding Display}"
+                              HorizontalContentAlignment="Stretch"
+                              MinWidth="200" />
+
+                    <StackPanel Grid.Column="4" Grid.Row="0" Orientation="Horizontal" Spacing="6"
+                                VerticalAlignment="Center">
+                        <icons:MaterialIcon Kind="Laptop"
+                                            Width="14"
+                                            Height="14"
+                                            Opacity="0.75" />
+                        <TextBlock Text="客户端"
+                                   Opacity="0.75"
+                                   FontSize="12" />
+                    </StackPanel>
+                    <ComboBox Grid.Column="4" Grid.Row="1"
+                              ItemsSource="{Binding Clients}"
+                              SelectedItem="{Binding SelectedClient}"
+                              DisplayMemberBinding="{Binding Display}" />
+
+                    <Button Grid.Column="5" Grid.Row="1"
+                            Classes="Ghost"
+                            Command="{Binding ClearDrugSpecFilterCommand}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Margin="0,0,18,0">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <icons:MaterialIcon Kind="FilterRemoveOutline"
+                                                Width="14"
+                                                Height="14" />
+                            <TextBlock Text="清筛" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+
+            
+            <Border Grid.Row="1"
+                    Padding="18,0,18,12">
+                <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+                    <TabItem Header="总览" />
+                    <TabItem Header="录入" />
+                    <TabItem Header="事务" />
+                    <TabItem Header="异常" />
+                </TabControl>
+            </Border>
+
+            
+            <ScrollViewer Grid.Row="2"
+                          IsVisible="{Binding IsOverviewTab}"
+                          BringIntoViewOnFocusChange="False"
+                          VerticalScrollBarVisibility="Visible"
+                          HorizontalScrollBarVisibility="Disabled">
+
+                <Grid Margin="18,0,18,18"
+                      RowDefinitions="Auto,Auto,Auto"
+                      RowSpacing="14">
+
+                    
+                    <Grid Grid.Row="0"
+                          ColumnDefinitions="*,*,*,*"
+                          ColumnSpacing="12">
+
+                        <suki:GlassCard Grid.Column="0"
+                                        Classes="SectionCard"
+                                        IsInteractive="True"
+                                        Command="{Binding OpenInventoryCommand}">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                                  ColumnDefinitions="Auto,*,Auto"
+                                  RowSpacing="8">
+
+                                <icons:MaterialIcon Kind="DatabaseOutline"
+                                                    Width="18" Height="18" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1"
+                                           Text="可用追溯码库存"
+                                           FontWeight="SemiBold"
+                                           Opacity="0.85"
+                                           Margin="8,0,0,0" />
+
+                                <suki:InfoBadge Grid.Row="0" Grid.Column="2"
+                                                Content="库存"
+                                                HorizontalAlignment="Right" />
+
+                                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
+                                           Text="{Binding Kpi.AvailableRemain}"
+                                           FontSize="22"
+                                           FontWeight="Bold" />
+
+                                <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Grid.Column="0"
+                                           Text="{Binding Kpi.AvailableRemainHint}"
+                                           Classes="SectionHint"
+                                           TextWrapping="Wrap"
+                                           MaxLines="2" />
+
+                                <suki:WaveProgress Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                                                   Width="200"
+                                                   Height="200"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,10,0,0"
+                                                   Value="{Binding Kpi.AvailableRemainPct}" />
+                            </Grid>
+                        </suki:GlassCard>
+
+                        <suki:GlassCard Grid.Column="1"
+                                        Classes="SectionCard"
+                                        IsInteractive="True"
+                                        Command="{Binding OpenPeriodUsageCommand}">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                                  ColumnDefinitions="Auto,*,Auto"
+                                  RowSpacing="8">
+
+                                <icons:MaterialIcon Kind="ChartLine"
+                                                    Width="18" Height="18" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1"
+                                           Text="期间使用条数"
+                                           FontWeight="SemiBold"
+                                           Opacity="0.85"
+                                           Margin="8,0,0,0" />
+
+                                <suki:InfoBadge Grid.Row="0" Grid.Column="2"
+                                                Content="期间"
+                                                HorizontalAlignment="Right" />
+
+                                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
+                                           Text="{Binding Kpi.PeriodUsed}"
+                                           FontSize="22"
+                                           FontWeight="Bold" />
+
+                                <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Grid.Column="0"
+                                           Text="{Binding Kpi.PeriodUsedHint}"
+                                           Classes="SectionHint"
+                                           TextWrapping="Wrap"
+                                           MaxLines="2" />
+
+                                <suki:WaveProgress Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                                                   Width="200"
+                                                   Height="200"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,10,0,0"
+                                                   Value="{Binding Kpi.PeriodUsedPct}" />
+                            </Grid>
+                        </suki:GlassCard>
+
+                        <suki:GlassCard Grid.Column="2"
+                                        Classes="SectionCard"
+                                        IsInteractive="True"
+                                        Command="{Binding OpenAbnormalCommand}">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                                  ColumnDefinitions="Auto,*,Auto"
+                                  RowSpacing="8">
+
+                                <icons:MaterialIcon Kind="CloseCircleOutline"
+                                                    Width="18" Height="18"
+                                                    Foreground="{StaticResource BrushWarning}" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1"
+                                           Text="异常 / 回滚"
+                                           FontWeight="SemiBold"
+                                           Opacity="0.85"
+                                           Margin="8,0,0,0" />
+
+                                <suki:InfoBadge Grid.Row="0" Grid.Column="2"
+                                                Content="注意"
+                                                HorizontalAlignment="Right" />
+
+                                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
+                                           Text="{Binding Kpi.Abnormal}"
+                                           Foreground="{StaticResource BrushWarning}"
+                                           FontSize="22"
+                                           FontWeight="Bold" />
+
+                                <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Grid.Column="0"
+                                           Text="{Binding Kpi.AbnormalHint}"
+                                           Classes="SectionHint"
+                                           TextWrapping="Wrap"
+                                           MaxLines="2" />
+
+                                <suki:WaveProgress Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                                                   Width="200"
+                                                   Height="200"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,10,0,0"
+                                                   Value="{Binding Kpi.AbnormalPct}" />
+                            </Grid>
+                        </suki:GlassCard>
+
+                        <suki:GlassCard Grid.Column="3"
+                                        Classes="SectionCard"
+                                        IsInteractive="True"
+                                        Command="{Binding OpenLowStockCommand}">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                                  ColumnDefinitions="Auto,*,Auto"
+                                  RowSpacing="8">
+
+                                <icons:MaterialIcon Kind="AlertOutline"
+                                                    Width="18" Height="18"
+                                                    Foreground="{StaticResource BrushDanger}"
+                                                    VerticalAlignment="Center" />
+
+                                <TextBlock Grid.Row="0" Grid.Column="1"
+                                           Text="追溯码告紧"
+                                           FontWeight="SemiBold"
+                                           Opacity="0.85"
+                                           Margin="8,0,0,0" />
+
+                                <suki:InfoBadge Grid.Row="0" Grid.Column="2" Content="告警"
+                                                HorizontalAlignment="Right" />
+
+                                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
+                                           Text="{Binding Kpi.LowStockCount}"
+                                           Foreground="{StaticResource BrushDanger}"
+                                           FontSize="22"
+                                           FontWeight="Bold" />
+
+                                <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Grid.Column="0"
+                                           Text="{Binding Kpi.LowStockHint}"
+                                           Classes="SectionHint"
+                                           TextWrapping="Wrap"
+                                           MaxLines="2" />
+
+                                <suki:WaveProgress Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                                                   Width="200"
+                                                   Height="200"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,10,0,0"
+                                                   Value="{Binding Kpi.LowStockPct}" />
+                            </Grid>
+                        </suki:GlassCard>
+                    </Grid>
+
+                    
+                    <Grid Grid.Row="1" ColumnDefinitions="2*,*" ColumnSpacing="14">
+
+                        
+                        <suki:GlassCard Grid.Column="0" Classes="SectionCard">
+                            <controls:EmptyStatePanel
+                                IsEmpty="{Binding IsTrendEmpty}"
+                                EmptyText="期间无使用情况"
+                                EmptyHint="当前筛选条件下没有追溯码使用记录">
+                                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
+                                    <Grid ColumnDefinitions="Auto,*,240" ColumnSpacing="10" VerticalAlignment="Center">
+                                        <icons:MaterialIcon Kind="ChartTimelineVariant"
+                                                            Width="18"
+                                                            Height="18"
+                                                            Foreground="{StaticResource BrushDone}"
+                                                            VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="药品使用统计"
+                                                       Classes="SectionTitle"
+                                                       VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding SectionHint}"
+                                                   Classes="SectionHint" />
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="2"
+                                                  ItemsSource="{Binding TrendModes}"
+                                                  SelectedItem="{Binding TrendMode}"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsTxnBusy}">
+                                        <DataGrid
+                                              x:Name="TrendGridOverview"
+                                              Classes="SectionGrid"
+                                              ItemsSource="{Binding DrugTrend}"
+                                              SelectedItem="{Binding SelectedTrendItem}"
+                                              SelectionChanged="OnBrowsingGridSelectionChanged"
+                                              SelectionMode="Single"
+                                              RowHeight="{StaticResource RowMinHeight}"
+                                              VerticalAlignment="Top"
+                                              HorizontalAlignment="Stretch">
+
+                                        <DataGrid.Columns>
+                                            <DataGridTemplateColumn Width="{StaticResource DgWRank}">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Border>
+                                                            <Border Width="36" Height="36"
+                                                                    CornerRadius="10"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Rank}"
+                                                                           FontWeight="Bold"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center" />
+                                                            </Border>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+
+                                            <DataGridTemplateColumn Width="*">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Spacing="2">
+                                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                                            <TextBlock Text="{Binding Sub}" Classes="DGSub" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+
+                                            <DataGridTemplateColumn Width="Auto">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding SourceText}" Classes="SectionHint" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+
+                                            <DataGridTemplateColumn Width="{StaticResource DgWRightValue}">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding ValueText}"
+                                                                   Classes="DGRightCell DGNum" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                        </DataGrid>
+                                    </suki:BusyArea>
+
+                                    <Border Grid.Row="2"
+                                            Padding="2,6,2,0"
+                                            BorderThickness="0,1,0,0"
+                                            BorderBrush="{DynamicResource SukiBorderBrush}"
+                                            Opacity="0.7">
+                                        <TextBlock Classes="DGSub"
+                                                   Text="{Binding DrugTrend.Count, StringFormat=共 {0} 条趋势项}" />
+                                    </Border>
+                                </Grid>
+                            </controls:EmptyStatePanel>
+                        </suki:GlassCard>
+
+                        
+                        <suki:GlassCard Grid.Column="1" Classes="SectionCard">
+                            <controls:EmptyStatePanel
+                                IsEmpty="{Binding IsRecentTxnsEmpty}"
+                                EmptyText="期间无事务"
+                                EmptyHint="当前筛选条件下没有取码事务记录">
+                                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                                        <icons:MaterialIcon Grid.Column="0"
+                                                            Kind="ReceiptTextClockOutline"
+                                                            Width="18"
+                                                            Height="18"
+                                                            VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                            <TextBlock Text="事务总览"
+                                                       Classes="SectionTitle"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock
+                                                Text="{Binding SectionHint}"
+                                                Classes="SectionHint" />
+                                        </StackPanel>
+                                        <Button Grid.Column="2"
+                                                Classes="Ghost"
+                                                Content="查看全部"
+                                                VerticalAlignment="Center"
+                                                Command="{Binding OpenTxnListCommand}" />
+                                    </Grid>
+                                    <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsTxnBusy}">
+                                        <DataGrid
+                                              x:Name="RecentTxnGridOverview"
+                                              Classes="SectionGrid TxnGrid"
+                                              ItemsSource="{Binding RecentTxnsOverview}"
+                                              SelectedItem="{Binding SelectedTxn}"
+                                              SelectionChanged="OnBrowsingGridSelectionChanged"
+                                              SelectionMode="Single"
+                                              RowHeight="{StaticResource RowMinHeight}"
+                                              VerticalAlignment="Stretch"
+                                              HorizontalAlignment="Stretch">
+                                        <DataGrid.Styles>
+                                            <Style Selector="DataGrid.TxnGrid DataGridCell">
+                                                <Setter Property="Background"
+                                                        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=15}" />
+                                            </Style>
+                                            <Style
+                                                Selector="DataGrid.TxnGrid DataGridRow:pointerover DataGridCell">
+                                                <Setter Property="Background"
+                                                        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=25}" />
+                                            </Style>
+                                            <Style Selector="DataGrid.TxnGrid DataGridRow:selected DataGridCell">
+                                                <Setter Property="Background"
+                                                        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=35}" />
+                                            </Style>
+                                            <Style
+                                                Selector="DataGrid.TxnGrid DataGridRow:selected:pointerover DataGridCell">
+                                                <Setter Property="Background"
+                                                        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=50}" />
+                                            </Style>
+                                        </DataGrid.Styles>
+
+                                        <DataGrid.Columns>
+                                            <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Border Width="28"
+                                                                Height="28"
+                                                                CornerRadius="8"
+                                                                Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center">
+                                                            <icons:MaterialIcon Width="16"
+                                                                    Height="16"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"
+                                                                    Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}"
+                                                                    Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+
+                                            <DataGridTemplateColumn Width="*">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+
+                                            <DataGridTemplateColumn Width="*">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Time}" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+
+                                            <DataGridTemplateColumn Width="{StaticResource DgWRightSmall}">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Qty}" Classes="DGRightCell DGNum" />
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                        </DataGrid>
+                                    </suki:BusyArea>
+
+                                    <Border Grid.Row="2"
+                                            Padding="2,6,2,0"
+                                            BorderThickness="0,1,0,0"
+                                            BorderBrush="{DynamicResource SukiBorderBrush}"
+                                            Opacity="0.7">
+                                        <TextBlock Classes="DGSub"
+                                                   Text="{Binding RecentTxnsOverview.Count, StringFormat=共 {0} 条事务}" />
+                                    </Border>
+                                </Grid>
+                            </controls:EmptyStatePanel>
+                        </suki:GlassCard>
+                    </Grid>
+
+                    
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="14">
+
+                        
+                        <suki:GlassCard Grid.Column="0" Classes="SectionCard" MinHeight="220">
+                            <controls:EmptyStatePanel
+                                IsEmpty="{Binding IsTopClientsEmpty}"
+                                EmptyText="暂无客户端使用记录"
+                                EmptyHint="当前时间范围内没有任何客户端操作">
+                                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
+                                    <Grid ColumnDefinitions="Auto,*,220" ColumnSpacing="10" VerticalAlignment="Center">
+                                        <icons:MaterialIcon Kind="AccountGroupOutline"
+                                                            Width="18"
+                                                            Height="18"
+                                                            Foreground="{StaticResource BrushDone}"
+                                                            VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                            <TextBlock Text="客户端"
+                                                       Classes="SectionTitle" />
+                                            <TextBlock Text="{Binding SectionHint}" Classes="SectionHint" />
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="2"
+                                                  ItemsSource="{Binding ClientMetricModes}"
+                                                  SelectedItem="{Binding ClientMetricMode}"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalAlignment="Right" />
+                                    </Grid>
+
+                                    <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsTxnBusy}">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                      HorizontalScrollBarVisibility="Disabled"
+                                                      BringIntoViewOnFocusChange="False">
+                                        <ItemsControl ItemsSource="{Binding TopClients}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Spacing="6" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Classes="RowItem">
+                                                        <Grid ColumnDefinitions="44,*,84" RowDefinitions="Auto,Auto"
+                                                              RowSpacing="4" VerticalAlignment="Center">
+                                                            <Border Width="28" Height="28" CornerRadius="8"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Index}"
+                                                                           FontWeight="Bold"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center" />
+                                                            </Border>
+                                                            <TextBlock Grid.Column="1" Grid.Row="0"
+                                                                       FontWeight="SemiBold"
+                                                                       TextWrapping="NoWrap">
+                                                                <Run Text="{Binding ClientDisplay}" />
+                                                            </TextBlock>
+                                                            <TextBlock Grid.Column="2" Grid.Row="0"
+                                                                       Text="{Binding Value}"
+                                                                       Classes="DGRightCell DGNum"
+                                                                       HorizontalAlignment="Right" />
+                                                            <TextBlock Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2"
+                                                                       Text="{Binding MetaText}"
+                                                                       Classes="DGSub"
+                                                                       IsVisible="{Binding HasMeta}" />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        </ScrollViewer>
+                                    </suki:BusyArea>
+
+                                    <Border Grid.Row="2"
+                                            Padding="2,6,2,0"
+                                            BorderThickness="0,1,0,0"
+                                            BorderBrush="{DynamicResource SukiBorderBrush}"
+                                            Opacity="0.7">
+                                        <TextBlock Classes="DGSub"
+                                                   Text="{Binding TopClients.Count, StringFormat=共 {0} 个客户端}" />
+                                    </Border>
+                                </Grid>
+                            </controls:EmptyStatePanel>
+                        </suki:GlassCard>
+
+                        
+                        <suki:GlassCard Grid.Column="1" Classes="SectionCard" MinHeight="220">
+                            <controls:EmptyStatePanel
+                                IsEmpty="{Binding IsEntryRecentEmpty}"
+                                EmptyText="暂无录入记录"
+                                EmptyHint="期间内未发生追溯码录入">
+                                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
+
+                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10"
+                                          VerticalAlignment="Center">
+                                        <icons:MaterialIcon Kind="TextBoxPlusOutline"
+                                                            Width="18"
+                                                            Height="18"
+                                                            VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="录入追溯码情况"
+                                                       Classes="SectionTitle"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding SectionHint}"
+                                                       Classes="SectionHint" />
+                                        </StackPanel>
+                                        <Button Grid.Column="2"
+                                                Classes="Ghost"
+                                                Content="去录入"
+                                                VerticalAlignment="Center"
+                                                Command="{Binding GoInputTabCommand}" />
+                                        <Button Grid.Column="3"
+                                                Classes="Ghost"
+                                                Content="查看全部"
+                                                VerticalAlignment="Center"
+                                                Command="{Binding OpenInputHistoryCommand}" />
+                                    </Grid>
+
+                                    <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsEntryBusy}">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                      HorizontalScrollBarVisibility="Disabled"
+                                                      BringIntoViewOnFocusChange="False">
+                                        
+                                        <ItemsControl ItemsSource="{Binding EntryRecentOverview}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Spacing="6" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Classes="RowItem"
+                                                            PointerReleased="OnEntryRecentRowPointerReleased">
+                                                        <Grid ColumnDefinitions="44,*,180,84" RowDefinitions="Auto,Auto"
+                                                              RowSpacing="4" VerticalAlignment="Center">
+                                                            <Border Width="28"
+                                                                    Height="28"
+                                                                    CornerRadius="8"
+                                                                    Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center">
+                                                                <icons:MaterialIcon Width="16"
+                                                                        Height="16"
+                                                                        HorizontalAlignment="Center"
+                                                                        VerticalAlignment="Center"
+                                                                        Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                                        Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                                                        Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}" />
+                                                            </Border>
+
+                                                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                                                       FontWeight="SemiBold"
+                                                                       TextWrapping="NoWrap">
+                                                                <Run Text="{Binding DrugId}" />
+                                                                <Run Text=" " />
+                                                                <Run Text="{Binding Spec}" />
+                                                            </TextBlock>
+
+                                                            <TextBlock Grid.Row="0" Grid.Column="2"
+                                                                       Text="{Binding ClientDisplay}"
+                                                                       Classes="SectionHint"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       HorizontalAlignment="Right"
+                                                                       VerticalAlignment="Center" />
+
+                                                            <TextBlock Grid.Row="0" Grid.Column="3"
+                                                                       Text="{Binding Qty}"
+                                                                       Classes="DGRightCell DGNum"
+                                                                       HorizontalAlignment="Right"
+                                                                       VerticalAlignment="Center" />
+
+                                                            <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
+                                                                       Text="{Binding Message}"
+                                                                       Classes="DGSub" />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        </ScrollViewer>
+                                    </suki:BusyArea>
+
+                                    <Border Grid.Row="2"
+                                            Padding="2,6,2,0"
+                                            BorderThickness="0,1,0,0"
+                                            BorderBrush="{DynamicResource SukiBorderBrush}"
+                                            Opacity="0.7">
+                                        <TextBlock Classes="DGSub"
+                                                   Text="{Binding EntryTotalCount, StringFormat=共 {0} 条录入}" />
+                                    </Border>
+
+                                </Grid>
+                            </controls:EmptyStatePanel>
+                        </suki:GlassCard>
+                    </Grid>
+
+                </Grid>
+            </ScrollViewer>
+
+            <Grid Grid.Row="2"
+                  IsVisible="{Binding IsInputTab}"
+                  Margin="18,0,18,18"
+                  RowDefinitions="*">
+                <suki:GlassCard Grid.Row="0" Classes="SectionCard">
+                    <controls:EmptyStatePanel
+                        IsEmpty="{Binding IsEntryRecentEmpty}"
+                        EmptyText="暂无录入记录"
+                        EmptyHint="当前筛选条件下没有录入流水">
+                        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                                <icons:MaterialIcon Kind="TextBoxMultipleOutline"
+                                                    Width="18"
+                                                    Height="18"
+                                                    VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock Text="录入追溯码情况" Classes="SectionTitle" />
+                                    <TextBlock Text="受顶部药品/规格/客户端/日期筛选影响，展示录入条码明细"
+                                               Classes="SectionHint" />
+                                </StackPanel>
+                                <Button Grid.Column="2"
+                                        Classes="Ghost"
+                                        Content="去录入"
+                                        VerticalAlignment="Center"
+                                        Command="{Binding GoInputTabCommand}" />
+                                <Button Grid.Column="3"
+                                        Classes="Ghost"
+                                        Content="回总览"
+                                        VerticalAlignment="Center"
+                                        Command="{Binding OpenOverviewTabCommand}" />
+                            </Grid>
+                            <TextBlock Grid.Row="1" Text="{Binding SectionHint}" Classes="SectionHint" />
+                            <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsEntryBusy}">
+                                <DataGrid x:Name="EntryRecentGridInputTab"
+                                          Classes="SectionGrid CopySelectMenuGrid"
+                                          ItemsSource="{Binding EntryRecent}"
+                                          SelectedItem="{Binding SelectedEntryRecent}"
+                                          SelectionChanged="OnBrowsingGridSelectionChanged"
+                                          PointerPressed="OnBrowsingGridPointerPressed"
+                                          HeadersVisibility="Column"
+                                          RowHeight="{StaticResource RowMinHeight}"
+                                          SelectionMode="Extended"
+                                          CanUserResizeColumns="True"
+                                          VerticalAlignment="Stretch"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          GridLinesVisibility="All">
+                                <DataGrid.Styles>
+                                    <Style Selector="DataGrid#EntryRecentGridInputTab DataGridCell">
+                                        <Setter Property="Background"
+                                                Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}}" />
+                                    </Style>
+                                    <Style Selector="DataGrid#EntryRecentGridInputTab DataGridRow:pointerover DataGridCell">
+                                        <Setter Property="Background"
+                                                Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}}" />
+                                    </Style>
+                                    <Style Selector="DataGrid#EntryRecentGridInputTab DataGridRow:selected DataGridCell">
+                                        <Setter Property="Background"
+                                                Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}}" />
+                                    </Style>
+                                </DataGrid.Styles>
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border Width="28"
+                                                        Height="28"
+                                                        CornerRadius="8"
+                                                        Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center">
+                                                    <icons:MaterialIcon Width="16"
+                                                                        Height="16"
+                                                                        HorizontalAlignment="Center"
+                                                                        VerticalAlignment="Center"
+                                                                        Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                                        Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="时间" Binding="{Binding EntryAtText}" Width="120" />
+                                    <DataGridTextColumn Header="药品" Binding="{Binding DrugId}" Width="1.5*" />
+                                    <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.2*" />
+                                    <DataGridTextColumn Header="数量" Binding="{Binding Qty}" Width="90" />
+                                    <DataGridTextColumn Header="来源" Binding="{Binding Source}" Width="110" />
+                                    <DataGridTextColumn Header="客户端" Binding="{Binding ClientDisplay}" Width="1.4*" />
+                                    <DataGridTextColumn Header="说明" Binding="{Binding Message}" Width="2.2*" />
+                                </DataGrid.Columns>
+                                </DataGrid>
+                            </suki:BusyArea>
+
+                            <Grid Grid.Row="3"
+                                  ColumnDefinitions="*,Auto"
+                                  ColumnSpacing="12"
+                                  VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
+                                    <TextBlock Text="{Binding EntryTotalCount, StringFormat=共 {0} 条}" />
+                                    <TextBlock Text="{Binding EntryPageIndex, StringFormat=第 {0} 页}" />
+                                    <TextBlock Text="{Binding EntryTotalPages, StringFormat=/ {0} 页}" />
+                                    <TextBlock Text="{Binding EntryPageSize, StringFormat=每页 {0} 条}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasEntryPrevPage}"
+                                            Command="{Binding FirstEntryPageCommand}">
+                                        <TextBlock Text="首页" />
+                                    </Button>
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasEntryPrevPage}"
+                                            Command="{Binding PrevEntryPageCommand}">
+                                        <TextBlock Text="上一页" />
+                                    </Button>
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasEntryNextPage}"
+                                            Command="{Binding NextEntryPageCommand}">
+                                        <TextBlock Text="下一页" />
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </controls:EmptyStatePanel>
+                </suki:GlassCard>
+            </Grid>
+
+
+            <Grid Grid.Row="2"
+                  IsVisible="{Binding IsTxnTab}"
+                  Margin="18,0,18,18"
+                  RowDefinitions="*">
+                <suki:GlassCard Grid.Row="0" Classes="SectionCard">
+                    <controls:EmptyStatePanel
+                        IsEmpty="{Binding IsTxnPanelEmpty}"
+                        EmptyText="暂无事务数据"
+                        EmptyHint="当前筛选条件下没有取码事务记录">
+                        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
+                            <Grid ColumnDefinitions="Auto,*,220,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                                <icons:MaterialIcon Grid.Column="0"
+                                                    Kind="ReceiptTextClockOutline"
+                                                    Width="18"
+                                                    Height="18"
+                                                    VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding TxnPanelMode.Title}" Classes="SectionTitle"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Text="受顶部药品/规格/客户端/日期筛选影响，展示取码事务明细" Classes="SectionHint" />
+                                </StackPanel>
+                                <ComboBox Grid.Column="2"
+                                          ItemsSource="{Binding TxnPanelModes}"
+                                          SelectedItem="{Binding TxnPanelMode}"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Center" />
+                                <Button Grid.Column="3"
+                                        Classes="Ghost"
+                                        Content="查看异常"
+                                        VerticalAlignment="Center"
+                                        Command="{Binding OpenAbnormalCommand}" />
+                            </Grid>
+                            <TextBlock Grid.Row="1" Classes="SectionHint" Text="{Binding SectionHint}" />
+                            <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsTxnBusy}">
+                                <Grid>
+                                    <DataGrid x:Name="TxnDetailGrid"
+                                          IsVisible="{Binding IsTxnPanelDetailMode}"
+                                          Classes="SectionGrid TxnGrid CopySelectMenuGrid"
+                                          ItemsSource="{Binding RecentTxns}"
+                                          SelectedItem="{Binding SelectedTxn}"
+                                          SelectionChanged="OnBrowsingGridSelectionChanged"
+                                          PointerPressed="OnBrowsingGridPointerPressed"
+                                          SelectionMode="Extended"
+                                          HeadersVisibility="Column"
+                                          RowHeight="{StaticResource RowMinHeight}"
+                                          VerticalAlignment="Stretch"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          GridLinesVisibility="All">
+                                <DataGrid.Styles>
+                                    <Style Selector="DataGrid.TxnGrid DataGridCell">
+                                        <Setter Property="Background"
+                                                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=15}" />
+                                    </Style>
+                                    <Style Selector="DataGrid.TxnGrid DataGridRow:pointerover DataGridCell">
+                                        <Setter Property="Background"
+                                                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=25}" />
+                                    </Style>
+                                    <Style Selector="DataGrid.TxnGrid DataGridRow:selected DataGridCell">
+                                        <Setter Property="Background"
+                                                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=35}" />
+                                    </Style>
+                                    <Style Selector="DataGrid.TxnGrid DataGridRow:selected:pointerover DataGridCell">
+                                        <Setter Property="Background"
+                                                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=50}" />
+                                    </Style>
+                                </DataGrid.Styles>
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border Width="28"
+                                                        Height="28"
+                                                        CornerRadius="8"
+                                                        Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center">
+                                                    <icons:MaterialIcon Width="16"
+                                                                        Height="16"
+                                                                        HorizontalAlignment="Center"
+                                                                        VerticalAlignment="Center"
+                                                                        Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}"
+                                                                        Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="标题" Binding="{Binding Title}" Width="1.9*" />
+                                    <DataGridTextColumn Header="客户端" Binding="{Binding ClientDisplay}" Width="1.2*" />
+                                    <DataGridTextColumn Header="时间" Binding="{Binding Time}" Width="1.1*" />
+                                    <DataGridTextColumn Header="数量" Binding="{Binding Qty}" Width="100" />
+                                </DataGrid.Columns>
+                                    </DataGrid>
+
+                                    <DataGrid x:Name="TxnTrendGrid"
+                                          IsVisible="{Binding IsTxnPanelTrendMode}"
+                                          Classes="SectionGrid CopySelectMenuGrid"
+                                          ItemsSource="{Binding TxnTrendRows}"
+                                          SelectedItem="{Binding SelectedTrendItem}"
+                                          SelectionChanged="OnBrowsingGridSelectionChanged"
+                                          PointerPressed="OnBrowsingGridPointerPressed"
+                                          SelectionMode="Extended"
+                                          HeadersVisibility="Column"
+                                          RowHeight="{StaticResource RowMinHeight}"
+                                          VerticalAlignment="Stretch"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <DataGrid.Styles>
+                                </DataGrid.Styles>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="#" Binding="{Binding Rank}" Width="70" />
+                                    <DataGridTextColumn Header="药品" Binding="{Binding Name}" Width="1.2*" />
+                                    <DataGridTextColumn Header="规格" Binding="{Binding Sub}" Width="1.2*" />
+                                    <DataGridTextColumn Header="来源" Binding="{Binding SourceText}" Width="1.8*" />
+                                    <DataGridTextColumn Header="值" Binding="{Binding ValueText}" Width="100" />
+                                </DataGrid.Columns>
+                                    </DataGrid>
+                                </Grid>
+                            </suki:BusyArea>
+
+                            <Grid Grid.Row="3"
+                                  IsVisible="{Binding IsTxnPanelDetailMode}"
+                                  ColumnDefinitions="*,Auto"
+                                  ColumnSpacing="12"
+                                  VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
+                                    <TextBlock Text="{Binding TxnTotalCount, StringFormat=共 {0} 条}" />
+                                    <TextBlock Text="{Binding TxnPageIndex, StringFormat=第 {0} 页}" />
+                                    <TextBlock Text="{Binding TxnTotalPages, StringFormat=/ {0} 页}" />
+                                    <TextBlock Text="{Binding TxnPageSize, StringFormat=每页 {0} 条}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasTxnPrevPage}"
+                                            Command="{Binding FirstTxnPageCommand}">
+                                        <TextBlock Text="首页" />
+                                    </Button>
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasTxnPrevPage}"
+                                            Command="{Binding PrevTxnPageCommand}">
+                                        <TextBlock Text="上一页" />
+                                    </Button>
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasTxnNextPage}"
+                                            Command="{Binding NextTxnPageCommand}">
+                                        <TextBlock Text="下一页" />
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Grid.Row="3"
+                                  IsVisible="{Binding IsTxnPanelTrendMode}"
+                                  ColumnDefinitions="*,Auto"
+                                  ColumnSpacing="12"
+                                  VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
+                                    <TextBlock Text="{Binding TxnTrendTotalCount, StringFormat=共 {0} 条}" />
+                                    <TextBlock Text="{Binding TxnTrendPageIndex, StringFormat=第 {0} 页}" />
+                                    <TextBlock Text="{Binding TxnTrendTotalPages, StringFormat=/ {0} 页}" />
+                                    <TextBlock Text="{Binding TxnTrendPageSize, StringFormat=每页 {0} 条}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasTxnTrendPrevPage}"
+                                            Command="{Binding FirstTxnTrendPageCommand}">
+                                        <TextBlock Text="首页" />
+                                    </Button>
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasTxnTrendPrevPage}"
+                                            Command="{Binding PrevTxnTrendPageCommand}">
+                                        <TextBlock Text="上一页" />
+                                    </Button>
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasTxnTrendNextPage}"
+                                            Command="{Binding NextTxnTrendPageCommand}">
+                                        <TextBlock Text="下一页" />
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </controls:EmptyStatePanel>
+                </suki:GlassCard>
+            </Grid>
+
+            <Grid Grid.Row="2"
+                  IsVisible="{Binding IsAbnormalTab}"
+                  Margin="18,0,18,18"
+                  RowDefinitions="*">
+                <suki:GlassCard Grid.Row="0" Classes="SectionCard">
+                    <controls:EmptyStatePanel
+                        IsEmpty="{Binding IsAbnormalEmpty}"
+                        EmptyText="暂无异常队列"
+                        EmptyHint="当前筛选条件下没有回滚/异常事务">
+                        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                                <icons:MaterialIcon Kind="AlertOctagonOutline"
+                                                    Width="18"
+                                                    Height="18"
+                                                    Foreground="{StaticResource BrushDanger}"
+                                                    VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock Text="异常事务队列" Classes="SectionTitle" />
+                                        <TextBlock Text="优先处理回滚事务，确认客户端与库存状态后再重试"
+                                                   Classes="SectionHint" />
+                                </StackPanel>
+                                <Button Grid.Column="2"
+                                        Classes="Ghost"
+                                        Content="查看事务"
+                                        VerticalAlignment="Center"
+                                        Command="{Binding OpenTxnListCommand}" />
+                                <Button Grid.Column="3"
+                                        Classes="Ghost"
+                                        Content="去录入页"
+                                        VerticalAlignment="Center"
+                                        Command="{Binding GoInputTabCommand}" />
+                            </Grid>
+                            <TextBlock Grid.Row="1" Text="{Binding SectionHint}" Classes="SectionHint" />
+                                <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsAbnormalBusy}">
+                                    <DataGrid x:Name="AbnormalGrid"
+                                              Classes="SectionGrid CopySelectMenuGrid"
+                                              ItemsSource="{Binding AbnormalQueue}"
+                                              SelectedItem="{Binding SelectedAbnormal}"
+                                              SelectionChanged="OnBrowsingGridSelectionChanged"
+                                              PointerPressed="OnBrowsingGridPointerPressed"
+                                              SelectionMode="Extended"
+                                              RowHeight="{StaticResource RowMinHeight}"
+                                              VerticalAlignment="Stretch"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Disabled"
+                                              GridLinesVisibility="All">
+                                <DataGrid.Styles>
+                                </DataGrid.Styles>
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border Width="28"
+                                                        Height="28"
+                                                        CornerRadius="8"
+                                                        Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center">
+                                                    <icons:MaterialIcon Width="16"
+                                                                        Height="16"
+                                                                        HorizontalAlignment="Center"
+                                                                        VerticalAlignment="Center"
+                                                                        Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}"
+                                                                        Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="类型" Binding="{Binding Title}" Width="180" />
+                                    <DataGridTextColumn Header="客户端" Binding="{Binding ClientDisplay}" Width="1.1*" />
+                                    <DataGridTextColumn Header="详情" Binding="{Binding Detail}" Width="2*" />
+                                </DataGrid.Columns>
+                                    </DataGrid>
+                                </suki:BusyArea>
+
+                            <Grid Grid.Row="3"
+                                  ColumnDefinitions="*,Auto"
+                                  ColumnSpacing="12"
+                                  VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
+                                    <TextBlock Text="{Binding AbnormalTotalCount, StringFormat=共 {0} 条}" />
+                                    <TextBlock Text="{Binding AbnormalPageIndex, StringFormat=第 {0} 页}" />
+                                    <TextBlock Text="{Binding AbnormalTotalPages, StringFormat=/ {0} 页}" />
+                                    <TextBlock Text="{Binding AbnormalPageSize, StringFormat=每页 {0} 条}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasAbnormalPrevPage}"
+                                            Command="{Binding FirstAbnormalPageCommand}">
+                                        <TextBlock Text="首页" />
+                                    </Button>
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasAbnormalPrevPage}"
+                                            Command="{Binding PrevAbnormalPageCommand}">
+                                        <TextBlock Text="上一页" />
+                                    </Button>
+                                    <Button Classes="Action"
+                                            Height="34"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            IsEnabled="{Binding HasAbnormalNextPage}"
+                                            Command="{Binding NextAbnormalPageCommand}">
+                                        <TextBlock Text="下一页" />
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </controls:EmptyStatePanel>
+                </suki:GlassCard>
+            </Grid>
+
+
+        </Grid>
+    </suki:BusyArea>
+</UserControl>

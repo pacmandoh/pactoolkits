@@ -1,0 +1,308 @@
+using System;
+using System.Collections.Generic;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using Microsoft.Extensions.DependencyInjection;
+using pactoolkits_ui.Common;
+using pactoolkits_ui.Services;
+
+namespace pactoolkits_ui.Views.Pages;
+
+public partial class DashboardView : UserControl
+{
+    private static readonly string[] CopyFields =
+    {
+        "Title", "Detail", "DrugId", "Spec", "Time", "Qty", "ValueText", "SourceText", "Rank", "Message"
+    };
+
+    private static readonly string[] ContextGridNames =
+    {
+        "TrendGridOverview",
+        "RecentTxnGridOverview",
+        "EntryRecentGridInputTab",
+        "TxnDetailGrid",
+        "TxnTrendGrid",
+        "AbnormalGrid"
+    };
+    private static readonly string[] BrowsingGridNames =
+    {
+        "TrendGridOverview",
+        "RecentTxnGridOverview",
+        "EntryRecentGridInputTab",
+        "TxnDetailGrid",
+        "TxnTrendGrid",
+        "AbnormalGrid"
+    };
+
+    private bool _syncingSelection;
+    private readonly IClipboardService _clipboard;
+    private readonly Dictionary<string, List<object>> _selectionSnapshot = new(StringComparer.Ordinal);
+    private string? _lastRightPressedGridName;
+
+    public DashboardView()
+        : this(((Application.Current as App)?.Services.GetRequiredService<IClipboardService>())
+               ?? throw new InvalidOperationException("IClipboardService not available. Ensure it is registered in App.Services."))
+    {
+    }
+
+    public DashboardView(IClipboardService clipboard)
+    {
+        _clipboard = clipboard;
+        InitializeComponent();
+    }
+
+    private void DrugBox_OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (sender is not AutoCompleteBox box) return;
+        if (e.Key != Key.Enter) return;
+
+        e.Handled = true;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            InputFocusHelper.CommitAutoCompleteInput(box);
+
+            if (DataContext is pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm)
+            {
+                var cmd = vm.ApplyDrugFilterCommand;
+                if (cmd.CanExecute(null))
+                    cmd.Execute(null);
+            }
+
+            InputFocusHelper.FocusControlByName(this, "SpecBox");
+        }, DispatcherPriority.Input);
+    }
+
+    private async void OnBrowsingGridSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        try
+        {
+            if (_syncingSelection) return;
+            if (sender is not DataGrid activeGrid) return;
+            if (DataContext is not pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm) return;
+
+            CaptureSelectionSnapshot(activeGrid);
+
+            if (!vm.IsOverviewTab)
+                return;
+
+            var selected = e.AddedItems.Count > 0 ? e.AddedItems[0] : activeGrid.SelectedItem;
+            if (selected is null) return;
+
+            switch (activeGrid.Name)
+            {
+                case "TrendGridOverview":
+                    await vm.HandleTrendRowSelectedAsync(selected as pactoolkits_ui.ViewModels.Pages.TrendDrugItem);
+                    break;
+                case "RecentTxnGridOverview":
+                    await vm.HandleRecentTxnRowSelectedAsync(selected as pactoolkits_ui.ViewModels.Pages.TxnItem);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("DashboardView", "dashboard.selection_handler.fail", "Dashboard selection handler failed", ex);
+        }
+    }
+
+    private async void OnEntryRecentRowPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        try
+        {
+            if (DataContext is not pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm) return;
+            if (sender is not Border { DataContext: pactoolkits_ui.ViewModels.Pages.EntryRecentItem item }) return;
+
+            ClearBrowsingSelectionInUi(vm);
+            await vm.HandleEntryRecentRowSelectedAsync(item);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("DashboardView", "dashboard.pointer_handler.fail", "Dashboard pointer handler failed", ex);
+        }
+    }
+
+    private void ClearBrowsingSelectionInUi(pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm)
+    {
+        _syncingSelection = true;
+        vm.SuppressRowSelectionActionScope(true);
+        try
+        {
+            foreach (var grid in GetBrowsingGrids())
+                grid.SelectedItem = null;
+            vm.ClearBrowsingSelections();
+        }
+        finally
+        {
+            vm.SuppressRowSelectionActionScope(false);
+            _syncingSelection = false;
+        }
+    }
+
+    public async void OnGridRowCopy(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem mi) return;
+        await GridContextMenuActions.CopySafeAsync(
+            _clipboard,
+            this,
+            mi,
+            mi.CommandParameter,
+            ContextGridNames,
+            CopyFields,
+            "DashboardView",
+            "dashboard.context_copy.fail",
+            "Failed copying dashboard rows",
+            (grid, selected) =>
+            {
+                if (selected.Count <= 1 &&
+                    grid.Name is { Length: > 0 } key &&
+                    _selectionSnapshot.TryGetValue(key, out var snap) &&
+                    snap.Count > 1)
+                {
+                    return snap;
+                }
+
+                return selected;
+            });
+    }
+
+    public void OnGridSelectAll(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem mi) return;
+        GridContextMenuActions.SelectAllSafe(
+            this,
+            mi,
+            mi.CommandParameter,
+            ContextGridNames,
+            "DashboardView",
+            "dashboard.context_select_all.fail",
+            "Failed selecting all rows",
+            CaptureSelectionSnapshot);
+    }
+
+    private void OnBrowsingGridPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not DataGrid grid || string.IsNullOrWhiteSpace(grid.Name))
+            return;
+
+        var p = e.GetCurrentPoint(grid).Properties;
+        if (p.IsRightButtonPressed)
+            _lastRightPressedGridName = grid.Name;
+    }
+
+    private void CaptureSelectionSnapshot(DataGrid grid)
+    {
+        if (string.IsNullOrWhiteSpace(grid.Name))
+            return;
+
+        var name = grid.Name!;
+        var selected = DataGridInteractionHelper.ReadSelectedItems(grid);
+
+        if (selected.Count == 0)
+        {
+            _selectionSnapshot.Remove(name);
+            return;
+        }
+
+        if (selected.Count == 1 && string.Equals(_lastRightPressedGridName, name, StringComparison.Ordinal))
+            return;
+
+        _selectionSnapshot[name] = selected;
+    }
+
+    private IEnumerable<DataGrid> GetBrowsingGrids()
+    {
+        foreach (var name in BrowsingGridNames)
+        {
+            if (this.FindControl<DataGrid>(name) is { } grid)
+                yield return grid;
+        }
+    }
+
+    private void ClearGridSelection(DataGrid grid)
+    {
+        _syncingSelection = true;
+        try
+        {
+            HardClearGridSelection(grid);
+
+            if (DataContext is pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm)
+            {
+                vm.SuppressRowSelectionActionScope(true);
+                try
+                {
+                    switch (grid.Name)
+                    {
+                        case "EntryRecentGridInputTab":
+                            vm.SelectedEntryRecent = null;
+                            break;
+                        case "TxnDetailGrid":
+                            vm.SelectedTxn = null;
+                            break;
+                        case "TxnTrendGrid":
+                            vm.SelectedTrendItem = null;
+                            break;
+                        case "AbnormalGrid":
+                            vm.SelectedAbnormal = null;
+                            break;
+                    }
+                }
+                finally
+                {
+                    vm.SuppressRowSelectionActionScope(false);
+                }
+            }
+        }
+        finally
+        {
+            _syncingSelection = false;
+        }
+    }
+
+    private static bool IsTargetTabGrid(string name)
+        => name is "EntryRecentGridInputTab" or "TxnDetailGrid" or "TxnTrendGrid" or "AbnormalGrid";
+
+    private void ClearAllTargetTabGridSelections()
+    {
+        _syncingSelection = true;
+        try
+        {
+            foreach (var name in new[] { "EntryRecentGridInputTab", "TxnDetailGrid", "TxnTrendGrid", "AbnormalGrid" })
+            {
+                if (this.FindControl<DataGrid>(name) is { } grid)
+                {
+                    HardClearGridSelection(grid);
+                }
+            }
+
+            if (DataContext is pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm)
+            {
+                vm.SuppressRowSelectionActionScope(true);
+                try
+                {
+                    vm.SelectedEntryRecent = null;
+                    vm.SelectedTxn = null;
+                    vm.SelectedTrendItem = null;
+                    vm.SelectedAbnormal = null;
+                }
+                finally
+                {
+                    vm.SuppressRowSelectionActionScope(false);
+                }
+            }
+        }
+        finally
+        {
+            _syncingSelection = false;
+        }
+    }
+
+    private static void HardClearGridSelection(DataGrid grid)
+    {
+        DataGridInteractionHelper.ClearSelection(grid);
+    }
+
+}

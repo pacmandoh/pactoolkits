@@ -1,0 +1,803 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
+             xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="pactoolkits_ui.Views.Pages.SettingsView"
+             x:DataType="vm:SettingsViewModel"
+             Focusable="True"
+             x:Name="Root">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+
+        <Grid Margin="18,14,18,18"
+              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+              KeyboardNavigation.TabNavigation="Cycle"
+              RowSpacing="14">
+
+            
+            <Grid ColumnDefinitions="*,Auto"
+                  VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="DatabaseOutline" Width="18" Height="18" />
+                    <TextBlock Text="PostgreSQL 连接设置"
+                               Classes="SectionTitle" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Status}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Right"
+                           Opacity="0.8" />
+            </Grid>
+
+            
+            <suki:GlassCard Grid.Row="1"
+                            Classes="SectionCard"
+                            HorizontalAlignment="Stretch">
+                <Grid RowDefinitions="Auto,*"
+                      RowSpacing="10">
+
+                    
+                    <Grid ColumnDefinitions="*,Auto"
+                          VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <icons:MaterialIcon Kind="Link" Width="16" Height="16" />
+                            <TextBlock Text="连接信息"
+                                       Classes="SectionTitle" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Right"
+                                    Spacing="10">
+                            <Button Classes="Ghost"
+                                    Command="{Binding TestCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="CheckCircleOutline" Width="16" Height="16" />
+                                    <TextBlock Text="测试连接" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="Primary"
+                                    Command="{Binding SaveCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="ContentSaveOutline" Width="16" Height="16" />
+                                    <TextBlock Text="保存并应用" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <suki:GroupBox Grid.Row="1" Header="参数">
+                        <Grid ColumnDefinitions="Auto,*"
+                              ColumnSpacing="16">
+
+                            
+                            <Grid ColumnDefinitions="120,280"
+                                  RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                                  ColumnSpacing="12"
+                                  RowSpacing="10">
+
+                                <TextBlock Text="地址" VerticalAlignment="Center" />
+                                <TextBox Grid.Row="0" Grid.Column="1"
+                                         Width="280"
+                                         VerticalContentAlignment="Center"
+                                         MinHeight="34"
+                                         Text="{Binding Host}" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="端口" VerticalAlignment="Center" />
+                                <NumericUpDown Grid.Row="1"
+                                               Grid.Column="1"
+                                               Width="280"
+                                               MinHeight="34"
+                                               VerticalContentAlignment="Center"
+                                               Minimum="1"
+                                               Maximum="65535"
+                                               Increment="1"
+                                               FormatString="0"
+                                               Value="{Binding Port}" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="数据库名" VerticalAlignment="Center" />
+                                <TextBox Grid.Row="2"
+                                         Grid.Column="1"
+                                         Width="280"
+                                         VerticalContentAlignment="Center"
+                                         MinHeight="34"
+                                         Text="{Binding Database}" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="用户名" VerticalAlignment="Center" />
+                                <TextBox Grid.Row="3"
+                                         Grid.Column="1"
+                                         Width="280"
+                                         VerticalContentAlignment="Center"
+                                         MinHeight="34"
+                                         Text="{Binding Username}" />
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="密码" VerticalAlignment="Center" />
+                                <TextBox Grid.Row="4"
+                                         Grid.Column="1"
+                                         Width="280"
+                                         PasswordChar="●"
+                                         VerticalContentAlignment="Center"
+                                         MinHeight="34"
+                                         Text="{Binding Password}" />
+                            </Grid>
+
+                            
+                            <suki:GlassCard Grid.Column="1"
+                                            Classes="SectionCard"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch">
+                                <Grid RowDefinitions="Auto,*"
+                                      RowSpacing="10">
+                                    <Grid ColumnDefinitions="*,Auto"
+                                          VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <icons:MaterialIcon Kind="TuneVariant" Width="16" Height="16" />
+                                            <TextBlock Text="扩展 / 预留"
+                                                       Classes="SectionTitle" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Grid Grid.Row="1"
+                                          MinHeight="160"
+                                          RowDefinitions="Auto,*">
+                                        <TextBlock Text="（此区域暂留模版）"
+                                                   Classes="SectionHint"
+                                                   Margin="0,0,0,8" />
+
+                                        
+                                        
+                                    </Grid>
+                                </Grid>
+                            </suki:GlassCard>
+
+                        </Grid>
+                    </suki:GroupBox>
+
+                </Grid>
+            </suki:GlassCard>
+
+            
+            <Grid Grid.Row="2"
+                  ColumnDefinitions="*,Auto"
+                  VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="AccountGroupOutline" Width="18" Height="18" />
+                    <TextBlock Text="客户端别名映射"
+                               Classes="SectionTitle" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding ClientAliasHint}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Right"
+                           Opacity="0.8" />
+            </Grid>
+
+            <suki:GlassCard Grid.Row="3" Classes="SectionCard"
+                            MinHeight="260"
+                            HorizontalAlignment="Stretch">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+
+                    
+                    <Grid ColumnDefinitions="*,Auto"
+                          VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <icons:MaterialIcon Kind="FormatListBulletedSquare" Width="16" Height="16" />
+                            <TextBlock Text="别名列表"
+                                       Classes="SectionTitle" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Right"
+                                    Spacing="10">
+                            <Button Classes="Primary"
+                                    Command="{Binding StartEditClientAliasesCommand}"
+                                    IsEnabled="{Binding !IsClientAliasEditMode}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="Update" Width="16" Height="16" />
+                                    <TextBlock Text="开始编辑" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="Primary"
+                                    Command="{Binding SaveClientAliasesCommand}"
+                                    IsEnabled="{Binding IsClientAliasEditMode}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="ContentSaveOutline" Width="16" Height="16" />
+                                    <TextBlock Text="保存别名" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="Ghost"
+                                    Command="{Binding ReloadClientAliasesCommand}"
+                                    IsEnabled="{Binding !IsClientAliasRefreshing}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="Refresh" Width="16" Height="16" />
+                                    <TextBlock Text="刷新机器标识" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    
+                    <suki:GroupBox Grid.Row="1" Header="参数">
+                        <Grid ColumnDefinitions="Auto,*"
+                              ColumnSpacing="16">
+
+                            
+                            <Grid RowDefinitions="Auto,Auto,*"
+                                  RowSpacing="10">
+
+                                
+                                <Grid ColumnDefinitions="260,280,*"
+                                      ColumnSpacing="12">
+                                    <TextBlock Text="机器标识"
+                                               Opacity="0.8"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="别名"
+                                               Opacity="0.8"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                                    
+                                <Border Grid.Row="1"
+                                        Height="1"
+                                        Background="{DynamicResource ThemeBorderLowBrush}"
+                                        Opacity="0.25" />
+
+                                
+                                <controls:EmptyStatePanel Grid.Row="2"
+                                                          IsEmpty="{Binding IsClientAliasesEmpty}"
+                                                          EmptyText="暂无客户端别名"
+                                                          EmptyHint="连接数据库或开始编辑后可维护别名">
+                                <ItemsControl ItemsSource="{Binding ClientAliases}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ClientAliasRow">
+                                            <Grid ColumnDefinitions="260,280,*"
+                                                  ColumnSpacing="12"
+                                                  Margin="0,0,0,8"
+                                                  MinHeight="34"
+                                                  VerticalAlignment="Center">
+
+                                                
+                                                <TextBlock Text="{Binding Machine}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,0,0"
+                                                           TextTrimming="CharacterEllipsis" />
+
+                                                
+                                                <TextBox Grid.Column="1"
+                                                         Watermark="输入别名"
+                                                         Text="{Binding Alias}"
+                                                         Width="280"
+                                                         MinHeight="34"
+                                                         VerticalAlignment="Center"
+                                                         VerticalContentAlignment="Center"
+                                                         Padding="10,0"
+                                                         IsEnabled="{Binding IsClientAliasEditable, ElementName=Root}" />
+
+                                                
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                </controls:EmptyStatePanel>
+
+                            </Grid>
+
+                            
+                            <suki:GlassCard Grid.Column="1"
+                                            Classes="SectionCard"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch"
+                                            VerticalContentAlignment="Stretch">
+                                <Grid RowDefinitions="Auto,*"
+                                      RowSpacing="10"
+                                      VerticalAlignment="Stretch">
+                                    <Grid ColumnDefinitions="*,Auto"
+                                          VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <icons:MaterialIcon Kind="TuneVariant" Width="16" Height="16" />
+                                            <TextBlock Text="扩展 / 预留"
+                                                       Classes="SectionTitle" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Grid Grid.Row="1"
+                                          RowDefinitions="Auto,*"
+                                          VerticalAlignment="Stretch">
+                                        <TextBlock Text="（此区域暂留模版）"
+                                                   Classes="SectionHint"
+                                                   Margin="0,0,0,8" />
+
+                                        
+                                        <Border Grid.Row="1" />
+                                    </Grid>
+                                </Grid>
+                            </suki:GlassCard>
+
+                        </Grid>
+                    </suki:GroupBox>
+
+                </Grid>
+            </suki:GlassCard>
+
+            <Grid Grid.Row="4"
+                  ColumnDefinitions="*,Auto"
+                  VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="TextBoxMultipleOutline" Width="18" Height="18" />
+                    <TextBlock Text="追溯码校验规则"
+                               Classes="SectionTitle" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding TraceCodeRuleHint}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Right"
+                           Opacity="0.8" />
+            </Grid>
+
+            <suki:GlassCard Grid.Row="5"
+                            Classes="SectionCard"
+                            HorizontalAlignment="Stretch">
+                <Grid RowDefinitions="Auto,*"
+                      RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto"
+                          VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <icons:MaterialIcon Kind="InformationOutline" Width="16" Height="16" />
+                            <TextBlock Text="单条追溯码合法性"
+                                       Classes="SectionTitle" />
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Classes="Primary"
+                                Command="{Binding SaveTraceCodeRuleCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <icons:MaterialIcon Kind="ContentSaveOutline" Width="16" Height="16" />
+                                <TextBlock Text="保存规则" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <suki:GroupBox Grid.Row="1" Header="参数">
+                        <Grid ColumnDefinitions="140,280,*"
+                              RowDefinitions="Auto,Auto"
+                              ColumnSpacing="12"
+                              RowSpacing="10">
+                            <TextBlock Text="固定长度"
+                                       VerticalAlignment="Center" />
+                            <NumericUpDown Grid.Row="0" Grid.Column="1"
+                                           Width="280"
+                                           MinHeight="34"
+                                           Minimum="1"
+                                           Maximum="256"
+                                           Increment="1"
+                                           FormatString="0"
+                                           Value="{Binding TraceCodeRequiredLength}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="正则规则"
+                                       VerticalAlignment="Center" />
+                            <TextBox Grid.Row="1"
+                                     Grid.Column="1"
+                                     Width="280"
+                                     MinHeight="34"
+                                     VerticalContentAlignment="Center"
+                                     Text="{Binding TraceCodePattern}" />
+                            <TextBlock Grid.Row="1"
+                                       Grid.Column="2"
+                                       Text="示例：^8\\d+$ （以 8 开头的全数字）"
+                                       Classes="SectionHint"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </suki:GroupBox>
+                </Grid>
+            </suki:GlassCard>
+
+            <Grid Grid.Row="6"
+                  ColumnDefinitions="*,Auto"
+                  VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="MonitorDashboard" Width="18" Height="18" />
+                    <TextBlock Text="界面行为"
+                               Classes="SectionTitle" />
+                </StackPanel>
+            </Grid>
+
+            <suki:GlassCard Grid.Row="7"
+                            Classes="SectionCard"
+                            HorizontalAlignment="Stretch">
+                <Grid RowDefinitions="Auto,*"
+                      RowSpacing="10">
+                    <Grid ColumnDefinitions="*"
+                          VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <icons:MaterialIcon Kind="CogOutline" Width="16" Height="16" />
+                            <TextBlock Text="托盘模式"
+                                       Classes="SectionTitle" />
+                        </StackPanel>
+                    </Grid>
+
+                    <suki:GroupBox Grid.Row="1" Header="参数">
+                        <Grid ColumnDefinitions="220,*"
+                              RowDefinitions="Auto"
+                              ColumnSpacing="12"
+                              RowSpacing="10">
+                            <TextBlock Text="关闭窗口时最小化到托盘"
+                                       VerticalAlignment="Center" />
+                            <ToggleSwitch Grid.Column="1"
+                                          IsChecked="{Binding MinimizeToTrayOnClose}"
+                                          VerticalAlignment="Center" />
+                        </Grid>
+                    </suki:GroupBox>
+                </Grid>
+            </suki:GlassCard>
+
+            <Grid Grid.Row="8"
+                  ColumnDefinitions="*,Auto"
+                  VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="CloudSyncOutline" Width="18" Height="18" />
+                    <TextBlock Text="应用更新"
+                               Classes="SectionTitle" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding UpdateStatusHint}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Right"
+                           Opacity="0.8" />
+            </Grid>
+
+            <suki:GlassCard Grid.Row="9"
+                            Classes="SectionCard"
+                            HorizontalAlignment="Stretch">
+                <Grid RowDefinitions="Auto,*"
+                      RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto"
+                          ColumnSpacing="8"
+                          VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <icons:MaterialIcon Kind="DownloadCircleOutline" Width="16" Height="16" />
+                            <TextBlock Text="更新源与策略"
+                                       Classes="SectionTitle" />
+                        </StackPanel>
+
+                        <Button Grid.Column="1"
+                                Classes="Ghost"
+                                Command="{Binding CheckUpdatesCommand}"
+                                IsEnabled="{Binding !IsUpdateChecking}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <icons:MaterialIcon Kind="Refresh" Width="16" Height="16" />
+                                <TextBlock Text="检查更新" />
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button Grid.Column="2" Classes="Ghost"
+                                Command="{Binding ApplyUpdateNowCommand}"
+                                IsEnabled="{Binding HasUpdateAvailable}">
+                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                <Border Width="8"
+                                        Height="8"
+                                        CornerRadius="999"
+                                        Background="{DynamicResource BrushWarning}"
+                                        IsVisible="{Binding HasUpdateAvailable}"
+                                        VerticalAlignment="Center" />
+                                <icons:MaterialIcon Kind="Download" Width="16" Height="16" />
+                                <TextBlock Text="立即更新" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- <Button Grid.Column="2" -->
+                        <!--         Classes="Ghost" -->
+                        <!--         Command="{Binding ApplyUpdateNowCommand}" -->
+                        <!--         IsEnabled="{Binding HasUpdateAvailable}"> -->
+                        <!--     <Grid> -->
+                        <!--         <StackPanel Orientation="Horizontal" Spacing="6"> -->
+                        <!--             <icons:MaterialIcon Kind="Download" Width="16" Height="16" /> -->
+                        <!--             <TextBlock Text="立即更新" /> -->
+                        <!--         </StackPanel> -->
+                        <!-- -->
+                        <!--         <Border Width="7" -->
+                        <!--                 Height="7" -->
+                        <!--                 CornerRadius="999" -->
+                        <!--                 Background="{DynamicResource BrushWarning}" -->
+                        <!--                 IsVisible="{Binding HasUpdateAvailable}" -->
+                        <!--                 HorizontalAlignment="Right" -->
+                        <!--                 VerticalAlignment="Top" -->
+                        <!--                 Margin="0,1,1,0" /> -->
+                        <!--     </Grid> -->
+                        <!-- </Button> -->
+
+                        <Button Grid.Column="3"
+                                Classes="Primary"
+                                Command="{Binding SaveUpdateOptionsCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <icons:MaterialIcon Kind="ContentSaveOutline" Width="16" Height="16" />
+                                <TextBlock Text="保存配置" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <suki:GroupBox Grid.Row="1" Header="参数">
+                        <Grid ColumnDefinitions="170,340,*"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                              ColumnSpacing="12"
+                              RowSpacing="10">
+                            <TextBlock Text="当前 UI 版本"
+                                       VerticalAlignment="Center" />
+                            <TextBox Grid.Row="0" Grid.Column="1"
+                                     Text="{Binding CurrentUiVersion}"
+                                     IsEnabled="False"
+                                     MinHeight="34"
+                                     VerticalContentAlignment="Center" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="最新可用版本"
+                                       VerticalAlignment="Center" />
+                            <TextBox Grid.Row="1"
+                                     Grid.Column="1"
+                                     Text="{Binding LatestUiVersion}"
+                                     IsEnabled="False"
+                                     MinHeight="34"
+                                     VerticalContentAlignment="Center" />
+                            <Border Grid.Row="1"
+                                    Grid.Column="2"
+                                    IsVisible="{Binding HasUpdateAvailable}"
+                                    Background="{DynamicResource BrushWarningBg25}"
+                                    BorderBrush="{DynamicResource BrushWarningBg50}"
+                                    BorderThickness="1"
+                                    CornerRadius="999"
+                                    Padding="10,4"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="CloudDownloadOutline"
+                                                        Width="14"
+                                                        Height="14"
+                                                        Foreground="{DynamicResource BrushWarning}" />
+                                    <TextBlock Text="{Binding UpdateAvailabilityLabel}"
+                                               Foreground="{DynamicResource BrushWarning}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="1"
+                                    Grid.Column="2"
+                                    IsVisible="{Binding !HasUpdateAvailable}"
+                                    Background="{DynamicResource BrushDoneBg25}"
+                                    BorderBrush="{DynamicResource BrushDoneBg50}"
+                                    BorderThickness="1"
+                                    CornerRadius="999"
+                                    Padding="10,4"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="CheckCircleOutline"
+                                                        Width="14"
+                                                        Height="14"
+                                                        Foreground="{DynamicResource BrushDone}" />
+                                    <TextBlock Text="{Binding UpdateAvailabilityLabel}"
+                                               Foreground="{DynamicResource BrushDone}" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0"
+                                       Text="启动自动检查"
+                                       VerticalAlignment="Center" />
+                            <ToggleSwitch Grid.Row="2"
+                                          Grid.Column="1"
+                                          IsChecked="{Binding AutoCheckUpdateOnStartup}"
+                                          VerticalAlignment="Center" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0"
+                                       Text="更新通道"
+                                       VerticalAlignment="Center" />
+                            <ComboBox Grid.Row="3"
+                                      Grid.Column="1"
+                                      Height="48"
+                                      MinHeight="48"
+                                      ItemsSource="{Binding UpdateChannelOptions}"
+                                      SelectedItem="{Binding UpdateChannel}" />
+
+                            <TextBlock Grid.Row="4" Grid.Column="0"
+                                       Text="更新源地址"
+                                       VerticalAlignment="Center" />
+                            <TextBox Grid.Row="4"
+                                     Grid.Column="1"
+                                     Text="{Binding UpdateFeedUrl}"
+                                     MinHeight="34"
+                                     VerticalContentAlignment="Center" />
+
+                            <TextBlock Grid.Row="5" Grid.Column="0"
+                                       Text="自动轮询（分钟）"
+                                       VerticalAlignment="Center" />
+                            <Grid Grid.Row="5"
+                                  Grid.Column="1"
+                                  ColumnDefinitions="140,*"
+                                  ColumnSpacing="10">
+                                <NumericUpDown Grid.Column="0"
+                                               Minimum="0"
+                                               Maximum="720"
+                                               Increment="5"
+                                               FormatString="N0"
+                                               Value="{Binding UpdatePollIntervalMinutes}"
+                                               Height="34" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding UpdatePollIntervalHint}"
+                                           VerticalAlignment="Center"
+                                           Opacity="0.8"
+                                           TextWrapping="NoWrap" />
+                            </Grid>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0"
+                                       Text="忽略版本"
+                                       VerticalAlignment="Center" />
+                            <Grid Grid.Row="6"
+                                  Grid.Column="1"
+                                  ColumnDefinitions="*,Auto"
+                                  ColumnSpacing="8">
+                                <TextBox Text="{Binding IgnoredUiVersion}"
+                                         MinHeight="34"
+                                         VerticalContentAlignment="Center" />
+                                <Button Grid.Column="1"
+                                        Classes="Ghost"
+                                        Command="{Binding ClearIgnoredVersionCommand}">
+                                    <TextBlock Text="清空" />
+                                </Button>
+                            </Grid>
+                        </Grid>
+                    </suki:GroupBox>
+                </Grid>
+            </suki:GlassCard>
+
+            <Grid Grid.Row="10"
+                  ColumnDefinitions="*,Auto"
+                  VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="TextBoxOutline" Width="18" Height="18" />
+                    <TextBlock Text="日志与诊断"
+                               Classes="SectionTitle" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding LoggingStatusHint}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Right"
+                           Opacity="0.8" />
+            </Grid>
+
+            <suki:GlassCard Grid.Row="11"
+                            Classes="SectionCard"
+                            HorizontalAlignment="Stretch">
+                <Grid RowDefinitions="Auto,*"
+                      RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+                          ColumnSpacing="8"
+                          VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <icons:MaterialIcon Kind="FileDocumentOutline" Width="16" Height="16" />
+                            <TextBlock Text="日志策略与操作"
+                                       Classes="SectionTitle" />
+                        </StackPanel>
+
+                        <Button Grid.Column="1"
+                                Classes="Ghost"
+                                Command="{Binding OpenLogDirectoryCommand}"
+                                IsEnabled="{Binding !IsLoggingBusy}">
+                            <TextBlock Text="打开目录" />
+                        </Button>
+
+                        <Button Grid.Column="2"
+                                Classes="Ghost"
+                                Command="{Binding CopyCurrentLogPathCommand}"
+                                IsEnabled="{Binding !IsLoggingBusy}">
+                            <TextBlock Text="复制路径" />
+                        </Button>
+
+                        <Button Grid.Column="3"
+                                Classes="Ghost"
+                                Command="{Binding ExportRecentLogsCommand}"
+                                IsEnabled="{Binding !IsLoggingBusy}">
+                            <TextBlock Text="导出24h" />
+                        </Button>
+
+                        <Button Grid.Column="4"
+                                Classes="Primary"
+                                Command="{Binding SaveLoggingOptionsCommand}"
+                                IsEnabled="{Binding !IsLoggingBusy}">
+                            <TextBlock Text="保存日志配置" />
+                        </Button>
+                    </Grid>
+
+                    <suki:GroupBox Grid.Row="1" Header="参数">
+                        <Grid ColumnDefinitions="170,460,*"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                              ColumnSpacing="12"
+                              RowSpacing="10">
+                            <TextBlock Text="启用日志"
+                                       VerticalAlignment="Center" />
+                            <ToggleSwitch Grid.Row="0" Grid.Column="1"
+                                          IsChecked="{Binding LoggingEnabled}"
+                                          VerticalAlignment="Center" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="最小级别"
+                                       VerticalAlignment="Center" />
+                            <ComboBox Grid.Row="1"
+                                      Grid.Column="1"
+                                      ItemsSource="{Binding LoggingLevelOptions}"
+                                      SelectedItem="{Binding LoggingMinimumLevel}"
+                                      MinHeight="48"
+                                      Height="48"
+                                      HorizontalAlignment="Stretch" />
+                            <StackPanel Grid.Row="1"
+                                        Grid.Column="2"
+                                        Orientation="Horizontal"
+                                        Spacing="8"
+                                        VerticalAlignment="Center">
+                                <icons:MaterialIcon Kind="ShieldHalfFull"
+                                                    Width="14"
+                                                    Height="14" />
+                                <TextBlock Text="{Binding LoggingMinimumLevelHint}"
+                                           Classes="SectionHint"
+                                           TextWrapping="Wrap"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0"
+                                       Text="保留天数"
+                                       VerticalAlignment="Center" />
+                            <NumericUpDown Grid.Row="2"
+                                           Grid.Column="1"
+                                           MinHeight="42"
+                                           Height="42"
+                                           HorizontalAlignment="Stretch"
+                                           Minimum="1"
+                                           Maximum="180"
+                                           Increment="1"
+                                           Value="{Binding LoggingRetentionDays}" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0"
+                                       Text="单文件上限(MB)"
+                                       VerticalAlignment="Center" />
+                            <NumericUpDown Grid.Row="3"
+                                           Grid.Column="1"
+                                           MinHeight="42"
+                                           Height="42"
+                                           HorizontalAlignment="Stretch"
+                                           Minimum="1"
+                                           Maximum="200"
+                                           Increment="1"
+                                           Value="{Binding LoggingMaxFileSizeMb}" />
+
+                            <TextBlock Grid.Row="4" Grid.Column="0"
+                                       Text="日志目录"
+                                       VerticalAlignment="Center" />
+                            <TextBox Grid.Row="4"
+                                     Grid.Column="1"
+                                     Text="{Binding LoggingDirectory}"
+                                     MinHeight="42"
+                                     Height="42"
+                                     VerticalContentAlignment="Center" />
+
+                            <TextBlock Grid.Row="5"
+                                       Grid.ColumnSpan="3" Grid.Column="0"
+                                       Text="默认目录：ApplicationData/PacToolkits/logs/ui；建议保持默认，便于部署和故障回溯。"
+                                       Classes="SectionHint"
+                                       TextWrapping="Wrap" />
+                        </Grid>
+                    </suki:GroupBox>
+                </Grid>
+            </suki:GlassCard>
+
+        </Grid>
+
+    </ScrollViewer>
+</UserControl>

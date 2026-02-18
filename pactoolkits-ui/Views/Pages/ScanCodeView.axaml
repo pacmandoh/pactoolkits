@@ -1,0 +1,476 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:conv="clr-namespace:pactoolkits_ui.Converters"
+             xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="1200"
+             d:DesignHeight="800"
+             x:Class="pactoolkits_ui.Views.Pages.ScanCodeView"
+             x:DataType="vm:ScanCodeViewModel"
+             x:Name="Root"
+             Focusable="True">
+    <UserControl.Resources>
+        <conv:BoolToDoneDangerBrushConverter x:Key="BoolToDoneDangerBrush" />
+        <conv:ContextStatusToBrushConverter x:Key="ContextStatusToBrush" />
+    </UserControl.Resources>
+
+    <suki:BusyArea BusyText="加载中..." IsBusy="{Binding IsBusy}">
+        <Grid Margin="18,14,18,18" RowDefinitions="Auto,*" RowSpacing="12">
+            <suki:GlassCard Grid.Row="0" Classes="SectionCard" Padding="16,14">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <icons:MaterialIcon Kind="BarcodeScan" Width="18" Height="18" />
+                            <TextBlock Text="录入药品选择" Classes="SectionTitle" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text="先选药品与规格，再在下方选择录入方式"
+                                   Classes="SectionHint"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+
+                    <Grid Grid.Row="1"
+                          ColumnDefinitions="320,260,150,*"
+                          ColumnSpacing="12"
+                          VerticalAlignment="Center">
+                        <suki:GlassCard Grid.Column="0" Padding="10,8" Opacity="0.94">
+                            <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="Pill" Width="14" Height="14" />
+                                    <TextBlock Text="药品" Opacity="0.75" FontSize="12" />
+                                </StackPanel>
+                                <Border Grid.Row="1"
+                                        Height="36"
+                                        Classes="AutoCompleteInputHost"
+                                        Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        Padding="8,0">
+                                    <AutoCompleteBox x:Name="DrugBox"
+                                                     Height="32"
+                                                     BorderThickness="0"
+                                                     Background="Transparent"
+                                                     ItemsSource="{Binding DrugOptions}"
+                                                     Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}"
+                                                     FilterMode="Contains"
+                                                     IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
+                                                     Watermark="输入药品名并回车"
+                                                     KeyDown="DrugBox_OnKeyDown">
+                                        <AutoCompleteBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:OptionItem">
+                                                <TextBlock Text="{Binding Display}" />
+                                            </DataTemplate>
+                                        </AutoCompleteBox.ItemTemplate>
+                                    </AutoCompleteBox>
+                                </Border>
+                            </Grid>
+                        </suki:GlassCard>
+
+                        <suki:GlassCard Grid.Column="1" Padding="10,8" Opacity="0.94">
+                            <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="TuneVariant" Width="14" Height="14" />
+                                    <TextBlock Text="规格" Opacity="0.75" FontSize="12" />
+                                </StackPanel>
+                                <Grid Grid.Row="1">
+                                    <ComboBox x:Name="SpecBox"
+                                              ItemsSource="{Binding SpecOptions}"
+                                              SelectedItem="{Binding SelectedSpec}"
+                                              DisplayMemberBinding="{Binding Display}" />
+                                    <TextBlock IsHitTestVisible="False"
+                                               IsVisible="{Binding !IsSpecSelected}"
+                                               Margin="12,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Opacity="0.55"
+                                               Text="请选择规格" />
+                                </Grid>
+                            </Grid>
+                        </suki:GlassCard>
+
+                        <suki:GlassCard Grid.Column="2" Padding="10,8" Opacity="0.94">
+                            <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="PackageVariant" Width="14" Height="14" />
+                                    <TextBlock Text="单条数量" Opacity="0.75" FontSize="12" />
+                                </StackPanel>
+                                <Border Grid.Row="1"
+                                        Height="35"
+                                        CornerRadius="10"
+                                        BorderThickness="1"
+                                        Padding="10,0"
+                                        BorderBrush="{DynamicResource SukiBorderBrush}">
+                                    <Grid VerticalAlignment="Center">
+                                        <TextBlock IsVisible="{Binding IsSpecSelected}"
+                                                   Text="{Binding SelectedQtyText}"
+                                                   FontSize="14"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock IsVisible="{Binding !IsSpecSelected}"
+                                                   Text="自动带出"
+                                                   Opacity="0.55"
+                                                   FontSize="14"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </suki:GlassCard>
+
+                        <suki:GlassCard Grid.Column="3"
+                                        Padding="10,8"
+                                        Opacity="0.92"
+                                        MinHeight="56"
+                                        HorizontalContentAlignment="Center">
+                            <Grid ColumnDefinitions="Auto,*"
+                                  ColumnSpacing="8"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center">
+                                <icons:MaterialIcon Kind="InformationOutline"
+                                                    Width="16"
+                                                    Height="16"
+                                                    Foreground="{Binding ContextStatusLevel, Converter={StaticResource ContextStatusToBrush}}"
+                                                    VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Status}"
+                                           Classes="SectionHint"
+                                           TextWrapping="Wrap"
+                                           TextTrimming="None"
+                                           TextAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </suki:GlassCard>
+                    </Grid>
+                </Grid>
+            </suki:GlassCard>
+
+            <suki:GlassCard Grid.Row="1" Classes="SectionCard">
+                <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <icons:MaterialIcon Kind="KeyboardOutline" Width="15" Height="15" />
+                                <TextBlock Text="手动录入" />
+                            </StackPanel>
+                        </TabItem.Header>
+
+                        <Grid Margin="0,10,0,0" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="10">
+                            <suki:GlassCard Grid.Row="0" Padding="10,8" Opacity="0.95">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <icons:MaterialIcon Kind="ClipboardTextOutline" Width="16" Height="16" />
+                                    <TextBlock Text="每行一个追溯码，会根据相应规则筛除不合条件条码"
+                                               Classes="SectionHint" />
+                                </StackPanel>
+                            </suki:GlassCard>
+
+                            <Border Grid.Row="1" Classes="RowItem">
+                                <TextBox AcceptsReturn="True"
+                                         TextWrapping="NoWrap"
+                                         VerticalAlignment="Stretch"
+                                         VerticalContentAlignment="Top"
+                                         Padding="12,10"
+                                         MinHeight="0"
+                                         GotFocus="CodeEditor_OnGotFocus"
+                                         Text="{Binding TraceCodesText, Mode=TwoWay}"
+                                         Watermark="示例：&#10;89012345678901234567&#10;89012345678901234568&#10;89012345678901234569" />
+                            </Border>
+
+                            <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
+                                <suki:GlassCard Grid.Column="0" Padding="10,8" Opacity="0.96">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <icons:MaterialIcon Kind="CheckCircleOutline" Width="16" Height="16"
+                                                            Foreground="{StaticResource BrushDone}" />
+                                        <TextBlock Text="有效条码数" Opacity="0.8" />
+                                        <TextBlock Text="{Binding ValidCodeCount}" FontWeight="Bold"
+                                                   Foreground="{StaticResource BrushDone}" />
+                                    </StackPanel>
+                                </suki:GlassCard>
+
+                                <suki:GlassCard Grid.Column="1" Padding="10,8" Opacity="0.96">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <icons:MaterialIcon Kind="ContentDuplicate" Width="16" Height="16"
+                                                            Foreground="{StaticResource BrushWarning}" />
+                                        <TextBlock Text="重复数" Opacity="0.8" />
+                                        <TextBlock Text="{Binding DuplicateCodeCount}" FontWeight="Bold"
+                                                   Foreground="{StaticResource BrushWarning}" />
+                                    </StackPanel>
+                                </suki:GlassCard>
+
+                                <suki:GlassCard Grid.Column="2" Padding="10,8" Opacity="0.96">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <icons:MaterialIcon Kind="AlertCircleOutline" Width="16" Height="16"
+                                                            Foreground="{StaticResource BrushDanger}" />
+                                        <TextBlock Text="无效数" Opacity="0.8" />
+                                        <TextBlock Text="{Binding InvalidCodeCount}" FontWeight="Bold"
+                                                   Foreground="{StaticResource BrushDanger}" />
+                                    </StackPanel>
+                                </suki:GlassCard>
+
+                                <suki:GlassCard Grid.Column="3" Padding="10,8" Opacity="0.96">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <icons:MaterialIcon Kind="FormatListNumbered" Width="16" Height="16" />
+                                        <TextBlock Text="总数" Opacity="0.8" />
+                                        <TextBlock Text="{Binding TotalCodeCount}" FontWeight="Bold" />
+                                    </StackPanel>
+                                </suki:GlassCard>
+                            </Grid>
+
+                            <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="10">
+                                <Button Grid.Column="0"
+                                        Classes="Action"
+                                        MinWidth="{StaticResource MinWAction}"
+                                        Command="{Binding SubmitCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <icons:MaterialIcon Kind="ContentSaveOutline" Width="16" Height="16" />
+                                        <TextBlock Text="保存录入" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Grid.Column="1"
+                                        Classes="Action"
+                                        MinWidth="{StaticResource MinWAction}"
+                                        Command="{Binding ClearCodesCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <icons:MaterialIcon Kind="BackspaceOutline" Width="16" Height="16" />
+                                        <TextBlock Text="清空输入" />
+                                    </StackPanel>
+                                </Button>
+
+                                <suki:InfoBadge Grid.Column="2"
+                                                VerticalAlignment="Center"
+                                                Content="{Binding InputLineCount, StringFormat=行数 {0}}" />
+                            </Grid>
+                        </Grid>
+                    </TabItem>
+
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <icons:MaterialIcon Kind="CloudSyncOutline" Width="15" Height="15" />
+                                <TextBlock Text="自动拉取" />
+                            </StackPanel>
+                        </TabItem.Header>
+
+                        <Grid Margin="0,10,0,0" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+                            <suki:GlassCard Grid.Row="0" Padding="12,10">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <icons:MaterialIcon Kind="LightbulbOutline" Width="16" Height="16" />
+                                    <TextBlock Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路"
+                                               Classes="SectionHint" />
+                                </StackPanel>
+                            </suki:GlassCard>
+
+                            <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="10"
+                                  VerticalAlignment="Center">
+                                <suki:GlassCard Padding="12,10" HorizontalContentAlignment="Center">
+                                    <Grid ColumnDefinitions="Auto,Auto,Auto"
+                                          ColumnSpacing="10"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center">
+                                        <icons:MaterialIcon Kind="Power"
+                                                            Width="16"
+                                                            Height="16"
+                                                            Foreground="{Binding IsAutoFetchEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
+                                                            VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="自动拉取开关"
+                                                   Opacity="0.82"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{Binding IsAutoFetchEnabled}"
+                                                      VerticalAlignment="Center" />
+                                    </Grid>
+                                </suki:GlassCard>
+
+                                <suki:GlassCard Grid.Column="1" Padding="12,10">
+                                    <Button Classes="Action"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            Command="{Binding StartAutoFetchCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <icons:MaterialIcon Kind="PlayCircleOutline" Width="16" Height="16" />
+                                            <TextBlock Text="开始任务" />
+                                        </StackPanel>
+                                    </Button>
+                                </suki:GlassCard>
+
+                                <suki:GlassCard Grid.Column="2" Padding="12,10">
+                                    <Button Classes="Action"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            Command="{Binding StopAutoFetchCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <icons:MaterialIcon Kind="StopCircleOutline" Width="16" Height="16" />
+                                            <TextBlock Text="停止任务" />
+                                        </StackPanel>
+                                    </Button>
+                                </suki:GlassCard>
+
+                                <suki:GlassCard Grid.Column="3" Padding="12,10">
+                                    <Button Classes="Action"
+                                            MinWidth="{StaticResource MinWAction}"
+                                            Command="{Binding RetryFailedCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <icons:MaterialIcon Kind="Replay" Width="16" Height="16" />
+                                            <TextBlock Text="重试失败" />
+                                        </StackPanel>
+                                    </Button>
+                                </suki:GlassCard>
+
+                                <suki:GlassCard Grid.Column="4"
+                                                Padding="10,8"
+                                                Opacity="0.9"
+                                                MinHeight="56"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Center">
+                                    <Grid ColumnDefinitions="Auto,*"
+                                          ColumnSpacing="8"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          MaxWidth="420">
+                                        <icons:MaterialIcon Kind="InformationOutline"
+                                                            Width="16"
+                                                            Height="16"
+                                                            Foreground="{StaticResource BrushDone}"
+                                                            VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding AutoFetchStatus}"
+                                                   Classes="SectionHint"
+                                                   TextWrapping="Wrap"
+                                                   TextTrimming="None"
+                                                   TextAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </suki:GlassCard>
+                            </Grid>
+
+                            <Grid Grid.Row="2" ColumnDefinitions="1.3*,1.4*,1.1*" ColumnSpacing="10">
+                                <suki:GlassCard Grid.Column="0" Padding="12,10">
+                                    <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <icons:MaterialIcon Kind="FormatListBulletedSquare" Width="16" Height="16" />
+                                            <TextBlock Text="任务列表" Classes="SectionTitle" />
+                                            <suki:InfoBadge Content="{Binding AutoTasks.Count, StringFormat=共 {0} 项}" />
+                                        </StackPanel>
+
+                                        <controls:EmptyStatePanel Grid.Row="1"
+                                                                  IsEmpty="{Binding IsAutoTasksEmpty}"
+                                                                  EmptyText="暂无任务"
+                                                                  EmptyHint="当前没有自动拉取任务">
+                                        <suki:BusyArea IsBusy="{Binding IsBusy}">
+                                            <DataGrid x:Name="AutoTaskGrid"
+                                                      Classes="SectionGrid"
+                                                      ItemsSource="{Binding AutoTasks}"
+                                                      SelectionChanged="OnBrowsingGridSelectionChanged"
+                                                      HeadersVisibility="Column"
+                                                      GridLinesVisibility="All"
+                                                      CanUserResizeColumns="True">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="任务" Binding="{Binding Name}"
+                                                                        Width="1.3*" />
+                                                    <DataGridTextColumn Header="计划" Binding="{Binding Schedule}"
+                                                                        Width="1*" />
+                                                    <DataGridTextColumn Header="状态" Binding="{Binding State}"
+                                                                        Width="0.8*" />
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </suki:BusyArea>
+                                        </controls:EmptyStatePanel>
+                                    </Grid>
+                                </suki:GlassCard>
+
+                                <suki:GlassCard Grid.Column="1" Padding="12,10">
+                                    <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <icons:MaterialIcon Kind="History" Width="16" Height="16" />
+                                            <TextBlock Text="最近执行记录" Classes="SectionTitle" />
+                                            <suki:InfoBadge Content="{Binding RecentRuns.Count, StringFormat=近 {0} 条}" />
+                                        </StackPanel>
+
+                                        <controls:EmptyStatePanel Grid.Row="1"
+                                                                  IsEmpty="{Binding IsRecentRunsEmpty}"
+                                                                  EmptyText="暂无执行记录"
+                                                                  EmptyHint="当前没有任务执行历史">
+                                        <suki:BusyArea IsBusy="{Binding IsBusy}">
+                                            <DataGrid x:Name="RecentRunGrid"
+                                                      Classes="SectionGrid"
+                                                      ItemsSource="{Binding RecentRuns}"
+                                                      SelectionChanged="OnBrowsingGridSelectionChanged"
+                                                      HeadersVisibility="Column"
+                                                      GridLinesVisibility="All"
+                                                      CanUserResizeColumns="True">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="任务" Binding="{Binding Name}"
+                                                                        Width="1.1*" />
+                                                    <DataGridTextColumn Header="开始时间" Binding="{Binding StartedAtText}"
+                                                                        Width="1.2*" />
+                                                    <DataGridTextColumn Header="结果" Binding="{Binding Result}"
+                                                                        Width="0.8*" />
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </suki:BusyArea>
+                                        </controls:EmptyStatePanel>
+                                    </Grid>
+                                </suki:GlassCard>
+
+                                <suki:GlassCard Grid.Column="2" Padding="12,10">
+                                    <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <icons:MaterialIcon Kind="AlertCircleOutline" Width="16" Height="16" />
+                                            <TextBlock Text="失败重试队列" Classes="SectionTitle" />
+                                            <suki:InfoBadge Content="{Binding RetryQueue.Count, StringFormat=待重试 {0}}" />
+                                        </StackPanel>
+
+                                        <controls:EmptyStatePanel Grid.Row="1"
+                                                                  IsEmpty="{Binding IsRetryQueueEmpty}"
+                                                                  EmptyText="暂无重试项"
+                                                                  EmptyHint="当前没有失败重试任务">
+                                        <suki:BusyArea IsBusy="{Binding IsBusy}">
+                                            <DataGrid x:Name="RetryQueueGrid"
+                                                      Classes="SectionGrid"
+                                                      ItemsSource="{Binding RetryQueue}"
+                                                      SelectionChanged="OnBrowsingGridSelectionChanged"
+                                                      HeadersVisibility="Column"
+                                                      GridLinesVisibility="All"
+                                                      CanUserResizeColumns="True">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="任务" Binding="{Binding Name}"
+                                                                        Width="1.1*" />
+                                                    <DataGridTextColumn Header="原因" Binding="{Binding Reason}"
+                                                                        Width="1.2*" />
+                                                    <DataGridTextColumn Header="重试" Binding="{Binding RetryCountText}"
+                                                                        Width="0.8*" />
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </suki:BusyArea>
+                                        </controls:EmptyStatePanel>
+                                    </Grid>
+                                </suki:GlassCard>
+                            </Grid>
+
+                            <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+                                <Button Grid.Column="0"
+                                        Classes="Action"
+                                        MinWidth="{StaticResource MinWAction}"
+                                        Command="{Binding OpenAutoFetchSettingsCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <icons:MaterialIcon Kind="TuneVariant" Width="16" Height="16" />
+                                        <TextBlock Text="参数设置" />
+                                    </StackPanel>
+                                </Button>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                            VerticalAlignment="Center">
+                                    <icons:MaterialIcon Kind="CircleMedium" Width="16" Height="16" />
+                                    <TextBlock Text="运行状态：" Opacity="0.75" />
+                                    <TextBlock Text="运行中" FontWeight="SemiBold"
+                                               IsVisible="{Binding IsAutoFetchRunning}" />
+                                    <TextBlock Text="已停止" FontWeight="SemiBold"
+                                               IsVisible="{Binding !IsAutoFetchRunning}" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </suki:GlassCard>
+        </Grid>
+    </suki:BusyArea>
+</UserControl>
