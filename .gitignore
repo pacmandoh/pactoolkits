@@ -1,0 +1,64 @@
+# ------------------------------
+# OS / editor noise
+# ------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ------------------------------
+# IDE / tooling (JetBrains, VS, VSCode)
+# ------------------------------
+.idea/
+*.iml
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# ------------------------------
+# .NET / Avalonia build artifacts
+# ------------------------------
+**/bin/
+**/obj/
+**/TestResults/
+**/out/
+
+# UI local packaging artifacts
+pactoolkits-ui/Publish/
+pactoolkits-ui/Releases/
+
+# ------------------------------
+# Agent local packaging artifacts
+# ------------------------------
+pactoolkits-agent/Releases/
+
+# ------------------------------
+# Runtime logs / temp
+# ------------------------------
+*.log
+*.tmp
+*.temp
+
+# ------------------------------
+# Local secrets / machine-specific configs
+# ------------------------------
+.env
+.env.local
+.env.*.local
+
+# Keep template files
+!.env.example
+
+# DB local deploy config (contains environment-specific values)
+pactoolkits-db/scripts/config.json
+
+# ------------------------------
+# Optional local release scratch files
+# ------------------------------
+*.zip
