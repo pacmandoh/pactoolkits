@@ -1,0 +1,712 @@
+; ================== 工具模块 ==================
+
+UI_Tip(msg, ms := 1200) {
+    ToolTip(msg)
+    SetTimer(() => ToolTip(), -ms)
+}
+
+Util_TxnId() {
+    r := Random(10000, 99999)
+    return FormatTime(, "yyyyMMddHHmmss") "_" r
+}
+
+Util_EscapeSQL(s) {
+    return StrReplace(s, "'", "''")
+}
+
+Util_ToInt(v, default := 0) {
+    s := Trim(v)
+    return RegExMatch(s, "^-?\d+$") ? (s + 0) : default
+}
+
+; 防止错误信息刷屏：截断长 SQL
+Util_ShortSQL(sql, maxLen := 1200) {
+    if (StrLen(sql) <= maxLen)
+        return sql
+    return SubStr(sql, 1, maxLen) "`n... (truncated, len=" StrLen(sql) ")"
+}
+
+Util_PathFull(p) {
+    ; 把 ..\ 路径展开成绝对路径
+    buf := Buffer(32768 * 2, 0)
+    len := DllCall("Kernel32\GetFullPathNameW", "str", p, "uint", 32768, "ptr", buf, "ptr", 0, "uint")
+    return len ? StrGet(buf, len, "UTF-16") : p
+}
+
+Util_ReadVersionFile() {
+    info := Map(
+        "suiteVersion", "unknown",
+        "agentVersion", "unknown",
+        "uiVersion", "unknown",
+        "dbSchemaVersion", "unknown",
+        "buildChannel", "unknown",
+        "buildDate", "unknown"
+    )
+
+    path := Util_PathFull(A_ScriptDir "\version.generated.json")
+    if !FileExist(path)
+        return info
+
+    r := Json_ReadFile(path)
+    if !(IsObject(r) && r.Has("ok") && r["ok"] && r.Has("val"))
+        return info
+
+    root := r["val"]
+    if !IsObject(root)
+        return info
+
+    if (root.Has("suiteVersion"))
+        info["suiteVersion"] := root["suiteVersion"]
+    if (root.Has("agentVersion"))
+        info["agentVersion"] := root["agentVersion"]
+    if (root.Has("uiVersion"))
+        info["uiVersion"] := root["uiVersion"]
+    if (root.Has("dbSchemaVersion"))
+        info["dbSchemaVersion"] := root["dbSchemaVersion"]
+
+    if (root.Has("build") && IsObject(root["build"])) {
+        build := root["build"]
+        if (build.Has("channel"))
+            info["buildChannel"] := build["channel"]
+        if (build.Has("date"))
+            info["buildDate"] := build["date"]
+    }
+
+    return info
+}
+
+Util_GetAgentVersionTag() {
+    v := Util_ReadVersionFile()
+    return "agent-" v["agentVersion"] "+ahk-" A_AhkVersion
+}
+
+Util_ShouldShowVersionTip(versionTag) {
+    statePath := Util_PathFull(A_ScriptDir "\version_tip_state.txt")
+    lastShown := ""
+
+    try {
+        if FileExist(statePath)
+            lastShown := Trim(FileRead(statePath, "UTF-8"), "`r`n`t ")
+    }
+
+    if (lastShown = versionTag)
+        return false
+
+    try FileDelete(statePath)
+    try FileAppend(versionTag, statePath, "UTF-8")
+    return true
+}
+
+Util_LoadDotEnv(path) {
+    env := Map()
+
+    full := Util_PathFull(path)
+    if !FileExist(full)
+        return env
+
+    txt := FileRead(full, "UTF-8")
+
+    ; 去 UTF-8 BOM
+    if (SubStr(txt, 1, 1) = Chr(0xFEFF))
+        txt := SubStr(txt, 2)
+
+    dq := Chr(34)  ; "
+    sq := "'"      ; '
+
+    for _, line in StrSplit(txt, "`n") {
+        line := Trim(line, "`r`t ")
+
+        if (line = "" || SubStr(line, 1, 1) = "#")
+            continue
+
+        ; 兼容：export KEY=VAL
+        if (SubStr(line, 1, 7) = "export ")
+            line := Trim(SubStr(line, 8))
+
+        ; 分割 KEY=VAL（允许 VAL 为空）
+        if !RegExMatch(line, "^\s*([^=]+?)\s*=\s*(.*)\s*$", &m)
+            continue
+
+        key := Trim(m[1])
+        val := Trim(m[2])
+
+        ; 处理行尾注释：KEY=VAL # comment（仅当不在引号内）
+        if (val != "") {
+            inQ := ""
+            out := ""
+            Loop Parse val {
+                ch := A_LoopField
+                if (inQ = "") {
+                    if (ch = dq || ch = sq) {
+                        inQ := ch
+                        out .= ch
+                        continue
+                    }
+                    if (ch = "#")
+                        break
+                    out .= ch
+                } else {
+                    out .= ch
+                    if (ch = inQ)
+                        inQ := ""
+                }
+            }
+            val := Trim(out)
+        }
+
+        ; 去掉包裹引号（整个 VAL 外层）
+        if ((SubStr(val, 1, 1) = dq && SubStr(val, -1) = dq)
+         || (SubStr(val, 1, 1) = sq && SubStr(val, -1) = sq)) {
+            val := SubStr(val, 2, -1)
+        }
+
+		parsedSet := Util_TryParseSet(val)
+		if IsObject(parsedSet) {
+			env[key] := parsedSet
+		} else {
+			parsedArr := Util_TryParseArray(val)
+			if IsObject(parsedArr)
+				env[key] := parsedArr
+			else
+				env[key] := val
+		}
+    }
+
+    return env
+}
+
+Util_TryParseArray(val) {
+    ; 成功返回 Array，失败返回空字符串（表示不处理）
+    v := Trim(val)
+    if (v = "")
+        return ""
+
+    if !RegExMatch(v, "^\[(.*)\]$", &mm)
+        return ""
+
+    inner := Trim(mm[1])
+    arr := []
+
+    if (inner = "")
+        return arr
+
+    dq := Chr(34)
+    sq := "'"
+
+    token := ""
+    inQ := ""
+
+    Loop Parse inner {
+        ch := A_LoopField
+        if (inQ = "") {
+            if (ch = dq || ch = sq) {
+                inQ := ch
+                token .= ch
+                continue
+            }
+            if (ch = ",") {
+                item := Util_ArrayItemNormalize(token)
+                if (item != "")
+                    arr.Push(item)
+                token := ""
+                continue
+            }
+            token .= ch
+        } else {
+            token .= ch
+            if (ch = inQ)
+                inQ := ""
+        }
+    }
+
+    item := Util_ArrayItemNormalize(token)
+    if (item != "")
+        arr.Push(item)
+
+    return arr
+}
+
+Util_ArrayItemNormalize(token) {
+    item := Trim(token, "`r`t ")
+    if (item = "")
+        return ""
+
+    dq := Chr(34)
+    sq := "'"
+
+    ; 去掉数组元素外层引号（允许 "xx" 或 'xx'）
+    if ((SubStr(item, 1, 1) = dq && SubStr(item, -1) = dq)
+     || (SubStr(item, 1, 1) = sq && SubStr(item, -1) = sq)) {
+        item := SubStr(item, 2, -1)
+    }
+
+    return item
+}
+
+; 解析集合（Map 当 Set）
+; 支持：
+;   {"互慧软件.exe":1,"ProjectMain.exe":1}
+;   {'互慧软件.exe':true, 'ProjectMain.exe':true}
+Util_TryParseSet(val) {
+    v := Trim(val)
+    if (v = "")
+        return ""
+
+    if !RegExMatch(v, "^\{(.*)\}$", &m)
+        return ""
+
+    inner := Trim(m[1])
+
+    set := Map()
+    if (inner = "")
+        return set
+
+    dq := Chr(34)  ; "
+    sq := "'"      ; '
+
+    token := ""
+    inQ := ""
+
+    ; 逐字符扫描，按“顶层逗号”切 token（忽略引号内的逗号）
+    Loop Parse inner {
+        ch := A_LoopField
+
+        if (inQ = "") {
+            if (ch = dq || ch = sq) {
+                inQ := ch
+                token .= ch
+                continue
+            }
+
+            if (ch = ",") {
+                Util_SetConsumeToken(set, token)
+                token := ""
+                continue
+            }
+
+            token .= ch
+        } else {
+            token .= ch
+            if (ch = inQ)
+                inQ := ""
+        }
+    }
+
+    ; 最后一个 token
+    Util_SetConsumeToken(set, token)
+
+    return set
+}
+
+; 从一个 token 中提取 key，写入 set
+; token 形如：  "xxx":1   或   'xxx':true
+Util_SetConsumeToken(set, token) {
+    t := Trim(token, "`r`t ")
+    if (t = "")
+        return
+
+    ; 找到第一个“顶层冒号”（忽略引号内的冒号）
+    dq := Chr(34)
+    sq := "'"
+
+    inQ := ""
+    colonPos := 0
+
+    Loop Parse t {
+        ch := A_LoopField
+        pos := A_Index
+
+        if (inQ = "") {
+            if (ch = dq || ch = sq) {
+                inQ := ch
+                continue
+            }
+            if (ch = ":") {
+                colonPos := pos
+                break
+            }
+        } else {
+            if (ch = inQ)
+                inQ := ""
+        }
+    }
+
+    if (colonPos = 0)
+        return
+
+    k := Trim(SubStr(t, 1, colonPos - 1), "`r`t ")
+
+    ; key 必须是 "..." 或 '...'
+    if (StrLen(k) < 2)
+        return
+
+    if ((SubStr(k, 1, 1) = dq && SubStr(k, -1) = dq)
+     || (SubStr(k, 1, 1) = sq && SubStr(k, -1) = sq)) {
+        k := SubStr(k, 2, -1)
+        if (k != "")
+            set[k] := true
+    }
+}
+
+
+
+Util_NormalizeWin(win := "A") {
+    ; 将 "A" 尽早冻结为 ahk_id hwnd，避免后续 MsgBox/切窗导致 "A" 指向变化
+    if (win = "A") {
+        try hwnd := WinGetID("A")
+        catch
+            return "A"
+        return "ahk_id " hwnd
+    }
+    return win
+}
+
+Util_CaptureWin(win := "A") {
+    win := Util_NormalizeWin(win)
+    hwnd := 0
+    try hwnd := WinGetID(win)
+    catch
+        hwnd := 0
+
+    if (!hwnd)
+        return Map("hwnd", 0, "win", win, "cls", "", "ttl", "")
+
+    winId := "ahk_id " hwnd
+    cls := ""
+    ttl := ""
+    try cls := WinGetClass(winId)
+    catch
+        cls := ""
+    try ttl := WinGetTitle(winId)
+    catch
+        ttl := ""
+
+    return Map("hwnd", hwnd, "win", winId, "cls", cls, "ttl", ttl)
+}
+
+Util_HotIf_TargetApp() {
+    global Cfg
+
+    ; 1) Cfg 没加载好
+    if !IsSet(Cfg) || (Type(Cfg) != "Map")
+        return false
+    if !Cfg.Has("OPT_CLS") || !Cfg.Has("IPT_CLS") || !Cfg.Has("APP_WIN")
+        return false
+
+    ; 2) 冻结当前活动窗口（避免后续 "A" 指向变化）
+    ctx := Util_CaptureWin("A")
+    if (!ctx["hwnd"])
+        return false
+
+    ; 3) 先用 exe 限定
+    try exe := WinGetProcessName(ctx["win"])
+    catch
+        return false
+
+    exeName := Cfg["APP_WIN"]
+    if !exeName.Has(exe) {
+        return false
+    }
+
+    ; 4) 再判断窗口 class
+    cls := ctx["cls"]
+    return (cls = Cfg["OPT_CLS"] || cls = Cfg["IPT_CLS"])
+}
+
+
+
+; ================== Clipboard helpers ==================
+Util_WithClipboard(tempText, fn) {
+    ; 临时覆盖剪贴板执行 fn，结束后无条件恢复（避免弄丢用户剪贴板）
+    old := ClipboardAll()
+    try {
+        A_Clipboard := tempText
+        ClipWait(0.4)
+        return fn.Call()
+    } finally {
+        try A_Clipboard := old
+    }
+}
+
+; ================== Simple log ==================
+Util_LogLine(line, logDir := "") {
+    ; 仅用于 ERR 级别：追加到 logs\YYYYMMDD.log
+    if (logDir = "")
+        logDir := A_ScriptDir "\logs"
+    try DirCreate(logDir)
+    stamp := FormatTime(, "yyyy-MM-dd HH:mm:ss")
+    file := logDir "\" FormatTime(, "yyyyMMdd") ".log"
+    try FileAppend(stamp " " line "`n", file, "UTF-8")
+}
+
+Util_GetPrimaryIPv4() {
+    ; 取首个可用 IPv4；失败时返回空字符串
+    try {
+        q := "SELECT IPAddress FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled=True"
+        for nic in ComObjGet("winmgmts:").ExecQuery(q) {
+            ips := nic.IPAddress
+            if !IsObject(ips)
+                continue
+            for ip in ips {
+                ip := Trim("" ip)
+                if RegExMatch(ip, "^\d{1,3}(\.\d{1,3}){3}$")
+                    return ip
+            }
+        }
+    }
+    return ""
+}
+
+Util_GetOSName() {
+    ; 取操作系统名称（如 Windows 11 Pro），失败时回退版本号
+    try {
+        key := "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+        name := RegRead(key, "ProductName", "")
+        name := Trim("" name)
+        if (name != "")
+            return name
+    }
+    return A_OSVersion
+}
+
+Util_GetConfigArg() {
+    i := 1
+    while (i <= A_Args.Length) {
+        arg := A_Args[i]
+        if (arg = "--config") {
+            if (i + 1 <= A_Args.Length)
+                return Util_PathFull(A_Args[i + 1])
+            return ""
+        }
+        if (SubStr(arg, 1, 9) = "--config=")
+            return Util_PathFull(SubStr(arg, 10))
+        i++
+    }
+    return ""
+}
+
+Util_LoadUnifiedConfig(configPath) {
+    path := Trim(configPath)
+    if (path = "")
+        return Util_CfgFail("配置路径为空", "EMPTY_PATH")
+    if !FileExist(path)
+        return Util_CfgFail("配置文件不存在：`n" path, "FILE_NOT_FOUND")
+
+    parsed := Json_ReadFile(path)
+    if !(parsed.Has("ok") && parsed["ok"]) {
+        msg := parsed.Has("err") ? parsed["err"] : "未知解析错误"
+        return Util_CfgFail("配置 JSON 解析失败：`n" msg, "JSON_PARSE")
+    }
+    root := parsed["val"]
+
+    if (Type(root) != "Map")
+        return Util_CfgFail("配置文件根节点必须是 JSON 对象", "ROOT_NOT_OBJECT")
+
+    schemaKey := root.Has("SchemaVersion") ? "SchemaVersion" : "schemaVersion"
+    schema := Util_CfgGetInt(root, schemaKey, &ok, &err)
+    if !ok
+        return Util_CfgFail("缺少或非法 schemaVersion/SchemaVersion：`n" err, "INVALID_SCHEMA")
+    if (schema != 1)
+        return Util_CfgFail("schemaVersion 不受支持：`n" schema "`n仅支持 schemaVersion=1", "UNSUPPORTED_SCHEMA")
+
+    pg := Util_CfgGetMap(root, "Postgres", &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_POSTGRES")
+    tools := Util_CfgGetMap(root, "AutomationTools", &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AUTOMATION_TOOLS")
+    agent := Util_CfgGetMap(tools, "Agent", &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+
+    cfg := Map()
+
+    cfg["PG_HOST"] := Util_CfgGetString(pg, "Host", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_POSTGRES")
+    cfg["PG_PORT"] := Util_CfgGetRangeInt(pg, "Port", 1, 65535, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_POSTGRES")
+    cfg["PG_DB"] := Util_CfgGetString(pg, "Database", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_POSTGRES")
+    cfg["PG_USER"] := Util_CfgGetString(pg, "Username", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_POSTGRES")
+    cfg["PG_PASS"] := Util_CfgGetString(pg, "Password", false, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_POSTGRES")
+
+    cfg["PG_DRIVER"] := Util_CfgGetString(agent, "PgDriver", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["PG_SSL"] := Util_CfgGetOneOf(agent, "PgSsl", ["disable", "allow", "prefer", "require", "verify-ca", "verify-full"], &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["OPT_CLS"] := Util_CfgGetString(agent, "OptCls", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["IPT_CLS"] := Util_CfgGetString(agent, "IptCls", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["CONFIRM_TIMEOUT_MS"] := Util_CfgGetRangeInt(agent, "ConfirmTimeoutMs", 100, 10000, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["CLASSNN"] := Util_CfgGetString(agent, "ClassNN", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["APP_WIN"] := Util_CfgGetAppWin(agent, "AppWin", &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["COL_SPECS"] := Util_CfgGetStringArray(agent, "ColSpecs", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["INT_COLS"] := Util_CfgGetStringArray(agent, "IntCols", false, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+
+    return Map("ok", true, "cfg", cfg)
+}
+
+Util_CfgFail(why, reason := "CONFIG_INVALID") {
+    msg := Trim("" why)
+    return Map("ok", false, "level", "ERR", "type", "[配置错误]", "why", msg, "reason", reason, "err", msg)
+}
+
+Util_CfgGetMap(obj, key, &ok, &err) {
+    if !obj.Has(key) {
+        ok := false, err := "缺少配置项：" key
+        return ""
+    }
+    v := obj[key]
+    if (Type(v) != "Map") {
+        ok := false, err := "配置项类型错误：" key "（应为对象）"
+        return ""
+    }
+    ok := true, err := ""
+    return v
+}
+
+Util_CfgGetString(obj, key, nonEmpty, &ok, &err) {
+    if !obj.Has(key) {
+        ok := false, err := "缺少配置项：" key
+        return ""
+    }
+    v := obj[key]
+    if (Type(v) != "String") {
+        ok := false, err := "配置项类型错误：" key "（应为字符串）"
+        return ""
+    }
+    t := Trim(v)
+    if (nonEmpty && t = "") {
+        ok := false, err := "配置项不能为空：" key
+        return ""
+    }
+    ok := true, err := ""
+    return t
+}
+
+Util_CfgGetInt(obj, key, &ok, &err) {
+    if !obj.Has(key) {
+        ok := false, err := "缺少配置项：" key
+        return 0
+    }
+    v := obj[key]
+    t := Type(v)
+    if !(t = "Integer" || t = "Float" || t = "String") {
+        ok := false, err := "配置项类型错误：" key "（应为数字）"
+        return 0
+    }
+    s := Trim("" v)
+    if !RegExMatch(s, "^-?\d+$") {
+        ok := false, err := "配置项格式错误：" key "（应为整数）"
+        return 0
+    }
+    ok := true, err := ""
+    return s + 0
+}
+
+Util_CfgGetRangeInt(obj, key, min, max, &ok, &err) {
+    n := Util_CfgGetInt(obj, key, &ok, &err)
+    if !ok
+        return 0
+    if (n < min || n > max) {
+        ok := false, err := "配置项超出范围：" key "（允许范围 " min "-" max "）"
+        return 0
+    }
+    ok := true, err := ""
+    return n
+}
+
+Util_CfgGetOneOf(obj, key, allows, &ok, &err) {
+    v := StrLower(Util_CfgGetString(obj, key, true, &ok, &err))
+    if !ok
+        return ""
+    for _, a in allows {
+        if (v = a) {
+            ok := true, err := ""
+            return v
+        }
+    }
+    ok := false, err := "配置项取值非法：" key "（当前值：" v "）"
+    return ""
+}
+
+Util_CfgGetAppWin(obj, key, &ok, &err) {
+    raw := Util_CfgGetMap(obj, key, &ok, &err)
+    if !ok
+        return ""
+    set := Map()
+    for exe, enabled in raw {
+        name := Trim("" exe)
+        if (name = "")
+            continue
+        if Util_ToBool(enabled)
+            set[name] := true
+    }
+    if (set.Count = 0) {
+        ok := false, err := "配置项不能为空：" key
+        return ""
+    }
+    ok := true, err := ""
+    return set
+}
+
+Util_CfgGetStringArray(obj, key, nonEmpty, &ok, &err) {
+    if !obj.Has(key) {
+        ok := false, err := "缺少配置项：" key
+        return ""
+    }
+    raw := obj[key]
+    if (Type(raw) != "Array") {
+        ok := false, err := "配置项类型错误：" key "（应为字符串数组）"
+        return ""
+    }
+    arr := []
+    for _, it in raw {
+        if (Type(it) != "String") {
+            ok := false, err := "配置项类型错误：" key "（数组元素应为字符串）"
+            return ""
+        }
+        t := Trim(it)
+        if (t != "")
+            arr.Push(t)
+    }
+    if (nonEmpty && arr.Length = 0) {
+        ok := false, err := "配置项不能为空：" key
+        return ""
+    }
+    ok := true, err := ""
+    return arr
+}
+
+Util_ToBool(v) {
+    t := Type(v)
+    if (t = "Integer" || t = "Float")
+        return v != 0
+    if (t = "String") {
+        s := StrLower(Trim(v))
+        return (s = "1" || s = "true" || s = "yes" || s = "on")
+    }
+    return false
+}

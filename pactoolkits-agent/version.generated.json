@@ -1,0 +1,14 @@
+{
+  "suiteVersion": "0.4.0",
+  "agentVersion": "0.3.0",
+  "uiVersion": "0.4.2",
+  "dbSchemaVersion": "1.2.0",
+  "compat": {
+    "agentMinUi": "0.4.0",
+    "uiMinAgent": "0.3.0"
+  },
+  "build": {
+    "channel": "stable",
+    "date": "2026-02-18"
+  }
+}
