@@ -59,6 +59,15 @@ jobs:
           printf '%s\n' "$FEED_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
+          # Validate key format without leaking key material.
+          if grep -q '\\n' ~/.ssh/id_ed25519; then
+            echo "KEY_HAS_LITERAL_BACKSLASH_N"
+          fi
+          if grep -q $'\r' ~/.ssh/id_ed25519; then
+            echo "KEY_HAS_CRLF"
+          fi
+          ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null && echo "KEY_PARSE_OK" || (echo "KEY_PARSE_BAD"; exit 1)
+
       - name: Rsync release feed
         env:
           FEED_SSH_USER: ${{ secrets.FEED_SSH_USER }}
