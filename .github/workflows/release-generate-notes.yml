@@ -18,6 +18,12 @@ jobs:
           fetch-depth: 0
 
       - name: Changelogithub release
-        uses: antfu/changelogithub-action@v1
+        uses: actions/setup-node@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: lts/*
+          registry-url: https://registry.npmjs.org/
+
+      - name: Generate or update release notes
+        run: npx changelogithub
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
