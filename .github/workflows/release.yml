@@ -162,15 +162,30 @@ jobs:
           Set-Content -Path $entryPath -Value $entryLines -Encoding utf8
 
           $outExe = "$toolsDir/pacinjector.exe"
+          $compilerDir = Split-Path -Path $compiler -Parent
+          $locationPushed = $false
           try {
+            Push-Location $compilerDir
+            $locationPushed = $true
             & $compiler /in "$entryPath" /out "$outExe" /icon "pactoolkits-agent/assets/pacinjection.ico" /base "$base64"
+            $exitCode = $LASTEXITCODE
+            Pop-Location
+            $locationPushed = $false
+            if ($exitCode -ne 0) {
+              throw "Ahk2Exe exited with code $exitCode"
+            }
           }
           finally {
+            if ($locationPushed) {
+              try { Pop-Location } catch {}
+            }
             if (Test-Path $entryPath) {
               Remove-Item $entryPath -Force
             }
           }
           if (-not (Test-Path $outExe)) {
+            Write-Host "Compiler directory contents for diagnosis:"
+            Get-ChildItem -Path $compilerDir -Force | Select-Object Name, Length, Mode | Format-Table -AutoSize | Out-String | Write-Host
             throw "AHK compile output missing: $outExe"
           }
 
