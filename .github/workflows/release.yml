@@ -52,9 +52,11 @@ jobs:
         shell: pwsh
         run: dotnet tool install -g vpk
 
-      - name: Install AutoHotkey (Ahk2Exe)
+      - name: Install AutoHotkey toolchain (Ahk2Exe)
         shell: pwsh
-        run: choco install autohotkey --no-progress -y
+        run: |
+          choco install autohotkey --no-progress -y
+          choco install autohotkey.portable --no-progress -y
 
       - name: Export version artifacts
         shell: bash
@@ -79,26 +81,46 @@ jobs:
         run: |
           Write-Host "Compiling pacinjector.exe from release-manifest agentVersion=$env:AGENT_VERSION"
           $agentVersion4 = "$env:AGENT_VERSION.0"
+          $chocoLib = if ($env:ChocolateyInstall) { Join-Path $env:ChocolateyInstall "lib" } else { "C:\ProgramData\chocolatey\lib" }
           $compilerCandidates = @(
+            "$chocoLib\autohotkey\tools\Compiler\Ahk2Exe.exe",
+            "$chocoLib\autohotkey\tools\AutoHotkey\Compiler\Ahk2Exe.exe",
+            "$chocoLib\autohotkey.portable\tools\Compiler\Ahk2Exe.exe",
+            "$chocoLib\autohotkey.portable\tools\AutoHotkey\Compiler\Ahk2Exe.exe",
             "$env:ProgramFiles\\AutoHotkey\\Compiler\\Ahk2Exe.exe",
             "$env:ProgramFiles\\AutoHotkey\\v2\\Compiler\\Ahk2Exe.exe",
             "$env:ProgramFiles(x86)\\AutoHotkey\\Compiler\\Ahk2Exe.exe"
           )
           $base64Candidates = @(
+            "$chocoLib\autohotkey\tools\AutoHotkey64.exe",
+            "$chocoLib\autohotkey\tools\AutoHotkey\AutoHotkey64.exe",
+            "$chocoLib\autohotkey\tools\v2\AutoHotkey64.exe",
+            "$chocoLib\autohotkey.portable\tools\AutoHotkey64.exe",
+            "$chocoLib\autohotkey.portable\tools\AutoHotkey\AutoHotkey64.exe",
+            "$chocoLib\autohotkey.portable\tools\v2\AutoHotkey64.exe",
             "$env:ProgramFiles\\AutoHotkey\\v2\\AutoHotkey64.exe",
             "$env:ProgramFiles\\AutoHotkey\\AutoHotkey64.exe",
             "$env:ProgramFiles(x86)\\AutoHotkey\\v2\\AutoHotkey64.exe",
             "$env:ProgramFiles(x86)\\AutoHotkey\\AutoHotkey64.exe"
           )
 
-          $compiler = $compilerCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          $compiler = (Get-Command Ahk2Exe.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
           if (-not $compiler) {
+            $compiler = $compilerCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+          if (-not $compiler) {
+            Write-Host "Checked compiler candidates:"
+            $compilerCandidates | ForEach-Object { Write-Host " - $_" }
             throw "Ahk2Exe.exe not found in expected locations."
           }
           $base64 = $base64Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
           if (-not $base64) {
+            Write-Host "Checked base64 candidates:"
+            $base64Candidates | ForEach-Object { Write-Host " - $_" }
             throw "AutoHotkey64.exe not found. Refusing to build non-64-bit binary."
           }
+          Write-Host "Using Ahk2Exe: $compiler"
+          Write-Host "Using 64-bit base: $base64"
 
           $toolsDir = "pactoolkits-ui/Tools"
           New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
