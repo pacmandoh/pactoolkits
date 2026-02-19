@@ -52,11 +52,38 @@ jobs:
         shell: pwsh
         run: dotnet tool install -g vpk
 
-      - name: Install AutoHotkey toolchain (Ahk2Exe)
+      - name: Install AutoHotkey
+        shell: pwsh
+        run: choco install autohotkey --no-progress -y
+
+      - name: Ensure Ahk2Exe is installed (official UX flow)
         shell: pwsh
         run: |
-          choco install autohotkey --no-progress -y
-          choco install autohotkey.portable --no-progress -y
+          $ahkBase = "C:\Program Files\AutoHotkey"
+          $compilerPath = Join-Path $ahkBase "Compiler\Ahk2Exe.exe"
+          $uxInstaller = Join-Path $ahkBase "UX\install-ahk2exe.ahk"
+          $ahk64Candidates = @(
+            (Join-Path $ahkBase "v2\AutoHotkey64.exe"),
+            (Join-Path $ahkBase "AutoHotkey64.exe")
+          )
+          $ahk64 = $ahk64Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $ahk64) {
+            throw "AutoHotkey64.exe not found under C:\Program Files\AutoHotkey."
+          }
+          if (-not (Test-Path $uxInstaller)) {
+            throw "install-ahk2exe.ahk not found: $uxInstaller"
+          }
+
+          if (-not (Test-Path $compilerPath)) {
+            Write-Host "Ahk2Exe missing, invoking UX installer script..."
+            # Any argument suppresses the interactive prompt in install-ahk2exe.ahk.
+            & "$ahk64" "$uxInstaller" /CI
+          }
+
+          if (-not (Test-Path $compilerPath)) {
+            throw "Ahk2Exe install did not produce: $compilerPath"
+          }
+          Write-Host "Ahk2Exe ready: $compilerPath"
 
       - name: Export version artifacts
         shell: bash
@@ -81,58 +108,18 @@ jobs:
         run: |
           Write-Host "Compiling pacinjector.exe from release-manifest agentVersion=$env:AGENT_VERSION"
           $agentVersion4 = "$env:AGENT_VERSION.0"
-          $scanRoots = @(
-            "C:\Program Files\AutoHotkey",
-            "C:\ProgramData\chocolatey\lib\autohotkey\tools",
-            "C:\ProgramData\chocolatey\lib\autohotkey.portable\tools"
-          )
-          Write-Host "Scanning roots for AHK tools:"
-          $scanRoots | ForEach-Object { Write-Host " - $_" }
-
-          $compilerCandidates = @(
-            foreach ($root in $scanRoots) {
-              if (Test-Path $root) {
-                Get-ChildItem -Path $root -Recurse -File -Filter Ahk2Exe.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
-              }
-            }
-          ) | Sort-Object -Unique
-
+          $ahkBase = "C:\Program Files\AutoHotkey"
+          $compiler = Join-Path $ahkBase "Compiler\Ahk2Exe.exe"
           $base64Candidates = @(
-            foreach ($root in $scanRoots) {
-              if (Test-Path $root) {
-                Get-ChildItem -Path $root -Recurse -File -Filter AutoHotkey64.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
-              }
-            }
-          ) | Sort-Object -Unique
-
-          Write-Host "Discovered Ahk2Exe candidates:"
-          if ($compilerCandidates.Count -eq 0) {
-            Write-Host " - <none>"
-          } else {
-            $compilerCandidates | ForEach-Object { Write-Host " - $_" }
-          }
-
-          Write-Host "Discovered AutoHotkey64 candidates:"
-          if ($base64Candidates.Count -eq 0) {
-            Write-Host " - <none>"
-          } else {
-            $base64Candidates | ForEach-Object { Write-Host " - $_" }
-          }
-
-          $compiler = $compilerCandidates | Where-Object { $_ -like "C:\Program Files\*" } | Select-Object -First 1
-          if (-not $compiler) {
-            $compiler = $compilerCandidates | Select-Object -First 1
-          }
-          if (-not $compiler) {
-            throw "Ahk2Exe.exe not found in expected locations."
-          }
-
-          $base64 = $base64Candidates | Where-Object { $_ -like "C:\Program Files\*" } | Select-Object -First 1
-          if (-not $base64) {
-            $base64 = $base64Candidates | Select-Object -First 1
+            (Join-Path $ahkBase "v2\AutoHotkey64.exe"),
+            (Join-Path $ahkBase "AutoHotkey64.exe")
+          )
+          $base64 = $base64Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not (Test-Path $compiler)) {
+            throw "Ahk2Exe.exe not found: $compiler"
           }
           if (-not $base64) {
-            throw "AutoHotkey64.exe not found. Refusing to build non-64-bit binary."
+            throw "AutoHotkey64.exe not found under C:\Program Files\AutoHotkey."
           }
           Write-Host "Using Ahk2Exe: $compiler"
           Write-Host "Using 64-bit base: $base64"
