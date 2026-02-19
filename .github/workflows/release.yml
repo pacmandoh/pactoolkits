@@ -192,9 +192,16 @@ jobs:
               -WorkingDirectory $compilerDir `
               -NoNewWindow `
               -PassThru `
-              -Wait `
               -RedirectStandardOutput $stdoutFile `
               -RedirectStandardError $stderrFile
+
+            $timeoutSec = 120
+            if (-not $proc.WaitForExit($timeoutSec * 1000)) {
+              Write-Host "Ahk2Exe timed out after ${timeoutSec}s, killing process..."
+              try { $proc.Kill($true) } catch {}
+              throw "Ahk2Exe timed out after ${timeoutSec}s"
+            }
+            $proc.WaitForExit()
 
             if (Test-Path $stdoutFile) {
               Write-Host "Ahk2Exe stdout:"
