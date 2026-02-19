@@ -23,6 +23,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          if [ -z "${GITHUB_REF_NAME:-}" ]; then
+            echo "GITHUB_REF_NAME is empty; this job must run on a tag ref."
+            exit 1
+          fi
           shopt -s nullglob
           assets=(dist/*)
           if [ ${#assets[@]} -eq 0 ]; then
@@ -63,5 +67,5 @@ jobs:
         run: |
           set -euo pipefail
           rsync -az --delete \
-            --rsh "ssh -i ~/.ssh/id_ed25519 -o UserKnownHostsFile=~/.ssh/known_hosts -o StrictHostKeyChecking=yes -p ${FEED_SSH_PORT}" \
+            --rsh "ssh -i $HOME/.ssh/id_ed25519 -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -p ${FEED_SSH_PORT}" \
             dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${FEED_RSYNC_PATH}/"
