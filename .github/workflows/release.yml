@@ -178,11 +178,16 @@ jobs:
             $stderrFile = Join-Path $env:RUNNER_TEMP "ahk2exe.stderr.log"
             Remove-Item -Path $stdoutFile, $stderrFile -Force -ErrorAction SilentlyContinue
 
-            $cmdLine = "`"$compiler`" /in `"$entryPath`" /out `"$outExe`" /icon `"$iconPath`" /base `"$base64`""
-            Write-Host "Ahk2Exe cmd: $cmdLine"
+            $args = @(
+              "/in", $entryPath,
+              "/out", $outExe,
+              "/icon", $iconPath,
+              "/base", $base64
+            )
+            Write-Host ("Ahk2Exe args: " + ($args -join " "))
 
-            $proc = Start-Process -FilePath "cmd.exe" `
-              -ArgumentList "/d", "/s", "/c", $cmdLine `
+            $proc = Start-Process -FilePath $compiler `
+              -ArgumentList $args `
               -WorkingDirectory $compilerDir `
               -NoNewWindow `
               -PassThru `
