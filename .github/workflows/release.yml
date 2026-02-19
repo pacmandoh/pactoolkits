@@ -173,10 +173,34 @@ jobs:
           $compilerDir = Split-Path -Path $compiler -Parent
           try {
             Remove-Item -Path $outExe -Force -ErrorAction SilentlyContinue
-            & $compiler /in "$entryPath" /out "$outExe" /icon "$iconPath" /base "$base64"
-            $exitCode = $LASTEXITCODE
-            if ($null -ne $exitCode -and $exitCode -ne 0) {
-              throw "Ahk2Exe exited with code $exitCode"
+
+            $stdoutFile = Join-Path $env:RUNNER_TEMP "ahk2exe.stdout.log"
+            $stderrFile = Join-Path $env:RUNNER_TEMP "ahk2exe.stderr.log"
+            Remove-Item -Path $stdoutFile, $stderrFile -Force -ErrorAction SilentlyContinue
+
+            $cmdLine = "`"$compiler`" /in `"$entryPath`" /out `"$outExe`" /icon `"$iconPath`" /base `"$base64`""
+            Write-Host "Ahk2Exe cmd: $cmdLine"
+
+            $proc = Start-Process -FilePath "cmd.exe" `
+              -ArgumentList "/d", "/s", "/c", $cmdLine `
+              -WorkingDirectory $compilerDir `
+              -NoNewWindow `
+              -PassThru `
+              -Wait `
+              -RedirectStandardOutput $stdoutFile `
+              -RedirectStandardError $stderrFile
+
+            if (Test-Path $stdoutFile) {
+              Write-Host "Ahk2Exe stdout:"
+              Get-Content -Path $stdoutFile | ForEach-Object { Write-Host $_ }
+            }
+            if (Test-Path $stderrFile) {
+              Write-Host "Ahk2Exe stderr:"
+              Get-Content -Path $stderrFile | ForEach-Object { Write-Host $_ }
+            }
+
+            if ($proc.ExitCode -ne 0) {
+              throw "Ahk2Exe exited with code $($proc.ExitCode)"
             }
           }
           finally {
