@@ -81,42 +81,57 @@ jobs:
         run: |
           Write-Host "Compiling pacinjector.exe from release-manifest agentVersion=$env:AGENT_VERSION"
           $agentVersion4 = "$env:AGENT_VERSION.0"
-          $chocoLib = if ($env:ChocolateyInstall) { Join-Path $env:ChocolateyInstall "lib" } else { "C:\ProgramData\chocolatey\lib" }
-          $compilerCandidates = @(
-            "$chocoLib\autohotkey\tools\Compiler\Ahk2Exe.exe",
-            "$chocoLib\autohotkey\tools\AutoHotkey\Compiler\Ahk2Exe.exe",
-            "$chocoLib\autohotkey.portable\tools\Compiler\Ahk2Exe.exe",
-            "$chocoLib\autohotkey.portable\tools\AutoHotkey\Compiler\Ahk2Exe.exe",
-            "$env:ProgramFiles\\AutoHotkey\\Compiler\\Ahk2Exe.exe",
-            "$env:ProgramFiles\\AutoHotkey\\v2\\Compiler\\Ahk2Exe.exe",
-            "$env:ProgramFiles(x86)\\AutoHotkey\\Compiler\\Ahk2Exe.exe"
+          $scanRoots = @(
+            "C:\Program Files\AutoHotkey",
+            "C:\ProgramData\chocolatey\lib\autohotkey\tools",
+            "C:\ProgramData\chocolatey\lib\autohotkey.portable\tools"
           )
-          $base64Candidates = @(
-            "$chocoLib\autohotkey\tools\AutoHotkey64.exe",
-            "$chocoLib\autohotkey\tools\AutoHotkey\AutoHotkey64.exe",
-            "$chocoLib\autohotkey\tools\v2\AutoHotkey64.exe",
-            "$chocoLib\autohotkey.portable\tools\AutoHotkey64.exe",
-            "$chocoLib\autohotkey.portable\tools\AutoHotkey\AutoHotkey64.exe",
-            "$chocoLib\autohotkey.portable\tools\v2\AutoHotkey64.exe",
-            "$env:ProgramFiles\\AutoHotkey\\v2\\AutoHotkey64.exe",
-            "$env:ProgramFiles\\AutoHotkey\\AutoHotkey64.exe",
-            "$env:ProgramFiles(x86)\\AutoHotkey\\v2\\AutoHotkey64.exe",
-            "$env:ProgramFiles(x86)\\AutoHotkey\\AutoHotkey64.exe"
-          )
+          Write-Host "Scanning roots for AHK tools:"
+          $scanRoots | ForEach-Object { Write-Host " - $_" }
 
-          $compiler = (Get-Command Ahk2Exe.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
+          $compilerCandidates = @(
+            foreach ($root in $scanRoots) {
+              if (Test-Path $root) {
+                Get-ChildItem -Path $root -Recurse -File -Filter Ahk2Exe.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+              }
+            }
+          ) | Sort-Object -Unique
+
+          $base64Candidates = @(
+            foreach ($root in $scanRoots) {
+              if (Test-Path $root) {
+                Get-ChildItem -Path $root -Recurse -File -Filter AutoHotkey64.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+              }
+            }
+          ) | Sort-Object -Unique
+
+          Write-Host "Discovered Ahk2Exe candidates:"
+          if ($compilerCandidates.Count -eq 0) {
+            Write-Host " - <none>"
+          } else {
+            $compilerCandidates | ForEach-Object { Write-Host " - $_" }
+          }
+
+          Write-Host "Discovered AutoHotkey64 candidates:"
+          if ($base64Candidates.Count -eq 0) {
+            Write-Host " - <none>"
+          } else {
+            $base64Candidates | ForEach-Object { Write-Host " - $_" }
+          }
+
+          $compiler = $compilerCandidates | Where-Object { $_ -like "C:\Program Files\*" } | Select-Object -First 1
           if (-not $compiler) {
-            $compiler = $compilerCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+            $compiler = $compilerCandidates | Select-Object -First 1
           }
           if (-not $compiler) {
-            Write-Host "Checked compiler candidates:"
-            $compilerCandidates | ForEach-Object { Write-Host " - $_" }
             throw "Ahk2Exe.exe not found in expected locations."
           }
-          $base64 = $base64Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+          $base64 = $base64Candidates | Where-Object { $_ -like "C:\Program Files\*" } | Select-Object -First 1
           if (-not $base64) {
-            Write-Host "Checked base64 candidates:"
-            $base64Candidates | ForEach-Object { Write-Host " - $_" }
+            $base64 = $base64Candidates | Select-Object -First 1
+          }
+          if (-not $base64) {
             throw "AutoHotkey64.exe not found. Refusing to build non-64-bit binary."
           }
           Write-Host "Using Ahk2Exe: $compiler"
