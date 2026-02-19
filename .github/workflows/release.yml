@@ -171,7 +171,7 @@ jobs:
             $exitCode = $LASTEXITCODE
             Pop-Location
             $locationPushed = $false
-            if ($exitCode -ne 0) {
+            if ($null -ne $exitCode -and $exitCode -ne 0) {
               throw "Ahk2Exe exited with code $exitCode"
             }
           }
