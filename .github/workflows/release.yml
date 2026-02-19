@@ -102,20 +102,24 @@ jobs:
           } -OutFile $zipPath
           Expand-Archive -Path $zipPath -DestinationPath $extractRoot -Force
 
-          $compilerCandidates = Get-ChildItem -Path $extractRoot -Recurse -File -Filter Ahk2Exe.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
-          Write-Host "Ahk2Exe candidates:"
-          if ($compilerCandidates) {
-            $compilerCandidates | ForEach-Object { Write-Host " - $_" }
-          } else {
-            Write-Host " - <none>"
-          }
-
-          if (-not $compilerCandidates) {
+          $compilerSource = Get-ChildItem -Path $extractRoot -Recurse -File -Filter Ahk2Exe.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $compilerSource) {
             throw "Downloaded Ahk2Exe asset but Ahk2Exe.exe was not found in extracted contents."
           }
-          $compilerPath = $compilerCandidates | Select-Object -First 1
+
+          $compilerTargetDir = Join-Path $ahkBase "Compiler"
+          if (Test-Path $compilerTargetDir) {
+            Remove-Item -Path $compilerTargetDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Force -Path $compilerTargetDir | Out-Null
+          Copy-Item -Path (Join-Path $extractRoot "*") -Destination $compilerTargetDir -Recurse -Force
+
+          $compilerPath = Join-Path $compilerTargetDir "Ahk2Exe.exe"
+          if (-not (Test-Path $compilerPath)) {
+            throw "Ahk2Exe deploy failed: $compilerPath not found after copy."
+          }
           "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "Ahk2Exe ready: $compilerPath"
+          Write-Host "Ahk2Exe deployed to: $compilerTargetDir"
 
       - name: Export version artifacts
         shell: bash
@@ -167,22 +171,15 @@ jobs:
           $outExe = Join-Path (Join-Path (Join-Path $workspace "pactoolkits-ui") "Tools") "pacinjector.exe"
           $iconPath = Join-Path (Join-Path (Join-Path $workspace "pactoolkits-agent") "assets") "pacinjection.ico"
           $compilerDir = Split-Path -Path $compiler -Parent
-          $locationPushed = $false
           try {
-            Push-Location $compilerDir
-            $locationPushed = $true
+            Remove-Item -Path $outExe -Force -ErrorAction SilentlyContinue
             & $compiler /in "$entryPath" /out "$outExe" /icon "$iconPath" /base "$base64"
             $exitCode = $LASTEXITCODE
-            Pop-Location
-            $locationPushed = $false
             if ($null -ne $exitCode -and $exitCode -ne 0) {
               throw "Ahk2Exe exited with code $exitCode"
             }
           }
           finally {
-            if ($locationPushed) {
-              try { Pop-Location } catch {}
-            }
             if (Test-Path $entryPath) {
               Remove-Item $entryPath -Force
             }
