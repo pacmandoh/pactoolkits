@@ -87,7 +87,7 @@ jobs:
           max_attempts=5
           for attempt in $(seq 1 "$max_attempts"); do
             echo "rsync attempt ${attempt}/${max_attempts}"
-            if rsync -az --delete --timeout=60 --info=progress2,stats1 \
+            if rsync -a --delete --timeout=60 --info=progress2,stats1 \
               --rsh "$ssh_rsh" \
               dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${FEED_RSYNC_PATH}/"; then
               echo "rsync succeeded."
