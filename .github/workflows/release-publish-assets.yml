@@ -76,6 +76,30 @@ jobs:
           FEED_RSYNC_PATH: ${{ secrets.FEED_RSYNC_PATH }}
         run: |
           set -euo pipefail
-          rsync -az --delete \
-            --rsh "ssh -i $HOME/.ssh/id_ed25519 -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -p ${FEED_SSH_PORT}" \
-            dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${FEED_RSYNC_PATH}/"
+          ssh_rsh="ssh -i $HOME/.ssh/id_ed25519 -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=10 -o ConnectionAttempts=1 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -p ${FEED_SSH_PORT}"
+
+          # Preflight to fail fast on auth/network issues before rsync.
+          if ! $ssh_rsh "${FEED_SSH_USER}@${FEED_SSH_HOST}" "echo ssh_ok" >/dev/null; then
+            echo "SSH preflight failed."
+            exit 1
+          fi
+
+          max_attempts=5
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "rsync attempt ${attempt}/${max_attempts}"
+            if rsync -az --delete --timeout=60 --info=progress2,stats1 \
+              --rsh "$ssh_rsh" \
+              dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${FEED_RSYNC_PATH}/"; then
+              echo "rsync succeeded."
+              exit 0
+            fi
+
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "rsync failed after ${max_attempts} attempts."
+              exit 1
+            fi
+
+            backoff=$((attempt * 10))
+            echo "rsync failed; retrying in ${backoff}s..."
+            sleep "$backoff"
+          done
