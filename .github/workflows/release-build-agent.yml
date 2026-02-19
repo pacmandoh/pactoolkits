@@ -24,14 +24,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $ahkBase = "C:\\Program Files\\AutoHotkey"
+          $ahkBase = "C:\Program Files\AutoHotkey"
           $ahk64Candidates = @(
-            (Join-Path $ahkBase "v2\\AutoHotkey64.exe"),
+            (Join-Path $ahkBase "v2\AutoHotkey64.exe"),
             (Join-Path $ahkBase "AutoHotkey64.exe")
           )
           $ahk64 = $ahk64Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
           if (-not $ahk64) {
-            throw "AutoHotkey64.exe not found under C:\\Program Files\\AutoHotkey."
+            throw "AutoHotkey64.exe not found under C:\Program Files\AutoHotkey."
           }
           "AHK64_PATH=$ahk64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
@@ -103,20 +103,24 @@ jobs:
             throw "Ahk2Exe.exe not found: $compiler"
           }
           if (-not $base64) {
-            throw "AutoHotkey64.exe not found under C:\\Program Files\\AutoHotkey."
+            throw "AutoHotkey64.exe not found under C:\Program Files\AutoHotkey."
           }
 
           $toolsDir = "pactoolkits-ui/Tools"
           New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
           $workspace = $env:GITHUB_WORKSPACE
-          $agentDir = Resolve-Path "pactoolkits-agent"
-          $entryPath = Join-Path $agentDir "__ci_compile_entry__.ahk"
+          $agentDirPath = (Resolve-Path "pactoolkits-agent").Path
+          $mainScript = Join-Path $agentDirPath "main.ahk"
+          if (-not (Test-Path $mainScript)) {
+            throw "AHK entry script not found: $mainScript"
+          }
+          $entryPath = Join-Path $agentDirPath "__ci_compile_entry__.ahk"
           $entryLines = @(
             "; CI-only wrapper script for Ahk2Exe directives.",
             ";@Ahk2Exe-SetProp FileVersion, $agentVersion4",
             ";@Ahk2Exe-SetProp ProductVersion, $agentVersion4",
             ";@Ahk2Exe-SetProp Version, $agentVersion4",
-            "#Include `\"$($agentDir.Path)\\main.ahk`\""
+            ('#Include "{0}"' -f $mainScript)
           )
           Set-Content -Path $entryPath -Value $entryLines -Encoding utf8
 

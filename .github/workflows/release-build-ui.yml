@@ -26,7 +26,7 @@ jobs:
       - name: Add dotnet tools path
         shell: pwsh
         run: |
-          "$env:USERPROFILE\\.dotnet\\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install vpk
         shell: pwsh
@@ -56,6 +56,12 @@ jobs:
         shell: pwsh
         run: |
           $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
+          if ($manifest.uiVersion -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Invalid uiVersion in release-manifest.json: $($manifest.uiVersion)"
+          }
+          if (-not $manifest.build.channel) {
+            throw "Missing build.channel in release-manifest.json"
+          }
           "UI_VERSION=$($manifest.uiVersion)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "CHANNEL=$($manifest.build.channel)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
