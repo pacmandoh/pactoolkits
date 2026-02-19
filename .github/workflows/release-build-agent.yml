@@ -43,7 +43,7 @@ jobs:
           }
           $release = Invoke-RestMethod -Uri $api -Headers $headers
           $asset = $release.assets |
-            Where-Object { $_.name -match '^Ahk2Exe[\\w\\.\\-]*\\.zip$' } |
+            Where-Object { $_.name -like "Ahk2Exe*.zip" } |
             Select-Object -First 1
           if (-not $asset) {
             $assetNames = ($release.assets | Select-Object -ExpandProperty name) -join ", "
