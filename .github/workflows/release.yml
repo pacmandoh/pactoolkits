@@ -70,6 +70,7 @@ jobs:
           if (-not $ahk64) {
             throw "AutoHotkey64.exe not found under C:\Program Files\AutoHotkey."
           }
+          "AHK64_PATH=$ahk64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           if (-not (Test-Path $uxInstaller)) {
             throw "install-ahk2exe.ahk not found: $uxInstaller"
           }
@@ -81,8 +82,25 @@ jobs:
           }
 
           if (-not (Test-Path $compilerPath)) {
-            throw "Ahk2Exe install did not produce: $compilerPath"
+            Write-Host "UX installer did not provision Ahk2Exe in Program Files, falling back to GitHub release asset."
+            $zipUrl = "https://github.com/AutoHotkey/Ahk2Exe/releases/latest/download/Ahk2Exe.zip"
+            $stageRoot = Join-Path $env:RUNNER_TEMP "ahk2exe-stage"
+            $zipPath = Join-Path $stageRoot "Ahk2Exe.zip"
+            $extractRoot = Join-Path $stageRoot "extract"
+            New-Item -ItemType Directory -Force -Path $stageRoot | Out-Null
+            Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
+            if (Test-Path $extractRoot) {
+              Remove-Item -Path $extractRoot -Recurse -Force
+            }
+            Expand-Archive -Path $zipPath -DestinationPath $extractRoot -Force
+
+            $fallbackCompiler = Get-ChildItem -Path $extractRoot -Recurse -File -Filter Ahk2Exe.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+            if (-not $fallbackCompiler) {
+              throw "Fallback download succeeded but Ahk2Exe.exe was not found in extracted contents."
+            }
+            $compilerPath = $fallbackCompiler
           }
+          "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Ahk2Exe ready: $compilerPath"
 
       - name: Export version artifacts
@@ -108,13 +126,8 @@ jobs:
         run: |
           Write-Host "Compiling pacinjector.exe from release-manifest agentVersion=$env:AGENT_VERSION"
           $agentVersion4 = "$env:AGENT_VERSION.0"
-          $ahkBase = "C:\Program Files\AutoHotkey"
-          $compiler = Join-Path $ahkBase "Compiler\Ahk2Exe.exe"
-          $base64Candidates = @(
-            (Join-Path $ahkBase "v2\AutoHotkey64.exe"),
-            (Join-Path $ahkBase "AutoHotkey64.exe")
-          )
-          $base64 = $base64Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          $compiler = $env:AHK2EXE_PATH
+          $base64 = $env:AHK64_PATH
           if (-not (Test-Path $compiler)) {
             throw "Ahk2Exe.exe not found: $compiler"
           }
