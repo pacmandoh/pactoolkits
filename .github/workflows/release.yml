@@ -182,7 +182,8 @@ jobs:
               "/in", $entryPath,
               "/out", $outExe,
               "/icon", $iconPath,
-              "/base", $base64
+              "/base", $base64,
+              "/silent", "verbose"
             )
             Write-Host ("Ahk2Exe args: " + ($args -join " "))
 
