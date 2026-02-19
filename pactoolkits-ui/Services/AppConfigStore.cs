@@ -61,7 +61,7 @@ public sealed class AutomationToolsOptions
 
 public sealed class AhkToolOptions
 {
-    public string ExecutablePath { get; set; } = string.Empty;
+    public string ExecutablePath { get; set; } = @".\Tools\pacinjector.exe";
     public string ProcessName { get; set; } = string.Empty;
 }
 
@@ -225,8 +225,13 @@ public sealed class AppConfigStore : IAppConfigStore
         if (string.IsNullOrWhiteSpace(root.TraceCodeValidation.Pattern))
             root.TraceCodeValidation.Pattern = "^8\\d+$";
 
-        root.AutomationTools.Ahk.ExecutablePath = (root.AutomationTools.Ahk.ExecutablePath ?? string.Empty).Trim();
-        root.AutomationTools.Ahk.ProcessName = (root.AutomationTools.Ahk.ProcessName ?? string.Empty).Trim();
+        var ahkDefaults = new AhkToolOptions();
+        root.AutomationTools.Ahk.ExecutablePath = string.IsNullOrWhiteSpace(root.AutomationTools.Ahk.ExecutablePath)
+            ? ahkDefaults.ExecutablePath
+            : root.AutomationTools.Ahk.ExecutablePath.Trim();
+        root.AutomationTools.Ahk.ProcessName = string.IsNullOrWhiteSpace(root.AutomationTools.Ahk.ProcessName)
+            ? ahkDefaults.ProcessName
+            : root.AutomationTools.Ahk.ProcessName.Trim();
         root.AutomationTools.Agent = NormalizeAgent(root.AutomationTools.Agent);
         root.Update = NormalizeUpdate(root.Update);
         root.Logging = NormalizeLogging(root.Logging);
