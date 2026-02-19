@@ -1,0 +1,67 @@
+name: Release Publish Assets
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish_assets:
+    name: Upload Release Assets and Sync Feed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download workflow artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: dist
+
+      - name: Upload assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(dist/*)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No release assets found."
+            exit 1
+          fi
+          gh release upload "${GITHUB_REF_NAME}" "${assets[@]}" --clobber
+
+      - name: Prepare SSH for rsync
+        env:
+          FEED_SSH_KEY: ${{ secrets.FEED_SSH_KEY }}
+          FEED_SSH_KNOWN_HOSTS: ${{ secrets.FEED_SSH_KNOWN_HOSTS }}
+          FEED_SSH_USER: ${{ secrets.FEED_SSH_USER }}
+          FEED_SSH_HOST: ${{ secrets.FEED_SSH_HOST }}
+          FEED_SSH_PORT: ${{ secrets.FEED_SSH_PORT }}
+          FEED_RSYNC_PATH: ${{ secrets.FEED_RSYNC_PATH }}
+        run: |
+          set -euo pipefail
+          required_vars=(FEED_SSH_KEY FEED_SSH_KNOWN_HOSTS FEED_SSH_USER FEED_SSH_HOST FEED_SSH_PORT FEED_RSYNC_PATH)
+          for name in "${required_vars[@]}"; do
+            if [ -z "${!name:-}" ]; then
+              echo "Missing required secret: $name"
+              exit 1
+            fi
+          done
+          install -m 700 -d ~/.ssh
+          printf '%s' "$FEED_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$FEED_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Rsync release feed
+        env:
+          FEED_SSH_USER: ${{ secrets.FEED_SSH_USER }}
+          FEED_SSH_HOST: ${{ secrets.FEED_SSH_HOST }}
+          FEED_SSH_PORT: ${{ secrets.FEED_SSH_PORT }}
+          FEED_RSYNC_PATH: ${{ secrets.FEED_RSYNC_PATH }}
+        run: |
+          set -euo pipefail
+          rsync -az --delete \
+            --rsh "ssh -i ~/.ssh/id_ed25519 -o UserKnownHostsFile=~/.ssh/known_hosts -o StrictHostKeyChecking=yes -p ${FEED_SSH_PORT}" \
+            dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${FEED_RSYNC_PATH}/"

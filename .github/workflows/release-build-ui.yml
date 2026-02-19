@@ -1,0 +1,98 @@
+name: Release Build UI
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build_ui:
+    name: Build UI (dotnet + vpk)
+    runs-on: windows-latest
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Add dotnet tools path
+        shell: pwsh
+        run: |
+          "$env:USERPROFILE\\.dotnet\\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install vpk
+        shell: pwsh
+        run: dotnet tool install -g vpk
+
+      - name: Download AHK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ahk-agent-exe
+          path: _ahk_artifact
+
+      - name: Place AHK exe into UI tools
+        shell: pwsh
+        run: |
+          $toolsDir = "pactoolkits-ui/Tools"
+          New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
+          Copy-Item "_ahk_artifact/pacinjector.exe" "$toolsDir/pacinjector.exe" -Force
+
+      - name: Export version artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/export-version.sh
+          ./scripts/check-version.sh
+
+      - name: Read release manifest
+        shell: pwsh
+        run: |
+          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
+          "UI_VERSION=$($manifest.uiVersion)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CHANNEL=$($manifest.build.channel)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Publish UI
+        shell: pwsh
+        run: |
+          dotnet publish pactoolkits-ui/pactoolkits-ui.csproj -c Release -f net8.0 -r win-x64 --self-contained false
+
+      - name: Copy agent exe into publish output
+        shell: pwsh
+        run: |
+          $publishDir = "pactoolkits-ui/bin/Release/net8.0/win-x64/publish"
+          $targetTools = Join-Path $publishDir "Tools"
+          New-Item -ItemType Directory -Path $targetTools -Force | Out-Null
+          Copy-Item "pactoolkits-ui/Tools/pacinjector.exe" (Join-Path $targetTools "pacinjector.exe") -Force
+
+      - name: Pack with vpk
+        shell: pwsh
+        run: |
+          $publishDir = "pactoolkits-ui/bin/Release/net8.0/win-x64/publish"
+          $releaseDir = "pactoolkits-ui/Releases"
+          New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
+
+          vpk pack --packId pactoolkits-ui --packVersion $env:UI_VERSION --packDir $publishDir --outputDir $releaseDir --mainExe pactoolkits-ui.exe --runtime win-x64 --channel $env:CHANNEL --packTitle PacToolkits --packAuthors pacmandoh --noPortable -i pactoolkits-ui/Assets/app.ico
+
+      - name: Collect build outputs
+        shell: pwsh
+        run: |
+          $dist = "_release_assets"
+          New-Item -ItemType Directory -Path $dist -Force | Out-Null
+
+          Copy-Item "pactoolkits-ui/Releases/*" $dist -Recurse -Force
+          Copy-Item "pactoolkits-ui/Tools/pacinjector.exe" "$dist/pacinjector.exe" -Force
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: _release_assets/*
+          if-no-files-found: error
