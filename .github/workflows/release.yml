@@ -1,0 +1,248 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release_notes:
+    name: Generate Release Notes
+    runs-on: ubuntu-latest
+    needs: build_windows
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Changelogithub release
+        uses: antfu/changelogithub-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  build_windows:
+    name: Build Windows Assets
+    runs-on: windows-latest
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Add dotnet tools path
+        shell: pwsh
+        run: |
+          "$env:USERPROFILE\\.dotnet\\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install vpk
+        shell: pwsh
+        run: dotnet tool install -g vpk
+
+      - name: Install AutoHotkey (Ahk2Exe)
+        shell: pwsh
+        run: choco install autohotkey --no-progress -y
+
+      - name: Export version artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/export-version.sh
+          ./scripts/check-version.sh
+
+      - name: Read release manifest
+        shell: pwsh
+        run: |
+          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
+          if ($manifest.agentVersion -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Invalid agentVersion in release-manifest.json: $($manifest.agentVersion)"
+          }
+          "UI_VERSION=$($manifest.uiVersion)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "AGENT_VERSION=$($manifest.agentVersion)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CHANNEL=$($manifest.build.channel)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Compile AHK agent exe
+        shell: pwsh
+        run: |
+          Write-Host "Compiling pacinjector.exe from release-manifest agentVersion=$env:AGENT_VERSION"
+          $agentVersion4 = "$env:AGENT_VERSION.0"
+          $compilerCandidates = @(
+            "$env:ProgramFiles\\AutoHotkey\\Compiler\\Ahk2Exe.exe",
+            "$env:ProgramFiles\\AutoHotkey\\v2\\Compiler\\Ahk2Exe.exe",
+            "$env:ProgramFiles(x86)\\AutoHotkey\\Compiler\\Ahk2Exe.exe"
+          )
+          $base64Candidates = @(
+            "$env:ProgramFiles\\AutoHotkey\\v2\\AutoHotkey64.exe",
+            "$env:ProgramFiles\\AutoHotkey\\AutoHotkey64.exe",
+            "$env:ProgramFiles(x86)\\AutoHotkey\\v2\\AutoHotkey64.exe",
+            "$env:ProgramFiles(x86)\\AutoHotkey\\AutoHotkey64.exe"
+          )
+
+          $compiler = $compilerCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $compiler) {
+            throw "Ahk2Exe.exe not found in expected locations."
+          }
+          $base64 = $base64Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $base64) {
+            throw "AutoHotkey64.exe not found. Refusing to build non-64-bit binary."
+          }
+
+          $toolsDir = "pactoolkits-ui/Tools"
+          New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
+          $agentDir = Resolve-Path "pactoolkits-agent"
+          $entryPath = Join-Path $agentDir "main.__release__.ahk"
+          $entryLines = @(
+            ";@Ahk2Exe-SetFileVersion $agentVersion4",
+            ";@Ahk2Exe-SetProductVersion $agentVersion4",
+            ";@Ahk2Exe-SetVersion $agentVersion4",
+            "#Include `"$($agentDir.Path)\\main.ahk`""
+          )
+          Set-Content -Path $entryPath -Value $entryLines -Encoding utf8
+
+          $outExe = "$toolsDir/pacinjector.exe"
+          try {
+            & $compiler /in "$entryPath" /out "$outExe" /icon "pactoolkits-agent/assets/pacinjection.ico" /base "$base64"
+          }
+          finally {
+            if (Test-Path $entryPath) {
+              Remove-Item $entryPath -Force
+            }
+          }
+          if (-not (Test-Path $outExe)) {
+            throw "AHK compile output missing: $outExe"
+          }
+
+          # Enforce x64 output by checking PE Machine field (0x8664 = AMD64).
+          $bytes = [System.IO.File]::ReadAllBytes($outExe)
+          if ($bytes.Length -lt 0x40) {
+            throw "Compiled exe is too small to be a valid PE file."
+          }
+          $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
+          if ($peOffset -le 0 -or ($peOffset + 6) -ge $bytes.Length) {
+            throw "Invalid PE header offset in compiled exe."
+          }
+          $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
+          if ($machine -ne 0x8664) {
+            throw ("Compiled exe is not x64. PE Machine=0x{0:X4}" -f $machine)
+          }
+
+          $fileVersion = (Get-Item $outExe).VersionInfo.FileVersion
+          $productVersion = (Get-Item $outExe).VersionInfo.ProductVersion
+          if ($fileVersion -ne $agentVersion4) {
+            throw "FileVersion mismatch. expected=$agentVersion4 actual=$fileVersion"
+          }
+          if ($productVersion -ne $agentVersion4) {
+            throw "ProductVersion mismatch. expected=$agentVersion4 actual=$productVersion"
+          }
+
+      - name: Publish UI
+        shell: pwsh
+        run: |
+          dotnet publish pactoolkits-ui/pactoolkits-ui.csproj -c Release -f net8.0 -r win-x64 --self-contained false
+
+      - name: Copy agent exe into publish output
+        shell: pwsh
+        run: |
+          $publishDir = "pactoolkits-ui/bin/Release/net8.0/win-x64/publish"
+          $targetTools = Join-Path $publishDir "Tools"
+          New-Item -ItemType Directory -Path $targetTools -Force | Out-Null
+          Copy-Item "pactoolkits-ui/Tools/pacinjector.exe" (Join-Path $targetTools "pacinjector.exe") -Force
+
+      - name: Pack with vpk
+        shell: pwsh
+        run: |
+          $publishDir = "pactoolkits-ui/bin/Release/net8.0/win-x64/publish"
+          $releaseDir = "pactoolkits-ui/Releases"
+          New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
+
+          vpk pack --packId pactoolkits-ui --packVersion $env:UI_VERSION --packDir $publishDir --outputDir $releaseDir --mainExe pactoolkits-ui.exe --runtime win-x64 --channel $env:CHANNEL --packTitle PacToolkits --packAuthors pacmandoh --noPortable -i pactoolkits-ui/Assets/app.ico
+
+      - name: Collect build outputs
+        shell: pwsh
+        run: |
+          $dist = "_release_assets"
+          New-Item -ItemType Directory -Path $dist -Force | Out-Null
+
+          Copy-Item "pactoolkits-ui/Releases/*" $dist -Recurse -Force
+          Copy-Item "pactoolkits-ui/Tools/pacinjector.exe" "$dist/pacinjector.exe" -Force
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: _release_assets/*
+          if-no-files-found: error
+
+  publish_assets:
+    name: Upload Release Assets and Sync Feed
+    runs-on: ubuntu-latest
+    needs:
+      - build_windows
+      - release_notes
+    steps:
+      - name: Download workflow artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: dist
+
+      - name: Upload assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(dist/*)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No release assets found."
+            exit 1
+          fi
+          gh release upload "${GITHUB_REF_NAME}" "${assets[@]}" --clobber
+
+      - name: Prepare SSH for rsync
+        env:
+          FEED_SSH_KEY: ${{ secrets.FEED_SSH_KEY }}
+          FEED_SSH_KNOWN_HOSTS: ${{ secrets.FEED_SSH_KNOWN_HOSTS }}
+          FEED_SSH_USER: ${{ secrets.FEED_SSH_USER }}
+          FEED_SSH_HOST: ${{ secrets.FEED_SSH_HOST }}
+          FEED_SSH_PORT: ${{ secrets.FEED_SSH_PORT }}
+          FEED_RSYNC_PATH: ${{ secrets.FEED_RSYNC_PATH }}
+        run: |
+          set -euo pipefail
+          required_vars=(FEED_SSH_KEY FEED_SSH_KNOWN_HOSTS FEED_SSH_USER FEED_SSH_HOST FEED_SSH_PORT FEED_RSYNC_PATH)
+          for name in "${required_vars[@]}"; do
+            if [ -z "${!name:-}" ]; then
+              echo "Missing required secret: $name"
+              exit 1
+            fi
+          done
+          install -m 700 -d ~/.ssh
+          printf '%s' "$FEED_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$FEED_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Rsync release feed
+        env:
+          FEED_SSH_USER: ${{ secrets.FEED_SSH_USER }}
+          FEED_SSH_HOST: ${{ secrets.FEED_SSH_HOST }}
+          FEED_SSH_PORT: ${{ secrets.FEED_SSH_PORT }}
+          FEED_RSYNC_PATH: ${{ secrets.FEED_RSYNC_PATH }}
+        run: |
+          set -euo pipefail
+          rsync -az --delete \
+            --rsh "ssh -i ~/.ssh/id_ed25519 -o UserKnownHostsFile=~/.ssh/known_hosts -o StrictHostKeyChecking=yes -p ${FEED_SSH_PORT}" \
+            dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${FEED_RSYNC_PATH}/"
