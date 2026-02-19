@@ -151,6 +151,7 @@ jobs:
 
           $toolsDir = "pactoolkits-ui/Tools"
           New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
+          $workspace = $env:GITHUB_WORKSPACE
           $agentDir = Resolve-Path "pactoolkits-agent"
           $entryPath = Join-Path $agentDir "main.__release__.ahk"
           $entryLines = @(
@@ -161,13 +162,14 @@ jobs:
           )
           Set-Content -Path $entryPath -Value $entryLines -Encoding utf8
 
-          $outExe = "$toolsDir/pacinjector.exe"
+          $outExe = Join-Path $workspace "pactoolkits-ui\\Tools\\pacinjector.exe"
+          $iconPath = Join-Path $workspace "pactoolkits-agent\\assets\\pacinjection.ico"
           $compilerDir = Split-Path -Path $compiler -Parent
           $locationPushed = $false
           try {
             Push-Location $compilerDir
             $locationPushed = $true
-            & $compiler /in "$entryPath" /out "$outExe" /icon "pactoolkits-agent/assets/pacinjection.ico" /base "$base64"
+            & $compiler /in "$entryPath" /out "$outExe" /icon "$iconPath" /base "$base64"
             $exitCode = $LASTEXITCODE
             Pop-Location
             $locationPushed = $false
