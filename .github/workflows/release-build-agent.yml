@@ -122,7 +122,6 @@ jobs:
             ";@Ahk2Exe-Set ProductVersion, $agentVersion4",
             ";@Ahk2Exe-Set ProductName, PacToolkits - Agent",
             ";@Ahk2Exe-Set CompanyName, pacmandoh",
-            ";@Ahk2Exe-Set Copyright, Copyright (c) pacmandoh",
             ";@Ahk2Exe-Set Description, Agent Part of PacToolkits",
             ('#Include "{0}"' -f $mainScript)
           )
@@ -134,15 +133,15 @@ jobs:
           try {
             Remove-Item -Path $outExe -Force -ErrorAction SilentlyContinue
 
-            $args = @(
-              "/in", $entryPath,
-              "/out", $outExe,
-              "/icon", $iconPath,
-              "/base", $base64
-            )
-            Write-Host ("Ahk2Exe args: " + ($args -join " "))
+            $argLine = @(
+              ('/in "{0}"' -f $entryPath),
+              ('/out "{0}"' -f $outExe),
+              ('/icon "{0}"' -f $iconPath),
+              ('/base "{0}"' -f $base64)
+            ) -join " "
+            Write-Host ("Ahk2Exe args: " + $argLine)
 
-            $proc = Start-Process -FilePath $compiler -ArgumentList $args -WorkingDirectory $compilerDir -PassThru -Wait
+            $proc = Start-Process -FilePath $compiler -ArgumentList $argLine -WorkingDirectory $compilerDir -PassThru -Wait
             if ($null -ne $proc.ExitCode -and $proc.ExitCode -ne 0) {
               throw "Ahk2Exe exited with code $($proc.ExitCode)"
             }
