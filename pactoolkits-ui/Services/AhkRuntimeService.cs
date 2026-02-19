@@ -182,7 +182,11 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
             if (string.IsNullOrWhiteSpace(options.ExecutablePath))
                 return SetError("请先配置追溯码自动注入工具的可执行文件路径");
 
-            if (!File.Exists(options.ExecutablePath))
+            var resolvedExePath = ResolveExecutablePath(options.ExecutablePath);
+            if (resolvedExePath is null)
+                return SetError($"路径无效：{options.ExecutablePath}");
+
+            if (!File.Exists(resolvedExePath))
                 return SetError($"文件不存在：{options.ExecutablePath}");
 
             var validate = ValidateAgentConfig();
@@ -203,9 +207,9 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
 
             var startInfo = new ProcessStartInfo
             {
-                FileName = options.ExecutablePath,
+                FileName = resolvedExePath,
                 Arguments = BuildConfigArguments(_configStore.ConfigPath),
-                WorkingDirectory = Path.GetDirectoryName(options.ExecutablePath) ?? Environment.CurrentDirectory,
+                WorkingDirectory = Path.GetDirectoryName(resolvedExePath) ?? Environment.CurrentDirectory,
                 UseShellExecute = true,
             };
 
@@ -579,12 +583,13 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
 
     private static string ReadFileVersion(string executablePath)
     {
-        if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath))
+        var resolvedPath = ResolveExecutablePath(executablePath);
+        if (resolvedPath is null || !File.Exists(resolvedPath))
             return "未配置";
 
         try
         {
-            var info = FileVersionInfo.GetVersionInfo(executablePath);
+            var info = FileVersionInfo.GetVersionInfo(resolvedPath);
             return string.IsNullOrWhiteSpace(info.FileVersion) ? "未知" : info.FileVersion;
         }
         catch
@@ -595,12 +600,21 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
 
     private static string? NormalizePath(string? value)
     {
+        return ResolveExecutablePath(value);
+    }
+
+    private static string? ResolveExecutablePath(string? value)
+    {
         if (string.IsNullOrWhiteSpace(value))
             return null;
 
         try
         {
-            return Path.GetFullPath(value.Trim());
+            var trimmed = value.Trim();
+            if (Path.IsPathRooted(trimmed))
+                return Path.GetFullPath(trimmed);
+
+            return Path.GetFullPath(trimmed, AppContext.BaseDirectory);
         }
         catch
         {
