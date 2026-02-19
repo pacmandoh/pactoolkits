@@ -106,9 +106,27 @@ jobs:
             }
             Expand-Archive -Path $zipPath -DestinationPath $extractRoot -Force
 
-            $fallbackCompiler = Get-ChildItem -Path $extractRoot -Recurse -File -Filter Ahk2Exe.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+            $compilerCandidates = Get-ChildItem -Path $extractRoot -Recurse -File -Filter Ahk2Exe.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+            Write-Host "Fallback Ahk2Exe candidates:"
+            if ($compilerCandidates) {
+              $compilerCandidates | ForEach-Object { Write-Host " - $_" }
+            } else {
+              Write-Host " - <none>"
+            }
+
+            $fallbackCompiler = $compilerCandidates `
+              | Where-Object {
+                  $dir = Split-Path -Path $_ -Parent
+                  (Get-ChildItem -Path $dir -File -Filter *.bin -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0
+                } `
+              | Select-Object -First 1
             if (-not $fallbackCompiler) {
-              throw "Fallback download succeeded but Ahk2Exe.exe was not found in extracted contents."
+              $fallbackCompiler = $compilerCandidates `
+                | Where-Object { $_ -match '[\\/]Compiler[\\/]Ahk2Exe\.exe$' } `
+                | Select-Object -First 1
+            }
+            if (-not $fallbackCompiler) {
+              throw "Fallback download succeeded but no usable Ahk2Exe.exe with bin dependencies was found."
             }
             $compilerPath = $fallbackCompiler
           }
@@ -162,8 +180,8 @@ jobs:
           )
           Set-Content -Path $entryPath -Value $entryLines -Encoding utf8
 
-          $outExe = Join-Path $workspace "pactoolkits-ui\\Tools\\pacinjector.exe"
-          $iconPath = Join-Path $workspace "pactoolkits-agent\\assets\\pacinjection.ico"
+          $outExe = Join-Path (Join-Path (Join-Path $workspace "pactoolkits-ui") "Tools") "pacinjector.exe"
+          $iconPath = Join-Path (Join-Path (Join-Path $workspace "pactoolkits-agent") "assets") "pacinjection.ico"
           $compilerDir = Split-Path -Path $compiler -Parent
           $locationPushed = $false
           try {
