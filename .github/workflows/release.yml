@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 concurrency:
   group: release-${{ github.ref_name }}
@@ -56,12 +57,13 @@ jobs:
         shell: pwsh
         run: choco install autohotkey --no-progress -y
 
-      - name: Ensure Ahk2Exe is installed (official UX flow)
+      - name: Resolve Ahk2Exe compiler
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ahkBase = "C:\Program Files\AutoHotkey"
           $compilerPath = Join-Path $ahkBase "Compiler\Ahk2Exe.exe"
-          $uxInstaller = Join-Path $ahkBase "UX\install-ahk2exe.ahk"
           $ahk64Candidates = @(
             (Join-Path $ahkBase "v2\AutoHotkey64.exe"),
             (Join-Path $ahkBase "AutoHotkey64.exe")
@@ -71,24 +73,34 @@ jobs:
             throw "AutoHotkey64.exe not found under C:\Program Files\AutoHotkey."
           }
           "AHK64_PATH=$ahk64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          if (-not (Test-Path $uxInstaller)) {
-            throw "install-ahk2exe.ahk not found: $uxInstaller"
-          }
 
           if (-not (Test-Path $compilerPath)) {
-            Write-Host "Ahk2Exe missing, invoking UX installer script..."
-            # Any argument suppresses the interactive prompt in install-ahk2exe.ahk.
-            & "$ahk64" "$uxInstaller" /CI
-          }
+            Write-Host "Ahk2Exe missing in Program Files, downloading compiler from AutoHotkey/Ahk2Exe release asset."
+            $api = "https://api.github.com/repos/AutoHotkey/Ahk2Exe/releases/latest"
+            $headers = @{
+              "Authorization" = "Bearer $env:GITHUB_TOKEN"
+              "Accept" = "application/vnd.github+json"
+              "X-GitHub-Api-Version" = "2022-11-28"
+            }
+            $release = Invoke-RestMethod -Uri $api -Headers $headers
+            $asset = $release.assets `
+              | Where-Object { $_.name -match '^Ahk2Exe.*\.zip$' } `
+              | Select-Object -First 1
+            if (-not $asset) {
+              $assetNames = ($release.assets | Select-Object -ExpandProperty name) -join ", "
+              throw "No Ahk2Exe zip asset found in latest release. assets=[$assetNames]"
+            }
+            Write-Host "Using Ahk2Exe asset: $($asset.name)"
 
-          if (-not (Test-Path $compilerPath)) {
-            Write-Host "UX installer did not provision Ahk2Exe in Program Files, falling back to GitHub release asset."
-            $zipUrl = "https://github.com/AutoHotkey/Ahk2Exe/releases/latest/download/Ahk2Exe.zip"
             $stageRoot = Join-Path $env:RUNNER_TEMP "ahk2exe-stage"
             $zipPath = Join-Path $stageRoot "Ahk2Exe.zip"
             $extractRoot = Join-Path $stageRoot "extract"
             New-Item -ItemType Directory -Force -Path $stageRoot | Out-Null
-            Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
+            # GitHub API asset download endpoint is stable even if asset naming changes between releases.
+            Invoke-WebRequest -Uri $asset.url -Headers @{
+              "Authorization" = "Bearer $env:GITHUB_TOKEN"
+              "Accept" = "application/octet-stream"
+            } -OutFile $zipPath
             if (Test-Path $extractRoot) {
               Remove-Item -Path $extractRoot -Recurse -Force
             }
