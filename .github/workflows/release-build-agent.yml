@@ -117,9 +117,13 @@ jobs:
           $entryPath = Join-Path $agentDirPath "__ci_compile_entry__.ahk"
           $entryLines = @(
             "; CI-only wrapper script for Ahk2Exe directives.",
-            ";@Ahk2Exe-SetProp FileVersion, $agentVersion4",
-            ";@Ahk2Exe-SetProp ProductVersion, $agentVersion4",
-            ";@Ahk2Exe-SetProp Version, $agentVersion4",
+            ";@Ahk2Exe-Set Version, $agentVersion4",
+            ";@Ahk2Exe-Set FileVersion, $agentVersion4",
+            ";@Ahk2Exe-Set ProductVersion, $agentVersion4",
+            ";@Ahk2Exe-Set ProductName, PacToolkits - Agent",
+            ";@Ahk2Exe-Set CompanyName, pacmandoh",
+            ";@Ahk2Exe-Set Copyright, Copyright (c) pacmandoh",
+            ";@Ahk2Exe-Set Description, Agent Part of PacToolkits",
             ('#Include "{0}"' -f $mainScript)
           )
           Set-Content -Path $entryPath -Value $entryLines -Encoding utf8
@@ -138,20 +142,12 @@ jobs:
             )
             Write-Host ("Ahk2Exe args: " + ($args -join " "))
 
-            Push-Location $compilerDir
-            & $compiler @args
-            $exitCode = $LASTEXITCODE
-            Pop-Location
-            if ($null -ne $exitCode -and $exitCode -ne 0) {
-              throw "Ahk2Exe exited with code $exitCode"
+            $proc = Start-Process -FilePath $compiler -ArgumentList $args -WorkingDirectory $compilerDir -PassThru -Wait
+            if ($null -ne $proc.ExitCode -and $proc.ExitCode -ne 0) {
+              throw "Ahk2Exe exited with code $($proc.ExitCode)"
             }
           }
           finally {
-            try {
-              if ((Get-Location).Path -eq $compilerDir) {
-                Pop-Location
-              }
-            } catch {}
             if (Test-Path $entryPath) {
               Remove-Item $entryPath -Force
             }
