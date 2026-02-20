@@ -8,6 +8,7 @@ namespace pactoolkits_ui.Services;
 public sealed record AppUpdateCheckResult(
     bool Success,
     bool HasUpdate,
+    bool? HasSuiteUpdate,
     string CurrentVersion,
     string LatestVersion,
     string Source,
@@ -25,6 +26,7 @@ public interface IAppUpdateService
     string CurrentVersion { get; }
     string LatestVersion { get; }
     bool HasUpdateAvailable { get; }
+    bool? HasSuiteUpdateAvailable { get; }
     DateTimeOffset? LastCheckedAt { get; }
     string LastMessage { get; }
     event Action? Changed;
@@ -36,13 +38,13 @@ public interface IAppUpdateService
 
 public sealed class AppUpdateService : IAppUpdateService
 {
-    private readonly IReleaseVersionService _releaseVersion;
     private readonly IUpdateSettingsService _settings;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public string CurrentVersion { get; }
     public string LatestVersion { get; private set; }
     public bool HasUpdateAvailable { get; private set; }
+    public bool? HasSuiteUpdateAvailable { get; private set; }
     public DateTimeOffset? LastCheckedAt { get; private set; }
     public string LastMessage { get; private set; } = "未检查";
 
@@ -50,13 +52,30 @@ public sealed class AppUpdateService : IAppUpdateService
 
     public AppUpdateService(IReleaseVersionService releaseVersion, IUpdateSettingsService settings)
     {
-        _releaseVersion = releaseVersion;
         _settings = settings;
-        CurrentVersion = releaseVersion.Current.UiVersion;
+        CurrentVersion = releaseVersion.Current.SuiteVersion;
         LatestVersion = CurrentVersion;
 
         _settings.Changed += OnSettingsChanged;
     }
+
+    private AppUpdateCheckResult CreateCheckResult(
+        bool success,
+        bool hasUpdate,
+        bool? hasSuiteUpdate,
+        string latestVersion,
+        string message,
+        DateTimeOffset checkedAt,
+        string source)
+        => new(
+            success,
+            hasUpdate,
+            hasSuiteUpdate,
+            CurrentVersion,
+            latestVersion,
+            source,
+            message,
+            checkedAt);
 
     public async Task<AppUpdateCheckResult> CheckAsync(CancellationToken ct = default)
     {
@@ -69,7 +88,14 @@ public sealed class AppUpdateService : IAppUpdateService
 
             if (string.IsNullOrWhiteSpace(options.FeedUrl))
             {
-                var noFeed = BuildResult(false, false, CurrentVersion, CurrentVersion, source, "未配置更新源地址", now);
+                var noFeed = CreateCheckResult(
+                    success: false,
+                    hasUpdate: false,
+                    hasSuiteUpdate: null,
+                    latestVersion: CurrentVersion,
+                    message: "未配置更新源地址",
+                    checkedAt: now,
+                    source: source);
                 SetState(noFeed);
                 return noFeed;
             }
@@ -77,7 +103,14 @@ public sealed class AppUpdateService : IAppUpdateService
             var mgr = CreateUpdateManager(options);
             if (!mgr.IsInstalled)
             {
-                var notInstalled = BuildResult(false, false, CurrentVersion, CurrentVersion, source, "当前不是 Velopack 安装包运行，无法在线更新", now);
+                var notInstalled = CreateCheckResult(
+                    success: false,
+                    hasUpdate: false,
+                    hasSuiteUpdate: null,
+                    latestVersion: CurrentVersion,
+                    message: "当前不是 Velopack 安装包运行，无法在线更新",
+                    checkedAt: now,
+                    source: source);
                 SetState(notInstalled);
                 return notInstalled;
             }
@@ -86,7 +119,14 @@ public sealed class AppUpdateService : IAppUpdateService
             if (pending is not null)
             {
                 var pendingVersion = pending.Version.ToString();
-                var pendingResult = BuildResult(true, true, CurrentVersion, pendingVersion, source, $"更新已下载：{pendingVersion}，等待重启应用", now);
+                var pendingResult = CreateCheckResult(
+                    success: true,
+                    hasUpdate: true,
+                    hasSuiteUpdate: true,
+                    latestVersion: pendingVersion,
+                    message: $"更新已下载：{pendingVersion}，等待重启应用",
+                    checkedAt: now,
+                    source: source);
                 SetState(pendingResult);
                 return pendingResult;
             }
@@ -94,7 +134,14 @@ public sealed class AppUpdateService : IAppUpdateService
             var updates = await mgr.CheckForUpdatesAsync().ConfigureAwait(false);
             if (updates is null)
             {
-                var upToDate = BuildResult(true, false, CurrentVersion, CurrentVersion, source, "当前已是最新版本", now);
+                var upToDate = CreateCheckResult(
+                    success: true,
+                    hasUpdate: false,
+                    hasSuiteUpdate: false,
+                    latestVersion: CurrentVersion,
+                    message: "当前已是最新版本",
+                    checkedAt: now,
+                    source: source);
                 SetState(upToDate);
                 return upToDate;
             }
@@ -105,9 +152,33 @@ public sealed class AppUpdateService : IAppUpdateService
             var message = hasUpdate
                 ? $"发现新版本 {latest}"
                 : $"已忽略版本 {latest}";
-            var result = BuildResult(true, hasUpdate, CurrentVersion, latest, source, message, now);
+            var result = CreateCheckResult(
+                success: true,
+                hasUpdate: hasUpdate,
+                hasSuiteUpdate: ignored ? false : true,
+                latestVersion: latest,
+                message: message,
+                checkedAt: now,
+                source: source);
             SetState(result);
             return result;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            var failed = CreateCheckResult(
+                success: false,
+                hasUpdate: false,
+                hasSuiteUpdate: null,
+                latestVersion: CurrentVersion,
+                message: $"更新源连接失败：{ex.Message}",
+                checkedAt: DateTimeOffset.Now,
+                source: BuildSource(_settings.Current));
+            SetState(failed);
+            return failed;
         }
         finally
         {
@@ -184,9 +255,9 @@ public sealed class AppUpdateService : IAppUpdateService
 
     private void OnSettingsChanged()
     {
-        var options = _settings.Current;
         LatestVersion = CurrentVersion;
         HasUpdateAvailable = false;
+        HasSuiteUpdateAvailable = null;
         LastMessage = "更新配置已变更，请重新检查更新";
         Changed?.Invoke();
     }
@@ -195,20 +266,11 @@ public sealed class AppUpdateService : IAppUpdateService
     {
         LatestVersion = result.LatestVersion;
         HasUpdateAvailable = result.HasUpdate;
+        HasSuiteUpdateAvailable = result.HasSuiteUpdate;
         LastCheckedAt = result.CheckedAt;
         LastMessage = result.Message;
         Changed?.Invoke();
     }
-
-    private static AppUpdateCheckResult BuildResult(
-        bool success,
-        bool hasUpdate,
-        string current,
-        string latest,
-        string source,
-        string message,
-        DateTimeOffset checkedAt)
-        => new(success, hasUpdate, current, latest, source, message, checkedAt);
 
     private static UpdateManager CreateUpdateManager(UpdateOptions options)
     {

@@ -41,6 +41,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private readonly IAppUpdateService _updates;
     private readonly IUpdateUiFlowService _updateUiFlow;
     private readonly IReleaseVersionService _releaseVersion;
+    private readonly IDialogService _dialog;
+    private readonly IDbSchemaVersionService _dbSchemaVersion;
     private readonly ILoggingSettingsService _loggingSettings;
     private readonly IAppLogger _logger;
     private readonly IClipboardService _clipboard;
@@ -71,8 +73,9 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private int _updatePollIntervalMinutes;
     [ObservableProperty] private string _updatePollIntervalHint = "0=通道默认";
     [ObservableProperty] private string _ignoredUiVersion = string.Empty;
-    [ObservableProperty] private string _currentUiVersion = "unknown";
-    [ObservableProperty] private string _latestUiVersion = "unknown";
+    [ObservableProperty] private string _currentSuiteVersion = "unknown";
+    [ObservableProperty] private bool? _suiteUpdateAvailable;
+    [ObservableProperty] private string _latestSuiteVersion = "unknown";
     [ObservableProperty] private string _updateStatusHint = "未检查更新";
     [ObservableProperty] private bool _isUpdateChecking;
     [ObservableProperty] private bool _isUpdateApplying;
@@ -104,7 +107,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     public ObservableCollection<ClientAliasRow> ClientAliases { get; } = new();
     public bool IsClientAliasesEmpty => ClientAliases.Count == 0;
-    public string UpdateAvailabilityLabel => HasUpdateAvailable ? "可更新" : "已最新";
+    public string SuiteUpdateAvailabilityLabel => GetAvailabilityLabel(SuiteUpdateAvailable);
     public string LoggingMinimumLevelHint => LoggingMinimumLevel switch
     {
         "Debug" => "记录最详细调试信息，适合临时排障。",
@@ -126,6 +129,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IAppUpdateService updates,
         IUpdateUiFlowService updateUiFlow,
         IReleaseVersionService releaseVersion,
+        IDialogService dialog,
+        IDbSchemaVersionService dbSchemaVersion,
         ILoggingSettingsService loggingSettings,
         IAppLogger logger,
         IClipboardService clipboard,
@@ -141,6 +146,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         _updates = updates;
         _updateUiFlow = updateUiFlow;
         _releaseVersion = releaseVersion;
+        _dialog = dialog;
+        _dbSchemaVersion = dbSchemaVersion;
         _loggingSettings = loggingSettings;
         _logger = logger;
         _clipboard = clipboard;
@@ -194,10 +201,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IgnoredUiVersion = options.IgnoredVersion;
         RefreshUpdatePollIntervalHint();
 
-        CurrentUiVersion = _releaseVersion.Current.UiVersion;
-        LatestUiVersion = _updates.LatestVersion;
-        HasUpdateAvailable = _updates.HasUpdateAvailable;
-        UpdateStatusHint = _updates.LastMessage;
+        SyncUpdateStateFromService();
 
         _syncingUpdateOptions = false;
     }
@@ -220,13 +224,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void OnUpdatesChanged()
     {
-        Dispatcher.UIThread.Post(() =>
-        {
-            LatestUiVersion = _updates.LatestVersion;
-            HasUpdateAvailable = _updates.HasUpdateAvailable;
-            UpdateStatusHint = _updates.LastMessage;
-            OnPropertyChanged(nameof(UpdateAvailabilityLabel));
-        });
+        Dispatcher.UIThread.Post(SyncUpdateStateFromService);
     }
 
     private void LoadLoggingOptions()
@@ -249,8 +247,17 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         Dispatcher.UIThread.Post(LoadLoggingOptions);
     }
 
-    partial void OnHasUpdateAvailableChanged(bool value)
-        => OnPropertyChanged(nameof(UpdateAvailabilityLabel));
+    partial void OnSuiteUpdateAvailableChanged(bool? value)
+        => OnPropertyChanged(nameof(SuiteUpdateAvailabilityLabel));
+
+    private void SyncUpdateStateFromService()
+    {
+        CurrentSuiteVersion = _updates.CurrentVersion;
+        LatestSuiteVersion = _updates.LatestVersion;
+        SuiteUpdateAvailable = _updates.HasSuiteUpdateAvailable;
+        HasUpdateAvailable = _updates.HasUpdateAvailable;
+        UpdateStatusHint = _updates.LastMessage;
+    }
 
     partial void OnLoggingMinimumLevelChanged(string value)
         => OnPropertyChanged(nameof(LoggingMinimumLevelHint));
@@ -331,6 +338,14 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             if (result.Ok)
             {
+                if (!await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false))
+                {
+                    Status = "数据库版本不兼容";
+                    IsDbConnected = false;
+                    UpdateClientAliasUiState();
+                    return;
+                }
+
                 Status = "连接成功";
                 IsDbConnected = true;
                 _ = ReloadClientAliasesAsync();
@@ -369,6 +384,16 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         try
         {
             await _svc.SaveAndApplyAsync(ToOptions());
+            if (!await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false))
+            {
+                Status = "数据库版本不兼容";
+                IsDbConnected = false;
+                UpdateClientAliasUiState();
+                return;
+            }
+
+            Status = "连接成功";
+            IsDbConnected = true;
             _toast.Success("配置已保存", "数据库配置已应用");
 
             _ = ReloadClientAliasesAsync();
@@ -784,13 +809,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 startupMode: false,
                 applyNowAction: ApplyUpdateNowAsync,
                 ignoreVersionAction: IgnoreCurrentUpdateAsync,
-                syncState: result =>
-                {
-                    UpdateStatusHint = result.Message;
-                    CurrentUiVersion = result.CurrentVersion;
-                    LatestUiVersion = result.LatestVersion;
-                    HasUpdateAvailable = result.HasUpdate;
-                },
                 logScope: "SettingsVM").ConfigureAwait(false);
         }
         finally
@@ -844,14 +862,38 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     {
         try
         {
-            await _updateUiFlow.IgnoreVersionAsync(LatestUiVersion).ConfigureAwait(false);
-            IgnoredUiVersion = LatestUiVersion;
+            await _updateUiFlow.IgnoreVersionAsync(LatestSuiteVersion).ConfigureAwait(false);
+            IgnoredUiVersion = LatestSuiteVersion;
         }
         catch (Exception ex)
         {
             _logger.Error("SettingsVM", "update.ignore.fail", "Failed to ignore update version", ex);
             _toast.Error("应用更新", ex.Message);
         }
+    }
+
+    private async Task<bool> EnsureDbSchemaCompatibleAsync()
+    {
+        var expected = _releaseVersion.Current.DbSchemaVersion;
+        var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
+        if (schema.ok && string.Equals(schema.value, expected, StringComparison.Ordinal))
+            return true;
+
+        var detail = schema.ok
+            ? $"数据库版本：{schema.value}\n要求版本：{expected}"
+            : $"读取失败：{schema.reason ?? "缺少 schema_version 表或版本记录"}\n要求版本：{expected}";
+        var message = $"检测到当前数据库版本与 PacToolkits 不兼容。\n{detail}\n\n请联系维护者将数据库更新到适配版本后再连接。";
+
+        _logger.Warn("SettingsVM", "db.schema.incompatible", "Database schema incompatible when connecting", null, new
+        {
+            expected,
+            schemaOk = schema.ok,
+            schemaValue = schema.value,
+            schema.reason
+        });
+
+        await _dialog.Warn("数据库版本不兼容", message).ConfigureAwait(false);
+        return false;
     }
 
     private void TrackAliasRow(ClientAliasRow row)
@@ -903,6 +945,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         var parsed = ClientParser.Parse(text);
         return (parsed.Machine ?? text).Trim();
     }
+
+    private static string GetAvailabilityLabel(bool? value) => value switch
+    {
+        true => "可更新",
+        false => "已最新",
+        _ => "未知"
+    };
 
     public override void Dispose()
     {

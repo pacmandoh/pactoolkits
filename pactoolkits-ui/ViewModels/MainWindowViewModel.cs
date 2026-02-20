@@ -13,6 +13,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using pactoolkits_ui.Contracts;
+using pactoolkits_ui.Common;
 using pactoolkits_ui.DataAccess;
 using pactoolkits_ui.Services;
 using pactoolkits_ui.ViewModels.Pages;
@@ -149,32 +150,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     private static Task RunOnUiAsync(Action action)
-        => RunOnUiAsync(action, DispatcherPriority.Background);
+        => UiThreadHelper.RunOnUiAsync(action, DispatcherPriority.Background);
 
     private static async Task RunOnUiAsync(Action action, DispatcherPriority priority)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            action();
-            return;
-        }
-
-        await Dispatcher.UIThread.InvokeAsync(action, priority);
-    }
+        => await UiThreadHelper.RunOnUiAsync(action, priority);
 
     private static void PostOnUi(Action action)
-        => PostOnUi(action, DispatcherPriority.Background);
+        => UiThreadHelper.PostOnUi(action, DispatcherPriority.Background);
 
     private static void PostOnUi(Action action, DispatcherPriority priority)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            action();
-            return;
-        }
-
-        Dispatcher.UIThread.Post(action, priority);
-    }
+        => UiThreadHelper.PostOnUi(action, priority);
 
     private ITopBarActions? ActiveTopBar => ActivePage;
 
@@ -288,7 +273,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         CurrentUiVersion = _updates.CurrentVersion;
         LatestUiVersion = _updates.LatestVersion;
         HasUpdateAvailable = _updates.HasUpdateAvailable;
-        OnPropertyChanged(nameof(UpdateStatusTip));
 
         _ = CheckConfigOnStartupAsync();
         StartConfigWatcher();
@@ -572,24 +556,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (ok)
         {
-            var expected = _releaseVersion.Current.DbSchemaVersion;
-            var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
-            if (!schema.ok)
-            {
-                _logger.Warn("MainWindowVM", "db.schema.read_fail", "Failed to read database schema version", null, new { schema.reason });
-                _toasts.Warn("数据库 Schema", $"无法读取 schema_version：{schema.reason ?? "未知原因"}");
-                return;
-            }
-
-            if (!string.Equals(schema.value, expected, StringComparison.Ordinal))
-            {
-                _logger.Warn("MainWindowVM", "db.schema.mismatch", "Database schema version mismatch", null, new { schema.value, expected });
-                _toasts.Warn("数据库 Schema", $"版本不一致：DB={schema.value}，Manifest={expected}");
-            }
-            else
-            {
-                _logger.Info("MainWindowVM", "db.schema.ok", "Database schema version matched", new { schema.value, expected });
-            }
+            await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false);
             return;
         }
 
@@ -600,6 +567,32 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (openSettings)
             await RunOnUiAsync(OpenSettings);
+    }
+
+    private async Task<bool> EnsureDbSchemaCompatibleAsync()
+    {
+        var expected = _releaseVersion.Current.DbSchemaVersion;
+        var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
+        if (schema.ok && string.Equals(schema.value, expected, StringComparison.Ordinal))
+        {
+            _logger.Info("MainWindowVM", "db.schema.ok", "Database schema version matched", new { schema.value, expected });
+            return true;
+        }
+
+        _logger.Warn("MainWindowVM", "db.schema.incompatible", "Database schema incompatible", null, new
+        {
+            expected,
+            schemaOk = schema.ok,
+            schemaValue = schema.value,
+            schema.reason
+        });
+
+        var detail = schema.ok
+            ? $"数据库版本：{schema.value}\n要求版本：{expected}"
+            : $"读取失败：{schema.reason ?? "缺少 schema_version 表或版本记录"}\n要求版本：{expected}";
+        var message = $"检测到当前数据库版本与 PacToolkits 不兼容。\n{detail}\n\n请联系维护者将数据库更新到适配版本后再连接。";
+        await _dialogs.Warn("数据库版本不兼容", message).ConfigureAwait(false);
+        return false;
     }
 
     private async Task CheckUpdatesOnStartupAsync()
@@ -676,12 +669,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 startupMode: startupMode,
                 applyNowAction: ApplyUpdateFlowAsync,
                 ignoreVersionAction: IgnoreCurrentUpdateAsync,
-                syncState: result =>
-                {
-                    CurrentUiVersion = result.CurrentVersion;
-                    LatestUiVersion = result.LatestVersion;
-                    HasUpdateAvailable = result.HasUpdate;
-                },
                 logScope: "MainWindowVM").ConfigureAwait(false);
         }
         finally
@@ -1010,7 +997,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             CurrentUiVersion = _updates.CurrentVersion;
             LatestUiVersion = _updates.LatestVersion;
             HasUpdateAvailable = _updates.HasUpdateAvailable;
-            OnPropertyChanged(nameof(UpdateStatusTip));
         });
     }
 
