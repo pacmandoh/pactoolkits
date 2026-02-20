@@ -47,6 +47,7 @@
                 <TextBox x:Name="PasswordBox"
                          Height="38"
                          PasswordChar="●"
+                         KeyDown="PasswordBox_OnKeyDown"
                          Watermark="请输入数据库密码进行验证" />
             </StackPanel>
         </StackPanel>
