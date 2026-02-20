@@ -140,6 +140,11 @@ public sealed class DialogService : IDialogService
             {
                 HintMessage = hintMessage
             };
+            content.SubmitRequested += () =>
+            {
+                tcs.TrySetResult(content.Password);
+                _dialogManager.DismissDialog();
+            };
 
             _dialogManager.CreateDialog()
                 .OfType(NotificationType.Information)
