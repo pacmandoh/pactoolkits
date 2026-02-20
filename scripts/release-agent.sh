@@ -13,7 +13,7 @@ Usage:
 
 Options:
   --bump-agent X.Y.Z         Optional: bump agentVersion before packaging.
-  --bump-suite X.Y.Z         Optional: bump suiteVersion.
+  --bump-suite X.Y.Z         Optional: explicitly set suiteVersion (otherwise auto major/minor/patch by component changes when ui/agent/db bumped).
   --bump-ui X.Y.Z            Optional: bump uiVersion.
   --bump-db X.Y.Z            Optional: bump dbSchemaVersion.
   --bump-channel C           Optional: bump manifest build.channel (stable|beta|dev).

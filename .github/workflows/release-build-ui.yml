@@ -14,6 +14,7 @@ jobs:
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: '1'
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+      VPK_CACHE_KEY: vpk-global-tool-v1
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,14 +24,46 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Cache NuGet packages
+        id: cache_nuget
+        uses: actions/cache@v4
+        with:
+          path: ~\.nuget\packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.sln', '**/*.csproj', '**/Directory.Packages.props', '**/NuGet.Config', 'global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Add dotnet tools path
         shell: pwsh
         run: |
           "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Cache dotnet global tools
+        id: cache_dotnet_tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\.dotnet\tools
+            ~\.dotnet\toolResolverCache
+          key: ${{ runner.os }}-${{ env.VPK_CACHE_KEY }}-${{ hashFiles('.github/workflows/release-build-ui.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.VPK_CACHE_KEY }}-
+
+      - name: Report cache status
+        shell: pwsh
+        run: |
+          Write-Host "cache.nuget.hit=${{ steps.cache_nuget.outputs.cache-hit }}"
+          Write-Host "cache.dotnet_tools.hit=${{ steps.cache_dotnet_tools.outputs.cache-hit }}"
+
       - name: Install vpk
         shell: pwsh
-        run: dotnet tool install -g vpk
+        run: |
+          if (-not (Get-Command vpk -ErrorAction SilentlyContinue)) {
+            dotnet tool install -g vpk
+          }
+          else {
+            Write-Host "vpk already available, skip install."
+          }
 
       - name: Download AHK artifact
         uses: actions/download-artifact@v4

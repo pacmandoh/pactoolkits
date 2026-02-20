@@ -24,11 +24,13 @@ jobs:
     secrets: inherit
 
   release_notes:
+    if: startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/release-generate-notes.yml
     needs: build_ui
     secrets: inherit
 
   publish_assets:
+    if: startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/release-publish-assets.yml
     needs:
       - build_ui
