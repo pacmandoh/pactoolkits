@@ -358,7 +358,7 @@
                         <simpleicons:PackIconSimpleIcons Kind="MacOs" Width="42" Height="42" VerticalAlignment="Top" />
                         <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
                             <TextBlock Text="macOS" FontWeight="Bold" FontSize="16" />
-                            <TextBlock Text="主要开发与运行平台" Opacity="0.95" />
+                            <TextBlock Text="主要开发与测试平台" Opacity="0.95" />
                         </StackPanel>
                     </Grid>
                 </suki:GlassCard>

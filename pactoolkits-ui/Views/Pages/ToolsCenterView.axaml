@@ -158,7 +158,7 @@
                                              HorizontalAlignment="Stretch"
                                              VerticalContentAlignment="Center"
                                              Text="{Binding AhkExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Watermark="例如：C:\\Tools\\trace-auto-injector.exe" />
+                                             Watermark="例如：C:\\Tools\\pacinjector.exe" />
                                 </Grid>
 
                                 <Grid Grid.Row="1" ColumnDefinitions="120,*" ColumnSpacing="12">
@@ -168,7 +168,7 @@
                                              HorizontalAlignment="Stretch"
                                              VerticalContentAlignment="Center"
                                              Text="{Binding AhkProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Watermark="例如：trace-auto-injector（不带 .exe）" />
+                                             Watermark="例如：pacinjector（不带 .exe）" />
                                 </Grid>
 
                                 <Grid Grid.Row="2" ColumnDefinitions="120,*" ColumnSpacing="12">
