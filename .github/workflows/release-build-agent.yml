@@ -15,7 +15,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Read manifest agent version
+        shell: pwsh
+        run: |
+          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
+          if ($manifest.agentVersion -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Invalid agentVersion in release-manifest.json: $($manifest.agentVersion)"
+          }
+          "AGENT_VERSION=$($manifest.agentVersion)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Cache pacinjector binary
+        id: cache_pacinjector
+        uses: actions/cache@v4
+        with:
+          path: ~\pacinjector-cache\pacinjector.exe
+          key: ${{ runner.os }}-pacinjector-${{ hashFiles('release-manifest.json', 'pactoolkits-agent/main.ahk', 'pactoolkits-agent/src/**/*.ahk', 'pactoolkits-agent/assets/pacinjection.ico', '.github/workflows/release-build-agent.yml') }}
+
+      - name: Report pacinjector cache status
+        shell: pwsh
+        run: |
+          Write-Host "cache.pacinjector.hit=${{ steps.cache_pacinjector.outputs.cache-hit }}"
+
+      - name: Restore cached pacinjector
+        if: steps.cache_pacinjector.outputs.cache-hit == 'true'
+        shell: pwsh
+        run: |
+          $cachedExe = Join-Path $env:USERPROFILE "pacinjector-cache\pacinjector.exe"
+          if (-not (Test-Path $cachedExe)) {
+            throw "cache-hit=true but cached pacinjector.exe is missing: $cachedExe"
+          }
+          $toolsDir = "pactoolkits-ui/Tools"
+          New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
+          Copy-Item $cachedExe "$toolsDir/pacinjector.exe" -Force
+          Write-Host "Using cached pacinjector.exe"
+
       - name: Install AutoHotkey
+        if: steps.cache_pacinjector.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $ahk64 = "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
@@ -27,6 +62,7 @@ jobs:
           }
 
       - name: Cache Ahk2Exe asset
+        if: steps.cache_pacinjector.outputs.cache-hit != 'true'
         id: cache_ahk2exe
         uses: actions/cache@v4
         with:
@@ -36,11 +72,13 @@ jobs:
             ${{ runner.os }}-ahk2exe-asset-v1-
 
       - name: Report cache status
+        if: steps.cache_pacinjector.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           Write-Host "cache.ahk2exe.hit=${{ steps.cache_ahk2exe.outputs.cache-hit }}"
 
       - name: Resolve Ahk2Exe compiler
+        if: steps.cache_pacinjector.outputs.cache-hit != 'true'
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -123,40 +161,6 @@ jobs:
 
           "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Ahk2Exe deployed to: $compilerTargetDir"
-
-      - name: Read manifest agent version
-        shell: pwsh
-        run: |
-          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
-          if ($manifest.agentVersion -notmatch '^\d+\.\d+\.\d+$') {
-            throw "Invalid agentVersion in release-manifest.json: $($manifest.agentVersion)"
-          }
-          "AGENT_VERSION=$($manifest.agentVersion)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Cache pacinjector binary
-        id: cache_pacinjector
-        uses: actions/cache@v4
-        with:
-          path: ~\pacinjector-cache\pacinjector.exe
-          key: ${{ runner.os }}-pacinjector-${{ hashFiles('release-manifest.json', 'pactoolkits-agent/main.ahk', 'pactoolkits-agent/src/**/*.ahk', 'pactoolkits-agent/assets/pacinjection.ico', '.github/workflows/release-build-agent.yml') }}
-
-      - name: Report pacinjector cache status
-        shell: pwsh
-        run: |
-          Write-Host "cache.pacinjector.hit=${{ steps.cache_pacinjector.outputs.cache-hit }}"
-
-      - name: Restore cached pacinjector
-        if: steps.cache_pacinjector.outputs.cache-hit == 'true'
-        shell: pwsh
-        run: |
-          $cachedExe = Join-Path $env:USERPROFILE "pacinjector-cache\pacinjector.exe"
-          if (-not (Test-Path $cachedExe)) {
-            throw "cache-hit=true but cached pacinjector.exe is missing: $cachedExe"
-          }
-          $toolsDir = "pactoolkits-ui/Tools"
-          New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
-          Copy-Item $cachedExe "$toolsDir/pacinjector.exe" -Force
-          Write-Host "Using cached pacinjector.exe"
 
       - name: Compile AHK agent exe
         if: steps.cache_pacinjector.outputs.cache-hit != 'true'
