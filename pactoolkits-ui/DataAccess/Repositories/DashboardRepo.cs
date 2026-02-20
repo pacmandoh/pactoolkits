@@ -549,7 +549,9 @@ public sealed class DashboardRepo : IDashboardRepo
             const string sql = """
                                    select distinct drug_id
                                    from drug_index
-                                   where drug_id is not null and drug_id <> ''
+                                   where drug_id is not null
+                                     and drug_id <> ''
+                                     and coalesce(note,'') not ilike '%弃用%'
                                    order by drug_id
                                    limit 5000
                                """;
@@ -569,6 +571,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                    select distinct spec
                                    from drug_index
                                    where drug_id = @drug_id
+                                     and coalesce(note,'') not ilike '%弃用%'
                                    order by spec
                                    limit 2000
                                """;

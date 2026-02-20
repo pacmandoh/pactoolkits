@@ -137,7 +137,8 @@ public sealed record TracePoolStockRowDto(
     int Qty,
     int Remain,
     int Status,
-    bool IsLow
+    bool IsLow,
+    bool IsDeprecated = false
 );
 
 public sealed record TracePoolDrugSpecAggDto(
@@ -148,7 +149,8 @@ public sealed record TracePoolDrugSpecAggDto(
     long RemainSum,
     long WeekUsed,
     decimal Threshold,
-    bool IsLow
+    bool IsLow,
+    bool IsDeprecated = false
 );
 
 public sealed record LowStockRowDto(

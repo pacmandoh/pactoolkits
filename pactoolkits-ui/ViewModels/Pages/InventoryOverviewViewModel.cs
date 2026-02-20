@@ -27,7 +27,8 @@ public sealed partial class StockRowItem : ObservableObject
         int qty,
         int remain,
         int status,
-        bool isLow)
+        bool isLow,
+        bool isDeprecated)
     {
         RowNo = rowNo;
         DrugId = drugId;
@@ -37,6 +38,7 @@ public sealed partial class StockRowItem : ObservableObject
         Remain = remain;
         Status = status;
         IsLow = isLow;
+        IsDeprecated = isDeprecated;
     }
 
     public int RowNo { get; }
@@ -48,6 +50,7 @@ public sealed partial class StockRowItem : ObservableObject
     [ObservableProperty] private int _remain;
     [ObservableProperty] private int _status;
     [ObservableProperty] private bool _isLow;
+    [ObservableProperty] private bool _isDeprecated;
 }
 
 public sealed record DrugSpecAggRowItem(
@@ -59,7 +62,8 @@ public sealed record DrugSpecAggRowItem(
     long RemainSum,
     long WeekUsed,
     decimal Threshold,
-    bool IsLow
+    bool IsLow,
+    bool IsDeprecated
 );
 
 public sealed record LowStockRowItem(
@@ -431,6 +435,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             var canonical = await _lookup.ResolveCanonicalDrugIdAsync(drug, cts.Token).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(canonical))
             {
+                var isDeprecated = await _lookup.IsDeprecatedDrugIdAsync(drug, cts.Token).ConfigureAwait(false);
                 await RunOnUiAsync(() =>
                 {
                     ReassignSpecOptions.Clear();
@@ -439,7 +444,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     IsReassignSpecSelected = false;
                     ReassignTargetDrugId = null;
                     ReassignTargetSpec = null;
-                    ReassignPreviewText = "纠错上下文：药品不存在，请重新输入";
+                    ReassignPreviewText = isDeprecated
+                        ? "纠错上下文：药品已被弃用"
+                        : "纠错上下文：药品不存在，请重新输入";
                 });
                 return;
             }
@@ -1615,6 +1622,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     dst.Remain = src.Remain;
                     dst.Status = src.Status;
                     dst.IsLow = src.IsLow;
+                    dst.IsDeprecated = src.IsDeprecated;
                 }
 
                 TotalCount = pageResult.TotalCount;
@@ -1692,7 +1700,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     qty: row.Qty,
                     remain: row.Remain,
                     status: row.Status,
-                    isLow: row.IsLow));
+                    isLow: row.IsLow,
+                    isDeprecated: row.IsDeprecated));
             }
 
             TotalCount = page.TotalCount;
@@ -1725,7 +1734,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     RemainSum: row.RemainSum,
                     WeekUsed: row.WeekUsed,
                     Threshold: row.Threshold,
-                    IsLow: row.IsLow));
+                    IsLow: row.IsLow,
+                    IsDeprecated: row.IsDeprecated));
             }
 
             TotalCount = page.TotalCount;
