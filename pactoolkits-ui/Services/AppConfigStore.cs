@@ -39,7 +39,7 @@ public sealed class UpdateOptions
 {
     public bool AutoCheckOnStartup { get; set; } = true;
     public string Channel { get; set; } = "stable";
-    public string FeedUrl { get; set; } = "https://updates.example.com/pactoolkits-ui";
+    public string FeedUrl { get; set; } = "https://updates.pacdocs.com/feed/pactoolkits-ui";
     public int AutoCheckIntervalMinutes { get; set; } = 0;
     public string IgnoredVersion { get; set; } = string.Empty;
 }

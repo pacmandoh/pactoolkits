@@ -496,27 +496,6 @@
                             </StackPanel>
                         </Button>
 
-                        <!-- <Button Grid.Column="2" -->
-                        <!--         Classes="Ghost" -->
-                        <!--         Command="{Binding ApplyUpdateNowCommand}" -->
-                        <!--         IsEnabled="{Binding HasUpdateAvailable}"> -->
-                        <!--     <Grid> -->
-                        <!--         <StackPanel Orientation="Horizontal" Spacing="6"> -->
-                        <!--             <icons:MaterialIcon Kind="Download" Width="16" Height="16" /> -->
-                        <!--             <TextBlock Text="立即更新" /> -->
-                        <!--         </StackPanel> -->
-                        <!-- -->
-                        <!--         <Border Width="7" -->
-                        <!--                 Height="7" -->
-                        <!--                 CornerRadius="999" -->
-                        <!--                 Background="{DynamicResource BrushWarning}" -->
-                        <!--                 IsVisible="{Binding HasUpdateAvailable}" -->
-                        <!--                 HorizontalAlignment="Right" -->
-                        <!--                 VerticalAlignment="Top" -->
-                        <!--                 Margin="0,1,1,0" /> -->
-                        <!--     </Grid> -->
-                        <!-- </Button> -->
-
                         <Button Grid.Column="3"
                                 Classes="Primary"
                                 Command="{Binding SaveUpdateOptionsCommand}">
@@ -529,96 +508,53 @@
 
                     <suki:GroupBox Grid.Row="1" Header="参数">
                         <Grid ColumnDefinitions="170,340,*"
-                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
                               ColumnSpacing="12"
                               RowSpacing="10">
-                            <TextBlock Text="当前 UI 版本"
+                            <TextBlock Text="PacToolkits 版本"
                                        VerticalAlignment="Center" />
                             <TextBox Grid.Row="0" Grid.Column="1"
-                                     Text="{Binding CurrentUiVersion}"
+                                     Text="{Binding CurrentSuiteVersion}"
                                      IsEnabled="False"
                                      MinHeight="34"
                                      VerticalContentAlignment="Center" />
+                            <controls:UpdateStatusBadge Grid.Row="0"
+                                                        Grid.Column="2"
+                                                        Status="{Binding SuiteUpdateAvailable}"
+                                                        Label="{Binding SuiteUpdateAvailabilityLabel}"
+                                                        LatestVersion="{Binding LatestSuiteVersion}" />
 
                             <TextBlock Grid.Row="1" Grid.Column="0"
-                                       Text="最新可用版本"
-                                       VerticalAlignment="Center" />
-                            <TextBox Grid.Row="1"
-                                     Grid.Column="1"
-                                     Text="{Binding LatestUiVersion}"
-                                     IsEnabled="False"
-                                     MinHeight="34"
-                                     VerticalContentAlignment="Center" />
-                            <Border Grid.Row="1"
-                                    Grid.Column="2"
-                                    IsVisible="{Binding HasUpdateAvailable}"
-                                    Background="{DynamicResource BrushWarningBg25}"
-                                    BorderBrush="{DynamicResource BrushWarningBg50}"
-                                    BorderThickness="1"
-                                    CornerRadius="999"
-                                    Padding="10,4"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="CloudDownloadOutline"
-                                                        Width="14"
-                                                        Height="14"
-                                                        Foreground="{DynamicResource BrushWarning}" />
-                                    <TextBlock Text="{Binding UpdateAvailabilityLabel}"
-                                               Foreground="{DynamicResource BrushWarning}" />
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Row="1"
-                                    Grid.Column="2"
-                                    IsVisible="{Binding !HasUpdateAvailable}"
-                                    Background="{DynamicResource BrushDoneBg25}"
-                                    BorderBrush="{DynamicResource BrushDoneBg50}"
-                                    BorderThickness="1"
-                                    CornerRadius="999"
-                                    Padding="10,4"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="CheckCircleOutline"
-                                                        Width="14"
-                                                        Height="14"
-                                                        Foreground="{DynamicResource BrushDone}" />
-                                    <TextBlock Text="{Binding UpdateAvailabilityLabel}"
-                                               Foreground="{DynamicResource BrushDone}" />
-                                </StackPanel>
-                            </Border>
-
-                            <TextBlock Grid.Row="2" Grid.Column="0"
                                        Text="启动自动检查"
                                        VerticalAlignment="Center" />
-                            <ToggleSwitch Grid.Row="2"
+                            <ToggleSwitch Grid.Row="1"
                                           Grid.Column="1"
                                           IsChecked="{Binding AutoCheckUpdateOnStartup}"
                                           VerticalAlignment="Center" />
 
-                            <TextBlock Grid.Row="3" Grid.Column="0"
+                            <TextBlock Grid.Row="2" Grid.Column="0"
                                        Text="更新通道"
                                        VerticalAlignment="Center" />
-                            <ComboBox Grid.Row="3"
+                            <ComboBox Grid.Row="2"
                                       Grid.Column="1"
                                       Height="48"
                                       MinHeight="48"
                                       ItemsSource="{Binding UpdateChannelOptions}"
                                       SelectedItem="{Binding UpdateChannel}" />
 
-                            <TextBlock Grid.Row="4" Grid.Column="0"
+                            <TextBlock Grid.Row="3" Grid.Column="0"
                                        Text="更新源地址"
                                        VerticalAlignment="Center" />
-                            <TextBox Grid.Row="4"
+                            <TextBox Grid.Row="3"
                                      Grid.Column="1"
                                      Text="{Binding UpdateFeedUrl}"
                                      MinHeight="34"
                                      VerticalContentAlignment="Center" />
 
-                            <TextBlock Grid.Row="5" Grid.Column="0"
+                            <TextBlock Grid.Row="4" Grid.Column="0"
                                        Text="自动轮询（分钟）"
                                        VerticalAlignment="Center" />
-                            <Grid Grid.Row="5"
+                            <Grid Grid.Row="4"
                                   Grid.Column="1"
                                   ColumnDefinitions="140,*"
                                   ColumnSpacing="10">
@@ -636,10 +572,10 @@
                                            TextWrapping="NoWrap" />
                             </Grid>
 
-                            <TextBlock Grid.Row="6" Grid.Column="0"
+                            <TextBlock Grid.Row="5" Grid.Column="0"
                                        Text="忽略版本"
                                        VerticalAlignment="Center" />
-                            <Grid Grid.Row="6"
+                            <Grid Grid.Row="5"
                                   Grid.Column="1"
                                   ColumnDefinitions="*,Auto"
                                   ColumnSpacing="8">
