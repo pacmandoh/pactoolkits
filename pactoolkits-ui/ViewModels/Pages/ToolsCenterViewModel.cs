@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -40,6 +39,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     private readonly IAhkRuntimeService _ahkRuntime;
     private readonly IToastService _toast;
     private readonly IAppConfigStore _configStore;
+    private readonly IReleaseVersionService _releaseVersion;
     private readonly IAsyncRelayCommand _refreshRuntimeCommand;
     private readonly object _agentSnapshotGate = new();
     private ToolEditorSnapshot? _savedSnapshot;
@@ -74,17 +74,22 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     private bool CanRestartAhk() => !IsAhkToggling && IsAhkEnabled;
     partial void OnIsAhkTogglingChanged(bool value) => RestartAhkCommand.NotifyCanExecuteChanged();
 
-    public ToolsCenterViewModel(IAhkRuntimeService ahkRuntime, IToastService toast, IAppConfigStore configStore)
+    public ToolsCenterViewModel(
+        IAhkRuntimeService ahkRuntime,
+        IToastService toast,
+        IAppConfigStore configStore,
+        IReleaseVersionService releaseVersion)
     {
         _ahkRuntime = ahkRuntime;
         _toast = toast;
         _configStore = configStore;
+        _releaseVersion = releaseVersion;
         _refreshRuntimeCommand = new AsyncRelayCommand(RefreshRuntimeStateAsync);
         WireLineCollection(AgentAppWinItems);
         WireLineCollection(AgentColSpecsItems);
         WireLineCollection(AgentIntColsItems);
 
-        ProgramVersionText = ReadProgramVersion();
+        ProgramVersionText = ResolveProgramVersionText(_ahkRuntime.ToolVersion, _releaseVersion.Current.AgentVersion);
         ApplyRuntimeSnapshot();
         LoadAgentConfigSnapshot();
         NotifyPendingChangesState();
@@ -303,6 +308,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         {
             IsAhkEnabled = _ahkRuntime.IsRunning;
             AhkVersionText = _ahkRuntime.ToolVersion;
+            ProgramVersionText = ResolveProgramVersionText(AhkVersionText, _releaseVersion.Current.AgentVersion);
             LastLaunchText = _ahkRuntime.LastLaunchAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
             LastErrorText = string.IsNullOrWhiteSpace(_ahkRuntime.LastError) ? "-" : _ahkRuntime.LastError!;
             AhkStatusText = _ahkRuntime.State switch
@@ -613,18 +619,23 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         return true;
     }
 
-    private static string ReadProgramVersion()
+    private static string ResolveProgramVersionText(string? runtimeVersion, string? manifestAgentVersion)
     {
-        try
-        {
-            var asm = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
-            var version = asm.GetName().Version;
-            return version is null ? "未知" : version.ToString();
-        }
-        catch
-        {
-            return "未知";
-        }
+        var runtime = NormalizeVersionText(runtimeVersion);
+        if (runtime is not null)
+            return runtime;
+
+        var manifest = NormalizeVersionText(manifestAgentVersion);
+        return manifest ?? "未知";
+    }
+
+    private static string? NormalizeVersionText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var v = value.Trim();
+        return v is "未知" or "未配置" ? null : v;
     }
 
     public override void Dispose()
