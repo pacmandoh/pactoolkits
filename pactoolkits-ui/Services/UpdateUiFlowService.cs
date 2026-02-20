@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
-using Avalonia.Threading;
+using pactoolkits_ui.Common;
 using SukiUI.Enums;
 using SukiUI.Toasts;
 
@@ -225,21 +225,8 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
     }
 
     private static Task RunOnUiAsync(Action action)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            action();
-            return Task.CompletedTask;
-        }
-
-        return Dispatcher.UIThread.InvokeAsync(action).GetTask();
-    }
+        => UiThreadHelper.RunOnUiAsync(action);
 
     private static void PostOnUi(Action action)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-            action();
-        else
-            Dispatcher.UIThread.Post(action, DispatcherPriority.Background);
-    }
+        => UiThreadHelper.PostOnUi(action);
 }

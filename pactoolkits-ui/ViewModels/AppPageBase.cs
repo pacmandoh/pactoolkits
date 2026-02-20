@@ -82,32 +82,16 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
     }
 
     protected static Task RunOnUiAsync(Action action)
-        => RunOnUiAsync(action, DispatcherPriority.Background);
+        => UiThreadHelper.RunOnUiAsync(action, DispatcherPriority.Background);
 
     protected static async Task RunOnUiAsync(Action action, DispatcherPriority priority)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            action();
-            return;
-        }
-
-        await Dispatcher.UIThread.InvokeAsync(action, priority);
-    }
+        => await UiThreadHelper.RunOnUiAsync(action, priority);
 
     protected static void PostOnUi(Action action)
-        => PostOnUi(action, DispatcherPriority.Background);
+        => UiThreadHelper.PostOnUi(action, DispatcherPriority.Background);
 
     protected static void PostOnUi(Action action, DispatcherPriority priority)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            action();
-            return;
-        }
-
-        Dispatcher.UIThread.Post(action, priority);
-    }
+        => UiThreadHelper.PostOnUi(action, priority);
 
     private bool CanRefresh() => IsEnabled;
 
