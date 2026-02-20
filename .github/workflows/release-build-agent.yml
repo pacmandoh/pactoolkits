@@ -17,7 +17,28 @@ jobs:
 
       - name: Install AutoHotkey
         shell: pwsh
-        run: choco install autohotkey --no-progress -y
+        run: |
+          $ahk64 = "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
+          if (Test-Path $ahk64) {
+            Write-Host "AutoHotkey already available, skip install."
+          }
+          else {
+            choco install autohotkey --version=2.0.19 --no-progress -y
+          }
+
+      - name: Cache Ahk2Exe asset
+        id: cache_ahk2exe
+        uses: actions/cache@v4
+        with:
+          path: ~\ahk2exe-cache
+          key: ${{ runner.os }}-ahk2exe-asset-v1-${{ hashFiles('.github/workflows/release-build-agent.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-ahk2exe-asset-v1-
+
+      - name: Report cache status
+        shell: pwsh
+        run: |
+          Write-Host "cache.ahk2exe.hit=${{ steps.cache_ahk2exe.outputs.cache-hit }}"
 
       - name: Resolve Ahk2Exe compiler
         shell: pwsh
@@ -34,6 +55,22 @@ jobs:
             throw "AutoHotkey64.exe not found under C:\Program Files\AutoHotkey."
           }
           "AHK64_PATH=$ahk64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $compilerPath = Join-Path (Join-Path $ahkBase "Compiler") "Ahk2Exe.exe"
+          $cacheRoot = Join-Path $env:USERPROFILE "ahk2exe-cache"
+          $cachedCompiler = Join-Path $cacheRoot "Ahk2Exe.exe"
+
+          if (-not (Test-Path $compilerPath) -and (Test-Path $cachedCompiler)) {
+            $compilerTargetDir = Join-Path $ahkBase "Compiler"
+            New-Item -ItemType Directory -Force -Path $compilerTargetDir | Out-Null
+            Copy-Item -Path (Join-Path $cacheRoot "*") -Destination $compilerTargetDir -Recurse -Force
+          }
+
+          if (Test-Path $compilerPath) {
+            "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Host "Using cached Ahk2Exe: $compilerPath"
+            exit 0
+          }
 
           $api = "https://api.github.com/repos/AutoHotkey/Ahk2Exe/releases/latest"
           $headers = @{
@@ -80,6 +117,10 @@ jobs:
           if (-not (Test-Path $compilerPath)) {
             throw "Ahk2Exe deploy failed: $compilerPath not found after copy."
           }
+
+          New-Item -ItemType Directory -Force -Path $cacheRoot | Out-Null
+          Copy-Item -Path (Join-Path $compilerTargetDir "*") -Destination $cacheRoot -Recurse -Force
+
           "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Ahk2Exe deployed to: $compilerTargetDir"
 
@@ -92,7 +133,33 @@ jobs:
           }
           "AGENT_VERSION=$($manifest.agentVersion)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      - name: Cache pacinjector binary
+        id: cache_pacinjector
+        uses: actions/cache@v4
+        with:
+          path: ~\pacinjector-cache\pacinjector.exe
+          key: ${{ runner.os }}-pacinjector-${{ hashFiles('release-manifest.json', 'pactoolkits-agent/main.ahk', 'pactoolkits-agent/src/**/*.ahk', 'pactoolkits-agent/assets/pacinjection.ico', '.github/workflows/release-build-agent.yml') }}
+
+      - name: Report pacinjector cache status
+        shell: pwsh
+        run: |
+          Write-Host "cache.pacinjector.hit=${{ steps.cache_pacinjector.outputs.cache-hit }}"
+
+      - name: Restore cached pacinjector
+        if: steps.cache_pacinjector.outputs.cache-hit == 'true'
+        shell: pwsh
+        run: |
+          $cachedExe = Join-Path $env:USERPROFILE "pacinjector-cache\pacinjector.exe"
+          if (-not (Test-Path $cachedExe)) {
+            throw "cache-hit=true but cached pacinjector.exe is missing: $cachedExe"
+          }
+          $toolsDir = "pactoolkits-ui/Tools"
+          New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
+          Copy-Item $cachedExe "$toolsDir/pacinjector.exe" -Force
+          Write-Host "Using cached pacinjector.exe"
+
       - name: Compile AHK agent exe
+        if: steps.cache_pacinjector.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           Write-Host "Compiling pacinjector.exe from release-manifest agentVersion=$env:AGENT_VERSION"
@@ -158,17 +225,31 @@ jobs:
             throw "AHK compile output missing: $outExe"
           }
 
+          $cacheDir = Join-Path $env:USERPROFILE "pacinjector-cache"
+          New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+          Copy-Item $outExe (Join-Path $cacheDir "pacinjector.exe") -Force
+          Write-Host "Cached pacinjector.exe for future runs."
+
+      - name: Validate pacinjector binary
+        shell: pwsh
+        run: |
+          $outExe = "pactoolkits-ui/Tools/pacinjector.exe"
+          $agentVersion4 = "$env:AGENT_VERSION.0"
+          if (-not (Test-Path $outExe)) {
+            throw "pacinjector.exe missing: $outExe"
+          }
+
           $bytes = [System.IO.File]::ReadAllBytes($outExe)
           if ($bytes.Length -lt 0x40) {
-            throw "Compiled exe is too small to be a valid PE file."
+            throw "pacinjector.exe too small to be a valid PE file."
           }
           $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
           if ($peOffset -le 0 -or ($peOffset + 6) -ge $bytes.Length) {
-            throw "Invalid PE header offset in compiled exe."
+            throw "Invalid PE header offset in pacinjector.exe."
           }
           $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
           if ($machine -ne 0x8664) {
-            throw ("Compiled exe is not x64. PE Machine=0x{0:X4}" -f $machine)
+            throw ("pacinjector.exe is not x64. PE Machine=0x{0:X4}" -f $machine)
           }
 
           $fileVersion = (Get-Item $outExe).VersionInfo.FileVersion

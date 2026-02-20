@@ -24,6 +24,10 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+          if [[ "${GITHUB_REF:-}" != refs/tags/v* ]]; then
+            echo "This job only supports tag refs like refs/tags/v*; got: ${GITHUB_REF:-<empty>}"
+            exit 1
+          fi
           if [ -z "${GITHUB_REF_NAME:-}" ]; then
             echo "GITHUB_REF_NAME is empty; this job must run on a tag ref."
             exit 1

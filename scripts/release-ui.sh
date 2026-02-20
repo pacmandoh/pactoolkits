@@ -12,7 +12,7 @@ Usage:
 
 Options:
   --bump-ui X.Y.Z            Optional: bump uiVersion before release.
-  --bump-suite X.Y.Z         Optional: bump suiteVersion with UI.
+  --bump-suite X.Y.Z         Optional: explicitly set suiteVersion (otherwise auto major/minor/patch by component changes when ui/agent/db bumped).
   --bump-agent X.Y.Z         Optional: bump agentVersion.
   --bump-db X.Y.Z            Optional: bump dbSchemaVersion.
   --bump-channel C           Optional: bump manifest build.channel (stable|beta|dev).
@@ -34,7 +34,7 @@ Options:
   -h, --help                 show help.
 
 Examples:
-  ./scripts/release-ui.sh --bump-ui 0.4.2 --bump-suite 0.4.2 \
+  ./scripts/release-ui.sh --bump-ui 0.4.2 \
     --runtime win-arm64 --vpk-directive win \
     --upload-target user@host:/var/www/updates/pactoolkits-ui/
 

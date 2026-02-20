@@ -96,7 +96,10 @@ Common commands:
 
 ```bash
 # from repo root
-./scripts/bump-version.sh --ui 0.4.3 --suite 0.4.3
+# bump ui -> suite auto major/minor/patch by component changes
+./scripts/bump-version.sh --ui 0.4.3
+# or force suite explicitly
+./scripts/bump-version.sh --suite 0.4.4 --ui 0.4.3
 ./scripts/check-version.sh
 ```
 
