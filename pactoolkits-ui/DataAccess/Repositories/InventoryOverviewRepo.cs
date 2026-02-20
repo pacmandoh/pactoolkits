@@ -41,6 +41,11 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             """;
 
             const string sql = """
+                with deprecated_map as (
+                  select distinct d.drug_id, d.spec
+                  from drug_index d
+                  where coalesce(d.note,'') ilike '%弃用%'
+                )
                 select
                   t.drug_id,
                   t.spec,
@@ -48,8 +53,12 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                   t.qty,
                   t.remain,
                   t.status,
-                  (t.remain = 0) as is_low
+                  (t.remain = 0) as is_low,
+                  (dm.drug_id is not null) as is_deprecated
                 from trace_pool t
+                left join deprecated_map dm
+                  on dm.drug_id = t.drug_id
+                 and dm.spec = t.spec
                 where
                   @kw = ''
                   or t.drug_id    ilike ('%' || @kw || '%')
@@ -83,7 +92,8 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                     Qty: r.GetInt32(3),
                     Remain: r.GetInt32(4),
                     Status: r.GetInt32(5),
-                    IsLow: r.GetBoolean(6)
+                    IsLow: r.GetBoolean(6),
+                    IsDeprecated: r.GetBoolean(7)
                 ));
             }
             return new PagedResult<TracePoolStockRowDto>(list, totalCount);
@@ -112,7 +122,12 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             """;
 
             const string sql = """
-                with pool as (
+                with deprecated_map as (
+                   select distinct d.drug_id, d.spec
+                   from drug_index d
+                   where coalesce(d.note,'') ilike '%弃用%'
+                ),
+                pool as (
                    select
                      drug_id,
                      spec,
@@ -152,9 +167,13 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                   p.remain_sum,
                   coalesce(wk.wk_used, 0)::bigint as week_used,
                   coalesce(wk.wk_used::numeric, (p.qty_sum::numeric / 2)) as threshold,
-                  (p.remain_sum <= coalesce(wk.wk_used::numeric, (p.qty_sum::numeric / 2))) as is_low
+                  (p.remain_sum <= coalesce(wk.wk_used::numeric, (p.qty_sum::numeric / 2))) as is_low,
+                  (dm.drug_id is not null) as is_deprecated
                 from pool p
                 left join wk using (drug_id, spec)
+                left join deprecated_map dm
+                  on dm.drug_id = p.drug_id
+                 and dm.spec = p.spec
                 order by p.remain_sum asc, p.drug_id asc
                 offset @offset
                 limit @n
@@ -184,7 +203,8 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                     RemainSum: r.GetInt64(4),
                     WeekUsed: r.GetInt64(5),
                     Threshold: r.GetFieldValue<decimal>(6),
-                    IsLow: r.GetBoolean(7)
+                    IsLow: r.GetBoolean(7),
+                    IsDeprecated: r.GetBoolean(8)
                 ));
             }
             return new PagedResult<TracePoolDrugSpecAggDto>(list, totalCount);

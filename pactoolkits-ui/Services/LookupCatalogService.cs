@@ -12,6 +12,7 @@ public interface ILookupCatalogService
     Task<IReadOnlyList<string>> GetSpecsByDrugAsync(string drugId, System.Threading.CancellationToken ct, bool forceRefresh = false);
     Task<string?> ResolveCanonicalDrugIdAsync(string? input, System.Threading.CancellationToken ct, bool forceRefresh = false);
     Task<int?> GetQtyAsync(string? drugId, string? spec, System.Threading.CancellationToken ct, bool forceRefresh = false);
+    Task<bool> IsDeprecatedDrugIdAsync(string? drugId, System.Threading.CancellationToken ct, bool forceRefresh = false);
     void InvalidateDrugCatalog();
 }
 
@@ -30,6 +31,7 @@ public sealed class LookupCatalogService : ILookupCatalogService
     private readonly Dictionary<string, CacheItem<IReadOnlyList<string>>> _specsByDrug = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, CacheItem<string?>> _canonicalDrugByInput = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, CacheItem<int?>> _qtyByDrugSpec = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, CacheItem<bool>> _deprecatedDrugByInput = new(StringComparer.OrdinalIgnoreCase);
 
     public LookupCatalogService(IDashboardRepo dashboardRepo, IDrugIndexRepo drugIndexRepo)
     {
@@ -146,10 +148,36 @@ public sealed class LookupCatalogService : ILookupCatalogService
         }
 
         var dto = await _drugIndexRepo.GetByKeyAsync(drug, specValue, ct).ConfigureAwait(false);
-        var qty = dto?.Qty;
+        int? qty = dto is null || IsDeprecatedNote(dto.Note) ? null : dto.Qty;
         lock (_gate)
             _qtyByDrugSpec[key] = new CacheItem<int?>(qty, now.Add(QtyTtl));
         return qty;
+    }
+
+    public async Task<bool> IsDeprecatedDrugIdAsync(string? drugId, System.Threading.CancellationToken ct, bool forceRefresh = false)
+    {
+        var key = Normalize(drugId);
+        if (string.IsNullOrWhiteSpace(key))
+            return false;
+
+        var now = DateTimeOffset.UtcNow;
+        if (!forceRefresh)
+        {
+            lock (_gate)
+            {
+                if (_deprecatedDrugByInput.TryGetValue(key, out var cache) &&
+                    TryGetValid(cache, now, out var cached))
+                {
+                    return cached;
+                }
+            }
+        }
+
+        var isDeprecated = await _drugIndexRepo.IsDrugDeprecatedAsync(key, ct).ConfigureAwait(false);
+
+        lock (_gate)
+            _deprecatedDrugByInput[key] = new CacheItem<bool>(isDeprecated, now.Add(CanonicalTtl));
+        return isDeprecated;
     }
 
     public void InvalidateDrugCatalog()
@@ -160,6 +188,7 @@ public sealed class LookupCatalogService : ILookupCatalogService
             _specsByDrug.Clear();
             _canonicalDrugByInput.Clear();
             _qtyByDrugSpec.Clear();
+            _deprecatedDrugByInput.Clear();
         }
     }
 
@@ -182,4 +211,8 @@ public sealed class LookupCatalogService : ILookupCatalogService
     }
 
     private sealed record CacheItem<T>(T Value, DateTimeOffset ExpiresAtUtc);
+
+    private static bool IsDeprecatedNote(string? note)
+        => !string.IsNullOrWhiteSpace(note)
+           && note.Contains("弃用", StringComparison.Ordinal);
 }

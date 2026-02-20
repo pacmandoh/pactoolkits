@@ -25,6 +25,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan QtyLookupTimeout = TimeSpan.FromSeconds(6);
     private static readonly TimeSpan SubmitTimeout = TimeSpan.FromSeconds(20);
+    private static readonly Lazy<string> CachedClientRaw = new(BuildClientRaw);
 
     public override string DisplayName => "追溯码录入";
     public override MaterialIconKind Icon => MaterialIconKind.BarcodeScan;
@@ -136,7 +137,12 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         if (string.IsNullOrWhiteSpace(drug))
             return;
 
-        await RunOnUiAsync(() => SelectedTabIndex = 0, DispatcherPriority.Background);
+        await RunOnUiAsync(() =>
+        {
+            SelectedTabIndex = 0;
+            DrugText = drug;
+            IsDrugSuggestOpen = false;
+        }, DispatcherPriority.Background);
 
         using var cts = new CancellationTokenSource(LookupTimeout);
         await ReloadSpecsByDrugAsync(drug, cts.Token).ConfigureAwait(false);
@@ -168,12 +174,6 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         }
 
         await RefreshQtyAndContextStatusAsync().ConfigureAwait(false);
-
-        await RunOnUiAsync(() =>
-        {
-            DrugText = drug;
-            IsDrugSuggestOpen = false;
-        }, DispatcherPriority.Background);
     }
 
     partial void OnDrugTextChanged(string? value)
@@ -233,13 +233,14 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
             if (string.IsNullOrWhiteSpace(canonicalDrug))
             {
+                var isDeprecated = await _lookup.IsDeprecatedDrugIdAsync(drug, cts.Token).ConfigureAwait(false);
                 await RunOnUiAsync(() =>
                 {
                     SpecOptions.Clear();
                     SelectedSpec = null;
                     SelectedQtyText = null;
                     IsSpecSelected = false;
-                    UpdateStatus("药品信息中无该药品", 2);
+                    UpdateStatus(isDeprecated ? "药品已被弃用" : "药品信息中无该药品", 2);
                 });
                 return;
             }
@@ -332,7 +333,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                         FailedCount: failedCount,
                         Result: entryResult,
                         TxnId: null,
-                        Client: BuildClientRaw(),
+                        Client: CachedClientRaw.Value,
                         Source: "manual",
                         Message: entryMessage
                     ), timeoutCts.Token).ConfigureAwait(false);

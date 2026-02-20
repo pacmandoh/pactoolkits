@@ -49,6 +49,8 @@ public interface IDrugIndexRepo
 
     Task<DrugIndexDto?> GetByKeyAsync(string drugId, string spec, CancellationToken ct);
 
+    Task<bool> IsDrugDeprecatedAsync(string drugId, CancellationToken ct);
+
     Task<bool> ExistsAsync(string drugId, string spec, CancellationToken ct);
 
     Task<DrugIndexDto> UpsertAsync(DrugIndexDto dto, long? expectedVersion, CancellationToken ct);

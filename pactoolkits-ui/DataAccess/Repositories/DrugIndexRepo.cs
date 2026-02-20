@@ -72,6 +72,29 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             return ReadDrugIndexDto(reader);
         }, ct);
 
+    public Task<bool> IsDrugDeprecatedAsync(string drugId, CancellationToken ct)
+        => _db.WithConnection(async (conn, token) =>
+        {
+            const string sql = """
+                select
+                  count(*)::int as total_count,
+                  count(*) filter (where coalesce(note,'') ilike '%弃用%')::int as deprecated_count
+                from drug_index
+                where lower(btrim(drug_id)) = lower(btrim(@drug_id))
+            """;
+
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("drug_id", drugId);
+
+            await using var reader = await cmd.ExecuteReaderAsync(token);
+            if (!await reader.ReadAsync(token))
+                return false;
+
+            var total = reader.GetInt32(0);
+            var deprecated = reader.GetInt32(1);
+            return total > 0 && deprecated > 0 && deprecated == total;
+        }, ct);
+
     public Task<bool> ExistsAsync(string drugId, string spec, CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {

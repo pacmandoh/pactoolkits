@@ -226,6 +226,16 @@ public sealed class LowStockToBgBrushConverter : IValueConverter
         else if (parameter is string s && int.TryParse(s, out var j))
             level = j;
 
+        var isDeprecated = value switch
+        {
+            StockRowItem s => s.IsDeprecated,
+            DrugSpecAggRowItem a => a.IsDeprecated,
+            _ => false
+        };
+
+        if (isDeprecated)
+            return ConverterHelpers.FindAppBrush($"BrushPurpleBg{level}", Brushes.Transparent);
+
         var isLow = value switch
         {
             // Inventory detail: highlight rows with zero remaining stock.

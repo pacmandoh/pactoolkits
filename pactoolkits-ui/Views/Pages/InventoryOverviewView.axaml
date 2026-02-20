@@ -18,6 +18,15 @@
     <UserControl.Resources>
         <conv:LowStockToBgBrushConverter x:Key="LowStockToBgBrush" />
         <conv:BoolToDoneDangerBrushConverter x:Key="BoolToDoneDangerBrush" />
+        <DataTemplate x:Key="RowNoCellTemplate" x:CompileBindings="False">
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Opacity="0.35"
+                FontSize="12"
+                FontWeight="Bold"
+                Text="{Binding RowNo}" />
+        </DataTemplate>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -62,6 +71,47 @@
                     </ContextMenu>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridCell">
+            <Setter Property="Background"
+                    Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=15}" />
+        </Style>
+        <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:pointerover DataGridCell">
+            <Setter Property="Background"
+                    Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+        </Style>
+        <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:selected DataGridCell">
+            <Setter Property="Background"
+                    Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=35}" />
+        </Style>
+        <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:selected:pointerover DataGridCell">
+            <Setter Property="Background"
+                    Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=50}" />
+        </Style>
+        <Style Selector="DataGrid.InventoryGrid.LowToneGrid.EditableGrid DataGridRow:pointerover DataGridCell">
+            <Setter Property="Background"
+                    Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=15}" />
+        </Style>
+        <Style Selector="DataGrid.InventoryGrid.LowToneGrid.EditableGrid DataGridRow:selected DataGridCell">
+            <Setter Property="Background"
+                    Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+        </Style>
+        <Style Selector="DataGrid.InventoryGrid.LowToneGrid.EditableGrid DataGridRow:selected:pointerover DataGridCell">
+            <Setter Property="Background"
+                    Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+        </Style>
+        <Style Selector="DataGrid.InventoryGrid.LowToneGrid.StockEditable DataGridRow:pointerover DataGridCell">
+            <Setter Property="Background"
+                    Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+        </Style>
+        <Style Selector="DataGrid.InventoryGrid.LowToneGrid.StockEditable DataGridRow:selected DataGridCell">
+            <Setter Property="Background"
+                    Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=35}" />
+        </Style>
+        <Style Selector="DataGrid.InventoryGrid.LowToneGrid.StockEditable DataGridRow:selected:pointerover DataGridCell">
+            <Setter Property="Background"
+                    Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=50}" />
         </Style>
     </UserControl.Styles>
     
@@ -374,7 +424,7 @@
                                 EmptyText="暂无库存明细"
                                 EmptyHint="当前筛选条件下没有数据">
                             <suki:BusyArea IsBusy="{Binding IsDetailBusy}">
-                                <DataGrid Classes="SectionGrid InventoryGrid EditableGrid StockDetailContextMenuGrid"
+                                <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid EditableGrid StockDetailContextMenuGrid"
                                           ItemsSource="{Binding StockRows}"
                                           SelectedItem="{Binding SelectedStockRow, Mode=TwoWay}"
                                           x:Name="StockDetailGrid"
@@ -389,54 +439,12 @@
                                           HorizontalScrollBarVisibility="Disabled"
                                           VerticalScrollBarVisibility="Auto">
 
-                            <DataGrid.Styles>
-                                <Style Selector="DataGrid.InventoryGrid DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=15}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid.EditableGrid DataGridRow:pointerover DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=15}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid.EditableGrid DataGridRow:selected DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid.EditableGrid DataGridRow:selected:pointerover DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid.StockEditable DataGridRow:pointerover DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid.StockEditable DataGridRow:selected DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=35}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid.StockEditable DataGridRow:selected:pointerover DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=50}" />
-                                </Style>
-                            </DataGrid.Styles>
-
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Width="40"
                                                         IsReadOnly="True"
                                                         CanUserResize="False"
-                                                        CanUserSort="False">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Opacity="0.35"
-                                                FontSize="12"
-                                                FontWeight="Bold"
-                                                Text="{Binding RowNo}" />
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
+                                                        CanUserSort="False"
+                                                        CellTemplate="{StaticResource RowNoCellTemplate}" />
 
                                 <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="1.4*" IsReadOnly="True" />
                                 <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.4*" IsReadOnly="True" />
@@ -457,7 +465,7 @@
                                 EmptyText="暂无汇总数据"
                                 EmptyHint="当前筛选条件下没有数据">
                             <suki:BusyArea IsBusy="{Binding IsAggBusy}">
-                                <DataGrid Classes="SectionGrid InventoryGrid InventoryContextMenuGrid"
+                                <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid InventoryContextMenuGrid"
                                           ItemsSource="{Binding DrugSpecRows}"
                                           x:Name="AggGrid"
                                           HeadersVisibility="Column"
@@ -468,42 +476,12 @@
                                           HorizontalScrollBarVisibility="Disabled"
                                           VerticalScrollBarVisibility="Auto">
 
-                            <DataGrid.Styles>
-                                <Style Selector="DataGrid.InventoryGrid DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=15}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid DataGridRow:pointerover DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid DataGridRow:selected DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=35}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid DataGridRow:selected:pointerover DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=50}" />
-                                </Style>
-                            </DataGrid.Styles>
-
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Width="40"
                                                         IsReadOnly="True"
                                                         CanUserResize="False"
-                                                        CanUserSort="False">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Opacity="0.35"
-                                                FontSize="12"
-                                                FontWeight="Bold"
-                                                Text="{Binding RowNo}" />
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
+                                                        CanUserSort="False"
+                                                        CellTemplate="{StaticResource RowNoCellTemplate}" />
 
                                 <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="1.6*" />
                                 <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="2*" />
@@ -526,7 +504,7 @@
                                 EmptyText="暂无低库存药品"
                                 EmptyHint="当前筛选条件下没有数据">
                             <suki:BusyArea IsBusy="{Binding IsLowBusy}">
-                                <DataGrid Classes="SectionGrid InventoryGrid LowMissingGrid InventoryContextMenuGrid"
+                                <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid LowMissingGrid InventoryContextMenuGrid"
                                           ItemsSource="{Binding LowStockRows}"
                                           x:Name="LowStockGrid"
                                           PointerReleased="OnLowOrMissingGridPointerReleased"
@@ -538,42 +516,12 @@
                                           HorizontalScrollBarVisibility="Disabled"
                                           VerticalScrollBarVisibility="Auto">
 
-                            <DataGrid.Styles>
-                                <Style Selector="DataGrid.InventoryGrid DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=15}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid DataGridRow:pointerover DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid DataGridRow:selected DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=35}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid DataGridRow:selected:pointerover DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{Binding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=50}" />
-                                </Style>
-                            </DataGrid.Styles>
-
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Width="40"
                                                         IsReadOnly="True"
                                                         CanUserResize="False"
-                                                        CanUserSort="False">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Opacity="0.35"
-                                                FontSize="12"
-                                                FontWeight="Bold"
-                                                Text="{Binding RowNo}" />
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
+                                                        CanUserSort="False"
+                                                        CellTemplate="{StaticResource RowNoCellTemplate}" />
 
                                 <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="1.2*" />
                                 <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.4*" />
@@ -623,19 +571,8 @@
                                 <DataGridTemplateColumn Width="40"
                                                         IsReadOnly="True"
                                                         CanUserResize="False"
-                                                        CanUserSort="False">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Opacity="0.35"
-                                                FontSize="12"
-                                                FontWeight="Bold"
-                                                Text="{Binding RowNo}" />
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
+                                                        CanUserSort="False"
+                                                        CellTemplate="{StaticResource RowNoCellTemplate}" />
 
                                 <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="1.3*" />
                                 <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.4*" />
