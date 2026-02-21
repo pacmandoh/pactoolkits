@@ -8,12 +8,15 @@ usage() {
   cat <<'USAGE'
 Usage:
   bump-version.sh [--suite X.Y.Z|auto] [--agent X.Y.Z] [--ui X.Y.Z] [--db X.Y.Z]
+                  [--ui-min-db X.Y.Z] [--ui-max-db X.Y.Z]
+                  [--agent-min-db X.Y.Z] [--agent-max-db X.Y.Z]
                   [--channel stable|beta|dev] [--date YYYY-MM-DD] [--dry-run]
 
 Examples:
   bump-version.sh --suite 0.4.1 --ui 0.4.1 --agent 0.3.1
   bump-version.sh --suite auto --ui 0.4.4
   bump-version.sh --db 1.2.1 --channel beta
+  bump-version.sh --ui-min-db 1.2.0 --ui-max-db 1.2.1 --agent-min-db 1.2.0 --agent-max-db 1.2.1
 USAGE
 }
 
@@ -96,6 +99,10 @@ SUITE=""
 AGENT=""
 UI=""
 DB=""
+UI_MIN_DB=""
+UI_MAX_DB=""
+AGENT_MIN_DB=""
+AGENT_MAX_DB=""
 CHANNEL=""
 DATE_STR="$(date -u +%F)"
 DRY_RUN="false"
@@ -106,6 +113,10 @@ while [[ $# -gt 0 ]]; do
     --agent) AGENT="${2:-}"; shift 2 ;;
     --ui) UI="${2:-}"; shift 2 ;;
     --db) DB="${2:-}"; shift 2 ;;
+    --ui-min-db) UI_MIN_DB="${2:-}"; shift 2 ;;
+    --ui-max-db) UI_MAX_DB="${2:-}"; shift 2 ;;
+    --agent-min-db) AGENT_MIN_DB="${2:-}"; shift 2 ;;
+    --agent-max-db) AGENT_MAX_DB="${2:-}"; shift 2 ;;
     --channel) CHANNEL="${2:-}"; shift 2 ;;
     --date) DATE_STR="${2:-}"; shift 2 ;;
     --dry-run) DRY_RUN="true"; shift ;;
@@ -127,6 +138,10 @@ fi
 [[ -n "$AGENT" ]] && is_semver "$AGENT" || [[ -z "$AGENT" ]] || { echo "ERROR: invalid --agent" >&2; exit 1; }
 [[ -n "$UI" ]] && is_semver "$UI" || [[ -z "$UI" ]] || { echo "ERROR: invalid --ui" >&2; exit 1; }
 [[ -n "$DB" ]] && is_semver "$DB" || [[ -z "$DB" ]] || { echo "ERROR: invalid --db" >&2; exit 1; }
+[[ -n "$UI_MIN_DB" ]] && is_semver "$UI_MIN_DB" || [[ -z "$UI_MIN_DB" ]] || { echo "ERROR: invalid --ui-min-db" >&2; exit 1; }
+[[ -n "$UI_MAX_DB" ]] && is_semver "$UI_MAX_DB" || [[ -z "$UI_MAX_DB" ]] || { echo "ERROR: invalid --ui-max-db" >&2; exit 1; }
+[[ -n "$AGENT_MIN_DB" ]] && is_semver "$AGENT_MIN_DB" || [[ -z "$AGENT_MIN_DB" ]] || { echo "ERROR: invalid --agent-min-db" >&2; exit 1; }
+[[ -n "$AGENT_MAX_DB" ]] && is_semver "$AGENT_MAX_DB" || [[ -z "$AGENT_MAX_DB" ]] || { echo "ERROR: invalid --agent-max-db" >&2; exit 1; }
 is_date "$DATE_STR" || { echo "ERROR: invalid --date" >&2; exit 1; }
 
 if [[ -n "$CHANNEL" ]]; then
@@ -136,7 +151,7 @@ if [[ -n "$CHANNEL" ]]; then
   esac
 fi
 
-if [[ -z "$SUITE$AGENT$UI$DB$CHANNEL" ]]; then
+if [[ -z "$SUITE$AGENT$UI$DB$UI_MIN_DB$UI_MAX_DB$AGENT_MIN_DB$AGENT_MAX_DB$CHANNEL" ]]; then
   echo "ERROR: nothing to update" >&2
   usage
   exit 1
@@ -196,6 +211,10 @@ jq \
   --arg agent "$AGENT" \
   --arg ui "$UI" \
   --arg db "$DB" \
+  --arg ui_min_db "$UI_MIN_DB" \
+  --arg ui_max_db "$UI_MAX_DB" \
+  --arg agent_min_db "$AGENT_MIN_DB" \
+  --arg agent_max_db "$AGENT_MAX_DB" \
   --arg channel "$CHANNEL" \
   --arg date "$DATE_STR" \
   '
@@ -203,13 +222,19 @@ jq \
   .agentVersion = (if $agent == "" then .agentVersion else $agent end) |
   .uiVersion = (if $ui == "" then .uiVersion else $ui end) |
   .dbSchemaVersion = (if $db == "" then .dbSchemaVersion else $db end) |
+  .compat.uiMinDbSchema = (if $ui_min_db == "" then .compat.uiMinDbSchema else $ui_min_db end) |
+  .compat.uiMaxDbSchema = (if $ui_max_db == "" then .compat.uiMaxDbSchema else $ui_max_db end) |
+  .compat.agentMinDbSchema = (if $agent_min_db == "" then .compat.agentMinDbSchema else $agent_min_db end) |
+  .compat.agentMaxDbSchema = (if $agent_max_db == "" then .compat.agentMaxDbSchema else $agent_max_db end) |
   .build.channel = (if $channel == "" then .build.channel else $channel end) |
   .build.date = $date
   ' "$MANIFEST" > "$TMP_FILE"
 
 jq -e '
   .suiteVersion and .agentVersion and .uiVersion and .dbSchemaVersion and
-  .compat.agentMinUi and .compat.uiMinAgent and .build.channel and .build.date
+  .compat.uiMinDbSchema and .compat.uiMaxDbSchema and
+  .compat.agentMinDbSchema and .compat.agentMaxDbSchema and
+  .build.channel and .build.date
 ' "$TMP_FILE" >/dev/null
 
 if [[ "$DRY_RUN" == "true" ]]; then
@@ -221,6 +246,6 @@ fi
 mv "$TMP_FILE" "$MANIFEST"
 
 echo "Updated $MANIFEST"
-jq '{suiteVersion, agentVersion, uiVersion, dbSchemaVersion, build}' "$MANIFEST"
+jq '{suiteVersion, agentVersion, uiVersion, dbSchemaVersion, compat, build}' "$MANIFEST"
 
 "$ROOT_DIR/scripts/export-version.sh"

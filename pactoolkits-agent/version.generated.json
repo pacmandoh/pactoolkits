@@ -4,8 +4,10 @@
   "uiVersion": "0.5.0",
   "dbSchemaVersion": "1.2.0",
   "compat": {
-    "agentMinUi": "0.4.0",
-    "uiMinAgent": "0.3.0"
+    "uiMinDbSchema": "1.2.0",
+    "uiMaxDbSchema": "1.2.0",
+    "agentMinDbSchema": "1.2.0",
+    "agentMaxDbSchema": "1.2.0"
   },
   "build": {
     "channel": "stable",
