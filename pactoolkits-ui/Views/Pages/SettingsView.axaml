@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:theme="clr-namespace:SukiUI.Theme;assembly=SukiUI"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
              xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
@@ -474,6 +475,7 @@
                         <Button Grid.Column="1"
                                 Classes="Ghost"
                                 Command="{Binding CheckUpdatesCommand}"
+                                theme:ButtonExtensions.ShowProgress="{Binding IsUpdateChecking}"
                                 IsEnabled="{Binding !IsUpdateChecking}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <icons:MaterialIcon Kind="Refresh" Width="16" Height="16" />

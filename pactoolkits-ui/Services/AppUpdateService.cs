@@ -27,6 +27,7 @@ public interface IAppUpdateService
     string LatestVersion { get; }
     bool HasUpdateAvailable { get; }
     bool? HasSuiteUpdateAvailable { get; }
+    bool IsChecking { get; }
     DateTimeOffset? LastCheckedAt { get; }
     string LastMessage { get; }
     event Action? Changed;
@@ -45,6 +46,7 @@ public sealed class AppUpdateService : IAppUpdateService
     public string LatestVersion { get; private set; }
     public bool HasUpdateAvailable { get; private set; }
     public bool? HasSuiteUpdateAvailable { get; private set; }
+    public bool IsChecking { get; private set; }
     public DateTimeOffset? LastCheckedAt { get; private set; }
     public string LastMessage { get; private set; } = "未检查";
 
@@ -80,6 +82,7 @@ public sealed class AppUpdateService : IAppUpdateService
     public async Task<AppUpdateCheckResult> CheckAsync(CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct).ConfigureAwait(false);
+        SetChecking(true);
         try
         {
             var options = _settings.Current;
@@ -182,6 +185,7 @@ public sealed class AppUpdateService : IAppUpdateService
         }
         finally
         {
+            SetChecking(false);
             _gate.Release();
         }
     }
@@ -269,6 +273,15 @@ public sealed class AppUpdateService : IAppUpdateService
         HasSuiteUpdateAvailable = result.HasSuiteUpdate;
         LastCheckedAt = result.CheckedAt;
         LastMessage = result.Message;
+        Changed?.Invoke();
+    }
+
+    private void SetChecking(bool value)
+    {
+        if (IsChecking == value)
+            return;
+
+        IsChecking = value;
         Changed?.Invoke();
     }
 
