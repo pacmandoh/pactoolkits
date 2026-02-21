@@ -16,8 +16,10 @@ public sealed record ReleaseVersionInfo(
     string DbSchemaVersion,
     string BuildChannel,
     string BuildDate,
-    string AgentMinUi,
-    string UiMinAgent)
+    string UiMinDbSchema,
+    string UiMaxDbSchema,
+    string AgentMinDbSchema,
+    string AgentMaxDbSchema)
 {
     public static ReleaseVersionInfo Unknown { get; } = new(
         SuiteVersion: "unknown",
@@ -26,8 +28,10 @@ public sealed record ReleaseVersionInfo(
         DbSchemaVersion: "unknown",
         BuildChannel: "unknown",
         BuildDate: "unknown",
-        AgentMinUi: "unknown",
-        UiMinAgent: "unknown");
+        UiMinDbSchema: "unknown",
+        UiMaxDbSchema: "unknown",
+        AgentMinDbSchema: "unknown",
+        AgentMaxDbSchema: "unknown");
 }
 
 public sealed class ReleaseVersionService : IReleaseVersionService
@@ -61,8 +65,10 @@ public sealed class ReleaseVersionService : IReleaseVersionService
                 DbSchemaVersion: ReadString(root, "dbSchemaVersion"),
                 BuildChannel: ReadString(build, "channel"),
                 BuildDate: ReadString(build, "date"),
-                AgentMinUi: ReadString(compat, "agentMinUi"),
-                UiMinAgent: ReadString(compat, "uiMinAgent"));
+                UiMinDbSchema: ReadString(compat, "uiMinDbSchema"),
+                UiMaxDbSchema: ReadString(compat, "uiMaxDbSchema"),
+                AgentMinDbSchema: ReadString(compat, "agentMinDbSchema"),
+                AgentMaxDbSchema: ReadString(compat, "agentMaxDbSchema"));
         }
         catch
         {

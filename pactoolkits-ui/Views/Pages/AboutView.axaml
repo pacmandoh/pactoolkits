@@ -153,8 +153,8 @@
                                       RowSpacing="6">
                                     <TextBlock Text="{Binding BuildChannel, StringFormat=Channel: {0}}" Classes="SectionHint" />
                                     <TextBlock Grid.Column="1" Text="{Binding BuildDate, StringFormat=Date: {0}}" Classes="SectionHint" />
-                                    <TextBlock Grid.Row="1" Text="{Binding CompatAgentMinUiText}" Classes="SectionHint" />
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CompatUiMinAgentText}" Classes="SectionHint" />
+                                    <TextBlock Grid.Row="1" Text="{Binding CompatUiDbRangeText}" Classes="SectionHint" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CompatAgentDbRangeText}" Classes="SectionHint" />
                                 </Grid>
                             </Grid>
                         </suki:GlassCard>
