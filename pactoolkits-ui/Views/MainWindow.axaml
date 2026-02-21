@@ -130,18 +130,26 @@
             </MenuItem>
 
             <MenuItem Header="检查更新"
-                      Command="{Binding CheckAppUpdateCommand}">
+                      Command="{Binding CheckAppUpdateCommand}"
+                      IsEnabled="{Binding !IsUpdateChecking}">
                 <MenuItem.Icon>
                     <Panel>
-                        <icons:MaterialIcon Kind="Download"
-                                            IsVisible="{Binding !HasUpdateAvailable}"
-                                            Width="14"
-                                            Height="14" />
-                        <icons:MaterialIcon Kind="Upload"
-                                            IsVisible="{Binding HasUpdateAvailable}"
+                        <icons:MaterialIcon Kind="Loading"
+                                            IsVisible="{Binding IsUpdateChecking}"
                                             Width="14"
                                             Height="14"
-                                            Foreground="{DynamicResource BrushWarning}" />
+                                            Foreground="{DynamicResource BrushInfo}" />
+                        <Panel IsVisible="{Binding !IsUpdateChecking}">
+                            <icons:MaterialIcon Kind="Download"
+                                                IsVisible="{Binding !HasUpdateAvailable}"
+                                                Width="14"
+                                                Height="14" />
+                            <icons:MaterialIcon Kind="Upload"
+                                                IsVisible="{Binding HasUpdateAvailable}"
+                                                Width="14"
+                                                Height="14"
+                                                Foreground="{DynamicResource BrushWarning}" />
+                        </Panel>
                     </Panel>
                 </MenuItem.Icon>
             </MenuItem>

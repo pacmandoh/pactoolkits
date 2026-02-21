@@ -256,6 +256,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         LatestSuiteVersion = _updates.LatestVersion;
         SuiteUpdateAvailable = _updates.HasSuiteUpdateAvailable;
         HasUpdateAvailable = _updates.HasUpdateAvailable;
+        IsUpdateChecking = _updates.IsChecking;
         UpdateStatusHint = _updates.LastMessage;
     }
 
@@ -798,23 +799,15 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task CheckUpdatesAsync()
     {
-        if (IsUpdateChecking || IsUpdateApplying || ShouldSkipTrigger())
+        if (_updates.IsChecking || IsUpdateApplying || ShouldSkipTrigger())
             return;
 
-        IsUpdateChecking = true;
-        try
-        {
-            await _updateUiFlow.CheckAndHandleAsync(
-                showNoUpdateToast: true,
-                startupMode: false,
-                applyNowAction: ApplyUpdateNowAsync,
-                ignoreVersionAction: IgnoreCurrentUpdateAsync,
-                logScope: "SettingsVM").ConfigureAwait(false);
-        }
-        finally
-        {
-            IsUpdateChecking = false;
-        }
+        await _updateUiFlow.CheckAndHandleAsync(
+            showNoUpdateToast: true,
+            startupMode: false,
+            applyNowAction: ApplyUpdateNowAsync,
+            ignoreVersionAction: IgnoreCurrentUpdateAsync,
+            logScope: "SettingsVM").ConfigureAwait(false);
     }
 
     [RelayCommand]

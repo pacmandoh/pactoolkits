@@ -273,6 +273,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         CurrentUiVersion = _updates.CurrentVersion;
         LatestUiVersion = _updates.LatestVersion;
         HasUpdateAvailable = _updates.HasUpdateAvailable;
+        IsUpdateChecking = _updates.IsChecking;
 
         _ = CheckConfigOnStartupAsync();
         StartConfigWatcher();
@@ -492,9 +493,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 _ahkRuntime.Reload();
                 var running = _ahkRuntime.IsRunning;
                 if (running)
-                    TryShowAhkTopToast(() => _toasts.Success("追溯码自动注入工具", "健康检查通过：进程运行中"));
+                    TryShowAhkTopToast(() => _toasts.Success("自动化套件", "健康检查通过：进程运行中"));
                 else
-                    TryShowAhkTopToast(() => _toasts.Error("追溯码自动注入工具", "健康检查失败：未检测到进程运行"));
+                    TryShowAhkTopToast(() => _toasts.Error("自动化套件", "健康检查失败：未检测到进程运行"));
             }
             else
             {
@@ -503,15 +504,15 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                     return;
 
                 if (result.Ok)
-                    TryShowAhkTopToast(() => _toasts.Success("追溯码自动注入工具", result.Message));
+                    TryShowAhkTopToast(() => _toasts.Success("自动化套件", result.Message));
                 else
-                    TryShowAhkTopToast(() => _toasts.Error("追溯码自动注入工具", result.Message));
+                    TryShowAhkTopToast(() => _toasts.Error("自动化套件", result.Message));
             }
         }
         catch (Exception ex)
         {
             _logger.Error("MainWindowVM", "ahk.top_action.error", "AHK top action failed", ex);
-            TryShowAhkTopToast(() => _toasts.Error("追溯码自动注入工具", ex.Message));
+            TryShowAhkTopToast(() => _toasts.Error("自动化套件", ex.Message));
         }
         finally
         {
@@ -712,23 +713,15 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private async Task CheckAndPromptUpdateAsync(bool showNoUpdateToast, bool startupMode)
     {
-        if (IsUpdateChecking || IsUpdateApplying)
+        if (_updates.IsChecking || IsUpdateApplying)
             return;
 
-        await RunOnUiAsync(() => IsUpdateChecking = true);
-        try
-        {
-            await _updateUiFlow.CheckAndHandleAsync(
-                showNoUpdateToast: showNoUpdateToast,
-                startupMode: startupMode,
-                applyNowAction: ApplyUpdateFlowAsync,
-                ignoreVersionAction: IgnoreCurrentUpdateAsync,
-                logScope: "MainWindowVM").ConfigureAwait(false);
-        }
-        finally
-        {
-            await RunOnUiAsync(() => IsUpdateChecking = false);
-        }
+        await _updateUiFlow.CheckAndHandleAsync(
+            showNoUpdateToast: showNoUpdateToast,
+            startupMode: startupMode,
+            applyNowAction: ApplyUpdateFlowAsync,
+            ignoreVersionAction: IgnoreCurrentUpdateAsync,
+            logScope: "MainWindowVM").ConfigureAwait(false);
     }
 
     private async Task ApplyUpdateFlowAsync()
@@ -1051,6 +1044,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             CurrentUiVersion = _updates.CurrentVersion;
             LatestUiVersion = _updates.LatestVersion;
             HasUpdateAvailable = _updates.HasUpdateAvailable;
+            IsUpdateChecking = _updates.IsChecking;
         });
     }
 

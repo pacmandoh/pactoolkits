@@ -32,6 +32,8 @@ public interface IUpdateUiFlowService
 
 public sealed class UpdateUiFlowService : IUpdateUiFlowService
 {
+    private static readonly TimeSpan UpdateCheckTimeout = TimeSpan.FromSeconds(10);
+
     private readonly IAppUpdateService _updates;
     private readonly IUpdateSettingsService _updateSettings;
     private readonly IToastService _toasts;
@@ -93,7 +95,9 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
     {
         try
         {
-            var result = await _updates.CheckAsync(ct).ConfigureAwait(false);
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(UpdateCheckTimeout);
+            var result = await _updates.CheckAsync(timeoutCts.Token).ConfigureAwait(false);
             syncState?.Invoke(result);
 
             _logger.Info(logScope, "update.check.result", "Update check finished", new
@@ -128,8 +132,17 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
         }
         catch (OperationCanceledException)
         {
-            _logger.Warn(logScope, "update.check.cancel", "Update check canceled");
-            _toasts.Warn("应用更新", "检查已取消");
+            if (ct.IsCancellationRequested)
+            {
+                _logger.Warn(logScope, "update.check.cancel", "Update check canceled");
+                _toasts.Warn("应用更新", "检查已取消");
+            }
+            else
+            {
+                _logger.Warn(logScope, "update.check.timeout",
+                    $"Update check timed out after {(int)UpdateCheckTimeout.TotalSeconds}s");
+                _toasts.Warn("应用更新", $"检查超时（{(int)UpdateCheckTimeout.TotalSeconds} 秒），请检查更新源连通性后重试");
+            }
             return null;
         }
         catch (Exception ex)
