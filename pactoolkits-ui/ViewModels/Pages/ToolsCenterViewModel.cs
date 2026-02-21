@@ -31,7 +31,7 @@ public sealed partial class AgentLineItem : ObservableObject
 
 public sealed partial class ToolsCenterViewModel : AppPageBase
 {
-    public override string DisplayName => "工具中心";
+    public override string DisplayName => "自动化套件";
     public override MaterialIconKind Icon => MaterialIconKind.TuneVariant;
     public override int Index => 4;
     public override ICommand? RefreshCommand => _refreshRuntimeCommand;
@@ -154,14 +154,14 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             if (!saved)
                 return;
 
-            _toast.Success("追溯码自动注入工具", "配置已保存");
+            _toast.Success("自动化套件", "配置已保存");
             ApplyRuntimeSnapshot();
             LoadAgentConfigSnapshot();
         }
         catch (Exception ex)
         {
             LogError("tools.save_settings.fail", "Failed to save AHK settings", ex);
-            _toast.Error("追溯码自动注入工具", $"保存失败：{ex.Message}");
+            _toast.Error("自动化套件", $"保存失败：{ex.Message}");
         }
         finally
         {
@@ -191,14 +191,14 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 return;
 
             if (result.Ok)
-                _toast.Success("追溯码自动注入工具", result.Message);
+                _toast.Success("自动化套件", result.Message);
             else
-                _toast.Error("追溯码自动注入工具", result.Message);
+                _toast.Error("自动化套件", result.Message);
         }
         catch (Exception ex)
         {
             LogError("tools.restart_ahk.fail", "Failed to restart AHK runtime", ex);
-            _toast.Error("追溯码自动注入工具", ex.Message);
+            _toast.Error("自动化套件", ex.Message);
         }
         finally
         {
@@ -239,12 +239,12 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 : await _ahkRuntime.StopAsync().ConfigureAwait(false);
 
             if (!result.Ok && !result.SuppressToast)
-                _toast.Error("追溯码自动注入工具", result.Message);
+                _toast.Error("自动化套件", result.Message);
         }
         catch (Exception ex)
         {
             LogError("tools.toggle_ahk.fail", "Failed to toggle AHK runtime", ex, new { enabled });
-            _toast.Error("追溯码自动注入工具", ex.Message);
+            _toast.Error("自动化套件", ex.Message);
         }
         finally
         {
@@ -265,7 +265,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("tools.save_options.silent_fail", "Silent save options failed", ex);
-            _toast.Error("追溯码自动注入工具", $"配置保存失败：{ex.Message}");
+            _toast.Error("自动化套件", $"配置保存失败：{ex.Message}");
             return false;
         }
     }
@@ -296,7 +296,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         {
             LogError("tools.save_options.fail", "Failed to save tool options to config", ex);
             if (showToastOnError)
-                _toast.Error("追溯码自动注入工具", $"配置保存失败：{ex.Message}");
+                _toast.Error("自动化套件", $"配置保存失败：{ex.Message}");
             return false;
         }
     }
@@ -474,14 +474,14 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             var appWin = ParseAppWinItems(AgentAppWinItems);
             if (appWin.Count == 0)
             {
-                _toast.Error("追溯码自动注入工具", "AppWin 至少需要一个可执行文件");
+                _toast.Error("自动化套件", "AppWin 至少需要一个可执行文件");
                 return null;
             }
 
             var colSpecs = ParseLineItems(AgentColSpecsItems);
             if (colSpecs.Count == 0)
             {
-                _toast.Error("追溯码自动注入工具", "ColSpecs 不能为空");
+                _toast.Error("自动化套件", "ColSpecs 不能为空");
                 return null;
             }
 
@@ -489,7 +489,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
 
             if (AgentConfirmTimeoutMs is < 100 or > 10000)
             {
-                _toast.Error("追溯码自动注入工具", "ConfirmTimeoutMs 范围应为 100-10000");
+                _toast.Error("自动化套件", "ConfirmTimeoutMs 范围应为 100-10000");
                 return null;
             }
 
@@ -509,7 +509,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("tools.agent_options.parse_fail", "Failed to parse agent options", ex);
-            _toast.Error("追溯码自动注入工具", $"Agent 配置格式错误：{ex.Message}");
+            _toast.Error("自动化套件", $"Agent 配置格式错误：{ex.Message}");
             return null;
         }
     }
@@ -553,16 +553,16 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     }
 
     private static List<string> ParseLineItems(IEnumerable<AgentLineItem> items)
-        => items.Select(x => (x.Value ?? string.Empty).Trim()).Where(x => x != "").Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        => items.Select(x => (x.Value).Trim()).Where(x => x != "").Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
     private static List<string> SnapshotLineItems(IEnumerable<AgentLineItem> items)
-        => items.Select(x => (x.Value ?? string.Empty).Trim()).ToList();
+        => items.Select(x => (x.Value).Trim()).ToList();
 
     private static void ResetLineItems(ObservableCollection<AgentLineItem> target, IEnumerable<string> values)
     {
         target.Clear();
         foreach (var value in values
-                     .Select(x => (x ?? string.Empty).Trim())
+                     .Select(x => x.Trim())
                      .Where(x => x != "")
                      .Distinct(StringComparer.OrdinalIgnoreCase))
             target.Add(new AgentLineItem(value));
@@ -573,14 +573,14 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         try
         {
             return new ToolEditorSnapshot(
-                (AhkExecutablePath ?? string.Empty).Trim(),
-                (AhkProcessName ?? string.Empty).Trim(),
-                (AgentPgDriver ?? string.Empty).Trim(),
-                (AgentPgSsl ?? string.Empty).Trim(),
-                (AgentOptCls ?? string.Empty).Trim(),
-                (AgentIptCls ?? string.Empty).Trim(),
+                AhkExecutablePath.Trim(),
+                AhkProcessName.Trim(),
+                AgentPgDriver.Trim(),
+                AgentPgSsl.Trim(),
+                AgentOptCls.Trim(),
+                AgentIptCls.Trim(),
                 AgentConfirmTimeoutMs,
-                (AgentClassNN ?? string.Empty).Trim(),
+                AgentClassNN.Trim(),
                 SnapshotLineItems(AgentAppWinItems),
                 SnapshotLineItems(AgentColSpecsItems),
                 SnapshotLineItems(AgentIntColsItems));
@@ -641,25 +641,25 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     public override void Dispose()
     {
         try { _ahkRuntime.StatusChanged -= OnAhkRuntimeChanged; }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             LogWarn("tools.dispose.runtime_unsub_fail", "Failed to unsubscribe runtime status", ex);
         }
 
         try { AgentAppWinItems.CollectionChanged -= OnAgentLineCollectionChanged; }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             LogWarn("tools.dispose.appwin_collection_unsub_fail", "Failed to unsubscribe AgentAppWinItems", ex);
         }
 
         try { AgentColSpecsItems.CollectionChanged -= OnAgentLineCollectionChanged; }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             LogWarn("tools.dispose.colspecs_collection_unsub_fail", "Failed to unsubscribe AgentColSpecsItems", ex);
         }
 
         try { AgentIntColsItems.CollectionChanged -= OnAgentLineCollectionChanged; }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             LogWarn("tools.dispose.intcols_collection_unsub_fail", "Failed to unsubscribe AgentIntColsItems", ex);
         }
@@ -667,7 +667,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         foreach (var item in AgentAppWinItems)
         {
             try { item.PropertyChanged -= OnAgentLineItemPropertyChanged; }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 LogWarn("tools.dispose.appwin_item_unsub_fail", "Failed to unsubscribe AgentAppWin item", ex);
             }
@@ -676,7 +676,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         foreach (var item in AgentColSpecsItems)
         {
             try { item.PropertyChanged -= OnAgentLineItemPropertyChanged; }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 LogWarn("tools.dispose.colspecs_item_unsub_fail", "Failed to unsubscribe AgentColSpecs item", ex);
             }
@@ -685,7 +685,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         foreach (var item in AgentIntColsItems)
         {
             try { item.PropertyChanged -= OnAgentLineItemPropertyChanged; }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 LogWarn("tools.dispose.intcols_item_unsub_fail", "Failed to unsubscribe AgentIntCols item", ex);
             }
