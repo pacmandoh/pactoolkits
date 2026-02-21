@@ -874,26 +874,73 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private async Task<bool> EnsureDbSchemaCompatibleAsync()
     {
-        var expected = _releaseVersion.Current.DbSchemaVersion;
+        var version = _releaseVersion.Current;
+        var uiMin = NormalizeSchemaBound(version.UiMinDbSchema, version.DbSchemaVersion);
+        var uiMax = NormalizeSchemaBound(version.UiMaxDbSchema, version.DbSchemaVersion);
+        var agentMin = NormalizeSchemaBound(version.AgentMinDbSchema, version.DbSchemaVersion);
+        var agentMax = NormalizeSchemaBound(version.AgentMaxDbSchema, version.DbSchemaVersion);
+
         var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
-        if (schema.ok && string.Equals(schema.value, expected, StringComparison.Ordinal))
+        var db = schema.value ?? string.Empty;
+        var uiOk = schema.ok && IsSemVerInRange(db, uiMin, uiMax);
+        var agentOk = schema.ok && IsSemVerInRange(db, agentMin, agentMax);
+        if (uiOk && agentOk)
             return true;
 
         var detail = schema.ok
-            ? $"数据库版本：{schema.value}\n要求版本：{expected}"
-            : $"读取失败：{schema.reason ?? "缺少 schema_version 表或版本记录"}\n要求版本：{expected}";
+            ? $"数据库版本：{schema.value}\nUI 兼容范围：{uiMin} ~ {uiMax}\nAgent 兼容范围：{agentMin} ~ {agentMax}"
+            : $"读取失败：{schema.reason ?? "缺少 schema_version 表或版本记录"}\nUI 兼容范围：{uiMin} ~ {uiMax}\nAgent 兼容范围：{agentMin} ~ {agentMax}";
         var message = $"检测到当前数据库版本与 PacToolkits 不兼容。\n{detail}\n\n请联系维护者将数据库更新到适配版本后再连接。";
 
         _logger.Warn("SettingsVM", "db.schema.incompatible", "Database schema incompatible when connecting", null, new
         {
-            expected,
+            uiMin,
+            uiMax,
+            agentMin,
+            agentMax,
             schemaOk = schema.ok,
             schemaValue = schema.value,
-            schema.reason
+            schema.reason,
+            uiOk,
+            agentOk
         });
 
         await _dialog.Warn("数据库版本不兼容", message).ConfigureAwait(false);
         return false;
+    }
+
+    private static string NormalizeSchemaBound(string bound, string fallback)
+        => string.Equals(bound, "unknown", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(bound)
+            ? fallback
+            : bound;
+
+    private static bool IsSemVerInRange(string value, string min, string max)
+    {
+        if (!TryParseSemVer(value, out var v) || !TryParseSemVer(min, out var minV) || !TryParseSemVer(max, out var maxV))
+            return false;
+        return CompareSemVer(v, minV) >= 0 && CompareSemVer(v, maxV) <= 0;
+    }
+
+    private static bool TryParseSemVer(string value, out (int major, int minor, int patch) ver)
+    {
+        ver = (0, 0, 0);
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+        var parts = value.Split('.', StringSplitOptions.TrimEntries);
+        if (parts.Length != 3)
+            return false;
+        if (!int.TryParse(parts[0], out var major)) return false;
+        if (!int.TryParse(parts[1], out var minor)) return false;
+        if (!int.TryParse(parts[2], out var patch)) return false;
+        ver = (major, minor, patch);
+        return true;
+    }
+
+    private static int CompareSemVer((int major, int minor, int patch) left, (int major, int minor, int patch) right)
+    {
+        if (left.major != right.major) return left.major.CompareTo(right.major);
+        if (left.minor != right.minor) return left.minor.CompareTo(right.minor);
+        return left.patch.CompareTo(right.patch);
     }
 
     private void TrackAliasRow(ClientAliasRow row)

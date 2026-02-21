@@ -16,14 +16,14 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
     public AboutViewModel(IReleaseVersionService releaseVersion)
     {
         _version = releaseVersion.Current;
-        var uiCompatOk = IsSemVerGreaterOrEqual(_version.UiVersion, _version.AgentMinUi);
-        var agentCompatOk = IsSemVerGreaterOrEqual(_version.AgentVersion, _version.UiMinAgent);
-        var compatSummary = uiCompatOk && agentCompatOk ? "Compatible" : "Check Required";
+        var uiDbOk = IsSemVerInRange(_version.DbSchemaVersion, UiMinDbSchema, UiMaxDbSchema);
+        var agentDbOk = IsSemVerInRange(_version.DbSchemaVersion, AgentMinDbSchema, AgentMaxDbSchema);
+        var compatSummary = uiDbOk && agentDbOk ? "DB Compatible" : "DB Check Required";
 
         VersionBadges = new ReadOnlyCollection<VersionBadgeItem>(new[]
         {
-            new VersionBadgeItem("Agent 要求 UI >=", _version.AgentMinUi),
-            new VersionBadgeItem("UI 要求 Agent >=", _version.UiMinAgent),
+            new VersionBadgeItem("UI 兼容 DB", $"{UiMinDbSchema} ~ {UiMaxDbSchema}"),
+            new VersionBadgeItem("Agent 兼容 DB", $"{AgentMinDbSchema} ~ {AgentMaxDbSchema}"),
             new VersionBadgeItem("发布通道", _version.BuildChannel),
             new VersionBadgeItem("兼容状态", compatSummary),
             new VersionBadgeItem("版本来源", "version.generated.json")
@@ -44,10 +44,12 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
     public string DbSchemaVersion => _version.DbSchemaVersion;
     public string BuildChannel => _version.BuildChannel;
     public string BuildDate => _version.BuildDate;
-    public string CompatAgentMinUi => _version.AgentMinUi;
-    public string CompatUiMinAgent => _version.UiMinAgent;
-    public string CompatAgentMinUiText => $"Agent 要求 UI >= {CompatAgentMinUi}";
-    public string CompatUiMinAgentText => $"UI 要求 Agent >= {CompatUiMinAgent}";
+    public string UiMinDbSchema => NormalizeSchemaBound(_version.UiMinDbSchema, _version.DbSchemaVersion);
+    public string UiMaxDbSchema => NormalizeSchemaBound(_version.UiMaxDbSchema, _version.DbSchemaVersion);
+    public string AgentMinDbSchema => NormalizeSchemaBound(_version.AgentMinDbSchema, _version.DbSchemaVersion);
+    public string AgentMaxDbSchema => NormalizeSchemaBound(_version.AgentMaxDbSchema, _version.DbSchemaVersion);
+    public string CompatUiDbRangeText => $"UI 兼容 DB: {UiMinDbSchema} ~ {UiMaxDbSchema}";
+    public string CompatAgentDbRangeText => $"Agent 兼容 DB: {AgentMinDbSchema} ~ {AgentMaxDbSchema}";
     public string VersionStatus => BuildVersionStatus();
     public string VersionHint => "版本由 release-manifest 统一生成并下发，UI 与 Agent 只读显示。";
 
@@ -58,21 +60,11 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
         if (_version.UiVersion == "unknown" || _version.AgentVersion == "unknown" || _version.DbSchemaVersion == "unknown")
             return "Version Source Missing";
 
-        var uiCompatOk = IsSemVerGreaterOrEqual(_version.UiVersion, _version.AgentMinUi);
-        var agentCompatOk = IsSemVerGreaterOrEqual(_version.AgentVersion, _version.UiMinAgent);
-        return uiCompatOk && agentCompatOk ? "Manifest Loaded / Compatible" : "Manifest Loaded / Compatibility Warning";
-    }
-
-    private static bool IsSemVerGreaterOrEqual(string current, string required)
-    {
-        if (!TryParseSemVer(current, out var c) || !TryParseSemVer(required, out var r))
-            return false;
-
-        if (c.major != r.major)
-            return c.major > r.major;
-        if (c.minor != r.minor)
-            return c.minor > r.minor;
-        return c.patch >= r.patch;
+        var uiDbOk = IsSemVerInRange(_version.DbSchemaVersion, UiMinDbSchema, UiMaxDbSchema);
+        var agentDbOk = IsSemVerInRange(_version.DbSchemaVersion, AgentMinDbSchema, AgentMaxDbSchema);
+        return uiDbOk && agentDbOk
+            ? "Manifest Loaded / Compatible"
+            : "Manifest Loaded / Compatibility Warning";
     }
 
     private static bool TryParseSemVer(string value, out (int major, int minor, int patch) ver)
@@ -92,6 +84,25 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
         ver = (major, minor, patch);
         return true;
     }
+
+    private static bool IsSemVerInRange(string value, string min, string max)
+    {
+        if (!TryParseSemVer(value, out var v) || !TryParseSemVer(min, out var minV) || !TryParseSemVer(max, out var maxV))
+            return false;
+        return CompareSemVer(v, minV) >= 0 && CompareSemVer(v, maxV) <= 0;
+    }
+
+    private static int CompareSemVer((int major, int minor, int patch) left, (int major, int minor, int patch) right)
+    {
+        if (left.major != right.major) return left.major.CompareTo(right.major);
+        if (left.minor != right.minor) return left.minor.CompareTo(right.minor);
+        return left.patch.CompareTo(right.patch);
+    }
+
+    private static string NormalizeSchemaBound(string bound, string fallback)
+        => string.Equals(bound, "unknown", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(bound)
+            ? fallback
+            : bound;
 }
 
 public sealed record VersionBadgeItem(string Label, string Value)
