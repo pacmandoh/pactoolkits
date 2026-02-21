@@ -25,6 +25,10 @@ manifest_ui="$(jq -r '.uiVersion' "$MANIFEST")"
 manifest_agent="$(jq -r '.agentVersion' "$MANIFEST")"
 manifest_suite="$(jq -r '.suiteVersion' "$MANIFEST")"
 manifest_db="$(jq -r '.dbSchemaVersion' "$MANIFEST")"
+manifest_ui_min_db="$(jq -r '.compat.uiMinDbSchema' "$MANIFEST")"
+manifest_ui_max_db="$(jq -r '.compat.uiMaxDbSchema' "$MANIFEST")"
+manifest_agent_min_db="$(jq -r '.compat.agentMinDbSchema' "$MANIFEST")"
+manifest_agent_max_db="$(jq -r '.compat.agentMaxDbSchema' "$MANIFEST")"
 
 if command -v rg >/dev/null 2>&1; then
   ui_props_app="$(rg -o "<AppVersion>[^<]+</AppVersion>" "$UI_PROPS" | sed -E 's#<AppVersion>([^<]+)</AppVersion>#\1#')"
@@ -35,25 +39,43 @@ ui_json_ui="$(jq -r '.uiVersion' "$UI_JSON")"
 ui_json_agent="$(jq -r '.agentVersion' "$UI_JSON")"
 ui_json_suite="$(jq -r '.suiteVersion' "$UI_JSON")"
 ui_json_db="$(jq -r '.dbSchemaVersion' "$UI_JSON")"
+ui_json_ui_min_db="$(jq -r '.compat.uiMinDbSchema' "$UI_JSON")"
+ui_json_ui_max_db="$(jq -r '.compat.uiMaxDbSchema' "$UI_JSON")"
+ui_json_agent_min_db="$(jq -r '.compat.agentMinDbSchema' "$UI_JSON")"
+ui_json_agent_max_db="$(jq -r '.compat.agentMaxDbSchema' "$UI_JSON")"
 
 agent_json_agent="$(jq -r '.agentVersion' "$AGENT_JSON")"
 agent_json_ui="$(jq -r '.uiVersion' "$AGENT_JSON")"
 agent_json_suite="$(jq -r '.suiteVersion' "$AGENT_JSON")"
 agent_json_db="$(jq -r '.dbSchemaVersion' "$AGENT_JSON")"
+agent_json_ui_min_db="$(jq -r '.compat.uiMinDbSchema' "$AGENT_JSON")"
+agent_json_ui_max_db="$(jq -r '.compat.uiMaxDbSchema' "$AGENT_JSON")"
+agent_json_agent_min_db="$(jq -r '.compat.agentMinDbSchema' "$AGENT_JSON")"
+agent_json_agent_max_db="$(jq -r '.compat.agentMaxDbSchema' "$AGENT_JSON")"
 
 [[ "$ui_props_app" == "$manifest_ui" ]] || { echo "ERROR: Version.g.props AppVersion=$ui_props_app != manifest uiVersion=$manifest_ui" >&2; exit 1; }
 [[ "$ui_json_ui" == "$manifest_ui" ]] || { echo "ERROR: ui/version.generated.json uiVersion mismatch" >&2; exit 1; }
 [[ "$ui_json_agent" == "$manifest_agent" ]] || { echo "ERROR: ui/version.generated.json agentVersion mismatch" >&2; exit 1; }
 [[ "$ui_json_suite" == "$manifest_suite" ]] || { echo "ERROR: ui/version.generated.json suiteVersion mismatch" >&2; exit 1; }
 [[ "$ui_json_db" == "$manifest_db" ]] || { echo "ERROR: ui/version.generated.json dbSchemaVersion mismatch" >&2; exit 1; }
+[[ "$ui_json_ui_min_db" == "$manifest_ui_min_db" ]] || { echo "ERROR: ui/version.generated.json compat.uiMinDbSchema mismatch" >&2; exit 1; }
+[[ "$ui_json_ui_max_db" == "$manifest_ui_max_db" ]] || { echo "ERROR: ui/version.generated.json compat.uiMaxDbSchema mismatch" >&2; exit 1; }
+[[ "$ui_json_agent_min_db" == "$manifest_agent_min_db" ]] || { echo "ERROR: ui/version.generated.json compat.agentMinDbSchema mismatch" >&2; exit 1; }
+[[ "$ui_json_agent_max_db" == "$manifest_agent_max_db" ]] || { echo "ERROR: ui/version.generated.json compat.agentMaxDbSchema mismatch" >&2; exit 1; }
 
 [[ "$agent_json_agent" == "$manifest_agent" ]] || { echo "ERROR: agent/version.generated.json agentVersion mismatch" >&2; exit 1; }
 [[ "$agent_json_ui" == "$manifest_ui" ]] || { echo "ERROR: agent/version.generated.json uiVersion mismatch" >&2; exit 1; }
 [[ "$agent_json_suite" == "$manifest_suite" ]] || { echo "ERROR: agent/version.generated.json suiteVersion mismatch" >&2; exit 1; }
 [[ "$agent_json_db" == "$manifest_db" ]] || { echo "ERROR: agent/version.generated.json dbSchemaVersion mismatch" >&2; exit 1; }
+[[ "$agent_json_ui_min_db" == "$manifest_ui_min_db" ]] || { echo "ERROR: agent/version.generated.json compat.uiMinDbSchema mismatch" >&2; exit 1; }
+[[ "$agent_json_ui_max_db" == "$manifest_ui_max_db" ]] || { echo "ERROR: agent/version.generated.json compat.uiMaxDbSchema mismatch" >&2; exit 1; }
+[[ "$agent_json_agent_min_db" == "$manifest_agent_min_db" ]] || { echo "ERROR: agent/version.generated.json compat.agentMinDbSchema mismatch" >&2; exit 1; }
+[[ "$agent_json_agent_max_db" == "$manifest_agent_max_db" ]] || { echo "ERROR: agent/version.generated.json compat.agentMaxDbSchema mismatch" >&2; exit 1; }
 
 echo "Version check passed."
 echo "- suiteVersion: $manifest_suite"
 echo "- uiVersion: $manifest_ui"
 echo "- agentVersion: $manifest_agent"
 echo "- dbSchemaVersion: $manifest_db"
+echo "- uiMinDbSchema~uiMaxDbSchema: $manifest_ui_min_db ~ $manifest_ui_max_db"
+echo "- agentMinDbSchema~agentMaxDbSchema: $manifest_agent_min_db ~ $manifest_agent_max_db"
