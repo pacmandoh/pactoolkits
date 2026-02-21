@@ -1481,6 +1481,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         if (ShouldSkipTrigger("dashboard.nav.lowstock", 300))
             return;
 
+        _inventoryOverview.Keyword = null;
         _inventoryOverview.OpenMode(2);
         _nav.Navigate<InventoryOverviewViewModel>();
     }
