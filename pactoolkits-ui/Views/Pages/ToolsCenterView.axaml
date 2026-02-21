@@ -24,7 +24,10 @@
             <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <icons:MaterialIcon Kind="Syringe" Width="18" Height="18" />
-                    <TextBlock Text="追溯码自动注入工具" Classes="SectionTitle" />
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="自动化套件" Classes="SectionTitle" />
+                        <TextBlock Text="PacInjector 与业务自动化工具，由后台自动化引擎驱动" Classes="SectionHint" />
+                    </StackPanel>
                 </StackPanel>
 
                 <suki:GlassCard Grid.Column="1" Padding="10,8" Opacity="0.9">

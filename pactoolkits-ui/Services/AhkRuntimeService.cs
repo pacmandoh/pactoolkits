@@ -177,10 +177,10 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
                 options = Clone(_options);
 
             if (!OperatingSystem.IsWindows())
-                return SetError("当前系统不支持启动追溯码自动注入工具");
+                return SetError("当前系统不支持启动自动化套件");
 
             if (string.IsNullOrWhiteSpace(options.ExecutablePath))
-                return SetError("请先配置追溯码自动注入工具的可执行文件路径");
+                return SetError("请先配置自动化套件的可执行文件路径");
 
             var resolvedExePath = ResolveExecutablePath(options.ExecutablePath);
             if (resolvedExePath is null)
@@ -257,7 +257,7 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
                 options = Clone(_options);
 
             if (!OperatingSystem.IsWindows())
-                return SetError("当前系统不支持停止追溯码自动注入工具");
+                return SetError("当前系统不支持停止自动化套件");
 
             var processes = GetTargetProcesses(options).ToList();
             if (processes.Count == 0)
