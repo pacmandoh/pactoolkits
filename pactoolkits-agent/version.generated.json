@@ -1,13 +1,11 @@
 {
-  "suiteVersion": "0.6.0",
+  "suiteVersion": "0.7.0",
   "agentVersion": "0.3.1",
-  "uiVersion": "0.6.0",
+  "uiVersion": "0.7.0",
   "dbSchemaVersion": "1.2.1",
   "compat": {
     "uiMinDbSchema": "1.2.0",
-    "uiMaxDbSchema": "1.2.1",
-    "agentMinDbSchema": "1.2.0",
-    "agentMaxDbSchema": "1.2.1"
+    "agentMinDbSchema": "1.2.0"
   },
   "build": {
     "channel": "stable",
