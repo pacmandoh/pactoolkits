@@ -98,9 +98,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private const int FixedPageSize = 50;
     private const int LargeBatchReassignConfirmThreshold = 500;
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
-    private static readonly TimeSpan UnlockSessionDuration = TimeSpan.FromMinutes(15);
-    private static readonly TimeSpan UnlockCooldownDuration = TimeSpan.FromMinutes(1);
-    private const int UnlockFailedAttemptThreshold = 5;
+    private const string UnlockScopeKey = UnlockScopes.SharedSensitiveOps;
 
     public override string DisplayName => "追溯码库存";
     public override MaterialIconKind Icon => MaterialIconKind.PackageVariant;
@@ -111,6 +109,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private readonly ILookupCatalogService _lookup;
     private readonly IDrugIndexRepo _drugIndexRepo;
     private readonly IDbConfigService _dbConfig;
+    private readonly ISensitiveOperationUnlockService _unlockService;
     private readonly IToastService _toast;
     private readonly IDialogService _dialog;
     private readonly PageNavigationService _nav;
@@ -160,7 +159,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private DateTimeOffset _suppressAutoRefreshUntilUtc = DateTimeOffset.MinValue;
     private CancellationTokenSource? _silentReconcileCts;
     private readonly DispatcherTimer _unlockStatusTimer;
-    private bool _isUnlockPromptActive;
     partial void OnIsDetailBusyChanged(bool value) => NotifyAllCommands();
     partial void OnIsAggBusyChanged(bool value) => NotifyAllCommands();
     partial void OnIsLowBusyChanged(bool value) => NotifyAllCommands();
@@ -268,6 +266,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         ILookupCatalogService lookup,
         IDrugIndexRepo drugIndexRepo,
         IDbConfigService dbConfig,
+        ISensitiveOperationUnlockService unlockService,
         IToastService toast,
         IDialogService dialog,
         PageNavigationService nav,
@@ -277,6 +276,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _lookup = lookup;
         _drugIndexRepo = drugIndexRepo;
         _dbConfig = dbConfig;
+        _unlockService = unlockService;
         _toast = toast;
         _dialog = dialog;
         _nav = nav;
@@ -284,6 +284,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _localRefreshCommand = new AsyncRelayCommand(() => ReloadAsync(force: true), CanLocalRefresh);
         _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _unlockStatusTimer.Tick += (_, _) => RefreshUnlockState();
+        _unlockService.StateChanged += OnUnlockScopeChanged;
+        RefreshUnlockState();
 
         _dbConfig.Applied += OnDbApplied;
         _lastModeIndex = ModeIndex;
@@ -631,11 +633,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         ReassignPreviewText = null;
         ReassignPreviewRows.Clear();
         OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-        IsOperationUnlocked = false;
-        OperationUnlockExpiresAtUtc = DateTimeOffset.MinValue;
+        _unlockService.Lock(UnlockScopeKey);
+        RefreshUnlockState();
         StopUnlockStatusTimerIfNeeded();
         Status = "库存安全会话：已手动锁定";
-        OnPropertyChanged(nameof(UnlockStatusText));
     }
 
     private bool CanToggleStockEditMode() => !IsBusy && IsDetailMode && !IsDetailBusy;
@@ -652,6 +653,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             var (savedCount, failedCount, lastError) = (0, 0, (string?)null);
             if (_pendingStockEdits.Count > 0)
                 (savedCount, failedCount, lastError) = await ApplyPendingStockEditsAsync();
+
+            if (savedCount > 0)
+            {
+                // Keep current viewport/scroll stable after row-level edits:
+                // defer watermark-driven full reload, then reconcile silently.
+                SuppressExternalAutoRefresh(TimeSpan.FromSeconds(7));
+                ScheduleSilentCurrentPageReconcile(TimeSpan.FromSeconds(5));
+            }
 
             IsStockEditEnabled = false;
             Status = "库存明细：已退出编辑模式";
@@ -799,13 +808,19 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 return;
             }
 
-            var preview = await _repo.PreviewStockReassignByKeywordAsync(kw, targetDrug, targetSpec, 30, default);
-            var scopeText = $"筛选批量（关键字：{kw}）";
-
-            ReassignPreviewRows.Clear();
             var targetQtyResolvedForFilter = int.TryParse(NormalizeInput(ReassignQtyText), out var parsedQtyForFilter)
                 ? parsedQtyForFilter
                 : 0;
+            var preview = await _repo.PreviewStockReassignByKeywordAsync(
+                kw,
+                targetDrug,
+                targetSpec,
+                targetQtyResolvedForFilter,
+                30,
+                default);
+            var scopeText = $"筛选批量（关键字：{kw}）";
+
+            ReassignPreviewRows.Clear();
             foreach (var row in preview.Samples)
             {
                 ReassignPreviewRows.Add(new StockReassignPreviewRowItem(
@@ -946,7 +961,13 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     return;
                 }
 
-                var guardPreview = await _repo.PreviewStockReassignByKeywordAsync(kw, targetDrug, targetSpec, 1, default);
+                var guardPreview = await _repo.PreviewStockReassignByKeywordAsync(
+                    kw,
+                    targetDrug,
+                    targetSpec,
+                    targetQty,
+                    1,
+                    default);
                 if (guardPreview.WillChangeCount > LargeBatchReassignConfirmThreshold)
                 {
                     var secondOk = await _dialog.Confirm(
@@ -1180,86 +1201,29 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     private async Task<bool> EnsureUnlockedAsync(string scene)
     {
-        if (_isUnlockPromptActive)
-            return false;
-
+        var hint = "敏感操作提示：验证仅在本地进行，不会上传密码。\n请输入数据库密码以解锁库存敏感操作";
+        var ok = await _unlockService.EnsureUnlockedAsync(
+            UnlockScopeKey,
+            scene,
+            "身份验证",
+            hint);
         RefreshUnlockState();
-
-        if (IsOperationUnlocked)
-            return true;
-
-        var expectedPassword = NormalizeInput(_dbConfig.Current.Password);
-        if (string.IsNullOrWhiteSpace(expectedPassword))
-        {
-            _toast.Error(scene, "当前未配置数据库密码，无法执行该操作");
-            return false;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        if (OperationUnlockCooldownUntilUtc > now)
-        {
-            var left = OperationUnlockCooldownUntilUtc - now;
-            _toast.Warn(scene, $"验证冷却中，请在 {Math.Max(1, (int)Math.Ceiling(left.TotalSeconds))} 秒后重试");
-            return false;
-        }
-
-        string? input;
-        try
-        {
-            _isUnlockPromptActive = true;
-            var hintPrefix = "敏感操作提示：验证仅在本地进行，不会上传密码。";
-            var hint = OperationUnlockFailedAttempts <= 0
-                ? $"{hintPrefix}\n请输入数据库密码以解锁库存敏感操作"
-                : $"{hintPrefix}\n请输入数据库密码（已失败 {OperationUnlockFailedAttempts} 次）";
-            input = NormalizeInput(await _dialog.PromptInventoryUnlockPassword("身份验证", hint));
-        }
-        finally
-        {
-            _isUnlockPromptActive = false;
-        }
-
-        if (string.IsNullOrWhiteSpace(input))
-            return false;
-
-        if (!string.Equals(input, expectedPassword, StringComparison.Ordinal))
-        {
-            OperationUnlockFailedAttempts++;
-            if (OperationUnlockFailedAttempts >= UnlockFailedAttemptThreshold)
-            {
-                OperationUnlockCooldownUntilUtc = DateTimeOffset.UtcNow + UnlockCooldownDuration;
-                OperationUnlockFailedAttempts = 0;
-                _toast.Error(scene, $"密码连续错误过多，已锁定 {UnlockCooldownDuration.TotalSeconds.ToString(CultureInfo.InvariantCulture)} 秒");
-            }
-            else
-            {
-                _toast.Error(scene, $"密码错误，还可重试 {UnlockFailedAttemptThreshold - OperationUnlockFailedAttempts} 次");
-            }
-
-            RefreshUnlockState();
-            return false;
-        }
-
-        IsOperationUnlocked = true;
-        OperationUnlockFailedAttempts = 0;
-        OperationUnlockCooldownUntilUtc = DateTimeOffset.MinValue;
-        OperationUnlockExpiresAtUtc = DateTimeOffset.UtcNow + UnlockSessionDuration;
-        StartUnlockStatusTimerIfNeeded();
-        RefreshUnlockState();
-        _toast.Success(scene, "验证通过，已解锁敏感操作");
-        return true;
+        return ok;
     }
 
     private void RefreshUnlockState()
     {
-        var now = DateTimeOffset.UtcNow;
+        var wasUnlocked = IsOperationUnlocked;
+        _unlockService.Refresh(UnlockScopeKey);
+        var snap = _unlockService.GetSnapshot(UnlockScopeKey);
 
-        if (OperationUnlockCooldownUntilUtc != DateTimeOffset.MinValue && OperationUnlockCooldownUntilUtc <= now)
-            OperationUnlockCooldownUntilUtc = DateTimeOffset.MinValue;
+        IsOperationUnlocked = snap.IsUnlocked;
+        OperationUnlockExpiresAtUtc = snap.ExpiresAtUtc;
+        OperationUnlockFailedAttempts = snap.FailedAttempts;
+        OperationUnlockCooldownUntilUtc = snap.CooldownUntilUtc;
 
-        if (IsOperationUnlocked && OperationUnlockExpiresAtUtc <= now)
+        if (wasUnlocked && !IsOperationUnlocked)
         {
-            IsOperationUnlocked = false;
-            OperationUnlockExpiresAtUtc = DateTimeOffset.MinValue;
             if (IsStockEditEnabled)
                 AbandonPendingStockEditsIfNeeded();
 
@@ -1269,14 +1233,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             Status = "库存安全会话已过期，请重新验证";
         }
 
-        if (IsOperationUnlocked || OperationUnlockCooldownUntilUtc > now)
+        if (IsOperationUnlocked || OperationUnlockCooldownUntilUtc > DateTimeOffset.UtcNow)
             StartUnlockStatusTimerIfNeeded();
         else
             StopUnlockStatusTimerIfNeeded();
-
-        OnPropertyChanged(nameof(UnlockStatusText));
-        OnPropertyChanged(nameof(CanRequestUnlock));
-        OnPropertyChanged(nameof(CanLockOperations));
     }
 
     private void StartUnlockStatusTimerIfNeeded()
@@ -1820,6 +1780,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         PostOnUi(() => _ = ReloadAsync(force: true), DispatcherPriority.Background);
     }
 
+    private void OnUnlockScopeChanged(string scopeKey)
+    {
+        if (!string.Equals(scopeKey, UnlockScopeKey, StringComparison.Ordinal))
+            return;
+
+        PostOnUi(RefreshUnlockState, DispatcherPriority.Background);
+    }
+
     private void NotifyAllCommands()
     {
         if (!Dispatcher.UIThread.CheckAccess())
@@ -1883,6 +1851,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public override void Dispose()
     {
         _dbConfig.Applied -= OnDbApplied;
+        _unlockService.StateChanged -= OnUnlockScopeChanged;
         StopUnlockStatusTimerIfNeeded();
         _silentReconcileCts?.Cancel();
         _silentReconcileCts?.Dispose();

@@ -194,3 +194,18 @@ public sealed record StockReassignPreviewItemDto(
     int Qty,
     int Remain
 );
+
+public sealed record DrugKeyFixPreviewDto(
+    bool SourceExists,
+    bool TargetExists,
+    int TracePoolAffected,
+    int TraceTxnAffected
+);
+
+public sealed record DrugKeyFixApplyResultDto(
+    bool TargetExisted,
+    int TracePoolAffected,
+    int TraceTxnAffected,
+    long AuditId,
+    DrugIndexDto Current
+);

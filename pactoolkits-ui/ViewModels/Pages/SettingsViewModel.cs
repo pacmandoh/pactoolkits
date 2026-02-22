@@ -309,7 +309,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     }
 
     [RelayCommand]
-    private async Task StartEditClientAliasesAsync()
+    private void StartEditClientAliases()
     {
         if (ShouldSkipTrigger())
             return;
@@ -318,7 +318,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IsClientAliasReadOnly = false;
         UpdateClientAliasUiState();
         _ = ReloadClientAliasesAsync();
-        await Task.CompletedTask;
     }
 
     [RelayCommand]
@@ -722,13 +721,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             var dir = _logger.LogDirectory;
             Directory.CreateDirectory(dir);
-            var command = OperatingSystem.IsMacOS() ? "open" : "xdg-open";
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = command,
-                ArgumentList = { dir },
-                UseShellExecute = false
-            });
+            OpenDirectory(dir);
             LoggingStatusHint = $"已打开：{dir}";
             _logger.Info("SettingsVM", "logging.open_dir", "Opened log directory", new { dir });
         }
@@ -743,6 +736,38 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
 
         return Task.CompletedTask;
+    }
+
+    private static void OpenDirectory(string dir)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                ArgumentList = { dir },
+                UseShellExecute = false
+            });
+            return;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "open",
+                ArgumentList = { dir },
+                UseShellExecute = false
+            });
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "xdg-open",
+            ArgumentList = { dir },
+            UseShellExecute = false
+        });
     }
 
     [RelayCommand]

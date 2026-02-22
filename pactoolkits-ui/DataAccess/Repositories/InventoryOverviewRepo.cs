@@ -611,7 +611,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 throw new InvalidOperationException("目标药品规格不存在，无法迁移");
 
             const string lockSql = """
-                select drug_id, spec
+                select drug_id, spec, qty
                 from trace_pool
                 where trace_code = @trace_code
                 for update
@@ -619,6 +619,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
 
             string? oldDrugId = null;
             string? oldSpec = null;
+            var oldQty = 0;
             await using (var lockCmd = conn.CreateCommand(lockSql, _opt.CommandTimeoutSeconds, tx))
             {
                 lockCmd.AddParam("trace_code", trace);
@@ -627,6 +628,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 {
                     oldDrugId = reader.GetString(0);
                     oldSpec = reader.GetString(1);
+                    oldQty = reader.GetInt32(2);
                 }
             }
 
@@ -634,8 +636,9 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 throw new InvalidOperationException("未找到对应追溯码记录");
 
             if (string.Equals(oldDrugId, targetDrug, StringComparison.Ordinal)
-                && string.Equals(oldSpec, targetSpecSafe, StringComparison.Ordinal))
-                throw new InvalidOperationException("目标药品规格与当前一致，无需迁移");
+                && string.Equals(oldSpec, targetSpecSafe, StringComparison.Ordinal)
+                && oldQty == qty)
+                throw new InvalidOperationException("目标药品规格与数量与当前一致，无需迁移");
 
             const string updateSql = """
                 update trace_pool
@@ -714,6 +717,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         string keyword,
         string targetDrugId,
         string targetSpec,
+        int targetQty,
         int sampleLimit,
         CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
@@ -721,12 +725,15 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             var kw = (keyword ?? string.Empty).Trim();
             var targetDrug = (targetDrugId ?? string.Empty).Trim();
             var targetSpecSafe = (targetSpec ?? string.Empty).Trim();
+            var qty = targetQty;
             var safeLimit = Math.Clamp(sampleLimit, 1, 200);
 
             if (kw.Length == 0)
                 throw new ArgumentException("筛选关键字不能为空", nameof(keyword));
             if (targetDrug.Length == 0 || targetSpecSafe.Length == 0)
                 throw new ArgumentException("目标药品名与规格不能为空");
+            if (qty <= 0)
+                throw new ArgumentException("目标数量必须为大于 0 的整数", nameof(targetQty));
 
             const string targetSql = """
                 select exists(
@@ -767,7 +774,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                   (t.drug_id    ilike ('%' || @kw || '%')
                    or t.spec       ilike ('%' || @kw || '%')
                    or t.trace_code ilike ('%' || @kw || '%'))
-                  and (t.drug_id <> @drug_id or t.spec <> @spec)
+                  and (t.drug_id <> @drug_id or t.spec <> @spec or t.qty <> @qty)
             """;
             int willChangeCount;
             await using (var willCmd = conn.CreateCommand(willChangeSql, _opt.CommandTimeoutSeconds))
@@ -775,6 +782,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 willCmd.AddParam("kw", kw);
                 willCmd.AddParam("drug_id", targetDrug);
                 willCmd.AddParam("spec", targetSpecSafe);
+                willCmd.AddParam("qty", qty);
                 var scalar = await willCmd.ExecuteScalarAsync(token);
                 willChangeCount = scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
             }
@@ -786,7 +794,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                   (t.drug_id    ilike ('%' || @kw || '%')
                    or t.spec       ilike ('%' || @kw || '%')
                    or t.trace_code ilike ('%' || @kw || '%'))
-                  and (t.drug_id <> @drug_id or t.spec <> @spec)
+                  and (t.drug_id <> @drug_id or t.spec <> @spec or t.qty <> @qty)
                 order by t.id desc
                 limit @n
             """;
@@ -796,6 +804,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 sampleCmd.AddParam("kw", kw);
                 sampleCmd.AddParam("drug_id", targetDrug);
                 sampleCmd.AddParam("spec", targetSpecSafe);
+                sampleCmd.AddParam("qty", qty);
                 sampleCmd.AddParam("n", safeLimit);
                 await using var reader = await sampleCmd.ExecuteReaderAsync(token);
                 while (await reader.ReadAsync(token))
@@ -879,7 +888,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                   (t.drug_id    ilike ('%' || @kw || '%')
                    or t.spec       ilike ('%' || @kw || '%')
                    or t.trace_code ilike ('%' || @kw || '%'))
-                  and (t.drug_id <> @new_drug_id or t.spec <> @new_spec)
+                  and (t.drug_id <> @new_drug_id or t.spec <> @new_spec or t.qty <> @new_qty)
             """;
             int affected;
             await using (var updateCmd = conn.CreateCommand(updateSql, _opt.CommandTimeoutSeconds, tx))

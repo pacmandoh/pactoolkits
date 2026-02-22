@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:dialogs="clr-namespace:pactoolkits_ui.Views.Dialogs"
+             mc:Ignorable="d"
+             d:DesignWidth="420" d:DesignHeight="380"
+             x:Class="pactoolkits_ui.Views.Dialogs.DrugKeyFixPreviewDialogView"
+             x:DataType="dialogs:DrugKeyFixPreviewDialogModel">
+    <Border MinWidth="380"
+            MaxWidth="520"
+            Padding="18"
+            CornerRadius="16">
+        <StackPanel Spacing="14">
+            <Border Width="44"
+                    Height="44"
+                    CornerRadius="22"
+                    HorizontalAlignment="Center">
+                <icons:MaterialIcon Kind="SwapHorizontal"
+                                    Width="24"
+                                    Height="24"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+            </Border>
+
+            <TextBlock HorizontalAlignment="Center"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Text="纠错迁移预览详情" />
+
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="8">
+                <TextBlock Grid.Row="0" Grid.Column="0" Opacity="0.8" Text="源药品键" />
+                <TextBlock Grid.Row="0" Grid.Column="1"
+                           FontFamily="Consolas"
+                           Text="{Binding SourceKeyDisplay}" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Opacity="0.8" Text="目标药品键" />
+                <TextBlock Grid.Row="1" Grid.Column="1"
+                           FontFamily="Consolas"
+                           Text="{Binding TargetKeyDisplay}" />
+            </Grid>
+
+            <Border Padding="12" CornerRadius="12">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="6">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Opacity="0.8" Text="trace_pool 影响" />
+                    <TextBlock Grid.Row="0" Grid.Column="1"
+                               HorizontalAlignment="Right"
+                               FontWeight="SemiBold"
+                               Text="{Binding TracePoolAffectedDisplay}" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Opacity="0.8" Text="trace_txn 影响" />
+                    <TextBlock Grid.Row="1" Grid.Column="1"
+                               HorizontalAlignment="Right"
+                               FontWeight="SemiBold"
+                               Text="{Binding TraceTxnAffectedDisplay}" />
+                </Grid>
+            </Border>
+
+            <TextBlock TextWrapping="Wrap"
+                       Opacity="0.9"
+                       Text="{Binding TargetExistsDisplay}" />
+        </StackPanel>
+    </Border>
+</UserControl>

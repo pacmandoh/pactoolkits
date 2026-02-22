@@ -186,6 +186,370 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             await cmd.ExecuteNonQueryAsync(token);
         }, ct);
 
+    public Task<DrugKeyFixPreviewDto> PreviewKeyFixAsync(
+        string sourceDrugId,
+        string sourceSpec,
+        string targetDrugId,
+        string targetSpec,
+        CancellationToken ct)
+        => _db.WithConnection(async (conn, token) =>
+        {
+            var srcDrug = sourceDrugId ?? string.Empty;
+            var srcSpec = sourceSpec ?? string.Empty;
+            var dstDrug = targetDrugId ?? string.Empty;
+            var dstSpec = targetSpec ?? string.Empty;
+            var srcDrugCheck = srcDrug.Trim();
+            var srcSpecCheck = srcSpec.Trim();
+            var dstDrugCheck = dstDrug.Trim();
+            var dstSpecCheck = dstSpec.Trim();
+
+            if (srcDrugCheck.Length == 0 || srcSpecCheck.Length == 0)
+                throw new ArgumentException("源药品名与规格不能为空");
+            if (dstDrugCheck.Length == 0 || dstSpecCheck.Length == 0)
+                throw new ArgumentException("目标药品名与规格不能为空");
+
+            const string srcSql = """
+                select exists(
+                  select 1 from drug_index
+                  where drug_id = @src_drug and spec = @src_spec
+                )
+            """;
+            const string dstSql = """
+                select exists(
+                  select 1 from drug_index
+                  where drug_id = @dst_drug and spec = @dst_spec
+                )
+            """;
+            const string poolSql = """
+                select count(*)::int
+                from trace_pool
+                where drug_id = @src_drug and spec = @src_spec
+            """;
+            const string txnSql = """
+                select count(*)::int
+                from trace_txn
+                where drug_id = @src_drug and spec = @src_spec
+            """;
+
+            bool sourceExists;
+            await using (var cmd = conn.CreateCommand(srcSql, _opt.CommandTimeoutSeconds))
+            {
+                cmd.AddParam("src_drug", srcDrug);
+                cmd.AddParam("src_spec", srcSpec);
+                var scalar = await cmd.ExecuteScalarAsync(token);
+                sourceExists = scalar is bool b && b;
+            }
+
+            bool targetExists;
+            await using (var cmd = conn.CreateCommand(dstSql, _opt.CommandTimeoutSeconds))
+            {
+                cmd.AddParam("dst_drug", dstDrug);
+                cmd.AddParam("dst_spec", dstSpec);
+                var scalar = await cmd.ExecuteScalarAsync(token);
+                targetExists = scalar is bool b && b;
+            }
+
+            var poolAffected = 0;
+            await using (var cmd = conn.CreateCommand(poolSql, _opt.CommandTimeoutSeconds))
+            {
+                cmd.AddParam("src_drug", srcDrug);
+                cmd.AddParam("src_spec", srcSpec);
+                var scalar = await cmd.ExecuteScalarAsync(token);
+                poolAffected = scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
+            }
+
+            var txnAffected = 0;
+            await using (var cmd = conn.CreateCommand(txnSql, _opt.CommandTimeoutSeconds))
+            {
+                cmd.AddParam("src_drug", srcDrug);
+                cmd.AddParam("src_spec", srcSpec);
+                var scalar = await cmd.ExecuteScalarAsync(token);
+                txnAffected = scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
+            }
+
+            return new DrugKeyFixPreviewDto(sourceExists, targetExists, poolAffected, txnAffected);
+        }, ct);
+
+    public Task<DrugKeyFixApplyResultDto> ApplyKeyFixAsync(
+        DrugIndexDto source,
+        DrugIndexDto target,
+        string reason,
+        string operatorName,
+        string sourceTag,
+        CancellationToken ct)
+        => _db.WithTransaction(async (conn, tx, token) =>
+        {
+            var srcDrug = source.DrugId ?? string.Empty;
+            var srcSpec = source.Spec ?? string.Empty;
+            var dstDrug = target.DrugId ?? string.Empty;
+            var dstSpec = target.Spec ?? string.Empty;
+            var dstQty = target.Qty;
+            var dstRuleKey = (object?)target.RuleKey ?? DBNull.Value;
+            var dstPreTc = (object?)target.PreTc ?? DBNull.Value;
+            var dstNote = (object?)target.Note ?? DBNull.Value;
+            var reasonSafe = (reason ?? string.Empty).Trim();
+            var operatorSafe = (operatorName ?? string.Empty).Trim();
+            var sourceSafe = (sourceTag ?? string.Empty).Trim();
+            var srcDrugCheck = srcDrug.Trim();
+            var srcSpecCheck = srcSpec.Trim();
+            var dstDrugCheck = dstDrug.Trim();
+            var dstSpecCheck = dstSpec.Trim();
+
+            if (srcDrugCheck.Length == 0 || srcSpecCheck.Length == 0)
+                throw new ArgumentException("源药品名与规格不能为空");
+            if (dstDrugCheck.Length == 0 || dstSpecCheck.Length == 0)
+                throw new ArgumentException("目标药品名与规格不能为空");
+            if (dstQty <= 0)
+                throw new ArgumentException("目标单盒数量必须大于 0");
+            if (reasonSafe.Length == 0)
+                throw new ArgumentException("迁移原因不能为空", nameof(reason));
+            if (operatorSafe.Length == 0)
+                throw new ArgumentException("操作人不能为空", nameof(operatorName));
+            if (sourceSafe.Length == 0)
+                throw new ArgumentException("来源不能为空", nameof(sourceTag));
+            if (string.Equals(srcDrug, dstDrug, StringComparison.Ordinal)
+                && string.Equals(srcSpec, dstSpec, StringComparison.Ordinal))
+                throw new InvalidOperationException("源与目标药品键一致，无需迁移");
+
+            const string lockSourceSql = """
+                select drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                from drug_index
+                where drug_id = @src_drug and spec = @src_spec
+                for update
+            """;
+
+            DrugIndexDto? sourceDb = null;
+            await using (var cmd = conn.CreateCommand(lockSourceSql, _opt.CommandTimeoutSeconds, tx))
+            {
+                cmd.AddParam("src_drug", srcDrug);
+                cmd.AddParam("src_spec", srcSpec);
+                await using var reader = await cmd.ExecuteReaderAsync(token);
+                if (await reader.ReadAsync(token))
+                    sourceDb = ReadDrugIndexDto(reader);
+            }
+
+            if (sourceDb is null)
+                throw new InvalidOperationException("源药品规格不存在或已被移除");
+
+            if (sourceDb.Version != source.Version)
+                throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试。", sourceDb);
+
+            const string existsTargetSql = """
+                select exists(
+                  select 1 from drug_index
+                  where drug_id = @dst_drug and spec = @dst_spec
+                )
+            """;
+
+            var targetExisted = false;
+            await using (var cmd = conn.CreateCommand(existsTargetSql, _opt.CommandTimeoutSeconds, tx))
+            {
+                cmd.AddParam("dst_drug", dstDrug);
+                cmd.AddParam("dst_spec", dstSpec);
+                var scalar = await cmd.ExecuteScalarAsync(token);
+                targetExisted = scalar is bool b && b;
+            }
+            var poolAffected = 0;
+            await using (var cmd = conn.CreateCommand(
+                             "select count(*)::int from trace_pool where drug_id = @src_drug and spec = @src_spec",
+                             _opt.CommandTimeoutSeconds, tx))
+            {
+                cmd.AddParam("src_drug", srcDrug);
+                cmd.AddParam("src_spec", srcSpec);
+                var scalar = await cmd.ExecuteScalarAsync(token);
+                poolAffected = scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
+            }
+
+            var txnAffected = 0;
+            await using (var cmd = conn.CreateCommand(
+                             "select count(*)::int from trace_txn where drug_id = @src_drug and spec = @src_spec",
+                             _opt.CommandTimeoutSeconds, tx))
+            {
+                cmd.AddParam("src_drug", srcDrug);
+                cmd.AddParam("src_spec", srcSpec);
+                var scalar = await cmd.ExecuteScalarAsync(token);
+                txnAffected = scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
+            }
+
+            DrugIndexDto current;
+            if (!targetExisted)
+            {
+                // Target key not present: move source PK directly and rely on FK ON UPDATE CASCADE.
+                const string movePkSql = """
+                    update drug_index
+                    set drug_id = @dst_drug,
+                        spec = @dst_spec,
+                        qty = @dst_qty,
+                        rule_key = @dst_rule_key,
+                        pre_tc = @dst_pre_tc,
+                        note = @dst_note,
+                        updated_at = clock_timestamp(),
+                        version = version + 1
+                    where drug_id = @src_drug
+                      and spec = @src_spec
+                      and version = @src_version
+                    returning drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                """;
+
+                await using var moveCmd = conn.CreateCommand(movePkSql, _opt.CommandTimeoutSeconds, tx);
+                moveCmd.AddParam("dst_drug", dstDrug);
+                moveCmd.AddParam("dst_spec", dstSpec);
+                moveCmd.AddParam("dst_qty", dstQty);
+                moveCmd.AddParam("dst_rule_key", dstRuleKey);
+                moveCmd.AddParam("dst_pre_tc", dstPreTc);
+                moveCmd.AddParam("dst_note", dstNote);
+                moveCmd.AddParam("src_drug", srcDrug);
+                moveCmd.AddParam("src_spec", srcSpec);
+                moveCmd.AddParam("src_version", source.Version);
+
+                await using var reader = await moveCmd.ExecuteReaderAsync(token);
+                if (!await reader.ReadAsync(token))
+                    throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试。", sourceDb);
+                current = ReadDrugIndexDto(reader);
+            }
+            else
+            {
+                const string upsertTargetSql = """
+                    insert into drug_index(drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version)
+                    values(@dst_drug, @dst_spec, @dst_qty, @dst_rule_key, @dst_pre_tc, @dst_note, clock_timestamp(), clock_timestamp(), 0)
+                    on conflict (drug_id, spec) do update
+                    set qty = excluded.qty,
+                        rule_key = excluded.rule_key,
+                        pre_tc = excluded.pre_tc,
+                        note = excluded.note,
+                        updated_at = clock_timestamp(),
+                        version = drug_index.version + 1
+                    returning drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                """;
+
+                await using (var cmd = conn.CreateCommand(upsertTargetSql, _opt.CommandTimeoutSeconds, tx))
+                {
+                    cmd.AddParam("dst_drug", dstDrug);
+                    cmd.AddParam("dst_spec", dstSpec);
+                    cmd.AddParam("dst_qty", dstQty);
+                    cmd.AddParam("dst_rule_key", dstRuleKey);
+                    cmd.AddParam("dst_pre_tc", dstPreTc);
+                    cmd.AddParam("dst_note", dstNote);
+                    await using var reader = await cmd.ExecuteReaderAsync(token);
+                    if (!await reader.ReadAsync(token))
+                        throw new InvalidOperationException("目标药品规格写入失败");
+                    current = ReadDrugIndexDto(reader);
+                }
+
+                const string updatePoolSql = """
+                    update trace_pool
+                    set drug_id = @dst_drug,
+                        spec = @dst_spec
+                    where drug_id = @src_drug
+                      and spec = @src_spec
+                """;
+                await using (var cmd = conn.CreateCommand(updatePoolSql, _opt.CommandTimeoutSeconds, tx))
+                {
+                    cmd.AddParam("dst_drug", dstDrug);
+                    cmd.AddParam("dst_spec", dstSpec);
+                    cmd.AddParam("src_drug", srcDrug);
+                    cmd.AddParam("src_spec", srcSpec);
+                    await cmd.ExecuteNonQueryAsync(token);
+                }
+
+                const string updateTxnSql = """
+                    update trace_txn
+                    set drug_id = @dst_drug,
+                        spec = @dst_spec
+                    where drug_id = @src_drug
+                      and spec = @src_spec
+                """;
+                await using (var cmd = conn.CreateCommand(updateTxnSql, _opt.CommandTimeoutSeconds, tx))
+                {
+                    cmd.AddParam("dst_drug", dstDrug);
+                    cmd.AddParam("dst_spec", dstSpec);
+                    cmd.AddParam("src_drug", srcDrug);
+                    cmd.AddParam("src_spec", srcSpec);
+                    await cmd.ExecuteNonQueryAsync(token);
+                }
+
+                const string deleteSourceSql = """
+                    delete from drug_index
+                    where drug_id = @src_drug
+                      and spec = @src_spec
+                """;
+                await using (var cmd = conn.CreateCommand(deleteSourceSql, _opt.CommandTimeoutSeconds, tx))
+                {
+                    cmd.AddParam("src_drug", srcDrug);
+                    cmd.AddParam("src_spec", srcSpec);
+                    var deleted = await cmd.ExecuteNonQueryAsync(token);
+                    if (deleted <= 0)
+                        throw new InvalidOperationException("源药品规格删除失败");
+                }
+            }
+
+            long auditId = 0;
+            const string hasAuditSql = "select to_regclass('public.drug_key_fix_audit') is not null";
+            var hasAuditTable = false;
+            await using (var hasAuditCmd = conn.CreateCommand(hasAuditSql, _opt.CommandTimeoutSeconds, tx))
+            {
+                var scalar = await hasAuditCmd.ExecuteScalarAsync(token);
+                hasAuditTable = scalar is bool b && b;
+            }
+
+            if (hasAuditTable)
+            {
+                const string auditSql = """
+                    insert into drug_key_fix_audit(
+                      at,
+                      operator_name,
+                      source,
+                      reason,
+                      old_drug_id,
+                      old_spec,
+                      new_drug_id,
+                      new_spec,
+                      target_existed,
+                      trace_pool_affected,
+                      trace_txn_affected,
+                      success,
+                      error
+                    )
+                    values(
+                      clock_timestamp(),
+                      @operator_name,
+                      @source,
+                      @reason,
+                      @old_drug_id,
+                      @old_spec,
+                      @new_drug_id,
+                      @new_spec,
+                      @target_existed,
+                      @trace_pool_affected,
+                      @trace_txn_affected,
+                      true,
+                      null
+                    )
+                    returning id
+                """;
+
+                await using var auditCmd = conn.CreateCommand(auditSql, _opt.CommandTimeoutSeconds, tx);
+                auditCmd.AddParam("operator_name", operatorSafe);
+                auditCmd.AddParam("source", sourceSafe);
+                auditCmd.AddParam("reason", reasonSafe);
+                auditCmd.AddParam("old_drug_id", srcDrug);
+                auditCmd.AddParam("old_spec", srcSpec);
+                auditCmd.AddParam("new_drug_id", dstDrug);
+                auditCmd.AddParam("new_spec", dstSpec);
+                auditCmd.AddParam("target_existed", targetExisted);
+                auditCmd.AddParam("trace_pool_affected", poolAffected);
+                auditCmd.AddParam("trace_txn_affected", txnAffected);
+                var scalar = await auditCmd.ExecuteScalarAsync(token);
+                auditId = scalar is long l ? l : Convert.ToInt64(scalar ?? 0L);
+            }
+            else
+            {
+                // Keep key-fix available for old schema; audit becomes best-effort until DB upgraded.
+            }
+
+            return new DrugKeyFixApplyResultDto(targetExisted, poolAffected, txnAffected, auditId, current);
+        }, IsolationLevel.ReadCommitted, ct);
+
     private static DrugIndexDto ReadDrugIndexDto(IDataRecord reader)
         => new(
             DrugId: reader.GetString(0),
