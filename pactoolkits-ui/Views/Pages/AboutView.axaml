@@ -456,7 +456,7 @@
                         </suki:GlassCard>
                     </Grid>
 
-                    <Grid Grid.Row="2" ColumnDefinitions="1.3*,1.1*" ColumnSpacing="10">
+                    <Grid Grid.Row="2" ColumnDefinitions="1.1*,1.1*,1.1*" ColumnSpacing="10">
                         <suki:GroupBox Header="视觉标记样例">
                             <WrapPanel Margin="8,8,8,8" ItemSpacing="8" LineSpacing="8">
                                 <suki:InfoBadge Content="Online" />
@@ -479,15 +479,27 @@
                                     <ComboBoxItem Content="Dark" />
                                 </ComboBox>
 
-                                <TextBlock Grid.Row="1" Text="启用动画" VerticalAlignment="Center" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="启用动画" VerticalAlignment="Center" />
                                 <ToggleSwitch Grid.Row="1" Grid.Column="1" IsChecked="True" />
 
-                                <TextBlock Grid.Row="2" Text="密度" VerticalAlignment="Center" />
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="密度" VerticalAlignment="Center" />
                                 <Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Value="68" />
 
-                                <TextBlock Grid.Row="3" Text="刷新间隔" VerticalAlignment="Center" />
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="刷新间隔" VerticalAlignment="Center" />
                                 <NumericUpDown Grid.Row="3" Grid.Column="1" Minimum="1" Maximum="60" Value="10" />
                             </Grid>
+                        </suki:GroupBox>
+
+                        <suki:GroupBox Grid.Column="2" Header="Button 样式（实验）">
+                            <WrapPanel Margin="8,8,8,8" ItemSpacing="8" LineSpacing="8">
+                                <Button Content="Standard" />
+                                <Button Classes="Flat" Content="Flat" />
+                                <Button Classes="Rounded" Content="Rounded" />
+                                <Button Classes="Outlined" Content="Outlined" />
+                                <Button Classes="Basic" Content="Basic" />
+                                <Button Classes="Flat Accent" Content="Flat Accent" />
+                                <Button Classes="Large" Content="Large" />
+                            </WrapPanel>
                         </suki:GroupBox>
                     </Grid>
 

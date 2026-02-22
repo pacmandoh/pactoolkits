@@ -21,6 +21,7 @@ public sealed class TraceCodeValidationOptions
 public sealed class AppConfigRoot
 {
     public int SchemaVersion { get; set; } = 1;
+    public string LastDbMigrationAppVersion { get; set; } = string.Empty;
     public PgOptions Postgres { get; set; } = new();
     public Dictionary<string, string> ClientAliases { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public TraceCodeValidationOptions TraceCodeValidation { get; set; } = new();
@@ -101,6 +102,7 @@ public interface IAppConfigStore
 public sealed class AppConfigStore : IAppConfigStore
 {
     private const string UnifiedConfigFileName = "pactoolkits-ui.config.json";
+    private static readonly string[] SupportedUpdateChannels = ["stable", "beta"];
     private static readonly JsonSerializerOptions _writeOptions = new()
     {
         WriteIndented = true,
@@ -210,6 +212,7 @@ public sealed class AppConfigStore : IAppConfigStore
     {
         var root = source ?? new AppConfigRoot();
         root.SchemaVersion = 1;
+        root.LastDbMigrationAppVersion = (root.LastDbMigrationAppVersion ?? string.Empty).Trim();
         root.Postgres ??= new PgOptions();
         root.TraceCodeValidation ??= new TraceCodeValidationOptions();
         root.AutomationTools ??= new AutomationToolsOptions();
@@ -252,7 +255,7 @@ public sealed class AppConfigStore : IAppConfigStore
         var defaults = new UpdateOptions();
         var options = source ?? new UpdateOptions();
 
-        options.Channel = string.IsNullOrWhiteSpace(options.Channel) ? defaults.Channel : options.Channel.Trim();
+        options.Channel = NormalizeUpdateChannel(options.Channel, defaults.Channel);
         options.FeedUrl = string.IsNullOrWhiteSpace(options.FeedUrl) ? defaults.FeedUrl : options.FeedUrl.Trim();
         options.AutoCheckIntervalMinutes = options.AutoCheckIntervalMinutes < 0
             ? defaults.AutoCheckIntervalMinutes
@@ -327,6 +330,14 @@ public sealed class AppConfigStore : IAppConfigStore
             return fallback.Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         return normalized;
+    }
+
+    private static string NormalizeUpdateChannel(string? channel, string fallback)
+    {
+        var normalized = string.IsNullOrWhiteSpace(channel) ? fallback : channel.Trim().ToLowerInvariant();
+        return SupportedUpdateChannels.Contains(normalized, StringComparer.Ordinal)
+            ? normalized
+            : fallback;
     }
 
     private static void WriteAllTextAtomic(string path, string content)

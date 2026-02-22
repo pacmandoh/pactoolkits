@@ -32,6 +32,7 @@ _ReSharper*/
 # UI local packaging artifacts
 pactoolkits-ui/Publish/
 pactoolkits-ui/Releases/
+pactoolkits-ui/Sql/
 
 # ------------------------------
 # Agent local packaging artifacts

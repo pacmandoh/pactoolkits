@@ -33,6 +33,7 @@ public sealed class DbSchemaVersionService : IDbSchemaVersionService
                 Database = opt.Database,
                 Username = opt.Username,
                 Password = opt.Password,
+                SearchPath = "public",
                 Timeout = opt.ConnectTimeoutSeconds,
                 KeepAlive = opt.KeepAliveSeconds
             };
@@ -41,7 +42,7 @@ public sealed class DbSchemaVersionService : IDbSchemaVersionService
             await conn.OpenAsync(ct).ConfigureAwait(false);
 
             await using var cmd = conn.CreateCommand();
-            cmd.CommandText = "select schema_version from schema_version where singleton = true";
+            cmd.CommandText = "select schema_version from public.schema_version where singleton = true";
             var result = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
             var version = result?.ToString()?.Trim();
 

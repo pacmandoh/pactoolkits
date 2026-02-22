@@ -15,6 +15,7 @@ public interface IUpdateSettingsService
 
 public sealed class UpdateSettingsService : IUpdateSettingsService
 {
+    private static readonly string[] SupportedChannels = ["stable", "beta"];
     private readonly IAppConfigStore _configStore;
     private UpdateOptions _current = new();
 
@@ -60,7 +61,7 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
         return new UpdateOptions
         {
             AutoCheckOnStartup = options.AutoCheckOnStartup,
-            Channel = string.IsNullOrWhiteSpace(options.Channel) ? defaults.Channel : options.Channel.Trim(),
+            Channel = NormalizeChannel(options.Channel, defaults.Channel),
             FeedUrl = string.IsNullOrWhiteSpace(options.FeedUrl) ? defaults.FeedUrl : options.FeedUrl.Trim(),
             AutoCheckIntervalMinutes = options.AutoCheckIntervalMinutes < 0
                 ? defaults.AutoCheckIntervalMinutes
@@ -77,4 +78,12 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
         AutoCheckIntervalMinutes = source.AutoCheckIntervalMinutes,
         IgnoredVersion = source.IgnoredVersion
     };
+
+    private static string NormalizeChannel(string? channel, string fallback)
+    {
+        var normalized = string.IsNullOrWhiteSpace(channel) ? fallback : channel.Trim().ToLowerInvariant();
+        return Array.Exists(SupportedChannels, x => string.Equals(x, normalized, StringComparison.Ordinal))
+            ? normalized
+            : fallback;
+    }
 }

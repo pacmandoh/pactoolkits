@@ -85,6 +85,7 @@ public class App : Application
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
         services.AddSingleton<IUpdateUiFlowService, UpdateUiFlowService>();
         services.AddSingleton<IDbSchemaVersionService, DbSchemaVersionService>();
+        services.AddSingleton<IDbSchemaMigrationService, DbSchemaMigrationService>();
         services.AddSingleton<ITraceEntryLogService, TraceEntryLogService>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<ISensitiveOperationUnlockService, SensitiveOperationUnlockService>();

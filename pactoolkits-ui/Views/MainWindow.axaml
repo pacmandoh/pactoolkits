@@ -67,15 +67,19 @@
             Classes="WindowControlsButton"
             Command="{Binding TryReconnectDbCommand}">
             <Panel>
+                <icons:MaterialIcon
+                    IsVisible="{Binding ShowDbBusyIcon}"
+                    Kind="Loading"
+                    Foreground="{DynamicResource BrushInfo}" />
                 
                 <icons:MaterialIcon
-                    IsVisible="{Binding IsDbConnected}"
+                    IsVisible="{Binding ShowDbConnectedIcon}"
                     Kind="Link"
                     Foreground="{DynamicResource BrushDone}" />
 
                 
                 <icons:MaterialIcon
-                    IsVisible="{Binding !IsDbConnected}"
+                    IsVisible="{Binding ShowDbDisconnectedIcon}"
                     Kind="LinkOff"
                     Foreground="{DynamicResource BrushDanger}" />
             </Panel>
@@ -160,7 +164,8 @@
         x:Name="MainSideMenu"
         ItemsSource="{Binding SidebarPages}"
         SelectedItem="{Binding ActivePage}"
-        IsMenuExpanded="True">
+        IsMenuExpanded="True"
+        IsEnabled="{Binding !IsDbProbeRunning}">
         <suki:SukiSideMenu.HeaderContent>
             <Grid Margin="8,4,8,10" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
                 <suki:GlassCard Classes="SectionCard" Grid.Row="0" Padding="10,10" Opacity="0.95">
