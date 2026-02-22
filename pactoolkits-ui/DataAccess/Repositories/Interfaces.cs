@@ -56,6 +56,21 @@ public interface IDrugIndexRepo
     Task<DrugIndexDto> UpsertAsync(DrugIndexDto dto, long? expectedVersion, CancellationToken ct);
 
     Task DeleteAsync(string drugId, string spec, CancellationToken ct);
+
+    Task<DrugKeyFixPreviewDto> PreviewKeyFixAsync(
+        string sourceDrugId,
+        string sourceSpec,
+        string targetDrugId,
+        string targetSpec,
+        CancellationToken ct);
+
+    Task<DrugKeyFixApplyResultDto> ApplyKeyFixAsync(
+        DrugIndexDto source,
+        DrugIndexDto target,
+        string reason,
+        string operatorName,
+        string sourceTag,
+        CancellationToken ct);
 }
 
 public interface IInventoryOverviewRepo
@@ -114,6 +129,7 @@ public interface IInventoryOverviewRepo
         string keyword,
         string targetDrugId,
         string targetSpec,
+        int targetQty,
         int sampleLimit,
         CancellationToken ct);
 

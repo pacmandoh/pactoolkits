@@ -228,7 +228,54 @@
                           RowSpacing="12"
                           KeyboardNavigation.TabNavigation="Cycle">
 
-                        <TextBlock Grid.Row="0" Text="编辑" Classes="SectionTitle" />
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                            <TextBlock Grid.Column="0" Text="编辑" Classes="SectionTitle" />
+
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="6"
+                                        VerticalAlignment="Center"
+                                        IsVisible="{Binding HasEditor}">
+                                <icons:MaterialIcon Kind="ShieldLock" Width="14" Height="14" />
+                                <TextBlock Text="{Binding EditorUnlockStatusText}" Opacity="0.78" />
+                            </StackPanel>
+
+                            <Button Grid.Column="2"
+                                    Classes="Action"
+                                    Height="34"
+                                    MinWidth="{StaticResource MinWAction}"
+                                    IsVisible="{Binding CanRequestEditorUnlock}"
+                                    Command="{Binding RequestEditorUnlockCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="ShieldLock" Width="16" Height="16" />
+                                    <TextBlock Text="解锁" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Grid.Column="2"
+                                    Classes="Action"
+                                    Height="34"
+                                    MinWidth="{StaticResource MinWAction}"
+                                    IsVisible="{Binding CanLockEditor}"
+                                    Command="{Binding LockEditorCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="ShieldOffOutline" Width="16" Height="16" />
+                                    <TextBlock Text="锁定" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Grid.Column="3"
+                                    Classes="Action"
+                                    Height="34"
+                                    MinWidth="{StaticResource MinWAction}"
+                                    IsVisible="{Binding HasEditor}"
+                                    Command="{Binding FixDrugKeyCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="SwapHorizontal" Width="16" Height="16" />
+                                    <TextBlock Text="纠错迁移" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
 
                         
                         <suki:GlassCard Grid.Row="1" Padding="14" IsVisible="{Binding !HasEditor}" Opacity="0.9">
@@ -239,7 +286,7 @@
                         </suki:GlassCard>
 
                         
-                        <suki:GlassCard Grid.Row="1" Padding="12" IsVisible="{Binding HasEditor}">
+                        <suki:GlassCard Grid.Row="1" Padding="12" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}">
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
 
                                 <ToggleButton Grid.Column="0"
@@ -278,7 +325,7 @@
                         </StackPanel>
 
                         
-                        <ScrollViewer Grid.Row="3" IsVisible="{Binding HasEditor}" VerticalScrollBarVisibility="Auto"
+                        <ScrollViewer Grid.Row="3" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}" VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
                             <StackPanel Spacing="10" Margin="0,0,0,6">
 
@@ -338,7 +385,7 @@
                         </ScrollViewer>
 
                         
-                        <Grid Grid.Row="4" IsVisible="{Binding HasEditor}" ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Grid Grid.Row="4" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}" ColumnDefinitions="*,*" ColumnSpacing="12">
                             <Button Grid.Column="0"
                                     Classes="Action"
                                     Height="38"

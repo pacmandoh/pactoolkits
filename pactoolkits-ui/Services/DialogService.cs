@@ -17,6 +17,14 @@ public interface IDialogService
     Task Ok(string title, string message);
     Task<bool> Confirm(string title, string message);
     Task<int> Confirm3(string title, string message, string primaryText, string secondaryText, string cancelText);
+    Task<bool> ConfirmDrugKeyFixPreview(
+        string sourceDrugId,
+        string sourceSpec,
+        string targetDrugId,
+        string targetSpec,
+        bool targetExists,
+        int tracePoolAffected,
+        int traceTxnAffected);
     Task<string?> PromptInventoryUnlockPassword(string title, string hintMessage);
 }
 
@@ -123,6 +131,44 @@ public sealed class DialogService : IDialogService
                 .WithActionButton(cancelText, _ => tcs.TrySetResult(0), dismissOnClick: true, classes: cancelClasses)
                 .WithActionButton(secondaryText, _ => tcs.TrySetResult(2), dismissOnClick: true, classes: secondaryClasses)
                 .WithActionButton(primaryText, _ => tcs.TrySetResult(1), dismissOnClick: true, classes: primaryClasses)
+                .Dismiss().ByClickingBackground()
+                .TryShow();
+        });
+
+        return tcs.Task;
+    }
+
+    public Task<bool> ConfirmDrugKeyFixPreview(
+        string sourceDrugId,
+        string sourceSpec,
+        string targetDrugId,
+        string targetSpec,
+        bool targetExists,
+        int tracePoolAffected,
+        int traceTxnAffected)
+    {
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            var content = new DrugKeyFixPreviewDialogView
+            {
+                DataContext = new DrugKeyFixPreviewDialogModel(
+                    SourceKeyDisplay: $"{sourceDrugId}/{sourceSpec}",
+                    TargetKeyDisplay: $"{targetDrugId}/{targetSpec}",
+                    TracePoolAffectedDisplay: $"{tracePoolAffected} 条",
+                    TraceTxnAffectedDisplay: $"{traceTxnAffected} 条",
+                    TargetExistsDisplay: targetExists
+                        ? "目标药品键已存在，迁移时将并入既有记录。"
+                        : "目标药品键不存在，迁移时将创建新记录。")
+            };
+
+            _dialogManager.CreateDialog()
+                .OfType(NotificationType.Warning)
+                .WithTitle("纠错迁移预览详情")
+                .WithContent(content)
+                .WithActionButton("取消", _ => tcs.TrySetResult(false), dismissOnClick: true, classes: new[] { "Ghost" })
+                .WithActionButton("继续迁移", _ => tcs.TrySetResult(true), dismissOnClick: true, classes: new[] { "Flat", "Accent" })
                 .Dismiss().ByClickingBackground()
                 .TryShow();
         });

@@ -87,6 +87,7 @@ public class App : Application
         services.AddSingleton<IDbSchemaVersionService, DbSchemaVersionService>();
         services.AddSingleton<ITraceEntryLogService, TraceEntryLogService>();
         services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<ISensitiveOperationUnlockService, SensitiveOperationUnlockService>();
         services.AddSingleton<IDbConnectionMonitorService, DbConnectionMonitorService>();
         services.AddSingleton<IChangeWatermarkService, ChangeWatermarkService>();
         services.AddSingleton<IDbConnectionTester, DbConnectionTester>();

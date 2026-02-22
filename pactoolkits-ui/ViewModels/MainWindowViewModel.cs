@@ -809,10 +809,17 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         try
         {
-            // External config change is applied through the same save/apply pipeline.
+            // Do not hot-apply external DB target changes during runtime.
+            // Runtime datasource switches can cause cross-DB read/write inconsistency.
             _isApplyingConfig = true;
             _lastSeenConfigJson = json;
-            await _dbConfig.SaveAndApplyAsync(loaded.Postgres).ConfigureAwait(false);
+            _logger.Warn("MainWindowVM", "config.external_db_change_ignored",
+                "Detected external DB config change, ignored until manual apply in Settings", null, new
+                {
+                    loaded.Postgres.Host,
+                    loaded.Postgres.Port,
+                    loaded.Postgres.Database
+                });
         }
         catch (System.Exception ex)
         {
@@ -1054,11 +1061,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private bool ShouldRefreshActiveImmediatelyForTopic(string? topic)
     {
         var key = (topic ?? string.Empty).Trim().ToLowerInvariant();
-        if (key != "drug_index")
-            return true;
-
         if (ActivePage is DrugIndexViewModel)
-            return false;
+        {
+            // Drug-key migration may emit trace_pool/trace_txn topics due FK cascade.
+            // Keep DrugIndex page stable (no full-page flash); defer refresh until navigation/reopen.
+            if (key is "drug_index" or "inventory" or "trace_pool" or "trace_txn" or "trace_txn_item")
+                return false;
+        }
 
         return true;
     }
