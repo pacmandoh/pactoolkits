@@ -78,8 +78,8 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
                 .WithTitle(title)
                 .WithContent(content)
                 .WithActionButton("稍后", _ => { }, true, SukiButtonStyles.Basic)
-                .WithActionButton("忽略此版本", _toast => { _ = ignoreVersionAction(); }, true, SukiButtonStyles.Flat)
-                .WithActionButton("立即更新", _toast => { _ = applyNowAction(); }, true, SukiButtonStyles.Accent)
+                .WithActionButton("忽略此版本", _toast => FireAndForget(ignoreVersionAction, "update.toast.ignore"), true, SukiButtonStyles.Flat)
+                .WithActionButton("立即更新", _toast => FireAndForget(applyNowAction, "update.toast.apply"), true, SukiButtonStyles.Accent)
                 .Queue();
         });
     }
@@ -111,7 +111,8 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
 
             if (!result.Success)
             {
-                _toasts.Warn("应用更新", result.Message);
+                if (!startupMode)
+                    _toasts.Warn("应用更新", result.Message);
                 return result;
             }
 
@@ -242,4 +243,19 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
 
     private static void PostOnUi(Action action)
         => UiThreadHelper.PostOnUi(action);
+
+    private void FireAndForget(Func<Task> action, string eventName)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await action().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("UpdateUiFlow", eventName, "Background action from update toast failed", ex);
+            }
+        });
+    }
 }

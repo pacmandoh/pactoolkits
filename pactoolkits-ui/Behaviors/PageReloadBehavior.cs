@@ -10,6 +10,7 @@ namespace pactoolkits_ui.Behaviors;
 public sealed class PageReloadBehavior : IDisposable
 {
     private CancellationTokenSource? _cts;
+    private bool _disposed;
 
     private static readonly TimeSpan BusyDelay = TimeSpan.FromMilliseconds(300);
 
@@ -18,9 +19,10 @@ public sealed class PageReloadBehavior : IDisposable
         Func<CancellationToken, Task> action,
         Action? onFinished = null)
     {
-        _cts?.Cancel();
-        _cts?.Dispose();
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(PageReloadBehavior));
 
+        CancelAndDisposeCts();
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
 
@@ -65,7 +67,30 @@ public sealed class PageReloadBehavior : IDisposable
 
     public void Dispose()
     {
-        _cts?.Cancel();
-        _cts?.Dispose();
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        CancelAndDisposeCts();
+    }
+
+    private void CancelAndDisposeCts()
+    {
+        var cts = Interlocked.Exchange(ref _cts, null);
+        if (cts is null)
+            return;
+
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore races: CTS may already be disposed by concurrent path.
+        }
+        finally
+        {
+            cts.Dispose();
+        }
     }
 }
