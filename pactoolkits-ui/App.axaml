@@ -208,7 +208,6 @@
 
         <Style Selector="Border.AutoCompleteInputHost:pointerover">
             <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor}" />
-            <Setter Property="Opacity" Value="0.96" />
         </Style>
         
 

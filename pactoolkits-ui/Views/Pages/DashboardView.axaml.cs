@@ -37,6 +37,13 @@ public partial class DashboardView : UserControl
         "TxnTrendGrid",
         "AbnormalGrid"
     };
+    private static readonly string[] TargetTabGridNames =
+    {
+        "EntryRecentGridInputTab",
+        "TxnDetailGrid",
+        "TxnTrendGrid",
+        "AbnormalGrid"
+    };
 
     private bool _syncingSelection;
     private readonly IClipboardService _clipboard;
@@ -262,15 +269,12 @@ public partial class DashboardView : UserControl
         }
     }
 
-    private static bool IsTargetTabGrid(string name)
-        => name is "EntryRecentGridInputTab" or "TxnDetailGrid" or "TxnTrendGrid" or "AbnormalGrid";
-
     private void ClearAllTargetTabGridSelections()
     {
         _syncingSelection = true;
         try
         {
-            foreach (var name in new[] { "EntryRecentGridInputTab", "TxnDetailGrid", "TxnTrendGrid", "AbnormalGrid" })
+            foreach (var name in TargetTabGridNames)
             {
                 if (this.FindControl<DataGrid>(name) is { } grid)
                 {
