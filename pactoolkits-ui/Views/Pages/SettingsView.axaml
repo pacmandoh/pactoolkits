@@ -79,7 +79,8 @@
                               ColumnSpacing="16">
 
                             
-                            <Grid ColumnDefinitions="120,280"
+                            <Grid x:Name="DbParamsGrid"
+                                  ColumnDefinitions="120,280"
                                   RowDefinitions="Auto,Auto,Auto,Auto,Auto"
                                   ColumnSpacing="12"
                                   RowSpacing="10">
@@ -133,27 +134,97 @@
                             <suki:GlassCard Grid.Column="1"
                                             Classes="SectionCard"
                                             HorizontalAlignment="Stretch"
-                                            VerticalAlignment="Stretch">
+                                            VerticalAlignment="Top"
+                                            Height="{Binding #DbParamsGrid.Bounds.Height}">
                                 <Grid RowDefinitions="Auto,*"
                                       RowSpacing="10">
-                                    <Grid ColumnDefinitions="*,Auto"
+                                    <Grid ColumnDefinitions="Auto,*,Auto"
+                                          ColumnSpacing="8"
                                           VerticalAlignment="Center">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <icons:MaterialIcon Kind="TuneVariant" Width="16" Height="16" />
-                                            <TextBlock Text="扩展 / 预留"
+                                            <icons:MaterialIcon Kind="DatabaseSyncOutline" Width="16" Height="16" />
+                                            <TextBlock Text="数据库结构更新"
                                                        Classes="SectionTitle" />
                                         </StackPanel>
+                                        <controls:UpdateStatusBadge Grid.Column="1"
+                                                                    HorizontalAlignment="Left"
+                                                                    VerticalAlignment="Center"
+                                                                    Status="{Binding DbSchemaBadgeStatus}"
+                                                                    Label="{Binding DbSchemaBadgeLabel}"
+                                                                    LatestVersion="{Binding DbSchemaRequiredMinVersion}" />
+                                        <Button Grid.Column="2"
+                                                Classes="Ghost"
+                                                Command="{Binding CheckDbSchemaStatusCommand}"
+                                                theme:ButtonExtensions.ShowProgress="{Binding IsDbSchemaChecking}"
+                                                IsEnabled="{Binding !IsDbSchemaChecking}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <icons:MaterialIcon Kind="Refresh" Width="14" Height="14" />
+                                                <TextBlock Text="检查更新" />
+                                            </StackPanel>
+                                        </Button>
                                     </Grid>
 
                                     <Grid Grid.Row="1"
-                                          MinHeight="160"
-                                          RowDefinitions="Auto,*">
-                                        <TextBlock Text="（此区域暂留模版）"
-                                                   Classes="SectionHint"
-                                                   Margin="0,0,0,8" />
+                                          ColumnDefinitions="250,*"
+                                          ColumnSpacing="10">
+                                        <suki:GroupBox Header="结构信息"
+                                                       VerticalAlignment="Stretch">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                          HorizontalScrollBarVisibility="Disabled">
+                                                <Grid RowDefinitions="Auto,Auto,Auto"
+                                                      RowSpacing="8">
+                                                    <Grid ColumnDefinitions="90,*" ColumnSpacing="8">
+                                                        <TextBlock Text="当前版本" VerticalAlignment="Center" Opacity="0.85" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding DbSchemaCurrentVersion}"
+                                                                   VerticalAlignment="Center" />
+                                                    </Grid>
 
-                                        
-                                        
+                                                    <Grid Grid.Row="1" ColumnDefinitions="90,*" ColumnSpacing="8">
+                                                        <TextBlock Text="最低要求" VerticalAlignment="Center" Opacity="0.85" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding DbSchemaRequiredMinVersion}"
+                                                                   VerticalAlignment="Center" />
+                                                    </Grid>
+
+                                                    <Grid Grid.Row="2" ColumnDefinitions="90,*" ColumnSpacing="8">
+                                                        <TextBlock Text="说明" VerticalAlignment="Center" Opacity="0.85" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding DbSchemaStatusText}"
+                                                                   VerticalAlignment="Center"
+                                                                   Classes="SectionHint" />
+                                                    </Grid>
+                                                </Grid>
+                                            </ScrollViewer>
+                                        </suki:GroupBox>
+
+                                        <suki:GroupBox Grid.Column="1"
+                                                       Header="运行信息"
+                                                       VerticalAlignment="Stretch">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                          HorizontalScrollBarVisibility="Disabled">
+                                                <Grid RowDefinitions="Auto,Auto,Auto"
+                                                      RowSpacing="8">
+                                                    <Grid ColumnDefinitions="88,*" ColumnSpacing="8">
+                                                        <TextBlock Text="最近检查" VerticalAlignment="Center" Opacity="0.85" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding DbSchemaLastCheckedAtText}" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                    <Grid Grid.Row="1" ColumnDefinitions="88,*" ColumnSpacing="8">
+                                                        <TextBlock Text="触发来源" VerticalAlignment="Center" Opacity="0.85" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding DbSchemaLastCheckSourceText}" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                    <Grid Grid.Row="2" ColumnDefinitions="88,*" ColumnSpacing="8">
+                                                        <TextBlock Text="最近迁移" VerticalAlignment="Center" Opacity="0.85" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding DbSchemaLastMigrationText}"
+                                                                   VerticalAlignment="Center"
+                                                                   TextWrapping="NoWrap"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   ToolTip.Tip="{Binding DbSchemaLastMigrationText}" />
+                                                    </Grid>
+                                                </Grid>
+                                            </ScrollViewer>
+                                        </suki:GroupBox>
                                     </Grid>
                                 </Grid>
                             </suki:GlassCard>
@@ -164,7 +235,6 @@
                 </Grid>
             </suki:GlassCard>
 
-            
             <Grid Grid.Row="2"
                   ColumnDefinitions="*,Auto"
                   VerticalAlignment="Center">

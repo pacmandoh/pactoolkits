@@ -43,6 +43,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IDialogService _dialog;
     private readonly IDbSchemaVersionService _dbSchemaVersion;
+    private readonly IDbSchemaMigrationService _dbSchemaMigration;
     private readonly ILoggingSettingsService _loggingSettings;
     private readonly IAppLogger _logger;
     private readonly IClipboardService _clipboard;
@@ -87,9 +88,23 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _loggingDirectory = string.Empty;
     [ObservableProperty] private string _loggingStatusHint = "日志系统已启用";
     [ObservableProperty] private bool _isLoggingBusy;
+    [ObservableProperty] private string _dbSchemaCurrentVersion = "unknown";
+    [ObservableProperty] private string _dbSchemaRequiredMinVersion = "unknown";
+    [ObservableProperty] private string _dbSchemaStatusText = "未检查";
+    [ObservableProperty] private bool _isDbSchemaSatisfied;
+    [ObservableProperty] private bool _isDbSchemaChecking;
+    [ObservableProperty] private bool _isDbSchemaFailed;
+    [ObservableProperty] private string _dbSchemaErrorText = string.Empty;
+    [ObservableProperty] private bool? _dbSchemaBadgeStatus;
+    [ObservableProperty] private string _dbSchemaBadgeLabel = "未检查";
+    [ObservableProperty] private string _dbSchemaLastCheckedAtText = "--";
+    [ObservableProperty] private string _dbSchemaLastCheckSourceText = "--";
+    [ObservableProperty] private string _dbSchemaLastMigrationText = "尚无迁移记录";
+    [ObservableProperty] private string _dbSchemaPolicyText = "启动/保存连接时强制迁移，统一写入 public schema";
 
     [ObservableProperty] private bool _isClientAliasEditMode;
     [ObservableProperty] private bool _isClientAliasReadOnly = true;
+    public bool CanCopyDbSchemaDiagnostics => !string.IsNullOrWhiteSpace(BuildDbSchemaDiagnosticsText());
     public ObservableCollection<string> LoggingLevelOptions { get; } = new()
     {
         "Debug",
@@ -117,7 +132,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         "Fatal" => "仅记录致命故障，最小日志开销。",
         _ => "日志级别未识别，将使用 Error。"
     };
-
+    public string DbSchemaStatusBadgeText => DbSchemaStatusText;
     public SettingsViewModel(
         IDbConfigService svc,
         IDbConnectionTester tester,
@@ -131,6 +146,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IReleaseVersionService releaseVersion,
         IDialogService dialog,
         IDbSchemaVersionService dbSchemaVersion,
+        IDbSchemaMigrationService dbSchemaMigration,
         ILoggingSettingsService loggingSettings,
         IAppLogger logger,
         IClipboardService clipboard,
@@ -148,12 +164,12 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         _releaseVersion = releaseVersion;
         _dialog = dialog;
         _dbSchemaVersion = dbSchemaVersion;
+        _dbSchemaMigration = dbSchemaMigration;
         _loggingSettings = loggingSettings;
         _logger = logger;
         _clipboard = clipboard;
         _clientRepo = clientRepo;
         ClientAliases.CollectionChanged += OnClientAliasesChanged;
-
         var c = svc.Current;
         _host = c.Host;
         _port = c.Port;
@@ -173,6 +189,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         LoadUiBehavior();
         LoadUpdateOptions();
         LoadLoggingOptions();
+        _ = RefreshDbSchemaStatusAsync("startup", manualProbe: false);
         _uiBehavior.Changed += OnUiBehaviorChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
         _updates.Changed += OnUpdatesChanged;
@@ -338,6 +355,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             if (result.Ok)
             {
+                await EnsureDbSchemaUpToDateAsync().ConfigureAwait(false);
                 if (!await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false))
                 {
                     Status = "数据库版本不兼容";
@@ -384,6 +402,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         try
         {
             await _svc.SaveAndApplyAsync(ToOptions());
+            await EnsureDbSchemaUpToDateAsync().ConfigureAwait(false);
             if (!await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false))
             {
                 Status = "数据库版本不兼容";
@@ -409,6 +428,32 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task CheckDbSchemaStatusAsync()
+    {
+        if (ShouldSkipTrigger() || IsDbSchemaChecking)
+            return;
+
+        await RefreshDbSchemaStatusAsync("manual_check", manualProbe: true).ConfigureAwait(false);
+    }
+
+    [RelayCommand]
+    private async Task CopyDbSchemaDiagnosticsAsync()
+    {
+        if (ShouldSkipTrigger())
+            return;
+
+        var text = BuildDbSchemaDiagnosticsText();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            _toast.Warn("数据库结构更新", "当前无可复制的诊断信息");
+            return;
+        }
+
+        await _clipboard.SetTextAsync(text).ConfigureAwait(false);
+        _toast.Success("数据库结构更新", "已复制诊断信息");
     }
 
     private PgOptions ToOptions() => new()
@@ -893,29 +938,30 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private async Task<bool> EnsureDbSchemaCompatibleAsync()
     {
         var version = _releaseVersion.Current;
-        var uiMin = NormalizeSchemaBound(version.UiMinDbSchema, version.DbSchemaVersion);
-        var uiMax = NormalizeSchemaBound(version.UiMaxDbSchema, version.DbSchemaVersion);
-        var agentMin = NormalizeSchemaBound(version.AgentMinDbSchema, version.DbSchemaVersion);
-        var agentMax = NormalizeSchemaBound(version.AgentMaxDbSchema, version.DbSchemaVersion);
+        var uiMin = DbSchemaCompat.NormalizeBound(version.UiMinDbSchema, version.DbSchemaVersion);
+        var agentMin = DbSchemaCompat.NormalizeBound(version.AgentMinDbSchema, version.DbSchemaVersion);
+        var requiredMin = GetRequiredMinSchemaVersion();
 
         var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
         var db = schema.value ?? string.Empty;
-        var uiOk = schema.ok && IsSemVerInRange(db, uiMin, uiMax);
-        var agentOk = schema.ok && IsSemVerInRange(db, agentMin, agentMax);
+        var uiOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, uiMin);
+        var agentOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, agentMin);
+        await RefreshDbSchemaStatusAsync("compat_check", manualProbe: false, cachedSchema: schema).ConfigureAwait(false);
         if (uiOk && agentOk)
             return true;
 
-        var detail = schema.ok
-            ? $"数据库版本：{schema.value}\nUI 兼容范围：{uiMin} ~ {uiMax}\nAgent 兼容范围：{agentMin} ~ {agentMax}"
-            : $"读取失败：{schema.reason ?? "缺少 schema_version 表或版本记录"}\nUI 兼容范围：{uiMin} ~ {uiMax}\nAgent 兼容范围：{agentMin} ~ {agentMax}";
-        var message = $"检测到当前数据库版本与 PacToolkits 不兼容。\n{detail}\n\n请联系维护者将数据库更新到适配版本后再连接。";
+        var message = DbSchemaCompat.BuildIncompatibleMessage(
+            schema.ok,
+            schema.value,
+            schema.reason,
+            uiMin,
+            agentMin,
+            requiredMin);
 
         _logger.Warn("SettingsVM", "db.schema.incompatible", "Database schema incompatible when connecting", null, new
         {
             uiMin,
-            uiMax,
             agentMin,
-            agentMax,
             schemaOk = schema.ok,
             schemaValue = schema.value,
             schema.reason,
@@ -923,42 +969,161 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             agentOk
         });
 
-        await _dialog.Warn("数据库版本不兼容", message).ConfigureAwait(false);
+        await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), message).ConfigureAwait(false);
         return false;
     }
 
-    private static string NormalizeSchemaBound(string bound, string fallback)
-        => string.Equals(bound, "unknown", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(bound)
-            ? fallback
-            : bound;
-
-    private static bool IsSemVerInRange(string value, string min, string max)
+    private async Task EnsureDbSchemaUpToDateAsync()
     {
-        if (!TryParseSemVer(value, out var v) || !TryParseSemVer(min, out var minV) || !TryParseSemVer(max, out var maxV))
-            return false;
-        return CompareSemVer(v, minV) >= 0 && CompareSemVer(v, maxV) <= 0;
+        SetDbSchemaStatus("更新中", checking: true, failed: false, error: null);
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+            var migration = await _dbSchemaMigration.EnsureUpToDateAsync(cts.Token).ConfigureAwait(false);
+            DbSchemaLastMigrationText = $"before={migration.BeforeVersion ?? "unknown"} -> after={migration.AfterVersion ?? "unknown"}（applied={migration.AppliedCount}, skipped={migration.SkippedCount}）";
+            if (migration.HasChanges)
+            {
+                _toast.Success("数据库结构更新", $"已应用 {migration.AppliedCount} 个迁移，当前版本 {migration.AfterVersion ?? "unknown"}");
+            }
+            await RefreshDbSchemaStatusAsync("migrate_done", manualProbe: false).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            SetDbSchemaStatus("更新失败", checking: false, failed: true, error: ex.Message);
+            DbSchemaLastMigrationText = $"迁移失败：{ex.Message}";
+            OnPropertyChanged(nameof(CanCopyDbSchemaDiagnostics));
+            throw;
+        }
     }
 
-    private static bool TryParseSemVer(string value, out (int major, int minor, int patch) ver)
+    private async Task RefreshDbSchemaStatusAsync(
+        string source,
+        bool manualProbe,
+        (bool ok, string? value, string? reason)? cachedSchema = null)
     {
-        ver = (0, 0, 0);
-        if (string.IsNullOrWhiteSpace(value))
-            return false;
-        var parts = value.Split('.', StringSplitOptions.TrimEntries);
-        if (parts.Length != 3)
-            return false;
-        if (!int.TryParse(parts[0], out var major)) return false;
-        if (!int.TryParse(parts[1], out var minor)) return false;
-        if (!int.TryParse(parts[2], out var patch)) return false;
-        ver = (major, minor, patch);
-        return true;
+        if (IsDbSchemaChecking && manualProbe)
+            return;
+
+        if (manualProbe)
+            SetDbSchemaStatus("更新中", checking: true, failed: false, error: null);
+
+        try
+        {
+            var schema = cachedSchema ?? await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
+            DbSchemaLastCheckedAtText = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            DbSchemaLastCheckSourceText = MapDbSchemaCheckSource(source);
+            var requiredMin = GetRequiredMinSchemaVersion();
+            DbSchemaRequiredMinVersion = requiredMin;
+            DbSchemaCurrentVersion = schema.value ?? "unknown";
+
+            if (!schema.ok)
+            {
+                SetDbSchemaStatus("更新失败", checking: false, failed: true, error: schema.reason ?? "读取失败");
+                if (manualProbe)
+                    _toast.Error("数据库结构更新", $"探测失败：{schema.reason ?? "读取失败"}");
+                return;
+            }
+
+            var satisfied = DbSchemaCompat.IsSemVerAtLeast(schema.value ?? string.Empty, requiredMin);
+            IsDbSchemaSatisfied = satisfied;
+            SetDbSchemaStatus(satisfied ? "已满足" : "需要更新", checking: false, failed: false, error: satisfied ? null : $"当前版本 {schema.value} 低于最低要求 {requiredMin}");
+
+            if (manualProbe)
+            {
+                if (satisfied)
+                    _toast.Success("数据库结构更新", $"当前版本 {schema.value}，满足最低要求 {requiredMin}");
+                else
+                    _toast.Warn("数据库结构更新", $"当前版本 {schema.value}，低于最低要求 {requiredMin}");
+            }
+        }
+        finally
+        {
+            IsDbSchemaChecking = false;
+        }
     }
 
-    private static int CompareSemVer((int major, int minor, int patch) left, (int major, int minor, int patch) right)
+    private static string MapDbSchemaCheckSource(string source)
+        => source switch
+        {
+            "startup" => "应用启动",
+            "manual_check" => "手动检查",
+            "compat_check" => "兼容性校验",
+            "migrate_done" => "迁移完成后回读",
+            _ => source
+        };
+
+    private string GetRequiredMinSchemaVersion()
     {
-        if (left.major != right.major) return left.major.CompareTo(right.major);
-        if (left.minor != right.minor) return left.minor.CompareTo(right.minor);
-        return left.patch.CompareTo(right.patch);
+        var version = _releaseVersion.Current;
+        var uiMin = DbSchemaCompat.NormalizeBound(version.UiMinDbSchema, version.DbSchemaVersion);
+        var agentMin = DbSchemaCompat.NormalizeBound(version.AgentMinDbSchema, version.DbSchemaVersion);
+        return DbSchemaCompat.GetRequiredMin(uiMin, agentMin);
+    }
+
+    private void SetDbSchemaStatus(string status, bool checking, bool failed, string? error)
+    {
+        DbSchemaStatusText = status;
+        IsDbSchemaChecking = checking;
+        IsDbSchemaFailed = failed;
+        if (failed || status == "需要更新")
+            IsDbSchemaSatisfied = false;
+        DbSchemaErrorText = error ?? string.Empty;
+        MapDbSchemaBadge(status, checking, failed);
+        OnPropertyChanged(nameof(DbSchemaStatusBadgeText));
+        OnPropertyChanged(nameof(CanCopyDbSchemaDiagnostics));
+    }
+
+    private string BuildDbSchemaDiagnosticsText()
+    {
+        var lines = new List<string>
+        {
+            $"status={DbSchemaStatusText}",
+            $"current={DbSchemaCurrentVersion}",
+            $"required_min={DbSchemaRequiredMinVersion}",
+            $"last_checked_at={DbSchemaLastCheckedAtText}",
+            $"last_check_source={DbSchemaLastCheckSourceText}",
+            $"last_migration={DbSchemaLastMigrationText}",
+            $"policy={DbSchemaPolicyText}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(DbSchemaErrorText))
+            lines.Add($"error={DbSchemaErrorText}");
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private void MapDbSchemaBadge(string status, bool checking, bool failed)
+    {
+        if (checking || string.Equals(status, "更新中", StringComparison.Ordinal))
+        {
+            DbSchemaBadgeStatus = null;
+            DbSchemaBadgeLabel = "更新中";
+            return;
+        }
+
+        if (failed || string.Equals(status, "更新失败", StringComparison.Ordinal))
+        {
+            DbSchemaBadgeStatus = null;
+            DbSchemaBadgeLabel = "更新失败";
+            return;
+        }
+
+        if (string.Equals(status, "已满足", StringComparison.Ordinal))
+        {
+            DbSchemaBadgeStatus = false;
+            DbSchemaBadgeLabel = "已满足";
+            return;
+        }
+
+        if (string.Equals(status, "需要更新", StringComparison.Ordinal))
+        {
+            DbSchemaBadgeStatus = true;
+            DbSchemaBadgeLabel = "需要更新";
+            return;
+        }
+
+        DbSchemaBadgeStatus = null;
+        DbSchemaBadgeLabel = string.IsNullOrWhiteSpace(status) ? "未检查" : status;
     }
 
     private void TrackAliasRow(ClientAliasRow row)

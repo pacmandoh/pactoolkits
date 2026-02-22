@@ -56,6 +56,7 @@ public sealed class DbConfigService : IDbConfigService
                 Database = opt.Database,
                 Username = opt.Username,
                 Password = opt.Password,
+                SearchPath = "public",
                 Timeout = opt.ConnectTimeoutSeconds
             };
 

@@ -24,6 +24,12 @@
 
     <ItemGroup>
         <None Include="version.generated.json" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\pactoolkits-db\sql\bootstrap\*.sql"
+              Link="Sql\Bootstrap\%(Filename)%(Extension)"
+              CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\pactoolkits-db\sql\migrations\*.sql"
+              Link="Sql\Migrations\%(Filename)%(Extension)"
+              CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <ItemGroup>

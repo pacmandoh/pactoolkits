@@ -31,9 +31,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private readonly IDialogService _dialogs;
     private readonly IToastService _toasts;
+    private readonly IAppConfigStore _appConfigStore;
     private readonly IDbConfigService _dbConfig;
     private readonly IDbConnectionMonitorService _dbMonitor;
     private readonly IDbSchemaVersionService _dbSchemaVersion;
+    private readonly IDbSchemaMigrationService _dbSchemaMigration;
     private readonly IChangeWatermarkService _changeWatermark;
     private readonly IAhkRuntimeService _ahkRuntime;
     private readonly IReleaseVersionService _releaseVersion;
@@ -53,6 +55,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private static readonly TimeSpan AhkTopToastDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan TopActionDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan StartupDbMigrationTimeout = TimeSpan.FromSeconds(120);
     private string? _lastDbFailReason;
     private string? _lastSeenConfigJson;
     private bool _dbEverDisconnected;
@@ -121,6 +124,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         => IsDbConnected ? "数据库：已连接" : "数据库：已断开";
     public string DbStatusText
         => IsDbConnected ? "已连接" : "已断开";
+    public bool ShowDbBusyIcon => IsDbProbeRunning;
+    public bool ShowDbConnectedIcon => IsDbConnected && !IsDbProbeRunning;
+    public bool ShowDbDisconnectedIcon => !IsDbConnected && !IsDbProbeRunning;
 
     public bool IsAhkRunning => _ahkRuntime.IsRunning;
 
@@ -141,6 +147,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsDbConnected));
         OnPropertyChanged(nameof(DbStatusTip));
         OnPropertyChanged(nameof(DbStatusText));
+        OnPropertyChanged(nameof(ShowDbConnectedIcon));
+        OnPropertyChanged(nameof(ShowDbDisconnectedIcon));
+    }
+
+    partial void OnIsDbProbeRunningChanged(bool value)
+    {
+        TryReconnectDbCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(ShowDbBusyIcon));
+        OnPropertyChanged(nameof(ShowDbConnectedIcon));
+        OnPropertyChanged(nameof(ShowDbDisconnectedIcon));
     }
 
     private void RaiseAhkStateChanged()
@@ -209,11 +225,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         PageNavigationService nav,
         IToastService toasts,
         IDialogService dialogs,
+        IAppConfigStore appConfigStore,
         IDbConfigService dbConfig,
         ISukiToastManager toastManager,
         ISukiDialogManager dialogManager,
         IDbConnectionMonitorService dbMonitor,
         IDbSchemaVersionService dbSchemaVersion,
+        IDbSchemaMigrationService dbSchemaMigration,
         IChangeWatermarkService changeWatermark,
         IAhkRuntimeService ahkRuntime,
         IReleaseVersionService releaseVersion,
@@ -224,9 +242,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         _toasts = toasts;
         _dialogs = dialogs;
+        _appConfigStore = appConfigStore ?? throw new ArgumentNullException(nameof(appConfigStore));
         _dbConfig = dbConfig ?? throw new ArgumentNullException(nameof(dbConfig));
         _dbMonitor = dbMonitor ?? throw new ArgumentNullException(nameof(dbMonitor));
         _dbSchemaVersion = dbSchemaVersion ?? throw new ArgumentNullException(nameof(dbSchemaVersion));
+        _dbSchemaMigration = dbSchemaMigration ?? throw new ArgumentNullException(nameof(dbSchemaMigration));
         _changeWatermark = changeWatermark ?? throw new ArgumentNullException(nameof(changeWatermark));
         _ahkRuntime = ahkRuntime ?? throw new ArgumentNullException(nameof(ahkRuntime));
         _releaseVersion = releaseVersion ?? throw new ArgumentNullException(nameof(releaseVersion));
@@ -277,15 +297,23 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         _ = CheckConfigOnStartupAsync();
         StartConfigWatcher();
-        _ = CheckDatabaseOnStartupAsync();
-        _dbMonitor.Start();
-        _changeWatermark.Start();
         RaiseAhkStateChanged();
-
-        StartDbStateBootstrap();
-        _ = CheckUpdatesOnStartupAsync();
-        RestartUpdatePolling();
+        _ = InitializeAfterStartupChecksAsync();
         _logger.Info("MainWindowVM", "main.init", "Main window initialized");
+    }
+
+    private async Task InitializeAfterStartupChecksAsync()
+    {
+        var dbReady = await CheckDatabaseOnStartupAsync().ConfigureAwait(false);
+        if (dbReady)
+        {
+            _dbMonitor.Start();
+            _changeWatermark.Start();
+            StartDbStateBootstrap();
+        }
+
+        await CheckUpdatesOnStartupAsync().ConfigureAwait(false);
+        RestartUpdatePolling();
     }
 
     private void SyncThemeState()
@@ -548,49 +576,136 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             await RunOnUiAsync(OpenSettings);
     }
 
-    private async Task CheckDatabaseOnStartupAsync()
+    private async Task<bool> CheckDatabaseOnStartupAsync()
     {
-        if (!File.Exists(_configPath)) return;
+        if (!File.Exists(_configPath))
+            return false;
 
         _logger.Info("MainWindowVM", "db.startup_check.start", "Checking database connectivity on startup");
         var ok = await _dbConfig.TestConnectionAsync(_dbConfig.Current, CancellationToken.None).ConfigureAwait(false);
-
-        if (ok)
+        if (!ok)
         {
-            await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false);
-            return;
+            var openSettings = await _dialogs.Confirm(
+                    "数据库未连接",
+                    "检测到已存在配置文件，但无法连接数据库请前往 [设置] 重新配置并测试连接")
+                .ConfigureAwait(false);
+
+            if (openSettings)
+                await RunOnUiAsync(OpenSettings);
+            return false;
         }
 
-        var openSettings = await _dialogs.Confirm(
-                "数据库未连接",
-                "检测到已存在配置文件，但无法连接数据库请前往 [设置] 重新配置并测试连接")
-            .ConfigureAwait(false);
+        try
+        {
+            await RunOnUiAsync(() => IsDbProbeRunning = true);
+            var currentAppVersion = NormalizeVersionForStamp(_releaseVersion.Current.SuiteVersion);
+            var shouldMigrate = ShouldRunDbMigrationOnStartup(currentAppVersion);
+            var ranMigration = false;
 
-        if (openSettings)
-            await RunOnUiAsync(OpenSettings);
+            if (shouldMigrate)
+            {
+                using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
+                var migration = await _dbSchemaMigration
+                    .EnsureUpToDateAsync(cts.Token)
+                    .ConfigureAwait(false);
+                ranMigration = true;
+                if (migration.HasChanges)
+                {
+                    _toasts.Success("数据库结构更新", $"已应用 {migration.AppliedCount} 个迁移，当前版本 {migration.AfterVersion ?? "unknown"}");
+                }
+            }
+            else
+            {
+                _logger.Info("MainWindowVM", "db.startup_check.migrate.skipped", "Skip migration on startup for unchanged app version", new
+                {
+                    appVersion = currentAppVersion
+                });
+            }
+
+            var compatible = await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false);
+            if (!compatible && !ranMigration)
+            {
+                _logger.Warn("MainWindowVM", "db.startup_check.migrate.retry_on_incompatible",
+                    "Schema incompatible after skip, retry migration once");
+                using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
+                await _dbSchemaMigration.EnsureUpToDateAsync(cts.Token).ConfigureAwait(false);
+                ranMigration = true;
+                compatible = await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false);
+            }
+
+            if (compatible && ranMigration)
+                await SaveDbMigrationStampAsync(currentAppVersion).ConfigureAwait(false);
+
+            return compatible;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("MainWindowVM", "db.startup_check.fail", "Database startup migration/check failed", ex);
+            var openSettings = await _dialogs.Confirm(
+                    "数据库初始化失败",
+                    $"数据库初始化或结构升级失败：{ex.Message}\n请前往 [设置] 检查连接与权限后重试。")
+                .ConfigureAwait(false);
+
+            if (openSettings)
+                await RunOnUiAsync(OpenSettings);
+            return false;
+        }
+        finally
+        {
+            await RunOnUiAsync(() => IsDbProbeRunning = false);
+        }
     }
+
+    private bool ShouldRunDbMigrationOnStartup(string currentAppVersion)
+    {
+        if (string.IsNullOrWhiteSpace(currentAppVersion) ||
+            string.Equals(currentAppVersion, "unknown", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var cfg = _appConfigStore.Load();
+        var last = NormalizeVersionForStamp(cfg.LastDbMigrationAppVersion);
+        return !string.Equals(last, currentAppVersion, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task SaveDbMigrationStampAsync(string currentAppVersion)
+    {
+        if (string.IsNullOrWhiteSpace(currentAppVersion) ||
+            string.Equals(currentAppVersion, "unknown", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var cfg = _appConfigStore.Load();
+        var currentStamp = NormalizeVersionForStamp(cfg.LastDbMigrationAppVersion);
+        if (string.Equals(currentStamp, currentAppVersion, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        cfg.LastDbMigrationAppVersion = currentAppVersion;
+        await _appConfigStore.SaveAsync(cfg, CancellationToken.None).ConfigureAwait(false);
+        _logger.Info("MainWindowVM", "db.startup_check.migrate.stamp.saved", "Saved DB migration app-version stamp", new
+        {
+            appVersion = currentAppVersion
+        });
+    }
+
+    private static string NormalizeVersionForStamp(string? value)
+        => (value ?? string.Empty).Trim();
 
     private async Task<bool> EnsureDbSchemaCompatibleAsync()
     {
         var version = _releaseVersion.Current;
-        var uiMin = NormalizeSchemaBound(version.UiMinDbSchema, version.DbSchemaVersion);
-        var uiMax = NormalizeSchemaBound(version.UiMaxDbSchema, version.DbSchemaVersion);
-        var agentMin = NormalizeSchemaBound(version.AgentMinDbSchema, version.DbSchemaVersion);
-        var agentMax = NormalizeSchemaBound(version.AgentMaxDbSchema, version.DbSchemaVersion);
+        var uiMin = DbSchemaCompat.NormalizeBound(version.UiMinDbSchema, version.DbSchemaVersion);
+        var agentMin = DbSchemaCompat.NormalizeBound(version.AgentMinDbSchema, version.DbSchemaVersion);
 
         var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
         var db = schema.value ?? string.Empty;
-        var uiOk = schema.ok && IsSemVerInRange(db, uiMin, uiMax);
-        var agentOk = schema.ok && IsSemVerInRange(db, agentMin, agentMax);
+        var uiOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, uiMin);
+        var agentOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, agentMin);
         if (uiOk && agentOk)
         {
             _logger.Info("MainWindowVM", "db.schema.ok", "Database schema version compatible", new
             {
                 schema.value,
                 uiMin,
-                uiMax,
-                agentMin,
-                agentMax
+                agentMin
             });
             return true;
         }
@@ -598,9 +713,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _logger.Warn("MainWindowVM", "db.schema.incompatible", "Database schema incompatible", null, new
         {
             uiMin,
-            uiMax,
             agentMin,
-            agentMax,
             schemaOk = schema.ok,
             schemaValue = schema.value,
             schema.reason,
@@ -608,46 +721,14 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             agentOk
         });
 
-        var detail = schema.ok
-            ? $"数据库版本：{schema.value}\nUI 兼容范围：{uiMin} ~ {uiMax}\nAgent 兼容范围：{agentMin} ~ {agentMax}"
-            : $"读取失败：{schema.reason ?? "缺少 schema_version 表或版本记录"}\nUI 兼容范围：{uiMin} ~ {uiMax}\nAgent 兼容范围：{agentMin} ~ {agentMax}";
-        var message = $"检测到当前数据库版本与 PacToolkits 不兼容。\n{detail}\n\n请联系维护者将数据库更新到适配版本后再连接。";
-        await _dialogs.Warn("数据库版本不兼容", message).ConfigureAwait(false);
+        var message = DbSchemaCompat.BuildIncompatibleMessage(
+            schema.ok,
+            schema.value,
+            schema.reason,
+            uiMin,
+            agentMin);
+        await _dialogs.Warn(DbSchemaCompat.GetIncompatibleTitle(), message).ConfigureAwait(false);
         return false;
-    }
-
-    private static string NormalizeSchemaBound(string bound, string fallback)
-        => string.Equals(bound, "unknown", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(bound)
-            ? fallback
-            : bound;
-
-    private static bool IsSemVerInRange(string value, string min, string max)
-    {
-        if (!TryParseSemVer(value, out var v) || !TryParseSemVer(min, out var minV) || !TryParseSemVer(max, out var maxV))
-            return false;
-        return CompareSemVer(v, minV) >= 0 && CompareSemVer(v, maxV) <= 0;
-    }
-
-    private static bool TryParseSemVer(string value, out (int major, int minor, int patch) ver)
-    {
-        ver = (0, 0, 0);
-        if (string.IsNullOrWhiteSpace(value))
-            return false;
-        var parts = value.Split('.', StringSplitOptions.TrimEntries);
-        if (parts.Length != 3)
-            return false;
-        if (!int.TryParse(parts[0], out var major)) return false;
-        if (!int.TryParse(parts[1], out var minor)) return false;
-        if (!int.TryParse(parts[2], out var patch)) return false;
-        ver = (major, minor, patch);
-        return true;
-    }
-
-    private static int CompareSemVer((int major, int minor, int patch) left, (int major, int minor, int patch) right)
-    {
-        if (left.major != right.major) return left.major.CompareTo(right.major);
-        if (left.minor != right.minor) return left.minor.CompareTo(right.minor);
-        return left.patch.CompareTo(right.patch);
     }
 
     private async Task CheckUpdatesOnStartupAsync()

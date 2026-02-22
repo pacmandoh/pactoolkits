@@ -35,6 +35,7 @@ public sealed class PgDataSourceFactory : IPgDataSourceFactory, IDisposable
                 Database = opt.Database,
                 Username = opt.Username,
                 Password = opt.Password,
+                SearchPath = "public",
                 Pooling = true,
                 MaxPoolSize = opt.PoolSize,
                 Timeout = opt.ConnectTimeoutSeconds
