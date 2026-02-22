@@ -39,6 +39,10 @@ begin
   if to_regclass('public.inventory_reassign_audit') is null then
     raise exception 'missing table: inventory_reassign_audit';
   end if;
+
+  if to_regclass('public.drug_key_fix_audit') is null then
+    raise exception 'missing table: drug_key_fix_audit';
+  end if;
 end $$;
 
 select 'OK: structure' as verify;
