@@ -54,6 +54,9 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
     public bool IsConnected => _state == DbConnState.Connected;
     private bool _disconnectedNotified;
     private int _retryScheduled;
+    private string _lastProbeFailReason = string.Empty;
+    private DateTimeOffset _lastProbeFailAt = DateTimeOffset.MinValue;
+    private static readonly TimeSpan ProbeFailLogThrottle = TimeSpan.FromSeconds(30);
 
     public event Action? Disconnected;
     public event Action? Reconnected;
@@ -175,6 +178,8 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
                 await conn.OpenAsync(ct).ConfigureAwait(false);
 
                 Interlocked.Exchange(ref _retryScheduled, 0);
+                _lastProbeFailReason = string.Empty;
+                _lastProbeFailAt = DateTimeOffset.MinValue;
 
                 var prev = _state;
                 _state = DbConnState.Connected;
@@ -258,11 +263,19 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
             catch (Exception ex)
             {
                 var (reason, _) = DbConnectionDiagnostics.Classify(ex);
-                AppLog.Warn("DbConnectionMonitor", "monitor.probe.fail", "Database probe loop failed", ex, new
+                var now = DateTimeOffset.UtcNow;
+                var shouldLogWarn = !string.Equals(_lastProbeFailReason, reason, StringComparison.Ordinal)
+                                    || now - _lastProbeFailAt >= ProbeFailLogThrottle;
+                if (shouldLogWarn)
                 {
-                    req.Kind,
-                    reason
-                });
+                    AppLog.Warn("DbConnectionMonitor", "monitor.probe.fail", "Database probe loop failed", ex, new
+                    {
+                        req.Kind,
+                        reason
+                    });
+                    _lastProbeFailReason = reason;
+                    _lastProbeFailAt = now;
+                }
 
                 req.Tcs?.TrySetResult(new DbProbeReport(req.Kind, Success: false, Reason: reason));
 

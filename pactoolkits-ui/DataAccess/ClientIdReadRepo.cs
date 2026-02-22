@@ -22,19 +22,21 @@ public sealed class ClientIdReadRepo : IClientIdReadRepo
         await using var conn = new NpgsqlConnection(cs);
         await conn.OpenAsync(ct);
 
-        var candidates = new[]
+        var candidates = new (string table, string sql)[]
         {
-            "select distinct client_id from trace_txn where client_id is not null and client_id <> '' order by client_id limit 500",
-            "select distinct client_id from trace_entry_log where client_id is not null and client_id <> '' order by client_id limit 500",
-            "select distinct client_id from trace_entry where client_id is not null and client_id <> '' order by client_id limit 500",
+            ("trace_txn", "select distinct client_id from trace_txn where client_id is not null and client_id <> '' order by client_id limit 500"),
+            ("trace_entry_log", "select distinct client_id from trace_entry_log where client_id is not null and client_id <> '' order by client_id limit 500"),
         };
 
         var merged = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var sql in candidates)
+        foreach (var (table, sql) in candidates)
         {
             try
             {
+                if (!await TableExistsAsync(conn, table, ct).ConfigureAwait(false))
+                    continue;
+
                 await using var cmd = new NpgsqlCommand(sql, conn);
                 cmd.CommandTimeout = 6;
                 await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -54,5 +56,15 @@ public sealed class ClientIdReadRepo : IClientIdReadRepo
         }
 
         return merged;
+    }
+
+    private static async Task<bool> TableExistsAsync(NpgsqlConnection conn, string table, CancellationToken ct)
+    {
+        const string sql = "select to_regclass(@t) is not null";
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("t", $"public.{table}");
+        cmd.CommandTimeout = 6;
+        var result = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        return result is bool exists && exists;
     }
 }

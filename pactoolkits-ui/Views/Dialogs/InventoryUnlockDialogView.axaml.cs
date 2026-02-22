@@ -2,6 +2,8 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace pactoolkits_ui.Views.Dialogs;
 
@@ -22,6 +24,12 @@ public partial class InventoryUnlockDialogView : UserControl
     public InventoryUnlockDialogView()
     {
         InitializeComponent();
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        Dispatcher.UIThread.Post(() => PasswordBox.Focus(), DispatcherPriority.Input);
     }
 
     private void PasswordBox_OnKeyDown(object? sender, KeyEventArgs e)

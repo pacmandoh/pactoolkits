@@ -30,6 +30,10 @@ public interface IDialogService
 
 public sealed class DialogService : IDialogService
 {
+    private static readonly string[] GhostButtonClasses = { "Ghost" };
+    private static readonly string[] FlatButtonClasses = { "Flat" };
+    private static readonly string[] FlatAccentButtonClasses = { "Flat", "Accent" };
+
     private readonly ISukiDialogManager _dialogManager;
 
     public DialogService(ISukiDialogManager dialogManager)
@@ -66,7 +70,7 @@ public sealed class DialogService : IDialogService
         {
             var classes = (okButtonClasses is { Length: > 0 })
                 ? okButtonClasses
-                : new[] { "Flat", "Accent" };
+                : FlatAccentButtonClasses;
 
             _dialogManager.CreateDialog()
                 .OfType(type)
@@ -93,8 +97,8 @@ public sealed class DialogService : IDialogService
 
         Dispatcher.UIThread.Post(() =>
         {
-            okButtonClasses ??= new[] { "Flat", "Accent" };
-            cancelButtonClasses ??= new[] { "Ghost" };
+            okButtonClasses ??= FlatAccentButtonClasses;
+            cancelButtonClasses ??= GhostButtonClasses;
 
             _dialogManager.CreateDialog()
                 .OfType(type)
@@ -120,17 +124,13 @@ public sealed class DialogService : IDialogService
 
         Dispatcher.UIThread.Post(() =>
         {
-            var primaryClasses = new[] { "Flat" };
-            var secondaryClasses = new[] { "Flat", "Accent" };
-            var cancelClasses = new[] { "Ghost" };
-
             _dialogManager.CreateDialog()
                 .OfType(NotificationType.Warning)
                 .WithTitle(title)
                 .WithContent(message)
-                .WithActionButton(cancelText, _ => tcs.TrySetResult(0), dismissOnClick: true, classes: cancelClasses)
-                .WithActionButton(secondaryText, _ => tcs.TrySetResult(2), dismissOnClick: true, classes: secondaryClasses)
-                .WithActionButton(primaryText, _ => tcs.TrySetResult(1), dismissOnClick: true, classes: primaryClasses)
+                .WithActionButton(cancelText, _ => tcs.TrySetResult(0), dismissOnClick: true, classes: GhostButtonClasses)
+                .WithActionButton(secondaryText, _ => tcs.TrySetResult(2), dismissOnClick: true, classes: FlatAccentButtonClasses)
+                .WithActionButton(primaryText, _ => tcs.TrySetResult(1), dismissOnClick: true, classes: FlatButtonClasses)
                 .Dismiss().ByClickingBackground()
                 .TryShow();
         });
@@ -167,8 +167,8 @@ public sealed class DialogService : IDialogService
                 .OfType(NotificationType.Warning)
                 .WithTitle("纠错迁移预览详情")
                 .WithContent(content)
-                .WithActionButton("取消", _ => tcs.TrySetResult(false), dismissOnClick: true, classes: new[] { "Ghost" })
-                .WithActionButton("继续迁移", _ => tcs.TrySetResult(true), dismissOnClick: true, classes: new[] { "Flat", "Accent" })
+                .WithActionButton("取消", _ => tcs.TrySetResult(false), dismissOnClick: true, classes: GhostButtonClasses)
+                .WithActionButton("继续迁移", _ => tcs.TrySetResult(true), dismissOnClick: true, classes: FlatAccentButtonClasses)
                 .Dismiss().ByClickingBackground()
                 .TryShow();
         });
@@ -196,8 +196,8 @@ public sealed class DialogService : IDialogService
                 .OfType(NotificationType.Information)
                 .WithTitle(title)
                 .WithContent(content)
-                .WithActionButton("取消", _ => tcs.TrySetResult(null), dismissOnClick: true, classes: new[] { "Ghost" })
-                .WithActionButton("验证并解锁", _ => tcs.TrySetResult(content.Password), dismissOnClick: true, classes: new[] { "Flat", "Accent" })
+                .WithActionButton("取消", _ => tcs.TrySetResult(null), dismissOnClick: true, classes: GhostButtonClasses)
+                .WithActionButton("验证并解锁", _ => tcs.TrySetResult(content.Password), dismissOnClick: true, classes: FlatAccentButtonClasses)
                 .TryShow();
         });
 
