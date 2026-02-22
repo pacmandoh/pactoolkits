@@ -63,7 +63,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     [ObservableProperty] private bool _isAutoFetchRunning;
     [ObservableProperty] private int _contextStatusLevel;
     [ObservableProperty] private string _status = "请选择药品与规格";
-    [ObservableProperty] private string _autoFetchStatus = "TODO：自动从“码上放心”拉取追溯码（后续接入账号、任务与回填策略）";
+    [ObservableProperty] private string _autoFetchStatus = "自动拉取能力准备中：将支持账号、任务与回填策略配置";
 
     public ScanCodeViewModel(
         ILookupCatalogService lookup,
@@ -425,7 +425,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         }
 
         IsAutoFetchRunning = true;
-        AutoFetchStatus = "模拟任务已启动（TODO）：正在拉取并解析码上放心数据";
+        AutoFetchStatus = "模拟任务已启动：正在拉取并解析码上放心数据";
         _toast.Info("自动拉取", "已启动模拟任务");
 
         AddRecentRun(new AutoFetchRunItem(
@@ -441,7 +441,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         if (ShouldSkipTrigger())
             return;
 
-        AutoFetchStatus = "TODO：参数面板待实现（账号、时间窗、拉取频率、失败重试）";
+        AutoFetchStatus = "参数配置面板准备中：将支持账号、时间窗、拉取频率和失败重试";
         _toast.Info("自动拉取", "参数配置面板预留中");
     }
 
@@ -451,7 +451,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             IsAutoFetchRunning = false;
 
         AutoFetchStatus = value
-            ? "自动拉取已启用（TODO）：可开始任务调度"
+            ? "自动拉取已启用：可开始任务调度"
             : "自动拉取已关闭：当前不会执行自动任务";
 
         NotifyActionCommands();
@@ -470,7 +470,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         }
 
         IsAutoFetchRunning = false;
-        AutoFetchStatus = "任务已停止（TODO）：等待下次手动启动";
+        AutoFetchStatus = "任务已停止：等待下次手动启动";
         _toast.Info("自动拉取", "已停止模拟任务");
 
         AddRecentRun(new AutoFetchRunItem(

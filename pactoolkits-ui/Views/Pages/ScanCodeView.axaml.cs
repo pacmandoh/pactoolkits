@@ -4,13 +4,13 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia;
 using System.Collections.Generic;
-using System.Linq;
 using pactoolkits_ui.Common;
 
 namespace pactoolkits_ui.Views.Pages;
 
 public partial class ScanCodeView : UserControl
 {
+    private static readonly string[] BrowsingGridNames = { "AutoTaskGrid", "RecentRunGrid", "RetryQueueGrid" };
     private bool _syncingSelection;
 
     public ScanCodeView()
@@ -62,8 +62,11 @@ public partial class ScanCodeView : UserControl
         _syncingSelection = true;
         try
         {
-            foreach (var grid in GetBrowsingGrids().Where(g => !ReferenceEquals(g, activeGrid)))
-                grid.SelectedItem = null;
+            foreach (var grid in GetBrowsingGrids())
+            {
+                if (!ReferenceEquals(grid, activeGrid))
+                    grid.SelectedItem = null;
+            }
         }
         finally
         {
@@ -73,7 +76,7 @@ public partial class ScanCodeView : UserControl
 
     private IEnumerable<DataGrid> GetBrowsingGrids()
     {
-        foreach (var name in new[] { "AutoTaskGrid", "RecentRunGrid", "RetryQueueGrid" })
+        foreach (var name in BrowsingGridNames)
         {
             if (this.FindControl<DataGrid>(name) is { } grid)
                 yield return grid;
