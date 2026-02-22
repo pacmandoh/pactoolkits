@@ -25,9 +25,7 @@ agent_version="$(jq -r '.agentVersion' "$MANIFEST")"
 ui_version="$(jq -r '.uiVersion' "$MANIFEST")"
 db_schema_version="$(jq -r '.dbSchemaVersion' "$MANIFEST")"
 ui_min_db_schema="$(jq -r '.compat.uiMinDbSchema' "$MANIFEST")"
-ui_max_db_schema="$(jq -r '.compat.uiMaxDbSchema' "$MANIFEST")"
 agent_min_db_schema="$(jq -r '.compat.agentMinDbSchema' "$MANIFEST")"
-agent_max_db_schema="$(jq -r '.compat.agentMaxDbSchema' "$MANIFEST")"
 build_channel="$(jq -r '.build.channel' "$MANIFEST")"
 build_date="$(jq -r '.build.date' "$MANIFEST")"
 
@@ -53,9 +51,7 @@ cat > "$UI_DIR/version.generated.json" <<JSON
   "dbSchemaVersion": "$db_schema_version",
   "compat": {
     "uiMinDbSchema": "$ui_min_db_schema",
-    "uiMaxDbSchema": "$ui_max_db_schema",
-    "agentMinDbSchema": "$agent_min_db_schema",
-    "agentMaxDbSchema": "$agent_max_db_schema"
+    "agentMinDbSchema": "$agent_min_db_schema"
   },
   "build": {
     "channel": "$build_channel",
@@ -72,9 +68,7 @@ cat > "$AGENT_DIR/version.generated.json" <<JSON
   "dbSchemaVersion": "$db_schema_version",
   "compat": {
     "uiMinDbSchema": "$ui_min_db_schema",
-    "uiMaxDbSchema": "$ui_max_db_schema",
-    "agentMinDbSchema": "$agent_min_db_schema",
-    "agentMaxDbSchema": "$agent_max_db_schema"
+    "agentMinDbSchema": "$agent_min_db_schema"
   },
   "build": {
     "channel": "$build_channel",
