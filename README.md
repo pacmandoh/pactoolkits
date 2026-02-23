@@ -49,7 +49,7 @@ pactoolkits/
 ## Prerequisites
 
 - macOS/Linux shell (`bash`, `jq`)
-- .NET SDK 8.x (for UI build/publish)
+- .NET SDK 10.x (for UI build/publish)
 - `vpk` (for UI update package)
 - `zip` (for agent package script)
 - `rsync` (optional, for upload)

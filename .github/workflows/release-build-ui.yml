@@ -22,7 +22,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          global-json-file: global.json
 
       - name: Cache NuGet packages
         id: cache_nuget
@@ -104,12 +104,12 @@ jobs:
       - name: Publish UI
         shell: pwsh
         run: |
-          dotnet publish pactoolkits-ui/pactoolkits-ui.csproj -c Release -f net8.0 -r win-x64 --self-contained false
+          dotnet publish pactoolkits-ui/pactoolkits-ui.csproj -c Release -f net10.0 -r win-x64 --self-contained false
 
       - name: Copy agent exe into publish output
         shell: pwsh
         run: |
-          $publishDir = "pactoolkits-ui/bin/Release/net8.0/win-x64/publish"
+          $publishDir = "pactoolkits-ui/bin/Release/net10.0/win-x64/publish"
           $targetTools = Join-Path $publishDir "Tools"
           New-Item -ItemType Directory -Path $targetTools -Force | Out-Null
           Copy-Item "pactoolkits-ui/Tools/pacinjector.exe" (Join-Path $targetTools "pacinjector.exe") -Force
@@ -117,7 +117,7 @@ jobs:
       - name: Pack with vpk
         shell: pwsh
         run: |
-          $publishDir = "pactoolkits-ui/bin/Release/net8.0/win-x64/publish"
+          $publishDir = "pactoolkits-ui/bin/Release/net10.0/win-x64/publish"
           $releaseDir = "pactoolkits-ui/Releases"
           New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
 
