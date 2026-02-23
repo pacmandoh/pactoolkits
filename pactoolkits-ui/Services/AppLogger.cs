@@ -106,12 +106,12 @@ public sealed class AppLogger : IAppLogger, IDisposable
 
                 await using var source = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 using var reader = new StreamReader(source);
-                while (!reader.EndOfStream)
+                while (true)
                 {
                     ct.ThrowIfCancellationRequested();
                     var line = await reader.ReadLineAsync(ct).ConfigureAwait(false);
                     if (line is null)
-                        continue;
+                        break;
 
                     if (line.Length == 0)
                         continue;
