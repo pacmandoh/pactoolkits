@@ -19,7 +19,7 @@ Options:
   --pack-version X.Y.Z       Optional: vpk pack version (default: manifest uiVersion).
   --channel C                Optional: vpk channel (default: manifest build.channel).
   --runtime RID              Runtime for publish/pack (default: win-arm64).
-  --framework TFM            Target framework (default: net8.0).
+  --framework TFM            Target framework (default: net10.0).
   --configuration CFG        Build configuration (default: Release).
   --self-contained true|false   dotnet publish self-contained (default: false).
   --output-dir DIR           vpk output directory (default: ./Releases).
@@ -71,7 +71,7 @@ BUMP_CHANNEL=""
 PACK_VERSION=""
 CHANNEL=""
 RUNTIME="win-arm64"
-FRAMEWORK="net8.0"
+FRAMEWORK="net10.0"
 CONFIGURATION="Release"
 SELF_CONTAINED="false"
 OUTPUT_DIR="./Releases"
