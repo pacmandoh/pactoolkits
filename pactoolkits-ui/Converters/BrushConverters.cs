@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
@@ -13,6 +14,8 @@ namespace pactoolkits_ui.Converters;
 
 internal static class ConverterHelpers
 {
+    private static readonly Dictionary<(Color color, double opacity), IBrush> PrimaryTintBrushCache = new();
+
     public static TxnBadge NormalizeTxnBadge(object? value)
     {
         if (value is TxnBadge b)
@@ -34,13 +37,87 @@ internal static class ConverterHelpers
 
     public static IBrush FindAppBrush(string key, IBrush fallback)
     {
-        if (Application.Current?.TryFindResource(key, ThemeVariant.Default, out var v) == true && v is IBrush b)
+        var app = Application.Current;
+        if (app == null)
+            return fallback;
+
+        var variant = app.ActualThemeVariant;
+        if (app.TryFindResource(key, variant, out var v) && v is IBrush b)
             return b;
-        if (Application.Current?.TryFindResource(key, ThemeVariant.Light, out var v2) == true && v2 is IBrush b2)
+        if (variant != ThemeVariant.Default && app.TryFindResource(key, ThemeVariant.Default, out var v2) && v2 is IBrush b2)
             return b2;
-        if (Application.Current?.TryFindResource(key, ThemeVariant.Dark, out var v3) == true && v3 is IBrush b3)
-            return b3;
+
         return fallback;
+    }
+
+    public static Color FindAppColor(string key, Color fallback)
+    {
+        var app = Application.Current;
+        if (app == null)
+            return fallback;
+
+        var variant = app.ActualThemeVariant;
+        if (TryReadColor(app, key, variant, out var color))
+            return color;
+        if (variant != ThemeVariant.Default && TryReadColor(app, key, ThemeVariant.Default, out color))
+            return color;
+
+        return fallback;
+    }
+
+    public static int ParseLevel(object? parameter, int defaultLevel)
+    {
+        if (parameter is int i)
+            return i;
+        if (parameter is string s && int.TryParse(s, out var j))
+            return j;
+        return defaultLevel;
+    }
+
+    public static IBrush GetPrimaryTintBrush(int level)
+    {
+        if (level <= 15)
+            return Brushes.Transparent;
+
+        var opacity = level switch
+        {
+            <= 25 => 0.18,
+            <= 35 => 0.26,
+            _ => 0.35,
+        };
+
+        var color = FindAppColor("SukiPrimaryColor", Colors.Transparent);
+        if (color.A == 0 && color.R == 0 && color.G == 0 && color.B == 0)
+            return Brushes.Transparent;
+
+        var key = (color, opacity);
+        if (PrimaryTintBrushCache.TryGetValue(key, out var cached))
+            return cached;
+
+        var brush = new SolidColorBrush(color, opacity);
+        PrimaryTintBrushCache[key] = brush;
+        return brush;
+    }
+
+    private static bool TryReadColor(Application app, string key, ThemeVariant variant, out Color color)
+    {
+        if (app.TryFindResource(key, variant, out var value))
+        {
+            if (value is Color c)
+            {
+                color = c;
+                return true;
+            }
+
+            if (value is ISolidColorBrush brush)
+            {
+                color = brush.Color;
+                return true;
+            }
+        }
+
+        color = default;
+        return false;
     }
 }
 
@@ -88,11 +165,7 @@ public sealed class BadgeToBgBrushConverter : IValueConverter
     {
         var badge = ConverterHelpers.NormalizeTxnBadge(value);
 
-        var level = 10;
-        if (parameter is int i)
-            level = i;
-        else if (parameter is string s && int.TryParse(s, out var j))
-            level = j;
+        var level = ConverterHelpers.ParseLevel(parameter, 10);
 
         var key = badge switch
         {
@@ -115,11 +188,7 @@ public sealed class RowStateToBgBrushConverter : IValueConverter
     {
         var state = (value as string)?.Trim().ToLowerInvariant();
 
-        var level = 15;
-        if (parameter is int i)
-            level = i;
-        else if (parameter is string s && int.TryParse(s, out var j))
-            level = j;
+        var level = ConverterHelpers.ParseLevel(parameter, 15);
 
 
         var key = state switch
@@ -133,23 +202,7 @@ public sealed class RowStateToBgBrushConverter : IValueConverter
         if (key != null)
             return ConverterHelpers.FindAppBrush(key, Brushes.Transparent);
 
-        if (level <= 15)
-            return Brushes.Transparent;
-
-        var opacity = level switch
-        {
-            <= 25 => 0.18,
-            <= 35 => 0.26,
-            _ => 0.35,
-        };
-
-        if (Application.Current?.TryFindResource("SukiPrimaryColor", ThemeVariant.Default, out var v) == true &&
-            v is Color c)
-        {
-            return new SolidColorBrush(c, opacity);
-        }
-
-        return Brushes.Transparent;
+        return ConverterHelpers.GetPrimaryTintBrush(level);
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -220,11 +273,7 @@ public sealed class LowStockToBgBrushConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        var level = 15;
-        if (parameter is int i)
-            level = i;
-        else if (parameter is string s && int.TryParse(s, out var j))
-            level = j;
+        var level = ConverterHelpers.ParseLevel(parameter, 15);
 
         var isDeprecated = value switch
         {
@@ -250,23 +299,7 @@ public sealed class LowStockToBgBrushConverter : IValueConverter
         if (isLow)
             return ConverterHelpers.FindAppBrush($"BrushDangerBg{level}", Brushes.Transparent);
 
-        if (level <= 15)
-            return Brushes.Transparent;
-
-        var opacity = level switch
-        {
-            <= 25 => 0.18,
-            <= 35 => 0.26,
-            _ => 0.35,
-        };
-
-        if (Application.Current?.TryFindResource("SukiPrimaryColor", ThemeVariant.Default, out var v) == true &&
-            v is Color c)
-        {
-            return new SolidColorBrush(c, opacity);
-        }
-
-        return Brushes.Transparent;
+        return ConverterHelpers.GetPrimaryTintBrush(level);
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

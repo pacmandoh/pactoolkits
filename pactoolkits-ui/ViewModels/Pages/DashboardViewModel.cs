@@ -37,6 +37,8 @@ public sealed partial class DashboardViewModel : AppPageBase
     private readonly ILookupCatalogService _lookup;
     private readonly PageNavigationService _nav;
     private readonly InventoryOverviewViewModel _inventoryOverview;
+    private readonly DateTime _defaultFromDate;
+    private readonly DateTime _defaultToDate;
     private bool _suppressRowSelectionAction;
 
     [ObservableProperty] private int _selectedTabIndex;
@@ -62,6 +64,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     public DateTime? FromMaxDate => ToDate?.Date;
     public DateTime? ToMinDate => FromDate?.Date;
+    public DateTime? ToMaxDate => DateTime.Today;
 
     public ObservableCollection<ClientInfo> Clients { get; } = new();
 
@@ -357,6 +360,8 @@ public sealed partial class DashboardViewModel : AppPageBase
         _lookup = lookup;
         _nav = nav;
         _inventoryOverview = inventoryOverview;
+        _defaultFromDate = (FromDate ?? DateTime.Today.AddDays(-6)).Date;
+        _defaultToDate = (ToDate ?? DateTime.Today).Date;
 
         Clients.Clear();
         Clients.Add(AllClients);
@@ -499,7 +504,24 @@ public sealed partial class DashboardViewModel : AppPageBase
     // Keep date range valid and trigger a single reload path for both boundaries.
     private void ApplyDateRangeFromBoundary(DateTime? value, bool updateFromBoundary)
     {
+        var today = DateTime.Today;
+
+        if (value is not null && value.Value.Date > today)
+        {
+            var clamped = today;
+            using (SuppressReload())
+            {
+                if (updateFromBoundary)
+                    FromDate = clamped;
+                else
+                    ToDate = clamped;
+            }
+
+            value = clamped;
+        }
+
         OnPropertyChanged(nameof(SectionHint));
+        OnPropertyChanged(nameof(ToMaxDate));
         OnPropertyChanged(updateFromBoundary ? nameof(ToMinDate) : nameof(FromMaxDate));
 
         if (updateFromBoundary && value is not null && ToDate is not null && value.Value.Date > ToDate.Value.Date)
@@ -524,6 +546,22 @@ public sealed partial class DashboardViewModel : AppPageBase
         if (IsReloadSuppressed)
             return;
 
+        RequestReloadWithPagingReset();
+    }
+
+    [RelayCommand]
+    private void ResetDateRange()
+    {
+        using (SuppressReload())
+        {
+            FromDate = _defaultFromDate;
+            ToDate = _defaultToDate > DateTime.Today ? DateTime.Today : _defaultToDate;
+        }
+
+        OnPropertyChanged(nameof(SectionHint));
+        OnPropertyChanged(nameof(ToMinDate));
+        OnPropertyChanged(nameof(FromMaxDate));
+        OnPropertyChanged(nameof(ToMaxDate));
         RequestReloadWithPagingReset();
     }
 

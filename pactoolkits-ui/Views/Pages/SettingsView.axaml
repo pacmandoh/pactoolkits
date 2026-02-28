@@ -89,14 +89,14 @@
                                 <TextBox Grid.Row="0" Grid.Column="1"
                                          Width="280"
                                          VerticalContentAlignment="Center"
-                                         MinHeight="34"
+                                         MinHeight="{StaticResource ControlHeightCompact}"
                                          Text="{Binding Host}" />
 
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="端口" VerticalAlignment="Center" />
                                 <NumericUpDown Grid.Row="1"
                                                Grid.Column="1"
                                                Width="280"
-                                               MinHeight="34"
+                                               MinHeight="{StaticResource ControlHeightCompact}"
                                                VerticalContentAlignment="Center"
                                                Minimum="1"
                                                Maximum="65535"
@@ -109,7 +109,7 @@
                                          Grid.Column="1"
                                          Width="280"
                                          VerticalContentAlignment="Center"
-                                         MinHeight="34"
+                                         MinHeight="{StaticResource ControlHeightCompact}"
                                          Text="{Binding Database}" />
 
                                 <TextBlock Grid.Row="3" Grid.Column="0" Text="用户名" VerticalAlignment="Center" />
@@ -117,7 +117,7 @@
                                          Grid.Column="1"
                                          Width="280"
                                          VerticalContentAlignment="Center"
-                                         MinHeight="34"
+                                         MinHeight="{StaticResource ControlHeightCompact}"
                                          Text="{Binding Username}" />
 
                                 <TextBlock Grid.Row="4" Grid.Column="0" Text="密码" VerticalAlignment="Center" />
@@ -126,7 +126,7 @@
                                          Width="280"
                                          PasswordChar="●"
                                          VerticalContentAlignment="Center"
-                                         MinHeight="34"
+                                         MinHeight="{StaticResource ControlHeightCompact}"
                                          Text="{Binding Password}" />
                             </Grid>
 
@@ -334,7 +334,7 @@
                                             <Grid ColumnDefinitions="260,280,*"
                                                   ColumnSpacing="12"
                                                   Margin="0,0,0,8"
-                                                  MinHeight="34"
+                                                  MinHeight="{StaticResource ControlHeightCompact}"
                                                   VerticalAlignment="Center">
 
                                                 
@@ -348,7 +348,7 @@
                                                          Watermark="输入别名"
                                                          Text="{Binding Alias}"
                                                          Width="280"
-                                                         MinHeight="34"
+                                                         MinHeight="{StaticResource ControlHeightCompact}"
                                                          VerticalAlignment="Center"
                                                          VerticalContentAlignment="Center"
                                                          Padding="10,0"
@@ -447,7 +447,7 @@
                                        VerticalAlignment="Center" />
                             <NumericUpDown Grid.Row="0" Grid.Column="1"
                                            Width="280"
-                                           MinHeight="34"
+                                           MinHeight="{StaticResource ControlHeightCompact}"
                                            Minimum="1"
                                            Maximum="256"
                                            Increment="1"
@@ -460,7 +460,7 @@
                             <TextBox Grid.Row="1"
                                      Grid.Column="1"
                                      Width="280"
-                                     MinHeight="34"
+                                     MinHeight="{StaticResource ControlHeightCompact}"
                                      VerticalContentAlignment="Center"
                                      Text="{Binding TraceCodePattern}" />
                             <TextBlock Grid.Row="1"
@@ -588,7 +588,7 @@
                             <TextBox Grid.Row="0" Grid.Column="1"
                                      Text="{Binding CurrentSuiteVersion}"
                                      IsEnabled="False"
-                                     MinHeight="34"
+                                     MinHeight="{StaticResource ControlHeightCompact}"
                                      VerticalContentAlignment="Center" />
                             <controls:UpdateStatusBadge Grid.Row="0"
                                                         Grid.Column="2"
@@ -620,7 +620,7 @@
                             <TextBox Grid.Row="3"
                                      Grid.Column="1"
                                      Text="{Binding UpdateFeedUrl}"
-                                     MinHeight="34"
+                                     MinHeight="{StaticResource ControlHeightCompact}"
                                      VerticalContentAlignment="Center" />
 
                             <TextBlock Grid.Row="4" Grid.Column="0"
@@ -636,7 +636,7 @@
                                                Increment="5"
                                                FormatString="N0"
                                                Value="{Binding UpdatePollIntervalMinutes}"
-                                               Height="34" />
+                                               Height="{StaticResource ControlHeightCompact}" />
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding UpdatePollIntervalHint}"
                                            VerticalAlignment="Center"
@@ -652,7 +652,7 @@
                                   ColumnDefinitions="*,Auto"
                                   ColumnSpacing="8">
                                 <TextBox Text="{Binding IgnoredUiVersion}"
-                                         MinHeight="34"
+                                         MinHeight="{StaticResource ControlHeightCompact}"
                                          VerticalContentAlignment="Center" />
                                 <Button Grid.Column="1"
                                         Classes="Ghost"

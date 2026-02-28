@@ -5,23 +5,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             xmlns:conv="clr-namespace:pactoolkits_ui.Converters"
              xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              mc:Ignorable="d"
              d:DesignWidth="1200" d:DesignHeight="820"
              x:Class="pactoolkits_ui.Views.Pages.DashboardView"
              x:Name="Root"
              x:DataType="vm:DashboardViewModel">
-    <UserControl.Resources>
-        <conv:BadgeToIconKindConverter x:Key="BadgeToIconKind" />
-        <conv:BadgeToFgBrushConverter x:Key="BadgeToFgBrush" />
-        <conv:BadgeToBgBrushConverter x:Key="BadgeToBgBrush" />
-        
-        <conv:TraceEntryStateToIconKindConverter x:Key="TraceEntryStateToIconKind" />
-        <conv:TraceEntryStateToFgBrushConverter x:Key="TraceEntryStateToFgBrush" />
-        <conv:TraceEntryStateToBgBrushConverter x:Key="TraceEntryStateToBgBrush" />
-    </UserControl.Resources>
-
     <UserControl.Styles>
         <Style Selector="DataGrid.CopySelectMenuGrid DataGridRow">
             <Setter Property="ContextMenu">
@@ -41,28 +30,29 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
     </UserControl.Styles>
 
     <suki:BusyArea BusyText="加载中..." IsBusy="{Binding IsBusy}">
         <Grid RowDefinitions="Auto,Auto,*">
             <suki:GlassCard Grid.Row="0"
                             Classes="SectionCard"
-                            Margin="18,18,34,12"
+                            Margin="18,18,18,12"
                             Padding="18,14,18,12">
                 <Grid ColumnDefinitions="1.9*,1.35*,1.15*,1.35*"
                       ColumnSpacing="10"
                       VerticalAlignment="Center">
-                    <suki:GlassCard Grid.Column="0" Padding="10,8" Opacity="0.94">
-                        <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <suki:GlassCard Grid.Column="0" Classes="FilterFieldCard">
+                        <Grid RowDefinitions="Auto,Auto" RowSpacing="11">
+                            <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="10">
                                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6"
                                             VerticalAlignment="Center">
                                     <icons:MaterialIcon Kind="CalendarStartOutline"
                                                         Width="14"
                                                         Height="14"
-                                                        Opacity="0.75" />
+                                                        Opacity="{StaticResource SectionHintOpacity}" />
                                     <TextBlock Text="起始"
-                                               Opacity="0.75"
+                                               Opacity="{StaticResource SectionHintOpacity}"
                                                FontSize="12" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
@@ -70,38 +60,56 @@
                                     <icons:MaterialIcon Kind="CalendarEndOutline"
                                                         Width="14"
                                                         Height="14"
-                                                        Opacity="0.75" />
+                                                        Opacity="{StaticResource SectionHintOpacity}" />
                                     <TextBlock Text="结束"
-                                               Opacity="0.75"
+                                               Opacity="{StaticResource SectionHintOpacity}"
                                                FontSize="12" />
                                 </StackPanel>
+                                <Button Grid.Column="2"
+                                        Classes="Basic"
+                                        Command="{Binding ResetDateRangeCommand}"
+                                        Width="20"
+                                        Height="20"
+                                        MinWidth="20"
+                                        MinHeight="20"
+                                        Padding="0"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        ToolTip.Tip="归位日期">
+                                    <icons:MaterialIcon Kind="Replay"
+                                                        Width="14"
+                                                        Height="14" />
+                                </Button>
                             </Grid>
                             <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
                                 <CalendarDatePicker Grid.Column="0"
                                                     MinWidth="126"
+                                                    IsTodayHighlighted="True"
                                                     SelectedDate="{Binding FromDate}"
                                                     DisplayDateEnd="{Binding FromMaxDate}" />
                                 <CalendarDatePicker Grid.Column="1"
                                                     MinWidth="126"
+                                                    IsTodayHighlighted="True"
                                                     SelectedDate="{Binding ToDate}"
                                                     DisplayDateStart="{Binding ToMinDate}"
+                                                    DisplayDateEnd="{Binding ToMaxDate}"
                                                     SelectedDateFormat="Short" />
                             </Grid>
                         </Grid>
                     </suki:GlassCard>
 
-                    <suki:GlassCard Grid.Column="1" Padding="10,8" Opacity="0.94">
-                        <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                    <suki:GlassCard Grid.Column="1" Classes="FilterFieldCard">
+                        <Grid RowDefinitions="Auto,Auto" RowSpacing="11">
                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
                                 <icons:MaterialIcon Grid.Column="0"
                                                     Kind="Pill"
                                                     Width="14"
                                                     Height="14"
-                                                    Opacity="0.75"
+                                                    Opacity="{StaticResource SectionHintOpacity}"
                                                     VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1"
                                            Text="药品"
-                                           Opacity="0.75"
+                                           Opacity="{StaticResource SectionHintOpacity}"
                                            FontSize="12"
                                            VerticalAlignment="Center" />
                                 <Button Grid.Column="2"
@@ -113,14 +121,15 @@
                                         MinHeight="20"
                                         Padding="0"
                                         HorizontalAlignment="Right"
-                                        VerticalAlignment="Center">
+                                        VerticalAlignment="Center"
+                                        ToolTip.Tip="清空筛选">
                                     <icons:MaterialIcon Kind="CloseCircleOutline"
-                                                        Width="16"
-                                                        Height="16" />
+                                                        Width="14"
+                                                        Height="14" />
                                 </Button>
                             </Grid>
                             <Border Grid.Row="1"
-                                    Height="38"
+                                    Height="{StaticResource ControlHeightCompact}"
                                     Classes="AutoCompleteInputHost"
                                     Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
                                     Padding="8,0">
@@ -144,16 +153,16 @@
                         </Grid>
                     </suki:GlassCard>
 
-                    <suki:GlassCard Grid.Column="2" Padding="10,8" Opacity="0.94">
+                    <suki:GlassCard Grid.Column="2" Classes="FilterFieldCard">
                         <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                             <StackPanel Orientation="Horizontal" Spacing="6"
                                         VerticalAlignment="Center">
                                 <icons:MaterialIcon Kind="TuneVariant"
                                                     Width="14"
                                                     Height="14"
-                                                    Opacity="0.75" />
+                                                    Opacity="{StaticResource SectionHintOpacity}" />
                                 <TextBlock Text="规格"
-                                           Opacity="0.75"
+                                           Opacity="{StaticResource SectionHintOpacity}"
                                            FontSize="12" />
                             </StackPanel>
                             <ComboBox Grid.Row="1"
@@ -165,16 +174,16 @@
                         </Grid>
                     </suki:GlassCard>
 
-                    <suki:GlassCard Grid.Column="3" Padding="10,8" Opacity="0.94">
+                    <suki:GlassCard Grid.Column="3" Classes="FilterFieldCard">
                         <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                             <StackPanel Orientation="Horizontal" Spacing="6"
                                         VerticalAlignment="Center">
                                 <icons:MaterialIcon Kind="Laptop"
                                                     Width="14"
                                                     Height="14"
-                                                    Opacity="0.75" />
+                                                    Opacity="{StaticResource SectionHintOpacity}" />
                                 <TextBlock Text="客户端"
-                                           Opacity="0.75"
+                                           Opacity="{StaticResource SectionHintOpacity}"
                                            FontSize="12" />
                             </StackPanel>
                             <ComboBox Grid.Row="1"
@@ -189,25 +198,58 @@
 
             
             <Border Grid.Row="1"
-                    Padding="18,0,34,12">
-                <TabControl SelectedIndex="{Binding SelectedTabIndex}">
-                    <TabItem Header="总览" />
-                    <TabItem Header="录入" />
-                    <TabItem Header="事务" />
-                    <TabItem Header="异常" />
+                    Padding="18,0,18,12">
+                <TabControl Classes="DashboardSubTabs"
+                            SelectedIndex="{Binding SelectedTabIndex}">
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <icons:MaterialIcon Kind="ChartLine" Width="12" Height="12" />
+                                <TextBlock Text="总览" />
+                            </StackPanel>
+                        </TabItem.Header>
+                    </TabItem>
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <icons:MaterialIcon Kind="ClipboardTextOutline" Width="12" Height="12" />
+                                <TextBlock Text="录入" />
+                            </StackPanel>
+                        </TabItem.Header>
+                    </TabItem>
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <icons:MaterialIcon Kind="SwapHorizontal" Width="12" Height="12" />
+                                <TextBlock Text="事务" />
+                            </StackPanel>
+                        </TabItem.Header>
+                    </TabItem>
+                    <TabItem Classes="NoDivider">
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <icons:MaterialIcon Kind="AlertOctagonOutline" Width="12" Height="12" />
+                                <TextBlock Text="异常" />
+                            </StackPanel>
+                        </TabItem.Header>
+                    </TabItem>
                 </TabControl>
             </Border>
 
             
-            <ScrollViewer Grid.Row="2"
-                          IsVisible="{Binding IsOverviewTab}"
-                          BringIntoViewOnFocusChange="False"
-                          VerticalScrollBarVisibility="Visible"
-                          HorizontalScrollBarVisibility="Disabled">
-
-                <Grid Margin="18,0,18,18"
-                      RowDefinitions="Auto,Auto,Auto"
-                      RowSpacing="14">
+            <Grid Grid.Row="2"
+                  IsVisible="{Binding IsOverviewTab}"
+                  Margin="18,0,18,18"
+                  RowDefinitions="*">
+                    <ScrollViewer Grid.Row="0"
+                                  Classes="Stack"
+                                  BringIntoViewOnFocusChange="False"
+                                  Padding="0"
+                                  AllowAutoHide="False"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <Grid RowDefinitions="Auto,Auto,Auto"
+                              RowSpacing="14">
 
                     
                     <Grid Grid.Row="0"
@@ -524,27 +566,6 @@
                                               RowHeight="{StaticResource RowMinHeight}"
                                               VerticalAlignment="Stretch"
                                               HorizontalAlignment="Stretch">
-                                        <DataGrid.Styles>
-                                            <Style Selector="DataGrid.TxnGrid DataGridCell">
-                                                <Setter Property="Background"
-                                                        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=15}" />
-                                            </Style>
-                                            <Style
-                                                Selector="DataGrid.TxnGrid DataGridRow:pointerover DataGridCell">
-                                                <Setter Property="Background"
-                                                        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=25}" />
-                                            </Style>
-                                            <Style Selector="DataGrid.TxnGrid DataGridRow:selected DataGridCell">
-                                                <Setter Property="Background"
-                                                        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=35}" />
-                                            </Style>
-                                            <Style
-                                                Selector="DataGrid.TxnGrid DataGridRow:selected:pointerover DataGridCell">
-                                                <Setter Property="Background"
-                                                        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=50}" />
-                                            </Style>
-                                        </DataGrid.Styles>
-
                                         <DataGrid.Columns>
                                             <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
                                                 <DataGridTemplateColumn.CellTemplate>
@@ -800,10 +821,10 @@
                                 </Grid>
                             </controls:EmptyStatePanel>
                         </suki:GlassCard>
-                    </Grid>
-
-                </Grid>
-            </ScrollViewer>
+                        </Grid>
+                        </Grid>
+                    </ScrollViewer>
+            </Grid>
 
             <Grid Grid.Row="2"
                   IsVisible="{Binding IsInputTab}"
@@ -839,7 +860,7 @@
                             <TextBlock Grid.Row="1" Text="{Binding SectionHint}" Classes="SectionHint" />
                             <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsEntryBusy}">
                                 <DataGrid x:Name="EntryRecentGridInputTab"
-                                          Classes="SectionGrid CopySelectMenuGrid"
+                                          Classes="SectionGrid CopySelectMenuGrid TraceStateGrid"
                                           ItemsSource="{Binding EntryRecent}"
                                           SelectedItem="{Binding SelectedEntryRecent}"
                                           SelectionChanged="OnBrowsingGridSelectionChanged"
@@ -853,20 +874,6 @@
                                           VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled"
                                           GridLinesVisibility="All">
-                                <DataGrid.Styles>
-                                    <Style Selector="DataGrid#EntryRecentGridInputTab DataGridCell">
-                                        <Setter Property="Background"
-                                                Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}}" />
-                                    </Style>
-                                    <Style Selector="DataGrid#EntryRecentGridInputTab DataGridRow:pointerover DataGridCell">
-                                        <Setter Property="Background"
-                                                Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}}" />
-                                    </Style>
-                                    <Style Selector="DataGrid#EntryRecentGridInputTab DataGridRow:selected DataGridCell">
-                                        <Setter Property="Background"
-                                                Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}}" />
-                                    </Style>
-                                </DataGrid.Styles>
                                 <DataGrid.Columns>
                                     <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
                                         <DataGridTemplateColumn.CellTemplate>
@@ -910,21 +917,21 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasEntryPrevPage}"
                                             Command="{Binding FirstEntryPageCommand}">
                                         <TextBlock Text="首页" />
                                     </Button>
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasEntryPrevPage}"
                                             Command="{Binding PrevEntryPageCommand}">
                                         <TextBlock Text="上一页" />
                                     </Button>
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasEntryNextPage}"
                                             Command="{Binding NextEntryPageCommand}">
@@ -988,24 +995,6 @@
                                           VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled"
                                           GridLinesVisibility="All">
-                                <DataGrid.Styles>
-                                    <Style Selector="DataGrid.TxnGrid DataGridCell">
-                                        <Setter Property="Background"
-                                                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=15}" />
-                                    </Style>
-                                    <Style Selector="DataGrid.TxnGrid DataGridRow:pointerover DataGridCell">
-                                        <Setter Property="Background"
-                                                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=25}" />
-                                    </Style>
-                                    <Style Selector="DataGrid.TxnGrid DataGridRow:selected DataGridCell">
-                                        <Setter Property="Background"
-                                                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=35}" />
-                                    </Style>
-                                    <Style Selector="DataGrid.TxnGrid DataGridRow:selected:pointerover DataGridCell">
-                                        <Setter Property="Background"
-                                                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=50}" />
-                                    </Style>
-                                </DataGrid.Styles>
                                 <DataGrid.Columns>
                                     <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
                                         <DataGridTemplateColumn.CellTemplate>
@@ -1047,8 +1036,6 @@
                                           HorizontalAlignment="Stretch"
                                           VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled">
-                                <DataGrid.Styles>
-                                </DataGrid.Styles>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="#" Binding="{Binding Rank}" Width="70" />
                                     <DataGridTextColumn Header="药品" Binding="{Binding Name}" Width="1.2*" />
@@ -1073,21 +1060,21 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasTxnPrevPage}"
                                             Command="{Binding FirstTxnPageCommand}">
                                         <TextBlock Text="首页" />
                                     </Button>
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasTxnPrevPage}"
                                             Command="{Binding PrevTxnPageCommand}">
                                         <TextBlock Text="上一页" />
                                     </Button>
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasTxnNextPage}"
                                             Command="{Binding NextTxnPageCommand}">
@@ -1109,21 +1096,21 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasTxnTrendPrevPage}"
                                             Command="{Binding FirstTxnTrendPageCommand}">
                                         <TextBlock Text="首页" />
                                     </Button>
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasTxnTrendPrevPage}"
                                             Command="{Binding PrevTxnTrendPageCommand}">
                                         <TextBlock Text="上一页" />
                                     </Button>
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasTxnTrendNextPage}"
                                             Command="{Binding NextTxnTrendPageCommand}">
@@ -1183,8 +1170,6 @@
                                               VerticalScrollBarVisibility="Auto"
                                               HorizontalScrollBarVisibility="Disabled"
                                               GridLinesVisibility="All">
-                                <DataGrid.Styles>
-                                </DataGrid.Styles>
                                 <DataGrid.Columns>
                                     <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
                                         <DataGridTemplateColumn.CellTemplate>
@@ -1224,21 +1209,21 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasAbnormalPrevPage}"
                                             Command="{Binding FirstAbnormalPageCommand}">
                                         <TextBlock Text="首页" />
                                     </Button>
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasAbnormalPrevPage}"
                                             Command="{Binding PrevAbnormalPageCommand}">
                                         <TextBlock Text="上一页" />
                                     </Button>
                                     <Button Classes="Action"
-                                            Height="34"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             MinWidth="{StaticResource MinWAction}"
                                             IsEnabled="{Binding HasAbnormalNextPage}"
                                             Command="{Binding NextAbnormalPageCommand}">

@@ -56,11 +56,7 @@ public partial class InventoryOverviewView : UserControl
             if (TryExtractDrugSpec(row?.DataContext, out var drug, out var spec))
             {
                 await vm.OpenScanCodeByRowAsync(drug, spec);
-                return;
             }
-
-            if (sender is DataGrid dg && TryExtractDrugSpec(dg.SelectedItem, out drug, out spec))
-                await vm.OpenScanCodeByRowAsync(drug, spec);
         }
         catch (Exception ex)
         {

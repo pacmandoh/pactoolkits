@@ -1,278 +1,52 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:suki="clr-namespace:SukiUI;assembly=SukiUI"
-             xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
              xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
-             xmlns:con="https://github.com/kikipoulet/SukiUI"
+             xmlns:conv="clr-namespace:pactoolkits_ui.Converters"
              x:Class="pactoolkits_ui.App"
              RequestedThemeVariant="Dark">
-
     
     <Application.Resources>
-        <NativeMenu x:Key="TrayMenu">
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://pactoolkits-ui/Styles/ThemeResources.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <NativeMenu x:Key="TrayMenu">
             <NativeMenuItem Header="显示主窗口" />
             <NativeMenuItem Header="关闭时最小化到托盘" ToggleType="CheckBox" />
             <NativeMenuItemSeparator />
             <NativeMenuItem Header="退出" />
-        </NativeMenu>
+            </NativeMenu>
 
         
         <x:String x:Key="AppVersionText">PacToolkits v(loading)</x:String>
         <x:String x:Key="AppCopyrightText">PacmanDoh - 2026</x:String>
-
-        
-        <SolidColorBrush x:Key="BrushWarning" Color="#F6C445" />
-        <SolidColorBrush x:Key="BrushDanger" Color="#FF5D5D" />
-        <SolidColorBrush x:Key="BrushDone" Color="#34C17B" />
-        <SolidColorBrush x:Key="BrushInfo" Color="#39A8FF" />
-        <SolidColorBrush x:Key="BrushWarningBg10" Color="#1AF6C445" />
-        <SolidColorBrush x:Key="BrushWarningBg15" Color="#26F6C445" />
-        <SolidColorBrush x:Key="BrushWarningBg25" Color="#40F6C445" />
-        <SolidColorBrush x:Key="BrushWarningBg35" Color="#59F6C445" />
-        <SolidColorBrush x:Key="BrushWarningBg50" Color="#80F6C445" />
-        <SolidColorBrush x:Key="BrushDangerBg10" Color="#1AFF5D5D" />
-        <SolidColorBrush x:Key="BrushDangerBg15" Color="#26FF5D5D" />
-        <SolidColorBrush x:Key="BrushDangerBg25" Color="#40FF5D5D" />
-        <SolidColorBrush x:Key="BrushDangerBg35" Color="#59FF5D5D" />
-        <SolidColorBrush x:Key="BrushDangerBg50" Color="#80FF5D5D" />
-        <SolidColorBrush x:Key="BrushDoneBg10" Color="#1A34C17B" />
-        <SolidColorBrush x:Key="BrushDoneBg15" Color="#2634C17B" />
-        <SolidColorBrush x:Key="BrushDoneBg25" Color="#4034C17B" />
-        <SolidColorBrush x:Key="BrushDoneBg35" Color="#5934C17B" />
-        <SolidColorBrush x:Key="BrushDoneBg50" Color="#8034C17B" />
-        <SolidColorBrush x:Key="BrushPurpleBg10" Color="#1A7C3AED" />
-        <SolidColorBrush x:Key="BrushPurpleBg15" Color="#267C3AED" />
-        <SolidColorBrush x:Key="BrushPurpleBg25" Color="#407C3AED" />
-        <SolidColorBrush x:Key="BrushPurpleBg35" Color="#597C3AED" />
-        <SolidColorBrush x:Key="BrushPurpleBg50" Color="#807C3AED" />
-
-        
-        <CornerRadius x:Key="SectionCardRadius">18</CornerRadius>
-        <Thickness x:Key="SectionCardPadding">18</Thickness>
-
-        
-        <x:Double x:Key="SectionTitleSize">16</x:Double>
-        <x:Double x:Key="SectionHintSize">12</x:Double>
-        <x:Double x:Key="SectionHintOpacity">0.75</x:Double>
-
-        
-        <x:Double x:Key="RowMinHeight">46</x:Double>
-        <CornerRadius x:Key="RowRadius">12</CornerRadius>
-        <Thickness x:Key="RowPadding">10,8</Thickness>
-        <x:Double x:Key="DgH10Rows">460</x:Double>
-
-        
-        <Thickness x:Key="DgCellPadCell">6,4,6,4</Thickness>
-        <Thickness x:Key="DgCellPadRight">8,0,12,0</Thickness>
-
-        
-        <DataGridLength x:Key="DgWIcon">34</DataGridLength>
-        <DataGridLength x:Key="DgWRank">24</DataGridLength>
-        <DataGridLength x:Key="DgWRightValue">128</DataGridLength>
-        <DataGridLength x:Key="DgWRightSmall">110</DataGridLength>
-        <DataGridLength x:Key="DgWAction">104</DataGridLength>
-        <x:Double x:Key="MinWAction">104</x:Double>
+        <x:String x:Key="AppChannelText">stable</x:String>
+        <conv:BoolToDoneDangerBrushConverter x:Key="BoolToDoneDangerBrush" />
+        <conv:RowIndexConverter x:Key="RowIndexPlusOne" />
+        <conv:LowStockToBgBrushConverter x:Key="LowStockToBgBrush" />
+        <conv:BadgeToIconKindConverter x:Key="BadgeToIconKind" />
+        <conv:BadgeToFgBrushConverter x:Key="BadgeToFgBrush" />
+        <conv:BadgeToBgBrushConverter x:Key="BadgeToBgBrush" />
+        <conv:TraceEntryStateToIconKindConverter x:Key="TraceEntryStateToIconKind" />
+        <conv:TraceEntryStateToFgBrushConverter x:Key="TraceEntryStateToFgBrush" />
+        <conv:TraceEntryStateToBgBrushConverter x:Key="TraceEntryStateToBgBrush" />
+            <SolidColorBrush x:Key="AutoCompleteBorderBrush"
+                             Color="{DynamicResource SukiControlBorderBrush}"
+                             Opacity="0.32" />
+        </ResourceDictionary>
     </Application.Resources>
 
     
     <Application.Styles>
-        
         <suki:SukiTheme Locale="zh-CN" ThemeColor="Blue" />
         <materialIcons:MaterialIconStyles />
         <StyleInclude Source="avares://IconPacks.Avalonia.SimpleIcons/SimpleIcons.axaml" />
-        
-        
-        <Style Selector="con|SukiWindow MenuItem:disabled">
-            <Setter Property="Opacity" Value="0.4" />
-        </Style>
-
-        <Style Selector="ContextMenu MenuItem[Header='剪切'], ContextMenu MenuItem[Header='Cut']">
-            <Setter Property="Icon">
-                <Template>
-                    <materialIcons:MaterialIcon Kind="ContentCut" Width="16" Height="16" />
-                </Template>
-            </Setter>
-        </Style>
-
-        <Style Selector="ContextMenu MenuItem[Header='复制'], ContextMenu MenuItem[Header='Copy']">
-            <Setter Property="Icon">
-                <Template>
-                    <materialIcons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
-                </Template>
-            </Setter>
-        </Style>
-
-        <Style Selector="ContextMenu MenuItem[Header='粘贴'], ContextMenu MenuItem[Header='Paste']">
-            <Setter Property="Icon">
-                <Template>
-                    <materialIcons:MaterialIcon Kind="ContentPaste" Width="16" Height="16" />
-                </Template>
-            </Setter>
-        </Style>
-
-        
-        <Style Selector="sukiControls|BusyArea[IsBusy=true]">
-            <Setter Property="IsEnabled" Value="False" />
-        </Style>
-
-        
-        <Style Selector="con|GlassCard.SectionCard">
-            <Setter Property="CornerRadius" Value="{DynamicResource SectionCardRadius}" />
-            <Setter Property="Padding" Value="{DynamicResource SectionCardPadding}" />
-        </Style>
-
-        
-        <Style Selector="TextBlock.SectionTitle">
-            <Setter Property="FontSize" Value="{DynamicResource SectionTitleSize}" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-
-        <Style Selector="TextBlock.SectionHint">
-            <Setter Property="Opacity" Value="{DynamicResource SectionHintOpacity}" />
-            <Setter Property="FontSize" Value="{DynamicResource SectionHintSize}" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-        </Style>
-
-        
-        <Style Selector="TextBlock.DGSub">
-            <Setter Property="Opacity" Value="{DynamicResource SectionHintOpacity}" />
-            <Setter Property="FontSize" Value="{DynamicResource SectionHintSize}" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-        </Style>
-
-        <Style Selector="TextBlock.DGNum">
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="HorizontalAlignment" Value="Right" />
-        </Style>
-
-        <Style Selector="TextBlock.DGRightCell">
-            <Setter Property="Padding" Value="{DynamicResource DgCellPadRight}" />
-            <Setter Property="HorizontalAlignment" Value="Right" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-
-        
-        <Style Selector="Button.Primary">
-            <Setter Property="MinHeight" Value="40" />
-            <Setter Property="MinWidth" Value="120" />
-            <Setter Property="Padding" Value="20,0" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="CornerRadius" Value="12" />
-        </Style>
-
-        <Style Selector="Button.Ghost">
-            <Setter Property="MinHeight" Value="34" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Opacity" Value="0.92" />
-        </Style>
-
-        <Style Selector="Button.Action">
-            <Setter Property="MinHeight" Value="34" />
-            <Setter Property="MinWidth" Value="84" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="CornerRadius" Value="10" />
-        </Style>
-
-        
-        <Style Selector="DataGrid.SectionGrid">
-            <Setter Property="AutoGenerateColumns" Value="False" />
-            <Setter Property="IsReadOnly" Value="True" />
-            <Setter Property="HeadersVisibility" Value="None" />
-            <Setter Property="GridLinesVisibility" Value="None" />
-        </Style>
-
-        <Style Selector="DataGrid.NonInteractive">
-            <Setter Property="IsHitTestVisible" Value="False" />
-            <Setter Property="Focusable" Value="False" />
-            <Setter Property="IsTabStop" Value="False" />
-        </Style>
-
-        <Style Selector="Border.AutoCompleteInputHost">
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="BorderThickness" Value="0.5" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SukiBorderBrush}" />
-            <Setter Property="Background" Value="{DynamicResource ThemeBorderLowBrush}" />
-        </Style>
-
-        <Style Selector="Border.AutoCompleteInputHost.DarkMode">
-            <Setter Property="Background" Value="#1E000000" />
-        </Style>
-
-        <Style Selector="Border.AutoCompleteInputHost:focus-within">
-            <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor}" />
-        </Style>
-
-        <Style Selector="Border.AutoCompleteInputHost:pointerover">
-            <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor}" />
-        </Style>
-        
-
-        <Style Selector="DataGridRow">
-            <Setter Property="MinHeight" Value="{DynamicResource RowMinHeight}" />
-        </Style>
-
-        <Style Selector="DataGridCell">
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="{DynamicResource DgCellPadCell}" />
-        </Style>
-
-        <Style Selector="DataGridCell TextBlock">
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-
-        
-        <Style Selector="Border.RowItem">
-            <Setter Property="CornerRadius" Value="{DynamicResource RowRadius}" />
-            <Setter Property="Padding" Value="{DynamicResource RowPadding}" />
-            <Setter Property="MinHeight" Value="{DynamicResource RowMinHeight}" />
-        </Style>
-
-        <Style Selector="TextBlock">
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-        </Style>
-        
-        <Style Selector="controls|EmptyStatePanel">
-            <Setter Property="Template">
-                <ControlTemplate>
-                    <Grid>
-                        
-                        <ContentPresenter
-                            Content="{TemplateBinding Content}"
-                            IsVisible="{Binding !IsEmpty, RelativeSource={RelativeSource TemplatedParent}}" />
-
-                        
-                        <Border
-                            IsVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
-                            Padding="24"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center">
-                            <StackPanel Spacing="10" HorizontalAlignment="Center">
-                                <materialIcons:MaterialIcon
-                                    Kind="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}"
-                                    Width="40" Height="40"
-                                    Foreground="{StaticResource BrushWarning}" />
-
-                                <TextBlock
-                                    Text="{Binding EmptyText, RelativeSource={RelativeSource TemplatedParent}}"
-                                    FontSize="14"
-                                    FontWeight="SemiBold"
-                                    HorizontalAlignment="Center"
-                                    Foreground="{DynamicResource SukiText}" />
-                                
-                                <TextBlock
-                                    Text="{Binding EmptyHint, RelativeSource={RelativeSource TemplatedParent}}"
-                                    Classes="SectionHint"
-                                    IsVisible="{Binding HasHint, RelativeSource={RelativeSource TemplatedParent}}"/>
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-                </ControlTemplate>
-            </Setter>
-        </Style>
+        <StyleInclude Source="avares://pactoolkits-ui/Styles/Tokens.axaml" />
+        <StyleInclude Source="avares://pactoolkits-ui/Styles/TextBoxContextMenu.axaml" />
+        <StyleInclude Source="avares://pactoolkits-ui/Styles/DataGrid.axaml" />
+        <StyleInclude Source="avares://pactoolkits-ui/Styles/Navigation.axaml" />
+        <StyleInclude Source="avares://pactoolkits-ui/Styles/SharedPageStyles.axaml" />
     </Application.Styles>
 </Application>

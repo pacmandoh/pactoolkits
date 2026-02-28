@@ -80,7 +80,7 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
         var tcs = new TaskCompletionSource<DbProbeReport>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         if (!_signals.Writer.TryWrite(new ProbeRequest(kind, tcs)))
-            return new DbProbeReport(kind, Success: false, Reason: "无法提交探测请求");
+            return new DbProbeReport(kind, Success: false, Reason: "无法提交探测请求：监控服务不可用");
 
         try
         {
@@ -88,6 +88,12 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
         }
         catch (OperationCanceledException)
         {
+            if (_cts.IsCancellationRequested)
+                return new DbProbeReport(kind, Success: false, Reason: "探测已中止：监控服务已停止");
+
+            if (ct.IsCancellationRequested)
+                return new DbProbeReport(kind, Success: false, Reason: "探测超时：监控未在限定时间内完成");
+
             return new DbProbeReport(kind, Success: false, Reason: "探测已取消");
         }
     }
