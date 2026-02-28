@@ -35,42 +35,25 @@ Util_PathFull(p) {
 
 Util_ReadVersionFile() {
     info := Map(
-        "suiteVersion", "unknown",
-        "agentVersion", "unknown",
-        "uiVersion", "unknown",
-        "dbSchemaVersion", "unknown",
-        "buildChannel", "unknown",
-        "buildDate", "unknown"
+        "agentVersion", "unknown"
     )
 
     path := Util_PathFull(A_ScriptDir "\version.generated.json")
-    if !FileExist(path)
-        return info
-
-    r := Json_ReadFile(path)
-    if !(IsObject(r) && r.Has("ok") && r["ok"] && r.Has("val"))
-        return info
-
-    root := r["val"]
-    if !IsObject(root)
-        return info
-
-    if (root.Has("suiteVersion"))
-        info["suiteVersion"] := root["suiteVersion"]
-    if (root.Has("agentVersion"))
-        info["agentVersion"] := root["agentVersion"]
-    if (root.Has("uiVersion"))
-        info["uiVersion"] := root["uiVersion"]
-    if (root.Has("dbSchemaVersion"))
-        info["dbSchemaVersion"] := root["dbSchemaVersion"]
-
-    if (root.Has("build") && IsObject(root["build"])) {
-        build := root["build"]
-        if (build.Has("channel"))
-            info["buildChannel"] := build["channel"]
-        if (build.Has("date"))
-            info["buildDate"] := build["date"]
+    if FileExist(path) {
+        r := Json_ReadFile(path)
+        if (IsObject(r) && r.Has("ok") && r["ok"] && r.Has("val")) {
+            root := r["val"]
+            if IsObject(root) {
+                if (root.Has("agentVersion"))
+                    info["agentVersion"] := root["agentVersion"]
+            }
+        }
     }
+
+    ; Production package may not ship version.generated.json; allow host to inject agent version.
+    agentArg := Util_GetArgValue("--agent-version")
+    if (agentArg != "")
+        info["agentVersion"] := agentArg
 
     return info
 }
@@ -480,6 +463,24 @@ Util_GetConfigArg() {
         }
         if (SubStr(arg, 1, 9) = "--config=")
             return Util_PathFull(SubStr(arg, 10))
+        i++
+    }
+    return ""
+}
+
+Util_GetArgValue(flagName) {
+    i := 1
+    while (i <= A_Args.Length) {
+        arg := A_Args[i]
+        if (arg = flagName) {
+            if (i + 1 <= A_Args.Length)
+                return Trim(A_Args[i + 1])
+            return ""
+        }
+
+        prefix := flagName "="
+        if (SubStr(arg, 1, StrLen(prefix)) = prefix)
+            return Trim(SubStr(arg, StrLen(prefix) + 1))
         i++
     }
     return ""
