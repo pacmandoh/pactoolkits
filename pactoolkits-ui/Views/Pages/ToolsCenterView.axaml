@@ -5,7 +5,6 @@
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:simpleicons="clr-namespace:IconPacks.Avalonia.SimpleIcons;assembly=IconPacks.Avalonia.SimpleIcons"
-             xmlns:conv="clr-namespace:pactoolkits_ui.Converters"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
              mc:Ignorable="d"
              d:DesignWidth="1200"
@@ -14,10 +13,6 @@
              x:DataType="vm:ToolsCenterViewModel"
              x:Name="Root"
              Focusable="True">
-    <UserControl.Resources>
-        <conv:BoolToDoneDangerBrushConverter x:Key="BoolToDoneDangerBrush" />
-    </UserControl.Resources>
-
     <Grid>
         <Grid Margin="18,14,18,18" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12"
               KeyboardNavigation.TabNavigation="Cycle">
@@ -30,7 +25,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <suki:GlassCard Grid.Column="1" Padding="10,8" Opacity="0.9">
+                <suki:GlassCard Grid.Column="1" Classes="StatusChipCard">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
                         <icons:MaterialIcon Kind="InformationOutline"
                                             Width="16"
@@ -150,6 +145,7 @@
 
                         <ScrollViewer x:Name="ToolEditorScrollViewer"
                                       Grid.Row="1"
+                                      Classes="Stack"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
                             <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
@@ -157,7 +153,7 @@
                                 <Grid Grid.Row="0" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="可执行路径" VerticalAlignment="Center" />
                                     <TextBox Grid.Column="1"
-                                             MinHeight="34"
+                                             MinHeight="{StaticResource ControlHeightCompact}"
                                              HorizontalAlignment="Stretch"
                                              VerticalContentAlignment="Center"
                                              Text="{Binding AhkExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -167,7 +163,7 @@
                                 <Grid Grid.Row="1" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="进程名（可选）" VerticalAlignment="Center" />
                                     <TextBox Grid.Column="1"
-                                             MinHeight="34"
+                                             MinHeight="{StaticResource ControlHeightCompact}"
                                              HorizontalAlignment="Stretch"
                                              VerticalContentAlignment="Center"
                                              Text="{Binding AhkProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -177,7 +173,7 @@
                                 <Grid Grid.Row="2" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="PG 驱动" VerticalAlignment="Center" />
                                     <TextBox Grid.Column="1"
-                                             MinHeight="34"
+                                             MinHeight="{StaticResource ControlHeightCompact}"
                                              HorizontalAlignment="Stretch"
                                              VerticalContentAlignment="Center"
                                              Text="{Binding AgentPgDriver, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -186,7 +182,7 @@
                                 <Grid Grid.Row="3" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="PG SSL" VerticalAlignment="Center" />
                                     <TextBox Grid.Column="1"
-                                             MinHeight="34"
+                                             MinHeight="{StaticResource ControlHeightCompact}"
                                              HorizontalAlignment="Stretch"
                                              VerticalContentAlignment="Center"
                                              Text="{Binding AgentPgSsl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -195,7 +191,7 @@
                                 <Grid Grid.Row="4" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="门诊窗口类" VerticalAlignment="Center" />
                                     <TextBox Grid.Column="1"
-                                             MinHeight="34"
+                                             MinHeight="{StaticResource ControlHeightCompact}"
                                              HorizontalAlignment="Stretch"
                                              VerticalContentAlignment="Center"
                                              Text="{Binding AgentOptCls, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -204,7 +200,7 @@
                                 <Grid Grid.Row="5" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="住院窗口类" VerticalAlignment="Center" />
                                     <TextBox Grid.Column="1"
-                                             MinHeight="34"
+                                             MinHeight="{StaticResource ControlHeightCompact}"
                                              HorizontalAlignment="Stretch"
                                              VerticalContentAlignment="Center"
                                              Text="{Binding AgentIptCls, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -213,7 +209,7 @@
                                 <Grid Grid.Row="6" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="确认超时(ms)" VerticalAlignment="Center" />
                                     <NumericUpDown Grid.Column="1"
-                                                   MinHeight="34"
+                                                   MinHeight="{StaticResource ControlHeightCompact}"
                                                    Minimum="100"
                                                    Maximum="10000"
                                                    Increment="100"
@@ -224,7 +220,7 @@
                                 <Grid Grid.Row="7" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="目标 ClassNN" VerticalAlignment="Center" />
                                     <TextBox Grid.Column="1"
-                                             MinHeight="34"
+                                             MinHeight="{StaticResource ControlHeightCompact}"
                                              HorizontalAlignment="Stretch"
                                              VerticalContentAlignment="Center"
                                              Text="{Binding AgentClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -253,7 +249,7 @@
                                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
                                                         <TextBox
                                                             Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                            MinHeight="34" VerticalContentAlignment="Center" />
+                                                            MinHeight="{StaticResource ControlHeightCompact}" VerticalContentAlignment="Center" />
                                                         <Button Grid.Column="1"
                                                                 Classes="Ghost"
                                                                 Command="{Binding DataContext.RemoveAgentAppWinItemCommand, ElementName=Root}"
@@ -290,7 +286,7 @@
                                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
                                                         <TextBox
                                                             Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                            MinHeight="34" VerticalContentAlignment="Center" />
+                                                            MinHeight="{StaticResource ControlHeightCompact}" VerticalContentAlignment="Center" />
                                                         <Button Grid.Column="1"
                                                                 Classes="Ghost"
                                                                 Command="{Binding DataContext.RemoveAgentColSpecsItemCommand, ElementName=Root}"
@@ -327,7 +323,7 @@
                                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
                                                         <TextBox
                                                             Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                            MinHeight="34" VerticalContentAlignment="Center" />
+                                                            MinHeight="{StaticResource ControlHeightCompact}" VerticalContentAlignment="Center" />
                                                         <Button Grid.Column="1"
                                                                 Classes="Ghost"
                                                                 Command="{Binding DataContext.RemoveAgentIntColsItemCommand, ElementName=Root}"
@@ -353,22 +349,22 @@
                         </StackPanel>
 
                         <Grid Grid.Row="1" ColumnDefinitions="130,*" ColumnSpacing="10">
-                            <TextBlock Text="程序版本" Opacity="0.75" />
+                            <TextBlock Text="程序版本" Opacity="{StaticResource SectionHintOpacity}" />
                             <TextBlock Grid.Column="1" Text="{Binding ProgramVersionText}" />
                         </Grid>
 
                         <Grid Grid.Row="2" ColumnDefinitions="130,*" ColumnSpacing="10">
-                            <TextBlock Text="工具版本" Opacity="0.75" />
+                            <TextBlock Text="工具版本" Opacity="{StaticResource SectionHintOpacity}" />
                             <TextBlock Grid.Column="1" Text="{Binding AhkVersionText}" />
                         </Grid>
 
                         <Grid Grid.Row="3" ColumnDefinitions="130,*" ColumnSpacing="10">
-                            <TextBlock Text="最近拉起" Opacity="0.75" />
+                            <TextBlock Text="最近拉起" Opacity="{StaticResource SectionHintOpacity}" />
                             <TextBlock Grid.Column="1" Text="{Binding LastLaunchText}" />
                         </Grid>
 
                         <Grid Grid.Row="4" ColumnDefinitions="130,*" ColumnSpacing="10">
-                            <TextBlock Text="最近错误" Opacity="0.75" />
+                            <TextBlock Text="最近错误" Opacity="{StaticResource SectionHintOpacity}" />
                             <TextBlock Grid.Column="1" Text="{Binding LastErrorText}" TextWrapping="Wrap" />
                         </Grid>
                     </Grid>

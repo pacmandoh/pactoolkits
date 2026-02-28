@@ -176,6 +176,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         OnPropertyChanged(nameof(CanDisableStockEdit));
         OnPropertyChanged(nameof(CanRequestUnlock));
         OnPropertyChanged(nameof(CanLockOperations));
+        OnPropertyChanged(nameof(ShowRequestUnlock));
+        OnPropertyChanged(nameof(ShowLockOperations));
         OnPropertyChanged(nameof(UnlockStatusText));
         OnPropertyChanged(nameof(ShowUnlockStatus));
         OnPropertyChanged(nameof(CanToggleReassignPanel));
@@ -187,6 +189,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         OnPropertyChanged(nameof(UnlockStatusText));
         OnPropertyChanged(nameof(CanRequestUnlock));
         OnPropertyChanged(nameof(CanLockOperations));
+        OnPropertyChanged(nameof(ShowRequestUnlock));
+        OnPropertyChanged(nameof(ShowLockOperations));
         NotifyAllCommands();
     }
 
@@ -197,6 +201,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     {
         OnPropertyChanged(nameof(UnlockStatusText));
         OnPropertyChanged(nameof(CanRequestUnlock));
+        OnPropertyChanged(nameof(ShowRequestUnlock));
     }
 
     public bool IsDetailMode => ModeIndex == 0;
@@ -212,6 +217,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public bool CanDisableStockEdit => IsDetailMode && IsStockEditEnabled;
     public bool CanRequestUnlock => IsDetailMode && !IsOperationUnlocked;
     public bool CanLockOperations => IsDetailMode && IsOperationUnlocked;
+    public bool ShowRequestUnlock => IsDetailMode && !IsOperationUnlocked;
+    public bool ShowLockOperations => IsDetailMode && IsOperationUnlocked;
     public bool CanToggleReassignPanel
         => IsDetailMode
            && !IsStockEditEnabled
@@ -1230,7 +1237,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             IsReassignPanelVisible = false;
             ReassignPreviewRows.Clear();
             OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-            Status = "库存安全会话已过期，请重新验证";
+            if (IsDetailMode)
+                Status = "库存安全会话已过期，请重新验证";
         }
 
         if (IsOperationUnlocked || OperationUnlockCooldownUntilUtc > DateTimeOffset.UtcNow)
@@ -1401,6 +1409,12 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             ReassignPreviewText = null;
             ReassignPreviewRows.Clear();
             OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+
+            if (!string.IsNullOrWhiteSpace(Status)
+                && Status.Contains("库存安全会话", StringComparison.Ordinal))
+            {
+                Status = null;
+            }
         }
 
         _lastModeIndex = value;
@@ -1411,6 +1425,12 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         OnPropertyChanged(nameof(IsMissingMode));
         OnPropertyChanged(nameof(CanEnableStockEdit));
         OnPropertyChanged(nameof(CanDisableStockEdit));
+        OnPropertyChanged(nameof(CanRequestUnlock));
+        OnPropertyChanged(nameof(CanLockOperations));
+        OnPropertyChanged(nameof(ShowRequestUnlock));
+        OnPropertyChanged(nameof(ShowLockOperations));
+        OnPropertyChanged(nameof(UnlockStatusText));
+        OnPropertyChanged(nameof(ShowUnlockStatus));
         OnPropertyChanged(nameof(CanToggleReassignPanel));
         OnPropertyChanged(nameof(EditSessionStateText));
         OnPropertyChanged(nameof(ShowEditSessionState));

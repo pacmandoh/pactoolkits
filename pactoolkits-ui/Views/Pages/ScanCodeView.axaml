@@ -15,7 +15,6 @@
              x:Name="Root"
              Focusable="True">
     <UserControl.Resources>
-        <conv:BoolToDoneDangerBrushConverter x:Key="BoolToDoneDangerBrush" />
         <conv:ContextStatusToBrushConverter x:Key="ContextStatusToBrush" />
     </UserControl.Resources>
 
@@ -38,11 +37,11 @@
                           ColumnDefinitions="320,260,150,*"
                           ColumnSpacing="12"
                           VerticalAlignment="Center">
-                        <suki:GlassCard Grid.Column="0" Padding="10,8" Opacity="0.94">
+                        <suki:GlassCard Grid.Column="0" Classes="FilterFieldCard">
                             <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <icons:MaterialIcon Kind="Pill" Width="14" Height="14" />
-                                    <TextBlock Text="药品" Opacity="0.75" FontSize="12" />
+                                    <TextBlock Text="药品" Opacity="{StaticResource SectionHintOpacity}" FontSize="12" />
                                 </StackPanel>
                                 <Border Grid.Row="1"
                                         Height="36"
@@ -69,11 +68,11 @@
                             </Grid>
                         </suki:GlassCard>
 
-                        <suki:GlassCard Grid.Column="1" Padding="10,8" Opacity="0.94">
+                        <suki:GlassCard Grid.Column="1" Classes="FilterFieldCard">
                             <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <icons:MaterialIcon Kind="TuneVariant" Width="14" Height="14" />
-                                    <TextBlock Text="规格" Opacity="0.75" FontSize="12" />
+                                    <TextBlock Text="规格" Opacity="{StaticResource SectionHintOpacity}" FontSize="12" />
                                 </StackPanel>
                                 <Grid Grid.Row="1">
                                     <ComboBox x:Name="SpecBox"
@@ -90,11 +89,11 @@
                             </Grid>
                         </suki:GlassCard>
 
-                        <suki:GlassCard Grid.Column="2" Padding="10,8" Opacity="0.94">
+                        <suki:GlassCard Grid.Column="2" Classes="FilterFieldCard">
                             <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <icons:MaterialIcon Kind="PackageVariant" Width="14" Height="14" />
-                                    <TextBlock Text="单条数量" Opacity="0.75" FontSize="12" />
+                                    <TextBlock Text="单条数量" Opacity="{StaticResource SectionHintOpacity}" FontSize="12" />
                                 </StackPanel>
                                 <Border Grid.Row="1"
                                         Height="35"
@@ -118,7 +117,7 @@
                         </suki:GlassCard>
 
                         <suki:GlassCard Grid.Column="3"
-                                        Padding="10,8"
+                                        Padding="{StaticResource CompactPadding}"
                                         Opacity="0.92"
                                         MinHeight="56"
                                         HorizontalContentAlignment="Center">
@@ -155,7 +154,7 @@
                         </TabItem.Header>
 
                         <Grid Margin="0,10,0,0" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="10">
-                            <suki:GlassCard Grid.Row="0" Padding="10,8" Opacity="0.95">
+                            <suki:GlassCard Grid.Row="0" Padding="{StaticResource CompactPadding}" Opacity="0.95">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <icons:MaterialIcon Kind="ClipboardTextOutline" Width="16" Height="16" />
                                     <TextBlock Text="每行一个追溯码，会根据相应规则筛除不合条件条码"
@@ -176,7 +175,7 @@
                             </Border>
 
                             <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
-                                <suki:GlassCard Grid.Column="0" Padding="10,8" Opacity="0.96">
+                                <suki:GlassCard Grid.Column="0" Classes="CounterPillCard">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                         <icons:MaterialIcon Kind="CheckCircleOutline" Width="16" Height="16"
                                                             Foreground="{StaticResource BrushDone}" />
@@ -186,7 +185,7 @@
                                     </StackPanel>
                                 </suki:GlassCard>
 
-                                <suki:GlassCard Grid.Column="1" Padding="10,8" Opacity="0.96">
+                                <suki:GlassCard Grid.Column="1" Classes="CounterPillCard">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                         <icons:MaterialIcon Kind="ContentDuplicate" Width="16" Height="16"
                                                             Foreground="{StaticResource BrushWarning}" />
@@ -196,7 +195,7 @@
                                     </StackPanel>
                                 </suki:GlassCard>
 
-                                <suki:GlassCard Grid.Column="2" Padding="10,8" Opacity="0.96">
+                                <suki:GlassCard Grid.Column="2" Classes="CounterPillCard">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                         <icons:MaterialIcon Kind="AlertCircleOutline" Width="16" Height="16"
                                                             Foreground="{StaticResource BrushDanger}" />
@@ -206,7 +205,7 @@
                                     </StackPanel>
                                 </suki:GlassCard>
 
-                                <suki:GlassCard Grid.Column="3" Padding="10,8" Opacity="0.96">
+                                <suki:GlassCard Grid.Column="3" Classes="CounterPillCard">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                         <icons:MaterialIcon Kind="FormatListNumbered" Width="16" Height="16" />
                                         <TextBlock Text="总数" Opacity="0.8" />
@@ -316,7 +315,7 @@
                                 </suki:GlassCard>
 
                                 <suki:GlassCard Grid.Column="4"
-                                                Padding="10,8"
+                                                Padding="{StaticResource CompactPadding}"
                                                 Opacity="0.9"
                                                 MinHeight="56"
                                                 HorizontalAlignment="Stretch"
@@ -460,7 +459,7 @@
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
                                             VerticalAlignment="Center">
                                     <icons:MaterialIcon Kind="CircleMedium" Width="16" Height="16" />
-                                    <TextBlock Text="运行状态：" Opacity="0.75" />
+                                    <TextBlock Text="运行状态：" Opacity="{StaticResource SectionHintOpacity}" />
                                     <TextBlock Text="运行中" FontWeight="SemiBold"
                                                IsVisible="{Binding IsAutoFetchRunning}" />
                                     <TextBlock Text="已停止" FontWeight="SemiBold"

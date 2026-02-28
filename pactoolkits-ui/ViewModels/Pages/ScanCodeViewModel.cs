@@ -144,8 +144,8 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             IsDrugSuggestOpen = false;
         }, DispatcherPriority.Background);
 
-        using var cts = new CancellationTokenSource(LookupTimeout);
-        await ReloadSpecsByDrugAsync(drug, cts.Token).ConfigureAwait(false);
+        using var specCts = new CancellationTokenSource(LookupTimeout);
+        await ReloadSpecsByDrugAsync(drug, specCts.Token).ConfigureAwait(false);
 
         var specText = NormalizeInput(spec);
         if (!string.IsNullOrWhiteSpace(specText))
@@ -153,18 +153,18 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             await RunOnUiAsync(() =>
             {
                 var hit = SpecOptions.FirstOrDefault(x =>
-                    string.Equals(x.Raw, specText, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(NormalizeInput(x.Raw), specText, StringComparison.OrdinalIgnoreCase));
                 if (hit is not null)
                     SelectedSpec = hit;
             }, DispatcherPriority.Background);
 
             try
             {
-                var qty = await _lookup.GetQtyAsync(drug, specText, cts.Token).ConfigureAwait(false);
+                using var qtyCts = new CancellationTokenSource(QtyLookupTimeout);
+                var qty = await _lookup.GetQtyAsync(drug, specText, qtyCts.Token, forceRefresh: true).ConfigureAwait(false);
                 await RunOnUiAsync(() =>
                 {
-                    if (qty is not null)
-                        SelectedQtyText = qty.Value.ToString();
+                    SelectedQtyText = qty is null ? null : qty.Value.ToString();
                 }, DispatcherPriority.Background);
             }
             catch (System.Exception ex)
@@ -520,6 +520,15 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         await RunOnUiAsync(() =>
         {
             ReplaceOptions(DrugOptions, drugs);
+
+            var currentDrug = NormalizeInput(DrugText);
+            if (!string.IsNullOrWhiteSpace(currentDrug))
+            {
+                var stillExists = DrugOptions.Any(x =>
+                    string.Equals(x.Raw, currentDrug, StringComparison.OrdinalIgnoreCase));
+                if (stillExists)
+                    return;
+            }
 
             DrugText = null;
             SpecOptions.Clear();

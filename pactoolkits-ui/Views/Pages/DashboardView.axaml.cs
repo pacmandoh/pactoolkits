@@ -116,39 +116,6 @@ public partial class DashboardView : UserControl
         }
     }
 
-    private async void OnEntryRecentRowPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        try
-        {
-            if (DataContext is not pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm) return;
-            if (sender is not Border { DataContext: pactoolkits_ui.ViewModels.Pages.EntryRecentItem item }) return;
-
-            ClearBrowsingSelectionInUi(vm);
-            await vm.HandleEntryRecentRowSelectedAsync(item);
-        }
-        catch (Exception ex)
-        {
-            AppLog.Warn("DashboardView", "dashboard.pointer_handler.fail", "Dashboard pointer handler failed", ex);
-        }
-    }
-
-    private void ClearBrowsingSelectionInUi(pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm)
-    {
-        _syncingSelection = true;
-        vm.SuppressRowSelectionActionScope(true);
-        try
-        {
-            foreach (var grid in GetBrowsingGrids())
-                grid.SelectedItem = null;
-            vm.ClearBrowsingSelections();
-        }
-        finally
-        {
-            vm.SuppressRowSelectionActionScope(false);
-            _syncingSelection = false;
-        }
-    }
-
     public async void OnGridRowCopy(object? sender, RoutedEventArgs e)
     {
         if (sender is not MenuItem mi) return;
@@ -218,6 +185,39 @@ public partial class DashboardView : UserControl
             return;
 
         _selectionSnapshot[name] = selected;
+    }
+
+    private async void OnEntryRecentRowPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        try
+        {
+            if (DataContext is not pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm) return;
+            if (sender is not Border { DataContext: pactoolkits_ui.ViewModels.Pages.EntryRecentItem item }) return;
+
+            ClearBrowsingSelectionInUi(vm);
+            await vm.HandleEntryRecentRowSelectedAsync(item);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("DashboardView", "dashboard.pointer_handler.fail", "Dashboard pointer handler failed", ex);
+        }
+    }
+
+    private void ClearBrowsingSelectionInUi(pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm)
+    {
+        _syncingSelection = true;
+        vm.SuppressRowSelectionActionScope(true);
+        try
+        {
+            foreach (var grid in GetBrowsingGrids())
+                grid.SelectedItem = null;
+            vm.ClearBrowsingSelections();
+        }
+        finally
+        {
+            vm.SuppressRowSelectionActionScope(false);
+            _syncingSelection = false;
+        }
     }
 
     private IEnumerable<DataGrid> GetBrowsingGrids()

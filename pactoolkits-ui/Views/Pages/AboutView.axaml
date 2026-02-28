@@ -110,7 +110,7 @@
                         <TextBlock Grid.Row="1" Text="产品设计 / 自动化开发 / 业务落地" Opacity="0.86" />
                         <TextBlock Grid.Row="2"
                                    Classes="SectionHint"
-                                   Text="井研县中医医院药剂科项目维护者，聚焦追溯码录入效率、库存一致性与流程稳定性。" />
+                                   Text="井研县中医医院药剂科项目维护者，聚焦追溯码录入效率、库存一致性与流程稳定性" />
                     </Grid>
 
                     <Grid Grid.Column="2" RowDefinitions="Auto,Auto" RowSpacing="8">
@@ -243,16 +243,16 @@
                             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
                                 <TextBlock Text="Architecture Snapshot" FontWeight="SemiBold" />
                                 <TextBlock Grid.Row="1"
-                                           Text="Avalonia + .NET + PostgreSQL + AHK 形成“桌面编排 + 自动化执行 + 数据落库”闭环。"
+                                           Text="Avalonia + .NET + PostgreSQL + AHK 形成“桌面编排 + 自动化执行 + 数据落库”闭环"
                                            TextWrapping="Wrap" />
                                 <TextBlock Grid.Row="2"
                                            Classes="SectionHint"
-                                           Text="当前重点：保证追溯码注入成功率、并发一致性与配置可维护性。" />
+                                           Text="当前重点：保证追溯码注入成功率、并发一致性与配置可维护性" />
                             </Grid>
                         </suki:GlassCard>
 
                         <Grid Grid.Column="1" RowDefinitions="Auto,Auto" RowSpacing="8">
-                            <suki:GlassCard Padding="10,8" CornerRadius="12" Opacity="0.9">
+                            <suki:GlassCard Padding="{StaticResource CompactPadding}" CornerRadius="12" Opacity="0.9">
                                 <Grid RowDefinitions="Auto,Auto" RowSpacing="3">
                                     <TextBlock Text="里程碑阶段" FontWeight="SemiBold" />
                                     <TextBlock Grid.Row="1" Text="M3 - 自动化能力稳定化" Classes="SectionHint" />
@@ -422,7 +422,7 @@
                     </Grid>
 
                     <Grid Grid.Row="1" ColumnDefinitions="1.2*,1.2*,1.2*" ColumnSpacing="10">
-                        <suki:GlassCard Grid.Column="0" Padding="10,8" Opacity="0.95">
+                        <suki:GlassCard Grid.Column="0" Padding="{StaticResource CompactPadding}" Opacity="0.95">
                             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <icons:MaterialIcon Kind="ShieldCheckOutline" Width="14" Height="14" />
@@ -433,7 +433,7 @@
                             </Grid>
                         </suki:GlassCard>
 
-                        <suki:GlassCard Grid.Column="1" Padding="10,8" Opacity="0.95">
+                        <suki:GlassCard Grid.Column="1" Padding="{StaticResource CompactPadding}" Opacity="0.95">
                             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <icons:MaterialIcon Kind="LightningBoltOutline" Width="14" Height="14" />
@@ -444,7 +444,7 @@
                             </Grid>
                         </suki:GlassCard>
 
-                        <suki:GlassCard Grid.Column="2" Padding="10,8" Opacity="0.95">
+                        <suki:GlassCard Grid.Column="2" Padding="{StaticResource CompactPadding}" Opacity="0.95">
                             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <icons:MaterialIcon Kind="DatabaseSyncOutline" Width="14" Height="14" />
@@ -536,7 +536,7 @@
                                         Value="{Binding WaveDemoValue, Mode=TwoWay}" />
                                 <TextBlock Grid.Row="2"
                                            Classes="SectionHint"
-                                           Text="样式参考 WaveProgress 演示：WaveProgress + 拖动调节 + 实时数值。" />
+                                           Text="样式参考 WaveProgress 演示：WaveProgress + 拖动调节 + 实时数值" />
                             </Grid>
                         </Grid>
                     </suki:GroupBox>
@@ -554,7 +554,7 @@
                                     <TextBlock Margin="8,6,8,8"
                                                Classes="SectionHint"
                                                TextWrapping="Wrap"
-                                               Text="这里可放置系统能力说明、版本策略或排障建议，作为可折叠信息块。" />
+                                               Text="这里可放置系统能力说明、版本策略或排障建议，作为可折叠信息块" />
                                 </Expander>
                             </TabItem>
                         </TabControl>

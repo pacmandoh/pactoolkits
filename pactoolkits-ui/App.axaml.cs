@@ -117,6 +117,9 @@ public class App : Application
         _logger = Services.GetRequiredService<IAppLogger>();
         var releaseVersion = Services.GetRequiredService<IReleaseVersionService>().Current;
         Resources["AppVersionText"] = $"PacToolkits v{releaseVersion.UiVersion}";
+        Resources["AppChannelText"] = string.IsNullOrWhiteSpace(releaseVersion.BuildChannel)
+            ? "stable"
+            : releaseVersion.BuildChannel.Trim().ToLowerInvariant();
         _logger.Info("App", "app.start", "Application startup", new
         {
             releaseVersion.UiVersion,

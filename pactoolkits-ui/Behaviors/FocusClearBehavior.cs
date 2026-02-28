@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using System;
 using System.Linq;
 using pactoolkits_ui.Common;
 
@@ -11,6 +12,8 @@ namespace pactoolkits_ui.Behaviors;
 
 public class FocusClearBehavior
 {
+    private static WeakReference<TextBox>? _lastFocusedTextBox;
+
     public static readonly AttachedProperty<bool> EnableProperty =
         AvaloniaProperty.RegisterAttached<FocusClearBehavior, Control, bool>("Enable");
     public static readonly AttachedProperty<bool> SuppressGridClearProperty =
@@ -21,9 +24,15 @@ public class FocusClearBehavior
         EnableProperty.Changed.AddClassHandler<Control>((c, e) =>
         {
             if (e.GetNewValue<bool>())
+            {
                 c.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
+                c.AddHandler(InputElement.GotFocusEvent, OnGotFocus, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
+            }
             else
+            {
                 c.RemoveHandler(InputElement.PointerPressedEvent, OnPointerPressed);
+                c.RemoveHandler(InputElement.GotFocusEvent, OnGotFocus);
+            }
         });
     }
 
@@ -44,6 +53,9 @@ public class FocusClearBehavior
         if (sender is not InputElement scope)
             return;
 
+        if (IsInsideContextMenu(e.Source))
+            return;
+
         var focused = TopLevel.GetTopLevel(scope)?.FocusManager?.GetFocusedElement();
         if (focused is not Control ctrl)
             return;
@@ -60,6 +72,9 @@ public class FocusClearBehavior
         if (IsInsideControl(e.Source, ctrl))
             return;
 
+        if (ctrl is TextBox tb)
+            tb.ClearSelection();
+
         TryClearDataGridSelections(scope, e.Source);
 
         if (scope is Control host)
@@ -69,6 +84,21 @@ public class FocusClearBehavior
         ctrl.Focusable = true;
         ctrl.IsTabStop = false;
         ctrl.IsTabStop = true;
+    }
+
+    private static void OnGotFocus(object? sender, GotFocusEventArgs e)
+    {
+        if (e.Source is not TextBox current)
+            return;
+
+        if (_lastFocusedTextBox is not null &&
+            _lastFocusedTextBox.TryGetTarget(out var previous) &&
+            !ReferenceEquals(previous, current))
+        {
+            previous.ClearSelection();
+        }
+
+        _lastFocusedTextBox = new WeakReference<TextBox>(current);
     }
 
     private static bool IsInsideControl(object? source, Control target)
@@ -91,6 +121,20 @@ public class FocusClearBehavior
         while (current is not null)
         {
             if (current is DataGrid or DataGridRow or DataGridCell or DataGridColumnHeader or ScrollBar)
+                return true;
+
+            current = (current as StyledElement)?.Parent;
+        }
+
+        return false;
+    }
+
+    private static bool IsInsideContextMenu(object? source)
+    {
+        var current = source;
+        while (current is not null)
+        {
+            if (current is ContextMenu or MenuItem)
                 return true;
 
             current = (current as StyledElement)?.Parent;

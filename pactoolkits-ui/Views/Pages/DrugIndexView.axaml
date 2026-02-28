@@ -6,8 +6,8 @@
              xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             xmlns:conv="clr-namespace:pactoolkits_ui.Converters"
              xmlns:behaviors="clr-namespace:pactoolkits_ui.Behaviors"
+             xmlns:conv="clr-namespace:pactoolkits_ui.Converters"
              mc:Ignorable="d"
              d:DesignWidth="1200" d:DesignHeight="800"
              x:Class="pactoolkits_ui.Views.Pages.DrugIndexView"
@@ -16,8 +16,6 @@
              x:Name="Root">
     <UserControl.Resources>
         <conv:RowStateToBgBrushConverter x:Key="RowStateToBgBrush" />
-        <conv:RowIndexConverter x:Key="RowIndexPlusOne" />
-        <conv:BoolToDoneDangerBrushConverter x:Key="BoolToDoneDangerBrush" />
     </UserControl.Resources>
 
     <Grid Margin="18,14,18,18">
@@ -28,7 +26,7 @@
                     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
 
                         
-                        <suki:GlassCard Grid.Row="0" Padding="12,10" Opacity="0.98">
+                        <suki:GlassCard Grid.Row="0" Classes="FilterHintCard">
                             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
                                 <TextBox Height="36"
                                          x:Name="DrugIndexSearchBox"
@@ -94,7 +92,7 @@
                                 </StackPanel>
                             </WrapPanel>
 
-                            <Button Grid.Column="2" Classes="Action" Height="34" MinWidth="{StaticResource MinWAction}"
+                            <Button Grid.Column="2" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
                                     ClickMode="Press"
                                     Command="{Binding NewItemCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
@@ -228,53 +226,63 @@
                           RowSpacing="12"
                           KeyboardNavigation.TabNavigation="Cycle">
 
-                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-                            <TextBlock Grid.Column="0" Text="编辑" Classes="SectionTitle" />
+                        <Grid Grid.Row="0"
+                              ColumnDefinitions="*,Auto"
+                              ColumnSpacing="12"
+                              VerticalAlignment="Center">
+                            <StackPanel Grid.Column="0"
+                                        Spacing="3"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="编辑" Classes="SectionTitle" />
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6"
+                                            VerticalAlignment="Center"
+                                            IsVisible="{Binding HasEditor}">
+                                    <icons:MaterialIcon Kind="ShieldLock" Width="14" Height="14" />
+                                    <TextBlock Text="{Binding EditorUnlockStatusText}"
+                                               Opacity="0.78"
+                                               TextTrimming="CharacterEllipsis"
+                                               MaxWidth="300" />
+                                </StackPanel>
+                            </StackPanel>
 
                             <StackPanel Grid.Column="1"
                                         Orientation="Horizontal"
-                                        Spacing="6"
-                                        VerticalAlignment="Center"
-                                        IsVisible="{Binding HasEditor}">
-                                <icons:MaterialIcon Kind="ShieldLock" Width="14" Height="14" />
-                                <TextBlock Text="{Binding EditorUnlockStatusText}" Opacity="0.78" />
+                                        Spacing="10"
+                                        VerticalAlignment="Center">
+                                <Button Classes="Action"
+                                        Height="{StaticResource ControlHeightCompact}"
+                                        MinWidth="{StaticResource MinWAction}"
+                                        IsVisible="{Binding CanRequestEditorUnlock}"
+                                        Command="{Binding RequestEditorUnlockCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <icons:MaterialIcon Kind="ShieldLock" Width="16" Height="16" />
+                                        <TextBlock Text="解锁" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Classes="Action"
+                                        Height="{StaticResource ControlHeightCompact}"
+                                        MinWidth="{StaticResource MinWAction}"
+                                        IsVisible="{Binding CanLockEditor}"
+                                        Command="{Binding LockEditorCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <icons:MaterialIcon Kind="ShieldOffOutline" Width="16" Height="16" />
+                                        <TextBlock Text="锁定" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Classes="Action"
+                                        Height="{StaticResource ControlHeightCompact}"
+                                        MinWidth="{StaticResource MinWAction}"
+                                        IsVisible="{Binding HasEditor}"
+                                        Command="{Binding FixDrugKeyCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <icons:MaterialIcon Kind="SwapHorizontal" Width="16" Height="16" />
+                                        <TextBlock Text="纠错迁移" />
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
-
-                            <Button Grid.Column="2"
-                                    Classes="Action"
-                                    Height="34"
-                                    MinWidth="{StaticResource MinWAction}"
-                                    IsVisible="{Binding CanRequestEditorUnlock}"
-                                    Command="{Binding RequestEditorUnlockCommand}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="ShieldLock" Width="16" Height="16" />
-                                    <TextBlock Text="解锁" />
-                                </StackPanel>
-                            </Button>
-
-                            <Button Grid.Column="2"
-                                    Classes="Action"
-                                    Height="34"
-                                    MinWidth="{StaticResource MinWAction}"
-                                    IsVisible="{Binding CanLockEditor}"
-                                    Command="{Binding LockEditorCommand}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="ShieldOffOutline" Width="16" Height="16" />
-                                    <TextBlock Text="锁定" />
-                                </StackPanel>
-                            </Button>
-
-                            <Button Grid.Column="3"
-                                    Classes="Action"
-                                    Height="34"
-                                    MinWidth="{StaticResource MinWAction}"
-                                    IsVisible="{Binding HasEditor}"
-                                    Command="{Binding FixDrugKeyCommand}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="SwapHorizontal" Width="16" Height="16" />
-                                    <TextBlock Text="纠错迁移" />
-                                </StackPanel>
-                            </Button>
                         </Grid>
 
                         
@@ -290,7 +298,7 @@
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
 
                                 <ToggleButton Grid.Column="0"
-                                              Height="34"
+                                              Height="{StaticResource ControlHeightCompact}"
                                               IsChecked="{Binding IsDeprecated, Mode=TwoWay}"
                                               Command="{Binding ToggleDeprecatedCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
@@ -300,7 +308,7 @@
                                 </ToggleButton>
 
                                 <ToggleButton Grid.Column="1"
-                                              Height="34"
+                                              Height="{StaticResource ControlHeightCompact}"
                                               IsChecked="{Binding IsNoSplit, Mode=TwoWay}"
                                               Command="{Binding ToggleNoSplitCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
@@ -329,9 +337,9 @@
                                       HorizontalScrollBarVisibility="Disabled">
                             <StackPanel Spacing="10" Margin="0,0,0,6">
 
-                                <TextBox Height="34"
-                                         MinHeight="34"
-                                         MaxHeight="34"
+                                <TextBox Height="{StaticResource ControlHeightCompact}"
+                                         MinHeight="{StaticResource ControlHeightCompact}"
+                                         MaxHeight="{StaticResource ControlHeightCompact}"
                                          Padding="10,0"
                                          VerticalContentAlignment="Center"
                                          TextWrapping="NoWrap"
@@ -339,9 +347,9 @@
                                          Watermark="药品名（必填）"
                                          Text="{Binding EditDrugId, Mode=TwoWay}" />
 
-                                <TextBox Height="34"
-                                         MinHeight="34"
-                                         MaxHeight="34"
+                                <TextBox Height="{StaticResource ControlHeightCompact}"
+                                         MinHeight="{StaticResource ControlHeightCompact}"
+                                         MaxHeight="{StaticResource ControlHeightCompact}"
                                          Padding="10,0"
                                          VerticalContentAlignment="Center"
                                          TextWrapping="NoWrap"
@@ -355,9 +363,9 @@
                                                FormatString="0"
                                                Watermark="单盒数量（必填）" />
 
-                                <TextBox Height="34"
-                                         MinHeight="34"
-                                         MaxHeight="34"
+                                <TextBox Height="{StaticResource ControlHeightCompact}"
+                                         MinHeight="{StaticResource ControlHeightCompact}"
+                                         MaxHeight="{StaticResource ControlHeightCompact}"
                                          Padding="10,0"
                                          VerticalContentAlignment="Center"
                                          TextWrapping="NoWrap"
@@ -365,9 +373,9 @@
                                          Watermark="简称（可选）"
                                          Text="{Binding EditRuleKey, Mode=TwoWay}" />
 
-                                <TextBox Height="34"
-                                         MinHeight="34"
-                                         MaxHeight="34"
+                                <TextBox Height="{StaticResource ControlHeightCompact}"
+                                         MinHeight="{StaticResource ControlHeightCompact}"
+                                         MaxHeight="{StaticResource ControlHeightCompact}"
                                          Padding="10,0"
                                          VerticalContentAlignment="Center"
                                          TextWrapping="NoWrap"

@@ -127,6 +127,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool ShowDbBusyIcon => IsDbProbeRunning;
     public bool ShowDbConnectedIcon => IsDbConnected && !IsDbProbeRunning;
     public bool ShowDbDisconnectedIcon => !IsDbConnected && !IsDbProbeRunning;
+    public bool IsSettingsPageActive => ActivePage is ISettingsPage;
+    public bool IsAboutPageActive => ActivePage is IAboutPage;
 
     public bool IsAhkRunning => _ahkRuntime.IsRunning;
 
@@ -304,16 +306,60 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private async Task InitializeAfterStartupChecksAsync()
     {
-        var dbReady = await CheckDatabaseOnStartupAsync().ConfigureAwait(false);
-        if (dbReady)
+        await CheckDatabaseOnStartupAsync().ConfigureAwait(false);
+
+        if (_settingsPage is SettingsViewModel settingsPage)
+        {
+            try
+            {
+                await settingsPage.RefreshDbSchemaStatusFromHostAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("MainWindowVM", "db.schema.postcheck.refresh.fail", "Failed to refresh DB schema status after startup checks", ex);
+            }
+        }
+
+        // Keep DB monitor/watermark loops alive whenever config exists, even if startup probe fails.
+        // This enables automatic recovery after DB comes back online.
+        if (File.Exists(_configPath))
         {
             _dbMonitor.Start();
             _changeWatermark.Start();
             StartDbStateBootstrap();
         }
 
+        await EnsureAhkStartedOnStartupAsync().ConfigureAwait(false);
         await CheckUpdatesOnStartupAsync().ConfigureAwait(false);
         RestartUpdatePolling();
+    }
+
+    private async Task EnsureAhkStartedOnStartupAsync()
+    {
+        if (_ahkRuntime.IsRunning)
+            return;
+
+        try
+        {
+            var result = await _ahkRuntime.StartOrRestartAsync().ConfigureAwait(false);
+            if (!result.Ok && !result.SuppressToast)
+            {
+                _logger.Warn(
+                    "MainWindowVM",
+                    "ahk.startup_autostart.fail",
+                    "Failed to auto-start automation toolkit on startup",
+                    null,
+                    new { result.Message });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn("MainWindowVM", "ahk.startup_autostart.exception", "Startup auto-start threw exception", ex);
+        }
+        finally
+        {
+            PostOnUi(RaiseAhkStateChanged);
+        }
     }
 
     private void SyncThemeState()
@@ -407,6 +453,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(TopRefreshTip));
         OnPropertyChanged(nameof(TopImportTip));
         OnPropertyChanged(nameof(TopExportTip));
+        OnPropertyChanged(nameof(IsSettingsPageActive));
+        OnPropertyChanged(nameof(IsAboutPageActive));
 
         TryRefreshDirtyActivePage();
     }
@@ -502,7 +550,14 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         if (report.Success)
             _toasts.Success("数据库", kind == DbProbeKind.HealthCheck ? "健康检查通过" : "重连成功");
         else
+        {
+            _logger.Warn("MainWindowVM", "db.probe.unsuccessful", "Database probe finished with unsuccessful result", null, new
+            {
+                kind,
+                report.Reason
+            });
             _toasts.Error("数据库", report.Reason ?? "连接失败");
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanControlAhk))]

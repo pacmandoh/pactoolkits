@@ -1,0 +1,112 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:con="https://github.com/kikipoulet/SukiUI"
+        xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+        xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia">
+    <Style Selector="con|SukiWindow MenuItem:disabled">
+        <Setter Property="Opacity" Value="0.4" />
+    </Style>
+
+    <Style Selector="sukiControls|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] /template/ ContentControl">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+    <Style Selector="Button.SidebarCompactAction">
+        <Setter Property="Width" Value="85" />
+        <Setter Property="Height" Value="54" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="15" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="CompactActionBg"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Content="{TemplateBinding Content}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.SidebarCompactAction:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor5}" />
+    </Style>
+
+    <Style Selector="Button.SidebarCompactAction > materialIcons|MaterialIcon">
+        <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+    </Style>
+
+    <Style Selector="Button.SidebarCompactAction.ActiveCompactAction">
+        <Setter Property="Background">
+            <DrawingBrush Stretch="Fill">
+                <DrawingBrush.Drawing>
+                    <DrawingGroup>
+                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor10}">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="0,0,1,1" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor}">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="0.18,0.24,0.08,0.52" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                    </DrawingGroup>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.SidebarCompactAction.ActiveCompactAction > materialIcons|MaterialIcon">
+        <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor}" />
+    </Style>
+
+    <Style Selector="con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border">
+        <Setter Property="Background">
+            <DrawingBrush Stretch="Fill">
+                <DrawingBrush.Drawing>
+                    <DrawingGroup>
+                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor10}">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="0,0,1,1" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor}">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="0.0,0.24,0.018,0.52" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                    </DrawingGroup>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
+        </Setter>
+    </Style>
+
+    <Style Selector="con|SukiSideMenu[IsMenuExpanded=False] con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border">
+        <Setter Property="Background">
+            <DrawingBrush Stretch="Fill">
+                <DrawingBrush.Drawing>
+                    <DrawingGroup>
+                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor10}">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="0,0,1,1" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor}">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="0.18,0.24,0.08,0.52" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                    </DrawingGroup>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
+        </Setter>
+    </Style>
+</Styles>

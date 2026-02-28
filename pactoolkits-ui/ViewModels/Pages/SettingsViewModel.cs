@@ -189,13 +189,16 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         LoadUiBehavior();
         LoadUpdateOptions();
         LoadLoggingOptions();
-        _ = RefreshDbSchemaStatusAsync("startup", manualProbe: false);
+        _ = RefreshDbSchemaStatusOnStartupAsync();
         _uiBehavior.Changed += OnUiBehaviorChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
         _updates.Changed += OnUpdatesChanged;
         _loggingSettings.Changed += OnLoggingSettingsChanged;
 
     }
+
+    public Task RefreshDbSchemaStatusFromHostAsync(string source = "startup_postcheck")
+        => RefreshDbSchemaStatusAsync(source, manualProbe: false);
 
     private void OnClientAliasesChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsClientAliasesEmpty));
@@ -1042,10 +1045,26 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
     }
 
+    private async Task RefreshDbSchemaStatusOnStartupAsync()
+    {
+        try
+        {
+            await RefreshDbSchemaStatusAsync("startup", manualProbe: false).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("SettingsVM", "db.schema.startup_refresh.fail", "Startup schema status refresh failed", ex);
+            SetDbSchemaStatus("更新失败", checking: false, failed: true, error: ex.Message);
+            DbSchemaLastCheckedAtText = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            DbSchemaLastCheckSourceText = MapDbSchemaCheckSource("startup");
+        }
+    }
+
     private static string MapDbSchemaCheckSource(string source)
         => source switch
         {
             "startup" => "应用启动",
+            "startup_postcheck" => "启动检查完成后回读",
             "manual_check" => "手动检查",
             "compat_check" => "兼容性校验",
             "migrate_done" => "迁移完成后回读",

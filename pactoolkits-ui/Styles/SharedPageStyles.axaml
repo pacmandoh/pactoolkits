@@ -1,0 +1,206 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:con="https://github.com/kikipoulet/SukiUI"
+        xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+        xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia">
+    <Style Selector="con|GlassCard.FilterFieldCard">
+        <Setter Property="Padding" Value="{DynamicResource CompactPadding}" />
+        <Setter Property="Opacity" Value="0.94" />
+    </Style>
+
+    <Style Selector="con|GlassCard.FilterHintCard">
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="Opacity" Value="0.98" />
+    </Style>
+
+    <Style Selector="con|GlassCard.CounterPillCard">
+        <Setter Property="Padding" Value="{DynamicResource CompactPadding}" />
+        <Setter Property="Opacity" Value="0.96" />
+    </Style>
+
+    <Style Selector="con|GlassCard.StatusChipCard">
+        <Setter Property="Padding" Value="{DynamicResource CompactPadding}" />
+        <Setter Property="Opacity" Value="0.90" />
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="0" />
+            </ItemsPanelTemplate>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <DockPanel>
+                    <sukiControls:GlassCard DockPanel.Dock="Top"
+                                            HorizontalAlignment="Left"
+                                            Padding="3"
+                                            CornerRadius="11">
+                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                        ItemsPanel="{TemplateBinding ItemsPanel}" />
+                    </sukiControls:GlassCard>
+                    <ContentPresenter Name="PART_SelectedContentHost"
+                                      Margin="{TemplateBinding Padding}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      Content="{TemplateBinding SelectedContent}"
+                                      ContentTemplate="{TemplateBinding SelectedContentTemplate}" />
+                </DockPanel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs TabItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="8,3" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="0">
+                    <Border Name="PART_LayoutRoot"
+                            Grid.Column="0"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="8"
+                            Margin="2,3,2,3"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter Name="PART_HeaderPresenter"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Center"
+                                          Content="{TemplateBinding Header}"
+                                          ContentTemplate="{TemplateBinding HeaderTemplate}" />
+                    </Border>
+                    <Border Name="PART_Divider"
+                            Grid.Column="1"
+                            Width="1"
+                            Height="14"
+                            Margin="6,0,6,0"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource SukiControlBorderBrush}" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs TabItem.NoDivider /template/ Border#PART_Divider">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs TabItem /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs TabItem /template/ ContentPresenter#PART_HeaderPresenter materialIcons|MaterialIcon">
+        <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs TabItem:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource DashboardTabHoverBrush}" />
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs TabItem:pointerover /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs TabItem:pointerover /template/ ContentPresenter#PART_HeaderPresenter materialIcons|MaterialIcon">
+        <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource DashboardTabSelectedBrush}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="BoxShadow" Value="none" />
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor120}" />
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ ContentPresenter#PART_HeaderPresenter materialIcons|MaterialIcon">
+        <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor}" />
+    </Style>
+
+    <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ ContentPresenter#PART_HeaderPresenter TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor120}" />
+        <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+
+    <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=15}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:pointerover DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:selected DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=35}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:selected:pointerover DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=50}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.LowToneGrid.EditableGrid DataGridRow:pointerover DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=15}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.LowToneGrid.EditableGrid DataGridRow:selected DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.LowToneGrid.EditableGrid DataGridRow:selected:pointerover DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.LowToneGrid.StockEditable DataGridRow:pointerover DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.LowToneGrid.StockEditable DataGridRow:selected DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=35}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.LowToneGrid.StockEditable DataGridRow:selected:pointerover DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=50}" />
+    </Style>
+
+    <Style Selector="DataGrid.TxnGrid DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=15}" />
+    </Style>
+    <Style Selector="DataGrid.TxnGrid DataGridRow:pointerover DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=25}" />
+    </Style>
+    <Style Selector="DataGrid.TxnGrid DataGridRow:selected DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=35}" />
+    </Style>
+    <Style Selector="DataGrid.TxnGrid DataGridRow:selected:pointerover DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=50}" />
+    </Style>
+
+    <Style Selector="DataGrid.TraceStateGrid DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}}" />
+    </Style>
+    <Style Selector="DataGrid.TraceStateGrid DataGridRow:pointerover DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}}" />
+    </Style>
+    <Style Selector="DataGrid.TraceStateGrid DataGridRow:selected DataGridCell">
+        <Setter Property="Background"
+                Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}}" />
+    </Style>
+</Styles>
