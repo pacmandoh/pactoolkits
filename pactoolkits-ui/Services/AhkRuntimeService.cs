@@ -37,6 +37,7 @@ public interface IAhkRuntimeService : IDisposable
 public sealed class AhkRuntimeService : IAhkRuntimeService
 {
     private readonly IAppConfigStore _configStore;
+    private readonly IReleaseVersionService _releaseVersion;
     private readonly IAppLogger _logger;
     private readonly object _gate = new();
     private readonly SemaphoreSlim _commandGate = new(1, 1);
@@ -100,9 +101,10 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
         }
     }
 
-    public AhkRuntimeService(IAppConfigStore configStore, IAppLogger logger)
+    public AhkRuntimeService(IAppConfigStore configStore, IReleaseVersionService releaseVersion, IAppLogger logger)
     {
         _configStore = configStore;
+        _releaseVersion = releaseVersion;
         _logger = logger;
         Reload();
 
@@ -208,7 +210,7 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
             var startInfo = new ProcessStartInfo
             {
                 FileName = resolvedExePath,
-                Arguments = BuildConfigArguments(_configStore.ConfigPath),
+                Arguments = BuildConfigArguments(_configStore.ConfigPath, _releaseVersion.Current),
                 WorkingDirectory = Path.GetDirectoryName(resolvedExePath) ?? Environment.CurrentDirectory,
                 UseShellExecute = true,
             };
@@ -561,10 +563,14 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
         return new ToolCommandResult(true, "ok");
     }
 
-    private static string BuildConfigArguments(string configPath)
+    private static string BuildConfigArguments(string configPath, ReleaseVersionInfo releaseVersion)
     {
-        var escaped = (configPath ?? string.Empty).Replace("\"", "\\\"");
-        return $"--config \"{escaped}\"";
+        static string Q(string value)
+            => $"\"{(value ?? string.Empty).Replace("\"", "\\\"")}\"";
+
+        var config = Q(configPath ?? string.Empty);
+        var agent = Q(releaseVersion.AgentVersion ?? string.Empty);
+        return $"--config {config} --agent-version {agent}";
     }
 
     private static AhkToolOptions Normalize(AhkToolOptions? src)

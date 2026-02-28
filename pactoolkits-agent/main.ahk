@@ -36,9 +36,9 @@ if !(cfgLoad.Has("ok") && cfgLoad["ok"]) {
 }
 global Cfg := cfgLoad["cfg"]
 global VersionInfo := Util_ReadVersionFile()
-versionTag := VersionInfo["agentVersion"] "|" VersionInfo["uiVersion"] "|" VersionInfo["dbSchemaVersion"]
+versionTag := VersionInfo["agentVersion"]
 if Util_ShouldShowVersionTip(versionTag)
-    UI_Tip("Agent v" VersionInfo["agentVersion"] " | UI v" VersionInfo["uiVersion"] " | DB Schema v" VersionInfo["dbSchemaVersion"], 1600)
+    UI_Tip("Agent v" VersionInfo["agentVersion"], 1600)
 
 ; ===== 启动自检：关键配置缺失直接报错退出 =====
 _missing := []
