@@ -1,6 +1,6 @@
 # Pactoolkits UI 日志事件对照与分级
 
-更新时间: 2026-02-17
+更新时间: 2026-03-01
 适用范围: `pactoolkits-ui`
 
 ## 1. 使用说明
@@ -108,8 +108,17 @@
 - `db.schema.read_fail`
 - `db.schema.mismatch`
 - `db.schema.ok`
+- `db.schema.incompatible`
+- `db.schema.postcheck.refresh.fail`
 - `db.probe.timeout`
 - `db.probe.error`
+- `db.probe.unsuccessful`
+- `db.startup_check.migrate.skipped`
+- `db.startup_check.migrate.retry_on_incompatible`
+- `db.startup_check.migrate.stamp.saved`
+- `db.startup_check.fail`
+- `ahk.startup_autostart.fail`
+- `ahk.startup_autostart.exception`
 - `ahk.top_action.error`
 - `update.check.startup`
 - `update.check.result`
@@ -119,6 +128,7 @@
 - `update.prompt.ignore`
 - `update.apply.error`
 - `config.watcher.init_fail`
+- `config.external_db_change_ignored`
 - `config.external_apply_fail`
 - `page.refresh.batch_fail`
 - `dispose.safe_execute_fail`
@@ -127,6 +137,8 @@
 
 - `db.test.timeout`
 - `db.save.fail`
+- `db.schema.incompatible`
+- `db.schema.startup_refresh.fail`
 - `client_alias.save.fail`
 - `trace_rule.regex_invalid`
 - `trace_rule.save.fail`
@@ -135,6 +147,7 @@
 - `update.check.fail`
 - `update.apply.fail`
 - `update.clear_ignored.fail`
+- `update.ignore.fail`
 - `logging.settings.saved`
 - `logging.settings.save_fail`
 - `logging.open_dir`
@@ -230,6 +243,24 @@
 
 - `db.test.fail`
 
+## DbSchemaMigration
+
+- `db.migrate.start`
+- `db.migrate.bootstrap.begin`
+- `db.migrate.bootstrap.ok`
+- `db.migrate.apply.begin`
+- `db.migrate.apply.ok`
+- `db.migrate.apply.fail`
+- `db.migrate.finish`
+
+## UpdateUiFlow
+
+- `update.check.result`
+- `update.check.cancel`
+- `update.check.timeout`
+- `update.check.error`
+- `update.apply.flow_fail`
+
 ## PgDb
 
 - `conn.transient_disconnect.retry`
@@ -278,6 +309,16 @@
 
 - `dashboard.selection_handler.fail`
 - `dashboard.pointer_handler.fail`
+
+## InventoryOverviewView
+
+- `inventory.pointer_release.fail`
+- `inventory.stock_edit_end.fail`
+- `inventory.context_delete.fail`
+
+## ClientIdReadRepo
+
+- `client_id.query.partial_fail`
 
 ---
 
