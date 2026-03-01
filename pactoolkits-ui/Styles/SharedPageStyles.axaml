@@ -102,34 +102,38 @@
     </Style>
 
     <Style Selector="TabControl.DashboardSubTabs TabItem:pointerover /template/ Border#PART_LayoutRoot">
-        <Setter Property="Background" Value="{DynamicResource DashboardTabHoverBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor75}" />
     </Style>
 
     <Style Selector="TabControl.DashboardSubTabs TabItem:pointerover /template/ ContentPresenter#PART_HeaderPresenter">
-        <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+        <Setter Property="Foreground" Value="White" />
     </Style>
 
     <Style Selector="TabControl.DashboardSubTabs TabItem:pointerover /template/ ContentPresenter#PART_HeaderPresenter materialIcons|MaterialIcon">
-        <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+        <Setter Property="Foreground" Value="White" />
     </Style>
 
     <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ Border#PART_LayoutRoot">
-        <Setter Property="Background" Value="{DynamicResource DashboardTabSelectedBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor}" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="BoxShadow" Value="none" />
     </Style>
 
+    <Style Selector="TabControl.DashboardSubTabs TabItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor75}" />
+    </Style>
+
     <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ ContentPresenter#PART_HeaderPresenter">
-        <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor120}" />
+        <Setter Property="Foreground" Value="White" />
     </Style>
 
     <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ ContentPresenter#PART_HeaderPresenter materialIcons|MaterialIcon">
-        <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor}" />
+        <Setter Property="Foreground" Value="White" />
     </Style>
 
     <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ ContentPresenter#PART_HeaderPresenter TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor120}" />
+        <Setter Property="Foreground" Value="White" />
         <Setter Property="FontWeight" Value="Bold" />
     </Style>
 
@@ -172,6 +176,19 @@
     <Style Selector="DataGrid.InventoryGrid.LowToneGrid.StockEditable DataGridRow:selected:pointerover DataGridCell">
         <Setter Property="Background"
                 Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=50}" />
+    </Style>
+
+    <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridCell">
+        <Setter Property="Background" Value="{DynamicResource BrushWarningBg15}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridRow:pointerover DataGridCell">
+        <Setter Property="Background" Value="{DynamicResource BrushWarningBg25}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridRow:selected DataGridCell">
+        <Setter Property="Background" Value="{DynamicResource BrushWarningBg35}" />
+    </Style>
+    <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridRow:selected:pointerover DataGridCell">
+        <Setter Property="Background" Value="{DynamicResource BrushWarningBg50}" />
     </Style>
 
     <Style Selector="DataGrid.TxnGrid DataGridCell">

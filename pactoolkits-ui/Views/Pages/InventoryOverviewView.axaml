@@ -129,8 +129,10 @@
                                 <icons:MaterialIcon Kind="ShieldLock"
                                                     Width="16"
                                                     Height="16"
-                                                    VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding UnlockStatusText}" />
+                                                    VerticalAlignment="Center"
+                                                    Foreground="{Binding IsOperationUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}" />
+                                <TextBlock Text="{Binding UnlockStatusText}"
+                                           Foreground="{Binding IsOperationUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}" />
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding ShowEditSessionState}">
@@ -159,7 +161,10 @@
                                     IsVisible="{Binding ShowRequestUnlock}"
                                     Command="{Binding RequestUnlockCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="ShieldLock" Width="16" Height="16" />
+                                    <icons:MaterialIcon Kind="ShieldLock"
+                                                        Width="16"
+                                                        Height="16"
+                                                        Foreground="{StaticResource BrushWarning}" />
                                     <TextBlock Text="解锁" />
                                 </StackPanel>
                             </Button>
@@ -170,7 +175,10 @@
                                     IsVisible="{Binding ShowLockOperations}"
                                     Command="{Binding LockOperationsCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="ShieldOffOutline" Width="16" Height="16" />
+                                    <icons:MaterialIcon Kind="ShieldOffOutline"
+                                                        Width="16"
+                                                        Height="16"
+                                                        Foreground="{StaticResource BrushDanger}" />
                                     <TextBlock Text="锁定" />
                                 </StackPanel>
                             </Button>
@@ -508,21 +516,6 @@
                                           MinHeight="0"
                                           HorizontalScrollBarVisibility="Disabled"
                                           VerticalScrollBarVisibility="Auto">
-
-                            <DataGrid.Styles>
-                                <Style Selector="DataGrid.InventoryGrid DataGridCell">
-                                    <Setter Property="Background" Value="{DynamicResource BrushWarningBg15}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid DataGridRow:pointerover DataGridCell">
-                                    <Setter Property="Background" Value="{DynamicResource BrushWarningBg25}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid DataGridRow:selected DataGridCell">
-                                    <Setter Property="Background" Value="{DynamicResource BrushWarningBg35}" />
-                                </Style>
-                                <Style Selector="DataGrid.InventoryGrid DataGridRow:selected:pointerover DataGridCell">
-                                    <Setter Property="Background" Value="{DynamicResource BrushWarningBg50}" />
-                                </Style>
-                            </DataGrid.Styles>
 
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Width="40"

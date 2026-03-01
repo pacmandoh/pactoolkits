@@ -96,11 +96,11 @@
                                     <TextBlock Text="单条数量" Opacity="{StaticResource SectionHintOpacity}" FontSize="12" />
                                 </StackPanel>
                                 <Border Grid.Row="1"
-                                        Height="35"
-                                        CornerRadius="10"
-                                        BorderThickness="1"
-                                        Padding="10,0"
-                                        BorderBrush="{DynamicResource SukiBorderBrush}">
+                                        Height="36"
+                                        Classes="AutoCompleteInputHost"
+                                        Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        IsEnabled="False"
+                                        Padding="8,0">
                                     <Grid VerticalAlignment="Center">
                                         <TextBlock IsVisible="{Binding IsSpecSelected}"
                                                    Text="{Binding SelectedQtyText}"
