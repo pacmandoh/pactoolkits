@@ -5,6 +5,7 @@ using Avalonia.Threading;
 using Avalonia;
 using System.Collections.Generic;
 using pactoolkits_ui.Common;
+using pactoolkits_ui.ViewModels.Pages;
 
 namespace pactoolkits_ui.Views.Pages;
 
@@ -16,6 +17,7 @@ public partial class ScanCodeView : UserControl
     public ScanCodeView()
     {
         InitializeComponent();
+        AttachDrugFilter();
     }
 
     private void DrugBox_OnKeyDown(object? sender, KeyEventArgs e)
@@ -81,6 +83,21 @@ public partial class ScanCodeView : UserControl
             if (this.FindControl<DataGrid>(name) is { } grid)
                 yield return grid;
         }
+    }
+
+    private void AttachDrugFilter()
+    {
+        if (this.FindControl<AutoCompleteBox>("DrugBox") is not { } box)
+            return;
+
+        box.ItemFilter = static (search, item) =>
+        {
+            if (item is OptionItem option)
+                return PinyinInitialMatcher.IsMatch(search, option.Raw);
+
+            return item is not null &&
+                   PinyinInitialMatcher.IsMatch(search, item.ToString());
+        };
     }
 
 }
