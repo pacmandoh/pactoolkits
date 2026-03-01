@@ -238,8 +238,12 @@
                                             Spacing="6"
                                             VerticalAlignment="Center"
                                             IsVisible="{Binding HasEditor}">
-                                    <icons:MaterialIcon Kind="ShieldLock" Width="14" Height="14" />
+                                    <icons:MaterialIcon Kind="ShieldLock"
+                                                        Width="14"
+                                                        Height="14"
+                                                        Foreground="{Binding IsEditorUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}" />
                                     <TextBlock Text="{Binding EditorUnlockStatusText}"
+                                               Foreground="{Binding IsEditorUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}"
                                                Opacity="0.78"
                                                TextTrimming="CharacterEllipsis"
                                                MaxWidth="300" />
@@ -256,7 +260,10 @@
                                         IsVisible="{Binding CanRequestEditorUnlock}"
                                         Command="{Binding RequestEditorUnlockCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="ShieldLock" Width="16" Height="16" />
+                                        <icons:MaterialIcon Kind="ShieldLock"
+                                                            Width="16"
+                                                            Height="16"
+                                                            Foreground="{StaticResource BrushWarning}" />
                                         <TextBlock Text="解锁" />
                                     </StackPanel>
                                 </Button>
@@ -267,7 +274,10 @@
                                         IsVisible="{Binding CanLockEditor}"
                                         Command="{Binding LockEditorCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="ShieldOffOutline" Width="16" Height="16" />
+                                        <icons:MaterialIcon Kind="ShieldOffOutline"
+                                                            Width="16"
+                                                            Height="16"
+                                                            Foreground="{StaticResource BrushDanger}" />
                                         <TextBlock Text="锁定" />
                                     </StackPanel>
                                 </Button>

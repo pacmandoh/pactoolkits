@@ -76,11 +76,11 @@
         <Setter Property="Background" Value="#1E000000" />
     </Style>
 
-    <Style Selector="Border.AutoCompleteInputHost:focus-within">
+    <Style Selector="Border.AutoCompleteInputHost:enabled:focus-within">
         <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor}" />
     </Style>
 
-    <Style Selector="Border.AutoCompleteInputHost:pointerover">
+    <Style Selector="Border.AutoCompleteInputHost:enabled:pointerover">
         <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor}" />
     </Style>
 

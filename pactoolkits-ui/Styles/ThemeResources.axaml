@@ -24,13 +24,6 @@
     <SolidColorBrush x:Key="BrushPurpleBg25" Color="#407C3AED" />
     <SolidColorBrush x:Key="BrushPurpleBg35" Color="#597C3AED" />
     <SolidColorBrush x:Key="BrushPurpleBg50" Color="#807C3AED" />
-    <SolidColorBrush x:Key="DashboardTabHoverBrush"
-                     Color="{DynamicResource SukiPrimaryColor}"
-                     Opacity="0.30" />
-    <SolidColorBrush x:Key="DashboardTabSelectedBrush"
-                     Color="{DynamicResource SukiPrimaryColor}"
-                     Opacity="0.40" />
-
     <CornerRadius x:Key="SectionCardRadius">18</CornerRadius>
     <Thickness x:Key="SectionCardPadding">18</Thickness>
 
