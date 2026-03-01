@@ -42,6 +42,7 @@ public partial class InventoryOverviewView : UserControl
     {
         _clipboard = clipboard;
         InitializeComponent();
+        AttachReassignDrugFilter();
         DataContextChanged += OnDataContextChanged;
     }
 
@@ -211,6 +212,21 @@ public partial class InventoryOverviewView : UserControl
             _vm.PropertyChanged += OnVmPropertyChanged;
 
         SyncStockEditClass();
+    }
+
+    private void AttachReassignDrugFilter()
+    {
+        if (this.FindControl<AutoCompleteBox>("ReassignDrugBox") is not { } box)
+            return;
+
+        box.ItemFilter = static (search, item) =>
+        {
+            if (item is OptionItem option)
+                return PinyinInitialMatcher.IsMatch(search, option.Raw);
+
+            return item is not null &&
+                   PinyinInitialMatcher.IsMatch(search, item.ToString());
+        };
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

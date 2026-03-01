@@ -9,6 +9,7 @@ using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.Services;
+using pactoolkits_ui.ViewModels.Pages;
 
 namespace pactoolkits_ui.Views.Pages;
 
@@ -60,6 +61,7 @@ public partial class DashboardView : UserControl
     {
         _clipboard = clipboard;
         InitializeComponent();
+        AttachDrugFilter();
     }
 
     private void DrugBox_OnKeyDown(object? sender, KeyEventArgs e)
@@ -114,6 +116,21 @@ public partial class DashboardView : UserControl
         {
             AppLog.Warn("DashboardView", "dashboard.selection_handler.fail", "Dashboard selection handler failed", ex);
         }
+    }
+
+    private void AttachDrugFilter()
+    {
+        if (this.FindControl<AutoCompleteBox>("DrugBox") is not { } box)
+            return;
+
+        box.ItemFilter = static (search, item) =>
+        {
+            if (item is OptionItem option)
+                return PinyinInitialMatcher.IsMatch(search, option.Raw);
+
+            return item is not null &&
+                   PinyinInitialMatcher.IsMatch(search, item.ToString());
+        };
     }
 
     public async void OnGridRowCopy(object? sender, RoutedEventArgs e)
