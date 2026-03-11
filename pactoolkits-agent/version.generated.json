@@ -4,7 +4,7 @@
   "uiVersion": "0.11.0",
   "dbSchemaVersion": "1.2.9",
   "compat": {
-    "uiMinDbSchema": "1.2.7",
+    "uiMinDbSchema": "1.2.9",
     "agentMinDbSchema": "1.2.0"
   },
   "build": {
