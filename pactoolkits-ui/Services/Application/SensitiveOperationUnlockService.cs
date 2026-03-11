@@ -1,10 +1,11 @@
 using System;
+using pactoolkits_ui.Services.Infrastructure;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Application;
 
 public sealed record UnlockScopeSnapshot(
     bool IsUnlocked,

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Npgsql;
 using pactoolkits_ui.DataAccess;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Infrastructure;
 
 public sealed record DbTestResult(
     bool Ok,

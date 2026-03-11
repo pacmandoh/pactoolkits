@@ -1,4 +1,5 @@
 using System;
+using pactoolkits_ui.Services.Infrastructure;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net.Http;
@@ -9,7 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Integration;
 
 public sealed record MsfxApiCallResult(
     bool Ok,

@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System.Windows.Input;
 using System.Collections.ObjectModel;
 using System;
-using pactoolkits_ui.Services;
+using pactoolkits_ui.Services.Infrastructure;
 
 namespace pactoolkits_ui.ViewModels.Pages;
 

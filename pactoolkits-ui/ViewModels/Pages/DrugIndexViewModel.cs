@@ -12,7 +12,8 @@ using CommunityToolkit.Mvvm.Input;
 using pactoolkits_ui.Contracts;
 using Material.Icons;
 using pactoolkits_ui.Repositories;
-using pactoolkits_ui.Services;
+using pactoolkits_ui.Services.Application;
+using pactoolkits_ui.Services.Infrastructure;
 using Pactoolkits.ViewModels.Pages.DrugIndex;
 
 namespace pactoolkits_ui.ViewModels.Pages;

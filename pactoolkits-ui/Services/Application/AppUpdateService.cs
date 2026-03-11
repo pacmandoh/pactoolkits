@@ -1,9 +1,10 @@
 using System;
+using pactoolkits_ui.Services.Infrastructure;
 using System.Threading;
 using System.Threading.Tasks;
 using Velopack;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Application;
 
 public sealed record AppUpdateCheckResult(
     bool Success,
@@ -285,7 +286,7 @@ public sealed class AppUpdateService : IAppUpdateService
         Changed?.Invoke();
     }
 
-    private static UpdateManager CreateUpdateManager(UpdateOptions options)
+    private static UpdateManager CreateUpdateManager(pactoolkits_ui.Services.Infrastructure.UpdateOptions options)
     {
         var feed = options.FeedUrl.Trim();
         var explicitChannel = string.IsNullOrWhiteSpace(options.Channel) ? null : options.Channel.Trim();
@@ -297,7 +298,7 @@ public sealed class AppUpdateService : IAppUpdateService
         return new UpdateManager(feed, updateOptions);
     }
 
-    private static string BuildSource(UpdateOptions options)
+    private static string BuildSource(pactoolkits_ui.Services.Infrastructure.UpdateOptions options)
     {
         var channel = string.IsNullOrWhiteSpace(options.Channel) ? "stable" : options.Channel.Trim();
         var feed = string.IsNullOrWhiteSpace(options.FeedUrl) ? "unknown" : options.FeedUrl.Trim();

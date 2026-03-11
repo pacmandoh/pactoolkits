@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.DataAccess;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Infrastructure;
 
 public sealed class TraceCodeValidationOptions
 {

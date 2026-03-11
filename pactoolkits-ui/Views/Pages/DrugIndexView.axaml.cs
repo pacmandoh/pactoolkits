@@ -5,7 +5,7 @@ using Avalonia.Interactivity;
 using System;
 using Avalonia;
 using Avalonia.Threading;
-using pactoolkits_ui.Services;
+using pactoolkits_ui.Services.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using pactoolkits_ui.Common;
 using System.Collections.Generic;

@@ -1,11 +1,12 @@
 using System;
+using pactoolkits_ui.Services.Infrastructure;
 using System.Threading;
 using System.Threading.Tasks;
 using pactoolkits_ui.Contracts;
 using pactoolkits_ui.DataAccess;
 using Microsoft.Extensions.Options;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Application;
 
 public interface ITraceEntryLogService
 {
