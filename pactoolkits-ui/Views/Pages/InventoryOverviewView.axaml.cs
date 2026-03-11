@@ -6,7 +6,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using pactoolkits_ui.Common;
-using pactoolkits_ui.Services;
+using pactoolkits_ui.Services.Infrastructure;
 using pactoolkits_ui.ViewModels.Pages;
 using System;
 using System.Collections.Generic;
@@ -102,8 +102,7 @@ public partial class InventoryOverviewView : UserControl
 
             if (sender is DataGrid grid && row is not null)
             {
-                var point = e.PointerPressedEventArgs.GetCurrentPoint(grid);
-                if (point.Properties.IsLeftButtonPressed && !point.Properties.IsRightButtonPressed)
+                if (DataGridInteractionHelper.IsLeftClick(e.PointerPressedEventArgs, grid))
                 {
                     // Keep current-cell aligned with the clicked cell to avoid "second click to focus".
                     Dispatcher.UIThread.Post(() =>

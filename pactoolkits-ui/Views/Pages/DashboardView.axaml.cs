@@ -8,7 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using pactoolkits_ui.Common;
-using pactoolkits_ui.Services;
+using pactoolkits_ui.Services.Infrastructure;
 using pactoolkits_ui.ViewModels.Pages;
 
 namespace pactoolkits_ui.Views.Pages;
@@ -166,8 +166,7 @@ public partial class DashboardView : UserControl
         if (sender is not DataGrid grid || string.IsNullOrWhiteSpace(grid.Name))
             return;
 
-        var p = e.GetCurrentPoint(grid).Properties;
-        if (p.IsRightButtonPressed)
+        if (DataGridInteractionHelper.IsRightClick(e, grid))
             _lastRightPressedGridName = grid.Name;
     }
 

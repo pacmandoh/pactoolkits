@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using pactoolkits_ui.Common;
 using pactoolkits_ui.ViewModels.Pages;
 
 namespace pactoolkits_ui.Views.Pages;
@@ -44,35 +45,16 @@ public partial class MsfxLinkView : UserControl
         var isRowClickDetailGrid = grid.Name is
             "AutoLogGrid" or "AutoLogFullGrid" or
             "AutoPullBatchGrid" or "AutoPullBatchFullGrid";
-
-        var current = e.Source as StyledElement;
-        var hitRowHeader = false;
-        DataGridRow? row = null;
-        while (current is not null)
-        {
-            if (current is DataGridRowHeader)
-                hitRowHeader = true;
-
-            if (current is DataGridRow dgRow)
-            {
-                row = dgRow;
-                break;
-            }
-
-            current = current.Parent as StyledElement;
-        }
-
-        if (!isRowClickDetailGrid && !hitRowHeader)
-            return;
-
-        var rowData = row?.DataContext;
-        if (rowData is null)
+        if (!DataGridInteractionHelper.TrySelectRowFromPointer(
+                grid,
+                e.Source,
+                requireRowHeader: !isRowClickDetailGrid,
+                out var rowData,
+                out _))
             return;
 
         if (DataContext is not MsfxLinkViewModel vm)
             return;
-
-        grid.SelectedItem = rowData;
 
         switch (grid.Name)
         {

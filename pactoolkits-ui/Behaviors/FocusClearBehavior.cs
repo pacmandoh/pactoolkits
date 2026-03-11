@@ -62,7 +62,7 @@ public class FocusClearBehavior
 
         var insideDataGrid = IsInsideDataGrid(e.Source);
 
-        var ownerAutoComplete = FindAncestor<AutoCompleteBox>(ctrl);
+        var ownerAutoComplete = InputFocusHelper.FindAncestor<AutoCompleteBox>(ctrl);
         if (ownerAutoComplete is not null)
         {
             if (IsInsideControl(e.Source, ownerAutoComplete))
@@ -184,17 +184,4 @@ public class FocusClearBehavior
         return false;
     }
 
-    private static T? FindAncestor<T>(object? source) where T : class
-    {
-        var current = source;
-        while (current is not null)
-        {
-            if (current is T typed)
-                return typed;
-
-            current = (current as StyledElement)?.Parent;
-        }
-
-        return null;
-    }
 }
