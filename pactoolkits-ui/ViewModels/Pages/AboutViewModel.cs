@@ -49,7 +49,7 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
     public string CompatUiDbRangeText => $"UI 最低 DB: {UiMinDbSchema}";
     public string CompatAgentDbRangeText => $"Agent 最低 DB: {AgentMinDbSchema}";
     public string VersionStatus => BuildVersionStatus();
-    public string VersionHint => "版本由 release-manifest 统一生成并下发，UI 与 Agent 只读显示。";
+    public string VersionHint => "版本由 release-manifest 统一生成并下发，UI 与 Agent 只读显示";
 
     public ReadOnlyCollection<VersionBadgeItem> VersionBadges { get; }
 

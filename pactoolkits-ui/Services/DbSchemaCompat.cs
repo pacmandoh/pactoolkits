@@ -62,7 +62,7 @@ public static class DbSchemaCompat
         if (!string.IsNullOrWhiteSpace(requiredMin))
             detail += $"\n实际最低门槛：{requiredMin}";
 
-        return $"检测到当前数据库版本与 PacToolkits 不兼容。\n{detail}\n\n请联系维护者将数据库更新到适配版本后再连接。";
+        return $"检测到当前数据库版本与 PacToolkits 不兼容\n{detail}\n\n请联系维护者将数据库更新到适配版本后再连接";
     }
 
     public static string GetIncompatibleTitle() => IncompatibleTitle;

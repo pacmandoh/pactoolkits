@@ -25,11 +25,14 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     public override MaterialIconKind Icon => MaterialIconKind.Drugs;
     public override int Index => 2;
     public override ICommand RefreshCommand => _localRefreshCommand;
+    protected override bool AutoRefreshOnDbDisconnected => true;
+    protected override bool AutoRefreshOnDbReconnected => true;
 
     public override ICommand ImportCommand => ImportDataCommand;
     public override ICommand ExportCommand => ExportDataCommand;
 
-    private bool CanIo() => !IsBusy;
+    private bool CanOperateUi() => !IsUiBusy;
+    private bool CanIo() => CanOperateUi();
 
     [RelayCommand(CanExecute = nameof(CanIo))]
     private async Task ImportDataAsync()
@@ -139,6 +142,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private readonly ScanCodeViewModel _scanCode;
     private readonly AsyncRelayCommand _localRefreshCommand;
     private readonly DispatcherTimer _unlockStatusTimer;
+    private IRelayCommand?[]? _notifiableCommands;
     private DrugIndexQuery _query = new(null);
     private int _reloadEpoch;
     private int _lastSuccessfulReloadEpoch;
@@ -155,6 +159,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             OnPropertyChanged();
         }
     }
+    [ObservableProperty] private bool _isSearchPanelVisible = false;
 
     [ObservableProperty] private DrugRow? _selected;
     [ObservableProperty] private bool _hasSelection;
@@ -164,7 +169,11 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [ObservableProperty] private int _editorUnlockFailedAttempts;
     [ObservableProperty] private DateTimeOffset _editorUnlockCooldownUntilUtc;
     [ObservableProperty] private bool _isListBusy;
-    partial void OnIsListBusyChanged(bool value) => NotifyAllCommands();
+    partial void OnIsListBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsUiBusy));
+        NotifyAllCommands();
+    }
     partial void OnHasEditorChanged(bool value)
     {
         NotifyEditorUnlockUiStateChanged();
@@ -202,9 +211,10 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
     public string CreatedAtLocalText => FormatChinaTime(CreatedAt);
     public string UpdatedAtLocalText => UpdatedAt is null ? "" : FormatChinaTime(UpdatedAt.Value);
-    public bool CanRequestEditorUnlock => HasEditor && !IsEditorUnlocked && !IsBusy;
-    public bool CanLockEditor => HasEditor && IsEditorUnlocked && !IsBusy;
-    public bool IsEditorInputEnabled => HasEditor && IsEditorUnlocked && !IsBusy;
+    public bool IsUiBusy => IsBusy || IsListBusy;
+    public bool CanRequestEditorUnlock => HasEditor && !IsEditorUnlocked && CanOperateUi();
+    public bool CanLockEditor => HasEditor && IsEditorUnlocked && CanOperateUi();
+    public bool IsEditorInputEnabled => HasEditor && IsEditorUnlocked && CanOperateUi();
     public string EditorUnlockStatusText => HasEditor ? (IsEditorUnlocked ? "已解锁" : "未解锁") : string.Empty;
 
     private static string FormatChinaTime(DateTimeOffset dt)
@@ -242,10 +252,16 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         Dispatcher.UIThread.Post(() => _ = ReloadAsync());
     }
 
+    [RelayCommand]
+    private void ToggleSearchPanel()
+    {
+        IsSearchPanelVisible = !IsSearchPanelVisible;
+    }
+
     private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsItemsEmpty));
 
-    private bool CanRefreshLocal() => !IsBusy && !IsListBusy;
+    private bool CanRefreshLocal() => CanOperateUi();
 
     partial void OnSelectedChanging(DrugRow? value)
     {
@@ -536,7 +552,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     }
 
     private bool CanSave()
-        => !IsBusy
+        => CanOperateUi()
            && HasEditor
            && IsEditorUnlocked
            && !string.IsNullOrWhiteSpace(EditDrugId)
@@ -545,13 +561,13 @@ public sealed partial class DrugIndexViewModel : AppPageBase
            && HasChanges();
 
     private bool CanDelete()
-        => !IsBusy
+        => CanOperateUi()
            && IsEditorUnlocked
            && !string.IsNullOrWhiteSpace(_originDrugId)
            && !string.IsNullOrWhiteSpace(_originSpec);
 
     private bool CanFixDrugKey()
-        => !IsBusy
+        => CanOperateUi()
            && HasEditor
            && IsEditorUnlocked
            && Selected is not null
@@ -560,10 +576,10 @@ public sealed partial class DrugIndexViewModel : AppPageBase
            && !string.IsNullOrWhiteSpace(NormalizeInput(EditDrugId))
            && !string.IsNullOrWhiteSpace(NormalizeInput(EditSpec))
            && EditQty is > 0
-           && HasPrimaryKeyChanges();
+           && HasMigrationKeyChanges();
 
     private bool CanNewItem()
-        => !IsBusy && !IsListBusy;
+        => CanOperateUi();
 
     private bool CanRequestEditorUnlockCore()
         => CanRequestEditorUnlock;
@@ -571,7 +587,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanRequestEditorUnlockCore))]
     private async Task RequestEditorUnlockAsync()
     {
-        var hint = "敏感操作提示：验证仅在本地进行，不会上传密码。\n请输入数据库密码以解锁药品信息编辑";
+        var hint = "敏感操作提示：验证仅在本地进行，不会上传密码\n请输入数据库密码以解锁药品信息编辑";
         await _unlockService.EnsureUnlockedAsync(
             UnlockScopeKey,
             "药品信息维护",
@@ -617,6 +633,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         OnPropertyChanged(nameof(EditorUnlockStatusText));
     }
 
+    protected override void OnBusyChanged(bool isBusy)
+        => OnPropertyChanged(nameof(IsUiBusy));
+
     private void StartUnlockStatusTimerIfNeeded()
     {
         if (!_unlockStatusTimer.IsEnabled)
@@ -661,8 +680,28 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             var isNew = string.IsNullOrWhiteSpace(_originDrugId) && string.IsNullOrWhiteSpace(_originSpec);
             if (!isNew && HasPrimaryKeyChanges())
             {
-                await _dialog.Warn("主键已变更", "药品名/规格变更请使用“纠错迁移”按钮执行。");
+                await _dialog.Warn("主键已变更", "药品名/规格变更请使用“纠错迁移”按钮执行");
                 return false;
+            }
+            if (!isNew && HasQtyChanged())
+            {
+                var sourceDrugId = Selected?.DrugId ?? _originDrugId ?? string.Empty;
+                var sourceSpec = Selected?.Spec ?? _originSpec ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(sourceDrugId) && !string.IsNullOrWhiteSpace(sourceSpec))
+                {
+                    var preview = await _repo.PreviewKeyFixAsync(
+                        sourceDrugId,
+                        sourceSpec,
+                        sourceDrugId,
+                        sourceSpec,
+                        default);
+                    if (preview.TracePoolAffected > 0 || preview.TraceTxnAffected > 0)
+                    {
+                        Dispatcher.UIThread.Post(() =>
+                            _toast.Warn("保存已拦截", "当前药品规格已被库存或事务引用，单盒数量变更请使用纠错迁移"));
+                        return false;
+                    }
+                }
             }
             if (isNew)
             {
@@ -779,9 +818,8 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
         var sourceDrugId = Selected.DrugId;
         var sourceSpec = Selected.Spec;
-        if (string.Equals(sourceDrugId, targetDrugId, StringComparison.Ordinal)
-            && string.Equals(sourceSpec, targetSpec, StringComparison.Ordinal))
-            return;
+        var sameKey = string.Equals(sourceDrugId, targetDrugId, StringComparison.Ordinal)
+                      && string.Equals(sourceSpec, targetSpec, StringComparison.Ordinal);
 
         IsBusy = true;
         try
@@ -789,7 +827,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             var source = await _repo.GetByKeyAsync(sourceDrugId, sourceSpec, default);
             if (source is null)
             {
-                await _dialog.Warn("纠错迁移", "源药品规格不存在或已被移除，请刷新后重试。");
+                await _dialog.Warn("纠错迁移", "源药品规格不存在或已被移除，请刷新后重试");
                 await ReloadAsync();
                 return;
             }
@@ -803,7 +841,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
             if (!preview.SourceExists)
             {
-                await _dialog.Warn("纠错迁移", "源药品规格不存在或已被移除，请刷新后重试。");
+                await _dialog.Warn("纠错迁移", "源药品规格不存在或已被移除，请刷新后重试");
                 return;
             }
 
@@ -840,9 +878,20 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
             var dbSourceAfter = await _repo.GetByKeyAsync(source.DrugId, source.Spec, default);
             var dbTargetAfter = await _repo.GetByKeyAsync(result.Current.DrugId, result.Current.Spec, default);
-            if (dbSourceAfter is not null || dbTargetAfter is null)
-                throw new InvalidOperationException(
-                    $"迁移提交校验失败(DB)：sourceExists={(dbSourceAfter is not null ? 1 : 0)}, targetExists={(dbTargetAfter is not null ? 1 : 0)}");
+            if (!sameKey)
+            {
+                if (dbSourceAfter is not null || dbTargetAfter is null)
+                    throw new InvalidOperationException(
+                        $"迁移提交校验失败(DB)：sourceExists={(dbSourceAfter is not null ? 1 : 0)}, targetExists={(dbTargetAfter is not null ? 1 : 0)}");
+            }
+            else
+            {
+                if (dbTargetAfter is null)
+                    throw new InvalidOperationException("迁移提交校验失败(DB)：目标键未找到");
+                if (dbTargetAfter.Qty != EditQty.Value)
+                    throw new InvalidOperationException(
+                        $"迁移提交校验失败(DB)：qty 未生效，期望 {EditQty.Value}，实际 {dbTargetAfter.Qty}");
+            }
 
             _originDrugId = dbTargetAfter.DrugId;
             _originSpec = dbTargetAfter.Spec;
@@ -856,7 +905,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
             Dispatcher.UIThread.Post(() =>
                 _toast.Success("药品纠错迁移",
-                    $"已迁移到 {dbTargetAfter.DrugId}/{dbTargetAfter.Spec}，trace_pool {result.TracePoolAffected} 条，trace_txn {result.TraceTxnAffected} 条"));
+                    $"已迁移到 {dbTargetAfter.DrugId}/{dbTargetAfter.Spec}，单条数量 {dbTargetAfter.Qty}，trace_pool {result.TracePoolAffected} 条，trace_txn {result.TraceTxnAffected} 条"));
 
             _inventoryOverview.NotifyDrugIndexChanged();
             _scanCode.NotifyDrugIndexChanged();
@@ -864,7 +913,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         catch (DrugIndexConcurrencyException cx)
         {
             LogWarn("drug_index.fix_key.concurrency_conflict", "Detected key-fix concurrency conflict", cx);
-            await _dialog.Warn("迁移冲突", "该记录已被其他终端修改，请先刷新后再试。");
+            await _dialog.Warn("迁移冲突", "该记录已被其他终端修改，请先刷新后再试");
             await ReloadAsync();
         }
         catch (Exception ex)
@@ -949,12 +998,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("drug_index.reload.fail", "Failed to reload drug index", ex);
-            if (IsDbTransportError(ex))
-            {
-                SignalDbDisconnected();
-                await WaitForReconnectOrTimeoutAsync(ct).ConfigureAwait(false);
-            }
-            else
+            if (!MarkDbDisconnectedOnTransportError(ex))
             {
                 await Task.Delay(180, ct).ConfigureAwait(false);
             }
@@ -1139,8 +1183,23 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
     private void NotifyAllCommands()
     {
-        NotifyCommands(_localRefreshCommand, NewItemCommand, SaveCommand, DeleteCommand, FixDrugKeyCommand, RequestEditorUnlockCommand, LockEditorCommand, ImportDataCommand, ExportDataCommand);
+        NotifyCommandsCoalesced("drug_index.notify_commands", () =>
+            NotifyCommands(GetNotifiableCommands()));
     }
+
+    private IRelayCommand?[] GetNotifiableCommands()
+        => _notifiableCommands ??=
+        [
+            _localRefreshCommand,
+            NewItemCommand,
+            SaveCommand,
+            DeleteCommand,
+            FixDrugKeyCommand,
+            RequestEditorUnlockCommand,
+            LockEditorCommand,
+            ImportDataCommand,
+            ExportDataCommand
+        ];
 
     private bool HasPrimaryKeyChanges()
     {
@@ -1164,6 +1223,23 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
         return false;
     }
+
+    private bool HasQtyChanged()
+    {
+        if (EditQty is not > 0)
+            return false;
+
+        if (Selected is not null)
+            return Selected.Qty != EditQty.Value;
+
+        if (_loadedSnapshot is not null)
+            return _loadedSnapshot.Qty != EditQty.Value;
+
+        return false;
+    }
+
+    private bool HasMigrationKeyChanges()
+        => HasPrimaryKeyChanges() || HasQtyChanged();
 
     public override void Dispose()
     {

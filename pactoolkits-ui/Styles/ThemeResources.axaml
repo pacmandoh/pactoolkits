@@ -19,6 +19,11 @@
     <SolidColorBrush x:Key="BrushDoneBg25" Color="#4034C17B" />
     <SolidColorBrush x:Key="BrushDoneBg35" Color="#5934C17B" />
     <SolidColorBrush x:Key="BrushDoneBg50" Color="#8034C17B" />
+    <SolidColorBrush x:Key="BrushInfoBg10" Color="#1A39A8FF" />
+    <SolidColorBrush x:Key="BrushInfoBg15" Color="#2639A8FF" />
+    <SolidColorBrush x:Key="BrushInfoBg25" Color="#4039A8FF" />
+    <SolidColorBrush x:Key="BrushInfoBg35" Color="#5939A8FF" />
+    <SolidColorBrush x:Key="BrushInfoBg50" Color="#8039A8FF" />
     <SolidColorBrush x:Key="BrushPurpleBg10" Color="#1A7C3AED" />
     <SolidColorBrush x:Key="BrushPurpleBg15" Color="#267C3AED" />
     <SolidColorBrush x:Key="BrushPurpleBg25" Color="#407C3AED" />

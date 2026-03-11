@@ -30,6 +30,8 @@ public sealed partial class DashboardViewModel : AppPageBase
     public override string DisplayName => "概览";
     public override MaterialIconKind Icon => MaterialIconKind.ViewDashboard;
     public override int Index => 0;
+    protected override bool AutoRefreshOnDbDisconnected => true;
+    protected override bool AutoRefreshOnDbReconnected => true;
 
     private readonly IDashboardRepo _repo;
     private readonly IToastService _toast;
@@ -37,9 +39,8 @@ public sealed partial class DashboardViewModel : AppPageBase
     private readonly ILookupCatalogService _lookup;
     private readonly PageNavigationService _nav;
     private readonly InventoryOverviewViewModel _inventoryOverview;
-    private readonly DateTime _defaultFromDate;
-    private readonly DateTime _defaultToDate;
     private bool _suppressRowSelectionAction;
+    private readonly RollingDateRangeController _dateRangeController;
 
     [ObservableProperty] private int _selectedTabIndex;
     public bool IsOverviewTab => SelectedTabIndex == 0;
@@ -360,8 +361,8 @@ public sealed partial class DashboardViewModel : AppPageBase
         _lookup = lookup;
         _nav = nav;
         _inventoryOverview = inventoryOverview;
-        _defaultFromDate = (FromDate ?? DateTime.Today.AddDays(-6)).Date;
-        _defaultToDate = (ToDate ?? DateTime.Today).Date;
+        _dateRangeController = new RollingDateRangeController(() =>
+            PostOnUi(HandleDateRangeDayChanged, DispatcherPriority.Background));
 
         Clients.Clear();
         Clients.Add(AllClients);
@@ -373,6 +374,9 @@ public sealed partial class DashboardViewModel : AppPageBase
 
         using (SuppressReload())
         {
+            var normalized = RollingDateRangeController.Normalize(FromDate, ToDate);
+            FromDate = normalized.From;
+            ToDate = normalized.To;
             DrugText = null;
             SelectedSpec = AllSpec;
             SelectedClient = AllClients;
@@ -552,10 +556,31 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private void ResetDateRange()
     {
+        var defaults = RollingDateRangeController.Normalize(
+            RollingDateRangeController.DefaultFromDate,
+            RollingDateRangeController.DefaultToDate);
         using (SuppressReload())
         {
-            FromDate = _defaultFromDate;
-            ToDate = _defaultToDate > DateTime.Today ? DateTime.Today : _defaultToDate;
+            FromDate = defaults.From;
+            ToDate = defaults.To;
+        }
+
+        OnPropertyChanged(nameof(SectionHint));
+        OnPropertyChanged(nameof(ToMinDate));
+        OnPropertyChanged(nameof(FromMaxDate));
+        OnPropertyChanged(nameof(ToMaxDate));
+        RequestReloadWithPagingReset();
+    }
+
+    private void HandleDateRangeDayChanged()
+    {
+        var defaults = RollingDateRangeController.Normalize(
+            RollingDateRangeController.DefaultFromDate,
+            RollingDateRangeController.DefaultToDate);
+        using (SuppressReload())
+        {
+            FromDate = defaults.From;
+            ToDate = defaults.To;
         }
 
         OnPropertyChanged(nameof(SectionHint));
@@ -974,10 +999,13 @@ public sealed partial class DashboardViewModel : AppPageBase
     {
         TxnTrendRows.Clear();
         TxnTrendTotalCount = totalCount;
+        var start = ((TxnTrendPageIndex - 1) * TxnTrendPageSize) + 1;
+        var idx = 0;
         foreach (var r in rows)
         {
             TxnTrendRows.Add(new TrendDrugItem
             {
+                DisplayIndex = start + idx++,
                 Rank = r.Rank.ToString(CultureInfo.CurrentCulture),
                 Name = r.Name,
                 Sub = r.Sub,
@@ -1011,9 +1039,11 @@ public sealed partial class DashboardViewModel : AppPageBase
     private void ApplyRecentTxnsOverview(IReadOnlyList<TraceTxnDto> rows)
     {
         RecentTxnsOverview.Clear();
+        var idx = 1;
         foreach (var t in rows)
         {
             var item = new TxnItem(
+                DisplayIndex: idx++,
                 Id: t.Id,
                 Badge: t.Badge,
                 Title: t.Title,
@@ -1029,9 +1059,12 @@ public sealed partial class DashboardViewModel : AppPageBase
     {
         RecentTxns.Clear();
         TxnTotalCount = totalCount;
+        var start = ((TxnPageIndex - 1) * TxnPageSize) + 1;
+        var idx = 0;
         foreach (var t in rows)
         {
             var item = new TxnItem(
+                DisplayIndex: start + idx++,
                 Id: t.Id,
                 Badge: t.Badge,
                 Title: t.Title,
@@ -1050,10 +1083,11 @@ public sealed partial class DashboardViewModel : AppPageBase
     private void ApplyEntryLogsOverview(IReadOnlyList<TraceEntryLogDto> rows)
     {
         EntryRecentOverview.Clear();
+        var idx = 1;
         foreach (var e in rows.OrderByDescending(x => x.EntryAt))
         {
             var client = ParseClientWithAlias(e.Client);
-            EntryRecentOverview.Add(EntryRecentItem.From(e, client));
+            EntryRecentOverview.Add(EntryRecentItem.From(e, client, idx++));
         }
     }
 
@@ -1061,10 +1095,12 @@ public sealed partial class DashboardViewModel : AppPageBase
     {
         EntryRecent.Clear();
         EntryTotalCount = totalCount;
+        var start = ((EntryPageIndex - 1) * EntryPageSize) + 1;
+        var idx = 0;
         foreach (var e in rows.OrderByDescending(x => x.EntryAt))
         {
             var client = ParseClientWithAlias(e.Client);
-            EntryRecent.Add(EntryRecentItem.From(e, client));
+            EntryRecent.Add(EntryRecentItem.From(e, client, start + idx++));
         }
 
         OnPropertyChanged(nameof(IsEntryRecentEmpty));
@@ -1074,9 +1110,12 @@ public sealed partial class DashboardViewModel : AppPageBase
     {
         AbnormalQueue.Clear();
         AbnormalTotalCount = totalCount;
+        var start = ((AbnormalPageIndex - 1) * AbnormalPageSize) + 1;
+        var idx = 0;
         foreach (var row in rows)
         {
             AbnormalQueue.Add(new AbnormalItem(
+                DisplayIndex: start + idx++,
                 Title: row.Title,
                 Detail: row.Detail,
                 ClientDisplay: string.IsNullOrWhiteSpace(row.ClientDisplay) ? "-" : row.ClientDisplay,
@@ -1544,6 +1583,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     public override void Dispose()
     {
+        SafeExecute(() => _dateRangeController.Dispose());
         SafeExecute(() => _clientAlias.Changed -= OnClientAliasChanged);
 
         if (_debounce is not null)
@@ -1642,6 +1682,7 @@ public sealed partial class DashboardKpiModel : ObservableObject
 
 public sealed partial class TrendDrugItem : ObservableObject
 {
+    [ObservableProperty] private int _displayIndex;
     [ObservableProperty] private string _rank = "";
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private string _sub = "";
@@ -1649,8 +1690,8 @@ public sealed partial class TrendDrugItem : ObservableObject
     [ObservableProperty] private string _valueText = "";
 }
 
-public sealed record TxnItem(long Id, TxnBadge Badge, string Title, string Qty, string Time, string ClientDisplay);
-public sealed record AbnormalItem(string Title, string Detail, string ClientDisplay, TxnBadge Badge);
+public sealed record TxnItem(int DisplayIndex, long Id, TxnBadge Badge, string Title, string Qty, string Time, string ClientDisplay);
+public sealed record AbnormalItem(int DisplayIndex, string Title, string Detail, string ClientDisplay, TxnBadge Badge);
 
 public sealed record TopClientItem(int Index, ClientInfo Client, string Value)
 {
@@ -1680,6 +1721,7 @@ public sealed record TopClientItem(int Index, ClientInfo Client, string Value)
 }
 
 public sealed record EntryRecentItem(
+    int DisplayIndex,
     TraceEntryState State,
     DateTimeOffset EntryAt,
     string EntryAtText,
@@ -1698,7 +1740,7 @@ public sealed record EntryRecentItem(
     string? ClientVer
 )
 {
-    public static EntryRecentItem From(TraceEntryLogDto e, ClientInfo client)
+    public static EntryRecentItem From(TraceEntryLogDto e, ClientInfo client, int displayIndex = 0)
     {
         var result = (e.Result).Trim().ToLowerInvariant();
         var source = (e.Source).Trim().ToLowerInvariant();
@@ -1718,6 +1760,7 @@ public sealed record EntryRecentItem(
         var messageText = BuildMessage(e.Message, sourceText, resultText);
 
         return new EntryRecentItem(
+            DisplayIndex: displayIndex,
             State: state,
             EntryAt: e.EntryAt,
             EntryAtText: atText,

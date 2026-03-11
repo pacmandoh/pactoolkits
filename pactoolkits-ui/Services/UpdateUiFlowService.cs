@@ -218,7 +218,7 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
             {
                 var started = await _updates.RestartToApplyAsync().ConfigureAwait(false);
                 if (!started)
-                    _toasts.Warn("应用更新", "未检测到待应用更新包，请重新检查更新后再试。");
+                    _toasts.Warn("应用更新", "未检测到待应用更新包，请重新检查更新后再试");
             }
             else
             {

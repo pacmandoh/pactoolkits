@@ -7,17 +7,12 @@
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:behaviors="clr-namespace:pactoolkits_ui.Behaviors"
-             xmlns:conv="clr-namespace:pactoolkits_ui.Converters"
              mc:Ignorable="d"
              d:DesignWidth="1200" d:DesignHeight="800"
              x:Class="pactoolkits_ui.Views.Pages.DrugIndexView"
              x:DataType="vm:DrugIndexViewModel"
              Focusable="True"
              x:Name="Root">
-    <UserControl.Resources>
-        <conv:RowStateToBgBrushConverter x:Key="RowStateToBgBrush" />
-    </UserControl.Resources>
-
     <Grid Margin="18,14,18,18">
             <Grid ColumnDefinitions="2.2*,1*" ColumnSpacing="14">
 
@@ -26,10 +21,11 @@
                     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
 
                         
-                        <suki:GlassCard Grid.Row="0" Classes="FilterHintCard">
+                        <suki:GlassCard Grid.Row="0" Classes="FilterHintCard" IsVisible="{Binding IsSearchPanelVisible}">
                             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
                                 <TextBox Height="36"
                                          x:Name="DrugIndexSearchBox"
+                                         IsEnabled="{Binding !IsUiBusy}"
                                          MinHeight="36"
                                          MaxHeight="36"
                                          Padding="10,0"
@@ -46,6 +42,7 @@
                                 </TextBox>
 
                                 <Button Grid.Column="1" x:Name="DrugIndexSearchButton" Classes="Action" Height="36" MinWidth="{StaticResource MinWAction}"
+                                        IsEnabled="{Binding !IsUiBusy}"
                                         Command="{Binding SearchCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <icons:MaterialIcon Kind="Magnify" Width="16" Height="16" />
@@ -54,6 +51,7 @@
                                 </Button>
 
                                 <Button Grid.Column="2" Classes="Action" Height="36" MinWidth="{StaticResource MinWAction}"
+                                        IsEnabled="{Binding !IsUiBusy}"
                                         Command="{Binding ClearSearchCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <icons:MaterialIcon Kind="BackspaceOutline" Width="16" Height="16" />
@@ -92,34 +90,67 @@
                                 </StackPanel>
                             </WrapPanel>
 
-                            <Button Grid.Column="2" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
-                                    ClickMode="Press"
-                                    Command="{Binding NewItemCommand}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="Plus" Width="16" Height="16" />
-                                    <TextBlock Text="新建" FontWeight="SemiBold" />
-                                </StackPanel>
-                            </Button>
+                            <StackPanel Grid.Column="2"
+                                        Orientation="Horizontal"
+                                        Spacing="8"
+                                        VerticalAlignment="Center">
+                                <Button Classes="Action"
+                                        Height="{StaticResource ControlHeightCompact}"
+                                        Width="40"
+                                        MinWidth="40"
+                                        Padding="0"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        IsEnabled="{Binding !IsUiBusy}"
+                                        Command="{Binding ToggleSearchPanelCommand}"
+                                        ToolTip.Tip="显示/隐藏搜索">
+                                    <Panel Width="16"
+                                           Height="16"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center">
+                                        <icons:MaterialIcon Kind="Magnify"
+                                                            Width="14"
+                                                            Height="14"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            IsVisible="{Binding !IsSearchPanelVisible}" />
+                                        <icons:MaterialIcon Kind="MagnifyRemoveOutline"
+                                                            Width="14"
+                                                            Height="14"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            IsVisible="{Binding IsSearchPanelVisible}" />
+                                    </Panel>
+                                </Button>
+
+                                <Button Classes="Action"
+                                        Height="{StaticResource ControlHeightCompact}"
+                                        MinWidth="{StaticResource MinWAction}"
+                                        IsEnabled="{Binding !IsUiBusy}"
+                                        ClickMode="Press"
+                                        Command="{Binding NewItemCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <icons:MaterialIcon Kind="Plus" Width="16" Height="16" />
+                                        <TextBlock Text="新建" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
                         </Grid>
 
                         
-                        <controls:EmptyStatePanel Grid.Row="2"
+                        <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsListBusy}">
+                        <controls:EmptyStatePanel
                                                   IsEmpty="{Binding IsItemsEmpty}"
                                                   EmptyText="暂无药品数据"
                                                   EmptyHint="当前筛选条件下没有药品信息">
-                        <suki:BusyArea IsBusy="{Binding IsListBusy}">
-                            <DataGrid Classes="SectionGrid DrugGrid"
+                            <DataGrid Classes="SectionGrid DrugGrid StickyIndexGrid"
                                       ItemsSource="{Binding Items}"
                                       SelectedItem="{Binding Selected, Mode=TwoWay}"
-                                      HeadersVisibility="Column"
+                                      HeadersVisibility="All"
                                       GridLinesVisibility="All"
                                       SelectionMode="Extended"
-                                      CanUserResizeColumns="True"
                                       x:Name="DrugGrid"
-                                      RowHeight="{StaticResource RowMinHeight}"
-                                      MinHeight="{StaticResource DgH10Rows}"
-                                      HorizontalScrollBarVisibility="Disabled"
-                                      VerticalScrollBarVisibility="Auto">
+                                      MinHeight="{StaticResource DgH10Rows}">
                             <DataGrid.Styles>
                                 <Style Selector="DataGrid.DrugGrid DataGridRow">
                                     <Setter Property="ContextMenu">
@@ -158,46 +189,9 @@
                                         </Setter.Value>
                                     </Setter>
                                 </Style>
-                                <Style Selector="DataGrid.DrugGrid DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=15}" />
-                                </Style>
-
-                                <Style Selector="DataGrid.DrugGrid DataGridRow:pointerover DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=25}" />
-                                </Style>
-
-                                <Style Selector="DataGrid.DrugGrid DataGridRow:selected DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=35}" />
-                                </Style>
-
-                                <Style Selector="DataGrid.DrugGrid DataGridRow:selected:pointerover DataGridCell">
-                                    <Setter Property="Background"
-                                            Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=50}" />
-                                </Style>
                             </DataGrid.Styles>
 
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Width="40"
-                                                        IsReadOnly="True"
-                                                        CanUserResize="False"
-                                                        CanUserSort="False">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Opacity="0.35"
-                                                FontSize="12"
-                                                FontWeight="Bold"
-                                                Text="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow},
-                               Path=Index,
-                               Converter={StaticResource RowIndexPlusOne}}" />
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="2*" />
                                 <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.2*" />
                                 <DataGridTemplateColumn Header="单盒数量" Width="{StaticResource DgWRightSmall}">
@@ -212,8 +206,8 @@
                                 <DataGridTextColumn Header="备注" Binding="{Binding EffectiveNote}" Width="1.4*" />
                             </DataGrid.Columns>
                             </DataGrid>
-                        </suki:BusyArea>
                         </controls:EmptyStatePanel>
+                        </suki:BusyArea>
                     </Grid>
                 </suki:GlassCard>
 
@@ -343,8 +337,7 @@
                         </StackPanel>
 
                         
-                        <ScrollViewer Grid.Row="3" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}" VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer Grid.Row="3" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}">
                             <StackPanel Spacing="10" Margin="0,0,0,6">
 
                                 <TextBox Height="{StaticResource ControlHeightCompact}"

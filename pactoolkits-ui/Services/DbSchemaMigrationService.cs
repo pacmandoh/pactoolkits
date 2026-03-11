@@ -14,7 +14,7 @@ namespace pactoolkits_ui.Services;
 
 public interface IDbSchemaMigrationService
 {
-    Task<DbSchemaMigrationResult> EnsureUpToDateAsync(CancellationToken ct);
+    Task<DbSchemaMigrationResult> EnsureUpToDateAsync(CancellationToken ct, string? targetVersion = null);
 }
 
 public sealed record DbSchemaMigrationResult(
@@ -42,7 +42,7 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<DbSchemaMigrationResult> EnsureUpToDateAsync(CancellationToken ct)
+    public async Task<DbSchemaMigrationResult> EnsureUpToDateAsync(CancellationToken ct, string? targetVersion = null)
     {
         var opt = _dbConfig.Current;
         var csb = new NpgsqlConnectionStringBuilder
@@ -59,6 +59,9 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
 
         var bootstrapScripts = LoadBootstrapScripts();
         var migrationScripts = LoadMigrationScripts();
+        var hasTarget = TryParseSemVer(targetVersion, out var targetSemVer);
+        if (hasTarget)
+            migrationScripts = migrationScripts.Where(x => CompareSemVer(x.SemVer, targetSemVer) <= 0).ToList();
         ValidateScriptBatches(bootstrapScripts, migrationScripts);
 
         await using var conn = new NpgsqlConnection(csb.ToString());
@@ -73,7 +76,8 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
             searchPath = "public",
             commandTimeout,
             bootstrapCount = bootstrapScripts.Count,
-            migrationCount = migrationScripts.Count
+            migrationCount = migrationScripts.Count,
+            targetVersion = hasTarget ? $"{targetSemVer.major}.{targetSemVer.minor}.{targetSemVer.patch}" : null
         });
 
         await ExecuteScalarAsync(conn,
@@ -410,6 +414,25 @@ set schema_version = excluded.schema_version,
         if (left.major != right.major) return left.major.CompareTo(right.major);
         if (left.minor != right.minor) return left.minor.CompareTo(right.minor);
         return left.patch.CompareTo(right.patch);
+    }
+
+    private static bool TryParseSemVer(string? text, out (int major, int minor, int patch) semVer)
+    {
+        semVer = default;
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        var parts = text.Trim().Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length != 3)
+            return false;
+
+        if (!int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var major) ||
+            !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var minor) ||
+            !int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var patch))
+            return false;
+
+        semVer = (major, minor, patch);
+        return true;
     }
 
     private sealed record SqlScript(

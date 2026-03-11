@@ -31,6 +31,8 @@ public partial class InventoryOverviewView : UserControl
     private InventoryOverviewViewModel? _vm;
     private bool _isSyncingSelectionFromVm;
     private bool _isSyncingSelectionToVm;
+    private DataGridColumn? _stockContextColumn;
+    private StockRowItem? _stockContextRow;
 
     public InventoryOverviewView()
         : this(((Application.Current as App)?.Services.GetRequiredService<IClipboardService>())
@@ -87,6 +89,68 @@ public partial class InventoryOverviewView : UserControl
         }
     }
 
+    private void OnStockCellPointerPressed(object? sender, DataGridCellPointerPressedEventArgs e)
+    {
+        try
+        {
+            if (DataContext is not InventoryOverviewViewModel vm)
+                return;
+
+            var row = e.Row?.DataContext as StockRowItem;
+            _stockContextRow = row;
+            _stockContextColumn = e.Column;
+
+            if (sender is DataGrid grid && row is not null)
+            {
+                var point = e.PointerPressedEventArgs.GetCurrentPoint(grid);
+                if (point.Properties.IsLeftButtonPressed && !point.Properties.IsRightButtonPressed)
+                {
+                    // Keep current-cell aligned with the clicked cell to avoid "second click to focus".
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        grid.SelectedItem = row;
+                        grid.CurrentColumn = e.Column;
+                    }, DispatcherPriority.Background);
+                }
+            }
+
+            if (!vm.IsStockEditEnabled || !vm.IsDetailMode)
+                return;
+
+            var clickCount = e.PointerPressedEventArgs.ClickCount;
+            if (clickCount >= 2 && e.Column.IsReadOnly)
+            {
+                vm.NotifyReadonlyStockColumnEditAttempt(e.Column.Header?.ToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("InventoryOverviewView", "inventory.stock_cell_press.fail", "Failed handling stock cell pointer pressed", ex);
+        }
+    }
+
+    private void OnStockBeginningEdit(object? sender, DataGridBeginningEditEventArgs e)
+    {
+        try
+        {
+            if (DataContext is not InventoryOverviewViewModel vm)
+                return;
+
+            if (!vm.IsStockEditEnabled || !vm.IsDetailMode)
+                return;
+
+            if (e.Column?.IsReadOnly != true)
+                return;
+
+            e.Cancel = true;
+            vm.NotifyReadonlyStockColumnEditAttempt(e.Column?.Header?.ToString());
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("InventoryOverviewView", "inventory.stock_begin_edit.fail", "Failed handling stock begin-edit", ex);
+        }
+    }
+
     private void OnStockSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_isSyncingSelectionFromVm || _isSyncingSelectionToVm)
@@ -109,26 +173,18 @@ public partial class InventoryOverviewView : UserControl
 
     private void ReassignDrugBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (sender is not AutoCompleteBox box)
-            return;
-
-        if (e.Key != Key.Enter)
-            return;
-
-        e.Handled = true;
-        Dispatcher.UIThread.Post(() =>
-        {
-            InputFocusHelper.CommitAutoCompleteInput(box);
-
-            if (DataContext is not InventoryOverviewViewModel vm)
-                return;
-
-            if (vm.ApplyReassignDrugFilterCommand.CanExecute(null))
-                vm.ApplyReassignDrugFilterCommand.Execute(null);
-
-            // Behave like tab-out: leave autocomplete and move to next field.
-            InputFocusHelper.FocusControlByName(this, "ReassignSpecBox");
-        }, DispatcherPriority.Input);
+        _ = AutoCompleteHelper.HandleEnterCommitAndApply(
+            this,
+            sender,
+            e,
+            "ReassignSpecBox",
+            () =>
+            {
+                if (DataContext is not InventoryOverviewViewModel vm)
+                    return;
+                if (vm.ApplyReassignDrugFilterCommand.CanExecute(null))
+                    vm.ApplyReassignDrugFilterCommand.Execute(null);
+            });
     }
 
     private void InventorySearchBox_OnKeyUp(object? sender, KeyEventArgs e)
@@ -195,10 +251,60 @@ public partial class InventoryOverviewView : UserControl
 
         vm.SyncUnlockStateForUi();
         var canShowDelete = vm.IsStockEditEnabled && vm.IsOperationUnlocked;
+        var canShowEdit = vm.IsStockEditEnabled;
+        var canEditCurrentCell = canShowEdit
+                                 && _stockContextRow is not null
+                                 && _stockContextColumn is not null
+                                 && !_stockContextColumn.IsReadOnly;
         foreach (var item in cm.Items.OfType<MenuItem>())
         {
             if (string.Equals(item.Header?.ToString(), "删除", StringComparison.Ordinal))
                 item.IsVisible = canShowDelete;
+            else if (string.Equals(item.Header?.ToString(), "编辑", StringComparison.Ordinal))
+            {
+                item.IsVisible = canShowEdit;
+                item.IsEnabled = canEditCurrentCell;
+            }
+        }
+    }
+
+    public void OnStockEditCell(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (DataContext is not InventoryOverviewViewModel vm || !vm.IsStockEditEnabled || !vm.IsDetailMode)
+                return;
+
+            var grid = this.FindControl<DataGrid>("StockDetailGrid");
+            if (grid is null)
+                return;
+
+            var row = _stockContextRow ?? vm.SelectedStockRow;
+            if (row is null)
+                return;
+
+            var column = _stockContextColumn ?? grid.Columns.FirstOrDefault(c => !c.IsReadOnly);
+            if (column is null)
+                return;
+
+            if (column.IsReadOnly)
+            {
+                vm.NotifyReadonlyStockColumnEditAttempt(column.Header?.ToString());
+                return;
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                grid.SelectedItem = row;
+                grid.CurrentColumn = column;
+                grid.ScrollIntoView(row, column);
+                grid.Focus();
+                _ = grid.BeginEdit(new RoutedEventArgs());
+            }, DispatcherPriority.Background);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("InventoryOverviewView", "inventory.stock_context_edit.fail", "Failed opening stock cell editor from context menu", ex);
         }
     }
 
@@ -218,15 +324,7 @@ public partial class InventoryOverviewView : UserControl
     {
         if (this.FindControl<AutoCompleteBox>("ReassignDrugBox") is not { } box)
             return;
-
-        box.ItemFilter = static (search, item) =>
-        {
-            if (item is OptionItem option)
-                return PinyinInitialMatcher.IsMatch(search, option.Raw);
-
-            return item is not null &&
-                   PinyinInitialMatcher.IsMatch(search, item.ToString());
-        };
+        AutoCompleteHelper.AttachDrugOptionFilter(box);
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

@@ -60,6 +60,8 @@ public class FocusClearBehavior
         if (focused is not Control ctrl)
             return;
 
+        var insideDataGrid = IsInsideDataGrid(e.Source);
+
         var ownerAutoComplete = FindAncestor<AutoCompleteBox>(ctrl);
         if (ownerAutoComplete is not null)
         {
@@ -77,13 +79,13 @@ public class FocusClearBehavior
 
         TryClearDataGridSelections(scope, e.Source);
 
+        // Clicking inside a grid should not trigger force-unfocus.
+        // Otherwise the first click is often consumed by focus transfer.
+        if (insideDataGrid)
+            return;
+
         if (scope is Control host)
             host.Focus();
-
-        ctrl.Focusable = false;
-        ctrl.Focusable = true;
-        ctrl.IsTabStop = false;
-        ctrl.IsTabStop = true;
     }
 
     private static void OnGotFocus(object? sender, GotFocusEventArgs e)
@@ -146,6 +148,14 @@ public class FocusClearBehavior
     private static void TryClearDataGridSelections(InputElement scope, object? source)
     {
         if (IsInsideDataGrid(source))
+            return;
+
+        // MainWindow-level behavior should not clear all grid selections globally.
+        // Otherwise dialog action button click may clear dialog grid selection before command executes.
+        if (scope is TopLevel)
+            return;
+
+        if (scope is Control scopeControl && scopeControl.GetValue(SuppressGridClearProperty))
             return;
 
         if (HasSuppressedGridClearAncestor(source))

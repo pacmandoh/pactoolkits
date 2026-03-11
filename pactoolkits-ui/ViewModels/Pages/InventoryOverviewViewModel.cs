@@ -104,6 +104,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public override MaterialIconKind Icon => MaterialIconKind.PackageVariant;
     public override int Index => 1;
     public override ICommand RefreshCommand => _localRefreshCommand;
+    protected override bool AutoRefreshOnDbDisconnected => true;
+    protected override bool AutoRefreshOnDbReconnected => true;
 
     private readonly IInventoryOverviewRepo _repo;
     private readonly ILookupCatalogService _lookup;
@@ -126,6 +128,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     [ObservableProperty] private int _modeIndex;
     [ObservableProperty] private string? _keyword;
+    [ObservableProperty] private bool _isSearchPanelVisible = false;
     [ObservableProperty] private string? _status;
     [ObservableProperty] private int _pageIndex = 1;
     [ObservableProperty] private int _totalCount;
@@ -159,10 +162,27 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private DateTimeOffset _suppressAutoRefreshUntilUtc = DateTimeOffset.MinValue;
     private CancellationTokenSource? _silentReconcileCts;
     private readonly DispatcherTimer _unlockStatusTimer;
-    partial void OnIsDetailBusyChanged(bool value) => NotifyAllCommands();
-    partial void OnIsAggBusyChanged(bool value) => NotifyAllCommands();
-    partial void OnIsLowBusyChanged(bool value) => NotifyAllCommands();
-    partial void OnIsMissingBusyChanged(bool value) => NotifyAllCommands();
+    private IRelayCommand?[]? _notifiableCommands;
+    partial void OnIsDetailBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsUiBusy));
+        NotifyAllCommands();
+    }
+    partial void OnIsAggBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsUiBusy));
+        NotifyAllCommands();
+    }
+    partial void OnIsLowBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsUiBusy));
+        NotifyAllCommands();
+    }
+    partial void OnIsMissingBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsUiBusy));
+        NotifyAllCommands();
+    }
     partial void OnIsStockEditEnabledChanged(bool value)
     {
         if (value)
@@ -222,7 +242,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public bool CanToggleReassignPanel
         => IsDetailMode
            && !IsStockEditEnabled
-           && !IsReassignBusy;
+           && CanOperateUi();
     public bool CanPreviewReassign
         => IsReassignPanelVisible
            && (IsSingleReassignScope
@@ -232,7 +252,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
            && !string.IsNullOrWhiteSpace(NormalizeInput(ReassignTargetSpec))
            && int.TryParse(NormalizeInput(ReassignQtyText), out var previewQty)
            && previewQty > 0
-           && !IsReassignBusy;
+           && CanOperateUi();
     public bool CanApplyReassign
         => CanPreviewReassign
            && !string.IsNullOrWhiteSpace(NormalizeInput(ReassignReason))
@@ -260,6 +280,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public bool IsAggEmpty => DrugSpecRows.Count == 0;
     public bool IsLowEmpty => LowStockRows.Count == 0;
     public bool IsMissingEmpty => MissingStockRows.Count == 0;
+    public bool IsUiBusy => IsBusy || IsDetailBusy || IsAggBusy || IsLowBusy || IsMissingBusy || IsReassignBusy;
     public bool IsPagedMode => ModeIndex is 0 or 1 or 2 or 3;
     public int PageSize => FixedPageSize;
     public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
@@ -288,7 +309,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _dialog = dialog;
         _nav = nav;
         _scanCode = scanCode;
-        _localRefreshCommand = new AsyncRelayCommand(() => ReloadAsync(force: true), CanLocalRefresh);
+        _localRefreshCommand = new AsyncRelayCommand(() => ReloadAsync(), CanLocalRefresh);
         _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _unlockStatusTimer.Tick += (_, _) => RefreshUnlockState();
         _unlockService.StateChanged += OnUnlockScopeChanged;
@@ -297,7 +318,13 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _dbConfig.Applied += OnDbApplied;
         _lastModeIndex = ModeIndex;
 
-        PostOnUi(() => _ = ReloadAsync(force: false), DispatcherPriority.Background);
+        PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
+    }
+
+    [RelayCommand]
+    private void ToggleSearchPanel()
+    {
+        IsSearchPanelVisible = !IsSearchPanelVisible;
     }
 
     partial void OnSelectedStockRowChanged(StockRowItem? value)
@@ -398,7 +425,13 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     }
 
     partial void OnIsReassignBusyChanged(bool value)
-        => NotifyAllCommands();
+    {
+        OnPropertyChanged(nameof(IsUiBusy));
+        NotifyAllCommands();
+    }
+
+    protected override void OnBusyChanged(bool isBusy)
+        => OnPropertyChanged(nameof(IsUiBusy));
 
     partial void OnReassignScopeIndexChanged(int value)
     {
@@ -412,7 +445,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     }
 
     private bool CanApplyReassignDrugFilter()
-        => IsReassignPanelVisible && !IsReassignBusy;
+        => IsReassignPanelVisible && CanOperateUi();
 
     [RelayCommand(CanExecute = nameof(CanApplyReassignDrugFilter))]
     private async Task ApplyReassignDrugFilterAsync()
@@ -604,20 +637,15 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
     }
 
+    private bool CanOperateUi() => !IsUiBusy;
+
     private bool CanLocalRefresh()
-        => !IsBusy
-           && !IsDetailBusy
-           && !IsAggBusy
-           && !IsLowBusy
-           && !IsMissingBusy
-           && !IsReassignBusy
+        => CanOperateUi()
            && DateTimeOffset.UtcNow >= _suppressAutoRefreshUntilUtc;
 
     private bool CanRequestUnlockCore()
-        => !IsBusy
-           && IsDetailMode
-           && !IsDetailBusy
-           && !IsReassignBusy;
+        => CanOperateUi()
+           && IsDetailMode;
 
     [RelayCommand(CanExecute = nameof(CanRequestUnlockCore))]
     private async Task RequestUnlockAsync()
@@ -626,7 +654,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     }
 
     private bool CanLockOperationsCore()
-        => !IsBusy
+        => CanOperateUi()
            && IsDetailMode
            && IsOperationUnlocked;
 
@@ -646,7 +674,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         Status = "库存安全会话：已手动锁定";
     }
 
-    private bool CanToggleStockEditMode() => !IsBusy && IsDetailMode && !IsDetailBusy;
+    private bool CanToggleStockEditMode() => CanOperateUi() && IsDetailMode;
 
     [RelayCommand(CanExecute = nameof(CanToggleStockEditMode))]
     private async Task ToggleStockEditMode()
@@ -867,7 +895,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             if (IsFilterReassignScope && preview.WillChangeCount > LargeBatchReassignConfirmThreshold)
             {
                 ReassignPreviewText +=
-                    $"。注意：可变更数量超过 {LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)} 条，提交时会触发二次确认";
+                    $"注意：可变更数量超过 {LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)} 条，提交时会触发二次确认";
             }
         }
         catch (Exception ex)
@@ -979,7 +1007,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 {
                     var secondOk = await _dialog.Confirm(
                         "批量纠错二次确认",
-                        $"本次可变更 {guardPreview.WillChangeCount.ToString(CultureInfo.InvariantCulture)} 条，已超过阈值 {LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)}。请再次确认是否提交。");
+                        $"本次可变更 {guardPreview.WillChangeCount.ToString(CultureInfo.InvariantCulture)} 条，已超过阈值 {LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)}请再次确认是否提交");
                     if (!secondOk)
                         return;
                 }
@@ -1047,6 +1075,18 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         return Task.CompletedTask;
     }
 
+    public void NotifyReadonlyStockColumnEditAttempt(string? header)
+    {
+        if (!IsStockEditEnabled || !IsDetailMode)
+            return;
+
+        if (ShouldSkipTrigger("inventory.stock.readonly_column_edit", 1200))
+            return;
+
+        var col = string.IsNullOrWhiteSpace(header) ? "该列" : header;
+        _toast.Warn("库存明细编辑", $"{col}不可直接编辑，请使用药品纠错");
+    }
+
     public async Task DeleteSelectedStockRowsAsync(StockRowItem? contextRow)
     {
         if (!IsDetailMode)
@@ -1079,7 +1119,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
         var ok = await _dialog.Confirm(
             "确认删除",
-            $"将删除 {traceCodes.Length.ToString(CultureInfo.InvariantCulture)} 条库存明细记录，操作不可撤销。是否继续？");
+            $"将删除 {traceCodes.Length.ToString(CultureInfo.InvariantCulture)} 条库存明细记录，操作不可撤销是否继续？");
         if (!ok)
             return;
 
@@ -1089,7 +1129,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             SuppressExternalAutoRefresh(TimeSpan.FromSeconds(8));
             await RunOnUiAsync(() => IsDetailBusy = true);
             var affected = await _repo.DeleteStockByTraceCodesAsync(traceCodes, default);
-            await ReloadAsync(force: true, preserveEditSession: wasEditing);
+            await ReloadAsync(preserveEditSession: wasEditing);
 
             await RunOnUiAsync(() =>
             {
@@ -1148,7 +1188,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
 
         if (failedCount > 0)
-            await ReloadAsync(force: true);
+            await ReloadAsync();
 
         return (savedCount, failedCount, lastError);
     }
@@ -1208,7 +1248,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     private async Task<bool> EnsureUnlockedAsync(string scene)
     {
-        var hint = "敏感操作提示：验证仅在本地进行，不会上传密码。\n请输入数据库密码以解锁库存敏感操作";
+        var hint = "敏感操作提示：验证仅在本地进行，不会上传密码\n请输入数据库密码以解锁库存敏感操作";
         var ok = await _unlockService.EnsureUnlockedAsync(
             UnlockScopeKey,
             scene,
@@ -1440,7 +1480,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
         RefreshPagingState();
         RefreshUnlockState();
-        _ = ReloadAsync(force: false);
+        _ = ReloadAsync();
     }
 
     partial void OnPageIndexChanged(int value)
@@ -1474,7 +1514,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         AbandonPendingStockEditsIfNeeded();
 
         PageIndex = 1;
-        await ReloadAsync(force: true);
+        await ReloadAsync();
     }
 
     [RelayCommand]
@@ -1486,7 +1526,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
         Keyword = null;
         PageIndex = 1;
-        await ReloadAsync(force: true);
+        await ReloadAsync();
     }
 
     [RelayCommand(CanExecute = nameof(CanGoFirstPage))]
@@ -1501,7 +1541,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         AbandonPendingStockEditsIfNeeded();
 
         PageIndex = 1;
-        await ReloadAsync(force: true);
+        await ReloadAsync();
     }
 
     [RelayCommand(CanExecute = nameof(CanGoPrevPage))]
@@ -1516,7 +1556,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         AbandonPendingStockEditsIfNeeded();
 
         PageIndex--;
-        await ReloadAsync(force: true);
+        await ReloadAsync();
     }
 
     [RelayCommand(CanExecute = nameof(CanGoNextPage))]
@@ -1531,12 +1571,12 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         AbandonPendingStockEditsIfNeeded();
 
         PageIndex++;
-        await ReloadAsync(force: true);
+        await ReloadAsync();
     }
 
-    private bool CanGoFirstPage() => !IsBusy && HasPrevPage;
-    private bool CanGoPrevPage() => !IsBusy && HasPrevPage;
-    private bool CanGoNextPage() => !IsBusy && HasNextPage;
+    private bool CanGoFirstPage() => CanOperateUi() && HasPrevPage;
+    private bool CanGoPrevPage() => CanOperateUi() && HasPrevPage;
+    private bool CanGoNextPage() => CanOperateUi() && HasNextPage;
 
     private void SuppressExternalAutoRefresh(TimeSpan duration)
     {
@@ -1589,20 +1629,42 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 if (!string.Equals(NormalizeInput(Keyword), keyword, StringComparison.Ordinal))
                     return;
 
-                // Silent reconcile: update current rows in place to avoid scroll/selection shake.
-                var count = Math.Min(StockRows.Count, pageResult.Rows.Count);
-                for (var i = 0; i < count; i++)
+                // Silent reconcile: keep in-place update only when row count is unchanged.
+                // If count changed, rebuild the page rows to avoid stale tail rows.
+                if (StockRows.Count != pageResult.Rows.Count)
                 {
-                    var dst = StockRows[i];
-                    var src = pageResult.Rows[i];
-                    dst.DrugId = src.DrugId;
-                    dst.Spec = src.Spec;
-                    dst.TraceCode = src.TraceCode;
-                    dst.Qty = src.Qty;
-                    dst.Remain = src.Remain;
-                    dst.Status = src.Status;
-                    dst.IsLow = src.IsLow;
-                    dst.IsDeprecated = src.IsDeprecated;
+                    StockRows.Clear();
+                    var rowNo = ((PageIndex - 1) * PageSize) + 1;
+                    foreach (var row in pageResult.Rows)
+                    {
+                        StockRows.Add(new StockRowItem(
+                            rowNo: rowNo++,
+                            drugId: row.DrugId,
+                            spec: row.Spec,
+                            traceCode: row.TraceCode,
+                            qty: row.Qty,
+                            remain: row.Remain,
+                            status: row.Status,
+                            isLow: row.IsLow,
+                            isDeprecated: row.IsDeprecated));
+                    }
+                    OnPropertyChanged(nameof(IsStockEmpty));
+                }
+                else
+                {
+                    for (var i = 0; i < StockRows.Count; i++)
+                    {
+                        var dst = StockRows[i];
+                        var src = pageResult.Rows[i];
+                        dst.DrugId = src.DrugId;
+                        dst.Spec = src.Spec;
+                        dst.TraceCode = src.TraceCode;
+                        dst.Qty = src.Qty;
+                        dst.Remain = src.Remain;
+                        dst.Status = src.Status;
+                        dst.IsLow = src.IsLow;
+                        dst.IsDeprecated = src.IsDeprecated;
+                    }
                 }
 
                 TotalCount = pageResult.TotalCount;
@@ -1619,12 +1681,12 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     }
 
     protected override Task ReloadCoreAsync(CancellationToken ct)
-        => ReloadBodyAsync(force: true, ct);
+        => ReloadBodyAsync(ct);
 
     protected override void OnReloadFinished()
         => NotifyAllCommands();
 
-    private Task ReloadAsync(bool force, bool preserveEditSession = false)
+    private Task ReloadAsync(bool preserveEditSession = false)
     {
         if (IsStockEditEnabled && !preserveEditSession)
             AbandonPendingStockEditsIfNeeded();
@@ -1632,11 +1694,11 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         var mode = ModeIndex;
         return RunLocalReloadAsync(
             setBusy: v => SetModeBusy(mode, v),
-            action: ct => ReloadBodyAsync(force, ct),
+            action: ct => ReloadBodyAsync(ct),
             onFinished: NotifyAllCommands);
     }
 
-    private async Task ReloadBodyAsync(bool force, CancellationToken ct)
+    private async Task ReloadBodyAsync(CancellationToken ct)
     {
         var kw = NormalizeInput(Keyword);
 
@@ -1797,7 +1859,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     {
         PageIndex = 1;
 
-        PostOnUi(() => _ = ReloadAsync(force: true), DispatcherPriority.Background);
+        PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
     }
 
     private void OnUnlockScopeChanged(string scopeKey)
@@ -1810,13 +1872,16 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     private void NotifyAllCommands()
     {
-        if (!Dispatcher.UIThread.CheckAccess())
+        NotifyCommandsCoalesced("inventory.notify_commands", () =>
         {
-            PostOnUi(NotifyAllCommands, DispatcherPriority.Background);
-            return;
-        }
+            NotifyCommands(GetNotifiableCommands());
+            NotifyPendingChangesState();
+        });
+    }
 
-        NotifyCommands(
+    private IRelayCommand?[] GetNotifiableCommands()
+        => _notifiableCommands ??=
+        [
             _localRefreshCommand,
             SearchCommand,
             ClearSearchCommand,
@@ -1829,10 +1894,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             ToggleReassignPanelCommand,
             ApplyReassignDrugFilterCommand,
             PreviewReassignCommand,
-            ApplyReassignCommand);
-        _localRefreshCommand.NotifyCanExecuteChanged();
-        NotifyPendingChangesState();
-    }
+            ApplyReassignCommand
+        ];
 
     private void NotifyPendingChangesState()
     {
@@ -1865,7 +1928,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
         ModeIndex = next;
         if (forceReload)
-            _ = ReloadAsync(force: true);
+            _ = ReloadAsync();
     }
 
     public override void Dispose()
@@ -1881,7 +1944,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     public void NotifyDrugIndexChanged()
     {
-        PostOnUi(() => _ = ReloadAsync(force: true), DispatcherPriority.Background);
+        PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
     }
 
     private sealed record PendingStockEdit(

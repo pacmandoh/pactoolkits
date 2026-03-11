@@ -26,9 +26,21 @@ public sealed class AppConfigRoot
     public Dictionary<string, string> ClientAliases { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public TraceCodeValidationOptions TraceCodeValidation { get; set; } = new();
     public AutomationToolsOptions AutomationTools { get; set; } = new();
+    public MsfxApiOptions MsfxApi { get; set; } = new();
     public UiBehaviorOptions UiBehavior { get; set; } = new();
     public UpdateOptions Update { get; set; } = new();
     public LoggingOptions Logging { get; set; } = new();
+}
+
+public sealed class MsfxApiOptions
+{
+    public string GatewayUrl { get; set; } = "https://eco.taobao.com/router/rest";
+    public string AppKey { get; set; } = string.Empty;
+    public string AppSecret { get; set; } = string.Empty;
+    public string SessionToken { get; set; } = string.Empty;
+    public string RefEntId { get; set; } = string.Empty;
+    public string DefaultMethod { get; set; } = string.Empty;
+    public int TimeoutSeconds { get; set; } = 20;
 }
 
 public sealed class UiBehaviorOptions
@@ -171,18 +183,30 @@ public sealed class AppConfigStore : IAppConfigStore
     {
         lock (_gate)
         {
+            string? existingJson = null;
             AppConfigRoot raw;
             try
             {
-                raw = ReadUnifiedOrDefault();
+                if (File.Exists(ConfigPath))
+                {
+                    existingJson = File.ReadAllText(ConfigPath);
+                    raw = JsonSerializer.Deserialize<AppConfigRoot>(existingJson) ?? new AppConfigRoot();
+                }
+                else
+                {
+                    raw = new AppConfigRoot();
+                }
             }
             catch
             {
                 raw = new AppConfigRoot();
+                existingJson = null;
             }
 
             var normalized = Normalize(raw);
-            if (File.Exists(ConfigPath) && HasPersistedDefaults(raw))
+            if (File.Exists(ConfigPath)
+                && HasPersistedDefaults(raw)
+                && HasRequiredConfigKeys(existingJson))
                 return;
 
             var json = JsonSerializer.Serialize(normalized, _writeOptions);
@@ -208,6 +232,31 @@ public sealed class AppConfigStore : IAppConfigStore
         return true;
     }
 
+    private static bool HasRequiredConfigKeys(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return false;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+                return false;
+
+            if (!root.TryGetProperty("MsfxApi", out var msfx) || msfx.ValueKind != JsonValueKind.Object)
+                return false;
+            if (!msfx.TryGetProperty("RefEntId", out _))
+                return false;
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static AppConfigRoot Normalize(AppConfigRoot? source)
     {
         var root = source ?? new AppConfigRoot();
@@ -216,6 +265,7 @@ public sealed class AppConfigStore : IAppConfigStore
         root.Postgres ??= new PgOptions();
         root.TraceCodeValidation ??= new TraceCodeValidationOptions();
         root.AutomationTools ??= new AutomationToolsOptions();
+        root.MsfxApi ??= new MsfxApiOptions();
         root.AutomationTools.Ahk ??= new AhkToolOptions();
         root.AutomationTools.Agent ??= new AgentToolOptions();
         root.UiBehavior ??= new UiBehaviorOptions();
@@ -236,6 +286,7 @@ public sealed class AppConfigStore : IAppConfigStore
             ? ahkDefaults.ProcessName
             : root.AutomationTools.Ahk.ProcessName.Trim();
         root.AutomationTools.Agent = NormalizeAgent(root.AutomationTools.Agent);
+        root.MsfxApi = NormalizeMsfxApi(root.MsfxApi);
         root.Update = NormalizeUpdate(root.Update);
         root.Logging = NormalizeLogging(root.Logging);
 
@@ -248,6 +299,27 @@ public sealed class AppConfigStore : IAppConfigStore
                 StringComparer.OrdinalIgnoreCase);
 
         return root;
+    }
+
+    private static MsfxApiOptions NormalizeMsfxApi(MsfxApiOptions? source)
+    {
+        var defaults = new MsfxApiOptions();
+        var options = source ?? new MsfxApiOptions();
+
+        options.GatewayUrl = string.IsNullOrWhiteSpace(options.GatewayUrl)
+            ? defaults.GatewayUrl
+            : options.GatewayUrl.Trim();
+        options.AppKey = (options.AppKey ?? string.Empty).Trim();
+        options.AppSecret = (options.AppSecret ?? string.Empty).Trim();
+        options.SessionToken = (options.SessionToken ?? string.Empty).Trim();
+        options.RefEntId = (options.RefEntId ?? string.Empty).Trim();
+        options.DefaultMethod = (options.DefaultMethod ?? string.Empty).Trim();
+        if (options.TimeoutSeconds <= 0)
+            options.TimeoutSeconds = defaults.TimeoutSeconds;
+        if (options.TimeoutSeconds > 120)
+            options.TimeoutSeconds = 120;
+
+        return options;
     }
 
     private static UpdateOptions NormalizeUpdate(UpdateOptions? source)

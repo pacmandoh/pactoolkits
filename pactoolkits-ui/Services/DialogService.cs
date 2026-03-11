@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
 using SukiUI.Dialogs;
+using pactoolkits_ui.Contracts;
+using pactoolkits_ui.Repositories;
 using pactoolkits_ui.Views.Dialogs;
 
 namespace pactoolkits_ui.Services;
@@ -26,7 +29,36 @@ public interface IDialogService
         int tracePoolAffected,
         int traceTxnAffected);
     Task<string?> PromptInventoryUnlockPassword(string title, string hintMessage);
+    Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items);
+    Task ShowMsfxStateDetailDialog(MsfxStateDetailDialogModel model);
+    Task<MsfxMappingDialogResult> ShowMsfxMappingDetailDialog(MsfxMappingDetailDialogModel model);
+    Task<MsfxMappingBatchDialogResult> ShowMsfxMappingBatchDialog(MsfxMappingBatchDialogModel model);
 }
+
+public enum MsfxMappingDialogAction
+{
+    Cancel = 0,
+    MarkReview = 1,
+    ApplyMap = 2
+}
+
+public sealed record MsfxMappingDialogResult(
+    MsfxMappingDialogAction Action,
+    string DrugId,
+    string Spec);
+
+public enum MsfxMappingBatchDialogAction
+{
+    Cancel = 0,
+    MarkReview = 1,
+    ApplyMap = 2
+}
+
+public sealed record MsfxMappingBatchDialogResult(
+    MsfxMappingBatchDialogAction Action,
+    MsfxMappingBatchGroupRow? Group,
+    string DrugId,
+    string Spec);
 
 public sealed class DialogService : IDialogService
 {
@@ -78,6 +110,7 @@ public sealed class DialogService : IDialogService
                 .WithContent(message)
                 .WithActionButton(okText, _ => tcs.TrySetResult(null), dismissOnClick: true, classes: classes)
                 .Dismiss().ByClickingBackground()
+                .OnDismissed(_ => tcs.TrySetResult(null))
                 .TryShow();
         });
 
@@ -107,6 +140,7 @@ public sealed class DialogService : IDialogService
                 .WithActionButton(cancelText, _ => tcs.TrySetResult(false), dismissOnClick: true, classes: cancelButtonClasses)
                 .WithActionButton(okText, _ => tcs.TrySetResult(true), dismissOnClick: true, classes: okButtonClasses)
                 .Dismiss().ByClickingBackground()
+                .OnDismissed(_ => tcs.TrySetResult(false))
                 .TryShow();
         });
 
@@ -132,6 +166,7 @@ public sealed class DialogService : IDialogService
                 .WithActionButton(secondaryText, _ => tcs.TrySetResult(2), dismissOnClick: true, classes: FlatAccentButtonClasses)
                 .WithActionButton(primaryText, _ => tcs.TrySetResult(1), dismissOnClick: true, classes: FlatButtonClasses)
                 .Dismiss().ByClickingBackground()
+                .OnDismissed(_ => tcs.TrySetResult(0))
                 .TryShow();
         });
 
@@ -159,8 +194,8 @@ public sealed class DialogService : IDialogService
                     TracePoolAffectedDisplay: $"{tracePoolAffected} 条",
                     TraceTxnAffectedDisplay: $"{traceTxnAffected} 条",
                     TargetExistsDisplay: targetExists
-                        ? "目标药品键已存在，迁移时将并入既有记录。"
-                        : "目标药品键不存在，迁移时将创建新记录。")
+                        ? "目标药品键已存在，迁移时将并入既有记录"
+                        : "目标药品键不存在，迁移时将创建新记录")
             };
 
             _dialogManager.CreateDialog()
@@ -170,6 +205,7 @@ public sealed class DialogService : IDialogService
                 .WithActionButton("取消", _ => tcs.TrySetResult(false), dismissOnClick: true, classes: GhostButtonClasses)
                 .WithActionButton("继续迁移", _ => tcs.TrySetResult(true), dismissOnClick: true, classes: FlatAccentButtonClasses)
                 .Dismiss().ByClickingBackground()
+                .OnDismissed(_ => tcs.TrySetResult(false))
                 .TryShow();
         });
 
@@ -203,4 +239,125 @@ public sealed class DialogService : IDialogService
 
         return tcs.Task;
     }
+
+    public Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items)
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            var content = new InfoDetailDialogView
+            {
+                DataContext = new InfoDetailDialogModel(
+                    Header: title,
+                    SubHeader: subHeader,
+                    Items: items)
+            };
+
+            _dialogManager.CreateDialog()
+                .OfType(NotificationType.Information)
+                .WithTitle(title)
+                .WithContent(content)
+                .WithActionButton("关闭", _ => tcs.TrySetResult(null), dismissOnClick: true, classes: FlatAccentButtonClasses)
+                .Dismiss().ByClickingBackground()
+                .OnDismissed(_ => tcs.TrySetResult(null))
+                .TryShow();
+        });
+
+        return tcs.Task;
+    }
+
+    public Task ShowMsfxStateDetailDialog(MsfxStateDetailDialogModel model)
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            var content = new MsfxStateDetailDialogView
+            {
+                DataContext = model
+            };
+
+            _dialogManager.CreateDialog()
+                .OfType(ToNotificationType(model.State))
+                .WithTitle(model.Header)
+                .WithContent(content)
+                .WithActionButton("关闭", _ => tcs.TrySetResult(null), dismissOnClick: true, classes: FlatAccentButtonClasses)
+                .Dismiss().ByClickingBackground()
+                .OnDismissed(_ => tcs.TrySetResult(null))
+                .TryShow();
+        });
+
+        return tcs.Task;
+    }
+
+    public Task<MsfxMappingDialogResult> ShowMsfxMappingDetailDialog(MsfxMappingDetailDialogModel model)
+    {
+        var tcs = new TaskCompletionSource<MsfxMappingDialogResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            var content = new MsfxMappingDetailDialogView
+            {
+                DataContext = model
+            };
+
+            var builder = _dialogManager.CreateDialog()
+                .OfType(NotificationType.Information)
+                .WithTitle("映射详情")
+                .WithContent(content)
+                .WithActionButton("关闭", _ => tcs.TrySetResult(new MsfxMappingDialogResult(MsfxMappingDialogAction.Cancel, "", "")), dismissOnClick: true, classes: GhostButtonClasses);
+
+            if (!model.IsReadOnly)
+            {
+                builder = builder
+                    .WithActionButton("标记待人工", _ => tcs.TrySetResult(new MsfxMappingDialogResult(MsfxMappingDialogAction.MarkReview, "", "")), dismissOnClick: true, classes: FlatButtonClasses)
+                    .WithActionButton("应用映射", _ => tcs.TrySetResult(new MsfxMappingDialogResult(MsfxMappingDialogAction.ApplyMap, content.DrugId, content.Spec)), dismissOnClick: true, classes: FlatAccentButtonClasses);
+            }
+
+            builder
+                .Dismiss().ByClickingBackground()
+                .OnDismissed(_ => tcs.TrySetResult(new MsfxMappingDialogResult(MsfxMappingDialogAction.Cancel, "", "")))
+                .TryShow();
+        });
+
+        return tcs.Task;
+    }
+
+    public Task<MsfxMappingBatchDialogResult> ShowMsfxMappingBatchDialog(MsfxMappingBatchDialogModel model)
+    {
+        var tcs = new TaskCompletionSource<MsfxMappingBatchDialogResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            var content = new MsfxMappingBatchDialogView
+            {
+                DataContext = model
+            };
+            MsfxMappingBatchGroupRow? ResolveGroup()
+                => content.SelectedGroup;
+
+            _dialogManager.CreateDialog()
+                .OfType(NotificationType.Information)
+                .WithTitle("批量映射")
+                .WithContent(content)
+                .WithActionButton("关闭", _ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.Cancel, null, "", "")), dismissOnClick: true, classes: GhostButtonClasses)
+                .WithActionButton("转待人工", _ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.MarkReview, ResolveGroup(), "", "")), dismissOnClick: true, classes: FlatButtonClasses)
+                .WithActionButton("批量映射", _ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.ApplyMap, ResolveGroup(), content.DrugId, content.Spec)), dismissOnClick: true, classes: FlatAccentButtonClasses)
+                .Dismiss().ByClickingBackground()
+                .OnDismissed(_ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.Cancel, null, "", "")))
+                .TryShow();
+        });
+
+        return tcs.Task;
+    }
+
+    private static NotificationType ToNotificationType(TraceEntryState state)
+        => state switch
+        {
+            TraceEntryState.Success => NotificationType.Success,
+            TraceEntryState.Warning => NotificationType.Warning,
+            TraceEntryState.Failed => NotificationType.Error,
+            _ => NotificationType.Information
+        };
 }

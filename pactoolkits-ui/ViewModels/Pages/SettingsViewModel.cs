@@ -34,6 +34,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private readonly IDbConnectionTester _tester;
     private readonly IToastService _toast;
     private readonly IClientAliasService _alias;
+    private readonly IAppConfigStore _appConfigStore;
     private readonly IClientIdReadRepo _clientRepo;
     private readonly ITraceCodeRuleService _traceCodeRule;
     private readonly IUiBehaviorService _uiBehavior;
@@ -51,6 +52,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private bool _syncingUiBehavior;
     private bool _syncingUpdateOptions;
     private bool _syncingLoggingOptions;
+    private const string MsfxDefaultGatewayUrl = "https://eco.taobao.com/router/rest";
 
     [ObservableProperty] private string _host;
     [ObservableProperty] private int _port;
@@ -89,6 +91,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _loggingStatusHint = "日志系统已启用";
     [ObservableProperty] private bool _isLoggingBusy;
     [ObservableProperty] private string _dbSchemaCurrentVersion = "unknown";
+    [ObservableProperty] private string _dbSchemaTargetVersion = "unknown";
     [ObservableProperty] private string _dbSchemaRequiredMinVersion = "unknown";
     [ObservableProperty] private string _dbSchemaStatusText = "未检查";
     [ObservableProperty] private bool _isDbSchemaSatisfied;
@@ -101,10 +104,22 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _dbSchemaLastCheckSourceText = "--";
     [ObservableProperty] private string _dbSchemaLastMigrationText = "尚无迁移记录";
     [ObservableProperty] private string _dbSchemaPolicyText = "启动/保存连接时强制迁移，统一写入 public schema";
+    [ObservableProperty] private string _msfxGatewayUrl = "https://eco.taobao.com/router/rest";
+    [ObservableProperty] private string _msfxAppKey = string.Empty;
+    [ObservableProperty] private string _msfxAppSecret = string.Empty;
+    [ObservableProperty] private bool _showMsfxAppSecret;
+    [ObservableProperty] private string _msfxSessionToken = string.Empty;
+    [ObservableProperty] private string _msfxRefEntId = string.Empty;
+    [ObservableProperty] private int _msfxTimeoutSeconds = 20;
+    [ObservableProperty] private string _msfxApiHint = "未保存";
+    [ObservableProperty] private bool? _msfxApiBadgeStatus;
+    [ObservableProperty] private string _msfxApiBadgeLabel = "未配置";
+    public char MsfxAppSecretPasswordChar => ShowMsfxAppSecret ? '\0' : '•';
 
     [ObservableProperty] private bool _isClientAliasEditMode;
     [ObservableProperty] private bool _isClientAliasReadOnly = true;
     public bool CanCopyDbSchemaDiagnostics => !string.IsNullOrWhiteSpace(BuildDbSchemaDiagnosticsText());
+    public bool CanApplyDbSchemaUpdate => !IsDbSchemaChecking && !string.Equals(DbSchemaStatusText, "更新中", StringComparison.Ordinal);
     public ObservableCollection<string> LoggingLevelOptions { get; } = new()
     {
         "Debug",
@@ -125,15 +140,16 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     public string SuiteUpdateAvailabilityLabel => GetAvailabilityLabel(SuiteUpdateAvailable);
     public string LoggingMinimumLevelHint => LoggingMinimumLevel switch
     {
-        "Debug" => "记录最详细调试信息，适合临时排障。",
-        "Info" => "记录关键流程信息，便于常规回溯。",
-        "Warn" => "仅记录异常征兆与潜在问题。",
-        "Error" => "仅记录错误与失败，推荐日常运行。",
-        "Fatal" => "仅记录致命故障，最小日志开销。",
-        _ => "日志级别未识别，将使用 Error。"
+        "Debug" => "记录最详细调试信息，适合临时排障",
+        "Info" => "记录关键流程信息，便于常规回溯",
+        "Warn" => "仅记录异常征兆与潜在问题",
+        "Error" => "仅记录错误与失败，推荐日常运行",
+        "Fatal" => "仅记录致命故障，最小日志开销",
+        _ => "日志级别未识别，将使用 Error"
     };
     public string DbSchemaStatusBadgeText => DbSchemaStatusText;
     public SettingsViewModel(
+        IAppConfigStore appConfigStore,
         IDbConfigService svc,
         IDbConnectionTester tester,
         IToastService toast,
@@ -152,6 +168,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IClipboardService clipboard,
         IClientIdReadRepo clientRepo)
     {
+        _appConfigStore = appConfigStore;
         _svc = svc;
         _tester = tester;
         _toast = toast;
@@ -186,6 +203,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         _ = ReloadClientAliasesAsync();
 
         LoadTraceCodeRule();
+        LoadMsfxApiOptions();
         LoadUiBehavior();
         LoadUpdateOptions();
         LoadLoggingOptions();
@@ -197,8 +215,77 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     }
 
+    private void LoadMsfxApiOptions()
+    {
+        var options = _appConfigStore.Load().MsfxApi ?? new MsfxApiOptions();
+        MsfxGatewayUrl = string.Equals(options.GatewayUrl, MsfxDefaultGatewayUrl, StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : options.GatewayUrl;
+        MsfxAppKey = options.AppKey;
+        MsfxAppSecret = options.AppSecret;
+        MsfxSessionToken = options.SessionToken;
+        MsfxRefEntId = options.RefEntId;
+        MsfxTimeoutSeconds = options.TimeoutSeconds;
+        RefreshMsfxApiHint(options);
+    }
+
     public Task RefreshDbSchemaStatusFromHostAsync(string source = "startup_postcheck")
         => RefreshDbSchemaStatusAsync(source, manualProbe: false);
+
+    public void ResetDraftFromCurrent()
+    {
+        var cfg = _appConfigStore.Load();
+        var c = cfg.Postgres ?? _svc.Current;
+        Host = c.Host;
+        Port = c.Port;
+        Database = c.Database;
+        Username = c.Username;
+        Password = c.Password;
+
+        Status = null;
+        ShowMsfxAppSecret = false;
+        IsClientAliasEditMode = false;
+        IsClientAliasReadOnly = true;
+
+        LoadAliasesOnly();
+        UpdateClientAliasUiState();
+        LoadTraceCodeRule();
+        LoadMsfxApiOptions();
+        LoadUiBehavior();
+        LoadUpdateOptions();
+        LoadLoggingOptions();
+
+        // NumericUpDown can keep transient editor text (e.g. cleared but not committed).
+        // Force notify all numeric fields so UI rebinds to persisted/current values.
+        OnPropertyChanged(nameof(Port));
+        OnPropertyChanged(nameof(TraceCodeRequiredLength));
+        OnPropertyChanged(nameof(UpdatePollIntervalMinutes));
+        OnPropertyChanged(nameof(LoggingRetentionDays));
+        OnPropertyChanged(nameof(LoggingMaxFileSizeMb));
+        OnPropertyChanged(nameof(MsfxTimeoutSeconds));
+
+        // Force NumericUpDown editor text to rebind even when target value equals current value.
+        var targetPort = c.Port;
+        var targetTraceLength = TraceCodeRequiredLength;
+        var targetPollMinutes = UpdatePollIntervalMinutes;
+        var targetRetentionDays = LoggingRetentionDays;
+        var targetFileSizeMb = LoggingMaxFileSizeMb;
+        var targetMsfxTimeout = MsfxTimeoutSeconds;
+
+        Port = targetPort == 1 ? 2 : 1;
+        TraceCodeRequiredLength = targetTraceLength == 1 ? 2 : 1;
+        UpdatePollIntervalMinutes = targetPollMinutes == 0 ? 1 : 0;
+        LoggingRetentionDays = targetRetentionDays == 1 ? 2 : 1;
+        LoggingMaxFileSizeMb = targetFileSizeMb == 1 ? 2 : 1;
+        MsfxTimeoutSeconds = targetMsfxTimeout <= 3 ? 4 : 3;
+
+        Port = targetPort;
+        TraceCodeRequiredLength = targetTraceLength;
+        UpdatePollIntervalMinutes = targetPollMinutes;
+        LoggingRetentionDays = targetRetentionDays;
+        LoggingMaxFileSizeMb = targetFileSizeMb;
+        MsfxTimeoutSeconds = targetMsfxTimeout;
+    }
 
     private void OnClientAliasesChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsClientAliasesEmpty));
@@ -358,7 +445,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             if (result.Ok)
             {
-                await EnsureDbSchemaUpToDateAsync().ConfigureAwait(false);
+                if (!await EnsureDbSchemaUpToDateAsync().ConfigureAwait(false))
+                {
+                    Status = "数据库结构更新失败";
+                    IsDbConnected = false;
+                    UpdateClientAliasUiState();
+                    return;
+                }
                 if (!await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false))
                 {
                     Status = "数据库版本不兼容";
@@ -405,7 +498,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         try
         {
             await _svc.SaveAndApplyAsync(ToOptions());
-            await EnsureDbSchemaUpToDateAsync().ConfigureAwait(false);
+            if (!await EnsureDbSchemaUpToDateAsync().ConfigureAwait(false))
+            {
+                Status = "数据库结构更新失败";
+                IsDbConnected = false;
+                UpdateClientAliasUiState();
+                return;
+            }
             if (!await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false))
             {
                 Status = "数据库版本不兼容";
@@ -440,6 +539,15 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
 
         await RefreshDbSchemaStatusAsync("manual_check", manualProbe: true).ConfigureAwait(false);
+    }
+
+    [RelayCommand]
+    private async Task ApplyDbSchemaUpdateAsync()
+    {
+        if (ShouldSkipTrigger() || IsDbSchemaChecking)
+            return;
+
+        await EnsureDbSchemaUpToDateAsync().ConfigureAwait(false);
     }
 
     [RelayCommand]
@@ -664,6 +772,131 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             IsBusy = false;
         }
     }
+
+    [RelayCommand]
+    private void ToggleMsfxAppSecretVisibility()
+        => ShowMsfxAppSecret = !ShowMsfxAppSecret;
+
+    partial void OnShowMsfxAppSecretChanged(bool value)
+        => OnPropertyChanged(nameof(MsfxAppSecretPasswordChar));
+
+    [RelayCommand]
+    private async Task SaveMsfxApiConfigAsync()
+    {
+        if (ShouldSkipTrigger())
+            return;
+
+        if (string.IsNullOrWhiteSpace(MsfxAppKey))
+        {
+            _toast.Error("码上放心 API", "AppKey 不能为空");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(MsfxAppSecret))
+        {
+            _toast.Error("码上放心 API", "AppSecret 不能为空");
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var gateway = string.IsNullOrWhiteSpace(MsfxGatewayUrl)
+                ? MsfxDefaultGatewayUrl
+                : MsfxGatewayUrl.Trim();
+            var cfg = _appConfigStore.Load();
+            cfg.MsfxApi = new MsfxApiOptions
+            {
+                GatewayUrl = gateway,
+                AppKey = MsfxAppKey.Trim(),
+                AppSecret = MsfxAppSecret.Trim(),
+                SessionToken = (MsfxSessionToken ?? string.Empty).Trim(),
+                RefEntId = (MsfxRefEntId ?? string.Empty).Trim(),
+                DefaultMethod = "alibaba.alihealth.drugtrace.top.yljg.listupout",
+                TimeoutSeconds = Math.Clamp(MsfxTimeoutSeconds, 3, 120)
+            };
+
+            await _appConfigStore.SaveAsync(cfg).ConfigureAwait(false);
+            await RunOnUiAsync(() =>
+            {
+                MsfxGatewayUrl = string.Equals(cfg.MsfxApi.GatewayUrl, MsfxDefaultGatewayUrl, StringComparison.OrdinalIgnoreCase)
+                    ? string.Empty
+                    : cfg.MsfxApi.GatewayUrl;
+                MsfxAppKey = cfg.MsfxApi.AppKey;
+                MsfxAppSecret = cfg.MsfxApi.AppSecret;
+                MsfxSessionToken = cfg.MsfxApi.SessionToken;
+                MsfxRefEntId = cfg.MsfxApi.RefEntId;
+                MsfxTimeoutSeconds = cfg.MsfxApi.TimeoutSeconds;
+                RefreshMsfxApiHint(cfg.MsfxApi);
+            });
+
+            _toast.Success("码上放心 API", "配置已保存");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("SettingsVM", "msfx.settings.save.fail", "Failed to save msfx api settings", ex);
+            _toast.Error("码上放心 API", $"保存失败：{ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void RefreshMsfxApiHint(MsfxApiOptions options)
+    {
+        var hasKey = !string.IsNullOrWhiteSpace(options.AppKey);
+        var hasSecret = !string.IsNullOrWhiteSpace(options.AppSecret);
+        var hasEnt = !string.IsNullOrWhiteSpace(options.RefEntId);
+        var hasToken = !string.IsNullOrWhiteSpace(options.SessionToken);
+        var hasCore = hasKey || hasSecret || hasEnt;
+
+        if (!hasCore)
+        {
+            MsfxApiHint = "配置状态：未配置";
+            MsfxApiBadgeStatus = null;
+            MsfxApiBadgeLabel = "未配置";
+            return;
+        }
+
+        if (hasKey && hasSecret && hasEnt && hasToken)
+        {
+            MsfxApiHint = "配置状态：已就绪（含 SessionToken）";
+            MsfxApiBadgeStatus = false;
+            MsfxApiBadgeLabel = "已就绪";
+            return;
+        }
+
+        if (hasKey && hasSecret && hasEnt)
+        {
+            MsfxApiHint = "配置状态：已就绪（SessionToken 可选）";
+            MsfxApiBadgeStatus = false;
+            MsfxApiBadgeLabel = "已就绪";
+            return;
+        }
+
+        MsfxApiHint = "配置状态：待完善（需 AppKey/AppSecret/企业ID）";
+        MsfxApiBadgeStatus = true;
+        MsfxApiBadgeLabel = "待完善";
+    }
+
+    private MsfxApiOptions BuildMsfxOptionsFromUi()
+    {
+        var gateway = string.IsNullOrWhiteSpace(MsfxGatewayUrl)
+            ? MsfxDefaultGatewayUrl
+            : MsfxGatewayUrl.Trim();
+        return new MsfxApiOptions
+        {
+            GatewayUrl = gateway,
+            AppKey = (MsfxAppKey ?? string.Empty).Trim(),
+            AppSecret = (MsfxAppSecret ?? string.Empty).Trim(),
+            SessionToken = (MsfxSessionToken ?? string.Empty).Trim(),
+            RefEntId = (MsfxRefEntId ?? string.Empty).Trim(),
+            DefaultMethod = "alibaba.alihealth.drugtrace.top.yljg.listupout",
+            TimeoutSeconds = Math.Clamp(MsfxTimeoutSeconds, 3, 120)
+        };
+    }
+
 
     private async Task SaveUiBehaviorImmediateAsync(bool value)
     {
@@ -976,26 +1209,30 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         return false;
     }
 
-    private async Task EnsureDbSchemaUpToDateAsync()
+    private async Task<bool> EnsureDbSchemaUpToDateAsync()
     {
         SetDbSchemaStatus("更新中", checking: true, failed: false, error: null);
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
-            var migration = await _dbSchemaMigration.EnsureUpToDateAsync(cts.Token).ConfigureAwait(false);
+            var migration = await _dbSchemaMigration
+                .EnsureUpToDateAsync(cts.Token, _releaseVersion.Current.DbSchemaVersion)
+                .ConfigureAwait(false);
             DbSchemaLastMigrationText = $"before={migration.BeforeVersion ?? "unknown"} -> after={migration.AfterVersion ?? "unknown"}（applied={migration.AppliedCount}, skipped={migration.SkippedCount}）";
             if (migration.HasChanges)
             {
                 _toast.Success("数据库结构更新", $"已应用 {migration.AppliedCount} 个迁移，当前版本 {migration.AfterVersion ?? "unknown"}");
             }
             await RefreshDbSchemaStatusAsync("migrate_done", manualProbe: false).ConfigureAwait(false);
+            return true;
         }
         catch (Exception ex)
         {
             SetDbSchemaStatus("更新失败", checking: false, failed: true, error: ex.Message);
             DbSchemaLastMigrationText = $"迁移失败：{ex.Message}";
             OnPropertyChanged(nameof(CanCopyDbSchemaDiagnostics));
-            throw;
+            _toast.Error("数据库结构更新", $"更新失败：{ex.Message}");
+            return false;
         }
     }
 
@@ -1016,6 +1253,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             DbSchemaLastCheckedAtText = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
             DbSchemaLastCheckSourceText = MapDbSchemaCheckSource(source);
             var requiredMin = GetRequiredMinSchemaVersion();
+            var localTarget = DbSchemaCompat.NormalizeBound(_releaseVersion.Current.DbSchemaVersion, _releaseVersion.Current.DbSchemaVersion);
+            DbSchemaTargetVersion = localTarget;
             DbSchemaRequiredMinVersion = requiredMin;
             DbSchemaCurrentVersion = schema.value ?? "unknown";
 
@@ -1028,15 +1267,29 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             }
 
             var satisfied = DbSchemaCompat.IsSemVerAtLeast(schema.value ?? string.Empty, requiredMin);
+            var updatable = IsSchemaUpdatable(schema.value, localTarget);
             IsDbSchemaSatisfied = satisfied;
-            SetDbSchemaStatus(satisfied ? "已满足" : "需要更新", checking: false, failed: false, error: satisfied ? null : $"当前版本 {schema.value} 低于最低要求 {requiredMin}");
+            if (!satisfied)
+            {
+                SetDbSchemaStatus("需要更新", checking: false, failed: false, error: $"当前版本 {schema.value} 低于最低要求 {requiredMin}");
+            }
+            else if (updatable)
+            {
+                SetDbSchemaStatus("可更新", checking: false, failed: false, error: $"当前版本 {schema.value} 低于本地版本文件 {localTarget}");
+            }
+            else
+            {
+                SetDbSchemaStatus("已满足", checking: false, failed: false, error: null);
+            }
 
             if (manualProbe)
             {
-                if (satisfied)
-                    _toast.Success("数据库结构更新", $"当前版本 {schema.value}，满足最低要求 {requiredMin}");
-                else
+                if (!satisfied)
                     _toast.Warn("数据库结构更新", $"当前版本 {schema.value}，低于最低要求 {requiredMin}");
+                else if (updatable)
+                    _toast.Warn("数据库结构更新", $"当前版本 {schema.value}，可更新到本地版本 {localTarget}");
+                else
+                    _toast.Success("数据库结构更新", $"当前版本 {schema.value}，满足最低要求 {requiredMin}");
             }
         }
         finally
@@ -1065,6 +1318,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             "startup" => "应用启动",
             "startup_postcheck" => "启动检查完成后回读",
+            "open_settings" => "打开设置页",
+            "db_reconnected" => "数据库重连后回读",
             "manual_check" => "手动检查",
             "compat_check" => "兼容性校验",
             "migrate_done" => "迁移完成后回读",
@@ -1090,6 +1345,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         MapDbSchemaBadge(status, checking, failed);
         OnPropertyChanged(nameof(DbSchemaStatusBadgeText));
         OnPropertyChanged(nameof(CanCopyDbSchemaDiagnostics));
+        OnPropertyChanged(nameof(CanApplyDbSchemaUpdate));
     }
 
     private string BuildDbSchemaDiagnosticsText()
@@ -1097,6 +1353,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         var lines = new List<string>
         {
             $"status={DbSchemaStatusText}",
+            $"target={DbSchemaTargetVersion}",
             $"current={DbSchemaCurrentVersion}",
             $"required_min={DbSchemaRequiredMinVersion}",
             $"last_checked_at={DbSchemaLastCheckedAtText}",
@@ -1134,6 +1391,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
         }
 
+        if (string.Equals(status, "可更新", StringComparison.Ordinal))
+        {
+            DbSchemaBadgeStatus = true;
+            DbSchemaBadgeLabel = "可更新";
+            return;
+        }
+
         if (string.Equals(status, "需要更新", StringComparison.Ordinal))
         {
             DbSchemaBadgeStatus = true;
@@ -1143,6 +1407,15 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         DbSchemaBadgeStatus = null;
         DbSchemaBadgeLabel = string.IsNullOrWhiteSpace(status) ? "未检查" : status;
+    }
+
+    private static bool IsSchemaUpdatable(string? currentVersion, string? localTargetVersion)
+    {
+        if (!DbSchemaCompat.TryParseSemVer(currentVersion ?? string.Empty, out var current))
+            return false;
+        if (!DbSchemaCompat.TryParseSemVer(localTargetVersion ?? string.Empty, out var target))
+            return false;
+        return DbSchemaCompat.CompareSemVer(current, target) < 0;
     }
 
     private void TrackAliasRow(ClientAliasRow row)

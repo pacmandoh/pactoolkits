@@ -558,7 +558,7 @@
                                     <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsTxnBusy}">
                                         <DataGrid
                                               x:Name="RecentTxnGridOverview"
-                                              Classes="SectionGrid TxnGrid"
+                                              Classes="SectionGrid TxnGrid StickyIndexGrid"
                                               ItemsSource="{Binding RecentTxnsOverview}"
                                               SelectedItem="{Binding SelectedTxn}"
                                               SelectionChanged="OnBrowsingGridSelectionChanged"
@@ -860,12 +860,12 @@
                             <TextBlock Grid.Row="1" Text="{Binding SectionHint}" Classes="SectionHint" />
                             <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsEntryBusy}">
                                 <DataGrid x:Name="EntryRecentGridInputTab"
-                                          Classes="SectionGrid CopySelectMenuGrid TraceStateGrid"
+                                          Classes="SectionGrid CopySelectMenuGrid TraceStateGrid StickyIndexGrid StickyIndexDisplayIndex"
                                           ItemsSource="{Binding EntryRecent}"
                                           SelectedItem="{Binding SelectedEntryRecent}"
                                           SelectionChanged="OnBrowsingGridSelectionChanged"
                                           PointerPressed="OnBrowsingGridPointerPressed"
-                                          HeadersVisibility="Column"
+                                          HeadersVisibility="All"
                                           RowHeight="{StaticResource RowMinHeight}"
                                           SelectionMode="Extended"
                                           CanUserResizeColumns="True"
@@ -982,13 +982,13 @@
                                 <Grid>
                                     <DataGrid x:Name="TxnDetailGrid"
                                           IsVisible="{Binding IsTxnPanelDetailMode}"
-                                          Classes="SectionGrid TxnGrid CopySelectMenuGrid"
+                                          Classes="SectionGrid TxnGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
                                           ItemsSource="{Binding RecentTxns}"
                                           SelectedItem="{Binding SelectedTxn}"
                                           SelectionChanged="OnBrowsingGridSelectionChanged"
                                           PointerPressed="OnBrowsingGridPointerPressed"
                                           SelectionMode="Extended"
-                                          HeadersVisibility="Column"
+                                          HeadersVisibility="All"
                                           RowHeight="{StaticResource RowMinHeight}"
                                           VerticalAlignment="Stretch"
                                           HorizontalAlignment="Stretch"
@@ -1024,13 +1024,13 @@
 
                                     <DataGrid x:Name="TxnTrendGrid"
                                           IsVisible="{Binding IsTxnPanelTrendMode}"
-                                          Classes="SectionGrid CopySelectMenuGrid"
+                                          Classes="SectionGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
                                           ItemsSource="{Binding TxnTrendRows}"
                                           SelectedItem="{Binding SelectedTrendItem}"
                                           SelectionChanged="OnBrowsingGridSelectionChanged"
                                           PointerPressed="OnBrowsingGridPointerPressed"
                                           SelectionMode="Extended"
-                                          HeadersVisibility="Column"
+                                          HeadersVisibility="All"
                                           RowHeight="{StaticResource RowMinHeight}"
                                           VerticalAlignment="Stretch"
                                           HorizontalAlignment="Stretch"
@@ -1158,7 +1158,7 @@
                             <TextBlock Grid.Row="1" Text="{Binding SectionHint}" Classes="SectionHint" />
                                 <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsAbnormalBusy}">
                                     <DataGrid x:Name="AbnormalGrid"
-                                              Classes="SectionGrid CopySelectMenuGrid"
+                                              Classes="SectionGrid TxnGrid AbnormalGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
                                               ItemsSource="{Binding AbnormalQueue}"
                                               SelectedItem="{Binding SelectedAbnormal}"
                                               SelectionChanged="OnBrowsingGridSelectionChanged"

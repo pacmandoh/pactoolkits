@@ -320,9 +320,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             AhkStatusHeadline = $"状态：{AhkStatusText}";
             AhkStatusDetail = _ahkRuntime.State switch
             {
-                ToolRunState.Running => "进程已运行，可在右上角或本页执行“重启”。",
-                ToolRunState.Stopped => "当前未检测到进程，开启开关或点击“重启”即可启动。",
-                _ => "状态检测异常，请检查进程名和可执行路径。",
+                ToolRunState.Running => "进程已运行，可在右上角或本页执行“重启”",
+                ToolRunState.Stopped => "当前未检测到进程，开启开关或点击“重启”即可启动",
+                _ => "状态检测异常，请检查进程名和可执行路径",
             };
         }
         finally
