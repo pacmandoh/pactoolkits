@@ -1,6 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
 using System.Collections.Generic;
 using System.Collections;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 
 namespace pactoolkits_ui.Common;
 
@@ -70,6 +73,53 @@ public static class DataGridInteractionHelper
 
         return null;
     }
+
+    public static DataGridRow? FindRowFromPointerSource(object? source, out bool hitRowHeader)
+    {
+        hitRowHeader = false;
+        var current = source as StyledElement;
+        while (current is not null)
+        {
+            if (current is DataGridRowHeader)
+                hitRowHeader = true;
+
+            if (current is DataGridRow row)
+                return row;
+
+            current = current.Parent as StyledElement;
+        }
+
+        return null;
+    }
+
+    public static bool TrySelectRowFromPointer(
+        DataGrid grid,
+        object? pointerSource,
+        bool requireRowHeader,
+        out object? rowData,
+        out bool hitRowHeader)
+    {
+        rowData = null;
+        var row = FindRowFromPointerSource(pointerSource, out hitRowHeader);
+        if (row?.DataContext is null)
+            return false;
+
+        if (requireRowHeader && !hitRowHeader)
+            return false;
+
+        rowData = row.DataContext;
+        grid.SelectedItem = rowData;
+        return true;
+    }
+
+    public static bool IsLeftClick(PointerPressedEventArgs e, Control relativeTo)
+    {
+        var p = e.GetCurrentPoint(relativeTo).Properties;
+        return p.IsLeftButtonPressed && !p.IsRightButtonPressed;
+    }
+
+    public static bool IsRightClick(PointerPressedEventArgs e, Control relativeTo)
+        => e.GetCurrentPoint(relativeTo).Properties.IsRightButtonPressed;
 
     private static bool ContainsItemReference(IEnumerable? source, object rowItem)
     {
