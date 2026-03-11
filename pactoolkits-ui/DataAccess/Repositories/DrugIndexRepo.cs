@@ -137,7 +137,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                     return ReadDrugIndexDto(reader);
 
                 var current = await GetByKeyInternalAsync(conn, dto.DrugId, dto.Spec, token);
-                throw new DrugIndexConcurrencyException("该记录已被其他终端创建，请刷新后重试。", current);
+                throw new DrugIndexConcurrencyException("该记录已被其他终端创建，请刷新后重试", current);
             }
 
             const string updateSql = """
@@ -168,7 +168,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 return ReadDrugIndexDto(updated);
 
             var latest = await GetByKeyInternalAsync(conn, dto.DrugId, dto.Spec, token);
-            throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试。", latest);
+            throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", latest);
         }, ct);
 
     public Task DeleteAsync(string drugId, string spec, CancellationToken ct)
@@ -307,9 +307,9 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 throw new ArgumentException("操作人不能为空", nameof(operatorName));
             if (sourceSafe.Length == 0)
                 throw new ArgumentException("来源不能为空", nameof(sourceTag));
-            if (string.Equals(srcDrug, dstDrug, StringComparison.Ordinal)
-                && string.Equals(srcSpec, dstSpec, StringComparison.Ordinal))
-                throw new InvalidOperationException("源与目标药品键一致，无需迁移");
+            var sameKey =
+                string.Equals(srcDrug, dstDrug, StringComparison.Ordinal) &&
+                string.Equals(srcSpec, dstSpec, StringComparison.Ordinal);
 
             const string lockSourceSql = """
                 select drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
@@ -332,22 +332,27 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 throw new InvalidOperationException("源药品规格不存在或已被移除");
 
             if (sourceDb.Version != source.Version)
-                throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试。", sourceDb);
-
-            const string existsTargetSql = """
-                select exists(
-                  select 1 from drug_index
-                  where drug_id = @dst_drug and spec = @dst_spec
-                )
-            """;
+                throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", sourceDb);
 
             var targetExisted = false;
-            await using (var cmd = conn.CreateCommand(existsTargetSql, _opt.CommandTimeoutSeconds, tx))
+            if (!sameKey)
             {
+                const string existsTargetSql = """
+                    select exists(
+                      select 1 from drug_index
+                      where drug_id = @dst_drug and spec = @dst_spec
+                    )
+                """;
+
+                await using var cmd = conn.CreateCommand(existsTargetSql, _opt.CommandTimeoutSeconds, tx);
                 cmd.AddParam("dst_drug", dstDrug);
                 cmd.AddParam("dst_spec", dstSpec);
                 var scalar = await cmd.ExecuteScalarAsync(token);
                 targetExisted = scalar is bool b && b;
+            }
+            else
+            {
+                targetExisted = true;
             }
             var poolAffected = 0;
             await using (var cmd = conn.CreateCommand(
@@ -372,7 +377,53 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             }
 
             DrugIndexDto current;
-            if (!targetExisted)
+            if (sameKey)
+            {
+                const string updateSameKeySql = """
+                    update drug_index
+                    set qty = @dst_qty,
+                        rule_key = @dst_rule_key,
+                        pre_tc = @dst_pre_tc,
+                        note = @dst_note,
+                        updated_at = clock_timestamp(),
+                        version = version + 1
+                    where drug_id = @src_drug
+                      and spec = @src_spec
+                      and version = @src_version
+                    returning drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                """;
+
+                await using (var cmd = conn.CreateCommand(updateSameKeySql, _opt.CommandTimeoutSeconds, tx))
+                {
+                    cmd.AddParam("dst_qty", dstQty);
+                    cmd.AddParam("dst_rule_key", dstRuleKey);
+                    cmd.AddParam("dst_pre_tc", dstPreTc);
+                    cmd.AddParam("dst_note", dstNote);
+                    cmd.AddParam("src_drug", srcDrug);
+                    cmd.AddParam("src_spec", srcSpec);
+                    cmd.AddParam("src_version", source.Version);
+                    await using var reader = await cmd.ExecuteReaderAsync(token);
+                    if (!await reader.ReadAsync(token))
+                        throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", sourceDb);
+                    current = ReadDrugIndexDto(reader);
+                }
+
+                const string syncPoolQtySql = """
+                    update trace_pool
+                    set qty = @dst_qty,
+                        remain = least(remain, @dst_qty)
+                    where drug_id = @src_drug
+                      and spec = @src_spec
+                """;
+                await using (var cmd = conn.CreateCommand(syncPoolQtySql, _opt.CommandTimeoutSeconds, tx))
+                {
+                    cmd.AddParam("dst_qty", dstQty);
+                    cmd.AddParam("src_drug", srcDrug);
+                    cmd.AddParam("src_spec", srcSpec);
+                    await cmd.ExecuteNonQueryAsync(token);
+                }
+            }
+            else if (!targetExisted)
             {
                 // Target key not present: move source PK directly and rely on FK ON UPDATE CASCADE.
                 const string movePkSql = """
@@ -404,7 +455,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
 
                 await using var reader = await moveCmd.ExecuteReaderAsync(token);
                 if (!await reader.ReadAsync(token))
-                    throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试。", sourceDb);
+                    throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", sourceDb);
                 current = ReadDrugIndexDto(reader);
             }
             else

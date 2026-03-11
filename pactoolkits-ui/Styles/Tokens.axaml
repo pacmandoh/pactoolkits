@@ -100,6 +100,8 @@
                 <Grid>
                     <ContentPresenter
                         Content="{TemplateBinding Content}"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
                         IsVisible="{Binding !IsEmpty, RelativeSource={RelativeSource TemplatedParent}}" />
 
                     <Border

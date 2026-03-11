@@ -1,0 +1,55 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:dialogs="clr-namespace:pactoolkits_ui.Views.Dialogs"
+             x:Class="pactoolkits_ui.Views.Dialogs.InfoDetailDialogView"
+             x:DataType="dialogs:InfoDetailDialogModel">
+    <Border MinWidth="460"
+            MaxWidth="720"
+            Padding="18"
+            CornerRadius="16">
+        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Border Width="40" Height="40" CornerRadius="20">
+                    <icons:MaterialIcon Kind="InformationOutline"
+                                        Width="22"
+                                        Height="22"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Header}" FontSize="17" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SubHeader}" Opacity="0.78" TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1" Height="1" Opacity="0.22" />
+
+            <ScrollViewer Grid.Row="2"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          MaxHeight="420">
+                <ItemsControl ItemsSource="{Binding Items}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel ItemWidth="320" ItemSpacing="8" LineSpacing="8" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="dialogs:InfoDetailItem">
+                            <Border Padding="10,8" CornerRadius="10">
+                                <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+                                    <TextBlock Text="{Binding Label}" Opacity="0.75" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Row="1"
+                                               Text="{Binding Value}"
+                                               TextWrapping="Wrap"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

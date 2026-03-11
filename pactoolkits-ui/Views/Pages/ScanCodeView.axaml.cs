@@ -22,28 +22,19 @@ public partial class ScanCodeView : UserControl
 
     private void DrugBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (sender is not AutoCompleteBox box) return;
-        if (e.Key != Key.Enter) return;
-
-        e.Handled = true;
-        TriggerApplyDrugFilter(box);
-    }
-
-    private void TriggerApplyDrugFilter(AutoCompleteBox box)
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            InputFocusHelper.CommitAutoCompleteInput(box);
-
-            if (DataContext is pactoolkits_ui.ViewModels.Pages.ScanCodeViewModel vm)
+        _ = AutoCompleteHelper.HandleEnterCommitAndApply(
+            this,
+            sender,
+            e,
+            "SpecBox",
+            () =>
             {
+                if (DataContext is not pactoolkits_ui.ViewModels.Pages.ScanCodeViewModel vm)
+                    return;
                 var cmd = vm.ApplyDrugFilterCommand;
                 if (cmd?.CanExecute(null) == true)
                     cmd.Execute(null);
-            }
-
-            InputFocusHelper.FocusControlByName(this, "SpecBox");
-        }, DispatcherPriority.Input);
+            });
     }
 
     private void CodeEditor_OnGotFocus(object? sender, GotFocusEventArgs e)
@@ -89,15 +80,7 @@ public partial class ScanCodeView : UserControl
     {
         if (this.FindControl<AutoCompleteBox>("DrugBox") is not { } box)
             return;
-
-        box.ItemFilter = static (search, item) =>
-        {
-            if (item is OptionItem option)
-                return PinyinInitialMatcher.IsMatch(search, option.Raw);
-
-            return item is not null &&
-                   PinyinInitialMatcher.IsMatch(search, item.ToString());
-        };
+        AutoCompleteHelper.AttachDrugOptionFilter(box);
     }
 
 }

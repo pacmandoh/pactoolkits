@@ -25,6 +25,7 @@
         <x:String x:Key="AppChannelText">stable</x:String>
         <conv:BoolToDoneDangerBrushConverter x:Key="BoolToDoneDangerBrush" />
         <conv:RowIndexConverter x:Key="RowIndexPlusOne" />
+        <conv:RowStateToBgBrushConverter x:Key="RowStateToBgBrush" />
         <conv:LowStockToBgBrushConverter x:Key="LowStockToBgBrush" />
         <conv:BadgeToIconKindConverter x:Key="BadgeToIconKind" />
         <conv:BadgeToFgBrushConverter x:Key="BadgeToFgBrush" />
@@ -32,6 +33,7 @@
         <conv:TraceEntryStateToIconKindConverter x:Key="TraceEntryStateToIconKind" />
         <conv:TraceEntryStateToFgBrushConverter x:Key="TraceEntryStateToFgBrush" />
         <conv:TraceEntryStateToBgBrushConverter x:Key="TraceEntryStateToBgBrush" />
+        <conv:CellCurrentBorderBrushConverter x:Key="CellCurrentBorderBrush" />
             <SolidColorBrush x:Key="AutoCompleteBorderBrush"
                              Color="{DynamicResource SukiControlBorderBrush}"
                              Opacity="0.32" />

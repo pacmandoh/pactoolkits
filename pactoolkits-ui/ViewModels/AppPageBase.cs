@@ -2,6 +2,7 @@ using pactoolkits_ui.Behaviors;
 using System.Threading;
 using System.Threading.Tasks;
 using System;
+using System.Collections.Concurrent;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Threading;
@@ -10,8 +11,6 @@ using CommunityToolkit.Mvvm.Input;
 using Material.Icons;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.Contracts;
-using pactoolkits_ui.DataAccess;
-using Microsoft.Extensions.Options;
 using pactoolkits_ui.Services;
 
 namespace pactoolkits_ui.ViewModels;
@@ -34,11 +33,17 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
     public virtual string? RefreshTip => null;
     public virtual string? ImportTip => null;
     public virtual string? ExportTip => null;
+    protected virtual bool AutoRefreshOnDbDisconnected => false;
+    protected virtual bool AutoRefreshOnDbReconnected => false;
+    protected virtual bool CanAutoRefreshFromDbSignal() => IsEnabled && RefreshCommand is not null;
 
     private readonly PageReloadBehavior _reload = new();
+    private readonly ConcurrentDictionary<string, byte> _uiCoalesceGates = new(StringComparer.Ordinal);
 
-    private PgOptions? _cachedPgOptions;
     private IDbConnectionMonitorService? _cachedDbMonitor;
+    private IAppStartupStateService? _cachedStartupState;
+    private bool _dbMonitorEventsHooked;
+    private int _dbSignalRefreshQueued;
 
     private bool _isBusy;
 
@@ -49,10 +54,13 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
         {
             if (SetProperty(ref _isBusy, value))
             {
+                OnBusyChanged(value);
                 _refreshCommand.NotifyCanExecuteChanged();
             }
         }
     }
+
+    protected virtual void OnBusyChanged(bool isBusy) { }
 
     protected bool IsDbConnected => _cachedDbMonitor?.IsConnected ?? true;
 
@@ -61,6 +69,14 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
         _refreshCommand = new AsyncRelayCommand(
             execute: ExecuteRefreshAsync,
             canExecute: CanRefresh);
+
+        // Eagerly resolve DB monitor on UI thread so disconnect/reconnect signals
+        // are not missed before first manual reload.
+        PostOnUi(() =>
+        {
+            _ = GetDbMonitor();
+            _ = GetStartupState();
+        }, DispatcherPriority.Background);
     }
 
     protected virtual Task ReloadCoreAsync(CancellationToken ct) => Task.CompletedTask;
@@ -92,6 +108,24 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
 
     protected static void PostOnUi(Action action, DispatcherPriority priority)
         => UiThreadHelper.PostOnUi(action, priority);
+
+    protected void NotifyCommandsCoalesced(string gateKey, Action notifyAction)
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            notifyAction();
+            return;
+        }
+
+        if (!_uiCoalesceGates.TryAdd(gateKey, 0))
+            return;
+
+        PostOnUi(() =>
+        {
+            _uiCoalesceGates.TryRemove(gateKey, out _);
+            notifyAction();
+        }, DispatcherPriority.Background);
+    }
 
     private bool CanRefresh() => IsEnabled;
 
@@ -125,21 +159,23 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
             setBusy: v => IsBusy = v,
             action: async ct =>
             {
-                // Reload policy:
-                // 1) Apply one unified timeout for all pages.
-                // 2) If DB is disconnected, wait for reconnect within that timeout.
-                using var timeoutCts = CreateReloadTimeoutCts(ct);
-                var tct = timeoutCts.Token;
+                var startup = GetStartupState();
+                if (startup is not null && !startup.IsDbInitCompleted)
+                {
+                    var ready = await WaitForStartupDbInitCompletedAsync(startup, ct).ConfigureAwait(false);
+                    if (!ready)
+                        return;
+                }
 
                 var mon = GetDbMonitor();
                 if (mon is not null && !mon.IsConnected)
                 {
-                    var ok = await WaitForConnectedAsync(mon, tct).ConfigureAwait(false);
+                    var ok = await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
                     if (!ok)
                         return;
                 }
 
-                await action(tct).ConfigureAwait(false);
+                await action(ct).ConfigureAwait(false);
             },
             onFinished: onFinished);
     }
@@ -153,20 +189,25 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
             setBusy: setBusy,
             action: async ct =>
             {
-                using var timeoutCts = CreateReloadTimeoutCts(ct);
-                var tct = timeoutCts.Token;
+                var startup = GetStartupState();
+                if (startup is not null && !startup.IsDbInitCompleted)
+                {
+                    var ready = await WaitForStartupDbInitCompletedAsync(startup, ct).ConfigureAwait(false);
+                    if (!ready)
+                        return;
+                }
 
                 var mon = GetDbMonitor();
                 if (mon is not null && !mon.IsConnected)
                 {
-                    var ok = await WaitForConnectedAsync(mon, tct).ConfigureAwait(false);
+                    var ok = await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
                     if (!ok)
                         return;
                 }
 
                 try
                 {
-                    await action(tct).ConfigureAwait(false);
+                    await action(ct).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (IsDbTransportError(ex))
                 {
@@ -178,7 +219,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
 
                     mon?.Signal();
                     if (mon is not null)
-                        await WaitForConnectedAsync(mon, tct).ConfigureAwait(false);
+                        await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
                 }
             },
             onFinished: onFinished);
@@ -264,66 +305,35 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
         return false;
     }
 
-    protected async Task<bool> WaitForReconnectOrTimeoutAsync(CancellationToken ct)
-    {
-        var mon = GetDbMonitor();
-        if (mon is null)
-            return false;
-
-        return await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
-    }
-
     protected void SignalDbDisconnected()
     {
         GetDbMonitor()?.Signal();
     }
 
-    private CancellationTokenSource CreateReloadTimeoutCts(CancellationToken ct)
+    protected bool MarkDbDisconnectedOnTransportError(Exception ex)
     {
-        // Use connect timeout as baseline so UI wait time follows DB configuration.
-        var opt = GetPgOptions();
-        var connect = opt?.ConnectTimeoutSeconds ?? 5;
-        if (connect <= 0) connect = 5;
+        if (!IsDbTransportError(ex))
+            return false;
 
-        var timeoutSeconds = Math.Clamp(Math.Max(10, connect + 2), 5, 30);
-        var timeout = TimeSpan.FromSeconds(timeoutSeconds);
-
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        cts.CancelAfter(timeout);
-        return cts;
-    }
-
-    private PgOptions? GetPgOptions()
-    {
-        if (_cachedPgOptions is not null)
-            return _cachedPgOptions;
-
-        try
-        {
-            if (Application.Current is App app)
-            {
-                var opt = app.Services.GetService(typeof(IOptions<PgOptions>)) as IOptions<PgOptions>;
-                _cachedPgOptions = opt?.Value;
-            }
-        }
-        catch (System.Exception ex)
-        {
-            LogWarn("reload.get_pg_options.fail", "Failed to resolve PgOptions from DI", ex);
-        }
-
-        return _cachedPgOptions;
+        SignalDbDisconnected();
+        return true;
     }
 
     private IDbConnectionMonitorService? GetDbMonitor()
     {
         if (_cachedDbMonitor is not null)
+        {
+            EnsureDbMonitorEventsHooked(_cachedDbMonitor);
             return _cachedDbMonitor;
+        }
 
         try
         {
             if (Application.Current is App app)
             {
                 _cachedDbMonitor = app.Services.GetService(typeof(IDbConnectionMonitorService)) as IDbConnectionMonitorService;
+                if (_cachedDbMonitor is not null)
+                    EnsureDbMonitorEventsHooked(_cachedDbMonitor);
             }
         }
         catch (System.Exception ex)
@@ -332,6 +342,99 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
         }
 
         return _cachedDbMonitor;
+    }
+
+    private IAppStartupStateService? GetStartupState()
+    {
+        if (_cachedStartupState is not null)
+            return _cachedStartupState;
+
+        try
+        {
+            if (Application.Current is App app)
+                _cachedStartupState = app.Services.GetService(typeof(IAppStartupStateService)) as IAppStartupStateService;
+        }
+        catch (System.Exception ex)
+        {
+            LogWarn("reload.get_startup_state.fail", "Failed to resolve startup state from DI", ex);
+        }
+
+        return _cachedStartupState;
+    }
+
+    private void EnsureDbMonitorEventsHooked(IDbConnectionMonitorService monitor)
+    {
+        if (_dbMonitorEventsHooked)
+            return;
+
+        monitor.Disconnected += OnDbMonitorDisconnected;
+        monitor.Reconnected += OnDbMonitorReconnected;
+        _dbMonitorEventsHooked = true;
+
+        // If page initializes while DB is already disconnected, trigger the same
+        // auto-refresh path as a disconnect signal so busy state appears immediately.
+        if (!monitor.IsConnected && AutoRefreshOnDbDisconnected)
+            ScheduleAutoRefreshFromDbSignal();
+    }
+
+    private void OnDbMonitorDisconnected()
+    {
+        if (!AutoRefreshOnDbDisconnected)
+            return;
+
+        ScheduleAutoRefreshFromDbSignal();
+    }
+
+    private void OnDbMonitorReconnected()
+    {
+        if (!AutoRefreshOnDbReconnected)
+            return;
+
+        ScheduleAutoRefreshFromDbSignal();
+    }
+
+    private void ScheduleAutoRefreshFromDbSignal()
+    {
+        if (Interlocked.Exchange(ref _dbSignalRefreshQueued, 1) == 1)
+            return;
+
+        PostOnUi(() => _ = ExecuteAutoRefreshFromDbSignalAsync(), DispatcherPriority.Background);
+    }
+
+    private async Task ExecuteAutoRefreshFromDbSignalAsync()
+    {
+        try
+        {
+            if (!CanAutoRefreshFromDbSignal())
+                return;
+
+            var refresh = RefreshCommand;
+            if (refresh is null)
+                return;
+
+            if (!refresh.CanExecute(null))
+                return;
+
+            if (refresh is IAsyncRelayCommand asyncRefresh)
+            {
+                await asyncRefresh.ExecuteAsync(null).ConfigureAwait(false);
+            }
+            else
+            {
+                refresh.Execute(null);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (System.Exception ex)
+        {
+            LogWarn("reload.db_signal_refresh.fail", "Auto refresh from DB signal failed", ex);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _dbSignalRefreshQueued, 0);
+        }
     }
 
     private static async Task<bool> WaitForConnectedAsync(IDbConnectionMonitorService mon, CancellationToken ct)
@@ -363,9 +466,53 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
         }
     }
 
+    private static async Task<bool> WaitForStartupDbInitCompletedAsync(IAppStartupStateService startup, CancellationToken ct)
+    {
+        if (startup.IsDbInitCompleted)
+            return true;
+
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        void OnCompleted() => tcs.TrySetResult(true);
+
+        startup.DbInitCompleted += OnCompleted;
+
+        try
+        {
+            if (startup.IsDbInitCompleted)
+                return true;
+
+            await tcs.Task.WaitAsync(ct).ConfigureAwait(false);
+            return startup.IsDbInitCompleted;
+        }
+        catch (OperationCanceledException)
+        {
+            return startup.IsDbInitCompleted;
+        }
+        finally
+        {
+            startup.DbInitCompleted -= OnCompleted;
+        }
+    }
+
     public virtual void Dispose()
     {
+        if (_cachedDbMonitor is not null && _dbMonitorEventsHooked)
+        {
+            try
+            {
+                _cachedDbMonitor.Disconnected -= OnDbMonitorDisconnected;
+                _cachedDbMonitor.Reconnected -= OnDbMonitorReconnected;
+            }
+            catch (System.Exception ex)
+            {
+                LogWarn("reload.db_monitor_unhook.fail", "Failed to unhook DB monitor events", ex);
+            }
+        }
+
         _reload.Dispose();
+        _dbMonitorEventsHooked = false;
         _cachedDbMonitor = null;
+        _cachedStartupState = null;
     }
 }

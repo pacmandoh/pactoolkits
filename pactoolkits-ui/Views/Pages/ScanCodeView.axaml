@@ -359,7 +359,7 @@
                                                       Classes="SectionGrid"
                                                       ItemsSource="{Binding AutoTasks}"
                                                       SelectionChanged="OnBrowsingGridSelectionChanged"
-                                                      HeadersVisibility="Column"
+                                                      HeadersVisibility="All"
                                                       GridLinesVisibility="All"
                                                       CanUserResizeColumns="True">
                                                 <DataGrid.Columns>
@@ -393,7 +393,7 @@
                                                       Classes="SectionGrid"
                                                       ItemsSource="{Binding RecentRuns}"
                                                       SelectionChanged="OnBrowsingGridSelectionChanged"
-                                                      HeadersVisibility="Column"
+                                                      HeadersVisibility="All"
                                                       GridLinesVisibility="All"
                                                       CanUserResizeColumns="True">
                                                 <DataGrid.Columns>
@@ -427,7 +427,7 @@
                                                       Classes="SectionGrid"
                                                       ItemsSource="{Binding RetryQueue}"
                                                       SelectionChanged="OnBrowsingGridSelectionChanged"
-                                                      HeadersVisibility="Column"
+                                                      HeadersVisibility="All"
                                                       GridLinesVisibility="All"
                                                       CanUserResizeColumns="True">
                                                 <DataGrid.Columns>

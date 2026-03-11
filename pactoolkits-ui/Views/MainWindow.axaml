@@ -173,7 +173,7 @@
         x:Name="MainSideMenu"
         ItemsSource="{Binding SidebarPages}"
         SelectedItem="{Binding ActivePage}"
-        IsMenuExpanded="True"
+        IsMenuExpanded="False"
         IsSelectedItemContentMovable="False"
         IsEnabled="{Binding !IsDbProbeRunning}">
         <suki:SukiSideMenu.HeaderContent>

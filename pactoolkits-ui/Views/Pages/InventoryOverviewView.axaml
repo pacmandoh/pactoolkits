@@ -15,15 +15,6 @@
              x:Name="Root">
 
     <UserControl.Resources>
-        <DataTemplate x:Key="RowNoCellTemplate" x:CompileBindings="False">
-            <TextBlock
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Opacity="0.35"
-                FontSize="12"
-                FontWeight="Bold"
-                Text="{Binding RowNo}" />
-        </DataTemplate>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -50,6 +41,11 @@
             <Setter Property="ContextMenu">
                 <Setter.Value>
                     <ContextMenu Opened="OnStockDetailContextMenuOpened">
+                        <MenuItem Header="编辑" Click="OnStockEditCell">
+                            <MenuItem.Icon>
+                                <icons:MaterialIcon Kind="PencilOutline" Width="16" Height="16" />
+                            </MenuItem.Icon>
+                        </MenuItem>
                         <MenuItem Header="复制" Click="OnGridRowCopy" CommandParameter="{Binding}">
                             <MenuItem.Icon>
                                 <icons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
@@ -78,10 +74,11 @@
                 <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
 
                     
-                    <suki:GlassCard Grid.Row="0" Classes="FilterHintCard">
+                    <suki:GlassCard Grid.Row="0" Classes="FilterHintCard" IsVisible="{Binding IsSearchPanelVisible}">
                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
                             <TextBox Height="36"
                                      x:Name="InventorySearchBox"
+                                     IsEnabled="{Binding !IsUiBusy}"
                                      MinHeight="36"
                                      MaxHeight="36"
                                      Padding="10,0"
@@ -97,6 +94,7 @@
                             </TextBox>
 
                             <Button Grid.Column="1" x:Name="InventorySearchButton" Classes="Action" Height="36" MinWidth="{StaticResource MinWAction}"
+                                    IsEnabled="{Binding !IsUiBusy}"
                                     Command="{Binding SearchCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <icons:MaterialIcon Kind="Magnify" Width="16" Height="16" />
@@ -105,6 +103,7 @@
                             </Button>
 
                             <Button Grid.Column="2" Classes="Action" Height="36" MinWidth="{StaticResource MinWAction}"
+                                    IsEnabled="{Binding !IsUiBusy}"
                                     Command="{Binding ClearSearchCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <icons:MaterialIcon Kind="BackspaceOutline" Width="16" Height="16" />
@@ -157,6 +156,35 @@
                         <WrapPanel Grid.Column="2" Orientation="Horizontal" ItemSpacing="8" VerticalAlignment="Center">
                             <Button Classes="Action"
                                     Height="{StaticResource ControlHeightCompact}"
+                                    Width="40"
+                                    MinWidth="40"
+                                    Padding="0"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    IsEnabled="{Binding !IsUiBusy}"
+                                    Command="{Binding ToggleSearchPanelCommand}"
+                                    ToolTip.Tip="显示/隐藏搜索">
+                                <Panel Width="16"
+                                       Height="16"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center">
+                                    <icons:MaterialIcon Kind="Magnify"
+                                                        Width="14"
+                                                        Height="14"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        IsVisible="{Binding !IsSearchPanelVisible}" />
+                                    <icons:MaterialIcon Kind="MagnifyRemoveOutline"
+                                                        Width="14"
+                                                        Height="14"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        IsVisible="{Binding IsSearchPanelVisible}" />
+                                </Panel>
+                            </Button>
+
+                            <Button Classes="Action"
+                                    Height="{StaticResource ControlHeightCompact}"
                                     MinWidth="{StaticResource MinWAction}"
                                     IsVisible="{Binding ShowRequestUnlock}"
                                     Command="{Binding RequestUnlockCommand}">
@@ -202,12 +230,14 @@
                             <Button Classes="Action"
                                     Height="{StaticResource ControlHeightCompact}"
                                     MinWidth="{StaticResource MinWAction}"
+                                    IsEnabled="{Binding !IsUiBusy}"
                                     IsVisible="{Binding IsDetailMode}"
                                     Command="{Binding ToggleReassignPanelCommand}">
                                 <TextBlock Text="药品纠错" />
                             </Button>
 
                             <ComboBox x:Name="InventoryModeBox"
+                                      IsEnabled="{Binding !IsUiBusy}"
                                       SelectedIndex="{Binding ModeIndex}"
                                       MinWidth="180">
                                 <ComboBoxItem Content="库存明细" />
@@ -227,6 +257,7 @@
                                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                     <ComboBox Width="160"
                                               Height="{StaticResource ControlHeightCompact}"
+                                              IsEnabled="{Binding !IsUiBusy}"
                                               SelectedIndex="{Binding ReassignScopeIndex}">
                                         <ComboBoxItem Content="选中行" />
                                         <ComboBoxItem Content="筛选批量" />
@@ -302,6 +333,7 @@
                                     <Grid Grid.Column="1">
                                         <ComboBox x:Name="ReassignSpecBox"
                                                   Height="{StaticResource ControlHeightCompact}"
+                                                  IsEnabled="{Binding !IsUiBusy}"
                                                   ItemsSource="{Binding ReassignSpecOptions}"
                                                   SelectedItem="{Binding ReassignSelectedSpec}"
                                                   DisplayMemberBinding="{Binding Display}" />
@@ -359,14 +391,10 @@
                                       IsVisible="{Binding !IsReassignPreviewEmpty}"
                                       Classes="SectionGrid InventoryGrid NonInteractive"
                                       ItemsSource="{Binding ReassignPreviewRows}"
-                                      HeadersVisibility="Column"
+                                      HeadersVisibility="All"
                                       GridLinesVisibility="All"
-                                      CanUserResizeColumns="True"
-                                      RowHeight="{StaticResource RowMinHeight}"
                                       MinHeight="148"
-                                      MaxHeight="228"
-                                      HorizontalScrollBarVisibility="Disabled"
-                                      VerticalScrollBarVisibility="Auto">
+                                      MaxHeight="228">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="当前药品名" Binding="{Binding CurrentDrugId}" Width="1.2*" IsReadOnly="True" />
                                     <DataGridTextColumn Header="当前规格" Binding="{Binding CurrentSpec}" Width="1.2*" IsReadOnly="True" />
@@ -384,33 +412,27 @@
 
                         
                         <Grid IsVisible="{Binding IsDetailMode}">
+                            <suki:BusyArea IsBusy="{Binding IsDetailBusy}">
                             <controls:EmptyStatePanel
                                 IsEmpty="{Binding IsStockEmpty}"
                                 EmptyText="暂无库存明细"
                                 EmptyHint="当前筛选条件下没有数据">
-                            <suki:BusyArea IsBusy="{Binding IsDetailBusy}">
-                                <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid EditableGrid StockDetailContextMenuGrid"
+                                <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid EditableGrid StockDetailContextMenuGrid StickyIndexGrid StickyIndexRowNo"
+                                          Classes.CellTemplateHighlightGrid="{Binding IsStockEditEnabled}"
                                           ItemsSource="{Binding StockRows}"
                                           SelectedItem="{Binding SelectedStockRow, Mode=TwoWay}"
                                           x:Name="StockDetailGrid"
                                           SelectionChanged="OnStockSelectionChanged"
                                           IsReadOnly="{Binding !IsStockEditEnabled}"
+                                          CellPointerPressed="OnStockCellPointerPressed"
+                                          BeginningEdit="OnStockBeginningEdit"
                                           CellEditEnding="OnStockCellEditEnding"
-                                          HeadersVisibility="Column"
+                                          HeadersVisibility="All"
                                           GridLinesVisibility="All"
-                                          CanUserResizeColumns="True"
-                                          RowHeight="{StaticResource RowMinHeight}"
-                                          MinHeight="0"
                                           HorizontalScrollBarVisibility="Disabled"
-                                          VerticalScrollBarVisibility="Auto">
+                                          MinHeight="0">
 
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Width="40"
-                                                        IsReadOnly="True"
-                                                        CanUserResize="False"
-                                                        CanUserSort="False"
-                                                        CellTemplate="{StaticResource RowNoCellTemplate}" />
-
                                 <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="1.4*" IsReadOnly="True" />
                                 <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.4*" IsReadOnly="True" />
                                 <DataGridTextColumn Header="追溯码" Binding="{Binding TraceCode}" Width="1.4*" />
@@ -419,35 +441,26 @@
                                 <DataGridTextColumn Header="剩余" Binding="{Binding Remain}" Width="{StaticResource DgWRightSmall}" />
                             </DataGrid.Columns>
                                 </DataGrid>
-                            </suki:BusyArea>
                             </controls:EmptyStatePanel>
+                            </suki:BusyArea>
                         </Grid>
 
                         
                         <Grid IsVisible="{Binding IsAggMode}">
+                            <suki:BusyArea IsBusy="{Binding IsAggBusy}">
                             <controls:EmptyStatePanel
                                 IsEmpty="{Binding IsAggEmpty}"
                                 EmptyText="暂无汇总数据"
                                 EmptyHint="当前筛选条件下没有数据">
-                            <suki:BusyArea IsBusy="{Binding IsAggBusy}">
-                                <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid InventoryContextMenuGrid"
+                                <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
                                           ItemsSource="{Binding DrugSpecRows}"
                                           x:Name="AggGrid"
-                                          HeadersVisibility="Column"
+                                          HeadersVisibility="All"
                                           GridLinesVisibility="All"
-                                          CanUserResizeColumns="True"
-                                          RowHeight="{StaticResource RowMinHeight}"
-                                          MinHeight="0"
                                           HorizontalScrollBarVisibility="Disabled"
-                                          VerticalScrollBarVisibility="Auto">
+                                          MinHeight="0">
 
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Width="40"
-                                                        IsReadOnly="True"
-                                                        CanUserResize="False"
-                                                        CanUserSort="False"
-                                                        CellTemplate="{StaticResource RowNoCellTemplate}" />
-
                                 <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="1.6*" />
                                 <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="2*" />
 
@@ -458,36 +471,27 @@
                                 <DataGridTextColumn Header="阈值" Binding="{Binding Threshold, StringFormat={}{0:0}}" Width="{StaticResource DgWRightSmall}" IsVisible="False" />
                             </DataGrid.Columns>
                                 </DataGrid>
-                            </suki:BusyArea>
                             </controls:EmptyStatePanel>
+                            </suki:BusyArea>
                         </Grid>
 
                         
                         <Grid IsVisible="{Binding IsLowMode}">
+                            <suki:BusyArea IsBusy="{Binding IsLowBusy}">
                             <controls:EmptyStatePanel
                                 IsEmpty="{Binding IsLowEmpty}"
                                 EmptyText="暂无低库存药品"
                                 EmptyHint="当前筛选条件下没有数据">
-                            <suki:BusyArea IsBusy="{Binding IsLowBusy}">
-                                <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid LowMissingGrid InventoryContextMenuGrid"
+                                <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid LowMissingGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
                                           ItemsSource="{Binding LowStockRows}"
                                           x:Name="LowStockGrid"
                                           PointerReleased="OnLowOrMissingGridPointerReleased"
-                                          HeadersVisibility="Column"
+                                          HeadersVisibility="All"
                                           GridLinesVisibility="All"
-                                          CanUserResizeColumns="True"
-                                          RowHeight="{StaticResource RowMinHeight}"
-                                          MinHeight="0"
                                           HorizontalScrollBarVisibility="Disabled"
-                                          VerticalScrollBarVisibility="Auto">
+                                          MinHeight="0">
 
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Width="40"
-                                                        IsReadOnly="True"
-                                                        CanUserResize="False"
-                                                        CanUserSort="False"
-                                                        CellTemplate="{StaticResource RowNoCellTemplate}" />
-
                                 <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="1.2*" />
                                 <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.4*" />
 
@@ -495,41 +499,32 @@
                                 <DataGridTextColumn Header="阈值" Binding="{Binding Threshold, StringFormat={}{0:0}}" Width="{StaticResource DgWRightSmall}" />
                             </DataGrid.Columns>
                                 </DataGrid>
-                            </suki:BusyArea>
                             </controls:EmptyStatePanel>
+                            </suki:BusyArea>
                         </Grid>
 
                         <Grid IsVisible="{Binding IsMissingMode}">
+                            <suki:BusyArea IsBusy="{Binding IsMissingBusy}">
                             <controls:EmptyStatePanel
                                 IsEmpty="{Binding IsMissingEmpty}"
                                 EmptyText="暂无缺失药品"
                                 EmptyHint="当前筛选条件下没有数据">
-                            <suki:BusyArea IsBusy="{Binding IsMissingBusy}">
-                                <DataGrid Classes="SectionGrid InventoryGrid MissingGrid LowMissingGrid InventoryContextMenuGrid"
+                                <DataGrid Classes="SectionGrid InventoryGrid MissingGrid LowMissingGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
                                           ItemsSource="{Binding MissingStockRows}"
                                           x:Name="MissingGrid"
                                           PointerReleased="OnLowOrMissingGridPointerReleased"
-                                          HeadersVisibility="Column"
+                                          HeadersVisibility="All"
                                           GridLinesVisibility="All"
-                                          CanUserResizeColumns="True"
-                                          RowHeight="{StaticResource RowMinHeight}"
-                                          MinHeight="0"
                                           HorizontalScrollBarVisibility="Disabled"
-                                          VerticalScrollBarVisibility="Auto">
+                                          MinHeight="0">
 
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Width="40"
-                                                        IsReadOnly="True"
-                                                        CanUserResize="False"
-                                                        CanUserSort="False"
-                                                        CellTemplate="{StaticResource RowNoCellTemplate}" />
-
                                 <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="1.3*" />
                                 <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.4*" />
                             </DataGrid.Columns>
                                 </DataGrid>
-                            </suki:BusyArea>
                             </controls:EmptyStatePanel>
+                            </suki:BusyArea>
                         </Grid>
 
                         </Grid>

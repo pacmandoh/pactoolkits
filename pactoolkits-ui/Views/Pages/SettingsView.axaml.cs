@@ -104,4 +104,5 @@ public partial class SettingsView : UserControl
 
     private IEnumerable<Control> EnumerateTabInputs() =>
         InputFocusHelper.EnumerateInputs(this, typeof(TextBox), typeof(NumericUpDown), typeof(ComboBox));
+
 }

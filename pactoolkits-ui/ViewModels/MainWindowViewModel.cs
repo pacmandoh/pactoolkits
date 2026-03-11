@@ -39,6 +39,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IChangeWatermarkService _changeWatermark;
     private readonly IAhkRuntimeService _ahkRuntime;
     private readonly IReleaseVersionService _releaseVersion;
+    private readonly IAppStartupStateService _startupState;
     private readonly IAppUpdateService _updates;
     private readonly IUpdateSettingsService _updateSettings;
     private readonly IUpdateUiFlowService _updateUiFlow;
@@ -59,6 +60,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private string? _lastDbFailReason;
     private string? _lastSeenConfigJson;
     private bool _dbEverDisconnected;
+    private int _dbReconnectMigrationRunning;
 
     private readonly TimeSpan _autoRefreshDebounce = TimeSpan.FromMilliseconds(180);
     private CancellationTokenSource? _autoRefreshCts;
@@ -199,6 +201,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         if (ShouldSkipTrigger("main.top.refresh", 300))
             return;
 
+        if (IsDbProbeRunning)
+        {
+            _toasts.Info("刷新", "数据库初始化进行中，请稍候");
+            return;
+        }
+
         var cmd = TopRefreshCommand;
         if (cmd?.CanExecute(null) == true)
             cmd.Execute(null);
@@ -219,6 +227,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         if (ShouldSkipTrigger("main.top.update.open", 450))
             return;
 
+        if (IsUpdateApplying)
+        {
+            _toasts.Info("应用更新", "更新正在处理中，请稍候");
+            return;
+        }
+
         await ApplyUpdateFlowAsync().ConfigureAwait(false);
     }
 
@@ -237,6 +251,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IChangeWatermarkService changeWatermark,
         IAhkRuntimeService ahkRuntime,
         IReleaseVersionService releaseVersion,
+        IAppStartupStateService startupState,
         IAppUpdateService updates,
         IUpdateSettingsService updateSettings,
         IUpdateUiFlowService updateUiFlow,
@@ -252,6 +267,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _changeWatermark = changeWatermark ?? throw new ArgumentNullException(nameof(changeWatermark));
         _ahkRuntime = ahkRuntime ?? throw new ArgumentNullException(nameof(ahkRuntime));
         _releaseVersion = releaseVersion ?? throw new ArgumentNullException(nameof(releaseVersion));
+        _startupState = startupState ?? throw new ArgumentNullException(nameof(startupState));
         _updates = updates ?? throw new ArgumentNullException(nameof(updates));
         _updateSettings = updateSettings ?? throw new ArgumentNullException(nameof(updateSettings));
         _updateUiFlow = updateUiFlow ?? throw new ArgumentNullException(nameof(updateUiFlow));
@@ -284,6 +300,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dbMonitor.ConnectionFailed += ShowDbConnectionFailed;
         _dbMonitor.Disconnected += ShowDbDisconnected;
         _dbMonitor.Reconnected += ShowDbReconnectedInfo;
+        _dbMonitor.Reconnected += OnDbReconnectedRefreshSettingsSchema;
+        _dbMonitor.Reconnected += OnDbReconnectedEnsureSchemaUpToDate;
         _changeWatermark.TopicChanged += OnWatermarkTopicChanged;
 
         _dbMonitor.Reconnected += ScheduleAutoRefresh;
@@ -306,32 +324,29 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private async Task InitializeAfterStartupChecksAsync()
     {
-        await CheckDatabaseOnStartupAsync().ConfigureAwait(false);
-
-        if (_settingsPage is SettingsViewModel settingsPage)
+        try
         {
-            try
-            {
-                await settingsPage.RefreshDbSchemaStatusFromHostAsync().ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.Warn("MainWindowVM", "db.schema.postcheck.refresh.fail", "Failed to refresh DB schema status after startup checks", ex);
-            }
-        }
+            await CheckDatabaseOnStartupAsync().ConfigureAwait(false);
+            await RefreshSettingsSchemaStatusAsync("startup_postcheck").ConfigureAwait(false);
+            MarkDirtyByType<MsfxLinkViewModel>();
 
-        // Keep DB monitor/watermark loops alive whenever config exists, even if startup probe fails.
-        // This enables automatic recovery after DB comes back online.
-        if (File.Exists(_configPath))
+            // Keep DB monitor/watermark loops alive whenever config exists, even if startup probe fails.
+            // This enables automatic recovery after DB comes back online.
+            if (File.Exists(_configPath))
+            {
+                _dbMonitor.Start();
+                _changeWatermark.Start();
+                StartDbStateBootstrap();
+            }
+
+            await EnsureAhkStartedOnStartupAsync().ConfigureAwait(false);
+            await CheckUpdatesOnStartupAsync().ConfigureAwait(false);
+            RestartUpdatePolling();
+        }
+        finally
         {
-            _dbMonitor.Start();
-            _changeWatermark.Start();
-            StartDbStateBootstrap();
+            _startupState.MarkDbInitCompleted();
         }
-
-        await EnsureAhkStartedOnStartupAsync().ConfigureAwait(false);
-        await CheckUpdatesOnStartupAsync().ConfigureAwait(false);
-        RestartUpdatePolling();
     }
 
     private async Task EnsureAhkStartedOnStartupAsync()
@@ -440,6 +455,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     partial void OnActivePageChanged(AppPageBase? value)
     {
+        if (value is SettingsViewModel settingsPage)
+        {
+            settingsPage.ResetDraftFromCurrent();
+            _ = settingsPage.RefreshDbSchemaStatusFromHostAsync("open_settings");
+        }
+
         WireTopBarCommands(value);
 
         OnPropertyChanged(nameof(TopRefreshCommand));
@@ -654,51 +675,44 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             await RunOnUiAsync(() => IsDbProbeRunning = true);
             var currentAppVersion = NormalizeVersionForStamp(_releaseVersion.Current.SuiteVersion);
-            var shouldMigrate = ShouldRunDbMigrationOnStartup(currentAppVersion);
-            var ranMigration = false;
-
-            if (shouldMigrate)
+            var state = await GetDbSchemaStartupStateAsync().ConfigureAwait(false);
+            if (state.ShouldMigrate)
             {
                 using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
                 var migration = await _dbSchemaMigration
-                    .EnsureUpToDateAsync(cts.Token)
+                    .EnsureUpToDateAsync(cts.Token, _releaseVersion.Current.DbSchemaVersion)
                     .ConfigureAwait(false);
-                ranMigration = true;
                 if (migration.HasChanges)
-                {
                     _toasts.Success("数据库结构更新", $"已应用 {migration.AppliedCount} 个迁移，当前版本 {migration.AfterVersion ?? "unknown"}");
-                }
+
+                state = await GetDbSchemaStartupStateAsync().ConfigureAwait(false);
             }
-            else
+
+            if (!state.Compatible)
             {
-                _logger.Info("MainWindowVM", "db.startup_check.migrate.skipped", "Skip migration on startup for unchanged app version", new
+                _toasts.Error("数据库结构更新", $"自动更新后仍不兼容：{state.Message}");
+                _logger.Error("MainWindowVM", "db.schema.incompatible.single_path.still_bad", "Schema incompatible after startup single-path migration", null, new
                 {
-                    appVersion = currentAppVersion
+                    state.UiMin,
+                    state.AgentMin,
+                    state.Target,
+                    state.DbVersion,
+                    state.SchemaOk,
+                    state.Reason
                 });
+                return false;
             }
 
-            var compatible = await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false);
-            if (!compatible && !ranMigration)
-            {
-                _logger.Warn("MainWindowVM", "db.startup_check.migrate.retry_on_incompatible",
-                    "Schema incompatible after skip, retry migration once");
-                using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
-                await _dbSchemaMigration.EnsureUpToDateAsync(cts.Token).ConfigureAwait(false);
-                ranMigration = true;
-                compatible = await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false);
-            }
+            await SaveDbMigrationStampAsync(currentAppVersion).ConfigureAwait(false);
 
-            if (compatible && ranMigration)
-                await SaveDbMigrationStampAsync(currentAppVersion).ConfigureAwait(false);
-
-            return compatible;
+            return true;
         }
         catch (Exception ex)
         {
             _logger.Error("MainWindowVM", "db.startup_check.fail", "Database startup migration/check failed", ex);
             var openSettings = await _dialogs.Confirm(
                     "数据库初始化失败",
-                    $"数据库初始化或结构升级失败：{ex.Message}\n请前往 [设置] 检查连接与权限后重试。")
+                    $"数据库初始化或结构升级失败：{ex.Message}\n请前往 [设置] 检查连接与权限后重试")
                 .ConfigureAwait(false);
 
             if (openSettings)
@@ -709,17 +723,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             await RunOnUiAsync(() => IsDbProbeRunning = false);
         }
-    }
-
-    private bool ShouldRunDbMigrationOnStartup(string currentAppVersion)
-    {
-        if (string.IsNullOrWhiteSpace(currentAppVersion) ||
-            string.Equals(currentAppVersion, "unknown", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        var cfg = _appConfigStore.Load();
-        var last = NormalizeVersionForStamp(cfg.LastDbMigrationAppVersion);
-        return !string.Equals(last, currentAppVersion, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task SaveDbMigrationStampAsync(string currentAppVersion)
@@ -744,37 +747,42 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private static string NormalizeVersionForStamp(string? value)
         => (value ?? string.Empty).Trim();
 
-    private async Task<bool> EnsureDbSchemaCompatibleAsync()
+    private async Task<DbSchemaStartupState> GetDbSchemaStartupStateAsync()
     {
         var version = _releaseVersion.Current;
+        var target = DbSchemaCompat.NormalizeBound(version.DbSchemaVersion, version.DbSchemaVersion);
         var uiMin = DbSchemaCompat.NormalizeBound(version.UiMinDbSchema, version.DbSchemaVersion);
         var agentMin = DbSchemaCompat.NormalizeBound(version.AgentMinDbSchema, version.DbSchemaVersion);
 
         var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
         var db = schema.value ?? string.Empty;
+        var targetOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, target);
         var uiOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, uiMin);
         var agentOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, agentMin);
-        if (uiOk && agentOk)
-        {
+        var compatible = uiOk && agentOk;
+        var shouldMigrate = !compatible;
+
+        if (compatible)
             _logger.Info("MainWindowVM", "db.schema.ok", "Database schema version compatible", new
             {
                 schema.value,
+                target,
                 uiMin,
                 agentMin
             });
-            return true;
-        }
-
-        _logger.Warn("MainWindowVM", "db.schema.incompatible", "Database schema incompatible", null, new
-        {
-            uiMin,
-            agentMin,
-            schemaOk = schema.ok,
-            schemaValue = schema.value,
-            schema.reason,
-            uiOk,
-            agentOk
-        });
+        else
+            _logger.Warn("MainWindowVM", "db.schema.incompatible", "Database schema incompatible", null, new
+            {
+                target,
+                uiMin,
+                agentMin,
+                schemaOk = schema.ok,
+                schemaValue = schema.value,
+                schema.reason,
+                targetOk,
+                uiOk,
+                agentOk
+            });
 
         var message = DbSchemaCompat.BuildIncompatibleMessage(
             schema.ok,
@@ -782,9 +790,29 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             schema.reason,
             uiMin,
             agentMin);
-        await _dialogs.Warn(DbSchemaCompat.GetIncompatibleTitle(), message).ConfigureAwait(false);
-        return false;
+
+        return new DbSchemaStartupState(
+            Compatible: compatible,
+            ShouldMigrate: shouldMigrate,
+            Message: message,
+            Target: target,
+            UiMin: uiMin,
+            AgentMin: agentMin,
+            SchemaOk: schema.ok,
+            DbVersion: schema.value,
+            Reason: schema.reason);
     }
+
+    private sealed record DbSchemaStartupState(
+        bool Compatible,
+        bool ShouldMigrate,
+        string Message,
+        string Target,
+        string UiMin,
+        string AgentMin,
+        bool SchemaOk,
+        string? DbVersion,
+        string? Reason);
 
     private async Task CheckUpdatesOnStartupAsync()
     {
@@ -865,7 +893,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         if (IsUpdateApplying)
             return;
 
-        await RunOnUiAsync(() => IsUpdateApplying = true);
+        IsUpdateApplying = true;
         try
         {
             await _updateUiFlow.ApplyUpdateFlowAsync().ConfigureAwait(false);
@@ -877,7 +905,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
         finally
         {
-            await RunOnUiAsync(() => IsUpdateApplying = false);
+            IsUpdateApplying = false;
         }
     }
 
@@ -1157,6 +1185,70 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         });
     }
 
+    private void OnDbReconnectedRefreshSettingsSchema()
+        => _ = RefreshSettingsSchemaStatusAsync("db_reconnected");
+
+    private void OnDbReconnectedEnsureSchemaUpToDate()
+        => _ = EnsureSchemaUpToDateOnReconnectAsync();
+
+    private async Task EnsureSchemaUpToDateOnReconnectAsync()
+    {
+        if (Interlocked.Exchange(ref _dbReconnectMigrationRunning, 1) == 1)
+            return;
+
+        try
+        {
+            var state = await GetDbSchemaStartupStateAsync().ConfigureAwait(false);
+            if (!state.ShouldMigrate)
+            {
+                await RefreshSettingsSchemaStatusAsync("db_reconnected").ConfigureAwait(false);
+                return;
+            }
+
+            using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
+            var migration = await _dbSchemaMigration
+                .EnsureUpToDateAsync(cts.Token, _releaseVersion.Current.DbSchemaVersion)
+                .ConfigureAwait(false);
+            if (migration.HasChanges)
+            {
+                PostOnUi(() =>
+                {
+                    _toasts.Success("数据库结构更新", $"连接恢复后已自动应用 {migration.AppliedCount} 个迁移，当前版本 {migration.AfterVersion ?? "unknown"}");
+                });
+            }
+
+            var currentAppVersion = NormalizeVersionForStamp(_releaseVersion.Current.SuiteVersion);
+            await SaveDbMigrationStampAsync(currentAppVersion).ConfigureAwait(false);
+            await RefreshSettingsSchemaStatusAsync("db_reconnected_migrate").ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn("MainWindowVM", "db.reconnected.migrate.fail", "Auto migration on DB reconnect failed", ex);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _dbReconnectMigrationRunning, 0);
+        }
+    }
+
+    private async Task RefreshSettingsSchemaStatusAsync(string source)
+    {
+        if (_settingsPage is not SettingsViewModel settingsPage)
+            return;
+
+        try
+        {
+            await settingsPage.RefreshDbSchemaStatusFromHostAsync(source).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn("MainWindowVM", "db.schema.status.refresh.fail", "Failed to refresh DB schema status for Settings page", ex, new
+            {
+                source
+            });
+        }
+    }
+
     private void OnWatermarkTopicChanged(string topic)
     {
         PostOnUi(() =>
@@ -1254,6 +1346,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _dbMonitor.ConnectionFailed -= ShowDbConnectionFailed);
         SafeExecute(() => _dbMonitor.Disconnected -= ShowDbDisconnected);
         SafeExecute(() => _dbMonitor.Reconnected -= ShowDbReconnectedInfo);
+        SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedRefreshSettingsSchema);
+        SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedEnsureSchemaUpToDate);
         SafeExecute(() => _dbMonitor.Reconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _dbMonitor.Disconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _changeWatermark.TopicChanged -= OnWatermarkTopicChanged);

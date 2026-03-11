@@ -12,11 +12,25 @@
              x:DataType="vm:SettingsViewModel"
              Focusable="True"
              x:Name="Root">
+    <UserControl.Styles>
+        <Style Selector="UserControl#Root TextBox">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="UseFloatingWatermark" Value="False" />
+        </Style>
+        <Style Selector="UserControl#Root ComboBox">
+            <Setter Property="Height" Value="38" />
+        </Style>
+        <Style Selector="UserControl#Root NumericUpDown">
+            <Setter Property="Height" Value="38" />
+        </Style>
+    </UserControl.Styles>
+
     <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
 
         <Grid Margin="18,14,18,18"
-              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
               KeyboardNavigation.TabNavigation="Cycle"
               RowSpacing="14">
 
@@ -88,16 +102,18 @@
                                 <TextBlock Text="地址" VerticalAlignment="Center" />
                                 <TextBox Grid.Row="0" Grid.Column="1"
                                          Width="280"
+                                         Height="38"
+                                         Watermark="例如：127.0.0.1"
+                                         UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center"
-                                         MinHeight="{StaticResource ControlHeightCompact}"
                                          Text="{Binding Host}" />
 
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="端口" VerticalAlignment="Center" />
                                 <NumericUpDown Grid.Row="1"
                                                Grid.Column="1"
                                                Width="280"
-                                               MinHeight="{StaticResource ControlHeightCompact}"
                                                VerticalContentAlignment="Center"
+                                               Watermark="例如：5432"
                                                Minimum="1"
                                                Maximum="65535"
                                                Increment="1"
@@ -108,25 +124,31 @@
                                 <TextBox Grid.Row="2"
                                          Grid.Column="1"
                                          Width="280"
+                                         Height="38"
+                                         Watermark="例如：pactoolkits"
+                                         UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center"
-                                         MinHeight="{StaticResource ControlHeightCompact}"
                                          Text="{Binding Database}" />
 
                                 <TextBlock Grid.Row="3" Grid.Column="0" Text="用户名" VerticalAlignment="Center" />
                                 <TextBox Grid.Row="3"
                                          Grid.Column="1"
                                          Width="280"
+                                         Height="38"
+                                         Watermark="例如：postgres"
+                                         UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center"
-                                         MinHeight="{StaticResource ControlHeightCompact}"
                                          Text="{Binding Username}" />
 
                                 <TextBlock Grid.Row="4" Grid.Column="0" Text="密码" VerticalAlignment="Center" />
                                 <TextBox Grid.Row="4"
                                          Grid.Column="1"
                                          Width="280"
+                                         Height="38"
+                                         Watermark="请输入数据库密码"
                                          PasswordChar="●"
+                                         UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center"
-                                         MinHeight="{StaticResource ControlHeightCompact}"
                                          Text="{Binding Password}" />
                             </Grid>
 
@@ -138,7 +160,7 @@
                                             Height="{Binding #DbParamsGrid.Bounds.Height}">
                                 <Grid RowDefinitions="Auto,*"
                                       RowSpacing="10">
-                                    <Grid ColumnDefinitions="Auto,*,Auto"
+                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto"
                                           ColumnSpacing="8"
                                           VerticalAlignment="Center">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -151,7 +173,7 @@
                                                                     VerticalAlignment="Center"
                                                                     Status="{Binding DbSchemaBadgeStatus}"
                                                                     Label="{Binding DbSchemaBadgeLabel}"
-                                                                    LatestVersion="{Binding DbSchemaRequiredMinVersion}" />
+                                                                    LatestVersion="{Binding DbSchemaTargetVersion}" />
                                         <Button Grid.Column="2"
                                                 Classes="Ghost"
                                                 Command="{Binding CheckDbSchemaStatusCommand}"
@@ -160,6 +182,16 @@
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <icons:MaterialIcon Kind="Refresh" Width="14" Height="14" />
                                                 <TextBlock Text="检查更新" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Grid.Column="3"
+                                                Classes="Primary"
+                                                Command="{Binding ApplyDbSchemaUpdateCommand}"
+                                                theme:ButtonExtensions.ShowProgress="{Binding IsDbSchemaChecking}"
+                                                IsEnabled="{Binding CanApplyDbSchemaUpdate}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <icons:MaterialIcon Kind="DatabaseSync" Width="14" Height="14" />
+                                                <TextBlock Text="立即更新" />
                                             </StackPanel>
                                         </Button>
                                     </Grid>
@@ -174,23 +206,23 @@
                                                 <Grid RowDefinitions="Auto,Auto,Auto"
                                                       RowSpacing="8">
                                                     <Grid ColumnDefinitions="90,*" ColumnSpacing="8">
-                                                        <TextBlock Text="当前版本" VerticalAlignment="Center" Opacity="0.85" />
+                                                        <TextBlock Text="最新版本" VerticalAlignment="Center" Opacity="0.85" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding DbSchemaTargetVersion}"
+                                                                   VerticalAlignment="Center" />
+                                                    </Grid>
+
+                                                    <Grid Grid.Row="1" ColumnDefinitions="90,*" ColumnSpacing="8">
+                                                        <TextBlock Text="数据库版本" VerticalAlignment="Center" Opacity="0.85" />
                                                         <TextBlock Grid.Column="1"
                                                                    Text="{Binding DbSchemaCurrentVersion}"
                                                                    VerticalAlignment="Center" />
                                                     </Grid>
 
-                                                    <Grid Grid.Row="1" ColumnDefinitions="90,*" ColumnSpacing="8">
+                                                    <Grid Grid.Row="2" ColumnDefinitions="90,*" ColumnSpacing="8">
                                                         <TextBlock Text="最低要求" VerticalAlignment="Center" Opacity="0.85" />
                                                         <TextBlock Grid.Column="1"
                                                                    Text="{Binding DbSchemaRequiredMinVersion}"
-                                                                   VerticalAlignment="Center" />
-                                                    </Grid>
-
-                                                    <Grid Grid.Row="2" ColumnDefinitions="90,*" ColumnSpacing="8">
-                                                        <TextBlock Text="说明" VerticalAlignment="Center" Opacity="0.85" />
-                                                        <TextBlock Grid.Column="1"
-                                                                   Text="{Binding DbSchemaStatusText}"
                                                                    VerticalAlignment="Center"
                                                                    Classes="SectionHint" />
                                                     </Grid>
@@ -334,7 +366,6 @@
                                             <Grid ColumnDefinitions="260,280,*"
                                                   ColumnSpacing="12"
                                                   Margin="0,0,0,8"
-                                                  MinHeight="{StaticResource ControlHeightCompact}"
                                                   VerticalAlignment="Center">
 
                                                 
@@ -348,7 +379,7 @@
                                                          Watermark="输入别名"
                                                          Text="{Binding Alias}"
                                                          Width="280"
-                                                         MinHeight="{StaticResource ControlHeightCompact}"
+                                                         Height="38"
                                                          VerticalAlignment="Center"
                                                          VerticalContentAlignment="Center"
                                                          Padding="10,0"
@@ -439,15 +470,13 @@
                     </Grid>
 
                     <suki:GroupBox Grid.Row="1" Header="参数">
-                        <Grid ColumnDefinitions="140,280,*"
+                        <Grid ColumnDefinitions="140,1.15*,1.85*"
                               RowDefinitions="Auto,Auto"
                               ColumnSpacing="12"
                               RowSpacing="10">
                             <TextBlock Text="固定长度"
                                        VerticalAlignment="Center" />
                             <NumericUpDown Grid.Row="0" Grid.Column="1"
-                                           Width="280"
-                                           MinHeight="{StaticResource ControlHeightCompact}"
                                            Minimum="1"
                                            Maximum="256"
                                            Increment="1"
@@ -459,8 +488,9 @@
                                        VerticalAlignment="Center" />
                             <TextBox Grid.Row="1"
                                      Grid.Column="1"
-                                     Width="280"
-                                     MinHeight="{StaticResource ControlHeightCompact}"
+                                     Height="38"
+                                     Watermark="例如：^8\\d+$"
+                                     UseFloatingWatermark="False"
                                      VerticalContentAlignment="Center"
                                      Text="{Binding TraceCodePattern}" />
                             <TextBlock Grid.Row="1"
@@ -579,7 +609,7 @@
                     </Grid>
 
                     <suki:GroupBox Grid.Row="1" Header="参数">
-                        <Grid ColumnDefinitions="170,340,*"
+                        <Grid ColumnDefinitions="170,1.1*,1.9*"
                               RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
                               ColumnSpacing="12"
                               RowSpacing="10">
@@ -587,8 +617,10 @@
                                        VerticalAlignment="Center" />
                             <TextBox Grid.Row="0" Grid.Column="1"
                                      Text="{Binding CurrentSuiteVersion}"
+                                     Height="38"
+                                     Watermark="当前已安装版本"
+                                     UseFloatingWatermark="False"
                                      IsEnabled="False"
-                                     MinHeight="{StaticResource ControlHeightCompact}"
                                      VerticalContentAlignment="Center" />
                             <controls:UpdateStatusBadge Grid.Row="0"
                                                         Grid.Column="2"
@@ -609,8 +641,6 @@
                                        VerticalAlignment="Center" />
                             <ComboBox Grid.Row="2"
                                       Grid.Column="1"
-                                      Height="48"
-                                      MinHeight="48"
                                       ItemsSource="{Binding UpdateChannelOptions}"
                                       SelectedItem="{Binding UpdateChannel}" />
 
@@ -620,7 +650,9 @@
                             <TextBox Grid.Row="3"
                                      Grid.Column="1"
                                      Text="{Binding UpdateFeedUrl}"
-                                     MinHeight="{StaticResource ControlHeightCompact}"
+                                     Height="38"
+                                     Watermark="留空使用默认更新源"
+                                     UseFloatingWatermark="False"
                                      VerticalContentAlignment="Center" />
 
                             <TextBlock Grid.Row="4" Grid.Column="0"
@@ -628,7 +660,7 @@
                                        VerticalAlignment="Center" />
                             <Grid Grid.Row="4"
                                   Grid.Column="1"
-                                  ColumnDefinitions="140,*"
+                                  ColumnDefinitions="160,*"
                                   ColumnSpacing="10">
                                 <NumericUpDown Grid.Column="0"
                                                Minimum="0"
@@ -636,7 +668,7 @@
                                                Increment="5"
                                                FormatString="N0"
                                                Value="{Binding UpdatePollIntervalMinutes}"
-                                               Height="{StaticResource ControlHeightCompact}" />
+                                               Height="38" />
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding UpdatePollIntervalHint}"
                                            VerticalAlignment="Center"
@@ -652,7 +684,9 @@
                                   ColumnDefinitions="*,Auto"
                                   ColumnSpacing="8">
                                 <TextBox Text="{Binding IgnoredUiVersion}"
-                                         MinHeight="{StaticResource ControlHeightCompact}"
+                                         Height="38"
+                                         Watermark="留空表示不忽略任何版本"
+                                         UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center" />
                                 <Button Grid.Column="1"
                                         Classes="Ghost"
@@ -725,7 +759,7 @@
                     </Grid>
 
                     <suki:GroupBox Grid.Row="1" Header="参数">
-                        <Grid ColumnDefinitions="170,460,*"
+                        <Grid ColumnDefinitions="170,1.1*,1.9*"
                               RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
                               ColumnSpacing="12"
                               RowSpacing="10">
@@ -742,8 +776,6 @@
                                       Grid.Column="1"
                                       ItemsSource="{Binding LoggingLevelOptions}"
                                       SelectedItem="{Binding LoggingMinimumLevel}"
-                                      MinHeight="48"
-                                      Height="48"
                                       HorizontalAlignment="Stretch" />
                             <StackPanel Grid.Row="1"
                                         Grid.Column="2"
@@ -764,8 +796,6 @@
                                        VerticalAlignment="Center" />
                             <NumericUpDown Grid.Row="2"
                                            Grid.Column="1"
-                                           MinHeight="42"
-                                           Height="42"
                                            HorizontalAlignment="Stretch"
                                            Minimum="1"
                                            Maximum="180"
@@ -777,8 +807,6 @@
                                        VerticalAlignment="Center" />
                             <NumericUpDown Grid.Row="3"
                                            Grid.Column="1"
-                                           MinHeight="42"
-                                           Height="42"
                                            HorizontalAlignment="Stretch"
                                            Minimum="1"
                                            Maximum="200"
@@ -791,15 +819,172 @@
                             <TextBox Grid.Row="4"
                                      Grid.Column="1"
                                      Text="{Binding LoggingDirectory}"
-                                     MinHeight="42"
-                                     Height="42"
+                                     Height="38"
+                                     Watermark="留空使用默认日志目录"
+                                     UseFloatingWatermark="False"
                                      VerticalContentAlignment="Center" />
 
                             <TextBlock Grid.Row="5"
                                        Grid.ColumnSpan="3" Grid.Column="0"
-                                       Text="默认目录：ApplicationData/PacToolkits/logs/ui；建议保持默认，便于部署和故障回溯。"
+                                       Text="默认目录：ApplicationData/PacToolkits/logs/ui；建议保持默认，便于部署和故障回溯"
                                        Classes="SectionHint"
                                        TextWrapping="Wrap" />
+                        </Grid>
+                    </suki:GroupBox>
+                </Grid>
+            </suki:GlassCard>
+
+            <Grid Grid.Row="12"
+                  ColumnDefinitions="*"
+                  VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="CloudSyncOutline" Width="18" Height="18" />
+                    <TextBlock Text="码上放心 API"
+                               Classes="SectionTitle" />
+                </StackPanel>
+            </Grid>
+
+            <suki:GlassCard Grid.Row="13"
+                            Classes="SectionCard"
+                            HorizontalAlignment="Stretch">
+                <Grid RowDefinitions="Auto,*"
+                      RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="8"
+                          VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <icons:MaterialIcon Kind="Api" Width="16" Height="16" />
+                            <TextBlock Text="调用凭证与网关"
+                                       Classes="SectionTitle" />
+                            <controls:UpdateStatusBadge Status="{Binding MsfxApiBadgeStatus}"
+                                                        Label="{Binding MsfxApiBadgeLabel}" />
+                            <suki:InfoBadge Content="MSFX" />
+                            <suki:InfoBadge Content="配置中心"
+                                            Foreground="{DynamicResource BrushInfo}" />
+                            <suki:InfoBadge Content="{Binding MsfxApiHint}"
+                                            Foreground="{DynamicResource BrushDone}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="8"
+                                    HorizontalAlignment="Right">
+                            <Button Classes="Primary"
+                                    Command="{Binding SaveMsfxApiConfigCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <icons:MaterialIcon Kind="ContentSaveOutline" Width="16" Height="16" />
+                                    <TextBlock Text="保存配置" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <suki:GroupBox Grid.Row="1" Header="参数">
+                        <Grid ColumnDefinitions="170,1.15*,1.85*"
+                                  RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                  ColumnSpacing="12"
+                                  RowSpacing="10">
+                                <TextBlock Text="网关地址"
+                                           VerticalAlignment="Center" />
+                                <TextBox Grid.Row="0"
+                                         Grid.Column="1"
+                                         Text="{Binding MsfxGatewayUrl}"
+                                         Height="38"
+                                         Watermark="https://eco.taobao.com/router/rest"
+                                         UseFloatingWatermark="False"
+                                         VerticalContentAlignment="Center" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0"
+                                           Text="AppKey"
+                                           VerticalAlignment="Center" />
+                                <TextBox Grid.Row="1"
+                                         Grid.Column="1"
+                                         Text="{Binding MsfxAppKey}"
+                                         Height="38"
+                                         Watermark="请输入 AppKey"
+                                         UseFloatingWatermark="False"
+                                         VerticalContentAlignment="Center" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0"
+                                           Text="AppSecret"
+                                           VerticalAlignment="Center" />
+                                <Grid Grid.Row="2"
+                                      Grid.Column="1"
+                                      ColumnDefinitions="*,40"
+                                      ColumnSpacing="8">
+                                    <TextBox Text="{Binding MsfxAppSecret}"
+                                             Height="38"
+                                             Watermark="请输入 AppSecret"
+                                             PasswordChar="{Binding MsfxAppSecretPasswordChar}"
+                                             UseFloatingWatermark="False"
+                                             VerticalContentAlignment="Center" />
+                                    <Button Grid.Column="1"
+                                            Classes="Ghost"
+                                            Width="40"
+                                            Height="38"
+                                            Padding="0"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
+                                            Command="{Binding ToggleMsfxAppSecretVisibilityCommand}"
+                                            ToolTip.Tip="显示/隐藏 AppSecret">
+                                        <Panel Width="16"
+                                               Height="16"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center">
+                                            <icons:MaterialIcon Kind="EyeOutline"
+                                                                Width="14"
+                                                                Height="14"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"
+                                                                IsVisible="{Binding !ShowMsfxAppSecret}" />
+                                            <icons:MaterialIcon Kind="EyeOffOutline"
+                                                                Width="14"
+                                                                Height="14"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"
+                                                                IsVisible="{Binding ShowMsfxAppSecret}" />
+                                        </Panel>
+                                    </Button>
+                                </Grid>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0"
+                                           Text="SessionToken"
+                                           VerticalAlignment="Center" />
+                                <TextBox Grid.Row="3"
+                                         Grid.Column="1"
+                                         Text="{Binding MsfxSessionToken}"
+                                         Height="38"
+                                         Watermark="非必填，可留空"
+                                         UseFloatingWatermark="False"
+                                         VerticalContentAlignment="Center" />
+
+                                <TextBlock Grid.Row="4" Grid.Column="0"
+                                           Text="接收企业 RefEntId"
+                                           VerticalAlignment="Center" />
+                                <TextBox Grid.Row="4"
+                                         Grid.Column="1"
+                                         Text="{Binding MsfxRefEntId}"
+                                         Height="38"
+                                         VerticalContentAlignment="Center"
+                                         UseFloatingWatermark="False"
+                                         Watermark="用于 ref_ent_id / 默认 to_ref_user_id" />
+
+                                <TextBlock Grid.Row="5" Grid.Column="0"
+                                           Text="超时（秒）"
+                                           VerticalAlignment="Center" />
+                                <NumericUpDown Grid.Row="5"
+                                               Grid.Column="1"
+                                               Minimum="3"
+                                               Maximum="120"
+                                               Increment="1"
+                                               FormatString="0"
+                                               HorizontalAlignment="Stretch"
+                                                   Value="{Binding MsfxTimeoutSeconds}" />
+                                <TextBlock Grid.Row="5"
+                                           Grid.Column="2"
+                                           Text="建议 15-30 秒；网络较慢可适当调大"
+                                           Classes="SectionHint"
+                                           VerticalAlignment="Center" />
                         </Grid>
                     </suki:GroupBox>
                 </Grid>

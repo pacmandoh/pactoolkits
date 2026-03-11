@@ -219,6 +219,7 @@ public sealed class TraceEntryStateToIconKindConverter : IValueConverter
             TraceEntryState.Success => MaterialIconKind.CheckCircleOutline,
             TraceEntryState.Warning => MaterialIconKind.AlertCircleOutline,
             TraceEntryState.Failed => MaterialIconKind.CloseCircleOutline,
+            TraceEntryState.Info => MaterialIconKind.InformationOutline,
             _ => MaterialIconKind.InformationOutline,
         };
     }
@@ -238,7 +239,8 @@ public sealed class TraceEntryStateToFgBrushConverter : IValueConverter
             TraceEntryState.Success => "BrushDone",
             TraceEntryState.Warning => "BrushWarning",
             TraceEntryState.Failed => "BrushDanger",
-            _ => "BrushWarning",
+            TraceEntryState.Info => "BrushInfo",
+            _ => "BrushInfo",
         };
 
         return ConverterHelpers.FindAppBrush(key, Brushes.White);
@@ -253,13 +255,15 @@ public sealed class TraceEntryStateToBgBrushConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var state = value is TraceEntryState s ? s : TraceEntryState.Unknown;
+        var level = ConverterHelpers.ParseLevel(parameter, 10);
 
         var key = state switch
         {
-            TraceEntryState.Success => "BrushDoneBg10",
-            TraceEntryState.Warning => "BrushWarningBg10",
-            TraceEntryState.Failed => "BrushDangerBg10",
-            _ => "BrushWarningBg10",
+            TraceEntryState.Success => $"BrushDoneBg{level}",
+            TraceEntryState.Warning => $"BrushWarningBg{level}",
+            TraceEntryState.Failed => $"BrushDangerBg{level}",
+            TraceEntryState.Info => $"BrushInfoBg{level}",
+            _ => $"BrushInfoBg{level}",
         };
 
         return ConverterHelpers.FindAppBrush(key, Brushes.Transparent);
@@ -338,6 +342,36 @@ public sealed class BoolToDoneDangerBrushConverter : IValueConverter
         var isOn = value is true;
         var key = isOn ? "BrushDone" : "BrushDanger";
         return ConverterHelpers.FindAppBrush(key, Brushes.White);
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+public sealed class CellCurrentBorderBrushConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is ISolidColorBrush solid)
+        {
+            var c = solid.Color;
+            if (c.A == 0)
+                return ConverterHelpers.FindAppBrush("SukiPrimaryColor", Brushes.White);
+
+            static byte Mix(byte baseCh, byte to, double factor)
+                => (byte)Math.Clamp((int)Math.Round(baseCh + ((to - baseCh) * factor)), 0, 255);
+
+            var toward = (c.R + c.G + c.B) < 380 ? (byte)255 : (byte)32;
+            var mixed = Color.FromArgb(
+                (byte)Math.Clamp(c.A + 70, 120, 255),
+                Mix(c.R, toward, 0.38),
+                Mix(c.G, toward, 0.38),
+                Mix(c.B, toward, 0.38));
+
+            return new SolidColorBrush(mixed);
+        }
+
+        return ConverterHelpers.FindAppBrush("SukiPrimaryColor", Brushes.White);
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

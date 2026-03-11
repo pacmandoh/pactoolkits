@@ -1,0 +1,105 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
+             xmlns:dialogs="clr-namespace:pactoolkits_ui.Views.Dialogs"
+             x:Class="pactoolkits_ui.Views.Dialogs.MsfxMappingDetailDialogView"
+             x:DataType="dialogs:MsfxMappingDetailDialogModel">
+    <suki:GlassCard Classes="SectionCard"
+                    MinWidth="520"
+                    MaxWidth="780"
+                    Padding="18">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Border Width="42" Height="42" CornerRadius="21">
+                    <icons:MaterialIcon Kind="TuneVariant" Width="22" Height="22"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock Text="映射详情" FontSize="17" FontWeight="SemiBold" />
+                    <TextBlock IsVisible="{Binding !IsReadOnly}" Text="查看归一化结果并在此直接修正映射" Opacity="0.75" />
+                    <TextBlock IsVisible="{Binding IsReadOnly}" Text="已映射记录仅供查看详情" Opacity="0.75" />
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1" ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="6">
+                <TextBlock Text="追溯码" Opacity="0.75" />
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TraceCode}" TextWrapping="Wrap" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="单据编码" Opacity="0.75" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SourceBillCode}" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="源药名/规格" Opacity="0.75" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SourceDrug}" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SourceSpec}" Opacity="0.86" />
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="归一化药/规" Opacity="0.75" />
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Normalized}" />
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="当前映射" Opacity="0.75" />
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding MappedTarget}" />
+            </Grid>
+
+            <Grid Grid.Row="2"
+                  IsVisible="{Binding !IsReadOnly}"
+                  ColumnDefinitions="120,*"
+                  RowDefinitions="Auto,Auto,Auto"
+                  ColumnSpacing="10"
+                  RowSpacing="8">
+                <TextBlock Text="drug_id" Opacity="{StaticResource SectionHintOpacity}" VerticalAlignment="Center" />
+                <Border Grid.Row="0" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        Classes="AutoCompleteInputHost"
+                        Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
+                        Padding="8,0">
+                    <AutoCompleteBox x:Name="DrugIdBox"
+                                     Height="32"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     Watermark="输入院内药品信息"
+                                     MinimumPrefixLength="1"
+                                     IsTextCompletionEnabled="False"
+                                     KeyDown="DrugIdBox_OnKeyDown">
+                        <AutoCompleteBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:OptionItem">
+                                <TextBlock Text="{Binding Display}" />
+                            </DataTemplate>
+                        </AutoCompleteBox.ItemTemplate>
+                    </AutoCompleteBox>
+                </Border>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="规格" Opacity="{StaticResource SectionHintOpacity}" VerticalAlignment="Center" />
+                <Grid Grid.Row="1" Grid.Column="1">
+                    <ComboBox x:Name="SpecBox"
+                              Classes="MsfxInput"
+                              Height="43"
+                              MinHeight="43"
+                              MaxHeight="43"
+                              HorizontalAlignment="Stretch"
+                              MinWidth="220"
+                              MaxDropDownHeight="300" />
+                    <TextBlock x:Name="SpecPlaceholder"
+                               IsHitTestVisible="False"
+                               Margin="12,0,0,0"
+                               VerticalAlignment="Center"
+                               Opacity="0.55"
+                               Text="请选择规格" />
+                </Grid>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="单条数量" Opacity="{StaticResource SectionHintOpacity}" VerticalAlignment="Center" />
+                <Border Grid.Row="2"
+                        Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        Classes="AutoCompleteInputHost"
+                        Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
+                        IsEnabled="False"
+                        Padding="8,0">
+                    <TextBlock x:Name="QtyText"
+                               Text="--"
+                               FontSize="14"
+                               VerticalAlignment="Center" />
+                </Border>
+            </Grid>
+
+            <TextBlock Grid.Row="3" Opacity="0.75" TextWrapping="Wrap"
+                       Text="{Binding MapStatus, StringFormat=状态: {0}}"/>
+        </Grid>
+    </suki:GlassCard>
+</UserControl>

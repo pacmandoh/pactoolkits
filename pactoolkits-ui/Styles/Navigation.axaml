@@ -48,12 +48,18 @@
             <DrawingBrush Stretch="Fill">
                 <DrawingBrush.Drawing>
                     <DrawingGroup>
-                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor10}">
+                        <GeometryDrawing>
+                            <GeometryDrawing.Brush>
+                                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor10}" />
+                            </GeometryDrawing.Brush>
                             <GeometryDrawing.Geometry>
                                 <RectangleGeometry Rect="0,0,1,1" />
                             </GeometryDrawing.Geometry>
                         </GeometryDrawing>
-                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor}">
+                        <GeometryDrawing>
+                            <GeometryDrawing.Brush>
+                                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor}" />
+                            </GeometryDrawing.Brush>
                             <GeometryDrawing.Geometry>
                                 <RectangleGeometry Rect="0.18,0.24,0.08,0.52" />
                             </GeometryDrawing.Geometry>
@@ -73,12 +79,18 @@
             <DrawingBrush Stretch="Fill">
                 <DrawingBrush.Drawing>
                     <DrawingGroup>
-                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor10}">
+                        <GeometryDrawing>
+                            <GeometryDrawing.Brush>
+                                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor10}" />
+                            </GeometryDrawing.Brush>
                             <GeometryDrawing.Geometry>
                                 <RectangleGeometry Rect="0,0,1,1" />
                             </GeometryDrawing.Geometry>
                         </GeometryDrawing>
-                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor}">
+                        <GeometryDrawing>
+                            <GeometryDrawing.Brush>
+                                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor}" />
+                            </GeometryDrawing.Brush>
                             <GeometryDrawing.Geometry>
                                 <RectangleGeometry Rect="0.0,0.24,0.018,0.52" />
                             </GeometryDrawing.Geometry>
@@ -94,12 +106,18 @@
             <DrawingBrush Stretch="Fill">
                 <DrawingBrush.Drawing>
                     <DrawingGroup>
-                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor10}">
+                        <GeometryDrawing>
+                            <GeometryDrawing.Brush>
+                                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor10}" />
+                            </GeometryDrawing.Brush>
                             <GeometryDrawing.Geometry>
                                 <RectangleGeometry Rect="0,0,1,1" />
                             </GeometryDrawing.Geometry>
                         </GeometryDrawing>
-                        <GeometryDrawing Brush="{DynamicResource SukiPrimaryColor}">
+                        <GeometryDrawing>
+                            <GeometryDrawing.Brush>
+                                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor}" />
+                            </GeometryDrawing.Brush>
                             <GeometryDrawing.Geometry>
                                 <RectangleGeometry Rect="0.18,0.24,0.08,0.52" />
                             </GeometryDrawing.Geometry>

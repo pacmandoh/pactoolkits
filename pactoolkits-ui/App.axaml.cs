@@ -82,6 +82,7 @@ public class App : Application
         services.AddSingleton<IToastService, ToastService>();
         services.AddSingleton<IAppLogger, AppLogger>();
         services.AddSingleton<IReleaseVersionService, ReleaseVersionService>();
+        services.AddSingleton<IAppStartupStateService, AppStartupStateService>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
         services.AddSingleton<IUpdateUiFlowService, UpdateUiFlowService>();
         services.AddSingleton<IDbSchemaVersionService, DbSchemaVersionService>();
@@ -103,6 +104,8 @@ public class App : Application
         services.AddSingleton<IClientIdReadRepo, ClientIdReadRepo>();
         services.AddSingleton<IInventoryOverviewRepo, InventoryOverviewRepo>();
         services.AddSingleton<InventoryOverviewViewModel>();
+        services.AddSingleton<IMsfxApiClient, MsfxApiClient>();
+        services.AddSingleton<IMsfxSyncRepo, MsfxSyncRepo>();
 
         AddAllPages(services);
 

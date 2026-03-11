@@ -66,24 +66,19 @@ public partial class DashboardView : UserControl
 
     private void DrugBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (sender is not AutoCompleteBox box) return;
-        if (e.Key != Key.Enter) return;
-
-        e.Handled = true;
-
-        Dispatcher.UIThread.Post(() =>
-        {
-            InputFocusHelper.CommitAutoCompleteInput(box);
-
-            if (DataContext is pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm)
+        _ = AutoCompleteHelper.HandleEnterCommitAndApply(
+            this,
+            sender,
+            e,
+            "SpecBox",
+            () =>
             {
+                if (DataContext is not pactoolkits_ui.ViewModels.Pages.DashboardViewModel vm)
+                    return;
                 var cmd = vm.ApplyDrugFilterCommand;
                 if (cmd.CanExecute(null))
                     cmd.Execute(null);
-            }
-
-            InputFocusHelper.FocusControlByName(this, "SpecBox");
-        }, DispatcherPriority.Input);
+            });
     }
 
     private async void OnBrowsingGridSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -122,15 +117,7 @@ public partial class DashboardView : UserControl
     {
         if (this.FindControl<AutoCompleteBox>("DrugBox") is not { } box)
             return;
-
-        box.ItemFilter = static (search, item) =>
-        {
-            if (item is OptionItem option)
-                return PinyinInitialMatcher.IsMatch(search, option.Raw);
-
-            return item is not null &&
-                   PinyinInitialMatcher.IsMatch(search, item.ToString());
-        };
+        AutoCompleteHelper.AttachDrugOptionFilter(box);
     }
 
     public async void OnGridRowCopy(object? sender, RoutedEventArgs e)
