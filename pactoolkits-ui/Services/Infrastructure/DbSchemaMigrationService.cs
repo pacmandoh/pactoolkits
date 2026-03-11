@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Npgsql;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Infrastructure;
 
 public interface IDbSchemaMigrationService
 {

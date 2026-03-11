@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Infrastructure;
 
 public interface IReleaseVersionService
 {

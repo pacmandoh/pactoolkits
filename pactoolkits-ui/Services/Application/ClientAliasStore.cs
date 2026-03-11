@@ -1,8 +1,9 @@
 using System;
+using pactoolkits_ui.Services.Infrastructure;
 using System.Collections.Generic;
 using pactoolkits_ui.Common;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Application;
 
 public sealed class ClientAliasStore
 {

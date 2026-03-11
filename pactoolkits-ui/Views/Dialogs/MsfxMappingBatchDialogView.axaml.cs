@@ -7,7 +7,8 @@ using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.Repositories;
-using pactoolkits_ui.Services;
+using pactoolkits_ui.Services.Application;
+using pactoolkits_ui.Services.Infrastructure;
 using pactoolkits_ui.ViewModels.Pages;
 using System;
 using System.Collections.Generic;
@@ -225,10 +226,14 @@ public partial class MsfxMappingBatchDialogView : UserControl
         if (sender is not DataGrid grid)
             return;
 
-        var row = FindAncestor<DataGridRow>(e.Source);
-        if (row?.DataContext is MsfxMappingBatchGroupRow item)
+        if (DataGridInteractionHelper.TrySelectRowFromPointer(
+                grid,
+                e.Source,
+                requireRowHeader: false,
+                out var rowData,
+                out _)
+            && rowData is MsfxMappingBatchGroupRow item)
         {
-            grid.SelectedItem = item;
             _selectedGroup = item;
         }
     }
@@ -298,17 +303,4 @@ public partial class MsfxMappingBatchDialogView : UserControl
 
     private static Task RunOnUiAsync(Action action) => UiThreadHelper.RunOnUiAsync(action);
 
-    private static T? FindAncestor<T>(object? source) where T : class
-    {
-        var current = source;
-        while (current is not null)
-        {
-            if (current is T typed)
-                return typed;
-
-            current = (current as StyledElement)?.Parent;
-        }
-
-        return null;
-    }
 }

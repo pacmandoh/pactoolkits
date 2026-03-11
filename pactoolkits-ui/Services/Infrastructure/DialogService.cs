@@ -8,7 +8,7 @@ using pactoolkits_ui.Contracts;
 using pactoolkits_ui.Repositories;
 using pactoolkits_ui.Views.Dialogs;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Infrastructure;
 
 public interface IDialogService
 {

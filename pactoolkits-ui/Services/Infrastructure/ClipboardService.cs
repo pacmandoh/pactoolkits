@@ -5,7 +5,7 @@ using Avalonia.Threading;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Infrastructure;
 
 public interface IClipboardService
 {
@@ -17,10 +17,11 @@ public sealed class ClipboardService : IClipboardService
     public Task SetTextAsync(string? text)
         => Dispatcher.UIThread.InvokeAsync((Func<Task>)(async () =>
         {
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                && desktop.MainWindow is TopLevel top)
-            {
-                if (top.Clipboard != null) await top.Clipboard.SetTextAsync(text ?? string.Empty);
-            }
+            if (global::Avalonia.Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop ||
+                desktop.MainWindow is not TopLevel top ||
+                top.Clipboard is null)
+                return;
+
+            await top.Clipboard.SetTextAsync(text ?? string.Empty);
         }));
 }

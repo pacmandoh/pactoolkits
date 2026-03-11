@@ -1,6 +1,6 @@
 using System;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Infrastructure;
 
 public interface IAppStartupStateService
 {

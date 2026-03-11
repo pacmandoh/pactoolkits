@@ -3,7 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using Npgsql;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Infrastructure;
 
 internal static class DbConnectionDiagnostics
 {

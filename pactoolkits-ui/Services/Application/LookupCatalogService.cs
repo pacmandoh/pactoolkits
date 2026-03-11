@@ -1,10 +1,11 @@
 using System;
+using pactoolkits_ui.Services.Infrastructure;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using pactoolkits_ui.Repositories;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Application;
 
 public interface ILookupCatalogService
 {

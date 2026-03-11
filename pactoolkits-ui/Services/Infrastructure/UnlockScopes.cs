@@ -1,4 +1,4 @@
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Infrastructure;
 
 public static class UnlockScopes
 {

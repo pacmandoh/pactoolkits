@@ -1,4 +1,5 @@
 using System;
+using pactoolkits_ui.Services.Infrastructure;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -6,7 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Application;
 
 public enum ToolRunState
 {

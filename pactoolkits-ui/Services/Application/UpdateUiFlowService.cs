@@ -1,4 +1,5 @@
 using System;
+using pactoolkits_ui.Services.Infrastructure;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -7,7 +8,7 @@ using pactoolkits_ui.Common;
 using SukiUI.Enums;
 using SukiUI.Toasts;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Application;
 
 public interface IUpdateUiFlowService
 {

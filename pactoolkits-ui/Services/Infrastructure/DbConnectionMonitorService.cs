@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Npgsql;
 using pactoolkits_ui.Common;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Infrastructure;
 
 public interface IDbConnectionMonitorService : IDisposable
 {

@@ -16,7 +16,8 @@ using Material.Icons;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.Contracts;
 using pactoolkits_ui.Repositories;
-using pactoolkits_ui.Services;
+using pactoolkits_ui.Services.Application;
+using pactoolkits_ui.Services.Infrastructure;
 
 namespace pactoolkits_ui.ViewModels.Pages;
 

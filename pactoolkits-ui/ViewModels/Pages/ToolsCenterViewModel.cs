@@ -11,7 +11,8 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Material.Icons;
-using pactoolkits_ui.Services;
+using pactoolkits_ui.Services.Application;
+using pactoolkits_ui.Services.Infrastructure;
 
 namespace pactoolkits_ui.ViewModels.Pages;
 

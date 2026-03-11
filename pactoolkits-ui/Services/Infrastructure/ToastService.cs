@@ -3,7 +3,7 @@ using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
 using SukiUI.Toasts;
 
-namespace pactoolkits_ui.Services;
+namespace pactoolkits_ui.Services.Infrastructure;
 
 public interface IToastService
 {
