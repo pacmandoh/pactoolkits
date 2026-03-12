@@ -127,6 +127,17 @@
                                         Height="{StaticResource ControlHeightCompact}"
                                         MinWidth="{StaticResource MinWAction}"
                                         IsEnabled="{Binding !IsUiBusy}"
+                                        Command="{Binding ImportDataCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <icons:MaterialIcon Kind="ClipboardTextOutline" Width="16" Height="16" />
+                                        <TextBlock Text="剪贴板导入" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Classes="Action"
+                                        Height="{StaticResource ControlHeightCompact}"
+                                        MinWidth="{StaticResource MinWAction}"
+                                        IsEnabled="{Binding !IsUiBusy}"
                                         ClickMode="Press"
                                         Command="{Binding NewItemCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">

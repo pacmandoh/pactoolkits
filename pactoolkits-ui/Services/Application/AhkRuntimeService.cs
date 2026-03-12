@@ -561,6 +561,12 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
         if (agent.ConfirmTimeoutMs < 100 || agent.ConfirmTimeoutMs > 10000)
             return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.ConfirmTimeoutMs 超出范围（100-10000）");
 
+        if (!string.Equals(agent.CodePickPolicy, "MAX_LEVEL", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(agent.CodePickPolicy, "MIN_LEVEL", StringComparison.OrdinalIgnoreCase))
+        {
+            return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.CodePickPolicy 仅支持 MAX_LEVEL/MIN_LEVEL");
+        }
+
         return new ToolCommandResult(true, "ok");
     }
 

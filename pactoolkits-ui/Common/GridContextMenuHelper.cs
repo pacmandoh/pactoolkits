@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
@@ -13,6 +14,7 @@ namespace pactoolkits_ui.Common;
 public static class GridContextMenuHelper
 {
     private static readonly ConcurrentDictionary<(Type Type, string Name), PropertyInfo?> PropertyCache = new();
+    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> SimpleReadablePropertyCache = new();
 
     public static async Task CopyRowAsTextAsync(
         IClipboardService clipboard,
@@ -51,16 +53,27 @@ public static class GridContextMenuHelper
         IEnumerable<object?> rows,
         params string[] preferredProps)
     {
-        var lines = rows
-            .Where(r => r is not null)
-            .Select(r => BuildRowText(r!, preferredProps))
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .ToList();
+        var sb = new StringBuilder(256);
+        var hasAny = false;
+        foreach (var row in rows)
+        {
+            if (row is null)
+                continue;
 
-        if (lines.Count == 0)
+            var text = BuildRowText(row, preferredProps);
+            if (string.IsNullOrWhiteSpace(text))
+                continue;
+
+            if (hasAny)
+                sb.AppendLine();
+            sb.Append(text);
+            hasAny = true;
+        }
+
+        if (!hasAny)
             return;
 
-        await clipboard.SetTextAsync(string.Join(Environment.NewLine, lines));
+        await clipboard.SetTextAsync(sb.ToString());
     }
 
     public static void SelectAllFromMenu(MenuItem? menuItem)
@@ -109,11 +122,15 @@ public static class GridContextMenuHelper
         if (values.Count > 0)
             return string.Join(" / ", values);
 
-        foreach (var p in t.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-        {
-            if (!p.CanRead) continue;
-            if (!IsSimpleType(p.PropertyType)) continue;
+        var simpleProps = SimpleReadablePropertyCache.GetOrAdd(
+            t,
+            static type => type
+                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(p => p.CanRead && IsSimpleType(p.PropertyType))
+                .ToArray());
 
+        foreach (var p in simpleProps)
+        {
             var v = p.GetValue(rowItem)?.ToString()?.Trim();
             if (!string.IsNullOrWhiteSpace(v))
                 values.Add(v);

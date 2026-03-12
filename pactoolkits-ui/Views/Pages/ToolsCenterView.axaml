@@ -148,7 +148,7 @@
                                       Classes="Stack"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
-                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
                                   RowSpacing="12">
                                 <Grid Grid.Row="0" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="可执行路径" VerticalAlignment="Center" />
@@ -227,6 +227,58 @@
                                 </Grid>
 
                                 <Grid Grid.Row="8" ColumnDefinitions="120,*" ColumnSpacing="12">
+                                    <TextBlock Text="仓库模式" VerticalAlignment="Center" />
+                                    <ToggleSwitch Grid.Column="1"
+                                                  IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}"
+                                                  HorizontalAlignment="Left" />
+                                </Grid>
+
+                                <Grid Grid.Row="9" ColumnDefinitions="120,*" ColumnSpacing="12">
+                                    <TextBlock Text="取码策略" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1"
+                                              Height="{StaticResource ControlHeightCompact}"
+                                              ItemsSource="{Binding AgentCodePickPolicyOptions}"
+                                              SelectedItem="{Binding SelectedAgentCodePickPolicyOption, Mode=TwoWay}" />
+                                </Grid>
+
+                                <Grid Grid.Row="10" ColumnDefinitions="120,*" ColumnSpacing="12">
+                                    <TextBlock Text="仓库列特征" VerticalAlignment="Top" Margin="0,8,0,0" />
+                                    <StackPanel Grid.Column="1" Spacing="8">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBlock Text="若表头命中任一列名，则判定为住院；均未命中则判定为仓库（默认：患者姓名、应扫次数）" Classes="SectionHint" VerticalAlignment="Center" />
+                                            <Button Grid.Column="1"
+                                                    Classes="Ghost"
+                                                    Command="{Binding AddAgentWarehouseAnchorItemCommand}"
+                                                    Tag="AgentWarehouseAnchorItemsControl"
+                                                    Click="OnAddLineClicked">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <icons:MaterialIcon Kind="Plus" Width="14" Height="14" />
+                                                    <TextBlock Text="新增" />
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                        <ItemsControl x:Name="AgentWarehouseAnchorItemsControl"
+                                                      ItemsSource="{Binding AgentWarehouseAnchorItems}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:AgentLineItem">
+                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
+                                                        <TextBox
+                                                            Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                            MinHeight="{StaticResource ControlHeightCompact}" VerticalContentAlignment="Center" />
+                                                        <Button Grid.Column="1"
+                                                                Classes="Ghost"
+                                                                Command="{Binding DataContext.RemoveAgentWarehouseAnchorItemCommand, ElementName=Root}"
+                                                                CommandParameter="{Binding .}">
+                                                            <icons:MaterialIcon Kind="Close" Width="14" Height="14" />
+                                                        </Button>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid Grid.Row="11" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="目标进程" VerticalAlignment="Top" Margin="0,8,0,0" />
                                     <StackPanel Grid.Column="1" Spacing="8">
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -263,7 +315,7 @@
                                     </StackPanel>
                                 </Grid>
 
-                                <Grid Grid.Row="9" ColumnDefinitions="120,*" ColumnSpacing="12">
+                                <Grid Grid.Row="12" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="列规则" VerticalAlignment="Top" Margin="0,8,0,0" />
                                     <StackPanel Grid.Column="1" Spacing="8">
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -300,7 +352,7 @@
                                     </StackPanel>
                                 </Grid>
 
-                                <Grid Grid.Row="10" ColumnDefinitions="120,*" ColumnSpacing="12">
+                                <Grid Grid.Row="13" ColumnDefinitions="120,*" ColumnSpacing="12">
                                     <TextBlock Text="整数列" VerticalAlignment="Top" Margin="0,8,0,0" />
                                     <StackPanel Grid.Column="1" Spacing="8">
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">

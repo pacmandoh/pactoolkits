@@ -13,10 +13,6 @@
              x:DataType="vm:InventoryOverviewViewModel"
              Focusable="True"
              x:Name="Root">
-
-    <UserControl.Resources>
-    </UserControl.Resources>
-
     <UserControl.Styles>
         <Style Selector="DataGrid.InventoryContextMenuGrid DataGridRow">
             <Setter Property="ContextMenu">

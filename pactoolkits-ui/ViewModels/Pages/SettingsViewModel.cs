@@ -589,16 +589,17 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             var opt = ToOptions();
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
 
+            bool isDbConnected;
             HashSet<string> clients;
             try
             {
                 clients = await _clientRepo.GetDistinctClientIdsAsync(opt, cts.Token);
-                IsDbConnected = true;
+                isDbConnected = true;
             }
             catch
             {
                 clients = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                IsDbConnected = false;
+                isDbConnected = false;
             }
 
             var aliasMap = NormalizeAliasMapByMachine(_alias.GetAll());
@@ -610,26 +611,30 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 clientMachines.Add(machine);
             }
 
-            UntrackAllAliasRows();
-            ClientAliases.Clear();
-
-            foreach (var key in clientMachines.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                aliasMap.TryGetValue(key, out var a);
-                var row = new ClientAliasRow(key, a ?? string.Empty);
-                ClientAliases.Add(row);
-                TrackAliasRow(row);
-            }
+                IsDbConnected = isDbConnected;
+                UntrackAllAliasRows();
+                ClientAliases.Clear();
 
-            foreach (var kv in aliasMap.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-            {
-                if (clientMachines.Contains(kv.Key)) continue;
-                var row = new ClientAliasRow(kv.Key, kv.Value);
-                ClientAliases.Add(row);
-                TrackAliasRow(row);
-            }
+                foreach (var key in clientMachines.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+                {
+                    aliasMap.TryGetValue(key, out var a);
+                    var row = new ClientAliasRow(key, a ?? string.Empty);
+                    ClientAliases.Add(row);
+                    TrackAliasRow(row);
+                }
 
-            UpdateClientAliasUiState();
+                foreach (var kv in aliasMap.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+                {
+                    if (clientMachines.Contains(kv.Key)) continue;
+                    var row = new ClientAliasRow(kv.Key, kv.Value);
+                    ClientAliases.Add(row);
+                    TrackAliasRow(row);
+                }
+
+                UpdateClientAliasUiState();
+            });
         }
         finally
         {
@@ -1261,9 +1266,9 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             if (!schema.ok)
             {
-                SetDbSchemaStatus("更新失败", checking: false, failed: true, error: schema.reason ?? "读取失败");
+                SetDbSchemaStatus("未知", checking: false, failed: false, error: schema.reason ?? "读取失败");
                 if (manualProbe)
-                    _toast.Error("数据库结构更新", $"探测失败：{schema.reason ?? "读取失败"}");
+                    _toast.Warn("数据库结构更新", $"状态未知：{schema.reason ?? "读取失败"}");
                 return;
             }
 
@@ -1308,7 +1313,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         catch (Exception ex)
         {
             _logger.Error("SettingsVM", "db.schema.startup_refresh.fail", "Startup schema status refresh failed", ex);
-            SetDbSchemaStatus("更新失败", checking: false, failed: true, error: ex.Message);
+            SetDbSchemaStatus("未知", checking: false, failed: false, error: ex.Message);
             DbSchemaLastCheckedAtText = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
             DbSchemaLastCheckSourceText = MapDbSchemaCheckSource("startup");
         }
@@ -1406,8 +1411,16 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
         }
 
+        if (string.Equals(status, "未知", StringComparison.Ordinal)
+            || string.Equals(status, "未检查", StringComparison.Ordinal))
+        {
+            DbSchemaBadgeStatus = null;
+            DbSchemaBadgeLabel = "未知";
+            return;
+        }
+
         DbSchemaBadgeStatus = null;
-        DbSchemaBadgeLabel = string.IsNullOrWhiteSpace(status) ? "未检查" : status;
+        DbSchemaBadgeLabel = string.IsNullOrWhiteSpace(status) ? "未知" : status;
     }
 
     private static bool IsSchemaUpdatable(string? currentVersion, string? localTargetVersion)

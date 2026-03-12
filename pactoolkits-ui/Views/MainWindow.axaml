@@ -4,6 +4,7 @@
                    xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
                    xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                    xmlns:behaviors="clr-namespace:pactoolkits_ui.Behaviors"
+                   xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
                    x:Class="pactoolkits_ui.Views.MainWindow"
                    x:DataType="vm:MainWindowViewModel"
                    Title="PacToolkits - 自动化套件"
@@ -192,21 +193,15 @@
                         <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                 <TextBlock Text="PacToolkits" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" />
-                                <Border Padding="7,2"
-                                        CornerRadius="999"
-                                        VerticalAlignment="Center"
-                                        Background="{DynamicResource SukiPrimaryColor10}">
-                                    <StackPanel Orientation="Horizontal" Spacing="3">
-                                        <icons:MaterialIcon Kind="ShieldCheckOutline"
-                                                            Width="11"
-                                                            Height="11"
-                                                            Foreground="{DynamicResource SukiPrimaryColor}" />
-                                        <TextBlock Text="PRO"
-                                                   FontSize="9"
-                                                   FontWeight="Bold"
-                                                   Foreground="{DynamicResource SukiPrimaryColor120}" />
-                                    </StackPanel>
-                                </Border>
+                                <controls:StatusPill Icon="ShieldCheckOutline"
+                                                     Text="PRO"
+                                                     IconSize="11"
+                                                     TextSize="9"
+                                                     PillPadding="7,2"
+                                                     VerticalAlignment="Center"
+                                                     BackgroundBrush="{DynamicResource SukiPrimaryColor10}"
+                                                     PillBorderBrush="{DynamicResource SukiPrimaryColor25}"
+                                                     ForegroundBrush="{DynamicResource SukiPrimaryColor120}" />
                             </StackPanel>
                             <TextBlock Text="自动化套件控制台" Classes="SectionHint" />
                         </StackPanel>

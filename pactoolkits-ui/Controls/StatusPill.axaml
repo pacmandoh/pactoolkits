@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             x:Class="pactoolkits_ui.Controls.StatusPill"
+             x:Name="Root">
+    <Border Background="{Binding BackgroundBrush, ElementName=Root}"
+            BorderBrush="{Binding PillBorderBrush, ElementName=Root}"
+            BorderThickness="1"
+            CornerRadius="999"
+            Padding="{Binding PillPadding, ElementName=Root}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+            <icons:MaterialIcon Kind="{Binding Icon, ElementName=Root}"
+                                Width="{Binding IconSize, ElementName=Root}"
+                                Height="{Binding IconSize, ElementName=Root}"
+                                Foreground="{Binding ForegroundBrush, ElementName=Root}" />
+            <TextBlock Text="{Binding Text, ElementName=Root}"
+                       FontSize="{Binding TextSize, ElementName=Root}"
+                       Foreground="{Binding ForegroundBrush, ElementName=Root}" />
+            <ContentPresenter Content="{Binding SuffixContent, ElementName=Root}"
+                              IsVisible="{Binding HasSuffixContent, ElementName=Root}" />
+        </StackPanel>
+    </Border>
+</UserControl>

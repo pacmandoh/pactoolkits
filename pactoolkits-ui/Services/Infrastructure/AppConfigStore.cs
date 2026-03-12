@@ -101,6 +101,9 @@ public sealed class AgentToolOptions
     ];
     public List<string> IntCols { get; set; } = ["数量"];
     public string ClassNN { get; set; } = "TcxGridSite";
+    public bool WarehouseEnabled { get; set; }
+    public List<string> WarehouseAnchorTexts { get; set; } = ["患者姓名", "应扫次数"];
+    public string CodePickPolicy { get; set; } = "MAX_LEVEL";
 }
 
 public interface IAppConfigStore
@@ -139,7 +142,9 @@ public sealed class AppConfigStore : IAppConfigStore
     {
         lock (_gate)
         {
-            return Normalize(ReadUnifiedOrDefault());
+            var normalized = Normalize(ReadUnifiedOrDefault());
+            PersistNormalizedIfNeeded(normalized);
+            return normalized;
         }
     }
 
@@ -247,6 +252,17 @@ public sealed class AppConfigStore : IAppConfigStore
             if (!root.TryGetProperty("MsfxApi", out var msfx) || msfx.ValueKind != JsonValueKind.Object)
                 return false;
             if (!msfx.TryGetProperty("RefEntId", out _))
+                return false;
+
+            if (!root.TryGetProperty("AutomationTools", out var automationTools) || automationTools.ValueKind != JsonValueKind.Object)
+                return false;
+            if (!automationTools.TryGetProperty("Agent", out var agent) || agent.ValueKind != JsonValueKind.Object)
+                return false;
+            if (!agent.TryGetProperty("WarehouseEnabled", out _))
+                return false;
+            if (!agent.TryGetProperty("WarehouseAnchorTexts", out _))
+                return false;
+            if (!agent.TryGetProperty("CodePickPolicy", out _))
                 return false;
 
             return true;
@@ -386,8 +402,18 @@ public sealed class AppConfigStore : IAppConfigStore
 
         agent.ColSpecs = NormalizeStringList(agent.ColSpecs, defaults.ColSpecs, requireNonEmpty: true);
         agent.IntCols = NormalizeStringList(agent.IntCols, defaults.IntCols, requireNonEmpty: false);
+        agent.WarehouseAnchorTexts = NormalizeStringList(agent.WarehouseAnchorTexts, defaults.WarehouseAnchorTexts, requireNonEmpty: true);
+        agent.CodePickPolicy = NormalizeCodePickPolicy(agent.CodePickPolicy, defaults.CodePickPolicy);
 
         return agent;
+    }
+
+    private static string NormalizeCodePickPolicy(string? value, string fallback)
+    {
+        var policy = (value ?? string.Empty).Trim().ToUpperInvariant();
+        return policy is "MAX_LEVEL" or "MIN_LEVEL"
+            ? policy
+            : fallback;
     }
 
     private static List<string> NormalizeStringList(IEnumerable<string>? source, IEnumerable<string> fallback, bool requireNonEmpty)
@@ -410,6 +436,32 @@ public sealed class AppConfigStore : IAppConfigStore
         return SupportedUpdateChannels.Contains(normalized, StringComparer.Ordinal)
             ? normalized
             : fallback;
+    }
+
+    private void PersistNormalizedIfNeeded(AppConfigRoot normalized)
+    {
+        var json = JsonSerializer.Serialize(normalized, _writeOptions);
+        if (!File.Exists(ConfigPath))
+        {
+            WriteAllTextAtomic(ConfigPath, json);
+            return;
+        }
+
+        string existing;
+        try
+        {
+            existing = File.ReadAllText(ConfigPath);
+        }
+        catch
+        {
+            WriteAllTextAtomic(ConfigPath, json);
+            return;
+        }
+
+        if (string.Equals(existing, json, StringComparison.Ordinal))
+            return;
+
+        WriteAllTextAtomic(ConfigPath, json);
     }
 
     private static void WriteAllTextAtomic(string path, string content)
