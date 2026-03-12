@@ -39,10 +39,34 @@
                           VerticalAlignment="Center">
                         <suki:GlassCard Grid.Column="0" Classes="FilterFieldCard">
                             <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="Pill" Width="14" Height="14" />
-                                    <TextBlock Text="药品" Opacity="{StaticResource SectionHintOpacity}" FontSize="12" />
-                                </StackPanel>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                                    <icons:MaterialIcon Grid.Column="0"
+                                                        Kind="Pill"
+                                                        Width="14"
+                                                        Height="14"
+                                                        Opacity="{StaticResource SectionHintOpacity}"
+                                                        VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="药品"
+                                               Opacity="{StaticResource SectionHintOpacity}"
+                                               FontSize="12"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="2"
+                                            Classes="Basic"
+                                            Command="{Binding ClearDrugSpecFilterCommand}"
+                                            Width="20"
+                                            Height="20"
+                                            MinWidth="20"
+                                            MinHeight="20"
+                                            Padding="0"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            ToolTip.Tip="清空药品和规格">
+                                        <icons:MaterialIcon Kind="CloseCircleOutline"
+                                                            Width="14"
+                                                            Height="14" />
+                                    </Button>
+                                </Grid>
                                 <Border Grid.Row="1"
                                         Height="36"
                                         Classes="AutoCompleteInputHost"

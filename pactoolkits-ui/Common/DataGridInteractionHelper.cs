@@ -42,10 +42,24 @@ public static class DataGridInteractionHelper
 
     public static List<object> ReadSelectedItems(DataGrid grid)
     {
-        var list = new List<object>();
+        var capacity = 0;
         try
         {
-            foreach (var it in grid.SelectedItems)
+            capacity = grid.SelectedItems?.Count ?? 0;
+        }
+        catch
+        {
+            capacity = 0;
+        }
+
+        var list = capacity > 0 ? new List<object>(capacity) : new List<object>();
+        try
+        {
+            var selectedItems = grid.SelectedItems;
+            if (selectedItems is null)
+                return list;
+
+            foreach (var it in selectedItems)
             {
                 if (it is not null)
                     list.Add(it);

@@ -1,64 +1,43 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              x:Class="pactoolkits_ui.Controls.UpdateStatusBadge"
              x:Name="Root">
     <Grid HorizontalAlignment="Left"
           VerticalAlignment="Center">
-        <Border IsVisible="{Binding IsUnknown, ElementName=Root}"
-                Background="{DynamicResource BrushDangerBg25}"
-                BorderBrush="{DynamicResource BrushDangerBg50}"
-                BorderThickness="1"
-                CornerRadius="999"
-                Padding="10,4">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-                <icons:MaterialIcon Kind="HelpCircleOutline"
-                                    Width="14"
-                                    Height="14"
-                                    Foreground="{DynamicResource BrushDanger}" />
-                <TextBlock Text="{Binding Label, ElementName=Root}"
-                           Foreground="{DynamicResource BrushDanger}" />
-            </StackPanel>
-        </Border>
+        <controls:StatusPill IsVisible="{Binding IsUnknown, ElementName=Root}"
+                             Icon="HelpCircleOutline"
+                             Text="{Binding Label, ElementName=Root}"
+                             BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                             PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                             ForegroundBrush="{DynamicResource BrushInfo}" />
 
-        <Border IsVisible="{Binding IsUpToDate, ElementName=Root}"
-                Background="{DynamicResource BrushDoneBg25}"
-                BorderBrush="{DynamicResource BrushDoneBg50}"
-                BorderThickness="1"
-                CornerRadius="999"
-                Padding="10,4">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-                <icons:MaterialIcon Kind="CheckCircleOutline"
-                                    Width="14"
-                                    Height="14"
-                                    Foreground="{DynamicResource BrushDone}" />
-                <TextBlock Text="{Binding Label, ElementName=Root}"
-                           Foreground="{DynamicResource BrushDone}" />
-            </StackPanel>
-        </Border>
+        <controls:StatusPill IsVisible="{Binding IsUpToDate, ElementName=Root}"
+                             Icon="CheckCircleOutline"
+                             Text="{Binding Label, ElementName=Root}"
+                             BackgroundBrush="{DynamicResource BrushDoneBg25}"
+                             PillBorderBrush="{DynamicResource BrushDoneBg50}"
+                             ForegroundBrush="{DynamicResource BrushDone}" />
 
-        <Border IsVisible="{Binding IsUpdateAvailable, ElementName=Root}"
-                Background="{DynamicResource BrushWarningBg25}"
-                BorderBrush="{DynamicResource BrushWarningBg50}"
-                BorderThickness="1"
-                CornerRadius="999"
-                Padding="10,4">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-                <icons:MaterialIcon Kind="CloudDownloadOutline"
-                                    Width="14"
-                                    Height="14"
-                                    Foreground="{DynamicResource BrushWarning}" />
-                <TextBlock Text="{Binding Label, ElementName=Root}"
-                           Foreground="{DynamicResource BrushWarning}" />
-                <icons:MaterialIcon Kind="ArrowRight"
-                                    Width="14"
-                                    Height="14"
-                                    Foreground="{DynamicResource BrushWarning}"
-                                    IsVisible="{Binding ShowLatestVersion, ElementName=Root}" />
-                <TextBlock Text="{Binding LatestVersion, ElementName=Root}"
-                           Foreground="{DynamicResource BrushWarning}"
-                           IsVisible="{Binding ShowLatestVersion, ElementName=Root}" />
-            </StackPanel>
-        </Border>
+        <controls:StatusPill IsVisible="{Binding IsUpdateAvailable, ElementName=Root}"
+                             Icon="CloudDownloadOutline"
+                             Text="{Binding Label, ElementName=Root}"
+                             BackgroundBrush="{DynamicResource BrushWarningBg25}"
+                             PillBorderBrush="{DynamicResource BrushWarningBg50}"
+                             ForegroundBrush="{DynamicResource BrushWarning}">
+            <controls:StatusPill.SuffixContent>
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6"
+                            IsVisible="{Binding ShowLatestVersion, ElementName=Root}">
+                    <icons:MaterialIcon Kind="ArrowRight"
+                                        Width="14"
+                                        Height="14"
+                                        Foreground="{DynamicResource BrushWarning}" />
+                    <TextBlock Text="{Binding LatestVersion, ElementName=Root}"
+                               Foreground="{DynamicResource BrushWarning}" />
+                </StackPanel>
+            </controls:StatusPill.SuffixContent>
+        </controls:StatusPill>
     </Grid>
 </UserControl>

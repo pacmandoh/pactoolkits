@@ -4,6 +4,7 @@
              xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
              xmlns:con="https://github.com/kikipoulet/SukiUI"
              xmlns:behaviors="clr-namespace:pactoolkits_ui.Behaviors"
+             xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
              xmlns:dialogs="clr-namespace:pactoolkits_ui.Views.Dialogs"
              x:Class="pactoolkits_ui.Views.Dialogs.MsfxMappingBatchDialogView"
@@ -58,51 +59,30 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Border Background="{DynamicResource BrushInfoBg25}"
-                                                BorderBrush="{DynamicResource BrushInfoBg50}"
-                                                BorderThickness="1"
-                                                CornerRadius="999"
-                                                Padding="8,3">
-                                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                                <icons:MaterialIcon Kind="InformationOutline"
-                                                                    Width="12"
-                                                                    Height="12"
-                                                                    Foreground="{DynamicResource BrushInfo}" />
-                                                <TextBlock Text="{Binding PendingCount, StringFormat=待映射 {0}}"
-                                                           FontSize="11"
-                                                           Foreground="{DynamicResource BrushInfo}" />
-                                            </StackPanel>
-                                        </Border>
-                                        <Border Background="{DynamicResource BrushWarningBg25}"
-                                                BorderBrush="{DynamicResource BrushWarningBg50}"
-                                                BorderThickness="1"
-                                                CornerRadius="999"
-                                                Padding="8,3">
-                                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                                <icons:MaterialIcon Kind="AlertCircleOutline"
-                                                                    Width="12"
-                                                                    Height="12"
-                                                                    Foreground="{DynamicResource BrushWarning}" />
-                                                <TextBlock Text="{Binding NeedReviewCount, StringFormat=待人工 {0}}"
-                                                           FontSize="11"
-                                                           Foreground="{DynamicResource BrushWarning}" />
-                                            </StackPanel>
-                                        </Border>
-                                        <Border Background="{DynamicResource BrushDangerBg25}"
-                                                BorderBrush="{DynamicResource BrushDangerBg50}"
-                                                BorderThickness="1"
-                                                CornerRadius="999"
-                                                Padding="8,3">
-                                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                                <icons:MaterialIcon Kind="CloseCircleOutline"
-                                                                    Width="12"
-                                                                    Height="12"
-                                                                    Foreground="{DynamicResource BrushDanger}" />
-                                                <TextBlock Text="{Binding FailedCount, StringFormat=失败 {0}}"
-                                                           FontSize="11"
-                                                           Foreground="{DynamicResource BrushDanger}" />
-                                            </StackPanel>
-                                        </Border>
+                                        <controls:StatusPill Icon="InformationOutline"
+                                                             Text="{Binding PendingCount, StringFormat=待映射 {0}}"
+                                                             IconSize="12"
+                                                             TextSize="11"
+                                                             PillPadding="8,3"
+                                                             BackgroundBrush="{DynamicResource BrushInfoBg25}"
+                                                             PillBorderBrush="{DynamicResource BrushInfoBg50}"
+                                                             ForegroundBrush="{DynamicResource BrushInfo}" />
+                                        <controls:StatusPill Icon="AlertCircleOutline"
+                                                             Text="{Binding NeedReviewCount, StringFormat=待人工 {0}}"
+                                                             IconSize="12"
+                                                             TextSize="11"
+                                                             PillPadding="8,3"
+                                                             BackgroundBrush="{DynamicResource BrushWarningBg25}"
+                                                             PillBorderBrush="{DynamicResource BrushWarningBg50}"
+                                                             ForegroundBrush="{DynamicResource BrushWarning}" />
+                                        <controls:StatusPill Icon="CloseCircleOutline"
+                                                             Text="{Binding FailedCount, StringFormat=失败 {0}}"
+                                                             IconSize="12"
+                                                             TextSize="11"
+                                                             PillPadding="8,3"
+                                                             BackgroundBrush="{DynamicResource BrushDangerBg25}"
+                                                             PillBorderBrush="{DynamicResource BrushDangerBg50}"
+                                                             ForegroundBrush="{DynamicResource BrushDanger}" />
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

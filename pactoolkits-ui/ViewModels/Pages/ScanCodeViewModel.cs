@@ -273,6 +273,12 @@ public sealed partial class ScanCodeViewModel : AppPageBase
            && !string.IsNullOrWhiteSpace(SelectedQtyText)
            && ValidCodeCount > 0;
 
+    private bool CanClearDrugSpecFilter()
+        => CanOperateUi()
+           && (!string.IsNullOrWhiteSpace(NormalizeInput(DrugText))
+               || SelectedSpec is not null
+               || !string.IsNullOrWhiteSpace(SelectedQtyText));
+
     [RelayCommand(CanExecute = nameof(CanSubmit))]
     private async Task SubmitAsync()
     {
@@ -402,6 +408,24 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
         TraceCodesText = string.Empty;
         Status = "已清空输入框";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanClearDrugSpecFilter))]
+    private void ClearDrugSpecFilter()
+    {
+        if (ShouldSkipTrigger())
+            return;
+
+        IsDrugSuggestOpen = false;
+        DrugText = null;
+        SpecOptions.Clear();
+        SelectedSpec = null;
+        SelectedQtyText = null;
+        IsSpecSelected = false;
+        UpdateStatus(DrugOptions.Count == 0
+            ? "药品信息为空，请先维护药品信息"
+            : "请选择药品与规格", 0);
+        NotifyActionCommands();
     }
 
     [RelayCommand]
@@ -674,6 +698,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private IRelayCommand?[] GetNotifiableCommands()
         => _notifiableCommands ??=
         [
+            ClearDrugSpecFilterCommand,
             SubmitCommand,
             ClearCodesCommand,
             StartAutoFetchCommand,

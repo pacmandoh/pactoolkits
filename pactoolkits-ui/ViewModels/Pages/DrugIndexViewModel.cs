@@ -1,8 +1,10 @@
 using System;
 using Avalonia.Collections;
 using System.Collections.Specialized;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -21,6 +23,9 @@ namespace pactoolkits_ui.ViewModels.Pages;
 public sealed partial class DrugIndexViewModel : AppPageBase
 {
     private const string UnlockScopeKey = UnlockScopes.SharedSensitiveOps;
+    private static readonly string[] ClipboardLineSeparators = ["\r\n", "\n", "\r"];
+    private static readonly Regex QtyAsteriskRegex = new(@"\*\s*(\d{1,5})", RegexOptions.Compiled);
+    private static readonly Regex QtySuffixRegex = new(@"(\d{1,5})\s*(支|片|瓶|盒|袋|包|粒|枚|贴|丸)$", RegexOptions.Compiled);
 
     public override string DisplayName => "药品信息维护";
     public override MaterialIconKind Icon => MaterialIconKind.Drugs;
@@ -41,7 +46,80 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         if (ShouldSkipTrigger())
             return;
 
-        await _dialog.Warn("未实现", "导入功能稍后接入 FilePicker/映射");
+        if (!IsEditorUnlocked)
+        {
+            var hint = "敏感操作提示：验证仅在本地进行，不会上传密码\n请输入数据库密码以解锁药品信息编辑";
+            var unlocked = await _unlockService.EnsureUnlockedAsync(
+                UnlockScopeKey,
+                "药品信息维护",
+                "身份验证",
+                hint);
+            RefreshEditorUnlockState();
+            if (!unlocked)
+            {
+                _toast.Warn("药品信息维护", "当前未解锁，无法填充剪贴板内容");
+                return;
+            }
+        }
+
+        IsBusy = true;
+        try
+        {
+            var clip = (await _clipboard.GetTextAsync() ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(clip))
+            {
+                _toast.Warn("药品信息维护", "剪贴板为空，请先复制包含“物资名称/规格”的表格数据");
+                return;
+            }
+
+            var parse = ParseClipboardRows(clip);
+            if (parse.Rows.Count == 0)
+            {
+                _toast.Warn("药品信息维护", "未识别到可导入数据，请确认表头包含“物资名称(或药品名称)”和“规格”");
+                return;
+            }
+
+            var first = parse.Rows[0];
+
+            _suppressSelectionGuard = true;
+            try
+            {
+                if (Selected is not null)
+                    Selected.NotePreview = null;
+                Selected = null;
+                _selectionBeforeChange = null;
+            }
+            finally
+            {
+                _suppressSelectionGuard = false;
+            }
+
+            _loadedSnapshot = null;
+            ClearEditor(keepEditorVisible: true);
+            HasEditor = true;
+
+            EditDrugId = first.DrugId;
+            EditSpec = first.Spec;
+            EditQty = first.Qty;
+
+            IsDirty = true;
+            NotifyAllCommands();
+
+            var msg = parse.Rows.Count > 1
+                ? $"已填充第 1 条（共识别 {parse.Rows.Count} 条），请审计后手动保存"
+                : "已填充到新建编辑区，请审计后手动保存";
+            _toast.Success("药品信息维护", msg);
+        }
+        catch (Exception ex)
+        {
+            LogError("drug_index.import_clipboard.fail", "Failed importing drug rows from clipboard", ex);
+            _toast.Error("药品信息维护", $"剪贴板导入失败：{ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+            NotifyAllCommands();
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanIo))]
@@ -173,6 +251,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     partial void OnIsListBusyChanged(bool value)
     {
         OnPropertyChanged(nameof(IsUiBusy));
+        OnPropertyChanged(nameof(IsEditorInputEnabled));
+        OnPropertyChanged(nameof(CanRequestEditorUnlock));
+        OnPropertyChanged(nameof(CanLockEditor));
         NotifyAllCommands();
     }
     partial void OnHasEditorChanged(bool value)
@@ -635,7 +716,12 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     }
 
     protected override void OnBusyChanged(bool isBusy)
-        => OnPropertyChanged(nameof(IsUiBusy));
+    {
+        OnPropertyChanged(nameof(IsUiBusy));
+        OnPropertyChanged(nameof(IsEditorInputEnabled));
+        OnPropertyChanged(nameof(CanRequestEditorUnlock));
+        OnPropertyChanged(nameof(CanLockEditor));
+    }
 
     private void StartUnlockStatusTimerIfNeeded()
     {
@@ -1241,6 +1327,88 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
     private bool HasMigrationKeyChanges()
         => HasPrimaryKeyChanges() || HasQtyChanged();
+
+    private sealed record ClipboardDrugRow(string DrugId, string Spec, int Qty);
+
+    private sealed record ClipboardParseResult(IReadOnlyList<ClipboardDrugRow> Rows);
+
+    private static ClipboardParseResult ParseClipboardRows(string text)
+    {
+        var lines = text
+            .Split(ClipboardLineSeparators, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => x.Length > 0)
+            .ToList();
+
+        if (lines.Count < 2)
+            return new ClipboardParseResult(Array.Empty<ClipboardDrugRow>());
+
+        var header = lines[0].Split('\t').Select(NormalizeHeader).ToArray();
+        var nameIdx = FindFirstHeaderIndex(header, "物资名称", "药品名称");
+        var specIdx = FindFirstHeaderIndex(header, "规格", "包装规格", "制剂规格");
+
+        if (nameIdx < 0 || specIdx < 0)
+            return new ClipboardParseResult(Array.Empty<ClipboardDrugRow>());
+
+        var rows = new List<ClipboardDrugRow>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var raw in lines.Skip(1))
+        {
+            var cols = raw.Split('\t');
+            if (cols.Length <= Math.Max(nameIdx, specIdx))
+                continue;
+
+            var drugId = cols[nameIdx].Trim();
+            var spec = cols[specIdx].Trim();
+            if (drugId.Length == 0 || spec.Length == 0)
+                continue;
+
+            var key = $"{drugId}||{spec}";
+            if (!seen.Add(key))
+                continue;
+
+            rows.Add(new ClipboardDrugRow(drugId, spec, InferQtyFromSpec(spec)));
+        }
+
+        return new ClipboardParseResult(rows);
+    }
+
+    private static string NormalizeHeader(string value)
+        => value.Replace(" ", string.Empty)
+                .Replace("　", string.Empty)
+                .Trim();
+
+    private static int FindFirstHeaderIndex(IReadOnlyList<string> headers, params string[] names)
+    {
+        for (var i = 0; i < headers.Count; i++)
+        {
+            for (var j = 0; j < names.Length; j++)
+            {
+                if (string.Equals(headers[i], names[j], StringComparison.OrdinalIgnoreCase))
+                    return i;
+            }
+        }
+        return -1;
+    }
+
+    private static int InferQtyFromSpec(string spec)
+    {
+        if (string.IsNullOrWhiteSpace(spec))
+            return 1;
+
+        var s = spec.Trim();
+
+        var m1 = QtyAsteriskRegex.Match(s);
+        if (m1.Success && int.TryParse(m1.Groups[1].Value, out var q1) && q1 > 0)
+            return q1;
+
+        var m2 = QtySuffixRegex.Match(s);
+        if (m2.Success && int.TryParse(m2.Groups[1].Value, out var q2) && q2 > 0)
+            return q2;
+
+        return 1;
+    }
 
     public override void Dispose()
     {

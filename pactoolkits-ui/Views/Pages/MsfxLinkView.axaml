@@ -12,7 +12,6 @@
              Focusable="True"
              behaviors:FocusClearBehavior.Enable="True"
              ClipToBounds="True">
-
     <Grid RowDefinitions="Auto,*"
           RowSpacing="10"
           Margin="18,14,18,18">

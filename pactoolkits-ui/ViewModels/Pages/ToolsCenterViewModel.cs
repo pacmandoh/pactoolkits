@@ -30,6 +30,14 @@ public sealed partial class AgentLineItem : ObservableObject
     }
 }
 
+public sealed class CodePickPolicyOption
+{
+    public required string Value { get; init; }
+    public required string Label { get; init; }
+
+    public override string ToString() => Label;
+}
+
 public sealed partial class ToolsCenterViewModel : AppPageBase
 {
     public override string DisplayName => "自动化套件";
@@ -68,9 +76,18 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     [ObservableProperty] private string _agentIptCls = "Tfrm_wzzsm";
     [ObservableProperty] private int _agentConfirmTimeoutMs = 2500;
     [ObservableProperty] private string _agentClassNN = "TcxGridSite";
+    [ObservableProperty] private bool _agentWarehouseEnabled;
+    [ObservableProperty] private string _agentCodePickPolicy = "MAX_LEVEL";
+    [ObservableProperty] private CodePickPolicyOption? _selectedAgentCodePickPolicyOption;
     public ObservableCollection<AgentLineItem> AgentAppWinItems { get; } = [];
     public ObservableCollection<AgentLineItem> AgentColSpecsItems { get; } = [];
     public ObservableCollection<AgentLineItem> AgentIntColsItems { get; } = [];
+    public ObservableCollection<AgentLineItem> AgentWarehouseAnchorItems { get; } = [];
+    public IReadOnlyList<CodePickPolicyOption> AgentCodePickPolicyOptions { get; } =
+    [
+        new() { Value = "MAX_LEVEL", Label = "按最大码" },
+        new() { Value = "MIN_LEVEL", Label = "按最小码" },
+    ];
 
     private bool CanRestartAhk() => !IsAhkToggling && IsAhkEnabled;
     partial void OnIsAhkTogglingChanged(bool value) => RestartAhkCommand.NotifyCanExecuteChanged();
@@ -89,6 +106,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         WireLineCollection(AgentAppWinItems);
         WireLineCollection(AgentColSpecsItems);
         WireLineCollection(AgentIntColsItems);
+        WireLineCollection(AgentWarehouseAnchorItems);
 
         ProgramVersionText = ResolveProgramVersionText(_ahkRuntime.ToolVersion, _releaseVersion.Current.AgentVersion);
         ApplyRuntimeSnapshot();
@@ -106,6 +124,31 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     partial void OnAgentIptClsChanged(string value) => NotifyPendingChangesState();
     partial void OnAgentConfirmTimeoutMsChanged(int value) => NotifyPendingChangesState();
     partial void OnAgentClassNNChanged(string value) => NotifyPendingChangesState();
+    partial void OnAgentWarehouseEnabledChanged(bool value) => NotifyPendingChangesState();
+    partial void OnAgentCodePickPolicyChanged(string value)
+    {
+        var normalized = NormalizeCodePickPolicyValue(value);
+        if (!string.Equals(normalized, value, StringComparison.Ordinal))
+        {
+            AgentCodePickPolicy = normalized;
+            return;
+        }
+
+        var selected = AgentCodePickPolicyOptions.FirstOrDefault(x => string.Equals(x.Value, normalized, StringComparison.Ordinal));
+        if (!ReferenceEquals(selected, SelectedAgentCodePickPolicyOption))
+            SelectedAgentCodePickPolicyOption = selected;
+
+        NotifyPendingChangesState();
+    }
+
+    partial void OnSelectedAgentCodePickPolicyOptionChanged(CodePickPolicyOption? value)
+    {
+        var selectedValue = NormalizeCodePickPolicyValue(value?.Value ?? "MAX_LEVEL");
+        if (!string.Equals(AgentCodePickPolicy, selectedValue, StringComparison.Ordinal))
+            AgentCodePickPolicy = selectedValue;
+        else
+            NotifyPendingChangesState();
+    }
 
     public bool HasPendingChanges
         => _baselineReady && _hasPendingChanges;
@@ -340,6 +383,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         var appWin = agent.AppWin.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
         var colSpecs = agent.ColSpecs.ToList();
         var intCols = agent.IntCols.ToList();
+        var warehouseAnchors = agent.WarehouseAnchorTexts.ToList();
 
         if (!Dispatcher.UIThread.CheckAccess())
         {
@@ -352,9 +396,12 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 agent.IptCls,
                 agent.ConfirmTimeoutMs,
                 agent.ClassNN,
+                agent.WarehouseEnabled,
+                agent.CodePickPolicy,
                 appWin,
                 colSpecs,
-                intCols));
+                intCols,
+                warehouseAnchors));
             return;
         }
 
@@ -367,9 +414,12 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             agent.IptCls,
             agent.ConfirmTimeoutMs,
             agent.ClassNN,
+            agent.WarehouseEnabled,
+            agent.CodePickPolicy,
             appWin,
             colSpecs,
-            intCols);
+            intCols,
+            warehouseAnchors);
     }
 
     private void ApplyAgentSnapshot(
@@ -381,9 +431,12 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         string iptCls,
         int confirmTimeoutMs,
         string classNn,
+        bool warehouseEnabled,
+        string codePickPolicy,
         IReadOnlyCollection<string> appWin,
         IReadOnlyCollection<string> colSpecs,
-        IReadOnlyCollection<string> intCols)
+        IReadOnlyCollection<string> intCols,
+        IReadOnlyCollection<string> warehouseAnchors)
     {
         lock (_agentSnapshotGate)
         {
@@ -396,14 +449,25 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             AgentIptCls = iptCls;
             AgentConfirmTimeoutMs = confirmTimeoutMs;
             AgentClassNN = classNn;
+            AgentWarehouseEnabled = warehouseEnabled;
+            AgentCodePickPolicy = codePickPolicy;
+            SelectedAgentCodePickPolicyOption = AgentCodePickPolicyOptions
+                .FirstOrDefault(x => string.Equals(x.Value, NormalizeCodePickPolicyValue(codePickPolicy), StringComparison.Ordinal));
             ResetLineItems(AgentAppWinItems, appWin);
             ResetLineItems(AgentColSpecsItems, colSpecs);
             ResetLineItems(AgentIntColsItems, intCols);
+            ResetLineItems(AgentWarehouseAnchorItems, warehouseAnchors);
             _savedSnapshot = BuildCurrentSnapshot();
             _baselineReady = _savedSnapshot is not null;
             _suppressPendingRecalc = false;
             NotifyPendingChangesState();
         }
+    }
+
+    private static string NormalizeCodePickPolicyValue(string? value)
+    {
+        var policy = (value ?? string.Empty).Trim().ToUpperInvariant();
+        return policy is "MAX_LEVEL" or "MIN_LEVEL" ? policy : "MAX_LEVEL";
     }
 
     private void WireLineCollection(ObservableCollection<AgentLineItem> collection)
@@ -494,6 +558,15 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 return null;
             }
 
+            var codePickPolicy = AgentCodePickPolicy.Trim().ToUpperInvariant();
+            if (codePickPolicy is not ("MAX_LEVEL" or "MIN_LEVEL"))
+            {
+                _toast.Error("自动化套件", "CodePickPolicy 仅支持 MAX_LEVEL 或 MIN_LEVEL");
+                return null;
+            }
+
+            var warehouseAnchors = ParseLineItems(AgentWarehouseAnchorItems);
+
             return new AgentToolOptions
             {
                 PgDriver = AgentPgDriver.Trim(),
@@ -502,9 +575,12 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 IptCls = AgentIptCls.Trim(),
                 ConfirmTimeoutMs = AgentConfirmTimeoutMs,
                 ClassNN = AgentClassNN.Trim(),
+                WarehouseEnabled = AgentWarehouseEnabled,
                 AppWin = appWin,
                 ColSpecs = colSpecs,
                 IntCols = intCols,
+                CodePickPolicy = codePickPolicy,
+                WarehouseAnchorTexts = warehouseAnchors,
             };
         }
         catch (Exception ex)
@@ -545,6 +621,16 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         AgentIntColsItems.Remove(item);
     }
 
+    [RelayCommand]
+    private void AddAgentWarehouseAnchorItem() => AgentWarehouseAnchorItems.Add(new AgentLineItem());
+
+    [RelayCommand]
+    private void RemoveAgentWarehouseAnchorItem(AgentLineItem? item)
+    {
+        if (item is null) return;
+        AgentWarehouseAnchorItems.Remove(item);
+    }
+
     private static Dictionary<string, int> ParseAppWinItems(IEnumerable<AgentLineItem> items)
     {
         var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -582,9 +668,12 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 AgentIptCls.Trim(),
                 AgentConfirmTimeoutMs,
                 AgentClassNN.Trim(),
+                AgentWarehouseEnabled,
+                AgentCodePickPolicy.Trim().ToUpperInvariant(),
                 SnapshotLineItems(AgentAppWinItems),
                 SnapshotLineItems(AgentColSpecsItems),
-                SnapshotLineItems(AgentIntColsItems));
+                SnapshotLineItems(AgentIntColsItems),
+                SnapshotLineItems(AgentWarehouseAnchorItems));
         }
         catch
         {
@@ -610,11 +699,17 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             return false;
         if (!string.Equals(left.AgentClassNN, right.AgentClassNN, StringComparison.Ordinal))
             return false;
+        if (left.AgentWarehouseEnabled != right.AgentWarehouseEnabled)
+            return false;
+        if (!string.Equals(left.AgentCodePickPolicy, right.AgentCodePickPolicy, StringComparison.Ordinal))
+            return false;
         if (!left.AgentAppWinItems.SequenceEqual(right.AgentAppWinItems, StringComparer.Ordinal))
             return false;
         if (!left.AgentColSpecsItems.SequenceEqual(right.AgentColSpecsItems, StringComparer.Ordinal))
             return false;
         if (!left.AgentIntColsItems.SequenceEqual(right.AgentIntColsItems, StringComparer.Ordinal))
+            return false;
+        if (!left.AgentWarehouseAnchorItems.SequenceEqual(right.AgentWarehouseAnchorItems, StringComparer.Ordinal))
             return false;
 
         return true;
@@ -665,6 +760,12 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             LogWarn("tools.dispose.intcols_collection_unsub_fail", "Failed to unsubscribe AgentIntColsItems", ex);
         }
 
+        try { AgentWarehouseAnchorItems.CollectionChanged -= OnAgentLineCollectionChanged; }
+        catch (Exception ex)
+        {
+            LogWarn("tools.dispose.warehouse_anchors_collection_unsub_fail", "Failed to unsubscribe AgentWarehouseAnchorItems", ex);
+        }
+
         foreach (var item in AgentAppWinItems)
         {
             try { item.PropertyChanged -= OnAgentLineItemPropertyChanged; }
@@ -692,6 +793,15 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             }
         }
 
+        foreach (var item in AgentWarehouseAnchorItems)
+        {
+            try { item.PropertyChanged -= OnAgentLineItemPropertyChanged; }
+            catch (Exception ex)
+            {
+                LogWarn("tools.dispose.warehouse_anchor_item_unsub_fail", "Failed to unsubscribe AgentWarehouseAnchor item", ex);
+            }
+        }
+
         base.Dispose();
     }
 
@@ -704,7 +814,10 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         string AgentIptCls,
         int AgentConfirmTimeoutMs,
         string AgentClassNN,
+        bool AgentWarehouseEnabled,
+        string AgentCodePickPolicy,
         IReadOnlyList<string> AgentAppWinItems,
         IReadOnlyList<string> AgentColSpecsItems,
-        IReadOnlyList<string> AgentIntColsItems);
+        IReadOnlyList<string> AgentIntColsItems,
+        IReadOnlyList<string> AgentWarehouseAnchorItems);
 }

@@ -28,13 +28,24 @@ public static class GridContextMenuActions
             return;
         }
 
-        var selected = DataGridInteractionHelper.ReadSelectedItems(grid);
-        if (selectedRowsTransform is not null)
-            selected = selectedRowsTransform(grid, selected);
-
-        if (selected.Count > 1)
+        if (selectedRowsTransform is null)
         {
-            await GridContextMenuHelper.CopyRowsAsTextAsync(clipboard, selected, preferredProps);
+            var selectedCount = grid.SelectedItems?.Count ?? 0;
+            if (selectedCount > 1)
+            {
+                var selected = DataGridInteractionHelper.ReadSelectedItems(grid);
+                await GridContextMenuHelper.CopyRowsAsTextAsync(clipboard, selected, preferredProps);
+                return;
+            }
+
+            await GridContextMenuHelper.CopyRowAsTextAsync(clipboard, grid, rowItem, preferredProps);
+            return;
+        }
+
+        var transformed = selectedRowsTransform(grid, DataGridInteractionHelper.ReadSelectedItems(grid));
+        if (transformed.Count > 1)
+        {
+            await GridContextMenuHelper.CopyRowsAsTextAsync(clipboard, transformed, preferredProps);
             return;
         }
 
