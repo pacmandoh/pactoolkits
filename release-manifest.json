@@ -1,6 +1,6 @@
 {
-  "suiteVersion": "0.12.1",
-  "agentVersion": "0.3.2",
+  "suiteVersion": "0.13.0",
+  "agentVersion": "0.4.0",
   "uiVersion": "0.12.0",
   "dbSchemaVersion": "1.2.12",
   "compat": {
