@@ -391,9 +391,137 @@ Util_HotIf_TargetApp() {
         return false
     }
 
-    ; 4) 再判断窗口 class
+    ; 4) 再判断窗口 class（仓库模式下仅允许住院/仓库窗口类）
     cls := ctx["cls"]
+    if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
+        return (cls = Cfg["IPT_CLS"])
     return (cls = Cfg["OPT_CLS"] || cls = Cfg["IPT_CLS"])
+}
+
+Util_DetectScene(win := "A") {
+    global Cfg
+    ctx := Util_CaptureWin(win)
+    cls := ctx["cls"]
+    ttl := ctx["ttl"]
+    winId := ctx["win"]
+
+    if (cls = Cfg["OPT_CLS"])
+        return "OPT"
+
+    ; 住院/仓库共用窗口类：只在该分支再按锚点区分仓库。
+    if (cls = Cfg["IPT_CLS"]) {
+        if Util_IsWarehouseWindow(winId)
+            return "WAREHOUSE"
+        if InStr(ttl, "追溯码录入")
+            return "IPT"
+        return "IPT"
+    }
+
+    return "UNKNOWN"
+}
+
+Util_IsWarehouseWindow(win := "A") {
+    global Cfg
+    if !(Cfg.Has("WAREHOUSE_ANCHORS") && IsObject(Cfg["WAREHOUSE_ANCHORS"]))
+        return false
+    anchors := Cfg["WAREHOUSE_ANCHORS"]
+    if (anchors.Length = 0)
+        return false
+
+    ; 主判定：通过当前点击数据所在网格的表头特征区分。
+    ; 仓库入库窗口通常不含“患者姓名”“应扫次数”两列。
+    hdrLine := Util_TryGetGridHeaderLine(win)
+    if (hdrLine = "")
+        return false
+
+    ; 命中任一锚点列则判定为住院；否则判定为仓库。
+    for _, a in anchors {
+        t := Trim(a)
+        if (t != "" && InStr(hdrLine, t))
+            return false
+    }
+    return true
+}
+
+Util_WarehouseSoftCheck(win := "A") {
+    global Cfg
+    if !(Cfg.Has("WAREHOUSE_ANCHORS") && IsObject(Cfg["WAREHOUSE_ANCHORS"]))
+        return Map("ok", false, "level", "ERR", "type", "[仓库模式校验]", "why", "缺少仓库列特征配置 WarehouseAnchorTexts")
+
+    anchors := Cfg["WAREHOUSE_ANCHORS"]
+    if (anchors.Length = 0)
+        return Map("ok", false, "level", "ERR", "type", "[仓库模式校验]", "why", "仓库列特征不能为空")
+
+    hdrLine := Util_TryGetGridHeaderLine(win)
+    if (hdrLine = "")
+        return Map("ok", false, "level", "ERR", "type", "[仓库模式校验]", "why", "无法抓取表头，请检查当前选中行或剪贴板权限")
+
+    for _, a in anchors {
+        t := Trim(a)
+        if (t != "" && InStr(hdrLine, t))
+            return Map(
+                "ok", false,
+                "level", "ERR",
+                "type", "[仓库模式校验]",
+                "why", "当前表头命中住院列特征：" t "。请关闭仓库模式后再操作",
+                "header_line", hdrLine
+            )
+    }
+    return Map("ok", true, "header_line", hdrLine)
+}
+
+Util_TryGetGridHeaderLine(win := "A") {
+    win := Util_NormalizeWin(win)
+    if !WinExist(win)
+        return ""
+
+    old := ClipboardAll()
+    txt := ""
+    try UI_FocusTarget("TcxGridSite", 2, win)
+    catch
+        return ""
+    if !WinExist(win)
+        return ""
+
+    try WinActivate(win)
+    catch
+        return ""
+    if !WinExist(win)
+        return ""
+
+    try WinWaitActive(win, , 1)
+    catch
+        return ""
+
+    try {
+        A_Clipboard := ""
+        SendInput "^c"
+        if !ClipWait(0.5)
+            return ""
+        txt := A_Clipboard
+    } finally {
+        try A_Clipboard := old
+    }
+
+    if (Trim(txt) = "")
+        return ""
+
+    firstTabLine := ""
+    for _, line in StrSplit(txt, "`n") {
+        line := Trim(line, "`r`t ")
+        if (line = "")
+            continue
+        if !InStr(line, "`t")
+            continue
+
+        if (InStr(line, "追溯码") || InStr(line, "患者姓名") || InStr(line, "应扫次数") || InStr(line, "药品名称") || InStr(line, "物资名称")) {
+            return line
+        }
+
+        if (firstTabLine = "")
+            firstTabLine := line
+    }
+    return firstTabLine
 }
 
 
@@ -566,6 +694,16 @@ Util_LoadUnifiedConfig(configPath) {
     if !ok
         return Util_CfgFail(err, "INVALID_AGENT")
 
+    cfg["WAREHOUSE_ENABLED"] := Util_CfgGetBoolDefault(agent, "WarehouseEnabled", false, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["WAREHOUSE_ANCHORS"] := Util_CfgGetStringArrayDefault(agent, "WarehouseAnchorTexts", ["患者姓名", "应扫次数"], &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["CODE_PICK_POLICY"] := Util_CfgGetOneOfDefault(agent, "CodePickPolicy", ["MAX_LEVEL", "MIN_LEVEL"], "MAX_LEVEL", &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+
     return Map("ok", true, "cfg", cfg)
 }
 
@@ -699,6 +837,53 @@ Util_CfgGetStringArray(obj, key, nonEmpty, &ok, &err) {
     }
     ok := true, err := ""
     return arr
+}
+
+Util_CfgGetStringDefault(obj, key, defaultVal, &ok, &err) {
+    if !obj.Has(key) {
+        ok := true, err := ""
+        return defaultVal
+    }
+    return Util_CfgGetString(obj, key, true, &ok, &err)
+}
+
+Util_CfgGetRangeIntDefault(obj, key, defaultVal, min, max, &ok, &err) {
+    if !obj.Has(key) {
+        ok := true, err := ""
+        return defaultVal
+    }
+    return Util_CfgGetRangeInt(obj, key, min, max, &ok, &err)
+}
+
+Util_CfgGetOneOfDefault(obj, key, allows, defaultVal, &ok, &err) {
+    if !obj.Has(key) {
+        ok := true, err := ""
+        return defaultVal
+    }
+    return Util_CfgGetOneOf(obj, key, allows, &ok, &err)
+}
+
+Util_CfgGetStringArrayDefault(obj, key, defaultArr, &ok, &err) {
+    if !obj.Has(key) {
+        ok := true, err := ""
+        return defaultArr
+    }
+    return Util_CfgGetStringArray(obj, key, false, &ok, &err)
+}
+
+Util_CfgGetBoolDefault(obj, key, defaultVal, &ok, &err) {
+    if !obj.Has(key) {
+        ok := true, err := ""
+        return defaultVal
+    }
+    v := obj[key]
+    t := Type(v)
+    if (t = "Integer" || t = "Float" || t = "String") {
+        ok := true, err := ""
+        return Util_ToBool(v)
+    }
+    ok := false, err := "配置项类型错误：" key "（应为布尔/数字/字符串）"
+    return defaultVal
 }
 
 Util_ToBool(v) {
