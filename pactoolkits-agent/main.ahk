@@ -7,6 +7,7 @@
 #Include "%A_ScriptDir%\src\json.ahk"
 #Include "%A_ScriptDir%\src\utils.ahk"
 #Include "%A_ScriptDir%\src\main_semi_auto.ahk"
+#Include "%A_ScriptDir%\src\msfx_task.ahk"
 
 ; 录入药物追溯码程序主入口 v0.2.1beta
 
@@ -86,11 +87,29 @@ global _LAST_RUN := 0
 #HotIf Util_HotIf_TargetApp()
 ~RButton::
 {
-    if !UI_MouseOnClassNN(Cfg["CLASSNN"] "2") {
+    ctx := Util_CaptureWin("A")
+    if !UI_MouseOnClassNN(Cfg["CLASSNN"] "2")
+        return
+
+    if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"]) {
+        ck := Util_WarehouseSoftCheck(ctx["win"])
+        if !ck["ok"] {
+            UI_Err(ck["type"] " " ck["why"])
+            return
+        }
+        UI_Tip("[仓库模式] 列特征校验通过")
         return
     }
-	
-    ctx := Util_CaptureWin("A")
+
+    ; IPT/OPT 模式下，在住院窗口若检测到仓库列特征，提示先开启仓库模式。
+    if (ctx["cls"] = Cfg["IPT_CLS"]) {
+        ck := Util_WarehouseSoftCheck(ctx["win"])
+        if (ck["ok"]) {
+            UI_Err("[模式错误] 当前表头更像仓库列，请开启仓库模式后再操作")
+            return
+        }
+    }
+
 	p := Parse_TargetInfo(Cfg["COL_SPECS"], Cfg["IPT_CLS"], Cfg["INT_COLS"], "", ctx["win"])
     if (!p["ok"]) {
         UI_Err(p["type"] " " p["why"])
@@ -102,12 +121,12 @@ global _LAST_RUN := 0
 ~LButton:: {
     global _BUSY, _LAST_RUN, Cfg
 
-	if !UI_MouseOnClassNN(Cfg["CLASSNN"] "2") {
-		return
-    }
-	
     Critical
     KeyWait("LButton")
+
+    ; 先过滤触发区域：非目标 Grid 完全静默，不进入节流提示。
+    if !UI_MouseOnClassNN(Cfg["CLASSNN"] "2")
+        return
 
     if (_BUSY)
         return UI_Tip("忙碌中…已忽略重复触发", 800)
@@ -119,20 +138,39 @@ global _LAST_RUN := 0
     _LAST_RUN := now
 
     _BUSY := true
-	
+		
     ctx := Util_CaptureWin("A")
 	cls := ctx["cls"]
-	
-    try {	
-		msa := Semi_Auto_Fill(
-			Cfg["OPT_CLS"], Cfg["IPT_CLS"], 
-			Cfg["COL_SPECS"], Cfg["INT_COLS"],
-			Cfg["CONFIRM_TIMEOUT_MS"], Cfg["CLASSNN"], ctx["win"]
-		)
+		
+    try {
+        if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"]) {
+            UI_Tip("[仓库模式] 开始执行注入流程…", 900)
+            msa := Msfx_RunWarehouseTaskFlow(
+                Cfg["CONFIRM_TIMEOUT_MS"],
+                Cfg["CLASSNN"],
+                ctx["win"]
+            )
+        } else {
+            ; IPT/OPT 模式下，在住院窗口若检测到仓库列特征，提示先开启仓库模式。
+            if (cls = Cfg["IPT_CLS"]) {
+                ck := Util_WarehouseSoftCheck(ctx["win"])
+                if (ck["ok"]) {
+                    UI_Err("[模式错误] 当前表头更像仓库列，请开启仓库模式后再操作")
+                    return false
+                }
+            }
+
+			msa := Semi_Auto_Fill(
+				Cfg["OPT_CLS"], Cfg["IPT_CLS"], 
+				Cfg["COL_SPECS"], Cfg["INT_COLS"],
+				Cfg["CONFIRM_TIMEOUT_MS"], Cfg["CLASSNN"], ctx["win"]
+			)
+        }
 		
 		if (msa.Has("skip") && msa["skip"]) {
 			UI_Tip(msa["type"] " " msa["why"])
-			UI_FocusTarget(msa["focusNN"], msa["focusN"], ctx["win"])
+            if (msa.Has("focusNN") && msa.Has("focusN"))
+			    UI_FocusTarget(msa["focusNN"], msa["focusN"], ctx["win"])
 			return true
 		}
 
@@ -154,6 +192,9 @@ global _LAST_RUN := 0
 			}
 			return false
 		}
+
+        if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
+            UI_Tip(msa["type"] " " msa["why"], 1500)
 		
 		if (cls = Cfg["IPT_CLS"]) {
 			UI_FocusTarget("TEdit", 1, ctx["win"])

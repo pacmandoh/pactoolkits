@@ -1,5 +1,6 @@
 ; ================== UI 模块 ==================
 ;
+global __UI_FAST_CTRL_CACHE := Map()
 ; 只在指定场景才粘贴
 ; 规则：
 ; 1) 校验 ahk_exe = 互慧软件.exe
@@ -25,7 +26,111 @@ UI_Paste_ByPolicy(
 	}
 }
 
+UI_Paste_Warehouse(text, inputClassNN, win := "A") {
+    ; 仓库极速通道：缓存控件句柄 + 直写输入框 + Enter keydown。
+    return UI_Paste_WarehouseFast(text, inputClassNN, win)
+}
+
+UI_Paste_WarehouseFast(text, inputClassNN, win := "A") {
+    win := Util_NormalizeWin(win)
+    if !WinExist(win)
+        return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口不存在或已关闭")
+
+    hwndCtrl := UI_GetCachedCtrlHwnd(inputClassNN, win)
+    if !hwndCtrl
+        return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "获取当前窗口 hwnd 失败", "reason", "control not found", "ctrl", inputClassNN)
+
+    ; 直写控件文本（比剪贴板粘贴更快）
+    okSet := false
+    try {
+        ; WM_SETTEXT
+        SendMessage(0x000C, 0, StrPtr(text), , "ahk_id " hwndCtrl)
+        okSet := true
+    } catch {
+        try {
+            ControlSetText(text, inputClassNN, win)
+            okSet := true
+        } catch {
+        }
+    }
+    if !okSet
+        return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "写入输入框失败")
+
+    ; 仓库高速通道固定节拍（硬编码）。
+    keydownDelay := 8
+    if (keydownDelay > 0)
+        Sleep(keydownDelay)
+
+    ; 按既有住院行为，仅发 keydown（该窗口链路实际仅 PostMessage 可稳定生效）。
+    ; lParam 传 1（repeat=1），避免部分控件把 0 视为异常键消息。
+    PostMessage(0x0100, 0x0D, 1, , "ahk_id " hwndCtrl)
+    ; 极短提交让步：降低高吞吐下 UI 消息拥挤导致的首尾错位概率。
+    Sleep(1)
+    return Map("ok", true, "ctrl", inputClassNN, "enter", false)
+}
+
+UI_PrepareWarehouseFastTarget(inputClassNN, win := "A") {
+    win := Util_NormalizeWin(win)
+    if !WinExist(win)
+        return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口不存在或已关闭")
+
+    if !WinActive(win) {
+        try WinActivate(win)
+        catch
+            return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "无法激活目标窗口，可能已切换/关闭")
+        try WinWaitActive(win, , 0.6)
+        catch
+            return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口未就绪，无法注入")
+    }
+
+    hwndCtrl := UI_GetCachedCtrlHwnd(inputClassNN, win)
+    if !hwndCtrl
+        return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "获取当前窗口 hwnd 失败", "reason", "control not found", "ctrl", inputClassNN)
+
+    try ControlFocus(inputClassNN, win)
+    catch {
+        try DllCall("SetFocus", "Ptr", hwndCtrl)
+        catch {
+        }
+    }
+    return Map("ok", true)
+}
+
+UI_GetCachedCtrlHwnd(classNN, win := "A") {
+    global __UI_FAST_CTRL_CACHE
+    win := Util_NormalizeWin(win)
+    hwndWin := 0
+    try hwndWin := WinGetID(win)
+    catch
+        return 0
+    if !hwndWin
+        return 0
+
+    key := hwndWin "|" classNN
+    if (__UI_FAST_CTRL_CACHE.Has(key)) {
+        h := __UI_FAST_CTRL_CACHE[key]
+        ; IsWindow(h)
+        if (DllCall("IsWindow", "Ptr", h, "Int"))
+            return h
+        __UI_FAST_CTRL_CACHE.Delete(key)
+    }
+
+    hwndCtrl := 0
+    try hwndCtrl := ControlGetHwnd(classNN, "ahk_id " hwndWin)
+    catch
+        return 0
+    if !hwndCtrl
+        return 0
+
+    __UI_FAST_CTRL_CACHE[key] := hwndCtrl
+    return hwndCtrl
+}
+
 UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
+    winTitle := Util_NormalizeWin(winTitle)
+    if !WinExist(winTitle)
+        return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口不存在或已关闭")
+
     try hwndCtrl := ControlGetHwnd(classNN, winTitle)
     catch
         return Map(
@@ -33,8 +138,14 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 			"reason", "control not found", "ctrl", classNN
 		)
 
-    WinActivate(winTitle)
-    WinWaitActive(winTitle, , 1)
+    if !WinActive(winTitle) {
+        try WinActivate(winTitle)
+        catch
+            return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "无法激活目标窗口，可能已切换/关闭")
+        try WinWaitActive(winTitle, , 0.5)
+        catch
+            return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口未就绪，无法注入")
+    }
 
 
 	oldClip := ClipboardAll()
@@ -51,12 +162,12 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 		SendMessage(0x0302, 0, 0, , "ahk_id " hwndCtrl)
 
 		if (doEnter) {
-			Sleep(50)
-			PostMessage(0x0100, 0x0D, 0, , "ahk_id " hwndCtrl)
-			PostMessage(0x0101, 0x0D, 0, , "ahk_id " hwndCtrl)
+			Sleep(22)
+			PostMessage(0x0100, 0x0D, 1, , "ahk_id " hwndCtrl)
+			PostMessage(0x0101, 0x0D, 0xC0000001, , "ahk_id " hwndCtrl)
 		} else {
-			Sleep(50)
-			PostMessage(0x0100, 0x0D, 0, , "ahk_id " hwndCtrl)
+			Sleep(16)
+			PostMessage(0x0100, 0x0D, 1, , "ahk_id " hwndCtrl)
 			; PostMessage(0x0101, 0x0D, 0, , "ahk_id " hwndCtrl)
 		}
 	} finally {
@@ -65,7 +176,6 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 
 	return Map("ok", true, "ctrl", classNN, "enter", doEnter)
 }
-
 UI_DetectAndHandleFailDialog() {
 
     ; ========= 信息确认：按 Y =========
@@ -207,6 +317,33 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, classNN, win := "A") {
     }
 
     return Map("ok", false, "level", "ERR", "type", "[录入验证错误]", "why", "未知窗口，请一直保持在相应扫码窗口")
+}
+
+UI_WaitConfirm_Warehouse(codes, timeoutMs, classNN, gridN := 1, win := "A") {
+    t0 := A_TickCount
+    delay := 20
+
+    if !IsObject(codes) || (codes.Length = 0)
+        return Map("ok", false, "level", "WARN", "type", "[录入验证错误]", "why", "仓库验证缺少待验证码")
+
+    target := Trim(codes[1])
+    if (target = "")
+        return Map("ok", false, "level", "WARN", "type", "[录入验证错误]", "why", "仓库验证目标码为空")
+
+    while (A_TickCount - t0 < timeoutMs) {
+        if UI_RunBurst(UI_DetectAndHandleFailDialog)
+            return Map("ok", false, "level", "WARN", "type", "[录入验证错误]", "why", "仓库窗口出现错误提示，已终止本次注入")
+
+        txt := UI_TryCopyListText(classNN, gridN, win)
+        if (txt != "" && InStr(txt, target))
+            return Map("ok", true)
+
+        Sleep(delay)
+        if (delay < 140)
+            delay += 20
+    }
+
+    return Map("ok", false, "level", "ERR", "type", "[录入验证错误]", "why", "仓库窗口首条注入验证失败，未匹配到目标码")
 }
 
 UI_PostClick(hwndCtrl, x := 30, y := 40) {
