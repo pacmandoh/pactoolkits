@@ -1,78 +1,359 @@
 # PacToolkits
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
-![Platform](https://img.shields.io/badge/platform-Windows-purple)
-![Stack](https://img.shields.io/badge/stack-.NET%20%7C%20AHK%20%7C%20PostgreSQL-blue)
+<div align="center">
 
-PacToolkits is a **drug trace-code toolkit** monorepo, including a desktop UI, an AutoHotkey automation agent, and PostgreSQL schema/deployment scripts for inventory and drug trace-code workflows.  
-PacToolkits 是一个**药品追溯码工具套件**单仓库，包含桌面端 UI、AutoHotkey 自动化 Agent，以及 PostgreSQL 数据库建模与部署脚本，用于库存与药品追溯码业务流程。
+[English](./README.md) | [简体中文](./README.zh-CN.md)
 
-## Table Of Contents
+<br />
 
-- [Overview](#overview)
-- [Screenshots](#screenshots)
-- [Repository Structure](#repository-structure)
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Version Management](#version-management)
-- [Release Workflow](#release-workflow)
-- [Commit Convention](#commit-convention)
-- [License](#license)
+<table>
+  <tr>
+    <td align="center" width="260" valign="top">
+      <img src="./pactoolkits-ui/Assets/icon-128.png" alt="PacToolkits UI Icon" width="72" />
+      <br />
+      <strong>PacToolkits UI</strong>
+      <br />
+      <sub>Avalonia Desktop Client</sub>
+      <br />
+      <sub>&nbsp;</sub>
+      <br />
+      <br />
+      <img src="https://img.shields.io/badge/Business-Desktop-0f766e?style=flat-square&logo=avaloniaui&logoColor=white" alt="Business Desktop" />
+      <br />
+      <img src="https://img.shields.io/badge/MVVM-Avalonia-475569?style=flat-square&logo=dotnet&logoColor=white" alt="MVVM Avalonia" />
+    </td>
+    <td align="center" width="260" valign="top">
+      <img src="./pactoolkits-agent/assets/pacinjection.ico" alt="PacToolkits Agent Icon" width="72" />
+      <br />
+      <strong>PacToolkits Agent</strong>
+      <br />
+      <sub>AutoHotkey Automation Runtime</sub>
+      <br />
+      <sub>&nbsp;</sub>
+      <br />
+      <img src="https://img.shields.io/badge/Automation-AHK%20v2-92400e?style=flat-square&logo=autohotkey&logoColor=white" alt="Automation AHK v2" />
+      <br />
+      <img src="https://img.shields.io/badge/Execution-Task%20Driven-475569?style=flat-square&logo=postgresql&logoColor=white" alt="Execution Task Driven" />
+    </td>
+  </tr>
+</table>
 
-## Overview
+<br />
 
-This repository manages three core parts in one place:
+<sub><strong>UI</strong> for business operations · <strong>Agent</strong> for automation execution · <strong>DB</strong> for task orchestration and persistence</sub>
 
-- `pactoolkits-ui`: desktop business interface and online update entry.
-- `pactoolkits-agent`: AutoHotkey automation runtime for trace-code operations.
-- `pactoolkits-db`: migration/deploy/verify scripts for PostgreSQL schema lifecycle.
+<br />
+<br />
 
-## Repository Structure
+**Drug Trace-Code Operations Suite for UI, Automation, and Database Workflows**
+
+Desktop UI, AutoHotkey automation, and PostgreSQL orchestration for drug trace-code operations.
+
+<br />
+
+<table>
+  <tr>
+    <td align="center"><a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-3f6212?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License" /></a></td>
+    <td align="center"><a href="https://www.jetbrains.com/opensource/"><img src="https://img.shields.io/badge/JetBrains-Supported-000000?style=for-the-badge&logo=jetbrains&logoColor=white" alt="JetBrains" /></a></td>
+    <td align="center"><img src="https://img.shields.io/badge/Platform-Windows-334155?style=for-the-badge&logo=microsoft&logoColor=white" alt="Platform" /></td>
+    <td align="center"><img src="https://img.shields.io/badge/.NET-net10.0-475569?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET" /></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="./pactoolkits-ui"><img src="https://img.shields.io/badge/UI-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="UI" /></a></td>
+    <td align="center"><a href="./pactoolkits-agent"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
+    <td align="center"><a href="./pactoolkits-db"><img src="https://img.shields.io/badge/Database-PostgreSQL-1d4ed8?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" /></a></td>
+    <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.13.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.12.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.4.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.16-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
+  </tr>
+</table>
+
+</div>
+
+---
+
+## Project Overview
+
+**PacToolkits** is a monorepo for drug trace-code operations, combining:
+
+- a desktop UI for business workflows and diagnostics
+- an AutoHotkey runtime for semi-automatic and warehouse injection flows
+- a PostgreSQL schema and migration system for ingestion, mapping, tasking, and execution state
+
+PacToolkits is designed for environments where **drug indexing, trace-code intake, inventory workflows, and automation-assisted injection** must stay aligned across UI, agent runtime, and database state.
+
+This repository is a coordinated system with:
+
+- business-facing interaction in `pactoolkits-ui`
+- execution and automation in `pactoolkits-agent`
+- persistence, task orchestration, and schema evolution in `pactoolkits-db`
+
+---
+
+## Highlights
+
+- Unified desktop + automation + database architecture in one repository
+- Avalonia-based business client with update and diagnostics capabilities
+- AutoHotkey v2 automation agent for parse, inject, and verify workflows
+- PostgreSQL migration-based schema lifecycle with compatibility gates
+- Versioned release pipeline for UI, agent, and DB schema compatibility
+- Operational visibility for inventory, mapping, MSFX linkage, and execution queues
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    UI["pactoolkits-ui\nAvalonia Desktop App"]
+    AGENT["pactoolkits-agent\nAutoHotkey v2 Runtime"]
+    DB["pactoolkits-db\nPostgreSQL Schema + Migrations"]
+    SCRIPTS["scripts/\nRelease + Version Tooling"]
+    CI[".github/workflows\nBuild + Release Automation"]
+
+    UI -->|config / runtime control| AGENT
+    UI -->|queries / dashboards / actions| DB
+    AGENT -->|task claim / state sync / event logs| DB
+    SCRIPTS --> UI
+    SCRIPTS --> AGENT
+    SCRIPTS --> DB
+    CI --> SCRIPTS
+```
+
+---
+
+## Repository Map
 
 ```text
 pactoolkits/
-  pactoolkits-ui/      # Avalonia desktop app (update client + business UI)
-  pactoolkits-agent/   # AutoHotkey automation agent
-  pactoolkits-db/      # PostgreSQL schema, migration, verify, deploy scripts
-  scripts/             # Versioning and release scripts
-  release-manifest.json
+  pactoolkits-ui/        Avalonia desktop client
+  pactoolkits-agent/     AutoHotkey v2 automation runtime
+  pactoolkits-db/        PostgreSQL bootstrap, migration, verify, deploy scripts
+  scripts/               Versioning, packaging, release helpers
+  .github/workflows/     CI/CD and release workflows
+  release-manifest.json  Unified version source of truth
 ```
 
-## Features
+---
 
-- UI supports online update checks (Velopack feed/channel).
-- Agent integrates automation workflow and reads shared version metadata.
-- DB deployment uses migration ledger + schema gate verification.
-- Unified release manifest controls `suite/ui/agent/db` versions.
+## Module Guide
+
+## 1. `pactoolkits-ui`
+
+**Role**
+
+The desktop application is the operational center of the suite. It provides business workflows for inventory, drug indexing, scan entry, MSFX linkage, runtime control, update handling, and diagnostics.
+
+**Primary responsibilities**
+
+- business dashboards and overview pages
+- drug index maintenance
+- trace-code entry and scan workflows
+- inventory overview and reassignment workflows
+- MSFX pull/map/task audit views
+- AHK runtime configuration and control
+- settings, logging, and update management
+
+**Key areas**
+
+- `Views/` and `ViewModels/`
+- `Services/`
+- `DataAccess/`
+- `Styles/`, `Controls/`, `Behaviors/`, `Converters/`
+- `Docs/`
+
+**Representative pages**
+
+- `DashboardViewModel.cs`
+- `DrugIndexViewModel.cs`
+- `InventoryOverviewViewModel.cs`
+- `ScanCodeViewModel.cs`
+- `MsfxLinkViewModel.cs`
+- `ToolsCenterViewModel.cs`
+- `SettingsViewModel.cs`
+
+**Technology**
+
+- Avalonia 11
+- CommunityToolkit.Mvvm
+- SukiUI
+- Npgsql
+- Velopack
+
+---
+
+## 2. `pactoolkits-agent`
+
+**Role**
+
+The automation agent is the execution layer. It drives target desktop windows, parses grid content, injects trace codes, verifies outcomes, and synchronizes execution state back to PostgreSQL.
+
+**Primary responsibilities**
+
+- parse clipboard/grid content from target windows
+- drive UI injection into target desktop applications
+- verify injection results
+- claim and execute warehouse inject tasks
+- synchronize execution state and events back to PostgreSQL
+- read config generated by the desktop UI
+
+**Key modules**
+
+- `main.ahk`
+- `src/main_semi_auto.ahk`
+- `src/msfx_task.ahk`
+- `src/parse_clipboard.ahk`
+- `src/ui_txn.ahk`
+- `src/db_txn.ahk`
+- `src/pg_exec.ahk`
+- `src/utils.ahk`
+
+**Execution model**
+
+- `ipt/opt` flows remain atomic in AHK runtime logic
+- warehouse mode consumes DB-backed inject tasks
+- parse, inject, verify, and finalize are modularized
+- warehouse duplicate protection is DB-backed and execution-aware
+
+---
+
+## 3. `pactoolkits-db`
+
+**Role**
+
+The database module defines the persistence and orchestration model behind the suite. It holds schema bootstrap, migrations, verification scripts, and deployment tooling.
+
+**Primary responsibilities**
+
+- schema bootstrap
+- incremental migrations
+- verification and schema gating
+- deployment planning and execution
+- support for staging, mapping, task queueing, execution state, and audit records
+
+**Structure**
+
+```text
+pactoolkits-db/
+  sql/bootstrap/
+  sql/migrations/
+  sql/verify/
+  scripts/
+```
+
+**Operational themes**
+
+- inbound bill and detail ingestion
+- trace-code staging
+- drug/spec mapping
+- inject task creation and queue ordering
+- warehouse duplicate protection
+- task reopen / retry / finalize flows
+
+---
+
+## 4. `scripts`
+
+**Role**
+
+This folder standardizes versioning and release operations so UI, agent, and database changes stay aligned.
+
+**Included tooling**
+
+- `bump-version.sh`
+- `check-version.sh`
+- `export-version.sh`
+- `release-ui.sh`
+- `release-agent.sh`
+- `audit-unused-ui-resources.sh`
+
+---
+
+## 5. `.github/workflows`
+
+**Role**
+
+CI/CD workflows provide release automation for packaging, release-note generation, and publish coordination.
+
+**Current workflows**
+
+- `release.yml`
+- `release-build-ui.yml`
+- `release-build-agent.yml`
+- `release-publish-assets.yml`
+- `release-generate-notes.yml`
+
+---
+
+## Domain Coverage
+
+PacToolkits currently spans these major business areas:
+
+- drug trace-code intake
+- trace-code entry and verification
+- inventory overview and low-stock workflows
+- drug information maintenance
+- client alias management
+- MSFX linkage and audit
+- warehouse task injection and reopen handling
+- runtime and agent configuration management
+
+---
+
+## Versioning and Compatibility
+
+Single source of truth:
+
+- `release-manifest.json`
+
+Current manifest:
+
+- `suiteVersion`: `0.13.1`
+- `uiVersion`: `0.12.0`
+- `agentVersion`: `0.4.0`
+- `dbSchemaVersion`: `1.2.16`
+- `uiMinDbSchema`: `1.2.16`
+- `agentMinDbSchema`: `1.2.16`
+
+Common commands:
+
+```bash
+./scripts/bump-version.sh --ui 0.12.1
+./scripts/check-version.sh
+./scripts/export-version.sh
+```
+
+---
+
+## Getting Started
 
 ## Prerequisites
 
-- macOS/Linux shell (`bash`, `jq`)
-- .NET SDK 10.x (for UI build/publish)
-- `vpk` (for UI update package)
-- `zip` (for agent package script)
-- `rsync` (optional, for upload)
-- PostgreSQL client (`psql`, for DB deployment scripts)
+- .NET SDK 10.x
+- PostgreSQL client tools such as `psql`
+- shell environment with `bash`, `jq`, `zip`
+- `vpk` for Velopack packaging
+- `rsync` if publishing to a remote target
 
-## Quick Start
-
-### 1) UI
+## Build UI
 
 ```bash
 cd pactoolkits-ui
 dotnet build -c Release
 ```
 
-### 2) Agent
+## Package Agent
 
 ```bash
-cd pactoolkits-agent
-# macOS mode: package source runtime bundle (no AHK compile)
-../scripts/release-agent.sh --skip-upload --dry-run
+cd /Users/tottidaq/RiderProjects/pactoolkits
+./scripts/release-agent.sh --skip-upload --dry-run
 ```
 
-### 3) Database
+## Database Deployment
 
 ```bash
 cd pactoolkits-db
@@ -82,55 +363,57 @@ cp scripts/config.example.json scripts/config.json
 ./scripts/deploy.sh plan
 ```
 
-## Version Management
-
-Single source of truth: `release-manifest.json`
-
-- `suiteVersion`: overall release version
-- `uiVersion`: desktop UI app version (Velopack update target)
-- `agentVersion`: automation agent version
-- `dbSchemaVersion`: database schema target version
-- `compat`: minimum compatibility between UI and Agent
-
-Common commands:
-
-```bash
-# from repo root
-# bump ui -> suite auto major/minor/patch by component changes
-./scripts/bump-version.sh --ui 0.4.3
-# or force suite explicitly
-./scripts/bump-version.sh --suite 0.4.4 --ui 0.4.3
-./scripts/check-version.sh
-```
+---
 
 ## Release Workflow
 
-### UI release (publish + vpk + optional upload)
+## UI Release
 
 ```bash
-# from repo root
 ./scripts/release-ui.sh \
   --runtime win-arm64 \
   --vpk-directive win \
   --upload-target user@host:/var/www/updates/pactoolkits-ui/
 ```
 
-### Agent release (mac-friendly packaging, no AHK compile)
+## Agent Release
 
 ```bash
-# from repo root
 ./scripts/release-agent.sh \
   --upload-target user@host:/var/www/updates/pactoolkits-agent/
 ```
 
-## Commit Convention
+---
 
-- `chore(ui): scaffold pactoolkits-ui`
-- `chore(agent): scaffold pactoolkits-agent`
-- `chore(db): add schema and deploy scripts`
-- `chore(scripts): add version and release scripts`
+## Design Principles
+
+- One repository, one version source of truth
+- UI, agent, and DB evolve together
+- Business-facing flows stay observable
+- Automation remains configurable, not page-hardcoded
+- Database owns task state and execution truth
+- Runtime, UI, and persistence boundaries stay explicit
+
+---
+
+## JetBrains Support
+
+This project is developed with support from the **JetBrains Open Source Support Program**.
+
+JetBrains tooling helps maintain productivity across:
+
+- Avalonia and .NET desktop development
+- PostgreSQL and SQL authoring
+- repository-wide navigation and refactoring
+- multi-module monorepo workflows
+
+Thanks to JetBrains for supporting the project:
+
+- [JetBrains Open Source Support](https://www.jetbrains.com/opensource/)
+
+---
 
 ## License
 
 Released under the [MIT License](./LICENSE).  
-本项目基于 [MIT License](./LICENSE) 开源。
+This project is open sourced under the [MIT License](./LICENSE).

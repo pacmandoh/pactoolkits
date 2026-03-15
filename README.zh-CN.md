@@ -1,0 +1,418 @@
+# PacToolkits
+
+<div align="center">
+
+[English](./README.md) | [简体中文](./README.zh-CN.md)
+
+<br />
+
+<table>
+  <tr>
+    <td align="center" width="260" valign="top">
+      <img src="./pactoolkits-ui/Assets/icon-128.png" alt="PacToolkits UI Icon" width="72" />
+      <br />
+      <strong>PacToolkits UI</strong>
+      <br />
+      <sub>Avalonia 桌面客户端</sub>
+      <br />
+      <sub>&nbsp;</sub>
+      <br />
+      <img src="https://img.shields.io/badge/业务端-桌面交互-0f766e?style=flat-square&logo=avaloniaui&logoColor=white" alt="业务端 桌面交互" />
+      <br />
+      <img src="https://img.shields.io/badge/架构-MVVM-475569?style=flat-square&logo=dotnet&logoColor=white" alt="架构 MVVM" />
+    </td>
+    <td align="center" width="260" valign="top">
+      <img src="./pactoolkits-agent/assets/pacinjection.ico" alt="PacToolkits Agent Icon" width="72" />
+      <br />
+      <strong>PacToolkits Agent</strong>
+      <br />
+      <sub>AutoHotkey 自动化运行时</sub>
+      <br />
+      <sub>&nbsp;</sub>
+      <br />
+      <img src="https://img.shields.io/badge/自动化-AHK%20v2-92400e?style=flat-square&logo=autohotkey&logoColor=white" alt="自动化 AHK v2" />
+      <br />
+      <img src="https://img.shields.io/badge/执行-任务驱动-475569?style=flat-square&logo=postgresql&logoColor=white" alt="执行 任务驱动" />
+    </td>
+  </tr>
+</table>
+
+<br />
+
+<sub><strong>UI</strong> 负责业务交互 · <strong>Agent</strong> 负责自动化执行 · <strong>DB</strong> 负责任务编排与持久化</sub>
+
+<br />
+<br />
+
+**面向药品追溯码业务的桌面端、自动化与数据库一体化工具套件**
+
+用于药品追溯码业务的桌面 UI、AutoHotkey 自动化执行层与 PostgreSQL 任务编排数据库系统。
+
+<br />
+
+<table>
+  <tr>
+    <td align="center"><a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-3f6212?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License" /></a></td>
+    <td align="center"><a href="https://www.jetbrains.com/opensource/"><img src="https://img.shields.io/badge/JetBrains-Supported-000000?style=for-the-badge&logo=jetbrains&logoColor=white" alt="JetBrains" /></a></td>
+    <td align="center"><img src="https://img.shields.io/badge/Platform-Windows-334155?style=for-the-badge&logo=microsoft&logoColor=white" alt="Platform" /></td>
+    <td align="center"><img src="https://img.shields.io/badge/.NET-net10.0-475569?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET" /></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="./pactoolkits-ui"><img src="https://img.shields.io/badge/UI-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="UI" /></a></td>
+    <td align="center"><a href="./pactoolkits-agent"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
+    <td align="center"><a href="./pactoolkits-db"><img src="https://img.shields.io/badge/Database-PostgreSQL-1d4ed8?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" /></a></td>
+    <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.13.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.12.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.4.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.16-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
+  </tr>
+</table>
+
+</div>
+
+---
+
+## 项目概览
+
+**PacToolkits** 是一个围绕药品追溯码业务构建的单仓库项目，统一管理三类核心能力：
+
+- 面向业务操作的桌面 UI
+- 基于 AutoHotkey 的自动化 Agent
+- 负责落库、映射、建任务、执行状态管理的 PostgreSQL 数据库体系
+
+它面向的不是单一页面或单一工具，而是一个需要 **UI、自动化执行、数据库状态** 保持一致的完整系统。
+
+当前仓库的三条主线分别是：
+
+- `pactoolkits-ui`：业务交互、配置管理、更新能力、审计与诊断
+- `pactoolkits-agent`：解析、注入、验证、任务执行
+- `pactoolkits-db`：入库、映射、任务生成、执行状态与迁移治理
+
+---
+
+## 核心特性
+
+- UI、Agent、DB 一体化单仓库设计
+- 基于 Avalonia 的桌面业务客户端
+- 基于 AutoHotkey v2 的自动化执行引擎
+- 基于 PostgreSQL Migration 的数据库演进体系
+- UI / Agent / DB 版本统一由 Manifest 管控
+- 支持库存、追溯码录入、联调映射、任务队列、重开与审计
+
+---
+
+## 系统架构
+
+```mermaid
+flowchart LR
+    UI["pactoolkits-ui\nAvalonia 桌面端"]
+    AGENT["pactoolkits-agent\nAutoHotkey v2 执行层"]
+    DB["pactoolkits-db\nPostgreSQL Schema + Migrations"]
+    SCRIPTS["scripts/\n版本与发布工具"]
+    CI[".github/workflows\n构建与发布自动化"]
+
+    UI -->|配置 / 运行控制| AGENT
+    UI -->|查询 / 仪表盘 / 业务操作| DB
+    AGENT -->|任务领取 / 状态回写 / 事件记录| DB
+    SCRIPTS --> UI
+    SCRIPTS --> AGENT
+    SCRIPTS --> DB
+    CI --> SCRIPTS
+```
+
+---
+
+## 仓库结构
+
+```text
+pactoolkits/
+  pactoolkits-ui/        Avalonia 桌面客户端
+  pactoolkits-agent/     AutoHotkey v2 自动化运行时
+  pactoolkits-db/        PostgreSQL bootstrap / migration / verify / deploy
+  scripts/               版本、打包、发布辅助脚本
+  .github/workflows/     CI / 发布流程
+  release-manifest.json  全局版本与兼容性清单
+```
+
+---
+
+## 模块说明
+
+## 1. `pactoolkits-ui`
+
+**定位**
+
+桌面端是整个工具套件的业务操作中心，承载页面交互、配置管理、审计展示、更新控制与运行时联动。
+
+**主要职责**
+
+- 仪表盘与总览页
+- 药品信息维护
+- 追溯码录入与扫描流程
+- 库存总览与库存调整
+- 码上放心联调、拉取、映射、任务审计
+- AHK 自动化运行时配置与控制
+- 设置、更新、日志与诊断能力
+
+**主要目录**
+
+- `Views/` 与 `ViewModels/`
+- `Services/`
+- `DataAccess/`
+- `Styles/`、`Controls/`、`Behaviors/`、`Converters/`
+- `Docs/`
+
+**代表页面**
+
+- `DashboardViewModel.cs`
+- `DrugIndexViewModel.cs`
+- `InventoryOverviewViewModel.cs`
+- `ScanCodeViewModel.cs`
+- `MsfxLinkViewModel.cs`
+- `ToolsCenterViewModel.cs`
+- `SettingsViewModel.cs`
+
+**技术栈**
+
+- Avalonia 11
+- CommunityToolkit.Mvvm
+- SukiUI
+- Npgsql
+- Velopack
+
+---
+
+## 2. `pactoolkits-agent`
+
+**定位**
+
+Agent 是自动化执行层，负责对目标窗口进行解析、注入、验证，以及与数据库任务队列进行同步。
+
+**主要职责**
+
+- 解析目标窗口 Grid / 剪贴板内容
+- 向目标系统执行追溯码注入
+- 注入后验证结果
+- 领取并执行仓库注入任务
+- 将执行结果与事件回写 PostgreSQL
+- 读取 UI 生成的共享配置
+
+**核心模块**
+
+- `main.ahk`
+- `src/main_semi_auto.ahk`
+- `src/msfx_task.ahk`
+- `src/parse_clipboard.ahk`
+- `src/ui_txn.ahk`
+- `src/db_txn.ahk`
+- `src/pg_exec.ahk`
+- `src/utils.ahk`
+
+**执行模型**
+
+- `ipt/opt` 走 AHK 原子执行链
+- 仓库模式走数据库任务队列
+- parse / inject / verify / finalize 模块化拆分
+- 仓库重复注入防护与任务状态以数据库为准
+
+---
+
+## 3. `pactoolkits-db`
+
+**定位**
+
+数据库模块负责整个系统的持久化建模与任务编排，是联调、映射、建任务、执行状态回写的事实来源。
+
+**主要职责**
+
+- bootstrap 初始化
+- 增量 migration
+- verify 校验
+- 部署计划与执行
+- staging / mapping / inject task / audit event 相关模型维护
+
+**目录结构**
+
+```text
+pactoolkits-db/
+  sql/bootstrap/
+  sql/migrations/
+  sql/verify/
+  scripts/
+```
+
+**当前覆盖的关键主题**
+
+- 上游单据与明细入库
+- 追溯码 staging
+- 药品 / 规格映射
+- 注入任务生成与队列顺序
+- 仓库模式重复注入防护
+- 任务重开、重试与结算
+
+---
+
+## 4. `scripts`
+
+**定位**
+
+统一管理版本号、发布构建、导出与校验流程，保证 UI、Agent、DB 三端协同演进。
+
+**包含脚本**
+
+- `bump-version.sh`
+- `check-version.sh`
+- `export-version.sh`
+- `release-ui.sh`
+- `release-agent.sh`
+- `audit-unused-ui-resources.sh`
+
+---
+
+## 5. `.github/workflows`
+
+**定位**
+
+负责发布链的自动化构建、产物整理、发布说明生成与资源发布协调。
+
+**当前工作流**
+
+- `release.yml`
+- `release-build-ui.yml`
+- `release-build-agent.yml`
+- `release-publish-assets.yml`
+- `release-generate-notes.yml`
+
+---
+
+## 业务覆盖范围
+
+PacToolkits 当前覆盖的业务场景包括：
+
+- 药品追溯码入库
+- 追溯码录入与验证
+- 库存总览与低库存处理
+- 药品信息维护
+- 客户端别名管理
+- 码上放心联调与审计
+- 仓库任务注入、重开与诊断
+- 自动化运行时配置管理
+
+---
+
+## 版本与兼容性
+
+统一版本源：
+
+- `release-manifest.json`
+
+当前版本清单：
+
+- `suiteVersion`: `0.13.1`
+- `uiVersion`: `0.12.0`
+- `agentVersion`: `0.4.0`
+- `dbSchemaVersion`: `1.2.16`
+- `uiMinDbSchema`: `1.2.16`
+- `agentMinDbSchema`: `1.2.16`
+
+常用命令：
+
+```bash
+./scripts/bump-version.sh --ui 0.12.1
+./scripts/check-version.sh
+./scripts/export-version.sh
+```
+
+---
+
+## 快速开始
+
+## 环境要求
+
+- .NET SDK 10.x
+- PostgreSQL 客户端工具，例如 `psql`
+- `bash`、`jq`、`zip`
+- Velopack 打包工具 `vpk`
+- 若需远端上传，建议安装 `rsync`
+
+## 构建 UI
+
+```bash
+cd pactoolkits-ui
+dotnet build -c Release
+```
+
+## 打包 Agent
+
+```bash
+cd /Users/tottidaq/RiderProjects/pactoolkits
+./scripts/release-agent.sh --skip-upload --dry-run
+```
+
+## 部署数据库
+
+```bash
+cd pactoolkits-db
+cp scripts/config.example.json scripts/config.json
+# 编辑 scripts/config.json
+./scripts/deploy.sh doctor
+./scripts/deploy.sh plan
+```
+
+---
+
+## 发布流程
+
+## UI 发布
+
+```bash
+./scripts/release-ui.sh \
+  --runtime win-arm64 \
+  --vpk-directive win \
+  --upload-target user@host:/var/www/updates/pactoolkits-ui/
+```
+
+## Agent 发布
+
+```bash
+./scripts/release-agent.sh \
+  --upload-target user@host:/var/www/updates/pactoolkits-agent/
+```
+
+---
+
+## 设计原则
+
+- 一个仓库，一个版本事实来源
+- UI、Agent、DB 协同演进
+- 业务流程可观察、可追溯
+- 自动化能力可配置，不塞入页面逻辑
+- 数据库拥有任务状态真相
+- UI、运行时、持久化边界清晰
+
+---
+
+## JetBrains 支持
+
+本项目受到 **JetBrains Open Source Support Program** 的支持。
+
+JetBrains 提供的开发工具帮助我们更高效地处理：
+
+- Avalonia / .NET 桌面开发
+- PostgreSQL 与 SQL 编写
+- 单仓库级别的导航、搜索与重构
+- 多模块协同开发流程
+
+感谢 JetBrains 对本项目的支持：
+
+- [JetBrains Open Source Support](https://www.jetbrains.com/opensource/)
+
+---
+
+## License
+
+Released under the [MIT License](./LICENSE).  
+本项目基于 [MIT License](./LICENSE) 开源。
