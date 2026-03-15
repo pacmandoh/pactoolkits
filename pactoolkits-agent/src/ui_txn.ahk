@@ -4,12 +4,14 @@ global __UI_FAST_CTRL_CACHE := Map()
 ; 只在指定场景才粘贴
 ; 规则：
 ; 1) 校验 ahk_exe = 互慧软件.exe
-; 2) 住院：class 命中 + 标题包含“追溯码录入” -> 粘贴到 TEdit1
-; 3) 门诊：class 命中 + 页面文本包含“门诊处方发药” -> 粘贴到 TMemo2
+; 2) 住院：class 命中 + 标题包含“追溯码录入” -> 粘贴到配置化住院输入控件
+; 3) 门诊：class 命中 + 页面文本包含“门诊处方发药” -> 粘贴到配置化门诊输入控件
 UI_Paste_ByPolicy(
 	text,
 	opt,
 	ipt,
+    optInputClassNN,
+    iptInputClassNN,
 	win := "A"
 ) {
     win := Util_NormalizeWin(win)
@@ -18,9 +20,9 @@ UI_Paste_ByPolicy(
 
     ; ===== 住院：追溯码录入 =====
     if (cls = ipt && InStr(ttl, "追溯码录入")) {
-        return Ui_Paste_Impl(win, "TEdit1", text, false)
+        return Ui_Paste_Impl(win, iptInputClassNN, text, false)
     } else if (cls = opt) {
-		return Ui_Paste_Impl(win, "TMemo2", text, true)
+		return Ui_Paste_Impl(win, optInputClassNN, text, true)
 	} else {
 		return Map("ok", false, "level", "ERR", "type", "[界面错误]", "why", "请在门诊或住院录入窗口进行操作", "reason", "class mismatch")
 	}
@@ -246,7 +248,7 @@ UI_RunBurst(fn, maxMs := 250, interval := 10) {
     return false
 }
 
-UI_WaitConfirm(codes, timeoutMs, opt, ipt, classNN, win := "A") {
+UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridClassNN, iptParseGridClassNN, win := "A") {
     t0 := A_TickCount
     delay := 15
 
@@ -264,7 +266,8 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, classNN, win := "A") {
 		; lastMemo := ""       ; 避免每次都提示相同内容
 
 		while (A_TickCount - t0 < timeoutMs) {	
-			p := Parse_TargetInfo(colSpecs, ipt, intCols, "", win)
+            txt := UI_TryCopyClassNNText(optVerifyGridClassNN, win)
+			p := Parse_TargetInfo(colSpecs, ipt, intCols, txt, win, iptParseGridClassNN)
 
 			; 0) 强验证：解析“追溯码”列，判断已扫N码
 			if (IsObject(p) && p.Has("ok") && p["ok"]) {
@@ -296,7 +299,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, classNN, win := "A") {
 			if UI_RunBurst(UI_DetectAndHandleFailDialog)
 				return Map("ok", false, "level", "WARN", "type", "[录入验证错误]", "why", "重复的追溯码/超过对应需要追溯码条数，将自动回退库存")
 
-			txt := UI_TryCopyListText(classNN, ipt["gridN"], win)
+			txt := UI_TryCopyClassNNText(iptVerifyGridClassNN, win)
 			if (txt != "") {
 				allOk := true
 				for c in ipt["codes"] {
@@ -319,7 +322,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, classNN, win := "A") {
     return Map("ok", false, "level", "ERR", "type", "[录入验证错误]", "why", "未知窗口，请一直保持在相应扫码窗口")
 }
 
-UI_WaitConfirm_Warehouse(codes, timeoutMs, classNN, gridN := 1, win := "A") {
+UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
     t0 := A_TickCount
     delay := 20
 
@@ -334,7 +337,7 @@ UI_WaitConfirm_Warehouse(codes, timeoutMs, classNN, gridN := 1, win := "A") {
         if UI_RunBurst(UI_DetectAndHandleFailDialog)
             return Map("ok", false, "level", "WARN", "type", "[录入验证错误]", "why", "仓库窗口出现错误提示，已终止本次注入")
 
-        txt := UI_TryCopyListText(classNN, gridN, win)
+        txt := UI_TryCopyClassNNText(verifyGridClassNN, win)
         if (txt != "" && InStr(txt, target))
             return Map("ok", true)
 
@@ -363,6 +366,25 @@ UI_TryCopyListText(classNN, nSite := 1, win := "A", control := true) {
 
 	UI_FocusTarget(classNN, nSite, win, control)
 	
+    old := ClipboardAll()
+    A_Clipboard := ""
+
+    SendInput("^c")
+
+    if !ClipWait(0.25) {
+        A_Clipboard := old
+        return ""
+    }
+    txt := A_Clipboard
+    A_Clipboard := old
+
+    return txt
+}
+
+UI_TryCopyClassNNText(classNN, win := "A", control := true) {
+    if (UI_FocusClassNN(classNN, win, control) = "")
+        return ""
+
     old := ClipboardAll()
     A_Clipboard := ""
 
@@ -455,18 +477,6 @@ UI_Parse_MaxScanned(txt) {
     return max
 }
 
-UI_FindAncestorByClass(hwnd, className, maxDepth := 40) {
-    h := hwnd
-    Loop maxDepth {
-        if !h
-            return 0
-        if (WinGetClass("ahk_id " h) = className)
-            return h
-        h := DllCall("user32\GetParent", "ptr", h, "ptr")
-    }
-    return 0
-}
-
 UI_MouseOnClassNN(targetNN, win := "A") {
     win := Util_NormalizeWin(win)
     MouseGetPos &sx, &sy, &winHwnd, &ctrlHwnd, 2
@@ -481,20 +491,20 @@ UI_MouseOnClassNN(targetNN, win := "A") {
     if !h0
         return false
 
-    ; 2) 向上爬到 TcxGridSite
-    hSite := UI_FindAncestorByClass(h0, "TcxGridSite")
-    if !hSite
-        return false
-
-    ; 3) 拿这个 Site 的 ClassNN
-    nn := ""
-    try { 
-		nn := ControlGetClassNN(hSite) 
-	} catch { 
-		nn := "" 
-	}
-
-    return (nn = targetNN)
+    ; 2) 向上爬父控件，直到命中目标 ClassNN
+    h := h0
+    Loop 40 {
+        if !h
+            return false
+        nn := ""
+        try nn := ControlGetClassNN(h)
+        catch
+            nn := ""
+        if (nn = targetNN)
+            return true
+        h := DllCall("user32\\GetParent", "ptr", h, "ptr")
+    }
+    return false
 }
 
 UI_Err(text, title := "追溯码自动化") {

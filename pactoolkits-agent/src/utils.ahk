@@ -373,7 +373,7 @@ Util_HotIf_TargetApp() {
     ; 1) Cfg 没加载好
     if !IsSet(Cfg) || (Type(Cfg) != "Map")
         return false
-    if !Cfg.Has("OPT_CLS") || !Cfg.Has("IPT_CLS") || !Cfg.Has("APP_WIN")
+    if !Cfg.Has("OPT_WINDOW_CLASS") || !Cfg.Has("IPT_WINDOW_CLASS") || !Cfg.Has("APP_WIN")
         return false
 
     ; 2) 冻结当前活动窗口（避免后续 "A" 指向变化）
@@ -394,8 +394,8 @@ Util_HotIf_TargetApp() {
     ; 4) 再判断窗口 class（仓库模式下仅允许住院/仓库窗口类）
     cls := ctx["cls"]
     if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
-        return (cls = Cfg["IPT_CLS"])
-    return (cls = Cfg["OPT_CLS"] || cls = Cfg["IPT_CLS"])
+        return (cls = Cfg["IPT_WINDOW_CLASS"])
+    return (cls = Cfg["OPT_WINDOW_CLASS"] || cls = Cfg["IPT_WINDOW_CLASS"])
 }
 
 Util_DetectScene(win := "A") {
@@ -405,11 +405,11 @@ Util_DetectScene(win := "A") {
     ttl := ctx["ttl"]
     winId := ctx["win"]
 
-    if (cls = Cfg["OPT_CLS"])
+    if (cls = Cfg["OPT_WINDOW_CLASS"])
         return "OPT"
 
     ; 住院/仓库共用窗口类：只在该分支再按锚点区分仓库。
-    if (cls = Cfg["IPT_CLS"]) {
+    if (cls = Cfg["IPT_WINDOW_CLASS"]) {
         if Util_IsWarehouseWindow(winId)
             return "WAREHOUSE"
         if InStr(ttl, "追溯码录入")
@@ -471,13 +471,14 @@ Util_WarehouseSoftCheck(win := "A") {
 }
 
 Util_TryGetGridHeaderLine(win := "A") {
+    global Cfg
     win := Util_NormalizeWin(win)
     if !WinExist(win)
         return ""
 
     old := ClipboardAll()
     txt := ""
-    try UI_FocusTarget("TcxGridSite", 2, win)
+    try UI_FocusClassNN(Cfg["IPT_PARSE_GRID_CLASSNN"], win)
     catch
         return ""
     if !WinExist(win)
@@ -522,6 +523,41 @@ Util_TryGetGridHeaderLine(win := "A") {
             firstTabLine := line
     }
     return firstTabLine
+}
+
+UI_FocusClassNN(classNN, win := "A", control := true) {
+    nn := Trim("" classNN)
+    if (nn = "")
+        return ""
+
+    win := Util_NormalizeWin(win)
+    hwndCtrl := 0
+    try hwndCtrl := ControlGetHwnd(nn, win)
+    catch
+        return ""
+    if !hwndCtrl
+        return ""
+
+    try WinActivate(win)
+    catch
+        return ""
+    try WinWaitActive(win, , 1)
+    catch
+        return ""
+
+    if (control) {
+        try ControlFocus(nn, win)
+        catch
+            return ""
+    } else {
+        try DllCall("SetFocus", "Ptr", hwndCtrl)
+        catch
+            return ""
+        try UI_PostClick(hwndCtrl, 30, 40)
+        catch
+            return ""
+    }
+    return hwndCtrl
 }
 
 
@@ -672,16 +708,31 @@ Util_LoadUnifiedConfig(configPath) {
     cfg["PG_SSL"] := Util_CfgGetOneOf(agent, "PgSsl", ["disable", "allow", "prefer", "require", "verify-ca", "verify-full"], &ok, &err)
     if !ok
         return Util_CfgFail(err, "INVALID_AGENT")
-    cfg["OPT_CLS"] := Util_CfgGetString(agent, "OptCls", true, &ok, &err)
+    cfg["OPT_WINDOW_CLASS"] := Util_CfgGetString(agent, "OptWindowClass", true, &ok, &err)
     if !ok
         return Util_CfgFail(err, "INVALID_AGENT")
-    cfg["IPT_CLS"] := Util_CfgGetString(agent, "IptCls", true, &ok, &err)
+    cfg["IPT_WINDOW_CLASS"] := Util_CfgGetString(agent, "IptWindowClass", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["OPT_PARSE_GRID_CLASSNN"] := Util_CfgGetString(agent, "OptParseGridClassNN", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["OPT_VERIFY_GRID_CLASSNN"] := Util_CfgGetString(agent, "OptVerifyGridClassNN", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["IPT_PARSE_GRID_CLASSNN"] := Util_CfgGetString(agent, "IptParseGridClassNN", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["IPT_VERIFY_GRID_CLASSNN"] := Util_CfgGetString(agent, "IptVerifyGridClassNN", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["OPT_INPUT_CLASSNN"] := Util_CfgGetString(agent, "OptInputClassNN", true, &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["IPT_INPUT_CLASSNN"] := Util_CfgGetString(agent, "IptInputClassNN", true, &ok, &err)
     if !ok
         return Util_CfgFail(err, "INVALID_AGENT")
     cfg["CONFIRM_TIMEOUT_MS"] := Util_CfgGetRangeInt(agent, "ConfirmTimeoutMs", 100, 10000, &ok, &err)
-    if !ok
-        return Util_CfgFail(err, "INVALID_AGENT")
-    cfg["CLASSNN"] := Util_CfgGetString(agent, "ClassNN", true, &ok, &err)
     if !ok
         return Util_CfgFail(err, "INVALID_AGENT")
     cfg["APP_WIN"] := Util_CfgGetAppWin(agent, "AppWin", &ok, &err)
@@ -694,13 +745,17 @@ Util_LoadUnifiedConfig(configPath) {
     if !ok
         return Util_CfgFail(err, "INVALID_AGENT")
 
-    cfg["WAREHOUSE_ENABLED"] := Util_CfgGetBoolDefault(agent, "WarehouseEnabled", false, &ok, &err)
+    cfg["WAREHOUSE_ENABLED"] := Util_CfgGetBool(agent, "WarehouseEnabled", &ok, &err)
     if !ok
         return Util_CfgFail(err, "INVALID_AGENT")
-    cfg["WAREHOUSE_ANCHORS"] := Util_CfgGetStringArrayDefault(agent, "WarehouseAnchorTexts", ["患者姓名", "应扫次数"], &ok, &err)
+    cfg["WAREHOUSE_ANCHORS"] := Util_CfgGetStringArray(agent, "WarehouseAnchorTexts", true, &ok, &err)
     if !ok
         return Util_CfgFail(err, "INVALID_AGENT")
-    cfg["CODE_PICK_POLICY"] := Util_CfgGetOneOfDefault(agent, "CodePickPolicy", ["MAX_LEVEL", "MIN_LEVEL"], "MAX_LEVEL", &ok, &err)
+    cfg["CODE_PICK_POLICY"] := Util_CfgGetOneOf(agent, "CodePickPolicy", ["max_level", "min_level"], &ok, &err)
+    if !ok
+        return Util_CfgFail(err, "INVALID_AGENT")
+    cfg["CODE_PICK_POLICY"] := StrUpper(cfg["CODE_PICK_POLICY"])
+    cfg["WAREHOUSE_TASK_IDENTIFIER"] := Util_CfgGetString(agent, "WarehouseTaskIdentifier", true, &ok, &err)
     if !ok
         return Util_CfgFail(err, "INVALID_AGENT")
 
@@ -839,42 +894,10 @@ Util_CfgGetStringArray(obj, key, nonEmpty, &ok, &err) {
     return arr
 }
 
-Util_CfgGetStringDefault(obj, key, defaultVal, &ok, &err) {
+Util_CfgGetBool(obj, key, &ok, &err) {
     if !obj.Has(key) {
-        ok := true, err := ""
-        return defaultVal
-    }
-    return Util_CfgGetString(obj, key, true, &ok, &err)
-}
-
-Util_CfgGetRangeIntDefault(obj, key, defaultVal, min, max, &ok, &err) {
-    if !obj.Has(key) {
-        ok := true, err := ""
-        return defaultVal
-    }
-    return Util_CfgGetRangeInt(obj, key, min, max, &ok, &err)
-}
-
-Util_CfgGetOneOfDefault(obj, key, allows, defaultVal, &ok, &err) {
-    if !obj.Has(key) {
-        ok := true, err := ""
-        return defaultVal
-    }
-    return Util_CfgGetOneOf(obj, key, allows, &ok, &err)
-}
-
-Util_CfgGetStringArrayDefault(obj, key, defaultArr, &ok, &err) {
-    if !obj.Has(key) {
-        ok := true, err := ""
-        return defaultArr
-    }
-    return Util_CfgGetStringArray(obj, key, false, &ok, &err)
-}
-
-Util_CfgGetBoolDefault(obj, key, defaultVal, &ok, &err) {
-    if !obj.Has(key) {
-        ok := true, err := ""
-        return defaultVal
+        ok := false, err := "缺少配置项：" key
+        return false
     }
     v := obj[key]
     t := Type(v)
@@ -883,7 +906,7 @@ Util_CfgGetBoolDefault(obj, key, defaultVal, &ok, &err) {
         return Util_ToBool(v)
     }
     ok := false, err := "配置项类型错误：" key "（应为布尔/数字/字符串）"
-    return defaultVal
+    return false
 }
 
 Util_ToBool(v) {
