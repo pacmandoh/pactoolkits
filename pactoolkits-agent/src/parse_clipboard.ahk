@@ -1,6 +1,6 @@
 ; ================== 解析模块 ==================
 
-Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A") {
+Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridClassNN := "") {
     if !IsObject(intCols)
         intCols := []
 
@@ -31,7 +31,8 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A") {
     if (Trim(text) = "") {
 		; FEAT: 住院窗口自动选中，不用双击
 		if (WinGetClass(win) = ipt) {
-			UI_FocusTarget("TcxGridSite", 2, win)
+            if (Trim(parseGridClassNN) != "")
+			    UI_FocusClassNN(parseGridClassNN, win)
 		}
 		
         WinActivate(win)

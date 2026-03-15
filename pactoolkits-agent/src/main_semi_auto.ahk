@@ -3,7 +3,7 @@
 ; 		半自动：手动点选目标信息后按热键执行
 ; 		流程：复制目标信息 -> 解析 -> 预留/计算减扣 -> 粘贴追溯码 -> 验证 -> Commit/Rollback
 
-Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, classNN, win := "A") {
+Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optVerifyGridClassNN, iptParseGridClassNN, iptVerifyGridClassNN, optInputClassNN, iptInputClassNN, win := "A") {
     ; 0) 场景识别
     win := Util_NormalizeWin(win)
     cls := WinGetClass(win)
@@ -13,19 +13,20 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, classNN, win := "A") {
     clientId := A_ComputerName "|" A_UserName "|ip=" ip "|os=" osName "|ver=" Util_GetAgentVersionTag()
 	
     mode := ""
-    srcGridN := 0
     if (cls = ipt) {
         mode := "住院"
-        srcGridN := 2
     } else if (cls = opt) {
         mode := "门诊"
-        srcGridN := 1
     } else {
         return Map("ok", false, "level", "WARN", "type", "[界面错误]", "why", "当前窗口不在允许场景内`nclass=" cls)
     }
 
     ; 1) 复制目标信息并解析
-    p := Parse_TargetInfo(colSpecs, ipt, intCols, "", win)
+    parseGridClassNN := (cls = ipt) ? iptParseGridClassNN : optParseGridClassNN
+    verifyGridClassNN := (cls = ipt) ? iptVerifyGridClassNN : optVerifyGridClassNN
+    inputClassNN := (cls = ipt) ? iptInputClassNN : optInputClassNN
+
+    p := Parse_TargetInfo(colSpecs, ipt, intCols, "", win, parseGridClassNN)
 
     if !p["ok"] {
         return p
@@ -48,9 +49,7 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, classNN, win := "A") {
     }
 	if (r["skip"]) {
 		; skip 提示与聚焦由 main 统一处理
-		focusNN := (cls = ipt) ? "TEdit" : "TMemo"
-		focusN  := (cls = ipt) ? 1 : 2
-		return Map("ok", true, "skip", true, "type", r["type"], "why", r["why"], "focusNN", focusNN, "focusN", focusN)
+		return Map("ok", true, "skip", true, "type", r["type"], "why", r["why"], "focusClassNN", inputClassNN)
 	}
 
     codes := r.Has("codes") ? r["codes"] : []
@@ -61,7 +60,7 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, classNN, win := "A") {
 
     ; 3) UI 注入追溯码（逐条粘贴）
     for i, code in codes {
-        pr := UI_Paste_ByPolicy(code, opt, ipt, win)
+        pr := UI_Paste_ByPolicy(code, opt, ipt, optInputClassNN, iptInputClassNN, win)
         if (!pr["ok"]) {
             ; 已预留扣库 -> 业务回滚
             Txn_Rollback(txnId)
@@ -70,7 +69,7 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, classNN, win := "A") {
     }
 
     ; 4) 验证
-	wc := UI_WaitConfirm(codes, timeoutMs, opt, ipt, classNN, win)
+	wc := UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridClassNN, iptParseGridClassNN, win)
 	
     if !wc["ok"] {
         Txn_Rollback(txnId)

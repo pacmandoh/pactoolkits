@@ -43,7 +43,7 @@ if Util_ShouldShowVersionTip(versionTag)
 
 ; ===== 启动自检：关键配置缺失直接报错退出 =====
 _missing := []
-for _, k in ["PG_HOST","PG_PORT","PG_DB","PG_USER","PG_PASS","PG_DRIVER","PG_SSL","OPT_CLS","IPT_CLS","COL_SPECS","INT_COLS","CLASSNN","CONFIRM_TIMEOUT_MS","APP_WIN"] {
+for _, k in ["PG_HOST","PG_PORT","PG_DB","PG_USER","PG_PASS","PG_DRIVER","PG_SSL","OPT_WINDOW_CLASS","IPT_WINDOW_CLASS","OPT_PARSE_GRID_CLASSNN","OPT_VERIFY_GRID_CLASSNN","IPT_PARSE_GRID_CLASSNN","IPT_VERIFY_GRID_CLASSNN","OPT_INPUT_CLASSNN","IPT_INPUT_CLASSNN","COL_SPECS","INT_COLS","CONFIRM_TIMEOUT_MS","APP_WIN"] {
     if !Cfg.Has(k) {
         _missing.Push(k)
         continue
@@ -88,7 +88,8 @@ global _LAST_RUN := 0
 ~RButton::
 {
     ctx := Util_CaptureWin("A")
-    if !UI_MouseOnClassNN(Cfg["CLASSNN"] "2")
+    parseGridClassNN := (ctx["cls"] = Cfg["IPT_WINDOW_CLASS"]) ? Cfg["IPT_PARSE_GRID_CLASSNN"] : Cfg["OPT_PARSE_GRID_CLASSNN"]
+    if !UI_MouseOnClassNN(parseGridClassNN)
         return
 
     if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"]) {
@@ -102,7 +103,7 @@ global _LAST_RUN := 0
     }
 
     ; IPT/OPT 模式下，在住院窗口若检测到仓库列特征，提示先开启仓库模式。
-    if (ctx["cls"] = Cfg["IPT_CLS"]) {
+    if (ctx["cls"] = Cfg["IPT_WINDOW_CLASS"]) {
         ck := Util_WarehouseSoftCheck(ctx["win"])
         if (ck["ok"]) {
             UI_Err("[模式错误] 当前表头更像仓库列，请开启仓库模式后再操作")
@@ -110,7 +111,7 @@ global _LAST_RUN := 0
         }
     }
 
-	p := Parse_TargetInfo(Cfg["COL_SPECS"], Cfg["IPT_CLS"], Cfg["INT_COLS"], "", ctx["win"])
+	p := Parse_TargetInfo(Cfg["COL_SPECS"], Cfg["IPT_WINDOW_CLASS"], Cfg["INT_COLS"], "", ctx["win"], parseGridClassNN)
     if (!p["ok"]) {
         UI_Err(p["type"] " " p["why"])
         return
@@ -125,7 +126,9 @@ global _LAST_RUN := 0
     KeyWait("LButton")
 
     ; 先过滤触发区域：非目标 Grid 完全静默，不进入节流提示。
-    if !UI_MouseOnClassNN(Cfg["CLASSNN"] "2")
+    ctx := Util_CaptureWin("A")
+    parseGridClassNN := (ctx["cls"] = Cfg["IPT_WINDOW_CLASS"]) ? Cfg["IPT_PARSE_GRID_CLASSNN"] : Cfg["OPT_PARSE_GRID_CLASSNN"]
+    if !UI_MouseOnClassNN(parseGridClassNN)
         return
 
     if (_BUSY)
@@ -139,7 +142,6 @@ global _LAST_RUN := 0
 
     _BUSY := true
 		
-    ctx := Util_CaptureWin("A")
 	cls := ctx["cls"]
 		
     try {
@@ -147,12 +149,17 @@ global _LAST_RUN := 0
             UI_Tip("[仓库模式] 开始执行注入流程…", 900)
             msa := Msfx_RunWarehouseTaskFlow(
                 Cfg["CONFIRM_TIMEOUT_MS"],
-                Cfg["CLASSNN"],
+                Cfg["IPT_PARSE_GRID_CLASSNN"],
+                Cfg["IPT_VERIFY_GRID_CLASSNN"],
+                Cfg["IPT_INPUT_CLASSNN"],
+                Cfg["COL_SPECS"],
+                Cfg["INT_COLS"],
+                Cfg["IPT_WINDOW_CLASS"],
                 ctx["win"]
             )
         } else {
             ; IPT/OPT 模式下，在住院窗口若检测到仓库列特征，提示先开启仓库模式。
-            if (cls = Cfg["IPT_CLS"]) {
+            if (cls = Cfg["IPT_WINDOW_CLASS"]) {
                 ck := Util_WarehouseSoftCheck(ctx["win"])
                 if (ck["ok"]) {
                     UI_Err("[模式错误] 当前表头更像仓库列，请开启仓库模式后再操作")
@@ -161,16 +168,20 @@ global _LAST_RUN := 0
             }
 
 			msa := Semi_Auto_Fill(
-				Cfg["OPT_CLS"], Cfg["IPT_CLS"], 
+				Cfg["OPT_WINDOW_CLASS"], Cfg["IPT_WINDOW_CLASS"], 
 				Cfg["COL_SPECS"], Cfg["INT_COLS"],
-				Cfg["CONFIRM_TIMEOUT_MS"], Cfg["CLASSNN"], ctx["win"]
+				Cfg["CONFIRM_TIMEOUT_MS"],
+                Cfg["OPT_PARSE_GRID_CLASSNN"], Cfg["OPT_VERIFY_GRID_CLASSNN"],
+                Cfg["IPT_PARSE_GRID_CLASSNN"], Cfg["IPT_VERIFY_GRID_CLASSNN"],
+                Cfg["OPT_INPUT_CLASSNN"], Cfg["IPT_INPUT_CLASSNN"],
+                ctx["win"]
 			)
         }
 		
 		if (msa.Has("skip") && msa["skip"]) {
 			UI_Tip(msa["type"] " " msa["why"])
-            if (msa.Has("focusNN") && msa.Has("focusN"))
-			    UI_FocusTarget(msa["focusNN"], msa["focusN"], ctx["win"])
+            if (msa.Has("focusClassNN"))
+			    UI_FocusClassNN(msa["focusClassNN"], ctx["win"])
 			return true
 		}
 
@@ -184,11 +195,11 @@ global _LAST_RUN := 0
 				UI_Err(msa["type"] " " msa["why"])
 			}
 			
-			if (cls = Cfg["IPT_CLS"]) {
-				UI_FocusTarget("TEdit", 1, ctx["win"])
+			if (cls = Cfg["IPT_WINDOW_CLASS"]) {
+				UI_FocusClassNN(Cfg["IPT_INPUT_CLASSNN"], ctx["win"])
 			}
-			if (cls = Cfg["OPT_CLS"]) {
-				UI_FocusTarget("TMemo", 2, ctx["win"])
+			if (cls = Cfg["OPT_WINDOW_CLASS"]) {
+				UI_FocusClassNN(Cfg["OPT_INPUT_CLASSNN"], ctx["win"])
 			}
 			return false
 		}
@@ -196,11 +207,11 @@ global _LAST_RUN := 0
         if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
             UI_Tip(msa["type"] " " msa["why"], 1500)
 		
-		if (cls = Cfg["IPT_CLS"]) {
-			UI_FocusTarget("TEdit", 1, ctx["win"])
+		if (cls = Cfg["IPT_WINDOW_CLASS"]) {
+			UI_FocusClassNN(Cfg["IPT_INPUT_CLASSNN"], ctx["win"])
 		}
-		if (cls = Cfg["OPT_CLS"]) {
-			UI_FocusTarget("TMemo", 2, ctx["win"])
+		if (cls = Cfg["OPT_WINDOW_CLASS"]) {
+			UI_FocusClassNN(Cfg["OPT_INPUT_CLASSNN"], ctx["win"])
 		}
 	}
 	
