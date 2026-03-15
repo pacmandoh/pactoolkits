@@ -64,10 +64,10 @@
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.13.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.12.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.4.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.16-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.14.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.13.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.17-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
 
@@ -98,6 +98,7 @@
 - UI、Agent、DB 一体化单仓库设计
 - 基于 Avalonia 的桌面业务客户端
 - 基于 AutoHotkey v2 的自动化执行引擎
+- Agent 运行目标已切换为完整 `ClassNN` 配置模型
 - 基于 PostgreSQL Migration 的数据库演进体系
 - UI / Agent / DB 版本统一由 Manifest 管控
 - 支持库存、追溯码录入、联调映射、任务队列、重开与审计
@@ -217,6 +218,27 @@ Agent 是自动化执行层，负责对目标窗口进行解析、注入、验�
 - 仓库模式走数据库任务队列
 - parse / inject / verify / finalize 模块化拆分
 - 仓库重复注入防护与任务状态以数据库为准
+- 窗口类、解析区、验证区、输入控件都以完整 `ClassNN` 配置为准，不再依赖代码内拼接推导
+
+**Agent 关键配置字段**
+
+桌面端现在会将 agent 的运行目标显式写入配置。当前关键字段包括：
+
+- `OptWindowClass`：门诊窗口顶层类
+- `IptWindowClass`：住院窗口顶层类
+- `OptParseGridClassNN`：门诊解析区完整 `ClassNN`
+- `OptVerifyGridClassNN`：门诊验证区完整 `ClassNN`
+- `IptParseGridClassNN`：住院解析区完整 `ClassNN`
+- `IptVerifyGridClassNN`：住院验证区完整 `ClassNN`
+- `OptInputClassNN`：门诊输入目标完整 `ClassNN`
+- `IptInputClassNN`：住院 / 仓库输入目标完整 `ClassNN`
+
+与仓库执行直接相关的字段还包括：
+
+- `WarehouseEnabled`
+- `WarehouseAnchorTexts`
+- `CodePickPolicy`
+- `WarehouseTaskIdentifier`
 
 ---
 
@@ -259,16 +281,41 @@ pactoolkits-db/
 
 **定位**
 
-统一管理版本号、发布构建、导出与校验流程，保证 UI、Agent、DB 三端协同演进。
+统一管理版本号、构建发布、资源审计以及 Windows 侧部署同步任务，保证 UI、Agent、DB 三端协同演进。
 
-**包含脚本**
+**版本与发布脚本**
 
 - `bump-version.sh`
+  - 统一提升 suite / UI / agent / DB schema 版本
 - `check-version.sh`
+  - 校验仓库内版本一致性
 - `export-version.sh`
+  - 将 manifest 中的版本导出到生成文件
 - `release-ui.sh`
+  - 打包并发布 UI 产物
 - `release-agent.sh`
+  - 打包并发布 agent 产物
+
+**仓库维护脚本**
+
 - `audit-unused-ui-resources.sh`
+  - 扫描 UI 项目中未引用的样式、资源与相关残留
+
+**Windows 部署 / 同步脚本**
+
+- `create_sync_task.ps1`
+  - 创建静默计划任务，用于双网 Windows 环境下的更新同步
+  - 使用隐藏 PowerShell 窗口与交互登录上下文
+- `sync_pactoolkits_uu.ps1`
+  - 将远端更新源同步到本地目录
+  - 先做变更探测，再执行下载
+  - 优先走 BITS，失败时自动回退到 `Invoke-WebRequest`
+
+**当前职责补充**
+
+- UI 保存 Agent 配置时会自动补全和收敛必要字段
+- Agent 运行时按配置中的完整窗口 / 解析区 / 验证区 / 输入控件目标执行
+- Windows 同步任务适合库房双网环境下的静默后台执行
 
 ---
 
@@ -311,12 +358,12 @@ PacToolkits 当前覆盖的业务场景包括：
 
 当前版本清单：
 
-- `suiteVersion`: `0.13.1`
-- `uiVersion`: `0.12.0`
-- `agentVersion`: `0.4.0`
-- `dbSchemaVersion`: `1.2.16`
-- `uiMinDbSchema`: `1.2.16`
-- `agentMinDbSchema`: `1.2.16`
+- `suiteVersion`: `0.14.0`
+- `uiVersion`: `0.13.0`
+- `agentVersion`: `0.5.0`
+- `dbSchemaVersion`: `1.2.17`
+- `uiMinDbSchema`: `1.2.17`
+- `agentMinDbSchema`: `1.2.17`
 
 常用命令：
 
