@@ -5,6 +5,7 @@
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:simpleicons="clr-namespace:IconPacks.Avalonia.SimpleIcons;assembly=IconPacks.Avalonia.SimpleIcons"
+             xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
              mc:Ignorable="d"
              d:DesignWidth="1200"
@@ -115,9 +116,21 @@
 
                     <Grid Grid.Column="2" RowDefinitions="Auto,Auto" RowSpacing="8">
                         <WrapPanel ItemSpacing="6" LineSpacing="6">
-                            <suki:InfoBadge Content="Owner" />
-                            <suki:InfoBadge Content="Maintainer" Foreground="{DynamicResource BrushDone}" />
-                            <suki:InfoBadge Content="2026" Foreground="{DynamicResource BrushInfo}" />
+                            <controls:StatusPill Icon="AccountOutline"
+                                                 Text="Owner"
+                                                 BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                                                 PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                                                 ForegroundBrush="{DynamicResource BrushInfo}" />
+                            <controls:StatusPill Icon="ShieldCheckOutline"
+                                                 Text="Maintainer"
+                                                 BackgroundBrush="{DynamicResource BrushDoneBg25}"
+                                                 PillBorderBrush="{DynamicResource BrushDoneBg50}"
+                                                 ForegroundBrush="{DynamicResource BrushDone}" />
+                            <controls:StatusPill Icon="CalendarOutline"
+                                                 Text="2026"
+                                                 BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                                                 PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                                                 ForegroundBrush="{DynamicResource BrushInfo}" />
                         </WrapPanel>
                         <suki:GlassCard Grid.Row="1" Padding="8,6" Opacity="0.9" CornerRadius="10">
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
@@ -152,8 +165,8 @@
                                       ColumnSpacing="10"
                                       RowSpacing="6">
                                     <TextBlock Text="{Binding BuildChannel, StringFormat=Channel: {0}}" Classes="SectionHint" />
-                                    <TextBlock Grid.Column="1" Text="{Binding BuildDate, StringFormat=Date: {0}}" Classes="SectionHint" />
-                                    <TextBlock Grid.Row="1" Text="{Binding CompatUiDbRangeText}" Classes="SectionHint" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding BuildDate, StringFormat=Date: {0}}" Classes="SectionHint" />
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding CompatUiDbRangeText}" Classes="SectionHint" />
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CompatAgentDbRangeText}" Classes="SectionHint" />
                                 </Grid>
                             </Grid>
@@ -259,9 +272,21 @@
                                 </Grid>
                             </suki:GlassCard>
                             <WrapPanel Grid.Row="1" ItemSpacing="6" LineSpacing="6">
-                                <suki:InfoBadge Content="Desktop Native" />
-                                <suki:InfoBadge Content="Automation First" Foreground="{DynamicResource BrushDone}" />
-                                <suki:InfoBadge Content="Data Driven" Foreground="{DynamicResource BrushInfo}" />
+                                <controls:StatusPill Icon="MonitorDashboard"
+                                                     Text="Desktop Native"
+                                                     BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                                                     PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                                                     ForegroundBrush="{DynamicResource BrushInfo}" />
+                                <controls:StatusPill Icon="RobotOutline"
+                                                     Text="Automation First"
+                                                     BackgroundBrush="{DynamicResource BrushDoneBg25}"
+                                                     PillBorderBrush="{DynamicResource BrushDoneBg50}"
+                                                     ForegroundBrush="{DynamicResource BrushDone}" />
+                                <controls:StatusPill Icon="DatabaseOutline"
+                                                     Text="Data Driven"
+                                                     BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                                                     PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                                                     ForegroundBrush="{DynamicResource BrushInfo}" />
                             </WrapPanel>
                         </Grid>
                     </Grid>
@@ -459,10 +484,26 @@
                     <Grid Grid.Row="2" ColumnDefinitions="1.1*,1.1*,1.1*" ColumnSpacing="10">
                         <suki:GroupBox Header="视觉标记样例">
                             <WrapPanel Margin="8,8,8,8" ItemSpacing="8" LineSpacing="8">
-                                <suki:InfoBadge Content="Online" />
-                                <suki:InfoBadge Content="AutoFetch" Foreground="{DynamicResource BrushDone}" />
-                                <suki:InfoBadge Content="Pending" Foreground="{DynamicResource BrushWarning}" />
-                                <suki:InfoBadge Content="Rollback" Foreground="{DynamicResource BrushDanger}" />
+                                <controls:StatusPill Icon="CheckCircleOutline"
+                                                     Text="Online"
+                                                     BackgroundBrush="{DynamicResource BrushDoneBg25}"
+                                                     PillBorderBrush="{DynamicResource BrushDoneBg50}"
+                                                     ForegroundBrush="{DynamicResource BrushDone}" />
+                                <controls:StatusPill Icon="RobotOutline"
+                                                     Text="AutoFetch"
+                                                     BackgroundBrush="{DynamicResource BrushDoneBg25}"
+                                                     PillBorderBrush="{DynamicResource BrushDoneBg50}"
+                                                     ForegroundBrush="{DynamicResource BrushDone}" />
+                                <controls:StatusPill Icon="ClockOutline"
+                                                     Text="Pending"
+                                                     BackgroundBrush="{DynamicResource BrushWarningBg25}"
+                                                     PillBorderBrush="{DynamicResource BrushWarningBg50}"
+                                                     ForegroundBrush="{DynamicResource BrushWarning}" />
+                                <controls:StatusPill Icon="UndoVariant"
+                                                     Text="Rollback"
+                                                     BackgroundBrush="{DynamicResource BrushDangerBg15}"
+                                                     PillBorderBrush="{DynamicResource BrushDangerBg35}"
+                                                     ForegroundBrush="{DynamicResource BrushDanger}" />
                             </WrapPanel>
                         </suki:GroupBox>
 
@@ -473,7 +514,7 @@
                                   ColumnSpacing="10"
                                   RowSpacing="8">
                                 <TextBlock Text="主题模式" VerticalAlignment="Center" />
-                                <ComboBox Grid.Column="1" SelectedIndex="0">
+                                <ComboBox Grid.Row="0" Grid.Column="1" SelectedIndex="0">
                                     <ComboBoxItem Content="System" />
                                     <ComboBoxItem Content="Light" />
                                     <ComboBoxItem Content="Dark" />

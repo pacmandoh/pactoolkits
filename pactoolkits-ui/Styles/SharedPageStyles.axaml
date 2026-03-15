@@ -25,8 +25,6 @@
 
     <Style Selector="TextBox.MsfxInput">
         <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-        <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
-        <Setter Property="MaxHeight" Value="{DynamicResource ControlHeightCompact}" />
         <Setter Property="Padding" Value="10,0" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="TextWrapping" Value="NoWrap" />
@@ -35,20 +33,14 @@
 
     <Style Selector="ComboBox.MsfxInput">
         <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-        <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
-        <Setter Property="MaxHeight" Value="{DynamicResource ControlHeightCompact}" />
     </Style>
 
     <Style Selector="CalendarDatePicker.MsfxInput">
         <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-        <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
-        <Setter Property="MaxHeight" Value="{DynamicResource ControlHeightCompact}" />
     </Style>
 
     <Style Selector="NumericUpDown.MsfxInput">
         <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-        <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
-        <Setter Property="MaxHeight" Value="{DynamicResource ControlHeightCompact}" />
     </Style>
 
     <Style Selector="Button.MsfxMiniIconBtn">

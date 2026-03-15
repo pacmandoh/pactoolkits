@@ -210,7 +210,7 @@
 
                 <suki:GlassCard Grid.Row="1" Classes="SectionCard" Padding="8,8" Opacity="0.92">
                     <Grid>
-                        <TextBox MinHeight="{StaticResource ControlHeightCompact}"
+                        <TextBox Height="{StaticResource ControlHeightCompact}"
                                  VerticalContentAlignment="Center"
                                  Padding="31,0,10,0"
                                  Watermark="搜索页面 / 命令"
