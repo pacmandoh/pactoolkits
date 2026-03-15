@@ -517,7 +517,6 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
               (select count(*)::int from msfx_inject_task where status = 'NEW') as task_new_count,
               (select count(*)::int from msfx_inject_task where status = 'RUNNING') as task_running_count,
               (select count(*)::int from msfx_inject_task where status = 'SUCCESS') as task_success_count,
-              (select count(*)::int from msfx_inject_task where status = 'PARTIAL') as task_partial_count,
               (select count(*)::int from msfx_inject_task where status = 'FAILED') as task_failed_count,
               (select count(*)::int from msfx_inject_task where status = 'CANCELLED') as task_cancelled_count
             """;
@@ -532,7 +531,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                     0, "NONE", null, null, 0, 0,
                     0, 0, 0, 0, 0, 0, 0,
                     0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0);
+                    0, 0, 0, 0, 0);
             }
 
             return new MsfxAutoBoardSnapshot(
@@ -556,9 +555,8 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 TaskNewCount: reader.GetInt32(17),
                 TaskRunningCount: reader.GetInt32(18),
                 TaskSuccessCount: reader.GetInt32(19),
-                TaskPartialCount: reader.GetInt32(20),
-                TaskFailedCount: reader.GetInt32(21),
-                TaskCancelledCount: reader.GetInt32(22));
+                TaskFailedCount: reader.GetInt32(20),
+                TaskCancelledCount: reader.GetInt32(21));
         }, ct);
     }
 
@@ -777,7 +775,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
               t.finished_at,
               t.err_msg
             from msfx_inject_task t
-            order by t.created_at desc, t.id desc
+            order by t.queue_seq, t.id
             limit @limit
             """;
 
@@ -806,6 +804,31 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             }
 
             return (IReadOnlyList<MsfxInjectTaskQueueRow>)rows;
+        }, ct);
+    }
+
+    public Task<MsfxReopenInjectTaskResult> ReopenInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
+    {
+        const string sql = """
+            select task_id, task_status, total_codes
+            from msfx_reopen_inject_task(@task_id, @operator_name, @reason)
+            """;
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("task_id", taskId);
+            AddNullableParam(cmd, "operator_name", NullIfWhiteSpace(operatorName));
+            AddNullableParam(cmd, "reason", NullIfWhiteSpace(reason));
+
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (!await reader.ReadAsync(token).ConfigureAwait(false))
+                throw new InvalidOperationException($"未能重开任务 {taskId}");
+
+            return new MsfxReopenInjectTaskResult(
+                TaskId: reader.GetInt64(0),
+                Status: reader.GetString(1),
+                TotalCodes: reader.GetInt32(2));
         }, ct);
     }
 

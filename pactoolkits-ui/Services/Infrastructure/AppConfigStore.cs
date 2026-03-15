@@ -82,8 +82,8 @@ public sealed class AgentToolOptions
 {
     public string PgDriver { get; set; } = "PostgreSQL Unicode(x64)";
     public string PgSsl { get; set; } = "disable";
-    public string OptCls { get; set; } = "TFrm_mzcffy";
-    public string IptCls { get; set; } = "Tfrm_wzzsm";
+    public string OptWindowClass { get; set; } = "TFrm_mzcffy";
+    public string IptWindowClass { get; set; } = "Tfrm_wzzsm";
     public Dictionary<string, int> AppWin { get; set; } = new(StringComparer.OrdinalIgnoreCase)
     {
         ["互慧软件.exe"] = 1,
@@ -100,10 +100,16 @@ public sealed class AgentToolOptions
         "?拆零标签||拆零",
     ];
     public List<string> IntCols { get; set; } = ["数量"];
-    public string ClassNN { get; set; } = "TcxGridSite";
+    public string OptParseGridClassNN { get; set; } = "TcxGridSite2";
+    public string OptVerifyGridClassNN { get; set; } = "TcxGridSite1";
+    public string IptParseGridClassNN { get; set; } = "TcxGridSite2";
+    public string IptVerifyGridClassNN { get; set; } = "TcxGridSite1";
+    public string OptInputClassNN { get; set; } = "TMemo2";
+    public string IptInputClassNN { get; set; } = "TEdit1";
     public bool WarehouseEnabled { get; set; }
     public List<string> WarehouseAnchorTexts { get; set; } = ["患者姓名", "应扫次数"];
     public string CodePickPolicy { get; set; } = "MAX_LEVEL";
+    public string WarehouseTaskIdentifier { get; set; } = "单据号||当前编号";
 }
 
 public interface IAppConfigStore
@@ -226,13 +232,19 @@ public sealed class AppConfigStore : IAppConfigStore
 
         if (string.IsNullOrWhiteSpace(a.PgDriver)) return false;
         if (string.IsNullOrWhiteSpace(a.PgSsl)) return false;
-        if (string.IsNullOrWhiteSpace(a.OptCls)) return false;
-        if (string.IsNullOrWhiteSpace(a.IptCls)) return false;
-        if (string.IsNullOrWhiteSpace(a.ClassNN)) return false;
+        if (string.IsNullOrWhiteSpace(a.OptWindowClass)) return false;
+        if (string.IsNullOrWhiteSpace(a.IptWindowClass)) return false;
+        if (string.IsNullOrWhiteSpace(a.OptParseGridClassNN)) return false;
+        if (string.IsNullOrWhiteSpace(a.OptVerifyGridClassNN)) return false;
+        if (string.IsNullOrWhiteSpace(a.IptParseGridClassNN)) return false;
+        if (string.IsNullOrWhiteSpace(a.IptVerifyGridClassNN)) return false;
+        if (string.IsNullOrWhiteSpace(a.OptInputClassNN)) return false;
+        if (string.IsNullOrWhiteSpace(a.IptInputClassNN)) return false;
         if (a.ConfirmTimeoutMs <= 0) return false;
         if (a.AppWin is null || a.AppWin.Count == 0) return false;
         if (a.ColSpecs is null || a.ColSpecs.Count == 0) return false;
         if (a.IntCols is null) return false;
+        if (string.IsNullOrWhiteSpace(a.WarehouseTaskIdentifier)) return false;
 
         return true;
     }
@@ -263,6 +275,24 @@ public sealed class AppConfigStore : IAppConfigStore
             if (!agent.TryGetProperty("WarehouseAnchorTexts", out _))
                 return false;
             if (!agent.TryGetProperty("CodePickPolicy", out _))
+                return false;
+            if (!agent.TryGetProperty("WarehouseTaskIdentifier", out _))
+                return false;
+            if (!agent.TryGetProperty("OptWindowClass", out _))
+                return false;
+            if (!agent.TryGetProperty("IptWindowClass", out _))
+                return false;
+            if (!agent.TryGetProperty("OptParseGridClassNN", out _))
+                return false;
+            if (!agent.TryGetProperty("OptVerifyGridClassNN", out _))
+                return false;
+            if (!agent.TryGetProperty("IptParseGridClassNN", out _))
+                return false;
+            if (!agent.TryGetProperty("IptVerifyGridClassNN", out _))
+                return false;
+            if (!agent.TryGetProperty("OptInputClassNN", out _))
+                return false;
+            if (!agent.TryGetProperty("IptInputClassNN", out _))
                 return false;
 
             return true;
@@ -385,9 +415,14 @@ public sealed class AppConfigStore : IAppConfigStore
 
         agent.PgDriver = string.IsNullOrWhiteSpace(agent.PgDriver) ? defaults.PgDriver : agent.PgDriver.Trim();
         agent.PgSsl = string.IsNullOrWhiteSpace(agent.PgSsl) ? defaults.PgSsl : agent.PgSsl.Trim();
-        agent.OptCls = string.IsNullOrWhiteSpace(agent.OptCls) ? defaults.OptCls : agent.OptCls.Trim();
-        agent.IptCls = string.IsNullOrWhiteSpace(agent.IptCls) ? defaults.IptCls : agent.IptCls.Trim();
-        agent.ClassNN = string.IsNullOrWhiteSpace(agent.ClassNN) ? defaults.ClassNN : agent.ClassNN.Trim();
+        agent.OptWindowClass = string.IsNullOrWhiteSpace(agent.OptWindowClass) ? defaults.OptWindowClass : agent.OptWindowClass.Trim();
+        agent.IptWindowClass = string.IsNullOrWhiteSpace(agent.IptWindowClass) ? defaults.IptWindowClass : agent.IptWindowClass.Trim();
+        agent.OptParseGridClassNN = string.IsNullOrWhiteSpace(agent.OptParseGridClassNN) ? defaults.OptParseGridClassNN : agent.OptParseGridClassNN.Trim();
+        agent.OptVerifyGridClassNN = string.IsNullOrWhiteSpace(agent.OptVerifyGridClassNN) ? defaults.OptVerifyGridClassNN : agent.OptVerifyGridClassNN.Trim();
+        agent.IptParseGridClassNN = string.IsNullOrWhiteSpace(agent.IptParseGridClassNN) ? defaults.IptParseGridClassNN : agent.IptParseGridClassNN.Trim();
+        agent.IptVerifyGridClassNN = string.IsNullOrWhiteSpace(agent.IptVerifyGridClassNN) ? defaults.IptVerifyGridClassNN : agent.IptVerifyGridClassNN.Trim();
+        agent.OptInputClassNN = string.IsNullOrWhiteSpace(agent.OptInputClassNN) ? defaults.OptInputClassNN : agent.OptInputClassNN.Trim();
+        agent.IptInputClassNN = string.IsNullOrWhiteSpace(agent.IptInputClassNN) ? defaults.IptInputClassNN : agent.IptInputClassNN.Trim();
         agent.ConfirmTimeoutMs = agent.ConfirmTimeoutMs <= 0 ? defaults.ConfirmTimeoutMs : agent.ConfirmTimeoutMs;
 
         var appWin = (agent.AppWin ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase))
@@ -404,6 +439,9 @@ public sealed class AppConfigStore : IAppConfigStore
         agent.IntCols = NormalizeStringList(agent.IntCols, defaults.IntCols, requireNonEmpty: false);
         agent.WarehouseAnchorTexts = NormalizeStringList(agent.WarehouseAnchorTexts, defaults.WarehouseAnchorTexts, requireNonEmpty: true);
         agent.CodePickPolicy = NormalizeCodePickPolicy(agent.CodePickPolicy, defaults.CodePickPolicy);
+        agent.WarehouseTaskIdentifier = string.IsNullOrWhiteSpace(agent.WarehouseTaskIdentifier)
+            ? defaults.WarehouseTaskIdentifier
+            : agent.WarehouseTaskIdentifier.Trim();
 
         return agent;
     }

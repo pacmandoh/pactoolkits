@@ -135,6 +135,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
     protected void LogError(string eventName, string message, Exception? ex = null, object? context = null)
         => AppLog.Error(GetType().Name, eventName, message, ex, context);
 
+    protected void LogInfo(string eventName, string message, object? context = null)
+        => AppLog.Info(GetType().Name, eventName, message, context);
+
     private async Task ExecuteRefreshAsync()
     {
         try

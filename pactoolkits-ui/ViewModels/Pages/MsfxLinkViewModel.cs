@@ -220,6 +220,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public ObservableCollection<MsfxAutoPullBatchGridRow> AutoPullBatchRows { get; } = new();
     public ObservableCollection<MsfxAutoMapQueueGridRow> AutoMapQueueRows { get; } = new();
     public ObservableCollection<MsfxAutoTaskQueueGridRow> AutoTaskQueueRows { get; } = new();
+    public IReadOnlyList<MsfxAutoTaskQueueGridRow> SelectedAutoTaskQueueRowsSnapshot => _selectedAutoTaskQueueRowsSnapshot;
+    public bool CanBatchReopenSelectedTasks => !IsAutoBoardBusy
+                                               && SelectedAutoTaskQueueRowsSnapshot.Any(x =>
+                                                   string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase));
 
     public bool IsUpoutEmpty => UpoutRows.Count == 0;
     public bool IsSubCodeEmpty => SubCodeRows.Count == 0;
@@ -251,6 +255,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public bool IsLogPanelExpanded => string.Equals(AutoExpandedPanel, "LOG", StringComparison.OrdinalIgnoreCase);
     private List<MsfxSubCodeGridRow> _allSubCodeRows = new();
     private List<MsfxAutoPullBatchGridRow> _allPullBatchRows = new();
+    private List<MsfxAutoTaskQueueGridRow> _selectedAutoTaskQueueRowsSnapshot = new();
     private DateTimeOffset? _mapCursorUpdatedAt;
     private long? _mapCursorId;
     private string? _lastAutoLogSignature;
@@ -399,11 +404,16 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     {
         if (!value)
             AutoRunProgressValue = 0;
-        NotifyCommands(RunAutoOnceCommand, ClearAutoLogsCommand, RefreshAutoBoardCommand);
+        NotifyCommandsCoalesced("msfx.auto.busy.commands", () =>
+            NotifyCommands(RunAutoOnceCommand, ClearAutoLogsCommand, RefreshAutoBoardCommand));
     }
 
     partial void OnIsAutoBoardBusyChanged(bool value)
-        => NotifyCommands(RefreshAutoBoardCommand);
+    {
+        NotifyCommandsCoalesced("msfx.auto.board.commands", () =>
+            NotifyCommands(RefreshAutoBoardCommand));
+        PostOnUi(() => OnPropertyChanged(nameof(CanBatchReopenSelectedTasks)), DispatcherPriority.Background);
+    }
 
     partial void OnUpoutPageChanged(int value)
     {
@@ -589,8 +599,16 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     partial void OnSelectedAutoTaskQueueRowChanged(MsfxAutoTaskQueueGridRow? value)
+        => OnPropertyChanged(nameof(CanBatchReopenSelectedTasks));
+
+    public void SetSelectedAutoTaskQueueRows(IReadOnlyList<MsfxAutoTaskQueueGridRow> rows)
     {
-        // 详情仅由行头点击触发，单元格点击不弹窗
+        _selectedAutoTaskQueueRowsSnapshot = rows
+            .Where(static x => x is not null)
+            .Distinct()
+            .ToList();
+        OnPropertyChanged(nameof(SelectedAutoTaskQueueRowsSnapshot));
+        OnPropertyChanged(nameof(CanBatchReopenSelectedTasks));
     }
 
     partial void OnSelectedAutoLogRowChanged(MsfxAutoLogRow? value)
@@ -937,12 +955,20 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             SetAutoProgress(2, "准备巡检");
             window = await _syncRepo.GetPullWindowAsync("listupout", ct).ConfigureAwait(false);
             AddAutoLog("任务", $"开始执行自动化拉取（{window.BeginAt:yyyy-MM-dd HH:mm:ss} ~ {window.EndAt:yyyy-MM-dd HH:mm:ss}）", TraceEntryState.Info);
+            LogInfo("msfx.auto.run.start", "MSFX auto run started", new { window.BeginAt, window.EndAt });
             SetAutoProgress(5, $"拉取窗口 {window.BeginAt:MM-dd HH:mm} ~ {window.EndAt:MM-dd HH:mm}");
 
             var batch = await _syncRepo.StartPullBatchAsync("listupout", window.BeginAt, window.EndAt, ct)
                 .ConfigureAwait(false);
             batchId = batch.BatchId;
             AddAutoLog("批次", $"拉取批次已创建：#{batchId}", TraceEntryState.Success);
+            LogInfo("msfx.auto.batch.created", "MSFX pull batch created", new
+            {
+                batchId,
+                sourceApi = "listupout",
+                window.BeginAt,
+                window.EndAt
+            });
             SetAutoProgress(8, $"批次 #{batchId} 已创建");
             await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
 
@@ -1187,6 +1213,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 ? TraceEntryState.Warning
                 : map.ReviewCount > 0 ? TraceEntryState.Warning : TraceEntryState.Success;
             AddAutoLog("映射", $"处理 {map.ProcessedCount}，命中 {map.MappedCount}，待人工 {map.ReviewCount}", mapState);
+            LogInfo("msfx.auto.map.summary", "MSFX auto mapping finished", new
+            {
+                map.ProcessedCount,
+                map.MappedCount,
+                map.ReviewCount
+            });
             AddAutoLog(
                 "映射自检",
                 $"执行后 PENDING {mapAfter.PendingCount}，MAPPED {mapAfter.MappedCount}，NEED_REVIEW {mapAfter.NeedReviewCount}，FAILED {mapAfter.FailedCount}，TOTAL {mapAfter.TotalCount}",
@@ -1199,6 +1231,11 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             SetAutoProgress(96, "构建注入任务");
             var taskState = taskResult.CreatedTasks > 0 ? TraceEntryState.Success : TraceEntryState.Warning;
             AddAutoLog("建任务", $"创建任务 {taskResult.CreatedTasks}，下发码 {taskResult.TaskedCodes}", taskState);
+            LogInfo("msfx.auto.task_build.summary", "MSFX inject tasks built", new
+            {
+                taskResult.CreatedTasks,
+                taskResult.TaskedCodes
+            });
             await RefreshAutoTaskPanelCoreAsync(ct).ConfigureAwait(false);
 
             var batchStatus = failCount > 0 ? "FAILED" : "SUCCESS";
@@ -1218,6 +1255,20 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 "性能",
                 $"总耗时 {FormatElapsed(swTotal.Elapsed)}，列表API {FormatElapsed(listApiMs)}，详情API {FormatElapsed(detailApiMs)}，入库 {FormatElapsed(ingestMs)}，映射 {FormatElapsed(mapMs)}，建任务 {FormatElapsed(taskBuildMs)}",
                 TraceEntryState.Info);
+            LogInfo("msfx.auto.run.finish", "MSFX auto run finished", new
+            {
+                batchId,
+                totalApiRows,
+                totalInboundRows,
+                totalBills,
+                detailSubCodes,
+                retryQueuedCount,
+                retrySucceededCount,
+                retryFailedCount,
+                createdTasks = taskResult.CreatedTasks,
+                taskedCodes = taskResult.TaskedCodes,
+                elapsedMs = swTotal.ElapsedMilliseconds
+            });
             _toast.Success("码上放心自动化", $"完成：下发任务 {taskResult.CreatedTasks}，下发码 {taskResult.TaskedCodes}");
         }
         catch (OperationCanceledException)
@@ -1231,6 +1282,14 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             SetAutoProgress(100, $"巡检失败：{ex.Message}");
 
             AddAutoLog("异常", ex.Message, TraceEntryState.Failed);
+            LogError("msfx.auto.run.fail", "MSFX auto run failed", ex, new
+            {
+                batchId,
+                windowBeginAt = window?.BeginAt,
+                windowEndAt = window?.EndAt,
+                succeedCount,
+                failCount
+            });
             AutoStatus = $"自动化拉取异常：{ex.Message}";
             if (IsDbConnected)
                 _toast.Error("自动化监控", ex.Message);
@@ -1252,6 +1311,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 catch (Exception finalizeEx)
                 {
                     AddAutoLog("批次结算", $"批次#{batchId} 状态回写失败：{finalizeEx.Message}", TraceEntryState.Failed);
+                    LogError("msfx.auto.batch_finalize.fail", "MSFX batch finalize failed", finalizeEx, new
+                    {
+                        batchId,
+                        succeedCount,
+                        failCount,
+                        batchErrMsg
+                    });
                 }
             }
 
@@ -1354,6 +1420,79 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     [RelayCommand]
+    private async Task ReopenSelectedTaskAsync()
+    {
+        var selectedRows = SelectedAutoTaskQueueRowsSnapshot
+            .Where(x => string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (selectedRows.Count == 0)
+        {
+            _toast.Warn("任务重开", "请先选择至少一条 SUCCESS 任务");
+            return;
+        }
+
+        if (IsAutoBoardBusy)
+            return;
+
+        var ok = await _dialog.Confirm(
+            "重开注入任务",
+            $"将重开选中的 {selectedRows.Count} 条 SUCCESS 任务，并重置为可执行队列。确认继续？").ConfigureAwait(false);
+        if (!ok)
+            return;
+
+        try
+        {
+            IsAutoBoardBusy = true;
+            var opName = Environment.UserName;
+            var successCount = 0;
+            var failedCount = 0;
+
+            foreach (var taskRow in selectedRows)
+            {
+                try
+                {
+                    var result = await _syncRepo.ReopenInjectTaskAsync(
+                        taskRow.TaskId,
+                        opName,
+                        "manual reopen from ui",
+                        CancellationToken.None).ConfigureAwait(false);
+                    successCount += 1;
+                    AddAutoLog("任务重开", $"任务 #{result.TaskId} 已重开，状态={result.Status}，总码数={result.TotalCodes}", TraceEntryState.Warning);
+                    LogWarn("msfx.task.reopen.success", "MSFX inject task reopened", null, new
+                    {
+                        result.TaskId,
+                        result.Status,
+                        result.TotalCodes,
+                        operatorName = opName
+                    });
+                }
+                catch (Exception ex)
+                {
+                    failedCount += 1;
+                    AddAutoLog("任务重开", $"任务 #{taskRow.TaskId} 重开失败：{ex.Message}", TraceEntryState.Failed);
+                    LogError("msfx.task.reopen.fail", "MSFX inject task reopen failed", ex, new
+                    {
+                        taskRow.TaskId,
+                        operatorName = opName
+                    });
+                }
+            }
+
+            if (failedCount == 0)
+                _toast.Success("任务重开", $"成功 {successCount} 条，失败 {failedCount} 条");
+            else
+                _toast.Warn("任务重开", $"成功 {successCount} 条，失败 {failedCount} 条");
+
+            await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        finally
+        {
+            await RunOnUiAsync(() => IsAutoBoardBusy = false);
+        }
+    }
+
+    [RelayCommand]
     private async Task OpenMapBatchDialogAsync()
     {
         if (IsAutoBoardBusy)
@@ -1452,11 +1591,26 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 var built = await _syncRepo.BuildInjectTasksAsync(500, CancellationToken.None).ConfigureAwait(false);
                 AddAutoLog("批量映射", $"分组处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}", TraceEntryState.Success);
+                LogWarn("msfx.map.batch.apply", "MSFX batch mapping applied", null, new
+                {
+                    apply.AffectedCount,
+                    built.CreatedTasks,
+                    group.SourceDrugNameRaw,
+                    group.SourceSpecRaw,
+                    DrugId = res.DrugId,
+                    Spec = res.Spec
+                });
                 _toast.Success("批量映射", $"已处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}");
             }
             else
             {
                 AddAutoLog("批量映射", $"分组转待人工 {apply.AffectedCount} 条", apply.AffectedCount > 0 ? TraceEntryState.Warning : TraceEntryState.Info);
+                LogWarn("msfx.map.batch.mark_review", "MSFX batch mapping marked review", null, new
+                {
+                    apply.AffectedCount,
+                    group.SourceDrugNameRaw,
+                    group.SourceSpecRaw
+                });
                 _toast.Info("批量映射", $"已转待人工 {apply.AffectedCount} 条");
             }
 
@@ -1523,6 +1677,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             await _syncRepo.MarkNeedReviewAsync(row.StagingId, CancellationToken.None).ConfigureAwait(false);
             AddAutoLog("映射", $"staging {row.StagingId} 已标记 NEED_REVIEW", TraceEntryState.Warning);
+            LogWarn("msfx.map.manual.mark_review", "MSFX staging marked NEED_REVIEW", null, new
+            {
+                row.StagingId
+            });
             await RefreshAutoBoardAsync().ConfigureAwait(false);
             return;
         }
@@ -1544,6 +1702,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
             var built = await _syncRepo.BuildInjectTasksAsync(200, CancellationToken.None).ConfigureAwait(false);
             AddAutoLog("映射", $"staging {row.StagingId} 手动映射成功，新增任务 {built.CreatedTasks}", TraceEntryState.Success);
+            LogWarn("msfx.map.manual.apply", "MSFX manual mapping applied", null, new
+            {
+                row.StagingId,
+                DrugId = res.DrugId,
+                Spec = res.Spec,
+                built.CreatedTasks
+            });
             await RefreshAutoBoardAsync().ConfigureAwait(false);
         }
     }
@@ -1617,6 +1782,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             if (snap.MapPendingCount > 0 && snap.MapMappedCount == 0 && snap.TaskNewCount == 0 && snap.TaskRunningCount == 0)
             {
                 AddAutoLog("诊断", $"存在待映射 {snap.MapPendingCount} 条但无映射命中，任务队列为空请检查映射函数或字段归一化", TraceEntryState.Warning);
+                LogWarn("msfx.audit.diagnose.pending_without_match", "MSFX diagnostics found pending rows without mapping hit", null, new
+                {
+                    snap.MapPendingCount,
+                    snap.MapMappedCount,
+                    snap.TaskNewCount,
+                    snap.TaskRunningCount
+                });
             }
         }
         catch (OperationCanceledException)
@@ -1627,6 +1799,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             MarkDbDisconnectedOnTransportError(ex);
             AddAutoLog("审计", $"刷新数据库概览失败：{ex.Message}", TraceEntryState.Warning);
+            LogWarn("msfx.audit.snapshot.refresh_fail", "MSFX snapshot refresh failed", ex);
             if (IsDbConnected)
                 _toast.Error("刷新审计", ex.Message);
         }
@@ -1867,6 +2040,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         SelectedAutoMapQueueRow = null;
         SelectedAutoTaskQueueRow = null;
         SelectedAutoLogRow = null;
+        SetSelectedAutoTaskQueueRows(Array.Empty<MsfxAutoTaskQueueGridRow>());
     }
 
     private async void OnAutoTimerTick(object? sender, EventArgs e)
@@ -2055,7 +2229,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         => (status ?? string.Empty).Trim().ToUpperInvariant() switch
         {
             "SUCCESS" => TraceEntryState.Success,
-            "PARTIAL" => TraceEntryState.Warning,
             "FAILED" => TraceEntryState.Failed,
             "RUNNING" => TraceEntryState.Warning,
             _ => TraceEntryState.Info
@@ -2077,7 +2250,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             "SUCCESS" => TraceEntryState.Success,
             "RUNNING" => TraceEntryState.Warning,
             "NEW" => TraceEntryState.Warning,
-            "PARTIAL" => TraceEntryState.Warning,
             "FAILED" => TraceEntryState.Failed,
             "CANCELLED" => TraceEntryState.Failed,
             _ => TraceEntryState.Info

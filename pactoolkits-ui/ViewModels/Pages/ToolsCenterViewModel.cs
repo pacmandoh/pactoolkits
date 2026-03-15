@@ -72,12 +72,18 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     [ObservableProperty] private string _lastErrorText = "-";
     [ObservableProperty] private string _agentPgDriver = "PostgreSQL Unicode(x64)";
     [ObservableProperty] private string _agentPgSsl = "disable";
-    [ObservableProperty] private string _agentOptCls = "TFrm_mzcffy";
-    [ObservableProperty] private string _agentIptCls = "Tfrm_wzzsm";
+    [ObservableProperty] private string _agentOptWindowClass = "TFrm_mzcffy";
+    [ObservableProperty] private string _agentIptWindowClass = "Tfrm_wzzsm";
     [ObservableProperty] private int _agentConfirmTimeoutMs = 2500;
-    [ObservableProperty] private string _agentClassNN = "TcxGridSite";
+    [ObservableProperty] private string _agentOptParseGridClassNN = "TcxGridSite2";
+    [ObservableProperty] private string _agentOptVerifyGridClassNN = "TcxGridSite1";
+    [ObservableProperty] private string _agentIptParseGridClassNN = "TcxGridSite2";
+    [ObservableProperty] private string _agentIptVerifyGridClassNN = "TcxGridSite1";
+    [ObservableProperty] private string _agentOptInputClassNN = "TMemo2";
+    [ObservableProperty] private string _agentIptInputClassNN = "TEdit1";
     [ObservableProperty] private bool _agentWarehouseEnabled;
     [ObservableProperty] private string _agentCodePickPolicy = "MAX_LEVEL";
+    [ObservableProperty] private string _agentWarehouseTaskIdentifier = "单据号||当前编号";
     [ObservableProperty] private CodePickPolicyOption? _selectedAgentCodePickPolicyOption;
     public ObservableCollection<AgentLineItem> AgentAppWinItems { get; } = [];
     public ObservableCollection<AgentLineItem> AgentColSpecsItems { get; } = [];
@@ -88,6 +94,10 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         new() { Value = "MAX_LEVEL", Label = "按最大码" },
         new() { Value = "MIN_LEVEL", Label = "按最小码" },
     ];
+
+    public bool IsAhkStatusRunning => string.Equals(AhkStatusText, "运行中", StringComparison.Ordinal);
+    public bool IsAhkStatusStopped => string.Equals(AhkStatusText, "未启动", StringComparison.Ordinal);
+    public bool IsAhkStatusUnknown => !IsAhkStatusRunning && !IsAhkStatusStopped;
 
     private bool CanRestartAhk() => !IsAhkToggling && IsAhkEnabled;
     partial void OnIsAhkTogglingChanged(bool value) => RestartAhkCommand.NotifyCanExecuteChanged();
@@ -119,12 +129,38 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     partial void OnAhkExecutablePathChanged(string value) => NotifyPendingChangesState();
     partial void OnAhkProcessNameChanged(string value) => NotifyPendingChangesState();
     partial void OnAgentPgDriverChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentPgSslChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentOptClsChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentIptClsChanged(string value) => NotifyPendingChangesState();
+    public bool AgentPgSslEnabled
+    {
+        get => string.Equals(AgentPgSsl, "enable", StringComparison.OrdinalIgnoreCase);
+        set
+        {
+            var mapped = value ? "enable" : "disable";
+            if (string.Equals(AgentPgSsl, mapped, StringComparison.OrdinalIgnoreCase))
+            {
+                OnPropertyChanged(nameof(AgentPgSslEnabled));
+                return;
+            }
+
+            AgentPgSsl = mapped;
+        }
+    }
+
+    partial void OnAgentPgSslChanged(string value)
+    {
+        OnPropertyChanged(nameof(AgentPgSslEnabled));
+        NotifyPendingChangesState();
+    }
+    partial void OnAgentOptWindowClassChanged(string value) => NotifyPendingChangesState();
+    partial void OnAgentIptWindowClassChanged(string value) => NotifyPendingChangesState();
     partial void OnAgentConfirmTimeoutMsChanged(int value) => NotifyPendingChangesState();
-    partial void OnAgentClassNNChanged(string value) => NotifyPendingChangesState();
+    partial void OnAgentOptParseGridClassNNChanged(string value) => NotifyPendingChangesState();
+    partial void OnAgentOptVerifyGridClassNNChanged(string value) => NotifyPendingChangesState();
+    partial void OnAgentIptParseGridClassNNChanged(string value) => NotifyPendingChangesState();
+    partial void OnAgentIptVerifyGridClassNNChanged(string value) => NotifyPendingChangesState();
+    partial void OnAgentOptInputClassNNChanged(string value) => NotifyPendingChangesState();
+    partial void OnAgentIptInputClassNNChanged(string value) => NotifyPendingChangesState();
     partial void OnAgentWarehouseEnabledChanged(bool value) => NotifyPendingChangesState();
+    partial void OnAgentWarehouseTaskIdentifierChanged(string value) => NotifyPendingChangesState();
     partial void OnAgentCodePickPolicyChanged(string value)
     {
         var normalized = NormalizeCodePickPolicyValue(value);
@@ -183,6 +219,13 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             return;
 
         _ = ToggleAhkAsync(value);
+    }
+
+    partial void OnAhkStatusTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsAhkStatusRunning));
+        OnPropertyChanged(nameof(IsAhkStatusStopped));
+        OnPropertyChanged(nameof(IsAhkStatusUnknown));
     }
 
     [RelayCommand]
@@ -384,6 +427,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         var colSpecs = agent.ColSpecs.ToList();
         var intCols = agent.IntCols.ToList();
         var warehouseAnchors = agent.WarehouseAnchorTexts.ToList();
+        var warehouseTaskIdentifier = agent.WarehouseTaskIdentifier;
 
         if (!Dispatcher.UIThread.CheckAccess())
         {
@@ -392,11 +436,17 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 ahk.ProcessName,
                 agent.PgDriver,
                 agent.PgSsl,
-                agent.OptCls,
-                agent.IptCls,
+                agent.OptWindowClass,
+                agent.IptWindowClass,
                 agent.ConfirmTimeoutMs,
-                agent.ClassNN,
+                agent.OptParseGridClassNN,
+                agent.OptVerifyGridClassNN,
+                agent.IptParseGridClassNN,
+                agent.IptVerifyGridClassNN,
+                agent.OptInputClassNN,
+                agent.IptInputClassNN,
                 agent.WarehouseEnabled,
+                warehouseTaskIdentifier,
                 agent.CodePickPolicy,
                 appWin,
                 colSpecs,
@@ -410,11 +460,17 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             ahk.ProcessName,
             agent.PgDriver,
             agent.PgSsl,
-            agent.OptCls,
-            agent.IptCls,
+            agent.OptWindowClass,
+            agent.IptWindowClass,
             agent.ConfirmTimeoutMs,
-            agent.ClassNN,
+            agent.OptParseGridClassNN,
+            agent.OptVerifyGridClassNN,
+            agent.IptParseGridClassNN,
+            agent.IptVerifyGridClassNN,
+            agent.OptInputClassNN,
+            agent.IptInputClassNN,
             agent.WarehouseEnabled,
+            warehouseTaskIdentifier,
             agent.CodePickPolicy,
             appWin,
             colSpecs,
@@ -427,11 +483,17 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         string ahkProcessName,
         string pgDriver,
         string pgSsl,
-        string optCls,
-        string iptCls,
+        string optWindowClass,
+        string iptWindowClass,
         int confirmTimeoutMs,
-        string classNn,
+        string optParseGridClassNn,
+        string optVerifyGridClassNn,
+        string iptParseGridClassNn,
+        string iptVerifyGridClassNn,
+        string optInputClassNn,
+        string iptInputClassNn,
         bool warehouseEnabled,
+        string warehouseTaskIdentifier,
         string codePickPolicy,
         IReadOnlyCollection<string> appWin,
         IReadOnlyCollection<string> colSpecs,
@@ -445,11 +507,17 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             AhkProcessName = ahkProcessName;
             AgentPgDriver = pgDriver;
             AgentPgSsl = pgSsl;
-            AgentOptCls = optCls;
-            AgentIptCls = iptCls;
+            AgentOptWindowClass = optWindowClass;
+            AgentIptWindowClass = iptWindowClass;
             AgentConfirmTimeoutMs = confirmTimeoutMs;
-            AgentClassNN = classNn;
+            AgentOptParseGridClassNN = optParseGridClassNn;
+            AgentOptVerifyGridClassNN = optVerifyGridClassNn;
+            AgentIptParseGridClassNN = iptParseGridClassNn;
+            AgentIptVerifyGridClassNN = iptVerifyGridClassNn;
+            AgentOptInputClassNN = optInputClassNn;
+            AgentIptInputClassNN = iptInputClassNn;
             AgentWarehouseEnabled = warehouseEnabled;
+            AgentWarehouseTaskIdentifier = warehouseTaskIdentifier;
             AgentCodePickPolicy = codePickPolicy;
             SelectedAgentCodePickPolicyOption = AgentCodePickPolicyOptions
                 .FirstOrDefault(x => string.Equals(x.Value, NormalizeCodePickPolicyValue(codePickPolicy), StringComparison.Ordinal));
@@ -469,6 +537,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         var policy = (value ?? string.Empty).Trim().ToUpperInvariant();
         return policy is "MAX_LEVEL" or "MIN_LEVEL" ? policy : "MAX_LEVEL";
     }
+
+    private static string NormalizeWarehouseTaskIdentifierValue(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "单据号||当前编号" : value.Trim();
 
     private void WireLineCollection(ObservableCollection<AgentLineItem> collection)
     {
@@ -566,21 +637,28 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             }
 
             var warehouseAnchors = ParseLineItems(AgentWarehouseAnchorItems);
+            var warehouseTaskIdentifier = NormalizeWarehouseTaskIdentifierValue(AgentWarehouseTaskIdentifier);
 
             return new AgentToolOptions
             {
                 PgDriver = AgentPgDriver.Trim(),
                 PgSsl = AgentPgSsl.Trim(),
-                OptCls = AgentOptCls.Trim(),
-                IptCls = AgentIptCls.Trim(),
+                OptWindowClass = AgentOptWindowClass.Trim(),
+                IptWindowClass = AgentIptWindowClass.Trim(),
                 ConfirmTimeoutMs = AgentConfirmTimeoutMs,
-                ClassNN = AgentClassNN.Trim(),
+                OptParseGridClassNN = AgentOptParseGridClassNN.Trim(),
+                OptVerifyGridClassNN = AgentOptVerifyGridClassNN.Trim(),
+                IptParseGridClassNN = AgentIptParseGridClassNN.Trim(),
+                IptVerifyGridClassNN = AgentIptVerifyGridClassNN.Trim(),
+                OptInputClassNN = AgentOptInputClassNN.Trim(),
+                IptInputClassNN = AgentIptInputClassNN.Trim(),
                 WarehouseEnabled = AgentWarehouseEnabled,
                 AppWin = appWin,
                 ColSpecs = colSpecs,
                 IntCols = intCols,
                 CodePickPolicy = codePickPolicy,
                 WarehouseAnchorTexts = warehouseAnchors,
+                WarehouseTaskIdentifier = warehouseTaskIdentifier,
             };
         }
         catch (Exception ex)
@@ -664,11 +742,17 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 AhkProcessName.Trim(),
                 AgentPgDriver.Trim(),
                 AgentPgSsl.Trim(),
-                AgentOptCls.Trim(),
-                AgentIptCls.Trim(),
+                AgentOptWindowClass.Trim(),
+                AgentIptWindowClass.Trim(),
                 AgentConfirmTimeoutMs,
-                AgentClassNN.Trim(),
+                AgentOptParseGridClassNN.Trim(),
+                AgentOptVerifyGridClassNN.Trim(),
+                AgentIptParseGridClassNN.Trim(),
+                AgentIptVerifyGridClassNN.Trim(),
+                AgentOptInputClassNN.Trim(),
+                AgentIptInputClassNN.Trim(),
                 AgentWarehouseEnabled,
+                NormalizeWarehouseTaskIdentifierValue(AgentWarehouseTaskIdentifier),
                 AgentCodePickPolicy.Trim().ToUpperInvariant(),
                 SnapshotLineItems(AgentAppWinItems),
                 SnapshotLineItems(AgentColSpecsItems),
@@ -691,15 +775,27 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             return false;
         if (!string.Equals(left.AgentPgSsl, right.AgentPgSsl, StringComparison.Ordinal))
             return false;
-        if (!string.Equals(left.AgentOptCls, right.AgentOptCls, StringComparison.Ordinal))
+        if (!string.Equals(left.AgentOptWindowClass, right.AgentOptWindowClass, StringComparison.Ordinal))
             return false;
-        if (!string.Equals(left.AgentIptCls, right.AgentIptCls, StringComparison.Ordinal))
+        if (!string.Equals(left.AgentIptWindowClass, right.AgentIptWindowClass, StringComparison.Ordinal))
             return false;
         if (left.AgentConfirmTimeoutMs != right.AgentConfirmTimeoutMs)
             return false;
-        if (!string.Equals(left.AgentClassNN, right.AgentClassNN, StringComparison.Ordinal))
+        if (!string.Equals(left.AgentOptParseGridClassNN, right.AgentOptParseGridClassNN, StringComparison.Ordinal))
+            return false;
+        if (!string.Equals(left.AgentOptVerifyGridClassNN, right.AgentOptVerifyGridClassNN, StringComparison.Ordinal))
+            return false;
+        if (!string.Equals(left.AgentIptParseGridClassNN, right.AgentIptParseGridClassNN, StringComparison.Ordinal))
+            return false;
+        if (!string.Equals(left.AgentIptVerifyGridClassNN, right.AgentIptVerifyGridClassNN, StringComparison.Ordinal))
+            return false;
+        if (!string.Equals(left.AgentOptInputClassNN, right.AgentOptInputClassNN, StringComparison.Ordinal))
+            return false;
+        if (!string.Equals(left.AgentIptInputClassNN, right.AgentIptInputClassNN, StringComparison.Ordinal))
             return false;
         if (left.AgentWarehouseEnabled != right.AgentWarehouseEnabled)
+            return false;
+        if (!string.Equals(left.AgentWarehouseTaskIdentifier, right.AgentWarehouseTaskIdentifier, StringComparison.Ordinal))
             return false;
         if (!string.Equals(left.AgentCodePickPolicy, right.AgentCodePickPolicy, StringComparison.Ordinal))
             return false;
@@ -810,11 +906,17 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         string AhkProcessName,
         string AgentPgDriver,
         string AgentPgSsl,
-        string AgentOptCls,
-        string AgentIptCls,
+        string AgentOptWindowClass,
+        string AgentIptWindowClass,
         int AgentConfirmTimeoutMs,
-        string AgentClassNN,
+        string AgentOptParseGridClassNN,
+        string AgentOptVerifyGridClassNN,
+        string AgentIptParseGridClassNN,
+        string AgentIptVerifyGridClassNN,
+        string AgentOptInputClassNN,
+        string AgentIptInputClassNN,
         bool AgentWarehouseEnabled,
+        string AgentWarehouseTaskIdentifier,
         string AgentCodePickPolicy,
         IReadOnlyList<string> AgentAppWinItems,
         IReadOnlyList<string> AgentColSpecsItems,

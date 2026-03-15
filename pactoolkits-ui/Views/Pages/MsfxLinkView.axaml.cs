@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using System.Linq;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.ViewModels.Pages;
 
@@ -75,5 +76,16 @@ public partial class MsfxLinkView : UserControl
                 vm.ShowAutoLogDetailCommand.Execute(rowData);
                 break;
         }
+    }
+
+    private void OnTaskQueueSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is not MsfxLinkViewModel vm || sender is not DataGrid dg)
+            return;
+
+        var rows = dg.SelectedItems
+            .OfType<MsfxAutoTaskQueueGridRow>()
+            .ToArray();
+        vm.SetSelectedAutoTaskQueueRows(rows);
     }
 }

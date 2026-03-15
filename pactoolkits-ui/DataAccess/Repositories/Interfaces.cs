@@ -247,6 +247,10 @@ public sealed record MsfxInjectTaskQueueRow(
     DateTimeOffset? PickedAt,
     DateTimeOffset? FinishedAt,
     string? ErrMsg);
+public sealed record MsfxReopenInjectTaskResult(
+    long TaskId,
+    string Status,
+    int TotalCodes);
 public sealed record MsfxAutoBoardSnapshot(
     long LastBatchId,
     string LastBatchStatus,
@@ -268,7 +272,6 @@ public sealed record MsfxAutoBoardSnapshot(
     int TaskNewCount,
     int TaskRunningCount,
     int TaskSuccessCount,
-    int TaskPartialCount,
     int TaskFailedCount,
     int TaskCancelledCount);
 
@@ -364,6 +367,7 @@ public interface IMsfxSyncRepo
         CancellationToken ct);
 
     Task<IReadOnlyList<MsfxInjectTaskQueueRow>> GetInjectTaskQueueAsync(int limit, CancellationToken ct);
+    Task<MsfxReopenInjectTaskResult> ReopenInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
 
     Task<bool> ApplyManualMappingAsync(long stagingId, string drugId, string spec, CancellationToken ct);
 
