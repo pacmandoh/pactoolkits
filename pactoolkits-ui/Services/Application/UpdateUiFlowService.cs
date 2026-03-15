@@ -34,6 +34,7 @@ public interface IUpdateUiFlowService
 public sealed class UpdateUiFlowService : IUpdateUiFlowService
 {
     private static readonly TimeSpan UpdateCheckTimeout = TimeSpan.FromSeconds(10);
+    private readonly object _toastGate = new();
 
     private readonly IAppUpdateService _updates;
     private readonly IUpdateSettingsService _updateSettings;
@@ -41,6 +42,8 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
     private readonly IDialogService _dialogs;
     private readonly ISukiToastManager _toastManager;
     private readonly IAppLogger _logger;
+    private ISukiToast? _activeUpdateToast;
+    private string _activeUpdateToastKey = string.Empty;
 
     public UpdateUiFlowService(
         IAppUpdateService updates,
@@ -70,11 +73,21 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
 
         var title = startupMode ? "启动时发现更新" : "发现新版本";
         var content = $"当前 {currentVersion} -> 最新 {latestVersion}";
+        var toastKey = $"{currentVersion}->{latestVersion}";
         ignoreVersionAction ??= () => IgnoreVersionAsync(latestVersion);
 
         await RunOnUiAsync(() =>
         {
-            _toastManager.CreateToast()
+            lock (_toastGate)
+            {
+                if (_activeUpdateToast is not null
+                    && string.Equals(_activeUpdateToastKey, toastKey, StringComparison.Ordinal))
+                    return;
+
+                if (_activeUpdateToast is not null)
+                    _toastManager.Dismiss(_activeUpdateToast);
+
+                _activeUpdateToast = _toastManager.CreateToast()
                 .OfType(NotificationType.Information)
                 .WithTitle(title)
                 .WithContent(content)
@@ -82,6 +95,8 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
                 .WithActionButton("忽略此版本", _toast => FireAndForget(ignoreVersionAction, "update.toast.ignore"), true, SukiButtonStyles.Flat)
                 .WithActionButton("立即更新", _toast => FireAndForget(applyNowAction, "update.toast.apply"), true, SukiButtonStyles.Accent)
                 .Queue();
+                _activeUpdateToastKey = toastKey;
+            }
         });
     }
 
@@ -157,6 +172,7 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
 
     public async Task IgnoreVersionAsync(string version)
     {
+        await DismissActiveUpdateToastAsync().ConfigureAwait(false);
         await _updateSettings.SaveIgnoredVersionAsync(version).ConfigureAwait(false);
         _toasts.Info("应用更新", $"已忽略版本 {version}");
     }
@@ -168,6 +184,7 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
 
         try
         {
+            await DismissActiveUpdateToastAsync().ConfigureAwait(false);
             await RunOnUiAsync(() =>
             {
                 progressBar = new ProgressBar
@@ -259,4 +276,16 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
             }
         });
     }
+
+    private Task DismissActiveUpdateToastAsync()
+        => RunOnUiAsync(() =>
+        {
+            lock (_toastGate)
+            {
+                if (_activeUpdateToast is not null)
+                    _toastManager.Dismiss(_activeUpdateToast);
+                _activeUpdateToast = null;
+                _activeUpdateToastKey = string.Empty;
+            }
+        });
 }

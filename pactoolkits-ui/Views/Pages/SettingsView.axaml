@@ -14,15 +14,15 @@
              x:Name="Root">
     <UserControl.Styles>
         <Style Selector="UserControl#Root TextBox">
-            <Setter Property="Height" Value="38" />
+            <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="UseFloatingWatermark" Value="False" />
         </Style>
         <Style Selector="UserControl#Root ComboBox">
-            <Setter Property="Height" Value="38" />
+            <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
         </Style>
         <Style Selector="UserControl#Root NumericUpDown">
-            <Setter Property="Height" Value="38" />
+            <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
         </Style>
         <Style Selector="UserControl#Root Button.SettingsNavItem">
             <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -132,7 +132,7 @@
                                 <TextBlock Text="地址" VerticalAlignment="Center" />
                                 <TextBox Grid.Row="0" Grid.Column="1"
                                          Width="280"
-                                         Height="38"
+                                         Height="{StaticResource ControlHeightCompact}"
                                          Watermark="例如：127.0.0.1"
                                          UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center"
@@ -154,7 +154,7 @@
                                 <TextBox Grid.Row="2"
                                          Grid.Column="1"
                                          Width="280"
-                                         Height="38"
+                                         Height="{StaticResource ControlHeightCompact}"
                                          Watermark="例如：pactoolkits"
                                          UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center"
@@ -164,7 +164,7 @@
                                 <TextBox Grid.Row="3"
                                          Grid.Column="1"
                                          Width="280"
-                                         Height="38"
+                                         Height="{StaticResource ControlHeightCompact}"
                                          Watermark="例如：postgres"
                                          UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center"
@@ -174,7 +174,7 @@
                                 <TextBox Grid.Row="4"
                                          Grid.Column="1"
                                          Width="280"
-                                         Height="38"
+                                         Height="{StaticResource ControlHeightCompact}"
                                          Watermark="请输入数据库密码"
                                          PasswordChar="●"
                                          UseFloatingWatermark="False"
@@ -410,7 +410,7 @@
                                                          Watermark="输入别名"
                                                          Text="{Binding Alias}"
                                                          Width="280"
-                                                         Height="38"
+                                                         Height="{StaticResource ControlHeightCompact}"
                                                          VerticalAlignment="Center"
                                                          VerticalContentAlignment="Center"
                                                          Padding="10,0"
@@ -520,7 +520,7 @@
                                        VerticalAlignment="Center" />
                             <TextBox Grid.Row="1"
                                      Grid.Column="1"
-                                     Height="38"
+                                     Height="{StaticResource ControlHeightCompact}"
                                      Watermark="例如：^8\\d+$"
                                      UseFloatingWatermark="False"
                                      VerticalContentAlignment="Center"
@@ -651,7 +651,7 @@
                                        VerticalAlignment="Center" />
                             <TextBox Grid.Row="0" Grid.Column="1"
                                      Text="{Binding CurrentSuiteVersion}"
-                                     Height="38"
+                                     Height="{StaticResource ControlHeightCompact}"
                                      Watermark="当前已安装版本"
                                      UseFloatingWatermark="False"
                                      IsEnabled="False"
@@ -684,7 +684,7 @@
                             <TextBox Grid.Row="3"
                                      Grid.Column="1"
                                      Text="{Binding UpdateFeedUrl}"
-                                     Height="38"
+                                     Height="{StaticResource ControlHeightCompact}"
                                      Watermark="留空使用默认更新源"
                                      UseFloatingWatermark="False"
                                      VerticalContentAlignment="Center" />
@@ -702,7 +702,7 @@
                                                Increment="5"
                                                FormatString="N0"
                                                Value="{Binding UpdatePollIntervalMinutes}"
-                                               Height="38" />
+                                               Height="{StaticResource ControlHeightCompact}" />
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding UpdatePollIntervalHint}"
                                            VerticalAlignment="Center"
@@ -718,7 +718,7 @@
                                   ColumnDefinitions="*,Auto"
                                   ColumnSpacing="8">
                                 <TextBox Text="{Binding IgnoredUiVersion}"
-                                         Height="38"
+                                         Height="{StaticResource ControlHeightCompact}"
                                          Watermark="留空表示不忽略任何版本"
                                          UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center" />
@@ -854,7 +854,7 @@
                             <TextBox Grid.Row="4"
                                      Grid.Column="1"
                                      Text="{Binding LoggingDirectory}"
-                                     Height="38"
+                                     Height="{StaticResource ControlHeightCompact}"
                                      Watermark="留空使用默认日志目录"
                                      UseFloatingWatermark="False"
                                      VerticalContentAlignment="Center" />
@@ -894,11 +894,16 @@
                                        Classes="SectionTitle" />
                             <controls:UpdateStatusBadge Status="{Binding MsfxApiBadgeStatus}"
                                                         Label="{Binding MsfxApiBadgeLabel}" />
-                            <suki:InfoBadge Content="MSFX" />
-                            <suki:InfoBadge Content="配置中心"
-                                            Foreground="{DynamicResource BrushInfo}" />
-                            <suki:InfoBadge Content="{Binding MsfxApiHint}"
-                                            Foreground="{DynamicResource BrushDone}" />
+                            <controls:StatusPill Icon="LinkVariant"
+                                                 Text="MSFX"
+                                                 BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                                                 PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                                                 ForegroundBrush="{DynamicResource BrushInfo}" />
+                            <controls:StatusPill Icon="CogOutline"
+                                                 Text="配置中心"
+                                                 BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                                                 PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                                                 ForegroundBrush="{DynamicResource BrushInfo}" />
                         </StackPanel>
 
                         <StackPanel Grid.Column="1"
@@ -925,7 +930,7 @@
                                 <TextBox Grid.Row="0"
                                          Grid.Column="1"
                                          Text="{Binding MsfxGatewayUrl}"
-                                         Height="38"
+                                         Height="{StaticResource ControlHeightCompact}"
                                          Watermark="https://eco.taobao.com/router/rest"
                                          UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center" />
@@ -936,7 +941,7 @@
                                 <TextBox Grid.Row="1"
                                          Grid.Column="1"
                                          Text="{Binding MsfxAppKey}"
-                                         Height="38"
+                                         Height="{StaticResource ControlHeightCompact}"
                                          Watermark="请输入 AppKey"
                                          UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center" />
@@ -949,7 +954,7 @@
                                       ColumnDefinitions="*,40"
                                       ColumnSpacing="8">
                                     <TextBox Text="{Binding MsfxAppSecret}"
-                                             Height="38"
+                                             Height="{StaticResource ControlHeightCompact}"
                                              Watermark="请输入 AppSecret"
                                              PasswordChar="{Binding MsfxAppSecretPasswordChar}"
                                              UseFloatingWatermark="False"
@@ -957,7 +962,7 @@
                                     <Button Grid.Column="1"
                                             Classes="Ghost"
                                             Width="40"
-                                            Height="38"
+                                            Height="{StaticResource ControlHeightCompact}"
                                             Padding="0"
                                             HorizontalContentAlignment="Center"
                                             VerticalContentAlignment="Center"
@@ -989,7 +994,7 @@
                                 <TextBox Grid.Row="3"
                                          Grid.Column="1"
                                          Text="{Binding MsfxSessionToken}"
-                                         Height="38"
+                                         Height="{StaticResource ControlHeightCompact}"
                                          Watermark="非必填，可留空"
                                          UseFloatingWatermark="False"
                                          VerticalContentAlignment="Center" />
@@ -1000,7 +1005,7 @@
                                 <TextBox Grid.Row="4"
                                          Grid.Column="1"
                                          Text="{Binding MsfxRefEntId}"
-                                         Height="38"
+                                         Height="{StaticResource ControlHeightCompact}"
                                          VerticalContentAlignment="Center"
                                          UseFloatingWatermark="False"
                                          Watermark="用于 ref_ent_id / 默认 to_ref_user_id" />

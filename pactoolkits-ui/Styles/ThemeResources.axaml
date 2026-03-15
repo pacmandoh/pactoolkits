@@ -36,7 +36,7 @@
     <x:Double x:Key="SectionHintSize">12</x:Double>
     <x:Double x:Key="SectionHintOpacity">0.75</x:Double>
 
-    <x:Double x:Key="ControlHeightCompact">34</x:Double>
+    <x:Double x:Key="ControlHeightCompact">38</x:Double>
     <Thickness x:Key="CompactPadding">10,8</Thickness>
 
     <x:Double x:Key="RowMinHeight">46</x:Double>

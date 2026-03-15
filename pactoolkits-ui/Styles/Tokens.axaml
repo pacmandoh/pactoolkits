@@ -51,14 +51,14 @@
     </Style>
 
     <Style Selector="Button.Ghost">
-        <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
+        <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
         <Setter Property="Padding" Value="14,0" />
         <Setter Property="CornerRadius" Value="10" />
         <Setter Property="Opacity" Value="0.92" />
     </Style>
 
     <Style Selector="Button.Action">
-        <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
+        <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
         <Setter Property="MinWidth" Value="84" />
         <Setter Property="Padding" Value="14,0" />
         <Setter Property="FontWeight" Value="SemiBold" />

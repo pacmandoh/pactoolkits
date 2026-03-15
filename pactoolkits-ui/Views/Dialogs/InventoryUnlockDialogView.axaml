@@ -38,14 +38,14 @@
             <StackPanel Spacing="6">
                 <TextBlock Text="账户名" Opacity="0.85" />
                 <TextBox IsEnabled="False"
-                         Height="36"
+                         Height="{StaticResource ControlHeightCompact}"
                          Text="pacmandoh" />
             </StackPanel>
 
             <StackPanel Spacing="6">
                 <TextBlock Text="数据库密码" Opacity="0.85" />
                 <TextBox x:Name="PasswordBox"
-                         Height="38"
+                         Height="{StaticResource ControlHeightCompact}"
                          PasswordChar="●"
                          KeyDown="PasswordBox_OnKeyDown"
                          Watermark="请输入数据库密码进行验证" />

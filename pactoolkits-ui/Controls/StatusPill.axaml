@@ -2,7 +2,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="pactoolkits_ui.Controls.StatusPill"
-             x:Name="Root">
+             x:Name="Root"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Center">
     <Border Background="{Binding BackgroundBrush, ElementName=Root}"
             BorderBrush="{Binding PillBorderBrush, ElementName=Root}"
             BorderThickness="1"
@@ -12,11 +14,14 @@
             <icons:MaterialIcon Kind="{Binding Icon, ElementName=Root}"
                                 Width="{Binding IconSize, ElementName=Root}"
                                 Height="{Binding IconSize, ElementName=Root}"
+                                VerticalAlignment="Center"
                                 Foreground="{Binding ForegroundBrush, ElementName=Root}" />
             <TextBlock Text="{Binding Text, ElementName=Root}"
                        FontSize="{Binding TextSize, ElementName=Root}"
+                       VerticalAlignment="Center"
                        Foreground="{Binding ForegroundBrush, ElementName=Root}" />
             <ContentPresenter Content="{Binding SuffixContent, ElementName=Root}"
+                              VerticalAlignment="Center"
                               IsVisible="{Binding HasSuffixContent, ElementName=Root}" />
         </StackPanel>
     </Border>

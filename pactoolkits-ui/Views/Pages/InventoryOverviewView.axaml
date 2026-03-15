@@ -72,11 +72,9 @@
                     
                     <suki:GlassCard Grid.Row="0" Classes="FilterHintCard" IsVisible="{Binding IsSearchPanelVisible}">
                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-                            <TextBox Height="36"
+                            <TextBox Height="{StaticResource ControlHeightCompact}"
                                      x:Name="InventorySearchBox"
                                      IsEnabled="{Binding !IsUiBusy}"
-                                     MinHeight="36"
-                                     MaxHeight="36"
                                      Padding="10,0"
                                      VerticalContentAlignment="Center"
                                      TextWrapping="NoWrap"
@@ -89,7 +87,7 @@
                                 </TextBox.KeyBindings>
                             </TextBox>
 
-                            <Button Grid.Column="1" x:Name="InventorySearchButton" Classes="Action" Height="36" MinWidth="{StaticResource MinWAction}"
+                            <Button Grid.Column="1" x:Name="InventorySearchButton" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
                                     IsEnabled="{Binding !IsUiBusy}"
                                     Command="{Binding SearchCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
@@ -98,7 +96,7 @@
                                 </StackPanel>
                             </Button>
 
-                            <Button Grid.Column="2" Classes="Action" Height="36" MinWidth="{StaticResource MinWAction}"
+                            <Button Grid.Column="2" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
                                     IsEnabled="{Binding !IsUiBusy}"
                                     Command="{Binding ClearSearchCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
@@ -478,7 +476,7 @@
                                 IsEmpty="{Binding IsLowEmpty}"
                                 EmptyText="暂无低库存药品"
                                 EmptyHint="当前筛选条件下没有数据">
-                                <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid LowMissingGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
+                                <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
                                           ItemsSource="{Binding LowStockRows}"
                                           x:Name="LowStockGrid"
                                           PointerReleased="OnLowOrMissingGridPointerReleased"
@@ -505,7 +503,7 @@
                                 IsEmpty="{Binding IsMissingEmpty}"
                                 EmptyText="暂无缺失药品"
                                 EmptyHint="当前筛选条件下没有数据">
-                                <DataGrid Classes="SectionGrid InventoryGrid MissingGrid LowMissingGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
+                                <DataGrid Classes="SectionGrid InventoryGrid MissingGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
                                           ItemsSource="{Binding MissingStockRows}"
                                           x:Name="MissingGrid"
                                           PointerReleased="OnLowOrMissingGridPointerReleased"

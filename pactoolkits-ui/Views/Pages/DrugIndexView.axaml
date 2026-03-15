@@ -23,11 +23,9 @@
                         
                         <suki:GlassCard Grid.Row="0" Classes="FilterHintCard" IsVisible="{Binding IsSearchPanelVisible}">
                             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-                                <TextBox Height="36"
+                                <TextBox Height="{StaticResource ControlHeightCompact}"
                                          x:Name="DrugIndexSearchBox"
                                          IsEnabled="{Binding !IsUiBusy}"
-                                         MinHeight="36"
-                                         MaxHeight="36"
                                          Padding="10,0"
                                          VerticalContentAlignment="Center"
                                          TextWrapping="NoWrap"
@@ -41,7 +39,7 @@
                                     </TextBox.KeyBindings>
                                 </TextBox>
 
-                                <Button Grid.Column="1" x:Name="DrugIndexSearchButton" Classes="Action" Height="36" MinWidth="{StaticResource MinWAction}"
+                                <Button Grid.Column="1" x:Name="DrugIndexSearchButton" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
                                         IsEnabled="{Binding !IsUiBusy}"
                                         Command="{Binding SearchCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
@@ -50,7 +48,7 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Button Grid.Column="2" Classes="Action" Height="36" MinWidth="{StaticResource MinWAction}"
+                                <Button Grid.Column="2" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
                                         IsEnabled="{Binding !IsUiBusy}"
                                         Command="{Binding ClearSearchCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
@@ -352,8 +350,6 @@
                             <StackPanel Spacing="10" Margin="0,0,0,6">
 
                                 <TextBox Height="{StaticResource ControlHeightCompact}"
-                                         MinHeight="{StaticResource ControlHeightCompact}"
-                                         MaxHeight="{StaticResource ControlHeightCompact}"
                                          Padding="10,0"
                                          VerticalContentAlignment="Center"
                                          TextWrapping="NoWrap"
@@ -362,8 +358,6 @@
                                          Text="{Binding EditDrugId, Mode=TwoWay}" />
 
                                 <TextBox Height="{StaticResource ControlHeightCompact}"
-                                         MinHeight="{StaticResource ControlHeightCompact}"
-                                         MaxHeight="{StaticResource ControlHeightCompact}"
                                          Padding="10,0"
                                          VerticalContentAlignment="Center"
                                          TextWrapping="NoWrap"
@@ -378,8 +372,6 @@
                                                Watermark="单盒数量（必填）" />
 
                                 <TextBox Height="{StaticResource ControlHeightCompact}"
-                                         MinHeight="{StaticResource ControlHeightCompact}"
-                                         MaxHeight="{StaticResource ControlHeightCompact}"
                                          Padding="10,0"
                                          VerticalContentAlignment="Center"
                                          TextWrapping="NoWrap"
@@ -388,8 +380,6 @@
                                          Text="{Binding EditRuleKey, Mode=TwoWay}" />
 
                                 <TextBox Height="{StaticResource ControlHeightCompact}"
-                                         MinHeight="{StaticResource ControlHeightCompact}"
-                                         MaxHeight="{StaticResource ControlHeightCompact}"
                                          Padding="10,0"
                                          VerticalContentAlignment="Center"
                                          TextWrapping="NoWrap"
@@ -410,7 +400,7 @@
                         <Grid Grid.Row="4" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}" ColumnDefinitions="*,*" ColumnSpacing="12">
                             <Button Grid.Column="0"
                                     Classes="Action"
-                                    Height="38"
+                                    Height="{StaticResource ControlHeightCompact}"
                                     HorizontalAlignment="Stretch"
                                     Command="{Binding SaveCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
@@ -421,7 +411,7 @@
 
                             <Button Grid.Column="1"
                                     Classes="Action"
-                                    Height="38"
+                                    Height="{StaticResource ControlHeightCompact}"
                                     HorizontalAlignment="Stretch"
                                     Command="{Binding DeleteCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
