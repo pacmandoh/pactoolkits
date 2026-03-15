@@ -1,6 +1,6 @@
 # Pactoolkits UI 日志事件对照与分级
 
-更新时间: 2026-03-01
+更新时间: 2026-03-13
 适用范围: `pactoolkits-ui`
 
 ## 1. 使用说明
@@ -88,6 +88,47 @@
 
 ---
 
+### 2.5 `MSFX` 页面审计日志（非 JSON logger）
+
+`码上放心联调` 页面下方的“运行日志详情”不是 `_logger` 写入的 JSON Line 日志，
+而是页面内审计面板数据，由 `MsfxLinkViewModel.AddAutoLog(...)` 维护。
+
+这类事件:
+
+- 不写入 UI 日志文件
+- 不走 `module/event/message` 统一结构
+- 主要用于联调链路的页面内追踪与人工排查
+
+说明:
+
+- 当前已将部分关键节点同步写入 UI JSON logger，见下方 `MsfxLinkViewModel` 模块事件表
+- 但页面内绝大多数即时轨迹仍以审计面板为主，不做全量持久化
+
+常见阶段名:
+
+- `初始化`
+- `调度`
+- `任务`
+- `批次`
+- `重试`
+- `子码解析`
+- `落库`
+- `上游出库单`
+- `映射`
+- `建任务`
+- `批次结算`
+- `批量映射`
+- `任务重开`
+- `诊断`
+- `审计`
+- `异常`
+- `日志`
+
+如果要排查 `MSFX` 页面联调执行链，优先看页面内审计面板；
+如果要排查 UI 程序异常、保存失败、更新失败等，再看本文件下面的 JSON logger 事件总表。
+
+---
+
 ## 3. 事件名总表（按模块）
 
 ## App
@@ -109,7 +150,9 @@
 - `db.schema.mismatch`
 - `db.schema.ok`
 - `db.schema.incompatible`
+- `db.schema.incompatible.single_path.still_bad`
 - `db.schema.postcheck.refresh.fail`
+- `db.schema.status.refresh.fail`
 - `db.probe.timeout`
 - `db.probe.error`
 - `db.probe.unsuccessful`
@@ -117,6 +160,7 @@
 - `db.startup_check.migrate.retry_on_incompatible`
 - `db.startup_check.migrate.stamp.saved`
 - `db.startup_check.fail`
+- `db.reconnected.migrate.fail`
 - `ahk.startup_autostart.fail`
 - `ahk.startup_autostart.exception`
 - `ahk.top_action.error`
@@ -132,6 +176,17 @@
 - `config.external_apply_fail`
 - `page.refresh.batch_fail`
 - `dispose.safe_execute_fail`
+
+## AppPageBase
+
+- `reload.busy_delay.fail`
+- `reload.db_monitor_unhook.fail`
+- `reload.db_signal_refresh.fail`
+- `reload.db_transport_error`
+- `reload.execute.fail`
+- `reload.get_db_monitor.fail`
+- `reload.get_startup_state.fail`
+- `reload.local.db_transport_error`
 
 ## SettingsVM
 
@@ -168,6 +223,7 @@
 - `inventory.reassign.preview_fail`
 - `inventory.reassign.apply_fail`
 - `inventory.stock.batch_update.one_fail`
+- `inventory.stock.delete_fail`
 - `inventory.external_refresh.reconcile_fail`
 
 ## ScanCodeViewModel
@@ -190,9 +246,35 @@
 - `tools.dispose.appwin_collection_unsub_fail`
 - `tools.dispose.colspecs_collection_unsub_fail`
 - `tools.dispose.intcols_collection_unsub_fail`
+- `tools.dispose.warehouse_anchors_collection_unsub_fail`
 - `tools.dispose.appwin_item_unsub_fail`
 - `tools.dispose.colspecs_item_unsub_fail`
 - `tools.dispose.intcols_item_unsub_fail`
+- `tools.dispose.warehouse_anchor_item_unsub_fail`
+
+## MsfxLinkViewModel
+
+- `msfx.auto.run.start`
+- `msfx.auto.batch.created`
+- `msfx.auto.map.summary`
+- `msfx.auto.task_build.summary`
+- `msfx.auto.run.finish`
+- `msfx.auto.run.fail`
+- `msfx.auto.batch_finalize.fail`
+- `msfx.task.reopen.success`
+- `msfx.task.reopen.fail`
+- `msfx.map.batch.apply`
+- `msfx.map.batch.mark_review`
+- `msfx.map.manual.mark_review`
+- `msfx.map.manual.apply`
+- `msfx.audit.diagnose.pending_without_match`
+- `msfx.audit.snapshot.refresh_fail`
+
+说明:
+
+- `msfx.auto.*` 里的开始/汇总/完成类事件主要为 `Info`
+- 人工介入且需要保留审计可见性的事件，如 `msfx.task.reopen.success`、`msfx.map.batch.apply`、`msfx.map.manual.apply`，按 `Warn` 记录
+- 失败类事件按 `Error`
 
 ## DashboardViewModel
 
@@ -207,6 +289,9 @@
 
 ## DrugIndexViewModel
 
+- `drug_index.fix_key.concurrency_conflict`
+- `drug_index.fix_key.fail`
+- `drug_index.import_clipboard.fail`
 - `drug_index.save.concurrency_conflict`
 - `drug_index.save.fail`
 - `drug_index.reload.fail`
@@ -259,6 +344,8 @@
 - `update.check.cancel`
 - `update.check.timeout`
 - `update.check.error`
+- `update.toast.ignore`
+- `update.toast.apply`
 - `update.apply.flow_fail`
 
 ## PgDb
