@@ -39,7 +39,7 @@
                             VerticalAlignment="Center">
                     <TextBlock Text="码上放心联调"
                                Classes="SectionTitle" />
-                    <TextBlock Text="上游出库单与子码链路联调，支持自动化监控编排"
+                    <TextBlock Text="上游出库单与子码链路联调"
                                Classes="SectionHint" />
                 </StackPanel>
 
@@ -47,9 +47,18 @@
                             Orientation="Horizontal"
                             Spacing="8"
                             VerticalAlignment="Center">
-                    <suki:InfoBadge Content="MSFX" />
-                    <suki:InfoBadge Content="生产链路"
-                                    Foreground="{DynamicResource BrushDone}" />
+                    <controls:StatusPill Icon="LinkVariant"
+                                         Text="MSFX"
+                                         BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                                         PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                                         ForegroundBrush="{DynamicResource BrushInfo}"
+                                         VerticalAlignment="Center" />
+                    <controls:StatusPill Icon="CheckCircleOutline"
+                                         Text="生产链路"
+                                         BackgroundBrush="{DynamicResource BrushDoneBg25}"
+                                         PillBorderBrush="{DynamicResource BrushDoneBg50}"
+                                         ForegroundBrush="{DynamicResource BrushDone}"
+                                         VerticalAlignment="Center" />
                 </StackPanel>
             </Grid>
         </suki:GlassCard>
@@ -186,18 +195,18 @@
                                                         VerticalAlignment="Center" />
                                 </Border>
 
-                                <TextBlock Grid.Column="1"
+                                <TextBlock Grid.Row="0" Grid.Column="1"
                                            Text="{Binding AutoStatus}"
                                            VerticalAlignment="Center"
                                            Opacity="0.9"
                                            TextTrimming="CharacterEllipsis" />
 
-                                <suki:InfoBadge Grid.Column="2"
+                                <suki:InfoBadge Grid.Row="0" Grid.Column="2"
                                                 Content="{Binding AutoIntervalMinutes, StringFormat=轮询 {0} 分}"
                                                 VerticalAlignment="Center" />
 
                                 <ProgressBar Grid.Row="1"
-                                             Grid.ColumnSpan="2"
+                                             Grid.ColumnSpan="2" Grid.Column="0"
                                              Minimum="0"
                                              Maximum="100"
                                              Value="{Binding AutoRunProgressValue}"
@@ -240,7 +249,10 @@
                                         <TextBlock Text="拉取批次明细" FontWeight="SemiBold" Opacity="0.9" VerticalAlignment="Center" />
                                         <TextBlock Text="{Binding AutoPullSummary}" Classes="SectionHint" VerticalAlignment="Center" />
                                     </StackPanel>
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <StackPanel Grid.Column="2"
+                                                Orientation="Horizontal"
+                                                Spacing="6"
+                                                VerticalAlignment="Center">
                                         <suki:InfoBadge Content="{Binding AutoPullBatchRows.Count, StringFormat=共 {0} 条}" VerticalAlignment="Center" />
                                         <Button Classes="Ghost MsfxMiniIconBtn"
                                                 Command="{Binding ToggleAutoPanelExpandCommand}"
@@ -308,7 +320,10 @@
                                         <TextBlock Text="映射结果队列" FontWeight="SemiBold" Opacity="0.9" VerticalAlignment="Center" />
                                         <TextBlock Text="{Binding AutoMapSummary}" Classes="SectionHint" VerticalAlignment="Center" />
                                     </StackPanel>
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <StackPanel Grid.Column="2"
+                                                Orientation="Horizontal"
+                                                Spacing="6"
+                                                VerticalAlignment="Center">
                                         <Button Classes="Ghost MsfxMiniIconBtn"
                                                 Command="{Binding OpenMapBatchDialogCommand}">
                                             <icons:MaterialIcon Kind="TableLargePlus" Width="15" Height="15" />
@@ -430,6 +445,13 @@
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <suki:InfoBadge Content="{Binding AutoTaskQueueRows.Count, StringFormat=共 {0} 条}" VerticalAlignment="Center" />
                                         <Button Classes="Ghost MsfxMiniIconBtn"
+                                                behaviors:FocusClearBehavior.SuppressGridClear="True"
+                                                IsEnabled="{Binding CanBatchReopenSelectedTasks}"
+                                                Command="{Binding ReopenSelectedTaskCommand}">
+                                            <icons:MaterialIcon Kind="Restart" Width="15" Height="15" />
+                                        </Button>
+                                        <Button Classes="Ghost MsfxMiniIconBtn"
+                                                behaviors:FocusClearBehavior.SuppressGridClear="True"
                                                 Command="{Binding ToggleAutoPanelExpandCommand}"
                                                 CommandParameter="TASK">
                                             <icons:MaterialIcon Kind="Fullscreen" Width="15" Height="15" />
@@ -444,6 +466,8 @@
                                               Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid CellTemplateHighlightGrid"
                                               ItemsSource="{Binding AutoTaskQueueRows}"
                                               SelectedItem="{Binding SelectedAutoTaskQueueRow, Mode=TwoWay}"
+                                              SelectionChanged="OnTaskQueueSelectionChanged"
+                                              SelectionMode="Extended"
                                               HeadersVisibility="All"
                                               GridLinesVisibility="All"
                                               HorizontalScrollBarVisibility="Auto">
@@ -465,7 +489,7 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTextColumn Header="任务ID" Binding="{Binding TaskId}" Width="90" />
+                                            <DataGridTextColumn Header="任务ID" Binding="{Binding TaskId}" Width="110" />
                                             <DataGridTextColumn Header="单据编码" Binding="{Binding SourceBillCode}" Width="220" />
                                             <DataGridTextColumn Header="目标药品/规格" Binding="{Binding Target}" Width="260" />
                                             <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="100" />
@@ -544,7 +568,7 @@
                         </suki:GlassCard>
                         </Grid>
 
-                        <suki:GlassCard Grid.RowSpan="2"
+                        <suki:GlassCard Grid.Row="0" Grid.RowSpan="2"
                                         Grid.ColumnSpan="2"
                                         Classes="SectionCard"
                                         Padding="12,10"
@@ -564,12 +588,25 @@
                                                 Height="{StaticResource ControlHeightCompact}"
                                                 MinWidth="110"
                                                 Command="{Binding OpenMapBatchDialogCommand}">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <icons:MaterialIcon Kind="TableLargePlus" Width="15" Height="15" />
+                                                    <TextBlock Text="批量映射" />
+                                                </StackPanel>
+                                        </Button>
+                                        <Button Classes="Action"
+                                                IsVisible="{Binding IsTaskPanelExpanded}"
+                                                behaviors:FocusClearBehavior.SuppressGridClear="True"
+                                                IsEnabled="{Binding CanBatchReopenSelectedTasks}"
+                                                Height="{StaticResource ControlHeightCompact}"
+                                                MinWidth="110"
+                                                Command="{Binding ReopenSelectedTaskCommand}">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <icons:MaterialIcon Kind="TableLargePlus" Width="15" Height="15" />
-                                                <TextBlock Text="批量映射" />
+                                                <icons:MaterialIcon Kind="Restart" Width="15" Height="15" />
+                                                <TextBlock Text="批量重开" />
                                             </StackPanel>
                                         </Button>
                                         <Button Classes="Ghost"
+                                                behaviors:FocusClearBehavior.SuppressGridClear="True"
                                                 Width="{StaticResource ControlHeightCompact}"
                                                 Height="{StaticResource ControlHeightCompact}"
                                                 MinWidth="{StaticResource ControlHeightCompact}"
@@ -801,6 +838,8 @@
                                               Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid CellTemplateHighlightGrid"
                                               ItemsSource="{Binding AutoTaskQueueRows}"
                                               SelectedItem="{Binding SelectedAutoTaskQueueRow, Mode=TwoWay}"
+                                              SelectionChanged="OnTaskQueueSelectionChanged"
+                                              SelectionMode="Extended"
                                               HeadersVisibility="All"
                                               GridLinesVisibility="All"
                                               HorizontalScrollBarVisibility="Auto">
@@ -822,7 +861,7 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTextColumn Header="任务ID" Binding="{Binding TaskId}" Width="90" />
+                                            <DataGridTextColumn Header="任务ID" Binding="{Binding TaskId}" Width="110" />
                                             <DataGridTextColumn Header="单据编码" Binding="{Binding SourceBillCode}" Width="220" />
                                             <DataGridTextColumn Header="目标药品/规格" Binding="{Binding Target}" Width="260" />
                                             <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="100" />

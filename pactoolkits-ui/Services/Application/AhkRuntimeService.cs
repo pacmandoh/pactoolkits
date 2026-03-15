@@ -545,9 +545,14 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
         var agent = cfg.AutomationTools.Agent;
         if (string.IsNullOrWhiteSpace(agent.PgDriver)
             || string.IsNullOrWhiteSpace(agent.PgSsl)
-            || string.IsNullOrWhiteSpace(agent.OptCls)
-            || string.IsNullOrWhiteSpace(agent.IptCls)
-            || string.IsNullOrWhiteSpace(agent.ClassNN))
+            || string.IsNullOrWhiteSpace(agent.OptWindowClass)
+            || string.IsNullOrWhiteSpace(agent.IptWindowClass)
+            || string.IsNullOrWhiteSpace(agent.OptParseGridClassNN)
+            || string.IsNullOrWhiteSpace(agent.OptVerifyGridClassNN)
+            || string.IsNullOrWhiteSpace(agent.IptParseGridClassNN)
+            || string.IsNullOrWhiteSpace(agent.IptVerifyGridClassNN)
+            || string.IsNullOrWhiteSpace(agent.OptInputClassNN)
+            || string.IsNullOrWhiteSpace(agent.IptInputClassNN))
         {
             return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent 文本字段不完整");
         }
@@ -566,6 +571,9 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
         {
             return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.CodePickPolicy 仅支持 MAX_LEVEL/MIN_LEVEL");
         }
+
+        if (string.IsNullOrWhiteSpace(agent.WarehouseTaskIdentifier))
+            return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.WarehouseTaskIdentifier 不能为空");
 
         return new ToolCommandResult(true, "ok");
     }
