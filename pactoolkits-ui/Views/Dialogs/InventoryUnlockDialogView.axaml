@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              mc:Ignorable="d"
              d:DesignWidth="360" d:DesignHeight="340"
              x:Class="pactoolkits_ui.Views.Dialogs.InventoryUnlockDialogView"
@@ -16,7 +16,7 @@
                     Height="44"
                     CornerRadius="22"
                     HorizontalAlignment="Center">
-                <icons:MaterialIcon Kind="Security"
+                <icons:AppIcon Kind="Shield"
                                     Width="24"
                                     Height="24"
                                     HorizontalAlignment="Center"

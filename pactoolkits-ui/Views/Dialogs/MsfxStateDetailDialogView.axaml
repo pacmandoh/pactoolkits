@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              xmlns:dialogs="clr-namespace:pactoolkits_ui.Views.Dialogs"
              x:Class="pactoolkits_ui.Views.Dialogs.MsfxStateDetailDialogView"
              x:DataType="dialogs:MsfxStateDetailDialogModel">
@@ -14,7 +14,7 @@
                         Height="44"
                         CornerRadius="22"
                         Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                    <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                    <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                         Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                         Width="24"
                                         Height="24"
@@ -32,7 +32,7 @@
                     CornerRadius="12"
                     Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                    <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                    <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                         Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                         Width="18"
                                         Height="18"

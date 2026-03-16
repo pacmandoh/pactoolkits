@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:con="https://github.com/kikipoulet/SukiUI"
         xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-        xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
         xmlns:controls="clr-namespace:pactoolkits_ui.Controls">
     <Style Selector="sukiControls|BusyArea[IsBusy=true]">
         <Setter Property="IsEnabled" Value="False" />
@@ -110,7 +110,7 @@
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center">
                         <StackPanel Spacing="10" HorizontalAlignment="Center">
-                            <materialIcons:MaterialIcon
+                            <icons:AppIcon
                                 Kind="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}"
                                 Width="40" Height="40"
                                 Foreground="{StaticResource BrushWarning}" />

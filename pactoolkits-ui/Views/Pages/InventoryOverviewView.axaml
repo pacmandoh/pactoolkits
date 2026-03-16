@@ -5,7 +5,7 @@
              xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
              xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              xmlns:behaviors="clr-namespace:pactoolkits_ui.Behaviors"
              mc:Ignorable="d"
              d:DesignWidth="1200" d:DesignHeight="800"
@@ -20,12 +20,12 @@
                     <ContextMenu>
                         <MenuItem Header="复制" Click="OnGridRowCopy" CommandParameter="{Binding}">
                             <MenuItem.Icon>
-                                <icons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
+                                <icons:AppIcon Kind="Copy" Width="16" Height="16" />
                             </MenuItem.Icon>
                         </MenuItem>
                         <MenuItem Header="全选" Click="OnGridSelectAll" CommandParameter="{Binding}">
                             <MenuItem.Icon>
-                                <icons:MaterialIcon Kind="SelectAll" Width="16" Height="16" />
+                                <icons:AppIcon Kind="ListChecks" Width="16" Height="16" />
                             </MenuItem.Icon>
                         </MenuItem>
                     </ContextMenu>
@@ -39,22 +39,22 @@
                     <ContextMenu Opened="OnStockDetailContextMenuOpened">
                         <MenuItem Header="编辑" Click="OnStockEditCell">
                             <MenuItem.Icon>
-                                <icons:MaterialIcon Kind="PencilOutline" Width="16" Height="16" />
+                                <icons:AppIcon Kind="Pencil" Width="16" Height="16" />
                             </MenuItem.Icon>
                         </MenuItem>
                         <MenuItem Header="复制" Click="OnGridRowCopy" CommandParameter="{Binding}">
                             <MenuItem.Icon>
-                                <icons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
+                                <icons:AppIcon Kind="Copy" Width="16" Height="16" />
                             </MenuItem.Icon>
                         </MenuItem>
                         <MenuItem Header="全选" Click="OnGridSelectAll" CommandParameter="{Binding}">
                             <MenuItem.Icon>
-                                <icons:MaterialIcon Kind="SelectAll" Width="16" Height="16" />
+                                <icons:AppIcon Kind="ListChecks" Width="16" Height="16" />
                             </MenuItem.Icon>
                         </MenuItem>
                         <MenuItem Header="删除" Click="OnGridRowDelete" CommandParameter="{Binding}">
                             <MenuItem.Icon>
-                                <icons:MaterialIcon Kind="DeleteOutline" Width="16" Height="16" />
+                                <icons:AppIcon Kind="Trash2" Width="16" Height="16" />
                             </MenuItem.Icon>
                         </MenuItem>
                     </ContextMenu>
@@ -91,7 +91,7 @@
                                     IsEnabled="{Binding !IsUiBusy}"
                                     Command="{Binding SearchCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="Magnify" Width="16" Height="16" />
+                                    <icons:AppIcon Kind="Search" Width="16" Height="16" />
                                     <TextBlock Text="搜索" />
                                 </StackPanel>
                             </Button>
@@ -100,7 +100,7 @@
                                     IsEnabled="{Binding !IsUiBusy}"
                                     Command="{Binding ClearSearchCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="BackspaceOutline" Width="16" Height="16" />
+                                    <icons:AppIcon Kind="Delete" Width="16" Height="16" />
                                     <TextBlock Text="清空" />
                                 </StackPanel>
                             </Button>
@@ -110,7 +110,7 @@
                     
                     <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <icons:MaterialIcon Kind="PackageVariant" Width="18" Height="18" />
+                            <icons:AppIcon Kind="Package" Width="18" Height="18" />
                             <TextBlock Text="库存" Classes="SectionTitle" />
                         </StackPanel>
 
@@ -119,7 +119,7 @@
                                    Opacity="{StaticResource SectionHintOpacity}"
                                    ItemSpacing="12">
                             <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsDetailMode}">
-                                <icons:MaterialIcon Kind="ShieldLock"
+                                <icons:AppIcon Kind="LockKeyhole"
                                                     Width="16"
                                                     Height="16"
                                                     VerticalAlignment="Center"
@@ -129,17 +129,17 @@
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding ShowEditSessionState}">
-                                <icons:MaterialIcon Kind="Circle"
-                                                    Width="10"
-                                                    Height="10"
-                                                    VerticalAlignment="Center"
-                                                    Foreground="{Binding !HasPendingChanges, Converter={StaticResource BoolToDoneDangerBrush}}" />
-                                <icons:MaterialIcon Kind="ContentSaveCheckOutline" Width="16" Height="16" />
+                                <Border Width="10"
+                                        Height="10"
+                                        CornerRadius="999"
+                                        VerticalAlignment="Center"
+                                        Background="{Binding !HasPendingChanges, Converter={StaticResource BoolToDoneDangerBrush}}" />
+                                <icons:AppIcon Kind="SaveAll" Width="16" Height="16" />
                                 <TextBlock Text="{Binding EditSessionStateText}" />
                             </StackPanel>
                             
                             <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding Status}">
-                                <icons:MaterialIcon Kind="FormatListNumbered" Width="16" Height="16" />
+                                <icons:AppIcon Kind="ListOrdered" Width="16" Height="16" />
                                 <TextBlock Text="{Binding Status}"
                                            MaxWidth="460"
                                            TextWrapping="NoWrap"
@@ -162,13 +162,13 @@
                                        Height="16"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center">
-                                    <icons:MaterialIcon Kind="Magnify"
+                                    <icons:AppIcon Kind="Search"
                                                         Width="14"
                                                         Height="14"
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center"
                                                         IsVisible="{Binding !IsSearchPanelVisible}" />
-                                    <icons:MaterialIcon Kind="MagnifyRemoveOutline"
+                                    <icons:AppIcon Kind="SearchX"
                                                         Width="14"
                                                         Height="14"
                                                         HorizontalAlignment="Center"
@@ -183,7 +183,7 @@
                                     IsVisible="{Binding ShowRequestUnlock}"
                                     Command="{Binding RequestUnlockCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="ShieldLock"
+                                    <icons:AppIcon Kind="LockKeyhole"
                                                         Width="16"
                                                         Height="16"
                                                         Foreground="{StaticResource BrushWarning}" />
@@ -197,7 +197,7 @@
                                     IsVisible="{Binding ShowLockOperations}"
                                     Command="{Binding LockOperationsCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="ShieldOffOutline"
+                                    <icons:AppIcon Kind="LockKeyholeOpen"
                                                         Width="16"
                                                         Height="16"
                                                         Foreground="{StaticResource BrushDanger}" />
@@ -291,7 +291,7 @@
                                         Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
                                         Padding="8,0">
                                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                                        <icons:MaterialIcon Grid.Column="0"
+                                        <icons:AppIcon Grid.Column="0"
                                                             Kind="Pill"
                                                             Width="15"
                                                             Height="15"
@@ -318,8 +318,8 @@
                                 </Border>
 
                                 <Grid Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                                    <icons:MaterialIcon Grid.Column="0"
-                                                        Kind="TuneVariant"
+                                    <icons:AppIcon Grid.Column="0"
+                                                        Kind="SlidersHorizontal"
                                                         Width="15"
                                                         Height="15"
                                                         VerticalAlignment="Center"
@@ -341,8 +341,8 @@
                                 </Grid>
 
                                 <Grid Grid.Column="2" ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                                    <icons:MaterialIcon Grid.Column="0"
-                                                        Kind="Counter"
+                                    <icons:AppIcon Grid.Column="0"
+                                                        Kind="Hash"
                                                         Width="15"
                                                         Height="15"
                                                         VerticalAlignment="Center"
@@ -359,8 +359,8 @@
                                 </Grid>
 
                                 <Grid Grid.Column="3" ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                                    <icons:MaterialIcon Grid.Column="0"
-                                                        Kind="TextBoxEditOutline"
+                                    <icons:AppIcon Grid.Column="0"
+                                                        Kind="FilePenLine"
                                                         Width="15"
                                                         Height="15"
                                                         VerticalAlignment="Center"

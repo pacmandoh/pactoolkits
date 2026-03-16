@@ -10,7 +10,6 @@ using System.Windows.Input;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Material.Icons;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.Contracts;
 using pactoolkits_ui.Repositories;
@@ -141,7 +140,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private readonly DispatcherTimer _autoTimer;
 
     public override string DisplayName => "码上放心联调";
-    public override MaterialIconKind Icon => MaterialIconKind.CloudSyncOutline;
+    public override string Icon => "CloudCog";
     public override int Index => 5;
     public override ICommand? RefreshCommand => SelectedTabIndex == 0 ? RefreshAutoBoardCommand : null;
     protected override bool AutoRefreshOnDbDisconnected => true;

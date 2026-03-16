@@ -4,7 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              mc:Ignorable="d"
              d:DesignWidth="1200" d:DesignHeight="820"
@@ -18,12 +18,12 @@
                     <ContextMenu>
                         <MenuItem Header="复制" Click="OnGridRowCopy" CommandParameter="{Binding}">
                             <MenuItem.Icon>
-                                <icons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
+                                <icons:AppIcon Kind="Copy" Width="16" Height="16" />
                             </MenuItem.Icon>
                         </MenuItem>
                         <MenuItem Header="全选" Click="OnGridSelectAll" CommandParameter="{Binding}">
                             <MenuItem.Icon>
-                                <icons:MaterialIcon Kind="SelectAll" Width="16" Height="16" />
+                                <icons:AppIcon Kind="ListChecks" Width="16" Height="16" />
                             </MenuItem.Icon>
                         </MenuItem>
                     </ContextMenu>
@@ -47,7 +47,7 @@
                             <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="10">
                                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6"
                                             VerticalAlignment="Center">
-                                    <icons:MaterialIcon Kind="CalendarStartOutline"
+                                    <icons:AppIcon Kind="CalendarRange"
                                                         Width="14"
                                                         Height="14"
                                                         Opacity="{StaticResource SectionHintOpacity}" />
@@ -57,7 +57,7 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
                                             VerticalAlignment="Center">
-                                    <icons:MaterialIcon Kind="CalendarEndOutline"
+                                    <icons:AppIcon Kind="CalendarRange"
                                                         Width="14"
                                                         Height="14"
                                                         Opacity="{StaticResource SectionHintOpacity}" />
@@ -76,7 +76,7 @@
                                         HorizontalAlignment="Right"
                                         VerticalAlignment="Center"
                                         ToolTip.Tip="归位日期">
-                                    <icons:MaterialIcon Kind="Replay"
+                                    <icons:AppIcon Kind="RotateCcw"
                                                         Width="14"
                                                         Height="14" />
                                 </Button>
@@ -101,7 +101,7 @@
                     <suki:GlassCard Grid.Column="1" Classes="FilterFieldCard">
                         <Grid RowDefinitions="Auto,Auto" RowSpacing="11">
                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                                <icons:MaterialIcon Grid.Column="0"
+                                <icons:AppIcon Grid.Column="0"
                                                     Kind="Pill"
                                                     Width="14"
                                                     Height="14"
@@ -123,7 +123,7 @@
                                         HorizontalAlignment="Right"
                                         VerticalAlignment="Center"
                                         ToolTip.Tip="清空筛选">
-                                    <icons:MaterialIcon Kind="CloseCircleOutline"
+                                    <icons:AppIcon Kind="CircleX"
                                                         Width="14"
                                                         Height="14" />
                                 </Button>
@@ -157,7 +157,7 @@
                         <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                             <StackPanel Orientation="Horizontal" Spacing="6"
                                         VerticalAlignment="Center">
-                                <icons:MaterialIcon Kind="TuneVariant"
+                                <icons:AppIcon Kind="SlidersHorizontal"
                                                     Width="14"
                                                     Height="14"
                                                     Opacity="{StaticResource SectionHintOpacity}" />
@@ -178,7 +178,7 @@
                         <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                             <StackPanel Orientation="Horizontal" Spacing="6"
                                         VerticalAlignment="Center">
-                                <icons:MaterialIcon Kind="Laptop"
+                                <icons:AppIcon Kind="Laptop"
                                                     Width="14"
                                                     Height="14"
                                                     Opacity="{StaticResource SectionHintOpacity}" />
@@ -204,7 +204,7 @@
                     <TabItem>
                         <TabItem.Header>
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <icons:MaterialIcon Kind="ChartLine" Width="12" Height="12" />
+                                <icons:AppIcon Kind="ChartLine" Width="12" Height="12" />
                                 <TextBlock Text="总览" />
                             </StackPanel>
                         </TabItem.Header>
@@ -212,7 +212,7 @@
                     <TabItem>
                         <TabItem.Header>
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <icons:MaterialIcon Kind="ClipboardTextOutline" Width="12" Height="12" />
+                                <icons:AppIcon Kind="Clipboard" Width="12" Height="12" />
                                 <TextBlock Text="录入" />
                             </StackPanel>
                         </TabItem.Header>
@@ -220,7 +220,7 @@
                     <TabItem>
                         <TabItem.Header>
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <icons:MaterialIcon Kind="SwapHorizontal" Width="12" Height="12" />
+                                <icons:AppIcon Kind="ArrowRightLeft" Width="12" Height="12" />
                                 <TextBlock Text="事务" />
                             </StackPanel>
                         </TabItem.Header>
@@ -228,7 +228,7 @@
                     <TabItem Classes="NoDivider">
                         <TabItem.Header>
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <icons:MaterialIcon Kind="AlertOctagonOutline" Width="12" Height="12" />
+                                <icons:AppIcon Kind="OctagonAlert" Width="12" Height="12" />
                                 <TextBlock Text="异常" />
                             </StackPanel>
                         </TabItem.Header>
@@ -264,7 +264,7 @@
                                   ColumnDefinitions="Auto,*,Auto"
                                   RowSpacing="8">
 
-                                <icons:MaterialIcon Kind="DatabaseOutline"
+                                <icons:AppIcon Kind="Database"
                                                     Width="18" Height="18" />
 
                                 <TextBlock Grid.Row="0" Grid.Column="1"
@@ -305,7 +305,7 @@
                                   ColumnDefinitions="Auto,*,Auto"
                                   RowSpacing="8">
 
-                                <icons:MaterialIcon Kind="ChartLine"
+                                <icons:AppIcon Kind="ChartLine"
                                                     Width="18" Height="18" />
 
                                 <TextBlock Grid.Row="0" Grid.Column="1"
@@ -346,7 +346,7 @@
                                   ColumnDefinitions="Auto,*,Auto"
                                   RowSpacing="8">
 
-                                <icons:MaterialIcon Kind="CloseCircleOutline"
+                                <icons:AppIcon Kind="CircleX"
                                                     Width="18" Height="18"
                                                     Foreground="{StaticResource BrushWarning}" />
 
@@ -389,7 +389,7 @@
                                   ColumnDefinitions="Auto,*,Auto"
                                   RowSpacing="8">
 
-                                <icons:MaterialIcon Kind="AlertOutline"
+                                <icons:AppIcon Kind="TriangleAlert"
                                                     Width="18" Height="18"
                                                     Foreground="{StaticResource BrushDanger}"
                                                     VerticalAlignment="Center" />
@@ -436,7 +436,7 @@
                                 EmptyHint="当前筛选条件下没有追溯码使用记录">
                                 <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
                                     <Grid ColumnDefinitions="Auto,*,240" ColumnSpacing="10" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="ChartTimelineVariant"
+                                        <icons:AppIcon Kind="ChartSpline"
                                                             Width="18"
                                                             Height="18"
                                                             Foreground="{StaticResource BrushDone}"
@@ -536,8 +536,8 @@
                                 EmptyHint="当前筛选条件下没有取码事务记录">
                                 <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
                                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Grid.Column="0"
-                                                            Kind="ReceiptTextClockOutline"
+                                        <icons:AppIcon Grid.Column="0"
+                                                            Kind="ReceiptText"
                                                             Width="18"
                                                             Height="18"
                                                             VerticalAlignment="Center" />
@@ -576,7 +576,7 @@
                                                                 Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
                                                                 HorizontalAlignment="Center"
                                                                 VerticalAlignment="Center">
-                                                            <icons:MaterialIcon Width="16"
+                                                            <icons:AppIcon Width="16"
                                                                     Height="16"
                                                                     HorizontalAlignment="Center"
                                                                     VerticalAlignment="Center"
@@ -638,7 +638,7 @@
                                 EmptyHint="当前时间范围内没有任何客户端操作">
                                 <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
                                     <Grid ColumnDefinitions="Auto,*,220" ColumnSpacing="10" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="AccountGroupOutline"
+                                        <icons:AppIcon Kind="Users"
                                                             Width="18"
                                                             Height="18"
                                                             Foreground="{StaticResource BrushDone}"
@@ -721,7 +721,7 @@
 
                                     <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10"
                                           VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="TextBoxPlusOutline"
+                                        <icons:AppIcon Kind="FilePlus"
                                                             Width="18"
                                                             Height="18"
                                                             VerticalAlignment="Center" />
@@ -768,7 +768,7 @@
                                                                     Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
                                                                     HorizontalAlignment="Center"
                                                                     VerticalAlignment="Center">
-                                                                <icons:MaterialIcon Width="16"
+                                                                <icons:AppIcon Width="16"
                                                                         Height="16"
                                                                         HorizontalAlignment="Center"
                                                                         VerticalAlignment="Center"
@@ -837,7 +837,7 @@
                         EmptyHint="当前筛选条件下没有录入流水">
                         <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
                             <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-                                <icons:MaterialIcon Kind="TextBoxMultipleOutline"
+                                <icons:AppIcon Kind="NotebookText"
                                                     Width="18"
                                                     Height="18"
                                                     VerticalAlignment="Center" />
@@ -884,7 +884,7 @@
                                                         Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center">
-                                                    <icons:MaterialIcon Width="16"
+                                                    <icons:AppIcon Width="16"
                                                                         Height="16"
                                                                         HorizontalAlignment="Center"
                                                                         VerticalAlignment="Center"
@@ -956,8 +956,8 @@
                         EmptyHint="当前筛选条件下没有取码事务记录">
                         <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
                             <Grid ColumnDefinitions="Auto,*,220,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-                                <icons:MaterialIcon Grid.Column="0"
-                                                    Kind="ReceiptTextClockOutline"
+                                <icons:AppIcon Grid.Column="0"
+                                                    Kind="ReceiptText"
                                                     Width="18"
                                                     Height="18"
                                                     VerticalAlignment="Center" />
@@ -1005,7 +1005,7 @@
                                                         Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center">
-                                                    <icons:MaterialIcon Width="16"
+                                                    <icons:AppIcon Width="16"
                                                                         Height="16"
                                                                         HorizontalAlignment="Center"
                                                                         VerticalAlignment="Center"
@@ -1134,7 +1134,7 @@
                         EmptyHint="当前筛选条件下没有回滚/异常事务">
                         <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
                             <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-                                <icons:MaterialIcon Kind="AlertOctagonOutline"
+                                <icons:AppIcon Kind="OctagonAlert"
                                                     Width="18"
                                                     Height="18"
                                                     Foreground="{StaticResource BrushDanger}"
@@ -1180,7 +1180,7 @@
                                                         Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center">
-                                                    <icons:MaterialIcon Width="16"
+                                                    <icons:AppIcon Width="16"
                                                                         Height="16"
                                                                         HorizontalAlignment="Center"
                                                                         VerticalAlignment="Center"

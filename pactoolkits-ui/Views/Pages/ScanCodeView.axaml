@@ -4,7 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              xmlns:conv="clr-namespace:pactoolkits_ui.Converters"
              xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              mc:Ignorable="d"
@@ -24,7 +24,7 @@
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
                     <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <icons:MaterialIcon Kind="BarcodeScan" Width="18" Height="18" />
+                            <icons:AppIcon Kind="ScanBarcode" Width="18" Height="18" />
                             <TextBlock Text="录入药品选择" Classes="SectionTitle" />
                         </StackPanel>
                         <TextBlock Grid.Column="1"
@@ -40,7 +40,7 @@
                         <suki:GlassCard Grid.Column="0" Classes="FilterFieldCard">
                             <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                                    <icons:MaterialIcon Grid.Column="0"
+                                    <icons:AppIcon Grid.Column="0"
                                                         Kind="Pill"
                                                         Width="14"
                                                         Height="14"
@@ -62,7 +62,7 @@
                                             HorizontalAlignment="Right"
                                             VerticalAlignment="Center"
                                             ToolTip.Tip="清空药品和规格">
-                                        <icons:MaterialIcon Kind="CloseCircleOutline"
+                                        <icons:AppIcon Kind="CircleX"
                                                             Width="14"
                                                             Height="14" />
                                     </Button>
@@ -95,7 +95,7 @@
                         <suki:GlassCard Grid.Column="1" Classes="FilterFieldCard">
                             <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="TuneVariant" Width="14" Height="14" />
+                                    <icons:AppIcon Kind="SlidersHorizontal" Width="14" Height="14" />
                                     <TextBlock Text="规格" Opacity="{StaticResource SectionHintOpacity}" FontSize="12" />
                                 </StackPanel>
                                 <Grid Grid.Row="1">
@@ -116,7 +116,7 @@
                         <suki:GlassCard Grid.Column="2" Classes="FilterFieldCard">
                             <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="PackageVariant" Width="14" Height="14" />
+                                    <icons:AppIcon Kind="PillBottle" Width="14" Height="14" />
                                     <TextBlock Text="单条数量" Opacity="{StaticResource SectionHintOpacity}" FontSize="12" />
                                 </StackPanel>
                                 <Border Grid.Row="1"
@@ -149,7 +149,7 @@
                                   ColumnSpacing="8"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center">
-                                <icons:MaterialIcon Kind="InformationOutline"
+                                <icons:AppIcon Kind="Info"
                                                     Width="16"
                                                     Height="16"
                                                     Foreground="{Binding ContextStatusLevel, Converter={StaticResource ContextStatusToBrush}}"
@@ -172,7 +172,7 @@
                     <TabItem>
                         <TabItem.Header>
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <icons:MaterialIcon Kind="KeyboardOutline" Width="15" Height="15" />
+                                <icons:AppIcon Kind="Keyboard" Width="15" Height="15" />
                                 <TextBlock Text="手动录入" />
                             </StackPanel>
                         </TabItem.Header>
@@ -180,7 +180,7 @@
                         <Grid Margin="0,10,0,0" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="10">
                             <suki:GlassCard Grid.Row="0" Padding="{StaticResource CompactPadding}" Opacity="0.95">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <icons:MaterialIcon Kind="ClipboardTextOutline" Width="16" Height="16" />
+                                    <icons:AppIcon Kind="Clipboard" Width="16" Height="16" />
                                     <TextBlock Text="每行一个追溯码，会根据相应规则筛除不合条件条码"
                                                Classes="SectionHint" />
                                 </StackPanel>
@@ -201,7 +201,7 @@
                             <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
                                 <suki:GlassCard Grid.Column="0" Classes="CounterPillCard">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="CheckCircleOutline" Width="16" Height="16"
+                                        <icons:AppIcon Kind="CircleCheck" Width="16" Height="16"
                                                             Foreground="{StaticResource BrushDone}" />
                                         <TextBlock Text="有效条码数" Opacity="0.8" />
                                         <TextBlock Text="{Binding ValidCodeCount}" FontWeight="Bold"
@@ -211,7 +211,7 @@
 
                                 <suki:GlassCard Grid.Column="1" Classes="CounterPillCard">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="ContentDuplicate" Width="16" Height="16"
+                                        <icons:AppIcon Kind="CopyPlus" Width="16" Height="16"
                                                             Foreground="{StaticResource BrushWarning}" />
                                         <TextBlock Text="重复数" Opacity="0.8" />
                                         <TextBlock Text="{Binding DuplicateCodeCount}" FontWeight="Bold"
@@ -221,7 +221,7 @@
 
                                 <suki:GlassCard Grid.Column="2" Classes="CounterPillCard">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="AlertCircleOutline" Width="16" Height="16"
+                                        <icons:AppIcon Kind="CircleAlert" Width="16" Height="16"
                                                             Foreground="{StaticResource BrushDanger}" />
                                         <TextBlock Text="无效数" Opacity="0.8" />
                                         <TextBlock Text="{Binding InvalidCodeCount}" FontWeight="Bold"
@@ -231,7 +231,7 @@
 
                                 <suki:GlassCard Grid.Column="3" Classes="CounterPillCard">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="FormatListNumbered" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="ListOrdered" Width="16" Height="16" />
                                         <TextBlock Text="总数" Opacity="0.8" />
                                         <TextBlock Text="{Binding TotalCodeCount}" FontWeight="Bold" />
                                     </StackPanel>
@@ -244,7 +244,7 @@
                                         MinWidth="{StaticResource MinWAction}"
                                         Command="{Binding SubmitCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="ContentSaveOutline" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="Save" Width="16" Height="16" />
                                         <TextBlock Text="保存录入" />
                                     </StackPanel>
                                 </Button>
@@ -254,7 +254,7 @@
                                         MinWidth="{StaticResource MinWAction}"
                                         Command="{Binding ClearCodesCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="BackspaceOutline" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="Delete" Width="16" Height="16" />
                                         <TextBlock Text="清空输入" />
                                     </StackPanel>
                                 </Button>
@@ -269,7 +269,7 @@
                     <TabItem>
                         <TabItem.Header>
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <icons:MaterialIcon Kind="CloudSyncOutline" Width="15" Height="15" />
+                                <icons:AppIcon Kind="Cloud" Width="15" Height="15" />
                                 <TextBlock Text="自动拉取" />
                             </StackPanel>
                         </TabItem.Header>
@@ -277,7 +277,7 @@
                         <Grid Margin="0,10,0,0" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
                             <suki:GlassCard Grid.Row="0" Padding="12,10">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <icons:MaterialIcon Kind="LightbulbOutline" Width="16" Height="16" />
+                                    <icons:AppIcon Kind="Lightbulb" Width="16" Height="16" />
                                     <TextBlock Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路"
                                                Classes="SectionHint" />
                                 </StackPanel>
@@ -290,7 +290,7 @@
                                           ColumnSpacing="10"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="Power"
+                                        <icons:AppIcon Kind="Power"
                                                             Width="16"
                                                             Height="16"
                                                             Foreground="{Binding IsAutoFetchEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
@@ -310,7 +310,7 @@
                                             MinWidth="{StaticResource MinWAction}"
                                             Command="{Binding StartAutoFetchCommand}">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <icons:MaterialIcon Kind="PlayCircleOutline" Width="16" Height="16" />
+                                            <icons:AppIcon Kind="CirclePlay" Width="16" Height="16" />
                                             <TextBlock Text="开始任务" />
                                         </StackPanel>
                                     </Button>
@@ -321,7 +321,7 @@
                                             MinWidth="{StaticResource MinWAction}"
                                             Command="{Binding StopAutoFetchCommand}">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <icons:MaterialIcon Kind="StopCircleOutline" Width="16" Height="16" />
+                                            <icons:AppIcon Kind="CircleStop" Width="16" Height="16" />
                                             <TextBlock Text="停止任务" />
                                         </StackPanel>
                                     </Button>
@@ -332,7 +332,7 @@
                                             MinWidth="{StaticResource MinWAction}"
                                             Command="{Binding RetryFailedCommand}">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <icons:MaterialIcon Kind="Replay" Width="16" Height="16" />
+                                            <icons:AppIcon Kind="RotateCcw" Width="16" Height="16" />
                                             <TextBlock Text="重试失败" />
                                         </StackPanel>
                                     </Button>
@@ -349,7 +349,7 @@
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center"
                                           MaxWidth="420">
-                                        <icons:MaterialIcon Kind="InformationOutline"
+                                        <icons:AppIcon Kind="Info"
                                                             Width="16"
                                                             Height="16"
                                                             Foreground="{StaticResource BrushDone}"
@@ -369,7 +369,7 @@
                                 <suki:GlassCard Grid.Column="0" Padding="12,10">
                                     <Grid RowDefinitions="Auto,*" RowSpacing="8">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <icons:MaterialIcon Kind="FormatListBulletedSquare" Width="16" Height="16" />
+                                            <icons:AppIcon Kind="List" Width="16" Height="16" />
                                             <TextBlock Text="任务列表" Classes="SectionTitle" />
                                             <suki:InfoBadge Content="{Binding AutoTasks.Count, StringFormat=共 {0} 项}" />
                                         </StackPanel>
@@ -403,7 +403,7 @@
                                 <suki:GlassCard Grid.Column="1" Padding="12,10">
                                     <Grid RowDefinitions="Auto,*" RowSpacing="8">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <icons:MaterialIcon Kind="History" Width="16" Height="16" />
+                                            <icons:AppIcon Kind="History" Width="16" Height="16" />
                                             <TextBlock Text="最近执行记录" Classes="SectionTitle" />
                                             <suki:InfoBadge Content="{Binding RecentRuns.Count, StringFormat=近 {0} 条}" />
                                         </StackPanel>
@@ -437,7 +437,7 @@
                                 <suki:GlassCard Grid.Column="2" Padding="12,10">
                                     <Grid RowDefinitions="Auto,*" RowSpacing="8">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <icons:MaterialIcon Kind="AlertCircleOutline" Width="16" Height="16" />
+                                            <icons:AppIcon Kind="CircleAlert" Width="16" Height="16" />
                                             <TextBlock Text="失败重试队列" Classes="SectionTitle" />
                                             <suki:InfoBadge Content="{Binding RetryQueue.Count, StringFormat=待重试 {0}}" />
                                         </StackPanel>
@@ -475,14 +475,18 @@
                                         MinWidth="{StaticResource MinWAction}"
                                         Command="{Binding OpenAutoFetchSettingsCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="TuneVariant" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="SlidersHorizontal" Width="16" Height="16" />
                                         <TextBlock Text="参数设置" />
                                     </StackPanel>
                                 </Button>
 
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
                                             VerticalAlignment="Center">
-                                    <icons:MaterialIcon Kind="CircleMedium" Width="16" Height="16" />
+                                    <Border Width="10"
+                                            Height="10"
+                                            CornerRadius="999"
+                                            VerticalAlignment="Center"
+                                            Background="{Binding IsAutoFetchRunning, Converter={StaticResource BoolToDoneDangerBrush}}" />
                                     <TextBlock Text="运行状态：" Opacity="{StaticResource SectionHintOpacity}" />
                                     <TextBlock Text="运行中" FontWeight="SemiBold"
                                                IsVisible="{Binding IsAutoFetchRunning}" />

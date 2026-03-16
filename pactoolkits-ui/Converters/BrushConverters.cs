@@ -6,7 +6,6 @@ using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using Avalonia.Styling;
-using Material.Icons;
 using pactoolkits_ui.Contracts;
 using pactoolkits_ui.ViewModels.Pages;
 
@@ -128,10 +127,10 @@ public sealed class BadgeToIconKindConverter : IValueConverter
         var badge = ConverterHelpers.NormalizeTxnBadge(value);
         return badge switch
         {
-            TxnBadge.Done => MaterialIconKind.CheckCircleOutline,
-            TxnBadge.Warning => MaterialIconKind.UndoVariant,
-            TxnBadge.Danger => MaterialIconKind.AlertCircleOutline,
-            _ => MaterialIconKind.InformationOutline,
+            TxnBadge.Done => "CircleCheck",
+            TxnBadge.Warning => "Undo",
+            TxnBadge.Danger => "CircleAlert",
+            _ => "Info",
         };
     }
 
@@ -216,11 +215,11 @@ public sealed class TraceEntryStateToIconKindConverter : IValueConverter
         var state = value is TraceEntryState s ? s : TraceEntryState.Unknown;
         return state switch
         {
-            TraceEntryState.Success => MaterialIconKind.CheckCircleOutline,
-            TraceEntryState.Warning => MaterialIconKind.AlertCircleOutline,
-            TraceEntryState.Failed => MaterialIconKind.CloseCircleOutline,
-            TraceEntryState.Info => MaterialIconKind.InformationOutline,
-            _ => MaterialIconKind.InformationOutline,
+            TraceEntryState.Success => "CircleCheck",
+            TraceEntryState.Warning => "CircleAlert",
+            TraceEntryState.Failed => "CircleX",
+            TraceEntryState.Info => "Info",
+            _ => "Info",
         };
     }
 
