@@ -64,9 +64,9 @@ Desktop UI, AutoHotkey automation, and PostgreSQL orchestration for drug trace-c
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.14.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.14.2-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.13.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.2-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.17-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
@@ -233,6 +233,8 @@ The desktop UI now writes the agent runtime targets explicitly. The current key 
 - `OptInputClassNN`: full `ClassNN` for the outpatient input target
 - `IptInputClassNN`: full `ClassNN` for the inpatient / warehouse input target
 
+Grid-style `ClassNN` values such as `TcxGridSite1` and `TcxGridSite2` are resolved by class name plus ordinal index, so the runtime can focus and copy from the intended grid instead of treating the suffix as part of a literal control name.
+
 Related warehouse execution fields:
 
 - `WarehouseEnabled`
@@ -360,9 +362,9 @@ Single source of truth:
 
 Current manifest:
 
-- `suiteVersion`: `0.14.1`
+- `suiteVersion`: `0.14.2`
 - `uiVersion`: `0.13.0`
-- `agentVersion`: `0.5.1`
+- `agentVersion`: `0.5.2`
 - `dbSchemaVersion`: `1.2.17`
 - `uiMinDbSchema`: `1.2.17`
 - `agentMinDbSchema`: `1.2.17`

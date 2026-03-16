@@ -64,9 +64,9 @@
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.14.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.14.2-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.13.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.2-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.17-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
@@ -233,6 +233,8 @@ Agent 是自动化执行层，负责对目标窗口进行解析、注入、验�
 - `OptInputClassNN`：门诊输入目标完整 `ClassNN`
 - `IptInputClassNN`：住院 / 仓库输入目标完整 `ClassNN`
 
+像 `TcxGridSite1`、`TcxGridSite2` 这样的 Grid 类 `ClassNN`，运行时会按“基类名 + 序号”解析，这样聚焦和复制时会命中正确的网格控件，而不是把尾部数字当作字面类名的一部分。
+
 与仓库执行直接相关的字段还包括：
 
 - `WarehouseEnabled`
@@ -359,9 +361,9 @@ PacToolkits 当前覆盖的业务场景包括：
 
 当前版本清单：
 
-- `suiteVersion`: `0.14.1`
+- `suiteVersion`: `0.14.2`
 - `uiVersion`: `0.13.0`
-- `agentVersion`: `0.5.1`
+- `agentVersion`: `0.5.2`
 - `dbSchemaVersion`: `1.2.17`
 - `uiMinDbSchema`: `1.2.17`
 - `agentMinDbSchema`: `1.2.17`
