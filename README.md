@@ -64,9 +64,9 @@ Desktop UI, AutoHotkey automation, and PostgreSQL orchestration for drug trace-c
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.14.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.14.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.13.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.17-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
@@ -306,11 +306,12 @@ This folder standardizes versioning, packaging, publishing, and operational depl
 - `create_sync_task.ps1`
   - creates a silent scheduled task for feed synchronization
   - intended for dual-network Windows deployment environments
-  - uses hidden PowerShell execution and interactive logon context
+  - prompts for Windows credentials and registers the task with password logon for more reliable background execution
 - `sync_pactoolkits_uu.ps1`
   - synchronizes update feed payloads to a local folder
   - performs change detection before download
   - prefers BITS and falls back to `Invoke-WebRequest` when BITS fails
+  - only releases the global mutex when the lock is actually acquired
 
 **Operational notes**
 
@@ -359,9 +360,9 @@ Single source of truth:
 
 Current manifest:
 
-- `suiteVersion`: `0.14.0`
+- `suiteVersion`: `0.14.1`
 - `uiVersion`: `0.13.0`
-- `agentVersion`: `0.5.0`
+- `agentVersion`: `0.5.1`
 - `dbSchemaVersion`: `1.2.17`
 - `uiMinDbSchema`: `1.2.17`
 - `agentMinDbSchema`: `1.2.17`
