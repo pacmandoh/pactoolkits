@@ -6,7 +6,7 @@ $Man="releases.stable.json"; $Rel="RELEASES-stable"; $Ast="assets.stable.json"; 
 $Tag="$Sync\tag_manifest.txt"; $Log="$Sync\logs\sync_uu.log"; New-Item -Force -ItemType Directory $Dest,("$Sync\logs")|Out-Null
 
 function L($m){Add-Content -LiteralPath $Log -Value ("[{0}] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"),$m)}
-$mx=New-Object Threading.Mutex($false,"Global\PacDocsSyncUU"); if(-not $mx.WaitOne(0)){L "Skip: running"; exit 0}
+$mx=New-Object Threading.Mutex($false,"Global\PacDocsSyncUU"); $lockTaken=$false; if(-not ($lockTaken=$mx.WaitOne(0))){L "Skip: running"; exit 0}
 
 try{
   $mu="$Base/$Man"; $h=Invoke-WebRequest -Method Head -UseBasicParsing -Uri $mu -TimeoutSec 15
@@ -59,4 +59,4 @@ try{
   Get-ChildItem $Dest -Filter "*.nupkg*" -File | Sort-Object LastWriteTime -Descending | Select-Object -Skip 6 | Remove-Item -Force -ErrorAction SilentlyContinue
 
   Set-Content -LiteralPath $Tag -Value $t -Encoding ascii; L "OK: done ($t)"
-} finally { $mx.ReleaseMutex()|Out-Null }
+} finally { if($lockTaken){ $mx.ReleaseMutex()|Out-Null } }
