@@ -64,9 +64,9 @@
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.14.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.14.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.13.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.17-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
@@ -305,11 +305,12 @@ pactoolkits-db/
 
 - `create_sync_task.ps1`
   - 创建静默计划任务，用于双网 Windows 环境下的更新同步
-  - 使用隐藏 PowerShell 窗口与交互登录上下文
+  - 会提示输入 Windows 凭据，并用 Password logon 注册任务，提升后台执行稳定性
 - `sync_pactoolkits_uu.ps1`
   - 将远端更新源同步到本地目录
   - 先做变更探测，再执行下载
   - 优先走 BITS，失败时自动回退到 `Invoke-WebRequest`
+  - 只有在成功拿到全局 mutex 后才会执行释放，避免误释放
 
 **当前职责补充**
 
@@ -358,9 +359,9 @@ PacToolkits 当前覆盖的业务场景包括：
 
 当前版本清单：
 
-- `suiteVersion`: `0.14.0`
+- `suiteVersion`: `0.14.1`
 - `uiVersion`: `0.13.0`
-- `agentVersion`: `0.5.0`
+- `agentVersion`: `0.5.1`
 - `dbSchemaVersion`: `1.2.17`
 - `uiMinDbSchema`: `1.2.17`
 - `agentMinDbSchema`: `1.2.17`
