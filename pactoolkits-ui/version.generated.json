@@ -1,6 +1,6 @@
 {
-  "suiteVersion": "0.14.0",
-  "agentVersion": "0.5.0",
+  "suiteVersion": "0.14.1",
+  "agentVersion": "0.5.1",
   "uiVersion": "0.13.0",
   "dbSchemaVersion": "1.2.17",
   "compat": {
@@ -9,6 +9,6 @@
   },
   "build": {
     "channel": "stable",
-    "date": "2026-03-15"
+    "date": "2026-03-16"
   }
 }
