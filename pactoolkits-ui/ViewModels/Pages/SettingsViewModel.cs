@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Material.Icons;
 using pactoolkits_ui.Contracts;
 using pactoolkits_ui.DataAccess;
 using pactoolkits_ui.Services.Application;
@@ -25,7 +24,7 @@ public interface ISettingsPage { }
 
 public partial class SettingsViewModel : AppPageBase, ISettingsPage
 {
-    public override MaterialIconKind Icon => MaterialIconKind.Settings;
+    public override string Icon => "Settings";
     public override int Index => 999;
     public override string DisplayName => "设置";
     public override bool ShowInSidebar => false;
@@ -930,6 +929,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
 
         IsBusy = true;
+        IsUpdateChecking = true;
         try
         {
             var options = new UpdateOptions
@@ -942,6 +942,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             };
 
             await _updateSettings.SaveAsync(options).ConfigureAwait(false);
+            await _updates.CheckAsync().ConfigureAwait(false);
             _toast.Success("更新设置", "更新配置已保存");
         }
         catch (Exception ex)
@@ -951,6 +952,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
         finally
         {
+            SyncUpdateStateFromService();
             IsBusy = false;
         }
     }

@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              xmlns:dialogs="clr-namespace:pactoolkits_ui.Views.Dialogs"
              x:Class="pactoolkits_ui.Views.Dialogs.InfoDetailDialogView"
              x:DataType="dialogs:InfoDetailDialogModel">
@@ -11,7 +11,7 @@
         <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                 <Border Width="40" Height="40" CornerRadius="20">
-                    <icons:MaterialIcon Kind="InformationOutline"
+                    <icons:AppIcon Kind="Info"
                                         Width="22"
                                         Height="22"
                                         HorizontalAlignment="Center"

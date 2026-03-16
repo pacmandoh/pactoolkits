@@ -5,8 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using Material.Icons;
-using Material.Icons.Avalonia;
+using pactoolkits_ui.Controls;
 
 namespace pactoolkits_ui.Behaviors;
 
@@ -90,9 +89,9 @@ public class DataGridSortResetBehavior
 
         private Button BuildButton()
         {
-            var icon = new MaterialIcon
+            var icon = new AppIcon
             {
-                Kind = MaterialIconKind.SortVariantRemove,
+                Kind = "ArrowUpDown",
                 Width = 12,
                 Height = 12,
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,

@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Material.Icons;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.Contracts;
 using pactoolkits_ui.Repositories;
@@ -29,7 +28,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private static readonly Lazy<string> CachedClientRaw = new(BuildClientRaw);
 
     public override string DisplayName => "追溯码录入";
-    public override MaterialIconKind Icon => MaterialIconKind.BarcodeScan;
+    public override string Icon => "ScanBarcode";
     public override int Index => 3;
     protected override bool AutoRefreshOnDbDisconnected => true;
     protected override bool AutoRefreshOnDbReconnected => true;

@@ -1,6 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
         x:CompileBindings="False">
     <Style Selector="TextBox">
         <Setter Property="ContextMenu">
@@ -11,7 +11,7 @@
                               InputGesture="{x:Static TextBox.CutGesture}"
                               IsEnabled="{Binding $parent[TextBox].CanCut}">
                         <MenuItem.Icon>
-                            <materialIcons:MaterialIcon Kind="ContentCut" Width="16" Height="16" />
+                            <icons:AppIcon Kind="Scissors" Width="16" Height="16" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="复制"
@@ -19,7 +19,7 @@
                               InputGesture="{x:Static TextBox.CopyGesture}"
                               IsEnabled="{Binding $parent[TextBox].CanCopy}">
                         <MenuItem.Icon>
-                            <materialIcons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
+                            <icons:AppIcon Kind="Copy" Width="16" Height="16" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="粘贴"
@@ -27,7 +27,7 @@
                               InputGesture="{x:Static TextBox.PasteGesture}"
                               IsEnabled="{Binding $parent[TextBox].CanPaste}">
                         <MenuItem.Icon>
-                            <materialIcons:MaterialIcon Kind="ContentPaste" Width="16" Height="16" />
+                            <icons:AppIcon Kind="ClipboardPaste" Width="16" Height="16" />
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator />
@@ -35,7 +35,7 @@
                               Command="{Binding $parent[TextBox].SelectAll}"
                               InputGesture="Ctrl + A">
                         <MenuItem.Icon>
-                            <materialIcons:MaterialIcon Kind="SelectAll" Width="16" Height="16" />
+                            <icons:AppIcon Kind="ListChecks" Width="16" Height="16" />
                         </MenuItem.Icon>
                     </MenuItem>
                 </ContextMenu>

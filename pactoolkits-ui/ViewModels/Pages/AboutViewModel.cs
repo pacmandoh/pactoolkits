@@ -1,4 +1,3 @@
-using Material.Icons;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Windows.Input;
 using System.Collections.ObjectModel;
@@ -31,7 +30,7 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
     }
 
     public override string DisplayName => "关于";
-    public override MaterialIconKind Icon => MaterialIconKind.InformationOutline;
+    public override string Icon => "Info";
     public override int Index => 1001;
     public override bool ShowInSidebar => false;
     public override ICommand? RefreshCommand => null;

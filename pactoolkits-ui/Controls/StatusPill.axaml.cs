@@ -1,14 +1,13 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
-using Material.Icons;
 
 namespace pactoolkits_ui.Controls;
 
 public partial class StatusPill : UserControl
 {
-    public static readonly StyledProperty<MaterialIconKind> IconProperty =
-        AvaloniaProperty.Register<StatusPill, MaterialIconKind>(nameof(Icon), MaterialIconKind.InformationOutline);
+    public static readonly StyledProperty<string> IconProperty =
+        AvaloniaProperty.Register<StatusPill, string>(nameof(Icon), "Info");
 
     public static readonly StyledProperty<string> TextProperty =
         AvaloniaProperty.Register<StatusPill, string>(nameof(Text), string.Empty);
@@ -39,7 +38,7 @@ public partial class StatusPill : UserControl
 
     private bool _hasSuffixContent;
 
-    public MaterialIconKind Icon
+    public string Icon
     {
         get => GetValue(IconProperty);
         set => SetValue(IconProperty, value);

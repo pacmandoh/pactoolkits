@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:con="https://github.com/kikipoulet/SukiUI"
         xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-        xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia">
+        xmlns:icons="clr-namespace:pactoolkits_ui.Controls">
     <Style Selector="con|SukiWindow MenuItem:disabled">
         <Setter Property="Opacity" Value="0.4" />
     </Style>
@@ -39,7 +39,9 @@
         <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor5}" />
     </Style>
 
-    <Style Selector="Button.SidebarCompactAction > materialIcons|MaterialIcon">
+    <Style Selector="Button.SidebarCompactAction > icons|AppIcon">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
         <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
     </Style>
 
@@ -70,8 +72,13 @@
         </Setter>
     </Style>
 
-    <Style Selector="Button.SidebarCompactAction.ActiveCompactAction > materialIcons|MaterialIcon">
+    <Style Selector="Button.SidebarCompactAction.ActiveCompactAction > icons|AppIcon">
         <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor}" />
+    </Style>
+
+    <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem > icons|AppIcon">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
     </Style>
 
     <Style Selector="con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border">

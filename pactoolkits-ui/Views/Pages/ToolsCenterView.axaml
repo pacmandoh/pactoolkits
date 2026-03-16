@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              xmlns:simpleicons="clr-namespace:IconPacks.Avalonia.SimpleIcons;assembly=IconPacks.Avalonia.SimpleIcons"
              xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
@@ -19,7 +19,7 @@
               KeyboardNavigation.TabNavigation="Cycle">
             <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <icons:MaterialIcon Kind="Syringe" Width="18" Height="18" />
+                    <icons:AppIcon Kind="Syringe" Width="18" Height="18" />
                     <StackPanel Spacing="2" VerticalAlignment="Center">
                         <TextBlock Text="自动化套件" Classes="SectionTitle" />
                         <TextBlock Text="PacInjector 与自动化运行参数配置" Classes="SectionHint" />
@@ -34,21 +34,21 @@
                                Classes="SectionHint"
                                VerticalAlignment="Center" />
                     <controls:StatusPill IsVisible="{Binding IsAhkStatusUnknown}"
-                                         Icon="HelpCircleOutline"
+                                         Icon="BadgeQuestionMark"
                                          Text="{Binding AhkStatusText}"
                                          BackgroundBrush="{DynamicResource BrushInfoBg15}"
                                          PillBorderBrush="{DynamicResource BrushInfoBg35}"
                                          ForegroundBrush="{DynamicResource BrushInfo}"
                                          VerticalAlignment="Center" />
                     <controls:StatusPill IsVisible="{Binding IsAhkStatusRunning}"
-                                         Icon="CheckCircleOutline"
+                                         Icon="CircleCheck"
                                          Text="{Binding AhkStatusText}"
                                          BackgroundBrush="{DynamicResource BrushDoneBg25}"
                                          PillBorderBrush="{DynamicResource BrushDoneBg50}"
                                          ForegroundBrush="{DynamicResource BrushDone}"
                                          VerticalAlignment="Center" />
                     <controls:StatusPill IsVisible="{Binding IsAhkStatusStopped}"
-                                         Icon="AlertCircleOutline"
+                                         Icon="CircleAlert"
                                          Text="{Binding AhkStatusText}"
                                          BackgroundBrush="{DynamicResource BrushDangerBg15}"
                                          PillBorderBrush="{DynamicResource BrushDangerBg35}"
@@ -59,7 +59,7 @@
 
             <suki:GlassCard Grid.Row="1" Padding="12,10">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <icons:MaterialIcon Kind="LightbulbOutline" Width="16" Height="16" />
+                    <icons:AppIcon Kind="Lightbulb" Width="16" Height="16" />
                     <TextBlock Classes="SectionHint"
                                Text="支持状态检测、开关控制与一键重启" />
                 </StackPanel>
@@ -72,7 +72,7 @@
                           ColumnSpacing="10"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Center">
-                        <icons:MaterialIcon Kind="Power"
+                        <icons:AppIcon Kind="Power"
                                             Width="16"
                                             Height="16"
                                             Foreground="{Binding IsAhkEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
@@ -94,7 +94,7 @@
                             Command="{Binding RestartAhkCommand}"
                             IsEnabled="{Binding !IsAhkToggling}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <icons:MaterialIcon Kind="Replay" Width="16" Height="16" />
+                            <icons:AppIcon Kind="RotateCcw" Width="16" Height="16" />
                             <TextBlock Text="重启" />
                         </StackPanel>
                     </Button>
@@ -106,12 +106,12 @@
                             Command="{Binding SaveAhkSettingsCommand}"
                             IsEnabled="{Binding !IsSavingSettings}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <icons:MaterialIcon Kind="Circle"
-                                                Width="10"
-                                                Height="10"
-                                                VerticalAlignment="Center"
-                                                Foreground="{Binding IsSavedState, Converter={StaticResource BoolToDoneDangerBrush}}" />
-                            <icons:MaterialIcon Kind="ContentSaveOutline" Width="16" Height="16" />
+                            <Border Width="10"
+                                    Height="10"
+                                    CornerRadius="999"
+                                    VerticalAlignment="Center"
+                                    Background="{Binding IsSavedState, Converter={StaticResource BoolToDoneDangerBrush}}" />
+                            <icons:AppIcon Kind="Save" Width="16" Height="16" />
                             <TextBlock Text="保存配置" />
                         </StackPanel>
                     </Button>
@@ -130,12 +130,12 @@
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" MaxWidth="520" HorizontalAlignment="Center"
                           VerticalAlignment="Center">
                         <Panel>
-                            <icons:MaterialIcon Kind="CheckCircleOutline"
+                            <icons:AppIcon Kind="CircleCheck"
                                                 IsVisible="{Binding IsAhkEnabled}"
                                                 Width="16"
                                                 Height="16"
                                                 Foreground="{DynamicResource BrushDone}" />
-                            <icons:MaterialIcon Kind="AlertCircleOutline"
+                            <icons:AppIcon Kind="CircleAlert"
                                                 IsVisible="{Binding !IsAhkEnabled}"
                                                 Width="16"
                                                 Height="16"
@@ -156,7 +156,7 @@
                 <suki:GlassCard x:Name="ToolEditorCard" Grid.Column="0" Classes="SectionCard" Padding="14,12">
                     <Grid RowDefinitions="Auto,*" RowSpacing="10">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <icons:MaterialIcon Kind="WrenchOutline" Width="16" Height="16" />
+                            <icons:AppIcon Kind="Wrench" Width="16" Height="16" />
                             <TextBlock Text="运行参数" Classes="SectionTitle" />
                         </StackPanel>
 
@@ -229,7 +229,7 @@
                                                         Tag="AgentAppWinItemsControl"
                                                         Click="OnAddLineClicked">
                                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <icons:MaterialIcon Kind="Plus" Width="14" Height="14" />
+                                                        <icons:AppIcon Kind="Plus" Width="14" Height="14" />
                                                         <TextBlock Text="新增" />
                                                     </StackPanel>
                                                 </Button>
@@ -248,7 +248,7 @@
                                                                     Classes="Ghost"
                                                                     Command="{Binding DataContext.RemoveAgentAppWinItemCommand, ElementName=Root}"
                                                                     CommandParameter="{Binding .}">
-                                                                <icons:MaterialIcon Kind="Close" Width="14" Height="14" />
+                                                                <icons:AppIcon Kind="X" Width="14" Height="14" />
                                                             </Button>
                                                         </Grid>
                                                     </DataTemplate>
@@ -372,7 +372,7 @@
                                                         Tag="AgentWarehouseAnchorItemsControl"
                                                         Click="OnAddLineClicked">
                                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <icons:MaterialIcon Kind="Plus" Width="14" Height="14" />
+                                                        <icons:AppIcon Kind="Plus" Width="14" Height="14" />
                                                         <TextBlock Text="新增" />
                                                     </StackPanel>
                                                 </Button>
@@ -391,7 +391,7 @@
                                                                     Classes="Ghost"
                                                                     Command="{Binding DataContext.RemoveAgentWarehouseAnchorItemCommand, ElementName=Root}"
                                                                     CommandParameter="{Binding .}">
-                                                                <icons:MaterialIcon Kind="Close" Width="14" Height="14" />
+                                                                <icons:AppIcon Kind="X" Width="14" Height="14" />
                                                             </Button>
                                                         </Grid>
                                                     </DataTemplate>
@@ -414,7 +414,7 @@
                                                         Tag="AgentColSpecsItemsControl"
                                                         Click="OnAddLineClicked">
                                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <icons:MaterialIcon Kind="Plus" Width="14" Height="14" />
+                                                        <icons:AppIcon Kind="Plus" Width="14" Height="14" />
                                                         <TextBlock Text="新增" />
                                                     </StackPanel>
                                                 </Button>
@@ -433,7 +433,7 @@
                                                                     Classes="Ghost"
                                                                     Command="{Binding DataContext.RemoveAgentColSpecsItemCommand, ElementName=Root}"
                                                                     CommandParameter="{Binding .}">
-                                                                <icons:MaterialIcon Kind="Close" Width="14" Height="14" />
+                                                                <icons:AppIcon Kind="X" Width="14" Height="14" />
                                                             </Button>
                                                         </Grid>
                                                     </DataTemplate>
@@ -451,7 +451,7 @@
                                                         Tag="AgentIntColsItemsControl"
                                                         Click="OnAddLineClicked">
                                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <icons:MaterialIcon Kind="Plus" Width="14" Height="14" />
+                                                        <icons:AppIcon Kind="Plus" Width="14" Height="14" />
                                                         <TextBlock Text="新增" />
                                                     </StackPanel>
                                                 </Button>
@@ -470,7 +470,7 @@
                                                                     Classes="Ghost"
                                                                     Command="{Binding DataContext.RemoveAgentIntColsItemCommand, ElementName=Root}"
                                                                     CommandParameter="{Binding .}">
-                                                                <icons:MaterialIcon Kind="Close" Width="14" Height="14" />
+                                                                <icons:AppIcon Kind="X" Width="14" Height="14" />
                                                             </Button>
                                                         </Grid>
                                                     </DataTemplate>
@@ -487,7 +487,7 @@
                 <suki:GlassCard Grid.Column="1" Classes="SectionCard" Padding="14,12">
                     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <icons:MaterialIcon Kind="Chip" Width="16" Height="16" />
+                            <icons:AppIcon Kind="Microchip" Width="16" Height="16" />
                             <TextBlock Text="版本与运行信息" Classes="SectionTitle" />
                         </StackPanel>
 

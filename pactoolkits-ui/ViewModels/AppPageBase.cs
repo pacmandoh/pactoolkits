@@ -8,7 +8,6 @@ using Avalonia;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Material.Icons;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.Contracts;
 using pactoolkits_ui.Services.Infrastructure;
@@ -18,7 +17,7 @@ namespace pactoolkits_ui.ViewModels;
 public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
 {
     public abstract string DisplayName { get; }
-    public abstract MaterialIconKind Icon { get; }
+    public abstract string Icon { get; }
     public abstract int Index { get; }
     public virtual int? BadgeCount => null;
     public virtual bool IsEnabled => true;

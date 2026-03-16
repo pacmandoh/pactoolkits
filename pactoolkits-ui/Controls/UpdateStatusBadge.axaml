@@ -1,27 +1,27 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              x:Class="pactoolkits_ui.Controls.UpdateStatusBadge"
              x:Name="Root">
     <Grid HorizontalAlignment="Left"
           VerticalAlignment="Center">
         <controls:StatusPill IsVisible="{Binding IsUnknown, ElementName=Root}"
-                             Icon="HelpCircleOutline"
+                             Icon="BadgeQuestionMark"
                              Text="{Binding Label, ElementName=Root}"
                              BackgroundBrush="{DynamicResource BrushInfoBg15}"
                              PillBorderBrush="{DynamicResource BrushInfoBg35}"
                              ForegroundBrush="{DynamicResource BrushInfo}" />
 
         <controls:StatusPill IsVisible="{Binding IsUpToDate, ElementName=Root}"
-                             Icon="CheckCircleOutline"
+                             Icon="CircleCheck"
                              Text="{Binding Label, ElementName=Root}"
                              BackgroundBrush="{DynamicResource BrushDoneBg25}"
                              PillBorderBrush="{DynamicResource BrushDoneBg50}"
                              ForegroundBrush="{DynamicResource BrushDone}" />
 
         <controls:StatusPill IsVisible="{Binding IsUpdateAvailable, ElementName=Root}"
-                             Icon="CloudDownloadOutline"
+                             Icon="CloudDownload"
                              Text="{Binding Label, ElementName=Root}"
                              BackgroundBrush="{DynamicResource BrushWarningBg25}"
                              PillBorderBrush="{DynamicResource BrushWarningBg50}"
@@ -30,7 +30,7 @@
                 <StackPanel Orientation="Horizontal"
                             Spacing="6"
                             IsVisible="{Binding ShowLatestVersion, ElementName=Root}">
-                    <icons:MaterialIcon Kind="ArrowRight"
+                    <icons:AppIcon Kind="ArrowRight"
                                         Width="14"
                                         Height="14"
                                         Foreground="{DynamicResource BrushWarning}" />

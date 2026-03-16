@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              xmlns:simpleicons="clr-namespace:IconPacks.Avalonia.SimpleIcons;assembly=IconPacks.Avalonia.SimpleIcons"
              xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
@@ -102,7 +102,7 @@
                 <Grid ColumnDefinitions="Auto,2*,1.2*" ColumnSpacing="12">
                     <suki:GlassCard Width="58" Height="58" CornerRadius="14" Opacity="0.92">
                         <Grid>
-                            <icons:MaterialIcon Kind="AccountTieOutline" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <icons:AppIcon Kind="IdCardLanyard" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Grid>
                     </suki:GlassCard>
 
@@ -116,17 +116,17 @@
 
                     <Grid Grid.Column="2" RowDefinitions="Auto,Auto" RowSpacing="8">
                         <WrapPanel ItemSpacing="6" LineSpacing="6">
-                            <controls:StatusPill Icon="AccountOutline"
+                            <controls:StatusPill Icon="UserRound"
                                                  Text="Owner"
                                                  BackgroundBrush="{DynamicResource BrushInfoBg15}"
                                                  PillBorderBrush="{DynamicResource BrushInfoBg35}"
                                                  ForegroundBrush="{DynamicResource BrushInfo}" />
-                            <controls:StatusPill Icon="ShieldCheckOutline"
+                            <controls:StatusPill Icon="ShieldCheck"
                                                  Text="Maintainer"
                                                  BackgroundBrush="{DynamicResource BrushDoneBg25}"
                                                  PillBorderBrush="{DynamicResource BrushDoneBg50}"
                                                  ForegroundBrush="{DynamicResource BrushDone}" />
-                            <controls:StatusPill Icon="CalendarOutline"
+                            <controls:StatusPill Icon="Calendar"
                                                  Text="2026"
                                                  BackgroundBrush="{DynamicResource BrushInfoBg15}"
                                                  PillBorderBrush="{DynamicResource BrushInfoBg35}"
@@ -134,7 +134,7 @@
                         </WrapPanel>
                         <suki:GlassCard Grid.Row="1" Padding="8,6" Opacity="0.9" CornerRadius="10">
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                                <icons:MaterialIcon Kind="HospitalBuilding" Width="14" Height="14" VerticalAlignment="Center" />
+                                <icons:AppIcon Kind="Hospital" Width="14" Height="14" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="井研县中医医院 · 药剂科" Classes="SectionHint" VerticalAlignment="Center" />
                             </Grid>
                         </suki:GlassCard>
@@ -145,7 +145,7 @@
             <suki:GlassCard Grid.Row="2" Classes="SectionCard" Padding="14,12">
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
-                        <icons:MaterialIcon Kind="TagMultipleOutline" Width="16" Height="16" />
+                        <icons:AppIcon Kind="Tags" Width="16" Height="16" />
                         <TextBlock Grid.Column="1" Text="版本中心" Classes="SectionTitle" />
                     </Grid>
 
@@ -183,7 +183,7 @@
                             </suki:GlassCard.Background>
                             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="DatabaseOutline" Width="16" Height="16" />
+                                    <icons:AppIcon Kind="Database" Width="16" Height="16" />
                                     <TextBlock Text="DB Schema" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <TextBlock Grid.Row="1" Text="{Binding DbSchemaVersion}" FontSize="22" FontWeight="Bold" />
@@ -217,7 +217,7 @@
                             </suki:GlassCard.Background>
                             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="ApplicationOutline" Width="16" Height="16" />
+                                    <icons:AppIcon Kind="AppWindow" Width="16" Height="16" />
                                     <TextBlock Text="UI 客户端" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <TextBlock Grid.Row="1" Text="{Binding UiVersion}" FontSize="22" FontWeight="Bold" />
@@ -247,7 +247,7 @@
             <suki:GlassCard Grid.Row="3" Classes="SectionCard" Padding="12,10">
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <icons:MaterialIcon Kind="InformationOutline" Width="16" Height="16" />
+                        <icons:AppIcon Kind="Cpu" Width="16" Height="16" />
                         <TextBlock Text="核心技术栈" Classes="SectionTitle" />
                     </StackPanel>
 
@@ -272,17 +272,17 @@
                                 </Grid>
                             </suki:GlassCard>
                             <WrapPanel Grid.Row="1" ItemSpacing="6" LineSpacing="6">
-                                <controls:StatusPill Icon="MonitorDashboard"
+                                <controls:StatusPill Icon="MonitorCog"
                                                      Text="Desktop Native"
                                                      BackgroundBrush="{DynamicResource BrushInfoBg15}"
                                                      PillBorderBrush="{DynamicResource BrushInfoBg35}"
                                                      ForegroundBrush="{DynamicResource BrushInfo}" />
-                                <controls:StatusPill Icon="RobotOutline"
+                                <controls:StatusPill Icon="Bot"
                                                      Text="Automation First"
                                                      BackgroundBrush="{DynamicResource BrushDoneBg25}"
                                                      PillBorderBrush="{DynamicResource BrushDoneBg50}"
                                                      ForegroundBrush="{DynamicResource BrushDone}" />
-                                <controls:StatusPill Icon="DatabaseOutline"
+                                <controls:StatusPill Icon="Database"
                                                      Text="Data Driven"
                                                      BackgroundBrush="{DynamicResource BrushInfoBg15}"
                                                      PillBorderBrush="{DynamicResource BrushInfoBg35}"
@@ -414,7 +414,7 @@
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                         <simpleicons:PackIconSimpleIcons Kind="DataGrip" Width="42" Height="42" VerticalAlignment="Top" />
                         <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                            <TextBlock Text="DataGrip" FontWeight="Bold" FontSize="16" />
+                            <TextBlock Text="Database" FontWeight="Bold" FontSize="16" />
                             <TextBlock Text="SQL 调试与数据校验" Opacity="0.95" />
                         </StackPanel>
                     </Grid>
@@ -428,7 +428,7 @@
                         </LinearGradientBrush>
                     </suki:GlassCard.Background>
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <icons:MaterialIcon Kind="CodeTags" Width="42" Height="42" VerticalAlignment="Top" />
+                        <icons:AppIcon Kind="Code" Width="42" Height="42" VerticalAlignment="Top" />
                         <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
                             <TextBlock Text="Visual Studio Code" FontWeight="Bold" FontSize="16" />
                             <TextBlock Text="脚本与轻量编辑工具" Opacity="0.95" />
@@ -442,7 +442,7 @@
             <suki:GlassCard Grid.Row="4" Classes="SectionCard" Padding="12,10">
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                        <icons:MaterialIcon Kind="FlaskOutline" Width="16" Height="16" VerticalAlignment="Center" />
+                        <icons:AppIcon Kind="FlaskConical" Width="16" Height="16" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="1" Text="交互实验室" Classes="SectionTitle" />
                     </Grid>
 
@@ -450,7 +450,7 @@
                         <suki:GlassCard Grid.Column="0" Padding="{StaticResource CompactPadding}" Opacity="0.95">
                             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="ShieldCheckOutline" Width="14" Height="14" />
+                                    <icons:AppIcon Kind="ShieldCheck" Width="14" Height="14" />
                                     <TextBlock Text="稳定性指数" Opacity="0.8" />
                                 </StackPanel>
                                 <TextBlock Grid.Row="1" Text="96%" FontSize="18" FontWeight="Bold" />
@@ -461,7 +461,7 @@
                         <suki:GlassCard Grid.Column="1" Padding="{StaticResource CompactPadding}" Opacity="0.95">
                             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="LightningBoltOutline" Width="14" Height="14" />
+                                    <icons:AppIcon Kind="Zap" Width="14" Height="14" />
                                     <TextBlock Text="响应效率" Opacity="0.8" />
                                 </StackPanel>
                                 <TextBlock Grid.Row="1" Text="89%" FontSize="18" FontWeight="Bold" />
@@ -472,7 +472,7 @@
                         <suki:GlassCard Grid.Column="2" Padding="{StaticResource CompactPadding}" Opacity="0.95">
                             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="DatabaseSyncOutline" Width="14" Height="14" />
+                                    <icons:AppIcon Kind="DatabaseBackup" Width="14" Height="14" />
                                     <TextBlock Text="数据一致性" Opacity="0.8" />
                                 </StackPanel>
                                 <TextBlock Grid.Row="1" Text="92%" FontSize="18" FontWeight="Bold" />
@@ -484,22 +484,22 @@
                     <Grid Grid.Row="2" ColumnDefinitions="1.1*,1.1*,1.1*" ColumnSpacing="10">
                         <suki:GroupBox Header="视觉标记样例">
                             <WrapPanel Margin="8,8,8,8" ItemSpacing="8" LineSpacing="8">
-                                <controls:StatusPill Icon="CheckCircleOutline"
+                                <controls:StatusPill Icon="CircleCheck"
                                                      Text="Online"
                                                      BackgroundBrush="{DynamicResource BrushDoneBg25}"
                                                      PillBorderBrush="{DynamicResource BrushDoneBg50}"
                                                      ForegroundBrush="{DynamicResource BrushDone}" />
-                                <controls:StatusPill Icon="RobotOutline"
+                                <controls:StatusPill Icon="Bot"
                                                      Text="AutoFetch"
                                                      BackgroundBrush="{DynamicResource BrushDoneBg25}"
                                                      PillBorderBrush="{DynamicResource BrushDoneBg50}"
                                                      ForegroundBrush="{DynamicResource BrushDone}" />
-                                <controls:StatusPill Icon="ClockOutline"
+                                <controls:StatusPill Icon="Clock"
                                                      Text="Pending"
                                                      BackgroundBrush="{DynamicResource BrushWarningBg25}"
                                                      PillBorderBrush="{DynamicResource BrushWarningBg50}"
                                                      ForegroundBrush="{DynamicResource BrushWarning}" />
-                                <controls:StatusPill Icon="UndoVariant"
+                                <controls:StatusPill Icon="Undo"
                                                      Text="Rollback"
                                                      BackgroundBrush="{DynamicResource BrushDangerBg15}"
                                                      PillBorderBrush="{DynamicResource BrushDangerBg35}"

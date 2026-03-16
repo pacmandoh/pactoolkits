@@ -10,10 +10,9 @@ using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
-using Material.Icons;
-using Material.Icons.Avalonia;
-using pactoolkits_ui.ViewModels.Pages;
 using pactoolkits_ui.Common;
+using pactoolkits_ui.Controls;
+using pactoolkits_ui.ViewModels.Pages;
 
 namespace pactoolkits_ui.Views.Pages;
 
@@ -214,7 +213,7 @@ public partial class SettingsView : UserControl
         navButton = null!;
 
         var sourceHeader = anchor.Children.OfType<StackPanel>().FirstOrDefault();
-        var sourceIcon = sourceHeader?.Children.OfType<MaterialIcon>().FirstOrDefault();
+        var sourceIcon = sourceHeader?.Children.OfType<AppIcon>().FirstOrDefault();
         var sourceTitle = sourceHeader?.Children.OfType<TextBlock>().FirstOrDefault(text =>
             text.Classes.Contains("SectionTitle") && !string.IsNullOrWhiteSpace(text.Text));
 
@@ -228,9 +227,9 @@ public partial class SettingsView : UserControl
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch
         };
 
-        var icon = new MaterialIcon
+        var icon = new AppIcon
         {
-            Kind = sourceIcon?.Kind ?? MaterialIconKind.CogOutline,
+            Kind = sourceIcon?.Kind ?? "Settings",
             Width = 16,
             Height = 16,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center

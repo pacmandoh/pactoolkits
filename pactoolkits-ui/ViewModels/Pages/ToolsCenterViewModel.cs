@@ -10,7 +10,6 @@ using System.Windows.Input;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Material.Icons;
 using pactoolkits_ui.Services.Application;
 using pactoolkits_ui.Services.Infrastructure;
 
@@ -40,8 +39,10 @@ public sealed class CodePickPolicyOption
 
 public sealed partial class ToolsCenterViewModel : AppPageBase
 {
+    private readonly record struct SaveOptionsResult(bool Saved, bool Changed);
+
     public override string DisplayName => "自动化套件";
-    public override MaterialIconKind Icon => MaterialIconKind.TuneVariant;
+    public override string Icon => "Syringe";
     public override int Index => 4;
     public override ICommand? RefreshCommand => _refreshRuntimeCommand;
 
@@ -237,11 +238,25 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         IsSavingSettings = true;
         try
         {
-            var saved = await SaveOptionsToConfigAsync(showToastOnError: true).ConfigureAwait(false);
-            if (!saved)
+            var result = await SaveOptionsToConfigAsync(showToastOnError: true).ConfigureAwait(false);
+            if (!result.Saved)
                 return;
 
-            _toast.Success("自动化套件", "配置已保存");
+            var restarted = false;
+            if (result.Changed && _ahkRuntime.IsRunning)
+            {
+                var restart = await _ahkRuntime.StartOrRestartAsync().ConfigureAwait(false);
+                if (!restart.Ok)
+                {
+                    if (!restart.SuppressToast)
+                        _toast.Error("自动化套件", restart.Message);
+                    return;
+                }
+
+                restarted = true;
+            }
+
+            _toast.Success("自动化套件", restarted ? "配置已保存，Agent 已重启" : "配置已保存");
             ApplyRuntimeSnapshot();
             LoadAgentConfigSnapshot();
         }
@@ -347,7 +362,8 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     {
         try
         {
-            return await SaveOptionsToConfigAsync(showToastOnError: true).ConfigureAwait(false);
+            var result = await SaveOptionsToConfigAsync(showToastOnError: true).ConfigureAwait(false);
+            return result.Saved;
         }
         catch (Exception ex)
         {
@@ -357,35 +373,92 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         }
     }
 
-    private async Task<bool> SaveOptionsToConfigAsync(bool showToastOnError)
+    private async Task<SaveOptionsResult> SaveOptionsToConfigAsync(bool showToastOnError)
     {
         var parsedAgent = ParseAgentOptionsForSave();
         if (parsedAgent is null)
-            return false;
+            return new SaveOptionsResult(false, false);
 
         try
         {
             var cfg = _configStore.Load();
-            cfg.AutomationTools.Ahk = new AhkToolOptions
+            var nextAhk = new AhkToolOptions
             {
                 ExecutablePath = AhkExecutablePath,
                 ProcessName = AhkProcessName
             };
+            var changed = !SameAhkOptions(cfg.AutomationTools.Ahk, nextAhk)
+                || !SameAgentOptions(cfg.AutomationTools.Agent, parsedAgent);
+
+            if (!changed)
+            {
+                _savedSnapshot = BuildCurrentSnapshot();
+                _baselineReady = _savedSnapshot is not null;
+                NotifyPendingChangesState();
+                return new SaveOptionsResult(true, false);
+            }
+
+            cfg.AutomationTools.Ahk = nextAhk;
             cfg.AutomationTools.Agent = parsedAgent;
             await _configStore.SaveAsync(cfg).ConfigureAwait(false);
             _ahkRuntime.Reload();
             _savedSnapshot = BuildCurrentSnapshot();
             _baselineReady = _savedSnapshot is not null;
             NotifyPendingChangesState();
-            return true;
+            return new SaveOptionsResult(true, true);
         }
         catch (Exception ex)
         {
             LogError("tools.save_options.fail", "Failed to save tool options to config", ex);
             if (showToastOnError)
                 _toast.Error("自动化套件", $"配置保存失败：{ex.Message}");
-            return false;
+            return new SaveOptionsResult(false, false);
         }
+    }
+
+    private static bool SameAhkOptions(AhkToolOptions left, AhkToolOptions right)
+        => string.Equals(left.ExecutablePath?.Trim(), right.ExecutablePath?.Trim(), StringComparison.Ordinal)
+           && string.Equals(left.ProcessName?.Trim(), right.ProcessName?.Trim(), StringComparison.Ordinal);
+
+    private static bool SameAgentOptions(AgentToolOptions left, AgentToolOptions right)
+    {
+        static string Norm(string? value) => (value ?? string.Empty).Trim();
+
+        static bool SameList(IReadOnlyList<string> a, IReadOnlyList<string> b)
+            => a.Count == b.Count && a.Select(Norm).SequenceEqual(b.Select(Norm), StringComparer.Ordinal);
+
+        static bool SameAppWin(IReadOnlyDictionary<string, int> a, IReadOnlyDictionary<string, int> b)
+        {
+            if (a.Count != b.Count)
+                return false;
+
+            foreach (var kv in a)
+            {
+                if (!b.TryGetValue(kv.Key, out var value) || value != kv.Value)
+                    return false;
+            }
+
+            return true;
+        }
+
+        return string.Equals(Norm(left.PgDriver), Norm(right.PgDriver), StringComparison.Ordinal)
+               && string.Equals(Norm(left.PgSsl), Norm(right.PgSsl), StringComparison.OrdinalIgnoreCase)
+               && string.Equals(Norm(left.OptWindowClass), Norm(right.OptWindowClass), StringComparison.Ordinal)
+               && string.Equals(Norm(left.IptWindowClass), Norm(right.IptWindowClass), StringComparison.Ordinal)
+               && left.ConfirmTimeoutMs == right.ConfirmTimeoutMs
+               && string.Equals(Norm(left.OptParseGridClassNN), Norm(right.OptParseGridClassNN), StringComparison.Ordinal)
+               && string.Equals(Norm(left.OptVerifyGridClassNN), Norm(right.OptVerifyGridClassNN), StringComparison.Ordinal)
+               && string.Equals(Norm(left.IptParseGridClassNN), Norm(right.IptParseGridClassNN), StringComparison.Ordinal)
+               && string.Equals(Norm(left.IptVerifyGridClassNN), Norm(right.IptVerifyGridClassNN), StringComparison.Ordinal)
+               && string.Equals(Norm(left.OptInputClassNN), Norm(right.OptInputClassNN), StringComparison.Ordinal)
+               && string.Equals(Norm(left.IptInputClassNN), Norm(right.IptInputClassNN), StringComparison.Ordinal)
+               && left.WarehouseEnabled == right.WarehouseEnabled
+               && string.Equals(Norm(left.CodePickPolicy), Norm(right.CodePickPolicy), StringComparison.Ordinal)
+               && string.Equals(Norm(left.WarehouseTaskIdentifier), Norm(right.WarehouseTaskIdentifier), StringComparison.Ordinal)
+               && SameList(left.ColSpecs, right.ColSpecs)
+               && SameList(left.IntCols, right.IntCols)
+               && SameList(left.WarehouseAnchorTexts, right.WarehouseAnchorTexts)
+               && SameAppWin(left.AppWin, right.AppWin);
     }
 
     private void ApplyRuntimeSnapshot()

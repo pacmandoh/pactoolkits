@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
              xmlns:con="https://github.com/kikipoulet/SukiUI"
              xmlns:behaviors="clr-namespace:pactoolkits_ui.Behaviors"
@@ -21,7 +21,7 @@
         <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                 <Border Width="40" Height="40" CornerRadius="20">
-                    <icons:MaterialIcon Kind="TableLargePlus" Width="20" Height="20"
+                    <icons:AppIcon Kind="Table2" Width="20" Height="20"
                                         HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
                 <StackPanel Grid.Column="1" Spacing="2">
@@ -59,7 +59,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <controls:StatusPill Icon="InformationOutline"
+                                        <controls:StatusPill Icon="Info"
                                                              Text="{Binding PendingCount, StringFormat=待映射 {0}}"
                                                              IconSize="12"
                                                              TextSize="11"
@@ -67,7 +67,7 @@
                                                              BackgroundBrush="{DynamicResource BrushInfoBg25}"
                                                              PillBorderBrush="{DynamicResource BrushInfoBg50}"
                                                              ForegroundBrush="{DynamicResource BrushInfo}" />
-                                        <controls:StatusPill Icon="AlertCircleOutline"
+                                        <controls:StatusPill Icon="CircleAlert"
                                                              Text="{Binding NeedReviewCount, StringFormat=待人工 {0}}"
                                                              IconSize="12"
                                                              TextSize="11"
@@ -75,7 +75,7 @@
                                                              BackgroundBrush="{DynamicResource BrushWarningBg25}"
                                                              PillBorderBrush="{DynamicResource BrushWarningBg50}"
                                                              ForegroundBrush="{DynamicResource BrushWarning}" />
-                                        <controls:StatusPill Icon="CloseCircleOutline"
+                                        <controls:StatusPill Icon="CircleX"
                                                              Text="{Binding FailedCount, StringFormat=失败 {0}}"
                                                              IconSize="12"
                                                              TextSize="11"
@@ -96,7 +96,7 @@
                     <con:GlassCard Grid.Column="0" Classes="FilterFieldCard" Padding="10,8">
                         <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <icons:MaterialIcon Kind="Pill" Width="14" Height="14" />
+                                <icons:AppIcon Kind="Pill" Width="14" Height="14" />
                                 <TextBlock Text="药品名称" Opacity="0.82" />
                             </StackPanel>
                             <Border Grid.Row="1"
@@ -125,7 +125,7 @@
                     <con:GlassCard Grid.Column="1" Classes="FilterFieldCard" Padding="10,8">
                         <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <icons:MaterialIcon Kind="ScaleBalance" Width="14" Height="14" />
+                                <icons:AppIcon Kind="Scale" Width="14" Height="14" />
                                 <TextBlock Text="规格" Opacity="0.82" />
                             </StackPanel>
                             <Grid Grid.Row="1">
@@ -148,7 +148,7 @@
 
                 <con:GlassCard Grid.Row="1" Classes="FilterHintCard">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                        <icons:MaterialIcon Kind="ChartTimelineVariant" Width="14" Height="14" VerticalAlignment="Center" />
+                        <icons:AppIcon Kind="ChartSpline" Width="14" Height="14" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="1"
                                    x:Name="PreviewText"
                                    Text="请选择分组后自动预览"

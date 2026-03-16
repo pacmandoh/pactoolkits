@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              x:Class="pactoolkits_ui.Controls.StatusPill"
              x:Name="Root"
              HorizontalAlignment="Left"
@@ -11,7 +11,7 @@
             CornerRadius="999"
             Padding="{Binding PillPadding, ElementName=Root}">
         <StackPanel Orientation="Horizontal" Spacing="6">
-            <icons:MaterialIcon Kind="{Binding Icon, ElementName=Root}"
+            <icons:AppIcon Kind="{Binding Icon, ElementName=Root}"
                                 Width="{Binding IconSize, ElementName=Root}"
                                 Height="{Binding IconSize, ElementName=Root}"
                                 VerticalAlignment="Center"

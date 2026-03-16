@@ -12,7 +12,6 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using pactoolkits_ui.Contracts;
-using Material.Icons;
 using pactoolkits_ui.Repositories;
 using pactoolkits_ui.Services.Application;
 using pactoolkits_ui.Services.Infrastructure;
@@ -28,7 +27,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private static readonly Regex QtySuffixRegex = new(@"(\d{1,5})\s*(支|片|瓶|盒|袋|包|粒|枚|贴|丸)$", RegexOptions.Compiled);
 
     public override string DisplayName => "药品信息维护";
-    public override MaterialIconKind Icon => MaterialIconKind.Drugs;
+    public override string Icon => "Tablets";
     public override int Index => 2;
     public override ICommand RefreshCommand => _localRefreshCommand;
     protected override bool AutoRefreshOnDbDisconnected => true;

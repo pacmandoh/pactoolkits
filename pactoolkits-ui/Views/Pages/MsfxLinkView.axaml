@@ -3,7 +3,7 @@
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
              xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
              xmlns:theme="clr-namespace:SukiUI.Theme;assembly=SukiUI"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              xmlns:behaviors="clr-namespace:pactoolkits_ui.Behaviors"
              x:Class="pactoolkits_ui.Views.Pages.MsfxLinkView"
@@ -26,12 +26,12 @@
                         Height="36"
                         CornerRadius="10"
                         Background="{DynamicResource SukiPrimaryColor10}">
-                    <icons:MaterialIcon Kind="CloudSyncOutline"
-                                        Width="20"
-                                        Height="20"
-                                        Foreground="{DynamicResource SukiPrimaryColor}"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center" />
+                    <icons:AppIcon Kind="CloudCog"
+                                   Width="20"
+                                   Height="20"
+                                   Foreground="{DynamicResource SukiPrimaryColor}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
                 </Border>
 
                 <StackPanel Grid.Column="1"
@@ -47,13 +47,13 @@
                             Orientation="Horizontal"
                             Spacing="8"
                             VerticalAlignment="Center">
-                    <controls:StatusPill Icon="LinkVariant"
+                    <controls:StatusPill Icon="Link"
                                          Text="MSFX"
                                          BackgroundBrush="{DynamicResource BrushInfoBg15}"
                                          PillBorderBrush="{DynamicResource BrushInfoBg35}"
                                          ForegroundBrush="{DynamicResource BrushInfo}"
                                          VerticalAlignment="Center" />
-                    <controls:StatusPill Icon="CheckCircleOutline"
+                    <controls:StatusPill Icon="CircleCheck"
                                          Text="生产链路"
                                          BackgroundBrush="{DynamicResource BrushDoneBg25}"
                                          PillBorderBrush="{DynamicResource BrushDoneBg50}"
@@ -69,7 +69,7 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <icons:MaterialIcon Kind="RobotOutline" Width="12" Height="12" />
+                        <icons:AppIcon Kind="Bot" Width="12" Height="12" />
                         <TextBlock Text="自动化监控" />
                     </StackPanel>
                 </TabItem.Header>
@@ -89,7 +89,7 @@
                             <Grid ColumnDefinitions="Auto,Auto,Auto"
                                   ColumnSpacing="10"
                                   VerticalAlignment="Center">
-                                <icons:MaterialIcon Kind="Power"
+                                <icons:AppIcon Kind="Power"
                                                     Width="16"
                                                     Height="16"
                                                     Foreground="{Binding IsAutoEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
@@ -108,7 +108,7 @@
                             <Grid ColumnDefinitions="Auto,Auto,Auto"
                                   ColumnSpacing="8"
                                   VerticalAlignment="Center">
-                                <icons:MaterialIcon Kind="ClockOutline" Width="16" Height="16" />
+                                <icons:AppIcon Kind="Clock" Width="16" Height="16" />
                                 <TextBlock Grid.Column="1" Text="轮询(分)" VerticalAlignment="Center" />
                                 <NumericUpDown Grid.Column="2"
                                                Classes="MsfxInput"
@@ -129,7 +129,7 @@
                                     IsEnabled="{Binding !IsAutoBusy}"
                                     Command="{Binding RunAutoOnceCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="PlayCircleOutline" Width="16" Height="16" />
+                                    <icons:AppIcon Kind="CirclePlay" Width="16" Height="16" />
                                     <TextBlock Text="立即巡检" />
                                 </StackPanel>
                             </Button>
@@ -141,7 +141,7 @@
                                     MinWidth="{StaticResource MinWAction}"
                                     Command="{Binding ClearAutoLogsCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="Eraser" Width="16" Height="16" />
+                                    <icons:AppIcon Kind="Eraser" Width="16" Height="16" />
                                     <TextBlock Text="清空日志" />
                                 </StackPanel>
                             </Button>
@@ -154,7 +154,7 @@
                             <Grid ColumnDefinitions="Auto,*,Auto"
                                   ColumnSpacing="8"
                                   VerticalAlignment="Center">
-                                <icons:MaterialIcon Kind="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                <icons:AppIcon Kind="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                     Width="16"
                                                     Height="16"
                                                     Foreground="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
@@ -168,7 +168,7 @@
                                         Command="{Binding RefreshAutoBoardCommand}"
                                         MinWidth="{StaticResource MinWAction}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="Refresh" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="RefreshCw" Width="16" Height="16" />
                                         <TextBlock Text="刷新审计" />
                                     </StackPanel>
                                 </Button>
@@ -187,7 +187,7 @@
                                         Height="24"
                                         CornerRadius="12"
                                         Background="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                                    <icons:MaterialIcon Kind="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                    <icons:AppIcon Kind="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                         Foreground="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                         Width="14"
                                                         Height="14"
@@ -242,7 +242,7 @@
                                 <Grid ColumnDefinitions="Auto,*,Auto"
                                       ColumnSpacing="10">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                        <icons:AppIcon Kind="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                             Foreground="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                             Width="16"
                                                             Height="16" />
@@ -257,7 +257,7 @@
                                         <Button Classes="Ghost MsfxMiniIconBtn"
                                                 Command="{Binding ToggleAutoPanelExpandCommand}"
                                                 CommandParameter="PULL">
-                                            <icons:MaterialIcon Kind="Fullscreen" Width="15" Height="15" />
+                                            <icons:AppIcon Kind="Fullscreen" Width="15" Height="15" />
                                         </Button>
                                     </StackPanel>
                                 </Grid>
@@ -280,7 +280,7 @@
                                                                 Height="24"
                                                                 CornerRadius="12"
                                                                 Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                                                            <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                            <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                                                 Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                                                 Width="14"
                                                                                 Height="14"
@@ -313,7 +313,7 @@
                                 <Grid ColumnDefinitions="Auto,*,Auto"
                                       ColumnSpacing="10">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="{Binding AutoMapState, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                        <icons:AppIcon Kind="{Binding AutoMapState, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                             Foreground="{Binding AutoMapState, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                             Width="16"
                                                             Height="16" />
@@ -326,12 +326,12 @@
                                                 VerticalAlignment="Center">
                                         <Button Classes="Ghost MsfxMiniIconBtn"
                                                 Command="{Binding OpenMapBatchDialogCommand}">
-                                            <icons:MaterialIcon Kind="TableLargePlus" Width="15" Height="15" />
+                                            <icons:AppIcon Kind="Table2" Width="15" Height="15" />
                                         </Button>
                                         <Button Classes="Ghost MsfxMiniIconBtn"
                                                 Command="{Binding ToggleAutoPanelExpandCommand}"
                                                 CommandParameter="MAP">
-                                            <icons:MaterialIcon Kind="Fullscreen" Width="15" Height="15" />
+                                            <icons:AppIcon Kind="Fullscreen" Width="15" Height="15" />
                                         </Button>
                                     </StackPanel>
                                 </Grid>
@@ -393,7 +393,7 @@
                                                                 Height="24"
                                                                 CornerRadius="12"
                                                                 Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                                                            <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                            <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                                                 Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                                                 Width="14"
                                                                                 Height="14"
@@ -435,7 +435,7 @@
                                 <Grid ColumnDefinitions="Auto,*,Auto"
                                       ColumnSpacing="10">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                        <icons:AppIcon Kind="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                             Foreground="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                             Width="16"
                                                             Height="16" />
@@ -448,13 +448,13 @@
                                                 behaviors:FocusClearBehavior.SuppressGridClear="True"
                                                 IsEnabled="{Binding CanBatchReopenSelectedTasks}"
                                                 Command="{Binding ReopenSelectedTaskCommand}">
-                                            <icons:MaterialIcon Kind="Restart" Width="15" Height="15" />
+                                            <icons:AppIcon Kind="RotateCcw" Width="15" Height="15" />
                                         </Button>
                                         <Button Classes="Ghost MsfxMiniIconBtn"
                                                 behaviors:FocusClearBehavior.SuppressGridClear="True"
                                                 Command="{Binding ToggleAutoPanelExpandCommand}"
                                                 CommandParameter="TASK">
-                                            <icons:MaterialIcon Kind="Fullscreen" Width="15" Height="15" />
+                                            <icons:AppIcon Kind="Fullscreen" Width="15" Height="15" />
                                         </Button>
                                     </StackPanel>
                                 </Grid>
@@ -479,7 +479,7 @@
                                                                 Height="24"
                                                                 CornerRadius="12"
                                                                 Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                                                            <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                            <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                                                 Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                                                 Width="14"
                                                                                 Height="14"
@@ -512,7 +512,7 @@
                             <Grid RowDefinitions="Auto,*" RowSpacing="8">
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                    <icons:MaterialIcon Kind="TextBoxSearchOutline" Width="16" Height="16" />
+                                    <icons:AppIcon Kind="TextSearch" Width="16" Height="16" />
                                     <TextBlock Text="自动化运行审计日志"
                                                FontWeight="SemiBold"
                                                Opacity="0.9"
@@ -523,7 +523,7 @@
                                     <Button Classes="Ghost MsfxMiniIconBtn"
                                             Command="{Binding ToggleAutoPanelExpandCommand}"
                                             CommandParameter="LOG">
-                                        <icons:MaterialIcon Kind="Fullscreen" Width="15" Height="15" />
+                                        <icons:AppIcon Kind="Fullscreen" Width="15" Height="15" />
                                     </Button>
                                 </StackPanel>
                                 </Grid>
@@ -548,7 +548,7 @@
                                                                 Height="24"
                                                                 CornerRadius="12"
                                                                 Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                                                            <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                            <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                                                 Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                                                 Width="14"
                                                                                 Height="14"
@@ -576,7 +576,7 @@
                             <Grid RowDefinitions="Auto,*" RowSpacing="8">
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="Resize" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="Expand" Width="16" Height="16" />
                                         <TextBlock Text="全屏查看"
                                                    FontWeight="SemiBold"
                                                    Opacity="0.9"
@@ -589,7 +589,7 @@
                                                 MinWidth="110"
                                                 Command="{Binding OpenMapBatchDialogCommand}">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <icons:MaterialIcon Kind="TableLargePlus" Width="15" Height="15" />
+                                                    <icons:AppIcon Kind="Table2" Width="15" Height="15" />
                                                     <TextBlock Text="批量映射" />
                                                 </StackPanel>
                                         </Button>
@@ -601,7 +601,7 @@
                                                 MinWidth="110"
                                                 Command="{Binding ReopenSelectedTaskCommand}">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <icons:MaterialIcon Kind="Restart" Width="15" Height="15" />
+                                                <icons:AppIcon Kind="RotateCcw" Width="15" Height="15" />
                                                 <TextBlock Text="批量重开" />
                                             </StackPanel>
                                         </Button>
@@ -615,7 +615,7 @@
                                                 VerticalContentAlignment="Center"
                                                 Command="{Binding ToggleAutoPanelExpandCommand}"
                                                 CommandParameter="{Binding AutoExpandedPanel}">
-                                            <icons:MaterialIcon Kind="FullscreenExit" Width="15" Height="15" />
+                                            <icons:AppIcon Kind="Minimize" Width="15" Height="15" />
                                         </Button>
                                     </StackPanel>
                                 </Grid>
@@ -669,7 +669,7 @@
                                                                     Height="24"
                                                                     CornerRadius="12"
                                                                     Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                                                                <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                                <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                                                     Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                                                     Width="14"
                                                                                     Height="14"
@@ -722,7 +722,7 @@
                                                     MinWidth="76"
                                                     Command="{Binding SearchMapQueueCommand}">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <icons:MaterialIcon Kind="Magnify" Width="14" Height="14" />
+                                                    <icons:AppIcon Kind="Search" Width="14" Height="14" />
                                                     <TextBlock Text="搜索" />
                                                 </StackPanel>
                                             </Button>
@@ -796,7 +796,7 @@
                                                                     Height="24"
                                                                     CornerRadius="12"
                                                                     Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                                                                <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                                <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                                                     Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                                                     Width="14"
                                                                                     Height="14"
@@ -851,7 +851,7 @@
                                                                 Height="24"
                                                                 CornerRadius="12"
                                                                 Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                                                            <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                            <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                                                 Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                                                 Width="14"
                                                                                 Height="14"
@@ -897,7 +897,7 @@
                                                                 Height="24"
                                                                 CornerRadius="12"
                                                                 Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                                                            <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                            <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                                                 Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                                                 Width="14"
                                                                                 Height="14"
@@ -923,7 +923,7 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <icons:MaterialIcon Kind="ClipboardTextSearchOutline" Width="12" Height="12" />
+                        <icons:AppIcon Kind="ClipboardList" Width="12" Height="12" />
                         <TextBlock Text="上游出库单查询" />
                     </StackPanel>
                 </TabItem.Header>
@@ -966,7 +966,7 @@
                                         MinWidth="{StaticResource MinWAction}"
                                         Command="{Binding QueryUpoutCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="Magnify" Width="15" Height="15" />
+                                        <icons:AppIcon Kind="Search" Width="15" Height="15" />
                                         <TextBlock Text="查询" />
                                     </StackPanel>
                                 </Button>
@@ -977,7 +977,7 @@
                                         MinWidth="{StaticResource MinWAction}"
                                         Command="{Binding ResetUpoutFiltersCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="Refresh" Width="15" Height="15" />
+                                        <icons:AppIcon Kind="RefreshCw" Width="15" Height="15" />
                                         <TextBlock Text="重置" />
                                     </StackPanel>
                                 </Button>
@@ -1070,7 +1070,7 @@
                                                             Height="24"
                                                             CornerRadius="12"
                                                             Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                                                        <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                        <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                                             Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                                             Width="14"
                                                                             Height="14"
@@ -1106,7 +1106,7 @@
             <TabItem Classes="NoDivider">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <icons:MaterialIcon Kind="BarcodeScan" Width="12" Height="12" />
+                        <icons:AppIcon Kind="ScanBarcode" Width="12" Height="12" />
                         <TextBlock Text="子码查询" />
                     </StackPanel>
                 </TabItem.Header>
@@ -1137,7 +1137,7 @@
                                     MinWidth="{StaticResource MinWAction}"
                                     Command="{Binding QuerySubCodesCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="MagnifyScan" Width="15" Height="15" />
+                                    <icons:AppIcon Kind="ScanSearch" Width="15" Height="15" />
                                     <TextBlock Text="查询子码" />
                                 </StackPanel>
                             </Button>
@@ -1147,7 +1147,7 @@
                                     MinWidth="{StaticResource MinWAction}"
                                     Command="{Binding ClearSubcodeQueryCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="CloseCircleOutline" Width="15" Height="15" />
+                                    <icons:AppIcon Kind="Delete" Width="15" Height="15" />
                                     <TextBlock Text="清除" />
                                 </StackPanel>
                             </Button>
@@ -1214,7 +1214,7 @@
                                                             Height="24"
                                                             CornerRadius="12"
                                                             Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                                                        <icons:MaterialIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                                        <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                                                             Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                                                             Width="14"
                                                                             Height="14"

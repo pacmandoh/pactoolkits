@@ -9,7 +9,6 @@ using System.Windows.Input;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Material.Icons;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.Contracts;
 using pactoolkits_ui.Services.Application;
@@ -102,7 +101,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private const string UnlockScopeKey = UnlockScopes.SharedSensitiveOps;
 
     public override string DisplayName => "追溯码库存";
-    public override MaterialIconKind Icon => MaterialIconKind.PackageVariant;
+    public override string Icon => "Package";
     public override int Index => 1;
     public override ICommand RefreshCommand => _localRefreshCommand;
     protected override bool AutoRefreshOnDbDisconnected => true;

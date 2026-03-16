@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Material.Icons;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.Contracts;
 using pactoolkits_ui.Repositories;
@@ -29,7 +28,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     private const int TabPageSize = 50;
 
     public override string DisplayName => "概览";
-    public override MaterialIconKind Icon => MaterialIconKind.ViewDashboard;
+    public override string Icon => "LayoutDashboard";
     public override int Index => 0;
     protected override bool AutoRefreshOnDbDisconnected => true;
     protected override bool AutoRefreshOnDbReconnected => true;

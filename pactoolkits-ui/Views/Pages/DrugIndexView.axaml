@@ -5,7 +5,7 @@
              xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
              xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
              xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
-             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
              xmlns:behaviors="clr-namespace:pactoolkits_ui.Behaviors"
              mc:Ignorable="d"
              d:DesignWidth="1200" d:DesignHeight="800"
@@ -43,7 +43,7 @@
                                         IsEnabled="{Binding !IsUiBusy}"
                                         Command="{Binding SearchCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="Magnify" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="Search" Width="16" Height="16" />
                                         <TextBlock Text="搜索" />
                                     </StackPanel>
                                 </Button>
@@ -52,7 +52,7 @@
                                         IsEnabled="{Binding !IsUiBusy}"
                                         Command="{Binding ClearSearchCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="BackspaceOutline" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="Delete" Width="16" Height="16" />
                                         <TextBlock Text="清空" />
                                     </StackPanel>
                                 </Button>
@@ -67,23 +67,23 @@
 
                             <WrapPanel Grid.Column="1" VerticalAlignment="Center" Opacity="{StaticResource SectionHintOpacity}" ItemSpacing="10">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="Circle"
-                                                        Width="10"
-                                                        Height="10"
-                                                        VerticalAlignment="Center"
-                                                        Foreground="{Binding !HasPendingChanges, Converter={StaticResource BoolToDoneDangerBrush}}" />
+                                    <Border Width="10"
+                                            Height="10"
+                                            CornerRadius="999"
+                                            VerticalAlignment="Center"
+                                            Background="{Binding !HasPendingChanges, Converter={StaticResource BoolToDoneDangerBrush}}" />
                                     <Panel VerticalAlignment="Center">
                                         <TextBlock Text="编辑中未保存" IsVisible="{Binding HasPendingChanges}" />
                                         <TextBlock Text="已保存" IsVisible="{Binding !HasPendingChanges}" />
                                     </Panel>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="Pill" Width="16" Height="16" />
+                                    <icons:AppIcon Kind="Pill" Width="16" Height="16" />
                                     <TextBlock Text="{Binding Items.Count}" FontWeight="SemiBold" />
                                     <TextBlock Text="条" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="Mouse" Width="16" Height="16" />
+                                    <icons:AppIcon Kind="Mouse" Width="16" Height="16" />
                                     <TextBlock Text="右键：特殊操作" />
                                 </StackPanel>
                             </WrapPanel>
@@ -106,13 +106,13 @@
                                            Height="16"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="Magnify"
+                                        <icons:AppIcon Kind="Search"
                                                             Width="14"
                                                             Height="14"
                                                             HorizontalAlignment="Center"
                                                             VerticalAlignment="Center"
                                                             IsVisible="{Binding !IsSearchPanelVisible}" />
-                                        <icons:MaterialIcon Kind="MagnifyRemoveOutline"
+                                        <icons:AppIcon Kind="SearchX"
                                                             Width="14"
                                                             Height="14"
                                                             HorizontalAlignment="Center"
@@ -127,7 +127,7 @@
                                         IsEnabled="{Binding !IsUiBusy}"
                                         Command="{Binding ImportDataCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="ClipboardTextOutline" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="Clipboard" Width="16" Height="16" />
                                         <TextBlock Text="剪贴板导入" FontWeight="SemiBold" />
                                     </StackPanel>
                                 </Button>
@@ -139,7 +139,7 @@
                                         ClickMode="Press"
                                         Command="{Binding NewItemCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="Plus" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="Plus" Width="16" Height="16" />
                                         <TextBlock Text="新建" FontWeight="SemiBold" />
                                     </StackPanel>
                                 </Button>
@@ -168,14 +168,14 @@
                                                 <MenuItem Header="复制" Click="OnGridRowCopy"
                                                           CommandParameter="{Binding}">
                                                     <MenuItem.Icon>
-                                                        <icons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
+                                                        <icons:AppIcon Kind="Copy" Width="16" Height="16" />
                                                     </MenuItem.Icon>
                                                 </MenuItem>
 
                                                 <MenuItem Header="全选" Click="OnGridSelectAll"
                                                           CommandParameter="{Binding}">
                                                     <MenuItem.Icon>
-                                                        <icons:MaterialIcon Kind="SelectAll" Width="16" Height="16" />
+                                                        <icons:AppIcon Kind="ListChecks" Width="16" Height="16" />
                                                     </MenuItem.Icon>
                                                 </MenuItem>
 
@@ -184,14 +184,14 @@
                                                 <MenuItem Header="弃用 / 启用" Click="OnGridToggleDeprecated"
                                                           CommandParameter="{Binding}">
                                                     <MenuItem.Icon>
-                                                        <icons:MaterialIcon Kind="Cancel" Width="16" Height="16" />
+                                                        <icons:AppIcon Kind="CircleX" Width="16" Height="16" />
                                                     </MenuItem.Icon>
                                                 </MenuItem>
 
                                                 <MenuItem Header="未拆零 / 可拆零" Click="OnGridToggleNoSplit"
                                                           CommandParameter="{Binding}">
                                                     <MenuItem.Icon>
-                                                        <icons:MaterialIcon Kind="ContentCut" Width="16" Height="16" />
+                                                        <icons:AppIcon Kind="Scissors" Width="16" Height="16" />
                                                     </MenuItem.Icon>
                                                 </MenuItem>
                                             </ContextMenu>
@@ -241,7 +241,7 @@
                                             Spacing="6"
                                             VerticalAlignment="Center"
                                             IsVisible="{Binding HasEditor}">
-                                    <icons:MaterialIcon Kind="ShieldLock"
+                                    <icons:AppIcon Kind="LockKeyhole"
                                                         Width="14"
                                                         Height="14"
                                                         Foreground="{Binding IsEditorUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}" />
@@ -263,7 +263,7 @@
                                         IsVisible="{Binding CanRequestEditorUnlock}"
                                         Command="{Binding RequestEditorUnlockCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="ShieldLock"
+                                        <icons:AppIcon Kind="LockKeyhole"
                                                             Width="16"
                                                             Height="16"
                                                             Foreground="{StaticResource BrushWarning}" />
@@ -277,7 +277,7 @@
                                         IsVisible="{Binding CanLockEditor}"
                                         Command="{Binding LockEditorCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="ShieldOffOutline"
+                                        <icons:AppIcon Kind="LockKeyholeOpen"
                                                             Width="16"
                                                             Height="16"
                                                             Foreground="{StaticResource BrushDanger}" />
@@ -291,7 +291,7 @@
                                         IsVisible="{Binding HasEditor}"
                                         Command="{Binding FixDrugKeyCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:MaterialIcon Kind="SwapHorizontal" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="ArrowRightLeft" Width="16" Height="16" />
                                         <TextBlock Text="纠错迁移" />
                                     </StackPanel>
                                 </Button>
@@ -301,7 +301,7 @@
                         
                         <suki:GlassCard Grid.Row="1" Padding="14" IsVisible="{Binding !HasEditor}" Opacity="0.9">
                             <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <icons:MaterialIcon Kind="InformationOutline" Foreground="{StaticResource BrushWarning}" Width="22" Height="22" />
+                                <icons:AppIcon Kind="Info" Foreground="{StaticResource BrushWarning}" Width="22" Height="22" />
                                 <TextBlock Text="请选择左侧药品，或点击“新建”开始编辑" Opacity="0.82" />
                             </StackPanel>
                         </suki:GlassCard>
@@ -315,7 +315,7 @@
                                               IsChecked="{Binding IsDeprecated, Mode=TwoWay}"
                                               Command="{Binding ToggleDeprecatedCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                                        <icons:MaterialIcon Kind="Cancel" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="CircleX" Width="16" Height="16" />
                                         <TextBlock Text="弃用" />
                                     </StackPanel>
                                 </ToggleButton>
@@ -325,7 +325,7 @@
                                               IsChecked="{Binding IsNoSplit, Mode=TwoWay}"
                                               Command="{Binding ToggleNoSplitCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                                        <icons:MaterialIcon Kind="ContentCut" Width="16" Height="16" />
+                                        <icons:AppIcon Kind="Scissors" Width="16" Height="16" />
                                         <TextBlock Text="未拆零" />
                                     </StackPanel>
                                 </ToggleButton>
@@ -404,7 +404,7 @@
                                     HorizontalAlignment="Stretch"
                                     Command="{Binding SaveCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="Update" />
+                                    <icons:AppIcon Kind="RefreshCw" />
                                     <TextBlock Text="保存" />
                                 </StackPanel>
                             </Button>
@@ -415,7 +415,7 @@
                                     HorizontalAlignment="Stretch"
                                     Command="{Binding DeleteCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:MaterialIcon Kind="DeleteEmpty" />
+                                    <icons:AppIcon Kind="Trash2" />
                                     <TextBlock Text="删除" />
                                 </StackPanel>
                             </Button>
