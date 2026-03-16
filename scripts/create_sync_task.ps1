@@ -20,7 +20,8 @@ if (-not $isAdmin) {
         "-ExecutionPolicy", "Bypass",
         "-File", "`"$PSCommandPath`"",
         "-TaskName", "`"$TaskName`"",
-        "-ScriptPath", "`"$ScriptPath`""
+        "-ScriptPath", "`"$ScriptPath`"",
+        "-RepeatMinutes", $RepeatMinutes
     ) -join ' '
 
     Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -Verb RunAs -ArgumentList $argList
@@ -38,7 +39,19 @@ $workingDir = Split-Path $ScriptPath -Parent
 if ($RepeatMinutes -lt 1) {
     throw "RepeatMinutes must be >= 1"
 }
-$userId = "$env:USERDOMAIN\$env:USERNAME"
+$userId = $currentIdentity.Name
+$startAt = (Get-Date).AddMinutes(1)
+$plainPassword = $null
+
+$cred = Get-Credential -UserName $userId -Message "请输入用于计划任务后台运行的 Windows 账户密码"
+if (-not $cred) {
+    throw "Credential input was cancelled."
+}
+$userId = $cred.UserName
+$plainPassword = $cred.GetNetworkCredential().Password
+if ([string]::IsNullOrWhiteSpace($plainPassword)) {
+    throw "Password cannot be empty for Password logon type."
+}
 
 # -----------------------------
 # Remove existing task if exists
@@ -52,24 +65,36 @@ if ($existing) {
 # -----------------------------
 # Build action
 # -----------------------------
-$action = New-ScheduledTaskAction `
-    -Execute $psExe `
-    -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ScriptPath`"" `
-    -WorkingDirectory $workingDir
+try {
+    $action = New-ScheduledTaskAction `
+        -Execute $psExe `
+        -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ScriptPath`"" `
+        -WorkingDirectory $workingDir
+} catch {
+    Write-Warning "New-ScheduledTaskAction -WorkingDirectory is not supported on this machine. Falling back without WorkingDirectory."
+    $action = New-ScheduledTaskAction `
+        -Execute $psExe `
+        -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ScriptPath`""
+}
 
 # -----------------------------
 # Trigger 1: every N minutes after first registration
 # -----------------------------
 $trigger1 = New-ScheduledTaskTrigger `
     -Once `
-    -At (Get-Date) `
+    -At $startAt `
     -RepetitionInterval (New-TimeSpan -Minutes $RepeatMinutes) `
     -RepetitionDuration (New-TimeSpan -Days 3650)
 
 # -----------------------------
 # Trigger 2: at logon
 # -----------------------------
-$trigger2 = New-ScheduledTaskTrigger -AtLogOn -User $userId
+try {
+    $trigger2 = New-ScheduledTaskTrigger -AtLogOn -User $userId
+} catch {
+    Write-Warning "Per-user logon trigger is not supported on this machine. Falling back to a generic logon trigger."
+    $trigger2 = New-ScheduledTaskTrigger -AtLogOn
+}
 
 # -----------------------------
 # Settings
@@ -83,24 +108,40 @@ $settings = New-ScheduledTaskSettingsSet `
 
 # -----------------------------
 # Run as current user, highest
-# InteractiveToken keeps the task in the logged-on user session,
-# which avoids S4U startup runs losing network credentials.
+# Password logon keeps the task capable of background execution
+# while preserving network access better than S4U.
 # -----------------------------
 $taskPrincipal = New-ScheduledTaskPrincipal `
     -UserId $userId `
     -RunLevel Highest `
-    -LogonType InteractiveToken
+    -LogonType Password
+
+$task = New-ScheduledTask `
+    -Action $action `
+    -Trigger @($trigger1, $trigger2) `
+    -Settings $settings `
+    -Principal $taskPrincipal
 
 # -----------------------------
 # Register task
 # -----------------------------
-Register-ScheduledTask `
-    -TaskName $TaskName `
-    -Action $action `
-    -Trigger @($trigger1, $trigger2) `
-    -Settings $settings `
-    -Principal $taskPrincipal `
-    -Force | Out-Null
+try {
+    Register-ScheduledTask `
+        -TaskName $TaskName `
+        -InputObject $task `
+        -User $userId `
+        -Password $plainPassword `
+        -Force | Out-Null
+} finally {
+    $plainPassword = $null
+}
+
+try {
+    Start-ScheduledTask -TaskName $TaskName
+    Write-Host "Initial run started."
+} catch {
+    Write-Warning ("Task created, but the initial start request failed: " + $_.Exception.Message)
+}
 
 Write-Host ""
 Write-Host "Task created successfully."
