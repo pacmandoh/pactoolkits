@@ -478,7 +478,7 @@ Util_TryGetGridHeaderLine(win := "A") {
 
     old := ClipboardAll()
     txt := ""
-    try UI_FocusClassNN(Cfg["IPT_PARSE_GRID_CLASSNN"], win)
+    try UI_FocusGridClassNN(Cfg["IPT_PARSE_GRID_CLASSNN"], win)
     catch
         return ""
     if !WinExist(win)
@@ -558,6 +558,33 @@ UI_FocusClassNN(classNN, win := "A", control := true) {
             return ""
     }
     return hwndCtrl
+}
+
+Util_ParseClassNN(classNN) {
+    nn := Trim("" classNN)
+    if (nn = "")
+        return Map("raw", "", "base", "", "ord", 0)
+
+    if RegExMatch(nn, "^(.*?)(\d+)$", &m) {
+        base := Trim(m[1])
+        ord := Util_ToInt(m[2], 0)
+        if (base != "" && ord > 0)
+            return Map("raw", nn, "base", base, "ord", ord)
+    }
+    return Map("raw", nn, "base", nn, "ord", 0)
+}
+
+Util_GetCtrlHwndByClassNN(classNN, win := "A") {
+    nn := Trim("" classNN)
+    if (nn = "")
+        return 0
+
+    win := Util_NormalizeWin(win)
+    hwndCtrl := 0
+    try hwndCtrl := ControlGetHwnd(nn, win)
+    catch
+        return 0
+    return hwndCtrl ? hwndCtrl : 0
 }
 
 

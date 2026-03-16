@@ -28,11 +28,11 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 
     ; --- 获取待解析文本：优先用传入 text，否则走复制 ---
     copied := false
-    if (Trim(text) = "") {
+	if (Trim(text) = "") {
 		; FEAT: 住院窗口自动选中，不用双击
 		if (WinGetClass(win) = ipt) {
             if (Trim(parseGridClassNN) != "")
-			    UI_FocusClassNN(parseGridClassNN, win)
+			    UI_FocusGridClassNN(parseGridClassNN, win)
 		}
 		
         WinActivate(win)
