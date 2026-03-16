@@ -74,7 +74,6 @@ Main() {
     }
 
     ; 4) 执行自愈清理
-    ; 说明：如果你函数名不是 Txn_CleanupPending，请改成你工程里的真实名字
     rr := Txn_CleanupPending(TIMEOUT_MIN, LIMIT_N)
 
     ; rr 可能是 void 或 Map。这里不强制检查 rr["ok"]，只看最终库状态

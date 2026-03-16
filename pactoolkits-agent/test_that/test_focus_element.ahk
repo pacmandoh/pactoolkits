@@ -6,10 +6,10 @@ Persistent
 SetTitleMatchMode 2
 
 #HotIf WinActive("ahk_exe 互慧软件.exe")
-F1::UI_FocusTarget("TMemo", 1)
-F2::UI_FocusTarget("TMemo", 2)
+F1::UI_FocusClassNN("TMemo1")
+F2::UI_FocusClassNN("TMemo2")
 F4::{ 
-	i := UI_TryCopyListText("TcxGridSite", 1)
+	i := UI_TryCopyClassNNText("TcxGridSite1")
 	MsgBox i
 }
 F3::

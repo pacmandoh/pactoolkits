@@ -77,7 +77,7 @@ PG_EnsureOpen() {
 
     try {
         conn := ComObject("ADODB.Connection")
-        driver := Cfg.Has("PG_DRIVER") ? Cfg["PG_DRIVER"] : "PostgreSQL Unicode(x64)"
+        driver := Cfg["PG_DRIVER"]
 
         cs := ""
             . "Driver={" driver "};"
@@ -86,7 +86,7 @@ PG_EnsureOpen() {
             . "Database=" Cfg["PG_DB"] ";"
             . "Uid=" Cfg["PG_USER"] ";"
             . "Pwd=" Cfg["PG_PASS"] ";"
-            . "SSLmode=" (Cfg.Has("PG_SSL") ? Cfg["PG_SSL"] : "disable") ";"
+            . "SSLmode=" Cfg["PG_SSL"] ";"
 
         conn.ConnectionTimeout := 3
         conn.CommandTimeout := 60

@@ -350,7 +350,7 @@ UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
 }
 
 UI_PostClick(hwndCtrl, x := 30, y := 40) {
-    ; x,y 是控件客户区坐标（你可以调 y 来点不同的行）
+    ; x,y 是控件客户区坐标
     static WM_LBUTTONDOWN := 0x0201
     static WM_LBUTTONUP   := 0x0202
     static MK_LBUTTON     := 0x0001
@@ -359,26 +359,6 @@ UI_PostClick(hwndCtrl, x := 30, y := 40) {
     ; 让控件认为自己被点了（不移动鼠标）
     PostMessage(WM_LBUTTONDOWN, MK_LBUTTON, lParam, , "ahk_id " hwndCtrl)
     PostMessage(WM_LBUTTONUP, 0, lParam, , "ahk_id " hwndCtrl)
-}
-
-UI_TryCopyListText(classNN, nSite := 1, win := "A", control := true) {
-    win := Util_NormalizeWin(win)
-
-	UI_FocusTarget(classNN, nSite, win, control)
-	
-    old := ClipboardAll()
-    A_Clipboard := ""
-
-    SendInput("^c")
-
-    if !ClipWait(0.25) {
-        A_Clipboard := old
-        return ""
-    }
-    txt := A_Clipboard
-    A_Clipboard := old
-
-    return txt
 }
 
 UI_TryCopyClassNNText(classNN, win := "A", control := true) {
@@ -398,71 +378,6 @@ UI_TryCopyClassNNText(classNN, win := "A", control := true) {
     A_Clipboard := old
 
     return txt
-}
-
-; TODO FIX: 在报错信息提示未点击时，切换过窗口会概率被 ahk 直接 throw 出错误
-UI_FocusTarget(classNN, nSite := 1, win := "A", control := true) {
-    win := Util_NormalizeWin(win)
-	hwndWin := 0
-	try hwndWin := WinGetID(win)
-	catch
-		return ""
-	if !hwndWin
-		return ""
-
-    winId := "ahk_id " hwndWin
-
-    hwndSite := UI_GetNthCtrlHwndByClass(classNN, nSite, winId)
-    if !hwndSite
-        return ""
-
-	try WinActivate(winId)
-	catch
-		return ""
-	try WinWaitActive(winId, , 1)
-	catch
-		return ""
-	
-	if (control) {
-		; 无鼠标点击逻辑：
-		try ControlFocus(hwndSite, winId)
-		catch
-			return ""
-	} else {
-		; 鼠标点击逻辑：
-		try DllCall("SetFocus", "Ptr", hwndSite)
-		catch
-			return ""
-		try UI_PostClick(hwndSite, 30, 40)
-		catch
-			return ""
-	}
-	return hwndSite
-}
-
-UI_GetNthCtrlHwndByClass(className, n, win := "A") {
-    win := Util_NormalizeWin(win)
-	hs := ""
-	try hs := WinGetControlsHwnd(win)
-	catch
-		return 0
-	if !IsObject(hs)
-		return 0
-
-    found := 0
-    for _, h in hs {
-		if !h
-			continue
-        buf := Buffer(128, 0)
-        DllCall("GetClassNameW", "Ptr", h, "Ptr", buf, "Int", 64)
-        cls := StrGet(buf, "UTF-16")
-        if (cls = className) {
-            found += 1
-            if (found = n)
-                return h
-        }
-    }
-    return 0
 }
 
 UI_Parse_MaxScanned(txt) {
@@ -502,7 +417,7 @@ UI_MouseOnClassNN(targetNN, win := "A") {
             nn := ""
         if (nn = targetNN)
             return true
-        h := DllCall("user32\\GetParent", "ptr", h, "ptr")
+        h := DllCall("user32\GetParent", "ptr", h, "ptr")
     }
     return false
 }
