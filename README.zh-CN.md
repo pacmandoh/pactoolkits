@@ -64,8 +64,8 @@
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.14.2-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.13.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.15.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.14.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.2-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.17-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
@@ -97,6 +97,7 @@
 
 - UI、Agent、DB 一体化单仓库设计
 - 基于 Avalonia 的桌面业务客户端
+- 基于 Lucide 的图标体系与轻量级状态 / 忙碌控件
 - 基于 AutoHotkey v2 的自动化执行引擎
 - Agent 运行目标已切换为完整 `ClassNN` 配置模型
 - 基于 PostgreSQL Migration 的数据库演进体系
@@ -180,6 +181,7 @@ pactoolkits/
 
 - Avalonia 11
 - CommunityToolkit.Mvvm
+- IconPacks.Avalonia.Lucide
 - SukiUI
 - Npgsql
 - Velopack
@@ -361,8 +363,8 @@ PacToolkits 当前覆盖的业务场景包括：
 
 当前版本清单：
 
-- `suiteVersion`: `0.14.2`
-- `uiVersion`: `0.13.0`
+- `suiteVersion`: `0.15.0`
+- `uiVersion`: `0.14.0`
 - `agentVersion`: `0.5.2`
 - `dbSchemaVersion`: `1.2.17`
 - `uiMinDbSchema`: `1.2.17`
