@@ -85,16 +85,9 @@ UI_PrepareWarehouseFastTarget(inputClassNN, win := "A") {
             return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口未就绪，无法注入")
     }
 
-    hwndCtrl := UI_GetCachedCtrlHwnd(inputClassNN, win)
+    hwndCtrl := UI_FocusClassNN(inputClassNN, win, true)
     if !hwndCtrl
         return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "获取当前窗口 hwnd 失败", "reason", "control not found", "ctrl", inputClassNN)
-
-    try ControlFocus(inputClassNN, win)
-    catch {
-        try DllCall("SetFocus", "Ptr", hwndCtrl)
-        catch {
-        }
-    }
     return Map("ok", true)
 }
 
@@ -117,10 +110,7 @@ UI_GetCachedCtrlHwnd(classNN, win := "A") {
         __UI_FAST_CTRL_CACHE.Delete(key)
     }
 
-    hwndCtrl := 0
-    try hwndCtrl := ControlGetHwnd(classNN, "ahk_id " hwndWin)
-    catch
-        return 0
+    hwndCtrl := Util_GetCtrlHwndByClassNN(classNN, "ahk_id " hwndWin)
     if !hwndCtrl
         return 0
 
@@ -133,8 +123,8 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
     if !WinExist(winTitle)
         return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口不存在或已关闭")
 
-    try hwndCtrl := ControlGetHwnd(classNN, winTitle)
-    catch
+    hwndCtrl := Util_GetCtrlHwndByClassNN(classNN, winTitle)
+    if !hwndCtrl
         return Map(
 			"ok", false, "level", "ERR", "type", "[窗口错误]", "why", "获取当前窗口 hwnd 失败", 
 			"reason", "control not found", "ctrl", classNN
@@ -266,7 +256,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 		; lastMemo := ""       ; 避免每次都提示相同内容
 
 		while (A_TickCount - t0 < timeoutMs) {	
-            txt := UI_TryCopyClassNNText(optVerifyGridClassNN, win)
+            txt := UI_TryCopyGridClassNNText(optVerifyGridClassNN, win)
 			p := Parse_TargetInfo(colSpecs, ipt, intCols, txt, win, iptParseGridClassNN)
 
 			; 0) 强验证：解析“追溯码”列，判断已扫N码
@@ -299,7 +289,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 			if UI_RunBurst(UI_DetectAndHandleFailDialog)
 				return Map("ok", false, "level", "WARN", "type", "[录入验证错误]", "why", "重复的追溯码/超过对应需要追溯码条数，将自动回退库存")
 
-			txt := UI_TryCopyClassNNText(iptVerifyGridClassNN, win)
+			txt := UI_TryCopyGridClassNNText(iptVerifyGridClassNN, win)
 			if (txt != "") {
 				allOk := true
 				for c in ipt["codes"] {
@@ -337,7 +327,7 @@ UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
         if UI_RunBurst(UI_DetectAndHandleFailDialog)
             return Map("ok", false, "level", "WARN", "type", "[录入验证错误]", "why", "仓库窗口出现错误提示，已终止本次注入")
 
-        txt := UI_TryCopyClassNNText(verifyGridClassNN, win)
+        txt := UI_TryCopyGridClassNNText(verifyGridClassNN, win)
         if (txt != "" && InStr(txt, target))
             return Map("ok", true)
 
@@ -380,6 +370,99 @@ UI_TryCopyClassNNText(classNN, win := "A", control := true) {
     return txt
 }
 
+UI_FocusGridClassNN(classNN, win := "A", control := true) {
+    nn := Trim("" classNN)
+    if (nn = "")
+        return ""
+
+    win := Util_NormalizeWin(win)
+    parts := Util_ParseClassNN(nn)
+    if (parts["ord"] > 0)
+        return UI_FocusTarget(parts["base"], parts["ord"], win, control)
+
+    return UI_FocusClassNN(nn, win, control)
+}
+
+UI_TryCopyGridClassNNText(classNN, win := "A", control := true) {
+    if (UI_FocusGridClassNN(classNN, win, control) = "")
+        return ""
+
+    old := ClipboardAll()
+    A_Clipboard := ""
+
+    SendInput("^c")
+
+    if !ClipWait(0.25) {
+        A_Clipboard := old
+        return ""
+    }
+    txt := A_Clipboard
+    A_Clipboard := old
+
+    return txt
+}
+
+UI_GetNthCtrlHwndByClass(className, n, win := "A") {
+    win := Util_NormalizeWin(win)
+    hs := ""
+    try hs := WinGetControlsHwnd(win)
+    catch
+        return 0
+    if !IsObject(hs)
+        return 0
+
+    found := 0
+    for _, h in hs {
+        if !h
+            continue
+        buf := Buffer(128, 0)
+        DllCall("GetClassNameW", "Ptr", h, "Ptr", buf, "Int", 64)
+        cls := StrGet(buf, "UTF-16")
+        if (cls = className) {
+            found += 1
+            if (found = n)
+                return h
+        }
+    }
+    return 0
+}
+
+UI_FocusTarget(classNN, nSite := 1, win := "A", control := true) {
+    win := Util_NormalizeWin(win)
+    hwndWin := 0
+    try hwndWin := WinGetID(win)
+    catch
+        return ""
+    if !hwndWin
+        return ""
+
+    winId := "ahk_id " hwndWin
+    hwndSite := UI_GetNthCtrlHwndByClass(classNN, nSite, winId)
+    if !hwndSite
+        return ""
+
+    try WinActivate(winId)
+    catch
+        return ""
+    try WinWaitActive(winId, , 1)
+    catch
+        return ""
+
+    if (control) {
+        try ControlFocus(hwndSite, winId)
+        catch
+            return ""
+    } else {
+        try DllCall("SetFocus", "Ptr", hwndSite)
+        catch
+            return ""
+        try UI_PostClick(hwndSite, 30, 40)
+        catch
+            return ""
+    }
+    return hwndSite
+}
+
 UI_Parse_MaxScanned(txt) {
     max := 0
     pos := 1
@@ -390,6 +473,18 @@ UI_Parse_MaxScanned(txt) {
         pos := m.Pos + m.Len
     }
     return max
+}
+
+UI_FindAncestorByClass(hwnd, className, maxDepth := 40) {
+    h := hwnd
+    Loop maxDepth {
+        if !h
+            return 0
+        if (WinGetClass("ahk_id " h) = className)
+            return h
+        h := DllCall("user32\GetParent", "ptr", h, "ptr")
+    }
+    return 0
 }
 
 UI_MouseOnClassNN(targetNN, win := "A") {
@@ -406,20 +501,23 @@ UI_MouseOnClassNN(targetNN, win := "A") {
     if !h0
         return false
 
-    ; 2) 向上爬父控件，直到命中目标 ClassNN
-    h := h0
-    Loop 40 {
-        if !h
-            return false
+    ; 2) 向上爬到目标 ClassNN 对应的基类控件
+    parts := Util_ParseClassNN(targetNN)
+    baseClass := parts["base"]
+    if (baseClass = "")
+        return false
+
+    hSite := UI_FindAncestorByClass(h0, baseClass)
+    if !hSite
+        return false
+
+    ; 3) 拿这个基类控件的 ClassNN 做最终比对
+    nn := ""
+    try nn := ControlGetClassNN(hSite)
+    catch
         nn := ""
-        try nn := ControlGetClassNN(h)
-        catch
-            nn := ""
-        if (nn = targetNN)
-            return true
-        h := DllCall("user32\GetParent", "ptr", h, "ptr")
-    }
-    return false
+
+    return (nn = targetNN)
 }
 
 UI_Err(text, title := "追溯码自动化") {
