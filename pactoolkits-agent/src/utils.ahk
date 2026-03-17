@@ -450,11 +450,11 @@ Util_WarehouseSoftCheck(win := "A") {
 
     anchors := Cfg["WAREHOUSE_ANCHORS"]
     if (anchors.Length = 0)
-        return Map("ok", false, "level", "ERR", "type", "[仓库模式校验]", "why", "仓库列特征不能为空")
+        return Map("ok", false, "level", "WARN", "type", "[仓库模式校验]", "why", "仓库列特征不能为空")
 
     hdrLine := Util_TryGetGridHeaderLine(win)
     if (hdrLine = "")
-        return Map("ok", false, "level", "ERR", "type", "[仓库模式校验]", "why", "无法抓取表头，请检查当前选中行或剪贴板权限")
+        return Map("ok", false, "level", "WARN", "type", "[仓库模式校验]", "why", "无法抓取表头，请检查当前选中行或剪贴板权限")
 
     for _, a in anchors {
         t := Trim(a)
