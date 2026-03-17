@@ -152,6 +152,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private bool _isAutoEnabled;
     [ObservableProperty] private int _autoIntervalMinutes = 30;
     [ObservableProperty] private bool _isAutoBusy;
+    [ObservableProperty] private bool _showAutoProgressPanel;
     [ObservableProperty] private bool _isAutoBoardBusy;
     [ObservableProperty] private string _autoStatus = "未启动";
     [ObservableProperty] private double _autoRunProgressValue;
@@ -223,6 +224,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public bool CanBatchReopenSelectedTasks => !IsAutoBoardBusy
                                                && SelectedAutoTaskQueueRowsSnapshot.Any(x =>
                                                    string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase));
+    public bool CanBatchDiscardSelectedTasks => !IsAutoBoardBusy
+                                                && SelectedAutoTaskQueueRowsSnapshot.Any(x =>
+                                                    string.Equals(x.Status, "NEW", StringComparison.OrdinalIgnoreCase)
+                                                    || string.Equals(x.Status, "FAILED", StringComparison.OrdinalIgnoreCase));
 
     public bool IsUpoutEmpty => UpoutRows.Count == 0;
     public bool IsSubCodeEmpty => SubCodeRows.Count == 0;
@@ -252,12 +257,29 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public bool IsMapPanelExpanded => string.Equals(AutoExpandedPanel, "MAP", StringComparison.OrdinalIgnoreCase);
     public bool IsTaskPanelExpanded => string.Equals(AutoExpandedPanel, "TASK", StringComparison.OrdinalIgnoreCase);
     public bool IsLogPanelExpanded => string.Equals(AutoExpandedPanel, "LOG", StringComparison.OrdinalIgnoreCase);
+    public string AutoExpandedPanelTitle => AutoExpandedPanel switch
+    {
+        "PULL" => "拉取批次明细",
+        "MAP" => "映射结果队列",
+        "TASK" => "Agent 执行队列",
+        "LOG" => "自动化运行审计日志",
+        _ => "全屏查看"
+    };
+    public string AutoExpandedPanelIcon => AutoExpandedPanel switch
+    {
+        "PULL" => "PackageSearch",
+        "MAP" => "Waypoints",
+        "TASK" => "Syringe",
+        "LOG" => "TextSearch",
+        _ => "Expand"
+    };
     private List<MsfxSubCodeGridRow> _allSubCodeRows = new();
     private List<MsfxAutoPullBatchGridRow> _allPullBatchRows = new();
     private List<MsfxAutoTaskQueueGridRow> _selectedAutoTaskQueueRowsSnapshot = new();
     private DateTimeOffset? _mapCursorUpdatedAt;
     private long? _mapCursorId;
     private string? _lastAutoLogSignature;
+    private bool _isResettingMapQueueFilters;
     private readonly RollingDateRangeController _upoutDateRangeController;
 
     public MsfxLinkViewModel(
@@ -402,7 +424,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     partial void OnIsAutoBusyChanged(bool value)
     {
         if (!value)
+        {
             AutoRunProgressValue = 0;
+            ShowAutoProgressPanel = false;
+        }
         NotifyCommandsCoalesced("msfx.auto.busy.commands", () =>
             NotifyCommands(RunAutoOnceCommand, ClearAutoLogsCommand, RefreshAutoBoardCommand));
     }
@@ -412,6 +437,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         NotifyCommandsCoalesced("msfx.auto.board.commands", () =>
             NotifyCommands(RefreshAutoBoardCommand));
         PostOnUi(() => OnPropertyChanged(nameof(CanBatchReopenSelectedTasks)), DispatcherPriority.Background);
+        PostOnUi(() => OnPropertyChanged(nameof(CanBatchDiscardSelectedTasks)), DispatcherPriority.Background);
     }
 
     partial void OnUpoutPageChanged(int value)
@@ -518,6 +544,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         OnPropertyChanged(nameof(IsMapPanelExpanded));
         OnPropertyChanged(nameof(IsTaskPanelExpanded));
         OnPropertyChanged(nameof(IsLogPanelExpanded));
+        OnPropertyChanged(nameof(AutoExpandedPanelTitle));
+        OnPropertyChanged(nameof(AutoExpandedPanelIcon));
         OnPropertyChanged(nameof(MapQueueEffectivePageSize));
         OnPropertyChanged(nameof(MapQueueTotalPages));
         OnPropertyChanged(nameof(MapQueuePageText));
@@ -534,6 +562,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     partial void OnMapQueuePageSizeChanged(string value)
     {
+        if (_isResettingMapQueueFilters)
+            return;
+
         _mapCursorUpdatedAt = null;
         _mapCursorId = null;
         MapQueuePage = 1;
@@ -545,6 +576,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     partial void OnMapQueueMapStatusFilterChanged(string value)
     {
+        if (_isResettingMapQueueFilters)
+            return;
+
         _mapCursorUpdatedAt = null;
         _mapCursorId = null;
         MapQueuePage = 1;
@@ -553,6 +587,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     partial void OnMapQueueCodeStatusFilterChanged(string value)
     {
+        if (_isResettingMapQueueFilters)
+            return;
+
         _mapCursorUpdatedAt = null;
         _mapCursorId = null;
         MapQueuePage = 1;
@@ -561,6 +598,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     partial void OnMapQueueSearchScopeChanged(string value)
     {
+        if (_isResettingMapQueueFilters)
+            return;
+
         _mapCursorUpdatedAt = null;
         _mapCursorId = null;
         MapQueuePage = 1;
@@ -608,6 +648,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             .ToList();
         OnPropertyChanged(nameof(SelectedAutoTaskQueueRowsSnapshot));
         OnPropertyChanged(nameof(CanBatchReopenSelectedTasks));
+        OnPropertyChanged(nameof(CanBatchDiscardSelectedTasks));
     }
 
     partial void OnSelectedAutoLogRowChanged(MsfxAutoLogRow? value)
@@ -929,6 +970,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanRunAutoOnce))]
     private async Task RunAutoOnceAsync()
     {
+        await RunAutoOnceInternalAsync(showProgressPanel: true).ConfigureAwait(false);
+    }
+
+    private async Task RunAutoOnceInternalAsync(bool showProgressPanel)
+    {
+        ShowAutoProgressPanel = showProgressPanel;
         await RunLocalReloadAsync(
             setBusy: v => IsAutoBusy = v,
             action: RunAutoOnceCoreAsync);
@@ -982,6 +1029,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             var retryQueuedCount = 0;
             var retrySucceededCount = 0;
             var retryFailedCount = 0;
+            var watchQueuedCount = 0;
+            var watchResolvedCount = 0;
+            var watchDeferredCount = 0;
             var processedBillCodes = new HashSet<string>(StringComparer.Ordinal);
             var totalPagesEstimate = 1;
             var processedBills = 0;
@@ -996,12 +1046,27 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 string? billTime,
                 string? billUploadTime,
                 string rawJson,
-                bool fromRetry)
+                bool fromRetry,
+                bool fromWatch,
+                string? watchStatus)
             {
                 var normalizedToRef = string.IsNullOrWhiteSpace(toRefUserId) ? options.RefEntId : toRefUserId;
                 var normalizedFromRef = NormalizeInput(fromRefUserId);
                 async Task<bool> QueueRetryAndLogAsync(string err)
                 {
+                    if (fromWatch)
+                    {
+                        await _syncRepo.RescheduleBillWatchAsync(
+                            sourceApi: "listupout",
+                            billCode: billCode,
+                            lastSeenStatus: watchStatus,
+                            lastError: err,
+                            ct: ct).ConfigureAwait(false);
+                        watchDeferredCount++;
+                        AddAutoLog("待确认补偿", $"单据 {billCode} 暂未就绪，已延后重查：{err}", TraceEntryState.Warning);
+                        return false;
+                    }
+
                     await _syncRepo.UpsertBillRetryAsync(
                         sourceApi: "listupout",
                         billCode: billCode,
@@ -1088,11 +1153,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     await _syncRepo.MarkBillRetrySucceededAsync("listupout", billCode, ct).ConfigureAwait(false);
                     AddAutoLog("重试", $"单据 {billCode} 重试成功：药品 {ingest.InsertedItems}，码 {ingest.InsertedCodes}，新增 staging {ingest.InsertedStaging}", TraceEntryState.Success);
                 }
+                else if (fromWatch)
+                {
+                    watchResolvedCount++;
+                    AddAutoLog("待确认补偿", $"单据 {billCode} 已转入库：药品 {ingest.InsertedItems}，码 {ingest.InsertedCodes}，新增 staging {ingest.InsertedStaging}", TraceEntryState.Success);
+                }
                 else
                 {
                     var ingestState = ingest.InsertedStaging > 0 ? TraceEntryState.Success : TraceEntryState.Warning;
                     AddAutoLog("落库", $"单据 {billCode}：药品 {ingest.InsertedItems}，码 {ingest.InsertedCodes}，新增 staging {ingest.InsertedStaging}", ingestState);
                 }
+
+                await _syncRepo.MarkBillWatchResolvedAsync("listupout", billCode, ct).ConfigureAwait(false);
 
                 return true;
             }
@@ -1121,7 +1193,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                         billTime: string.Empty,
                         billUploadTime: string.Empty,
                         rawJson: "{}",
-                        fromRetry: true).ConfigureAwait(false);
+                        fromRetry: true,
+                        fromWatch: false,
+                        watchStatus: null).ConfigureAwait(false);
                 }
                 await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
             }
@@ -1153,12 +1227,35 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 totalApiRows += list.Items.Count;
                 totalPagesEstimate = Math.Max(1, (int)Math.Ceiling(list.Total / (double)pageSize));
                 var inboundRows = list.Items.Where(x => string.Equals(x.Status, "2", StringComparison.Ordinal)).ToList();
+                var watchRows = list.Items
+                    .Where(x => !string.IsNullOrWhiteSpace(x.BillCode) && !string.Equals(x.Status, "2", StringComparison.Ordinal))
+                    .GroupBy(x => x.BillCode)
+                    .Select(g => g.First())
+                    .ToList();
                 totalInboundRows += inboundRows.Count;
                 SetAutoProgress(
                     10 + Math.Min(30, page * (30d / totalPagesEstimate)),
                     $"上游单据第 {page}/{totalPagesEstimate} 页，API {list.Items.Count} 条，已入库 {inboundRows.Count} 条");
 
                 AddAutoLog("上游出库单", $"第 {page} 页：API {list.Items.Count} 条，已入库(status=2) {inboundRows.Count} 条", TraceEntryState.Info);
+
+                foreach (var watch in watchRows)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    await _syncRepo.UpsertBillWatchAsync(
+                        sourceApi: "listupout",
+                        billCode: watch.BillCode,
+                        fromRefUserId: watch.FromRefUserId,
+                        toRefUserId: watch.ToRefUserId,
+                        fromEntName: watch.FromEntName,
+                        billType: watch.BillType,
+                        billTime: watch.BillTime,
+                        billUploadTime: watch.BillUploadTime,
+                        lastSeenStatus: watch.Status,
+                        rawJson: System.Text.Json.JsonSerializer.Serialize(watch),
+                        ct: ct).ConfigureAwait(false);
+                    watchQueuedCount++;
+                }
 
                 var bills = inboundRows
                     .Where(x => !string.IsNullOrWhiteSpace(x.BillCode))
@@ -1187,7 +1284,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                         billTime: bill.BillTime,
                         billUploadTime: bill.BillUploadTime,
                         rawJson: System.Text.Json.JsonSerializer.Serialize(bill),
-                        fromRetry: false).ConfigureAwait(false);
+                        fromRetry: false,
+                        fromWatch: false,
+                        watchStatus: null).ConfigureAwait(false);
                 }
 
                 await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
@@ -1196,6 +1295,39 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 if (list.Items.Count == 0 || loaded >= list.Total)
                     break;
                 page++;
+            }
+
+            var dueWatches = await _syncRepo.GetDueBillWatchesAsync("listupout", 200, ct).ConfigureAwait(false);
+            if (dueWatches.Count > 0)
+            {
+                AddAutoLog("待确认补偿", $"发现待确认单据 {dueWatches.Count} 条，开始补偿重查", TraceEntryState.Info);
+                foreach (var watch in dueWatches)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!processedBillCodes.Add(watch.BillCode))
+                        continue;
+
+                    processedBills++;
+                    expectedBills = Math.Max(expectedBills, processedBills + 1);
+                    SetAutoProgress(
+                        60 + Math.Min(20, processedBills * (20d / Math.Max(1, expectedBills))),
+                        $"补偿重查 {processedBills}/{Math.Max(1, expectedBills)}：{watch.BillCode}");
+
+                    _ = await TryIngestBillDetailAsync(
+                        billCode: watch.BillCode,
+                        fromRefUserId: watch.FromRefUserId,
+                        fromEntName: watch.FromEntName,
+                        toRefUserId: watch.ToRefUserId,
+                        billType: watch.BillType,
+                        billTime: watch.BillTime,
+                        billUploadTime: watch.BillUploadTime,
+                        rawJson: watch.RawJson ?? "{}",
+                        fromRetry: false,
+                        fromWatch: true,
+                        watchStatus: watch.LastSeenStatus).ConfigureAwait(false);
+                }
+
+                await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
             }
 
             var swMap = Stopwatch.StartNew();
@@ -1246,7 +1378,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
 
             SetAutoProgress(100, "巡检完成");
-            AutoStatus = $"自动化拉取完成：API {totalApiRows}，已入库 {totalInboundRows}，单据 {totalBills}，码 {detailSubCodes}，重试成功 {retrySucceededCount}，重试失败 {retryFailedCount}，重试入队 {retryQueuedCount}，新增任务 {taskResult.CreatedTasks}";
+            AutoStatus = $"自动化拉取完成：API {totalApiRows}，已入库 {totalInboundRows}，单据 {totalBills}，码 {detailSubCodes}，重试成功 {retrySucceededCount}，重试失败 {retryFailedCount}，重试入队 {retryQueuedCount}，待确认入池 {watchQueuedCount}，补偿成功 {watchResolvedCount}，补偿延后 {watchDeferredCount}，新增任务 {taskResult.CreatedTasks}";
             AutoLastRunAtText = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             if (IsAutoEnabled)
                 AutoNextRunAtText = DateTime.Now.AddMinutes(Math.Max(1, AutoIntervalMinutes)).ToString("yyyy-MM-dd HH:mm:ss");
@@ -1264,6 +1396,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 retryQueuedCount,
                 retrySucceededCount,
                 retryFailedCount,
+                watchQueuedCount,
+                watchResolvedCount,
+                watchDeferredCount,
                 createdTasks = taskResult.CreatedTasks,
                 taskedCodes = taskResult.TaskedCodes,
                 elapsedMs = swTotal.ElapsedMilliseconds
@@ -1393,9 +1528,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private async Task SearchMapQueueAsync()
     {
-        _mapCursorUpdatedAt = null;
-        _mapCursorId = null;
-        MapQueuePage = 1;
+        ResetMapQueueCursor();
         await RefreshMapQueueLatestAsync().ConfigureAwait(false);
     }
 
@@ -1404,18 +1537,34 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     {
         if (MapQueuePageSize == "120" &&
             string.Equals(MapQueueMapStatusFilter, "ALL", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(MapQueueCodeStatusFilter, "ALL", StringComparison.OrdinalIgnoreCase))
+            string.Equals(MapQueueCodeStatusFilter, "ALL", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(MapQueueSearchScope, "全部字段", StringComparison.OrdinalIgnoreCase) &&
+            string.IsNullOrWhiteSpace(MapQueueKeyword))
         {
+            ResetMapQueueCursor();
             await RefreshMapQueueLatestAsync().ConfigureAwait(false);
             return;
         }
 
-        MapQueuePageSize = "120";
-        MapQueueMapStatusFilter = "ALL";
-        MapQueueCodeStatusFilter = "ALL";
-        MapQueueSearchScope = "全部字段";
-        MapQueueKeyword = string.Empty;
-        MapQueuePage = 1;
+        _isResettingMapQueueFilters = true;
+        try
+        {
+            MapQueuePageSize = "120";
+            MapQueueMapStatusFilter = "ALL";
+            MapQueueCodeStatusFilter = "ALL";
+            MapQueueSearchScope = "全部字段";
+            MapQueueKeyword = string.Empty;
+            ResetMapQueueCursor();
+        }
+        finally
+        {
+            _isResettingMapQueueFilters = false;
+        }
+
+        OnPropertyChanged(nameof(MapQueueEffectivePageSize));
+        OnPropertyChanged(nameof(MapQueueTotalPages));
+        OnPropertyChanged(nameof(MapQueuePageText));
+        await RefreshMapQueueLatestAsync().ConfigureAwait(false);
     }
 
     [RelayCommand]
@@ -1492,6 +1641,80 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     [RelayCommand]
+    private async Task DiscardSelectedTaskAsync()
+    {
+        var selectedRows = SelectedAutoTaskQueueRowsSnapshot
+            .Where(x => string.Equals(x.Status, "NEW", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(x.Status, "FAILED", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (selectedRows.Count == 0)
+        {
+            _toast.Warn("任务弃用", "请先选择至少一条 NEW 或 FAILED 任务");
+            return;
+        }
+
+        if (IsAutoBoardBusy)
+            return;
+
+        var ok = await _dialog.Confirm(
+            "弃用注入任务",
+            $"将弃用选中的 {selectedRows.Count} 条任务。弃用后 Agent 将不再执行这些任务。确认继续？").ConfigureAwait(false);
+        if (!ok)
+            return;
+
+        try
+        {
+            IsAutoBoardBusy = true;
+            var opName = Environment.UserName;
+            var successCount = 0;
+            var failedCount = 0;
+
+            foreach (var taskRow in selectedRows)
+            {
+                try
+                {
+                    var result = await _syncRepo.DiscardInjectTaskAsync(
+                        taskRow.TaskId,
+                        opName,
+                        "manual discard from ui",
+                        CancellationToken.None).ConfigureAwait(false);
+                    successCount += 1;
+                    AddAutoLog("任务弃用", $"任务 #{result.TaskId} 已弃用，状态={result.Status}，总码数={result.TotalCodes}", TraceEntryState.Info);
+                    LogWarn("msfx.task.discard.success", "MSFX inject task discarded", null, new
+                    {
+                        result.TaskId,
+                        result.Status,
+                        result.TotalCodes,
+                        operatorName = opName
+                    });
+                }
+                catch (Exception ex)
+                {
+                    failedCount += 1;
+                    AddAutoLog("任务弃用", $"任务 #{taskRow.TaskId} 弃用失败：{ex.Message}", TraceEntryState.Failed);
+                    LogError("msfx.task.discard.fail", "MSFX inject task discard failed", ex, new
+                    {
+                        taskRow.TaskId,
+                        operatorName = opName
+                    });
+                }
+            }
+
+            if (failedCount == 0)
+                _toast.Success("任务弃用", $"成功 {successCount} 条，失败 {failedCount} 条");
+            else
+                _toast.Warn("任务弃用", $"成功 {successCount} 条，失败 {failedCount} 条");
+
+            await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        finally
+        {
+            await RunOnUiAsync(() => IsAutoBoardBusy = false);
+        }
+    }
+
+    [RelayCommand]
     private async Task OpenMapBatchDialogAsync()
     {
         if (IsAutoBoardBusy)
@@ -1500,25 +1723,25 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         try
         {
             var groups = await _syncRepo.GetMappingBatchGroupsAsync(
-                mapStatus: NormalizeFilterValue(MapQueueMapStatusFilter),
-                codeStatus: NormalizeFilterValue(MapQueueCodeStatusFilter),
-                searchScope: ResolveSearchScope(MapQueueSearchScope),
-                keyword: NormalizeText(MapQueueKeyword),
+                mapStatus: null,
+                codeStatus: null,
+                searchScope: "ALL",
+                keyword: null,
                 limit: 500,
                 ct: CancellationToken.None).ConfigureAwait(false);
 
             if (groups.Count == 0)
             {
-                _toast.Info("批量映射", "当前筛选下没有可处理分组");
+                _toast.Info("批量映射", "当前没有可处理分组");
                 return;
             }
 
             var res = await _dialog.ShowMsfxMappingBatchDialog(new MsfxMappingBatchDialogModel(
                 Groups: groups,
-                MapStatusFilter: MapQueueMapStatusFilter,
-                CodeStatusFilter: MapQueueCodeStatusFilter,
-                SearchScope: MapQueueSearchScope,
-                Keyword: MapQueueKeyword)).ConfigureAwait(false);
+                MapStatusFilter: "ALL",
+                CodeStatusFilter: "ALL",
+                SearchScope: "全部字段",
+                Keyword: string.Empty)).ConfigureAwait(false);
 
             if (res.Action == MsfxMappingBatchDialogAction.Cancel)
                 return;
@@ -1540,10 +1763,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
 
             var preview = await _syncRepo.PreviewMappingBatchByGroupAsync(
-                mapStatus: NormalizeFilterValue(MapQueueMapStatusFilter),
-                codeStatus: NormalizeFilterValue(MapQueueCodeStatusFilter),
-                searchScope: ResolveSearchScope(MapQueueSearchScope),
-                keyword: NormalizeText(MapQueueKeyword),
+                mapStatus: null,
+                codeStatus: null,
+                searchScope: "ALL",
+                keyword: null,
                 groupSourceDrugNameRaw: group.SourceDrugNameRaw,
                 groupSourceSpecRaw: group.SourceSpecRaw,
                 groupSourceNameNorm: group.SourceNameNorm,
@@ -1567,10 +1790,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 return;
 
             var apply = await _syncRepo.ApplyMappingBatchByGroupAsync(
-                mapStatus: NormalizeFilterValue(MapQueueMapStatusFilter),
-                codeStatus: NormalizeFilterValue(MapQueueCodeStatusFilter),
-                searchScope: ResolveSearchScope(MapQueueSearchScope),
-                keyword: NormalizeText(MapQueueKeyword),
+                mapStatus: null,
+                codeStatus: null,
+                searchScope: "ALL",
+                keyword: null,
                 groupSourceDrugNameRaw: group.SourceDrugNameRaw,
                 groupSourceSpecRaw: group.SourceSpecRaw,
                 groupSourceNameNorm: group.SourceNameNorm,
@@ -1811,7 +2034,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             AutoPullSummary = $"批次#{snap.LastBatchId} {snap.LastBatchStatus} 成功{snap.LastBatchSuccessCount}/失败{snap.LastBatchFailCount}";
             AutoMapSummary = $"待映射{snap.MapPendingCount} 已映射{snap.MapMappedCount} 待人工{snap.MapNeedReviewCount} 失败{snap.MapFailedCount}";
-            AutoTaskSummary = $"NEW {snap.TaskNewCount} RUNNING {snap.TaskRunningCount} SUCCESS {snap.TaskSuccessCount} FAILED {snap.TaskFailedCount}";
+            AutoTaskSummary =
+                $"NEW {snap.TaskNewCount} RUNNING {snap.TaskRunningCount} SUCCESS {snap.TaskSuccessCount} FAILED {snap.TaskFailedCount} DISCARDED {snap.TaskDiscardedCount}";
             AutoRiskSummary = $"staging失败{snap.StagingFailedCount} 重复码{snap.StagingDuplicateCount} 任务取消{snap.TaskCancelledCount} 批次失败{snap.LastBatchFailCount}";
 
             AutoPullState = ToBatchState(snap.LastBatchStatus);
@@ -1859,6 +2083,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task<MsfxAutoBoardSnapshot> RefreshAutoMapPanelCoreAsync(CancellationToken ct)
     {
         var snap = await RefreshAutoSummaryCoreAsync(ct).ConfigureAwait(false);
+        ResetMapQueueCursor();
         await RefreshMapQueueAsync(ct, olderPage: null).ConfigureAwait(false);
         return snap;
     }
@@ -1897,6 +2122,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         await RunLocalReloadAsync(
             setBusy: v => IsAutoBoardBusy = v,
             action: ct => RefreshMapQueueAsync(ct, olderPage: null));
+    }
+
+    private void ResetMapQueueCursor()
+    {
+        _mapCursorUpdatedAt = null;
+        _mapCursorId = null;
+        MapQueuePage = 1;
     }
 
     private async Task RefreshMapQueueAsync(CancellationToken ct, bool? olderPage)
@@ -2047,7 +2279,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         if (!IsAutoEnabled || IsAutoBusy)
             return;
 
-        await RunAutoOnceAsync();
+        await RunAutoOnceInternalAsync(showProgressPanel: false);
     }
 
     private bool MatchUpoutFilter(MsfxListUpoutItem item)
@@ -2251,6 +2483,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             "NEW" => TraceEntryState.Warning,
             "FAILED" => TraceEntryState.Failed,
             "CANCELLED" => TraceEntryState.Failed,
+            "DISCARDED" => TraceEntryState.Failed,
             _ => TraceEntryState.Info
         };
 

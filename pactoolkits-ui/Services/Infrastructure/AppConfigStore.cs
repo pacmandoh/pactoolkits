@@ -101,7 +101,7 @@ public sealed class AgentToolOptions
     ];
     public List<string> IntCols { get; set; } = ["数量"];
     public string OptParseGridClassNN { get; set; } = "TcxGridSite2";
-    public string OptVerifyGridClassNN { get; set; } = "TcxGridSite1";
+    public string OptVerifyGridClassNN { get; set; } = "TcxGridSite2";
     public string IptParseGridClassNN { get; set; } = "TcxGridSite2";
     public string IptVerifyGridClassNN { get; set; } = "TcxGridSite1";
     public string OptInputClassNN { get; set; } = "TMemo2";

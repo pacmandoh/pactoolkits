@@ -77,7 +77,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     [ObservableProperty] private string _agentIptWindowClass = "Tfrm_wzzsm";
     [ObservableProperty] private int _agentConfirmTimeoutMs = 2500;
     [ObservableProperty] private string _agentOptParseGridClassNN = "TcxGridSite2";
-    [ObservableProperty] private string _agentOptVerifyGridClassNN = "TcxGridSite1";
+    [ObservableProperty] private string _agentOptVerifyGridClassNN = "TcxGridSite2";
     [ObservableProperty] private string _agentIptParseGridClassNN = "TcxGridSite2";
     [ObservableProperty] private string _agentIptVerifyGridClassNN = "TcxGridSite1";
     [ObservableProperty] private string _agentOptInputClassNN = "TMemo2";
