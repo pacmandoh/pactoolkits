@@ -35,7 +35,7 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
     if dup["exists"] {
         return Map(
             "ok", false,
-            "level", "ERR",
+            "level", "WARN",
             "type", "[仓库任务校验]",
             "why", "当前单据该药品规格已存在成功记录，已阻止重复注入`n单据号=" warehouseBillNo "`n药品=" drugId "`n规格=" spec
         )
