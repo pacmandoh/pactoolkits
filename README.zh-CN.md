@@ -64,10 +64,10 @@
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.15.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.14.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.2-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.17-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.16.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.15.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.3-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.19-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
 
@@ -103,6 +103,7 @@
 - 基于 PostgreSQL Migration 的数据库演进体系
 - UI / Agent / DB 版本统一由 Manifest 管控
 - 支持库存、追溯码录入、联调映射、任务队列、重开与审计
+- 支持 `MSFX` bill watch 补偿重查与任务手动弃用
 
 ---
 
@@ -156,6 +157,7 @@ pactoolkits/
 - 追溯码录入与扫描流程
 - 库存总览与库存调整
 - 码上放心联调、拉取、映射、任务审计
+- 码上放心 bill watch 补偿重查与任务弃用
 - AHK 自动化运行时配置与控制
 - 设置、更新、日志与诊断能力
 
@@ -349,8 +351,8 @@ PacToolkits 当前覆盖的业务场景包括：
 - 库存总览与低库存处理
 - 药品信息维护
 - 客户端别名管理
-- 码上放心联调与审计
-- 仓库任务注入、重开与诊断
+- 码上放心联调、bill watch 补偿与审计
+- 仓库任务注入、重开、弃用与诊断
 - 自动化运行时配置管理
 
 ---
@@ -363,12 +365,12 @@ PacToolkits 当前覆盖的业务场景包括：
 
 当前版本清单：
 
-- `suiteVersion`: `0.15.0`
-- `uiVersion`: `0.14.0`
-- `agentVersion`: `0.5.2`
-- `dbSchemaVersion`: `1.2.17`
-- `uiMinDbSchema`: `1.2.17`
-- `agentMinDbSchema`: `1.2.17`
+- `suiteVersion`: `0.16.0`
+- `uiVersion`: `0.15.0`
+- `agentVersion`: `0.5.3`
+- `dbSchemaVersion`: `1.2.19`
+- `uiMinDbSchema`: `1.2.19`
+- `agentMinDbSchema`: `1.2.19`
 
 常用命令：
 
