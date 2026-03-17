@@ -1,14 +1,14 @@
 {
-  "suiteVersion": "0.15.0",
-  "agentVersion": "0.5.2",
-  "uiVersion": "0.14.0",
-  "dbSchemaVersion": "1.2.17",
+  "suiteVersion": "0.16.0",
+  "agentVersion": "0.5.3",
+  "uiVersion": "0.15.0",
+  "dbSchemaVersion": "1.2.19",
   "compat": {
-    "uiMinDbSchema": "1.2.17",
-    "agentMinDbSchema": "1.2.17"
+    "uiMinDbSchema": "1.2.19",
+    "agentMinDbSchema": "1.2.19"
   },
   "build": {
     "channel": "stable",
-    "date": "2026-03-16"
+    "date": "2026-03-17"
   }
 }
