@@ -64,10 +64,10 @@ Desktop UI, AutoHotkey automation, and PostgreSQL orchestration for drug trace-c
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.15.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.14.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.2-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.17-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.16.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.15.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.3-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.19-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
 
@@ -103,6 +103,7 @@ This repository is a coordinated system with:
 - PostgreSQL migration-based schema lifecycle with compatibility gates
 - Versioned release pipeline for UI, agent, and DB schema compatibility
 - Operational visibility for inventory, mapping, MSFX linkage, and execution queues
+- MSFX bill-watch recovery and manual task discard workflows for exception handling
 
 ---
 
@@ -156,6 +157,7 @@ The desktop application is the operational center of the suite. It provides busi
 - trace-code entry and scan workflows
 - inventory overview and reassignment workflows
 - MSFX pull/map/task audit views
+- MSFX bill-watch recovery and manual task discard actions
 - AHK runtime configuration and control
 - settings, logging, and update management
 
@@ -350,8 +352,8 @@ PacToolkits currently spans these major business areas:
 - inventory overview and low-stock workflows
 - drug information maintenance
 - client alias management
-- MSFX linkage and audit
-- warehouse task injection and reopen handling
+- MSFX linkage, bill-watch recovery, and audit
+- warehouse task injection, reopen, and discard handling
 - runtime and agent configuration management
 
 ---
@@ -364,12 +366,12 @@ Single source of truth:
 
 Current manifest:
 
-- `suiteVersion`: `0.15.0`
-- `uiVersion`: `0.14.0`
-- `agentVersion`: `0.5.2`
-- `dbSchemaVersion`: `1.2.17`
-- `uiMinDbSchema`: `1.2.17`
-- `agentMinDbSchema`: `1.2.17`
+- `suiteVersion`: `0.16.0`
+- `uiVersion`: `0.15.0`
+- `agentVersion`: `0.5.3`
+- `dbSchemaVersion`: `1.2.19`
+- `uiMinDbSchema`: `1.2.19`
+- `agentMinDbSchema`: `1.2.19`
 
 Common commands:
 
