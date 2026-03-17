@@ -404,7 +404,9 @@
                                     HorizontalAlignment="Stretch"
                                     Command="{Binding SaveCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:AppIcon Kind="RefreshCw" />
+                                    <icons:AppIcon Kind="RefreshCw"
+                                                   Width="16"
+                                                   Height="16" />
                                     <TextBlock Text="保存" />
                                 </StackPanel>
                             </Button>
@@ -415,7 +417,9 @@
                                     HorizontalAlignment="Stretch"
                                     Command="{Binding DeleteCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:AppIcon Kind="Trash2" />
+                                    <icons:AppIcon Kind="Trash2"
+                                                   Width="16"
+                                                   Height="16" />
                                     <TextBlock Text="删除" />
                                 </StackPanel>
                             </Button>

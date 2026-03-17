@@ -264,6 +264,201 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         }, ct);
     }
 
+    public Task UpsertBillWatchAsync(
+        string sourceApi,
+        string billCode,
+        string? fromRefUserId,
+        string? toRefUserId,
+        string? fromEntName,
+        string? billType,
+        string? billTime,
+        string? billUploadTime,
+        string? lastSeenStatus,
+        string? rawJson,
+        CancellationToken ct)
+    {
+        const string sql = """
+            insert into msfx_pull_bill_watch(
+              source_api,
+              bill_code,
+              from_ref_user_id,
+              to_ref_user_id,
+              from_ent_name,
+              bill_type,
+              bill_time,
+              bill_upload_time,
+              last_seen_status,
+              raw_json,
+              retry_count,
+              next_check_at,
+              state,
+              first_seen_at,
+              last_seen_at,
+              resolved_at,
+              last_error,
+              updated_at
+            )
+            values (
+              @source_api,
+              @bill_code,
+              @from_ref_user_id,
+              @to_ref_user_id,
+              @from_ent_name,
+              @bill_type,
+              @bill_time,
+              @bill_upload_time,
+              @last_seen_status,
+              @raw_json::jsonb,
+              0,
+              clock_timestamp(),
+              'WATCHING',
+              clock_timestamp(),
+              clock_timestamp(),
+              null,
+              null,
+              clock_timestamp()
+            )
+            on conflict (source_api, bill_code) do update
+            set from_ref_user_id = coalesce(excluded.from_ref_user_id, msfx_pull_bill_watch.from_ref_user_id),
+                to_ref_user_id = coalesce(excluded.to_ref_user_id, msfx_pull_bill_watch.to_ref_user_id),
+                from_ent_name = coalesce(excluded.from_ent_name, msfx_pull_bill_watch.from_ent_name),
+                bill_type = coalesce(excluded.bill_type, msfx_pull_bill_watch.bill_type),
+                bill_time = coalesce(excluded.bill_time, msfx_pull_bill_watch.bill_time),
+                bill_upload_time = coalesce(excluded.bill_upload_time, msfx_pull_bill_watch.bill_upload_time),
+                last_seen_status = coalesce(excluded.last_seen_status, msfx_pull_bill_watch.last_seen_status),
+                raw_json = excluded.raw_json,
+                next_check_at = clock_timestamp(),
+                state = 'WATCHING',
+                last_seen_at = clock_timestamp(),
+                resolved_at = null,
+                last_error = null,
+                updated_at = clock_timestamp()
+            """;
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("source_api", sourceApi);
+            cmd.AddParam("bill_code", billCode);
+            AddNullableParam(cmd, "from_ref_user_id", NullIfWhiteSpace(fromRefUserId));
+            AddNullableParam(cmd, "to_ref_user_id", NullIfWhiteSpace(toRefUserId));
+            AddNullableParam(cmd, "from_ent_name", NullIfWhiteSpace(fromEntName));
+            AddNullableParam(cmd, "bill_type", NullIfWhiteSpace(billType));
+            AddNullableParam(cmd, "bill_time", NullIfWhiteSpace(billTime));
+            AddNullableParam(cmd, "bill_upload_time", NullIfWhiteSpace(billUploadTime));
+            AddNullableParam(cmd, "last_seen_status", NullIfWhiteSpace(lastSeenStatus));
+            cmd.AddParam("raw_json", string.IsNullOrWhiteSpace(rawJson) ? "{}" : rawJson);
+            _ = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct);
+    }
+
+    public Task<IReadOnlyList<MsfxBillWatchRow>> GetDueBillWatchesAsync(
+        string sourceApi,
+        int limit,
+        CancellationToken ct)
+    {
+        const string sql = """
+            select
+              w.bill_code,
+              w.from_ref_user_id,
+              w.to_ref_user_id,
+              w.from_ent_name,
+              w.bill_type,
+              w.bill_time,
+              w.bill_upload_time,
+              w.last_seen_status,
+              w.raw_json::text,
+              w.retry_count,
+              w.next_check_at
+            from msfx_pull_bill_watch w
+            where w.source_api = @source_api
+              and w.state = 'WATCHING'
+              and w.next_check_at <= clock_timestamp()
+            order by w.next_check_at, w.id
+            limit @limit
+            """;
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            var rows = new List<MsfxBillWatchRow>();
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("source_api", sourceApi);
+            cmd.AddParam("limit", Math.Max(0, limit));
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                rows.Add(new MsfxBillWatchRow(
+                    BillCode: reader.GetString(0),
+                    FromRefUserId: reader.IsDBNull(1) ? null : reader.GetString(1),
+                    ToRefUserId: reader.IsDBNull(2) ? null : reader.GetString(2),
+                    FromEntName: reader.IsDBNull(3) ? null : reader.GetString(3),
+                    BillType: reader.IsDBNull(4) ? null : reader.GetString(4),
+                    BillTime: reader.IsDBNull(5) ? null : reader.GetString(5),
+                    BillUploadTime: reader.IsDBNull(6) ? null : reader.GetString(6),
+                    LastSeenStatus: reader.IsDBNull(7) ? null : reader.GetString(7),
+                    RawJson: reader.IsDBNull(8) ? null : reader.GetString(8),
+                    RetryCount: reader.IsDBNull(9) ? 0 : reader.GetInt32(9),
+                    NextCheckAt: reader.GetFieldValue<DateTimeOffset>(10)));
+            }
+
+            return (IReadOnlyList<MsfxBillWatchRow>)rows;
+        }, ct);
+    }
+
+    public Task MarkBillWatchResolvedAsync(
+        string sourceApi,
+        string billCode,
+        CancellationToken ct)
+    {
+        const string sql = """
+            update msfx_pull_bill_watch
+            set state = 'RESOLVED',
+                resolved_at = clock_timestamp(),
+                last_error = null,
+                updated_at = clock_timestamp()
+            where source_api = @source_api
+              and bill_code = @bill_code
+            """;
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("source_api", sourceApi);
+            cmd.AddParam("bill_code", billCode);
+            _ = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct);
+    }
+
+    public Task RescheduleBillWatchAsync(
+        string sourceApi,
+        string billCode,
+        string? lastSeenStatus,
+        string? lastError,
+        CancellationToken ct)
+    {
+        const string sql = """
+            update msfx_pull_bill_watch
+            set retry_count = msfx_pull_bill_watch.retry_count + 1,
+                last_seen_status = coalesce(@last_seen_status, msfx_pull_bill_watch.last_seen_status),
+                next_check_at = clock_timestamp() + make_interval(mins => least(360, greatest(5, (power(2::numeric, least(msfx_pull_bill_watch.retry_count, 6)) * 5)::int))),
+                last_error = @last_error,
+                last_seen_at = clock_timestamp(),
+                updated_at = clock_timestamp()
+            where source_api = @source_api
+              and bill_code = @bill_code
+            """;
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("source_api", sourceApi);
+            cmd.AddParam("bill_code", billCode);
+            AddNullableParam(cmd, "last_seen_status", NullIfWhiteSpace(lastSeenStatus));
+            AddNullableParam(cmd, "last_error", NullIfWhiteSpace(lastError));
+            _ = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct);
+    }
+
     public Task<long> UpsertInboundBillAsync(
         long batchId,
         string billCode,
@@ -518,7 +713,8 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
               (select count(*)::int from msfx_inject_task where status = 'RUNNING') as task_running_count,
               (select count(*)::int from msfx_inject_task where status = 'SUCCESS') as task_success_count,
               (select count(*)::int from msfx_inject_task where status = 'FAILED') as task_failed_count,
-              (select count(*)::int from msfx_inject_task where status = 'CANCELLED') as task_cancelled_count
+              (select count(*)::int from msfx_inject_task where status = 'CANCELLED') as task_cancelled_count,
+              (select count(*)::int from msfx_inject_task where status = 'DISCARDED') as task_discarded_count
             """;
 
         return _db.WithConnection(async (conn, token) =>
@@ -531,7 +727,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                     0, "NONE", null, null, 0, 0,
                     0, 0, 0, 0, 0, 0, 0,
                     0, 0, 0, 0,
-                    0, 0, 0, 0, 0);
+                    0, 0, 0, 0, 0, 0);
             }
 
             return new MsfxAutoBoardSnapshot(
@@ -556,7 +752,8 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 TaskRunningCount: reader.GetInt32(18),
                 TaskSuccessCount: reader.GetInt32(19),
                 TaskFailedCount: reader.GetInt32(20),
-                TaskCancelledCount: reader.GetInt32(21));
+                TaskCancelledCount: reader.GetInt32(21),
+                TaskDiscardedCount: reader.GetInt32(22));
         }, ct);
     }
 
@@ -775,7 +972,10 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
               t.finished_at,
               t.err_msg
             from msfx_inject_task t
-            order by t.queue_seq, t.id
+            order by
+              case when t.status = 'DISCARDED' then 1 else 0 end,
+              t.queue_seq,
+              t.id
             limit @limit
             """;
 
@@ -826,6 +1026,31 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 throw new InvalidOperationException($"未能重开任务 {taskId}");
 
             return new MsfxReopenInjectTaskResult(
+                TaskId: reader.GetInt64(0),
+                Status: reader.GetString(1),
+                TotalCodes: reader.GetInt32(2));
+        }, ct);
+    }
+
+    public Task<MsfxDiscardInjectTaskResult> DiscardInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
+    {
+        const string sql = """
+            select task_id, task_status, total_codes
+            from msfx_discard_inject_task(@task_id, @operator_name, @reason)
+            """;
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("task_id", taskId);
+            AddNullableParam(cmd, "operator_name", NullIfWhiteSpace(operatorName));
+            AddNullableParam(cmd, "reason", NullIfWhiteSpace(reason));
+
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (!await reader.ReadAsync(token).ConfigureAwait(false))
+                throw new InvalidOperationException($"未能弃用任务 {taskId}");
+
+            return new MsfxDiscardInjectTaskResult(
                 TaskId: reader.GetInt64(0),
                 Status: reader.GetString(1),
                 TotalCodes: reader.GetInt32(2));

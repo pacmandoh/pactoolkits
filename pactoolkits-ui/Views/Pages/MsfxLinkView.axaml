@@ -177,7 +177,7 @@
                         </Grid>
 
                         <suki:GlassCard Grid.Row="1"
-                                        IsVisible="{Binding IsAutoBusy}"
+                                        IsVisible="{Binding ShowAutoProgressPanel}"
                                         Padding="10,8">
                             <Grid RowDefinitions="Auto,Auto"
                                   ColumnDefinitions="Auto,*,Auto"
@@ -443,7 +443,12 @@
                                         <TextBlock Text="{Binding AutoTaskSummary}" Classes="SectionHint" VerticalAlignment="Center" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                        <suki:InfoBadge Content="{Binding AutoTaskQueueRows.Count, StringFormat=共 {0} 条}" VerticalAlignment="Center" />
+                                        <Button Classes="Ghost MsfxMiniIconBtn"
+                                                behaviors:FocusClearBehavior.SuppressGridClear="True"
+                                                IsEnabled="{Binding CanBatchDiscardSelectedTasks}"
+                                                Command="{Binding DiscardSelectedTaskCommand}">
+                                            <icons:AppIcon Kind="Ban" Width="15" Height="15" />
+                                        </Button>
                                         <Button Classes="Ghost MsfxMiniIconBtn"
                                                 behaviors:FocusClearBehavior.SuppressGridClear="True"
                                                 IsEnabled="{Binding CanBatchReopenSelectedTasks}"
@@ -576,8 +581,8 @@
                             <Grid RowDefinitions="Auto,*" RowSpacing="8">
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <icons:AppIcon Kind="Expand" Width="16" Height="16" />
-                                        <TextBlock Text="全屏查看"
+                                        <icons:AppIcon Kind="{Binding AutoExpandedPanelIcon}" Width="16" Height="16" />
+                                        <TextBlock Text="{Binding AutoExpandedPanelTitle}"
                                                    FontWeight="SemiBold"
                                                    Opacity="0.9"
                                                    VerticalAlignment="Center" />
@@ -592,6 +597,18 @@
                                                     <icons:AppIcon Kind="Table2" Width="15" Height="15" />
                                                     <TextBlock Text="批量映射" />
                                                 </StackPanel>
+                                        </Button>
+                                        <Button Classes="Action"
+                                                IsVisible="{Binding IsTaskPanelExpanded}"
+                                                behaviors:FocusClearBehavior.SuppressGridClear="True"
+                                                IsEnabled="{Binding CanBatchDiscardSelectedTasks}"
+                                                Height="{StaticResource ControlHeightCompact}"
+                                                MinWidth="110"
+                                                Command="{Binding DiscardSelectedTaskCommand}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <icons:AppIcon Kind="Ban" Width="15" Height="15" />
+                                                <TextBlock Text="批量弃用" />
+                                            </StackPanel>
                                         </Button>
                                         <Button Classes="Action"
                                                 IsVisible="{Binding IsTaskPanelExpanded}"
@@ -699,13 +716,14 @@
                                       RowSpacing="8">
                                     <Grid RowDefinitions="Auto,Auto"
                                           RowSpacing="8">
-                                        <Grid ColumnDefinitions="Auto,Auto,*,140,220,Auto"
+                                        <Grid ColumnDefinitions="Auto,Auto,*,180,240,Auto,Auto"
                                               ColumnSpacing="8">
                                             <TextBlock Text="{Binding MapQueueDisplayText}" Classes="SectionHint" VerticalAlignment="Center" />
                                             <TextBlock Grid.Column="1" Text="{Binding MapQueueRangeText}" Classes="SectionHint" VerticalAlignment="Center" />
                                             <ComboBox Grid.Column="3"
-                                                      Width="140"
+                                                      Width="180"
                                                       Height="{StaticResource ControlHeightCompact}"
+                                                      HorizontalAlignment="Left"
                                                       ItemsSource="{Binding MapQueueSearchScopeOptions}"
                                                       SelectedItem="{Binding MapQueueSearchScope, Mode=TwoWay}" />
                                             <TextBox Grid.Column="4"
@@ -726,6 +744,16 @@
                                                     <TextBlock Text="搜索" />
                                                 </StackPanel>
                                             </Button>
+                                            <Button Grid.Column="6"
+                                                    Classes="Ghost"
+                                                    Height="{StaticResource ControlHeightCompact}"
+                                                    MinWidth="104"
+                                                    Command="{Binding ResetMapQueueFiltersCommand}">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <icons:AppIcon Kind="Eraser" Width="14" Height="14" />
+                                                    <TextBlock Text="重置筛选" />
+                                                </StackPanel>
+                                            </Button>
                                         </Grid>
 
                                         <Grid Grid.Row="1"
@@ -733,14 +761,16 @@
                                               ColumnSpacing="8">
                                             <TextBlock Grid.Column="0" Text="映射状态" VerticalAlignment="Center" Opacity="0.8" />
                                             <ComboBox Grid.Column="1"
-                                                      Width="190"
+                                                      Width="220"
                                                       Height="{StaticResource ControlHeightCompact}"
+                                                      HorizontalAlignment="Left"
                                                       ItemsSource="{Binding MapStatusFilterOptions}"
                                                       SelectedItem="{Binding MapQueueMapStatusFilter, Mode=TwoWay}" />
                                             <TextBlock Grid.Column="2" Text="码状态" VerticalAlignment="Center" Opacity="0.8" />
                                             <ComboBox Grid.Column="3"
-                                                      Width="170"
+                                                      Width="190"
                                                       Height="{StaticResource ControlHeightCompact}"
+                                                      HorizontalAlignment="Left"
                                                       ItemsSource="{Binding CodeStatusFilterOptions}"
                                                       SelectedItem="{Binding MapQueueCodeStatusFilter, Mode=TwoWay}" />
                                             <Button Grid.Column="5"
@@ -766,13 +796,6 @@
                                                     Command="{Binding NextMapQueuePageCommand}"
                                                     IsEnabled="{Binding HasMapQueueNextPage}">
                                                 <TextBlock Text="下页" />
-                                            </Button>
-                                            <Button Grid.Column="8"
-                                                    Classes="Ghost"
-                                                    Height="{StaticResource ControlHeightCompact}"
-                                                    MinWidth="92"
-                                                    Command="{Binding ResetMapQueueFiltersCommand}">
-                                                <TextBlock Text="重置筛选" />
                                             </Button>
                                         </Grid>
                                     </Grid>
@@ -866,7 +889,7 @@
                                             <DataGridTextColumn Header="目标药品/规格" Binding="{Binding Target}" Width="260" />
                                             <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="100" />
                                             <DataGridTextColumn Header="进度" Binding="{Binding Progress}" Width="170" />
-                                            <DataGridTextColumn Header="重试" Binding="{Binding RetryCount}" Width="70" />
+                                            <DataGridTextColumn Header="重试" Binding="{Binding RetryCount}" Width="80" />
                                             <DataGridTextColumn Header="创建时间" Binding="{Binding CreatedAt}" Width="160" />
                                             <DataGridTextColumn Header="抢占时间" Binding="{Binding PickedAt}" Width="160" />
                                             <DataGridTextColumn Header="完成时间" Binding="{Binding FinishedAt}" Width="165" />
@@ -1093,7 +1116,7 @@
                                         <DataGridTextColumn Header="发货单位" Binding="{Binding FromEntName}" Width="240" />
                                         <DataGridTextColumn Header="发货RefId" Binding="{Binding FromRefUserId}" Width="230" />
                                         <DataGridTextColumn Header="生产企业" Binding="{Binding ProduceEntName}" Width="220" />
-                                        <DataGridTextColumn Header="物流状态" Binding="{Binding LogisticsStatus}" Width="130" />
+                                        <DataGridTextColumn Header="入库状态" Binding="{Binding LogisticsStatus}" Width="130" />
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </controls:EmptyStatePanel>

@@ -251,6 +251,10 @@ public sealed record MsfxReopenInjectTaskResult(
     long TaskId,
     string Status,
     int TotalCodes);
+public sealed record MsfxDiscardInjectTaskResult(
+    long TaskId,
+    string Status,
+    int TotalCodes);
 public sealed record MsfxAutoBoardSnapshot(
     long LastBatchId,
     string LastBatchStatus,
@@ -273,7 +277,20 @@ public sealed record MsfxAutoBoardSnapshot(
     int TaskRunningCount,
     int TaskSuccessCount,
     int TaskFailedCount,
-    int TaskCancelledCount);
+    int TaskCancelledCount,
+    int TaskDiscardedCount);
+public sealed record MsfxBillWatchRow(
+    string BillCode,
+    string? FromRefUserId,
+    string? ToRefUserId,
+    string? FromEntName,
+    string? BillType,
+    string? BillTime,
+    string? BillUploadTime,
+    string? LastSeenStatus,
+    string? RawJson,
+    int RetryCount,
+    DateTimeOffset NextCheckAt);
 
 public interface IMsfxSyncRepo
 {
@@ -324,6 +341,36 @@ public interface IMsfxSyncRepo
         string billCode,
         CancellationToken ct);
 
+    Task UpsertBillWatchAsync(
+        string sourceApi,
+        string billCode,
+        string? fromRefUserId,
+        string? toRefUserId,
+        string? fromEntName,
+        string? billType,
+        string? billTime,
+        string? billUploadTime,
+        string? lastSeenStatus,
+        string? rawJson,
+        CancellationToken ct);
+
+    Task<IReadOnlyList<MsfxBillWatchRow>> GetDueBillWatchesAsync(
+        string sourceApi,
+        int limit,
+        CancellationToken ct);
+
+    Task MarkBillWatchResolvedAsync(
+        string sourceApi,
+        string billCode,
+        CancellationToken ct);
+
+    Task RescheduleBillWatchAsync(
+        string sourceApi,
+        string billCode,
+        string? lastSeenStatus,
+        string? lastError,
+        CancellationToken ct);
+
     Task<long> UpsertInboundBillAsync(
         long batchId,
         string billCode,
@@ -368,6 +415,7 @@ public interface IMsfxSyncRepo
 
     Task<IReadOnlyList<MsfxInjectTaskQueueRow>> GetInjectTaskQueueAsync(int limit, CancellationToken ct);
     Task<MsfxReopenInjectTaskResult> ReopenInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
+    Task<MsfxDiscardInjectTaskResult> DiscardInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
 
     Task<bool> ApplyManualMappingAsync(long stagingId, string drugId, string spec, CancellationToken ct);
 
