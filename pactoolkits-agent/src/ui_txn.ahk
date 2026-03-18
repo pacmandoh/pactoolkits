@@ -168,6 +168,7 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 
 	return Map("ok", true, "ctrl", classNN, "enter", doEnter)
 }
+
 UI_DetectAndHandleFailDialog() {
 
     ; ========= 信息确认：按 Y =========
