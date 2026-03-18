@@ -4,6 +4,7 @@
     <SolidColorBrush x:Key="BrushDanger" Color="#FF5D5D" />
     <SolidColorBrush x:Key="BrushDone" Color="#34C17B" />
     <SolidColorBrush x:Key="BrushInfo" Color="#39A8FF" />
+    <SolidColorBrush x:Key="BrushPurple" Color="#7C3AED" />
     <SolidColorBrush x:Key="BrushWarningBg10" Color="#1AF6C445" />
     <SolidColorBrush x:Key="BrushWarningBg15" Color="#26F6C445" />
     <SolidColorBrush x:Key="BrushWarningBg25" Color="#40F6C445" />

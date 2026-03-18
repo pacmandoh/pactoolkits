@@ -358,6 +358,7 @@ public sealed class DialogService : IDialogService
             TraceEntryState.Success => NotificationType.Success,
             TraceEntryState.Warning => NotificationType.Warning,
             TraceEntryState.Failed => NotificationType.Error,
+            TraceEntryState.Discarded => NotificationType.Information,
             _ => NotificationType.Information
         };
 }

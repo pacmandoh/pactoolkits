@@ -538,7 +538,7 @@
                                                           EmptyText="暂无自动化日志"
                                                           EmptyHint="点击“立即巡检”或开启自动监控后将显示执行日志">
                                     <DataGrid x:Name="AutoLogGrid"
-                                              Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid"
+                                              Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid"
                                               ItemsSource="{Binding AutoLogs}"
                                               SelectedItem="{Binding SelectedAutoLogRow, Mode=TwoWay}"
                                               ColumnWidth="*"
@@ -904,7 +904,7 @@
                                                           EmptyText="暂无自动化日志"
                                                           EmptyHint="点击“立即巡检”或开启自动监控后将显示执行日志">
                                     <DataGrid x:Name="AutoLogFullGrid"
-                                              Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid"
+                                              Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid"
                                               ItemsSource="{Binding AutoLogs}"
                                               SelectedItem="{Binding SelectedAutoLogRow, Mode=TwoWay}"
                                               ColumnWidth="*"
