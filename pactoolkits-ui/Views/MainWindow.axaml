@@ -270,7 +270,7 @@
                     Header="{Binding DisplayName}"
                     IsEnabled="{Binding IsEnabled}">
                     <suki:SukiSideMenuItem.Icon>
-                        <icons:AppIcon Kind="{Binding Icon}" Width="18" Height="18" />
+                        <icons:AppIcon Kind="{Binding Icon}" Width="16" Height="16" />
                     </suki:SukiSideMenuItem.Icon>
                 </suki:SukiSideMenuItem>
             </DataTemplate>
@@ -330,12 +330,12 @@
                         <Button Classes="SidebarCompactAction"
                                 IsVisible="{Binding !IsSettingsPageActive}"
                                 Command="{Binding OpenSettingsCommand}">
-                            <icons:AppIcon Kind="Settings" Width="20" Height="20" />
+                            <icons:AppIcon Kind="Settings" Width="16" Height="16" />
                         </Button>
                         <Button Classes="SidebarCompactAction ActiveCompactAction"
                                 IsVisible="{Binding IsSettingsPageActive}"
                                 Command="{Binding OpenSettingsCommand}">
-                            <icons:AppIcon Kind="Settings" Width="20" Height="20" />
+                            <icons:AppIcon Kind="Settings" Width="16" Height="16" />
                         </Button>
 
                         <Button Classes="SidebarCompactAction"

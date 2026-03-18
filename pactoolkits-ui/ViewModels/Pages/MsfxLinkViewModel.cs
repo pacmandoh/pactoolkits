@@ -2483,7 +2483,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             "NEW" => TraceEntryState.Warning,
             "FAILED" => TraceEntryState.Failed,
             "CANCELLED" => TraceEntryState.Failed,
-            "DISCARDED" => TraceEntryState.Failed,
+            "DISCARDED" => TraceEntryState.Discarded,
             _ => TraceEntryState.Info
         };
 

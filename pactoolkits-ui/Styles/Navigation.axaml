@@ -40,8 +40,8 @@
     </Style>
 
     <Style Selector="Button.SidebarCompactAction > icons|AppIcon">
-        <Setter Property="Width" Value="16" />
-        <Setter Property="Height" Value="16" />
+        <Setter Property="Width" Value="15" />
+        <Setter Property="Height" Value="15" />
         <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
     </Style>
 
@@ -77,8 +77,8 @@
     </Style>
 
     <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem > icons|AppIcon">
-        <Setter Property="Width" Value="18" />
-        <Setter Property="Height" Value="18" />
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
     </Style>
 
     <Style Selector="con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border">
