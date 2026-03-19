@@ -1,7 +1,7 @@
 ; ================== 码上放心仓库任务执行模块 ==================
 global __MSFX_COL := Map()
 
-Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputClassNN, colSpecs, intCols, iptCls, win := "A") {
+Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputClassNN, colSpecs, intCols, iptCls, win := "A", clickAnchor := "") {
     win := Util_NormalizeWin(win)
     pre := Util_WarehouseSoftCheck(win)
     if !pre["ok"]
@@ -18,26 +18,48 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
     drugId := by.Has("物资名称||药品名称") ? Trim(by["物资名称||药品名称"]) : ""
     spec := by.Has("规格||药品规格") ? Trim(by["规格||药品规格"]) : ""
     warehouseBillNo := Msfx_ResolveWarehouseBillNo(by, taskIdentifierSpec)
+    baseRowFingerprint := Msfx_BuildWarehouseRowFingerprint(by, warehouseBillNo, drugId, spec)
+    rowFingerprint := baseRowFingerprint
     if (drugId = "" || spec = "") {
         return Map("ok", false, "level", "WARN", "type", "[解析错误]", "why", "仓库模式解析结果缺少关键字段`n药品名称=" drugId " 规格=" spec)
     }
     if (warehouseBillNo = "") {
         return Map("ok", false, "level", "WARN", "type", "[解析错误]", "why", "仓库模式解析结果缺少任务标识`n任务标识=" taskIdentifierSpec)
     }
+    if (Trim(baseRowFingerprint) = "") {
+        return Map("ok", false, "level", "WARN", "type", "[仓库任务校验]", "why", "仓库行指纹生成失败，已停止执行以避免错误防重`n单据号=" warehouseBillNo "`n药品=" drugId "`n规格=" spec)
+    }
 
-    ip := Util_GetPrimaryIPv4()
-    osName := Util_GetOSName()
-    clientId := A_ComputerName "|" A_UserName "|ip=" ip "|os=" osName "|ver=" Util_GetAgentVersionTag()
+    global RuntimeInfo
+    clientId := (IsSet(RuntimeInfo) && Type(RuntimeInfo) = "Map" && RuntimeInfo.Has("clientId"))
+        ? RuntimeInfo["clientId"]
+        : (A_ComputerName "|" A_UserName "|ip=" Util_GetPrimaryIPv4() "|os=" Util_GetOSName() "|ver=" Util_GetAgentVersionTag())
 
-    dup := Msfx_HasWarehouseSuccessTask(warehouseBillNo, drugId, spec)
+    dup := Msfx_HasWarehouseSuccessTask(warehouseBillNo, drugId, spec, baseRowFingerprint)
     if !dup["ok"]
         return dup
     if dup["exists"] {
+        if (IsObject(clickAnchor) && clickAnchor.Has("ok") && clickAnchor["ok"]) {
+            slotAnchor := UI_CaptureGridClickAnchorFromPoint(parseGridClassNN, clickAnchor, win)
+            slotRowFingerprint := Msfx_BuildWarehouseRowFingerprint(by, warehouseBillNo, drugId, spec, slotAnchor)
+            if (slotRowFingerprint != "" && slotRowFingerprint != baseRowFingerprint) {
+                dup2 := Msfx_HasWarehouseSuccessTask(warehouseBillNo, drugId, spec, slotRowFingerprint)
+                if !dup2["ok"]
+                    return dup2
+                if !dup2["exists"] {
+                    rowFingerprint := slotRowFingerprint
+                    dup := dup2
+                }
+            }
+        }
+    }
+    if dup["exists"] {
+        fpTip := (rowFingerprint != "") ? ("`n行指纹=" rowFingerprint) : ""
         return Map(
             "ok", false,
             "level", "WARN",
             "type", "[仓库任务校验]",
-            "why", "当前单据该药品规格已存在成功记录，已阻止重复注入`n单据号=" warehouseBillNo "`n药品=" drugId "`n规格=" spec
+            "why", "当前单据该药品规格已存在成功记录，已阻止重复注入`n单据号=" warehouseBillNo "`n药品=" drugId "`n规格=" spec fpTip
         )
     }
 
@@ -55,7 +77,7 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
     hasErr := false
     for _, task in tasks {
         taskId := task["task_id"]
-        r := Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClassNN, win, headerLine, warehouseBillNo)
+        r := Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClassNN, win, headerLine, warehouseBillNo, rowFingerprint)
         if !r["ok"] {
             lastErr := r["why"]
             if (r.Has("level") && r["level"] = "ERR")
@@ -72,7 +94,7 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
     )
 }
 
-Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClassNN, win, headerLine := "", warehouseBillNo := "") {
+Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClassNN, win, headerLine := "", warehouseBillNo := "", rowFingerprint := "") {
     Msfx_InsertEvent(taskId, "PARSE", "INFO", "仓库任务开始执行")
     if (Trim(headerLine) != "") {
         line := headerLine
@@ -295,7 +317,8 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
             finalErr := "部分失败: " fail "/" codeRows.Length
     }
     finalizeBillNo := (fail = 0 && succ > 0) ? warehouseBillNo : ""
-    fr := Msfx_FinalizeInjectTask(taskId, finalErr, finalizeBillNo)
+    finalizeRowFingerprint := (fail = 0 && succ > 0) ? rowFingerprint : ""
+    fr := Msfx_FinalizeInjectTask(taskId, finalErr, finalizeBillNo, finalizeRowFingerprint)
     if !fr["ok"]
         return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", "任务结算失败：`n" fr["why"])
 
@@ -355,15 +378,16 @@ Msfx_ClaimInjectTaskByTarget(clientId, drugId, spec) {
     return Map("ok", true, "tasks", tasks)
 }
 
-Msfx_HasWarehouseSuccessTask(warehouseBillNo, drugId, spec) {
+Msfx_HasWarehouseSuccessTask(warehouseBillNo, drugId, spec, rowFingerprint := "") {
     escBill := Util_EscapeSQL(warehouseBillNo)
     escDrug := Util_EscapeSQL(drugId)
     escSpec := Util_EscapeSQL(spec)
+    escFp := Util_EscapeSQL(rowFingerprint)
     sql := ""
         . "SELECT msfx_has_warehouse_success_task('"
         . escBill "', '"
         . escDrug "', '"
-        . escSpec "') AS has_success;"
+        . escSpec "', NULLIF('" escFp "', '')) AS has_success;"
     r := DB_Query(sql)
     if !r["ok"]
         return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "why", r["err"])
@@ -402,6 +426,50 @@ Msfx_ResolveWarehouseBillNo(bySpec, taskIdentifierSpec) {
             return v
     }
     return ""
+}
+
+Msfx_BuildWarehouseRowFingerprint(bySpec, warehouseBillNo, drugId, spec, clickAnchor := "") {
+    if !IsObject(bySpec)
+        return ""
+
+    currentNo := Msfx_GetWarehouseBySpecValue(bySpec, ["当前编号"])
+    qty := Msfx_GetWarehouseBySpecValue(bySpec, ["数量", "入库数量"])
+    unit := Msfx_GetWarehouseBySpecValue(bySpec, ["单位"])
+    batchNo := Msfx_GetWarehouseBySpecValue(bySpec, ["批号", "生产批号"])
+    rowSlot := ""
+    if (IsObject(clickAnchor) && clickAnchor.Has("ok") && clickAnchor["ok"] && clickAnchor.Has("rowSlot"))
+        rowSlot := "" clickAnchor["rowSlot"]
+
+    if (Trim(warehouseBillNo) = "" || Trim(currentNo) = "" || Trim(drugId) = "" || Trim(spec) = "" || Trim(qty) = "" || Trim(unit) = "")
+        return ""
+
+    return "bill=" Msfx_NormalizeFingerprintPart(warehouseBillNo)
+        . "|no=" Msfx_NormalizeFingerprintPart(currentNo)
+        . "|drug=" Msfx_NormalizeFingerprintPart(drugId)
+        . "|spec=" Msfx_NormalizeFingerprintPart(spec)
+        . "|qty=" Msfx_NormalizeFingerprintPart(qty)
+        . "|unit=" Msfx_NormalizeFingerprintPart(unit)
+        . ((Trim(rowSlot) != "") ? ("|slot=" Msfx_NormalizeFingerprintPart(rowSlot)) : "")
+        . ((Trim(batchNo) != "") ? ("|batch=" Msfx_NormalizeFingerprintPart(batchNo)) : "")
+}
+
+Msfx_GetWarehouseBySpecValue(bySpec, aliases) {
+    if !IsObject(bySpec)
+        return ""
+    for specKey, specVal in bySpec {
+        for _, alias in aliases {
+            for _, one in StrSplit(specKey, "||") {
+                if (Trim(one) = Trim(alias))
+                    return Trim("" specVal)
+            }
+        }
+    }
+    return ""
+}
+
+Msfx_NormalizeFingerprintPart(value) {
+    value := Trim("" value)
+    return RegExReplace(value, "\s+", " ")
 }
 
 Msfx_GetPendingTaskCodes(taskId) {
@@ -637,16 +705,17 @@ Msfx_InsertEvent(taskId, stage, level, msg, leafCode := "") {
     return DB_Exec(sql)
 }
 
-Msfx_FinalizeInjectTask(taskId, errMsg := "", warehouseBillNo := "") {
+Msfx_FinalizeInjectTask(taskId, errMsg := "", warehouseBillNo := "", rowFingerprint := "") {
     tid := Util_ToInt(taskId, 0)
     if (tid <= 0)
         return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "why", "task_id 非法")
 
     escErr := Util_EscapeSQL(errMsg)
     escBill := Util_EscapeSQL(warehouseBillNo)
+    escFp := Util_EscapeSQL(rowFingerprint)
     sql := ""
         . "SELECT task_id, task_status, success_codes, failed_codes, total_codes "
-        . "FROM msfx_finalize_inject_task(" tid ", NULLIF('" escErr "', ''), NULLIF('" escBill "', ''));"
+        . "FROM msfx_finalize_inject_task(" tid ", NULLIF('" escErr "', ''), NULLIF('" escBill "', ''), NULLIF('" escFp "', ''));"
     r := DB_Query(sql)
     if !r["ok"]
         return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "why", r["err"])

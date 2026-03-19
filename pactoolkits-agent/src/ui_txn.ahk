@@ -126,19 +126,16 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
     hwndCtrl := Util_GetCtrlHwndByClassNN(classNN, winTitle)
     if !hwndCtrl
         return Map(
-			"ok", false, "level", "ERR", "type", "[窗口错误]", "why", "获取当前窗口 hwnd 失败", 
-			"reason", "control not found", "ctrl", classNN
-		)
+				"ok", false, "level", "ERR", "type", "[窗口错误]", "why", "获取当前窗口 hwnd 失败", 
+				"reason", "control not found", "ctrl", classNN
+			)
 
-    if !WinActive(winTitle) {
-        try WinActivate(winTitle)
-        catch
-            return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "无法激活目标窗口，可能已切换/关闭")
-        try WinWaitActive(winTitle, , 0.5)
-        catch
-            return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口未就绪，无法注入")
-    }
-
+    try WinActivate(winTitle)
+    catch
+        return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "无法激活目标窗口，可能已切换/关闭")
+    try WinWaitActive(winTitle, , 1)
+    catch
+        return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口未就绪，无法注入")
 
 	oldClip := ClipboardAll()
 	try {
@@ -492,6 +489,75 @@ UI_FindAncestorByClass(hwnd, className, maxDepth := 40) {
         h := DllCall("user32\GetParent", "ptr", h, "ptr")
     }
     return 0
+}
+
+UI_GetWindowRect(hwnd, &x, &y, &w, &h) {
+    x := 0, y := 0, w := 0, h := 0
+    if !hwnd
+        return false
+    rc := Buffer(16, 0)
+    if !DllCall("user32\GetWindowRect", "ptr", hwnd, "ptr", rc, "int")
+        return false
+    left := NumGet(rc, 0, "int")
+    top := NumGet(rc, 4, "int")
+    right := NumGet(rc, 8, "int")
+    bottom := NumGet(rc, 12, "int")
+    x := left
+    y := top
+    w := right - left
+    h := bottom - top
+    return true
+}
+
+UI_CaptureGridClickAnchor(targetNN, win := "A") {
+    win := Util_NormalizeWin(win)
+    MouseGetPos &sx, &sy, &winHwnd, &ctrlHwnd, 2
+    return UI_CaptureGridClickAnchorFromPoint(targetNN, Map("ok", true, "screenX", sx, "screenY", sy), win, ctrlHwnd)
+}
+
+UI_CaptureGridClickAnchorFromPoint(targetNN, clickPoint, win := "A", ctrlHwnd := 0) {
+    win := Util_NormalizeWin(win)
+    if !IsObject(clickPoint)
+        return Map("ok", false)
+    sx := clickPoint.Has("screenX") ? Integer(clickPoint["screenX"]) : 0
+    sy := clickPoint.Has("screenY") ? Integer(clickPoint["screenY"]) : 0
+
+    h0 := ctrlHwnd
+    if !h0 {
+        h0 := DllCall("user32\WindowFromPoint", "Int64", (sy<<32)|sx, "Ptr")
+    }
+    if !h0
+        return Map("ok", false)
+
+    nnTarget := Trim("" targetNN)
+    baseClass := RegExReplace(nnTarget, "\d+$", "")
+    if (baseClass = "")
+        baseClass := nnTarget
+    if (baseClass = "")
+        return Map("ok", false)
+
+    hSite := UI_FindAncestorByClass(h0, baseClass)
+    if !hSite
+        return Map("ok", false)
+
+    x := 0, y := 0, w := 0, h := 0
+    if !UI_GetWindowRect(hSite, &x, &y, &w, &h)
+        return Map("ok", false)
+
+    relY := sy - y
+    if (relY < 0)
+        relY := 0
+    rowHeightPx := 24
+    rowSlot := Floor(relY / rowHeightPx)
+
+    return Map(
+        "ok", true,
+        "screenX", sx,
+        "screenY", sy,
+        "relY", relY,
+        "rowSlot", rowSlot,
+        "targetNN", nnTarget
+    )
 }
 
 UI_MouseOnClassNN(targetNN, win := "A") {
