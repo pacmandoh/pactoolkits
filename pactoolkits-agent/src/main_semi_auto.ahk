@@ -60,7 +60,9 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optV
 
     debugOptMulti := (cls = opt && codes.Length > 1)
     tInjectStart := A_TickCount
+    optBaseScanned := -1
     if (debugOptMulti) {
+        optBaseScanned := UI_GetOptScannedCount(optVerifyGridClassNN, win)
         Util_LogLine(
             "OPT_MULTI | start"
             . " | txn=" txnId
@@ -68,6 +70,7 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optV
             . " | spec=" spec
             . " | codes=" codes.Length
             . " | input=" optInputClassNN
+            . " | base_scanned=" optBaseScanned
         )
     }
 
@@ -107,31 +110,43 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optV
             )
         }
 
-        ; 门诊多码仅给一个极短让步，尽量贴近原链路，同时避免下一条紧跟 paste。
-        if (cls = opt && i < codes.Length) {
-            Sleep(35)
+        if (debugOptMulti) {
+            targetScanned := (optBaseScanned >= 0) ? (optBaseScanned + i) : i
+            wr := UI_WaitOptScannedCount(targetScanned, optVerifyGridClassNN, 450, win)
             if (debugOptMulti) {
                 Util_LogLine(
-                    "OPT_MULTI | gap"
+                    "OPT_MULTI | scan_wait"
                     . " | txn=" txnId
                     . " | idx=" i "/" codes.Length
                     . " | t=" (A_TickCount - tInjectStart) "ms"
-                    . " | sleep=35"
+                    . " | target=" targetScanned
+                    . " | ok=" (wr["ok"] ? "1" : "0")
+                    . " | seen=" wr["count"]
+                    . " | elapsed=" wr["elapsed"] "ms"
+                )
+            }
+            if !wr["ok"] {
+                Txn_Rollback(txnId)
+                return Map(
+                    "ok", false, "level", "ERR", "type", "[录入验证错误]",
+                    "why", "门诊窗口未观察到“已扫码数”按条递增，已停止后续注入，避免多条码在同一轮内合并提交"
                 )
             }
         }
     }
 
     ; 4) 验证
-	wc := UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridClassNN, iptParseGridClassNN, win)
     if (debugOptMulti) {
+        wc := Map("ok", true)
         Util_LogLine(
             "OPT_MULTI | final_confirm"
             . " | txn=" txnId
             . " | t=" (A_TickCount - tInjectStart) "ms"
-            . " | ok=" (wc["ok"] ? "1" : "0")
-            . (wc["ok"] ? "" : " | why=" StrReplace(wc["why"], "`n", " | "))
+            . " | ok=1"
+            . " | mode=incremental_scan_wait"
         )
+    } else {
+	    wc := UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridClassNN, iptParseGridClassNN, win)
     }
 	
     if !wc["ok"] {
