@@ -64,10 +64,10 @@ Desktop UI, AutoHotkey automation, and PostgreSQL orchestration for drug trace-c
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.16.3-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.15.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.6-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.19-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.17.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.16.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.6.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.22-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
 
@@ -158,6 +158,7 @@ The desktop application is the operational center of the suite. It provides busi
 - inventory overview and reassignment workflows
 - MSFX pull/map/task audit views
 - MSFX bill-watch recovery and manual task discard actions
+- MSFX task remap, merge, split, and manual-review flows
 - AHK runtime configuration and control
 - settings, logging, and update management
 
@@ -226,6 +227,7 @@ The automation agent is the execution layer. It drives target desktop windows, p
 - inpatient standard flows no longer stop on warehouse-style soft checks unless warehouse mode is actually enabled
 - agent runtime metadata is initialized once and reused for version tags and client identity logging
 - focus/copy handling for full `ClassNN` targets avoids unnecessary window activation and keeps grid targeting stable
+- warehouse task execution now captures a click anchor and row fingerprint so duplicate-success protection can distinguish same bill rows more precisely
 
 **Key agent config fields**
 
@@ -283,6 +285,8 @@ pactoolkits-db/
 - inject task creation and queue ordering
 - warehouse duplicate protection
 - task reopen / retry / finalize flows
+- task remap, merge, and split orchestration
+- warehouse row-fingerprint dedupe for successful tasks
 
 ---
 
@@ -369,12 +373,12 @@ Single source of truth:
 
 Current manifest:
 
-- `suiteVersion`: `0.16.3`
-- `uiVersion`: `0.15.1`
-- `agentVersion`: `0.5.6`
-- `dbSchemaVersion`: `1.2.19`
-- `uiMinDbSchema`: `1.2.19`
-- `agentMinDbSchema`: `1.2.19`
+- `suiteVersion`: `0.17.0`
+- `uiVersion`: `0.16.0`
+- `agentVersion`: `0.6.0`
+- `dbSchemaVersion`: `1.2.22`
+- `uiMinDbSchema`: `1.2.22`
+- `agentMinDbSchema`: `1.2.22`
 
 Common commands:
 
