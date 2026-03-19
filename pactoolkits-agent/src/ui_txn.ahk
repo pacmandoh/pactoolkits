@@ -476,6 +476,30 @@ UI_Parse_MaxScanned(txt) {
     return max
 }
 
+UI_GetOptScannedCount(verifyGridClassNN, win := "A") {
+    txt := UI_TryCopyGridClassNNText(verifyGridClassNN, win)
+    if (txt = "")
+        return -1
+    return UI_Parse_MaxScanned(txt)
+}
+
+UI_WaitOptScannedCount(targetN, verifyGridClassNN, timeoutMs := 450, win := "A") {
+    t0 := A_TickCount
+    delay := 10
+
+    while (A_TickCount - t0 < timeoutMs) {
+        n := UI_GetOptScannedCount(verifyGridClassNN, win)
+        if (n >= targetN)
+            return Map("ok", true, "count", n, "elapsed", A_TickCount - t0)
+
+        Sleep(delay)
+        if (delay < 25)
+            delay += 5
+    }
+
+    return Map("ok", false, "count", UI_GetOptScannedCount(verifyGridClassNN, win), "elapsed", A_TickCount - t0)
+}
+
 UI_FindAncestorByClass(hwnd, className, maxDepth := 40) {
     h := hwnd
     Loop maxDepth {
