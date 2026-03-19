@@ -64,10 +64,10 @@
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.16.3-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.15.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.6-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.19-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.17.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.16.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.6.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.22-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
 
@@ -158,6 +158,7 @@ pactoolkits/
 - 库存总览与库存调整
 - 码上放心联调、拉取、映射、任务审计
 - 码上放心 bill watch 补偿重查与任务弃用
+- 码上放心任务回退映射、合并、拆分与人工复核流程
 - AHK 自动化运行时配置与控制
 - 设置、更新、日志与诊断能力
 
@@ -226,6 +227,7 @@ Agent 是自动化执行层，负责对目标窗口进行解析、注入、验�
 - 仅在真正启用仓库模式时才做仓库列特征软校验，住院普通链路不再被误拦截
 - agent 运行时元信息会在启动时初始化一次，并复用于版本标识与客户端身份日志
 - 完整 `ClassNN` 目标的聚焦/复制逻辑减少了不必要的窗口激活，网格控件命中更稳定
+- 仓库任务执行会记录点击行锚点与行指纹，成功防重可以更精确地区分同单据内的不同行
 
 **Agent 关键配置字段**
 
@@ -283,6 +285,8 @@ pactoolkits-db/
 - 注入任务生成与队列顺序
 - 仓库模式重复注入防护
 - 任务重开、重试与结算
+- 任务回退映射、合并、拆分编排
+- 仓库成功任务的行指纹防重
 
 ---
 
@@ -368,12 +372,12 @@ PacToolkits 当前覆盖的业务场景包括：
 
 当前版本清单：
 
-- `suiteVersion`: `0.16.3`
-- `uiVersion`: `0.15.1`
-- `agentVersion`: `0.5.6`
-- `dbSchemaVersion`: `1.2.19`
-- `uiMinDbSchema`: `1.2.19`
-- `agentMinDbSchema`: `1.2.19`
+- `suiteVersion`: `0.17.0`
+- `uiVersion`: `0.16.0`
+- `agentVersion`: `0.6.0`
+- `dbSchemaVersion`: `1.2.22`
+- `uiMinDbSchema`: `1.2.22`
+- `agentMinDbSchema`: `1.2.22`
 
 常用命令：
 
