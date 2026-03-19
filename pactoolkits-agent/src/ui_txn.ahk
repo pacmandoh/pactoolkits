@@ -154,12 +154,12 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 		SendMessage(0x0302, 0, 0, , "ahk_id " hwndCtrl)
 
 		if (doEnter) {
-			Sleep(22)
-			PostMessage(0x0100, 0x0D, 1, , "ahk_id " hwndCtrl)
-			PostMessage(0x0101, 0x0D, 0xC0000001, , "ahk_id " hwndCtrl)
+			Sleep(50)
+			PostMessage(0x0100, 0x0D, 0, , "ahk_id " hwndCtrl)
+			PostMessage(0x0101, 0x0D, 0, , "ahk_id " hwndCtrl)
 		} else {
-			Sleep(16)
-			PostMessage(0x0100, 0x0D, 1, , "ahk_id " hwndCtrl)
+			Sleep(50)
+			PostMessage(0x0100, 0x0D, 0, , "ahk_id " hwndCtrl)
 			; PostMessage(0x0101, 0x0D, 0, , "ahk_id " hwndCtrl)
 		}
 	} finally {
@@ -377,9 +377,13 @@ UI_FocusGridClassNN(classNN, win := "A", control := true) {
         return ""
 
     win := Util_NormalizeWin(win)
-    parts := Util_ParseClassNN(nn)
-    if (parts["ord"] > 0)
-        return UI_FocusTarget(parts["base"], parts["ord"], win, control)
+    base := RegExReplace(nn, "\d+$", "")
+    if (base != "" && base != nn) {
+        ordText := SubStr(nn, StrLen(base) + 1)
+        ord := Util_ToInt(ordText, 0)
+        if (ord > 0)
+            return UI_FocusTarget(base, ord, win, control)
+    }
 
     return UI_FocusClassNN(nn, win, control)
 }
@@ -442,12 +446,14 @@ UI_FocusTarget(classNN, nSite := 1, win := "A", control := true) {
     if !hwndSite
         return ""
 
-    try WinActivate(winId)
-    catch
-        return ""
-    try WinWaitActive(winId, , 1)
-    catch
-        return ""
+    if !WinActive(winId) {
+        try WinActivate(winId)
+        catch
+            return ""
+        try WinWaitActive(winId, , 0.3)
+        catch
+            return ""
+    }
 
     if (control) {
         try ControlFocus(hwndSite, winId)
@@ -476,30 +482,6 @@ UI_Parse_MaxScanned(txt) {
     return max
 }
 
-UI_GetOptScannedCount(verifyGridClassNN, win := "A") {
-    txt := UI_TryCopyGridClassNNText(verifyGridClassNN, win)
-    if (txt = "")
-        return -1
-    return UI_Parse_MaxScanned(txt)
-}
-
-UI_WaitOptScannedCount(targetN, verifyGridClassNN, timeoutMs := 450, win := "A") {
-    t0 := A_TickCount
-    delay := 10
-
-    while (A_TickCount - t0 < timeoutMs) {
-        n := UI_GetOptScannedCount(verifyGridClassNN, win)
-        if (n >= targetN)
-            return Map("ok", true, "count", n, "elapsed", A_TickCount - t0)
-
-        Sleep(delay)
-        if (delay < 25)
-            delay += 5
-    }
-
-    return Map("ok", false, "count", UI_GetOptScannedCount(verifyGridClassNN, win), "elapsed", A_TickCount - t0)
-}
-
 UI_FindAncestorByClass(hwnd, className, maxDepth := 40) {
     h := hwnd
     Loop maxDepth {
@@ -526,9 +508,11 @@ UI_MouseOnClassNN(targetNN, win := "A") {
     if !h0
         return false
 
-    ; 2) 向上爬到目标 ClassNN 对应的基类控件
-    parts := Util_ParseClassNN(targetNN)
-    baseClass := parts["base"]
+    ; 2) 按旧版语义：由完整 ClassNN 拆出基类，再向上找基类父控件。
+    nnTarget := Trim("" targetNN)
+    baseClass := RegExReplace(nnTarget, "\d+$", "")
+    if (baseClass = "")
+        baseClass := nnTarget
     if (baseClass = "")
         return false
 

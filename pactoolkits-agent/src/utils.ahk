@@ -34,6 +34,10 @@ Util_PathFull(p) {
 }
 
 Util_ReadVersionFile() {
+    global VersionInfo
+    if (IsSet(VersionInfo) && Type(VersionInfo) = "Map" && VersionInfo.Has("agentVersion"))
+        return VersionInfo
+
     info := Map(
         "agentVersion", "unknown"
     )
@@ -58,7 +62,24 @@ Util_ReadVersionFile() {
     return info
 }
 
+Util_InitRuntimeInfo(versionInfo := "") {
+    v := (IsObject(versionInfo) && versionInfo.Has("agentVersion")) ? versionInfo["agentVersion"] : Util_ReadVersionFile()["agentVersion"]
+    ip := Util_GetPrimaryIPv4()
+    osName := Util_GetOSName()
+
+    return Map(
+        "agentVersion", v,
+        "ip", ip,
+        "osName", osName,
+        "versionTag", "agent-" v "+ahk-" A_AhkVersion,
+        "clientId", A_ComputerName "|" A_UserName "|ip=" ip "|os=" osName "|ver=" "agent-" v "+ahk-" A_AhkVersion
+    )
+}
+
 Util_GetAgentVersionTag() {
+    global RuntimeInfo
+    if (IsSet(RuntimeInfo) && Type(RuntimeInfo) = "Map" && RuntimeInfo.Has("versionTag"))
+        return RuntimeInfo["versionTag"]
     v := Util_ReadVersionFile()
     return "agent-" v["agentVersion"] "+ahk-" A_AhkVersion
 }
@@ -484,16 +505,6 @@ Util_TryGetGridHeaderLine(win := "A") {
     if !WinExist(win)
         return ""
 
-    try WinActivate(win)
-    catch
-        return ""
-    if !WinExist(win)
-        return ""
-
-    try WinWaitActive(win, , 1)
-    catch
-        return ""
-
     try {
         A_Clipboard := ""
         SendInput "^c"
@@ -538,12 +549,14 @@ UI_FocusClassNN(classNN, win := "A", control := true) {
     if !hwndCtrl
         return ""
 
-    try WinActivate(win)
-    catch
-        return ""
-    try WinWaitActive(win, , 1)
-    catch
-        return ""
+    if !WinActive(win) {
+        try WinActivate(win)
+        catch
+            return ""
+        try WinWaitActive(win, , 0.3)
+        catch
+            return ""
+    }
 
     if (control) {
         try ControlFocus(nn, win)
@@ -558,20 +571,6 @@ UI_FocusClassNN(classNN, win := "A", control := true) {
             return ""
     }
     return hwndCtrl
-}
-
-Util_ParseClassNN(classNN) {
-    nn := Trim("" classNN)
-    if (nn = "")
-        return Map("raw", "", "base", "", "ord", 0)
-
-    if RegExMatch(nn, "^(.*?)(\d+)$", &m) {
-        base := Trim(m[1])
-        ord := Util_ToInt(m[2], 0)
-        if (base != "" && ord > 0)
-            return Map("raw", nn, "base", base, "ord", ord)
-    }
-    return Map("raw", nn, "base", nn, "ord", 0)
 }
 
 Util_GetCtrlHwndByClassNN(classNN, win := "A") {
