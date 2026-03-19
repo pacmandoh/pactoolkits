@@ -114,14 +114,19 @@ global _LAST_RUN := 0
 ~LButton:: {
     global _BUSY, _LAST_RUN, Cfg
 
-    Critical
-    KeyWait("LButton")
-
-    ; 先过滤触发区域：非目标 Grid 完全静默，不进入节流提示。
     ctx := Util_CaptureWin("A")
     parseGridClassNN := (ctx["cls"] = Cfg["IPT_WINDOW_CLASS"]) ? Cfg["IPT_PARSE_GRID_CLASSNN"] : Cfg["OPT_PARSE_GRID_CLASSNN"]
     if !UI_MouseOnClassNN(parseGridClassNN)
         return
+    clickAnchor := ""
+    warehouseMode := (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
+    if warehouseMode {
+        MouseGetPos &sx, &sy
+        clickAnchor := Map("ok", true, "screenX", sx, "screenY", sy, "targetNN", parseGridClassNN)
+    }
+
+    Critical
+    KeyWait("LButton")
 
     if (_BUSY)
         return UI_Tip("忙碌中…已忽略重复触发", 800)
@@ -137,7 +142,7 @@ global _LAST_RUN := 0
 	cls := ctx["cls"]
 		
     try {
-        if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"]) {
+        if warehouseMode {
             UI_Tip("[仓库模式] 开始执行注入流程…", 900)
             msa := Msfx_RunWarehouseTaskFlow(
                 Cfg["CONFIRM_TIMEOUT_MS"],
@@ -147,7 +152,8 @@ global _LAST_RUN := 0
                 Cfg["COL_SPECS"],
                 Cfg["INT_COLS"],
                 Cfg["IPT_WINDOW_CLASS"],
-                ctx["win"]
+                ctx["win"],
+                clickAnchor
             )
         } else {
 			msa := Semi_Auto_Fill(
