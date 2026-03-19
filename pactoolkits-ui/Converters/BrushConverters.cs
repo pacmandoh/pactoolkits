@@ -219,6 +219,7 @@ public sealed class TraceEntryStateToIconKindConverter : IValueConverter
             TraceEntryState.Warning => "CircleAlert",
             TraceEntryState.Failed => "CircleX",
             TraceEntryState.Discarded => "Ban",
+            TraceEntryState.ManualReview => "Bookmark",
             TraceEntryState.Info => "Info",
             _ => "Info",
         };
@@ -240,6 +241,7 @@ public sealed class TraceEntryStateToFgBrushConverter : IValueConverter
             TraceEntryState.Warning => "BrushWarning",
             TraceEntryState.Failed => "BrushDanger",
             TraceEntryState.Discarded => "BrushPurple",
+            TraceEntryState.ManualReview => "BrushInfo",
             TraceEntryState.Info => "BrushInfo",
             _ => "BrushInfo",
         };
@@ -264,6 +266,7 @@ public sealed class TraceEntryStateToBgBrushConverter : IValueConverter
             TraceEntryState.Warning => $"BrushWarningBg{level}",
             TraceEntryState.Failed => $"BrushDangerBg{level}",
             TraceEntryState.Discarded => $"BrushPurpleBg{level}",
+            TraceEntryState.ManualReview => $"BrushInfoBg{level}",
             TraceEntryState.Info => $"BrushInfoBg{level}",
             _ => $"BrushInfoBg{level}",
         };

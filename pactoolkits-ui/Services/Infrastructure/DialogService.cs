@@ -31,26 +31,14 @@ public interface IDialogService
     Task<string?> PromptInventoryUnlockPassword(string title, string hintMessage);
     Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items);
     Task ShowMsfxStateDetailDialog(MsfxStateDetailDialogModel model);
-    Task<MsfxMappingDialogResult> ShowMsfxMappingDetailDialog(MsfxMappingDetailDialogModel model);
     Task<MsfxMappingBatchDialogResult> ShowMsfxMappingBatchDialog(MsfxMappingBatchDialogModel model);
+    Task<MsfxTaskSplitDialogResult> ShowMsfxTaskSplitDialog(MsfxTaskSplitDialogModel model);
 }
-
-public enum MsfxMappingDialogAction
-{
-    Cancel = 0,
-    MarkReview = 1,
-    ApplyMap = 2
-}
-
-public sealed record MsfxMappingDialogResult(
-    MsfxMappingDialogAction Action,
-    string DrugId,
-    string Spec);
 
 public enum MsfxMappingBatchDialogAction
 {
     Cancel = 0,
-    MarkReview = 1,
+    DiscardTask = 1,
     ApplyMap = 2
 }
 
@@ -59,6 +47,25 @@ public sealed record MsfxMappingBatchDialogResult(
     MsfxMappingBatchGroupRow? Group,
     string DrugId,
     string Spec);
+
+public enum MsfxTaskSplitDialogAction
+{
+    Cancel = 0,
+    ParentCluster = 1,
+    Batch = 2,
+    CustomQuantity = 3
+}
+
+public sealed record MsfxTaskSplitDialogModel(
+    long TaskId,
+    string SourceBillCode,
+    string Target,
+    int TotalCodes,
+    IReadOnlyList<MsfxInjectTaskSplitCodeRow> SplitCodeRows);
+
+public sealed record MsfxTaskSplitDialogResult(
+    MsfxTaskSplitDialogAction Action,
+    string? CustomQuantities = null);
 
 public sealed class DialogService : IDialogService
 {
@@ -291,39 +298,6 @@ public sealed class DialogService : IDialogService
         return tcs.Task;
     }
 
-    public Task<MsfxMappingDialogResult> ShowMsfxMappingDetailDialog(MsfxMappingDetailDialogModel model)
-    {
-        var tcs = new TaskCompletionSource<MsfxMappingDialogResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        Dispatcher.UIThread.Post(() =>
-        {
-            var content = new MsfxMappingDetailDialogView
-            {
-                DataContext = model
-            };
-
-            var builder = _dialogManager.CreateDialog()
-                .OfType(NotificationType.Information)
-                .WithTitle("映射详情")
-                .WithContent(content)
-                .WithActionButton("关闭", _ => tcs.TrySetResult(new MsfxMappingDialogResult(MsfxMappingDialogAction.Cancel, "", "")), dismissOnClick: true, classes: GhostButtonClasses);
-
-            if (!model.IsReadOnly)
-            {
-                builder = builder
-                    .WithActionButton("标记待人工", _ => tcs.TrySetResult(new MsfxMappingDialogResult(MsfxMappingDialogAction.MarkReview, "", "")), dismissOnClick: true, classes: FlatButtonClasses)
-                    .WithActionButton("应用映射", _ => tcs.TrySetResult(new MsfxMappingDialogResult(MsfxMappingDialogAction.ApplyMap, content.DrugId, content.Spec)), dismissOnClick: true, classes: FlatAccentButtonClasses);
-            }
-
-            builder
-                .Dismiss().ByClickingBackground()
-                .OnDismissed(_ => tcs.TrySetResult(new MsfxMappingDialogResult(MsfxMappingDialogAction.Cancel, "", "")))
-                .TryShow();
-        });
-
-        return tcs.Task;
-    }
-
     public Task<MsfxMappingBatchDialogResult> ShowMsfxMappingBatchDialog(MsfxMappingBatchDialogModel model)
     {
         var tcs = new TaskCompletionSource<MsfxMappingBatchDialogResult>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -342,10 +316,37 @@ public sealed class DialogService : IDialogService
                 .WithTitle("批量映射")
                 .WithContent(content)
                 .WithActionButton("关闭", _ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.Cancel, null, "", "")), dismissOnClick: true, classes: GhostButtonClasses)
-                .WithActionButton("转待人工", _ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.MarkReview, ResolveGroup(), "", "")), dismissOnClick: true, classes: FlatButtonClasses)
+                .WithActionButton("弃用任务", _ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.DiscardTask, ResolveGroup(), content.DrugId, content.Spec)), dismissOnClick: true, classes: FlatButtonClasses)
                 .WithActionButton("批量映射", _ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.ApplyMap, ResolveGroup(), content.DrugId, content.Spec)), dismissOnClick: true, classes: FlatAccentButtonClasses)
                 .Dismiss().ByClickingBackground()
                 .OnDismissed(_ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.Cancel, null, "", "")))
+                .TryShow();
+        });
+
+        return tcs.Task;
+    }
+
+    public Task<MsfxTaskSplitDialogResult> ShowMsfxTaskSplitDialog(MsfxTaskSplitDialogModel model)
+    {
+        var tcs = new TaskCompletionSource<MsfxTaskSplitDialogResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            var content = new MsfxTaskSplitDialogView
+            {
+                DataContext = model
+            };
+
+            _dialogManager.CreateDialog()
+                .OfType(NotificationType.Information)
+                .WithTitle("拆分任务")
+                .WithContent(content)
+                .WithActionButton("关闭", _ => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Cancel)), dismissOnClick: true, classes: GhostButtonClasses)
+                .WithActionButton("按批号拆分", _ => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Batch)), dismissOnClick: true, classes: FlatButtonClasses)
+                .WithActionButton("自定义数量拆分", _ => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.CustomQuantity, content.CustomQuantities)), dismissOnClick: true, classes: FlatButtonClasses)
+                .WithActionButton("按父码簇拆分", _ => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.ParentCluster)), dismissOnClick: true, classes: FlatAccentButtonClasses)
+                .Dismiss().ByClickingBackground()
+                .OnDismissed(_ => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Cancel)))
                 .TryShow();
         });
 

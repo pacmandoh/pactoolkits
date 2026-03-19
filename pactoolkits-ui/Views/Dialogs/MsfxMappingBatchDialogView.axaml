@@ -26,7 +26,7 @@
                 </Border>
                 <StackPanel Grid.Column="1" Spacing="2">
                     <TextBlock Text="批量映射处理" FontSize="17" FontWeight="SemiBold" />
-                    <TextBlock Text="先选分组，再映射或转待人工" Opacity="0.75" />
+                    <TextBlock Text="先选分组，再映射或直接弃用任务" Opacity="0.75" />
                 </StackPanel>
             </Grid>
 
@@ -35,7 +35,7 @@
                 <DataGrid Grid.Row="1"
                           x:Name="GroupGrid"
                           Height="280"
-                          Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid"
+                          Classes="SectionGrid InventoryGrid LowToneGrid MsfxIndexedGrid"
                           HeadersVisibility="All"
                           GridLinesVisibility="All"
                           HorizontalScrollBarVisibility="Auto"
@@ -50,6 +50,8 @@
                         </Style>
                     </DataGrid.Styles>
                     <DataGrid.Columns>
+                        <DataGridTextColumn Header="单据时间" Binding="{Binding SourceBillTimes}" Width="140" />
+                        <DataGridTextColumn Header="单据编码" Binding="{Binding SourceBillCodes}" Width="220" />
                         <DataGridTextColumn Header="原始药名" Binding="{Binding SourceDrugNameRaw}" Width="180" />
                         <DataGridTextColumn Header="原始规格" Binding="{Binding SourceSpecRaw}" Width="180" />
                         <DataGridTextColumn Header="归一化药名" Binding="{Binding SourceNameNorm}" Width="180" />
@@ -64,17 +66,17 @@
                                                              IconSize="12"
                                                              TextSize="11"
                                                              PillPadding="8,3"
-                                                             BackgroundBrush="{DynamicResource BrushInfoBg25}"
-                                                             PillBorderBrush="{DynamicResource BrushInfoBg50}"
-                                                             ForegroundBrush="{DynamicResource BrushInfo}" />
-                                        <controls:StatusPill Icon="CircleAlert"
+                                                             BackgroundBrush="{DynamicResource BrushWarningBg25}"
+                                                             PillBorderBrush="{DynamicResource BrushWarningBg50}"
+                                                             ForegroundBrush="{DynamicResource BrushWarning}" />
+                                        <controls:StatusPill Icon="Bookmark"
                                                              Text="{Binding NeedReviewCount, StringFormat=待人工 {0}}"
                                                              IconSize="12"
                                                              TextSize="11"
                                                              PillPadding="8,3"
-                                                             BackgroundBrush="{DynamicResource BrushWarningBg25}"
-                                                             PillBorderBrush="{DynamicResource BrushWarningBg50}"
-                                                             ForegroundBrush="{DynamicResource BrushWarning}" />
+                                                             BackgroundBrush="{DynamicResource BrushInfoBg25}"
+                                                             PillBorderBrush="{DynamicResource BrushInfoBg50}"
+                                                             ForegroundBrush="{DynamicResource BrushInfo}" />
                                         <controls:StatusPill Icon="CircleX"
                                                              Text="{Binding FailedCount, StringFormat=失败 {0}}"
                                                              IconSize="12"

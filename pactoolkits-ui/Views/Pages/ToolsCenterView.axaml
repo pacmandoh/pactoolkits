@@ -90,7 +90,7 @@
 
                 <suki:GlassCard Grid.Column="1" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch">
                     <Button Classes="Action"
-                            Width="136"
+                            MinWidth="136"
                             Command="{Binding RestartAhkCommand}"
                             IsEnabled="{Binding !IsAhkToggling}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
@@ -102,7 +102,7 @@
 
                 <suki:GlassCard Grid.Column="2" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch">
                     <Button Classes="Action"
-                            Width="136"
+                            MinWidth="136"
                             Command="{Binding SaveAhkSettingsCommand}"
                             IsEnabled="{Binding !IsSavingSettings}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
