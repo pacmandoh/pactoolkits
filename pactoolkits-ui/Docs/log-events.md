@@ -264,16 +264,15 @@
 - `msfx.task.reopen.success`
 - `msfx.task.reopen.fail`
 - `msfx.map.batch.apply`
-- `msfx.map.batch.mark_review`
-- `msfx.map.manual.mark_review`
-- `msfx.map.manual.apply`
+- `msfx.task.merge.success`
+- `msfx.task.split.success`
 - `msfx.audit.diagnose.pending_without_match`
 - `msfx.audit.snapshot.refresh_fail`
 
 说明:
 
 - `msfx.auto.*` 里的开始/汇总/完成类事件主要为 `Info`
-- 人工介入且需要保留审计可见性的事件，如 `msfx.task.reopen.success`、`msfx.map.batch.apply`、`msfx.map.manual.apply`，按 `Warn` 记录
+- 人工介入且需要保留审计可见性的事件，如 `msfx.task.reopen.success`、`msfx.map.batch.apply`、`msfx.task.merge.success`、`msfx.task.split.success`，按 `Warn` 记录
 - 失败类事件按 `Error`
 
 ## DashboardViewModel
