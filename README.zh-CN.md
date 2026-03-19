@@ -64,9 +64,9 @@
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.16.2-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.16.3-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.15.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.5-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.6-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.19-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
@@ -223,7 +223,9 @@ Agent 是自动化执行层，负责对目标窗口进行解析、注入、验�
 - parse / inject / verify / finalize 模块化拆分
 - 仓库重复注入防护与任务状态以数据库为准
 - 窗口类、解析区、验证区、输入控件都以完整 `ClassNN` 配置为准，不再依赖代码内拼接推导
-- 门诊多码注入链路现在会在每次粘贴后等待校验区“已扫码数”递增，减少慢窗口下连续粘贴造成的误成功
+- 仅在真正启用仓库模式时才做仓库列特征软校验，住院普通链路不再被误拦截
+- agent 运行时元信息会在启动时初始化一次，并复用于版本标识与客户端身份日志
+- 完整 `ClassNN` 目标的聚焦/复制逻辑减少了不必要的窗口激活，网格控件命中更稳定
 
 **Agent 关键配置字段**
 
@@ -366,9 +368,9 @@ PacToolkits 当前覆盖的业务场景包括：
 
 当前版本清单：
 
-- `suiteVersion`: `0.16.2`
+- `suiteVersion`: `0.16.3`
 - `uiVersion`: `0.15.1`
-- `agentVersion`: `0.5.5`
+- `agentVersion`: `0.5.6`
 - `dbSchemaVersion`: `1.2.19`
 - `uiMinDbSchema`: `1.2.19`
 - `agentMinDbSchema`: `1.2.19`
