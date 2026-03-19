@@ -4,13 +4,13 @@
 ; 		流程：复制目标信息 -> 解析 -> 预留/计算减扣 -> 粘贴追溯码 -> 验证 -> Commit/Rollback
 
 Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optVerifyGridClassNN, iptParseGridClassNN, iptVerifyGridClassNN, optInputClassNN, iptInputClassNN, win := "A") {
+    global RuntimeInfo
     ; 0) 场景识别
     win := Util_NormalizeWin(win)
     cls := WinGetClass(win)
-
-    ip := Util_GetPrimaryIPv4()
-    osName := Util_GetOSName()
-    clientId := A_ComputerName "|" A_UserName "|ip=" ip "|os=" osName "|ver=" Util_GetAgentVersionTag()
+    clientId := (IsSet(RuntimeInfo) && Type(RuntimeInfo) = "Map" && RuntimeInfo.Has("clientId"))
+        ? RuntimeInfo["clientId"]
+        : A_ComputerName
 	
     mode := ""
     if (cls = ipt) {
@@ -58,96 +58,18 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optV
         return Map("ok", false, "level", "ERR", "type", "[预留错误]", "why", "预留成功但追溯码异常并且为空")
     }
 
-    debugOptMulti := (cls = opt && codes.Length > 1)
-    tInjectStart := A_TickCount
-    optBaseScanned := -1
-    if (debugOptMulti) {
-        optBaseScanned := UI_GetOptScannedCount(optVerifyGridClassNN, win)
-        Util_LogLine(
-            "OPT_MULTI | start"
-            . " | txn=" txnId
-            . " | drug=" drugId
-            . " | spec=" spec
-            . " | codes=" codes.Length
-            . " | input=" optInputClassNN
-            . " | base_scanned=" optBaseScanned
-        )
-    }
-
     ; 3) UI 注入追溯码（逐条粘贴）
     for i, code in codes {
-        if (debugOptMulti) {
-            Util_LogLine(
-                "OPT_MULTI | paste_begin"
-                . " | txn=" txnId
-                . " | idx=" i "/" codes.Length
-                . " | t=" (A_TickCount - tInjectStart) "ms"
-                . " | len=" StrLen(code)
-            )
-        }
         pr := UI_Paste_ByPolicy(code, opt, ipt, optInputClassNN, iptInputClassNN, win)
         if (!pr["ok"]) {
             ; 已预留扣库 -> 业务回滚
-            if (debugOptMulti) {
-                Util_LogLine(
-                    "OPT_MULTI | paste_fail"
-                    . " | txn=" txnId
-                    . " | idx=" i "/" codes.Length
-                    . " | t=" (A_TickCount - tInjectStart) "ms"
-                    . " | why=" StrReplace(pr["why"], "`n", " | ")
-                )
-            }
             Txn_Rollback(txnId)
             return Map("ok", false, "level", "ERR", "type", pr["type"], "why", "注入失败（第" i "条）：`n" pr["why"])
-        }
-
-        if (debugOptMulti) {
-            Util_LogLine(
-                "OPT_MULTI | paste_ok"
-                . " | txn=" txnId
-                . " | idx=" i "/" codes.Length
-                . " | t=" (A_TickCount - tInjectStart) "ms"
-            )
-        }
-
-        if (debugOptMulti) {
-            targetScanned := (optBaseScanned >= 0) ? (optBaseScanned + i) : i
-            wr := UI_WaitOptScannedCount(targetScanned, optVerifyGridClassNN, 450, win)
-            if (debugOptMulti) {
-                Util_LogLine(
-                    "OPT_MULTI | scan_wait"
-                    . " | txn=" txnId
-                    . " | idx=" i "/" codes.Length
-                    . " | t=" (A_TickCount - tInjectStart) "ms"
-                    . " | target=" targetScanned
-                    . " | ok=" (wr["ok"] ? "1" : "0")
-                    . " | seen=" wr["count"]
-                    . " | elapsed=" wr["elapsed"] "ms"
-                )
-            }
-            if !wr["ok"] {
-                Txn_Rollback(txnId)
-                return Map(
-                    "ok", false, "level", "ERR", "type", "[录入验证错误]",
-                    "why", "门诊窗口未观察到“已扫码数”按条递增，已停止后续注入，避免多条码在同一轮内合并提交"
-                )
-            }
         }
     }
 
     ; 4) 验证
-    if (debugOptMulti) {
-        wc := Map("ok", true)
-        Util_LogLine(
-            "OPT_MULTI | final_confirm"
-            . " | txn=" txnId
-            . " | t=" (A_TickCount - tInjectStart) "ms"
-            . " | ok=1"
-            . " | mode=incremental_scan_wait"
-        )
-    } else {
-	    wc := UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridClassNN, iptParseGridClassNN, win)
-    }
+	wc := UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridClassNN, iptParseGridClassNN, win)
 	
     if !wc["ok"] {
         Txn_Rollback(txnId)

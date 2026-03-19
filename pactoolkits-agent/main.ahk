@@ -37,6 +37,7 @@ if !(cfgLoad.Has("ok") && cfgLoad["ok"]) {
 }
 global Cfg := cfgLoad["cfg"]
 global VersionInfo := Util_ReadVersionFile()
+global RuntimeInfo := Util_InitRuntimeInfo(VersionInfo)
 versionTag := VersionInfo["agentVersion"]
 if Util_ShouldShowVersionTip(versionTag)
     UI_Tip("Agent v" VersionInfo["agentVersion"], 1600)
@@ -102,15 +103,6 @@ global _LAST_RUN := 0
         return
     }
 
-    ; IPT/OPT 模式下，在住院窗口若检测到仓库列特征，提示先开启仓库模式。
-    if (ctx["cls"] = Cfg["IPT_WINDOW_CLASS"]) {
-        ck := Util_WarehouseSoftCheck(ctx["win"])
-        if (ck["ok"]) {
-            UI_Err("[模式错误] 当前表头更像仓库列，请开启仓库模式后再操作")
-            return
-        }
-    }
-
 	p := Parse_TargetInfo(Cfg["COL_SPECS"], Cfg["IPT_WINDOW_CLASS"], Cfg["INT_COLS"], "", ctx["win"], parseGridClassNN)
     if (!p["ok"]) {
         UI_Err(p["type"] " " p["why"])
@@ -158,15 +150,6 @@ global _LAST_RUN := 0
                 ctx["win"]
             )
         } else {
-            ; IPT/OPT 模式下，在住院窗口若检测到仓库列特征，提示先开启仓库模式。
-            if (cls = Cfg["IPT_WINDOW_CLASS"]) {
-                ck := Util_WarehouseSoftCheck(ctx["win"])
-                if (ck["ok"]) {
-                    UI_Err("[模式错误] 当前表头更像仓库列，请开启仓库模式后再操作")
-                    return false
-                }
-            }
-
 			msa := Semi_Auto_Fill(
 				Cfg["OPT_WINDOW_CLASS"], Cfg["IPT_WINDOW_CLASS"], 
 				Cfg["COL_SPECS"], Cfg["INT_COLS"],
