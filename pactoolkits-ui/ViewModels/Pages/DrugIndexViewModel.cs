@@ -1343,7 +1343,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             return new ClipboardParseResult(Array.Empty<ClipboardDrugRow>());
 
         var header = lines[0].Split('\t').Select(NormalizeHeader).ToArray();
-        var nameIdx = FindFirstHeaderIndex(header, "物资名称", "药品名称");
+        var nameIdx = FindFirstHeaderIndex(header, "物资名称", "药品名称", "品名");
         var specIdx = FindFirstHeaderIndex(header, "规格", "包装规格", "制剂规格");
 
         if (nameIdx < 0 || specIdx < 0)

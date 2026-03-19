@@ -76,6 +76,8 @@ public sealed record MsfxAutoMapQueueGridRow(
     int DisplayIndex,
     long StagingId,
     string LeafCode,
+    string ProduceBatchNo,
+    string SourceBillTime,
     string SourceBillCode,
     string SourceDrugNameRaw,
     string SourceSpecRaw,
@@ -97,19 +99,72 @@ public sealed record MsfxAutoMapQueueGridRow(
     DateTimeOffset UpdatedAtRaw
 );
 
-public sealed record MsfxAutoTaskQueueGridRow(
-    long TaskId,
-    string SourceBillCode,
-    string Target,
-    string Status,
-    string Progress,
-    int RetryCount,
-    string CreatedAt,
-    string PickedAt,
-    string FinishedAt,
-    string ErrMsg,
-    TraceEntryState State
-);
+public sealed partial class MsfxAutoTaskQueueGridRow : ObservableObject
+{
+    public MsfxAutoTaskQueueGridRow(
+        long TaskId,
+        string SourceBillCode,
+        string BatchNos,
+        string MappedDrugId,
+        string MappedSpec,
+        int TotalCodes,
+        int CurrentCodeCount,
+        string Target,
+        string Status,
+        string Progress,
+        int RetryCount,
+        string CreatedAt,
+        string PickedAt,
+        string FinishedAt,
+        string ErrMsg,
+        TraceEntryState State)
+    {
+        this.TaskId = TaskId;
+        this.SourceBillCode = SourceBillCode;
+        this.BatchNos = BatchNos;
+        this.MappedDrugId = MappedDrugId;
+        this.MappedSpec = MappedSpec;
+        this.TotalCodes = TotalCodes;
+        this.CurrentCodeCount = CurrentCodeCount;
+        this.Target = Target;
+        this.Status = Status;
+        this.Progress = Progress;
+        this.RetryCount = RetryCount;
+        this.CreatedAt = CreatedAt;
+        this.PickedAt = PickedAt;
+        this.FinishedAt = FinishedAt;
+        this.ErrMsg = ErrMsg;
+        this.State = State;
+    }
+
+    public long TaskId { get; }
+    public string SourceBillCode { get; }
+    public string BatchNos { get; }
+    public string MappedDrugId { get; }
+    public string MappedSpec { get; }
+    public int TotalCodes { get; }
+    public int CurrentCodeCount { get; }
+    public string Target { get; }
+    public string Status { get; }
+    public string Progress { get; }
+    public int RetryCount { get; }
+    public string CreatedAt { get; }
+    public string PickedAt { get; }
+    public string FinishedAt { get; }
+    public string ErrMsg { get; }
+    public TraceEntryState State { get; }
+
+    [ObservableProperty] private bool _isChecked;
+}
+
+public enum TaskQueueBatchActionMode
+{
+    None = 0,
+    Merge = 1,
+    Remap = 2,
+    Discard = 3,
+    Reopen = 4
+}
 
 public sealed partial class MsfxLinkViewModel : AppPageBase
 {
@@ -131,6 +186,23 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         "层级码",
         "映射目标",
         "原因信息"
+    ];
+    private static readonly string[] TaskQueueSearchScopes =
+    [
+        "全部字段",
+        "单据编号",
+        "药品",
+        "规格"
+    ];
+    private static readonly string[] TaskQueueStatusFilters =
+    [
+        "ALL",
+        "NEW",
+        "RUNNING",
+        "SUCCESS",
+        "FAILED",
+        "DISCARDED",
+        "CANCELLED"
     ];
     private readonly IMsfxApiClient _msfxApi;
     private readonly IMsfxSyncRepo _syncRepo;
@@ -162,6 +234,11 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private string _autoMapSummary = "映射：暂无";
     [ObservableProperty] private string _autoTaskSummary = "任务：暂无";
     [ObservableProperty] private string _autoRiskSummary = "异常：暂无";
+    [ObservableProperty] private int _autoTaskNewCount;
+    [ObservableProperty] private int _autoTaskRunningCount;
+    [ObservableProperty] private int _autoTaskSuccessCount;
+    [ObservableProperty] private int _autoTaskFailedCount;
+    [ObservableProperty] private int _autoTaskDiscardedCount;
     [ObservableProperty] private TraceEntryState _autoPullState = TraceEntryState.Info;
     [ObservableProperty] private TraceEntryState _autoMapState = TraceEntryState.Info;
     [ObservableProperty] private TraceEntryState _autoTaskState = TraceEntryState.Info;
@@ -183,6 +260,11 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private bool _hasMapQueueNextPage;
     [ObservableProperty] private bool _isMapQueueLatestPage = true;
     [ObservableProperty] private int _mapQueuePage = 1;
+    [ObservableProperty] private bool _isTaskQueueSearchPanelVisible;
+    [ObservableProperty] private string _taskQueueStatusFilter = "ALL";
+    [ObservableProperty] private string _taskQueueSearchScope = "全部字段";
+    [ObservableProperty] private string _taskQueueKeyword = string.Empty;
+    [ObservableProperty] private TaskQueueBatchActionMode _taskQueueBatchMode;
 
     [ObservableProperty] private DateTime? _upoutFromDate = DateTime.Today.AddDays(-6);
     [ObservableProperty] private DateTime? _upoutToDate = DateTime.Today;
@@ -214,6 +296,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public ObservableCollection<string> MapStatusFilterOptions { get; } = new(MapStatusFilters);
     public ObservableCollection<string> CodeStatusFilterOptions { get; } = new(CodeStatusFilters);
     public ObservableCollection<string> MapQueueSearchScopeOptions { get; } = new(MapQueueSearchScopes);
+    public ObservableCollection<string> TaskQueueSearchScopeOptions { get; } = new(TaskQueueSearchScopes);
+    public ObservableCollection<string> TaskQueueStatusFilterOptions { get; } = new(TaskQueueStatusFilters);
     public ObservableCollection<MsfxUpoutGridRow> UpoutRows { get; } = new();
     public ObservableCollection<MsfxSubCodeGridRow> SubCodeRows { get; } = new();
     public ObservableCollection<MsfxAutoLogRow> AutoLogs { get; } = new();
@@ -221,13 +305,75 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public ObservableCollection<MsfxAutoMapQueueGridRow> AutoMapQueueRows { get; } = new();
     public ObservableCollection<MsfxAutoTaskQueueGridRow> AutoTaskQueueRows { get; } = new();
     public IReadOnlyList<MsfxAutoTaskQueueGridRow> SelectedAutoTaskQueueRowsSnapshot => _selectedAutoTaskQueueRowsSnapshot;
+    public bool IsTaskQueueBatchModeActive => TaskQueueBatchMode != TaskQueueBatchActionMode.None;
+    public string TaskQueueBatchModeTitle => TaskQueueBatchMode switch
+    {
+        TaskQueueBatchActionMode.Merge => "选择要合并的任务",
+        TaskQueueBatchActionMode.Remap => "选择要重新映射的任务",
+        TaskQueueBatchActionMode.Discard => "选择要弃用的任务",
+        TaskQueueBatchActionMode.Reopen => "选择要重开的任务",
+        _ => string.Empty
+    };
+    public string TaskQueueBatchModeHint => TaskQueueBatchMode switch
+    {
+        TaskQueueBatchActionMode.Merge => "仅可勾选同药名、同规格任务；允许跨单据合并。",
+        TaskQueueBatchActionMode.Remap => "勾选后会把任务退回映射结果队列重新处理。",
+        TaskQueueBatchActionMode.Discard => "勾选后会把任务标成弃用，保留追溯但不再执行。",
+        TaskQueueBatchActionMode.Reopen => "勾选后会把成功或弃用任务重新恢复到待执行。",
+        _ => string.Empty
+    };
+    public string TaskQueueBatchConfirmText => TaskQueueBatchMode switch
+    {
+        TaskQueueBatchActionMode.Merge => "确认合并",
+        TaskQueueBatchActionMode.Remap => "确认重新映射",
+        TaskQueueBatchActionMode.Discard => "确认弃用",
+        TaskQueueBatchActionMode.Reopen => "确认重开",
+        _ => "确认"
+    };
+    public bool CanConfirmTaskQueueBatchAction => TaskQueueBatchMode switch
+    {
+        TaskQueueBatchActionMode.Merge => CanBatchMergeSelectedTasks,
+        TaskQueueBatchActionMode.Remap => CanBatchRemapSelectedTasks,
+        TaskQueueBatchActionMode.Discard => CanBatchDiscardSelectedTasks,
+        TaskQueueBatchActionMode.Reopen => CanBatchReopenSelectedTasks,
+        _ => false
+    };
+    public bool CanEnterTaskMergeMode => !IsAutoBoardBusy && AutoTaskQueueRows.Count(x => x.CurrentCodeCount > 0) >= 2;
+    public bool CanEnterTaskRemapMode => !IsAutoBoardBusy && AutoTaskQueueRows.Any(x => !string.Equals(x.Status, "RUNNING", StringComparison.OrdinalIgnoreCase) && x.CurrentCodeCount > 0);
+    public bool CanEnterTaskDiscardMode => !IsAutoBoardBusy && AutoTaskQueueRows.Any(x => x.CurrentCodeCount > 0 && (string.Equals(x.Status, "NEW", StringComparison.OrdinalIgnoreCase) || string.Equals(x.Status, "FAILED", StringComparison.OrdinalIgnoreCase)));
+    public bool CanEnterTaskReopenMode => !IsAutoBoardBusy && AutoTaskQueueRows.Any(x => string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase) || string.Equals(x.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase));
     public bool CanBatchReopenSelectedTasks => !IsAutoBoardBusy
                                                && SelectedAutoTaskQueueRowsSnapshot.Any(x =>
-                                                   string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase));
+                                                   string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase)
+                                                   || string.Equals(x.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase));
     public bool CanBatchDiscardSelectedTasks => !IsAutoBoardBusy
                                                 && SelectedAutoTaskQueueRowsSnapshot.Any(x =>
                                                     string.Equals(x.Status, "NEW", StringComparison.OrdinalIgnoreCase)
                                                     || string.Equals(x.Status, "FAILED", StringComparison.OrdinalIgnoreCase));
+    public bool CanBatchRemapSelectedTasks => !IsAutoBoardBusy
+                                              && SelectedAutoTaskQueueRowsSnapshot.Any(x =>
+                                                  !string.Equals(x.Status, "RUNNING", StringComparison.OrdinalIgnoreCase));
+    public bool CanBatchMergeSelectedTasks => !IsAutoBoardBusy
+                                              && SelectedAutoTaskQueueRowsSnapshot.Count >= 2
+                                              && SelectedAutoTaskQueueRowsSnapshot.All(x =>
+                                                  x.CurrentCodeCount > 0
+                                                  && (
+                                                  string.Equals(x.Status, "NEW", StringComparison.OrdinalIgnoreCase)
+                                                  || string.Equals(x.Status, "FAILED", StringComparison.OrdinalIgnoreCase)
+                                                  || string.Equals(x.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase)
+                                                  || string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)))
+                                              && SelectedAutoTaskQueueRowsSnapshot
+                                                  .Select(BuildMergeKey)
+                                                  .Distinct(StringComparer.OrdinalIgnoreCase)
+                                                  .Count() == 1;
+    public bool CanSplitSelectedTasks => !IsAutoBoardBusy
+                                         && !IsTaskQueueBatchModeActive
+                                         && SelectedAutoTaskQueueRow is not null
+                                         && SelectedAutoTaskQueueRow.CurrentCodeCount > 1
+                                         && (string.Equals(SelectedAutoTaskQueueRow.Status, "NEW", StringComparison.OrdinalIgnoreCase)
+                                             || string.Equals(SelectedAutoTaskQueueRow.Status, "FAILED", StringComparison.OrdinalIgnoreCase)
+                                             || string.Equals(SelectedAutoTaskQueueRow.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase)
+                                             || string.Equals(SelectedAutoTaskQueueRow.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase));
 
     public bool IsUpoutEmpty => UpoutRows.Count == 0;
     public bool IsSubCodeEmpty => SubCodeRows.Count == 0;
@@ -275,6 +421,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     };
     private List<MsfxSubCodeGridRow> _allSubCodeRows = new();
     private List<MsfxAutoPullBatchGridRow> _allPullBatchRows = new();
+    private List<MsfxAutoTaskQueueGridRow> _allTaskQueueRows = new();
     private List<MsfxAutoTaskQueueGridRow> _selectedAutoTaskQueueRowsSnapshot = new();
     private DateTimeOffset? _mapCursorUpdatedAt;
     private long? _mapCursorId;
@@ -438,6 +585,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             NotifyCommands(RefreshAutoBoardCommand));
         PostOnUi(() => OnPropertyChanged(nameof(CanBatchReopenSelectedTasks)), DispatcherPriority.Background);
         PostOnUi(() => OnPropertyChanged(nameof(CanBatchDiscardSelectedTasks)), DispatcherPriority.Background);
+        PostOnUi(() => OnPropertyChanged(nameof(CanBatchRemapSelectedTasks)), DispatcherPriority.Background);
+        PostOnUi(() => OnPropertyChanged(nameof(CanBatchMergeSelectedTasks)), DispatcherPriority.Background);
+        PostOnUi(() => OnPropertyChanged(nameof(CanSplitSelectedTasks)), DispatcherPriority.Background);
     }
 
     partial void OnUpoutPageChanged(int value)
@@ -627,6 +777,24 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         OnPropertyChanged(nameof(MapQueuePageText));
     }
 
+    partial void OnTaskQueueSearchScopeChanged(string value)
+    {
+        if (IsTaskPanelExpanded)
+            ApplyTaskQueueFilter();
+    }
+
+    partial void OnTaskQueueStatusFilterChanged(string value)
+    {
+        if (IsTaskPanelExpanded)
+            ApplyTaskQueueFilter();
+    }
+
+    partial void OnTaskQueueKeywordChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) && IsTaskPanelExpanded)
+            ApplyTaskQueueFilter();
+    }
+
     partial void OnSelectedAutoPullBatchRowChanged(MsfxAutoPullBatchGridRow? value)
     {
         // 详情仅由行头点击触发，单元格点击不弹窗
@@ -638,7 +806,30 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     partial void OnSelectedAutoTaskQueueRowChanged(MsfxAutoTaskQueueGridRow? value)
-        => OnPropertyChanged(nameof(CanBatchReopenSelectedTasks));
+    {
+        OnPropertyChanged(nameof(CanEnterTaskMergeMode));
+        OnPropertyChanged(nameof(CanEnterTaskRemapMode));
+        OnPropertyChanged(nameof(CanEnterTaskDiscardMode));
+        OnPropertyChanged(nameof(CanEnterTaskReopenMode));
+        OnPropertyChanged(nameof(CanBatchReopenSelectedTasks));
+        OnPropertyChanged(nameof(CanBatchDiscardSelectedTasks));
+        OnPropertyChanged(nameof(CanBatchRemapSelectedTasks));
+        OnPropertyChanged(nameof(CanBatchMergeSelectedTasks));
+        OnPropertyChanged(nameof(CanSplitSelectedTasks));
+    }
+
+    partial void OnTaskQueueBatchModeChanged(TaskQueueBatchActionMode value)
+    {
+        if (value == TaskQueueBatchActionMode.None)
+            ClearTaskQueueChecks();
+
+        OnPropertyChanged(nameof(IsTaskQueueBatchModeActive));
+        OnPropertyChanged(nameof(TaskQueueBatchModeTitle));
+        OnPropertyChanged(nameof(TaskQueueBatchModeHint));
+        OnPropertyChanged(nameof(TaskQueueBatchConfirmText));
+        OnPropertyChanged(nameof(CanConfirmTaskQueueBatchAction));
+        OnPropertyChanged(nameof(CanSplitSelectedTasks));
+    }
 
     public void SetSelectedAutoTaskQueueRows(IReadOnlyList<MsfxAutoTaskQueueGridRow> rows)
     {
@@ -647,8 +838,106 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             .Distinct()
             .ToList();
         OnPropertyChanged(nameof(SelectedAutoTaskQueueRowsSnapshot));
+        OnPropertyChanged(nameof(CanEnterTaskMergeMode));
+        OnPropertyChanged(nameof(CanEnterTaskRemapMode));
+        OnPropertyChanged(nameof(CanEnterTaskDiscardMode));
+        OnPropertyChanged(nameof(CanEnterTaskReopenMode));
         OnPropertyChanged(nameof(CanBatchReopenSelectedTasks));
         OnPropertyChanged(nameof(CanBatchDiscardSelectedTasks));
+        OnPropertyChanged(nameof(CanBatchRemapSelectedTasks));
+        OnPropertyChanged(nameof(CanBatchMergeSelectedTasks));
+        OnPropertyChanged(nameof(CanSplitSelectedTasks));
+        OnPropertyChanged(nameof(CanConfirmTaskQueueBatchAction));
+    }
+
+    public void SyncCheckedAutoTaskQueueRows()
+    {
+        if (!IsTaskQueueBatchModeActive)
+        {
+            SetSelectedAutoTaskQueueRows(Array.Empty<MsfxAutoTaskQueueGridRow>());
+            return;
+        }
+        SetSelectedAutoTaskQueueRows(AutoTaskQueueRows.Where(x => x.IsChecked).ToArray());
+    }
+
+    [RelayCommand]
+    private void SearchTaskQueue()
+    {
+        ApplyTaskQueueFilter();
+    }
+
+    [RelayCommand]
+    private void ClearTaskQueueSearch()
+    {
+        TaskQueueStatusFilter = "ALL";
+        TaskQueueSearchScope = "全部字段";
+        TaskQueueKeyword = string.Empty;
+        ApplyTaskQueueFilter();
+    }
+
+    [RelayCommand]
+    private void ToggleTaskQueueSearchPanel()
+    {
+        IsTaskQueueSearchPanelVisible = !IsTaskQueueSearchPanelVisible;
+    }
+
+    [RelayCommand]
+    private void BeginMergeTaskSelection()
+        => EnterTaskQueueBatchMode(TaskQueueBatchActionMode.Merge);
+
+    [RelayCommand]
+    private void BeginRemapTaskSelection()
+        => EnterTaskQueueBatchMode(TaskQueueBatchActionMode.Remap);
+
+    [RelayCommand]
+    private void BeginDiscardTaskSelection()
+        => EnterTaskQueueBatchMode(TaskQueueBatchActionMode.Discard);
+
+    [RelayCommand]
+    private void BeginReopenTaskSelection()
+        => EnterTaskQueueBatchMode(TaskQueueBatchActionMode.Reopen);
+
+    [RelayCommand]
+    private async Task ConfirmTaskQueueBatchActionAsync()
+    {
+        switch (TaskQueueBatchMode)
+        {
+            case TaskQueueBatchActionMode.Merge:
+                await MergeSelectedTaskAsync().ConfigureAwait(false);
+                break;
+            case TaskQueueBatchActionMode.Remap:
+                await RemapSelectedTaskAsync().ConfigureAwait(false);
+                break;
+            case TaskQueueBatchActionMode.Discard:
+                await DiscardSelectedTaskAsync().ConfigureAwait(false);
+                break;
+            case TaskQueueBatchActionMode.Reopen:
+                await ReopenSelectedTaskAsync().ConfigureAwait(false);
+                break;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelTaskQueueBatchSelection()
+        => TaskQueueBatchMode = TaskQueueBatchActionMode.None;
+
+    private void EnterTaskQueueBatchMode(TaskQueueBatchActionMode mode)
+    {
+        if (IsAutoBoardBusy)
+            return;
+
+        SelectedAutoTaskQueueRow = null;
+        ClearTaskQueueChecks();
+        TaskQueueBatchMode = mode;
+    }
+
+    private void ClearTaskQueueChecks()
+    {
+        foreach (var row in _allTaskQueueRows)
+            row.IsChecked = false;
+        foreach (var row in AutoTaskQueueRows)
+            row.IsChecked = false;
+        SetSelectedAutoTaskQueueRows(Array.Empty<MsfxAutoTaskQueueGridRow>());
     }
 
     partial void OnSelectedAutoLogRowChanged(MsfxAutoLogRow? value)
@@ -1571,12 +1860,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task ReopenSelectedTaskAsync()
     {
         var selectedRows = SelectedAutoTaskQueueRowsSnapshot
-            .Where(x => string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase))
+            .Where(x => string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(x.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         if (selectedRows.Count == 0)
         {
-            _toast.Warn("任务重开", "请先选择至少一条 SUCCESS 任务");
+            _toast.Warn("任务重开", "请先选择至少一条 SUCCESS 或 DISCARDED 任务");
             return;
         }
 
@@ -1585,7 +1875,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         var ok = await _dialog.Confirm(
             "重开注入任务",
-            $"将重开选中的 {selectedRows.Count} 条 SUCCESS 任务，并重置为可执行队列。确认继续？").ConfigureAwait(false);
+            $"将重开选中的 {selectedRows.Count} 条 SUCCESS / DISCARDED 任务，并重置为可执行队列。确认继续？").ConfigureAwait(false);
         if (!ok)
             return;
 
@@ -1636,7 +1926,11 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
         finally
         {
-            await RunOnUiAsync(() => IsAutoBoardBusy = false);
+            await RunOnUiAsync(() =>
+            {
+                IsAutoBoardBusy = false;
+                TaskQueueBatchMode = TaskQueueBatchActionMode.None;
+            });
         }
     }
 
@@ -1710,6 +2004,271 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
         finally
         {
+            await RunOnUiAsync(() =>
+            {
+                IsAutoBoardBusy = false;
+                TaskQueueBatchMode = TaskQueueBatchActionMode.None;
+            });
+        }
+    }
+
+    [RelayCommand]
+    private async Task RemapSelectedTaskAsync()
+    {
+        var selectedRows = SelectedAutoTaskQueueRowsSnapshot
+            .Where(x => !string.Equals(x.Status, "RUNNING", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (selectedRows.Count == 0)
+        {
+            _toast.Warn("重新映射", "请先选择至少一条非 RUNNING 任务");
+            return;
+        }
+
+        if (IsAutoBoardBusy)
+            return;
+
+        var ok = await _dialog.Confirm(
+            "回退到映射队列",
+            $"将把选中的 {selectedRows.Count} 条任务回退到映射结果队列，并等待重新映射。原任务会停止执行并保留审计记录。确认继续？").ConfigureAwait(false);
+        if (!ok)
+            return;
+
+        try
+        {
+            IsAutoBoardBusy = true;
+            var opName = Environment.UserName;
+            var successCount = 0;
+            var failedCount = 0;
+            var resetStagingCount = 0;
+
+            foreach (var taskRow in selectedRows)
+            {
+                try
+                {
+                    var result = await _syncRepo.RemapInjectTaskAsync(
+                        taskRow.TaskId,
+                        opName,
+                        "manual remap from task queue",
+                        CancellationToken.None).ConfigureAwait(false);
+                    successCount += 1;
+                    resetStagingCount += result.ResetStagingCount;
+                    AddAutoLog("重新映射", $"任务 #{result.TaskId} 已回退到映射队列，状态={result.Status}，回退码数={result.ResetStagingCount}", TraceEntryState.Warning);
+                    LogWarn("msfx.task.remap.success", "MSFX inject task returned to mapping queue", null, new
+                    {
+                        result.TaskId,
+                        result.Status,
+                        result.TotalCodes,
+                        result.ResetStagingCount,
+                        operatorName = opName
+                    });
+                }
+                catch (Exception ex)
+                {
+                    failedCount += 1;
+                    AddAutoLog("重新映射", $"任务 #{taskRow.TaskId} 回退失败：{ex.Message}", TraceEntryState.Failed);
+                    LogError("msfx.task.remap.fail", "MSFX inject task return to mapping queue failed", ex, new
+                    {
+                        taskRow.TaskId,
+                        operatorName = opName
+                    });
+                }
+            }
+
+            if (failedCount == 0)
+                _toast.Success("重新映射", $"成功 {successCount} 条，回退码 {resetStagingCount} 条");
+            else
+                _toast.Warn("重新映射", $"成功 {successCount} 条，失败 {failedCount} 条，回退码 {resetStagingCount} 条");
+
+            ResetMapQueueCursor();
+            await RefreshMapQueueLatestAsync().ConfigureAwait(false);
+            await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        finally
+        {
+            await RunOnUiAsync(() =>
+            {
+                IsAutoBoardBusy = false;
+                TaskQueueBatchMode = TaskQueueBatchActionMode.None;
+            });
+        }
+    }
+
+    [RelayCommand]
+    private async Task MergeSelectedTaskAsync()
+    {
+        var selectedRows = SelectedAutoTaskQueueRowsSnapshot
+            .Where(x => string.Equals(x.Status, "NEW", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(x.Status, "FAILED", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(x.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (selectedRows.Count < 2)
+        {
+            _toast.Warn("合并任务", "请至少选择两条可编排任务");
+            return;
+        }
+
+        var keys = selectedRows
+            .Select(x => $"{x.MappedDrugId}|{x.MappedSpec}")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (keys.Count != 1)
+        {
+            _toast.Warn("合并任务", "仅支持同药名、同规格的任务合并");
+            return;
+        }
+
+        if (IsAutoBoardBusy)
+            return;
+
+        var totalCodes = selectedRows.Sum(x => x.TotalCodes);
+        var ok = await _dialog.Confirm(
+            "合并任务",
+            $"将把选中的 {selectedRows.Count} 条任务合并为 1 条执行任务，总码数约 {totalCodes} 条。允许跨 bill.code 合并，确认继续？").ConfigureAwait(false);
+        if (!ok)
+            return;
+
+        try
+        {
+            IsAutoBoardBusy = true;
+            var opName = Environment.UserName;
+            var result = await _syncRepo.MergeInjectTasksAsync(
+                selectedRows.Select(x => x.TaskId).ToArray(),
+                opName,
+                "manual merge from task queue",
+                CancellationToken.None).ConfigureAwait(false);
+
+            AddAutoLog("任务合并", $"新任务 #{result.TaskId} 已创建，合并 {result.MergedTaskCount} 条任务，总码数={result.TotalCodes}", TraceEntryState.Warning);
+            LogWarn("msfx.task.merge.success", "MSFX inject tasks merged", null, new
+            {
+                result.TaskId,
+                result.Status,
+                result.TotalCodes,
+                result.MergedTaskCount,
+                operatorName = opName
+            });
+            _toast.Success("合并任务", $"已合并 {result.MergedTaskCount} 条任务，生成新任务 #{result.TaskId}");
+            await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            AddAutoLog("任务合并", $"合并失败：{ex.Message}", TraceEntryState.Failed);
+            LogError("msfx.task.merge.fail", "MSFX inject tasks merge failed", ex, new { operatorName = Environment.UserName });
+            _toast.Error("合并任务", ex.Message);
+        }
+        finally
+        {
+            await RunOnUiAsync(() =>
+            {
+                IsAutoBoardBusy = false;
+                TaskQueueBatchMode = TaskQueueBatchActionMode.None;
+            });
+        }
+    }
+
+    [RelayCommand]
+    private async Task SplitSelectedTaskAsync()
+    {
+        var taskRow = SelectedAutoTaskQueueRow;
+        if (taskRow is null
+            || taskRow.CurrentCodeCount <= 1
+            || !(string.Equals(taskRow.Status, "NEW", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(taskRow.Status, "FAILED", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(taskRow.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(taskRow.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)))
+        {
+            _toast.Warn("拆分任务", "请选择一条码数大于 1 的可编排任务");
+            return;
+        }
+
+        if (IsAutoBoardBusy)
+            return;
+
+        var splitUnits = await _syncRepo.GetInjectTaskSplitUnitsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
+        var splitCodeRows = await _syncRepo.GetInjectTaskSplitCodeRowsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
+        var choice = await _dialog.ShowMsfxTaskSplitDialog(new MsfxTaskSplitDialogModel(
+            TaskId: taskRow.TaskId,
+            SourceBillCode: taskRow.SourceBillCode,
+            Target: taskRow.Target,
+            TotalCodes: taskRow.TotalCodes,
+            SplitCodeRows: splitCodeRows)).ConfigureAwait(false);
+        if (choice.Action == MsfxTaskSplitDialogAction.Cancel)
+            return;
+
+        try
+        {
+            IsAutoBoardBusy = true;
+            var opName = Environment.UserName;
+            if (choice.Action == MsfxTaskSplitDialogAction.CustomQuantity)
+            {
+                var customPlan = TryBuildCustomSplitPlan(splitUnits, choice.CustomQuantities, out var customError);
+                if (customPlan is null)
+                {
+                    _toast.Warn("自定义拆分", customError ?? "拆分计划无效");
+                    return;
+                }
+
+                var customResult = await _syncRepo.SplitInjectTaskCustomAsync(
+                    taskRow.TaskId,
+                    customPlan.Value.GroupKeys,
+                    customPlan.Value.BucketIndexes,
+                    opName,
+                    $"manual custom split from task queue: {customPlan.Value.DisplayText}",
+                    CancellationToken.None).ConfigureAwait(false);
+
+                AddAutoLog("任务拆分", $"任务 #{taskRow.TaskId} 已按自定义数量拆分，生成 {customResult.CreatedTasks} 条任务，总码数={customResult.TotalCodes}", TraceEntryState.Warning);
+                LogWarn("msfx.task.split.custom.success", "MSFX inject task custom split", null, new
+                {
+                    taskRow.TaskId,
+                    customResult.CreatedTasks,
+                    customResult.TotalCodes,
+                    customResult.BucketCount,
+                    customPlan.Value.DisplayText,
+                    operatorName = opName
+                });
+                _toast.Success("自定义拆分", $"已按 {customPlan.Value.DisplayText} 生成 {customResult.CreatedTasks} 条任务");
+            }
+            else
+            {
+                var splitMode = choice.Action == MsfxTaskSplitDialogAction.ParentCluster ? "PARENT_CLUSTER" : "BATCH";
+                var result = await _syncRepo.SplitInjectTaskAsync(
+                    taskRow.TaskId,
+                    splitMode,
+                    opName,
+                    "manual split from task queue",
+                    CancellationToken.None).ConfigureAwait(false);
+
+                var splitText = string.Equals(result.SplitMode, "BATCH", StringComparison.OrdinalIgnoreCase)
+                    ? "按批号"
+                    : "按父码簇";
+                AddAutoLog("任务拆分", $"任务 #{taskRow.TaskId} 已{splitText}拆分，生成 {result.CreatedTasks} 条任务，总码数={result.TotalCodes}", TraceEntryState.Warning);
+                LogWarn("msfx.task.split.success", "MSFX inject task split", null, new
+                {
+                    taskRow.TaskId,
+                    result.CreatedTasks,
+                    result.TotalCodes,
+                    result.SplitMode,
+                    operatorName = opName
+                });
+                _toast.Success("拆分任务", $"已生成 {result.CreatedTasks} 条任务");
+            }
+
+            await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            AddAutoLog("任务拆分", $"任务 #{taskRow.TaskId} 拆分失败：{ex.Message}", TraceEntryState.Failed);
+            LogError("msfx.task.split.fail", "MSFX inject task split failed", ex, new
+            {
+                taskRow.TaskId,
+                operatorName = Environment.UserName
+            });
+            _toast.Error("拆分任务", ex.Message);
+        }
+        finally
+        {
             await RunOnUiAsync(() => IsAutoBoardBusy = false);
         }
     }
@@ -1753,12 +2312,17 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
 
             var group = res.Group;
-            var action = res.Action == MsfxMappingBatchDialogAction.ApplyMap ? "APPLY_MAP" : "MARK_REVIEW";
+            var action = res.Action switch
+            {
+                MsfxMappingBatchDialogAction.ApplyMap => "APPLY_MAP",
+                MsfxMappingBatchDialogAction.DiscardTask => "APPLY_DISCARD",
+                _ => "APPLY_MAP"
+            };
 
-            if (res.Action == MsfxMappingBatchDialogAction.ApplyMap &&
+            if ((res.Action == MsfxMappingBatchDialogAction.ApplyMap || res.Action == MsfxMappingBatchDialogAction.DiscardTask) &&
                 (string.IsNullOrWhiteSpace(res.DrugId) || string.IsNullOrWhiteSpace(res.Spec)))
             {
-                _toast.Warn("批量映射", "批量映射需要填写 drug_id 和 spec");
+                _toast.Warn("批量映射", "需要填写需映射的药品信息和规格信息");
                 return;
             }
 
@@ -1782,9 +2346,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 return;
             }
 
-            var confirmMsg = res.Action == MsfxMappingBatchDialogAction.ApplyMap
-                ? $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认批量映射？"
-                : $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认转待人工？";
+            var confirmMsg = res.Action switch
+            {
+                MsfxMappingBatchDialogAction.ApplyMap => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认批量映射？",
+                MsfxMappingBatchDialogAction.DiscardTask => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认弃用任务？",
+                _ => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认处理？"
+            };
             var ok = await _dialog.Confirm("批量映射", confirmMsg).ConfigureAwait(false);
             if (!ok)
                 return;
@@ -1824,16 +2391,22 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 });
                 _toast.Success("批量映射", $"已处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}");
             }
-            else
+            else if (res.Action == MsfxMappingBatchDialogAction.DiscardTask)
             {
-                AddAutoLog("批量映射", $"分组转待人工 {apply.AffectedCount} 条", apply.AffectedCount > 0 ? TraceEntryState.Warning : TraceEntryState.Info);
-                LogWarn("msfx.map.batch.mark_review", "MSFX batch mapping marked review", null, new
+                AddAutoLog("批量映射", $"分组弃用 {apply.AffectedCount} 条，已进入弃用任务队列", apply.AffectedCount > 0 ? TraceEntryState.Discarded : TraceEntryState.Info);
+                LogWarn("msfx.map.batch.discard", "MSFX batch mapping discarded into task queue", null, new
                 {
                     apply.AffectedCount,
                     group.SourceDrugNameRaw,
-                    group.SourceSpecRaw
+                    group.SourceSpecRaw,
+                    DrugId = res.DrugId,
+                    Spec = res.Spec
                 });
-                _toast.Info("批量映射", $"已转待人工 {apply.AffectedCount} 条");
+                _toast.Info("批量映射", $"已处理 {apply.AffectedCount} 条，并直接进入弃用任务队列");
+            }
+            else
+            {
+                _toast.Info("批量映射", $"已处理 {apply.AffectedCount} 条");
             }
 
             await RefreshAutoBoardAsync().ConfigureAwait(false);
@@ -1870,69 +2443,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 ? "批次已完成，无错误信息"
                 : row.ErrMsg,
             Items: items));
-    }
-
-    [RelayCommand]
-    private Task ShowMapQueueDetailAsync(MsfxAutoMapQueueGridRow? row)
-    {
-        if (row is null)
-            return Task.CompletedTask;
-
-        return ShowMapQueueDialogAndHandleAsync(row);
-    }
-
-    private async Task ShowMapQueueDialogAndHandleAsync(MsfxAutoMapQueueGridRow row)
-    {
-        var res = await _dialog.ShowMsfxMappingDetailDialog(new MsfxMappingDetailDialogModel(
-            TraceCode: row.LeafCode,
-            SourceBillCode: row.SourceBillCode,
-            SourceDrug: row.SourceDrugNameRaw,
-            SourceSpec: row.SourceSpecRaw,
-            Normalized: $"{row.SourceNameNorm} / {row.SourceSpecNorm}",
-            MappedTarget: $"{row.MappedDrugId} / {row.MappedSpec}",
-            MapStatus: row.MapStatus,
-            CodeStatus: row.CodeStatus,
-            UpdatedAt: row.UpdatedAt,
-            IsReadOnly: string.Equals(row.MapStatus, "MAPPED", StringComparison.OrdinalIgnoreCase))).ConfigureAwait(false);
-
-        if (res.Action == MsfxMappingDialogAction.MarkReview)
-        {
-            await _syncRepo.MarkNeedReviewAsync(row.StagingId, CancellationToken.None).ConfigureAwait(false);
-            AddAutoLog("映射", $"staging {row.StagingId} 已标记 NEED_REVIEW", TraceEntryState.Warning);
-            LogWarn("msfx.map.manual.mark_review", "MSFX staging marked NEED_REVIEW", null, new
-            {
-                row.StagingId
-            });
-            await RefreshAutoBoardAsync().ConfigureAwait(false);
-            return;
-        }
-
-        if (res.Action == MsfxMappingDialogAction.ApplyMap)
-        {
-            if (string.IsNullOrWhiteSpace(res.DrugId) || string.IsNullOrWhiteSpace(res.Spec))
-            {
-                _toast.Warn("手动映射", "drug_id 与 spec 不能为空");
-                return;
-            }
-
-            var ok = await _syncRepo.ApplyManualMappingAsync(row.StagingId, res.DrugId, res.Spec, CancellationToken.None).ConfigureAwait(false);
-            if (!ok)
-            {
-                _toast.Error("手动映射", "映射失败，目标药品规格不存在或保存失败");
-                return;
-            }
-
-            var built = await _syncRepo.BuildInjectTasksAsync(200, CancellationToken.None).ConfigureAwait(false);
-            AddAutoLog("映射", $"staging {row.StagingId} 手动映射成功，新增任务 {built.CreatedTasks}", TraceEntryState.Success);
-            LogWarn("msfx.map.manual.apply", "MSFX manual mapping applied", null, new
-            {
-                row.StagingId,
-                DrugId = res.DrugId,
-                Spec = res.Spec,
-                built.CreatedTasks
-            });
-            await RefreshAutoBoardAsync().ConfigureAwait(false);
-        }
     }
 
     [RelayCommand]
@@ -2037,6 +2547,11 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             AutoTaskSummary =
                 $"NEW {snap.TaskNewCount} RUNNING {snap.TaskRunningCount} SUCCESS {snap.TaskSuccessCount} FAILED {snap.TaskFailedCount} DISCARDED {snap.TaskDiscardedCount}";
             AutoRiskSummary = $"staging失败{snap.StagingFailedCount} 重复码{snap.StagingDuplicateCount} 任务取消{snap.TaskCancelledCount} 批次失败{snap.LastBatchFailCount}";
+            AutoTaskNewCount = snap.TaskNewCount;
+            AutoTaskRunningCount = snap.TaskRunningCount;
+            AutoTaskSuccessCount = snap.TaskSuccessCount;
+            AutoTaskFailedCount = snap.TaskFailedCount;
+            AutoTaskDiscardedCount = snap.TaskDiscardedCount;
 
             AutoPullState = ToBatchState(snap.LastBatchStatus);
             AutoMapState = snap.MapFailedCount > 0
@@ -2091,15 +2606,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task<MsfxAutoBoardSnapshot> RefreshAutoTaskPanelCoreAsync(CancellationToken ct)
     {
         var snap = await RefreshAutoSummaryCoreAsync(ct).ConfigureAwait(false);
-        var taskRows = await _syncRepo.GetInjectTaskQueueAsync(120, ct).ConfigureAwait(false);
+        var taskRows = await _syncRepo.GetInjectTaskQueueAsync(0, ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
         {
-            AutoTaskQueueRows.Clear();
-            foreach (var x in taskRows)
-            {
-                AutoTaskQueueRows.Add(new MsfxAutoTaskQueueGridRow(
+            var checkedIds = _allTaskQueueRows.Where(x => x.IsChecked).Select(x => x.TaskId).ToHashSet();
+            _allTaskQueueRows = taskRows.Select(x => new MsfxAutoTaskQueueGridRow(
                     TaskId: x.TaskId,
                     SourceBillCode: x.SourceBillCode ?? "--",
+                    BatchNos: string.IsNullOrWhiteSpace(x.BatchNos) ? "--" : x.BatchNos!,
+                    MappedDrugId: x.MappedDrugId,
+                    MappedSpec: x.MappedSpec,
+                    TotalCodes: x.TotalCodes,
+                    CurrentCodeCount: x.CurrentCodeCount,
                     Target: $"{x.MappedDrugId} / {x.MappedSpec}",
                     Status: x.Status,
                     Progress: $"{x.SuccessCodes}/{x.TotalCodes} 成功, 失败{x.FailedCodes}",
@@ -2108,10 +2626,180 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     PickedAt: x.PickedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--",
                     FinishedAt: x.FinishedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--",
                     ErrMsg: x.ErrMsg ?? string.Empty,
-                    State: ToTaskState(x.Status)));
-            }
+                    State: ToTaskState(x.Status)))
+                .ToList();
+            foreach (var row in _allTaskQueueRows)
+                row.IsChecked = checkedIds.Contains(row.TaskId);
+
+            ApplyTaskQueueFilter();
+            SyncCheckedAutoTaskQueueRows();
         });
         return snap;
+    }
+
+    private void ApplyTaskQueueFilter()
+    {
+        var keyword = TaskQueueKeyword?.Trim() ?? string.Empty;
+        IEnumerable<MsfxAutoTaskQueueGridRow> filtered = _allTaskQueueRows;
+        if (!string.Equals(TaskQueueStatusFilter, "ALL", StringComparison.OrdinalIgnoreCase))
+            filtered = filtered.Where(row => string.Equals(row.Status, TaskQueueStatusFilter, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            filtered = filtered.Where(row => TaskQueueSearchScope switch
+            {
+                "单据编号" => ContainsTaskQueueIgnoreCase(row.SourceBillCode, keyword),
+                "药品" => ContainsTaskQueueIgnoreCase(row.MappedDrugId, keyword),
+                "规格" => ContainsTaskQueueIgnoreCase(row.MappedSpec, keyword),
+                _ => ContainsTaskQueueIgnoreCase(row.SourceBillCode, keyword)
+                     || ContainsTaskQueueIgnoreCase(row.MappedDrugId, keyword)
+                     || ContainsTaskQueueIgnoreCase(row.MappedSpec, keyword)
+                     || ContainsTaskQueueIgnoreCase(row.BatchNos, keyword)
+                     || ContainsTaskQueueIgnoreCase(row.Status, keyword)
+            });
+        }
+
+        AutoTaskQueueRows.Clear();
+        foreach (var row in filtered)
+            AutoTaskQueueRows.Add(row);
+
+        OnPropertyChanged(nameof(CanEnterTaskMergeMode));
+        OnPropertyChanged(nameof(CanEnterTaskRemapMode));
+        OnPropertyChanged(nameof(CanEnterTaskDiscardMode));
+        OnPropertyChanged(nameof(CanEnterTaskReopenMode));
+    }
+
+    private static bool ContainsTaskQueueIgnoreCase(string? text, string keyword)
+        => !string.IsNullOrWhiteSpace(text)
+           && text.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizeMergeKeyPart(string? value)
+        => value?.Trim() ?? string.Empty;
+
+    private static string BuildMergeKey(MsfxAutoTaskQueueGridRow row)
+        => $"{NormalizeMergeKeyPart(row.MappedDrugId)}|{NormalizeMergeKeyPart(row.MappedSpec)}";
+
+    private static (string[] GroupKeys, int[] BucketIndexes, string DisplayText)? TryBuildCustomSplitPlan(
+        IReadOnlyList<MsfxInjectTaskSplitUnitRow> units,
+        string? rawText,
+        out string? error)
+    {
+        error = null;
+        var tokens = (rawText ?? string.Empty)
+            .Split(new[] { ',', '，', ';', '；', ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length < 2)
+        {
+            error = "请至少输入两组数量，例如：400,400";
+            return null;
+        }
+
+        var targets = new List<int>(tokens.Length);
+        foreach (var token in tokens)
+        {
+            if (!int.TryParse(token, out var qty) || qty <= 0)
+            {
+                error = $"数量“{token}”无效";
+                return null;
+            }
+            targets.Add(qty);
+        }
+
+        var sourceUnits = units?
+            .Where(x => x.CodeCount > 0 && !string.IsNullOrWhiteSpace(x.GroupKey))
+            .Select(x => (x.GroupKey, x.CodeCount))
+            .ToList() ?? new List<(string GroupKey, int CodeCount)>();
+        if (sourceUnits.Count == 0)
+        {
+            error = "当前任务没有可拆分的父码簇";
+            return null;
+        }
+
+        var totalCodes = sourceUnits.Sum(x => x.CodeCount);
+        if (targets.Sum() != totalCodes)
+        {
+            error = $"自定义数量总和 {targets.Sum()} 与当前总码数 {totalCodes} 不一致";
+            return null;
+        }
+
+        List<(string GroupKey, int BucketIndex)>? assignments;
+        if (sourceUnits.All(x => x.CodeCount == 1))
+        {
+            assignments = BuildSequentialAssignments(sourceUnits.Select(x => x.GroupKey).ToList(), targets);
+        }
+        else
+        {
+            assignments = BuildBacktrackingAssignments(sourceUnits, targets);
+        }
+
+        if (assignments is null)
+        {
+            error = "当前父码簇组合无法精确匹配这组自定义数量，请调整分组数量";
+            return null;
+        }
+
+        return (
+            assignments.Select(x => x.GroupKey).ToArray(),
+            assignments.Select(x => x.BucketIndex).ToArray(),
+            string.Join(" + ", targets));
+    }
+
+    private static List<(string GroupKey, int BucketIndex)> BuildSequentialAssignments(
+        IReadOnlyList<string> groupKeys,
+        IReadOnlyList<int> targets)
+    {
+        var result = new List<(string GroupKey, int BucketIndex)>(groupKeys.Count);
+        var cursor = 0;
+        for (var bucket = 0; bucket < targets.Count; bucket++)
+        {
+            for (var i = 0; i < targets[bucket]; i++)
+            {
+                result.Add((groupKeys[cursor], bucket + 1));
+                cursor++;
+            }
+        }
+
+        return result;
+    }
+
+    private static List<(string GroupKey, int BucketIndex)>? BuildBacktrackingAssignments(
+        IReadOnlyList<(string GroupKey, int CodeCount)> sourceUnits,
+        IReadOnlyList<int> targets)
+    {
+        var ordered = sourceUnits
+            .OrderByDescending(x => x.CodeCount)
+            .ThenBy(x => x.GroupKey, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var remaining = targets.ToArray();
+        var placed = new int[ordered.Count];
+
+        bool Dfs(int index)
+        {
+            if (index >= ordered.Count)
+                return remaining.All(x => x == 0);
+
+            var unit = ordered[index];
+            var triedRemaining = new HashSet<int>();
+            for (var bucket = 0; bucket < remaining.Length; bucket++)
+            {
+                if (remaining[bucket] < unit.CodeCount)
+                    continue;
+                if (!triedRemaining.Add(remaining[bucket]))
+                    continue;
+
+                remaining[bucket] -= unit.CodeCount;
+                placed[index] = bucket + 1;
+                if (Dfs(index + 1))
+                    return true;
+                remaining[bucket] += unit.CodeCount;
+                placed[index] = 0;
+            }
+
+            return false;
+        }
+
+        if (!Dfs(0))
+            return null;
+
+        return ordered.Select((unit, idx) => (unit.GroupKey, placed[idx])).ToList();
     }
 
     private async Task RefreshMapQueueLatestAsync()
@@ -2205,6 +2893,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     DisplayIndex: displayStart + i,
                     StagingId: x.StagingId,
                     LeafCode: x.LeafCode,
+                    ProduceBatchNo: string.IsNullOrWhiteSpace(x.ProduceBatchNo) ? "--" : x.ProduceBatchNo!,
+                    SourceBillTime: string.IsNullOrWhiteSpace(x.SourceBillTime) ? "--" : x.SourceBillTime!,
                     SourceBillCode: x.SourceBillCode ?? "--",
                     SourceDrugNameRaw: x.SourceDrugNameRaw ?? "--",
                     SourceSpecRaw: x.SourceSpecRaw ?? "--",
@@ -2470,7 +3160,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             "MAPPED" => TraceEntryState.Success,
             "PENDING" => TraceEntryState.Warning,
-            "NEED_REVIEW" => TraceEntryState.Warning,
+            "NEED_REVIEW" => TraceEntryState.ManualReview,
             "FAILED" => TraceEntryState.Failed,
             _ => TraceEntryState.Info
         };

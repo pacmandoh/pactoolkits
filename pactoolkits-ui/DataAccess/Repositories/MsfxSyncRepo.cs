@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using pactoolkits_ui.DataAccess;
+using pactoolkits_ui.Contracts;
 
 namespace pactoolkits_ui.Repositories;
 
@@ -830,6 +831,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
               s.map_reason_code,
               s.map_reason_detail,
               s.source_bill_code,
+              i.produce_batch_no,
               s.source_drug_name_raw,
               s.source_spec_raw,
               s.source_name_norm,
@@ -841,8 +843,12 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
               s.source_code_level_5,
               s.mapped_drug_id,
               s.mapped_spec,
+              to_char(b.bill_time, 'YYYY-MM-DD') as source_bill_time,
               s.updated_at
             from msfx_code_staging s
+            left join msfx_upout_bill b on b.bill_code = s.source_bill_code
+            left join msfx_code_relation r on r.id = s.source_relation_id
+            left join msfx_upout_item i on i.id = r.upout_item_id
             where {MapQueueBaseWhere}
             {keywordClause}
             {cursorClause}
@@ -896,23 +902,25 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                     scanned.Add(new MsfxMappingQueueRow(
                     StagingId: reader.GetInt64(0),
                     LeafCode: reader.GetString(1),
+                    ProduceBatchNo: reader.IsDBNull(7) ? null : reader.GetString(7),
                     MapStatus: reader.GetString(2),
                     CodeStatus: reader.GetString(3),
                     MapReasonCode: reader.IsDBNull(4) ? null : reader.GetString(4),
                     MapReasonDetail: reader.IsDBNull(5) ? null : reader.GetString(5),
                     SourceBillCode: reader.IsDBNull(6) ? null : reader.GetString(6),
-                    SourceDrugNameRaw: reader.IsDBNull(7) ? null : reader.GetString(7),
-                    SourceSpecRaw: reader.IsDBNull(8) ? null : reader.GetString(8),
-                    SourceNameNorm: reader.IsDBNull(9) ? null : reader.GetString(9),
-                    SourceSpecNorm: reader.IsDBNull(10) ? null : reader.GetString(10),
-                    SourceCodeLevel1: reader.IsDBNull(11) ? null : reader.GetString(11),
-                    SourceCodeLevel2: reader.IsDBNull(12) ? null : reader.GetString(12),
-                    SourceCodeLevel3: reader.IsDBNull(13) ? null : reader.GetString(13),
-                    SourceCodeLevel4: reader.IsDBNull(14) ? null : reader.GetString(14),
-                    SourceCodeLevel5: reader.IsDBNull(15) ? null : reader.GetString(15),
-                    MappedDrugId: reader.IsDBNull(16) ? null : reader.GetString(16),
-                    MappedSpec: reader.IsDBNull(17) ? null : reader.GetString(17),
-                    UpdatedAt: reader.GetFieldValue<DateTimeOffset>(18)));
+                    SourceDrugNameRaw: reader.IsDBNull(8) ? null : reader.GetString(8),
+                    SourceSpecRaw: reader.IsDBNull(9) ? null : reader.GetString(9),
+                    SourceNameNorm: reader.IsDBNull(10) ? null : reader.GetString(10),
+                    SourceSpecNorm: reader.IsDBNull(11) ? null : reader.GetString(11),
+                    SourceCodeLevel1: reader.IsDBNull(12) ? null : reader.GetString(12),
+                    SourceCodeLevel2: reader.IsDBNull(13) ? null : reader.GetString(13),
+                    SourceCodeLevel3: reader.IsDBNull(14) ? null : reader.GetString(14),
+                    SourceCodeLevel4: reader.IsDBNull(15) ? null : reader.GetString(15),
+                    SourceCodeLevel5: reader.IsDBNull(16) ? null : reader.GetString(16),
+                    MappedDrugId: reader.IsDBNull(17) ? null : reader.GetString(17),
+                    MappedSpec: reader.IsDBNull(18) ? null : reader.GetString(18),
+                    SourceBillTime: reader.IsDBNull(19) ? null : reader.GetString(19),
+                    UpdatedAt: reader.GetFieldValue<DateTimeOffset>(20)));
                 }
             }
 
@@ -956,8 +964,32 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
 
     public Task<IReadOnlyList<MsfxInjectTaskQueueRow>> GetInjectTaskQueueAsync(int limit, CancellationToken ct)
     {
-        const string sql = """
+        const string sqlBody = """
             select
+              t.id,
+              t.status,
+              t.source_bill_code,
+              coalesce(
+                string_agg(distinct nullif(btrim(coalesce(i.produce_batch_no, '')), ''), ' / ' order by nullif(btrim(coalesce(i.produce_batch_no, '')), '')),
+                '--'
+              ) as batch_nos,
+              t.mapped_drug_id,
+              t.mapped_spec,
+              t.total_codes,
+              count(tc.leaf_code)::int as current_code_count,
+              t.success_codes,
+              t.failed_codes,
+              t.retry_count,
+              t.created_at,
+              t.picked_at,
+              t.finished_at,
+              t.err_msg
+            from msfx_inject_task t
+            left join msfx_inject_task_code tc on tc.task_id = t.id
+            left join msfx_code_staging s on s.id = tc.staging_id
+            left join msfx_code_relation r on r.id = s.source_relation_id
+            left join msfx_upout_item i on i.id = r.upout_item_id
+            group by
               t.id,
               t.status,
               t.source_bill_code,
@@ -970,37 +1002,41 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
               t.created_at,
               t.picked_at,
               t.finished_at,
-              t.err_msg
-            from msfx_inject_task t
+              t.err_msg,
+              t.queue_seq
             order by
               case when t.status = 'DISCARDED' then 1 else 0 end,
               t.queue_seq,
               t.id
-            limit @limit
             """;
 
         return _db.WithConnection(async (conn, token) =>
         {
+            var useLimit = limit > 0;
+            var sql = useLimit ? $"{sqlBody}\nlimit @limit" : sqlBody;
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
-            cmd.AddParam("limit", Math.Clamp(limit, 1, 500));
+            if (useLimit)
+                cmd.AddParam("limit", Math.Clamp(limit, 1, 5000));
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
-            var rows = new List<MsfxInjectTaskQueueRow>(Math.Max(1, limit));
+            var rows = new List<MsfxInjectTaskQueueRow>(Math.Max(1, useLimit ? limit : 256));
             while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
                 rows.Add(new MsfxInjectTaskQueueRow(
                     TaskId: reader.GetInt64(0),
                     Status: reader.GetString(1),
                     SourceBillCode: reader.IsDBNull(2) ? null : reader.GetString(2),
-                    MappedDrugId: reader.GetString(3),
-                    MappedSpec: reader.GetString(4),
-                    TotalCodes: reader.GetInt32(5),
-                    SuccessCodes: reader.GetInt32(6),
-                    FailedCodes: reader.GetInt32(7),
-                    RetryCount: reader.GetInt32(8),
-                    CreatedAt: reader.GetFieldValue<DateTimeOffset>(9),
-                    PickedAt: reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
-                    FinishedAt: reader.IsDBNull(11) ? null : reader.GetFieldValue<DateTimeOffset>(11),
-                    ErrMsg: reader.IsDBNull(12) ? null : reader.GetString(12)));
+                    BatchNos: reader.IsDBNull(3) ? null : reader.GetString(3),
+                    MappedDrugId: reader.GetString(4),
+                    MappedSpec: reader.GetString(5),
+                    TotalCodes: reader.GetInt32(6),
+                    CurrentCodeCount: reader.GetInt32(7),
+                    SuccessCodes: reader.GetInt32(8),
+                    FailedCodes: reader.GetInt32(9),
+                    RetryCount: reader.GetInt32(10),
+                    CreatedAt: reader.GetFieldValue<DateTimeOffset>(11),
+                    PickedAt: reader.IsDBNull(12) ? null : reader.GetFieldValue<DateTimeOffset>(12),
+                    FinishedAt: reader.IsDBNull(13) ? null : reader.GetFieldValue<DateTimeOffset>(13),
+                    ErrMsg: reader.IsDBNull(14) ? null : reader.GetString(14)));
             }
 
             return (IReadOnlyList<MsfxInjectTaskQueueRow>)rows;
@@ -1057,51 +1093,285 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         }, ct);
     }
 
-    public Task<bool> ApplyManualMappingAsync(long stagingId, string drugId, string spec, CancellationToken ct)
+    public Task<MsfxRemapInjectTaskResult> RemapInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
     {
         const string sql = """
-            update msfx_code_staging s
-            set
-              mapped_drug_id = @drug_id,
-              mapped_spec = @spec,
-              map_status = 'MAPPED',
-              code_status = case when s.code_status in ('FAILED', 'DUPLICATE') then 'NEW' else s.code_status end,
-              err_msg = null,
-              updated_at = now()
-            where s.id = @staging_id
-              and exists (
-                select 1 from drug_index d
-                where d.drug_id = @drug_id and d.spec = @spec
-              )
-            returning 1
+            select task_id, task_status, total_codes, reset_staging_count
+            from msfx_remap_inject_task(@task_id, @operator_name, @reason)
             """;
 
         return _db.WithConnection(async (conn, token) =>
         {
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
-            cmd.AddParam("staging_id", stagingId);
-            cmd.AddParam("drug_id", drugId.Trim());
-            cmd.AddParam("spec", spec.Trim());
-            var obj = await cmd.ExecuteScalarAsync(token).ConfigureAwait(false);
-            return obj is not null && obj != DBNull.Value;
+            cmd.AddParam("task_id", taskId);
+            AddNullableParam(cmd, "operator_name", NullIfWhiteSpace(operatorName));
+            AddNullableParam(cmd, "reason", NullIfWhiteSpace(reason));
+
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (!await reader.ReadAsync(token).ConfigureAwait(false))
+                throw new InvalidOperationException($"未能回退任务 {taskId} 到映射队列");
+
+            return new MsfxRemapInjectTaskResult(
+                TaskId: reader.GetInt64(0),
+                Status: reader.GetString(1),
+                TotalCodes: reader.GetInt32(2),
+                ResetStagingCount: reader.GetInt32(3));
         }, ct);
     }
 
-    public Task MarkNeedReviewAsync(long stagingId, CancellationToken ct)
+    public Task<MsfxMergeInjectTaskResult> MergeInjectTasksAsync(IReadOnlyList<long> taskIds, string? operatorName, string? reason, CancellationToken ct)
     {
         const string sql = """
-            update msfx_code_staging
-            set map_status = 'NEED_REVIEW',
-                err_msg = coalesce(err_msg, 'manual marked as need review'),
-                updated_at = now()
-            where id = @staging_id
+            select
+              result_task_id as task_id,
+              result_task_status as task_status,
+              result_total_codes as total_codes,
+              result_merged_task_count as merged_task_count
+            from msfx_merge_inject_tasks(@task_ids, @operator_name, @reason)
+            """;
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            var ids = taskIds?
+                .Where(x => x > 0)
+                .Distinct()
+                .ToArray() ?? Array.Empty<long>();
+            if (ids.Length < 2)
+                throw new InvalidOperationException("至少需要两条任务才能执行合并");
+
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("task_ids", ids);
+            AddNullableParam(cmd, "operator_name", NullIfWhiteSpace(operatorName));
+            AddNullableParam(cmd, "reason", NullIfWhiteSpace(reason));
+
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (!await reader.ReadAsync(token).ConfigureAwait(false))
+                throw new InvalidOperationException("未能完成任务合并");
+
+            return new MsfxMergeInjectTaskResult(
+                TaskId: reader.GetInt64(0),
+                Status: reader.GetString(1),
+                TotalCodes: reader.GetInt32(2),
+                MergedTaskCount: reader.GetInt32(3));
+        }, ct);
+    }
+
+    public Task<MsfxSplitInjectTaskResult> SplitInjectTaskAsync(long taskId, string splitMode, string? operatorName, string? reason, CancellationToken ct)
+    {
+        const string sql = """
+            select
+              result_created_tasks as created_tasks,
+              result_total_codes as total_codes,
+              result_split_mode as split_mode
+            from msfx_split_inject_task(@task_id, @split_mode, @operator_name, @reason)
             """;
 
         return _db.WithConnection(async (conn, token) =>
         {
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
-            cmd.AddParam("staging_id", stagingId);
-            _ = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            cmd.AddParam("task_id", taskId);
+            cmd.AddParam("split_mode", NormalizeTaskSplitMode(splitMode));
+            AddNullableParam(cmd, "operator_name", NullIfWhiteSpace(operatorName));
+            AddNullableParam(cmd, "reason", NullIfWhiteSpace(reason));
+
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (!await reader.ReadAsync(token).ConfigureAwait(false))
+                throw new InvalidOperationException($"未能完成任务 {taskId} 的拆分");
+
+            return new MsfxSplitInjectTaskResult(
+                CreatedTasks: reader.GetInt32(0),
+                TotalCodes: reader.GetInt32(1),
+                SplitMode: reader.GetString(2));
+        }, ct);
+    }
+
+    public Task<MsfxSplitInjectTaskCustomResult> SplitInjectTaskCustomAsync(long taskId, IReadOnlyList<string> groupKeys, IReadOnlyList<int> bucketIndexes, string? operatorName, string? reason, CancellationToken ct)
+    {
+        const string sql = """
+            select
+              result_created_tasks as created_tasks,
+              result_total_codes as total_codes,
+              result_bucket_count as bucket_count
+            from msfx_split_inject_task_custom(@task_id, @group_keys, @bucket_indexes, @operator_name, @reason)
+            """;
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            var keys = groupKeys?
+                .Select(x => (x ?? string.Empty).Trim())
+                .Where(x => x.Length > 0)
+                .ToArray() ?? Array.Empty<string>();
+            var buckets = bucketIndexes?.ToArray() ?? Array.Empty<int>();
+            if (keys.Length == 0 || keys.Length != buckets.Length)
+                throw new InvalidOperationException("自定义拆分参数无效");
+
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("task_id", taskId);
+            cmd.AddParam("group_keys", keys);
+            cmd.AddParam("bucket_indexes", buckets);
+            AddNullableParam(cmd, "operator_name", NullIfWhiteSpace(operatorName));
+            AddNullableParam(cmd, "reason", NullIfWhiteSpace(reason));
+
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (!await reader.ReadAsync(token).ConfigureAwait(false))
+                throw new InvalidOperationException($"未能完成任务 {taskId} 的自定义拆分");
+
+            return new MsfxSplitInjectTaskCustomResult(
+                CreatedTasks: reader.GetInt32(0),
+                TotalCodes: reader.GetInt32(1),
+                BucketCount: reader.GetInt32(2));
+        }, ct);
+    }
+
+    public Task<IReadOnlyList<MsfxInjectTaskSplitUnitRow>> GetInjectTaskSplitUnitsAsync(long taskId, CancellationToken ct)
+    {
+        const string sql = """
+            with source_codes as (
+              select
+                tc.leaf_code,
+                s.source_bill_code,
+                coalesce(nullif(btrim(i.produce_batch_no), ''), '未提供批号') as batch_no,
+                s.source_code_level_1,
+                s.source_code_level_2,
+                s.source_code_level_3,
+                s.source_code_level_4,
+                s.source_code_level_5,
+                coalesce(
+                  nullif(btrim(coalesce(s.source_code_level_5, '')), ''),
+                  nullif(btrim(coalesce(s.source_code_level_4, '')), ''),
+                  nullif(btrim(coalesce(s.source_code_level_3, '')), ''),
+                  nullif(btrim(coalesce(s.source_code_level_2, '')), ''),
+                  nullif(btrim(coalesce(s.source_code_level_1, '')), ''),
+                  nullif(btrim(coalesce(tc.leaf_code, '')), '')
+                ) as parent_cluster_key
+              from msfx_inject_task_code tc
+              join msfx_code_staging s on s.id = tc.staging_id
+              left join msfx_code_relation r on r.id = s.source_relation_id
+              left join msfx_upout_item i on i.id = r.upout_item_id
+              where tc.task_id = @task_id
+            )
+            select
+              parent_cluster_key as group_key,
+              parent_cluster_key,
+              parent_cluster_key as display_cluster_code,
+              max(nullif(btrim(source_code_level_1), '')) as code_level_1,
+              max(nullif(btrim(source_code_level_2), '')) as code_level_2,
+              max(nullif(btrim(source_code_level_3), '')) as code_level_3,
+              max(nullif(btrim(source_code_level_4), '')) as code_level_4,
+              max(nullif(btrim(source_code_level_5), '')) as code_level_5,
+              coalesce(
+                string_agg(
+                  distinct nullif(btrim(coalesce(batch_no, '')), ''),
+                  ' / ' order by nullif(btrim(coalesce(batch_no, '')), '')
+                ),
+                '未提供批号'
+              ) as batch_no,
+              coalesce(
+                string_agg(
+                  distinct nullif(btrim(coalesce(source_bill_code, '')), ''),
+                  ' / ' order by nullif(btrim(coalesce(source_bill_code, '')), '')
+                ),
+                '--'
+              ) as source_bill_codes,
+              count(*)::int as code_count
+            from source_codes
+            group by parent_cluster_key
+            order by parent_cluster_key
+            """;
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("task_id", taskId);
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            var rows = new List<MsfxInjectTaskSplitUnitRow>();
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                rows.Add(new MsfxInjectTaskSplitUnitRow(
+                    GroupKey: reader.GetString(0),
+                    ParentClusterKey: reader.GetString(1),
+                    DisplayClusterCode: reader.GetString(2),
+                    CodeLevel1: reader.IsDBNull(3) ? null : reader.GetString(3),
+                    CodeLevel2: reader.IsDBNull(4) ? null : reader.GetString(4),
+                    CodeLevel3: reader.IsDBNull(5) ? null : reader.GetString(5),
+                    CodeLevel4: reader.IsDBNull(6) ? null : reader.GetString(6),
+                    CodeLevel5: reader.IsDBNull(7) ? null : reader.GetString(7),
+                    BatchNo: reader.GetString(8),
+                    SourceBillCodes: reader.GetString(9),
+                    CodeCount: reader.GetInt32(10)));
+            }
+
+            return (IReadOnlyList<MsfxInjectTaskSplitUnitRow>)rows;
+        }, ct);
+    }
+
+    public Task<IReadOnlyList<MsfxInjectTaskSplitCodeRow>> GetInjectTaskSplitCodeRowsAsync(long taskId, CancellationToken ct)
+    {
+        const string sql = """
+            select
+              coalesce(
+                nullif(btrim(coalesce(s.source_code_level_5, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_4, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_3, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_2, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_1, '')), ''),
+                nullif(btrim(coalesce(tc.leaf_code, '')), '')
+              ) as group_key,
+              coalesce(
+                nullif(btrim(coalesce(s.source_code_level_5, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_4, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_3, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_2, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_1, '')), ''),
+                nullif(btrim(coalesce(tc.leaf_code, '')), '')
+              ) as display_cluster_code,
+              tc.leaf_code,
+              nullif(btrim(coalesce(s.source_code_level_1, '')), '') as code_level_1,
+              nullif(btrim(coalesce(s.source_code_level_2, '')), '') as code_level_2,
+              nullif(btrim(coalesce(s.source_code_level_3, '')), '') as code_level_3,
+              nullif(btrim(coalesce(s.source_code_level_4, '')), '') as code_level_4,
+              nullif(btrim(coalesce(s.source_code_level_5, '')), '') as code_level_5,
+              coalesce(nullif(btrim(i.produce_batch_no), ''), '未提供批号') as batch_no,
+              coalesce(nullif(btrim(s.source_bill_code), ''), '--') as source_bill_code
+            from msfx_inject_task_code tc
+            join msfx_code_staging s on s.id = tc.staging_id
+            left join msfx_code_relation r on r.id = s.source_relation_id
+            left join msfx_upout_item i on i.id = r.upout_item_id
+            where tc.task_id = @task_id
+            order by
+              coalesce(
+                nullif(btrim(coalesce(s.source_code_level_5, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_4, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_3, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_2, '')), ''),
+                nullif(btrim(coalesce(s.source_code_level_1, '')), ''),
+                nullif(btrim(coalesce(tc.leaf_code, '')), '')
+              ),
+              tc.leaf_code
+            """;
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("task_id", taskId);
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            var rows = new List<MsfxInjectTaskSplitCodeRow>();
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                rows.Add(new MsfxInjectTaskSplitCodeRow(
+                    GroupKey: reader.GetString(0),
+                    DisplayClusterCode: reader.GetString(1),
+                    LeafCode: reader.GetString(2),
+                    CodeLevel1: reader.IsDBNull(3) ? null : reader.GetString(3),
+                    CodeLevel2: reader.IsDBNull(4) ? null : reader.GetString(4),
+                    CodeLevel3: reader.IsDBNull(5) ? null : reader.GetString(5),
+                    CodeLevel4: reader.IsDBNull(6) ? null : reader.GetString(6),
+                    CodeLevel5: reader.IsDBNull(7) ? null : reader.GetString(7),
+                    BatchNo: reader.GetString(8),
+                    SourceBillCode: reader.GetString(9)));
+            }
+
+            return (IReadOnlyList<MsfxInjectTaskSplitCodeRow>)rows;
         }, ct);
     }
 
@@ -1118,6 +1388,26 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         var keywordClause = BuildKeywordClause(scope, tokens);
         var sql = $"""
             select
+              coalesce(
+                array_to_string(
+                  array_agg(
+                    distinct to_char(b.bill_time, 'YYYY-MM-DD')
+                    order by to_char(b.bill_time, 'YYYY-MM-DD')
+                  ),
+                  ' / '
+                ),
+                '--'
+              ) as source_bill_times,
+              coalesce(
+                array_to_string(
+                  array_agg(
+                    distinct nullif(coalesce(s.source_bill_code, ''), '')
+                    order by nullif(coalesce(s.source_bill_code, ''), '')
+                  ),
+                  ' / '
+                ),
+                '--'
+              ) as source_bill_codes,
               coalesce(s.source_drug_name_raw, '') as source_drug_name_raw,
               coalesce(s.source_spec_raw, '') as source_spec_raw,
               coalesce(s.source_name_norm, '') as source_name_norm,
@@ -1127,6 +1417,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
               count(*) filter (where s.map_status = 'NEED_REVIEW')::int as need_review_count,
               count(*) filter (where s.map_status = 'FAILED')::int as failed_count
             from msfx_code_staging s
+            left join msfx_upout_bill b on b.bill_code = s.source_bill_code
             where {MapQueueBaseWhere}
               {keywordClause}
               and s.map_status in ('PENDING', 'FAILED', 'NEED_REVIEW')
@@ -1152,15 +1443,20 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             var rows = new List<MsfxMappingBatchGroupRow>();
             while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
+                var pendingCount = reader.GetInt32(7);
+                var needReviewCount = reader.GetInt32(8);
+                var failedCount = reader.GetInt32(9);
                 rows.Add(new MsfxMappingBatchGroupRow(
-                    SourceDrugNameRaw: reader.GetString(0),
-                    SourceSpecRaw: reader.GetString(1),
-                    SourceNameNorm: reader.GetString(2),
-                    SourceSpecNorm: reader.GetString(3),
-                    TotalCount: reader.GetInt32(4),
-                    PendingCount: reader.GetInt32(5),
-                    NeedReviewCount: reader.GetInt32(6),
-                    FailedCount: reader.GetInt32(7)));
+                    SourceBillTimes: reader.GetString(0),
+                    SourceBillCodes: reader.GetString(1),
+                    SourceDrugNameRaw: reader.GetString(2),
+                    SourceSpecRaw: reader.GetString(3),
+                    SourceNameNorm: reader.GetString(4),
+                    SourceSpecNorm: reader.GetString(5),
+                    TotalCount: reader.GetInt32(6),
+                    PendingCount: pendingCount,
+                    NeedReviewCount: needReviewCount,
+                    FailedCount: failedCount));
             }
 
             return (IReadOnlyList<MsfxMappingBatchGroupRow>)rows;
@@ -1193,19 +1489,6 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             """;
         var sql = actionNorm switch
         {
-            "MARK_REVIEW" => $"""
-                with filtered as (
-                  select s.id, s.map_status
-                  from msfx_code_staging s
-                  where {MapQueueBaseWhere}
-                    {keywordClause}
-                    {groupClause}
-                )
-                select
-                  count(*)::int as candidate_count,
-                  count(*) filter (where map_status in ('PENDING', 'FAILED'))::int as eligible_count
-                from filtered
-                """,
             _ => $"""
                 with filtered as (
                   select s.id
@@ -1256,11 +1539,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 return new MsfxMappingBatchPreview(0, 0, 0);
 
             var candidate = reader.GetInt32(0);
-            var eligible = actionNorm switch
-            {
-                "MARK_REVIEW" => reader.GetInt32(1),
-                _ => targetExists ? candidate : 0
-            };
+            var eligible = targetExists ? candidate : 0;
             var blocked = Math.Max(0, candidate - eligible);
             return new MsfxMappingBatchPreview(candidate, eligible, blocked);
         }, ct);
@@ -1292,22 +1571,144 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             """;
         var sql = actionNorm switch
         {
-            "MARK_REVIEW" => $"""
+            "APPLY_DISCARD" => $"""
                 with target as (
-                  select s.id
+                  select
+                    s.id as staging_id,
+                    s.leaf_code,
+                    b.id as bill_id,
+                    s.source_bill_code,
+                    s.created_at
                   from msfx_code_staging s
+                  left join msfx_upout_bill b on b.bill_code = s.source_bill_code
                   where {MapQueueBaseWhere}
                     {keywordClause}
                     {groupClause}
-                    and s.map_status in ('PENDING', 'FAILED')
+                    and s.map_status in ('PENDING', 'FAILED', 'NEED_REVIEW')
+                ),
+                upd_map as (
+                  update msfx_code_staging s
+                  set mapped_drug_id = @drug_id,
+                      mapped_spec = @spec,
+                      map_status = 'MAPPED',
+                      map_reason_code = 'MANUAL_MAP_DISCARD',
+                      map_reason_detail = 'manual map and discard task',
+                      code_status = case when s.code_status in ('FAILED', 'DUPLICATE') then 'NEW' else s.code_status end,
+                      err_msg = null,
+                      updated_at = now()
+                  from target t
+                  where s.id = t.staging_id
+                    and exists (
+                      select 1 from drug_index d
+                      where d.drug_id = @drug_id
+                        and d.spec = @spec
+                    )
+                  returning s.id
+                ),
+                mapped as (
+                  select t.*
+                  from target t
+                  join upd_map u on u.id = t.staging_id
+                ),
+                picked_groups as (
+                  select
+                    m.bill_id,
+                    m.source_bill_code,
+                    min(m.created_at) as first_at,
+                    min(m.staging_id) as first_staging_id
+                  from mapped m
+                  group by m.bill_id, m.source_bill_code
+                ),
+                seq_base as (
+                  select coalesce(max(t.queue_seq), 0)::bigint as base_seq
+                  from msfx_inject_task t
+                ),
+                numbered_groups as (
+                  select
+                    g.bill_id,
+                    g.source_bill_code,
+                    (sb.base_seq + row_number() over (order by g.first_at, g.first_staging_id))::bigint as queue_seq
+                  from picked_groups g
+                  cross join seq_base sb
+                ),
+                ins_task as (
+                  insert into msfx_inject_task (
+                    task_type,
+                    status,
+                    bill_id,
+                    source_bill_code,
+                    mapped_drug_id,
+                    mapped_spec,
+                    queue_seq,
+                    total_codes,
+                    finished_at,
+                    err_msg
+                  )
+                  select
+                    'MSFX_INBOUND',
+                    'DISCARDED',
+                    m.bill_id,
+                    m.source_bill_code,
+                    @drug_id,
+                    @spec,
+                    min(g.queue_seq)::bigint,
+                    count(*)::int,
+                    now(),
+                    'task discarded from mapping batch'
+                  from mapped m
+                  join numbered_groups g
+                    on m.bill_id is not distinct from g.bill_id
+                   and m.source_bill_code is not distinct from g.source_bill_code
+                  group by m.bill_id, m.source_bill_code
+                  returning id, bill_id, source_bill_code
+                ),
+                ins_code as (
+                  insert into msfx_inject_task_code (
+                    task_id,
+                    leaf_code,
+                    staging_id,
+                    seq,
+                    status,
+                    err_msg
+                  )
+                  select
+                    t.id,
+                    m.leaf_code,
+                    m.staging_id,
+                    row_number() over (
+                      partition by t.id
+                      order by m.created_at, m.staging_id
+                    )::int,
+                    'PENDING',
+                    'task discarded from mapping batch'
+                  from mapped m
+                  join ins_task t
+                    on m.bill_id is not distinct from t.bill_id
+                   and m.source_bill_code is not distinct from t.source_bill_code
+                  on conflict (task_id, leaf_code) do nothing
+                  returning task_id, staging_id
+                ),
+                upd_stage as (
+                  update msfx_code_staging s
+                  set inject_task_id = i.task_id,
+                      code_status = 'TASKED',
+                      updated_at = now()
+                  from ins_code i
+                  where s.id = i.staging_id
+                  returning s.id
+                ),
+                evt as (
+                  insert into msfx_inject_event(task_id, stage, level, message)
+                  select
+                    t.id,
+                    'DB_SYNC',
+                    'WARN',
+                    'task discarded from mapping batch'
+                  from ins_task t
+                  returning 1
                 )
-                update msfx_code_staging s
-                set map_status = 'NEED_REVIEW',
-                    map_reason_code = 'MANUAL_REVIEW',
-                    map_reason_detail = 'manual batch marked as need review',
-                    updated_at = now()
-                from target t
-                where s.id = t.id
+                select count(*)::int
+                from upd_stage
                 """,
             _ => $"""
                 with target as (
@@ -1347,15 +1748,18 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             cmd.AddParam("g_source_name_norm", NormalizeGroupKey(groupSourceNameNorm));
             cmd.AddParam("g_source_spec_norm", NormalizeGroupKey(groupSourceSpecNorm));
             AddKeywordParams(cmd, tokens);
-            if (actionNorm != "MARK_REVIEW")
-            {
-                var normalizedDrugId = NormalizeOptional(drugId);
-                var normalizedSpec = NormalizeOptional(spec);
-                if (string.IsNullOrWhiteSpace(normalizedDrugId) || string.IsNullOrWhiteSpace(normalizedSpec))
-                    return new MsfxMappingBatchApplyResult(0);
+            var normalizedDrugId = NormalizeOptional(drugId);
+            var normalizedSpec = NormalizeOptional(spec);
+            if (string.IsNullOrWhiteSpace(normalizedDrugId) || string.IsNullOrWhiteSpace(normalizedSpec))
+                return new MsfxMappingBatchApplyResult(0);
 
-                cmd.AddParam("drug_id", normalizedDrugId);
-                cmd.AddParam("spec", normalizedSpec);
+            cmd.AddParam("drug_id", normalizedDrugId);
+            cmd.AddParam("spec", normalizedSpec);
+
+            if (actionNorm == "APPLY_DISCARD")
+            {
+                var affectedCount = Convert.ToInt32((await cmd.ExecuteScalarAsync(token).ConfigureAwait(false)) ?? 0, CultureInfo.InvariantCulture);
+                return new MsfxMappingBatchApplyResult(affectedCount);
             }
 
             var affected = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
@@ -1924,6 +2328,12 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         return int.TryParse(levelText.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)
             ? n
             : 0;
+    }
+
+    private static string NormalizeTaskSplitMode(string? splitMode)
+    {
+        var raw = NormalizeOptional(splitMode)?.ToUpperInvariant();
+        return raw == "PARENT_CLUSTER" ? "PARENT_CLUSTER" : "BATCH";
     }
 
     private static string BuildSourceRowKey(

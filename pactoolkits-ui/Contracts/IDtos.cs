@@ -19,7 +19,8 @@ public enum TraceEntryState
     Warning = 2,
     Failed = 3,
     Info = 4,
-    Discarded = 5
+    Discarded = 5,
+    ManualReview = 6
 }
 
 public enum TxnStatus

@@ -196,6 +196,7 @@ public sealed record MsfxPullBatchRow(
 public sealed record MsfxMappingQueueRow(
     long StagingId,
     string LeafCode,
+    string? ProduceBatchNo,
     string MapStatus,
     string CodeStatus,
     string? MapReasonCode,
@@ -212,6 +213,7 @@ public sealed record MsfxMappingQueueRow(
     string? SourceCodeLevel5,
     string? MappedDrugId,
     string? MappedSpec,
+    string? SourceBillTime,
     DateTimeOffset UpdatedAt);
 public sealed record MsfxMappingQueuePage(
     IReadOnlyList<MsfxMappingQueueRow> Rows,
@@ -225,6 +227,8 @@ public sealed record MsfxMappingBatchPreview(
 public sealed record MsfxMappingBatchApplyResult(
     int AffectedCount);
 public sealed record MsfxMappingBatchGroupRow(
+    string SourceBillTimes,
+    string SourceBillCodes,
     string SourceDrugNameRaw,
     string SourceSpecRaw,
     string SourceNameNorm,
@@ -237,9 +241,11 @@ public sealed record MsfxInjectTaskQueueRow(
     long TaskId,
     string Status,
     string? SourceBillCode,
+    string? BatchNos,
     string MappedDrugId,
     string MappedSpec,
     int TotalCodes,
+    int CurrentCodeCount,
     int SuccessCodes,
     int FailedCodes,
     int RetryCount,
@@ -255,6 +261,47 @@ public sealed record MsfxDiscardInjectTaskResult(
     long TaskId,
     string Status,
     int TotalCodes);
+public sealed record MsfxRemapInjectTaskResult(
+    long TaskId,
+    string Status,
+    int TotalCodes,
+    int ResetStagingCount);
+public sealed record MsfxMergeInjectTaskResult(
+    long TaskId,
+    string Status,
+    int TotalCodes,
+    int MergedTaskCount);
+public sealed record MsfxSplitInjectTaskResult(
+    int CreatedTasks,
+    int TotalCodes,
+    string SplitMode);
+public sealed record MsfxSplitInjectTaskCustomResult(
+    int CreatedTasks,
+    int TotalCodes,
+    int BucketCount);
+public sealed record MsfxInjectTaskSplitUnitRow(
+    string GroupKey,
+    string ParentClusterKey,
+    string DisplayClusterCode,
+    string? CodeLevel1,
+    string? CodeLevel2,
+    string? CodeLevel3,
+    string? CodeLevel4,
+    string? CodeLevel5,
+    string BatchNo,
+    string SourceBillCodes,
+    int CodeCount);
+public sealed record MsfxInjectTaskSplitCodeRow(
+    string GroupKey,
+    string DisplayClusterCode,
+    string LeafCode,
+    string? CodeLevel1,
+    string? CodeLevel2,
+    string? CodeLevel3,
+    string? CodeLevel4,
+    string? CodeLevel5,
+    string BatchNo,
+    string SourceBillCode);
 public sealed record MsfxAutoBoardSnapshot(
     long LastBatchId,
     string LastBatchStatus,
@@ -416,10 +463,12 @@ public interface IMsfxSyncRepo
     Task<IReadOnlyList<MsfxInjectTaskQueueRow>> GetInjectTaskQueueAsync(int limit, CancellationToken ct);
     Task<MsfxReopenInjectTaskResult> ReopenInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
     Task<MsfxDiscardInjectTaskResult> DiscardInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
-
-    Task<bool> ApplyManualMappingAsync(long stagingId, string drugId, string spec, CancellationToken ct);
-
-    Task MarkNeedReviewAsync(long stagingId, CancellationToken ct);
+    Task<MsfxRemapInjectTaskResult> RemapInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
+    Task<MsfxMergeInjectTaskResult> MergeInjectTasksAsync(IReadOnlyList<long> taskIds, string? operatorName, string? reason, CancellationToken ct);
+    Task<MsfxSplitInjectTaskResult> SplitInjectTaskAsync(long taskId, string splitMode, string? operatorName, string? reason, CancellationToken ct);
+    Task<IReadOnlyList<MsfxInjectTaskSplitUnitRow>> GetInjectTaskSplitUnitsAsync(long taskId, CancellationToken ct);
+    Task<IReadOnlyList<MsfxInjectTaskSplitCodeRow>> GetInjectTaskSplitCodeRowsAsync(long taskId, CancellationToken ct);
+    Task<MsfxSplitInjectTaskCustomResult> SplitInjectTaskCustomAsync(long taskId, IReadOnlyList<string> groupKeys, IReadOnlyList<int> bucketIndexes, string? operatorName, string? reason, CancellationToken ct);
 
     Task<IReadOnlyList<MsfxMappingBatchGroupRow>> GetMappingBatchGroupsAsync(
         string? mapStatus,
@@ -456,4 +505,5 @@ public interface IMsfxSyncRepo
         string? drugId,
         string? spec,
         CancellationToken ct);
+
 }

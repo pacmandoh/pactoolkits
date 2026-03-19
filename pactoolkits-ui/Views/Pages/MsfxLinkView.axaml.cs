@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using System.Linq;
 using pactoolkits_ui.Common;
 using pactoolkits_ui.ViewModels.Pages;
@@ -43,6 +44,11 @@ public partial class MsfxLinkView : UserControl
     {
         if (sender is not DataGrid grid)
             return;
+        if (e.Source is CheckBox or ToggleButton)
+            return;
+        if (DataContext is MsfxLinkViewModel { IsTaskQueueBatchModeActive: true }
+            && grid.Name is "AutoTaskQueueGrid" or "AutoTaskQueueFullGrid")
+            return;
         var isRowClickDetailGrid = grid.Name is
             "AutoLogGrid" or "AutoLogFullGrid" or
             "AutoPullBatchGrid" or "AutoPullBatchFullGrid";
@@ -63,10 +69,6 @@ public partial class MsfxLinkView : UserControl
             case "AutoPullBatchFullGrid":
                 vm.ShowPullBatchDetailCommand.Execute(rowData);
                 break;
-            case "AutoMapQueueGrid":
-            case "MapQueueFullGrid":
-                vm.ShowMapQueueDetailCommand.Execute(rowData);
-                break;
             case "AutoTaskQueueGrid":
             case "AutoTaskQueueFullGrid":
                 vm.ShowTaskQueueDetailCommand.Execute(rowData);
@@ -80,12 +82,18 @@ public partial class MsfxLinkView : UserControl
 
     private void OnTaskQueueSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (DataContext is not MsfxLinkViewModel vm || sender is not DataGrid dg)
+        if (DataContext is not MsfxLinkViewModel { IsTaskQueueBatchModeActive: true })
             return;
 
-        var rows = dg.SelectedItems
-            .OfType<MsfxAutoTaskQueueGridRow>()
-            .ToArray();
-        vm.SetSelectedAutoTaskQueueRows(rows);
+        if (sender is DataGrid grid)
+            grid.SelectedItem = null;
+    }
+
+    private void OnTaskQueueCheckChanged(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MsfxLinkViewModel vm)
+            return;
+
+        Dispatcher.UIThread.Post(vm.SyncCheckedAutoTaskQueueRows, DispatcherPriority.Background);
     }
 }
