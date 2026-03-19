@@ -64,9 +64,9 @@ Desktop UI, AutoHotkey automation, and PostgreSQL orchestration for drug trace-c
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.16.2-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.16.3-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.15.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.5-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.5.6-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.19-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
@@ -223,7 +223,9 @@ The automation agent is the execution layer. It drives target desktop windows, p
 - parse, inject, verify, and finalize are modularized
 - warehouse duplicate protection is DB-backed and execution-aware
 - runtime window, parse grid, verify grid, and input targets are configured through explicit full `ClassNN` fields rather than inferred suffixes
-- outpatient multi-code injection now waits for the verify grid scanned count to advance after each paste, reducing false-success chains on slower windows
+- inpatient standard flows no longer stop on warehouse-style soft checks unless warehouse mode is actually enabled
+- agent runtime metadata is initialized once and reused for version tags and client identity logging
+- focus/copy handling for full `ClassNN` targets avoids unnecessary window activation and keeps grid targeting stable
 
 **Key agent config fields**
 
@@ -367,9 +369,9 @@ Single source of truth:
 
 Current manifest:
 
-- `suiteVersion`: `0.16.2`
+- `suiteVersion`: `0.16.3`
 - `uiVersion`: `0.15.1`
-- `agentVersion`: `0.5.5`
+- `agentVersion`: `0.5.6`
 - `dbSchemaVersion`: `1.2.19`
 - `uiMinDbSchema`: `1.2.19`
 - `agentMinDbSchema`: `1.2.19`
