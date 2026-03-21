@@ -113,9 +113,13 @@ global _LAST_RUN := 0
 
 ~LButton:: {
     global _BUSY, _LAST_RUN, Cfg
+    hookT0 := A_TickCount
 
-    ctx := Util_CaptureWin("A")
-    parseGridClassNN := (ctx["cls"] = Cfg["IPT_WINDOW_CLASS"]) ? Cfg["IPT_PARSE_GRID_CLASSNN"] : Cfg["OPT_PARSE_GRID_CLASSNN"]
+    activeCls := ""
+    try activeCls := WinGetClass("A")
+    catch
+        activeCls := ""
+    parseGridClassNN := (activeCls = Cfg["IPT_WINDOW_CLASS"]) ? Cfg["IPT_PARSE_GRID_CLASSNN"] : Cfg["OPT_PARSE_GRID_CLASSNN"]
     if !UI_MouseOnClassNN(parseGridClassNN)
         return
     clickAnchor := ""
@@ -138,6 +142,21 @@ global _LAST_RUN := 0
     _LAST_RUN := now
 
     _BUSY := true
+
+    ctx := Util_CaptureWin("A")
+    if !warehouseMode {
+        try {
+            if (ctx["cls"] = Cfg["OPT_WINDOW_CLASS"]) {
+                Util_LogLine(
+                    "OPT_HOOK"
+                    . " | t=" (A_TickCount - hookT0) "ms"
+                    . " | activeCls=" activeCls
+                    . " | ctxCls=" ctx["cls"]
+                    . " | ttl=" StrReplace(ctx["ttl"], "`n", " ")
+                )
+            }
+        }
+    }
 		
 	cls := ctx["cls"]
 		

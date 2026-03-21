@@ -5,6 +5,7 @@
 
 Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optVerifyGridClassNN, iptParseGridClassNN, iptVerifyGridClassNN, optInputClassNN, iptInputClassNN, win := "A") {
     global RuntimeInfo
+    flowT0 := A_TickCount
     ; 0) 场景识别
     win := Util_NormalizeWin(win)
     cls := WinGetClass(win)
@@ -58,18 +59,72 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optV
         return Map("ok", false, "level", "ERR", "type", "[预留错误]", "why", "预留成功但追溯码异常并且为空")
     }
 
+    debugOptMulti := (cls = opt && codes.Length > 1)
+    if (debugOptMulti) {
+        Util_LogLine(
+            "OPT_MULTI"
+            . " | start"
+            . " | txn=" txnId
+            . " | t=" (A_TickCount - flowT0) "ms"
+            . " | drug=" drugId
+            . " | spec=" spec
+            . " | codes=" codes.Length
+            . " | input=" inputClassNN
+            . " | verify=" verifyGridClassNN
+        )
+    }
+
     ; 3) UI 注入追溯码（逐条粘贴）
     for i, code in codes {
+        if (debugOptMulti) {
+            Util_LogLine(
+                "OPT_MULTI"
+                . " | paste_begin"
+                . " | txn=" txnId
+                . " | idx=" i "/" codes.Length
+                . " | t=" (A_TickCount - flowT0) "ms"
+                . " | len=" StrLen(code)
+            )
+        }
         pr := UI_Paste_ByPolicy(code, opt, ipt, optInputClassNN, iptInputClassNN, win)
         if (!pr["ok"]) {
+            if (debugOptMulti) {
+                Util_LogLine(
+                    "OPT_MULTI"
+                    . " | paste_fail"
+                    . " | txn=" txnId
+                    . " | idx=" i "/" codes.Length
+                    . " | t=" (A_TickCount - flowT0) "ms"
+                    . " | why=" StrReplace(pr["why"], "`n", " | ")
+                )
+            }
             ; 已预留扣库 -> 业务回滚
             Txn_Rollback(txnId)
             return Map("ok", false, "level", "ERR", "type", pr["type"], "why", "注入失败（第" i "条）：`n" pr["why"])
+        }
+        if (debugOptMulti) {
+            Util_LogLine(
+                "OPT_MULTI"
+                . " | paste_ok"
+                . " | txn=" txnId
+                . " | idx=" i "/" codes.Length
+                . " | t=" (A_TickCount - flowT0) "ms"
+            )
         }
     }
 
     ; 4) 验证
 	wc := UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridClassNN, iptParseGridClassNN, win)
+    if (debugOptMulti) {
+        Util_LogLine(
+            "OPT_MULTI"
+            . " | final_confirm"
+            . " | txn=" txnId
+            . " | t=" (A_TickCount - flowT0) "ms"
+            . " | ok=" (wc["ok"] ? 1 : 0)
+            . (wc["ok"] ? "" : (" | why=" StrReplace(wc["why"], "`n", " | ")))
+        )
+    }
 	
     if !wc["ok"] {
         Txn_Rollback(txnId)
