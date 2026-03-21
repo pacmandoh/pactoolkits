@@ -16,7 +16,7 @@ Options:
   --bump-suite X.Y.Z         Optional: explicitly set suiteVersion (otherwise auto major/minor/patch by component changes when ui/agent/db bumped).
   --bump-ui X.Y.Z            Optional: bump uiVersion.
   --bump-db X.Y.Z            Optional: bump dbSchemaVersion.
-  --bump-channel C           Optional: bump manifest build.channel (stable|beta|dev).
+  --bump-channel C           Optional: bump manifest build.channel (stable|beta).
   --artifact-dir DIR         Optional: package prebuilt files from DIR instead of source files.
   --channel C                Optional: package channel tag (default: manifest build.channel).
   --output-dir DIR           Output directory (default: pactoolkits-agent/Releases).
@@ -94,14 +94,14 @@ require_cmd zip
 
 if [[ -n "$CHANNEL" ]]; then
   case "$CHANNEL" in
-    stable|beta|dev) ;;
-    *) echo "ERROR: --channel must be stable|beta|dev" >&2; exit 1 ;;
+    stable|beta) ;;
+    *) echo "ERROR: --channel must be stable|beta" >&2; exit 1 ;;
   esac
 fi
 if [[ -n "$BUMP_CHANNEL" ]]; then
   case "$BUMP_CHANNEL" in
-    stable|beta|dev) ;;
-    *) echo "ERROR: --bump-channel must be stable|beta|dev" >&2; exit 1 ;;
+    stable|beta) ;;
+    *) echo "ERROR: --bump-channel must be stable|beta" >&2; exit 1 ;;
   esac
 fi
 

@@ -1,7 +1,7 @@
 # `sync_pactoolkits_uu.ps1` by pacmandoh, 2026-03-05
 # Sync pactoolkits feed from updates.pacdocs.com to local folder, with change detection and parallel download.
 
-$Base="https://updates.pacdocs.com/feed/pactoolkits"; $Dest="F:\PacDocs\feed\pactoolkits"; $Sync="F:\PacDocs\sync"
+$Base="https://updates.pacdocs.com/feed/pactoolkits/stable"; $Dest="F:\PacDocs\feed\pactoolkits\stable"; $Sync="F:\PacDocs\sync"
 $Man="releases.stable.json"; $Rel="RELEASES-stable"; $Ast="assets.stable.json"; $Setup="pactoolkits-stable-Setup.exe"; $Inj="pacinjector.exe"
 $Tag="$Sync\tag_manifest.txt"; $Log="$Sync\logs\sync_uu.log"; New-Item -Force -ItemType Directory $Dest,("$Sync\logs")|Out-Null
 

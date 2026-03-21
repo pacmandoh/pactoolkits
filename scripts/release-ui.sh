@@ -15,7 +15,7 @@ Options:
   --bump-suite X.Y.Z         Optional: explicitly set suiteVersion (otherwise auto major/minor/patch by component changes when ui/agent/db bumped).
   --bump-agent X.Y.Z         Optional: bump agentVersion.
   --bump-db X.Y.Z            Optional: bump dbSchemaVersion.
-  --bump-channel C           Optional: bump manifest build.channel (stable|beta|dev).
+  --bump-channel C           Optional: bump manifest build.channel (stable|beta).
   --pack-version X.Y.Z       Optional: vpk pack version (default: manifest uiVersion).
   --channel C                Optional: vpk channel (default: manifest build.channel).
   --runtime RID              Runtime for publish/pack (default: win-arm64).
@@ -27,7 +27,7 @@ Options:
   --main-exe FILE            main exe for vpk (default: pactoolkits-ui.exe).
   --icon FILE                icon for setup package (default: Assets/app.ico).
   --vpk-directive NAME       optional vpk target directive (e.g. win).
-  --upload-target TARGET     Optional rsync target, e.g. user@host:/path/feed/pactoolkits-ui/
+  --upload-target TARGET     Optional rsync target, e.g. user@host:/path/feed/pactoolkits
   --no-delete                upload without rsync --delete.
   --skip-upload              do not upload.
   --dry-run                  print commands only.
@@ -36,7 +36,7 @@ Options:
 Examples:
   ./scripts/release-ui.sh --bump-ui 0.4.2 \
     --runtime win-arm64 --vpk-directive win \
-    --upload-target user@host:/var/www/updates/pactoolkits-ui/
+    --upload-target user@host:/var/www/updates/pactoolkits
 
   ./scripts/release-ui.sh --channel stable --runtime win-x64 --dry-run
 USAGE
@@ -131,15 +131,15 @@ fi
 
 if [[ -n "$CHANNEL" ]]; then
   case "$CHANNEL" in
-    stable|beta|dev) ;;
-    *) echo "ERROR: --channel must be stable|beta|dev" >&2; exit 1 ;;
+    stable|beta) ;;
+    *) echo "ERROR: --channel must be stable|beta" >&2; exit 1 ;;
   esac
 fi
 
 if [[ -n "$BUMP_CHANNEL" ]]; then
   case "$BUMP_CHANNEL" in
-    stable|beta|dev) ;;
-    *) echo "ERROR: --bump-channel must be stable|beta|dev" >&2; exit 1 ;;
+    stable|beta) ;;
+    *) echo "ERROR: --bump-channel must be stable|beta" >&2; exit 1 ;;
   esac
 fi
 
@@ -202,7 +202,7 @@ fi
 vpk_args=(vpk)
 [[ -n "$VPK_DIRECTIVE" ]] && vpk_args+=("[$VPK_DIRECTIVE]")
 vpk_args+=(pack
-  --packId pactoolkits-ui
+  --packId pactoolkits
   --packVersion "$PACK_VERSION"
   --packDir "$PACK_DIR"
   --outputDir "$OUTPUT_DIR"
@@ -226,9 +226,10 @@ fi
 if [[ "$DRY_RUN" != "true" ]]; then
   require_cmd rsync
 fi
+upload_target="${UPLOAD_TARGET%/}/$CHANNEL/"
 rsync_args=(rsync -avz)
 [[ "$RSYNC_DELETE" == "true" ]] && rsync_args+=(--delete)
-rsync_args+=("$UI_DIR/$OUTPUT_DIR/" "$UPLOAD_TARGET")
+rsync_args+=("$UI_DIR/$OUTPUT_DIR/" "$upload_target")
 run_cmd "${rsync_args[@]}"
 
-echo "Release upload done: $UPLOAD_TARGET"
+echo "Release upload done: $upload_target"
