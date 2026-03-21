@@ -35,7 +35,7 @@ pactoolkits-db/
 ### macOS / Linux
 
 ```bash
-cd /Users/tottidaq/RiderProjects/pactoolkits/pactoolkits-db
+cd pactoolkits-db
 cp scripts/config.example.json scripts/config.json
 # edit scripts/config.json
 
@@ -49,7 +49,7 @@ cp scripts/config.example.json scripts/config.json
 ### Windows PowerShell
 
 ```powershell
-Set-Location /Users/tottidaq/RiderProjects/pactoolkits/pactoolkits-db
+Set-Location pactoolkits-db
 Copy-Item scripts/config.example.json scripts/config.json
 # edit scripts/config.json
 
@@ -62,7 +62,7 @@ Copy-Item scripts/config.example.json scripts/config.json
 
 ## Rules
 
-1. Source of target DB version: `/Users/tottidaq/RiderProjects/pactoolkits/release-manifest.json` -> `dbSchemaVersion`.
+1. Source of target DB version: `../release-manifest.json` -> `dbSchemaVersion`.
 2. Every schema change must be a new migration file: `Vx_y_z__description.sql`.
 3. Applied migration files are immutable (checksum protected).
 4. `verify` is read-only and production-safe on non-empty databases.
