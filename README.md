@@ -348,6 +348,43 @@ CI/CD workflows provide release automation for packaging, release-note generatio
 - `release-publish-assets.yml`
 - `release-generate-notes.yml`
 
+## Release and Update Flow
+
+The current release and update chain supports only `stable` and `beta`.
+
+1. Release manifest
+- Everything is driven from [release-manifest.json](./release-manifest.json)
+- `suiteVersion` is used as the UI Velopack package version
+- `build.channel` is used as the release channel
+
+2. UI packaging
+- [release-build-ui.yml](./.github/workflows/release-build-ui.yml) builds the UI package
+- `packId` is fixed to `pactoolkits`
+- `packVersion` uses `suiteVersion`
+- `channel` uses `build.channel`
+
+3. Asset publishing
+- [release-publish-assets.yml](./.github/workflows/release-publish-assets.yml) uploads the release assets
+- Feed payloads are synced into channel-specific subdirectories:
+  - `.../stable/`
+  - `.../beta/`
+- Different channels are not mixed in one shared feed directory
+
+4. Client update checks
+- `AppUpdateService` resolves the feed to:
+  - `FeedUrl/stable`
+  - `FeedUrl/beta`
+- The current version used for update decisions comes only from the Velopack installed version
+- `version.generated.json` is no longer used to determine the current update version
+
+5. Channel switching policy
+- If the installed program channel matches the selected channel:
+  - normal update checks run for that channel
+- If they do not match:
+  - the app does not perform automatic cross-channel switching
+  - it explicitly tells the user to install the latest installer for the target channel
+- This keeps database and config rollback risks out of the normal update flow
+
 ---
 
 ## Domain Coverage
@@ -410,7 +447,7 @@ dotnet build -c Release
 ## Package Agent
 
 ```bash
-cd /Users/tottidaq/RiderProjects/pactoolkits
+cd pactoolkits
 ./scripts/release-agent.sh --skip-upload --dry-run
 ```
 
