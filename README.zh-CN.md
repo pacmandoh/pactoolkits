@@ -347,6 +347,43 @@ pactoolkits-db/
 - `release-publish-assets.yml`
 - `release-generate-notes.yml`
 
+## 发布与更新链路
+
+当前发布与更新主链只支持 `stable` / `beta` 两个通道。
+
+1. 发布清单
+- 统一读取 [release-manifest.json](./release-manifest.json)
+- `suiteVersion` 作为 UI Velopack 包版本
+- `build.channel` 作为当前发布通道
+
+2. UI 打包
+- [release-build-ui.yml](./.github/workflows/release-build-ui.yml) 负责构建 UI 安装包
+- `packId` 固定为 `pactoolkits`
+- `packVersion` 使用 `suiteVersion`
+- `channel` 使用 `build.channel`
+
+3. 产物推送
+- [release-publish-assets.yml](./.github/workflows/release-publish-assets.yml) 负责发布产物
+- feed 产物会同步到对应通道子目录：
+  - `.../stable/`
+  - `.../beta/`
+- 不同通道不再混放到同一个 feed 目录
+
+4. 客户端检查更新
+- `AppUpdateService` 会把更新地址解析成：
+  - `FeedUrl/stable`
+  - `FeedUrl/beta`
+- 更新判断所用的当前版本只认 Velopack 已安装版本
+- `version.generated.json` 不再参与“当前更新版本”的判断
+
+5. 通道切换策略
+- 如果“当前安装程序通道”和“设置中的目标通道”一致：
+  - 正常检查该通道更新
+- 如果两者不一致：
+  - 不做自动跨通道切换
+  - 明确提示下载安装目标通道最新安装包完成切换
+- 这样可以避免数据库或配置无法安全回退时的风险
+
 ---
 
 ## 业务覆盖范围
@@ -409,7 +446,7 @@ dotnet build -c Release
 ## 打包 Agent
 
 ```bash
-cd /Users/tottidaq/RiderProjects/pactoolkits
+cd pactoolkits
 ./scripts/release-agent.sh --skip-upload --dry-run
 ```
 
