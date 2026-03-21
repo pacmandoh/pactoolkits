@@ -131,8 +131,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     public ObservableCollection<string> UpdateChannelOptions { get; } = new()
     {
         "stable",
-        "beta",
-        "dev"
+        "beta"
     };
 
     public ObservableCollection<ClientAliasRow> ClientAliases { get; } = new();
@@ -942,7 +941,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             };
 
             await _updateSettings.SaveAsync(options).ConfigureAwait(false);
-            await _updates.CheckAsync().ConfigureAwait(false);
             _toast.Success("更新设置", "更新配置已保存");
         }
         catch (Exception ex)

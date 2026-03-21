@@ -2,7 +2,7 @@
     <Import Project="Version.g.props" Condition="Exists('Version.g.props')" />
 
     <PropertyGroup>
-        <AppVersion Condition="'$(AppVersion)' == ''">0.0.0-dev</AppVersion>
+        <AppVersion Condition="'$(AppVersion)' == ''">0.0.0-local</AppVersion>
         <Product>PacToolkits</Product>
         <Company>PacmanDoh</Company>
         <Version>$(AppVersion)</Version>

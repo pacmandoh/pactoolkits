@@ -132,6 +132,12 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
                 return result;
             }
 
+            if (result.ChannelSwitchRequired)
+            {
+                _toasts.Warn("应用更新", result.Message);
+                return result;
+            }
+
             if (!result.HasUpdate)
             {
                 if (showNoUpdateToast)
