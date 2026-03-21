@@ -64,9 +64,9 @@ Desktop UI, AutoHotkey automation, and PostgreSQL orchestration for drug trace-c
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.17.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.16.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.6.0-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.17.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.16.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.6.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.22-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
@@ -373,9 +373,9 @@ Single source of truth:
 
 Current manifest:
 
-- `suiteVersion`: `0.17.0`
-- `uiVersion`: `0.16.0`
-- `agentVersion`: `0.6.0`
+- `suiteVersion`: `0.17.1`
+- `uiVersion`: `0.16.1`
+- `agentVersion`: `0.6.1`
 - `dbSchemaVersion`: `1.2.22`
 - `uiMinDbSchema`: `1.2.22`
 - `agentMinDbSchema`: `1.2.22`
@@ -434,8 +434,10 @@ cp scripts/config.example.json scripts/config.json
 ./scripts/release-ui.sh \
   --runtime win-arm64 \
   --vpk-directive win \
-  --upload-target user@host:/var/www/updates/pactoolkits-ui/
+  --upload-target user@host:/var/www/updates/pactoolkits
 ```
+
+`release-ui.sh` now appends the selected channel under that root path and only supports `stable` / `beta`.
 
 ## Agent Release
 
