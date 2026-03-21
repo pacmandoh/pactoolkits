@@ -9,7 +9,7 @@ usage() {
 Usage:
   bump-version.sh [--suite X.Y.Z|auto] [--agent X.Y.Z] [--ui X.Y.Z] [--db X.Y.Z]
                   [--ui-min-db X.Y.Z] [--agent-min-db X.Y.Z]
-                  [--channel stable|beta|dev] [--date YYYY-MM-DD] [--dry-run]
+                  [--channel stable|beta] [--date YYYY-MM-DD] [--dry-run]
 
 Examples:
   bump-version.sh --suite 0.4.1 --ui 0.4.1 --agent 0.3.1
@@ -139,8 +139,8 @@ is_date "$DATE_STR" || { echo "ERROR: invalid --date" >&2; exit 1; }
 
 if [[ -n "$CHANNEL" ]]; then
   case "$CHANNEL" in
-    stable|beta|dev) ;;
-    *) echo "ERROR: --channel must be stable|beta|dev" >&2; exit 1 ;;
+    stable|beta) ;;
+    *) echo "ERROR: --channel must be stable|beta" >&2; exit 1 ;;
   esac
 fi
 

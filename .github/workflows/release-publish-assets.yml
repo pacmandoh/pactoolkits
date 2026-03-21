@@ -12,11 +12,28 @@ jobs:
     name: Upload Release Assets and Sync Feed
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download workflow artifact
         uses: actions/download-artifact@v4
         with:
           name: release-assets
           path: dist
+
+      - name: Read release manifest
+        run: |
+          set -euo pipefail
+          channel="$(jq -r '.build.channel // empty' release-manifest.json)"
+          case "$channel" in
+            stable|beta)
+              ;;
+            *)
+              echo "Unsupported release channel: ${channel:-<empty>}"
+              exit 1
+              ;;
+          esac
+          echo "RELEASE_CHANNEL=$channel" >> "$GITHUB_ENV"
 
       - name: Upload assets to GitHub Release
         env:
@@ -81,6 +98,7 @@ jobs:
         run: |
           set -euo pipefail
           ssh_rsh="ssh -i $HOME/.ssh/id_ed25519 -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=10 -o ConnectionAttempts=1 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -p ${FEED_SSH_PORT}"
+          target_path="${FEED_RSYNC_PATH%/}/${RELEASE_CHANNEL}"
 
           # Preflight to fail fast on auth/network issues before rsync.
           if ! $ssh_rsh "${FEED_SSH_USER}@${FEED_SSH_HOST}" "echo ssh_ok" >/dev/null; then
@@ -88,12 +106,14 @@ jobs:
             exit 1
           fi
 
+          $ssh_rsh "${FEED_SSH_USER}@${FEED_SSH_HOST}" "mkdir -p '${target_path}'"
+
           max_attempts=5
           for attempt in $(seq 1 "$max_attempts"); do
             echo "rsync attempt ${attempt}/${max_attempts}"
             if rsync -a --delete --timeout=60 --info=progress2,stats1 \
               --rsh "$ssh_rsh" \
-              dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${FEED_RSYNC_PATH}/"; then
+              dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${target_path}/"; then
               echo "rsync succeeded."
               exit 0
             fi
