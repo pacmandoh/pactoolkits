@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Read manifest agent version
         shell: pwsh
@@ -26,7 +26,7 @@ jobs:
 
       - name: Cache pacinjector binary
         id: cache_pacinjector
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~\pacinjector-cache\pacinjector.exe
           key: ${{ runner.os }}-pacinjector-${{ hashFiles('release-manifest.json', 'pactoolkits-agent/main.ahk', 'pactoolkits-agent/src/**/*.ahk', 'pactoolkits-agent/assets/pacinjection.ico', 'pactoolkits-ui/Services/AhkRuntimeService.cs', 'pactoolkits-ui/Services/ReleaseVersionService.cs', '.github/workflows/release-build-agent.yml') }}
@@ -64,7 +64,7 @@ jobs:
       - name: Cache Ahk2Exe asset
         if: steps.cache_pacinjector.outputs.cache-hit != 'true'
         id: cache_ahk2exe
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~\ahk2exe-cache
           key: ${{ runner.os }}-ahk2exe-asset-v1-${{ hashFiles('.github/workflows/release-build-agent.yml') }}
@@ -266,7 +266,7 @@ jobs:
           }
 
       - name: Upload AHK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ahk-agent-exe
           path: pactoolkits-ui/Tools/pacinjector.exe

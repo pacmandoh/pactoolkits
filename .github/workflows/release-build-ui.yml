@@ -17,16 +17,16 @@ jobs:
       VPK_CACHE_KEY: vpk-global-tool-v1
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
       - name: Cache NuGet packages
         id: cache_nuget
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~\.nuget\packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.sln', '**/*.csproj', '**/Directory.Packages.props', '**/NuGet.Config', 'global.json') }}
@@ -40,7 +40,7 @@ jobs:
 
       - name: Cache dotnet global tools
         id: cache_dotnet_tools
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~\.dotnet\tools
@@ -66,7 +66,7 @@ jobs:
           }
 
       - name: Download AHK artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ahk-agent-exe
           path: _ahk_artifact
@@ -133,7 +133,7 @@ jobs:
           Copy-Item "pactoolkits-ui/Tools/pacinjector.exe" "$dist/pacinjector.exe" -Force
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-assets
           path: _release_assets/*
