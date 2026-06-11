@@ -744,7 +744,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
         if (!CanToggleReassignPanel)
             return Task.CompletedTask;
-        
+
         return ToggleReassignPanelInnerAsync();
     }
 
