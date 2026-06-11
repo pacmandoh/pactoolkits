@@ -1,0 +1,28 @@
+<Styles xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="UserControl.SettingsPage TextBox">
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="UseFloatingWatermark" Value="False" />
+  </Style>
+
+  <Style Selector="UserControl.SettingsPage ComboBox">
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
+  </Style>
+
+  <Style Selector="UserControl.SettingsPage NumericUpDown">
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
+  </Style>
+
+  <Style Selector="UserControl.SettingsPage Button.SettingsNavItem">
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Padding" Value="{DynamicResource SettingsNavButtonPadding}" />
+    <Setter Property="MinHeight" Value="{DynamicResource ButtonPrimaryMinHeight}" />
+  </Style>
+
+  <Style Selector="UserControl.SettingsPage Button.SettingsNavItem.Active">
+    <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor120}" />
+  </Style>
+</Styles>

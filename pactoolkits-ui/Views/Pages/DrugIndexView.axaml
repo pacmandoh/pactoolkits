@@ -1,433 +1,433 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-             xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
-             xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
-             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
-             xmlns:behaviors="clr-namespace:pactoolkits_ui.Behaviors"
-             mc:Ignorable="d"
-             d:DesignWidth="1200" d:DesignHeight="800"
-             x:Class="pactoolkits_ui.Views.Pages.DrugIndexView"
-             x:DataType="vm:DrugIndexViewModel"
-             Focusable="True"
-             x:Name="Root">
-    <Grid Margin="18,14,18,18">
-            <Grid ColumnDefinitions="2.2*,1*" ColumnSpacing="14">
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+      xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
+      xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
+      xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
+      xmlns:behaviors="clr-namespace:pactoolkits_ui.Behaviors"
+      mc:Ignorable="d"
+      d:DesignWidth="1200" d:DesignHeight="800"
+      x:Class="pactoolkits_ui.Views.Pages.DrugIndexView"
+      x:DataType="vm:DrugIndexViewModel"
+      Focusable="True"
+      x:Name="Root">
+  <Grid Classes="PageRoot">
+      <Grid ColumnDefinitions="2.2*,1*" ColumnSpacing="14">
 
-                
-                <suki:GlassCard Classes="SectionCard" Grid.Column="0">
-                    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+        
+        <suki:GlassCard Classes="SectionCard" Grid.Column="0">
+          <Grid RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
 
-                        
-                        <suki:GlassCard Grid.Row="0" Classes="FilterHintCard" IsVisible="{Binding IsSearchPanelVisible}">
-                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-                                <TextBox Height="{StaticResource ControlHeightCompact}"
-                                         x:Name="DrugIndexSearchBox"
-                                         IsEnabled="{Binding !IsUiBusy}"
-                                         Padding="10,0"
-                                         VerticalContentAlignment="Center"
-                                         TextWrapping="NoWrap"
+            
+            <suki:GlassCard Grid.Row="0" Classes="FilterHintCard" IsVisible="{Binding IsSearchPanelVisible}">
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
+                <TextBox Height="{StaticResource ControlHeightCompact}"
+                    x:Name="DrugIndexSearchBox"
+                    IsEnabled="{Binding !IsUiBusy}"
+                    Padding="10,0"
+                    VerticalContentAlignment="Center"
+                    TextWrapping="NoWrap"
 
-                                         AcceptsReturn="False"
-                                         Watermark="搜索：药品名 / 规格 / 简称 / 前缀 / 备注..."
-                                         KeyUp="DrugIndexSearchBox_OnKeyUp"
-                                         Text="{Binding Keyword, Mode=TwoWay}">
-                                    <TextBox.KeyBindings>
-                                        <KeyBinding Gesture="Enter" Command="{Binding SearchCommand}" />
-                                    </TextBox.KeyBindings>
-                                </TextBox>
+                    AcceptsReturn="False"
+                    Watermark="搜索：药品名 / 规格 / 简称 / 前缀 / 备注..."
+                    KeyUp="DrugIndexSearchBox_OnKeyUp"
+                    Text="{Binding Keyword, Mode=TwoWay}">
+                  <TextBox.KeyBindings>
+                    <KeyBinding Gesture="Enter" Command="{Binding SearchCommand}" />
+                  </TextBox.KeyBindings>
+                </TextBox>
 
-                                <Button Grid.Column="1" x:Name="DrugIndexSearchButton" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
-                                        IsEnabled="{Binding !IsUiBusy}"
-                                        Command="{Binding SearchCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:AppIcon Kind="Search" Width="16" Height="16" />
-                                        <TextBlock Text="搜索" />
-                                    </StackPanel>
-                                </Button>
+                <Button Grid.Column="1" x:Name="DrugIndexSearchButton" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
+                    IsEnabled="{Binding !IsUiBusy}"
+                    Command="{Binding SearchCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock Text="搜索" />
+                  </StackPanel>
+                </Button>
 
-                                <Button Grid.Column="2" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
-                                        IsEnabled="{Binding !IsUiBusy}"
-                                        Command="{Binding ClearSearchCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:AppIcon Kind="Delete" Width="16" Height="16" />
-                                        <TextBlock Text="清空" />
-                                    </StackPanel>
-                                </Button>
+                <Button Grid.Column="2" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
+                    IsEnabled="{Binding !IsUiBusy}"
+                    Command="{Binding ClearSearchCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <icons:AppIcon Kind="Delete" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock Text="清空" />
+                  </StackPanel>
+                </Button>
 
-                            </Grid>
-                        </suki:GlassCard>
+              </Grid>
+            </suki:GlassCard>
 
-                        
-                        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10"
-                              VerticalAlignment="Center">
-                            <TextBlock Text="药品列表" Classes="SectionTitle" />
+            
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}"
+               VerticalAlignment="Center">
+              <TextBlock Text="药品列表" Classes="SectionTitle" />
 
-                            <WrapPanel Grid.Column="1" VerticalAlignment="Center" Opacity="{StaticResource SectionHintOpacity}" ItemSpacing="10">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <Border Width="10"
-                                            Height="10"
-                                            CornerRadius="999"
-                                            VerticalAlignment="Center"
-                                            Background="{Binding !HasPendingChanges, Converter={StaticResource BoolToDoneDangerBrush}}" />
-                                    <Panel VerticalAlignment="Center">
-                                        <TextBlock Text="编辑中未保存" IsVisible="{Binding HasPendingChanges}" />
-                                        <TextBlock Text="已保存" IsVisible="{Binding !HasPendingChanges}" />
-                                    </Panel>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:AppIcon Kind="Pill" Width="16" Height="16" />
-                                    <TextBlock Text="{Binding Items.Count}" FontWeight="SemiBold" />
-                                    <TextBlock Text="条" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:AppIcon Kind="Mouse" Width="16" Height="16" />
-                                    <TextBlock Text="右键：特殊操作" />
-                                </StackPanel>
-                            </WrapPanel>
+              <WrapPanel Grid.Column="1" VerticalAlignment="Center" Opacity="{StaticResource SectionHintOpacity}" ItemSpacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Border Width="10"
+                      Height="10"
+                      CornerRadius="999"
+                      VerticalAlignment="Center"
+                      Background="{Binding !HasPendingChanges, Converter={StaticResource BoolToDoneDangerBrush}}" />
+                  <Panel VerticalAlignment="Center">
+                    <TextBlock Text="编辑中未保存" IsVisible="{Binding HasPendingChanges}" />
+                    <TextBlock Text="已保存" IsVisible="{Binding !HasPendingChanges}" />
+                  </Panel>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:AppIcon Kind="Pill" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                  <TextBlock Text="{Binding Items.Count}" FontWeight="SemiBold" />
+                  <TextBlock Text="条" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:AppIcon Kind="Mouse" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                  <TextBlock Text="右键：特殊操作" />
+                </StackPanel>
+              </WrapPanel>
 
-                            <StackPanel Grid.Column="2"
-                                        Orientation="Horizontal"
-                                        Spacing="8"
-                                        VerticalAlignment="Center">
-                                <Button Classes="Action"
-                                        Height="{StaticResource ControlHeightCompact}"
-                                        Width="40"
-                                        MinWidth="40"
-                                        Padding="0"
-                                        HorizontalContentAlignment="Center"
-                                        VerticalContentAlignment="Center"
-                                        IsEnabled="{Binding !IsUiBusy}"
-                                        Command="{Binding ToggleSearchPanelCommand}"
-                                        ToolTip.Tip="显示/隐藏搜索">
-                                    <Panel Width="16"
-                                           Height="16"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center">
-                                        <icons:AppIcon Kind="Search"
-                                                            Width="14"
-                                                            Height="14"
-                                                            HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"
-                                                            IsVisible="{Binding !IsSearchPanelVisible}" />
-                                        <icons:AppIcon Kind="SearchX"
-                                                            Width="14"
-                                                            Height="14"
-                                                            HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"
-                                                            IsVisible="{Binding IsSearchPanelVisible}" />
-                                    </Panel>
-                                </Button>
+              <StackPanel Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    VerticalAlignment="Center">
+                <Button Classes="Action"
+                    Height="{StaticResource ControlHeightCompact}"
+                    Width="40"
+                    MinWidth="40"
+                    Padding="0"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
+                    IsEnabled="{Binding !IsUiBusy}"
+                    Command="{Binding ToggleSearchPanelCommand}"
+                    ToolTip.Tip="显示/隐藏搜索">
+                  <Panel Width="16"
+                     Height="16"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center">
+                    <icons:AppIcon Kind="Search"
+                              Width="14"
+                              Height="14"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              IsVisible="{Binding !IsSearchPanelVisible}" />
+                    <icons:AppIcon Kind="SearchX"
+                              Width="14"
+                              Height="14"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              IsVisible="{Binding IsSearchPanelVisible}" />
+                  </Panel>
+                </Button>
 
-                                <Button Classes="Action"
-                                        Height="{StaticResource ControlHeightCompact}"
-                                        MinWidth="{StaticResource MinWAction}"
-                                        IsEnabled="{Binding !IsUiBusy}"
-                                        Command="{Binding ImportDataCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:AppIcon Kind="Clipboard" Width="16" Height="16" />
-                                        <TextBlock Text="剪贴板导入" FontWeight="SemiBold" />
-                                    </StackPanel>
-                                </Button>
+                <Button Classes="Action"
+                    Height="{StaticResource ControlHeightCompact}"
+                    MinWidth="{StaticResource MinWAction}"
+                    IsEnabled="{Binding !IsUiBusy}"
+                    Command="{Binding ImportDataCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <icons:AppIcon Kind="Clipboard" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock Text="剪贴板导入" FontWeight="SemiBold" />
+                  </StackPanel>
+                </Button>
 
-                                <Button Classes="Action"
-                                        Height="{StaticResource ControlHeightCompact}"
-                                        MinWidth="{StaticResource MinWAction}"
-                                        IsEnabled="{Binding !IsUiBusy}"
-                                        ClickMode="Press"
-                                        Command="{Binding NewItemCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:AppIcon Kind="Plus" Width="16" Height="16" />
-                                        <TextBlock Text="新建" FontWeight="SemiBold" />
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
-                        </Grid>
-
-                        
-                        <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsListBusy}">
-                        <controls:EmptyStatePanel
-                                                  IsEmpty="{Binding IsItemsEmpty}"
-                                                  EmptyText="暂无药品数据"
-                                                  EmptyHint="当前筛选条件下没有药品信息">
-                            <DataGrid Classes="SectionGrid DrugGrid StickyIndexGrid"
-                                      ItemsSource="{Binding Items}"
-                                      SelectedItem="{Binding Selected, Mode=TwoWay}"
-                                      HeadersVisibility="All"
-                                      GridLinesVisibility="All"
-                                      SelectionMode="Extended"
-                                      x:Name="DrugGrid"
-                                      MinHeight="{StaticResource DgH10Rows}">
-                            <DataGrid.Styles>
-                                <Style Selector="DataGrid.DrugGrid DataGridRow">
-                                    <Setter Property="ContextMenu">
-                                        <Setter.Value>
-                                            <ContextMenu>
-                                                <MenuItem Header="复制" Click="OnGridRowCopy"
-                                                          CommandParameter="{Binding}">
-                                                    <MenuItem.Icon>
-                                                        <icons:AppIcon Kind="Copy" Width="16" Height="16" />
-                                                    </MenuItem.Icon>
-                                                </MenuItem>
-
-                                                <MenuItem Header="全选" Click="OnGridSelectAll"
-                                                          CommandParameter="{Binding}">
-                                                    <MenuItem.Icon>
-                                                        <icons:AppIcon Kind="ListChecks" Width="16" Height="16" />
-                                                    </MenuItem.Icon>
-                                                </MenuItem>
-
-                                                <Separator />
-
-                                                <MenuItem Header="弃用 / 启用" Click="OnGridToggleDeprecated"
-                                                          CommandParameter="{Binding}">
-                                                    <MenuItem.Icon>
-                                                        <icons:AppIcon Kind="CircleX" Width="16" Height="16" />
-                                                    </MenuItem.Icon>
-                                                </MenuItem>
-
-                                                <MenuItem Header="未拆零 / 可拆零" Click="OnGridToggleNoSplit"
-                                                          CommandParameter="{Binding}">
-                                                    <MenuItem.Icon>
-                                                        <icons:AppIcon Kind="Scissors" Width="16" Height="16" />
-                                                    </MenuItem.Icon>
-                                                </MenuItem>
-                                            </ContextMenu>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </DataGrid.Styles>
-
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="2*" />
-                                <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.2*" />
-                                <DataGridTemplateColumn Header="单盒数量" Width="{StaticResource DgWRightSmall}">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Qty}" Classes="DGRightCell DGNum" />
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="简称" Binding="{Binding RuleKey}" Width="1.2*" />
-                                <DataGridTextColumn Header="前缀" Binding="{Binding PreTc}" Width="1.2*" />
-                                <DataGridTextColumn Header="备注" Binding="{Binding EffectiveNote}" Width="1.4*" />
-                            </DataGrid.Columns>
-                            </DataGrid>
-                        </controls:EmptyStatePanel>
-                        </suki:BusyArea>
-                    </Grid>
-                </suki:GlassCard>
-
-                
-                <suki:GlassCard x:Name="EditorCard"
-                                Classes="SectionCard"
-                                behaviors:FocusClearBehavior.SuppressGridClear="True"
-                                Grid.Column="1">
-                    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto"
-                          RowSpacing="12"
-                          KeyboardNavigation.TabNavigation="Cycle">
-
-                        <Grid Grid.Row="0"
-                              ColumnDefinitions="*,Auto"
-                              ColumnSpacing="12"
-                              VerticalAlignment="Center">
-                            <StackPanel Grid.Column="0"
-                                        Spacing="3"
-                                        VerticalAlignment="Center">
-                                <TextBlock Text="编辑" Classes="SectionTitle" />
-                                <StackPanel Orientation="Horizontal"
-                                            Spacing="6"
-                                            VerticalAlignment="Center"
-                                            IsVisible="{Binding HasEditor}">
-                                    <icons:AppIcon Kind="LockKeyhole"
-                                                        Width="14"
-                                                        Height="14"
-                                                        Foreground="{Binding IsEditorUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}" />
-                                    <TextBlock Text="{Binding EditorUnlockStatusText}"
-                                               Foreground="{Binding IsEditorUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}"
-                                               Opacity="0.78"
-                                               TextTrimming="CharacterEllipsis"
-                                               MaxWidth="300" />
-                                </StackPanel>
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="1"
-                                        Orientation="Horizontal"
-                                        Spacing="10"
-                                        VerticalAlignment="Center">
-                                <Button Classes="Action"
-                                        Height="{StaticResource ControlHeightCompact}"
-                                        MinWidth="{StaticResource MinWAction}"
-                                        IsVisible="{Binding CanRequestEditorUnlock}"
-                                        Command="{Binding RequestEditorUnlockCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:AppIcon Kind="LockKeyhole"
-                                                            Width="16"
-                                                            Height="16"
-                                                            Foreground="{StaticResource BrushWarning}" />
-                                        <TextBlock Text="解锁" />
-                                    </StackPanel>
-                                </Button>
-
-                                <Button Classes="Action"
-                                        Height="{StaticResource ControlHeightCompact}"
-                                        MinWidth="{StaticResource MinWAction}"
-                                        IsVisible="{Binding CanLockEditor}"
-                                        Command="{Binding LockEditorCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:AppIcon Kind="LockKeyholeOpen"
-                                                            Width="16"
-                                                            Height="16"
-                                                            Foreground="{StaticResource BrushDanger}" />
-                                        <TextBlock Text="锁定" />
-                                    </StackPanel>
-                                </Button>
-
-                                <Button Classes="Action"
-                                        Height="{StaticResource ControlHeightCompact}"
-                                        MinWidth="{StaticResource MinWAction}"
-                                        IsVisible="{Binding HasEditor}"
-                                        Command="{Binding FixDrugKeyCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <icons:AppIcon Kind="ArrowRightLeft" Width="16" Height="16" />
-                                        <TextBlock Text="纠错迁移" />
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
-                        </Grid>
-
-                        
-                        <suki:GlassCard Grid.Row="1" Padding="14" IsVisible="{Binding !HasEditor}" Opacity="0.9">
-                            <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <icons:AppIcon Kind="Info" Foreground="{StaticResource BrushWarning}" Width="22" Height="22" />
-                                <TextBlock Text="请选择左侧药品，或点击“新建”开始编辑" Opacity="0.82" />
-                            </StackPanel>
-                        </suki:GlassCard>
-
-                        
-                        <suki:GlassCard Grid.Row="1" Padding="12" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}">
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-
-                                <ToggleButton Grid.Column="0"
-                                              Height="{StaticResource ControlHeightCompact}"
-                                              IsChecked="{Binding IsDeprecated, Mode=TwoWay}"
-                                              Command="{Binding ToggleDeprecatedCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                                        <icons:AppIcon Kind="CircleX" Width="16" Height="16" />
-                                        <TextBlock Text="弃用" />
-                                    </StackPanel>
-                                </ToggleButton>
-
-                                <ToggleButton Grid.Column="1"
-                                              Height="{StaticResource ControlHeightCompact}"
-                                              IsChecked="{Binding IsNoSplit, Mode=TwoWay}"
-                                              Command="{Binding ToggleNoSplitCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                                        <icons:AppIcon Kind="Scissors" Width="16" Height="16" />
-                                        <TextBlock Text="未拆零" />
-                                    </StackPanel>
-                                </ToggleButton>
-
-                            </Grid>
-                        </suki:GlassCard>
-
-                        
-                        <StackPanel Grid.Row="2" Spacing="4" Opacity="0.78" IsVisible="{Binding HasSelection}">
-                            <TextBlock>
-                                <Run Text="创建：" />
-                                <Run Text="{Binding CreatedAtLocalText}" />
-                            </TextBlock>
-                            <TextBlock>
-                                <Run Text="更新：" />
-                                <Run Text="{Binding UpdatedAtLocalText}" />
-                            </TextBlock>
-                        </StackPanel>
-
-                        
-                        <ScrollViewer Grid.Row="3" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}">
-                            <StackPanel Spacing="10" Margin="0,0,0,6">
-
-                                <TextBox Height="{StaticResource ControlHeightCompact}"
-                                         Padding="10,0"
-                                         VerticalContentAlignment="Center"
-                                         TextWrapping="NoWrap"
-                                         AcceptsReturn="False"
-                                         Watermark="药品名（必填）"
-                                         Text="{Binding EditDrugId, Mode=TwoWay}" />
-
-                                <TextBox Height="{StaticResource ControlHeightCompact}"
-                                         Padding="10,0"
-                                         VerticalContentAlignment="Center"
-                                         TextWrapping="NoWrap"
-                                         AcceptsReturn="False"
-                                         Watermark="规格（必填）"
-                                         Text="{Binding EditSpec, Mode=TwoWay}" />
-
-                                <NumericUpDown Minimum="1"
-                                               Maximum="999999"
-                                               Value="{Binding EditQty, Mode=TwoWay}"
-                                               FormatString="0"
-                                               Watermark="单盒数量（必填）" />
-
-                                <TextBox Height="{StaticResource ControlHeightCompact}"
-                                         Padding="10,0"
-                                         VerticalContentAlignment="Center"
-                                         TextWrapping="NoWrap"
-                                         AcceptsReturn="False"
-                                         Watermark="简称（可选）"
-                                         Text="{Binding EditRuleKey, Mode=TwoWay}" />
-
-                                <TextBox Height="{StaticResource ControlHeightCompact}"
-                                         Padding="10,0"
-                                         VerticalContentAlignment="Center"
-                                         TextWrapping="NoWrap"
-                                         AcceptsReturn="False"
-                                         Watermark="追溯码前缀（可选）"
-                                         Text="{Binding EditPreTc, Mode=TwoWay}" />
-
-                                <TextBox AcceptsReturn="True"
-                                         TextWrapping="Wrap"
-                                         MinHeight="140"
-                                         Watermark="备注（可选，弃用/未拆零为特殊值）"
-                                         Text="{Binding EditNote, Mode=TwoWay}" />
-
-                            </StackPanel>
-                        </ScrollViewer>
-
-                        
-                        <Grid Grid.Row="4" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}" ColumnDefinitions="*,*" ColumnSpacing="12">
-                            <Button Grid.Column="0"
-                                    Classes="Action"
-                                    Height="{StaticResource ControlHeightCompact}"
-                                    HorizontalAlignment="Stretch"
-                                    Command="{Binding SaveCommand}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:AppIcon Kind="RefreshCw"
-                                                   Width="16"
-                                                   Height="16" />
-                                    <TextBlock Text="保存" />
-                                </StackPanel>
-                            </Button>
-
-                            <Button Grid.Column="1"
-                                    Classes="Action"
-                                    Height="{StaticResource ControlHeightCompact}"
-                                    HorizontalAlignment="Stretch"
-                                    Command="{Binding DeleteCommand}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:AppIcon Kind="Trash2"
-                                                   Width="16"
-                                                   Height="16" />
-                                    <TextBlock Text="删除" />
-                                </StackPanel>
-                            </Button>
-                        </Grid>
-
-                    </Grid>
-                </suki:GlassCard>
-
+                <Button Classes="Action"
+                    Height="{StaticResource ControlHeightCompact}"
+                    MinWidth="{StaticResource MinWAction}"
+                    IsEnabled="{Binding !IsUiBusy}"
+                    ClickMode="Press"
+                    Command="{Binding NewItemCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <icons:AppIcon Kind="Plus" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock Text="新建" FontWeight="SemiBold" />
+                  </StackPanel>
+                </Button>
+              </StackPanel>
             </Grid>
-        </Grid>
+
+            
+            <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsListBusy}">
+            <controls:EmptyStatePanel
+                         IsEmpty="{Binding IsItemsEmpty}"
+                         EmptyText="暂无药品数据"
+                         EmptyHint="当前筛选条件下没有药品信息">
+              <DataGrid Classes="SectionGrid DrugGrid StickyIndexGrid"
+                   ItemsSource="{Binding Items}"
+                   SelectedItem="{Binding Selected, Mode=TwoWay}"
+                   HeadersVisibility="All"
+                   GridLinesVisibility="All"
+                   SelectionMode="Extended"
+                   x:Name="DrugGrid"
+                   MinHeight="{StaticResource DgH10Rows}">
+              <DataGrid.Styles>
+                <Style Selector="DataGrid.DrugGrid DataGridRow">
+                  <Setter Property="ContextMenu">
+                    <Setter.Value>
+                      <ContextMenu>
+                        <MenuItem Header="复制" Click="OnGridRowCopy"
+                             CommandParameter="{Binding}">
+                          <MenuItem.Icon>
+                            <icons:AppIcon Kind="Copy" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                          </MenuItem.Icon>
+                        </MenuItem>
+
+                        <MenuItem Header="全选" Click="OnGridSelectAll"
+                             CommandParameter="{Binding}">
+                          <MenuItem.Icon>
+                            <icons:AppIcon Kind="ListChecks" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                          </MenuItem.Icon>
+                        </MenuItem>
+
+                        <Separator />
+
+                        <MenuItem Header="弃用 / 启用" Click="OnGridToggleDeprecated"
+                             CommandParameter="{Binding}">
+                          <MenuItem.Icon>
+                            <icons:AppIcon Kind="CircleX" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                          </MenuItem.Icon>
+                        </MenuItem>
+
+                        <MenuItem Header="未拆零 / 可拆零" Click="OnGridToggleNoSplit"
+                             CommandParameter="{Binding}">
+                          <MenuItem.Icon>
+                            <icons:AppIcon Kind="Scissors" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                          </MenuItem.Icon>
+                        </MenuItem>
+                      </ContextMenu>
+                    </Setter.Value>
+                  </Setter>
+                </Style>
+              </DataGrid.Styles>
+
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="药品名" Binding="{Binding DrugId}" Width="2*" />
+                <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.2*" />
+                <DataGridTemplateColumn Header="单盒数量" Width="{StaticResource DgWRightSmall}">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Qty}" Classes="DGRightCell DGNum" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="简称" Binding="{Binding RuleKey}" Width="1.2*" />
+                <DataGridTextColumn Header="前缀" Binding="{Binding PreTc}" Width="1.2*" />
+                <DataGridTextColumn Header="备注" Binding="{Binding EffectiveNote}" Width="1.4*" />
+              </DataGrid.Columns>
+              </DataGrid>
+            </controls:EmptyStatePanel>
+            </suki:BusyArea>
+          </Grid>
+        </suki:GlassCard>
+
+        
+        <suki:GlassCard x:Name="EditorCard"
+                Classes="SectionCard"
+                behaviors:FocusClearBehavior.SuppressGridClear="True"
+                Grid.Column="1">
+          <Grid RowDefinitions="Auto,Auto,Auto,*,Auto"
+             RowSpacing="{DynamicResource PageRowSpacing}"
+             KeyboardNavigation.TabNavigation="Cycle">
+
+            <Grid Grid.Row="0"
+               ColumnDefinitions="*,Auto"
+               ColumnSpacing="{DynamicResource FormColumnSpacing}"
+               VerticalAlignment="Center">
+              <StackPanel Grid.Column="0"
+                    Spacing="3"
+                    VerticalAlignment="Center">
+                <TextBlock Text="编辑" Classes="SectionTitle" />
+                <StackPanel Orientation="Horizontal"
+                      Spacing="6"
+                      VerticalAlignment="Center"
+                      IsVisible="{Binding HasEditor}">
+                  <icons:AppIcon Kind="LockKeyhole"
+                            Width="14"
+                            Height="14"
+                            Foreground="{Binding IsEditorUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}" />
+                  <TextBlock Text="{Binding EditorUnlockStatusText}"
+                       Foreground="{Binding IsEditorUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}"
+                       Opacity="0.78"
+                       TextTrimming="CharacterEllipsis"
+                       MaxWidth="300" />
+                </StackPanel>
+              </StackPanel>
+
+              <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="10"
+                    VerticalAlignment="Center">
+                <Button Classes="Action"
+                    Height="{StaticResource ControlHeightCompact}"
+                    MinWidth="{StaticResource MinWAction}"
+                    IsVisible="{Binding CanRequestEditorUnlock}"
+                    Command="{Binding RequestEditorUnlockCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <icons:AppIcon Kind="LockKeyhole"
+                              Width="16"
+                              Height="16"
+                              Foreground="{StaticResource BrushWarning}" />
+                    <TextBlock Text="解锁" />
+                  </StackPanel>
+                </Button>
+
+                <Button Classes="Action"
+                    Height="{StaticResource ControlHeightCompact}"
+                    MinWidth="{StaticResource MinWAction}"
+                    IsVisible="{Binding CanLockEditor}"
+                    Command="{Binding LockEditorCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <icons:AppIcon Kind="LockKeyholeOpen"
+                              Width="16"
+                              Height="16"
+                              Foreground="{StaticResource BrushDanger}" />
+                    <TextBlock Text="锁定" />
+                  </StackPanel>
+                </Button>
+
+                <Button Classes="Action"
+                    Height="{StaticResource ControlHeightCompact}"
+                    MinWidth="{StaticResource MinWAction}"
+                    IsVisible="{Binding HasEditor}"
+                    Command="{Binding FixDrugKeyCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <icons:AppIcon Kind="ArrowRightLeft" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock Text="纠错迁移" />
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+            </Grid>
+
+            
+            <suki:GlassCard Grid.Row="1" Padding="14" IsVisible="{Binding !HasEditor}" Opacity="0.9">
+              <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <icons:AppIcon Kind="Info" Foreground="{StaticResource BrushWarning}" Width="22" Height="22" />
+                <TextBlock Text="请选择左侧药品，或点击“新建”开始编辑" Opacity="0.82" />
+              </StackPanel>
+            </suki:GlassCard>
+
+            
+            <suki:GlassCard Grid.Row="1" Padding="12" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}">
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+
+                <ToggleButton Grid.Column="0"
+                       Height="{StaticResource ControlHeightCompact}"
+                       IsChecked="{Binding IsDeprecated, Mode=TwoWay}"
+                       Command="{Binding ToggleDeprecatedCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                    <icons:AppIcon Kind="CircleX" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock Text="弃用" />
+                  </StackPanel>
+                </ToggleButton>
+
+                <ToggleButton Grid.Column="1"
+                       Height="{StaticResource ControlHeightCompact}"
+                       IsChecked="{Binding IsNoSplit, Mode=TwoWay}"
+                       Command="{Binding ToggleNoSplitCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                    <icons:AppIcon Kind="Scissors" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock Text="未拆零" />
+                  </StackPanel>
+                </ToggleButton>
+
+              </Grid>
+            </suki:GlassCard>
+
+            
+            <StackPanel Grid.Row="2" Spacing="4" Opacity="0.78" IsVisible="{Binding HasSelection}">
+              <TextBlock>
+                <Run Text="创建：" />
+                <Run Text="{Binding CreatedAtLocalText}" />
+              </TextBlock>
+              <TextBlock>
+                <Run Text="更新：" />
+                <Run Text="{Binding UpdatedAtLocalText}" />
+              </TextBlock>
+            </StackPanel>
+
+            
+            <ScrollViewer Grid.Row="3" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}">
+              <StackPanel Spacing="10" Margin="0,0,0,6">
+
+                <TextBox Height="{StaticResource ControlHeightCompact}"
+                    Padding="10,0"
+                    VerticalContentAlignment="Center"
+                    TextWrapping="NoWrap"
+                    AcceptsReturn="False"
+                    Watermark="药品名（必填）"
+                    Text="{Binding EditDrugId, Mode=TwoWay}" />
+
+                <TextBox Height="{StaticResource ControlHeightCompact}"
+                    Padding="10,0"
+                    VerticalContentAlignment="Center"
+                    TextWrapping="NoWrap"
+                    AcceptsReturn="False"
+                    Watermark="规格（必填）"
+                    Text="{Binding EditSpec, Mode=TwoWay}" />
+
+                <NumericUpDown Minimum="1"
+                       Maximum="999999"
+                       Value="{Binding EditQty, Mode=TwoWay}"
+                       FormatString="0"
+                       Watermark="单盒数量（必填）" />
+
+                <TextBox Height="{StaticResource ControlHeightCompact}"
+                    Padding="10,0"
+                    VerticalContentAlignment="Center"
+                    TextWrapping="NoWrap"
+                    AcceptsReturn="False"
+                    Watermark="简称（可选）"
+                    Text="{Binding EditRuleKey, Mode=TwoWay}" />
+
+                <TextBox Height="{StaticResource ControlHeightCompact}"
+                    Padding="10,0"
+                    VerticalContentAlignment="Center"
+                    TextWrapping="NoWrap"
+                    AcceptsReturn="False"
+                    Watermark="追溯码前缀（可选）"
+                    Text="{Binding EditPreTc, Mode=TwoWay}" />
+
+                <TextBox AcceptsReturn="True"
+                    TextWrapping="Wrap"
+                    MinHeight="140"
+                    Watermark="备注（可选，弃用/未拆零为特殊值）"
+                    Text="{Binding EditNote, Mode=TwoWay}" />
+
+              </StackPanel>
+            </ScrollViewer>
+
+            
+            <Grid Grid.Row="4" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
+              <Button Grid.Column="0"
+                  Classes="Action"
+                  Height="{StaticResource ControlHeightCompact}"
+                  HorizontalAlignment="Stretch"
+                  Command="{Binding SaveCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:AppIcon Kind="RefreshCw"
+                         Width="16"
+                         Height="16" />
+                  <TextBlock Text="保存" />
+                </StackPanel>
+              </Button>
+
+              <Button Grid.Column="1"
+                  Classes="Action"
+                  Height="{StaticResource ControlHeightCompact}"
+                  HorizontalAlignment="Stretch"
+                  Command="{Binding DeleteCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:AppIcon Kind="Trash2"
+                         Width="16"
+                         Height="16" />
+                  <TextBlock Text="删除" />
+                </StackPanel>
+              </Button>
+            </Grid>
+
+          </Grid>
+        </suki:GlassCard>
+
+      </Grid>
+    </Grid>
 </UserControl>

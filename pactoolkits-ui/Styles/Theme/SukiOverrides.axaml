@@ -1,0 +1,7 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <SolidColorBrush x:Key="AutoCompleteBorderBrush"
+          Color="{DynamicResource SukiControlBorderBrush}"
+          Opacity="0.32" />
+  <SolidColorBrush x:Key="AutoCompleteDarkBackgroundBrush" Color="#1E000000" />
+</ResourceDictionary>
