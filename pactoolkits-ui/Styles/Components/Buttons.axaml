@@ -1,0 +1,35 @@
+<Styles xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Button.Primary">
+    <Setter Property="MinHeight" Value="{DynamicResource ButtonPrimaryMinHeight}" />
+    <Setter Property="MinWidth" Value="{DynamicResource ButtonPrimaryMinWidth}" />
+    <Setter Property="Padding" Value="{DynamicResource ButtonPrimaryPadding}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="CornerRadius" Value="{DynamicResource ButtonCornerRadiusLarge}" />
+  </Style>
+
+  <Style Selector="Button.Ghost">
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="Padding" Value="{DynamicResource ButtonPaddingHorizontal}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource ButtonCornerRadius}" />
+    <Setter Property="Opacity" Value="{DynamicResource ButtonGhostOpacity}" />
+  </Style>
+
+  <Style Selector="Button.Action">
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="MinWidth" Value="{DynamicResource ButtonActionMinWidth}" />
+    <Setter Property="Padding" Value="{DynamicResource ButtonPaddingHorizontal}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="CornerRadius" Value="{DynamicResource ButtonCornerRadius}" />
+  </Style>
+
+  <Style Selector="Button.MsfxMiniIconBtn">
+    <Setter Property="Width" Value="{DynamicResource MsfxMiniIconBtnSize}" />
+    <Setter Property="Height" Value="{DynamicResource MsfxMiniIconBtnSize}" />
+    <Setter Property="MinWidth" Value="{DynamicResource MsfxMiniIconBtnSize}" />
+    <Setter Property="MinHeight" Value="{DynamicResource MsfxMiniIconBtnSize}" />
+    <Setter Property="Padding" Value="{DynamicResource MsfxMiniIconBtnPadding}" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+  </Style>
+</Styles>

@@ -1,0 +1,28 @@
+<Styles xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Grid.PageRoot">
+    <Setter Property="Margin" Value="{DynamicResource PagePadding}" />
+  </Style>
+
+  <Style Selector="Grid.PageRootLayout">
+    <Setter Property="Margin" Value="{DynamicResource PagePadding}" />
+    <Setter Property="RowSpacing" Value="{DynamicResource PageRowSpacing}" />
+  </Style>
+
+  <Style Selector="Grid.PageColumnLayout">
+    <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacing}" />
+  </Style>
+
+  <Style Selector="Grid.FormLayout">
+    <Setter Property="ColumnSpacing" Value="{DynamicResource FormColumnSpacing}" />
+    <Setter Property="RowSpacing" Value="{DynamicResource FormRowSpacing}" />
+  </Style>
+
+  <Style Selector="StackPanel.PageSectionStack">
+    <Setter Property="Spacing" Value="{DynamicResource PageSectionSpacing}" />
+  </Style>
+
+  <Style Selector="StackPanel.FormStack">
+    <Setter Property="Spacing" Value="{DynamicResource FormRowSpacing}" />
+  </Style>
+</Styles>

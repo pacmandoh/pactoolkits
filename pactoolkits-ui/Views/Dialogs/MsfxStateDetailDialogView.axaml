@@ -1,73 +1,73 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
-             xmlns:dialogs="clr-namespace:pactoolkits_ui.Views.Dialogs"
-             x:Class="pactoolkits_ui.Views.Dialogs.MsfxStateDetailDialogView"
-             x:DataType="dialogs:MsfxStateDetailDialogModel">
-    <Border MinWidth="560"
-            MaxWidth="920"
-            Padding="18"
-            CornerRadius="16">
-        <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12">
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                <Border Width="44"
-                        Height="44"
-                        CornerRadius="22"
-                        Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                    <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
-                                        Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                        Width="24"
-                                        Height="24"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center" />
-                </Border>
-                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Header}" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding SubHeader}" Opacity="0.78" />
-                </StackPanel>
-            </Grid>
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
+      xmlns:dialogs="clr-namespace:pactoolkits_ui.Views.Dialogs"
+      x:Class="pactoolkits_ui.Views.Dialogs.MsfxStateDetailDialogView"
+      x:DataType="dialogs:MsfxStateDetailDialogModel">
+  <Border MinWidth="560"
+      MaxWidth="920"
+      Padding="{DynamicResource DialogPadding}"
+      CornerRadius="16">
+    <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="{DynamicResource PageRowSpacing}">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+        <Border Width="44"
+            Height="44"
+            CornerRadius="22"
+            Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+          <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                    Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                    Width="24"
+                    Height="24"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Header}" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding SubHeader}" Opacity="0.78" />
+        </StackPanel>
+      </Grid>
 
-            <Border Grid.Row="1"
-                    Padding="12"
-                    CornerRadius="12"
-                    Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                    <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
-                                        Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                        Width="18"
-                                        Height="18"
-                                        VerticalAlignment="Top" />
-                    <StackPanel Grid.Column="1" Spacing="6">
-                        <TextBlock Text="{Binding HighlightTitle}" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding HighlightMessage}" TextWrapping="Wrap" MaxHeight="220" />
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <Border Grid.Row="2" Height="1" Opacity="0.2" />
-
-            <ScrollViewer Grid.Row="3"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled"
-                          MaxHeight="420">
-                <ItemsControl ItemsSource="{Binding Items}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel ItemWidth="280" ItemSpacing="8" LineSpacing="8" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="dialogs:InfoDetailItem">
-                            <Border Padding="10,8" CornerRadius="10">
-                                <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
-                                    <TextBlock Text="{Binding Label}" Opacity="0.72" />
-                                    <TextBlock Grid.Row="1" Text="{Binding Value}" TextWrapping="Wrap" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+      <Border Grid.Row="1"
+          Padding="12"
+          CornerRadius="12"
+          Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+          <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                    Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                    Width="18"
+                    Height="18"
+                    VerticalAlignment="Top" />
+          <StackPanel Grid.Column="1" Spacing="6">
+            <TextBlock Text="{Binding HighlightTitle}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding HighlightMessage}" TextWrapping="Wrap" MaxHeight="220" />
+          </StackPanel>
         </Grid>
-    </Border>
+      </Border>
+
+      <Border Grid.Row="2" Height="1" Opacity="0.2" />
+
+      <ScrollViewer Grid.Row="3"
+             VerticalScrollBarVisibility="Auto"
+             HorizontalScrollBarVisibility="Disabled"
+             MaxHeight="420">
+        <ItemsControl ItemsSource="{Binding Items}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel ItemWidth="280" ItemSpacing="8" LineSpacing="8" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="dialogs:InfoDetailItem">
+              <Border Padding="10,8" CornerRadius="10">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+                  <TextBlock Text="{Binding Label}" Opacity="0.72" />
+                  <TextBlock Grid.Row="1" Text="{Binding Value}" TextWrapping="Wrap" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Grid>
+  </Border>
 </UserControl>

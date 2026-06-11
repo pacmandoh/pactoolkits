@@ -1,518 +1,518 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
-             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
-             xmlns:simpleicons="clr-namespace:IconPacks.Avalonia.SimpleIcons;assembly=IconPacks.Avalonia.SimpleIcons"
-             xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
-             xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
-             mc:Ignorable="d"
-             d:DesignWidth="1200"
-             d:DesignHeight="800"
-             x:Class="pactoolkits_ui.Views.Pages.ToolsCenterView"
-             x:DataType="vm:ToolsCenterViewModel"
-             x:Name="Root"
-             Focusable="True">
-    <Grid>
-        <Grid Margin="18,14,18,18" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12"
-              KeyboardNavigation.TabNavigation="Cycle">
-            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <icons:AppIcon Kind="Syringe" Width="18" Height="18" />
-                    <StackPanel Spacing="2" VerticalAlignment="Center">
-                        <TextBlock Text="自动化套件" Classes="SectionTitle" />
-                        <TextBlock Text="PacInjector 与自动化运行参数配置" Classes="SectionHint" />
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:suki="https://github.com/kikipoulet/SukiUI"
+      xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
+      xmlns:simpleicons="clr-namespace:IconPacks.Avalonia.SimpleIcons;assembly=IconPacks.Avalonia.SimpleIcons"
+      xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
+      xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
+      mc:Ignorable="d"
+      d:DesignWidth="1200"
+      d:DesignHeight="800"
+      x:Class="pactoolkits_ui.Views.Pages.ToolsCenterView"
+      x:DataType="vm:ToolsCenterViewModel"
+      x:Name="Root"
+      Focusable="True">
+  <Grid>
+    <Grid Classes="PageRootLayout" RowDefinitions="Auto,Auto,Auto,*"
+       KeyboardNavigation.TabNavigation="Cycle">
+      <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <icons:AppIcon Kind="Syringe" Width="18" Height="18" />
+          <StackPanel Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="自动化套件" Classes="SectionTitle" />
+            <TextBlock Text="PacInjector 与自动化运行参数配置" Classes="SectionHint" />
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Column="1"
+              Orientation="Horizontal"
+              Spacing="8"
+              VerticalAlignment="Center">
+          <TextBlock Text="状态"
+               Classes="SectionHint"
+               VerticalAlignment="Center" />
+          <controls:StatusPill IsVisible="{Binding IsAhkStatusUnknown}"
+                    Icon="BadgeQuestionMark"
+                    Text="{Binding AhkStatusText}"
+                    BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                    PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                    ForegroundBrush="{DynamicResource BrushInfo}"
+                    VerticalAlignment="Center" />
+          <controls:StatusPill IsVisible="{Binding IsAhkStatusRunning}"
+                    Icon="CircleCheck"
+                    Text="{Binding AhkStatusText}"
+                    BackgroundBrush="{DynamicResource BrushDoneBg25}"
+                    PillBorderBrush="{DynamicResource BrushDoneBg50}"
+                    ForegroundBrush="{DynamicResource BrushDone}"
+                    VerticalAlignment="Center" />
+          <controls:StatusPill IsVisible="{Binding IsAhkStatusStopped}"
+                    Icon="CircleAlert"
+                    Text="{Binding AhkStatusText}"
+                    BackgroundBrush="{DynamicResource BrushDangerBg15}"
+                    PillBorderBrush="{DynamicResource BrushDangerBg35}"
+                    ForegroundBrush="{DynamicResource BrushDanger}"
+                    VerticalAlignment="Center" />
+        </StackPanel>
+      </Grid>
+
+      <suki:GlassCard Grid.Row="1" Padding="12,10">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <icons:AppIcon Kind="Lightbulb" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+          <TextBlock Classes="SectionHint"
+               Text="支持状态检测、开关控制与一键重启" />
+        </StackPanel>
+      </suki:GlassCard>
+
+      <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Stretch">
+        <suki:GlassCard Grid.Column="0" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Center">
+          <Grid ColumnDefinitions="Auto,Auto,Auto"
+             ColumnSpacing="{DynamicResource PageColumnSpacing}"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Center">
+            <icons:AppIcon Kind="Power"
+                      Width="16"
+                      Height="16"
+                      Foreground="{Binding IsAhkEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
+                      VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1"
+                 Text="工具开关"
+                 Opacity="0.82"
+                 VerticalAlignment="Center" />
+            <ToggleSwitch Grid.Column="2"
+                   IsChecked="{Binding IsAhkEnabled, Mode=TwoWay}"
+                   IsEnabled="{Binding !IsAhkToggling}"
+                   VerticalAlignment="Center" />
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Column="1" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch">
+          <Button Classes="Action"
+              MinWidth="136"
+              Command="{Binding RestartAhkCommand}"
+              IsEnabled="{Binding !IsAhkToggling}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <icons:AppIcon Kind="RotateCcw" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+              <TextBlock Text="重启" />
+            </StackPanel>
+          </Button>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Column="2" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch">
+          <Button Classes="Action"
+              MinWidth="136"
+              Command="{Binding SaveAhkSettingsCommand}"
+              IsEnabled="{Binding !IsSavingSettings}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Border Width="10"
+                  Height="10"
+                  CornerRadius="999"
+                  VerticalAlignment="Center"
+                  Background="{Binding IsSavedState, Converter={StaticResource BoolToDoneDangerBrush}}" />
+              <icons:AppIcon Kind="Save" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+              <TextBlock Text="保存配置" />
+            </StackPanel>
+          </Button>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Column="3" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch">
+          <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+            <simpleicons:PackIconSimpleIcons Kind="AutoHotkey"
+                            Width="25"
+                            Height="25" />
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Column="4" Padding="12,10" MinHeight="64" Opacity="0.9"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" MaxWidth="520" HorizontalAlignment="Center"
+             VerticalAlignment="Center">
+            <Panel>
+              <icons:AppIcon Kind="CircleCheck"
+                        IsVisible="{Binding IsAhkEnabled}"
+                        Width="16"
+                        Height="16"
+                        Foreground="{DynamicResource BrushDone}" />
+              <icons:AppIcon Kind="CircleAlert"
+                        IsVisible="{Binding !IsAhkEnabled}"
+                        Width="16"
+                        Height="16"
+                        Foreground="{DynamicResource BrushDanger}" />
+            </Panel>
+            <TextBlock Grid.Column="1"
+                 Text="{Binding AhkStatusDetail}"
+                 Classes="SectionHint"
+                 TextWrapping="Wrap"
+                 TextTrimming="None"
+                 TextAlignment="Center"
+                 VerticalAlignment="Center" />
+          </Grid>
+        </suki:GlassCard>
+      </Grid>
+
+      <Grid Grid.Row="3" ColumnDefinitions="1.55*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+        <suki:GlassCard x:Name="ToolEditorCard" Grid.Column="0" Classes="SectionCard" Padding="14,12">
+          <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <icons:AppIcon Kind="Wrench" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+              <TextBlock Text="运行参数" Classes="SectionTitle" />
+            </StackPanel>
+
+            <ScrollViewer x:Name="ToolEditorScrollViewer"
+                   Grid.Row="1"
+                   Classes="Stack"
+                   VerticalScrollBarVisibility="Auto"
+                   HorizontalScrollBarVisibility="Disabled">
+              <StackPanel Spacing="{DynamicResource PageSectionSpacing}">
+                <suki:GroupBox Header="基础配置"
+                       HorizontalContentAlignment="Stretch">
+                  <Grid ColumnDefinitions="140,*" ColumnSpacing="{DynamicResource FormColumnSpacing}" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+                    <TextBlock Text="可执行路径" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="0" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        HorizontalAlignment="Stretch"
+                        UseFloatingWatermark="False"
+                        VerticalContentAlignment="Center"
+                        Text="{Binding AhkExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        Watermark="例如：C:\\Tools\\pacinjector.exe" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="进程名（可选）" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="1" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        HorizontalAlignment="Stretch"
+                        UseFloatingWatermark="False"
+                        VerticalContentAlignment="Center"
+                        Text="{Binding AhkProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        Watermark="例如：pacinjector（不带 .exe）" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="PG 驱动" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="2" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        HorizontalAlignment="Stretch"
+                        UseFloatingWatermark="False"
+                        VerticalContentAlignment="Center"
+                        Text="{Binding AgentPgDriver, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="PG SSL" VerticalAlignment="Center" />
+                    <Grid Grid.Row="3" Grid.Column="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                      <ToggleSwitch IsChecked="{Binding AgentPgSslEnabled, Mode=TwoWay}"
+                             VerticalAlignment="Center" />
+                      <suki:InfoBadge Grid.Column="1"
+                              Content="{Binding AgentPgSsl}"
+                              Foreground="{Binding AgentPgSslEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
+                              VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2"
+                           Text="关闭=disable，开启=enable"
+                           Classes="SectionHint"
+                           VerticalAlignment="Center" />
+                    </Grid>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="确认超时(ms)" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Row="4" Grid.Column="1"
+                           Height="{StaticResource ControlHeightCompact}"
+                           HorizontalAlignment="Stretch"
+                           Minimum="100"
+                           Maximum="10000"
+                           Increment="100"
+                           FormatString="0"
+                           Value="{Binding AgentConfirmTimeoutMs, Mode=TwoWay}" />
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="目标进程" VerticalAlignment="Top" Margin="0,8,0,0" />
+                    <StackPanel Grid.Row="5" Grid.Column="1" Spacing="8" HorizontalAlignment="Stretch">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBlock Text="每个进程一行" Classes="SectionHint" VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                            Classes="Ghost"
+                            Command="{Binding AddAgentAppWinItemCommand}"
+                            Tag="AgentAppWinItemsControl"
+                            Click="OnAddLineClicked">
+                          <StackPanel Orientation="Horizontal" Spacing="6">
+                            <icons:AppIcon Kind="Plus" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                            <TextBlock Text="新增" />
+                          </StackPanel>
+                        </Button>
+                      </Grid>
+                      <ItemsControl x:Name="AgentAppWinItemsControl"
+                             ItemsSource="{Binding AgentAppWinItems}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:AgentLineItem">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
+                              <TextBox HorizontalAlignment="Stretch"
+                                  Height="{StaticResource ControlHeightCompact}"
+                                  Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  UseFloatingWatermark="False"
+                                  VerticalContentAlignment="Center" />
+                              <Button Grid.Column="1"
+                                  Classes="Ghost"
+                                  Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentAppWinItemCommand}"
+                                  CommandParameter="{Binding .}">
+                                <icons:AppIcon Kind="X" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                              </Button>
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
                     </StackPanel>
-                </StackPanel>
+                  </Grid>
+                </suki:GroupBox>
 
-                <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            Spacing="8"
-                            VerticalAlignment="Center">
-                    <TextBlock Text="状态"
-                               Classes="SectionHint"
-                               VerticalAlignment="Center" />
-                    <controls:StatusPill IsVisible="{Binding IsAhkStatusUnknown}"
-                                         Icon="BadgeQuestionMark"
-                                         Text="{Binding AhkStatusText}"
-                                         BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                                         PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                                         ForegroundBrush="{DynamicResource BrushInfo}"
-                                         VerticalAlignment="Center" />
-                    <controls:StatusPill IsVisible="{Binding IsAhkStatusRunning}"
-                                         Icon="CircleCheck"
-                                         Text="{Binding AhkStatusText}"
-                                         BackgroundBrush="{DynamicResource BrushDoneBg25}"
-                                         PillBorderBrush="{DynamicResource BrushDoneBg50}"
-                                         ForegroundBrush="{DynamicResource BrushDone}"
-                                         VerticalAlignment="Center" />
-                    <controls:StatusPill IsVisible="{Binding IsAhkStatusStopped}"
-                                         Icon="CircleAlert"
-                                         Text="{Binding AhkStatusText}"
-                                         BackgroundBrush="{DynamicResource BrushDangerBg15}"
-                                         PillBorderBrush="{DynamicResource BrushDangerBg35}"
-                                         ForegroundBrush="{DynamicResource BrushDanger}"
-                                         VerticalAlignment="Center" />
-                </StackPanel>
+                <suki:GroupBox Header="门诊配置"
+                       HorizontalContentAlignment="Stretch">
+                  <Grid ColumnDefinitions="140,*" ColumnSpacing="{DynamicResource FormColumnSpacing}" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+                    <TextBlock Text="窗口类" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="0" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        HorizontalAlignment="Stretch"
+                        UseFloatingWatermark="False"
+                        VerticalContentAlignment="Center"
+                        Text="{Binding AgentOptWindowClass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="解析区 ClassNN" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="1" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        HorizontalAlignment="Stretch"
+                        UseFloatingWatermark="False"
+                        VerticalContentAlignment="Center"
+                        Text="{Binding AgentOptParseGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="验证区 ClassNN" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="2" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        HorizontalAlignment="Stretch"
+                        UseFloatingWatermark="False"
+                        VerticalContentAlignment="Center"
+                        Text="{Binding AgentOptVerifyGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="输入控件 ClassNN" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="3" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        HorizontalAlignment="Stretch"
+                        UseFloatingWatermark="False"
+                        VerticalContentAlignment="Center"
+                        Text="{Binding AgentOptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                  </Grid>
+                </suki:GroupBox>
+
+                <suki:GroupBox Header="住院配置"
+                       HorizontalContentAlignment="Stretch">
+                  <Grid ColumnDefinitions="140,*" ColumnSpacing="{DynamicResource FormColumnSpacing}" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+                    <TextBlock Text="窗口类" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="0" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        HorizontalAlignment="Stretch"
+                        UseFloatingWatermark="False"
+                        VerticalContentAlignment="Center"
+                        Text="{Binding AgentIptWindowClass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="解析区 ClassNN" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="1" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        HorizontalAlignment="Stretch"
+                        UseFloatingWatermark="False"
+                        VerticalContentAlignment="Center"
+                        Text="{Binding AgentIptParseGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="验证区 ClassNN" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="2" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        HorizontalAlignment="Stretch"
+                        UseFloatingWatermark="False"
+                        VerticalContentAlignment="Center"
+                        Text="{Binding AgentIptVerifyGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="输入控件 ClassNN" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="3" Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        HorizontalAlignment="Stretch"
+                        UseFloatingWatermark="False"
+                        VerticalContentAlignment="Center"
+                        Text="{Binding AgentIptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                  </Grid>
+                </suki:GroupBox>
+
+                <suki:GroupBox Header="仓库配置"
+                       HorizontalContentAlignment="Stretch">
+                  <Grid ColumnDefinitions="140,*" ColumnSpacing="{DynamicResource FormColumnSpacing}" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+                    <TextBlock Text="仓库模式" VerticalAlignment="Center" />
+                    <ToggleSwitch Grid.Row="0" Grid.Column="1"
+                           IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}"
+                           HorizontalAlignment="Left" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="任务标识" VerticalAlignment="Top" Margin="0,8,0,0" />
+                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6">
+                      <TextBox Height="{StaticResource ControlHeightCompact}"
+                          HorizontalAlignment="Stretch"
+                          UseFloatingWatermark="False"
+                          VerticalContentAlignment="Center"
+                          Text="{Binding AgentWarehouseTaskIdentifier, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                      <TextBlock Text="用于识别单据，按 agent 别名表达式填写，默认：单据号||当前编号"
+                           Classes="SectionHint"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Stretch" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="取码策略" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="2" Grid.Column="1"
+                         Height="{StaticResource ControlHeightCompact}"
+                         ItemsSource="{Binding AgentCodePickPolicyOptions}"
+                         SelectedItem="{Binding SelectedAgentCodePickPolicyOption, Mode=TwoWay}" />
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="仓库列特征" VerticalAlignment="Top" Margin="0,8,0,0" />
+                    <StackPanel Grid.Row="3" Grid.Column="1" Spacing="8">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" HorizontalAlignment="Stretch">
+                        <TextBlock Text="若表头命中任一列名，则判定为住院；均未命中则判定为仓库（默认：患者姓名、应扫次数）"
+                             Classes="SectionHint"
+                             VerticalAlignment="Center"
+                             TextWrapping="Wrap" />
+                        <Button Grid.Column="1"
+                            Classes="Ghost"
+                            Command="{Binding AddAgentWarehouseAnchorItemCommand}"
+                            Tag="AgentWarehouseAnchorItemsControl"
+                            Click="OnAddLineClicked">
+                          <StackPanel Orientation="Horizontal" Spacing="6">
+                            <icons:AppIcon Kind="Plus" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                            <TextBlock Text="新增" />
+                          </StackPanel>
+                        </Button>
+                      </Grid>
+                      <ItemsControl x:Name="AgentWarehouseAnchorItemsControl"
+                             ItemsSource="{Binding AgentWarehouseAnchorItems}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:AgentLineItem">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
+                              <TextBox HorizontalAlignment="Stretch"
+                                  Height="{StaticResource ControlHeightCompact}"
+                                  Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  UseFloatingWatermark="False"
+                                  VerticalContentAlignment="Center" />
+                              <Button Grid.Column="1"
+                                  Classes="Ghost"
+                                  Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentWarehouseAnchorItemCommand}"
+                                  CommandParameter="{Binding .}">
+                                <icons:AppIcon Kind="X" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                              </Button>
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </Grid>
+                </suki:GroupBox>
+
+                <suki:GroupBox Header="解析规则"
+                       HorizontalContentAlignment="Stretch">
+                  <Grid ColumnDefinitions="140,*" ColumnSpacing="{DynamicResource FormColumnSpacing}" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+                    <TextBlock Text="列规则" VerticalAlignment="Top" Margin="0,8,0,0" />
+                    <StackPanel Grid.Row="0" Grid.Column="1" Spacing="8">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" HorizontalAlignment="Stretch">
+                        <TextBlock Text="每条规则一行" Classes="SectionHint" VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                            Classes="Ghost"
+                            Command="{Binding AddAgentColSpecsItemCommand}"
+                            Tag="AgentColSpecsItemsControl"
+                            Click="OnAddLineClicked">
+                          <StackPanel Orientation="Horizontal" Spacing="6">
+                            <icons:AppIcon Kind="Plus" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                            <TextBlock Text="新增" />
+                          </StackPanel>
+                        </Button>
+                      </Grid>
+                      <ItemsControl x:Name="AgentColSpecsItemsControl"
+                             ItemsSource="{Binding AgentColSpecsItems}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:AgentLineItem">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
+                              <TextBox HorizontalAlignment="Stretch"
+                                  Height="{StaticResource ControlHeightCompact}"
+                                  Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  UseFloatingWatermark="False"
+                                  VerticalContentAlignment="Center" />
+                              <Button Grid.Column="1"
+                                  Classes="Ghost"
+                                  Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentColSpecsItemCommand}"
+                                  CommandParameter="{Binding .}">
+                                <icons:AppIcon Kind="X" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                              </Button>
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="整数列" VerticalAlignment="Top" Margin="0,8,0,0" />
+                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" HorizontalAlignment="Stretch">
+                        <TextBlock Text="每个字段一行" Classes="SectionHint" VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                            Classes="Ghost"
+                            Command="{Binding AddAgentIntColsItemCommand}"
+                            Tag="AgentIntColsItemsControl"
+                            Click="OnAddLineClicked">
+                          <StackPanel Orientation="Horizontal" Spacing="6">
+                            <icons:AppIcon Kind="Plus" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                            <TextBlock Text="新增" />
+                          </StackPanel>
+                        </Button>
+                      </Grid>
+                      <ItemsControl x:Name="AgentIntColsItemsControl"
+                             ItemsSource="{Binding AgentIntColsItems}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:AgentLineItem">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
+                              <TextBox HorizontalAlignment="Stretch"
+                                  Height="{StaticResource ControlHeightCompact}"
+                                  Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  UseFloatingWatermark="False"
+                                  VerticalContentAlignment="Center" />
+                              <Button Grid.Column="1"
+                                  Classes="Ghost"
+                                  Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentIntColsItemCommand}"
+                                  CommandParameter="{Binding .}">
+                                <icons:AppIcon Kind="X" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                              </Button>
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </Grid>
+                </suki:GroupBox>
+              </StackPanel>
+            </ScrollViewer>
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Column="1" Classes="SectionCard" Padding="14,12">
+          <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <icons:AppIcon Kind="Microchip" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+              <TextBlock Text="版本与运行信息" Classes="SectionTitle" />
+            </StackPanel>
+
+            <Grid Grid.Row="1" ColumnDefinitions="130,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+              <TextBlock Text="程序版本" Opacity="{StaticResource SectionHintOpacity}" />
+              <TextBlock Grid.Column="1" Text="{Binding ProgramVersionText}" />
             </Grid>
 
-            <suki:GlassCard Grid.Row="1" Padding="12,10">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <icons:AppIcon Kind="Lightbulb" Width="16" Height="16" />
-                    <TextBlock Classes="SectionHint"
-                               Text="支持状态检测、开关控制与一键重启" />
-                </StackPanel>
-            </suki:GlassCard>
-
-            <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="10" VerticalAlignment="Stretch">
-                <suki:GlassCard Grid.Column="0" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch"
-                                HorizontalContentAlignment="Center">
-                    <Grid ColumnDefinitions="Auto,Auto,Auto"
-                          ColumnSpacing="10"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center">
-                        <icons:AppIcon Kind="Power"
-                                            Width="16"
-                                            Height="16"
-                                            Foreground="{Binding IsAhkEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
-                                            VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="1"
-                                   Text="工具开关"
-                                   Opacity="0.82"
-                                   VerticalAlignment="Center" />
-                        <ToggleSwitch Grid.Column="2"
-                                      IsChecked="{Binding IsAhkEnabled, Mode=TwoWay}"
-                                      IsEnabled="{Binding !IsAhkToggling}"
-                                      VerticalAlignment="Center" />
-                    </Grid>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Column="1" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch">
-                    <Button Classes="Action"
-                            MinWidth="136"
-                            Command="{Binding RestartAhkCommand}"
-                            IsEnabled="{Binding !IsAhkToggling}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <icons:AppIcon Kind="RotateCcw" Width="16" Height="16" />
-                            <TextBlock Text="重启" />
-                        </StackPanel>
-                    </Button>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Column="2" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch">
-                    <Button Classes="Action"
-                            MinWidth="136"
-                            Command="{Binding SaveAhkSettingsCommand}"
-                            IsEnabled="{Binding !IsSavingSettings}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Border Width="10"
-                                    Height="10"
-                                    CornerRadius="999"
-                                    VerticalAlignment="Center"
-                                    Background="{Binding IsSavedState, Converter={StaticResource BoolToDoneDangerBrush}}" />
-                            <icons:AppIcon Kind="Save" Width="16" Height="16" />
-                            <TextBlock Text="保存配置" />
-                        </StackPanel>
-                    </Button>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Column="3" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch">
-                    <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <simpleicons:PackIconSimpleIcons Kind="AutoHotkey"
-                                                         Width="25"
-                                                         Height="25" />
-                    </Grid>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Column="4" Padding="12,10" MinHeight="64" Opacity="0.9"
-                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" MaxWidth="520" HorizontalAlignment="Center"
-                          VerticalAlignment="Center">
-                        <Panel>
-                            <icons:AppIcon Kind="CircleCheck"
-                                                IsVisible="{Binding IsAhkEnabled}"
-                                                Width="16"
-                                                Height="16"
-                                                Foreground="{DynamicResource BrushDone}" />
-                            <icons:AppIcon Kind="CircleAlert"
-                                                IsVisible="{Binding !IsAhkEnabled}"
-                                                Width="16"
-                                                Height="16"
-                                                Foreground="{DynamicResource BrushDanger}" />
-                        </Panel>
-                        <TextBlock Grid.Column="1"
-                                   Text="{Binding AhkStatusDetail}"
-                                   Classes="SectionHint"
-                                   TextWrapping="Wrap"
-                                   TextTrimming="None"
-                                   TextAlignment="Center"
-                                   VerticalAlignment="Center" />
-                    </Grid>
-                </suki:GlassCard>
+            <Grid Grid.Row="2" ColumnDefinitions="130,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+              <TextBlock Text="工具版本" Opacity="{StaticResource SectionHintOpacity}" />
+              <TextBlock Grid.Column="1" Text="{Binding AhkVersionText}" />
             </Grid>
 
-            <Grid Grid.Row="3" ColumnDefinitions="1.55*,1*" ColumnSpacing="10">
-                <suki:GlassCard x:Name="ToolEditorCard" Grid.Column="0" Classes="SectionCard" Padding="14,12">
-                    <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <icons:AppIcon Kind="Wrench" Width="16" Height="16" />
-                            <TextBlock Text="运行参数" Classes="SectionTitle" />
-                        </StackPanel>
-
-                        <ScrollViewer x:Name="ToolEditorScrollViewer"
-                                      Grid.Row="1"
-                                      Classes="Stack"
-                                      VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled">
-                            <StackPanel Spacing="12">
-                                <suki:GroupBox Header="基础配置"
-                                               HorizontalContentAlignment="Stretch">
-                                    <Grid ColumnDefinitions="140,*" ColumnSpacing="12" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
-                                        <TextBlock Text="可执行路径" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="0" Grid.Column="1"
-                                                 Height="{StaticResource ControlHeightCompact}"
-                                                 HorizontalAlignment="Stretch"
-                                                 UseFloatingWatermark="False"
-                                                 VerticalContentAlignment="Center"
-                                                 Text="{Binding AhkExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                 Watermark="例如：C:\\Tools\\pacinjector.exe" />
-
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="进程名（可选）" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="1" Grid.Column="1"
-                                                 Height="{StaticResource ControlHeightCompact}"
-                                                 HorizontalAlignment="Stretch"
-                                                 UseFloatingWatermark="False"
-                                                 VerticalContentAlignment="Center"
-                                                 Text="{Binding AhkProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                 Watermark="例如：pacinjector（不带 .exe）" />
-
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="PG 驱动" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="2" Grid.Column="1"
-                                                 Height="{StaticResource ControlHeightCompact}"
-                                                 HorizontalAlignment="Stretch"
-                                                 UseFloatingWatermark="False"
-                                                 VerticalContentAlignment="Center"
-                                                 Text="{Binding AgentPgDriver, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="PG SSL" VerticalAlignment="Center" />
-                                        <Grid Grid.Row="3" Grid.Column="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
-                                            <ToggleSwitch IsChecked="{Binding AgentPgSslEnabled, Mode=TwoWay}"
-                                                          VerticalAlignment="Center" />
-                                            <suki:InfoBadge Grid.Column="1"
-                                                            Content="{Binding AgentPgSsl}"
-                                                            Foreground="{Binding AgentPgSslEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
-                                                            VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="2"
-                                                       Text="关闭=disable，开启=enable"
-                                                       Classes="SectionHint"
-                                                       VerticalAlignment="Center" />
-                                        </Grid>
-
-                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="确认超时(ms)" VerticalAlignment="Center" />
-                                        <NumericUpDown Grid.Row="4" Grid.Column="1"
-                                                       Height="{StaticResource ControlHeightCompact}"
-                                                       HorizontalAlignment="Stretch"
-                                                       Minimum="100"
-                                                       Maximum="10000"
-                                                       Increment="100"
-                                                       FormatString="0"
-                                                       Value="{Binding AgentConfirmTimeoutMs, Mode=TwoWay}" />
-
-                                        <TextBlock Grid.Row="5" Grid.Column="0" Text="目标进程" VerticalAlignment="Top" Margin="0,8,0,0" />
-                                        <StackPanel Grid.Row="5" Grid.Column="1" Spacing="8" HorizontalAlignment="Stretch">
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                                <TextBlock Text="每个进程一行" Classes="SectionHint" VerticalAlignment="Center" />
-                                                <Button Grid.Column="1"
-                                                        Classes="Ghost"
-                                                        Command="{Binding AddAgentAppWinItemCommand}"
-                                                        Tag="AgentAppWinItemsControl"
-                                                        Click="OnAddLineClicked">
-                                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <icons:AppIcon Kind="Plus" Width="14" Height="14" />
-                                                        <TextBlock Text="新增" />
-                                                    </StackPanel>
-                                                </Button>
-                                            </Grid>
-                                            <ItemsControl x:Name="AgentAppWinItemsControl"
-                                                          ItemsSource="{Binding AgentAppWinItems}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate x:DataType="vm:AgentLineItem">
-                                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
-                                                            <TextBox HorizontalAlignment="Stretch"
-                                                                     Height="{StaticResource ControlHeightCompact}"
-                                                                     Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                     UseFloatingWatermark="False"
-                                                                     VerticalContentAlignment="Center" />
-                                                            <Button Grid.Column="1"
-                                                                    Classes="Ghost"
-                                                                    Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentAppWinItemCommand}"
-                                                                    CommandParameter="{Binding .}">
-                                                                <icons:AppIcon Kind="X" Width="14" Height="14" />
-                                                            </Button>
-                                                        </Grid>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-                                    </Grid>
-                                </suki:GroupBox>
-
-                                <suki:GroupBox Header="门诊配置"
-                                               HorizontalContentAlignment="Stretch">
-                                    <Grid ColumnDefinitions="140,*" ColumnSpacing="12" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
-                                        <TextBlock Text="窗口类" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="0" Grid.Column="1"
-                                                 Height="{StaticResource ControlHeightCompact}"
-                                                 HorizontalAlignment="Stretch"
-                                                 UseFloatingWatermark="False"
-                                                 VerticalContentAlignment="Center"
-                                                 Text="{Binding AgentOptWindowClass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="解析区 ClassNN" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="1" Grid.Column="1"
-                                                 Height="{StaticResource ControlHeightCompact}"
-                                                 HorizontalAlignment="Stretch"
-                                                 UseFloatingWatermark="False"
-                                                 VerticalContentAlignment="Center"
-                                                 Text="{Binding AgentOptParseGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="验证区 ClassNN" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="2" Grid.Column="1"
-                                                 Height="{StaticResource ControlHeightCompact}"
-                                                 HorizontalAlignment="Stretch"
-                                                 UseFloatingWatermark="False"
-                                                 VerticalContentAlignment="Center"
-                                                 Text="{Binding AgentOptVerifyGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="输入控件 ClassNN" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="3" Grid.Column="1"
-                                                 Height="{StaticResource ControlHeightCompact}"
-                                                 HorizontalAlignment="Stretch"
-                                                 UseFloatingWatermark="False"
-                                                 VerticalContentAlignment="Center"
-                                                 Text="{Binding AgentOptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    </Grid>
-                                </suki:GroupBox>
-
-                                <suki:GroupBox Header="住院配置"
-                                               HorizontalContentAlignment="Stretch">
-                                    <Grid ColumnDefinitions="140,*" ColumnSpacing="12" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
-                                        <TextBlock Text="窗口类" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="0" Grid.Column="1"
-                                                 Height="{StaticResource ControlHeightCompact}"
-                                                 HorizontalAlignment="Stretch"
-                                                 UseFloatingWatermark="False"
-                                                 VerticalContentAlignment="Center"
-                                                 Text="{Binding AgentIptWindowClass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="解析区 ClassNN" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="1" Grid.Column="1"
-                                                 Height="{StaticResource ControlHeightCompact}"
-                                                 HorizontalAlignment="Stretch"
-                                                 UseFloatingWatermark="False"
-                                                 VerticalContentAlignment="Center"
-                                                 Text="{Binding AgentIptParseGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="验证区 ClassNN" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="2" Grid.Column="1"
-                                                 Height="{StaticResource ControlHeightCompact}"
-                                                 HorizontalAlignment="Stretch"
-                                                 UseFloatingWatermark="False"
-                                                 VerticalContentAlignment="Center"
-                                                 Text="{Binding AgentIptVerifyGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="输入控件 ClassNN" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="3" Grid.Column="1"
-                                                 Height="{StaticResource ControlHeightCompact}"
-                                                 HorizontalAlignment="Stretch"
-                                                 UseFloatingWatermark="False"
-                                                 VerticalContentAlignment="Center"
-                                                 Text="{Binding AgentIptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    </Grid>
-                                </suki:GroupBox>
-
-                                <suki:GroupBox Header="仓库配置"
-                                               HorizontalContentAlignment="Stretch">
-                                    <Grid ColumnDefinitions="140,*" ColumnSpacing="12" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
-                                        <TextBlock Text="仓库模式" VerticalAlignment="Center" />
-                                        <ToggleSwitch Grid.Row="0" Grid.Column="1"
-                                                      IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}"
-                                                      HorizontalAlignment="Left" />
-
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="任务标识" VerticalAlignment="Top" Margin="0,8,0,0" />
-                                        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6">
-                                            <TextBox Height="{StaticResource ControlHeightCompact}"
-                                                     HorizontalAlignment="Stretch"
-                                                     UseFloatingWatermark="False"
-                                                     VerticalContentAlignment="Center"
-                                                     Text="{Binding AgentWarehouseTaskIdentifier, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                            <TextBlock Text="用于识别单据，按 agent 别名表达式填写，默认：单据号||当前编号"
-                                                       Classes="SectionHint"
-                                                       TextWrapping="Wrap"
-                                                       HorizontalAlignment="Stretch" />
-                                        </StackPanel>
-
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="取码策略" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="2" Grid.Column="1"
-                                                  Height="{StaticResource ControlHeightCompact}"
-                                                  ItemsSource="{Binding AgentCodePickPolicyOptions}"
-                                                  SelectedItem="{Binding SelectedAgentCodePickPolicyOption, Mode=TwoWay}" />
-
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="仓库列特征" VerticalAlignment="Top" Margin="0,8,0,0" />
-                                        <StackPanel Grid.Row="3" Grid.Column="1" Spacing="8">
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" HorizontalAlignment="Stretch">
-                                                <TextBlock Text="若表头命中任一列名，则判定为住院；均未命中则判定为仓库（默认：患者姓名、应扫次数）"
-                                                           Classes="SectionHint"
-                                                           VerticalAlignment="Center"
-                                                           TextWrapping="Wrap" />
-                                                <Button Grid.Column="1"
-                                                        Classes="Ghost"
-                                                        Command="{Binding AddAgentWarehouseAnchorItemCommand}"
-                                                        Tag="AgentWarehouseAnchorItemsControl"
-                                                        Click="OnAddLineClicked">
-                                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <icons:AppIcon Kind="Plus" Width="14" Height="14" />
-                                                        <TextBlock Text="新增" />
-                                                    </StackPanel>
-                                                </Button>
-                                            </Grid>
-                                            <ItemsControl x:Name="AgentWarehouseAnchorItemsControl"
-                                                          ItemsSource="{Binding AgentWarehouseAnchorItems}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate x:DataType="vm:AgentLineItem">
-                                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
-                                                            <TextBox HorizontalAlignment="Stretch"
-                                                                     Height="{StaticResource ControlHeightCompact}"
-                                                                     Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                     UseFloatingWatermark="False"
-                                                                     VerticalContentAlignment="Center" />
-                                                            <Button Grid.Column="1"
-                                                                    Classes="Ghost"
-                                                                    Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentWarehouseAnchorItemCommand}"
-                                                                    CommandParameter="{Binding .}">
-                                                                <icons:AppIcon Kind="X" Width="14" Height="14" />
-                                                            </Button>
-                                                        </Grid>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-                                    </Grid>
-                                </suki:GroupBox>
-
-                                <suki:GroupBox Header="解析规则"
-                                               HorizontalContentAlignment="Stretch">
-                                    <Grid ColumnDefinitions="140,*" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="10">
-                                        <TextBlock Text="列规则" VerticalAlignment="Top" Margin="0,8,0,0" />
-                                        <StackPanel Grid.Row="0" Grid.Column="1" Spacing="8">
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" HorizontalAlignment="Stretch">
-                                                <TextBlock Text="每条规则一行" Classes="SectionHint" VerticalAlignment="Center" />
-                                                <Button Grid.Column="1"
-                                                        Classes="Ghost"
-                                                        Command="{Binding AddAgentColSpecsItemCommand}"
-                                                        Tag="AgentColSpecsItemsControl"
-                                                        Click="OnAddLineClicked">
-                                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <icons:AppIcon Kind="Plus" Width="14" Height="14" />
-                                                        <TextBlock Text="新增" />
-                                                    </StackPanel>
-                                                </Button>
-                                            </Grid>
-                                            <ItemsControl x:Name="AgentColSpecsItemsControl"
-                                                          ItemsSource="{Binding AgentColSpecsItems}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate x:DataType="vm:AgentLineItem">
-                                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
-                                                            <TextBox HorizontalAlignment="Stretch"
-                                                                     Height="{StaticResource ControlHeightCompact}"
-                                                                     Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                     UseFloatingWatermark="False"
-                                                                     VerticalContentAlignment="Center" />
-                                                            <Button Grid.Column="1"
-                                                                    Classes="Ghost"
-                                                                    Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentColSpecsItemCommand}"
-                                                                    CommandParameter="{Binding .}">
-                                                                <icons:AppIcon Kind="X" Width="14" Height="14" />
-                                                            </Button>
-                                                        </Grid>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="整数列" VerticalAlignment="Top" Margin="0,8,0,0" />
-                                        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" HorizontalAlignment="Stretch">
-                                                <TextBlock Text="每个字段一行" Classes="SectionHint" VerticalAlignment="Center" />
-                                                <Button Grid.Column="1"
-                                                        Classes="Ghost"
-                                                        Command="{Binding AddAgentIntColsItemCommand}"
-                                                        Tag="AgentIntColsItemsControl"
-                                                        Click="OnAddLineClicked">
-                                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <icons:AppIcon Kind="Plus" Width="14" Height="14" />
-                                                        <TextBlock Text="新增" />
-                                                    </StackPanel>
-                                                </Button>
-                                            </Grid>
-                                            <ItemsControl x:Name="AgentIntColsItemsControl"
-                                                          ItemsSource="{Binding AgentIntColsItems}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate x:DataType="vm:AgentLineItem">
-                                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
-                                                            <TextBox HorizontalAlignment="Stretch"
-                                                                     Height="{StaticResource ControlHeightCompact}"
-                                                                     Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                     UseFloatingWatermark="False"
-                                                                     VerticalContentAlignment="Center" />
-                                                            <Button Grid.Column="1"
-                                                                    Classes="Ghost"
-                                                                    Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentIntColsItemCommand}"
-                                                                    CommandParameter="{Binding .}">
-                                                                <icons:AppIcon Kind="X" Width="14" Height="14" />
-                                                            </Button>
-                                                        </Grid>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-                                    </Grid>
-                                </suki:GroupBox>
-                            </StackPanel>
-                        </ScrollViewer>
-                    </Grid>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Column="1" Classes="SectionCard" Padding="14,12">
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <icons:AppIcon Kind="Microchip" Width="16" Height="16" />
-                            <TextBlock Text="版本与运行信息" Classes="SectionTitle" />
-                        </StackPanel>
-
-                        <Grid Grid.Row="1" ColumnDefinitions="130,*" ColumnSpacing="10">
-                            <TextBlock Text="程序版本" Opacity="{StaticResource SectionHintOpacity}" />
-                            <TextBlock Grid.Column="1" Text="{Binding ProgramVersionText}" />
-                        </Grid>
-
-                        <Grid Grid.Row="2" ColumnDefinitions="130,*" ColumnSpacing="10">
-                            <TextBlock Text="工具版本" Opacity="{StaticResource SectionHintOpacity}" />
-                            <TextBlock Grid.Column="1" Text="{Binding AhkVersionText}" />
-                        </Grid>
-
-                        <Grid Grid.Row="3" ColumnDefinitions="130,*" ColumnSpacing="10">
-                            <TextBlock Text="最近拉起" Opacity="{StaticResource SectionHintOpacity}" />
-                            <TextBlock Grid.Column="1" Text="{Binding LastLaunchText}" />
-                        </Grid>
-
-                        <Grid Grid.Row="4" ColumnDefinitions="130,*" ColumnSpacing="10">
-                            <TextBlock Text="最近错误" Opacity="{StaticResource SectionHintOpacity}" />
-                            <TextBlock Grid.Column="1" Text="{Binding LastErrorText}" TextWrapping="Wrap" />
-                        </Grid>
-                    </Grid>
-                </suki:GlassCard>
+            <Grid Grid.Row="3" ColumnDefinitions="130,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+              <TextBlock Text="最近拉起" Opacity="{StaticResource SectionHintOpacity}" />
+              <TextBlock Grid.Column="1" Text="{Binding LastLaunchText}" />
             </Grid>
-        </Grid>
+
+            <Grid Grid.Row="4" ColumnDefinitions="130,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+              <TextBlock Text="最近错误" Opacity="{StaticResource SectionHintOpacity}" />
+              <TextBlock Grid.Column="1" Text="{Binding LastErrorText}" TextWrapping="Wrap" />
+            </Grid>
+          </Grid>
+        </suki:GlassCard>
+      </Grid>
     </Grid>
+  </Grid>
 </UserControl>
