@@ -1,0 +1,28 @@
+<Styles xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:con="https://github.com/kikipoulet/SukiUI">
+  <Style Selector="con|GlassCard.SectionCard">
+    <Setter Property="CornerRadius" Value="{DynamicResource SectionCardRadius}" />
+    <Setter Property="Padding" Value="{DynamicResource SectionCardPadding}" />
+  </Style>
+
+  <Style Selector="con|GlassCard.FilterFieldCard">
+    <Setter Property="Padding" Value="{DynamicResource CompactPadding}" />
+    <Setter Property="Opacity" Value="0.94" />
+  </Style>
+
+  <Style Selector="con|GlassCard.FilterHintCard">
+    <Setter Property="Padding" Value="{DynamicResource FilterHintCardPadding}" />
+    <Setter Property="Opacity" Value="0.98" />
+  </Style>
+
+  <Style Selector="con|GlassCard.CounterPillCard">
+    <Setter Property="Padding" Value="{DynamicResource CompactPadding}" />
+    <Setter Property="Opacity" Value="0.96" />
+  </Style>
+
+  <Style Selector="con|GlassCard.StatusChipCard">
+    <Setter Property="Padding" Value="{DynamicResource CompactPadding}" />
+    <Setter Property="Opacity" Value="0.90" />
+  </Style>
+</Styles>
