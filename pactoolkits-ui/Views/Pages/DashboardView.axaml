@@ -33,7 +33,7 @@
   </UserControl.Styles>
 
   <suki:BusyArea BusyText="加载中..." IsBusy="{Binding IsBusy}">
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid Classes="DashboardShell" RowDefinitions="Auto,Auto,*">
       <suki:GlassCard Grid.Row="0"
               Classes="SectionCard"
               Margin="{DynamicResource DashboardFilterCardMargin}"
@@ -42,23 +42,23 @@
            ColumnSpacing="{DynamicResource PageColumnSpacing}"
            VerticalAlignment="Center">
           <suki:GlassCard Grid.Column="0" Classes="FilterFieldCard">
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="11">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FilterFieldRowSpacing}">
               <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6"
+                <StackPanel Grid.Column="0" Classes="SectionHeaderStack" Spacing="{DynamicResource SpacingInlineSm}"
                       VerticalAlignment="Center">
                   <icons:AppIcon Kind="CalendarRange"
-                            Width="14"
-                            Height="14"
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
                             Opacity="{StaticResource SectionHintOpacity}" />
                   <TextBlock Text="起始"
                        Opacity="{StaticResource SectionHintOpacity}"
                        FontSize="{DynamicResource SectionHintSize}" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}"
                       VerticalAlignment="Center">
                   <icons:AppIcon Kind="CalendarRange"
-                            Width="14"
-                            Height="14"
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
                             Opacity="{StaticResource SectionHintOpacity}" />
                   <TextBlock Text="结束"
                        Opacity="{StaticResource SectionHintOpacity}"
@@ -76,8 +76,8 @@
                     VerticalAlignment="Center"
                     ToolTip.Tip="归位日期">
                   <icons:AppIcon Kind="RotateCcw"
-                            Width="14"
-                            Height="14" />
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}" />
                 </Button>
               </Grid>
               <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
@@ -98,12 +98,12 @@
           </suki:GlassCard>
 
           <suki:GlassCard Grid.Column="1" Classes="FilterFieldCard">
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="11">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FilterFieldRowSpacing}">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon Grid.Column="0"
                           Kind="Pill"
-                          Width="14"
-                          Height="14"
+                          Width="{DynamicResource IconSizeSmall}"
+                          Height="{DynamicResource IconSizeSmall}"
                           Opacity="{StaticResource SectionHintOpacity}"
                           VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1"
@@ -123,8 +123,8 @@
                     VerticalAlignment="Center"
                     ToolTip.Tip="清空筛选">
                   <icons:AppIcon Kind="CircleX"
-                            Width="14"
-                            Height="14" />
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}" />
                 </Button>
               </Grid>
               <Border Grid.Row="1"
@@ -154,11 +154,11 @@
 
           <suki:GlassCard Grid.Column="2" Classes="FilterFieldCard">
             <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-              <StackPanel Orientation="Horizontal" Spacing="6"
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}"
                     VerticalAlignment="Center">
                 <icons:AppIcon Kind="SlidersHorizontal"
-                          Width="14"
-                          Height="14"
+                          Width="{DynamicResource IconSizeSmall}"
+                          Height="{DynamicResource IconSizeSmall}"
                           Opacity="{StaticResource SectionHintOpacity}" />
                 <TextBlock Text="规格"
                      Opacity="{StaticResource SectionHintOpacity}"
@@ -175,11 +175,11 @@
 
           <suki:GlassCard Grid.Column="3" Classes="FilterFieldCard">
             <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-              <StackPanel Orientation="Horizontal" Spacing="6"
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}"
                     VerticalAlignment="Center">
                 <icons:AppIcon Kind="Laptop"
-                          Width="14"
-                          Height="14"
+                          Width="{DynamicResource IconSizeSmall}"
+                          Height="{DynamicResource IconSizeSmall}"
                           Opacity="{StaticResource SectionHintOpacity}" />
                 <TextBlock Text="客户端"
                      Opacity="{StaticResource SectionHintOpacity}"
@@ -202,7 +202,7 @@
               SelectedIndex="{Binding SelectedTabIndex}">
           <TabItem>
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                 <icons:AppIcon Kind="ChartLine" Width="12" Height="12" />
                 <TextBlock Text="总览" />
               </StackPanel>
@@ -210,7 +210,7 @@
           </TabItem>
           <TabItem>
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                 <icons:AppIcon Kind="Clipboard" Width="12" Height="12" />
                 <TextBlock Text="录入" />
               </StackPanel>
@@ -218,7 +218,7 @@
           </TabItem>
           <TabItem>
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                 <icons:AppIcon Kind="ArrowRightLeft" Width="12" Height="12" />
                 <TextBlock Text="事务" />
               </StackPanel>
@@ -226,7 +226,7 @@
           </TabItem>
           <TabItem Classes="NoDivider">
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                 <icons:AppIcon Kind="OctagonAlert" Width="12" Height="12" />
                 <TextBlock Text="异常" />
               </StackPanel>
@@ -264,13 +264,13 @@
                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
 
                 <icons:AppIcon Kind="Database"
-                          Width="18" Height="18" />
+                          Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
 
                 <TextBlock Grid.Row="0" Grid.Column="1"
                      Text="可用追溯码库存"
                      FontWeight="SemiBold"
                      Opacity="0.85"
-                     Margin="8,0,0,0" />
+                     Margin="{DynamicResource MarginLeftSm}" />
 
                 <suki:InfoBadge Grid.Row="0" Grid.Column="2"
                         Content="库存"
@@ -291,7 +291,7 @@
                          Width="200"
                          Height="200"
                          HorizontalAlignment="Center"
-                         Margin="0,10,0,0"
+                         Margin="{DynamicResource MarginTopMd}"
                          Value="{Binding Kpi.AvailableRemainPct}" />
               </Grid>
             </suki:GlassCard>
@@ -305,13 +305,13 @@
                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
 
                 <icons:AppIcon Kind="ChartLine"
-                          Width="18" Height="18" />
+                          Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
 
                 <TextBlock Grid.Row="0" Grid.Column="1"
                      Text="期间使用条数"
                      FontWeight="SemiBold"
                      Opacity="0.85"
-                     Margin="8,0,0,0" />
+                     Margin="{DynamicResource MarginLeftSm}" />
 
                 <suki:InfoBadge Grid.Row="0" Grid.Column="2"
                         Content="期间"
@@ -332,7 +332,7 @@
                          Width="200"
                          Height="200"
                          HorizontalAlignment="Center"
-                         Margin="0,10,0,0"
+                         Margin="{DynamicResource MarginTopMd}"
                          Value="{Binding Kpi.PeriodUsedPct}" />
               </Grid>
             </suki:GlassCard>
@@ -346,14 +346,14 @@
                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
 
                 <icons:AppIcon Kind="CircleX"
-                          Width="18" Height="18"
+                          Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}"
                           Foreground="{StaticResource BrushWarning}" />
 
                 <TextBlock Grid.Row="0" Grid.Column="1"
                      Text="异常 / 回滚"
                      FontWeight="SemiBold"
                      Opacity="0.85"
-                     Margin="8,0,0,0" />
+                     Margin="{DynamicResource MarginLeftSm}" />
 
                 <suki:InfoBadge Grid.Row="0" Grid.Column="2"
                         Content="注意"
@@ -375,7 +375,7 @@
                          Width="200"
                          Height="200"
                          HorizontalAlignment="Center"
-                         Margin="0,10,0,0"
+                         Margin="{DynamicResource MarginTopMd}"
                          Value="{Binding Kpi.AbnormalPct}" />
               </Grid>
             </suki:GlassCard>
@@ -389,7 +389,7 @@
                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
 
                 <icons:AppIcon Kind="TriangleAlert"
-                          Width="18" Height="18"
+                          Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}"
                           Foreground="{StaticResource BrushDanger}"
                           VerticalAlignment="Center" />
 
@@ -397,7 +397,7 @@
                      Text="追溯码告紧"
                      FontWeight="SemiBold"
                      Opacity="0.85"
-                     Margin="8,0,0,0" />
+                     Margin="{DynamicResource MarginLeftSm}" />
 
                 <suki:InfoBadge Grid.Row="0" Grid.Column="2" Content="告警"
                         HorizontalAlignment="Right" />
@@ -418,14 +418,14 @@
                          Width="200"
                          Height="200"
                          HorizontalAlignment="Center"
-                         Margin="0,10,0,0"
+                         Margin="{DynamicResource MarginTopMd}"
                          Value="{Binding Kpi.LowStockPct}" />
               </Grid>
             </suki:GlassCard>
           </Grid>
 
           
-          <Grid Grid.Row="1" ColumnDefinitions="2*,*" ColumnSpacing="14">
+          <Grid Grid.Row="1" ColumnDefinitions="2*,*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
             
             <suki:GlassCard Grid.Column="0" Classes="SectionCard">
@@ -436,8 +436,8 @@
                 <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}">
                   <Grid ColumnDefinitions="Auto,*,240" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                     <icons:AppIcon Kind="ChartSpline"
-                              Width="18"
-                              Height="18"
+                              Width="{DynamicResource IconSizeSectionHeader}"
+                              Height="{DynamicResource IconSizeSectionHeader}"
                               Foreground="{StaticResource BrushDone}"
                               VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
@@ -537,8 +537,8 @@
                   <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                     <icons:AppIcon Grid.Column="0"
                               Kind="ReceiptText"
-                              Width="18"
-                              Height="18"
+                              Width="{DynamicResource IconSizeSectionHeader}"
+                              Height="{DynamicResource IconSizeSectionHeader}"
                               VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
                       <TextBlock Text="事务总览"
@@ -569,14 +569,14 @@
                       <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
                         <DataGridTemplateColumn.CellTemplate>
                           <DataTemplate>
-                            <Border Width="28"
-                                Height="28"
-                                CornerRadius="8"
+                            <Border Width="{DynamicResource IconBadgeSize}"
+                                Height="{DynamicResource IconBadgeSize}"
+                                CornerRadius="{DynamicResource TraceBadgeRadius}"
                                 Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
-                              <icons:AppIcon Width="16"
-                                  Height="16"
+                              <icons:AppIcon Width="{DynamicResource IconSizeDefault}"
+                                  Height="{DynamicResource IconSizeDefault}"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"
                                   Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}"
@@ -627,7 +627,7 @@
           </Grid>
 
           
-          <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="14">
+          <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
             
             <suki:GlassCard Grid.Column="0" Classes="SectionCard" MinHeight="220">
@@ -638,8 +638,8 @@
                 <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
                   <Grid ColumnDefinitions="Auto,*,220" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                     <icons:AppIcon Kind="Users"
-                              Width="18"
-                              Height="18"
+                              Width="{DynamicResource IconSizeSectionHeader}"
+                              Height="{DynamicResource IconSizeSectionHeader}"
                               Foreground="{StaticResource BrushDone}"
                               VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
@@ -661,7 +661,7 @@
                     <ItemsControl ItemsSource="{Binding TopClients}">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                          <StackPanel Spacing="6" />
+                          <StackPanel Spacing="{DynamicResource SpacingInlineSm}" />
                         </ItemsPanelTemplate>
                       </ItemsControl.ItemsPanel>
                       <ItemsControl.ItemTemplate>
@@ -669,7 +669,7 @@
                           <Border Classes="RowItem">
                             <Grid ColumnDefinitions="44,*,84" RowDefinitions="Auto,Auto"
                                RowSpacing="4" VerticalAlignment="Center">
-                              <Border Width="28" Height="28" CornerRadius="8"
+                              <Border Width="{DynamicResource IconBadgeSize}" Height="{DynamicResource IconBadgeSize}" CornerRadius="{DynamicResource TraceBadgeRadius}"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Index}"
@@ -721,8 +721,8 @@
                   <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}"
                      VerticalAlignment="Center">
                     <icons:AppIcon Kind="FilePlus"
-                              Width="18"
-                              Height="18"
+                              Width="{DynamicResource IconSizeSectionHeader}"
+                              Height="{DynamicResource IconSizeSectionHeader}"
                               VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                       <TextBlock Text="录入追溯码情况"
@@ -751,7 +751,7 @@
                     <ItemsControl ItemsSource="{Binding EntryRecentOverview}">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                          <StackPanel Spacing="6" />
+                          <StackPanel Spacing="{DynamicResource SpacingInlineSm}" />
                         </ItemsPanelTemplate>
                       </ItemsControl.ItemsPanel>
 
@@ -761,14 +761,14 @@
                               PointerReleased="OnEntryRecentRowPointerReleased">
                             <Grid ColumnDefinitions="44,*,180,84" RowDefinitions="Auto,Auto"
                                RowSpacing="4" VerticalAlignment="Center">
-                              <Border Width="28"
-                                  Height="28"
-                                  CornerRadius="8"
+                              <Border Width="{DynamicResource IconBadgeSize}"
+                                  Height="{DynamicResource IconBadgeSize}"
+                                  CornerRadius="{DynamicResource TraceBadgeRadius}"
                                   Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center">
-                                <icons:AppIcon Width="16"
-                                    Height="16"
+                                <icons:AppIcon Width="{DynamicResource IconSizeDefault}"
+                                    Height="{DynamicResource IconSizeDefault}"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
@@ -837,8 +837,8 @@
             <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
               <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                 <icons:AppIcon Kind="NotebookText"
-                          Width="18"
-                          Height="18"
+                          Width="{DynamicResource IconSizeSectionHeader}"
+                          Height="{DynamicResource IconSizeSectionHeader}"
                           VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                   <TextBlock Text="录入追溯码情况" Classes="SectionTitle" />
@@ -877,14 +877,14 @@
                   <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
                     <DataGridTemplateColumn.CellTemplate>
                       <DataTemplate>
-                        <Border Width="28"
-                            Height="28"
-                            CornerRadius="8"
+                        <Border Width="{DynamicResource IconBadgeSize}"
+                            Height="{DynamicResource IconBadgeSize}"
+                            CornerRadius="{DynamicResource TraceBadgeRadius}"
                             Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center">
-                          <icons:AppIcon Width="16"
-                                    Height="16"
+                          <icons:AppIcon Width="{DynamicResource IconSizeDefault}"
+                                    Height="{DynamicResource IconSizeDefault}"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
@@ -905,8 +905,7 @@
               </suki:BusyArea>
 
               <Grid Grid.Row="3"
-                 ColumnDefinitions="*,Auto"
-                 ColumnSpacing="{DynamicResource FormColumnSpacing}"
+                 Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
                  VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
                   <TextBlock Text="{Binding EntryTotalCount, StringFormat=共 {0} 条}" />
@@ -914,7 +913,7 @@
                   <TextBlock Text="{Binding EntryTotalPages, StringFormat=/ {0} 页}" />
                   <TextBlock Text="{Binding EntryPageSize, StringFormat=每页 {0} 条}" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <Button Classes="Action"
                       Height="{StaticResource ControlHeightCompact}"
                       MinWidth="{StaticResource MinWAction}"
@@ -957,8 +956,8 @@
               <Grid ColumnDefinitions="Auto,*,220,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                 <icons:AppIcon Grid.Column="0"
                           Kind="ReceiptText"
-                          Width="18"
-                          Height="18"
+                          Width="{DynamicResource IconSizeSectionHeader}"
+                          Height="{DynamicResource IconSizeSectionHeader}"
                           VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
                   <TextBlock Text="{Binding TxnPanelMode.Title}" Classes="SectionTitle"
@@ -998,14 +997,14 @@
                   <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
                     <DataGridTemplateColumn.CellTemplate>
                       <DataTemplate>
-                        <Border Width="28"
-                            Height="28"
-                            CornerRadius="8"
+                        <Border Width="{DynamicResource IconBadgeSize}"
+                            Height="{DynamicResource IconBadgeSize}"
+                            CornerRadius="{DynamicResource TraceBadgeRadius}"
                             Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center">
-                          <icons:AppIcon Width="16"
-                                    Height="16"
+                          <icons:AppIcon Width="{DynamicResource IconSizeDefault}"
+                                    Height="{DynamicResource IconSizeDefault}"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}"
@@ -1048,8 +1047,7 @@
 
               <Grid Grid.Row="3"
                  IsVisible="{Binding IsTxnPanelDetailMode}"
-                 ColumnDefinitions="*,Auto"
-                 ColumnSpacing="{DynamicResource FormColumnSpacing}"
+                 Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
                  VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
                   <TextBlock Text="{Binding TxnTotalCount, StringFormat=共 {0} 条}" />
@@ -1057,7 +1055,7 @@
                   <TextBlock Text="{Binding TxnTotalPages, StringFormat=/ {0} 页}" />
                   <TextBlock Text="{Binding TxnPageSize, StringFormat=每页 {0} 条}" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <Button Classes="Action"
                       Height="{StaticResource ControlHeightCompact}"
                       MinWidth="{StaticResource MinWAction}"
@@ -1084,8 +1082,7 @@
 
               <Grid Grid.Row="3"
                  IsVisible="{Binding IsTxnPanelTrendMode}"
-                 ColumnDefinitions="*,Auto"
-                 ColumnSpacing="{DynamicResource FormColumnSpacing}"
+                 Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
                  VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
                   <TextBlock Text="{Binding TxnTrendTotalCount, StringFormat=共 {0} 条}" />
@@ -1093,7 +1090,7 @@
                   <TextBlock Text="{Binding TxnTrendTotalPages, StringFormat=/ {0} 页}" />
                   <TextBlock Text="{Binding TxnTrendPageSize, StringFormat=每页 {0} 条}" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <Button Classes="Action"
                       Height="{StaticResource ControlHeightCompact}"
                       MinWidth="{StaticResource MinWAction}"
@@ -1134,8 +1131,8 @@
             <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
               <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                 <icons:AppIcon Kind="OctagonAlert"
-                          Width="18"
-                          Height="18"
+                          Width="{DynamicResource IconSizeSectionHeader}"
+                          Height="{DynamicResource IconSizeSectionHeader}"
                           Foreground="{StaticResource BrushDanger}"
                           VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
@@ -1173,14 +1170,14 @@
                   <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
                     <DataGridTemplateColumn.CellTemplate>
                       <DataTemplate>
-                        <Border Width="28"
-                            Height="28"
-                            CornerRadius="8"
+                        <Border Width="{DynamicResource IconBadgeSize}"
+                            Height="{DynamicResource IconBadgeSize}"
+                            CornerRadius="{DynamicResource TraceBadgeRadius}"
                             Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center">
-                          <icons:AppIcon Width="16"
-                                    Height="16"
+                          <icons:AppIcon Width="{DynamicResource IconSizeDefault}"
+                                    Height="{DynamicResource IconSizeDefault}"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}"
@@ -1197,8 +1194,7 @@
                 </suki:BusyArea>
 
               <Grid Grid.Row="3"
-                 ColumnDefinitions="*,Auto"
-                 ColumnSpacing="{DynamicResource FormColumnSpacing}"
+                 Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
                  VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
                   <TextBlock Text="{Binding AbnormalTotalCount, StringFormat=共 {0} 条}" />
@@ -1206,7 +1202,7 @@
                   <TextBlock Text="{Binding AbnormalTotalPages, StringFormat=/ {0} 页}" />
                   <TextBlock Text="{Binding AbnormalPageSize, StringFormat=每页 {0} 条}" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <Button Classes="Action"
                       Height="{StaticResource ControlHeightCompact}"
                       MinWidth="{StaticResource MinWAction}"

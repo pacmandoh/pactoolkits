@@ -13,7 +13,7 @@
       x:DataType="vm:SettingsViewModel"
       Focusable="True"
       x:Name="Root">
-  <Grid ColumnDefinitions="228,16,*">
+  <Grid Classes="SettingsShell" ColumnDefinitions="228,16,*">
     <suki:GlassCard Grid.Column="0"
             Margin="{DynamicResource SettingsSidebarMargin}"
             Padding="{DynamicResource SettingsNavCardPadding}"
@@ -22,10 +22,10 @@
          RowSpacing="{DynamicResource FormRowSpacing}">
         <TextBlock Text="设置目录"
              Classes="SectionTitle"
-             Margin="6,2,6,4" />
+             Margin="{DynamicResource SettingsNavTitleMargin}" />
         <StackPanel x:Name="NavItemsHost"
               Grid.Row="1"
-              Spacing="10" />
+              Spacing="{DynamicResource NavItemsSpacing}" />
       </Grid>
     </suki:GlassCard>
 
@@ -38,14 +38,14 @@
        Margin="{DynamicResource SettingsContentMargin}"
        RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
        KeyboardNavigation.TabNavigation="Cycle"
-       RowSpacing="14">
+       RowSpacing="{DynamicResource SettingsSectionsRowSpacing}">
 
       
-      <Grid x:Name="SectionDbAnchor"
-         ColumnDefinitions="*,Auto"
+      <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionDbAnchor"
+     
          VerticalAlignment="Center">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <icons:AppIcon Kind="Database" Width="18" Height="18" />
+        <StackPanel Classes="SectionHeaderStack">
+          <icons:AppIcon Kind="Database" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
           <TextBlock Text="PostgreSQL 设置"
                Classes="SectionTitle" />
         </StackPanel>
@@ -65,9 +65,9 @@
            RowSpacing="{DynamicResource FormRowSpacing}">
 
           
-          <Grid ColumnDefinitions="*,Auto"
+          <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
              VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Classes="SectionHeaderStack">
               <icons:AppIcon Kind="Link" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
               <TextBlock Text="连接信息"
                    Classes="SectionTitle" />
@@ -77,17 +77,17 @@
                   Orientation="Horizontal"
                   VerticalAlignment="Center"
                   HorizontalAlignment="Right"
-                  Spacing="10">
+                  Spacing="{DynamicResource NavItemsSpacing}">
               <Button Classes="Ghost"
                   Command="{Binding TestCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="CircleCheck" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="测试连接" />
                 </StackPanel>
               </Button>
               <Button Classes="Primary"
                   Command="{Binding SaveCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Save" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="保存并应用" />
                 </StackPanel>
@@ -168,9 +168,9 @@
                 <Grid RowDefinitions="Auto,*"
                    RowSpacing="{DynamicResource FormRowSpacing}">
                   <Grid ColumnDefinitions="Auto,*,Auto,Auto"
-                     ColumnSpacing="8"
+                     ColumnSpacing="{DynamicResource SpacingInlineMd}"
                      VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    <StackPanel Classes="SectionHeaderStack">
                       <icons:AppIcon Kind="DatabaseBackup" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                       <TextBlock Text="状态"
                            Classes="SectionTitle" />
@@ -186,7 +186,7 @@
                         Command="{Binding CheckDbSchemaStatusCommand}"
                         theme:ButtonExtensions.ShowProgress="{Binding IsDbSchemaChecking}"
                         IsEnabled="{Binding !IsDbSchemaChecking}">
-                      <StackPanel Orientation="Horizontal" Spacing="6">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                         <icons:AppIcon Kind="RefreshCw" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                         <TextBlock Text="检查更新" />
                       </StackPanel>
@@ -196,7 +196,7 @@
                         Command="{Binding ApplyDbSchemaUpdateCommand}"
                         theme:ButtonExtensions.ShowProgress="{Binding IsDbSchemaChecking}"
                         IsEnabled="{Binding CanApplyDbSchemaUpdate}">
-                      <StackPanel Orientation="Horizontal" Spacing="6">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                         <icons:AppIcon Kind="DatabaseZap" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                         <TextBlock Text="立即更新" />
                       </StackPanel>
@@ -212,21 +212,21 @@
                              HorizontalScrollBarVisibility="Disabled">
                         <Grid RowDefinitions="Auto,Auto,Auto"
                            RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-                          <Grid ColumnDefinitions="90,*" ColumnSpacing="8">
+                          <Grid ColumnDefinitions="90,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                             <TextBlock Text="最新版本" VerticalAlignment="Center" Opacity="0.85" />
                             <TextBlock Grid.Column="1"
                                  Text="{Binding DbSchemaTargetVersion}"
                                  VerticalAlignment="Center" />
                           </Grid>
 
-                          <Grid Grid.Row="1" ColumnDefinitions="90,*" ColumnSpacing="8">
+                          <Grid Grid.Row="1" ColumnDefinitions="90,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                             <TextBlock Text="数据库版本" VerticalAlignment="Center" Opacity="0.85" />
                             <TextBlock Grid.Column="1"
                                  Text="{Binding DbSchemaCurrentVersion}"
                                  VerticalAlignment="Center" />
                           </Grid>
 
-                          <Grid Grid.Row="2" ColumnDefinitions="90,*" ColumnSpacing="8">
+                          <Grid Grid.Row="2" ColumnDefinitions="90,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                             <TextBlock Text="最低要求" VerticalAlignment="Center" Opacity="0.85" />
                             <TextBlock Grid.Column="1"
                                  Text="{Binding DbSchemaRequiredMinVersion}"
@@ -244,15 +244,15 @@
                              HorizontalScrollBarVisibility="Disabled">
                         <Grid RowDefinitions="Auto,Auto,Auto"
                            RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-                          <Grid ColumnDefinitions="88,*" ColumnSpacing="8">
+                          <Grid ColumnDefinitions="88,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                             <TextBlock Text="最近检查" VerticalAlignment="Center" Opacity="0.85" />
                             <TextBlock Grid.Column="1" Text="{Binding DbSchemaLastCheckedAtText}" VerticalAlignment="Center" />
                           </Grid>
-                          <Grid Grid.Row="1" ColumnDefinitions="88,*" ColumnSpacing="8">
+                          <Grid Grid.Row="1" ColumnDefinitions="88,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                             <TextBlock Text="触发来源" VerticalAlignment="Center" Opacity="0.85" />
                             <TextBlock Grid.Column="1" Text="{Binding DbSchemaLastCheckSourceText}" VerticalAlignment="Center" />
                           </Grid>
-                          <Grid Grid.Row="2" ColumnDefinitions="88,*" ColumnSpacing="8">
+                          <Grid Grid.Row="2" ColumnDefinitions="88,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                             <TextBlock Text="最近迁移" VerticalAlignment="Center" Opacity="0.85" />
                             <TextBlock Grid.Column="1"
                                  Text="{Binding DbSchemaLastMigrationText}"
@@ -274,12 +274,12 @@
         </Grid>
       </suki:GlassCard>
 
-      <Grid x:Name="SectionAliasAnchor"
-         Grid.Row="2"
-         ColumnDefinitions="*,Auto"
+      <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionAliasAnchor"
+     Grid.Row="2"
+     
          VerticalAlignment="Center">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <icons:AppIcon Kind="Users" Width="18" Height="18" />
+        <StackPanel Classes="SectionHeaderStack">
+          <icons:AppIcon Kind="Users" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
           <TextBlock Text="客户端别名映射"
                Classes="SectionTitle" />
         </StackPanel>
@@ -297,9 +297,9 @@
         <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
 
           
-          <Grid ColumnDefinitions="*,Auto"
+          <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
              VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Classes="SectionHeaderStack">
               <icons:AppIcon Kind="List" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
               <TextBlock Text="别名列表"
                    Classes="SectionTitle" />
@@ -309,11 +309,11 @@
                   Orientation="Horizontal"
                   VerticalAlignment="Center"
                   HorizontalAlignment="Right"
-                  Spacing="10">
+                  Spacing="{DynamicResource NavItemsSpacing}">
               <Button Classes="Primary"
                   Command="{Binding StartEditClientAliasesCommand}"
                   IsEnabled="{Binding !IsClientAliasEditMode}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="SquarePen" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="开始编辑" />
                 </StackPanel>
@@ -321,7 +321,7 @@
               <Button Classes="Primary"
                   Command="{Binding SaveClientAliasesCommand}"
                   IsEnabled="{Binding IsClientAliasEditMode}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Save" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="保存别名" />
                 </StackPanel>
@@ -329,7 +329,7 @@
               <Button Classes="Ghost"
                   Command="{Binding ReloadClientAliasesCommand}"
                   IsEnabled="{Binding !IsClientAliasRefreshing}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Fingerprint" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="刷新机器标识" />
                 </StackPanel>
@@ -373,7 +373,7 @@
                     <DataTemplate x:DataType="vm:ClientAliasRow">
                       <Grid ColumnDefinitions="260,280,*"
                          ColumnSpacing="{DynamicResource FormColumnSpacing}"
-                         Margin="0,0,0,8"
+                         Margin="{DynamicResource MarginBottomLg}"
                          VerticalAlignment="Center">
 
                         
@@ -411,9 +411,9 @@
                 <Grid RowDefinitions="Auto,*"
                    RowSpacing="{DynamicResource FormRowSpacing}"
                    VerticalAlignment="Stretch">
-                  <Grid ColumnDefinitions="*,Auto"
+                  <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
                      VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    <StackPanel Classes="SectionHeaderStack">
                       <icons:AppIcon Kind="SlidersHorizontal" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                       <TextBlock Text="扩展 / 预留"
                            Classes="SectionTitle" />
@@ -425,7 +425,7 @@
                      VerticalAlignment="Stretch">
                     <TextBlock Text="（此区域暂留模版）"
                          Classes="SectionHint"
-                         Margin="0,0,0,8" />
+                         Margin="{DynamicResource MarginBottomLg}" />
 
                     
                     <Border Grid.Row="1" />
@@ -439,12 +439,12 @@
         </Grid>
       </suki:GlassCard>
 
-      <Grid x:Name="SectionTraceRuleAnchor"
-         Grid.Row="4"
-         ColumnDefinitions="*,Auto"
+      <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionTraceRuleAnchor"
+     Grid.Row="4"
+     
          VerticalAlignment="Center">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <icons:AppIcon Kind="NotebookText" Width="18" Height="18" />
+        <StackPanel Classes="SectionHeaderStack">
+          <icons:AppIcon Kind="NotebookText" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
           <TextBlock Text="追溯码校验规则"
                Classes="SectionTitle" />
         </StackPanel>
@@ -461,9 +461,9 @@
               HorizontalAlignment="Stretch">
         <Grid RowDefinitions="Auto,*"
            RowSpacing="{DynamicResource FormRowSpacing}">
-          <Grid ColumnDefinitions="*,Auto"
+          <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
              VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Classes="SectionHeaderStack">
               <icons:AppIcon Kind="Info" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
               <TextBlock Text="单条追溯码合法性"
                    Classes="SectionTitle" />
@@ -471,7 +471,7 @@
             <Button Grid.Column="1"
                 Classes="Primary"
                 Command="{Binding SaveTraceCodeRuleCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon Kind="Save" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                 <TextBlock Text="保存规则" />
               </StackPanel>
@@ -512,12 +512,12 @@
         </Grid>
       </suki:GlassCard>
 
-      <Grid x:Name="SectionUiBehaviorAnchor"
-         Grid.Row="6"
-         ColumnDefinitions="*,Auto"
+      <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionUiBehaviorAnchor"
+     Grid.Row="6"
+     
          VerticalAlignment="Center">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <icons:AppIcon Kind="MonitorCog" Width="18" Height="18" />
+        <StackPanel Classes="SectionHeaderStack">
+          <icons:AppIcon Kind="MonitorCog" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
           <TextBlock Text="界面行为"
                Classes="SectionTitle" />
         </StackPanel>
@@ -530,7 +530,7 @@
            RowSpacing="{DynamicResource FormRowSpacing}">
           <Grid ColumnDefinitions="*"
              VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Classes="SectionHeaderStack">
               <icons:AppIcon Kind="Settings" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
               <TextBlock Text="托盘模式"
                    Classes="SectionTitle" />
@@ -552,12 +552,12 @@
         </Grid>
       </suki:GlassCard>
 
-      <Grid x:Name="SectionUpdateAnchor"
-         Grid.Row="8"
-         ColumnDefinitions="*,Auto"
+      <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionUpdateAnchor"
+     Grid.Row="8"
+     
          VerticalAlignment="Center">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <icons:AppIcon Kind="Download" Width="18" Height="18" />
+        <StackPanel Classes="SectionHeaderStack">
+          <icons:AppIcon Kind="Download" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
           <TextBlock Text="应用更新"
                Classes="SectionTitle" />
         </StackPanel>
@@ -575,9 +575,9 @@
         <Grid RowDefinitions="Auto,*"
            RowSpacing="{DynamicResource FormRowSpacing}">
           <Grid ColumnDefinitions="*,Auto,Auto,Auto"
-             ColumnSpacing="8"
+             ColumnSpacing="{DynamicResource SpacingInlineMd}"
              VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Classes="SectionHeaderStack">
               <icons:AppIcon Kind="Download" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
               <TextBlock Text="更新源与策略"
                    Classes="SectionTitle" />
@@ -588,7 +588,7 @@
                 Command="{Binding CheckUpdatesCommand}"
                 theme:ButtonExtensions.ShowProgress="{Binding IsUpdateChecking}"
                 IsEnabled="{Binding !IsUpdateChecking}">
-              <StackPanel Orientation="Horizontal" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon Kind="RefreshCw" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                 <TextBlock Text="检查更新" />
               </StackPanel>
@@ -597,7 +597,7 @@
             <Button Grid.Column="2" Classes="Ghost"
                 Command="{Binding ApplyUpdateNowCommand}"
                 IsEnabled="{Binding HasUpdateAvailable}">
-              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" HorizontalAlignment="Center">
                 <Border Width="8"
                     Height="8"
                     CornerRadius="999"
@@ -612,7 +612,7 @@
             <Button Grid.Column="3"
                 Classes="Primary"
                 Command="{Binding SaveUpdateOptionsCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon Kind="Save" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                 <TextBlock Text="保存配置" />
               </StackPanel>
@@ -692,8 +692,8 @@
                    VerticalAlignment="Center" />
               <Grid Grid.Row="5"
                  Grid.Column="1"
-                 ColumnDefinitions="*,Auto"
-                 ColumnSpacing="8">
+                 Classes="ToolbarPairRow"
+                 ColumnDefinitions="*,Auto">
                 <TextBox Text="{Binding IgnoredUiVersion}"
                     Height="{StaticResource ControlHeightCompact}"
                     Watermark="留空表示不忽略任何版本"
@@ -710,12 +710,12 @@
         </Grid>
       </suki:GlassCard>
 
-      <Grid x:Name="SectionLoggingAnchor"
-         Grid.Row="10"
-         ColumnDefinitions="*,Auto"
+      <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionLoggingAnchor"
+     Grid.Row="10"
+     
          VerticalAlignment="Center">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <icons:AppIcon Kind="TextCursorInput" Width="18" Height="18" />
+        <StackPanel Classes="SectionHeaderStack">
+          <icons:AppIcon Kind="TextCursorInput" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
           <TextBlock Text="日志与诊断"
                Classes="SectionTitle" />
         </StackPanel>
@@ -733,9 +733,9 @@
         <Grid RowDefinitions="Auto,*"
            RowSpacing="{DynamicResource FormRowSpacing}">
           <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto"
-             ColumnSpacing="8"
+             ColumnSpacing="{DynamicResource SpacingInlineMd}"
              VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Classes="SectionHeaderStack">
               <icons:AppIcon Kind="FileText" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
               <TextBlock Text="日志策略与操作"
                    Classes="SectionTitle" />
@@ -792,11 +792,11 @@
               <StackPanel Grid.Row="1"
                     Grid.Column="2"
                     Orientation="Horizontal"
-                    Spacing="8"
+                    Spacing="{DynamicResource SpacingInlineMd}"
                     VerticalAlignment="Center">
                 <icons:AppIcon Kind="ShieldHalf"
-                          Width="14"
-                          Height="14" />
+                          Width="{DynamicResource IconSizeSmall}"
+                          Height="{DynamicResource IconSizeSmall}" />
                 <TextBlock Text="{Binding LoggingMinimumLevelHint}"
                      Classes="SectionHint"
                      TextWrapping="Wrap"
@@ -850,8 +850,8 @@
          Grid.Row="12"
          ColumnDefinitions="*"
          VerticalAlignment="Center">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <icons:AppIcon Kind="Webhook" Width="18" Height="18" />
+        <StackPanel Classes="SectionHeaderStack">
+          <icons:AppIcon Kind="Webhook" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
           <TextBlock Text="码上放心 API"
                Classes="SectionTitle" />
         </StackPanel>
@@ -862,10 +862,9 @@
               HorizontalAlignment="Stretch">
         <Grid RowDefinitions="Auto,*"
            RowSpacing="{DynamicResource FormRowSpacing}">
-          <Grid ColumnDefinitions="*,Auto"
-             ColumnSpacing="8"
+          <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
              VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Classes="SectionHeaderStack">
               <icons:AppIcon Kind="Webhook" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
               <TextBlock Text="调用凭证与网关"
                    Classes="SectionTitle" />
@@ -885,11 +884,11 @@
 
             <StackPanel Grid.Column="1"
                   Orientation="Horizontal"
-                  Spacing="8"
+                  Spacing="{DynamicResource SpacingInlineMd}"
                   HorizontalAlignment="Right">
               <Button Classes="Primary"
                   Command="{Binding SaveMsfxApiConfigCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Save" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="保存配置" />
                 </StackPanel>
@@ -929,7 +928,7 @@
                 <Grid Grid.Row="2"
                    Grid.Column="1"
                    ColumnDefinitions="*,40"
-                   ColumnSpacing="8">
+                   ColumnSpacing="{DynamicResource SpacingInlineMd}">
                   <TextBox Text="{Binding MsfxAppSecret}"
                       Height="{StaticResource ControlHeightCompact}"
                       Watermark="请输入 AppSecret"
@@ -945,19 +944,19 @@
                       VerticalContentAlignment="Center"
                       Command="{Binding ToggleMsfxAppSecretVisibilityCommand}"
                       ToolTip.Tip="显示/隐藏 AppSecret">
-                    <Panel Width="16"
-                       Height="16"
+                    <Panel Width="{DynamicResource IconSizeDefault}"
+                       Height="{DynamicResource IconSizeDefault}"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center">
                       <icons:AppIcon Kind="Eye"
-                                Width="14"
-                                Height="14"
+                                Width="{DynamicResource IconSizeSmall}"
+                                Height="{DynamicResource IconSizeSmall}"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
                                 IsVisible="{Binding !ShowMsfxAppSecret}" />
                       <icons:AppIcon Kind="EyeOff"
-                                Width="14"
-                                Height="14"
+                                Width="{DynamicResource IconSizeSmall}"
+                                Height="{DynamicResource IconSizeSmall}"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
                                 IsVisible="{Binding ShowMsfxAppSecret}" />

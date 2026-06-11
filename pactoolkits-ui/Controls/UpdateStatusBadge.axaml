@@ -28,11 +28,11 @@
               ForegroundBrush="{DynamicResource BrushWarning}">
       <controls:StatusPill.SuffixContent>
         <StackPanel Orientation="Horizontal"
-              Spacing="6"
+              Spacing="{DynamicResource SpacingInlineSm}"
               IsVisible="{Binding ShowLatestVersion, ElementName=Root}">
           <icons:AppIcon Kind="ArrowRight"
-                    Width="14"
-                    Height="14"
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
                     Foreground="{DynamicResource BrushWarning}" />
           <TextBlock Text="{Binding LatestVersion, ElementName=Root}"
                Foreground="{DynamicResource BrushWarning}" />

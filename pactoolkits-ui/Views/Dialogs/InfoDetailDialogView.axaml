@@ -12,13 +12,13 @@
       <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
         <Border Width="40" Height="40" CornerRadius="20">
           <icons:AppIcon Kind="Info"
-                    Width="22"
-                    Height="22"
+                    Width="{DynamicResource IconSizeDialog}"
+                    Height="{DynamicResource IconSizeDialog}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center" />
         </Border>
         <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-          <TextBlock Text="{Binding Header}" FontSize="17" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding Header}" Classes="DialogTitle" />
           <TextBlock Text="{Binding SubHeader}" Opacity="0.78" TextWrapping="Wrap" />
         </StackPanel>
       </Grid>
@@ -32,7 +32,7 @@
         <ItemsControl ItemsSource="{Binding Items}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <WrapPanel ItemWidth="320" ItemSpacing="8" LineSpacing="8" />
+              <WrapPanel ItemWidth="320" ItemSpacing="{DynamicResource SpacingInlineMd}" LineSpacing="{DynamicResource SpacingInlineMd}" />
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>

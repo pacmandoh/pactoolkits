@@ -70,9 +70,66 @@
   <x:Double x:Key="FormLabelColumnWidth">140</x:Double>
   <x:Double x:Key="FormLabelColumnWidthMedium">130</x:Double>
 
+  <x:Double x:Key="IconSizeMini">12</x:Double>
   <x:Double x:Key="IconSizeSmall">14</x:Double>
+  <x:Double x:Key="IconSizeCompact">15</x:Double>
   <x:Double x:Key="IconSizeDefault">16</x:Double>
+  <x:Double x:Key="IconSizeSectionHeader">18</x:Double>
   <x:Double x:Key="AppIconDefaultSize">16</x:Double>
+  <x:Double x:Key="IconBadgeSize">28</x:Double>
+  <x:Double x:Key="IconBadgeInnerSize">16</x:Double>
+  <x:Double x:Key="SortResetIconSize">14</x:Double>
+  <x:Double x:Key="IconSizeDialog">22</x:Double>
+  <x:Double x:Key="AboutHeroTitleSize">26</x:Double>
+  <Thickness x:Key="AboutExpanderContentMargin">8,6,8,8</Thickness>
+  <x:Double x:Key="NavItemsSpacing">10</x:Double>
+  <x:Double x:Key="LegendDotSize">10</x:Double>
+  <x:Double x:Key="ShellNavIconSize">17</x:Double>
+
+  <x:Double x:Key="AboutHeroCardSize">78</x:Double>
+  <x:Double x:Key="AboutHeroIconSize">54</x:Double>
+  <Thickness x:Key="AboutHeroCardPadding">14,12</Thickness>
+  <Thickness x:Key="AboutSectionInset">8,8,8,8</Thickness>
+  <Thickness x:Key="AboutSectionInsetTop">0,6,0,0</Thickness>
+  <x:Double x:Key="AboutWrapSpacing">8</x:Double>
+  <x:Double x:Key="AboutColumnSpacingWide">14</x:Double>
+
+  <x:Double x:Key="SpacingInlineSm">6</x:Double>
+  <x:Double x:Key="SpacingInlineMd">8</x:Double>
+  <x:Double x:Key="PageColumnSpacingWide">14</x:Double>
+  <x:Double x:Key="DashboardContentColumnSpacing">14</x:Double>
+  <x:Double x:Key="SettingsSectionsRowSpacing">14</x:Double>
+
+  <Thickness x:Key="MarginTopSm">0,8,0,0</Thickness>
+  <Thickness x:Key="MarginTopMd">0,10,0,0</Thickness>
+  <Thickness x:Key="MarginTopLg">0,12,0,0</Thickness>
+  <Thickness x:Key="MarginBottomSm">0,0,0,4</Thickness>
+  <Thickness x:Key="MarginBottomMd">0,0,0,6</Thickness>
+  <Thickness x:Key="MarginBottomLg">0,0,0,8</Thickness>
+  <Thickness x:Key="MarginLeftMd">12,0,0,0</Thickness>
+  <Thickness x:Key="MarginLeftSm">8,0,0,0</Thickness>
+  <Thickness x:Key="MarginHorizontalTiny">2,0,2,0</Thickness>
+  <Thickness x:Key="SettingsNavTitleMargin">6,2,6,4</Thickness>
+  <Thickness x:Key="ShellNavItemMargin">0,0,6,0</Thickness>
+  <Thickness x:Key="ShellTrayMargin">8,6,8,12</Thickness>
+  <Thickness x:Key="ShellTrayHeaderMargin">8,10,8,6</Thickness>
+  <Thickness x:Key="ShellTrayDividerMargin">2,0,2,2</Thickness>
+  <Thickness x:Key="ShellStatusLabelMargin">10,0,0,0</Thickness>
+  <Thickness x:Key="ShellNavButtonMargin">3,0</Thickness>
+
+  <CornerRadius x:Key="DashboardTabContainerRadius">11</CornerRadius>
+  <Thickness x:Key="DashboardTabContainerPadding">3</Thickness>
+  <Thickness x:Key="DashboardTabItemPadding">8,3</Thickness>
+  <x:Double x:Key="DashboardTabItemMinHeight">32</x:Double>
+  <CornerRadius x:Key="DashboardTabItemRadius">8</CornerRadius>
+  <Thickness x:Key="DashboardTabItemMargin">2,3,2,3</Thickness>
+  <x:Double x:Key="DashboardTabDividerHeight">14</x:Double>
+  <Thickness x:Key="DashboardTabDividerMargin">6,0,6,0</Thickness>
+  <Thickness x:Key="DgCellHighlightMargin">1</Thickness>
+  <x:Double x:Key="DgCellHighlightBorder">1</x:Double>
+  <x:Double x:Key="DgCellHighlightBorderSelected">1.5</x:Double>
+  <x:Double x:Key="DgCellGridLineStroke">1</x:Double>
+  <CornerRadius x:Key="TraceBadgeRadius">8</CornerRadius>
 
   <x:Double x:Key="DgRowHeaderWidth">36</x:Double>
   <x:Double x:Key="DgSortResetButtonSize">20</x:Double>
