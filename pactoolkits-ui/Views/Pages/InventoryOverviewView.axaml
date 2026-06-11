@@ -89,7 +89,7 @@
               <Button Grid.Column="1" x:Name="InventorySearchButton" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
                   IsEnabled="{Binding !IsUiBusy}"
                   Command="{Binding SearchCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="搜索" />
                 </StackPanel>
@@ -98,7 +98,7 @@
               <Button Grid.Column="2" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
                   IsEnabled="{Binding !IsUiBusy}"
                   Command="{Binding ClearSearchCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Delete" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="清空" />
                 </StackPanel>
@@ -108,8 +108,8 @@
 
           
           <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-              <icons:AppIcon Kind="Package" Width="18" Height="18" />
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
+              <icons:AppIcon Kind="Package" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
               <TextBlock Text="库存" Classes="SectionTitle" />
             </StackPanel>
 
@@ -117,19 +117,19 @@
                  VerticalAlignment="Center"
                  Opacity="{StaticResource SectionHintOpacity}"
                  ItemSpacing="{DynamicResource PageSectionSpacing}">
-              <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsDetailMode}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" IsVisible="{Binding IsDetailMode}">
                 <icons:AppIcon Kind="LockKeyhole"
-                          Width="16"
-                          Height="16"
+                          Width="{DynamicResource IconSizeDefault}"
+                          Height="{DynamicResource IconSizeDefault}"
                           VerticalAlignment="Center"
                           Foreground="{Binding IsOperationUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}" />
                 <TextBlock Text="{Binding UnlockStatusText}"
                      Foreground="{Binding IsOperationUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}" />
               </StackPanel>
 
-              <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding ShowEditSessionState}">
-                <Border Width="10"
-                    Height="10"
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" IsVisible="{Binding ShowEditSessionState}">
+                <Border Width="{DynamicResource LegendDotSize}"
+                    Height="{DynamicResource LegendDotSize}"
                     CornerRadius="999"
                     VerticalAlignment="Center"
                     Background="{Binding !HasPendingChanges, Converter={StaticResource BoolToDoneDangerBrush}}" />
@@ -137,7 +137,7 @@
                 <TextBlock Text="{Binding EditSessionStateText}" />
               </StackPanel>
               
-              <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding Status}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" IsVisible="{Binding Status}">
                 <icons:AppIcon Kind="ListOrdered" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                 <TextBlock Text="{Binding Status}"
                      MaxWidth="460"
@@ -146,7 +146,7 @@
               </StackPanel>
             </WrapPanel>
 
-            <WrapPanel Grid.Column="2" Orientation="Horizontal" ItemSpacing="8" VerticalAlignment="Center">
+            <WrapPanel Grid.Column="2" Orientation="Horizontal" ItemSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
               <Button Classes="Action"
                   Height="{StaticResource ControlHeightCompact}"
                   Width="40"
@@ -157,19 +157,19 @@
                   IsEnabled="{Binding !IsUiBusy}"
                   Command="{Binding ToggleSearchPanelCommand}"
                   ToolTip.Tip="显示/隐藏搜索">
-                <Panel Width="16"
-                   Height="16"
+                <Panel Width="{DynamicResource IconSizeDefault}"
+                   Height="{DynamicResource IconSizeDefault}"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center">
                   <icons:AppIcon Kind="Search"
-                            Width="14"
-                            Height="14"
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             IsVisible="{Binding !IsSearchPanelVisible}" />
                   <icons:AppIcon Kind="SearchX"
-                            Width="14"
-                            Height="14"
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             IsVisible="{Binding IsSearchPanelVisible}" />
@@ -181,10 +181,10 @@
                   MinWidth="{StaticResource MinWAction}"
                   IsVisible="{Binding ShowRequestUnlock}"
                   Command="{Binding RequestUnlockCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="LockKeyhole"
-                            Width="16"
-                            Height="16"
+                            Width="{DynamicResource IconSizeDefault}"
+                            Height="{DynamicResource IconSizeDefault}"
                             Foreground="{StaticResource BrushWarning}" />
                   <TextBlock Text="解锁" />
                 </StackPanel>
@@ -195,10 +195,10 @@
                   MinWidth="{StaticResource MinWAction}"
                   IsVisible="{Binding ShowLockOperations}"
                   Command="{Binding LockOperationsCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="LockKeyholeOpen"
-                            Width="16"
-                            Height="16"
+                            Width="{DynamicResource IconSizeDefault}"
+                            Height="{DynamicResource IconSizeDefault}"
                             Foreground="{StaticResource BrushDanger}" />
                   <TextBlock Text="锁定" />
                 </StackPanel>
@@ -246,8 +246,8 @@
                   behaviors:FocusClearBehavior.SuppressGridClear="{Binding SuppressGridClearInReassignDialog}"
                   IsVisible="{Binding IsReassignPanelVisible}">
             <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}" ClipToBounds="True">
-              <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="{DynamicResource NavItemsSpacing}" VerticalAlignment="Center">
                   <ComboBox Width="160"
                        Height="{StaticResource ControlHeightCompact}"
                        IsEnabled="{Binding !IsUiBusy}"
@@ -283,17 +283,17 @@
 
               <Grid Grid.Row="1"
                  ColumnDefinitions="2.3*,1.5*,160,2*"
-                 ColumnSpacing="8">
+                 ColumnSpacing="{DynamicResource SpacingInlineMd}">
                 <Border Grid.Column="0"
                     Height="{StaticResource ControlHeightCompact}"
                     Classes="AutoCompleteInputHost"
                     Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
                     Padding="8,0">
-                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Grid.Column="0"
                               Kind="Pill"
-                              Width="15"
-                              Height="15"
+                              Width="{DynamicResource IconSizeCompact}"
+                              Height="{DynamicResource IconSizeCompact}"
                               VerticalAlignment="Center"
                               Opacity="{StaticResource SectionHintOpacity}" />
                     <AutoCompleteBox Grid.Column="1"
@@ -316,11 +316,11 @@
                   </Grid>
                 </Border>
 
-                <Grid Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                <Grid Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Grid.Column="0"
                             Kind="SlidersHorizontal"
-                            Width="15"
-                            Height="15"
+                            Width="{DynamicResource IconSizeCompact}"
+                            Height="{DynamicResource IconSizeCompact}"
                             VerticalAlignment="Center"
                             Opacity="{StaticResource SectionHintOpacity}" />
                   <Grid Grid.Column="1">
@@ -332,18 +332,18 @@
                          DisplayMemberBinding="{Binding Display}" />
                     <TextBlock IsHitTestVisible="False"
                          IsVisible="{Binding !IsReassignSpecSelected}"
-                         Margin="12,0,0,0"
+                         Margin="{DynamicResource MarginLeftMd}"
                          VerticalAlignment="Center"
                          Opacity="0.55"
                          Text="目标规格（必填）" />
                   </Grid>
                 </Grid>
 
-                <Grid Grid.Column="2" ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                <Grid Grid.Column="2" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Grid.Column="0"
                             Kind="Hash"
-                            Width="15"
-                            Height="15"
+                            Width="{DynamicResource IconSizeCompact}"
+                            Height="{DynamicResource IconSizeCompact}"
                             VerticalAlignment="Center"
                             Opacity="{StaticResource SectionHintOpacity}" />
                   <TextBox Grid.Column="1"
@@ -357,11 +357,11 @@
                       Text="{Binding ReassignQtyText, Mode=OneWay}" />
                 </Grid>
 
-                <Grid Grid.Column="3" ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                <Grid Grid.Column="3" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Grid.Column="0"
                             Kind="FilePenLine"
-                            Width="15"
-                            Height="15"
+                            Width="{DynamicResource IconSizeCompact}"
+                            Height="{DynamicResource IconSizeCompact}"
                             VerticalAlignment="Center"
                             Opacity="{StaticResource SectionHintOpacity}" />
                   <TextBox Grid.Column="1"
@@ -524,11 +524,10 @@
 
           <Grid Grid.Row="4"
              IsVisible="{Binding IsPagedMode}"
-             ColumnDefinitions="*,Auto"
-             ColumnSpacing="{DynamicResource FormColumnSpacing}"
+             Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
              VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal"
-                  Spacing="10"
+                  Spacing="{DynamicResource NavItemsSpacing}"
                   Opacity="{StaticResource SectionHintOpacity}">
               <TextBlock Text="{Binding TotalCount, StringFormat=共 {0} 条}" />
               <TextBlock Text="{Binding PageIndex, StringFormat=第 {0} 页}" />
@@ -536,7 +535,7 @@
               <TextBlock Text="{Binding PageSize, StringFormat=每页 {0} 条}" />
             </StackPanel>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
               <Button Classes="Action"
                   Height="{StaticResource ControlHeightCompact}"
                   MinWidth="{StaticResource MinWAction}"

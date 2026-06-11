@@ -14,7 +14,7 @@
       Focusable="True"
       x:Name="Root">
   <Grid Classes="PageRoot">
-      <Grid ColumnDefinitions="2.2*,1*" ColumnSpacing="14">
+      <Grid ColumnDefinitions="2.2*,1*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
         
         <suki:GlassCard Classes="SectionCard" Grid.Column="0">
@@ -42,7 +42,7 @@
                 <Button Grid.Column="1" x:Name="DrugIndexSearchButton" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
                     IsEnabled="{Binding !IsUiBusy}"
                     Command="{Binding SearchCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="搜索" />
                   </StackPanel>
@@ -51,7 +51,7 @@
                 <Button Grid.Column="2" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
                     IsEnabled="{Binding !IsUiBusy}"
                     Command="{Binding ClearSearchCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="Delete" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="清空" />
                   </StackPanel>
@@ -65,10 +65,10 @@
                VerticalAlignment="Center">
               <TextBlock Text="药品列表" Classes="SectionTitle" />
 
-              <WrapPanel Grid.Column="1" VerticalAlignment="Center" Opacity="{StaticResource SectionHintOpacity}" ItemSpacing="10">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <Border Width="10"
-                      Height="10"
+              <WrapPanel Grid.Column="1" VerticalAlignment="Center" Opacity="{StaticResource SectionHintOpacity}" ItemSpacing="{DynamicResource NavItemsSpacing}">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                  <Border Width="{DynamicResource LegendDotSize}"
+                      Height="{DynamicResource LegendDotSize}"
                       CornerRadius="999"
                       VerticalAlignment="Center"
                       Background="{Binding !HasPendingChanges, Converter={StaticResource BoolToDoneDangerBrush}}" />
@@ -77,12 +77,12 @@
                     <TextBlock Text="已保存" IsVisible="{Binding !HasPendingChanges}" />
                   </Panel>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Pill" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="{Binding Items.Count}" FontWeight="SemiBold" />
                   <TextBlock Text="条" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Mouse" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="右键：特殊操作" />
                 </StackPanel>
@@ -90,7 +90,7 @@
 
               <StackPanel Grid.Column="2"
                     Orientation="Horizontal"
-                    Spacing="8"
+                    Spacing="{DynamicResource SpacingInlineMd}"
                     VerticalAlignment="Center">
                 <Button Classes="Action"
                     Height="{StaticResource ControlHeightCompact}"
@@ -102,19 +102,19 @@
                     IsEnabled="{Binding !IsUiBusy}"
                     Command="{Binding ToggleSearchPanelCommand}"
                     ToolTip.Tip="显示/隐藏搜索">
-                  <Panel Width="16"
-                     Height="16"
+                  <Panel Width="{DynamicResource IconSizeDefault}"
+                     Height="{DynamicResource IconSizeDefault}"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center">
                     <icons:AppIcon Kind="Search"
-                              Width="14"
-                              Height="14"
+                              Width="{DynamicResource IconSizeSmall}"
+                              Height="{DynamicResource IconSizeSmall}"
                               HorizontalAlignment="Center"
                               VerticalAlignment="Center"
                               IsVisible="{Binding !IsSearchPanelVisible}" />
                     <icons:AppIcon Kind="SearchX"
-                              Width="14"
-                              Height="14"
+                              Width="{DynamicResource IconSizeSmall}"
+                              Height="{DynamicResource IconSizeSmall}"
                               HorizontalAlignment="Center"
                               VerticalAlignment="Center"
                               IsVisible="{Binding IsSearchPanelVisible}" />
@@ -126,7 +126,7 @@
                     MinWidth="{StaticResource MinWAction}"
                     IsEnabled="{Binding !IsUiBusy}"
                     Command="{Binding ImportDataCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="Clipboard" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="剪贴板导入" FontWeight="SemiBold" />
                   </StackPanel>
@@ -138,7 +138,7 @@
                     IsEnabled="{Binding !IsUiBusy}"
                     ClickMode="Press"
                     Command="{Binding NewItemCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="Plus" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="新建" FontWeight="SemiBold" />
                   </StackPanel>
@@ -230,20 +230,19 @@
              KeyboardNavigation.TabNavigation="Cycle">
 
             <Grid Grid.Row="0"
-               ColumnDefinitions="*,Auto"
-               ColumnSpacing="{DynamicResource FormColumnSpacing}"
+               Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
                VerticalAlignment="Center">
               <StackPanel Grid.Column="0"
                     Spacing="3"
                     VerticalAlignment="Center">
                 <TextBlock Text="编辑" Classes="SectionTitle" />
                 <StackPanel Orientation="Horizontal"
-                      Spacing="6"
+                      Spacing="{DynamicResource SpacingInlineSm}"
                       VerticalAlignment="Center"
                       IsVisible="{Binding HasEditor}">
                   <icons:AppIcon Kind="LockKeyhole"
-                            Width="14"
-                            Height="14"
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
                             Foreground="{Binding IsEditorUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}" />
                   <TextBlock Text="{Binding EditorUnlockStatusText}"
                        Foreground="{Binding IsEditorUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}"
@@ -255,17 +254,17 @@
 
               <StackPanel Grid.Column="1"
                     Orientation="Horizontal"
-                    Spacing="10"
+                    Spacing="{DynamicResource NavItemsSpacing}"
                     VerticalAlignment="Center">
                 <Button Classes="Action"
                     Height="{StaticResource ControlHeightCompact}"
                     MinWidth="{StaticResource MinWAction}"
                     IsVisible="{Binding CanRequestEditorUnlock}"
                     Command="{Binding RequestEditorUnlockCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="LockKeyhole"
-                              Width="16"
-                              Height="16"
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}"
                               Foreground="{StaticResource BrushWarning}" />
                     <TextBlock Text="解锁" />
                   </StackPanel>
@@ -276,10 +275,10 @@
                     MinWidth="{StaticResource MinWAction}"
                     IsVisible="{Binding CanLockEditor}"
                     Command="{Binding LockEditorCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="LockKeyholeOpen"
-                              Width="16"
-                              Height="16"
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}"
                               Foreground="{StaticResource BrushDanger}" />
                     <TextBlock Text="锁定" />
                   </StackPanel>
@@ -290,7 +289,7 @@
                     MinWidth="{StaticResource MinWAction}"
                     IsVisible="{Binding HasEditor}"
                     Command="{Binding FixDrugKeyCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="ArrowRightLeft" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="纠错迁移" />
                   </StackPanel>
@@ -300,7 +299,7 @@
 
             
             <suki:GlassCard Grid.Row="1" Padding="14" IsVisible="{Binding !HasEditor}" Opacity="0.9">
-              <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+              <StackPanel Spacing="{DynamicResource SpacingInlineMd}" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <icons:AppIcon Kind="Info" Foreground="{StaticResource BrushWarning}" Width="22" Height="22" />
                 <TextBlock Text="请选择左侧药品，或点击“新建”开始编辑" Opacity="0.82" />
               </StackPanel>
@@ -314,7 +313,7 @@
                        Height="{StaticResource ControlHeightCompact}"
                        IsChecked="{Binding IsDeprecated, Mode=TwoWay}"
                        Command="{Binding ToggleDeprecatedCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" HorizontalAlignment="Center">
                     <icons:AppIcon Kind="CircleX" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="弃用" />
                   </StackPanel>
@@ -324,7 +323,7 @@
                        Height="{StaticResource ControlHeightCompact}"
                        IsChecked="{Binding IsNoSplit, Mode=TwoWay}"
                        Command="{Binding ToggleNoSplitCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" HorizontalAlignment="Center">
                     <icons:AppIcon Kind="Scissors" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="未拆零" />
                   </StackPanel>
@@ -347,7 +346,7 @@
 
             
             <ScrollViewer Grid.Row="3" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}">
-              <StackPanel Spacing="10" Margin="0,0,0,6">
+              <StackPanel Spacing="{DynamicResource NavItemsSpacing}" Margin="{DynamicResource MarginBottomMd}">
 
                 <TextBox Height="{StaticResource ControlHeightCompact}"
                     Padding="10,0"
@@ -403,10 +402,10 @@
                   Height="{StaticResource ControlHeightCompact}"
                   HorizontalAlignment="Stretch"
                   Command="{Binding SaveCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="RefreshCw"
-                         Width="16"
-                         Height="16" />
+                         Width="{DynamicResource IconSizeDefault}"
+                         Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="保存" />
                 </StackPanel>
               </Button>
@@ -416,10 +415,10 @@
                   Height="{StaticResource ControlHeightCompact}"
                   HorizontalAlignment="Stretch"
                   Command="{Binding DeleteCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Trash2"
-                         Width="16"
-                         Height="16" />
+                         Width="{DynamicResource IconSizeDefault}"
+                         Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="删除" />
                 </StackPanel>
               </Button>

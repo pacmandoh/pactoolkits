@@ -17,9 +17,9 @@
   <Grid>
     <Grid Classes="PageRootLayout" RowDefinitions="Auto,Auto,Auto,*"
        KeyboardNavigation.TabNavigation="Cycle">
-      <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <icons:AppIcon Kind="Syringe" Width="18" Height="18" />
+      <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+          <icons:AppIcon Kind="Syringe" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
           <StackPanel Spacing="2" VerticalAlignment="Center">
             <TextBlock Text="自动化套件" Classes="SectionTitle" />
             <TextBlock Text="PacInjector 与自动化运行参数配置" Classes="SectionHint" />
@@ -28,7 +28,7 @@
 
         <StackPanel Grid.Column="1"
               Orientation="Horizontal"
-              Spacing="8"
+              Spacing="{DynamicResource SpacingInlineMd}"
               VerticalAlignment="Center">
           <TextBlock Text="状态"
                Classes="SectionHint"
@@ -58,7 +58,7 @@
       </Grid>
 
       <suki:GlassCard Grid.Row="1" Padding="12,10">
-        <StackPanel Orientation="Horizontal" Spacing="8">
+        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
           <icons:AppIcon Kind="Lightbulb" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
           <TextBlock Classes="SectionHint"
                Text="支持状态检测、开关控制与一键重启" />
@@ -73,8 +73,8 @@
              HorizontalAlignment="Center"
              VerticalAlignment="Center">
             <icons:AppIcon Kind="Power"
-                      Width="16"
-                      Height="16"
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
                       Foreground="{Binding IsAhkEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
                       VerticalAlignment="Center" />
             <TextBlock Grid.Column="1"
@@ -93,7 +93,7 @@
               MinWidth="136"
               Command="{Binding RestartAhkCommand}"
               IsEnabled="{Binding !IsAhkToggling}">
-            <StackPanel Orientation="Horizontal" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <icons:AppIcon Kind="RotateCcw" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
               <TextBlock Text="重启" />
             </StackPanel>
@@ -105,9 +105,9 @@
               MinWidth="136"
               Command="{Binding SaveAhkSettingsCommand}"
               IsEnabled="{Binding !IsSavingSettings}">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <Border Width="10"
-                  Height="10"
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+              <Border Width="{DynamicResource LegendDotSize}"
+                  Height="{DynamicResource LegendDotSize}"
                   CornerRadius="999"
                   VerticalAlignment="Center"
                   Background="{Binding IsSavedState, Converter={StaticResource BoolToDoneDangerBrush}}" />
@@ -127,18 +127,18 @@
 
         <suki:GlassCard Grid.Column="4" Padding="12,10" MinHeight="64" Opacity="0.9"
                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" MaxWidth="520" HorizontalAlignment="Center"
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}" MaxWidth="520" HorizontalAlignment="Center"
              VerticalAlignment="Center">
             <Panel>
               <icons:AppIcon Kind="CircleCheck"
                         IsVisible="{Binding IsAhkEnabled}"
-                        Width="16"
-                        Height="16"
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
                         Foreground="{DynamicResource BrushDone}" />
               <icons:AppIcon Kind="CircleAlert"
                         IsVisible="{Binding !IsAhkEnabled}"
-                        Width="16"
-                        Height="16"
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
                         Foreground="{DynamicResource BrushDanger}" />
             </Panel>
             <TextBlock Grid.Column="1"
@@ -153,9 +153,9 @@
       </Grid>
 
       <Grid Grid.Row="3" ColumnDefinitions="1.55*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-        <suki:GlassCard x:Name="ToolEditorCard" Grid.Column="0" Classes="SectionCard" Padding="14,12">
+        <suki:GlassCard x:Name="ToolEditorCard" Grid.Column="0" Classes="SectionCard" Padding="{DynamicResource AboutHeroCardPadding}">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
               <icons:AppIcon Kind="Wrench" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
               <TextBlock Text="运行参数" Classes="SectionTitle" />
             </StackPanel>
@@ -168,7 +168,7 @@
               <StackPanel Spacing="{DynamicResource PageSectionSpacing}">
                 <suki:GroupBox Header="基础配置"
                        HorizontalContentAlignment="Stretch">
-                  <Grid ColumnDefinitions="140,*" ColumnSpacing="{DynamicResource FormColumnSpacing}" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+                  <Grid Classes="FormLabelLayout" ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
                     <TextBlock Text="可执行路径" VerticalAlignment="Center" />
                     <TextBox Grid.Row="0" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
@@ -219,16 +219,16 @@
                            FormatString="0"
                            Value="{Binding AgentConfirmTimeoutMs, Mode=TwoWay}" />
 
-                    <TextBlock Grid.Row="5" Grid.Column="0" Text="目标进程" VerticalAlignment="Top" Margin="0,8,0,0" />
-                    <StackPanel Grid.Row="5" Grid.Column="1" Spacing="8" HorizontalAlignment="Stretch">
-                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="目标进程" VerticalAlignment="Top" Margin="{DynamicResource MarginTopSm}" />
+                    <StackPanel Grid.Row="5" Grid.Column="1" Spacing="{DynamicResource SpacingInlineMd}" HorizontalAlignment="Stretch">
+                      <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto">
                         <TextBlock Text="每个进程一行" Classes="SectionHint" VerticalAlignment="Center" />
                         <Button Grid.Column="1"
                             Classes="Ghost"
                             Command="{Binding AddAgentAppWinItemCommand}"
                             Tag="AgentAppWinItemsControl"
                             Click="OnAddLineClicked">
-                          <StackPanel Orientation="Horizontal" Spacing="6">
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                             <icons:AppIcon Kind="Plus" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                             <TextBlock Text="新增" />
                           </StackPanel>
@@ -238,7 +238,7 @@
                              ItemsSource="{Binding AgentAppWinItems}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:AgentLineItem">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
+                            <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto" Margin="{DynamicResource MarginBottomSm}">
                               <TextBox HorizontalAlignment="Stretch"
                                   Height="{StaticResource ControlHeightCompact}"
                                   Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -260,7 +260,7 @@
 
                 <suki:GroupBox Header="门诊配置"
                        HorizontalContentAlignment="Stretch">
-                  <Grid ColumnDefinitions="140,*" ColumnSpacing="{DynamicResource FormColumnSpacing}" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+                  <Grid Classes="FormLabelLayout" ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto">
                     <TextBlock Text="窗口类" VerticalAlignment="Center" />
                     <TextBox Grid.Row="0" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
@@ -297,7 +297,7 @@
 
                 <suki:GroupBox Header="住院配置"
                        HorizontalContentAlignment="Stretch">
-                  <Grid ColumnDefinitions="140,*" ColumnSpacing="{DynamicResource FormColumnSpacing}" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+                  <Grid Classes="FormLabelLayout" ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto">
                     <TextBlock Text="窗口类" VerticalAlignment="Center" />
                     <TextBox Grid.Row="0" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
@@ -334,14 +334,14 @@
 
                 <suki:GroupBox Header="仓库配置"
                        HorizontalContentAlignment="Stretch">
-                  <Grid ColumnDefinitions="140,*" ColumnSpacing="{DynamicResource FormColumnSpacing}" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+                  <Grid Classes="FormLabelLayout" ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto">
                     <TextBlock Text="仓库模式" VerticalAlignment="Center" />
                     <ToggleSwitch Grid.Row="0" Grid.Column="1"
                            IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}"
                            HorizontalAlignment="Left" />
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="任务标识" VerticalAlignment="Top" Margin="0,8,0,0" />
-                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6">
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="任务标识" VerticalAlignment="Top" Margin="{DynamicResource MarginTopSm}" />
+                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="{DynamicResource SpacingInlineSm}">
                       <TextBox Height="{StaticResource ControlHeightCompact}"
                           HorizontalAlignment="Stretch"
                           UseFloatingWatermark="False"
@@ -359,9 +359,9 @@
                          ItemsSource="{Binding AgentCodePickPolicyOptions}"
                          SelectedItem="{Binding SelectedAgentCodePickPolicyOption, Mode=TwoWay}" />
 
-                    <TextBlock Grid.Row="3" Grid.Column="0" Text="仓库列特征" VerticalAlignment="Top" Margin="0,8,0,0" />
-                    <StackPanel Grid.Row="3" Grid.Column="1" Spacing="8">
-                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" HorizontalAlignment="Stretch">
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="仓库列特征" VerticalAlignment="Top" Margin="{DynamicResource MarginTopSm}" />
+                    <StackPanel Grid.Row="3" Grid.Column="1" Spacing="{DynamicResource SpacingInlineMd}">
+                      <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto" HorizontalAlignment="Stretch">
                         <TextBlock Text="若表头命中任一列名，则判定为住院；均未命中则判定为仓库（默认：患者姓名、应扫次数）"
                              Classes="SectionHint"
                              VerticalAlignment="Center"
@@ -371,7 +371,7 @@
                             Command="{Binding AddAgentWarehouseAnchorItemCommand}"
                             Tag="AgentWarehouseAnchorItemsControl"
                             Click="OnAddLineClicked">
-                          <StackPanel Orientation="Horizontal" Spacing="6">
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                             <icons:AppIcon Kind="Plus" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                             <TextBlock Text="新增" />
                           </StackPanel>
@@ -381,7 +381,7 @@
                              ItemsSource="{Binding AgentWarehouseAnchorItems}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:AgentLineItem">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
+                            <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto" Margin="{DynamicResource MarginBottomSm}">
                               <TextBox HorizontalAlignment="Stretch"
                                   Height="{StaticResource ControlHeightCompact}"
                                   Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -403,17 +403,17 @@
 
                 <suki:GroupBox Header="解析规则"
                        HorizontalContentAlignment="Stretch">
-                  <Grid ColumnDefinitions="140,*" ColumnSpacing="{DynamicResource FormColumnSpacing}" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
-                    <TextBlock Text="列规则" VerticalAlignment="Top" Margin="0,8,0,0" />
-                    <StackPanel Grid.Row="0" Grid.Column="1" Spacing="8">
-                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" HorizontalAlignment="Stretch">
+                  <Grid Classes="FormLabelLayout" ColumnDefinitions="140,*" RowDefinitions="Auto,Auto">
+                    <TextBlock Text="列规则" VerticalAlignment="Top" Margin="{DynamicResource MarginTopSm}" />
+                    <StackPanel Grid.Row="0" Grid.Column="1" Spacing="{DynamicResource SpacingInlineMd}">
+                      <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto" HorizontalAlignment="Stretch">
                         <TextBlock Text="每条规则一行" Classes="SectionHint" VerticalAlignment="Center" />
                         <Button Grid.Column="1"
                             Classes="Ghost"
                             Command="{Binding AddAgentColSpecsItemCommand}"
                             Tag="AgentColSpecsItemsControl"
                             Click="OnAddLineClicked">
-                          <StackPanel Orientation="Horizontal" Spacing="6">
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                             <icons:AppIcon Kind="Plus" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                             <TextBlock Text="新增" />
                           </StackPanel>
@@ -423,7 +423,7 @@
                              ItemsSource="{Binding AgentColSpecsItems}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:AgentLineItem">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
+                            <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto" Margin="{DynamicResource MarginBottomSm}">
                               <TextBox HorizontalAlignment="Stretch"
                                   Height="{StaticResource ControlHeightCompact}"
                                   Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -441,16 +441,16 @@
                       </ItemsControl>
                     </StackPanel>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="整数列" VerticalAlignment="Top" Margin="0,8,0,0" />
-                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
-                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" HorizontalAlignment="Stretch">
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="整数列" VerticalAlignment="Top" Margin="{DynamicResource MarginTopSm}" />
+                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="{DynamicResource SpacingInlineMd}">
+                      <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto" HorizontalAlignment="Stretch">
                         <TextBlock Text="每个字段一行" Classes="SectionHint" VerticalAlignment="Center" />
                         <Button Grid.Column="1"
                             Classes="Ghost"
                             Command="{Binding AddAgentIntColsItemCommand}"
                             Tag="AgentIntColsItemsControl"
                             Click="OnAddLineClicked">
-                          <StackPanel Orientation="Horizontal" Spacing="6">
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                             <icons:AppIcon Kind="Plus" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                             <TextBlock Text="新增" />
                           </StackPanel>
@@ -460,7 +460,7 @@
                              ItemsSource="{Binding AgentIntColsItems}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:AgentLineItem">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
+                            <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto" Margin="{DynamicResource MarginBottomSm}">
                               <TextBox HorizontalAlignment="Stretch"
                                   Height="{StaticResource ControlHeightCompact}"
                                   Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -484,29 +484,33 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Column="1" Classes="SectionCard" Padding="14,12">
+        <suki:GlassCard Grid.Column="1" Classes="SectionCard" Padding="{DynamicResource AboutHeroCardPadding}">
           <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
               <icons:AppIcon Kind="Microchip" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
               <TextBlock Text="版本与运行信息" Classes="SectionTitle" />
             </StackPanel>
 
-            <Grid Grid.Row="1" ColumnDefinitions="130,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <Grid Grid.Row="1" Classes="FormLabelReadonlyRow" ColumnDefinitions="130,*">
+              
               <TextBlock Text="程序版本" Opacity="{StaticResource SectionHintOpacity}" />
               <TextBlock Grid.Column="1" Text="{Binding ProgramVersionText}" />
             </Grid>
 
-            <Grid Grid.Row="2" ColumnDefinitions="130,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <Grid Grid.Row="2" Classes="FormLabelReadonlyRow" ColumnDefinitions="130,*">
+              
               <TextBlock Text="工具版本" Opacity="{StaticResource SectionHintOpacity}" />
               <TextBlock Grid.Column="1" Text="{Binding AhkVersionText}" />
             </Grid>
 
-            <Grid Grid.Row="3" ColumnDefinitions="130,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <Grid Grid.Row="3" Classes="FormLabelReadonlyRow" ColumnDefinitions="130,*">
+              
               <TextBlock Text="最近拉起" Opacity="{StaticResource SectionHintOpacity}" />
               <TextBlock Grid.Column="1" Text="{Binding LastLaunchText}" />
             </Grid>
 
-            <Grid Grid.Row="4" ColumnDefinitions="130,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <Grid Grid.Row="4" Classes="FormLabelReadonlyRow" ColumnDefinitions="130,*">
+              
               <TextBlock Text="最近错误" Opacity="{StaticResource SectionHintOpacity}" />
               <TextBlock Grid.Column="1" Text="{Binding LastErrorText}" TextWrapping="Wrap" />
             </Grid>

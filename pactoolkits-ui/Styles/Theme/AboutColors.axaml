@@ -1,0 +1,57 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <Color x:Key="TechAvaloniaStart">#7A165BFF</Color>
+      <Color x:Key="TechAvaloniaEnd">#2E0D2A75</Color>
+      <Color x:Key="TechDotNetStart">#7A512BD4</Color>
+      <Color x:Key="TechDotNetEnd">#2E2A136D</Color>
+      <Color x:Key="TechPostgreStart">#7A4169E1</Color>
+      <Color x:Key="TechPostgreEnd">#2E1E2F70</Color>
+      <Color x:Key="TechPythonStart">#7A3776AB</Color>
+      <Color x:Key="TechPythonEnd">#2E1A3A55</Color>
+      <Color x:Key="TechAhkStart">#7A334455</Color>
+      <Color x:Key="TechAhkEnd">#2E18222C</Color>
+      <Color x:Key="TechMacStart">#55000000</Color>
+      <Color x:Key="TechMacEnd">#2E1A1A1A</Color>
+      <Color x:Key="TechRiderStart">#55000000</Color>
+      <Color x:Key="TechRiderEnd">#7AFA6724</Color>
+      <Color x:Key="TechDataGripStart">#55000000</Color>
+      <Color x:Key="TechDataGripEnd">#7A22C55E</Color>
+      <Color x:Key="TechVsCodeStart">#7A007ACC</Color>
+      <Color x:Key="TechVsCodeEnd">#2E13496E</Color>
+      <Color x:Key="VersionUiStart">#7A2278F8</Color>
+      <Color x:Key="VersionUiEnd">#2E18377D</Color>
+      <Color x:Key="VersionAhkStart">#7A1E8E6F</Color>
+      <Color x:Key="VersionAhkEnd">#2E15554A</Color>
+      <Color x:Key="VersionDbStart">#7A6D4CFF</Color>
+      <Color x:Key="VersionDbEnd">#2E3F2A9A</Color>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <Color x:Key="TechAvaloniaStart">#165BFF</Color>
+      <Color x:Key="TechAvaloniaEnd">#0D2A75</Color>
+      <Color x:Key="TechDotNetStart">#512BD4</Color>
+      <Color x:Key="TechDotNetEnd">#2A136D</Color>
+      <Color x:Key="TechPostgreStart">#4169E1</Color>
+      <Color x:Key="TechPostgreEnd">#1E2F70</Color>
+      <Color x:Key="TechPythonStart">#3776AB</Color>
+      <Color x:Key="TechPythonEnd">#1A3A55</Color>
+      <Color x:Key="TechAhkStart">#334455</Color>
+      <Color x:Key="TechAhkEnd">#18222C</Color>
+      <Color x:Key="TechMacStart">#000000</Color>
+      <Color x:Key="TechMacEnd">#1A1A1A</Color>
+      <Color x:Key="TechRiderStart">#000000</Color>
+      <Color x:Key="TechRiderEnd">#FA6724</Color>
+      <Color x:Key="TechDataGripStart">#000000</Color>
+      <Color x:Key="TechDataGripEnd">#22C55E</Color>
+      <Color x:Key="TechVsCodeStart">#007ACC</Color>
+      <Color x:Key="TechVsCodeEnd">#13496E</Color>
+      <Color x:Key="VersionUiStart">#2278F8</Color>
+      <Color x:Key="VersionUiEnd">#18377D</Color>
+      <Color x:Key="VersionAhkStart">#1E8E6F</Color>
+      <Color x:Key="VersionAhkEnd">#15554A</Color>
+      <Color x:Key="VersionDbStart">#6D4CFF</Color>
+      <Color x:Key="VersionDbEnd">#3F2A9A</Color>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>
