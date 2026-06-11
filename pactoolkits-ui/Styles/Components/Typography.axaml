@@ -32,4 +32,44 @@
   <Style Selector="TextBlock">
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
+
+  <Style Selector="TextBlock.DialogTitle">
+    <Setter Property="FontSize" Value="{DynamicResource DialogTitleSize}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="TextBlock.DialogTitleLg">
+    <Setter Property="FontSize" Value="{DynamicResource DialogTitleSizeLg}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="TextBlock.AboutAuthor">
+    <Setter Property="FontSize" Value="{DynamicResource AboutAuthorSize}" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
+  <Style Selector="TextBlock.AboutTechTitle">
+    <Setter Property="FontSize" Value="{DynamicResource AboutTechTitleSize}" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
+  <Style Selector="TextBlock.AboutStat">
+    <Setter Property="FontSize" Value="{DynamicResource AboutStatSize}" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
+  <Style Selector="TextBlock.ShellTitle">
+    <Setter Property="FontSize" Value="{DynamicResource ShellTitleSize}" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
+  <Style Selector="TextBlock.ShellCaption">
+    <Setter Property="FontSize" Value="{DynamicResource ShellCaptionSize}" />
+    <Setter Property="Opacity" Value="{DynamicResource SectionHintOpacity}" />
+  </Style>
+
+  <Style Selector="TextBlock.ShellMeta">
+    <Setter Property="FontSize" Value="{DynamicResource ShellMetaSize}" />
+    <Setter Property="Opacity" Value="{DynamicResource ShellMetaOpacity}" />
+  </Style>
 </Styles>

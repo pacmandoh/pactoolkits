@@ -25,7 +25,7 @@
                     HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Border>
         <StackPanel Grid.Column="1" Spacing="2">
-          <TextBlock Text="批量映射处理" FontSize="17" FontWeight="SemiBold" />
+          <TextBlock Text="批量映射处理" Classes="DialogTitle" />
           <TextBlock Text="先选分组，再映射或直接弃用任务" Opacity="0.75" />
         </StackPanel>
       </Grid>
@@ -60,7 +60,7 @@
             <DataGridTemplateColumn Header="状态构成" Width="520">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <StackPanel Orientation="Horizontal" Spacing="8">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                     <controls:StatusPill Icon="Info"
                               Text="{Binding PendingCount, StringFormat=待映射 {0}}"
                               IconSize="12"
@@ -97,7 +97,7 @@
         <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
           <con:GlassCard Grid.Column="0" Classes="FilterFieldCard" Padding="10,8">
             <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
-              <StackPanel Orientation="Horizontal" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon Kind="Pill" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                 <TextBlock Text="药品名称" Opacity="0.82" />
               </StackPanel>
@@ -126,7 +126,7 @@
 
           <con:GlassCard Grid.Column="1" Classes="FilterFieldCard" Padding="10,8">
             <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}">
-              <StackPanel Orientation="Horizontal" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon Kind="Scale" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                 <TextBlock Text="规格" Opacity="0.82" />
               </StackPanel>
@@ -139,7 +139,7 @@
                      MaxDropDownHeight="300" />
                 <TextBlock x:Name="SpecPlaceholder"
                      IsHitTestVisible="False"
-                     Margin="12,0,0,0"
+                     Margin="{DynamicResource MarginLeftMd}"
                      VerticalAlignment="Center"
                      Opacity="0.55"
                      Text="请选择规格" />
@@ -149,7 +149,7 @@
         </Grid>
 
         <con:GlassCard Grid.Row="1" Classes="FilterHintCard">
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
             <icons:AppIcon Kind="ChartSpline" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" VerticalAlignment="Center" />
             <TextBlock Grid.Column="1"
                  x:Name="PreviewText"

@@ -25,7 +25,7 @@
       </Border>
 
       <TextBlock HorizontalAlignment="Center"
-           FontSize="18"
+           Classes="DialogTitleLg"
            FontWeight="SemiBold"
            Text="纠错迁移预览详情" />
 

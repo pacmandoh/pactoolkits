@@ -6,4 +6,15 @@
 
   <x:Double x:Key="EmptyStateTitleSize">14</x:Double>
   <x:Double x:Key="DgRowHeaderFontSize">10</x:Double>
+
+  <x:Double x:Key="DialogTitleSize">17</x:Double>
+  <x:Double x:Key="DialogTitleSizeLg">18</x:Double>
+  <x:Double x:Key="AboutAuthorSize">16</x:Double>
+  <x:Double x:Key="AboutTechTitleSize">16</x:Double>
+  <x:Double x:Key="AboutStatSize">18</x:Double>
+  <x:Double x:Key="AboutSubtitleSize">15</x:Double>
+  <x:Double x:Key="ShellTitleSize">14</x:Double>
+  <x:Double x:Key="ShellCaptionSize">11</x:Double>
+  <x:Double x:Key="ShellMetaSize">10</x:Double>
+  <x:Double x:Key="ShellMetaOpacity">0.62</x:Double>
 </ResourceDictionary>

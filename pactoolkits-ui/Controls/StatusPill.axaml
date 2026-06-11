@@ -10,7 +10,7 @@
       BorderThickness="1"
       CornerRadius="999"
       Padding="{Binding PillPadding, ElementName=Root}">
-    <StackPanel Orientation="Horizontal" Spacing="6">
+    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
       <icons:AppIcon Kind="{Binding Icon, ElementName=Root}"
                 Width="{Binding IconSize, ElementName=Root}"
                 Height="{Binding IconSize, ElementName=Root}"
