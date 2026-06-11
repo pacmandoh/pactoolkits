@@ -1,607 +1,607 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
-             xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
-             xmlns:simpleicons="clr-namespace:IconPacks.Avalonia.SimpleIcons;assembly=IconPacks.Avalonia.SimpleIcons"
-             xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
-             xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
-             mc:Ignorable="d"
-             d:DesignWidth="1200"
-             d:DesignHeight="820"
-             x:Class="pactoolkits_ui.Views.Pages.AboutView"
-             x:DataType="vm:AboutViewModel">
-    <UserControl.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.ThemeDictionaries>
-                <ResourceDictionary x:Key="Light">
-                    <Color x:Key="TechAvaloniaStart">#7A165BFF</Color>
-                    <Color x:Key="TechAvaloniaEnd">#2E0D2A75</Color>
-                    <Color x:Key="TechDotNetStart">#7A512BD4</Color>
-                    <Color x:Key="TechDotNetEnd">#2E2A136D</Color>
-                    <Color x:Key="TechPostgreStart">#7A4169E1</Color>
-                    <Color x:Key="TechPostgreEnd">#2E1E2F70</Color>
-                    <Color x:Key="TechPythonStart">#7A3776AB</Color>
-                    <Color x:Key="TechPythonEnd">#2E1A3A55</Color>
-                    <Color x:Key="TechAhkStart">#7A334455</Color>
-                    <Color x:Key="TechAhkEnd">#2E18222C</Color>
-                    <Color x:Key="TechMacStart">#55000000</Color>
-                    <Color x:Key="TechMacEnd">#2E1A1A1A</Color>
-                    <Color x:Key="TechRiderStart">#55000000</Color>
-                    <Color x:Key="TechRiderEnd">#7AFA6724</Color>
-                    <Color x:Key="TechDataGripStart">#55000000</Color>
-                    <Color x:Key="TechDataGripEnd">#7A22C55E</Color>
-                    <Color x:Key="TechVsCodeStart">#7A007ACC</Color>
-                    <Color x:Key="TechVsCodeEnd">#2E13496E</Color>
-                    <Color x:Key="VersionUiStart">#7A2278F8</Color>
-                    <Color x:Key="VersionUiEnd">#2E18377D</Color>
-                    <Color x:Key="VersionAhkStart">#7A1E8E6F</Color>
-                    <Color x:Key="VersionAhkEnd">#2E15554A</Color>
-                    <Color x:Key="VersionDbStart">#7A6D4CFF</Color>
-                    <Color x:Key="VersionDbEnd">#2E3F2A9A</Color>
-                </ResourceDictionary>
-                <ResourceDictionary x:Key="Dark">
-                    <Color x:Key="TechAvaloniaStart">#165BFF</Color>
-                    <Color x:Key="TechAvaloniaEnd">#0D2A75</Color>
-                    <Color x:Key="TechDotNetStart">#512BD4</Color>
-                    <Color x:Key="TechDotNetEnd">#2A136D</Color>
-                    <Color x:Key="TechPostgreStart">#4169E1</Color>
-                    <Color x:Key="TechPostgreEnd">#1E2F70</Color>
-                    <Color x:Key="TechPythonStart">#3776AB</Color>
-                    <Color x:Key="TechPythonEnd">#1A3A55</Color>
-                    <Color x:Key="TechAhkStart">#334455</Color>
-                    <Color x:Key="TechAhkEnd">#18222C</Color>
-                    <Color x:Key="TechMacStart">#000000</Color>
-                    <Color x:Key="TechMacEnd">#1A1A1A</Color>
-                    <Color x:Key="TechRiderStart">#000000</Color>
-                    <Color x:Key="TechRiderEnd">#FA6724</Color>
-                    <Color x:Key="TechDataGripStart">#000000</Color>
-                    <Color x:Key="TechDataGripEnd">#22C55E</Color>
-                    <Color x:Key="TechVsCodeStart">#007ACC</Color>
-                    <Color x:Key="TechVsCodeEnd">#13496E</Color>
-                    <Color x:Key="VersionUiStart">#2278F8</Color>
-                    <Color x:Key="VersionUiEnd">#18377D</Color>
-                    <Color x:Key="VersionAhkStart">#1E8E6F</Color>
-                    <Color x:Key="VersionAhkEnd">#15554A</Color>
-                    <Color x:Key="VersionDbStart">#6D4CFF</Color>
-                    <Color x:Key="VersionDbEnd">#3F2A9A</Color>
-                </ResourceDictionary>
-            </ResourceDictionary.ThemeDictionaries>
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:suki="https://github.com/kikipoulet/SukiUI"
+      xmlns:icons="clr-namespace:pactoolkits_ui.Controls"
+      xmlns:simpleicons="clr-namespace:IconPacks.Avalonia.SimpleIcons;assembly=IconPacks.Avalonia.SimpleIcons"
+      xmlns:controls="clr-namespace:pactoolkits_ui.Controls"
+      xmlns:vm="clr-namespace:pactoolkits_ui.ViewModels.Pages"
+      mc:Ignorable="d"
+      d:DesignWidth="1200"
+      d:DesignHeight="820"
+      x:Class="pactoolkits_ui.Views.Pages.AboutView"
+      x:DataType="vm:AboutViewModel">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <Color x:Key="TechAvaloniaStart">#7A165BFF</Color>
+          <Color x:Key="TechAvaloniaEnd">#2E0D2A75</Color>
+          <Color x:Key="TechDotNetStart">#7A512BD4</Color>
+          <Color x:Key="TechDotNetEnd">#2E2A136D</Color>
+          <Color x:Key="TechPostgreStart">#7A4169E1</Color>
+          <Color x:Key="TechPostgreEnd">#2E1E2F70</Color>
+          <Color x:Key="TechPythonStart">#7A3776AB</Color>
+          <Color x:Key="TechPythonEnd">#2E1A3A55</Color>
+          <Color x:Key="TechAhkStart">#7A334455</Color>
+          <Color x:Key="TechAhkEnd">#2E18222C</Color>
+          <Color x:Key="TechMacStart">#55000000</Color>
+          <Color x:Key="TechMacEnd">#2E1A1A1A</Color>
+          <Color x:Key="TechRiderStart">#55000000</Color>
+          <Color x:Key="TechRiderEnd">#7AFA6724</Color>
+          <Color x:Key="TechDataGripStart">#55000000</Color>
+          <Color x:Key="TechDataGripEnd">#7A22C55E</Color>
+          <Color x:Key="TechVsCodeStart">#7A007ACC</Color>
+          <Color x:Key="TechVsCodeEnd">#2E13496E</Color>
+          <Color x:Key="VersionUiStart">#7A2278F8</Color>
+          <Color x:Key="VersionUiEnd">#2E18377D</Color>
+          <Color x:Key="VersionAhkStart">#7A1E8E6F</Color>
+          <Color x:Key="VersionAhkEnd">#2E15554A</Color>
+          <Color x:Key="VersionDbStart">#7A6D4CFF</Color>
+          <Color x:Key="VersionDbEnd">#2E3F2A9A</Color>
         </ResourceDictionary>
-    </UserControl.Resources>
-    <ScrollViewer VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
-        <Grid Margin="18,14,18,18" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
-            <suki:GlassCard Grid.Row="0" Classes="SectionCard" Padding="14,12">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
-                    <suki:GlassCard Classes="SectionCard" Width="78" Height="78">
-                        <Image Source="avares://pactoolkits-ui/Assets/icon-128.png"
-                               Width="54"
-                               Height="54"
-                               Stretch="Uniform"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center" />
-                    </suki:GlassCard>
+        <ResourceDictionary x:Key="Dark">
+          <Color x:Key="TechAvaloniaStart">#165BFF</Color>
+          <Color x:Key="TechAvaloniaEnd">#0D2A75</Color>
+          <Color x:Key="TechDotNetStart">#512BD4</Color>
+          <Color x:Key="TechDotNetEnd">#2A136D</Color>
+          <Color x:Key="TechPostgreStart">#4169E1</Color>
+          <Color x:Key="TechPostgreEnd">#1E2F70</Color>
+          <Color x:Key="TechPythonStart">#3776AB</Color>
+          <Color x:Key="TechPythonEnd">#1A3A55</Color>
+          <Color x:Key="TechAhkStart">#334455</Color>
+          <Color x:Key="TechAhkEnd">#18222C</Color>
+          <Color x:Key="TechMacStart">#000000</Color>
+          <Color x:Key="TechMacEnd">#1A1A1A</Color>
+          <Color x:Key="TechRiderStart">#000000</Color>
+          <Color x:Key="TechRiderEnd">#FA6724</Color>
+          <Color x:Key="TechDataGripStart">#000000</Color>
+          <Color x:Key="TechDataGripEnd">#22C55E</Color>
+          <Color x:Key="TechVsCodeStart">#007ACC</Color>
+          <Color x:Key="TechVsCodeEnd">#13496E</Color>
+          <Color x:Key="VersionUiStart">#2278F8</Color>
+          <Color x:Key="VersionUiEnd">#18377D</Color>
+          <Color x:Key="VersionAhkStart">#1E8E6F</Color>
+          <Color x:Key="VersionAhkEnd">#15554A</Color>
+          <Color x:Key="VersionDbStart">#6D4CFF</Color>
+          <Color x:Key="VersionDbEnd">#3F2A9A</Color>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
+  <ScrollViewer VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
+    <Grid Classes="PageRootLayout" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+      <suki:GlassCard Grid.Row="0" Classes="SectionCard" Padding="14,12">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+          <suki:GlassCard Classes="SectionCard" Width="78" Height="78">
+            <Image Source="avares://pactoolkits-ui/Assets/icon-128.png"
+               Width="54"
+               Height="54"
+               Stretch="Uniform"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center" />
+          </suki:GlassCard>
 
-                    <Grid Grid.Column="1" RowDefinitions="Auto,Auto,Auto" RowSpacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="PacToolkits"
-                                   FontSize="26"
-                                   FontWeight="Bold" />
-                        <TextBlock Grid.Row="1"
-                                   Text="自动化套件"
-                                   FontSize="15"
-                                   Opacity="0.82" />
-                        <TextBlock Grid.Row="2"
-                                   Classes="SectionHint"
-                                   Text="为井研县中医医院药剂科追溯码录入与库存业务构建的一站式自动化工具链" />
-                    </Grid>
-                </Grid>
-            </suki:GlassCard>
-
-            <suki:GlassCard Grid.Row="1" Classes="SectionCard" Padding="14,12" Opacity="0.96">
-                <Grid ColumnDefinitions="Auto,2*,1.2*" ColumnSpacing="12">
-                    <suki:GlassCard Width="58" Height="58" CornerRadius="14" Opacity="0.92">
-                        <Grid>
-                            <icons:AppIcon Kind="IdCardLanyard" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Grid>
-                    </suki:GlassCard>
-
-                    <Grid Grid.Column="1" RowDefinitions="Auto,Auto,Auto" RowSpacing="3">
-                        <TextBlock Text="窦皓 · PacmanDoh" FontSize="16" FontWeight="Bold" />
-                        <TextBlock Grid.Row="1" Text="产品设计 / 自动化开发 / 业务落地" Opacity="0.86" />
-                        <TextBlock Grid.Row="2"
-                                   Classes="SectionHint"
-                                   Text="井研县中医医院药剂科项目维护者，聚焦追溯码录入效率、库存一致性与流程稳定性" />
-                    </Grid>
-
-                    <Grid Grid.Column="2" RowDefinitions="Auto,Auto" RowSpacing="8">
-                        <WrapPanel ItemSpacing="6" LineSpacing="6">
-                            <controls:StatusPill Icon="UserRound"
-                                                 Text="Owner"
-                                                 BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                                                 PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                                                 ForegroundBrush="{DynamicResource BrushInfo}" />
-                            <controls:StatusPill Icon="ShieldCheck"
-                                                 Text="Maintainer"
-                                                 BackgroundBrush="{DynamicResource BrushDoneBg25}"
-                                                 PillBorderBrush="{DynamicResource BrushDoneBg50}"
-                                                 ForegroundBrush="{DynamicResource BrushDone}" />
-                            <controls:StatusPill Icon="Calendar"
-                                                 Text="2026"
-                                                 BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                                                 PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                                                 ForegroundBrush="{DynamicResource BrushInfo}" />
-                        </WrapPanel>
-                        <suki:GlassCard Grid.Row="1" Padding="8,6" Opacity="0.9" CornerRadius="10">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                                <icons:AppIcon Kind="Hospital" Width="14" Height="14" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="井研县中医医院 · 药剂科" Classes="SectionHint" VerticalAlignment="Center" />
-                            </Grid>
-                        </suki:GlassCard>
-                    </Grid>
-                </Grid>
-            </suki:GlassCard>
-
-            <suki:GlassCard Grid.Row="2" Classes="SectionCard" Padding="14,12">
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
-                        <icons:AppIcon Kind="Tags" Width="16" Height="16" />
-                        <TextBlock Grid.Column="1" Text="版本中心" Classes="SectionTitle" />
-                    </Grid>
-
-                    <Grid Grid.Row="1" ColumnDefinitions="2*,1*" ColumnSpacing="10">
-                        <StackPanel Spacing="2">
-                            <TextBlock Text="PacToolkits Suite" Classes="SectionHint" />
-                            <TextBlock Text="{Binding SuiteVersion}" FontSize="26" FontWeight="Bold" />
-                            <TextBlock Text="{Binding VersionHint}" Classes="SectionHint" TextWrapping="Wrap" />
-                        </StackPanel>
-                        <suki:GlassCard Grid.Column="1" Padding="12,10" Opacity="0.9" CornerRadius="12">
-                            <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
-                                <TextBlock Text="构建信息" FontWeight="SemiBold" />
-
-                                <Grid Grid.Row="1"
-                                      ColumnDefinitions="*,*"
-                                      RowDefinitions="Auto,Auto"
-                                      ColumnSpacing="10"
-                                      RowSpacing="6">
-                                    <TextBlock Text="{Binding BuildChannel, StringFormat=Channel: {0}}" Classes="SectionHint" />
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding BuildDate, StringFormat=Date: {0}}" Classes="SectionHint" />
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding CompatUiDbRangeText}" Classes="SectionHint" />
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CompatAgentDbRangeText}" Classes="SectionHint" />
-                                </Grid>
-                            </Grid>
-                        </suki:GlassCard>
-                    </Grid>
-
-                    <Grid Grid.Row="2" ColumnDefinitions="1*,1*,1*" ColumnSpacing="10">
-                        <suki:GlassCard Grid.Column="0" Padding="14,12" CornerRadius="14" Opacity="0.98">
-                            <suki:GlassCard.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="{DynamicResource VersionDbStart}" Offset="0" />
-                                    <GradientStop Color="{DynamicResource VersionDbEnd}" Offset="1" />
-                                </LinearGradientBrush>
-                            </suki:GlassCard.Background>
-                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:AppIcon Kind="Database" Width="16" Height="16" />
-                                    <TextBlock Text="DB Schema" FontWeight="SemiBold" />
-                                </StackPanel>
-                                <TextBlock Grid.Row="1" Text="{Binding DbSchemaVersion}" FontSize="22" FontWeight="Bold" />
-                                <TextBlock Grid.Row="2" Text="用于校验数据库结构兼容性" Opacity="0.9" />
-                            </Grid>
-                        </suki:GlassCard>
-
-                        <suki:GlassCard Grid.Column="1" Padding="14,12" CornerRadius="14" Opacity="0.98">
-                            <suki:GlassCard.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="{DynamicResource VersionAhkStart}" Offset="0" />
-                                    <GradientStop Color="{DynamicResource VersionAhkEnd}" Offset="1" />
-                                </LinearGradientBrush>
-                            </suki:GlassCard.Background>
-                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <simpleicons:PackIconSimpleIcons Kind="AutoHotkey" Width="16" Height="16" />
-                                    <TextBlock Text="AHK 脚本" FontWeight="SemiBold" />
-                                </StackPanel>
-                                <TextBlock Grid.Row="1" Text="{Binding AhkVersion}" FontSize="22" FontWeight="Bold" />
-                                <TextBlock Grid.Row="2" Text="用于自动化执行层版本识别" Opacity="0.9" />
-                            </Grid>
-                        </suki:GlassCard>
-
-                        <suki:GlassCard Grid.Column="2" Padding="14,12" CornerRadius="14" Opacity="0.98">
-                            <suki:GlassCard.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="{DynamicResource VersionUiStart}" Offset="0" />
-                                    <GradientStop Color="{DynamicResource VersionUiEnd}" Offset="1" />
-                                </LinearGradientBrush>
-                            </suki:GlassCard.Background>
-                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:AppIcon Kind="AppWindow" Width="16" Height="16" />
-                                    <TextBlock Text="UI 客户端" FontWeight="SemiBold" />
-                                </StackPanel>
-                                <TextBlock Grid.Row="1" Text="{Binding UiVersion}" FontSize="22" FontWeight="Bold" />
-                                <TextBlock Grid.Row="2" Text="用于桌面应用显示与构建元信息" Opacity="0.9" />
-                            </Grid>
-                        </suki:GlassCard>
-                    </Grid>
-
-                    <Grid Grid.Row="3" ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                        <suki:InfoBadge Content="{Binding VersionStatus}" Foreground="{DynamicResource BrushInfo}" />
-                        <ItemsControl Grid.Column="1" ItemsSource="{Binding VersionBadges}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel ItemSpacing="8" LineSpacing="8" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:VersionBadgeItem">
-                                    <suki:InfoBadge Content="{Binding Display}" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </Grid>
-                </Grid>
-            </suki:GlassCard>
-
-            <suki:GlassCard Grid.Row="3" Classes="SectionCard" Padding="12,10">
-                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <icons:AppIcon Kind="Cpu" Width="16" Height="16" />
-                        <TextBlock Text="核心技术栈" Classes="SectionTitle" />
-                    </StackPanel>
-
-                    <Grid Grid.Row="1" ColumnDefinitions="1.2*,0.8*" ColumnSpacing="10">
-                        <suki:GlassCard Padding="12,10" CornerRadius="12" Opacity="0.9">
-                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-                                <TextBlock Text="Architecture Snapshot" FontWeight="SemiBold" />
-                                <TextBlock Grid.Row="1"
-                                           Text="Avalonia + .NET + PostgreSQL + AHK 形成“桌面编排 + 自动化执行 + 数据落库”闭环"
-                                           TextWrapping="Wrap" />
-                                <TextBlock Grid.Row="2"
-                                           Classes="SectionHint"
-                                           Text="当前重点：保证追溯码注入成功率、并发一致性与配置可维护性" />
-                            </Grid>
-                        </suki:GlassCard>
-
-                        <Grid Grid.Column="1" RowDefinitions="Auto,Auto" RowSpacing="8">
-                            <suki:GlassCard Padding="{StaticResource CompactPadding}" CornerRadius="12" Opacity="0.9">
-                                <Grid RowDefinitions="Auto,Auto" RowSpacing="3">
-                                    <TextBlock Text="里程碑阶段" FontWeight="SemiBold" />
-                                    <TextBlock Grid.Row="1" Text="M3 - 自动化能力稳定化" Classes="SectionHint" />
-                                </Grid>
-                            </suki:GlassCard>
-                            <WrapPanel Grid.Row="1" ItemSpacing="6" LineSpacing="6">
-                                <controls:StatusPill Icon="MonitorCog"
-                                                     Text="Desktop Native"
-                                                     BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                                                     PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                                                     ForegroundBrush="{DynamicResource BrushInfo}" />
-                                <controls:StatusPill Icon="Bot"
-                                                     Text="Automation First"
-                                                     BackgroundBrush="{DynamicResource BrushDoneBg25}"
-                                                     PillBorderBrush="{DynamicResource BrushDoneBg50}"
-                                                     ForegroundBrush="{DynamicResource BrushDone}" />
-                                <controls:StatusPill Icon="Database"
-                                                     Text="Data Driven"
-                                                     BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                                                     PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                                                     ForegroundBrush="{DynamicResource BrushInfo}" />
-                            </WrapPanel>
-                        </Grid>
-                    </Grid>
-
-                    <Grid Grid.Row="2" ColumnDefinitions="1*,1*,1*" ColumnSpacing="10" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                <suki:GlassCard Grid.Row="0" Grid.Column="0" Padding="14,12" Opacity="0.98" CornerRadius="14">
-                    <suki:GlassCard.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="{DynamicResource TechAvaloniaStart}" Offset="0" />
-                            <GradientStop Color="{DynamicResource TechAvaloniaEnd}" Offset="1" />
-                        </LinearGradientBrush>
-                    </suki:GlassCard.Background>
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <simpleicons:PackIconSimpleIcons Kind="AvaloniaUi" Width="42" Height="42" VerticalAlignment="Top" />
-                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                            <TextBlock Text="Avalonia UI" FontWeight="Bold" FontSize="16" />
-                            <TextBlock Text="跨平台桌面 UI 主框架" Opacity="0.95" />
-                        </StackPanel>
-                    </Grid>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Row="0" Grid.Column="1" Padding="14,12" Opacity="0.98" CornerRadius="14">
-                    <suki:GlassCard.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="{DynamicResource TechDotNetStart}" Offset="0" />
-                            <GradientStop Color="{DynamicResource TechDotNetEnd}" Offset="1" />
-                        </LinearGradientBrush>
-                    </suki:GlassCard.Background>
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <simpleicons:PackIconSimpleIcons Kind="DotNet" Width="42" Height="42" VerticalAlignment="Top" />
-                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                            <TextBlock Text="C# / .NET" FontWeight="Bold" FontSize="16" />
-                            <TextBlock Text="业务编排与应用生命周期" Opacity="0.95" />
-                        </StackPanel>
-                    </Grid>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Row="0" Grid.Column="2" Padding="14,12" Opacity="0.98" CornerRadius="14">
-                    <suki:GlassCard.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="{DynamicResource TechPostgreStart}" Offset="0" />
-                            <GradientStop Color="{DynamicResource TechPostgreEnd}" Offset="1" />
-                        </LinearGradientBrush>
-                    </suki:GlassCard.Background>
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <simpleicons:PackIconSimpleIcons Kind="PostgreSql" Width="42" Height="42" VerticalAlignment="Top" />
-                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                            <TextBlock Text="PostgreSQL" FontWeight="Bold" FontSize="16" />
-                            <TextBlock Text="追溯码与库存核心数据库" Opacity="0.95" />
-                        </StackPanel>
-                    </Grid>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Row="1" Grid.Column="0" Padding="14,12" Opacity="0.98" CornerRadius="14">
-                    <suki:GlassCard.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="{DynamicResource TechPythonStart}" Offset="0" />
-                            <GradientStop Color="{DynamicResource TechPythonEnd}" Offset="1" />
-                        </LinearGradientBrush>
-                    </suki:GlassCard.Background>
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <simpleicons:PackIconSimpleIcons Kind="Python" Width="42" Height="42" VerticalAlignment="Top" />
-                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                            <TextBlock Text="Python" FontWeight="Bold" FontSize="16" />
-                            <TextBlock Text="自动拉取与数据桥接流程" Opacity="0.95" />
-                        </StackPanel>
-                    </Grid>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Row="1" Grid.Column="1" Padding="14,12" Opacity="0.98" CornerRadius="14">
-                    <suki:GlassCard.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="{DynamicResource TechAhkStart}" Offset="0" />
-                            <GradientStop Color="{DynamicResource TechAhkEnd}" Offset="1" />
-                        </LinearGradientBrush>
-                    </suki:GlassCard.Background>
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <simpleicons:PackIconSimpleIcons Kind="AutoHotkey" Width="42" Height="42" VerticalAlignment="Top" />
-                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                            <TextBlock Text="AutoHotkey" FontWeight="Bold" FontSize="16" />
-                            <TextBlock Text="追溯码自动注入执行层" Opacity="0.95" />
-                        </StackPanel>
-                    </Grid>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Row="1" Grid.Column="2" Padding="14,12" Opacity="0.98" CornerRadius="14">
-                    <suki:GlassCard.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="{DynamicResource TechMacStart}" Offset="0" />
-                            <GradientStop Color="{DynamicResource TechMacEnd}" Offset="1" />
-                        </LinearGradientBrush>
-                    </suki:GlassCard.Background>
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <simpleicons:PackIconSimpleIcons Kind="MacOs" Width="42" Height="42" VerticalAlignment="Top" />
-                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                            <TextBlock Text="macOS" FontWeight="Bold" FontSize="16" />
-                            <TextBlock Text="主要开发与测试平台" Opacity="0.95" />
-                        </StackPanel>
-                    </Grid>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Row="2" Grid.Column="0" Padding="14,12" Opacity="0.98" CornerRadius="14">
-                    <suki:GlassCard.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="{DynamicResource TechRiderStart}" Offset="0" />
-                            <GradientStop Color="{DynamicResource TechRiderEnd}" Offset="1" />
-                        </LinearGradientBrush>
-                    </suki:GlassCard.Background>
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <simpleicons:PackIconSimpleIcons Kind="Rider" Width="42" Height="42" VerticalAlignment="Top" />
-                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                            <TextBlock Text="JetBrains Rider" FontWeight="Bold" FontSize="16" />
-                            <TextBlock Text="C#/.NET 主力 IDE" Opacity="0.95" />
-                        </StackPanel>
-                    </Grid>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Row="2" Grid.Column="1" Padding="14,12" Opacity="0.98" CornerRadius="14">
-                    <suki:GlassCard.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="{DynamicResource TechDataGripStart}" Offset="0" />
-                            <GradientStop Color="{DynamicResource TechDataGripEnd}" Offset="1" />
-                        </LinearGradientBrush>
-                    </suki:GlassCard.Background>
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <simpleicons:PackIconSimpleIcons Kind="DataGrip" Width="42" Height="42" VerticalAlignment="Top" />
-                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                            <TextBlock Text="Database" FontWeight="Bold" FontSize="16" />
-                            <TextBlock Text="SQL 调试与数据校验" Opacity="0.95" />
-                        </StackPanel>
-                    </Grid>
-                </suki:GlassCard>
-
-                <suki:GlassCard Grid.Row="2" Grid.Column="2" Padding="14,12" Opacity="0.98" CornerRadius="14">
-                    <suki:GlassCard.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="{DynamicResource TechVsCodeStart}" Offset="0" />
-                            <GradientStop Color="{DynamicResource TechVsCodeEnd}" Offset="1" />
-                        </LinearGradientBrush>
-                    </suki:GlassCard.Background>
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <icons:AppIcon Kind="Code" Width="42" Height="42" VerticalAlignment="Top" />
-                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                            <TextBlock Text="Visual Studio Code" FontWeight="Bold" FontSize="16" />
-                            <TextBlock Text="脚本与轻量编辑工具" Opacity="0.95" />
-                        </StackPanel>
-                    </Grid>
-                </suki:GlassCard>
-                    </Grid>
-                </Grid>
-            </suki:GlassCard>
-
-            <suki:GlassCard Grid.Row="4" Classes="SectionCard" Padding="12,10">
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                        <icons:AppIcon Kind="FlaskConical" Width="16" Height="16" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="1" Text="交互实验室" Classes="SectionTitle" />
-                    </Grid>
-
-                    <Grid Grid.Row="1" ColumnDefinitions="1.2*,1.2*,1.2*" ColumnSpacing="10">
-                        <suki:GlassCard Grid.Column="0" Padding="{StaticResource CompactPadding}" Opacity="0.95">
-                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:AppIcon Kind="ShieldCheck" Width="14" Height="14" />
-                                    <TextBlock Text="稳定性指数" Opacity="0.8" />
-                                </StackPanel>
-                                <TextBlock Grid.Row="1" Text="96%" FontSize="18" FontWeight="Bold" />
-                                <ProgressBar Grid.Row="2" Minimum="0" Maximum="100" Value="96" Height="10" />
-                            </Grid>
-                        </suki:GlassCard>
-
-                        <suki:GlassCard Grid.Column="1" Padding="{StaticResource CompactPadding}" Opacity="0.95">
-                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:AppIcon Kind="Zap" Width="14" Height="14" />
-                                    <TextBlock Text="响应效率" Opacity="0.8" />
-                                </StackPanel>
-                                <TextBlock Grid.Row="1" Text="89%" FontSize="18" FontWeight="Bold" />
-                                <ProgressBar Grid.Row="2" Minimum="0" Maximum="100" Value="89" Height="10" />
-                            </Grid>
-                        </suki:GlassCard>
-
-                        <suki:GlassCard Grid.Column="2" Padding="{StaticResource CompactPadding}" Opacity="0.95">
-                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <icons:AppIcon Kind="DatabaseBackup" Width="14" Height="14" />
-                                    <TextBlock Text="数据一致性" Opacity="0.8" />
-                                </StackPanel>
-                                <TextBlock Grid.Row="1" Text="92%" FontSize="18" FontWeight="Bold" />
-                                <ProgressBar Grid.Row="2" Minimum="0" Maximum="100" Value="92" Height="10" />
-                            </Grid>
-                        </suki:GlassCard>
-                    </Grid>
-
-                    <Grid Grid.Row="2" ColumnDefinitions="1.1*,1.1*,1.1*" ColumnSpacing="10">
-                        <suki:GroupBox Header="视觉标记样例">
-                            <WrapPanel Margin="8,8,8,8" ItemSpacing="8" LineSpacing="8">
-                                <controls:StatusPill Icon="CircleCheck"
-                                                     Text="Online"
-                                                     BackgroundBrush="{DynamicResource BrushDoneBg25}"
-                                                     PillBorderBrush="{DynamicResource BrushDoneBg50}"
-                                                     ForegroundBrush="{DynamicResource BrushDone}" />
-                                <controls:StatusPill Icon="Bot"
-                                                     Text="AutoFetch"
-                                                     BackgroundBrush="{DynamicResource BrushDoneBg25}"
-                                                     PillBorderBrush="{DynamicResource BrushDoneBg50}"
-                                                     ForegroundBrush="{DynamicResource BrushDone}" />
-                                <controls:StatusPill Icon="Clock"
-                                                     Text="Pending"
-                                                     BackgroundBrush="{DynamicResource BrushWarningBg25}"
-                                                     PillBorderBrush="{DynamicResource BrushWarningBg50}"
-                                                     ForegroundBrush="{DynamicResource BrushWarning}" />
-                                <controls:StatusPill Icon="Undo"
-                                                     Text="Rollback"
-                                                     BackgroundBrush="{DynamicResource BrushDangerBg15}"
-                                                     PillBorderBrush="{DynamicResource BrushDangerBg35}"
-                                                     ForegroundBrush="{DynamicResource BrushDanger}" />
-                            </WrapPanel>
-                        </suki:GroupBox>
-
-                        <suki:GroupBox Grid.Column="1" Header="Settings Layout（演示）">
-                            <Grid Margin="8,8,8,8"
-                                  ColumnDefinitions="Auto,*"
-                                  RowDefinitions="Auto,Auto,Auto,Auto"
-                                  ColumnSpacing="10"
-                                  RowSpacing="8">
-                                <TextBlock Text="主题模式" VerticalAlignment="Center" />
-                                <ComboBox Grid.Row="0" Grid.Column="1" SelectedIndex="0">
-                                    <ComboBoxItem Content="System" />
-                                    <ComboBoxItem Content="Light" />
-                                    <ComboBoxItem Content="Dark" />
-                                </ComboBox>
-
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="启用动画" VerticalAlignment="Center" />
-                                <ToggleSwitch Grid.Row="1" Grid.Column="1" IsChecked="True" />
-
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="密度" VerticalAlignment="Center" />
-                                <Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Value="68" />
-
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="刷新间隔" VerticalAlignment="Center" />
-                                <NumericUpDown Grid.Row="3" Grid.Column="1" Minimum="1" Maximum="60" Value="10" />
-                            </Grid>
-                        </suki:GroupBox>
-
-                        <suki:GroupBox Grid.Column="2" Header="Button 样式（实验）">
-                            <WrapPanel Margin="8,8,8,8" ItemSpacing="8" LineSpacing="8">
-                                <Button Content="Standard" />
-                                <Button Classes="Flat" Content="Flat" />
-                                <Button Classes="Rounded" Content="Rounded" />
-                                <Button Classes="Outlined" Content="Outlined" />
-                                <Button Classes="Basic" Content="Basic" />
-                                <Button Classes="Flat Accent" Content="Flat Accent" />
-                                <Button Classes="Large" Content="Large" />
-                            </WrapPanel>
-                        </suki:GroupBox>
-                    </Grid>
-
-                    <suki:GroupBox Grid.Row="3" Header="WaveProgress（可调演示）">
-                        <Grid Margin="8,8,8,8"
-                              ColumnDefinitions="280,*"
-                              ColumnSpacing="18"
-                              MinHeight="250"
-                              VerticalAlignment="Center">
-                            <Grid RowDefinitions="*,Auto" VerticalAlignment="Center">
-                                <suki:WaveProgress Grid.Row="0"
-                                                   Width="220"
-                                                   Height="220"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   Value="{Binding WaveDemoValue}" />
-                                <TextBlock Grid.Row="1"
-                                           HorizontalAlignment="Center"
-                                           Margin="0,6,0,0"
-                                           FontSize="18"
-                                           FontWeight="Bold"
-                                           Text="{Binding WaveDemoValue, StringFormat={}{0:0}%}" />
-                            </Grid>
-
-                            <Grid Grid.Column="1"
-                                  RowDefinitions="Auto,Auto,Auto"
-                                  RowSpacing="10"
-                                  VerticalAlignment="Center">
-                                <TextBlock Text="拖动滑块可实时调节水波高度"
-                                           FontWeight="SemiBold" />
-                                <Slider Grid.Row="1"
-                                        Minimum="0"
-                                        Maximum="100"
-                                        Value="{Binding WaveDemoValue, Mode=TwoWay}" />
-                                <TextBlock Grid.Row="2"
-                                           Classes="SectionHint"
-                                           Text="样式参考 WaveProgress 演示：WaveProgress + 拖动调节 + 实时数值" />
-                            </Grid>
-                        </Grid>
-                    </suki:GroupBox>
-
-                    <suki:GroupBox Grid.Row="4" Header="交互组件预览">
-                        <TabControl Margin="8,8,8,8" SelectedIndex="0">
-                            <TabItem Header="布局">
-                                <Grid Margin="8,8,8,8" ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                    <TextBlock Text="主机名" VerticalAlignment="Center" />
-                                    <TextBox Grid.Column="1" Watermark="例如：127.0.0.1" />
-                                </Grid>
-                            </TabItem>
-                            <TabItem Header="信息">
-                                <Expander Margin="8,8,8,8" Header="展开查看说明" IsExpanded="True">
-                                    <TextBlock Margin="8,6,8,8"
-                                               Classes="SectionHint"
-                                               TextWrapping="Wrap"
-                                               Text="这里可放置系统能力说明、版本策略或排障建议，作为可折叠信息块" />
-                                </Expander>
-                            </TabItem>
-                        </TabControl>
-                    </suki:GroupBox>
-                </Grid>
-            </suki:GlassCard>
+          <Grid Grid.Column="1" RowDefinitions="Auto,Auto,Auto" RowSpacing="4" VerticalAlignment="Center">
+            <TextBlock Text="PacToolkits"
+                 FontSize="26"
+                 FontWeight="Bold" />
+            <TextBlock Grid.Row="1"
+                 Text="自动化套件"
+                 FontSize="15"
+                 Opacity="0.82" />
+            <TextBlock Grid.Row="2"
+                 Classes="SectionHint"
+                 Text="为井研县中医医院药剂科追溯码录入与库存业务构建的一站式自动化工具链" />
+          </Grid>
         </Grid>
-    </ScrollViewer>
+      </suki:GlassCard>
+
+      <suki:GlassCard Grid.Row="1" Classes="SectionCard" Padding="14,12" Opacity="0.96">
+        <Grid ColumnDefinitions="Auto,2*,1.2*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
+          <suki:GlassCard Width="58" Height="58" CornerRadius="14" Opacity="0.92">
+            <Grid>
+              <icons:AppIcon Kind="IdCardLanyard" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+          </suki:GlassCard>
+
+          <Grid Grid.Column="1" RowDefinitions="Auto,Auto,Auto" RowSpacing="3">
+            <TextBlock Text="窦皓 · PacmanDoh" FontSize="16" FontWeight="Bold" />
+            <TextBlock Grid.Row="1" Text="产品设计 / 自动化开发 / 业务落地" Opacity="0.86" />
+            <TextBlock Grid.Row="2"
+                 Classes="SectionHint"
+                 Text="井研县中医医院药剂科项目维护者，聚焦追溯码录入效率、库存一致性与流程稳定性" />
+          </Grid>
+
+          <Grid Grid.Column="2" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+            <WrapPanel ItemSpacing="6" LineSpacing="6">
+              <controls:StatusPill Icon="UserRound"
+                        Text="Owner"
+                        BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                        PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                        ForegroundBrush="{DynamicResource BrushInfo}" />
+              <controls:StatusPill Icon="ShieldCheck"
+                        Text="Maintainer"
+                        BackgroundBrush="{DynamicResource BrushDoneBg25}"
+                        PillBorderBrush="{DynamicResource BrushDoneBg50}"
+                        ForegroundBrush="{DynamicResource BrushDone}" />
+              <controls:StatusPill Icon="Calendar"
+                        Text="2026"
+                        BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                        PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                        ForegroundBrush="{DynamicResource BrushInfo}" />
+            </WrapPanel>
+            <suki:GlassCard Grid.Row="1" Padding="8,6" Opacity="0.9" CornerRadius="10">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                <icons:AppIcon Kind="Hospital" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="井研县中医医院 · 药剂科" Classes="SectionHint" VerticalAlignment="Center" />
+              </Grid>
+            </suki:GlassCard>
+          </Grid>
+        </Grid>
+      </suki:GlassCard>
+
+      <suki:GlassCard Grid.Row="2" Classes="SectionCard" Padding="14,12">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+            <icons:AppIcon Kind="Tags" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+            <TextBlock Grid.Column="1" Text="版本中心" Classes="SectionTitle" />
+          </Grid>
+
+          <Grid Grid.Row="1" ColumnDefinitions="2*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <StackPanel Spacing="2">
+              <TextBlock Text="PacToolkits Suite" Classes="SectionHint" />
+              <TextBlock Text="{Binding SuiteVersion}" FontSize="26" FontWeight="Bold" />
+              <TextBlock Text="{Binding VersionHint}" Classes="SectionHint" TextWrapping="Wrap" />
+            </StackPanel>
+            <suki:GlassCard Grid.Column="1" Padding="12,10" Opacity="0.9" CornerRadius="12">
+              <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                <TextBlock Text="构建信息" FontWeight="SemiBold" />
+
+                <Grid Grid.Row="1"
+                   ColumnDefinitions="*,*"
+                   RowDefinitions="Auto,Auto"
+                   ColumnSpacing="{DynamicResource PageColumnSpacing}"
+                   RowSpacing="{DynamicResource DialogFormRowSpacing}">
+                  <TextBlock Text="{Binding BuildChannel, StringFormat=Channel: {0}}" Classes="SectionHint" />
+                  <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding BuildDate, StringFormat=Date: {0}}" Classes="SectionHint" />
+                  <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding CompatUiDbRangeText}" Classes="SectionHint" />
+                  <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CompatAgentDbRangeText}" Classes="SectionHint" />
+                </Grid>
+              </Grid>
+            </suki:GlassCard>
+          </Grid>
+
+          <Grid Grid.Row="2" ColumnDefinitions="1*,1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <suki:GlassCard Grid.Column="0" Padding="14,12" CornerRadius="14" Opacity="0.98">
+              <suki:GlassCard.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                  <GradientStop Color="{DynamicResource VersionDbStart}" Offset="0" />
+                  <GradientStop Color="{DynamicResource VersionDbEnd}" Offset="1" />
+                </LinearGradientBrush>
+              </suki:GlassCard.Background>
+              <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:AppIcon Kind="Database" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                  <TextBlock Text="DB Schema" FontWeight="SemiBold" />
+                </StackPanel>
+                <TextBlock Grid.Row="1" Text="{Binding DbSchemaVersion}" FontSize="22" FontWeight="Bold" />
+                <TextBlock Grid.Row="2" Text="用于校验数据库结构兼容性" Opacity="0.9" />
+              </Grid>
+            </suki:GlassCard>
+
+            <suki:GlassCard Grid.Column="1" Padding="14,12" CornerRadius="14" Opacity="0.98">
+              <suki:GlassCard.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                  <GradientStop Color="{DynamicResource VersionAhkStart}" Offset="0" />
+                  <GradientStop Color="{DynamicResource VersionAhkEnd}" Offset="1" />
+                </LinearGradientBrush>
+              </suki:GlassCard.Background>
+              <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <simpleicons:PackIconSimpleIcons Kind="AutoHotkey" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                  <TextBlock Text="AHK 脚本" FontWeight="SemiBold" />
+                </StackPanel>
+                <TextBlock Grid.Row="1" Text="{Binding AhkVersion}" FontSize="22" FontWeight="Bold" />
+                <TextBlock Grid.Row="2" Text="用于自动化执行层版本识别" Opacity="0.9" />
+              </Grid>
+            </suki:GlassCard>
+
+            <suki:GlassCard Grid.Column="2" Padding="14,12" CornerRadius="14" Opacity="0.98">
+              <suki:GlassCard.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                  <GradientStop Color="{DynamicResource VersionUiStart}" Offset="0" />
+                  <GradientStop Color="{DynamicResource VersionUiEnd}" Offset="1" />
+                </LinearGradientBrush>
+              </suki:GlassCard.Background>
+              <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:AppIcon Kind="AppWindow" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                  <TextBlock Text="UI 客户端" FontWeight="SemiBold" />
+                </StackPanel>
+                <TextBlock Grid.Row="1" Text="{Binding UiVersion}" FontSize="22" FontWeight="Bold" />
+                <TextBlock Grid.Row="2" Text="用于桌面应用显示与构建元信息" Opacity="0.9" />
+              </Grid>
+            </suki:GlassCard>
+          </Grid>
+
+          <Grid Grid.Row="3" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <suki:InfoBadge Content="{Binding VersionStatus}" Foreground="{DynamicResource BrushInfo}" />
+            <ItemsControl Grid.Column="1" ItemsSource="{Binding VersionBadges}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:VersionBadgeItem">
+                  <suki:InfoBadge Content="{Binding Display}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Grid>
+        </Grid>
+      </suki:GlassCard>
+
+      <suki:GlassCard Grid.Row="3" Classes="SectionCard" Padding="12,10">
+        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <icons:AppIcon Kind="Cpu" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+            <TextBlock Text="核心技术栈" Classes="SectionTitle" />
+          </StackPanel>
+
+          <Grid Grid.Row="1" ColumnDefinitions="1.2*,0.8*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <suki:GlassCard Padding="12,10" CornerRadius="12" Opacity="0.9">
+              <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+                <TextBlock Text="Architecture Snapshot" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="1"
+                     Text="Avalonia + .NET + PostgreSQL + AHK 形成“桌面编排 + 自动化执行 + 数据落库”闭环"
+                     TextWrapping="Wrap" />
+                <TextBlock Grid.Row="2"
+                     Classes="SectionHint"
+                     Text="当前重点：保证追溯码注入成功率、并发一致性与配置可维护性" />
+              </Grid>
+            </suki:GlassCard>
+
+            <Grid Grid.Column="1" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+              <suki:GlassCard Padding="{StaticResource CompactPadding}" CornerRadius="12" Opacity="0.9">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="3">
+                  <TextBlock Text="里程碑阶段" FontWeight="SemiBold" />
+                  <TextBlock Grid.Row="1" Text="M3 - 自动化能力稳定化" Classes="SectionHint" />
+                </Grid>
+              </suki:GlassCard>
+              <WrapPanel Grid.Row="1" ItemSpacing="6" LineSpacing="6">
+                <controls:StatusPill Icon="MonitorCog"
+                          Text="Desktop Native"
+                          BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                          PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                          ForegroundBrush="{DynamicResource BrushInfo}" />
+                <controls:StatusPill Icon="Bot"
+                          Text="Automation First"
+                          BackgroundBrush="{DynamicResource BrushDoneBg25}"
+                          PillBorderBrush="{DynamicResource BrushDoneBg50}"
+                          ForegroundBrush="{DynamicResource BrushDone}" />
+                <controls:StatusPill Icon="Database"
+                          Text="Data Driven"
+                          BackgroundBrush="{DynamicResource BrushInfoBg15}"
+                          PillBorderBrush="{DynamicResource BrushInfoBg35}"
+                          ForegroundBrush="{DynamicResource BrushInfo}" />
+              </WrapPanel>
+            </Grid>
+          </Grid>
+
+          <Grid Grid.Row="2" ColumnDefinitions="1*,1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+        <suki:GlassCard Grid.Row="0" Grid.Column="0" Padding="14,12" Opacity="0.98" CornerRadius="14">
+          <suki:GlassCard.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Color="{DynamicResource TechAvaloniaStart}" Offset="0" />
+              <GradientStop Color="{DynamicResource TechAvaloniaEnd}" Offset="1" />
+            </LinearGradientBrush>
+          </suki:GlassCard.Background>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
+            <simpleicons:PackIconSimpleIcons Kind="AvaloniaUi" Width="42" Height="42" VerticalAlignment="Top" />
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+              <TextBlock Text="Avalonia UI" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="跨平台桌面 UI 主框架" Opacity="0.95" />
+            </StackPanel>
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Row="0" Grid.Column="1" Padding="14,12" Opacity="0.98" CornerRadius="14">
+          <suki:GlassCard.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Color="{DynamicResource TechDotNetStart}" Offset="0" />
+              <GradientStop Color="{DynamicResource TechDotNetEnd}" Offset="1" />
+            </LinearGradientBrush>
+          </suki:GlassCard.Background>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
+            <simpleicons:PackIconSimpleIcons Kind="DotNet" Width="42" Height="42" VerticalAlignment="Top" />
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+              <TextBlock Text="C# / .NET" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="业务编排与应用生命周期" Opacity="0.95" />
+            </StackPanel>
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Row="0" Grid.Column="2" Padding="14,12" Opacity="0.98" CornerRadius="14">
+          <suki:GlassCard.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Color="{DynamicResource TechPostgreStart}" Offset="0" />
+              <GradientStop Color="{DynamicResource TechPostgreEnd}" Offset="1" />
+            </LinearGradientBrush>
+          </suki:GlassCard.Background>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
+            <simpleicons:PackIconSimpleIcons Kind="PostgreSql" Width="42" Height="42" VerticalAlignment="Top" />
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+              <TextBlock Text="PostgreSQL" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="追溯码与库存核心数据库" Opacity="0.95" />
+            </StackPanel>
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Row="1" Grid.Column="0" Padding="14,12" Opacity="0.98" CornerRadius="14">
+          <suki:GlassCard.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Color="{DynamicResource TechPythonStart}" Offset="0" />
+              <GradientStop Color="{DynamicResource TechPythonEnd}" Offset="1" />
+            </LinearGradientBrush>
+          </suki:GlassCard.Background>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
+            <simpleicons:PackIconSimpleIcons Kind="Python" Width="42" Height="42" VerticalAlignment="Top" />
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+              <TextBlock Text="Python" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="自动拉取与数据桥接流程" Opacity="0.95" />
+            </StackPanel>
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Row="1" Grid.Column="1" Padding="14,12" Opacity="0.98" CornerRadius="14">
+          <suki:GlassCard.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Color="{DynamicResource TechAhkStart}" Offset="0" />
+              <GradientStop Color="{DynamicResource TechAhkEnd}" Offset="1" />
+            </LinearGradientBrush>
+          </suki:GlassCard.Background>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
+            <simpleicons:PackIconSimpleIcons Kind="AutoHotkey" Width="42" Height="42" VerticalAlignment="Top" />
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+              <TextBlock Text="AutoHotkey" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="追溯码自动注入执行层" Opacity="0.95" />
+            </StackPanel>
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Row="1" Grid.Column="2" Padding="14,12" Opacity="0.98" CornerRadius="14">
+          <suki:GlassCard.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Color="{DynamicResource TechMacStart}" Offset="0" />
+              <GradientStop Color="{DynamicResource TechMacEnd}" Offset="1" />
+            </LinearGradientBrush>
+          </suki:GlassCard.Background>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
+            <simpleicons:PackIconSimpleIcons Kind="MacOs" Width="42" Height="42" VerticalAlignment="Top" />
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+              <TextBlock Text="macOS" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="主要开发与测试平台" Opacity="0.95" />
+            </StackPanel>
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Row="2" Grid.Column="0" Padding="14,12" Opacity="0.98" CornerRadius="14">
+          <suki:GlassCard.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Color="{DynamicResource TechRiderStart}" Offset="0" />
+              <GradientStop Color="{DynamicResource TechRiderEnd}" Offset="1" />
+            </LinearGradientBrush>
+          </suki:GlassCard.Background>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
+            <simpleicons:PackIconSimpleIcons Kind="Rider" Width="42" Height="42" VerticalAlignment="Top" />
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+              <TextBlock Text="JetBrains Rider" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="C#/.NET 主力 IDE" Opacity="0.95" />
+            </StackPanel>
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Row="2" Grid.Column="1" Padding="14,12" Opacity="0.98" CornerRadius="14">
+          <suki:GlassCard.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Color="{DynamicResource TechDataGripStart}" Offset="0" />
+              <GradientStop Color="{DynamicResource TechDataGripEnd}" Offset="1" />
+            </LinearGradientBrush>
+          </suki:GlassCard.Background>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
+            <simpleicons:PackIconSimpleIcons Kind="DataGrip" Width="42" Height="42" VerticalAlignment="Top" />
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+              <TextBlock Text="Database" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="SQL 调试与数据校验" Opacity="0.95" />
+            </StackPanel>
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Row="2" Grid.Column="2" Padding="14,12" Opacity="0.98" CornerRadius="14">
+          <suki:GlassCard.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Color="{DynamicResource TechVsCodeStart}" Offset="0" />
+              <GradientStop Color="{DynamicResource TechVsCodeEnd}" Offset="1" />
+            </LinearGradientBrush>
+          </suki:GlassCard.Background>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
+            <icons:AppIcon Kind="Code" Width="42" Height="42" VerticalAlignment="Top" />
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+              <TextBlock Text="Visual Studio Code" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="脚本与轻量编辑工具" Opacity="0.95" />
+            </StackPanel>
+          </Grid>
+        </suki:GlassCard>
+          </Grid>
+        </Grid>
+      </suki:GlassCard>
+
+      <suki:GlassCard Grid.Row="4" Classes="SectionCard" Padding="12,10">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+            <icons:AppIcon Kind="FlaskConical" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="交互实验室" Classes="SectionTitle" />
+          </Grid>
+
+          <Grid Grid.Row="1" ColumnDefinitions="1.2*,1.2*,1.2*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <suki:GlassCard Grid.Column="0" Padding="{StaticResource CompactPadding}" Opacity="0.95">
+              <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:AppIcon Kind="ShieldCheck" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                  <TextBlock Text="稳定性指数" Opacity="0.8" />
+                </StackPanel>
+                <TextBlock Grid.Row="1" Text="96%" FontSize="18" FontWeight="Bold" />
+                <ProgressBar Grid.Row="2" Minimum="0" Maximum="100" Value="96" Height="10" />
+              </Grid>
+            </suki:GlassCard>
+
+            <suki:GlassCard Grid.Column="1" Padding="{StaticResource CompactPadding}" Opacity="0.95">
+              <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:AppIcon Kind="Zap" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                  <TextBlock Text="响应效率" Opacity="0.8" />
+                </StackPanel>
+                <TextBlock Grid.Row="1" Text="89%" FontSize="18" FontWeight="Bold" />
+                <ProgressBar Grid.Row="2" Minimum="0" Maximum="100" Value="89" Height="10" />
+              </Grid>
+            </suki:GlassCard>
+
+            <suki:GlassCard Grid.Column="2" Padding="{StaticResource CompactPadding}" Opacity="0.95">
+              <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:AppIcon Kind="DatabaseBackup" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                  <TextBlock Text="数据一致性" Opacity="0.8" />
+                </StackPanel>
+                <TextBlock Grid.Row="1" Text="92%" FontSize="18" FontWeight="Bold" />
+                <ProgressBar Grid.Row="2" Minimum="0" Maximum="100" Value="92" Height="10" />
+              </Grid>
+            </suki:GlassCard>
+          </Grid>
+
+          <Grid Grid.Row="2" ColumnDefinitions="1.1*,1.1*,1.1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <suki:GroupBox Header="视觉标记样例">
+              <WrapPanel Margin="8,8,8,8" ItemSpacing="8" LineSpacing="8">
+                <controls:StatusPill Icon="CircleCheck"
+                          Text="Online"
+                          BackgroundBrush="{DynamicResource BrushDoneBg25}"
+                          PillBorderBrush="{DynamicResource BrushDoneBg50}"
+                          ForegroundBrush="{DynamicResource BrushDone}" />
+                <controls:StatusPill Icon="Bot"
+                          Text="AutoFetch"
+                          BackgroundBrush="{DynamicResource BrushDoneBg25}"
+                          PillBorderBrush="{DynamicResource BrushDoneBg50}"
+                          ForegroundBrush="{DynamicResource BrushDone}" />
+                <controls:StatusPill Icon="Clock"
+                          Text="Pending"
+                          BackgroundBrush="{DynamicResource BrushWarningBg25}"
+                          PillBorderBrush="{DynamicResource BrushWarningBg50}"
+                          ForegroundBrush="{DynamicResource BrushWarning}" />
+                <controls:StatusPill Icon="Undo"
+                          Text="Rollback"
+                          BackgroundBrush="{DynamicResource BrushDangerBg15}"
+                          PillBorderBrush="{DynamicResource BrushDangerBg35}"
+                          ForegroundBrush="{DynamicResource BrushDanger}" />
+              </WrapPanel>
+            </suki:GroupBox>
+
+            <suki:GroupBox Grid.Column="1" Header="Settings Layout（演示）">
+              <Grid Margin="8,8,8,8"
+                 ColumnDefinitions="Auto,*"
+                 RowDefinitions="Auto,Auto,Auto,Auto"
+                 ColumnSpacing="{DynamicResource PageColumnSpacing}"
+                 RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                <TextBlock Text="主题模式" VerticalAlignment="Center" />
+                <ComboBox Grid.Row="0" Grid.Column="1" SelectedIndex="0">
+                  <ComboBoxItem Content="System" />
+                  <ComboBoxItem Content="Light" />
+                  <ComboBoxItem Content="Dark" />
+                </ComboBox>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="启用动画" VerticalAlignment="Center" />
+                <ToggleSwitch Grid.Row="1" Grid.Column="1" IsChecked="True" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="密度" VerticalAlignment="Center" />
+                <Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Value="68" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="刷新间隔" VerticalAlignment="Center" />
+                <NumericUpDown Grid.Row="3" Grid.Column="1" Minimum="1" Maximum="60" Value="10" />
+              </Grid>
+            </suki:GroupBox>
+
+            <suki:GroupBox Grid.Column="2" Header="Button 样式（实验）">
+              <WrapPanel Margin="8,8,8,8" ItemSpacing="8" LineSpacing="8">
+                <Button Content="Standard" />
+                <Button Classes="Flat" Content="Flat" />
+                <Button Classes="Rounded" Content="Rounded" />
+                <Button Classes="Outlined" Content="Outlined" />
+                <Button Classes="Basic" Content="Basic" />
+                <Button Classes="Flat Accent" Content="Flat Accent" />
+                <Button Classes="Large" Content="Large" />
+              </WrapPanel>
+            </suki:GroupBox>
+          </Grid>
+
+          <suki:GroupBox Grid.Row="3" Header="WaveProgress（可调演示）">
+            <Grid Margin="8,8,8,8"
+               ColumnDefinitions="280,*"
+               ColumnSpacing="18"
+               MinHeight="250"
+               VerticalAlignment="Center">
+              <Grid RowDefinitions="*,Auto" VerticalAlignment="Center">
+                <suki:WaveProgress Grid.Row="0"
+                         Width="220"
+                         Height="220"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         Value="{Binding WaveDemoValue}" />
+                <TextBlock Grid.Row="1"
+                     HorizontalAlignment="Center"
+                     Margin="0,6,0,0"
+                     FontSize="18"
+                     FontWeight="Bold"
+                     Text="{Binding WaveDemoValue, StringFormat={}{0:0}%}" />
+              </Grid>
+
+              <Grid Grid.Column="1"
+                 RowDefinitions="Auto,Auto,Auto"
+                 RowSpacing="{DynamicResource FormRowSpacing}"
+                 VerticalAlignment="Center">
+                <TextBlock Text="拖动滑块可实时调节水波高度"
+                     FontWeight="SemiBold" />
+                <Slider Grid.Row="1"
+                    Minimum="0"
+                    Maximum="100"
+                    Value="{Binding WaveDemoValue, Mode=TwoWay}" />
+                <TextBlock Grid.Row="2"
+                     Classes="SectionHint"
+                     Text="样式参考 WaveProgress 演示：WaveProgress + 拖动调节 + 实时数值" />
+              </Grid>
+            </Grid>
+          </suki:GroupBox>
+
+          <suki:GroupBox Grid.Row="4" Header="交互组件预览">
+            <TabControl Margin="8,8,8,8" SelectedIndex="0">
+              <TabItem Header="布局">
+                <Grid Margin="8,8,8,8" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                  <TextBlock Text="主机名" VerticalAlignment="Center" />
+                  <TextBox Grid.Column="1" Watermark="例如：127.0.0.1" />
+                </Grid>
+              </TabItem>
+              <TabItem Header="信息">
+                <Expander Margin="8,8,8,8" Header="展开查看说明" IsExpanded="True">
+                  <TextBlock Margin="8,6,8,8"
+                       Classes="SectionHint"
+                       TextWrapping="Wrap"
+                       Text="这里可放置系统能力说明、版本策略或排障建议，作为可折叠信息块" />
+                </Expander>
+              </TabItem>
+            </TabControl>
+          </suki:GroupBox>
+        </Grid>
+      </suki:GlassCard>
+    </Grid>
+  </ScrollViewer>
 </UserControl>
