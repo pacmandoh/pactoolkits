@@ -18,7 +18,7 @@
 
     <suki:GlassCard Grid.Row="0"
             Classes="SectionCard"
-            Padding="14,12">
+            Padding="{DynamicResource AboutHeroCardPadding}">
       <Grid ColumnDefinitions="Auto,*,Auto"
          ColumnSpacing="{DynamicResource PageColumnSpacing}"
          VerticalAlignment="Center">
@@ -45,7 +45,7 @@
 
         <StackPanel Grid.Column="2"
               Orientation="Horizontal"
-              Spacing="8"
+              Spacing="{DynamicResource SpacingInlineMd}"
               VerticalAlignment="Center">
           <controls:StatusPill Icon="Link"
                     Text="MSFX"
@@ -68,14 +68,14 @@
           SelectedIndex="{Binding SelectedTabIndex}">
       <TabItem>
         <TabItem.Header>
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <icons:AppIcon Kind="Bot" Width="12" Height="12" />
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+            <icons:AppIcon Kind="Bot" Width="{DynamicResource IconSizeMini}" Height="{DynamicResource IconSizeMini}" />
             <TextBlock Text="自动化监控" />
           </StackPanel>
         </TabItem.Header>
 
         <suki:BusyArea BusyText="加载中..." IsBusy="{Binding IsAutoBoardBusy}">
-        <Grid Margin="0,12,0,0"
+        <Grid Margin="{DynamicResource MarginTopLg}"
            RowDefinitions="Auto,*"
            RowSpacing="{DynamicResource FormRowSpacing}">
           <Grid Grid.Row="0"
@@ -90,8 +90,8 @@
                  ColumnSpacing="{DynamicResource PageColumnSpacing}"
                  VerticalAlignment="Center">
                 <icons:AppIcon Kind="Power"
-                          Width="16"
-                          Height="16"
+                          Width="{DynamicResource IconSizeDefault}"
+                          Height="{DynamicResource IconSizeDefault}"
                           Foreground="{Binding IsAutoEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
                           VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1"
@@ -106,7 +106,7 @@
 
             <suki:GlassCard Grid.Column="1" Padding="12,10">
               <Grid ColumnDefinitions="Auto,Auto,Auto"
-                 ColumnSpacing="8"
+                 ColumnSpacing="{DynamicResource SpacingInlineMd}"
                  VerticalAlignment="Center">
                 <icons:AppIcon Kind="Clock" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                 <TextBlock Grid.Column="1" Text="轮询(分)" VerticalAlignment="Center" />
@@ -128,7 +128,7 @@
                   theme:ButtonExtensions.ShowProgress="{Binding IsAutoBusy}"
                   IsEnabled="{Binding !IsAutoBusy}"
                   Command="{Binding RunAutoOnceCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="CirclePlay" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="立即巡检" />
                 </StackPanel>
@@ -140,7 +140,7 @@
                   Height="{StaticResource ControlHeightCompact}"
                   MinWidth="{StaticResource MinWAction}"
                   Command="{Binding ClearAutoLogsCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Eraser" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="清空日志" />
                 </StackPanel>
@@ -152,14 +152,14 @@
                     Opacity="0.9"
                     HorizontalAlignment="Stretch">
               <Grid ColumnDefinitions="Auto,*,Auto"
-                 ColumnSpacing="8"
+                 ColumnSpacing="{DynamicResource SpacingInlineMd}"
                  VerticalAlignment="Center">
                 <icons:AppIcon Kind="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToIconKind}}"
-                          Width="16"
-                          Height="16"
+                          Width="{DynamicResource IconSizeDefault}"
+                          Height="{DynamicResource IconSizeDefault}"
                           Foreground="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
                           VerticalAlignment="Center" />
-                <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+                <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
                   <suki:InfoBadge Content="{Binding AutoLogs.Count, StringFormat=日志 {0}}" VerticalAlignment="Center" />
                   <suki:InfoBadge Grid.Column="1" Content="{Binding AutoLastRunAtText, StringFormat=最近 {0}}" VerticalAlignment="Center" />
                 </Grid>
@@ -167,7 +167,7 @@
                     Classes="Ghost"
                     Command="{Binding RefreshAutoBoardCommand}"
                     MinWidth="{StaticResource MinWAction}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="RefreshCw" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="刷新审计" />
                   </StackPanel>
@@ -189,8 +189,8 @@
                     Background="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToBgBrush}}">
                   <icons:AppIcon Kind="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToIconKind}}"
                             Foreground="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                            Width="14"
-                            Height="14"
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center" />
                 </Border>
@@ -241,23 +241,23 @@
               <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <Grid ColumnDefinitions="Auto,*,Auto"
                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                  <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
                     <icons:AppIcon Kind="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToIconKind}}"
                               Foreground="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                              Width="16"
-                              Height="16" />
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="拉取批次明细" FontWeight="SemiBold" Opacity="0.9" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding AutoPullSummary}" Classes="SectionHint" VerticalAlignment="Center" />
                   </StackPanel>
                   <StackPanel Grid.Column="2"
                         Orientation="Horizontal"
-                        Spacing="6"
+                        Spacing="{DynamicResource SpacingInlineSm}"
                         VerticalAlignment="Center">
                     <suki:InfoBadge Content="{Binding AutoPullBatchRows.Count, StringFormat=共 {0} 条}" VerticalAlignment="Center" />
                     <Button Classes="Ghost MsfxMiniIconBtn"
                         Command="{Binding ToggleAutoPanelExpandCommand}"
                         CommandParameter="PULL">
-                      <icons:AppIcon Kind="Fullscreen" Width="15" Height="15" />
+                      <icons:AppIcon Kind="Fullscreen" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                     </Button>
                   </StackPanel>
                 </Grid>
@@ -282,8 +282,8 @@
                                 Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
                               <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                         Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                        Width="14"
-                                        Height="14"
+                                        Width="{DynamicResource IconSizeSmall}"
+                                        Height="{DynamicResource IconSizeSmall}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center" />
                             </Border>
@@ -312,32 +312,32 @@
               <Grid RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <Grid ColumnDefinitions="Auto,*,Auto"
                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                  <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
                     <icons:AppIcon Kind="{Binding AutoMapState, Converter={StaticResource TraceEntryStateToIconKind}}"
                               Foreground="{Binding AutoMapState, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                              Width="16"
-                              Height="16" />
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="映射结果队列" FontWeight="SemiBold" Opacity="0.9" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding AutoMapSummary}" Classes="SectionHint" VerticalAlignment="Center" />
                   </StackPanel>
                   <StackPanel Grid.Column="2"
                         Orientation="Horizontal"
-                        Spacing="6"
+                        Spacing="{DynamicResource SpacingInlineSm}"
                         VerticalAlignment="Center">
                     <Button Classes="Ghost MsfxMiniIconBtn"
                         Command="{Binding OpenMapBatchDialogCommand}">
-                      <icons:AppIcon Kind="Table2" Width="15" Height="15" />
+                      <icons:AppIcon Kind="Table2" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                     </Button>
                     <Button Classes="Ghost MsfxMiniIconBtn"
                         Command="{Binding ToggleAutoPanelExpandCommand}"
                         CommandParameter="MAP">
-                      <icons:AppIcon Kind="Fullscreen" Width="15" Height="15" />
+                      <icons:AppIcon Kind="Fullscreen" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                     </Button>
                   </StackPanel>
                 </Grid>
                 <Grid Grid.Row="1"
                    ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto"
-                   ColumnSpacing="8"
+                   ColumnSpacing="{DynamicResource SpacingInlineMd}"
                    IsVisible="False">
                   <suki:InfoBadge Content="{Binding MapQueueDisplayText}" VerticalAlignment="Center" />
                   <suki:InfoBadge Grid.Column="1" Content="{Binding MapQueueRangeText}" VerticalAlignment="Center" />
@@ -395,8 +395,8 @@
                                 Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
                               <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                         Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                        Width="14"
-                                        Height="14"
+                                        Width="{DynamicResource IconSizeSmall}"
+                                        Height="{DynamicResource IconSizeSmall}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center" />
                             </Border>
@@ -438,61 +438,61 @@
                    RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                   <Grid ColumnDefinitions="Auto,*,Auto"
                      ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
                       <icons:AppIcon Kind="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToIconKind}}"
                                 Foreground="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                Width="16"
-                                Height="16" />
+                                Width="{DynamicResource IconSizeDefault}"
+                                Height="{DynamicResource IconSizeDefault}" />
                       <TextBlock Text="Agent 执行队列" FontWeight="SemiBold" Opacity="0.9" VerticalAlignment="Center" />
                     </StackPanel>
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" IsVisible="{Binding !IsTaskQueueBatchModeActive}">
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" VerticalAlignment="Center" IsVisible="{Binding !IsTaskQueueBatchModeActive}">
                       <Button Classes="Ghost MsfxMiniIconBtn"
                           behaviors:FocusClearBehavior.SuppressGridClear="True"
                           IsEnabled="{Binding CanEnterTaskMergeMode}"
                           Command="{Binding BeginMergeTaskSelectionCommand}"
                           ToolTip.Tip="合并同药名同规格任务">
-                        <icons:AppIcon Kind="GitMerge" Width="15" Height="15" />
+                        <icons:AppIcon Kind="GitMerge" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                       </Button>
                       <Button Classes="Ghost MsfxMiniIconBtn"
                           behaviors:FocusClearBehavior.SuppressGridClear="True"
                           IsEnabled="{Binding CanSplitSelectedTasks}"
                           Command="{Binding SplitSelectedTaskCommand}"
                           ToolTip.Tip="拆分当前任务">
-                        <icons:AppIcon Kind="GitBranch" Width="15" Height="15" />
+                        <icons:AppIcon Kind="GitBranch" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                       </Button>
                       <Button Classes="Ghost MsfxMiniIconBtn"
                           behaviors:FocusClearBehavior.SuppressGridClear="True"
                           IsEnabled="{Binding CanEnterTaskRemapMode}"
                           Command="{Binding BeginRemapTaskSelectionCommand}"
                           ToolTip.Tip="重新映射选中任务">
-                        <icons:AppIcon Kind="Undo2" Width="15" Height="15" />
+                        <icons:AppIcon Kind="Undo2" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                       </Button>
                       <Button Classes="Ghost MsfxMiniIconBtn"
                           behaviors:FocusClearBehavior.SuppressGridClear="True"
                           IsEnabled="{Binding CanEnterTaskDiscardMode}"
                           Command="{Binding BeginDiscardTaskSelectionCommand}"
                           ToolTip.Tip="弃用选中任务">
-                        <icons:AppIcon Kind="Ban" Width="15" Height="15" />
+                        <icons:AppIcon Kind="Ban" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                       </Button>
                       <Button Classes="Ghost MsfxMiniIconBtn"
                           behaviors:FocusClearBehavior.SuppressGridClear="True"
                           IsEnabled="{Binding CanEnterTaskReopenMode}"
                           Command="{Binding BeginReopenTaskSelectionCommand}"
                           ToolTip.Tip="重开选中任务">
-                        <icons:AppIcon Kind="RotateCcw" Width="15" Height="15" />
+                        <icons:AppIcon Kind="RotateCcw" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                       </Button>
                       <Button Classes="Ghost MsfxMiniIconBtn"
                           behaviors:FocusClearBehavior.SuppressGridClear="True"
                           Command="{Binding ToggleAutoPanelExpandCommand}"
                           CommandParameter="TASK"
                           ToolTip.Tip="全屏查看执行队列">
-                        <icons:AppIcon Kind="Fullscreen" Width="15" Height="15" />
+                        <icons:AppIcon Kind="Fullscreen" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                       </Button>
                     </StackPanel>
                     <Grid Grid.Column="2"
                        IsVisible="{Binding IsTaskQueueBatchModeActive}"
                        ColumnDefinitions="Auto,Auto,Auto"
-                       ColumnSpacing="8"
+                       ColumnSpacing="{DynamicResource SpacingInlineMd}"
                        VerticalAlignment="Center">
                       <TextBlock Text="{Binding TaskQueueBatchModeTitle}"
                            VerticalAlignment="Center"
@@ -513,11 +513,11 @@
                     </Grid>
                   </Grid>
                   <TextBlock Grid.Row="1"
-                       Margin="0,0,0,6"
+                       Margin="{DynamicResource MarginBottomMd}"
                        Text="{Binding TaskQueueBatchModeHint}"
                        Classes="SectionHint"
                        IsVisible="{Binding IsTaskQueueBatchModeActive}" />
-                  <WrapPanel Grid.Row="2" ItemSpacing="8" LineSpacing="6">
+                  <WrapPanel Grid.Row="2" ItemSpacing="{DynamicResource SpacingInlineMd}" LineSpacing="{DynamicResource SpacingInlineSm}">
                     <controls:StatusPill Icon="CircleDot"
                               Text="{Binding AutoTaskNewCount, StringFormat=待执行 {0}}"
                               BackgroundBrush="{DynamicResource BrushWarningBg15}"
@@ -597,8 +597,8 @@
                                 Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
                               <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                         Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                        Width="14"
-                                        Height="14"
+                                        Width="{DynamicResource IconSizeSmall}"
+                                        Height="{DynamicResource IconSizeSmall}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center" />
                             </Border>
@@ -628,19 +628,19 @@
                     Padding="12,10">
               <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
                   <icons:AppIcon Kind="TextSearch" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="自动化运行审计日志"
                        FontWeight="SemiBold"
                        Opacity="0.9"
                        VerticalAlignment="Center" />
                 </StackPanel>
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" VerticalAlignment="Center">
                   <suki:InfoBadge Content="{Binding AutoLogs.Count, StringFormat=共 {0} 条}" VerticalAlignment="Center" />
                   <Button Classes="Ghost MsfxMiniIconBtn"
                       Command="{Binding ToggleAutoPanelExpandCommand}"
                       CommandParameter="LOG">
-                    <icons:AppIcon Kind="Fullscreen" Width="15" Height="15" />
+                    <icons:AppIcon Kind="Fullscreen" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                   </Button>
                 </StackPanel>
                 </Grid>
@@ -667,8 +667,8 @@
                                 Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
                               <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                         Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                        Width="14"
-                                        Height="14"
+                                        Width="{DynamicResource IconSizeSmall}"
+                                        Height="{DynamicResource IconSizeSmall}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center" />
                             </Border>
@@ -692,21 +692,21 @@
                     IsVisible="{Binding IsAutoExpanded}">
               <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                  <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
                     <icons:AppIcon Kind="{Binding AutoExpandedPanelIcon}" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="{Binding AutoExpandedPanelTitle}"
                          FontWeight="SemiBold"
                          Opacity="0.9"
                          VerticalAlignment="Center" />
                   </StackPanel>
-                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" VerticalAlignment="Center">
                     <Button Classes="Action"
                         IsVisible="{Binding IsMapPanelExpanded}"
                         Height="{StaticResource ControlHeightCompact}"
                         MinWidth="110"
                         Command="{Binding OpenMapBatchDialogCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                          <icons:AppIcon Kind="Table2" Width="15" Height="15" />
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon Kind="Table2" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                           <TextBlock Text="批量映射" />
                         </StackPanel>
                     </Button>
@@ -717,8 +717,8 @@
                         Height="{StaticResource ControlHeightCompact}"
                         MinWidth="110"
                         Command="{Binding BeginMergeTaskSelectionCommand}">
-                      <StackPanel Orientation="Horizontal" Spacing="6">
-                        <icons:AppIcon Kind="GitMerge" Width="15" Height="15" />
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="GitMerge" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                         <TextBlock Text="合并任务" />
                       </StackPanel>
                     </Button>
@@ -729,8 +729,8 @@
                         Height="{StaticResource ControlHeightCompact}"
                         MinWidth="110"
                         Command="{Binding SplitSelectedTaskCommand}">
-                      <StackPanel Orientation="Horizontal" Spacing="6">
-                        <icons:AppIcon Kind="GitBranch" Width="15" Height="15" />
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="GitBranch" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                         <TextBlock Text="拆分任务" />
                       </StackPanel>
                     </Button>
@@ -741,8 +741,8 @@
                         Height="{StaticResource ControlHeightCompact}"
                         MinWidth="110"
                         Command="{Binding BeginRemapTaskSelectionCommand}">
-                      <StackPanel Orientation="Horizontal" Spacing="6">
-                        <icons:AppIcon Kind="Undo2" Width="15" Height="15" />
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="Undo2" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                         <TextBlock Text="重新映射" />
                       </StackPanel>
                     </Button>
@@ -753,8 +753,8 @@
                         Height="{StaticResource ControlHeightCompact}"
                         MinWidth="110"
                         Command="{Binding BeginDiscardTaskSelectionCommand}">
-                      <StackPanel Orientation="Horizontal" Spacing="6">
-                        <icons:AppIcon Kind="Ban" Width="15" Height="15" />
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="Ban" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                         <TextBlock Text="弃用" />
                       </StackPanel>
                     </Button>
@@ -765,8 +765,8 @@
                         Height="{StaticResource ControlHeightCompact}"
                         MinWidth="110"
                         Command="{Binding BeginReopenTaskSelectionCommand}">
-                      <StackPanel Orientation="Horizontal" Spacing="6">
-                        <icons:AppIcon Kind="RotateCcw" Width="15" Height="15" />
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="RotateCcw" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                         <TextBlock Text="重启任务" />
                       </StackPanel>
                     </Button>
@@ -780,19 +780,19 @@
                         VerticalContentAlignment="Center"
                         Command="{Binding ToggleTaskQueueSearchPanelCommand}"
                         ToolTip.Tip="显示/隐藏执行队列搜索">
-                      <Panel Width="16"
-                         Height="16"
+                      <Panel Width="{DynamicResource IconSizeDefault}"
+                         Height="{DynamicResource IconSizeDefault}"
                          HorizontalAlignment="Center"
                          VerticalAlignment="Center">
                         <icons:AppIcon Kind="Search"
-                               Width="14"
-                               Height="14"
+                               Width="{DynamicResource IconSizeSmall}"
+                               Height="{DynamicResource IconSizeSmall}"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                IsVisible="{Binding !IsTaskQueueSearchPanelVisible}" />
                         <icons:AppIcon Kind="SearchX"
-                               Width="14"
-                               Height="14"
+                               Width="{DynamicResource IconSizeSmall}"
+                               Height="{DynamicResource IconSizeSmall}"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                IsVisible="{Binding IsTaskQueueSearchPanelVisible}" />
@@ -808,7 +808,7 @@
                         VerticalContentAlignment="Center"
                         Command="{Binding ToggleAutoPanelExpandCommand}"
                         CommandParameter="{Binding AutoExpandedPanel}">
-                      <icons:AppIcon Kind="Minimize" Width="15" Height="15" />
+                      <icons:AppIcon Kind="Minimize" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                     </Button>
                   </StackPanel>
                 </Grid>
@@ -818,7 +818,7 @@
                    RowDefinitions="Auto,*"
                    RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                   <Grid ColumnDefinitions="Auto,*,Auto,120,Auto,Auto"
-                     ColumnSpacing="8">
+                     ColumnSpacing="{DynamicResource SpacingInlineMd}">
                     <TextBlock Text="{Binding PullBatchPageText}" Classes="SectionHint" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="2" Text="每页" VerticalAlignment="Center" Opacity="0.8" />
                     <ComboBox Grid.Column="3"
@@ -864,8 +864,8 @@
                                   Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
                                 <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                           Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                          Width="14"
-                                          Height="14"
+                                          Width="{DynamicResource IconSizeSmall}"
+                                          Height="{DynamicResource IconSizeSmall}"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center" />
                               </Border>
@@ -893,7 +893,7 @@
                   <Grid RowDefinitions="Auto,Auto"
                      RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                     <Grid ColumnDefinitions="Auto,Auto,*,180,240,Auto,Auto"
-                       ColumnSpacing="8">
+                       ColumnSpacing="{DynamicResource SpacingInlineMd}">
                       <TextBlock Text="{Binding MapQueueDisplayText}" Classes="SectionHint" VerticalAlignment="Center" />
                       <TextBlock Grid.Column="1" Text="{Binding MapQueueRangeText}" Classes="SectionHint" VerticalAlignment="Center" />
                       <ComboBox Grid.Column="3"
@@ -915,7 +915,7 @@
                           Height="{StaticResource ControlHeightCompact}"
                           MinWidth="76"
                           Command="{Binding SearchMapQueueCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                           <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                           <TextBlock Text="搜索" />
                         </StackPanel>
@@ -925,7 +925,7 @@
                           Height="{StaticResource ControlHeightCompact}"
                           MinWidth="104"
                           Command="{Binding ResetMapQueueFiltersCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                           <icons:AppIcon Kind="Eraser" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                           <TextBlock Text="重置筛选" />
                         </StackPanel>
@@ -934,7 +934,7 @@
 
                     <Grid Grid.Row="1"
                        ColumnDefinitions="Auto,220,Auto,190,*,Auto,Auto,Auto"
-                       ColumnSpacing="8">
+                       ColumnSpacing="{DynamicResource SpacingInlineMd}">
                       <TextBlock Grid.Column="0" Text="映射状态" VerticalAlignment="Center" Opacity="0.8" />
                       <ComboBox Grid.Column="1"
                            Height="{StaticResource ControlHeightCompact}"
@@ -996,8 +996,8 @@
                                   Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
                                 <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                           Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                          Width="14"
-                                          Height="14"
+                                          Width="{DynamicResource IconSizeSmall}"
+                                          Height="{DynamicResource IconSizeSmall}"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center" />
                               </Border>
@@ -1087,7 +1087,7 @@
                           Height="{StaticResource ControlHeightCompact}"
                           MinWidth="{StaticResource MinWAction}"
                           Command="{Binding SearchTaskQueueCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                           <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                           <TextBlock Text="搜索" />
                         </StackPanel>
@@ -1097,7 +1097,7 @@
                           Height="{StaticResource ControlHeightCompact}"
                           MinWidth="{StaticResource MinWAction}"
                           Command="{Binding ClearTaskQueueSearchCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                           <icons:AppIcon Kind="Delete" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                           <TextBlock Text="清空" />
                         </StackPanel>
@@ -1142,8 +1142,8 @@
                                   Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
                                 <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                           Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                          Width="14"
-                                          Height="14"
+                                          Width="{DynamicResource IconSizeSmall}"
+                                          Height="{DynamicResource IconSizeSmall}"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center" />
                               </Border>
@@ -1190,8 +1190,8 @@
                                 Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
                               <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                         Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                        Width="14"
-                                        Height="14"
+                                        Width="{DynamicResource IconSizeSmall}"
+                                        Height="{DynamicResource IconSizeSmall}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center" />
                             </Border>
@@ -1213,15 +1213,15 @@
 
       <TabItem>
         <TabItem.Header>
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <icons:AppIcon Kind="ClipboardList" Width="12" Height="12" />
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+            <icons:AppIcon Kind="ClipboardList" Width="{DynamicResource IconSizeMini}" Height="{DynamicResource IconSizeMini}" />
             <TextBlock Text="上游出库单查询" />
           </StackPanel>
         </TabItem.Header>
 
         <Grid RowDefinitions="Auto,*"
            RowSpacing="{DynamicResource FormRowSpacing}"
-           Margin="0,12,0,0">
+           Margin="{DynamicResource MarginTopLg}">
           <suki:GlassCard Grid.Row="0"
                   Classes="SectionCard"
                   Padding="12,10">
@@ -1256,8 +1256,8 @@
                     Height="{StaticResource ControlHeightCompact}"
                     MinWidth="{StaticResource MinWAction}"
                     Command="{Binding QueryUpoutCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
-                    <icons:AppIcon Kind="Search" Width="15" Height="15" />
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                     <TextBlock Text="查询" />
                   </StackPanel>
                 </Button>
@@ -1267,8 +1267,8 @@
                     Height="{StaticResource ControlHeightCompact}"
                     MinWidth="{StaticResource MinWAction}"
                     Command="{Binding ResetUpoutFiltersCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
-                    <icons:AppIcon Kind="RefreshCw" Width="15" Height="15" />
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon Kind="RefreshCw" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                     <TextBlock Text="重置" />
                   </StackPanel>
                 </Button>
@@ -1315,15 +1315,15 @@
                   Padding="12,10">
             <Grid RowDefinitions="Auto,*"
                RowSpacing="{DynamicResource DialogInnerRowSpacing}"
-               Margin="2,0,2,0">
-              <Grid ColumnDefinitions="*,Auto"
+               Margin="{DynamicResource MarginHorizontalTiny}">
+              <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
                  VerticalAlignment="Center">
                 <TextBlock Text="{Binding UpoutStatus}"
                      Classes="SectionHint"
                      VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1"
                       Orientation="Horizontal"
-                      Spacing="8">
+                      Spacing="{DynamicResource SpacingInlineMd}">
                   <Button Classes="Ghost"
                       IsEnabled="{Binding HasUpoutPrevPage}"
                       Command="{Binding PrevUpoutPageCommand}">
@@ -1365,8 +1365,8 @@
                               Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
                             <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                       Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                      Width="14"
-                                      Height="14"
+                                      Width="{DynamicResource IconSizeSmall}"
+                                      Height="{DynamicResource IconSizeSmall}"
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center" />
                           </Border>
@@ -1398,15 +1398,15 @@
 
       <TabItem Classes="NoDivider">
         <TabItem.Header>
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <icons:AppIcon Kind="ScanBarcode" Width="12" Height="12" />
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+            <icons:AppIcon Kind="ScanBarcode" Width="{DynamicResource IconSizeMini}" Height="{DynamicResource IconSizeMini}" />
             <TextBlock Text="子码查询" />
           </StackPanel>
         </TabItem.Header>
 
         <Grid RowDefinitions="Auto,*"
            RowSpacing="{DynamicResource FormRowSpacing}"
-           Margin="0,12,0,0">
+           Margin="{DynamicResource MarginTopLg}">
           <suki:GlassCard Grid.Row="0"
                   Classes="SectionCard"
                   Padding="12,10">
@@ -1429,8 +1429,8 @@
                   Height="{StaticResource ControlHeightCompact}"
                   MinWidth="{StaticResource MinWAction}"
                   Command="{Binding QuerySubCodesCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <icons:AppIcon Kind="ScanSearch" Width="15" Height="15" />
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                  <icons:AppIcon Kind="ScanSearch" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                   <TextBlock Text="查询子码" />
                 </StackPanel>
               </Button>
@@ -1439,8 +1439,8 @@
                   Height="{StaticResource ControlHeightCompact}"
                   MinWidth="{StaticResource MinWAction}"
                   Command="{Binding ClearSubcodeQueryCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <icons:AppIcon Kind="Delete" Width="15" Height="15" />
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                  <icons:AppIcon Kind="Delete" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
                   <TextBlock Text="清除" />
                 </StackPanel>
               </Button>
@@ -1452,15 +1452,15 @@
                   Padding="12,10">
             <Grid RowDefinitions="Auto,*"
                RowSpacing="{DynamicResource DialogInnerRowSpacing}"
-               Margin="2,0,2,0">
-              <Grid ColumnDefinitions="*,Auto"
+               Margin="{DynamicResource MarginHorizontalTiny}">
+              <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
                  VerticalAlignment="Center">
                 <TextBlock Text="{Binding SubcodeStatus}"
                      Classes="SectionHint"
                      VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1"
                       Orientation="Horizontal"
-                      Spacing="8"
+                      Spacing="{DynamicResource SpacingInlineMd}"
                       VerticalAlignment="Center">
                   <TextBlock Text="每页" VerticalAlignment="Center" />
                   <ComboBox Width="136"
@@ -1511,8 +1511,8 @@
                               Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
                             <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
                                       Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                      Width="14"
-                                      Height="14"
+                                      Width="{DynamicResource IconSizeSmall}"
+                                      Height="{DynamicResource IconSizeSmall}"
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center" />
                           </Border>

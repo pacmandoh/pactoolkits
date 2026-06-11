@@ -18,11 +18,39 @@
     <Setter Property="RowSpacing" Value="{DynamicResource FormRowSpacing}" />
   </Style>
 
+  <Style Selector="Grid.FormLabelLayout">
+    <Setter Property="ColumnSpacing" Value="{DynamicResource FormColumnSpacing}" />
+    <Setter Property="RowSpacing" Value="{DynamicResource FormRowSpacing}" />
+  </Style>
+
+  <Style Selector="Grid.FormLabelLayoutMedium">
+    <Setter Property="ColumnSpacing" Value="{DynamicResource FormColumnSpacing}" />
+    <Setter Property="RowSpacing" Value="{DynamicResource FormRowSpacing}" />
+  </Style>
+
+  <Style Selector="Grid.FormLabelReadonlyRow">
+    <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacing}" />
+  </Style>
+
+  <Style Selector="Grid.SettingsSectionHeader">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- Pair a left summary with right actions; ColumnDefinitions="*,Auto" must be set inline on the Grid. -->
+  <Style Selector="Grid.ToolbarPairRow">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
   <Style Selector="StackPanel.PageSectionStack">
     <Setter Property="Spacing" Value="{DynamicResource PageSectionSpacing}" />
   </Style>
 
   <Style Selector="StackPanel.FormStack">
     <Setter Property="Spacing" Value="{DynamicResource FormRowSpacing}" />
+  </Style>
+
+  <Style Selector="StackPanel.SectionHeaderStack">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="{DynamicResource SpacingInlineMd}" />
   </Style>
 </Styles>

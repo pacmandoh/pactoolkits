@@ -2,8 +2,8 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       x:Class="pactoolkits_ui.Controls.BusyCircle"
       x:Name="Root"
-      Width="16"
-      Height="16"
+      Width="{DynamicResource IconSizeDefault}"
+      Height="{DynamicResource IconSizeDefault}"
       HorizontalAlignment="Center"
       VerticalAlignment="Center">
   <Canvas Width="{Binding Width, ElementName=Root}"
