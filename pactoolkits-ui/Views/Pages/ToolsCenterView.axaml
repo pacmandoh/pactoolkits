@@ -246,7 +246,7 @@
                                                                      VerticalContentAlignment="Center" />
                                                             <Button Grid.Column="1"
                                                                     Classes="Ghost"
-                                                                    Command="{Binding DataContext.RemoveAgentAppWinItemCommand, ElementName=Root}"
+                                                                    Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentAppWinItemCommand}"
                                                                     CommandParameter="{Binding .}">
                                                                 <icons:AppIcon Kind="X" Width="14" Height="14" />
                                                             </Button>
@@ -389,7 +389,7 @@
                                                                      VerticalContentAlignment="Center" />
                                                             <Button Grid.Column="1"
                                                                     Classes="Ghost"
-                                                                    Command="{Binding DataContext.RemoveAgentWarehouseAnchorItemCommand, ElementName=Root}"
+                                                                    Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentWarehouseAnchorItemCommand}"
                                                                     CommandParameter="{Binding .}">
                                                                 <icons:AppIcon Kind="X" Width="14" Height="14" />
                                                             </Button>
@@ -431,7 +431,7 @@
                                                                      VerticalContentAlignment="Center" />
                                                             <Button Grid.Column="1"
                                                                     Classes="Ghost"
-                                                                    Command="{Binding DataContext.RemoveAgentColSpecsItemCommand, ElementName=Root}"
+                                                                    Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentColSpecsItemCommand}"
                                                                     CommandParameter="{Binding .}">
                                                                 <icons:AppIcon Kind="X" Width="14" Height="14" />
                                                             </Button>
@@ -468,7 +468,7 @@
                                                                      VerticalContentAlignment="Center" />
                                                             <Button Grid.Column="1"
                                                                     Classes="Ghost"
-                                                                    Command="{Binding DataContext.RemoveAgentIntColsItemCommand, ElementName=Root}"
+                                                                    Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentIntColsItemCommand}"
                                                                     CommandParameter="{Binding .}">
                                                                 <icons:AppIcon Kind="X" Width="14" Height="14" />
                                                             </Button>
