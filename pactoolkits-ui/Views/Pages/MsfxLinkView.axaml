@@ -575,7 +575,7 @@
                                               HorizontalScrollBarVisibility="Auto">
                                         <DataGrid.Columns>
                                             <DataGridTemplateColumn Width="40"
-                                                                    IsVisible="{Binding DataContext.IsTaskQueueBatchModeActive, ElementName=Root}">
+                                                                    IsVisible="{Binding #AutoTaskQueueGrid.((vm:MsfxLinkViewModel)DataContext).IsTaskQueueBatchModeActive}">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
@@ -1120,7 +1120,7 @@
                                                   HorizontalScrollBarVisibility="Auto">
                                             <DataGrid.Columns>
                                                 <DataGridTemplateColumn Width="40"
-                                                                        IsVisible="{Binding DataContext.IsTaskQueueBatchModeActive, ElementName=Root}">
+                                                                        IsVisible="{Binding #AutoTaskQueueFullGrid.((vm:MsfxLinkViewModel)DataContext).IsTaskQueueBatchModeActive}">
                                                     <DataGridTemplateColumn.CellTemplate>
                                                         <DataTemplate>
                                                             <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
