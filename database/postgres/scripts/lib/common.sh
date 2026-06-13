@@ -2,9 +2,9 @@
 set -euo pipefail
 
 DB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SCRIPT_ROOT="$DB_ROOT/scripts/db"
+SCRIPT_ROOT="$DB_ROOT/scripts"
 SQL_ROOT="$DB_ROOT/sql"
-MANIFEST_PATH="$DB_ROOT/../release-manifest.json"
+MANIFEST_PATH="$DB_ROOT/../../release-manifest.json"
 
 log() { printf '[db] %s\n' "$*"; }
 warn() { printf '[db][warn] %s\n' "$*" >&2; }

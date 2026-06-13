@@ -369,6 +369,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 StartDbStateBootstrap();
             }
 
+            _startupState.MarkDbInitCompleted();
+
             await EnsureAhkStartedOnStartupAsync().ConfigureAwait(false);
             await CheckUpdatesOnStartupAsync().ConfigureAwait(false);
             RestartUpdatePolling();
