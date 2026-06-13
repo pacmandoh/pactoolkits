@@ -8,27 +8,6 @@ using System.Threading.Tasks;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
-public sealed record UnlockScopeSnapshot(
-    bool IsUnlocked,
-    DateTimeOffset ExpiresAtUtc,
-    int FailedAttempts,
-    DateTimeOffset CooldownUntilUtc);
-
-public interface ISensitiveOperationUnlockService
-{
-    event Action<string>? StateChanged;
-
-    UnlockScopeSnapshot GetSnapshot(string scopeKey);
-    void Refresh(string scopeKey);
-    void Lock(string scopeKey);
-    Task<bool> EnsureUnlockedAsync(
-        string scopeKey,
-        string scene,
-        string promptTitle,
-        string promptHint,
-        CancellationToken ct = default);
-}
-
 public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockService
 {
     private static readonly TimeSpan UnlockSessionDuration = TimeSpan.FromMinutes(15);
@@ -241,6 +220,17 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
         _toast.Success(scene, "验证通过，已解锁敏感操作");
         RaiseStateChanged(key);
         return true;
+    }
+
+    public Task<bool> RequestUnlockAsync(SensitiveOperationRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return EnsureUnlockedAsync(
+            request.ScopeKey,
+            request.Scene,
+            request.PromptTitle,
+            request.PromptHint,
+            ct);
     }
 
     private void RaiseStateChanged(string scopeKey)
