@@ -25,7 +25,7 @@ public sealed class PageReloadBehavior : IDisposable
 
         var cts = new CancellationTokenSource();
         var previous = Interlocked.Exchange(ref _cts, cts);
-        previous?.Cancel();
+        CancelCts(previous);
 
         var runId = Interlocked.Increment(ref _runId);
         var ct = cts.Token;
@@ -64,10 +64,8 @@ public sealed class PageReloadBehavior : IDisposable
             if (onFinished is not null && IsCurrentRun(runId, cts))
                 await Dispatcher.UIThread.InvokeAsync(onFinished);
 
-            if (ReferenceEquals(Interlocked.CompareExchange(ref _cts, null, cts), cts))
-                cts.Dispose();
-            else
-                cts.Dispose();
+            Interlocked.CompareExchange(ref _cts, null, cts);
+            cts.Dispose();
         }
 
         if (error is not null)
@@ -92,13 +90,21 @@ public sealed class PageReloadBehavior : IDisposable
         if (cts is null)
             return;
 
+        CancelCts(cts);
+    }
+
+    private static void CancelCts(CancellationTokenSource? cts)
+    {
+        if (cts is null)
+            return;
+
         try
         {
             cts.Cancel();
         }
         catch (ObjectDisposedException)
         {
-            // Ignore races: CTS may already be disposed by concurrent path.
+            // Ignore races: the owning reload disposes its CTS when it exits.
         }
     }
 }
