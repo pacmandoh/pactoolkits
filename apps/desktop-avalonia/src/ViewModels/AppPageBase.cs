@@ -16,7 +16,10 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
-public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
+[StateRetained]
+[LongLived]
+[OwnsSubscriptions]
+public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycleAware, IDisposable
 {
     public abstract string DisplayName { get; }
     public abstract string Icon { get; }
@@ -83,6 +86,16 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
     protected virtual Task ReloadCoreAsync(CancellationToken ct) => Task.CompletedTask;
 
     protected virtual void OnReloadFinished() { }
+
+    public virtual Task OnPageActivatedAsync(CancellationToken ct = default) => Task.CompletedTask;
+
+    public virtual Task OnPageDeactivatedAsync(CancellationToken ct = default) => Task.CompletedTask;
+
+    public virtual ValueTask DisposePageAsync()
+    {
+        Dispose();
+        return ValueTask.CompletedTask;
+    }
 
     protected Task RefreshPageAsync() => _refreshCommand.ExecuteAsync(null);
 

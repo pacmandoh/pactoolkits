@@ -69,6 +69,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _autoRefreshCts;
     private CancellationTokenSource? _dbBootstrapCts;
     private CancellationTokenSource? _updatePollCts;
+    private CancellationTokenSource? _pageLifecycleCts;
     private readonly object _dirtyPagesGate = new();
     private readonly HashSet<AppPageBase> _dirtyPages = new();
 
@@ -80,6 +81,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly Dictionary<Type, AppPageBase> _pageByType;
     private readonly AppPageBase? _settingsPage;
     private readonly AppPageBase? _aboutPage;
+    private AppPageBase? _activeLifecyclePage;
     private bool _disposed;
 
     private System.Windows.Input.ICommand? _lastRefreshCommand;
@@ -486,6 +488,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     partial void OnActivePageChanged(AppPageBase? value)
     {
+        var previous = _activeLifecyclePage;
+        if (!ReferenceEquals(previous, value))
+        {
+            _activeLifecyclePage = value;
+            _pageLifecycleCts?.Cancel();
+            _pageLifecycleCts?.Dispose();
+            _pageLifecycleCts = new CancellationTokenSource();
+            _ = RunPageLifecycleTransitionAsync(previous, value, _pageLifecycleCts.Token);
+        }
+
         if (value is SettingsViewModel settingsPage)
         {
             settingsPage.ResetDraftFromCurrent();
@@ -509,6 +521,42 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsAboutPageActive));
 
         TryRefreshDirtyActivePage();
+    }
+
+    private async Task RunPageLifecycleTransitionAsync(AppPageBase? previous, AppPageBase? current, CancellationToken ct)
+    {
+        try
+        {
+            if (previous is IPageLifecycleAware oldPage)
+                await oldPage.OnPageDeactivatedAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn("MainWindowVM", "page.lifecycle.deactivate_fail", "Page deactivation failed", ex, new
+            {
+                page = previous?.GetType().Name
+            });
+        }
+
+        try
+        {
+            if (current is IPageLifecycleAware newPage)
+                await newPage.OnPageActivatedAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn("MainWindowVM", "page.lifecycle.activate_fail", "Page activation failed", ex, new
+            {
+                page = current?.GetType().Name
+            });
+        }
     }
 
     private void OnNavigationRequested(Type pageType)
@@ -1061,6 +1109,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _updatePollCts?.Cancel();
             _updatePollCts?.Dispose();
             _updatePollCts = null;
+            _pageLifecycleCts?.Cancel();
+            _pageLifecycleCts?.Dispose();
+            _pageLifecycleCts = null;
         });
     }
 

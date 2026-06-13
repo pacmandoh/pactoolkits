@@ -43,7 +43,7 @@ public interface IAppUpdateService
     Task<bool> RestartToApplyAsync(CancellationToken ct = default);
 }
 
-public sealed class AppUpdateService : IAppUpdateService
+public sealed class AppUpdateService : IAppUpdateService, IDisposable
 {
     private readonly IUpdateSettingsService _settings;
     private readonly IAppLogger _logger;
@@ -395,6 +395,12 @@ public sealed class AppUpdateService : IAppUpdateService
         HasSuiteUpdateAvailable = null;
         Changed?.Invoke();
         _ = RecheckAfterSettingsChangedAsync();
+    }
+
+    public void Dispose()
+    {
+        _settings.Changed -= OnSettingsChanged;
+        _gate.Dispose();
     }
 
     private void SetState(AppUpdateCheckResult result)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -451,20 +452,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         };
         _autoTimer.Tick += OnAutoTimerTick;
 
-        AutoLogs.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsAutoLogsEmpty));
-        AutoPullBatchRows.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsAutoPullBatchEmpty));
-        AutoMapQueueRows.CollectionChanged += (_, _) =>
-        {
-            OnPropertyChanged(nameof(IsAutoMapQueueEmpty));
-            OnPropertyChanged(nameof(MapQueueDisplayText));
-        };
-        AutoTaskQueueRows.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsAutoTaskQueueEmpty));
-        UpoutRows.CollectionChanged += (_, _) =>
-        {
-            OnPropertyChanged(nameof(IsUpoutEmpty));
-            OnPropertyChanged(nameof(HasUpoutNextPage));
-        };
-        SubCodeRows.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsSubCodeEmpty));
+        AutoLogs.CollectionChanged += OnAutoLogsCollectionChanged;
+        AutoPullBatchRows.CollectionChanged += OnAutoPullBatchRowsCollectionChanged;
+        AutoMapQueueRows.CollectionChanged += OnAutoMapQueueRowsCollectionChanged;
+        AutoTaskQueueRows.CollectionChanged += OnAutoTaskQueueRowsCollectionChanged;
+        UpoutRows.CollectionChanged += OnUpoutRowsCollectionChanged;
+        SubCodeRows.CollectionChanged += OnSubCodeRowsCollectionChanged;
 
         var refEntId = (_configStore.Load().MsfxApi?.RefEntId ?? string.Empty).Trim();
         SubcodeRefEntId = refEntId;
@@ -3209,10 +3202,40 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         return parts.Count == 0 ? "未知错误" : string.Join(" | ", parts);
     }
 
+    private void OnAutoLogsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        => OnPropertyChanged(nameof(IsAutoLogsEmpty));
+
+    private void OnAutoPullBatchRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        => OnPropertyChanged(nameof(IsAutoPullBatchEmpty));
+
+    private void OnAutoMapQueueRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(IsAutoMapQueueEmpty));
+        OnPropertyChanged(nameof(MapQueueDisplayText));
+    }
+
+    private void OnAutoTaskQueueRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        => OnPropertyChanged(nameof(IsAutoTaskQueueEmpty));
+
+    private void OnUpoutRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(IsUpoutEmpty));
+        OnPropertyChanged(nameof(HasUpoutNextPage));
+    }
+
+    private void OnSubCodeRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        => OnPropertyChanged(nameof(IsSubCodeEmpty));
+
     public override void Dispose()
     {
         _autoTimer.Stop();
         _autoTimer.Tick -= OnAutoTimerTick;
+        AutoLogs.CollectionChanged -= OnAutoLogsCollectionChanged;
+        AutoPullBatchRows.CollectionChanged -= OnAutoPullBatchRowsCollectionChanged;
+        AutoMapQueueRows.CollectionChanged -= OnAutoMapQueueRowsCollectionChanged;
+        AutoTaskQueueRows.CollectionChanged -= OnAutoTaskQueueRowsCollectionChanged;
+        UpoutRows.CollectionChanged -= OnUpoutRowsCollectionChanged;
+        SubCodeRows.CollectionChanged -= OnSubCodeRowsCollectionChanged;
         _upoutDateRangeController.Dispose();
         base.Dispose();
     }
