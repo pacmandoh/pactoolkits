@@ -6,6 +6,7 @@ using global::Avalonia.Interactivity;
 using global::Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -29,7 +30,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
 {
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
     private readonly ILookupCatalogService? _lookup;
-    private readonly IMsfxSyncRepo? _syncRepo;
+    private readonly IMsfxSyncService? _syncService;
     private IReadOnlyList<OptionItem> _allDrugIds = Array.Empty<OptionItem>();
     private bool _initialized;
     private int _drugInputVersion;
@@ -41,7 +42,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
     {
         InitializeComponent();
         _lookup = (global::Avalonia.Application.Current as App)?.Services.GetService<ILookupCatalogService>();
-        _syncRepo = (global::Avalonia.Application.Current as App)?.Services.GetService<IMsfxSyncRepo>();
+        _syncService = (global::Avalonia.Application.Current as App)?.Services.GetService<IMsfxSyncService>();
         AttachedToVisualTree += OnAttachedToVisualTree;
         AutoCompleteHelper.AttachDrugOptionFilter(DrugIdBox);
 
@@ -172,7 +173,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
 
     private async Task RefreshPreviewAsync()
     {
-        if (_syncRepo is null)
+        if (_syncService is null)
             return;
 
         MsfxMappingBatchDialogModel? model = null;
@@ -194,7 +195,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
             await RunOnUiAsync(() => PreviewText.Text = "请选择分组后自动预览").ConfigureAwait(false);
             return;
         }
-        var preview = await _syncRepo.PreviewMappingBatchByGroupAsync(
+        var preview = await _syncService.PreviewMsfxMappingBatchAsync(
             mapStatus: NormalizeFilterValue(model.MapStatusFilter),
             codeStatus: NormalizeFilterValue(model.CodeStatusFilter),
             searchScope: ResolveSearchScope(model.SearchScope),
