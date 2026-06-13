@@ -9,7 +9,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Application.Abstractions;
@@ -48,6 +47,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private readonly IAppLogger _logger;
     private readonly IClipboardService _clipboard;
     private readonly HashSet<ClientAliasRow> _trackedAliasRows = new();
+    private CancellationTokenSource _pageWorkCts = new();
+    private bool _disposed;
     private bool _syncingUiBehavior;
     private bool _syncingUpdateOptions;
     private bool _syncingLoggingOptions;
@@ -192,14 +193,14 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         LoadAliasesOnly();
         UpdateClientAliasUiState();
 
-        _ = ReloadClientAliasesAsync();
+        SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.startup_fail");
 
         LoadTraceCodeRule();
         LoadMsfxApiOptions();
         LoadUiBehavior();
         LoadUpdateOptions();
         LoadLoggingOptions();
-        _ = RefreshDbSchemaStatusOnStartupAsync();
+        SafeFireAndForget(RefreshDbSchemaStatusOnStartupAsync, "db.schema.startup_refresh.fire_and_forget_fail");
         _uiBehavior.Changed += OnUiBehaviorChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
         _updates.Changed += OnUpdatesChanged;
@@ -282,6 +283,78 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private void OnClientAliasesChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsClientAliasesEmpty));
 
+    public override Task OnPageDeactivatedAsync(CancellationToken ct = default)
+    {
+        CancelPageWork();
+        return Task.CompletedTask;
+    }
+
+    private void SafeFireAndForget(Func<CancellationToken, Task> work, string eventName)
+    {
+        var token = _pageWorkCts.Token;
+        _ = RunSafeFireAndForgetAsync(work, eventName, token);
+    }
+
+    private async Task RunSafeFireAndForgetAsync(Func<CancellationToken, Task> work, string eventName, CancellationToken ct)
+    {
+        try
+        {
+            if (_disposed)
+                return;
+            await work(ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("SettingsVM", eventName, "Settings background operation failed", ex);
+            await RunOnUiAsync(() => _toast.Error("设置后台任务失败", ex.Message));
+        }
+    }
+
+    private CancellationTokenSource CreatePageOperationCts(TimeSpan? timeout = null)
+    {
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(_pageWorkCts.Token);
+        if (timeout.HasValue)
+            cts.CancelAfter(timeout.Value);
+        return cts;
+    }
+
+    private Task SetBusyOnUiAsync(bool value)
+        => RunOnUiAsync(() => IsBusy = value);
+
+    private Task SetClientAliasRefreshingOnUiAsync(bool value)
+        => RunOnUiAsync(() => IsClientAliasRefreshing = value);
+
+    private Task ReportErrorOnUiAsync(string title, string message)
+        => RunOnUiAsync(() => _toast.Error(title, message));
+
+    private void PostUiSafe(Action action, string eventName)
+    {
+        _ = RunUiSafeAsync(action, eventName);
+    }
+
+    private async Task RunUiSafeAsync(Action action, string eventName)
+    {
+        try
+        {
+            await RunOnUiAsync(action);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("SettingsVM", eventName, "Settings UI continuation failed", ex);
+        }
+    }
+
+    private void CancelPageWork()
+    {
+        var old = Interlocked.Exchange(ref _pageWorkCts, new CancellationTokenSource());
+        try { old.Cancel(); }
+        catch (ObjectDisposedException) { }
+        old.Dispose();
+    }
+
     private void LoadUiBehavior()
     {
         var ui = _uiBehavior.Current;
@@ -307,23 +380,23 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void OnUiBehaviorChanged()
     {
-        Dispatcher.UIThread.Post(() =>
+        PostUiSafe(() =>
         {
             var ui = _uiBehavior.Current;
             _syncingUiBehavior = true;
             MinimizeToTrayOnClose = ui.MinimizeToTrayOnClose;
             _syncingUiBehavior = false;
-        });
+        }, "ui_behavior.changed.ui_fail");
     }
 
     private void OnUpdateSettingsChanged()
     {
-        Dispatcher.UIThread.Post(LoadUpdateOptions);
+        PostUiSafe(LoadUpdateOptions, "update_settings.changed.ui_fail");
     }
 
     private void OnUpdatesChanged()
     {
-        Dispatcher.UIThread.Post(SyncUpdateStateFromService);
+        PostUiSafe(SyncUpdateStateFromService, "updates.changed.ui_fail");
     }
 
     private void LoadLoggingOptions()
@@ -343,7 +416,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void OnLoggingSettingsChanged()
     {
-        Dispatcher.UIThread.Post(LoadLoggingOptions);
+        PostUiSafe(LoadLoggingOptions, "logging_settings.changed.ui_fail");
     }
 
     partial void OnSuiteUpdateAvailableChanged(bool? value)
@@ -367,7 +440,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         if (_syncingUiBehavior)
             return;
 
-        _ = SaveUiBehaviorImmediateAsync(value);
+        SafeFireAndForget(ct => SaveUiBehaviorImmediateAsync(value, ct), "ui_behavior.save.fire_and_forget_fail");
     }
 
     partial void OnUpdateChannelChanged(string value)
@@ -416,7 +489,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IsClientAliasEditMode = true;
         IsClientAliasReadOnly = false;
         UpdateClientAliasUiState();
-        _ = ReloadClientAliasesAsync();
+        SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.edit_start_fail");
     }
 
     [RelayCommand]
@@ -431,12 +504,12 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         try
         {
             var opt = ToOptions();
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+            using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(6));
 
             var validation = await _settings.ValidateDatabaseConnectionAsync(
                 opt,
                 BuildSchemaContext(),
-                cts.Token).ConfigureAwait(false);
+                cts.Token);
 
             if (!validation.ConnectionOk)
             {
@@ -460,13 +533,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 Status = "数据库版本不兼容";
                 IsDbConnected = false;
                 UpdateClientAliasUiState();
-                await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), validation.IncompatibleMessage ?? "数据库版本不兼容").ConfigureAwait(false);
+                await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), validation.IncompatibleMessage ?? "数据库版本不兼容");
                 return;
             }
 
             Status = "连接成功";
             IsDbConnected = true;
-            _ = ReloadClientAliasesAsync();
+            SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.after_test_fail");
             _toast.Success("数据库连接", "连接成功");
         }
         catch (OperationCanceledException)
@@ -493,15 +566,15 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         try
         {
-            await _settings.SaveDatabaseConfigAsync(ToOptions(), CancellationToken.None);
-            if (!await EnsureDbSchemaUpToDateAsync().ConfigureAwait(false))
+            await _settings.SaveDatabaseConfigAsync(ToOptions(), _pageWorkCts.Token);
+            if (!await EnsureDbSchemaUpToDateAsync())
             {
                 Status = "数据库结构更新失败";
                 IsDbConnected = false;
                 UpdateClientAliasUiState();
                 return;
             }
-            if (!await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false))
+            if (!await EnsureDbSchemaCompatibleAsync())
             {
                 Status = "数据库版本不兼容";
                 IsDbConnected = false;
@@ -513,7 +586,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             IsDbConnected = true;
             _toast.Success("配置已保存", "数据库配置已应用");
 
-            _ = ReloadClientAliasesAsync();
+            SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.after_save_fail");
         }
         catch (Exception ex)
         {
@@ -534,7 +607,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         if (ShouldSkipTrigger() || IsDbSchemaChecking)
             return;
 
-        await RefreshDbSchemaStatusAsync("manual_check", manualProbe: true).ConfigureAwait(false);
+        await RefreshDbSchemaStatusAsync("manual_check", manualProbe: true, operationCt: _pageWorkCts.Token);
     }
 
     [RelayCommand]
@@ -543,7 +616,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         if (ShouldSkipTrigger() || IsDbSchemaChecking)
             return;
 
-        await EnsureDbSchemaUpToDateAsync().ConfigureAwait(false);
+        await EnsureDbSchemaUpToDateAsync();
     }
 
     [RelayCommand]
@@ -559,7 +632,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
         }
 
-        await _clipboard.SetTextAsync(text).ConfigureAwait(false);
+        await _clipboard.SetTextAsync(text);
         _toast.Success("数据库结构更新", "已复制诊断信息");
     }
 
@@ -573,23 +646,24 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     };
 
     [RelayCommand]
-    private async Task ReloadClientAliasesAsync()
+    private async Task ReloadClientAliasesAsync(CancellationToken pageCt)
     {
         if (IsClientAliasRefreshing || ShouldSkipTrigger())
             return;
 
-        IsClientAliasRefreshing = true;
+        pageCt.ThrowIfCancellationRequested();
+        await SetClientAliasRefreshingOnUiAsync(true);
         try
         {
             var opt = ToOptions();
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+            using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(6));
 
-            var loaded = await _settings.LoadClientAliasSourcesAsync(opt, cts.Token).ConfigureAwait(false);
+            var loaded = await _settings.LoadClientAliasSourcesAsync(opt, cts.Token);
             var isDbConnected = loaded.IsDbConnected;
             var aliasMap = NormalizeAliasMapByMachine(_alias.GetAll());
             var clientMachines = new HashSet<string>(loaded.ClientMachines, StringComparer.OrdinalIgnoreCase);
 
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            await RunOnUiAsync(() =>
             {
                 IsDbConnected = isDbConnected;
                 UntrackAllAliasRows();
@@ -616,7 +690,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
         finally
         {
-            IsClientAliasRefreshing = false;
+            await SetClientAliasRefreshingOnUiAsync(false);
         }
     }
 
@@ -691,7 +765,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             await Task.Delay(600);
             Status = null;
 
-            _ = ReloadClientAliasesAsync();
+            SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.after_alias_save_fail");
             UpdateClientAliasUiState();
         }
         catch (Exception ex)
@@ -800,7 +874,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 TimeoutSeconds = Math.Clamp(MsfxTimeoutSeconds, 3, 120)
             };
 
-            await _appConfigStore.SaveAsync(cfg).ConfigureAwait(false);
+            await _appConfigStore.SaveAsync(cfg);
             await RunOnUiAsync(() =>
             {
                 MsfxGatewayUrl = string.Equals(cfg.MsfxApi.GatewayUrl, MsfxDefaultGatewayUrl, StringComparison.OrdinalIgnoreCase)
@@ -882,22 +956,25 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     }
 
 
-    private async Task SaveUiBehaviorImmediateAsync(bool value)
+    private async Task SaveUiBehaviorImmediateAsync(bool value, CancellationToken ct)
     {
         try
         {
             await _uiBehavior.SaveAsync(new UiBehaviorOptions
             {
                 MinimizeToTrayOnClose = value
-            });
+            }, ct);
         }
         catch (Exception ex)
         {
             _logger.Error("SettingsVM", "ui_behavior.save.fail", "Failed to save UI behavior", ex);
-            _syncingUiBehavior = true;
-            MinimizeToTrayOnClose = _uiBehavior.Current.MinimizeToTrayOnClose;
-            _syncingUiBehavior = false;
-            _toast.Error("界面行为保存失败", ex.Message);
+            await RunOnUiAsync(() =>
+            {
+                _syncingUiBehavior = true;
+                MinimizeToTrayOnClose = _uiBehavior.Current.MinimizeToTrayOnClose;
+                _syncingUiBehavior = false;
+                _toast.Error("界面行为保存失败", ex.Message);
+            });
         }
     }
 
@@ -920,7 +997,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 IgnoredVersion = IgnoredUiVersion
             };
 
-            await _updateSettings.SaveAsync(options).ConfigureAwait(false);
+            await _updateSettings.SaveAsync(options);
             _toast.Success("更新设置", "更新配置已保存");
         }
         catch (Exception ex)
@@ -953,7 +1030,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 LogDirectory = LoggingDirectory
             };
 
-            await _loggingSettings.SaveAsync(options).ConfigureAwait(false);
+            await _loggingSettings.SaveAsync(options);
             LoggingDirectory = _logger.LogDirectory;
             LoggingStatusHint = LoggingEnabled ? $"已启用（{LoggingMinimumLevel}）" : "已禁用";
             _toast.Success("日志设置", "日志配置已保存");
@@ -1047,7 +1124,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         try
         {
             var path = _logger.CurrentLogPath;
-            await _clipboard.SetTextAsync(path).ConfigureAwait(false);
+            await _clipboard.SetTextAsync(path);
             LoggingStatusHint = $"已复制：{path}";
             _toast.Success("日志", "当前日志路径已复制到剪贴板");
         }
@@ -1071,8 +1148,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IsLoggingBusy = true;
         try
         {
-            var path = await _logger.ExportRecentAsync(TimeSpan.FromHours(24)).ConfigureAwait(false);
-            await _clipboard.SetTextAsync(path).ConfigureAwait(false);
+            var path = await _logger.ExportRecentAsync(TimeSpan.FromHours(24));
+            await _clipboard.SetTextAsync(path);
             LoggingStatusHint = $"已导出：{path}";
             _toast.Success("日志导出", "最近24小时日志已导出并复制路径");
             _logger.Info("SettingsVM", "logging.export_recent", "Exported recent logs", new { path, window = "24h" });
@@ -1099,7 +1176,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             startupMode: false,
             applyNowAction: ApplyUpdateNowAsync,
             ignoreVersionAction: IgnoreCurrentUpdateAsync,
-            logScope: "SettingsVM").ConfigureAwait(false);
+            logScope: "SettingsVM");
     }
 
     [RelayCommand]
@@ -1111,7 +1188,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IsUpdateApplying = true;
         try
         {
-            await _updateUiFlow.ApplyUpdateFlowAsync().ConfigureAwait(false);
+            await _updateUiFlow.ApplyUpdateFlowAsync();
         }
         catch (Exception ex)
         {
@@ -1133,7 +1210,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         try
         {
             IgnoredUiVersion = string.Empty;
-            await _updateSettings.SaveIgnoredVersionAsync(string.Empty).ConfigureAwait(false);
+            await _updateSettings.SaveIgnoredVersionAsync(string.Empty);
             _toast.Success("更新设置", "已清除忽略版本");
         }
         catch (Exception ex)
@@ -1147,7 +1224,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     {
         try
         {
-            await _updateUiFlow.IgnoreVersionAsync(LatestSuiteVersion).ConfigureAwait(false);
+            await _updateUiFlow.IgnoreVersionAsync(LatestSuiteVersion);
             IgnoredUiVersion = LatestSuiteVersion;
         }
         catch (Exception ex)
@@ -1168,14 +1245,12 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private async Task<bool> EnsureDbSchemaCompatibleAsync()
     {
-        var compat = await _settings.CheckSchemaCompatibilityAsync(BuildSchemaContext(), CancellationToken.None)
-            .ConfigureAwait(false);
-        await RefreshDbSchemaStatusAsync("compat_check", manualProbe: false).ConfigureAwait(false);
+        var compat = await _settings.CheckSchemaCompatibilityAsync(BuildSchemaContext(), _pageWorkCts.Token);
+        await RefreshDbSchemaStatusAsync("compat_check", manualProbe: false, operationCt: _pageWorkCts.Token);
         if (compat.Compatible)
             return true;
 
-        await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), compat.IncompatibleMessage ?? "数据库版本不兼容")
-            .ConfigureAwait(false);
+        await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), compat.IncompatibleMessage ?? "数据库版本不兼容");
         return false;
     }
 
@@ -1184,16 +1259,16 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         SetDbSchemaStatus("更新中", checking: true, failed: false, error: null);
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+            using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(120));
             var migration = await _settings.EnsureSchemaUpToDateAsync(
                 _releaseVersion.Current.DbSchemaVersion,
-                cts.Token).ConfigureAwait(false);
+                cts.Token);
             DbSchemaLastMigrationText = migration.Summary;
             if (migration.Summary.Contains("applied=", StringComparison.Ordinal))
             {
                 _toast.Success("数据库结构更新", "数据库结构已更新");
             }
-            await RefreshDbSchemaStatusAsync("migrate_done", manualProbe: false).ConfigureAwait(false);
+            await RefreshDbSchemaStatusAsync("migrate_done", manualProbe: false, operationCt: cts.Token);
             return true;
         }
         catch (Exception ex)
@@ -1209,7 +1284,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private async Task RefreshDbSchemaStatusAsync(
         string source,
         bool manualProbe,
-        (bool ok, string? value, string? reason)? cachedSchema = null)
+        (bool ok, string? value, string? reason)? cachedSchema = null,
+        CancellationToken operationCt = default)
     {
         if (IsDbSchemaChecking && manualProbe)
             return;
@@ -1219,8 +1295,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         try
         {
-            var snapshot = await _settings.ReadSchemaStatusAsync(BuildSchemaContext(), CancellationToken.None)
-                .ConfigureAwait(false);
+            var ct = operationCt.CanBeCanceled ? operationCt : _pageWorkCts.Token;
+            var snapshot = await _settings.ReadSchemaStatusAsync(BuildSchemaContext(), ct);
             DbSchemaLastCheckedAtText = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
             DbSchemaLastCheckSourceText = MapDbSchemaCheckSource(source);
             DbSchemaTargetVersion = snapshot.TargetVersion;
@@ -1265,11 +1341,11 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
     }
 
-    private async Task RefreshDbSchemaStatusOnStartupAsync()
+    private async Task RefreshDbSchemaStatusOnStartupAsync(CancellationToken ct)
     {
         try
         {
-            await RefreshDbSchemaStatusAsync("startup", manualProbe: false).ConfigureAwait(false);
+            await RefreshDbSchemaStatusAsync("startup", manualProbe: false, operationCt: ct);
         }
         catch (Exception ex)
         {
@@ -1452,6 +1528,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     public override void Dispose()
     {
+        _disposed = true;
+        CancelPageWork();
         try { _uiBehavior.Changed -= OnUiBehaviorChanged; }
         catch (System.Exception ex)
         {
@@ -1473,6 +1551,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             _logger.Warn("SettingsVM", "dispose.logging_settings_unsub_fail", "Failed to unsubscribe LoggingSettings", ex);
         }
         ClientAliases.CollectionChanged -= OnClientAliasesChanged;
+        _pageWorkCts.Dispose();
         base.Dispose();
     }
 }
