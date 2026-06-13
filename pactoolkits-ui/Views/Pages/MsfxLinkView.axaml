@@ -17,21 +17,12 @@
      Classes="PageRoot">
 
     <suki:GlassCard Grid.Row="0"
-            Classes="SectionCard"
-            Padding="{DynamicResource AboutHeroCardPadding}">
+            Classes="SectionCard PageHero">
       <Grid ColumnDefinitions="Auto,*,Auto"
          ColumnSpacing="{DynamicResource PageColumnSpacing}"
          VerticalAlignment="Center">
-        <Border Width="36"
-            Height="36"
-            CornerRadius="10"
-            Background="{DynamicResource SukiPrimaryColor10}">
-          <icons:AppIcon Kind="CloudCog"
-                 Width="20"
-                 Height="20"
-                 Foreground="{DynamicResource SukiPrimaryColor}"
-                 HorizontalAlignment="Center"
-                 VerticalAlignment="Center" />
+        <Border Classes="HeroIconBadge">
+          <icons:AppIcon Kind="CloudCog" />
         </Border>
 
         <StackPanel Grid.Column="1"
@@ -49,15 +40,11 @@
               VerticalAlignment="Center">
           <controls:StatusPill Icon="Link"
                     Text="MSFX"
-                    BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                    PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                    ForegroundBrush="{DynamicResource BrushInfo}"
+                    Classes="ToneInfo15"
                     VerticalAlignment="Center" />
           <controls:StatusPill Icon="CircleCheck"
                     Text="生产链路"
-                    BackgroundBrush="{DynamicResource BrushDoneBg25}"
-                    PillBorderBrush="{DynamicResource BrushDoneBg50}"
-                    ForegroundBrush="{DynamicResource BrushDone}"
+                    Classes="ToneDone25"
                     VerticalAlignment="Center" />
         </StackPanel>
       </Grid>
@@ -85,7 +72,7 @@
                ColumnDefinitions="Auto,Auto,Auto,Auto,*"
                ColumnSpacing="{DynamicResource PageColumnSpacing}"
                VerticalAlignment="Center">
-            <suki:GlassCard Grid.Column="0" Padding="12,10">
+            <suki:GlassCard Classes="CompactCard" Grid.Column="0">
               <Grid ColumnDefinitions="Auto,Auto,Auto"
                  ColumnSpacing="{DynamicResource PageColumnSpacing}"
                  VerticalAlignment="Center">
@@ -104,7 +91,7 @@
               </Grid>
             </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="1" Padding="12,10">
+            <suki:GlassCard Classes="CompactCard" Grid.Column="1">
               <Grid ColumnDefinitions="Auto,Auto,Auto"
                  ColumnSpacing="{DynamicResource SpacingInlineMd}"
                  VerticalAlignment="Center">
@@ -121,10 +108,8 @@
               </Grid>
             </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="2" Padding="12,10">
+            <suki:GlassCard Classes="CompactCard" Grid.Column="2">
               <Button Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   theme:ButtonExtensions.ShowProgress="{Binding IsAutoBusy}"
                   IsEnabled="{Binding !IsAutoBusy}"
                   Command="{Binding RunAutoOnceCommand}">
@@ -135,10 +120,8 @@
               </Button>
             </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="3" Padding="12,10">
+            <suki:GlassCard Classes="CompactCard" Grid.Column="3">
               <Button Classes="Ghost"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   Command="{Binding ClearAutoLogsCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Eraser" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -165,8 +148,7 @@
                 </Grid>
                 <Button Grid.Column="2"
                     Classes="Ghost"
-                    Command="{Binding RefreshAutoBoardCommand}"
-                    MinWidth="{StaticResource MinWAction}">
+                    Command="{Binding RefreshAutoBoardCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="RefreshCw" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                     <TextBlock Text="刷新审计" />
@@ -236,8 +218,8 @@
                ColumnSpacing="{DynamicResource PageColumnSpacing}">
             <suki:GlassCard Grid.Row="0"
                     Grid.Column="0"
-                    Classes="SectionCard"
-                    Padding="12,10">
+                    Classes="SectionCard CompactCard"
+                   >
               <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <Grid ColumnDefinitions="Auto,*,Auto"
                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
@@ -307,8 +289,8 @@
 
             <suki:GlassCard Grid.Row="0"
                     Grid.Column="1"
-                    Classes="SectionCard"
-                    Padding="12,10">
+                    Classes="SectionCard CompactCard"
+                   >
               <Grid RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <Grid ColumnDefinitions="Auto,*,Auto"
                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
@@ -360,7 +342,7 @@
                   <Button Grid.Column="5"
                       Classes="Ghost"
                       Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="62"
+                     
                       Command="{Binding PrevMapQueuePageCommand}"
                       IsEnabled="{Binding HasMapQueuePrevPage}">
                     <TextBlock Text="上页" />
@@ -368,7 +350,7 @@
                   <Button Grid.Column="6"
                       Classes="Ghost"
                       Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="62"
+                     
                       Command="{Binding NextMapQueuePageCommand}"
                       IsEnabled="{Binding HasMapQueueNextPage}">
                     <TextBlock Text="下页" />
@@ -431,8 +413,8 @@
 
             <suki:GlassCard Grid.Row="1"
                     Grid.Column="0"
-                    Classes="SectionCard"
-                    Padding="12,10">
+                    Classes="SectionCard CompactCard"
+                   >
               <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <Grid RowDefinitions="Auto,Auto,Auto"
                    RowSpacing="{DynamicResource DialogInnerRowSpacing}">
@@ -499,14 +481,12 @@
                            Opacity="0.82" />
                       <Button Grid.Column="1"
                           Classes="Action"
-                          MinWidth="{StaticResource MinWAction}"
                           IsEnabled="{Binding CanConfirmTaskQueueBatchAction}"
                           Command="{Binding ConfirmTaskQueueBatchActionCommand}">
                         <TextBlock Text="{Binding TaskQueueBatchConfirmText}" />
                       </Button>
                       <Button Grid.Column="2"
                           Classes="Ghost"
-                          MinWidth="{StaticResource MinWAction}"
                           Command="{Binding CancelTaskQueueBatchSelectionCommand}">
                         <TextBlock Text="取消" />
                       </Button>
@@ -520,41 +500,31 @@
                   <WrapPanel Grid.Row="2" ItemSpacing="{DynamicResource SpacingInlineMd}" LineSpacing="{DynamicResource SpacingInlineSm}">
                     <controls:StatusPill Icon="CircleDot"
                               Text="{Binding AutoTaskNewCount, StringFormat=待执行 {0}}"
-                              BackgroundBrush="{DynamicResource BrushWarningBg15}"
-                              PillBorderBrush="{DynamicResource BrushWarningBg35}"
-                              ForegroundBrush="{DynamicResource BrushWarning}"
+                              Classes="ToneWarning15"
                               IconSize="12"
                               TextSize="11"
                               PillPadding="8,3" />
                     <controls:StatusPill Icon="LoaderCircle"
                               Text="{Binding AutoTaskRunningCount, StringFormat=运行中 {0}}"
-                              BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                              PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                              ForegroundBrush="{DynamicResource BrushInfo}"
+                              Classes="ToneInfo15"
                               IconSize="12"
                               TextSize="11"
                               PillPadding="8,3" />
                     <controls:StatusPill Icon="CircleCheck"
                               Text="{Binding AutoTaskSuccessCount, StringFormat=成功 {0}}"
-                              BackgroundBrush="{DynamicResource BrushDoneBg15}"
-                              PillBorderBrush="{DynamicResource BrushDoneBg35}"
-                              ForegroundBrush="{DynamicResource BrushDone}"
+                              Classes="ToneDone15"
                               IconSize="12"
                               TextSize="11"
                               PillPadding="8,3" />
                     <controls:StatusPill Icon="TriangleAlert"
                               Text="{Binding AutoTaskFailedCount, StringFormat=失败 {0}}"
-                              BackgroundBrush="{DynamicResource BrushDangerBg15}"
-                              PillBorderBrush="{DynamicResource BrushDangerBg35}"
-                              ForegroundBrush="{DynamicResource BrushDanger}"
+                              Classes="ToneDanger15"
                               IconSize="12"
                               TextSize="11"
                               PillPadding="8,3" />
                     <controls:StatusPill Icon="Ban"
                               Text="{Binding AutoTaskDiscardedCount, StringFormat=弃用 {0}}"
-                              BackgroundBrush="{DynamicResource BrushPurpleBg15}"
-                              PillBorderBrush="{DynamicResource BrushPurpleBg35}"
-                              ForegroundBrush="{DynamicResource BrushPurple}"
+                              Classes="TonePurple15"
                               IconSize="12"
                               TextSize="11"
                               PillPadding="8,3" />
@@ -624,8 +594,8 @@
 
             <suki:GlassCard Grid.Row="1"
                     Grid.Column="1"
-                    Classes="SectionCard"
-                    Padding="12,10">
+                    Classes="SectionCard CompactCard"
+                   >
               <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
@@ -687,8 +657,8 @@
 
             <suki:GlassCard Grid.Row="0" Grid.RowSpan="2"
                     Grid.ColumnSpan="2"
-                    Classes="SectionCard"
-                    Padding="12,10"
+                    Classes="SectionCard CompactCard"
+                   
                     IsVisible="{Binding IsAutoExpanded}">
               <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
@@ -829,7 +799,7 @@
                     <Button Grid.Column="4"
                         Classes="Ghost"
                         Height="{StaticResource ControlHeightCompact}"
-                        MinWidth="62"
+                       
                         Command="{Binding PrevPullBatchPageCommand}"
                         IsEnabled="{Binding HasPullBatchPrevPage}">
                       <TextBlock Text="上页" />
@@ -837,7 +807,7 @@
                     <Button Grid.Column="5"
                         Classes="Ghost"
                         Height="{StaticResource ControlHeightCompact}"
-                        MinWidth="62"
+                       
                         Command="{Binding NextPullBatchPageCommand}"
                         IsEnabled="{Binding HasPullBatchNextPage}">
                       <TextBlock Text="下页" />
@@ -912,8 +882,7 @@
                       </TextBox>
                       <Button Grid.Column="5"
                           Classes="Action"
-                          Height="{StaticResource ControlHeightCompact}"
-                          MinWidth="76"
+                                                    MinWidth="76"
                           Command="{Binding SearchMapQueueCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                           <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
@@ -950,7 +919,7 @@
                       <Button Grid.Column="5"
                           Classes="Ghost"
                           Height="{StaticResource ControlHeightCompact}"
-                          MinWidth="62"
+                         
                           Command="{Binding PrevMapQueuePageCommand}"
                           IsEnabled="{Binding HasMapQueuePrevPage}">
                         <TextBlock Text="上页" />
@@ -967,7 +936,7 @@
                       <Button Grid.Column="7"
                           Classes="Ghost"
                           Height="{StaticResource ControlHeightCompact}"
-                          MinWidth="62"
+                         
                           Command="{Binding NextMapQueuePageCommand}"
                           IsEnabled="{Binding HasMapQueueNextPage}">
                         <TextBlock Text="下页" />
@@ -1044,16 +1013,12 @@
                       </StackPanel>
                       <Button Grid.Column="2"
                           Classes="Action"
-                          Height="{StaticResource ControlHeightCompact}"
-                          MinWidth="{StaticResource MinWAction}"
                           IsEnabled="{Binding CanConfirmTaskQueueBatchAction}"
                           Command="{Binding ConfirmTaskQueueBatchActionCommand}">
                         <TextBlock Text="{Binding TaskQueueBatchConfirmText}" />
                       </Button>
                       <Button Grid.Column="3"
                           Classes="Ghost"
-                          Height="{StaticResource ControlHeightCompact}"
-                          MinWidth="{StaticResource MinWAction}"
                           Command="{Binding CancelTaskQueueBatchSelectionCommand}">
                         <TextBlock Text="取消" />
                       </Button>
@@ -1071,8 +1036,7 @@
                            MinWidth="180"
                            HorizontalAlignment="Stretch" />
                       <TextBox Grid.Column="2"
-                          Height="{StaticResource ControlHeightCompact}"
-                          Padding="10,0"
+                          Classes="FilterSearchTextBox"
                           VerticalContentAlignment="Center"
                           TextWrapping="NoWrap"
                           AcceptsReturn="False"
@@ -1084,8 +1048,6 @@
                       </TextBox>
                       <Button Grid.Column="3"
                           Classes="Action"
-                          Height="{StaticResource ControlHeightCompact}"
-                          MinWidth="{StaticResource MinWAction}"
                           Command="{Binding SearchTaskQueueCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                           <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -1094,8 +1056,6 @@
                       </Button>
                       <Button Grid.Column="4"
                           Classes="Action"
-                          Height="{StaticResource ControlHeightCompact}"
-                          MinWidth="{StaticResource MinWAction}"
                           Command="{Binding ClearTaskQueueSearchCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                           <icons:AppIcon Kind="Delete" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -1223,8 +1183,8 @@
            RowSpacing="{DynamicResource FormRowSpacing}"
            Margin="{DynamicResource MarginTopLg}">
           <suki:GlassCard Grid.Row="0"
-                  Classes="SectionCard"
-                  Padding="12,10">
+                  Classes="SectionCard CompactCard"
+                 >
             <Grid RowDefinitions="Auto,Auto"
                RowSpacing="{DynamicResource FormRowSpacing}">
               <Grid Grid.Row="0"
@@ -1253,8 +1213,6 @@
 
                 <Button Grid.Column="5"
                     Classes="Action"
-                    Height="{StaticResource ControlHeightCompact}"
-                    MinWidth="{StaticResource MinWAction}"
                     Command="{Binding QueryUpoutCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
@@ -1264,8 +1222,6 @@
 
                 <Button Grid.Column="6"
                     Classes="Ghost"
-                    Height="{StaticResource ControlHeightCompact}"
-                    MinWidth="{StaticResource MinWAction}"
                     Command="{Binding ResetUpoutFiltersCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="RefreshCw" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
@@ -1296,7 +1252,7 @@
                      VerticalAlignment="Center">
                   <TextBlock Text="每页" VerticalAlignment="Center" />
                   <ComboBox Width="136"
-                       MinWidth="136"
+                      
                        Height="40"
                        MinHeight="40"
                        MaxHeight="40"
@@ -1311,8 +1267,8 @@
           </suki:GlassCard>
 
           <suki:GlassCard Grid.Row="1"
-                  Classes="SectionCard"
-                  Padding="12,10">
+                  Classes="SectionCard CompactCard"
+                 >
             <Grid RowDefinitions="Auto,*"
                RowSpacing="{DynamicResource DialogInnerRowSpacing}"
                Margin="{DynamicResource MarginHorizontalTiny}">
@@ -1408,8 +1364,8 @@
            RowSpacing="{DynamicResource FormRowSpacing}"
            Margin="{DynamicResource MarginTopLg}">
           <suki:GlassCard Grid.Row="0"
-                  Classes="SectionCard"
-                  Padding="12,10">
+                  Classes="SectionCard CompactCard"
+                 >
             <Grid ColumnDefinitions="Auto,1.4*,2.0*,Auto,Auto"
                ColumnSpacing="{DynamicResource PageColumnSpacing}">
               <TextBlock Grid.Column="0"
@@ -1426,8 +1382,6 @@
               <Border Grid.Column="2" />
               <Button Grid.Column="3"
                   Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   Command="{Binding QuerySubCodesCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="ScanSearch" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
@@ -1436,8 +1390,6 @@
               </Button>
               <Button Grid.Column="4"
                   Classes="Ghost"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   Command="{Binding ClearSubcodeQueryCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Delete" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
@@ -1448,8 +1400,8 @@
           </suki:GlassCard>
 
           <suki:GlassCard Grid.Row="1"
-                  Classes="SectionCard"
-                  Padding="12,10">
+                  Classes="SectionCard CompactCard"
+                 >
             <Grid RowDefinitions="Auto,*"
                RowSpacing="{DynamicResource DialogInnerRowSpacing}"
                Margin="{DynamicResource MarginHorizontalTiny}">
@@ -1464,7 +1416,7 @@
                       VerticalAlignment="Center">
                   <TextBlock Text="每页" VerticalAlignment="Center" />
                   <ComboBox Width="136"
-                       MinWidth="136"
+                      
                        Height="40"
                        MinHeight="40"
                        MaxHeight="40"

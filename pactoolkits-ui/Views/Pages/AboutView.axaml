@@ -14,7 +14,7 @@
       x:DataType="vm:AboutViewModel">
 <ScrollViewer VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
     <Grid Classes="PageRootLayout" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
-      <suki:GlassCard Grid.Row="0" Classes="SectionCard" Padding="{DynamicResource AboutHeroCardPadding}">
+      <suki:GlassCard Grid.Row="0" Classes="SectionCard PageHero">
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
           <suki:GlassCard Classes="SectionCard" Width="{DynamicResource AboutHeroCardSize}" Height="{DynamicResource AboutHeroCardSize}">
             <Image Source="avares://pactoolkits-ui/Assets/icon-128.png"
@@ -40,7 +40,7 @@
         </Grid>
       </suki:GlassCard>
 
-      <suki:GlassCard Grid.Row="1" Classes="SectionCard" Padding="{DynamicResource AboutHeroCardPadding}" Opacity="0.96">
+      <suki:GlassCard Grid.Row="1" Classes="SectionCard PageHero" Opacity="0.96">
         <Grid ColumnDefinitions="Auto,2*,1.2*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
           <suki:GlassCard Width="58" Height="58" CornerRadius="14" Opacity="0.92">
             <Grid>
@@ -60,19 +60,13 @@
             <WrapPanel ItemSpacing="{DynamicResource SpacingInlineSm}" LineSpacing="{DynamicResource SpacingInlineSm}">
               <controls:StatusPill Icon="UserRound"
                         Text="Owner"
-                        BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                        PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                        ForegroundBrush="{DynamicResource BrushInfo}" />
+                        Classes="ToneInfo15" />
               <controls:StatusPill Icon="ShieldCheck"
                         Text="Maintainer"
-                        BackgroundBrush="{DynamicResource BrushDoneBg25}"
-                        PillBorderBrush="{DynamicResource BrushDoneBg50}"
-                        ForegroundBrush="{DynamicResource BrushDone}" />
+                        Classes="ToneDone25" />
               <controls:StatusPill Icon="Calendar"
                         Text="2026"
-                        BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                        PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                        ForegroundBrush="{DynamicResource BrushInfo}" />
+                        Classes="ToneInfo15" />
             </WrapPanel>
             <suki:GlassCard Grid.Row="1" Padding="8,6" Opacity="0.9" CornerRadius="10">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineSm}">
@@ -84,7 +78,7 @@
         </Grid>
       </suki:GlassCard>
 
-      <suki:GlassCard Grid.Row="2" Classes="SectionCard" Padding="{DynamicResource AboutHeroCardPadding}">
+      <suki:GlassCard Grid.Row="2" Classes="SectionCard PageHero">
         <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
             <icons:AppIcon Kind="Tags" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -97,7 +91,7 @@
               <TextBlock Text="{Binding SuiteVersion}" FontSize="26" FontWeight="Bold" />
               <TextBlock Text="{Binding VersionHint}" Classes="SectionHint" TextWrapping="Wrap" />
             </StackPanel>
-            <suki:GlassCard Grid.Column="1" Padding="12,10" Opacity="0.9" CornerRadius="12">
+            <suki:GlassCard Classes="CompactCard" Grid.Column="1" Opacity="0.9" CornerRadius="12">
               <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <TextBlock Text="构建信息" FontWeight="SemiBold" />
 
@@ -116,7 +110,7 @@
           </Grid>
 
           <Grid Grid.Row="2" ColumnDefinitions="1*,1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-            <suki:GlassCard Grid.Column="0" Padding="{DynamicResource AboutHeroCardPadding}" CornerRadius="14" Opacity="0.98">
+            <suki:GlassCard Grid.Column="0" Classes="PageHero" CornerRadius="14" Opacity="0.98">
               <suki:GlassCard.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                   <GradientStop Color="{DynamicResource VersionDbStart}" Offset="0" />
@@ -133,7 +127,7 @@
               </Grid>
             </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="1" Padding="{DynamicResource AboutHeroCardPadding}" CornerRadius="14" Opacity="0.98">
+            <suki:GlassCard Grid.Column="1" Classes="PageHero" CornerRadius="14" Opacity="0.98">
               <suki:GlassCard.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                   <GradientStop Color="{DynamicResource VersionAhkStart}" Offset="0" />
@@ -150,7 +144,7 @@
               </Grid>
             </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="2" Padding="{DynamicResource AboutHeroCardPadding}" CornerRadius="14" Opacity="0.98">
+            <suki:GlassCard Grid.Column="2" Classes="PageHero" CornerRadius="14" Opacity="0.98">
               <suki:GlassCard.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                   <GradientStop Color="{DynamicResource VersionUiStart}" Offset="0" />
@@ -186,7 +180,7 @@
         </Grid>
       </suki:GlassCard>
 
-      <suki:GlassCard Grid.Row="3" Classes="SectionCard" Padding="12,10">
+      <suki:GlassCard Grid.Row="3" Classes="SectionCard CompactCard">
         <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
             <icons:AppIcon Kind="Cpu" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -194,7 +188,7 @@
           </StackPanel>
 
           <Grid Grid.Row="1" ColumnDefinitions="1.2*,0.8*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-            <suki:GlassCard Padding="12,10" CornerRadius="12" Opacity="0.9">
+            <suki:GlassCard Classes="CompactCard" CornerRadius="12" Opacity="0.9">
               <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
                 <TextBlock Text="Architecture Snapshot" FontWeight="SemiBold" />
                 <TextBlock Grid.Row="1"
@@ -216,25 +210,19 @@
               <WrapPanel Grid.Row="1" ItemSpacing="{DynamicResource SpacingInlineSm}" LineSpacing="{DynamicResource SpacingInlineSm}">
                 <controls:StatusPill Icon="MonitorCog"
                           Text="Desktop Native"
-                          BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                          PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                          ForegroundBrush="{DynamicResource BrushInfo}" />
+                          Classes="ToneInfo15" />
                 <controls:StatusPill Icon="Bot"
                           Text="Automation First"
-                          BackgroundBrush="{DynamicResource BrushDoneBg25}"
-                          PillBorderBrush="{DynamicResource BrushDoneBg50}"
-                          ForegroundBrush="{DynamicResource BrushDone}" />
+                          Classes="ToneDone25" />
                 <controls:StatusPill Icon="Database"
                           Text="Data Driven"
-                          BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                          PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                          ForegroundBrush="{DynamicResource BrushInfo}" />
+                          Classes="ToneInfo15" />
               </WrapPanel>
             </Grid>
           </Grid>
 
           <Grid Grid.Row="2" ColumnDefinitions="1*,1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
-        <suki:GlassCard Grid.Row="0" Grid.Column="0" Padding="{DynamicResource AboutHeroCardPadding}" Opacity="0.98" CornerRadius="14">
+        <suki:GlassCard Grid.Row="0" Grid.Column="0" Classes="PageHero" Opacity="0.98" CornerRadius="14">
           <suki:GlassCard.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
               <GradientStop Color="{DynamicResource TechAvaloniaStart}" Offset="0" />
@@ -250,7 +238,7 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Row="0" Grid.Column="1" Padding="{DynamicResource AboutHeroCardPadding}" Opacity="0.98" CornerRadius="14">
+        <suki:GlassCard Grid.Row="0" Grid.Column="1" Classes="PageHero" Opacity="0.98" CornerRadius="14">
           <suki:GlassCard.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
               <GradientStop Color="{DynamicResource TechDotNetStart}" Offset="0" />
@@ -266,7 +254,7 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Row="0" Grid.Column="2" Padding="{DynamicResource AboutHeroCardPadding}" Opacity="0.98" CornerRadius="14">
+        <suki:GlassCard Grid.Row="0" Grid.Column="2" Classes="PageHero" Opacity="0.98" CornerRadius="14">
           <suki:GlassCard.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
               <GradientStop Color="{DynamicResource TechPostgreStart}" Offset="0" />
@@ -282,7 +270,7 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Row="1" Grid.Column="0" Padding="{DynamicResource AboutHeroCardPadding}" Opacity="0.98" CornerRadius="14">
+        <suki:GlassCard Grid.Row="1" Grid.Column="0" Classes="PageHero" Opacity="0.98" CornerRadius="14">
           <suki:GlassCard.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
               <GradientStop Color="{DynamicResource TechPythonStart}" Offset="0" />
@@ -298,7 +286,7 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Row="1" Grid.Column="1" Padding="{DynamicResource AboutHeroCardPadding}" Opacity="0.98" CornerRadius="14">
+        <suki:GlassCard Grid.Row="1" Grid.Column="1" Classes="PageHero" Opacity="0.98" CornerRadius="14">
           <suki:GlassCard.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
               <GradientStop Color="{DynamicResource TechAhkStart}" Offset="0" />
@@ -314,7 +302,7 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Row="1" Grid.Column="2" Padding="{DynamicResource AboutHeroCardPadding}" Opacity="0.98" CornerRadius="14">
+        <suki:GlassCard Grid.Row="1" Grid.Column="2" Classes="PageHero" Opacity="0.98" CornerRadius="14">
           <suki:GlassCard.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
               <GradientStop Color="{DynamicResource TechMacStart}" Offset="0" />
@@ -330,7 +318,7 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Row="2" Grid.Column="0" Padding="{DynamicResource AboutHeroCardPadding}" Opacity="0.98" CornerRadius="14">
+        <suki:GlassCard Grid.Row="2" Grid.Column="0" Classes="PageHero" Opacity="0.98" CornerRadius="14">
           <suki:GlassCard.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
               <GradientStop Color="{DynamicResource TechRiderStart}" Offset="0" />
@@ -346,7 +334,7 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Row="2" Grid.Column="1" Padding="{DynamicResource AboutHeroCardPadding}" Opacity="0.98" CornerRadius="14">
+        <suki:GlassCard Grid.Row="2" Grid.Column="1" Classes="PageHero" Opacity="0.98" CornerRadius="14">
           <suki:GlassCard.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
               <GradientStop Color="{DynamicResource TechDataGripStart}" Offset="0" />
@@ -362,7 +350,7 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Row="2" Grid.Column="2" Padding="{DynamicResource AboutHeroCardPadding}" Opacity="0.98" CornerRadius="14">
+        <suki:GlassCard Grid.Row="2" Grid.Column="2" Classes="PageHero" Opacity="0.98" CornerRadius="14">
           <suki:GlassCard.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
               <GradientStop Color="{DynamicResource TechVsCodeStart}" Offset="0" />
@@ -381,7 +369,9 @@
         </Grid>
       </suki:GlassCard>
 
-      <suki:GlassCard Grid.Row="4" Classes="SectionCard" Padding="12,10">
+      <suki:GlassCard Grid.Row="4"
+              Classes="SectionCard CompactCard"
+              IsVisible="{Binding IsDevLabVisible}">
         <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
             <icons:AppIcon Kind="FlaskConical" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" VerticalAlignment="Center" />
@@ -428,24 +418,16 @@
               <WrapPanel Margin="{DynamicResource AboutSectionInset}" ItemSpacing="{DynamicResource SpacingInlineMd}" LineSpacing="{DynamicResource SpacingInlineMd}">
                 <controls:StatusPill Icon="CircleCheck"
                           Text="Online"
-                          BackgroundBrush="{DynamicResource BrushDoneBg25}"
-                          PillBorderBrush="{DynamicResource BrushDoneBg50}"
-                          ForegroundBrush="{DynamicResource BrushDone}" />
+                          Classes="ToneDone25" />
                 <controls:StatusPill Icon="Bot"
                           Text="AutoFetch"
-                          BackgroundBrush="{DynamicResource BrushDoneBg25}"
-                          PillBorderBrush="{DynamicResource BrushDoneBg50}"
-                          ForegroundBrush="{DynamicResource BrushDone}" />
+                          Classes="ToneDone25" />
                 <controls:StatusPill Icon="Clock"
                           Text="Pending"
-                          BackgroundBrush="{DynamicResource BrushWarningBg25}"
-                          PillBorderBrush="{DynamicResource BrushWarningBg50}"
-                          ForegroundBrush="{DynamicResource BrushWarning}" />
+                          Classes="ToneWarning25" />
                 <controls:StatusPill Icon="Undo"
                           Text="Rollback"
-                          BackgroundBrush="{DynamicResource BrushDangerBg15}"
-                          PillBorderBrush="{DynamicResource BrushDangerBg35}"
-                          ForegroundBrush="{DynamicResource BrushDanger}" />
+                          Classes="ToneDanger15" />
               </WrapPanel>
             </suki:GroupBox>
 

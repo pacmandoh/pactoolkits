@@ -66,25 +66,19 @@
                               IconSize="12"
                               TextSize="11"
                               PillPadding="8,3"
-                              BackgroundBrush="{DynamicResource BrushWarningBg25}"
-                              PillBorderBrush="{DynamicResource BrushWarningBg50}"
-                              ForegroundBrush="{DynamicResource BrushWarning}" />
+                              Classes="ToneWarning25" />
                     <controls:StatusPill Icon="Bookmark"
                               Text="{Binding NeedReviewCount, StringFormat=待人工 {0}}"
                               IconSize="12"
                               TextSize="11"
                               PillPadding="8,3"
-                              BackgroundBrush="{DynamicResource BrushInfoBg25}"
-                              PillBorderBrush="{DynamicResource BrushInfoBg50}"
-                              ForegroundBrush="{DynamicResource BrushInfo}" />
+                              Classes="ToneInfo25" />
                     <controls:StatusPill Icon="CircleX"
                               Text="{Binding FailedCount, StringFormat=失败 {0}}"
                               IconSize="12"
                               TextSize="11"
                               PillPadding="8,3"
-                              BackgroundBrush="{DynamicResource BrushDangerBg25}"
-                              PillBorderBrush="{DynamicResource BrushDangerBg50}"
-                              ForegroundBrush="{DynamicResource BrushDanger}" />
+                              Classes="ToneDanger25" />
                   </StackPanel>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>

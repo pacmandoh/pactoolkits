@@ -71,11 +71,9 @@
           
           <suki:GlassCard Grid.Row="0" Classes="FilterHintCard" IsVisible="{Binding IsSearchPanelVisible}">
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
-              <TextBox Height="{StaticResource ControlHeightCompact}"
+              <TextBox Classes="FilterSearchTextBox"
                   x:Name="InventorySearchBox"
                   IsEnabled="{Binding !IsUiBusy}"
-                  Padding="10,0"
-                  VerticalContentAlignment="Center"
                   TextWrapping="NoWrap"
                   AcceptsReturn="False"
                   Watermark="搜索：药品名 / 规格 / 追溯码"
@@ -86,7 +84,7 @@
                 </TextBox.KeyBindings>
               </TextBox>
 
-              <Button Grid.Column="1" x:Name="InventorySearchButton" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
+              <Button Grid.Column="1" x:Name="InventorySearchButton" Classes="Action"
                   IsEnabled="{Binding !IsUiBusy}"
                   Command="{Binding SearchCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -95,7 +93,7 @@
                 </StackPanel>
               </Button>
 
-              <Button Grid.Column="2" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
+              <Button Grid.Column="2" Classes="Action"
                   IsEnabled="{Binding !IsUiBusy}"
                   Command="{Binding ClearSearchCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -147,11 +145,8 @@
             </WrapPanel>
 
             <WrapPanel Grid.Column="2" Orientation="Horizontal" ItemSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
-              <Button Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  Width="40"
-                  MinWidth="40"
-                  Padding="0"
+              <Button Classes="Action IconToggle"
+                                    
                   HorizontalContentAlignment="Center"
                   VerticalContentAlignment="Center"
                   IsEnabled="{Binding !IsUiBusy}"
@@ -177,8 +172,6 @@
               </Button>
 
               <Button Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   IsVisible="{Binding ShowRequestUnlock}"
                   Command="{Binding RequestUnlockCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -191,8 +184,6 @@
               </Button>
 
               <Button Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   IsVisible="{Binding ShowLockOperations}"
                   Command="{Binding LockOperationsCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -205,24 +196,18 @@
               </Button>
 
               <Button Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   IsVisible="{Binding CanEnableStockEdit}"
                   Command="{Binding ToggleStockEditModeCommand}">
                 <TextBlock Text="编辑" />
               </Button>
 
               <Button Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   IsVisible="{Binding CanDisableStockEdit}"
                   Command="{Binding ToggleStockEditModeCommand}">
                 <TextBlock Text="完成编辑" />
               </Button>
 
               <Button Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   IsEnabled="{Binding !IsUiBusy}"
                   IsVisible="{Binding IsDetailMode}"
                   Command="{Binding ToggleReassignPanelCommand}">
@@ -241,8 +226,8 @@
             </WrapPanel>
           </Grid>
 
-          <suki:GlassCard Grid.Row="2"
-                  Padding="12,10"
+          <suki:GlassCard Classes="CompactCard" Grid.Row="2"
+                 
                   behaviors:FocusClearBehavior.SuppressGridClear="{Binding SuppressGridClearInReassignDialog}"
                   IsVisible="{Binding IsReassignPanelVisible}">
             <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}" ClipToBounds="True">
@@ -267,15 +252,11 @@
 
                 <Button Grid.Column="1"
                     Classes="Action"
-                    Height="{StaticResource ControlHeightCompact}"
-                    MinWidth="{StaticResource MinWAction}"
                     Command="{Binding PreviewReassignCommand}">
                   <TextBlock Text="预览影响" />
                 </Button>
                 <Button Grid.Column="2"
                     Classes="Action"
-                    Height="{StaticResource ControlHeightCompact}"
-                    MinWidth="{StaticResource MinWAction}"
                     Command="{Binding ApplyReassignCommand}">
                   <TextBlock Text="确认纠错" />
                 </Button>
@@ -347,10 +328,8 @@
                             VerticalAlignment="Center"
                             Opacity="{StaticResource SectionHintOpacity}" />
                   <TextBox Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
+                      Classes="FilterSearchTextBox"
                       IsEnabled="False"
-                      Padding="10,0"
-                      VerticalContentAlignment="Center"
                       TextWrapping="NoWrap"
                       AcceptsReturn="False"
                       Watermark="纠错数量"
@@ -365,8 +344,7 @@
                             VerticalAlignment="Center"
                             Opacity="{StaticResource SectionHintOpacity}" />
                   <TextBox Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
-                      Padding="10,0"
+                      Classes="FilterSearchTextBox"
                       VerticalContentAlignment="Center"
                       TextWrapping="NoWrap"
                       AcceptsReturn="False"
@@ -537,20 +515,14 @@
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
               <Button Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   Command="{Binding FirstPageCommand}">
                 <TextBlock Text="首页" />
               </Button>
               <Button Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   Command="{Binding PrevPageCommand}">
                 <TextBlock Text="上一页" />
               </Button>
               <Button Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  MinWidth="{StaticResource MinWAction}"
                   Command="{Binding NextPageCommand}">
                 <TextBlock Text="下一页" />
               </Button>
