@@ -15,9 +15,10 @@ using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Core;
+using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 using SukiUI;
@@ -40,7 +41,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IDbSchemaVersionService _dbSchemaVersion;
     private readonly IDbSchemaMigrationService _dbSchemaMigration;
     private readonly IChangeWatermarkService _changeWatermark;
-    private readonly IAhkRuntimeService _ahkRuntime;
+    private readonly IAgentRuntimeService _ahkRuntime;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IAppStartupStateService _startupState;
     private readonly IAppUpdateService _updates;
@@ -278,7 +279,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IDbSchemaVersionService dbSchemaVersion,
         IDbSchemaMigrationService dbSchemaMigration,
         IChangeWatermarkService changeWatermark,
-        IAhkRuntimeService ahkRuntime,
+        IAgentRuntimeService ahkRuntime,
         IReleaseVersionService releaseVersion,
         IAppStartupStateService startupState,
         IAppUpdateService updates,
