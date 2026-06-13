@@ -8,9 +8,10 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$DbRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
+$DbRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 $SqlRoot = Join-Path $DbRoot 'sql'
-$ManifestPath = Join-Path (Resolve-Path (Join-Path $DbRoot '..')).Path 'release-manifest.json'
+$RepoRoot = Resolve-Path (Join-Path $DbRoot '..\..')
+$ManifestPath = Join-Path $RepoRoot.Path 'release-manifest.json'
 $LockOwner = "{0}@{1}:{2}" -f $env:USERNAME, $PID, ([guid]::NewGuid().ToString('N'))
 $LockLeaseMinutes = 60
 
@@ -86,6 +87,17 @@ function Migration-Title([string]$name) {
   $m = [regex]::Match($name, '^V[0-9_]+__(.+)\.sql$')
   if (-not $m.Success) { throw "[ERROR] invalid migration name: $name" }
   $m.Groups[1].Value
+}
+
+function Migration-SortKey([System.IO.FileInfo]$file) {
+  $parts = (Migration-Version $file.Name).Split('.') | ForEach-Object { [int]$_ }
+  if ($parts.Count -ne 3) { throw "[ERROR] invalid migration version: $($file.Name)" }
+  "{0:D10}.{1:D10}.{2:D10}" -f $parts[0], $parts[1], $parts[2]
+}
+
+function Get-MigrationFiles() {
+  Get-ChildItem (Join-Path $SqlRoot 'migrations') -Filter 'V*__*.sql' |
+    Sort-Object @{ Expression = { Migration-SortKey $_ } }
 }
 
 function File-Checksum([string]$path) {
@@ -170,7 +182,7 @@ function Release-Lock() {
 
 function Run-Upgrade() {
   Ensure-MetaTables
-  $files = Get-ChildItem (Join-Path $SqlRoot 'migrations') -Filter 'V*__*.sql' | Sort-Object Name
+  $files = Get-MigrationFiles
   foreach ($f in $files) {
     $version = Migration-Version $f.Name
     $title = Migration-Title $f.Name
@@ -222,7 +234,7 @@ switch ($Command) {
   }
   'plan' {
     Ensure-MetaTables
-    $files = Get-ChildItem (Join-Path $SqlRoot 'migrations') -Filter 'V*__*.sql' | Sort-Object Name
+    $files = Get-MigrationFiles
     foreach ($f in $files) {
       $v = Migration-Version $f.Name
       $n = Migration-Title $f.Name

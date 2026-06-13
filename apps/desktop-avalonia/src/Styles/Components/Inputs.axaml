@@ -36,7 +36,7 @@
   <Style Selector="Border.AutoCompleteInputHost">
     <Setter Property="CornerRadius" Value="{DynamicResource InputCornerRadius}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="BorderBrush" Value="{DynamicResource AutoCompleteBorderBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SukiControlBorderBrush}" />
     <Setter Property="Background" Value="{DynamicResource ThemeBorderLowBrush}" />
   </Style>
 

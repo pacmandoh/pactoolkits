@@ -36,7 +36,6 @@ public static class AgentConfigValidator
     public static ToolCommandResult ValidateAgentSection(AgentToolOptions agent)
     {
         if (string.IsNullOrWhiteSpace(agent.PgDriver)
-            || string.IsNullOrWhiteSpace(agent.PgSsl)
             || string.IsNullOrWhiteSpace(agent.OptWindowClass)
             || string.IsNullOrWhiteSpace(agent.IptWindowClass)
             || string.IsNullOrWhiteSpace(agent.OptParseGridClassNN)
@@ -48,6 +47,9 @@ public static class AgentConfigValidator
         {
             return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent 文本字段不完整");
         }
+
+        if (!IsSupportedPgSslMode(agent.PgSsl))
+            return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.PgSsl 仅支持 disable/allow/prefer/require/verify-ca/verify-full");
 
         if (agent.AppWin is null || agent.AppWin.Count == 0)
             return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.AppWin 不能为空");
@@ -68,5 +70,11 @@ public static class AgentConfigValidator
             return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.WarehouseTaskIdentifier 不能为空");
 
         return new ToolCommandResult(true, "ok");
+    }
+
+    private static bool IsSupportedPgSslMode(string? value)
+    {
+        var mode = (value ?? string.Empty).Trim().ToLowerInvariant();
+        return mode is "disable" or "allow" or "prefer" or "require" or "verify-ca" or "verify-full";
     }
 }
