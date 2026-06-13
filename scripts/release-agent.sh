@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-AGENT_DIR="$ROOT_DIR/pactoolkits-agent"
+AGENT_DIR="$ROOT_DIR/runtime/agent-ahk"
 MANIFEST="$ROOT_DIR/release-manifest.json"
 RELEASES_DIR="$AGENT_DIR/Releases"
 
@@ -19,7 +19,7 @@ Options:
   --bump-channel C           Optional: bump manifest build.channel (stable|beta).
   --artifact-dir DIR         Optional: package prebuilt files from DIR instead of source files.
   --channel C                Optional: package channel tag (default: manifest build.channel).
-  --output-dir DIR           Output directory (default: pactoolkits-agent/Releases).
+  --output-dir DIR           Output directory (default: runtime/agent-ahk/Releases).
   --upload-target TARGET     Optional rsync target, e.g. user@host:/var/www/updates/pactoolkits-agent/
   --dry-run                  Print commands only.
   --skip-upload              Do not upload.
