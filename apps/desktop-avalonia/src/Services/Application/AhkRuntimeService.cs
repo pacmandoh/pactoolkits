@@ -7,6 +7,7 @@ using PacToolkits.Agent.Contracts.Models;
 using PacToolkits.Agent.Contracts.Validation;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,9 +16,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
-public sealed class AhkRuntimeService : IAgentRuntimeService
+public sealed class AhkRuntimeService : IAutomationRuntimeService
 {
     private readonly IAppConfigStore _configStore;
     private readonly IReleaseVersionService _releaseVersion;
@@ -38,25 +39,32 @@ public sealed class AhkRuntimeService : IAgentRuntimeService
 
     public event Action? StatusChanged;
 
-    public AhkToolOptions CurrentOptions
+    public AutomationAhkOptionsDto CurrentOptions
     {
         get
         {
             lock (_gate)
-                return Clone(_options);
+                return AutomationContractMapper.ToApplication(Clone(_options));
         }
     }
 
-    public ToolRunState State
+    public AutomationRunState State
     {
         get
         {
             lock (_gate)
-                return _state;
+                return AutomationContractMapper.ToApplication(_state);
         }
     }
 
-    public bool IsRunning => State == ToolRunState.Running;
+    public bool IsRunning
+    {
+        get
+        {
+            lock (_gate)
+                return _state == ToolRunState.Running;
+        }
+    }
 
     public DateTimeOffset? LastLaunchAt
     {
@@ -138,9 +146,9 @@ public sealed class AhkRuntimeService : IAgentRuntimeService
         });
     }
 
-    public async Task SaveOptionsAsync(AhkToolOptions options, CancellationToken ct = default)
+    public async Task SaveOptionsAsync(AutomationAhkOptionsDto options, CancellationToken ct = default)
     {
-        var normalized = Normalize(options);
+        var normalized = Normalize(AutomationContractMapper.ToContract(options));
 
         var cfg = _configStore.Load();
         cfg.AutomationTools.Ahk = Clone(normalized);
@@ -166,17 +174,17 @@ public sealed class AhkRuntimeService : IAgentRuntimeService
         });
     }
 
-    public async Task<ToolCommandResult> StartOrRestartAsync(CancellationToken ct = default)
+    public async Task<AutomationCommandResult> StartOrRestartAsync(CancellationToken ct = default)
     {
         var entered = await _commandGate.WaitAsync(0, ct).ConfigureAwait(false);
         if (!entered)
-            return new ToolCommandResult(true, "操作进行中，请稍候", SuppressToast: true);
+            return new AutomationCommandResult(true, "操作进行中，请稍候", SuppressToast: true);
 
         AhkToolOptions options;
         try
         {
             if (IsCommandCoolingDown())
-                return new ToolCommandResult(true, "操作过于频繁，已忽略", SuppressToast: true);
+                return new AutomationCommandResult(true, "操作过于频繁，已忽略", SuppressToast: true);
 
             lock (_gate)
                 options = Clone(_options);
@@ -238,7 +246,7 @@ public sealed class AhkRuntimeService : IAgentRuntimeService
             RaiseChanged();
             var successMessage = wasRunning ? "已重启" : "已启动";
             PublishEvent(AgentCommandKind.Start, ToolRunState.Running, successMessage);
-            return new ToolCommandResult(true, successMessage);
+            return new AutomationCommandResult(true, successMessage);
         }
         catch (Exception ex)
         {
@@ -252,17 +260,17 @@ public sealed class AhkRuntimeService : IAgentRuntimeService
         }
     }
 
-    public async Task<ToolCommandResult> StopAsync(CancellationToken ct = default)
+    public async Task<AutomationCommandResult> StopAsync(CancellationToken ct = default)
     {
         var entered = await _commandGate.WaitAsync(0, ct).ConfigureAwait(false);
         if (!entered)
-            return new ToolCommandResult(true, "操作进行中，请稍候", SuppressToast: true);
+            return new AutomationCommandResult(true, "操作进行中，请稍候", SuppressToast: true);
 
         AhkToolOptions options;
         try
         {
             if (IsCommandCoolingDown())
-                return new ToolCommandResult(true, "操作过于频繁，已忽略", SuppressToast: true);
+                return new AutomationCommandResult(true, "操作过于频繁，已忽略", SuppressToast: true);
 
             lock (_gate)
                 options = Clone(_options);
@@ -277,7 +285,7 @@ public sealed class AhkRuntimeService : IAgentRuntimeService
                     _lastError = null;
                 RefreshState();
                 RaiseChanged();
-                return new ToolCommandResult(true, "已停止");
+                return new AutomationCommandResult(true, "已停止");
             }
 
             foreach (var p in processes)
@@ -311,7 +319,7 @@ public sealed class AhkRuntimeService : IAgentRuntimeService
             RefreshState();
             RaiseChanged();
             PublishEvent(AgentCommandKind.Stop, ToolRunState.Stopped, "已停止");
-            return new ToolCommandResult(true, "已停止");
+            return new AutomationCommandResult(true, "已停止");
         }
         catch (Exception ex)
         {
@@ -422,14 +430,14 @@ public sealed class AhkRuntimeService : IAgentRuntimeService
         return string.Empty;
     }
 
-    private ToolCommandResult SetError(string message)
+    private AutomationCommandResult SetError(string message)
     {
         lock (_gate)
             _lastError = message;
 
         RefreshState();
         RaiseChanged();
-        return new ToolCommandResult(false, message);
+        return new AutomationCommandResult(false, message);
     }
 
     private bool IsCommandCoolingDown()

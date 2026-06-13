@@ -10,10 +10,8 @@ using System.Windows.Input;
 using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Agent.Contracts.Abstractions;
-using PacToolkits.Agent.Contracts.Commands;
-using PacToolkits.Agent.Contracts.Models;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -49,9 +47,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     public override int Index => 4;
     public override ICommand? RefreshCommand => _refreshRuntimeCommand;
 
-    private readonly IAgentRuntimeService _ahkRuntime;
+    private readonly IAutomationRuntimeService _ahkRuntime;
     private readonly IToastService _toast;
-    private readonly IAutomationToolsConfigService _automationConfig;
+    private readonly IAutomationConfigService _automationConfig;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IAsyncRelayCommand _refreshRuntimeCommand;
     private readonly object _agentSnapshotGate = new();
@@ -107,9 +105,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     partial void OnIsAhkTogglingChanged(bool value) => RestartAhkCommand.NotifyCanExecuteChanged();
 
     public ToolsCenterViewModel(
-        IAgentRuntimeService ahkRuntime,
+        IAutomationRuntimeService ahkRuntime,
         IToastService toast,
-        IAutomationToolsConfigService automationConfig,
+        IAutomationConfigService automationConfig,
         IReleaseVersionService releaseVersion)
     {
         _ahkRuntime = ahkRuntime;
@@ -339,7 +337,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 }
             }
 
-            ToolCommandResult result = enabled
+            AutomationCommandResult result = enabled
                 ? await _ahkRuntime.StartOrRestartAsync().ConfigureAwait(false)
                 : await _ahkRuntime.StopAsync().ConfigureAwait(false);
 
@@ -385,7 +383,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         try
         {
             var cfg = _automationConfig.Load();
-            var nextAhk = new AhkToolOptions
+            var nextAhk = new AutomationAhkOptionsDto
             {
                 ExecutablePath = AhkExecutablePath,
                 ProcessName = AhkProcessName
@@ -401,7 +399,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 return new SaveOptionsResult(true, false);
             }
 
-            await _automationConfig.SaveAsync(new AutomationToolsOptions
+            await _automationConfig.SaveAsync(new AutomationConfigDto
             {
                 Ahk = nextAhk,
                 Agent = parsedAgent
@@ -421,11 +419,11 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         }
     }
 
-    private static bool SameAhkOptions(AhkToolOptions left, AhkToolOptions right)
+    private static bool SameAhkOptions(AutomationAhkOptionsDto left, AutomationAhkOptionsDto right)
         => string.Equals(left.ExecutablePath?.Trim(), right.ExecutablePath?.Trim(), StringComparison.Ordinal)
            && string.Equals(left.ProcessName?.Trim(), right.ProcessName?.Trim(), StringComparison.Ordinal);
 
-    private static bool SameAgentOptions(AgentToolOptions left, AgentToolOptions right)
+    private static bool SameAgentOptions(AutomationAgentOptionsDto left, AutomationAgentOptionsDto right)
     {
         static string Norm(string? value) => (value ?? string.Empty).Trim();
 
@@ -478,15 +476,15 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             LastErrorText = string.IsNullOrWhiteSpace(_ahkRuntime.LastError) ? "-" : _ahkRuntime.LastError!;
             AhkStatusText = _ahkRuntime.State switch
             {
-                ToolRunState.Running => "运行中",
-                ToolRunState.Stopped => "未启动",
+                AutomationRunState.Running => "运行中",
+                AutomationRunState.Stopped => "未启动",
                 _ => "未知",
             };
             AhkStatusHeadline = $"状态：{AhkStatusText}";
             AhkStatusDetail = _ahkRuntime.State switch
             {
-                ToolRunState.Running => "进程已运行，可在右上角或本页执行“重启”",
-                ToolRunState.Stopped => "当前未检测到进程，开启开关或点击“重启”即可启动",
+                AutomationRunState.Running => "进程已运行，可在右上角或本页执行“重启”",
+                AutomationRunState.Stopped => "当前未检测到进程，开启开关或点击“重启”即可启动",
                 _ => "状态检测异常，请检查进程名和可执行路径",
             };
         }
@@ -681,7 +679,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         OnPropertyChanged(nameof(IsSavedState));
     }
 
-    private AgentToolOptions? ParseAgentOptionsForSave()
+    private AutomationAgentOptionsDto? ParseAgentOptionsForSave()
     {
         try
         {
@@ -717,7 +715,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             var warehouseAnchors = ParseLineItems(AgentWarehouseAnchorItems);
             var warehouseTaskIdentifier = NormalizeWarehouseTaskIdentifierValue(AgentWarehouseTaskIdentifier);
 
-            return new AgentToolOptions
+            return new AutomationAgentOptionsDto
             {
                 PgDriver = AgentPgDriver.Trim(),
                 PgSsl = AgentPgSsl.Trim(),
