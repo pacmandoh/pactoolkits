@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using global::Avalonia.Controls;
-using PacToolkits.Desktop.Avalonia.Contracts;
+using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Dialogs;
 

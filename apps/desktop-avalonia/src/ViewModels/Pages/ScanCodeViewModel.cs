@@ -13,8 +13,9 @@ using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.Contracts;
-using PacToolkits.Desktop.Avalonia.Repositories;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -34,9 +35,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     protected override bool AutoRefreshOnDbReconnected => true;
 
     private readonly ILookupCatalogService _lookup;
-    private readonly IDrugIndexRepo _drugIndexRepo;
-    private readonly IScanCodeRepo _scanCodeRepo;
-    private readonly ITraceEntryLogService _traceEntryLog;
+    private readonly IScanCodeService _scanCode;
     private readonly ITraceCodeRuleService _traceCodeRule;
     private readonly IToastService _toast;
     private IRelayCommand?[]? _notifiableCommands;
@@ -70,16 +69,12 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
     public ScanCodeViewModel(
         ILookupCatalogService lookup,
-        IDrugIndexRepo drugIndexRepo,
-        IScanCodeRepo scanCodeRepo,
-        ITraceEntryLogService traceEntryLog,
+        IScanCodeService scanCode,
         ITraceCodeRuleService traceCodeRule,
         IToastService toast)
     {
         _lookup = lookup;
-        _drugIndexRepo = drugIndexRepo;
-        _scanCodeRepo = scanCodeRepo;
-        _traceEntryLog = traceEntryLog;
+        _scanCode = scanCode;
         _traceCodeRule = traceCodeRule;
         _toast = toast;
         AutoTasks.CollectionChanged += OnAutoTasksChanged;
@@ -310,8 +305,16 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                     using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                     timeoutCts.CancelAfter(SubmitTimeout);
 
-                    var dto = await _drugIndexRepo.GetByKeyAsync(drug, spec, timeoutCts.Token).ConfigureAwait(false);
-                    if (dto is null)
+                    var submit = await _scanCode.SubmitAsync(
+                        new ScanCodeSubmitRequest(
+                            DrugId: drug,
+                            Spec: spec,
+                            ValidUniqueCodes: codes,
+                            Analysis: analysis,
+                            ClientRaw: CachedClientRaw.Value),
+                        timeoutCts.Token).ConfigureAwait(false);
+
+                    if (!submit.DrugFound)
                     {
                         await RunOnUiAsync(() =>
                         {
@@ -321,45 +324,17 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                         return;
                     }
 
-                    var result = await _scanCodeRepo
-                        .InsertTraceCodesAsync(drug, spec, dto.Qty, codes, timeoutCts.Token)
-                        .ConfigureAwait(false);
+                    Exception? logWriteError = submit.EntryMessage.StartsWith("insert ok but log failed", StringComparison.Ordinal)
+                        ? new InvalidOperationException(submit.EntryMessage)
+                        : null;
+                    if (logWriteError is not null)
+                        LogWarn("scan.entry_log.write_fail", "trace_entry_log write failed after submit", logWriteError);
 
-                    var failedCount = Math.Max(0, analysis.Total - result.InsertedCount);
-                    var entryResult = result.InsertedCount == 0
-                        ? "failed"
-                        : failedCount > 0 ? "partial" : "success";
-                    var entryMessage =
-                        $"manual input={analysis.Total}, valid={analysis.ValidUniqueCodes.Count}, duplicate={analysis.Duplicate}, invalid={analysis.Invalid}, inserted={result.InsertedCount}, skipped={result.SkippedCount}";
-
-                    // Best-effort entry log: this drives Dashboard "追溯码录入情况".
-                    Exception? logWriteError = null;
-                    try
-                    {
-                        await _traceEntryLog.WriteAsync(new TraceEntryLogDto(
-                            EntryAt: DateTimeOffset.Now,
-                            DrugId: drug,
-                            Spec: spec,
-                            EntryCount: analysis.Total,
-                            QtyPerTrace: dto.Qty,
-                            TotalAvailableQty: result.InsertedCount * dto.Qty,
-                            FailedCount: failedCount,
-                            Result: entryResult,
-                            TxnId: null,
-                            Client: CachedClientRaw.Value,
-                            Source: "manual",
-                            Message: entryMessage
-                        ), timeoutCts.Token).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        logWriteError = ex;
-                        LogWarn("scan.entry_log.write_fail", "trace_entry_log write failed after submit", ex);
-                    }
+                    var result = submit.Insert;
 
                     await RunOnUiAsync(() =>
                     {
-                        SelectedQtyText = dto.Qty.ToString();
+                        SelectedQtyText = submit.QtyPerTrace.ToString();
                         Status = $"处理 {result.RequestedCount} 条，成功 {result.InsertedCount} 条，跳过 {result.SkippedCount} 条";
                         var summary =
                             $"{drug}/{spec} · 总数 {analysis.Total} · 有效 {analysis.ValidUniqueCodes.Count} · 重复 {analysis.Duplicate} · 无效 {analysis.Invalid} · 写入 {result.InsertedCount} · 跳过 {result.SkippedCount}";
@@ -761,58 +736,8 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
     private CodeAnalysis AnalyzeCodes(string? text)
     {
-        if (string.IsNullOrWhiteSpace(text))
-            return new CodeAnalysis(0, 0, 0, Array.Empty<string>());
-
-        var total = 0;
-        var invalid = 0;
-        var duplicate = 0;
-        var unique = new List<string>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var raw in text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
-        {
-            var code = raw.Trim();
-            if (code.Length == 0) continue;
-            total++;
-
-            if (!IsValidTraceCode(code))
-            {
-                invalid++;
-                continue;
-            }
-
-            if (!seen.Add(code))
-            {
-                duplicate++;
-                continue;
-            }
-
-            unique.Add(code);
-        }
-
-        return new CodeAnalysis(total, invalid, duplicate, unique);
-    }
-
-    private bool IsValidTraceCode(string code)
-    {
         var rule = _traceCodeRule.Current;
-
-        if (code.Length != rule.RequiredLength)
-            return false;
-
-        if (string.IsNullOrWhiteSpace(rule.Pattern))
-            return true;
-
-        try
-        {
-            return Regex.IsMatch(code, rule.Pattern);
-        }
-        catch
-        {
-            // Invalid regex should not block all input silently; treat as non-match.
-            return false;
-        }
+        return TraceCodeAnalyzer.Analyze(text, new TraceCodeValidationRule(rule.RequiredLength, rule.Pattern));
     }
 
     private void OnTraceCodeRuleChanged()
@@ -858,4 +783,4 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 public sealed record AutoFetchTaskItem(string Name, string Schedule, string State, string Detail);
 public sealed record AutoFetchRunItem(string Name, string StartedAtText, string Result, string Detail);
 public sealed record AutoFetchRetryItem(string Name, string Reason, string RetryCountText);
-public sealed record CodeAnalysis(int Total, int Invalid, int Duplicate, IReadOnlyList<string> ValidUniqueCodes);
+

@@ -9,6 +9,8 @@ using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -291,14 +293,14 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
 
     protected bool IsDbTransportError(Exception ex)
     {
-        if (ex is Npgsql.NpgsqlException) return true;
+        if (IsPostgresProviderException(ex)) return true;
         if (ex is System.IO.EndOfStreamException) return true;
         if (ex is System.IO.IOException) return true;
 
         var inner = ex.InnerException;
         while (inner is not null)
         {
-            if (inner is Npgsql.NpgsqlException) return true;
+            if (IsPostgresProviderException(inner)) return true;
             if (inner is System.IO.EndOfStreamException) return true;
             if (inner is System.IO.IOException) return true;
             inner = inner.InnerException;
@@ -306,6 +308,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IDisposable
 
         return false;
     }
+
+    private static bool IsPostgresProviderException(Exception ex)
+        => ex.GetType().FullName?.StartsWith("Npgsql.", StringComparison.Ordinal) == true;
 
     protected void SignalDbDisconnected()
     {

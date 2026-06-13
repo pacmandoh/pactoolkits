@@ -8,30 +8,9 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-
-public enum AppLogLevel
-{
-    Debug = 0,
-    Info = 1,
-    Warn = 2,
-    Error = 3,
-    Fatal = 4
-}
-
-public interface IAppLogger
-{
-    string LogDirectory { get; }
-    string CurrentLogPath { get; }
-
-    void Debug(string module, string eventName, string message, object? context = null, string? traceId = null);
-    void Info(string module, string eventName, string message, object? context = null, string? traceId = null);
-    void Warn(string module, string eventName, string message, Exception? ex = null, object? context = null, string? traceId = null);
-    void Error(string module, string eventName, string message, Exception? ex = null, object? context = null, string? traceId = null);
-    void Fatal(string module, string eventName, string message, Exception? ex = null, object? context = null, string? traceId = null);
-    Task<string> ExportRecentAsync(TimeSpan window, CancellationToken ct = default);
-}
 
 public sealed class AppLogger : IAppLogger, IDisposable
 {
