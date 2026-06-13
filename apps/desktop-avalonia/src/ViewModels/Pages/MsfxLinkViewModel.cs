@@ -1289,12 +1289,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             var options = BuildMsfxOptions();
             SetAutoProgress(2, "准备巡检");
-            window = await _syncService.GetPullWindowAsync("listupout", ct).ConfigureAwait(false);
+            window = await _syncService.LoadPullWindowAsync("listupout", ct).ConfigureAwait(false);
             AddAutoLog("任务", $"开始执行自动化拉取（{window.BeginAt:yyyy-MM-dd HH:mm:ss} ~ {window.EndAt:yyyy-MM-dd HH:mm:ss}）", TraceEntryState.Info);
             LogInfo("msfx.auto.run.start", "MSFX auto run started", new { window.BeginAt, window.EndAt });
             SetAutoProgress(5, $"拉取窗口 {window.BeginAt:MM-dd HH:mm} ~ {window.EndAt:MM-dd HH:mm}");
 
-            var batch = await _syncService.StartPullBatchAsync("listupout", window.BeginAt, window.EndAt, ct)
+            var batch = await _syncService.StartMsfxPullBatchAsync("listupout", window.BeginAt, window.EndAt, ct)
                 .ConfigureAwait(false);
             batchId = batch.BatchId;
             AddAutoLog("批次", $"拉取批次已创建：#{batchId}", TraceEntryState.Success);
@@ -1357,7 +1357,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                         return false;
                     }
 
-                    await _syncService.UpsertBillRetryAsync(
+                    await _syncService.ScheduleBillRetryAsync(
                         sourceApi: "listupout",
                         billCode: billCode,
                         fromRefUserId: normalizedFromRef,
@@ -1378,7 +1378,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     return false;
                 }
 
-                var billId = await _syncService.UpsertInboundBillAsync(
+                var billId = await _syncService.SaveInboundBillAsync(
                     batchId: batchId,
                     billCode: billCode,
                     billType: billType ?? string.Empty,
@@ -1419,7 +1419,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     return await QueueRetryAndLogAsync(BuildApiErrorMessage(detail.Call)).ConfigureAwait(false);
 
                 var swIngest = Stopwatch.StartNew();
-                var ingest = await _syncService.IngestUpoutDetailAsync(
+                var ingest = await _syncService.IngestMsfxBillDetailAsync(
                     billId,
                     billCode,
                     detail.DrugItems
@@ -1459,7 +1459,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 return true;
             }
 
-            var dueRetries = await _syncService.GetDueBillRetriesAsync("listupout", 200, ct).ConfigureAwait(false);
+            var dueRetries = await _syncService.LoadDueBillRetriesAsync("listupout", 200, ct).ConfigureAwait(false);
             if (dueRetries.Count > 0)
             {
                 AddAutoLog("重试", $"发现待重试单据 {dueRetries.Count} 条，优先处理", TraceEntryState.Info);
@@ -1511,7 +1511,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
                 if (batchId > 0 && !string.IsNullOrWhiteSpace(list.Call.RequestId))
                 {
-                    await _syncService.UpdatePullBatchRequestIdAsync(batchId, list.Call.RequestId, ct).ConfigureAwait(false);
+                    await _syncService.UpdateMsfxPullBatchRequestIdAsync(batchId, list.Call.RequestId, ct).ConfigureAwait(false);
                 }
 
                 totalApiRows += list.Items.Count;
@@ -1532,7 +1532,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 foreach (var watch in watchRows)
                 {
                     ct.ThrowIfCancellationRequested();
-                    await _syncService.UpsertBillWatchAsync(
+                    await _syncService.WatchMsfxBillAsync(
                         sourceApi: "listupout",
                         billCode: watch.BillCode,
                         fromRefUserId: watch.FromRefUserId,
@@ -1587,7 +1587,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 page++;
             }
 
-            var dueWatches = await _syncService.GetDueBillWatchesAsync("listupout", 200, ct).ConfigureAwait(false);
+            var dueWatches = await _syncService.LoadDueBillWatchesAsync("listupout", 200, ct).ConfigureAwait(false);
             if (dueWatches.Count > 0)
             {
                 AddAutoLog("待确认补偿", $"发现待确认单据 {dueWatches.Count} 条，开始补偿重查", TraceEntryState.Info);
@@ -1621,13 +1621,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
 
             var swMap = Stopwatch.StartNew();
-            var mapBefore = await _syncService.GetMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
+            var mapBefore = await _syncService.LoadMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
             AddAutoLog(
                 "映射自检",
                 $"执行前 PENDING {mapBefore.PendingCount}，MAPPED {mapBefore.MappedCount}，NEED_REVIEW {mapBefore.NeedReviewCount}，FAILED {mapBefore.FailedCount}，TOTAL {mapBefore.TotalCount}",
                 TraceEntryState.Info);
-            var map = await _syncService.ApplyMappingAsync(50000, ct).ConfigureAwait(false);
-            var mapAfter = await _syncService.GetMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
+            var map = await _syncService.ApplyMsfxMappingAsync(50000, ct).ConfigureAwait(false);
+            var mapAfter = await _syncService.LoadMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
             mapMs += swMap.ElapsedMilliseconds;
             SetAutoProgress(90, "执行自动映射");
             var mapState = map.ProcessedCount == 0
@@ -1647,7 +1647,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             await RefreshAutoMapPanelCoreAsync(ct).ConfigureAwait(false);
 
             var swTask = Stopwatch.StartNew();
-            var taskResult = await _syncService.BuildInjectTasksAsync(500, ct).ConfigureAwait(false);
+            var taskResult = await _syncService.BuildMsfxInjectTasksAsync(500, ct).ConfigureAwait(false);
             taskBuildMs += swTask.ElapsedMilliseconds;
             SetAutoProgress(96, "构建注入任务");
             var taskState = taskResult.CreatedTasks > 0 ? TraceEntryState.Success : TraceEntryState.Warning;
@@ -1660,9 +1660,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             await RefreshAutoTaskPanelCoreAsync(ct).ConfigureAwait(false);
 
             var batchStatus = failCount > 0 ? "FAILED" : "SUCCESS";
-            await _syncService.FinishPullBatchAsync(batchId, batchStatus, succeedCount, failCount, null, CancellationToken.None)
+            await _syncService.CompleteMsfxPullBatchAsync(batchId, batchStatus, succeedCount, failCount, null, CancellationToken.None)
                 .ConfigureAwait(false);
-            await _syncService.AdvancePullCursorAsync("listupout", window.BeginAt, window.EndAt, batchId, batchStatus, CancellationToken.None)
+            await _syncService.AdvanceMsfxPullCursorAsync("listupout", window.BeginAt, window.EndAt, batchId, batchStatus, CancellationToken.None)
                 .ConfigureAwait(false);
             batchFinalized = true;
             await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
@@ -1724,7 +1724,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 try
                 {
-                    await _syncService.FinishPullBatchAsync(
+                    await _syncService.CompleteMsfxPullBatchAsync(
                         batchId,
                         "FAILED",
                         succeedCount,
@@ -1891,7 +1891,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 try
                 {
-                    var result = await _syncService.ReopenInjectTaskAsync(
+                    var result = await _syncService.ReopenMsfxTaskAsync(
                         taskRow.TaskId,
                         opName,
                         "manual reopen from ui",
@@ -1969,7 +1969,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 try
                 {
-                    var result = await _syncService.DiscardInjectTaskAsync(
+                    var result = await _syncService.DiscardMsfxTaskAsync(
                         taskRow.TaskId,
                         opName,
                         "manual discard from ui",
@@ -2047,7 +2047,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 try
                 {
-                    var result = await _syncService.RemapInjectTaskAsync(
+                    var result = await _syncService.RemapMsfxTaskAsync(
                         taskRow.TaskId,
                         opName,
                         "manual remap from task queue",
@@ -2135,7 +2135,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             IsAutoBoardBusy = true;
             var opName = Environment.UserName;
-            var result = await _syncService.MergeInjectTasksAsync(
+            var result = await _syncService.MergeMsfxTasksAsync(
                 selectedRows.Select(x => x.TaskId).ToArray(),
                 opName,
                 "manual merge from task queue",
@@ -2187,8 +2187,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         if (IsAutoBoardBusy)
             return;
 
-        var splitUnits = await _syncService.GetInjectTaskSplitUnitsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
-        var splitCodeRows = await _syncService.GetInjectTaskSplitCodeRowsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
+        var splitUnits = await _syncService.LoadMsfxTaskSplitUnitsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
+        var splitCodeRows = await _syncService.LoadMsfxTaskSplitCodeRowsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
         var choice = await _dialog.ShowMsfxTaskSplitDialog(new MsfxTaskSplitDialogModel(
             TaskId: taskRow.TaskId,
             SourceBillCode: taskRow.SourceBillCode,
@@ -2211,7 +2211,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     return;
                 }
 
-                var customResult = await _syncService.SplitInjectTaskCustomAsync(
+                var customResult = await _syncService.SplitMsfxTaskCustomAsync(
                     taskRow.TaskId,
                     customPlan.Value.GroupKeys,
                     customPlan.Value.BucketIndexes,
@@ -2234,7 +2234,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             else
             {
                 var splitMode = choice.Action == MsfxTaskSplitDialogAction.ParentCluster ? "PARENT_CLUSTER" : "BATCH";
-                var result = await _syncService.SplitInjectTaskAsync(
+                var result = await _syncService.SplitMsfxTaskAsync(
                     taskRow.TaskId,
                     splitMode,
                     opName,
@@ -2282,7 +2282,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         try
         {
-            var groups = await _syncService.GetMappingBatchGroupsAsync(
+            var groups = await _syncService.LoadMappingBatchGroupsAsync(
                 mapStatus: null,
                 codeStatus: null,
                 searchScope: "ALL",
@@ -2327,7 +2327,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 return;
             }
 
-            var preview = await _syncService.PreviewMappingBatchByGroupAsync(
+            var preview = await _syncService.PreviewMsfxMappingBatchAsync(
                 mapStatus: null,
                 codeStatus: null,
                 searchScope: "ALL",
@@ -2357,7 +2357,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             if (!ok)
                 return;
 
-            var apply = await _syncService.ApplyMappingBatchByGroupAsync(
+            var apply = await _syncService.ApplyMsfxMappingBatchAsync(
                 mapStatus: null,
                 codeStatus: null,
                 searchScope: "ALL",
@@ -2379,7 +2379,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
             if (res.Action == MsfxMappingBatchDialogAction.ApplyMap && apply.AffectedCount > 0)
             {
-                var built = await _syncService.BuildInjectTasksAsync(500, CancellationToken.None).ConfigureAwait(false);
+                var built = await _syncService.BuildMsfxInjectTasksAsync(500, CancellationToken.None).ConfigureAwait(false);
                 AddAutoLog("批量映射", $"分组处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}", TraceEntryState.Success);
                 LogWarn("msfx.map.batch.apply", "MSFX batch mapping applied", null, new
                 {
@@ -2540,7 +2540,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     private async Task<MsfxAutoBoardSnapshot> RefreshAutoSummaryCoreAsync(CancellationToken ct)
     {
-        var snap = await _syncService.GetAutoBoardSnapshotAsync(ct).ConfigureAwait(false);
+        var snap = await _syncService.LoadMsfxDashboardAsync(ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
         {
             AutoPullSummary = $"批次#{snap.LastBatchId} {snap.LastBatchStatus} 成功{snap.LastBatchSuccessCount}/失败{snap.LastBatchFailCount}";
@@ -2574,7 +2574,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task<MsfxAutoBoardSnapshot> RefreshAutoPullPanelCoreAsync(CancellationToken ct)
     {
         var snap = await RefreshAutoSummaryCoreAsync(ct).ConfigureAwait(false);
-        var pullRows = await _syncService.GetRecentPullBatchesAsync(500, ct).ConfigureAwait(false);
+        var pullRows = await _syncService.LoadRecentPullBatchesAsync(500, ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
         {
             _allPullBatchRows = pullRows.Select(x => new MsfxAutoPullBatchGridRow(
@@ -2607,7 +2607,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task<MsfxAutoBoardSnapshot> RefreshAutoTaskPanelCoreAsync(CancellationToken ct)
     {
         var snap = await RefreshAutoSummaryCoreAsync(ct).ConfigureAwait(false);
-        var taskRows = await _syncService.GetInjectTaskQueueAsync(0, ct).ConfigureAwait(false);
+        var taskRows = await _syncService.LoadInjectTaskQueueAsync(0, ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
         {
             var checkedIds = _allTaskQueueRows.Where(x => x.IsChecked).Select(x => x.TaskId).ToHashSet();
@@ -2862,7 +2862,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         var pageSize = fullMapMode ? GetMapQueuePageSize() : CompactMapQueueRows;
-        var page = await _syncService.GetMappingQueuePageAsync(
+        var page = await _syncService.LoadMappingQueuePageAsync(
             pageSize: pageSize,
             mapStatus: NormalizeFilterValue(MapQueueMapStatusFilter),
             codeStatus: NormalizeFilterValue(MapQueueCodeStatusFilter),
