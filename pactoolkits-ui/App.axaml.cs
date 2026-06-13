@@ -64,7 +64,7 @@ public class App : Application
         _ahkRuntime = Services.GetRequiredService<IAhkRuntimeService>();
         _logger = Services.GetRequiredService<IAppLogger>();
         var releaseVersion = Services.GetRequiredService<IReleaseVersionService>().Current;
-        Resources["AppVersionText"] = $"PacToolkits v{releaseVersion.UiVersion}";
+        Resources["AppVersionText"] = $"PacToolkits v{releaseVersion.SuiteVersion}";
         _logger.Info("App", "app.start", "Application startup", new
         {
             releaseVersion.UiVersion,

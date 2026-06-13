@@ -143,6 +143,32 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             ? $"发现新版本：{LatestUiVersion}（当前 {CurrentUiVersion}）"
             : "应用更新：当前已是最新版本";
 
+    public string AppSuiteVersionText
+    {
+        get
+        {
+            var suiteVersion = _releaseVersion.Current.SuiteVersion;
+            return string.IsNullOrWhiteSpace(suiteVersion) ||
+                   string.Equals(suiteVersion, "unknown", StringComparison.OrdinalIgnoreCase)
+                ? "PacToolkits"
+                : $"PacToolkits v{suiteVersion}";
+        }
+    }
+
+    public string AppBuildChannelText
+    {
+        get
+        {
+            var channel = _releaseVersion.Current.BuildChannel;
+            return string.IsNullOrWhiteSpace(channel) ||
+                   string.Equals(channel, "unknown", StringComparison.OrdinalIgnoreCase)
+                ? string.Empty
+                : channel;
+        }
+    }
+
+    public string AppCopyrightDisplayText => "PacmanDoh · 2026";
+
     partial void OnHasUpdateAvailableChanged(bool value) => OnPropertyChanged(nameof(UpdateStatusTip));
     partial void OnCurrentUiVersionChanged(string value) => OnPropertyChanged(nameof(UpdateStatusTip));
     partial void OnLatestUiVersionChanged(string value) => OnPropertyChanged(nameof(UpdateStatusTip));
