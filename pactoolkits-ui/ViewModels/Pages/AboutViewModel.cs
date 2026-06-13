@@ -35,6 +35,12 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
     public override bool ShowInSidebar => false;
     public override ICommand? RefreshCommand => null;
 
+#if DEBUG
+    public bool IsDevLabVisible => true;
+#else
+    public bool IsDevLabVisible => false;
+#endif
+
     [ObservableProperty] private double _waveDemoValue = 72;
 
     public string SuiteVersion => _version.SuiteVersion;

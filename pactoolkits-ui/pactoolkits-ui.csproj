@@ -51,8 +51,4 @@
         <PackageReference Include="Tmds.DBus.Protocol" Version="0.94.1" />
         <PackageReference Include="Velopack" Version="1.2.0" />
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Services\Dashboard\" />
-    </ItemGroup>
 </Project>
