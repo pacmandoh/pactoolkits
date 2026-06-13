@@ -54,7 +54,6 @@ public static class ServiceCollectionRegistrationExtensions
         services.AddSingleton<PageNavigationService>();
         services.AddSingleton<AppViews>();
         services.AddSingleton<MainWindowViewModel>();
-        services.AddSingleton<SettingsViewModel>();
 
         services.AddSingleton<SukiToastManager>();
         services.AddSingleton<ISukiToastManager>(sp => sp.GetRequiredService<SukiToastManager>());
@@ -86,7 +85,6 @@ public static class ServiceCollectionRegistrationExtensions
         services.AddSingleton<ILookupCatalogService, LookupCatalogService>();
         services.AddSingleton<ClientAliasStore>();
         services.AddSingleton<IClientAliasService, ClientAliasService>();
-        services.AddSingleton<InventoryOverviewViewModel>();
         return services;
     }
 

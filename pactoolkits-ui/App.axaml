@@ -20,7 +20,6 @@
 
     
     <x:String x:Key="AppVersionText">PacToolkits v(loading)</x:String>
-    <x:String x:Key="AppCopyrightText">PacmanDoh - 2026</x:String>
     <conv:BoolToDoneDangerBrushConverter x:Key="BoolToDoneDangerBrush" />
     <conv:RowIndexConverter x:Key="RowIndexPlusOne" />
     <conv:RowStateToBgBrushConverter x:Key="RowStateToBgBrush" />
