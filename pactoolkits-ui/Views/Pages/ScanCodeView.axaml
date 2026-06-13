@@ -20,7 +20,7 @@
 
   <suki:BusyArea BusyText="加载中..." IsBusy="{Binding IsBusy}">
     <Grid Classes="PageRootLayout" RowDefinitions="Auto,*">
-      <suki:GlassCard Grid.Row="0" Classes="SectionCard" Padding="16,14">
+      <suki:GlassCard Grid.Row="0" Classes="SectionCard ScanCodeHeroCard">
         <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
           <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
@@ -47,18 +47,10 @@
                             Opacity="{StaticResource SectionHintOpacity}"
                             VerticalAlignment="Center" />
                   <TextBlock Grid.Column="1"
-                       Text="药品"
-                       Opacity="{StaticResource SectionHintOpacity}"
-                       FontSize="{DynamicResource SectionHintSize}"
-                       VerticalAlignment="Center" />
+                       Text="药品" Classes="FilterLabel" />
                   <Button Grid.Column="2"
-                      Classes="Basic"
+                      Classes="Basic MicroClear"
                       Command="{Binding ClearDrugSpecFilterCommand}"
-                      Width="20"
-                      Height="20"
-                      MinWidth="20"
-                      MinHeight="20"
-                      Padding="0"
                       HorizontalAlignment="Right"
                       VerticalAlignment="Center"
                       ToolTip.Tip="清空药品和规格">
@@ -96,7 +88,7 @@
               <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="SlidersHorizontal" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
-                  <TextBlock Text="规格" Opacity="{StaticResource SectionHintOpacity}" FontSize="{DynamicResource SectionHintSize}" />
+                  <TextBlock Text="规格" Classes="FilterLabel" />
                 </StackPanel>
                 <Grid Grid.Row="1">
                   <ComboBox x:Name="SpecBox"
@@ -117,7 +109,7 @@
               <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="PillBottle" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
-                  <TextBlock Text="单条数量" Opacity="{StaticResource SectionHintOpacity}" FontSize="{DynamicResource SectionHintSize}" />
+                  <TextBlock Text="单条数量" Classes="FilterLabel" />
                 </StackPanel>
                 <Border Grid.Row="1"
                     Height="36"
@@ -241,7 +233,6 @@
               <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
                 <Button Grid.Column="0"
                     Classes="Action"
-                    MinWidth="{StaticResource MinWAction}"
                     Command="{Binding SubmitCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="Save" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -251,7 +242,6 @@
 
                 <Button Grid.Column="1"
                     Classes="Action"
-                    MinWidth="{StaticResource MinWAction}"
                     Command="{Binding ClearCodesCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="Delete" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -275,7 +265,7 @@
             </TabItem.Header>
 
             <Grid Margin="{DynamicResource MarginTopMd}" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
-              <suki:GlassCard Grid.Row="0" Padding="12,10">
+              <suki:GlassCard Classes="CompactCard" Grid.Row="0">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <icons:AppIcon Kind="Lightbulb" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路"
@@ -285,7 +275,7 @@
 
               <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}"
                  VerticalAlignment="Center">
-                <suki:GlassCard Padding="12,10" HorizontalContentAlignment="Center">
+                <suki:GlassCard Classes="CompactCard" HorizontalContentAlignment="Center">
                   <Grid ColumnDefinitions="Auto,Auto,Auto"
                      ColumnSpacing="{DynamicResource PageColumnSpacing}"
                      HorizontalAlignment="Center"
@@ -305,9 +295,8 @@
                   </Grid>
                 </suki:GlassCard>
 
-                <suki:GlassCard Grid.Column="1" Padding="12,10">
+                <suki:GlassCard Classes="CompactCard" Grid.Column="1">
                   <Button Classes="Action"
-                      MinWidth="{StaticResource MinWAction}"
                       Command="{Binding StartAutoFetchCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                       <icons:AppIcon Kind="CirclePlay" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -316,9 +305,8 @@
                   </Button>
                 </suki:GlassCard>
 
-                <suki:GlassCard Grid.Column="2" Padding="12,10">
+                <suki:GlassCard Classes="CompactCard" Grid.Column="2">
                   <Button Classes="Action"
-                      MinWidth="{StaticResource MinWAction}"
                       Command="{Binding StopAutoFetchCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                       <icons:AppIcon Kind="CircleStop" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -327,9 +315,8 @@
                   </Button>
                 </suki:GlassCard>
 
-                <suki:GlassCard Grid.Column="3" Padding="12,10">
+                <suki:GlassCard Classes="CompactCard" Grid.Column="3">
                   <Button Classes="Action"
-                      MinWidth="{StaticResource MinWAction}"
                       Command="{Binding RetryFailedCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                       <icons:AppIcon Kind="RotateCcw" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -366,7 +353,7 @@
               </Grid>
 
               <Grid Grid.Row="2" ColumnDefinitions="1.3*,1.4*,1.1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <suki:GlassCard Grid.Column="0" Padding="12,10">
+                <suki:GlassCard Classes="CompactCard" Grid.Column="0">
                   <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                       <icons:AppIcon Kind="List" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -400,7 +387,7 @@
                   </Grid>
                 </suki:GlassCard>
 
-                <suki:GlassCard Grid.Column="1" Padding="12,10">
+                <suki:GlassCard Classes="CompactCard" Grid.Column="1">
                   <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                       <icons:AppIcon Kind="History" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -434,7 +421,7 @@
                   </Grid>
                 </suki:GlassCard>
 
-                <suki:GlassCard Grid.Column="2" Padding="12,10">
+                <suki:GlassCard Classes="CompactCard" Grid.Column="2">
                   <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                       <icons:AppIcon Kind="CircleAlert" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -472,7 +459,6 @@
               <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
                 <Button Grid.Column="0"
                     Classes="Action"
-                    MinWidth="{StaticResource MinWAction}"
                     Command="{Binding OpenAutoFetchSettingsCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon Kind="SlidersHorizontal" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />

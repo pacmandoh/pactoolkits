@@ -12,6 +12,12 @@
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
 
+  <Style Selector="TextBlock.FilterLabel">
+    <Setter Property="Opacity" Value="{DynamicResource SectionHintOpacity}" />
+    <Setter Property="FontSize" Value="{DynamicResource SectionHintSize}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
   <Style Selector="TextBlock.DGSub">
     <Setter Property="Opacity" Value="{DynamicResource SectionHintOpacity}" />
     <Setter Property="FontSize" Value="{DynamicResource SectionHintSize}" />

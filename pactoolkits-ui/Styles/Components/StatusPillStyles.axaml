@@ -1,0 +1,63 @@
+<Styles xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:pactoolkits_ui.Controls">
+  <Style Selector="controls|StatusPill.ToneInfo15">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushInfoBg15}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushInfoBg35}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushInfo}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.ToneInfo25">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushInfoBg25}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushInfoBg50}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushInfo}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.ToneDone15">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushDoneBg15}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushDoneBg35}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushDone}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.ToneDone25">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushDoneBg25}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushDoneBg50}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushDone}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.ToneWarning15">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushWarningBg15}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushWarningBg35}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushWarning}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.ToneWarning25">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushWarningBg25}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushWarningBg50}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushWarning}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.ToneDanger15">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushDangerBg15}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushDangerBg35}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushDanger}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.ToneDanger25">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushDangerBg25}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushDangerBg50}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushDanger}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.TonePurple15">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushPurpleBg15}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushPurpleBg35}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushPurple}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.TonePrimary">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource SukiPrimaryColor10}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource SukiPrimaryColor25}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource SukiPrimaryColor120}" />
+  </Style>
+</Styles>

@@ -29,19 +29,13 @@
 
       <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
         <controls:StatusPill Icon="Hash" Text="{Binding TaskId, StringFormat=任务 #{0}}"
-                  BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                  PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                  ForegroundBrush="{DynamicResource BrushInfo}" />
+                  Classes="ToneInfo15" />
         <controls:StatusPill Grid.Column="1" Icon="Package"
                   Text="{Binding TotalCodes, StringFormat=总码数 {0}}"
-                  BackgroundBrush="{DynamicResource BrushWarningBg15}"
-                  PillBorderBrush="{DynamicResource BrushWarningBg35}"
-                  ForegroundBrush="{DynamicResource BrushWarning}" />
+                  Classes="ToneWarning15" />
         <controls:StatusPill Grid.Column="2" Icon="ReceiptText"
                   Text="{Binding SourceBillCode}"
-                  BackgroundBrush="{DynamicResource BrushDoneBg15}"
-                  PillBorderBrush="{DynamicResource BrushDoneBg35}"
-                  ForegroundBrush="{DynamicResource BrushDone}" />
+                  Classes="ToneDone15" />
         <TextBlock Grid.Column="3"
              Text="{Binding Target}"
              VerticalAlignment="Center"

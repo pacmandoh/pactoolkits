@@ -65,14 +65,9 @@
                        FontSize="{DynamicResource SectionHintSize}" />
                 </StackPanel>
                 <Button Grid.Column="2"
-                    Classes="Basic"
+                    Classes="Basic MicroClear"
                     Command="{Binding ResetDateRangeCommand}"
-                    Width="20"
-                    Height="20"
-                    MinWidth="20"
-                    MinHeight="20"
-                    Padding="0"
-                    HorizontalAlignment="Right"
+                                        HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     ToolTip.Tip="归位日期">
                   <icons:AppIcon Kind="RotateCcw"
@@ -107,18 +102,10 @@
                           Opacity="{StaticResource SectionHintOpacity}"
                           VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1"
-                     Text="药品"
-                     Opacity="{StaticResource SectionHintOpacity}"
-                     FontSize="{DynamicResource SectionHintSize}"
-                     VerticalAlignment="Center" />
+                     Text="药品" Classes="FilterLabel" />
                 <Button Grid.Column="2"
-                    Classes="Basic"
+                    Classes="Basic MicroClear"
                     Command="{Binding ClearDrugSpecFilterCommand}"
-                    Width="20"
-                    Height="20"
-                    MinWidth="20"
-                    MinHeight="20"
-                    Padding="0"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     ToolTip.Tip="清空筛选">
@@ -915,22 +902,16 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasEntryPrevPage}"
                       Command="{Binding FirstEntryPageCommand}">
                     <TextBlock Text="首页" />
                   </Button>
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasEntryPrevPage}"
                       Command="{Binding PrevEntryPageCommand}">
                     <TextBlock Text="上一页" />
                   </Button>
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasEntryNextPage}"
                       Command="{Binding NextEntryPageCommand}">
                     <TextBlock Text="下一页" />
@@ -1057,22 +1038,16 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasTxnPrevPage}"
                       Command="{Binding FirstTxnPageCommand}">
                     <TextBlock Text="首页" />
                   </Button>
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasTxnPrevPage}"
                       Command="{Binding PrevTxnPageCommand}">
                     <TextBlock Text="上一页" />
                   </Button>
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasTxnNextPage}"
                       Command="{Binding NextTxnPageCommand}">
                     <TextBlock Text="下一页" />
@@ -1092,22 +1067,16 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasTxnTrendPrevPage}"
                       Command="{Binding FirstTxnTrendPageCommand}">
                     <TextBlock Text="首页" />
                   </Button>
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasTxnTrendPrevPage}"
                       Command="{Binding PrevTxnTrendPageCommand}">
                     <TextBlock Text="上一页" />
                   </Button>
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasTxnTrendNextPage}"
                       Command="{Binding NextTxnTrendPageCommand}">
                     <TextBlock Text="下一页" />
@@ -1204,22 +1173,16 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasAbnormalPrevPage}"
                       Command="{Binding FirstAbnormalPageCommand}">
                     <TextBlock Text="首页" />
                   </Button>
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasAbnormalPrevPage}"
                       Command="{Binding PrevAbnormalPageCommand}">
                     <TextBlock Text="上一页" />
                   </Button>
                   <Button Classes="Action"
-                      Height="{StaticResource ControlHeightCompact}"
-                      MinWidth="{StaticResource MinWAction}"
                       IsEnabled="{Binding HasAbnormalNextPage}"
                       Command="{Binding NextAbnormalPageCommand}">
                     <TextBlock Text="下一页" />

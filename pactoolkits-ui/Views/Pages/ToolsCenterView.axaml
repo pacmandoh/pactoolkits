@@ -36,28 +36,22 @@
           <controls:StatusPill IsVisible="{Binding IsAhkStatusUnknown}"
                     Icon="BadgeQuestionMark"
                     Text="{Binding AhkStatusText}"
-                    BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                    PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                    ForegroundBrush="{DynamicResource BrushInfo}"
+                    Classes="ToneInfo15"
                     VerticalAlignment="Center" />
           <controls:StatusPill IsVisible="{Binding IsAhkStatusRunning}"
                     Icon="CircleCheck"
                     Text="{Binding AhkStatusText}"
-                    BackgroundBrush="{DynamicResource BrushDoneBg25}"
-                    PillBorderBrush="{DynamicResource BrushDoneBg50}"
-                    ForegroundBrush="{DynamicResource BrushDone}"
+                    Classes="ToneDone25"
                     VerticalAlignment="Center" />
           <controls:StatusPill IsVisible="{Binding IsAhkStatusStopped}"
                     Icon="CircleAlert"
                     Text="{Binding AhkStatusText}"
-                    BackgroundBrush="{DynamicResource BrushDangerBg15}"
-                    PillBorderBrush="{DynamicResource BrushDangerBg35}"
-                    ForegroundBrush="{DynamicResource BrushDanger}"
+                    Classes="ToneDanger15"
                     VerticalAlignment="Center" />
         </StackPanel>
       </Grid>
 
-      <suki:GlassCard Grid.Row="1" Padding="12,10">
+      <suki:GlassCard Classes="CompactCard" Grid.Row="1">
         <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
           <icons:AppIcon Kind="Lightbulb" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
           <TextBlock Classes="SectionHint"
@@ -66,7 +60,7 @@
       </suki:GlassCard>
 
       <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Stretch">
-        <suki:GlassCard Grid.Column="0" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch"
+        <suki:GlassCard Classes="ActionTile" Grid.Column="0"   VerticalAlignment="Stretch"
                 HorizontalContentAlignment="Center">
           <Grid ColumnDefinitions="Auto,Auto,Auto"
              ColumnSpacing="{DynamicResource PageColumnSpacing}"
@@ -88,9 +82,9 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Column="1" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch">
-          <Button Classes="Action"
-              MinWidth="136"
+        <suki:GlassCard Classes="ActionTile" Grid.Column="1"   VerticalAlignment="Stretch">
+          <Button Classes="Action ActionWide"
+              
               Command="{Binding RestartAhkCommand}"
               IsEnabled="{Binding !IsAhkToggling}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -100,9 +94,9 @@
           </Button>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Column="2" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch">
-          <Button Classes="Action"
-              MinWidth="136"
+        <suki:GlassCard Classes="ActionTile" Grid.Column="2"   VerticalAlignment="Stretch">
+          <Button Classes="Action ActionWide"
+              
               Command="{Binding SaveAhkSettingsCommand}"
               IsEnabled="{Binding !IsSavingSettings}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -117,7 +111,7 @@
           </Button>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Column="3" Padding="12,10" MinHeight="64" VerticalAlignment="Stretch">
+        <suki:GlassCard Classes="ActionTile" Grid.Column="3"   VerticalAlignment="Stretch">
           <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
             <simpleicons:PackIconSimpleIcons Kind="AutoHotkey"
                             Width="25"
@@ -125,7 +119,7 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Column="4" Padding="12,10" MinHeight="64" Opacity="0.9"
+        <suki:GlassCard Classes="ActionTile" Grid.Column="4"   Opacity="0.9"
                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}" MaxWidth="520" HorizontalAlignment="Center"
              VerticalAlignment="Center">
@@ -153,7 +147,7 @@
       </Grid>
 
       <Grid Grid.Row="3" ColumnDefinitions="1.55*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-        <suki:GlassCard x:Name="ToolEditorCard" Grid.Column="0" Classes="SectionCard" Padding="{DynamicResource AboutHeroCardPadding}">
+        <suki:GlassCard x:Name="ToolEditorCard" Grid.Column="0" Classes="SectionCard PageHero">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
               <icons:AppIcon Kind="Wrench" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
@@ -484,7 +478,7 @@
           </Grid>
         </suki:GlassCard>
 
-        <suki:GlassCard Grid.Column="1" Classes="SectionCard" Padding="{DynamicResource AboutHeroCardPadding}">
+        <suki:GlassCard Grid.Column="1" Classes="SectionCard PageHero">
           <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
               <icons:AppIcon Kind="Microchip" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
