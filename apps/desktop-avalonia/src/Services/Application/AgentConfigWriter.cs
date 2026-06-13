@@ -3,21 +3,22 @@ using System.Threading.Tasks;
 using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Agent.Contracts.Models;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
 public sealed class AgentConfigWriter : IAgentConfigWriter
 {
-    private readonly IAutomationToolsConfigService _automationConfig;
+    private readonly IAutomationConfigService _automationConfig;
 
-    public AgentConfigWriter(IAutomationToolsConfigService automationConfig)
+    public AgentConfigWriter(IAutomationConfigService automationConfig)
     {
         _automationConfig = automationConfig;
     }
 
     public AutomationToolsOptions LoadAutomationTools()
-        => _automationConfig.Load();
+        => AutomationContractMapper.ToContract(_automationConfig.Load());
 
     public Task WriteAutomationToolsAsync(AutomationToolsOptions options, CancellationToken ct)
-        => _automationConfig.SaveAsync(options, ct);
+        => _automationConfig.SaveAsync(AutomationContractMapper.ToApplication(options), ct);
 }
