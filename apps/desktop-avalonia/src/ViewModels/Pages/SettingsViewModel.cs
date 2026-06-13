@@ -12,8 +12,10 @@ using System.Threading.Tasks;
 using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Desktop.Avalonia.Contracts;
-using PacToolkits.Desktop.Avalonia.DataAccess;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Services;
+using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Windows.Input;
@@ -30,12 +32,11 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     public override bool ShowInSidebar => false;
     public override ICommand? RefreshCommand => null;
 
+    private readonly ISettingsService _settings;
     private readonly IDbConfigService _svc;
-    private readonly IDbConnectionTester _tester;
     private readonly IToastService _toast;
     private readonly IClientAliasService _alias;
     private readonly IAppConfigStore _appConfigStore;
-    private readonly IClientIdReadRepo _clientRepo;
     private readonly ITraceCodeRuleService _traceCodeRule;
     private readonly IUiBehaviorService _uiBehavior;
     private readonly IUpdateSettingsService _updateSettings;
@@ -43,8 +44,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private readonly IUpdateUiFlowService _updateUiFlow;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IDialogService _dialog;
-    private readonly IDbSchemaVersionService _dbSchemaVersion;
-    private readonly IDbSchemaMigrationService _dbSchemaMigration;
     private readonly ILoggingSettingsService _loggingSettings;
     private readonly IAppLogger _logger;
     private readonly IClipboardService _clipboard;
@@ -149,8 +148,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     public string DbSchemaStatusBadgeText => DbSchemaStatusText;
     public SettingsViewModel(
         IAppConfigStore appConfigStore,
+        ISettingsService settings,
         IDbConfigService svc,
-        IDbConnectionTester tester,
         IToastService toast,
         IClientAliasService alias,
         ITraceCodeRuleService traceCodeRule,
@@ -160,16 +159,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IUpdateUiFlowService updateUiFlow,
         IReleaseVersionService releaseVersion,
         IDialogService dialog,
-        IDbSchemaVersionService dbSchemaVersion,
-        IDbSchemaMigrationService dbSchemaMigration,
         ILoggingSettingsService loggingSettings,
         IAppLogger logger,
-        IClipboardService clipboard,
-        IClientIdReadRepo clientRepo)
+        IClipboardService clipboard)
     {
         _appConfigStore = appConfigStore;
+        _settings = settings;
         _svc = svc;
-        _tester = tester;
         _toast = toast;
         _alias = alias;
         _traceCodeRule = traceCodeRule;
@@ -179,12 +175,9 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         _updateUiFlow = updateUiFlow;
         _releaseVersion = releaseVersion;
         _dialog = dialog;
-        _dbSchemaVersion = dbSchemaVersion;
-        _dbSchemaMigration = dbSchemaMigration;
         _loggingSettings = loggingSettings;
         _logger = logger;
         _clipboard = clipboard;
-        _clientRepo = clientRepo;
         ClientAliases.CollectionChanged += OnClientAliasesChanged;
         var c = svc.Current;
         _host = c.Host;
@@ -440,37 +433,41 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             var opt = ToOptions();
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
 
-            var result = await _tester.TestAsync(opt, cts.Token);
+            var validation = await _settings.ValidateDatabaseConnectionAsync(
+                opt,
+                BuildSchemaContext(),
+                cts.Token).ConfigureAwait(false);
 
-            if (result.Ok)
+            if (!validation.ConnectionOk)
             {
-                if (!await EnsureDbSchemaUpToDateAsync().ConfigureAwait(false))
-                {
-                    Status = "数据库结构更新失败";
-                    IsDbConnected = false;
-                    UpdateClientAliasUiState();
-                    return;
-                }
-                if (!await EnsureDbSchemaCompatibleAsync().ConfigureAwait(false))
-                {
-                    Status = "数据库版本不兼容";
-                    IsDbConnected = false;
-                    UpdateClientAliasUiState();
-                    return;
-                }
-
-                Status = "连接成功";
-                IsDbConnected = true;
-                _ = ReloadClientAliasesAsync();
-                _toast.Success("数据库连接", "连接成功");
-            }
-            else
-            {
-                Status = result.Summary;
+                Status = validation.ConnectionSummary;
                 IsDbConnected = false;
                 UpdateClientAliasUiState();
-                _toast.Error("数据库连接失败", result.Summary);
+                _toast.Error("数据库连接失败", validation.ConnectionSummary ?? "连接失败");
+                return;
             }
+
+            if (!validation.SchemaMigrationOk)
+            {
+                Status = "数据库结构更新失败";
+                IsDbConnected = false;
+                UpdateClientAliasUiState();
+                return;
+            }
+
+            if (!validation.SchemaCompatible)
+            {
+                Status = "数据库版本不兼容";
+                IsDbConnected = false;
+                UpdateClientAliasUiState();
+                await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), validation.IncompatibleMessage ?? "数据库版本不兼容").ConfigureAwait(false);
+                return;
+            }
+
+            Status = "连接成功";
+            IsDbConnected = true;
+            _ = ReloadClientAliasesAsync();
+            _toast.Success("数据库连接", "连接成功");
         }
         catch (OperationCanceledException)
         {
@@ -496,7 +493,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         try
         {
-            await _svc.SaveAndApplyAsync(ToOptions());
+            await _settings.SaveDatabaseConfigAsync(ToOptions(), CancellationToken.None);
             if (!await EnsureDbSchemaUpToDateAsync().ConfigureAwait(false))
             {
                 Status = "数据库结构更新失败";
@@ -587,27 +584,10 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             var opt = ToOptions();
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
 
-            bool isDbConnected;
-            HashSet<string> clients;
-            try
-            {
-                clients = await _clientRepo.GetDistinctClientIdsAsync(opt, cts.Token);
-                isDbConnected = true;
-            }
-            catch
-            {
-                clients = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                isDbConnected = false;
-            }
-
+            var loaded = await _settings.LoadClientAliasSourcesAsync(opt, cts.Token).ConfigureAwait(false);
+            var isDbConnected = loaded.IsDbConnected;
             var aliasMap = NormalizeAliasMapByMachine(_alias.GetAll());
-            var clientMachines = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var raw in clients)
-            {
-                var machine = ExtractMachine(raw);
-                if (machine.Length == 0) continue;
-                clientMachines.Add(machine);
-            }
+            var clientMachines = new HashSet<string>(loaded.ClientMachines, StringComparer.OrdinalIgnoreCase);
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -1177,41 +1157,25 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
     }
 
-    private async Task<bool> EnsureDbSchemaCompatibleAsync()
+    private DbSchemaVersionContext BuildSchemaContext()
     {
         var version = _releaseVersion.Current;
-        var uiMin = DbSchemaCompat.NormalizeBound(version.UiMinDbSchema, version.DbSchemaVersion);
-        var agentMin = DbSchemaCompat.NormalizeBound(version.AgentMinDbSchema, version.DbSchemaVersion);
-        var requiredMin = GetRequiredMinSchemaVersion();
+        return new DbSchemaVersionContext(
+            version.UiMinDbSchema,
+            version.AgentMinDbSchema,
+            version.DbSchemaVersion);
+    }
 
-        var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
-        var db = schema.value ?? string.Empty;
-        var uiOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, uiMin);
-        var agentOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, agentMin);
-        await RefreshDbSchemaStatusAsync("compat_check", manualProbe: false, cachedSchema: schema).ConfigureAwait(false);
-        if (uiOk && agentOk)
+    private async Task<bool> EnsureDbSchemaCompatibleAsync()
+    {
+        var compat = await _settings.CheckSchemaCompatibilityAsync(BuildSchemaContext(), CancellationToken.None)
+            .ConfigureAwait(false);
+        await RefreshDbSchemaStatusAsync("compat_check", manualProbe: false).ConfigureAwait(false);
+        if (compat.Compatible)
             return true;
 
-        var message = DbSchemaCompat.BuildIncompatibleMessage(
-            schema.ok,
-            schema.value,
-            schema.reason,
-            uiMin,
-            agentMin,
-            requiredMin);
-
-        _logger.Warn("SettingsVM", "db.schema.incompatible", "Database schema incompatible when connecting", null, new
-        {
-            uiMin,
-            agentMin,
-            schemaOk = schema.ok,
-            schemaValue = schema.value,
-            schema.reason,
-            uiOk,
-            agentOk
-        });
-
-        await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), message).ConfigureAwait(false);
+        await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), compat.IncompatibleMessage ?? "数据库版本不兼容")
+            .ConfigureAwait(false);
         return false;
     }
 
@@ -1221,13 +1185,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
-            var migration = await _dbSchemaMigration
-                .EnsureUpToDateAsync(cts.Token, _releaseVersion.Current.DbSchemaVersion)
-                .ConfigureAwait(false);
-            DbSchemaLastMigrationText = $"before={migration.BeforeVersion ?? "unknown"} -> after={migration.AfterVersion ?? "unknown"}（applied={migration.AppliedCount}, skipped={migration.SkippedCount}）";
-            if (migration.HasChanges)
+            var migration = await _settings.EnsureSchemaUpToDateAsync(
+                _releaseVersion.Current.DbSchemaVersion,
+                cts.Token).ConfigureAwait(false);
+            DbSchemaLastMigrationText = migration.Summary;
+            if (migration.Summary.Contains("applied=", StringComparison.Ordinal))
             {
-                _toast.Success("数据库结构更新", $"已应用 {migration.AppliedCount} 个迁移，当前版本 {migration.AfterVersion ?? "unknown"}");
+                _toast.Success("数据库结构更新", "数据库结构已更新");
             }
             await RefreshDbSchemaStatusAsync("migrate_done", manualProbe: false).ConfigureAwait(false);
             return true;
@@ -1255,33 +1219,30 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         try
         {
-            var schema = cachedSchema ?? await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
+            var snapshot = await _settings.ReadSchemaStatusAsync(BuildSchemaContext(), CancellationToken.None)
+                .ConfigureAwait(false);
             DbSchemaLastCheckedAtText = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
             DbSchemaLastCheckSourceText = MapDbSchemaCheckSource(source);
-            var requiredMin = GetRequiredMinSchemaVersion();
-            var localTarget = DbSchemaCompat.NormalizeBound(_releaseVersion.Current.DbSchemaVersion, _releaseVersion.Current.DbSchemaVersion);
-            DbSchemaTargetVersion = localTarget;
-            DbSchemaRequiredMinVersion = requiredMin;
-            DbSchemaCurrentVersion = schema.value ?? "unknown";
+            DbSchemaTargetVersion = snapshot.TargetVersion;
+            DbSchemaRequiredMinVersion = snapshot.RequiredMinVersion;
+            DbSchemaCurrentVersion = snapshot.CurrentVersion ?? "unknown";
 
-            if (!schema.ok)
+            if (!snapshot.SchemaOk)
             {
-                SetDbSchemaStatus("未知", checking: false, failed: false, error: schema.reason ?? "读取失败");
+                SetDbSchemaStatus("未知", checking: false, failed: false, error: snapshot.Reason ?? "读取失败");
                 if (manualProbe)
-                    _toast.Warn("数据库结构更新", $"状态未知：{schema.reason ?? "读取失败"}");
+                    _toast.Warn("数据库结构更新", $"状态未知：{snapshot.Reason ?? "读取失败"}");
                 return;
             }
 
-            var satisfied = DbSchemaCompat.IsSemVerAtLeast(schema.value ?? string.Empty, requiredMin);
-            var updatable = IsSchemaUpdatable(schema.value, localTarget);
-            IsDbSchemaSatisfied = satisfied;
-            if (!satisfied)
+            IsDbSchemaSatisfied = snapshot.Satisfied;
+            if (!snapshot.Satisfied)
             {
-                SetDbSchemaStatus("需要更新", checking: false, failed: false, error: $"当前版本 {schema.value} 低于最低要求 {requiredMin}");
+                SetDbSchemaStatus("需要更新", checking: false, failed: false, error: $"当前版本 {snapshot.CurrentVersion} 低于最低要求 {snapshot.RequiredMinVersion}");
             }
-            else if (updatable)
+            else if (snapshot.Updatable)
             {
-                SetDbSchemaStatus("可更新", checking: false, failed: false, error: $"当前版本 {schema.value} 低于本地版本文件 {localTarget}");
+                SetDbSchemaStatus("可更新", checking: false, failed: false, error: $"当前版本 {snapshot.CurrentVersion} 低于本地版本文件 {snapshot.TargetVersion}");
             }
             else
             {
@@ -1290,12 +1251,12 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             if (manualProbe)
             {
-                if (!satisfied)
-                    _toast.Warn("数据库结构更新", $"当前版本 {schema.value}，低于最低要求 {requiredMin}");
-                else if (updatable)
-                    _toast.Warn("数据库结构更新", $"当前版本 {schema.value}，可更新到本地版本 {localTarget}");
+                if (!snapshot.Satisfied)
+                    _toast.Warn("数据库结构更新", $"当前版本 {snapshot.CurrentVersion}，低于最低要求 {snapshot.RequiredMinVersion}");
+                else if (snapshot.Updatable)
+                    _toast.Warn("数据库结构更新", $"当前版本 {snapshot.CurrentVersion}，可更新到本地版本 {snapshot.TargetVersion}");
                 else
-                    _toast.Success("数据库结构更新", $"当前版本 {schema.value}，满足最低要求 {requiredMin}");
+                    _toast.Success("数据库结构更新", $"当前版本 {snapshot.CurrentVersion}，满足最低要求 {snapshot.RequiredMinVersion}");
             }
         }
         finally

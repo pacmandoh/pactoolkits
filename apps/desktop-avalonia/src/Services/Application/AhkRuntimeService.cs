@@ -1,4 +1,8 @@
 using System;
+using PacToolkits.Agent.Contracts.Commands;
+using PacToolkits.Agent.Contracts.Models;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,15 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
-
-public enum ToolRunState
-{
-    Stopped,
-    Running,
-    Unknown
-}
-
-public readonly record struct ToolCommandResult(bool Ok, string Message, bool SuppressToast = false);
 
 public interface IAhkRuntimeService : IDisposable
 {

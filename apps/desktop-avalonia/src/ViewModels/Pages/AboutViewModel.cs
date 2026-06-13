@@ -2,6 +2,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System.Windows.Input;
 using System.Collections.ObjectModel;
 using System;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
