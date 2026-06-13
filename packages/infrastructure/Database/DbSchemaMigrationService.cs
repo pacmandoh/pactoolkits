@@ -91,7 +91,7 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
                 }
                 catch
                 {
-                    await tx.RollbackAsync(ct).ConfigureAwait(false);
+                    await tx.RollbackAsync(CancellationToken.None).ConfigureAwait(false);
                     throw;
                 }
                 _logger.Info(Module, "db.migrate.bootstrap.ok", "Bootstrap metadata tables finished");
@@ -168,7 +168,7 @@ set schema_version = excluded.schema_version,
                 }
                 catch (Exception ex)
                 {
-                    await tx.RollbackAsync(ct).ConfigureAwait(false);
+                    await tx.RollbackAsync(CancellationToken.None).ConfigureAwait(false);
                     _logger.Error(Module, "db.migrate.apply.fail", "Migration script failed", ex, new
                     {
                         version = script.Version,
@@ -299,7 +299,7 @@ set schema_version = excluded.schema_version,
         var scripts = Directory
             .EnumerateFiles(root, "*.sql", SearchOption.TopDirectoryOnly)
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-            .Select(path => new SqlScript(Path.GetFileName(path), "bootstrap", ReadScript(path), (0, 0, 0)))
+            .Select(path => new SqlScript(Path.GetFileName(path), "bootstrap", ReadExecutableScript(path), (0, 0, 0), string.Empty))
             .ToList();
         if (scripts.Count == 0)
             throw new InvalidOperationException($"未发现 bootstrap 脚本：{root}");
@@ -335,11 +335,13 @@ set schema_version = excluded.schema_version,
             var minor = int.Parse(match.Groups["minor"].Value, CultureInfo.InvariantCulture);
             var patch = int.Parse(match.Groups["patch"].Value, CultureInfo.InvariantCulture);
             var ver = (major, minor, patch);
+            var rawSql = File.ReadAllText(path);
             scripts.Add(new SqlScript(
                 fileName,
                 $"{major}.{minor}.{patch}",
-                ReadScript(path),
-                ver));
+                StripPsqlMetaCommands(rawSql),
+                ver,
+                ComputeSha256(rawSql)));
         }
 
         if (invalidFiles.Count > 0)
@@ -353,9 +355,11 @@ set schema_version = excluded.schema_version,
             .ToList();
     }
 
-    private static string ReadScript(string path)
+    private static string ReadExecutableScript(string path)
+        => StripPsqlMetaCommands(File.ReadAllText(path));
+
+    private static string StripPsqlMetaCommands(string raw)
     {
-        var raw = File.ReadAllText(path);
         var lines = raw.Replace("\r\n", "\n").Split('\n');
         var filtered = lines
             .Where(line =>
@@ -427,10 +431,8 @@ set schema_version = excluded.schema_version,
         string FileName,
         string Version,
         string Sql,
-        (int major, int minor, int patch) SemVer)
-    {
-        public string Checksum => ComputeSha256(Sql);
-    }
+        (int major, int minor, int patch) SemVer,
+        string Checksum);
 
     private sealed class SemVerComparer : IComparer<(int major, int minor, int patch)>
     {
@@ -444,6 +446,6 @@ set schema_version = excluded.schema_version,
     {
         var bytes = Encoding.UTF8.GetBytes(value);
         var hash = SHA256.HashData(bytes);
-        return Convert.ToHexString(hash);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 }

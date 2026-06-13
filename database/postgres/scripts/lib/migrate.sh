@@ -8,7 +8,15 @@ MIGRATIONS_DIR="$SQL_ROOT/migrations"
 BOOTSTRAP_SQL="$SQL_ROOT/bootstrap/000_init_meta.sql"
 
 migration_files() {
-  find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name 'V*__*.sql' | sort
+  find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name 'V*__*.sql' \
+    | while IFS= read -r file; do
+        local version major minor patch
+        version="$(migration_version_from_file "$file" | tr '.' '_')"
+        IFS='_' read -r major minor patch <<< "$version"
+        printf '%010d.%010d.%010d\t%s\n' "$major" "$minor" "$patch" "$file"
+      done \
+    | sort -k1,1 \
+    | cut -f2-
 }
 
 migration_version_from_file() {
@@ -89,7 +97,7 @@ apply_one_migration() {
   log "apply migration: V${version} (${name})"
   psql_file "$file"
 
-  record_migration "$version" "$name" "$checksum" "applied by scripts/db/deploy.sh"
+  record_migration "$version" "$name" "$checksum" "applied by database/postgres/scripts/deploy.sh"
   set_schema_version "$version" "migration ${name}"
 
   log "done migration: V${version}"

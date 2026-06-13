@@ -10,6 +10,7 @@ namespace PacToolkits.Desktop.Avalonia.Behaviors;
 public sealed class PageReloadBehavior : IDisposable
 {
     private CancellationTokenSource? _cts;
+    private int _runId;
     private bool _disposed;
 
     private static readonly TimeSpan BusyDelay = TimeSpan.FromMilliseconds(300);
@@ -22,9 +23,12 @@ public sealed class PageReloadBehavior : IDisposable
         if (_disposed)
             throw new ObjectDisposedException(nameof(PageReloadBehavior));
 
-        CancelAndDisposeCts();
-        _cts = new CancellationTokenSource();
-        var ct = _cts.Token;
+        var cts = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(ref _cts, cts);
+        previous?.Cancel();
+
+        var runId = Interlocked.Increment(ref _runId);
+        var ct = cts.Token;
 
         var busyShown = false;
         Exception? error = null;
@@ -36,7 +40,7 @@ public sealed class PageReloadBehavior : IDisposable
 
             var first = await Task.WhenAny(actionTask, delayTask).ConfigureAwait(false);
 
-            if (first == delayTask && !actionTask.IsCompleted && !ct.IsCancellationRequested)
+            if (first == delayTask && !actionTask.IsCompleted && !ct.IsCancellationRequested && IsCurrentRun(runId, cts))
             {
                 busyShown = true;
                 await Dispatcher.UIThread.InvokeAsync(() => setBusy(true));
@@ -54,11 +58,16 @@ public sealed class PageReloadBehavior : IDisposable
         }
         finally
         {
-            if (busyShown)
+            if (busyShown && IsCurrentRun(runId, cts))
                 await Dispatcher.UIThread.InvokeAsync(() => setBusy(false));
 
-            if (onFinished is not null)
+            if (onFinished is not null && IsCurrentRun(runId, cts))
                 await Dispatcher.UIThread.InvokeAsync(onFinished);
+
+            if (ReferenceEquals(Interlocked.CompareExchange(ref _cts, null, cts), cts))
+                cts.Dispose();
+            else
+                cts.Dispose();
         }
 
         if (error is not null)
@@ -71,10 +80,13 @@ public sealed class PageReloadBehavior : IDisposable
             return;
 
         _disposed = true;
-        CancelAndDisposeCts();
+        CancelActiveRun();
     }
 
-    private void CancelAndDisposeCts()
+    private bool IsCurrentRun(int runId, CancellationTokenSource cts)
+        => Volatile.Read(ref _runId) == runId && ReferenceEquals(Volatile.Read(ref _cts), cts);
+
+    private void CancelActiveRun()
     {
         var cts = Interlocked.Exchange(ref _cts, null);
         if (cts is null)
@@ -87,10 +99,6 @@ public sealed class PageReloadBehavior : IDisposable
         catch (ObjectDisposedException)
         {
             // Ignore races: CTS may already be disposed by concurrent path.
-        }
-        finally
-        {
-            cts.Dispose();
         }
     }
 }

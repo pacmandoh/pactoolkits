@@ -135,10 +135,10 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     partial void OnAgentPgDriverChanged(string value) => NotifyPendingChangesState();
     public bool AgentPgSslEnabled
     {
-        get => string.Equals(AgentPgSsl, "enable", StringComparison.OrdinalIgnoreCase);
+        get => !string.Equals(AgentPgSsl, "disable", StringComparison.OrdinalIgnoreCase);
         set
         {
-            var mapped = value ? "enable" : "disable";
+            var mapped = value ? "require" : "disable";
             if (string.Equals(AgentPgSsl, mapped, StringComparison.OrdinalIgnoreCase))
             {
                 OnPropertyChanged(nameof(AgentPgSslEnabled));

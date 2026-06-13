@@ -392,7 +392,7 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         var agent = source ?? new AgentToolOptions();
 
         agent.PgDriver = string.IsNullOrWhiteSpace(agent.PgDriver) ? defaults.PgDriver : agent.PgDriver.Trim();
-        agent.PgSsl = string.IsNullOrWhiteSpace(agent.PgSsl) ? defaults.PgSsl : agent.PgSsl.Trim();
+        agent.PgSsl = NormalizePgSsl(agent.PgSsl, defaults.PgSsl);
         agent.OptWindowClass = string.IsNullOrWhiteSpace(agent.OptWindowClass) ? defaults.OptWindowClass : agent.OptWindowClass.Trim();
         agent.IptWindowClass = string.IsNullOrWhiteSpace(agent.IptWindowClass) ? defaults.IptWindowClass : agent.IptWindowClass.Trim();
         agent.OptParseGridClassNN = string.IsNullOrWhiteSpace(agent.OptParseGridClassNN) ? defaults.OptParseGridClassNN : agent.OptParseGridClassNN.Trim();
@@ -430,6 +430,17 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         return policy is "MAX_LEVEL" or "MIN_LEVEL"
             ? policy
             : fallback;
+    }
+
+    private static string NormalizePgSsl(string? value, string fallback)
+    {
+        var mode = (value ?? string.Empty).Trim().ToLowerInvariant();
+        return mode switch
+        {
+            "enable" => "require",
+            "disable" or "allow" or "prefer" or "require" or "verify-ca" or "verify-full" => mode,
+            _ => fallback
+        };
     }
 
     private static List<string> NormalizeStringList(IEnumerable<string>? source, IEnumerable<string> fallback, bool requireNonEmpty)
