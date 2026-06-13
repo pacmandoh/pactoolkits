@@ -29,7 +29,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~\pacinjector-cache\pacinjector.exe
-          key: ${{ runner.os }}-pacinjector-${{ hashFiles('release-manifest.json', 'pactoolkits-agent/main.ahk', 'pactoolkits-agent/src/**/*.ahk', 'pactoolkits-agent/assets/pacinjection.ico', 'pactoolkits-ui/Services/AhkRuntimeService.cs', 'pactoolkits-ui/Services/ReleaseVersionService.cs', '.github/workflows/release-build-agent.yml') }}
+          key: ${{ runner.os }}-pacinjector-${{ hashFiles('release-manifest.json', 'runtime/agent-ahk/main.ahk', 'runtime/agent-ahk/src/**/*.ahk', 'runtime/agent-ahk/assets/pacinjection.ico', 'apps/desktop-avalonia/src/Services/AhkRuntimeService.cs', 'apps/desktop-avalonia/src/Services/ReleaseVersionService.cs', '.github/workflows/release-build-agent.yml') }}
 
       - name: Report pacinjector cache status
         shell: pwsh
@@ -44,7 +44,7 @@ jobs:
           if (-not (Test-Path $cachedExe)) {
             throw "cache-hit=true but cached pacinjector.exe is missing: $cachedExe"
           }
-          $toolsDir = "pactoolkits-ui/Tools"
+          $toolsDir = "apps/desktop-avalonia/src/Tools"
           New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
           Copy-Item $cachedExe "$toolsDir/pacinjector.exe" -Force
           Write-Host "Using cached pacinjector.exe"
@@ -177,10 +177,10 @@ jobs:
             throw "AutoHotkey64.exe not found under C:\Program Files\AutoHotkey."
           }
 
-          $toolsDir = "pactoolkits-ui/Tools"
+          $toolsDir = "apps/desktop-avalonia/src/Tools"
           New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
           $workspace = $env:GITHUB_WORKSPACE
-          $agentDirPath = (Resolve-Path "pactoolkits-agent").Path
+          $agentDirPath = (Resolve-Path "runtime/agent-ahk").Path
           $mainScript = Join-Path $agentDirPath "main.ahk"
           if (-not (Test-Path $mainScript)) {
             throw "AHK entry script not found: $mainScript"
@@ -198,8 +198,8 @@ jobs:
           )
           Set-Content -Path $entryPath -Value $entryLines -Encoding utf8
 
-          $outExe = Join-Path (Join-Path (Join-Path $workspace "pactoolkits-ui") "Tools") "pacinjector.exe"
-          $iconPath = Join-Path (Join-Path (Join-Path $workspace "pactoolkits-agent") "assets") "pacinjection.ico"
+          $outExe = Join-Path (Join-Path (Join-Path $workspace "apps/desktop-avalonia/src") "Tools") "pacinjector.exe"
+          $iconPath = Join-Path (Join-Path (Join-Path $workspace "runtime/agent-ahk") "assets") "pacinjection.ico"
           $compilerDir = Split-Path -Path $compiler -Parent
           try {
             Remove-Item -Path $outExe -Force -ErrorAction SilentlyContinue
@@ -237,7 +237,7 @@ jobs:
       - name: Validate pacinjector binary
         shell: pwsh
         run: |
-          $outExe = "pactoolkits-ui/Tools/pacinjector.exe"
+          $outExe = "apps/desktop-avalonia/src/Tools/pacinjector.exe"
           $agentVersion4 = "$env:AGENT_VERSION.0"
           if (-not (Test-Path $outExe)) {
             throw "pacinjector.exe missing: $outExe"
@@ -269,5 +269,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ahk-agent-exe
-          path: pactoolkits-ui/Tools/pacinjector.exe
+          path: apps/desktop-avalonia/src/Tools/pacinjector.exe
           if-no-files-found: error

@@ -1,0 +1,15 @@
+<Styles xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Components/Typography.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Components/Buttons.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Components/Cards.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Components/StatusPillStyles.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Components/Inputs.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Components/TextBoxContextMenu.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Components/AppIconStyles.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Components/DataGrid.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Components/Navigation.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Pages/LayoutStyles.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Pages/SettingsPageStyles.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Pages/SharedPageStyles.axaml" />
+</Styles>

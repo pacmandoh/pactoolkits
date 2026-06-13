@@ -3,9 +3,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$ROOT_DIR/release-manifest.json"
-UI_PROPS="$ROOT_DIR/pactoolkits-ui/Version.g.props"
-UI_JSON="$ROOT_DIR/pactoolkits-ui/version.generated.json"
-AGENT_JSON="$ROOT_DIR/pactoolkits-agent/version.generated.json"
+UI_PROPS="$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props"
+UI_JSON="$ROOT_DIR/apps/desktop-avalonia/src/version.generated.json"
+AGENT_JSON="$ROOT_DIR/runtime/agent-ahk/version.generated.json"
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || {

@@ -1,0 +1,394 @@
+<suki:SukiWindow xmlns="https://github.com/avaloniaui"
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels"
+         xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+         xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+         xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
+         xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+         x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
+         x:DataType="vm:MainWindowViewModel"
+         Title="PacToolkits - 自动化套件"
+         Icon="avares://PacToolkits.Desktop.Avalonia/Assets/app.ico"
+         BackgroundStyle="Flat"
+         IsMenuVisible="True"
+         Width="1450"
+         Height="900"
+         MinWidth="1350"
+         MinHeight="800"
+         behaviors:FocusClearBehavior.Enable="True"
+         WindowStartupLocation="CenterScreen">
+  <suki:SukiWindow.Hosts>
+    
+    <suki:SukiToastHost Manager="{Binding ToastManager}" />
+
+    
+    <suki:SukiDialogHost Manager="{Binding DialogManager}" />
+  </suki:SukiWindow.Hosts>
+
+  <suki:SukiWindow.RightWindowTitleBarControls>
+    <Button
+      Classes="WindowControlsButton"
+      Command="{Binding OpenUpdateCenterCommand}"
+      ToolTip.Tip="{Binding UpdateStatusTip}"
+      IsVisible="{Binding HasUpdateAvailable}"
+      Margin="{DynamicResource ShellNavItemMargin}">
+      <icons:AppIcon Kind="Upload"
+                Width="{DynamicResource ShellNavIconSize}"
+                Height="{DynamicResource ShellNavIconSize}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Foreground="{DynamicResource BrushWarning}" />
+    </Button>
+
+    <Border BorderBrush="{DynamicResource SukiControlBorderBrush}"
+        BorderThickness="1"
+        CornerRadius="999"
+        Padding="2,0"
+        VerticalAlignment="Center">
+      <StackPanel Orientation="Horizontal" Spacing="0">
+        <Button
+          Classes="WindowControlsButton"
+          Command="{Binding ToggleBaseThemeCommand}">
+          <Panel>
+            <icons:AppIcon IsVisible="{Binding IsNightMode}" Kind="SunMedium" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" Foreground="{DynamicResource SukiText}" />
+            <icons:AppIcon IsVisible="{Binding !IsNightMode}" Kind="MoonStar" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" Foreground="{DynamicResource SukiText}" />
+          </Panel>
+        </Button>
+
+        <Button
+          Classes="WindowControlsButton"
+          Command="{Binding CycleThemeColorCommand}">
+          <icons:AppIcon Kind="Palette"
+                 Width="{DynamicResource IconSizeDefault}"
+                 Height="{DynamicResource IconSizeDefault}"
+                 Foreground="{DynamicResource SukiText}" />
+        </Button>
+
+        <Border Width="1"
+            Height="{DynamicResource IconSizeDefault}"
+            Margin="{DynamicResource ShellNavButtonMargin}"
+            VerticalAlignment="Center"
+            Background="{DynamicResource SukiControlBorderBrush}" />
+
+        <Button
+          Classes="WindowControlsButton"
+          Command="{Binding TryReconnectDbCommand}">
+          <Panel>
+            <controls:BusyCircle
+              IsVisible="{Binding ShowDbBusyIcon}"
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              DotBrush="{DynamicResource SukiText}" />
+
+            <icons:AppIcon
+              IsVisible="{Binding ShowDbConnectedIcon}"
+              Kind="Link"
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              Foreground="{DynamicResource BrushDone}" />
+
+            <icons:AppIcon
+              IsVisible="{Binding ShowDbDisconnectedIcon}"
+              Kind="Unlink"
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              Foreground="{DynamicResource BrushDanger}" />
+          </Panel>
+        </Button>
+
+        <Button
+          Classes="WindowControlsButton"
+          Command="{Binding StartOrRestartAhkCommand}">
+          <Panel>
+            <icons:AppIcon
+              IsVisible="{Binding IsAhkRunning}"
+              Kind="Syringe"
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              Foreground="{DynamicResource BrushDone}" />
+            <icons:AppIcon
+              IsVisible="{Binding !IsAhkRunning}"
+              Kind="Syringe"
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              Foreground="{DynamicResource BrushDanger}" />
+          </Panel>
+        </Button>
+      </StackPanel>
+    </Border>
+  </suki:SukiWindow.RightWindowTitleBarControls>
+
+  <suki:SukiWindow.LogoContent>
+    <Image Source="avares://PacToolkits.Desktop.Avalonia/Assets/icon-32.png"
+       Height="20"
+       Stretch="Uniform"
+       VerticalAlignment="Center" />
+  </suki:SukiWindow.LogoContent>
+
+  <suki:SukiWindow.MenuItems>
+    <MenuItem Header="刷新"
+         Command="{Binding RefreshActivePageCommand}"
+         IsEnabled="{Binding CanTopRefresh}" />
+
+    <MenuItem Header="导入"
+         Command="{Binding TopImportCommand}"
+         IsEnabled="{Binding CanTopImport}" />
+
+    <MenuItem Header="导出"
+         Command="{Binding TopExportCommand}"
+         IsEnabled="{Binding CanTopExport}" />
+
+    <MenuItem Header="设置"
+         Command="{Binding OpenSettingsCommand}" />
+
+    <MenuItem Header="关于">
+      <MenuItem Header="关于 PacToolkits"
+           Command="{Binding OpenAboutCommand}">
+        <MenuItem.Icon>
+          <icons:AppIcon Kind="IdCard" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+        </MenuItem.Icon>
+      </MenuItem>
+
+      <MenuItem Header="检查更新"
+           Command="{Binding CheckAppUpdateCommand}"
+           IsEnabled="{Binding !IsUpdateChecking}">
+        <MenuItem.Icon>
+          <Panel>
+            <controls:BusyCircle IsVisible="{Binding IsUpdateChecking}"
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      DotBrush="{DynamicResource SukiText}" />
+            <Panel IsVisible="{Binding !IsUpdateChecking}">
+              <icons:AppIcon Kind="Download"
+                        IsVisible="{Binding !HasUpdateAvailable}"
+                        Width="{DynamicResource IconSizeSmall}"
+                        Height="{DynamicResource IconSizeSmall}" />
+              <icons:AppIcon Kind="Upload"
+                        IsVisible="{Binding HasUpdateAvailable}"
+                        Width="{DynamicResource IconSizeSmall}"
+                        Height="{DynamicResource IconSizeSmall}"
+                        Foreground="{DynamicResource BrushWarning}" />
+            </Panel>
+          </Panel>
+        </MenuItem.Icon>
+      </MenuItem>
+    </MenuItem>
+  </suki:SukiWindow.MenuItems>
+
+  <suki:SukiSideMenu
+    x:Name="MainSideMenu"
+    ItemsSource="{Binding SidebarPages}"
+    SelectedItem="{Binding ActivePage}"
+    IsMenuExpanded="False"
+    IsSelectedItemContentMovable="False"
+    IsEnabled="{Binding !IsDbProbeRunning}">
+    <suki:SukiSideMenu.HeaderContent>
+      <Grid Margin="{DynamicResource ShellTrayMargin}" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+        <suki:GlassCard Classes="SectionCard" Grid.Row="0" Padding="12,11" Opacity="0.96">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <Border Width="40" Height="40" CornerRadius="11">
+              <Border.Background>
+                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor}" Opacity="0.22" />
+              </Border.Background>
+              <Viewbox Width="22" Height="22" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <icons:AppIcon Kind="Workflow" Foreground="{DynamicResource SukiPrimaryColor}" />
+              </Viewbox>
+            </Border>
+
+            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" VerticalAlignment="Center">
+                <TextBlock Text="PacToolkits" Classes="ShellTitle" VerticalAlignment="Center" />
+                <controls:StatusPill Icon="ShieldCheck"
+                          Text="PRO"
+                          IconSize="11"
+                          TextSize="9"
+                          PillPadding="7,2"
+                          VerticalAlignment="Center"
+                          Classes="TonePrimary" />
+              </StackPanel>
+              <TextBlock Text="自动化套件控制台" Classes="SectionHint" />
+            </StackPanel>
+          </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard Grid.Row="1" Classes="SectionCard" Padding="8,8" Opacity="0.92">
+          <Grid>
+            <TextBox Height="{StaticResource ControlHeightCompact}"
+                VerticalContentAlignment="Center"
+                Padding="31,0,10,0"
+                Watermark="搜索页面 / 命令"
+                UseFloatingWatermark="False"
+                Text="{Binding #MainSideMenu.SearchText, Mode=TwoWay}" />
+            <icons:AppIcon Kind="Search"
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Margin="{DynamicResource ShellStatusLabelMargin}"
+                      IsHitTestVisible="False"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Left"
+                      Opacity="0.74" />
+          </Grid>
+        </suki:GlassCard>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
+          <suki:GlassCard Classes="SectionCard" Grid.Column="0" Padding="{StaticResource CompactPadding}" Height="50" VerticalAlignment="Center" Opacity="0.92">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
+              <icons:AppIcon Kind="Database"
+                        Width="{DynamicResource IconSizeCompact}"
+                        Height="{DynamicResource IconSizeCompact}"
+                        Foreground="{Binding IsDbConnected, Converter={StaticResource BoolToDoneDangerBrush}}"
+                        VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                <TextBlock Text="数据库" Classes="ShellCaption" />
+                <TextBlock Text="{Binding DbStatusText}" FontSize="{DynamicResource SectionHintSize}" FontWeight="SemiBold" />
+              </StackPanel>
+            </Grid>
+          </suki:GlassCard>
+
+          <suki:GlassCard Classes="SectionCard" Grid.Column="1" Padding="{StaticResource CompactPadding}" Height="50" VerticalAlignment="Center" Opacity="0.92">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
+              <icons:AppIcon Kind="Syringe"
+                        Width="{DynamicResource IconSizeCompact}"
+                        Height="{DynamicResource IconSizeCompact}"
+                        Foreground="{Binding IsAhkRunning, Converter={StaticResource BoolToDoneDangerBrush}}"
+                        VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                <TextBlock Text="Agent" Classes="ShellCaption" />
+                <TextBlock Text="{Binding AhkStatusText}" FontSize="{DynamicResource SectionHintSize}" FontWeight="SemiBold" />
+              </StackPanel>
+            </Grid>
+          </suki:GlassCard>
+        </Grid>
+      </Grid>
+    </suki:SukiSideMenu.HeaderContent>
+    
+    <suki:SukiSideMenu.ItemTemplate>
+      <DataTemplate>
+        <suki:SukiSideMenuItem
+          Header="{Binding DisplayName}"
+          IsEnabled="{Binding IsEnabled}">
+          <suki:SukiSideMenuItem.Icon>
+            <icons:AppIcon Kind="{Binding Icon}" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+          </suki:SukiSideMenuItem.Icon>
+        </suki:SukiSideMenuItem>
+      </DataTemplate>
+    </suki:SukiSideMenu.ItemTemplate>
+
+    <suki:SukiSideMenu.FooterContent>
+      <Grid Margin="{DynamicResource ShellTrayHeaderMargin}">
+        <Grid IsVisible="{Binding #MainSideMenu.IsMenuExpanded}">
+          <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+            <suki:GlassCard Grid.Row="0" Classes="SectionCard" Padding="9,9" Opacity="0.93">
+              <StackPanel Spacing="0">
+                <Button Command="{Binding OpenSettingsCommand}" HorizontalAlignment="Stretch">
+                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                    <icons:AppIcon Kind="Settings" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                    <TextBlock Grid.Column="1" Text="系统设置中心" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                      <Border Width="8"
+                          Height="8"
+                          CornerRadius="999"
+                          Background="{DynamicResource BrushWarning}"
+                          IsVisible="{Binding HasUpdateAvailable}" />
+                      <icons:AppIcon Kind="ChevronRight" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" Opacity="0.65" />
+                    </StackPanel>
+                  </Grid>
+                </Button>
+              </StackPanel>
+            </suki:GlassCard>
+
+            <suki:GlassCard Classes="SectionCard" Grid.Row="1" Padding="9,9" Opacity="0.9">
+              <StackPanel Spacing="3" HorizontalAlignment="Center">
+                <StackPanel Orientation="Horizontal"
+                      Spacing="{DynamicResource SpacingInlineSm}"
+                      HorizontalAlignment="Center">
+                  <icons:AppIcon Kind="Tag" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" Opacity="0.82" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding AppSuiteVersionText}" Classes="ShellMeta" FontWeight="SemiBold" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding AppBuildChannelText, StringFormat=· {0}}"
+                       Classes="ShellMeta"
+                       IsVisible="{Binding AppBuildChannelText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                       VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal"
+                      Spacing="{DynamicResource SpacingInlineSm}"
+                      HorizontalAlignment="Center">
+                  <icons:AppIcon Kind="Copyright" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" Opacity="0.82" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding AppCopyrightDisplayText}" Classes="ShellMeta" VerticalAlignment="Center" />
+                </StackPanel>
+              </StackPanel>
+            </suki:GlassCard>
+          </Grid>
+        </Grid>
+
+        <Grid IsVisible="{Binding !#MainSideMenu.IsMenuExpanded}" RowDefinitions="Auto,*">
+          <Border Grid.Row="0" Height="1" Margin="{DynamicResource ShellTrayDividerMargin}" Background="{DynamicResource SukiControlBorderBrush}" />
+          <StackPanel Grid.Row="1" VerticalAlignment="Bottom" HorizontalAlignment="Center" Spacing="4" Margin="0,0,0,0">
+            <Button Classes="SidebarCompactAction"
+                IsVisible="{Binding !IsSettingsPageActive}"
+                Command="{Binding OpenSettingsCommand}">
+              <icons:AppIcon Kind="Settings" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+            </Button>
+            <Button Classes="SidebarCompactAction ActiveCompactAction"
+                IsVisible="{Binding IsSettingsPageActive}"
+                Command="{Binding OpenSettingsCommand}">
+              <icons:AppIcon Kind="Settings" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+            </Button>
+
+            <Button Classes="SidebarCompactAction"
+                IsVisible="{Binding !IsAboutPageActive}"
+                Command="{Binding OpenAboutCommand}">
+              <Button.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="关于 PacToolkits" Command="{Binding OpenAboutCommand}">
+                    <MenuItem.Icon>
+                      <icons:AppIcon Kind="Info" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem Header="检查更新" Command="{Binding CheckAppUpdateCommand}" IsEnabled="{Binding !IsUpdateChecking}">
+                    <MenuItem.Icon>
+                      <icons:AppIcon Kind="Download" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem Header="打开设置" Command="{Binding OpenSettingsCommand}">
+                    <MenuItem.Icon>
+                      <icons:AppIcon Kind="Settings" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                </ContextMenu>
+              </Button.ContextMenu>
+              <Border Width="30" Height="30" CornerRadius="9" ClipToBounds="True">
+                <Image Source="avares://PacToolkits.Desktop.Avalonia/Assets/app.ico" Stretch="Uniform" />
+              </Border>
+            </Button>
+            <Button Classes="SidebarCompactAction ActiveCompactAction"
+                IsVisible="{Binding IsAboutPageActive}"
+                Command="{Binding OpenAboutCommand}">
+              <Button.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="关于 PacToolkits" Command="{Binding OpenAboutCommand}">
+                    <MenuItem.Icon>
+                      <icons:AppIcon Kind="Info" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem Header="检查更新" Command="{Binding CheckAppUpdateCommand}" IsEnabled="{Binding !IsUpdateChecking}">
+                    <MenuItem.Icon>
+                      <icons:AppIcon Kind="Download" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem Header="打开设置" Command="{Binding OpenSettingsCommand}">
+                    <MenuItem.Icon>
+                      <icons:AppIcon Kind="Settings" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                </ContextMenu>
+              </Button.ContextMenu>
+              <Border Width="30" Height="30" CornerRadius="9" ClipToBounds="True">
+                <Image Source="avares://PacToolkits.Desktop.Avalonia/Assets/app.ico" Stretch="Uniform" />
+              </Border>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Grid>
+    </suki:SukiSideMenu.FooterContent>
+  </suki:SukiSideMenu>
+</suki:SukiWindow>

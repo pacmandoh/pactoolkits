@@ -9,7 +9,7 @@
 <table>
   <tr>
     <td align="center" width="260" valign="top">
-      <img src="./pactoolkits-ui/Assets/icon-128.png" alt="PacToolkits UI Icon" width="72" />
+      <img src="./apps/desktop-avalonia/src/Assets/icon-128.png" alt="PacToolkits UI Icon" width="72" />
       <br />
       <strong>PacToolkits UI</strong>
       <br />
@@ -22,7 +22,7 @@
       <img src="https://img.shields.io/badge/架构-MVVM-475569?style=flat-square&logo=dotnet&logoColor=white" alt="架构 MVVM" />
     </td>
     <td align="center" width="260" valign="top">
-      <img src="./pactoolkits-agent/assets/pacinjection.ico" alt="PacToolkits Agent Icon" width="72" />
+      <img src="./runtime/agent-ahk/assets/pacinjection.ico" alt="PacToolkits Agent Icon" width="72" />
       <br />
       <strong>PacToolkits Agent</strong>
       <br />
@@ -58,9 +58,9 @@
     <td align="center"><img src="https://img.shields.io/badge/.NET-net10.0-475569?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./pactoolkits-ui"><img src="https://img.shields.io/badge/UI-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="UI" /></a></td>
-    <td align="center"><a href="./pactoolkits-agent"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
-    <td align="center"><a href="./pactoolkits-db"><img src="https://img.shields.io/badge/Database-PostgreSQL-1d4ed8?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" /></a></td>
+    <td align="center"><a href="./apps/desktop-avalonia/src"><img src="https://img.shields.io/badge/UI-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="UI" /></a></td>
+    <td align="center"><a href="./runtime/agent-ahk"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
+    <td align="center"><a href="./database/postgres"><img src="https://img.shields.io/badge/Database-PostgreSQL-1d4ed8?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" /></a></td>
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
@@ -87,7 +87,7 @@
 
 当前仓库的三条主线分别是：
 
-- `pactoolkits-ui`：业务交互、配置管理、更新能力、审计与诊断
+- `PacToolkits.Desktop.Avalonia`：业务交互、配置管理、更新能力、审计与诊断
 - `pactoolkits-agent`：解析、注入、验证、任务执行
 - `pactoolkits-db`：入库、映射、任务生成、执行状态与迁移治理
 
@@ -111,7 +111,7 @@
 
 ```mermaid
 flowchart LR
-    UI["pactoolkits-ui\nAvalonia 桌面端"]
+    UI["PacToolkits.Desktop.Avalonia\nAvalonia 桌面端"]
     AGENT["pactoolkits-agent\nAutoHotkey v2 执行层"]
     DB["pactoolkits-db\nPostgreSQL Schema + Migrations"]
     SCRIPTS["scripts/\n版本与发布工具"]
@@ -132,9 +132,9 @@ flowchart LR
 
 ```text
 pactoolkits/
-  pactoolkits-ui/        Avalonia 桌面客户端
-  pactoolkits-agent/     AutoHotkey v2 自动化运行时
-  pactoolkits-db/        PostgreSQL bootstrap / migration / verify / deploy
+  apps/desktop-avalonia/src/  Avalonia 桌面客户端
+  runtime/agent-ahk/          AutoHotkey v2 自动化运行时
+  database/postgres/          PostgreSQL bootstrap / migration / verify / deploy
   scripts/               版本、打包、发布辅助脚本
   .github/workflows/     CI / 发布流程
   release-manifest.json  全局版本与兼容性清单
@@ -144,7 +144,7 @@ pactoolkits/
 
 ## 模块说明
 
-## 1. `pactoolkits-ui`
+## 1. `PacToolkits.Desktop.Avalonia`
 
 **定位**
 
@@ -270,7 +270,7 @@ Agent 是自动化执行层，负责对目标窗口进行解析、注入、验�
 **目录结构**
 
 ```text
-pactoolkits-db/
+database/postgres/
   sql/bootstrap/
   sql/migrations/
   sql/verify/
@@ -439,7 +439,7 @@ PacToolkits 当前覆盖的业务场景包括：
 ## 构建 UI
 
 ```bash
-cd pactoolkits-ui
+cd apps/desktop-avalonia/src
 dotnet build -c Release
 ```
 
@@ -453,7 +453,7 @@ cd pactoolkits
 ## 部署数据库
 
 ```bash
-cd pactoolkits-db
+cd database/postgres
 cp scripts/config.example.json scripts/config.json
 # 编辑 scripts/config.json
 ./scripts/deploy.sh doctor

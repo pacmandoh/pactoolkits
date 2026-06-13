@@ -1,0 +1,61 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="Version.g.props" Condition="Exists('Version.g.props')" />
+
+    <PropertyGroup>
+        <RootNamespace>PacToolkits.Desktop.Avalonia</RootNamespace>
+        <AppVersion Condition="'$(AppVersion)' == ''">0.0.0-local</AppVersion>
+        <Product>PacToolkits</Product>
+        <Company>PacmanDoh</Company>
+        <Version>$(AppVersion)</Version>
+        <AssemblyVersion>$(AppVersion).0</AssemblyVersion>
+        <FileVersion>$(AppVersion).0</FileVersion>
+        <InformationalVersion>$(AppVersion)+win</InformationalVersion>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+        <UseAppHost>true</UseAppHost>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <AvaloniaResource Include="Assets\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="version.generated.json" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\..\..\database\postgres\sql\bootstrap\*.sql" Link="Sql\Bootstrap\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\..\..\database\postgres\sql\migrations\*.sql" Link="Sql\Migrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="11.3.12" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
+        <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+        <PackageReference Include="Avalonia.Diagnostics" Version="11.3.12">
+            <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+            <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+        <PackageReference Include="IconPacks.Avalonia.Lucide" Version="2.0.0" />
+        <PackageReference Include="IconPacks.Avalonia.SimpleIcons" Version="2.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.9" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.9" />
+        <PackageReference Include="Npgsql" Version="10.0.3" />
+        <PackageReference Include="SukiUI" Version="6.0.3" />
+        <PackageReference Include="Tmds.DBus.Protocol" Version="0.94.1" />
+        <PackageReference Include="Velopack" Version="1.2.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\packages\application\PacToolkits.Application.csproj" />
+      <ProjectReference Include="..\..\..\packages\infrastructure\PacToolkits.Infrastructure.csproj" />
+      <ProjectReference Include="..\..\..\packages\agent-contracts\PacToolkits.Agent.Contracts.csproj" />
+    </ItemGroup>
+</Project>
