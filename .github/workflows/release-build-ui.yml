@@ -114,6 +114,28 @@ jobs:
           New-Item -ItemType Directory -Path $targetTools -Force | Out-Null
           Copy-Item "apps/desktop-avalonia/src/Tools/pacinjector.exe" (Join-Path $targetTools "pacinjector.exe") -Force
 
+      - name: Validate publish output
+        shell: pwsh
+        run: |
+          $publishDir = "apps/desktop-avalonia/src/bin/Release/net10.0/win-x64/publish"
+          $requiredFiles = @(
+            "PacToolkits.Desktop.Avalonia.exe",
+            "Sql/Bootstrap/000_init_meta.sql",
+            "Sql/Verify/01_structure.sql",
+            "Sql/Verify/02_constraints.sql",
+            "Sql/Verify/03_schema_version.sql"
+          )
+          foreach ($file in $requiredFiles) {
+            $path = Join-Path $publishDir $file
+            if (-not (Test-Path $path)) {
+              throw "Required publish output missing: $path"
+            }
+          }
+          $migrationCount = (Get-ChildItem (Join-Path $publishDir "Sql/Migrations") -Filter "V*__*.sql" -File).Count
+          if ($migrationCount -le 0) {
+            throw "No migration SQL files found in publish output."
+          }
+
       - name: Pack with vpk
         shell: pwsh
         run: |
