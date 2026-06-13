@@ -49,6 +49,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private readonly HashSet<ClientAliasRow> _trackedAliasRows = new();
     private CancellationTokenSource _pageWorkCts = new();
     private bool _disposed;
+    private bool _pageWorkCancelled;
     private bool _syncingUiBehavior;
     private bool _syncingUpdateOptions;
     private bool _syncingLoggingOptions;
@@ -283,6 +284,12 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private void OnClientAliasesChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsClientAliasesEmpty));
 
+    public override Task OnPageActivatedAsync(CancellationToken ct = default)
+    {
+        _pageWorkCancelled = false;
+        return Task.CompletedTask;
+    }
+
     public override Task OnPageDeactivatedAsync(CancellationToken ct = default)
     {
         CancelPageWork();
@@ -321,6 +328,9 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         return cts;
     }
 
+    private bool IsPageWorkCancellation()
+        => _disposed || _pageWorkCancelled;
+
     private Task SetBusyOnUiAsync(bool value)
         => RunOnUiAsync(() => IsBusy = value);
 
@@ -349,6 +359,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void CancelPageWork()
     {
+        _pageWorkCancelled = true;
         var old = Interlocked.Exchange(ref _pageWorkCts, new CancellationTokenSource());
         try { old.Cancel(); }
         catch (ObjectDisposedException) { }
@@ -544,6 +555,9 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
         catch (OperationCanceledException)
         {
+            if (IsPageWorkCancellation())
+                return;
+
             _logger.Warn("SettingsVM", "db.test.timeout", "DB connection test timed out");
             Status = "连接超时";
             IsDbConnected = false;
@@ -590,6 +604,9 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
         catch (Exception ex)
         {
+            if (ex is OperationCanceledException && IsPageWorkCancellation())
+                return;
+
             _logger.Error("SettingsVM", "db.save.fail", "Failed to save DB settings", ex);
             IsDbConnected = false;
             UpdateClientAliasUiState();
@@ -1529,6 +1546,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     public override void Dispose()
     {
         _disposed = true;
+        _pageWorkCancelled = true;
         CancelPageWork();
         try { _uiBehavior.Changed -= OnUiBehaviorChanged; }
         catch (System.Exception ex)
