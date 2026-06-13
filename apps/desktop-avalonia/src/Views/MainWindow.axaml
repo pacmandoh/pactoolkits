@@ -263,7 +263,7 @@
     </suki:SukiSideMenu.HeaderContent>
     
     <suki:SukiSideMenu.ItemTemplate>
-      <DataTemplate>
+      <DataTemplate x:DataType="vm:AppPageBase">
         <suki:SukiSideMenuItem
           Header="{Binding DisplayName}"
           IsEnabled="{Binding IsEnabled}">

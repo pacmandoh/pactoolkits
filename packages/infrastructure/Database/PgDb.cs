@@ -64,20 +64,8 @@ public sealed class PgDb : IDb
         Func<IDbConnection, CancellationToken, Task<T>> work,
         CancellationToken ct)
     {
-        try
-        {
-            await using var conn = await _factory.Get().OpenConnectionAsync(ct).ConfigureAwait(false);
-            return await work(conn, ct).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (IsTransientDisconnect(ex, ct))
-        {
-            _logger.Warn("PgDb", "conn.transient_disconnect.retry", "Transient disconnect detected, retrying connection", ex);
-            // Reason: Clear stale pooled connectors before a single retry.
-            SafeClearPools();
-
-            await using var conn = await _factory.Get().OpenConnectionAsync(ct).ConfigureAwait(false);
-            return await work(conn, ct).ConfigureAwait(false);
-        }
+        await using var conn = await OpenConnectionWithRetryAsync(ct).ConfigureAwait(false);
+        return await work(conn, ct).ConfigureAwait(false);
     }
 
     private async Task<T> WithTransactionCore<T>(
@@ -85,53 +73,39 @@ public sealed class PgDb : IDb
         IsolationLevel isolation,
         CancellationToken ct)
     {
+        await using var conn = await OpenConnectionWithRetryAsync(ct).ConfigureAwait(false);
+        await using var tx = await conn.BeginTransactionAsync(isolation, ct).ConfigureAwait(false);
+
         try
         {
-            await using var conn = await _factory.Get().OpenConnectionAsync(ct).ConfigureAwait(false);
-            await using var tx = await conn.BeginTransactionAsync(isolation, ct).ConfigureAwait(false);
-
-            try
+            var result = await work(conn, tx, ct).ConfigureAwait(false);
+            await tx.CommitAsync(ct).ConfigureAwait(false);
+            return result;
+        }
+        catch
+        {
+            try { await tx.RollbackAsync(CancellationToken.None).ConfigureAwait(false); }
+            catch (System.Exception rollbackEx)
             {
-                var result = await work(conn, tx, ct).ConfigureAwait(false);
-                await tx.CommitAsync(ct).ConfigureAwait(false);
-                return result;
+                _logger.Warn("PgDb", "tx.rollback.fail", "Transaction rollback failed", rollbackEx);
             }
-            catch
-            {
-                try { await tx.RollbackAsync(ct).ConfigureAwait(false); }
-                catch (System.Exception rollbackEx)
-                {
-                    _logger.Warn("PgDb", "tx.rollback.fail", "Transaction rollback failed", rollbackEx);
-                }
 
-                throw;
-            }
+            throw;
+        }
+    }
+
+    private async Task<NpgsqlConnection> OpenConnectionWithRetryAsync(CancellationToken ct)
+    {
+        try
+        {
+            return await _factory.Get().OpenConnectionAsync(ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (IsTransientDisconnect(ex, ct))
         {
-            _logger.Warn("PgDb", "tx.transient_disconnect.retry", "Transient disconnect detected, retrying transaction", ex);
-            // Reason: Clear stale pooled connectors before a single retry.
+            _logger.Warn("PgDb", "conn.open.transient_disconnect.retry", "Transient disconnect detected while opening connection, retrying once", ex);
+            // Clear stale pooled connectors before a single open retry.
             SafeClearPools();
-
-            await using var conn = await _factory.Get().OpenConnectionAsync(ct).ConfigureAwait(false);
-            await using var tx = await conn.BeginTransactionAsync(isolation, ct).ConfigureAwait(false);
-
-            try
-            {
-                var result = await work(conn, tx, ct).ConfigureAwait(false);
-                await tx.CommitAsync(ct).ConfigureAwait(false);
-                return result;
-            }
-            catch
-            {
-                try { await tx.RollbackAsync(ct).ConfigureAwait(false); }
-                catch (System.Exception rollbackEx)
-                {
-                    _logger.Warn("PgDb", "tx.retry.rollback.fail", "Transaction rollback failed on retry path", rollbackEx);
-                }
-
-                throw;
-            }
+            return await _factory.Get().OpenConnectionAsync(ct).ConfigureAwait(false);
         }
     }
 

@@ -16,13 +16,13 @@ Options:
   --bump-agent X.Y.Z         Optional: bump agentVersion.
   --bump-db X.Y.Z            Optional: bump dbSchemaVersion.
   --bump-channel C           Optional: bump manifest build.channel (stable|beta).
-  --pack-version X.Y.Z       Optional: vpk pack version (default: manifest uiVersion).
+  --pack-version X.Y.Z       Optional: vpk pack version (default: manifest suiteVersion).
   --channel C                Optional: vpk channel (default: manifest build.channel).
   --runtime RID              Runtime for publish/pack (default: win-arm64).
   --framework TFM            Target framework (default: net10.0).
   --configuration CFG        Build configuration (default: Release).
   --self-contained true|false   dotnet publish self-contained (default: false).
-  --output-dir DIR           vpk output directory (default: ./Releases).
+  --output-dir DIR           vpk output directory (default: UI project Releases directory).
   --pack-dir DIR             publish output directory for vpk (default: bin/<cfg>/<tfm>/<rid>/publish).
   --main-exe FILE            main exe for vpk (default: PacToolkits.Desktop.Avalonia.exe).
   --icon FILE                icon for setup package (default: Assets/app.ico).
@@ -74,7 +74,7 @@ RUNTIME="win-arm64"
 FRAMEWORK="net10.0"
 CONFIGURATION="Release"
 SELF_CONTAINED="false"
-OUTPUT_DIR="./Releases"
+OUTPUT_DIR="$UI_DIR/Releases"
 PACK_DIR=""
 MAIN_EXE="PacToolkits.Desktop.Avalonia.exe"
 ICON_FILE="$UI_DIR/Assets/app.ico"
@@ -151,6 +151,10 @@ if [[ -z "$PACK_DIR" ]]; then
   PACK_DIR="$UI_DIR/bin/$CONFIGURATION/$FRAMEWORK/$RUNTIME/publish"
 fi
 
+if [[ "$OUTPUT_DIR" != /* ]]; then
+  OUTPUT_DIR="$ROOT_DIR/$OUTPUT_DIR"
+fi
+
 if [[ -n "$BUMP_UI$BUMP_SUITE$BUMP_AGENT$BUMP_DB$BUMP_CHANNEL" ]]; then
   bump_args=("$ROOT_DIR/scripts/bump-version.sh")
   [[ -n "$BUMP_UI" ]] && bump_args+=(--ui "$BUMP_UI")
@@ -164,23 +168,25 @@ fi
 run_cmd "$ROOT_DIR/scripts/check-version.sh"
 
 manifest_ui="$(jq -r '.uiVersion' "$MANIFEST")"
+manifest_suite="$(jq -r '.suiteVersion' "$MANIFEST")"
 manifest_channel="$(jq -r '.build.channel' "$MANIFEST")"
 
 if [[ -z "$PACK_VERSION" ]]; then
-  PACK_VERSION="$manifest_ui"
+  PACK_VERSION="$manifest_suite"
 fi
 if [[ -z "$CHANNEL" ]]; then
   CHANNEL="$manifest_channel"
 fi
 
-if [[ "$PACK_VERSION" != "$manifest_ui" ]]; then
-  echo "ERROR: --pack-version ($PACK_VERSION) != manifest uiVersion ($manifest_ui)" >&2
-  echo "Run bump-version first, or omit --pack-version to use manifest uiVersion." >&2
+if [[ "$PACK_VERSION" != "$manifest_suite" ]]; then
+  echo "ERROR: --pack-version ($PACK_VERSION) != manifest suiteVersion ($manifest_suite)" >&2
+  echo "Run bump-version first, or omit --pack-version to use manifest suiteVersion." >&2
   exit 1
 fi
 
 echo "Release plan:"
-echo "- uiVersion: $PACK_VERSION"
+echo "- suiteVersion: $PACK_VERSION"
+echo "- uiVersion: $manifest_ui"
 echo "- channel: $CHANNEL"
 echo "- runtime: $RUNTIME"
 echo "- framework: $FRAMEWORK"
@@ -197,6 +203,9 @@ if [[ "$DRY_RUN" != "true" ]]; then
   [[ -d "$PACK_DIR" ]] || { echo "ERROR: pack dir not found: $PACK_DIR" >&2; exit 1; }
   [[ -f "$PACK_DIR/$MAIN_EXE" ]] || { echo "ERROR: main exe not found: $PACK_DIR/$MAIN_EXE" >&2; exit 1; }
   [[ -f "$ICON_FILE" ]] || { echo "ERROR: icon not found: $ICON_FILE" >&2; exit 1; }
+  [[ -f "$PACK_DIR/Sql/Bootstrap/000_init_meta.sql" ]] || { echo "ERROR: bootstrap SQL not found in publish output" >&2; exit 1; }
+  [[ -d "$PACK_DIR/Sql/Migrations" ]] || { echo "ERROR: migrations SQL directory not found in publish output" >&2; exit 1; }
+  [[ -d "$PACK_DIR/Sql/Verify" ]] || { echo "ERROR: verify SQL directory not found in publish output" >&2; exit 1; }
 fi
 
 vpk_args=(vpk)
@@ -219,7 +228,7 @@ if [[ "$SKIP_UPLOAD" == "true" ]]; then
 fi
 
 if [[ -z "$UPLOAD_TARGET" ]]; then
-  echo "No upload target provided. Package completed locally at: $UI_DIR/$OUTPUT_DIR"
+  echo "No upload target provided. Package completed locally at: $OUTPUT_DIR"
   exit 0
 fi
 
@@ -229,7 +238,7 @@ fi
 upload_target="${UPLOAD_TARGET%/}/$CHANNEL/"
 rsync_args=(rsync -avz)
 [[ "$RSYNC_DELETE" == "true" ]] && rsync_args+=(--delete)
-rsync_args+=("$UI_DIR/$OUTPUT_DIR/" "$upload_target")
+rsync_args+=("$OUTPUT_DIR/" "$upload_target")
 run_cmd "${rsync_args[@]}"
 
 echo "Release upload done: $upload_target"

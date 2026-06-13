@@ -283,81 +283,76 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         {
             await RunReloadAsync(async ct =>
             {
-                try
+                var drug = NormalizeInput(DrugText);
+                var spec = NormalizeInput(SelectedSpec?.Raw);
+                var analysis = AnalyzeCodes(TraceCodesText);
+                var codes = analysis.ValidUniqueCodes;
+
+                if (string.IsNullOrWhiteSpace(drug) || string.IsNullOrWhiteSpace(spec))
                 {
-                    var drug = NormalizeInput(DrugText);
-                    var spec = NormalizeInput(SelectedSpec?.Raw);
-                    var analysis = AnalyzeCodes(TraceCodesText);
-                    var codes = analysis.ValidUniqueCodes;
+                    _toast.Warn("追溯码录入", "请先选择药品与规格");
+                    return;
+                }
 
-                    if (string.IsNullOrWhiteSpace(drug) || string.IsNullOrWhiteSpace(spec))
-                    {
-                        _toast.Warn("追溯码录入", "请先选择药品与规格");
-                        return;
-                    }
+                if (codes.Count == 0)
+                {
+                    _toast.Warn("追溯码录入", "未检测到可入库的有效追溯码");
+                    return;
+                }
 
-                    if (codes.Count == 0)
-                    {
-                        _toast.Warn("追溯码录入", "未检测到可入库的有效追溯码");
-                        return;
-                    }
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                timeoutCts.CancelAfter(SubmitTimeout);
 
-                    using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                    timeoutCts.CancelAfter(SubmitTimeout);
+                var submit = await _scanCode.SubmitAsync(
+                    new ScanCodeSubmitRequest(
+                        DrugId: drug,
+                        Spec: spec,
+                        ValidUniqueCodes: codes,
+                        Analysis: analysis,
+                        ClientRaw: CachedClientRaw.Value),
+                    timeoutCts.Token).ConfigureAwait(false);
 
-                    var submit = await _scanCode.SubmitAsync(
-                        new ScanCodeSubmitRequest(
-                            DrugId: drug,
-                            Spec: spec,
-                            ValidUniqueCodes: codes,
-                            Analysis: analysis,
-                            ClientRaw: CachedClientRaw.Value),
-                        timeoutCts.Token).ConfigureAwait(false);
-
-                    if (!submit.DrugFound)
-                    {
-                        await RunOnUiAsync(() =>
-                        {
-                            _toast.Error("追溯码录入", "药品/规格不存在，请检查选择项");
-                            Status = "录入失败：药品/规格不存在";
-                        });
-                        return;
-                    }
-
-                    Exception? logWriteError = submit.EntryMessage.StartsWith("insert ok but log failed", StringComparison.Ordinal)
-                        ? new InvalidOperationException(submit.EntryMessage)
-                        : null;
-                    if (logWriteError is not null)
-                        LogWarn("scan.entry_log.write_fail", "trace_entry_log write failed after submit", logWriteError);
-
-                    var result = submit.Insert;
-
+                if (!submit.DrugFound)
+                {
                     await RunOnUiAsync(() =>
                     {
-                        SelectedQtyText = submit.QtyPerTrace.ToString();
-                        Status = $"处理 {result.RequestedCount} 条，成功 {result.InsertedCount} 条，跳过 {result.SkippedCount} 条";
-                        var summary =
-                            $"{drug}/{spec} · 总数 {analysis.Total} · 有效 {analysis.ValidUniqueCodes.Count} · 重复 {analysis.Duplicate} · 无效 {analysis.Invalid} · 写入 {result.InsertedCount} · 跳过 {result.SkippedCount}";
-
-                        if (logWriteError is not null)
-                        {
-                            Status = $"录入成功，但日志写入失败：{logWriteError.Message}";
-                            _toast.Error("录入日志", $"trace_entry_log 写入失败：{logWriteError.Message}");
-                        }
-                        else if (result.InsertedCount > 0)
-                        {
-                            _toast.Success("追溯码录入", summary);
-                        }
-                        else
-                        {
-                            _toast.Warn("追溯码录入", $"无新增记录：{summary}");
-                        }
+                        _toast.Error("追溯码录入", "药品/规格不存在，请检查选择项");
+                        Status = "录入失败：药品/规格不存在";
                     });
+                    return;
                 }
-                finally
+
+                Exception? logWriteError = submit.EntryMessage.StartsWith("insert ok but log failed", StringComparison.Ordinal)
+                    ? new InvalidOperationException(submit.EntryMessage)
+                    : null;
+                if (logWriteError is not null)
+                    LogWarn("scan.entry_log.write_fail", "trace_entry_log write failed after submit", logWriteError);
+
+                var result = submit.Insert;
+
+                await RunOnUiAsync(() =>
                 {
-                    await RunOnUiAsync(() => { TraceCodesText = string.Empty; }).ConfigureAwait(false);
-                }
+                    SelectedQtyText = submit.QtyPerTrace.ToString();
+                    Status = $"处理 {result.RequestedCount} 条，成功 {result.InsertedCount} 条，跳过 {result.SkippedCount} 条";
+                    var summary =
+                        $"{drug}/{spec} · 总数 {analysis.Total} · 有效 {analysis.ValidUniqueCodes.Count} · 重复 {analysis.Duplicate} · 无效 {analysis.Invalid} · 写入 {result.InsertedCount} · 跳过 {result.SkippedCount}";
+
+                    if (logWriteError is not null)
+                    {
+                        Status = $"录入成功，但日志写入失败：{logWriteError.Message}";
+                        _toast.Error("录入日志", $"trace_entry_log 写入失败：{logWriteError.Message}");
+                    }
+                    else if (result.InsertedCount > 0)
+                    {
+                        _toast.Success("追溯码录入", summary);
+                    }
+                    else
+                    {
+                        _toast.Warn("追溯码录入", $"无新增记录：{summary}");
+                    }
+
+                    TraceCodesText = string.Empty;
+                });
             }, onFinished: NotifyActionCommands);
         }
         catch (Exception ex)
