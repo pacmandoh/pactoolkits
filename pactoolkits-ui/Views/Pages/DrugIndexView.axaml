@@ -23,11 +23,9 @@
             
             <suki:GlassCard Grid.Row="0" Classes="FilterHintCard" IsVisible="{Binding IsSearchPanelVisible}">
               <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
-                <TextBox Height="{StaticResource ControlHeightCompact}"
+                <TextBox Classes="FilterSearchTextBox"
                     x:Name="DrugIndexSearchBox"
                     IsEnabled="{Binding !IsUiBusy}"
-                    Padding="10,0"
-                    VerticalContentAlignment="Center"
                     TextWrapping="NoWrap"
 
                     AcceptsReturn="False"
@@ -39,7 +37,7 @@
                   </TextBox.KeyBindings>
                 </TextBox>
 
-                <Button Grid.Column="1" x:Name="DrugIndexSearchButton" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
+                <Button Grid.Column="1" x:Name="DrugIndexSearchButton" Classes="Action"
                     IsEnabled="{Binding !IsUiBusy}"
                     Command="{Binding SearchCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -48,7 +46,7 @@
                   </StackPanel>
                 </Button>
 
-                <Button Grid.Column="2" Classes="Action" Height="{StaticResource ControlHeightCompact}" MinWidth="{StaticResource MinWAction}"
+                <Button Grid.Column="2" Classes="Action"
                     IsEnabled="{Binding !IsUiBusy}"
                     Command="{Binding ClearSearchCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -92,11 +90,8 @@
                     Orientation="Horizontal"
                     Spacing="{DynamicResource SpacingInlineMd}"
                     VerticalAlignment="Center">
-                <Button Classes="Action"
-                    Height="{StaticResource ControlHeightCompact}"
-                    Width="40"
-                    MinWidth="40"
-                    Padding="0"
+                <Button Classes="Action IconToggle"
+                                        
                     HorizontalContentAlignment="Center"
                     VerticalContentAlignment="Center"
                     IsEnabled="{Binding !IsUiBusy}"
@@ -122,8 +117,6 @@
                 </Button>
 
                 <Button Classes="Action"
-                    Height="{StaticResource ControlHeightCompact}"
-                    MinWidth="{StaticResource MinWAction}"
                     IsEnabled="{Binding !IsUiBusy}"
                     Command="{Binding ImportDataCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -133,8 +126,6 @@
                 </Button>
 
                 <Button Classes="Action"
-                    Height="{StaticResource ControlHeightCompact}"
-                    MinWidth="{StaticResource MinWAction}"
                     IsEnabled="{Binding !IsUiBusy}"
                     ClickMode="Press"
                     Command="{Binding NewItemCommand}">
@@ -257,8 +248,6 @@
                     Spacing="{DynamicResource NavItemsSpacing}"
                     VerticalAlignment="Center">
                 <Button Classes="Action"
-                    Height="{StaticResource ControlHeightCompact}"
-                    MinWidth="{StaticResource MinWAction}"
                     IsVisible="{Binding CanRequestEditorUnlock}"
                     Command="{Binding RequestEditorUnlockCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -271,8 +260,6 @@
                 </Button>
 
                 <Button Classes="Action"
-                    Height="{StaticResource ControlHeightCompact}"
-                    MinWidth="{StaticResource MinWAction}"
                     IsVisible="{Binding CanLockEditor}"
                     Command="{Binding LockEditorCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -285,8 +272,6 @@
                 </Button>
 
                 <Button Classes="Action"
-                    Height="{StaticResource ControlHeightCompact}"
-                    MinWidth="{StaticResource MinWAction}"
                     IsVisible="{Binding HasEditor}"
                     Command="{Binding FixDrugKeyCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -348,16 +333,14 @@
             <ScrollViewer Grid.Row="3" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}">
               <StackPanel Spacing="{DynamicResource NavItemsSpacing}" Margin="{DynamicResource MarginBottomMd}">
 
-                <TextBox Height="{StaticResource ControlHeightCompact}"
-                    Padding="10,0"
+                <TextBox Classes="FilterSearchTextBox"
                     VerticalContentAlignment="Center"
                     TextWrapping="NoWrap"
                     AcceptsReturn="False"
                     Watermark="药品名（必填）"
                     Text="{Binding EditDrugId, Mode=TwoWay}" />
 
-                <TextBox Height="{StaticResource ControlHeightCompact}"
-                    Padding="10,0"
+                <TextBox Classes="FilterSearchTextBox"
                     VerticalContentAlignment="Center"
                     TextWrapping="NoWrap"
                     AcceptsReturn="False"
@@ -370,16 +353,14 @@
                        FormatString="0"
                        Watermark="单盒数量（必填）" />
 
-                <TextBox Height="{StaticResource ControlHeightCompact}"
-                    Padding="10,0"
+                <TextBox Classes="FilterSearchTextBox"
                     VerticalContentAlignment="Center"
                     TextWrapping="NoWrap"
                     AcceptsReturn="False"
                     Watermark="简称（可选）"
                     Text="{Binding EditRuleKey, Mode=TwoWay}" />
 
-                <TextBox Height="{StaticResource ControlHeightCompact}"
-                    Padding="10,0"
+                <TextBox Classes="FilterSearchTextBox"
                     VerticalContentAlignment="Center"
                     TextWrapping="NoWrap"
                     AcceptsReturn="False"
@@ -399,8 +380,7 @@
             <Grid Grid.Row="4" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
               <Button Grid.Column="0"
                   Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  HorizontalAlignment="Stretch"
+                                    HorizontalAlignment="Stretch"
                   Command="{Binding SaveCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="RefreshCw"
@@ -412,8 +392,7 @@
 
               <Button Grid.Column="1"
                   Classes="Action"
-                  Height="{StaticResource ControlHeightCompact}"
-                  HorizontalAlignment="Stretch"
+                                    HorizontalAlignment="Stretch"
                   Command="{Binding DeleteCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="Trash2"
