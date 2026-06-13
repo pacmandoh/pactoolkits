@@ -74,7 +74,7 @@ jobs:
       - name: Place AHK exe into UI tools
         shell: pwsh
         run: |
-          $toolsDir = "pactoolkits-ui/Tools"
+          $toolsDir = "apps/desktop-avalonia/src/Tools"
           New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
           Copy-Item "_ahk_artifact/pacinjector.exe" "$toolsDir/pacinjector.exe" -Force
 
@@ -104,24 +104,24 @@ jobs:
       - name: Publish UI
         shell: pwsh
         run: |
-          dotnet publish pactoolkits-ui/pactoolkits-ui.csproj -c Release -f net10.0 -r win-x64 --self-contained false
+          dotnet publish apps/desktop-avalonia/src/PacToolkits.Desktop.Avalonia.csproj -c Release -f net10.0 -r win-x64 --self-contained false
 
       - name: Copy agent exe into publish output
         shell: pwsh
         run: |
-          $publishDir = "pactoolkits-ui/bin/Release/net10.0/win-x64/publish"
+          $publishDir = "apps/desktop-avalonia/src/bin/Release/net10.0/win-x64/publish"
           $targetTools = Join-Path $publishDir "Tools"
           New-Item -ItemType Directory -Path $targetTools -Force | Out-Null
-          Copy-Item "pactoolkits-ui/Tools/pacinjector.exe" (Join-Path $targetTools "pacinjector.exe") -Force
+          Copy-Item "apps/desktop-avalonia/src/Tools/pacinjector.exe" (Join-Path $targetTools "pacinjector.exe") -Force
 
       - name: Pack with vpk
         shell: pwsh
         run: |
-          $publishDir = "pactoolkits-ui/bin/Release/net10.0/win-x64/publish"
-          $releaseDir = "pactoolkits-ui/Releases"
+          $publishDir = "apps/desktop-avalonia/src/bin/Release/net10.0/win-x64/publish"
+          $releaseDir = "apps/desktop-avalonia/src/Releases"
           New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
 
-          vpk pack --packId pactoolkits --packVersion $env:SUITE_VERSION --packDir $publishDir --outputDir $releaseDir --mainExe pactoolkits-ui.exe --runtime win-x64 --channel $env:CHANNEL --packTitle PacToolkits --packAuthors pacmandoh --noPortable -i pactoolkits-ui/Assets/app.ico
+          vpk pack --packId pactoolkits --packVersion $env:SUITE_VERSION --packDir $publishDir --outputDir $releaseDir --mainExe PacToolkits.Desktop.Avalonia.exe --runtime win-x64 --channel $env:CHANNEL --packTitle PacToolkits --packAuthors pacmandoh --noPortable -i apps/desktop-avalonia/src/Assets/app.ico
 
       - name: Collect build outputs
         shell: pwsh
@@ -129,8 +129,8 @@ jobs:
           $dist = "_release_assets"
           New-Item -ItemType Directory -Path $dist -Force | Out-Null
 
-          Copy-Item "pactoolkits-ui/Releases/*" $dist -Recurse -Force
-          Copy-Item "pactoolkits-ui/Tools/pacinjector.exe" "$dist/pacinjector.exe" -Force
+          Copy-Item "apps/desktop-avalonia/src/Releases/*" $dist -Recurse -Force
+          Copy-Item "apps/desktop-avalonia/src/Tools/pacinjector.exe" "$dist/pacinjector.exe" -Force
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7

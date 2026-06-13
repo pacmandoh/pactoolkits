@@ -1,0 +1,158 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+      xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+      xmlns:con="https://github.com/kikipoulet/SukiUI"
+      xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
+      xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+      xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+      xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Views.Dialogs"
+      x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxMappingBatchDialogView"
+      x:Name="Root"
+      x:DataType="dialogs:MsfxMappingBatchDialogModel"
+      Focusable="True"
+      behaviors:FocusClearBehavior.Enable="True"
+      behaviors:FocusClearBehavior.SuppressGridClear="True">
+  <suki:GlassCard Classes="SectionCard"
+          MinWidth="920"
+          MaxWidth="1180"
+          Padding="16"
+          behaviors:FocusClearBehavior.SuppressGridClear="True">
+    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+        <Border Width="40" Height="40" CornerRadius="20">
+          <icons:AppIcon Kind="Table2" Width="20" Height="20"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="1" Spacing="2">
+          <TextBlock Text="批量映射处理" Classes="DialogTitle" />
+          <TextBlock Text="先选分组，再映射或直接弃用任务" Opacity="0.75" />
+        </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="1" RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogFormRowSpacing}">
+        <TextBlock Text="待处理分组（按 原始药名/规格 + 归一化药名/规格）" Opacity="0.8" />
+        <DataGrid Grid.Row="1"
+             x:Name="GroupGrid"
+             Height="280"
+             Classes="SectionGrid InventoryGrid LowToneGrid MsfxIndexedGrid"
+             HeadersVisibility="All"
+             GridLinesVisibility="All"
+             HorizontalScrollBarVisibility="Auto"
+             SelectionMode="Single"
+             PointerPressed="GroupGrid_OnPointerPressed"
+             IsReadOnly="True"
+             ItemsSource="{Binding Groups}">
+          <DataGrid.Styles>
+            <Style Selector="DataGrid#GroupGrid DataGridCell TextBlock">
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            </Style>
+          </DataGrid.Styles>
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="单据时间" Binding="{Binding SourceBillTimes}" Width="140" />
+            <DataGridTextColumn Header="单据编码" Binding="{Binding SourceBillCodes}" Width="220" />
+            <DataGridTextColumn Header="原始药名" Binding="{Binding SourceDrugNameRaw}" Width="180" />
+            <DataGridTextColumn Header="原始规格" Binding="{Binding SourceSpecRaw}" Width="180" />
+            <DataGridTextColumn Header="归一化药名" Binding="{Binding SourceNameNorm}" Width="180" />
+            <DataGridTextColumn Header="归一化规格" Binding="{Binding SourceSpecNorm}" Width="180" />
+            <DataGridTextColumn Header="总数" Binding="{Binding TotalCount}" Width="80" />
+            <DataGridTemplateColumn Header="状态构成" Width="520">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                    <controls:StatusPill Icon="Info"
+                              Text="{Binding PendingCount, StringFormat=待映射 {0}}"
+                              IconSize="12"
+                              TextSize="11"
+                              PillPadding="8,3"
+                              Classes="ToneWarning25" />
+                    <controls:StatusPill Icon="Bookmark"
+                              Text="{Binding NeedReviewCount, StringFormat=待人工 {0}}"
+                              IconSize="12"
+                              TextSize="11"
+                              PillPadding="8,3"
+                              Classes="ToneInfo25" />
+                    <controls:StatusPill Icon="CircleX"
+                              Text="{Binding FailedCount, StringFormat=失败 {0}}"
+                              IconSize="12"
+                              TextSize="11"
+                              PillPadding="8,3"
+                              Classes="ToneDanger25" />
+                  </StackPanel>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+          </DataGrid.Columns>
+        </DataGrid>
+      </Grid>
+
+      <Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+          <con:GlassCard Grid.Column="0" Classes="FilterFieldCard" Padding="10,8">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon Kind="Pill" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                <TextBlock Text="药品名称" Opacity="0.82" />
+              </StackPanel>
+              <Border Grid.Row="1"
+                  Height="{DynamicResource ControlHeightCompact}"
+                  Classes="AutoCompleteInputHost"
+                  Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
+                  Padding="8,0">
+                <AutoCompleteBox x:Name="DrugIdBox"
+                        Height="{StaticResource ControlHeightCompact}"
+                        BorderThickness="0"
+                        Background="Transparent"
+                        Watermark="输入院内药品信息"
+                        MinimumPrefixLength="1"
+                        IsTextCompletionEnabled="False"
+                        KeyDown="DrugIdBox_OnKeyDown">
+                  <AutoCompleteBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OptionItem">
+                      <TextBlock Text="{Binding Display}" />
+                    </DataTemplate>
+                  </AutoCompleteBox.ItemTemplate>
+                </AutoCompleteBox>
+              </Border>
+            </Grid>
+          </con:GlassCard>
+
+          <con:GlassCard Grid.Column="1" Classes="FilterFieldCard" Padding="10,8">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon Kind="Scale" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                <TextBlock Text="规格" Opacity="0.82" />
+              </StackPanel>
+              <Grid Grid.Row="1">
+                <ComboBox x:Name="SpecBox"
+                     Height="{StaticResource ControlHeightCompact}"
+                     VerticalAlignment="Center"
+                     HorizontalAlignment="Stretch"
+                     MinWidth="220"
+                     MaxDropDownHeight="300" />
+                <TextBlock x:Name="SpecPlaceholder"
+                     IsHitTestVisible="False"
+                     Margin="{DynamicResource MarginLeftMd}"
+                     VerticalAlignment="Center"
+                     Opacity="0.55"
+                     Text="请选择规格" />
+              </Grid>
+            </Grid>
+          </con:GlassCard>
+        </Grid>
+
+        <con:GlassCard Grid.Row="1" Classes="FilterHintCard">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
+            <icons:AppIcon Kind="ChartSpline" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1"
+                 x:Name="PreviewText"
+                 Text="请选择分组后自动预览"
+                 TextWrapping="Wrap"
+                 Opacity="0.9" />
+          </Grid>
+        </con:GlassCard>
+      </Grid>
+    </Grid>
+  </suki:GlassCard>
+</UserControl>

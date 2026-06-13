@@ -35,14 +35,14 @@ _ReSharper*/
 **/out/
 
 # UI local packaging artifacts
-pactoolkits-ui/Publish/
-pactoolkits-ui/Releases/
-pactoolkits-ui/Sql/
+apps/desktop-avalonia/src/Publish/
+apps/desktop-avalonia/src/Releases/
+apps/desktop-avalonia/src/Sql/
 
 # ------------------------------
 # Agent local packaging artifacts
 # ------------------------------
-pactoolkits-agent/Releases/
+runtime/agent-ahk/Releases/
 
 # ------------------------------
 # Runtime logs / temp
@@ -62,7 +62,7 @@ pactoolkits-agent/Releases/
 !.env.example
 
 # DB local deploy config (contains environment-specific values)
-pactoolkits-db/scripts/config.json
+database/postgres/scripts/config.json
 
 # ------------------------------
 # Optional local release scratch files
