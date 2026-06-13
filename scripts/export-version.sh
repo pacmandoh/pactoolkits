@@ -3,8 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$ROOT_DIR/release-manifest.json"
-UI_DIR="$ROOT_DIR/pactoolkits-ui"
-AGENT_DIR="$ROOT_DIR/pactoolkits-agent"
+UI_DIR="$ROOT_DIR/apps/desktop-avalonia/src"
+AGENT_DIR="$ROOT_DIR/runtime/agent-ahk"
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || {

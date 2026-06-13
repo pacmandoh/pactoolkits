@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+      xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+      xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+      xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
+      x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxTaskSplitDialogView"
+      x:DataType="dialogs:MsfxTaskSplitDialogModel">
+  <suki:GlassCard Classes="SectionCard"
+          MinWidth="980"
+          MaxWidth="1220"
+          Padding="16">
+    <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="{DynamicResource PageRowSpacing}">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+        <Border Width="40" Height="40" CornerRadius="20"
+            Background="{DynamicResource BrushInfoBg15}">
+          <icons:AppIcon Kind="GitBranchPlus"
+                 Width="20"
+                 Height="20"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 Foreground="{DynamicResource BrushInfo}" />
+        </Border>
+        <StackPanel Grid.Column="1" Spacing="2">
+          <TextBlock Text="拆分任务预览" Classes="DialogTitle" />
+          <TextBlock Text="按父码簇安全拆分，不再按叶子码任意硬切。" Opacity="0.75" />
+        </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
+        <controls:StatusPill Icon="Hash" Text="{Binding TaskId, StringFormat=任务 #{0}}"
+                  Classes="ToneInfo15" />
+        <controls:StatusPill Grid.Column="1" Icon="Package"
+                  Text="{Binding TotalCodes, StringFormat=总码数 {0}}"
+                  Classes="ToneWarning15" />
+        <controls:StatusPill Grid.Column="2" Icon="ReceiptText"
+                  Text="{Binding SourceBillCode}"
+                  Classes="ToneDone15" />
+        <TextBlock Grid.Column="3"
+             Text="{Binding Target}"
+             VerticalAlignment="Center"
+             TextTrimming="CharacterEllipsis"
+             Opacity="0.82" />
+      </Grid>
+
+      <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+        <StackPanel Spacing="4" VerticalAlignment="Center">
+          <TextBlock Text="自定义数量拆分"
+               FontWeight="SemiBold" />
+          <TextBlock Text="按逗号或空格输入数量，例如：400,400,800，系统只会按父码簇完整分配，不会危险硬切"
+               Classes="SectionHint"
+               TextWrapping="Wrap"
+               MaxWidth="300" />
+        </StackPanel>
+        <TextBox x:Name="QuantitySplitBox"
+            Grid.Column="1"
+            Classes="Control"
+            Watermark="例如：400, 400, 400, 400"
+            HorizontalAlignment="Stretch" />
+      </Grid>
+
+      <DataGrid Grid.Row="3"
+           x:Name="SplitUnitGrid"
+           Classes="SectionGrid InventoryGrid LowToneGrid MsfxIndexedGrid"
+           ItemsSource="{Binding SplitCodeRows}"
+           HeadersVisibility="All"
+           GridLinesVisibility="All"
+           HorizontalScrollBarVisibility="Auto"
+           IsReadOnly="True"
+           Height="320">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="父码簇" Binding="{Binding DisplayClusterCode}" Width="220" />
+          <DataGridTextColumn Header="最小包装码" Binding="{Binding LeafCode}" Width="220" />
+          <DataGridTextColumn Header="一级码" Binding="{Binding CodeLevel1}" Width="180" />
+          <DataGridTextColumn Header="二级码" Binding="{Binding CodeLevel2}" Width="180" />
+          <DataGridTextColumn Header="三级码" Binding="{Binding CodeLevel3}" Width="180" />
+          <DataGridTextColumn Header="四级码" Binding="{Binding CodeLevel4}" Width="180" />
+          <DataGridTextColumn Header="五级码" Binding="{Binding CodeLevel5}" Width="180" />
+          <DataGridTextColumn Header="批号" Binding="{Binding BatchNo}" Width="180" />
+          <DataGridTextColumn Header="来源单据" Binding="{Binding SourceBillCode}" Width="220" />
+        </DataGrid.Columns>
+      </DataGrid>
+    </Grid>
+  </suki:GlassCard>
+</UserControl>

@@ -1,0 +1,1495 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+      xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+      xmlns:theme="clr-namespace:SukiUI.Theme;assembly=SukiUI"
+      xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+      xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+      xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
+      x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxLinkView"
+      x:DataType="vm:MsfxLinkViewModel"
+      x:Name="Root"
+      Focusable="True"
+      behaviors:FocusClearBehavior.Enable="True"
+      ClipToBounds="True">
+  <Grid RowDefinitions="Auto,*"
+     RowSpacing="{DynamicResource FormRowSpacing}"
+     Classes="PageRoot">
+
+    <suki:GlassCard Grid.Row="0"
+            Classes="SectionCard PageHero">
+      <Grid ColumnDefinitions="Auto,*,Auto"
+         ColumnSpacing="{DynamicResource PageColumnSpacing}"
+         VerticalAlignment="Center">
+        <Border Classes="HeroIconBadge">
+          <icons:AppIcon Kind="CloudCog" />
+        </Border>
+
+        <StackPanel Grid.Column="1"
+              Spacing="2"
+              VerticalAlignment="Center">
+          <TextBlock Text="码上放心联调"
+               Classes="SectionTitle" />
+          <TextBlock Text="上游出库单与子码链路联调"
+               Classes="SectionHint" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="2"
+              Orientation="Horizontal"
+              Spacing="{DynamicResource SpacingInlineMd}"
+              VerticalAlignment="Center">
+          <controls:StatusPill Icon="Link"
+                    Text="MSFX"
+                    Classes="ToneInfo15"
+                    VerticalAlignment="Center" />
+          <controls:StatusPill Icon="CircleCheck"
+                    Text="生产链路"
+                    Classes="ToneDone25"
+                    VerticalAlignment="Center" />
+        </StackPanel>
+      </Grid>
+    </suki:GlassCard>
+
+    <TabControl Grid.Row="1"
+          Classes="DashboardSubTabs"
+          SelectedIndex="{Binding SelectedTabIndex}">
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+            <icons:AppIcon Kind="Bot" Width="{DynamicResource IconSizeMini}" Height="{DynamicResource IconSizeMini}" />
+            <TextBlock Text="自动化监控" />
+          </StackPanel>
+        </TabItem.Header>
+
+        <suki:BusyArea BusyText="加载中..." IsBusy="{Binding IsAutoBoardBusy}">
+        <Grid Margin="{DynamicResource MarginTopLg}"
+           RowDefinitions="Auto,*"
+           RowSpacing="{DynamicResource FormRowSpacing}">
+          <Grid Grid.Row="0"
+             RowDefinitions="Auto,Auto"
+             RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+            <Grid Grid.Row="0"
+               ColumnDefinitions="Auto,Auto,Auto,Auto,*"
+               ColumnSpacing="{DynamicResource PageColumnSpacing}"
+               VerticalAlignment="Center">
+            <suki:GlassCard Classes="CompactCard" Grid.Column="0">
+              <Grid ColumnDefinitions="Auto,Auto,Auto"
+                 ColumnSpacing="{DynamicResource PageColumnSpacing}"
+                 VerticalAlignment="Center">
+                <icons:AppIcon Kind="Power"
+                          Width="{DynamicResource IconSizeDefault}"
+                          Height="{DynamicResource IconSizeDefault}"
+                          Foreground="{Binding IsAutoEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
+                          VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1"
+                     Text="自动监控"
+                     VerticalAlignment="Center"
+                     Opacity="0.82" />
+                <ToggleSwitch Grid.Column="2"
+                       IsChecked="{Binding IsAutoEnabled, Mode=TwoWay}"
+                       VerticalAlignment="Center" />
+              </Grid>
+            </suki:GlassCard>
+
+            <suki:GlassCard Classes="CompactCard" Grid.Column="1">
+              <Grid ColumnDefinitions="Auto,Auto,Auto"
+                 ColumnSpacing="{DynamicResource SpacingInlineMd}"
+                 VerticalAlignment="Center">
+                <icons:AppIcon Kind="Clock" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                <TextBlock Grid.Column="1" Text="轮询(分)" VerticalAlignment="Center" />
+                <NumericUpDown Grid.Column="2"
+                       Classes="MsfxInput"
+                       Width="96"
+                       Minimum="1"
+                       Maximum="720"
+                       Increment="5"
+                       FormatString="0"
+                       Value="{Binding AutoIntervalMinutes}" />
+              </Grid>
+            </suki:GlassCard>
+
+            <suki:GlassCard Classes="CompactCard" Grid.Column="2">
+              <Button Classes="Action"
+                  theme:ButtonExtensions.ShowProgress="{Binding IsAutoBusy}"
+                  IsEnabled="{Binding !IsAutoBusy}"
+                  Command="{Binding RunAutoOnceCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                  <icons:AppIcon Kind="CirclePlay" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                  <TextBlock Text="立即巡检" />
+                </StackPanel>
+              </Button>
+            </suki:GlassCard>
+
+            <suki:GlassCard Classes="CompactCard" Grid.Column="3">
+              <Button Classes="Ghost"
+                  Command="{Binding ClearAutoLogsCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                  <icons:AppIcon Kind="Eraser" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                  <TextBlock Text="清空日志" />
+                </StackPanel>
+              </Button>
+            </suki:GlassCard>
+
+            <suki:GlassCard Grid.Column="4"
+                    Padding="{StaticResource CompactPadding}"
+                    Opacity="0.9"
+                    HorizontalAlignment="Stretch">
+              <Grid ColumnDefinitions="Auto,*,Auto"
+                 ColumnSpacing="{DynamicResource SpacingInlineMd}"
+                 VerticalAlignment="Center">
+                <icons:AppIcon Kind="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToIconKind}}"
+                          Width="{DynamicResource IconSizeDefault}"
+                          Height="{DynamicResource IconSizeDefault}"
+                          Foreground="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                          VerticalAlignment="Center" />
+                <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
+                  <suki:InfoBadge Content="{Binding AutoLogs.Count, StringFormat=日志 {0}}" VerticalAlignment="Center" />
+                  <suki:InfoBadge Grid.Column="1" Content="{Binding AutoLastRunAtText, StringFormat=最近 {0}}" VerticalAlignment="Center" />
+                </Grid>
+                <Button Grid.Column="2"
+                    Classes="Ghost"
+                    Command="{Binding RefreshAutoBoardCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon Kind="RefreshCw" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock Text="刷新审计" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+            </suki:GlassCard>
+            </Grid>
+
+            <suki:GlassCard Grid.Row="1"
+                    IsVisible="{Binding ShowAutoProgressPanel}"
+                    Padding="10,8">
+              <Grid RowDefinitions="Auto,Auto"
+                 ColumnDefinitions="Auto,*,Auto"
+                 RowSpacing="{DynamicResource DialogFormRowSpacing}"
+                 ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                <Border Width="24"
+                    Height="24"
+                    CornerRadius="12"
+                    Background="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToBgBrush}}">
+                  <icons:AppIcon Kind="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToIconKind}}"
+                            Foreground="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                </Border>
+
+                <TextBlock Grid.Row="0" Grid.Column="1"
+                     Text="{Binding AutoStatus}"
+                     VerticalAlignment="Center"
+                     Opacity="0.9"
+                     TextTrimming="CharacterEllipsis" />
+
+                <suki:InfoBadge Grid.Row="0" Grid.Column="2"
+                        Content="{Binding AutoIntervalMinutes, StringFormat=轮询 {0} 分}"
+                        VerticalAlignment="Center" />
+
+                <ProgressBar Grid.Row="1"
+                      Grid.ColumnSpan="2" Grid.Column="0"
+                      Minimum="0"
+                      Maximum="100"
+                      Value="{Binding AutoRunProgressValue}"
+                      IsIndeterminate="False"
+                      Height="6"
+                      MinWidth="260" />
+
+                <suki:InfoBadge Grid.Row="1"
+                        Grid.Column="2"
+                        Content="{Binding AutoRunProgressValue, StringFormat=进度 {0:F0}%}"
+                        VerticalAlignment="Center" />
+
+              </Grid>
+            </suki:GlassCard>
+          </Grid>
+          <Grid Grid.Row="1"
+             RowDefinitions="*,*"
+             ColumnDefinitions="*,*"
+             RowSpacing="{DynamicResource FormRowSpacing}"
+             ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <Grid Grid.RowSpan="2"
+               Grid.ColumnSpan="2"
+               IsVisible="{Binding !IsAutoExpanded}"
+               RowDefinitions="*,*"
+               ColumnDefinitions="*,*"
+               RowSpacing="{DynamicResource FormRowSpacing}"
+               ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <suki:GlassCard Grid.Row="0"
+                    Grid.Column="0"
+                    Classes="SectionCard CompactCard"
+                   >
+              <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                <Grid ColumnDefinitions="Auto,*,Auto"
+                   ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
+                    <icons:AppIcon Kind="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToIconKind}}"
+                              Foreground="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock Text="拉取批次明细" FontWeight="SemiBold" Opacity="0.9" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding AutoPullSummary}" Classes="SectionHint" VerticalAlignment="Center" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2"
+                        Orientation="Horizontal"
+                        Spacing="{DynamicResource SpacingInlineSm}"
+                        VerticalAlignment="Center">
+                    <suki:InfoBadge Content="{Binding AutoPullBatchRows.Count, StringFormat=共 {0} 条}" VerticalAlignment="Center" />
+                    <Button Classes="Ghost MsfxMiniIconBtn"
+                        Command="{Binding ToggleAutoPanelExpandCommand}"
+                        CommandParameter="PULL">
+                      <icons:AppIcon Kind="Fullscreen" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                    </Button>
+                  </StackPanel>
+                </Grid>
+                <controls:EmptyStatePanel Grid.Row="1"
+                             IsEmpty="{Binding IsAutoPullBatchEmpty}"
+                             EmptyText="暂无拉取批次数据"
+                             EmptyHint="执行一次巡检后查看最近批次详情">
+                  <DataGrid x:Name="AutoPullBatchGrid"
+                       Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid"
+                       ItemsSource="{Binding AutoPullBatchRows}"
+                       SelectedItem="{Binding SelectedAutoPullBatchRow, Mode=TwoWay}"
+                       HeadersVisibility="All"
+                       GridLinesVisibility="All"
+                       HorizontalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn Width="44">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Border Width="24"
+                                Height="24"
+                                CornerRadius="12"
+                                Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+                              <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                        Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                        Width="{DynamicResource IconSizeSmall}"
+                                        Height="{DynamicResource IconSizeSmall}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                            </Border>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTextColumn Header="批次ID" Binding="{Binding BatchId}" Width="110" />
+                      <DataGridTextColumn Header="源接口" Binding="{Binding SourceApi}" Width="120" />
+                      <DataGridTextColumn Header="日期窗口" Binding="{Binding Window}" Width="220" />
+                      <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="100" />
+                      <DataGridTextColumn Header="成功" Binding="{Binding SuccessCount}" Width="80" />
+                      <DataGridTextColumn Header="失败" Binding="{Binding FailCount}" Width="80" />
+                      <DataGridTextColumn Header="开始时间" Binding="{Binding StartedAt}" Width="165" />
+                      <DataGridTextColumn Header="结束时间" Binding="{Binding FinishedAt}" Width="165" />
+                      <DataGridTextColumn Header="错误信息" Binding="{Binding ErrMsg}" Width="260" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </controls:EmptyStatePanel>
+              </Grid>
+            </suki:GlassCard>
+
+            <suki:GlassCard Grid.Row="0"
+                    Grid.Column="1"
+                    Classes="SectionCard CompactCard"
+                   >
+              <Grid RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                <Grid ColumnDefinitions="Auto,*,Auto"
+                   ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
+                    <icons:AppIcon Kind="{Binding AutoMapState, Converter={StaticResource TraceEntryStateToIconKind}}"
+                              Foreground="{Binding AutoMapState, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock Text="映射结果队列" FontWeight="SemiBold" Opacity="0.9" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding AutoMapSummary}" Classes="SectionHint" VerticalAlignment="Center" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2"
+                        Orientation="Horizontal"
+                        Spacing="{DynamicResource SpacingInlineSm}"
+                        VerticalAlignment="Center">
+                    <Button Classes="Ghost MsfxMiniIconBtn"
+                        Command="{Binding OpenMapBatchDialogCommand}">
+                      <icons:AppIcon Kind="Table2" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                    </Button>
+                    <Button Classes="Ghost MsfxMiniIconBtn"
+                        Command="{Binding ToggleAutoPanelExpandCommand}"
+                        CommandParameter="MAP">
+                      <icons:AppIcon Kind="Fullscreen" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                    </Button>
+                  </StackPanel>
+                </Grid>
+                <Grid Grid.Row="1"
+                   ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto"
+                   ColumnSpacing="{DynamicResource SpacingInlineMd}"
+                   IsVisible="False">
+                  <suki:InfoBadge Content="{Binding MapQueueDisplayText}" VerticalAlignment="Center" />
+                  <suki:InfoBadge Grid.Column="1" Content="{Binding MapQueueRangeText}" VerticalAlignment="Center" />
+                  <ComboBox Grid.Column="2"
+                       MinWidth="86"
+                       Height="{StaticResource ControlHeightCompact}"
+                       ItemsSource="{Binding MapQueuePageSizeOptions}"
+                       SelectedItem="{Binding MapQueuePageSize, Mode=TwoWay}" />
+                  <ComboBox Grid.Column="3"
+                       MinWidth="120"
+                       Height="{StaticResource ControlHeightCompact}"
+                       ItemsSource="{Binding MapStatusFilterOptions}"
+                       SelectedItem="{Binding MapQueueMapStatusFilter, Mode=TwoWay}" />
+                  <ComboBox Grid.Column="4"
+                       MinWidth="120"
+                       HorizontalAlignment="Left"
+                       Height="{StaticResource ControlHeightCompact}"
+                       ItemsSource="{Binding CodeStatusFilterOptions}"
+                       SelectedItem="{Binding MapQueueCodeStatusFilter, Mode=TwoWay}" />
+                  <Button Grid.Column="5"
+                      Classes="Ghost"
+                      Height="{StaticResource ControlHeightCompact}"
+                     
+                      Command="{Binding PrevMapQueuePageCommand}"
+                      IsEnabled="{Binding HasMapQueuePrevPage}">
+                    <TextBlock Text="上页" />
+                  </Button>
+                  <Button Grid.Column="6"
+                      Classes="Ghost"
+                      Height="{StaticResource ControlHeightCompact}"
+                     
+                      Command="{Binding NextMapQueuePageCommand}"
+                      IsEnabled="{Binding HasMapQueueNextPage}">
+                    <TextBlock Text="下页" />
+                  </Button>
+                </Grid>
+                <controls:EmptyStatePanel Grid.Row="2"
+                             IsEmpty="{Binding IsAutoMapQueueEmpty}"
+                             EmptyText="暂无映射队列数据"
+                             EmptyHint="待映射、需人工、失败和待下发记录将显示在这里">
+                  <DataGrid x:Name="AutoMapQueueGrid"
+                       Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid CellTemplateHighlightGrid MapIndexedGrid"
+                       ItemsSource="{Binding AutoMapQueueRows}"
+                       SelectedItem="{Binding SelectedAutoMapQueueRow, Mode=TwoWay}"
+                       HeadersVisibility="All"
+                       GridLinesVisibility="All"
+                       HorizontalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn Width="44">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Border Width="24"
+                                Height="24"
+                                CornerRadius="12"
+                                Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+                              <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                        Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                        Width="{DynamicResource IconSizeSmall}"
+                                        Height="{DynamicResource IconSizeSmall}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                            </Border>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTextColumn Header="单据时间" Binding="{Binding SourceBillTime}" Width="120" />
+                      <DataGridTextColumn Header="单据编码" Binding="{Binding SourceBillCode}" Width="220" />
+                      <DataGridTextColumn Header="批号" Binding="{Binding ProduceBatchNo}" Width="140" />
+                      <DataGridTextColumn Header="最小包装码" Binding="{Binding LeafCode}" Width="220" />
+                      <DataGridTextColumn Header="药名(原始)" Binding="{Binding SourceDrugNameRaw}" Width="200" />
+                      <DataGridTextColumn Header="规格(原始)" Binding="{Binding SourceSpecRaw}" Width="180" />
+                      <DataGridTextColumn Header="药名(归一化)" Binding="{Binding SourceNameNorm}" Width="180" />
+                      <DataGridTextColumn Header="规格(归一化)" Binding="{Binding SourceSpecNorm}" Width="180" />
+                      <DataGridTextColumn Header="一级码" Binding="{Binding SourceCodeLevel1}" Width="180" />
+                      <DataGridTextColumn Header="二级码" Binding="{Binding SourceCodeLevel2}" Width="180" />
+                      <DataGridTextColumn Header="三级码" Binding="{Binding SourceCodeLevel3}" Width="180" />
+                      <DataGridTextColumn Header="四级码" Binding="{Binding SourceCodeLevel4}" Width="180" />
+                      <DataGridTextColumn Header="五级码" Binding="{Binding SourceCodeLevel5}" Width="180" />
+                      <DataGridTextColumn Header="原因编码" Binding="{Binding MapReasonCode}" Width="160" />
+                      <DataGridTextColumn Header="原因详情" Binding="{Binding MapReasonDetail}" Width="240" />
+                      <DataGridTextColumn Header="映射药品ID" Binding="{Binding MappedDrugId}" Width="160" />
+                      <DataGridTextColumn Header="映射规格" Binding="{Binding MappedSpec}" Width="160" />
+                      <DataGridTextColumn Header="映射状态" Binding="{Binding MapStatus}" Width="130" />
+                      <DataGridTextColumn Header="码状态" Binding="{Binding CodeStatus}" Width="120" />
+                      <DataGridTextColumn Header="更新时间" Binding="{Binding UpdatedAt}" Width="170" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </controls:EmptyStatePanel>
+              </Grid>
+            </suki:GlassCard>
+
+            <suki:GlassCard Grid.Row="1"
+                    Grid.Column="0"
+                    Classes="SectionCard CompactCard"
+                   >
+              <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                <Grid RowDefinitions="Auto,Auto,Auto"
+                   RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                  <Grid ColumnDefinitions="Auto,*,Auto"
+                     ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
+                      <icons:AppIcon Kind="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                Foreground="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                Width="{DynamicResource IconSizeDefault}"
+                                Height="{DynamicResource IconSizeDefault}" />
+                      <TextBlock Text="Agent 执行队列" FontWeight="SemiBold" Opacity="0.9" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" VerticalAlignment="Center" IsVisible="{Binding !IsTaskQueueBatchModeActive}">
+                      <Button Classes="Ghost MsfxMiniIconBtn"
+                          behaviors:FocusClearBehavior.SuppressGridClear="True"
+                          IsEnabled="{Binding CanEnterTaskMergeMode}"
+                          Command="{Binding BeginMergeTaskSelectionCommand}"
+                          ToolTip.Tip="合并同药名同规格任务">
+                        <icons:AppIcon Kind="GitMerge" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                      </Button>
+                      <Button Classes="Ghost MsfxMiniIconBtn"
+                          behaviors:FocusClearBehavior.SuppressGridClear="True"
+                          IsEnabled="{Binding CanSplitSelectedTasks}"
+                          Command="{Binding SplitSelectedTaskCommand}"
+                          ToolTip.Tip="拆分当前任务">
+                        <icons:AppIcon Kind="GitBranch" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                      </Button>
+                      <Button Classes="Ghost MsfxMiniIconBtn"
+                          behaviors:FocusClearBehavior.SuppressGridClear="True"
+                          IsEnabled="{Binding CanEnterTaskRemapMode}"
+                          Command="{Binding BeginRemapTaskSelectionCommand}"
+                          ToolTip.Tip="重新映射选中任务">
+                        <icons:AppIcon Kind="Undo2" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                      </Button>
+                      <Button Classes="Ghost MsfxMiniIconBtn"
+                          behaviors:FocusClearBehavior.SuppressGridClear="True"
+                          IsEnabled="{Binding CanEnterTaskDiscardMode}"
+                          Command="{Binding BeginDiscardTaskSelectionCommand}"
+                          ToolTip.Tip="弃用选中任务">
+                        <icons:AppIcon Kind="Ban" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                      </Button>
+                      <Button Classes="Ghost MsfxMiniIconBtn"
+                          behaviors:FocusClearBehavior.SuppressGridClear="True"
+                          IsEnabled="{Binding CanEnterTaskReopenMode}"
+                          Command="{Binding BeginReopenTaskSelectionCommand}"
+                          ToolTip.Tip="重开选中任务">
+                        <icons:AppIcon Kind="RotateCcw" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                      </Button>
+                      <Button Classes="Ghost MsfxMiniIconBtn"
+                          behaviors:FocusClearBehavior.SuppressGridClear="True"
+                          Command="{Binding ToggleAutoPanelExpandCommand}"
+                          CommandParameter="TASK"
+                          ToolTip.Tip="全屏查看执行队列">
+                        <icons:AppIcon Kind="Fullscreen" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                      </Button>
+                    </StackPanel>
+                    <Grid Grid.Column="2"
+                       IsVisible="{Binding IsTaskQueueBatchModeActive}"
+                       ColumnDefinitions="Auto,Auto,Auto"
+                       ColumnSpacing="{DynamicResource SpacingInlineMd}"
+                       VerticalAlignment="Center">
+                      <TextBlock Text="{Binding TaskQueueBatchModeTitle}"
+                           VerticalAlignment="Center"
+                           Opacity="0.82" />
+                      <Button Grid.Column="1"
+                          Classes="Action"
+                          IsEnabled="{Binding CanConfirmTaskQueueBatchAction}"
+                          Command="{Binding ConfirmTaskQueueBatchActionCommand}">
+                        <TextBlock Text="{Binding TaskQueueBatchConfirmText}" />
+                      </Button>
+                      <Button Grid.Column="2"
+                          Classes="Ghost"
+                          Command="{Binding CancelTaskQueueBatchSelectionCommand}">
+                        <TextBlock Text="取消" />
+                      </Button>
+                    </Grid>
+                  </Grid>
+                  <TextBlock Grid.Row="1"
+                       Margin="{DynamicResource MarginBottomMd}"
+                       Text="{Binding TaskQueueBatchModeHint}"
+                       Classes="SectionHint"
+                       IsVisible="{Binding IsTaskQueueBatchModeActive}" />
+                  <WrapPanel Grid.Row="2" ItemSpacing="{DynamicResource SpacingInlineMd}" LineSpacing="{DynamicResource SpacingInlineSm}">
+                    <controls:StatusPill Icon="CircleDot"
+                              Text="{Binding AutoTaskNewCount, StringFormat=待执行 {0}}"
+                              Classes="ToneWarning15"
+                              IconSize="12"
+                              TextSize="11"
+                              PillPadding="8,3" />
+                    <controls:StatusPill Icon="LoaderCircle"
+                              Text="{Binding AutoTaskRunningCount, StringFormat=运行中 {0}}"
+                              Classes="ToneInfo15"
+                              IconSize="12"
+                              TextSize="11"
+                              PillPadding="8,3" />
+                    <controls:StatusPill Icon="CircleCheck"
+                              Text="{Binding AutoTaskSuccessCount, StringFormat=成功 {0}}"
+                              Classes="ToneDone15"
+                              IconSize="12"
+                              TextSize="11"
+                              PillPadding="8,3" />
+                    <controls:StatusPill Icon="TriangleAlert"
+                              Text="{Binding AutoTaskFailedCount, StringFormat=失败 {0}}"
+                              Classes="ToneDanger15"
+                              IconSize="12"
+                              TextSize="11"
+                              PillPadding="8,3" />
+                    <controls:StatusPill Icon="Ban"
+                              Text="{Binding AutoTaskDiscardedCount, StringFormat=弃用 {0}}"
+                              Classes="TonePurple15"
+                              IconSize="12"
+                              TextSize="11"
+                              PillPadding="8,3" />
+                  </WrapPanel>
+                </Grid>
+                <controls:EmptyStatePanel Grid.Row="1"
+                             IsEmpty="{Binding IsAutoTaskQueueEmpty}"
+                             EmptyText="暂无 Agent 任务队列"
+                             EmptyHint="仅 MAPPED + NEW 的码会创建任务">
+                  <DataGrid x:Name="AutoTaskQueueGrid"
+                       Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid CellTemplateHighlightGrid"
+                       ItemsSource="{Binding AutoTaskQueueRows}"
+                       SelectedItem="{Binding SelectedAutoTaskQueueRow, Mode=TwoWay}"
+                       SelectionChanged="OnTaskQueueSelectionChanged"
+                       SelectionMode="Single"
+                       HeadersVisibility="All"
+                       GridLinesVisibility="All"
+                       HorizontalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn Width="40"
+                                  IsVisible="{Binding #AutoTaskQueueGrid.((vm:MsfxLinkViewModel)DataContext).IsTaskQueueBatchModeActive}">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                              <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Checked="OnTaskQueueCheckChanged"
+                                   Unchecked="OnTaskQueueCheckChanged" />
+                            </Grid>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTemplateColumn Width="44">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Border Width="24"
+                                Height="24"
+                                CornerRadius="12"
+                                Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+                              <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                        Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                        Width="{DynamicResource IconSizeSmall}"
+                                        Height="{DynamicResource IconSizeSmall}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                            </Border>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTextColumn Header="任务ID" Binding="{Binding TaskId}" Width="110" />
+                      <DataGridTextColumn Header="单据编码" Binding="{Binding SourceBillCode}" Width="220" />
+                      <DataGridTextColumn Header="批号" Binding="{Binding BatchNos}" Width="180" />
+                      <DataGridTextColumn Header="目标药品/规格" Binding="{Binding Target}" Width="260" />
+                      <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="100" />
+                      <DataGridTextColumn Header="进度" Binding="{Binding Progress}" Width="170" />
+                      <DataGridTextColumn Header="重试" Binding="{Binding RetryCount}" Width="70" />
+                      <DataGridTextColumn Header="创建时间" Binding="{Binding CreatedAt}" Width="160" />
+                      <DataGridTextColumn Header="抢占时间" Binding="{Binding PickedAt}" Width="160" />
+                      <DataGridTextColumn Header="完成时间" Binding="{Binding FinishedAt}" Width="165" />
+                      <DataGridTextColumn Header="错误信息" Binding="{Binding ErrMsg}" Width="260" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </controls:EmptyStatePanel>
+              </Grid>
+            </suki:GlassCard>
+
+            <suki:GlassCard Grid.Row="1"
+                    Grid.Column="1"
+                    Classes="SectionCard CompactCard"
+                   >
+              <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
+                  <icons:AppIcon Kind="TextSearch" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                  <TextBlock Text="自动化运行审计日志"
+                       FontWeight="SemiBold"
+                       Opacity="0.9"
+                       VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" VerticalAlignment="Center">
+                  <suki:InfoBadge Content="{Binding AutoLogs.Count, StringFormat=共 {0} 条}" VerticalAlignment="Center" />
+                  <Button Classes="Ghost MsfxMiniIconBtn"
+                      Command="{Binding ToggleAutoPanelExpandCommand}"
+                      CommandParameter="LOG">
+                    <icons:AppIcon Kind="Fullscreen" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                  </Button>
+                </StackPanel>
+                </Grid>
+
+                <controls:EmptyStatePanel Grid.Row="1"
+                             IsEmpty="{Binding IsAutoLogsEmpty}"
+                             EmptyText="暂无自动化日志"
+                             EmptyHint="点击“立即巡检”或开启自动监控后将显示执行日志">
+                  <DataGrid x:Name="AutoLogGrid"
+                       Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid"
+                       ItemsSource="{Binding AutoLogs}"
+                       SelectedItem="{Binding SelectedAutoLogRow, Mode=TwoWay}"
+                       ColumnWidth="*"
+                       HeadersVisibility="All"
+                       GridLinesVisibility="All"
+                       HorizontalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn Width="44">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Border Width="24"
+                                Height="24"
+                                CornerRadius="12"
+                                Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+                              <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                        Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                        Width="{DynamicResource IconSizeSmall}"
+                                        Height="{DynamicResource IconSizeSmall}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                            </Border>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTextColumn Header="时间" Binding="{Binding At}" Width="140" />
+                      <DataGridTextColumn Header="流程阶段" Binding="{Binding Stage}" Width="160" />
+                      <DataGridTextColumn Header="详细信息" Binding="{Binding Message}" Width="*" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </controls:EmptyStatePanel>
+              </Grid>
+            </suki:GlassCard>
+            </Grid>
+
+            <suki:GlassCard Grid.Row="0" Grid.RowSpan="2"
+                    Grid.ColumnSpan="2"
+                    Classes="SectionCard CompactCard"
+                   
+                    IsVisible="{Binding IsAutoExpanded}">
+              <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
+                    <icons:AppIcon Kind="{Binding AutoExpandedPanelIcon}" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock Text="{Binding AutoExpandedPanelTitle}"
+                         FontWeight="SemiBold"
+                         Opacity="0.9"
+                         VerticalAlignment="Center" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" VerticalAlignment="Center">
+                    <Button Classes="Action"
+                        IsVisible="{Binding IsMapPanelExpanded}"
+                        Height="{StaticResource ControlHeightCompact}"
+                        MinWidth="110"
+                        Command="{Binding OpenMapBatchDialogCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon Kind="Table2" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                          <TextBlock Text="批量映射" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="Action"
+                        IsVisible="{Binding IsTaskPanelExpanded}"
+                        behaviors:FocusClearBehavior.SuppressGridClear="True"
+                        IsEnabled="{Binding CanEnterTaskMergeMode}"
+                        Height="{StaticResource ControlHeightCompact}"
+                        MinWidth="110"
+                        Command="{Binding BeginMergeTaskSelectionCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="GitMerge" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                        <TextBlock Text="合并任务" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="Action"
+                        IsVisible="{Binding IsTaskPanelExpanded}"
+                        behaviors:FocusClearBehavior.SuppressGridClear="True"
+                        IsEnabled="{Binding CanSplitSelectedTasks}"
+                        Height="{StaticResource ControlHeightCompact}"
+                        MinWidth="110"
+                        Command="{Binding SplitSelectedTaskCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="GitBranch" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                        <TextBlock Text="拆分任务" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="Action"
+                        IsVisible="{Binding IsTaskPanelExpanded}"
+                        behaviors:FocusClearBehavior.SuppressGridClear="True"
+                        IsEnabled="{Binding CanEnterTaskRemapMode}"
+                        Height="{StaticResource ControlHeightCompact}"
+                        MinWidth="110"
+                        Command="{Binding BeginRemapTaskSelectionCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="Undo2" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                        <TextBlock Text="重新映射" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="Action"
+                        IsVisible="{Binding IsTaskPanelExpanded}"
+                        behaviors:FocusClearBehavior.SuppressGridClear="True"
+                        IsEnabled="{Binding CanEnterTaskDiscardMode}"
+                        Height="{StaticResource ControlHeightCompact}"
+                        MinWidth="110"
+                        Command="{Binding BeginDiscardTaskSelectionCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="Ban" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                        <TextBlock Text="弃用" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="Action"
+                        IsVisible="{Binding IsTaskPanelExpanded}"
+                        behaviors:FocusClearBehavior.SuppressGridClear="True"
+                        IsEnabled="{Binding CanEnterTaskReopenMode}"
+                        Height="{StaticResource ControlHeightCompact}"
+                        MinWidth="110"
+                        Command="{Binding BeginReopenTaskSelectionCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="RotateCcw" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                        <TextBlock Text="重启任务" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="Action"
+                        IsVisible="{Binding IsTaskPanelExpanded}"
+                        Height="{StaticResource ControlHeightCompact}"
+                        Width="40"
+                        MinWidth="40"
+                        Padding="0"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Command="{Binding ToggleTaskQueueSearchPanelCommand}"
+                        ToolTip.Tip="显示/隐藏执行队列搜索">
+                      <Panel Width="{DynamicResource IconSizeDefault}"
+                         Height="{DynamicResource IconSizeDefault}"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center">
+                        <icons:AppIcon Kind="Search"
+                               Width="{DynamicResource IconSizeSmall}"
+                               Height="{DynamicResource IconSizeSmall}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               IsVisible="{Binding !IsTaskQueueSearchPanelVisible}" />
+                        <icons:AppIcon Kind="SearchX"
+                               Width="{DynamicResource IconSizeSmall}"
+                               Height="{DynamicResource IconSizeSmall}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               IsVisible="{Binding IsTaskQueueSearchPanelVisible}" />
+                      </Panel>
+                    </Button>
+                    <Button Classes="Ghost"
+                        behaviors:FocusClearBehavior.SuppressGridClear="True"
+                        Width="{StaticResource ControlHeightCompact}"
+                        Height="{StaticResource ControlHeightCompact}"
+                        MinWidth="{StaticResource ControlHeightCompact}"
+                        Padding="0"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Command="{Binding ToggleAutoPanelExpandCommand}"
+                        CommandParameter="{Binding AutoExpandedPanel}">
+                      <icons:AppIcon Kind="Minimize" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                    </Button>
+                  </StackPanel>
+                </Grid>
+
+                <Grid Grid.Row="1"
+                   IsVisible="{Binding IsPullPanelExpanded}"
+                   RowDefinitions="Auto,*"
+                   RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                  <Grid ColumnDefinitions="Auto,*,Auto,120,Auto,Auto"
+                     ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                    <TextBlock Text="{Binding PullBatchPageText}" Classes="SectionHint" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="每页" VerticalAlignment="Center" Opacity="0.8" />
+                    <ComboBox Grid.Column="3"
+                         MinWidth="120"
+                         Height="{StaticResource ControlHeightCompact}"
+                         ItemsSource="{Binding PullBatchPageSizeOptions}"
+                         SelectedItem="{Binding PullBatchPageSize, Mode=TwoWay}" />
+                    <Button Grid.Column="4"
+                        Classes="Ghost"
+                        Height="{StaticResource ControlHeightCompact}"
+                       
+                        Command="{Binding PrevPullBatchPageCommand}"
+                        IsEnabled="{Binding HasPullBatchPrevPage}">
+                      <TextBlock Text="上页" />
+                    </Button>
+                    <Button Grid.Column="5"
+                        Classes="Ghost"
+                        Height="{StaticResource ControlHeightCompact}"
+                       
+                        Command="{Binding NextPullBatchPageCommand}"
+                        IsEnabled="{Binding HasPullBatchNextPage}">
+                      <TextBlock Text="下页" />
+                    </Button>
+                  </Grid>
+                  <controls:EmptyStatePanel Grid.Row="1"
+                               IsEmpty="{Binding IsAutoPullBatchEmpty}"
+                               EmptyText="暂无拉取批次数据"
+                               EmptyHint="执行一次巡检后查看最近批次详情">
+                    <DataGrid x:Name="AutoPullBatchFullGrid"
+                         Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid"
+                         ItemsSource="{Binding AutoPullBatchRows}"
+                         SelectedItem="{Binding SelectedAutoPullBatchRow, Mode=TwoWay}"
+                         HeadersVisibility="All"
+                         GridLinesVisibility="All"
+                         HorizontalScrollBarVisibility="Auto">
+                      <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="44">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                              <Border Width="24"
+                                  Height="24"
+                                  CornerRadius="12"
+                                  Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+                                <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                          Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                          Width="{DynamicResource IconSizeSmall}"
+                                          Height="{DynamicResource IconSizeSmall}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                              </Border>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="批次ID" Binding="{Binding BatchId}" Width="110" />
+                        <DataGridTextColumn Header="源接口" Binding="{Binding SourceApi}" Width="120" />
+                        <DataGridTextColumn Header="日期窗口" Binding="{Binding Window}" Width="220" />
+                        <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="100" />
+                        <DataGridTextColumn Header="成功" Binding="{Binding SuccessCount}" Width="80" />
+                        <DataGridTextColumn Header="失败" Binding="{Binding FailCount}" Width="80" />
+                        <DataGridTextColumn Header="开始时间" Binding="{Binding StartedAt}" Width="165" />
+                        <DataGridTextColumn Header="结束时间" Binding="{Binding FinishedAt}" Width="165" />
+                        <DataGridTextColumn Header="错误信息" Binding="{Binding ErrMsg}" Width="260" />
+                      </DataGrid.Columns>
+                    </DataGrid>
+                  </controls:EmptyStatePanel>
+                </Grid>
+
+                <Grid Grid.Row="1"
+                   IsVisible="{Binding IsMapPanelExpanded}"
+                   RowDefinitions="Auto,*"
+                   RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                  <Grid RowDefinitions="Auto,Auto"
+                     RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                    <Grid ColumnDefinitions="Auto,Auto,*,180,240,Auto,Auto"
+                       ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                      <TextBlock Text="{Binding MapQueueDisplayText}" Classes="SectionHint" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="1" Text="{Binding MapQueueRangeText}" Classes="SectionHint" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="3"
+                           Width="180"
+                           Height="{StaticResource ControlHeightCompact}"
+                           HorizontalAlignment="Left"
+                           ItemsSource="{Binding MapQueueSearchScopeOptions}"
+                           SelectedItem="{Binding MapQueueSearchScope, Mode=TwoWay}" />
+                      <TextBox Grid.Column="4"
+                          Classes="MsfxInput"
+                          Text="{Binding MapQueueKeyword, UpdateSourceTrigger=PropertyChanged}"
+                          Watermark="搜索...">
+                        <TextBox.KeyBindings>
+                          <KeyBinding Gesture="Enter" Command="{Binding SearchMapQueueCommand}" />
+                        </TextBox.KeyBindings>
+                      </TextBox>
+                      <Button Grid.Column="5"
+                          Classes="Action"
+                                                    MinWidth="76"
+                          Command="{Binding SearchMapQueueCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                          <TextBlock Text="搜索" />
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="6"
+                          Classes="Ghost"
+                          Height="{StaticResource ControlHeightCompact}"
+                          MinWidth="104"
+                          Command="{Binding ResetMapQueueFiltersCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon Kind="Eraser" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                          <TextBlock Text="重置筛选" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+
+                    <Grid Grid.Row="1"
+                       ColumnDefinitions="Auto,220,Auto,190,*,Auto,Auto,Auto"
+                       ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                      <TextBlock Grid.Column="0" Text="映射状态" VerticalAlignment="Center" Opacity="0.8" />
+                      <ComboBox Grid.Column="1"
+                           Height="{StaticResource ControlHeightCompact}"
+                           HorizontalAlignment="Stretch"
+                           ItemsSource="{Binding MapStatusFilterOptions}"
+                           SelectedItem="{Binding MapQueueMapStatusFilter, Mode=TwoWay}" />
+                      <TextBlock Grid.Column="2" Text="码状态" VerticalAlignment="Center" Opacity="0.8" />
+                      <ComboBox Grid.Column="3"
+                           Height="{StaticResource ControlHeightCompact}"
+                           HorizontalAlignment="Stretch"
+                           ItemsSource="{Binding CodeStatusFilterOptions}"
+                           SelectedItem="{Binding MapQueueCodeStatusFilter, Mode=TwoWay}" />
+                      <Button Grid.Column="5"
+                          Classes="Ghost"
+                          Height="{StaticResource ControlHeightCompact}"
+                         
+                          Command="{Binding PrevMapQueuePageCommand}"
+                          IsEnabled="{Binding HasMapQueuePrevPage}">
+                        <TextBlock Text="上页" />
+                      </Button>
+                      <Border Grid.Column="6"
+                          MinWidth="120"
+                          Padding="8,0"
+                          VerticalAlignment="Center">
+                        <TextBlock Text="{Binding MapQueuePageText}"
+                             HorizontalAlignment="Center"
+                             TextAlignment="Center"
+                             Opacity="0.78" />
+                      </Border>
+                      <Button Grid.Column="7"
+                          Classes="Ghost"
+                          Height="{StaticResource ControlHeightCompact}"
+                         
+                          Command="{Binding NextMapQueuePageCommand}"
+                          IsEnabled="{Binding HasMapQueueNextPage}">
+                        <TextBlock Text="下页" />
+                      </Button>
+                    </Grid>
+                  </Grid>
+
+                  <controls:EmptyStatePanel Grid.Row="1"
+                               IsEmpty="{Binding IsAutoMapQueueEmpty}"
+                               EmptyText="暂无映射队列数据"
+                               EmptyHint="调整筛选后可继续查询">
+                    <DataGrid x:Name="MapQueueFullGrid"
+                         Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid CellTemplateHighlightGrid MapIndexedGrid"
+                         ItemsSource="{Binding AutoMapQueueRows}"
+                         SelectedItem="{Binding SelectedAutoMapQueueRow, Mode=TwoWay}"
+                         HeadersVisibility="All"
+                         GridLinesVisibility="All"
+                         HorizontalScrollBarVisibility="Auto">
+                      <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="44">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                              <Border Width="24"
+                                  Height="24"
+                                  CornerRadius="12"
+                                  Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+                                <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                          Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                          Width="{DynamicResource IconSizeSmall}"
+                                          Height="{DynamicResource IconSizeSmall}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                              </Border>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="单据时间" Binding="{Binding SourceBillTime}" Width="120" />
+                        <DataGridTextColumn Header="单据编码" Binding="{Binding SourceBillCode}" Width="220" />
+                        <DataGridTextColumn Header="批号" Binding="{Binding ProduceBatchNo}" Width="140" />
+                        <DataGridTextColumn Header="最小包装码" Binding="{Binding LeafCode}" Width="220" />
+                        <DataGridTextColumn Header="药名(原始)" Binding="{Binding SourceDrugNameRaw}" Width="220" />
+                        <DataGridTextColumn Header="规格(原始)" Binding="{Binding SourceSpecRaw}" Width="200" />
+                        <DataGridTextColumn Header="药名(归一化)" Binding="{Binding SourceNameNorm}" Width="200" />
+                        <DataGridTextColumn Header="规格(归一化)" Binding="{Binding SourceSpecNorm}" Width="200" />
+                        <DataGridTextColumn Header="一级码" Binding="{Binding SourceCodeLevel1}" Width="200" />
+                        <DataGridTextColumn Header="二级码" Binding="{Binding SourceCodeLevel2}" Width="200" />
+                        <DataGridTextColumn Header="三级码" Binding="{Binding SourceCodeLevel3}" Width="200" />
+                        <DataGridTextColumn Header="四级码" Binding="{Binding SourceCodeLevel4}" Width="200" />
+                        <DataGridTextColumn Header="五级码" Binding="{Binding SourceCodeLevel5}" Width="200" />
+                        <DataGridTextColumn Header="原因编码" Binding="{Binding MapReasonCode}" Width="170" />
+                        <DataGridTextColumn Header="原因详情" Binding="{Binding MapReasonDetail}" Width="260" />
+                        <DataGridTextColumn Header="映射药品ID" Binding="{Binding MappedDrugId}" Width="170" />
+                        <DataGridTextColumn Header="映射规格" Binding="{Binding MappedSpec}" Width="170" />
+                        <DataGridTextColumn Header="映射状态" Binding="{Binding MapStatus}" Width="130" />
+                        <DataGridTextColumn Header="码状态" Binding="{Binding CodeStatus}" Width="120" />
+                        <DataGridTextColumn Header="更新时间" Binding="{Binding UpdatedAt}" Width="170" />
+                      </DataGrid.Columns>
+                    </DataGrid>
+                  </controls:EmptyStatePanel>
+                </Grid>
+
+                <Grid Grid.Row="1"
+                   IsVisible="{Binding IsTaskPanelExpanded}"
+                   RowDefinitions="Auto,Auto,*"
+                   RowSpacing="{DynamicResource FormRowSpacing}">
+                  <suki:GlassCard Grid.Row="0"
+                          Classes="FilterHintCard"
+                          IsVisible="{Binding IsTaskQueueBatchModeActive}">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
+                      <icons:AppIcon Kind="ListChecks" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" VerticalAlignment="Center" />
+                      <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding TaskQueueBatchModeTitle}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding TaskQueueBatchModeHint}" Classes="SectionHint" />
+                      </StackPanel>
+                      <Button Grid.Column="2"
+                          Classes="Action"
+                          IsEnabled="{Binding CanConfirmTaskQueueBatchAction}"
+                          Command="{Binding ConfirmTaskQueueBatchActionCommand}">
+                        <TextBlock Text="{Binding TaskQueueBatchConfirmText}" />
+                      </Button>
+                      <Button Grid.Column="3"
+                          Classes="Ghost"
+                          Command="{Binding CancelTaskQueueBatchSelectionCommand}">
+                        <TextBlock Text="取消" />
+                      </Button>
+                    </Grid>
+                  </suki:GlassCard>
+                  <suki:GlassCard Grid.Row="1" Classes="FilterHintCard" IsVisible="{Binding IsTaskQueueSearchPanelVisible}">
+                    <Grid ColumnDefinitions="160,180,*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
+                      <ComboBox SelectedItem="{Binding TaskQueueStatusFilter, Mode=TwoWay}"
+                           ItemsSource="{Binding TaskQueueStatusFilterOptions}"
+                           MinWidth="160"
+                           HorizontalAlignment="Stretch" />
+                      <ComboBox Grid.Column="1"
+                           SelectedItem="{Binding TaskQueueSearchScope, Mode=TwoWay}"
+                           ItemsSource="{Binding TaskQueueSearchScopeOptions}"
+                           MinWidth="180"
+                           HorizontalAlignment="Stretch" />
+                      <TextBox Grid.Column="2"
+                          Classes="FilterSearchTextBox"
+                          VerticalContentAlignment="Center"
+                          TextWrapping="NoWrap"
+                          AcceptsReturn="False"
+                          Watermark="搜索：单据编号 / 药品 / 规格"
+                          Text="{Binding TaskQueueKeyword, Mode=TwoWay}">
+                        <TextBox.KeyBindings>
+                          <KeyBinding Gesture="Enter" Command="{Binding SearchTaskQueueCommand}" />
+                        </TextBox.KeyBindings>
+                      </TextBox>
+                      <Button Grid.Column="3"
+                          Classes="Action"
+                          Command="{Binding SearchTaskQueueCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                          <TextBlock Text="搜索" />
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="4"
+                          Classes="Action"
+                          Command="{Binding ClearTaskQueueSearchCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon Kind="Delete" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                          <TextBlock Text="清空" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                  </suki:GlassCard>
+                  <controls:EmptyStatePanel Grid.Row="2"
+                               IsEmpty="{Binding IsAutoTaskQueueEmpty}"
+                               EmptyText="暂无 Agent 任务队列"
+                               EmptyHint="仅 MAPPED + NEW 的码会创建任务">
+                    <DataGrid
+                         x:Name="AutoTaskQueueFullGrid"
+                         Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid CellTemplateHighlightGrid"
+                         ItemsSource="{Binding AutoTaskQueueRows}"
+                         SelectedItem="{Binding SelectedAutoTaskQueueRow, Mode=TwoWay}"
+                         SelectionChanged="OnTaskQueueSelectionChanged"
+                         SelectionMode="Single"
+                         HeadersVisibility="All"
+                         GridLinesVisibility="All"
+                         HorizontalScrollBarVisibility="Auto">
+                      <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="40"
+                                    IsVisible="{Binding #AutoTaskQueueFullGrid.((vm:MsfxLinkViewModel)DataContext).IsTaskQueueBatchModeActive}">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                              <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center"
+                                     Checked="OnTaskQueueCheckChanged"
+                                     Unchecked="OnTaskQueueCheckChanged" />
+                              </Grid>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Width="44">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                              <Border Width="24"
+                                  Height="24"
+                                  CornerRadius="12"
+                                  Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+                                <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                          Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                          Width="{DynamicResource IconSizeSmall}"
+                                          Height="{DynamicResource IconSizeSmall}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                              </Border>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="任务ID" Binding="{Binding TaskId}" Width="110" />
+                        <DataGridTextColumn Header="单据编码" Binding="{Binding SourceBillCode}" Width="220" />
+                        <DataGridTextColumn Header="批号" Binding="{Binding BatchNos}" Width="180" />
+                        <DataGridTextColumn Header="目标药品/规格" Binding="{Binding Target}" Width="260" />
+                        <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="100" />
+                        <DataGridTextColumn Header="进度" Binding="{Binding Progress}" Width="170" />
+                        <DataGridTextColumn Header="重试" Binding="{Binding RetryCount}" Width="80" />
+                        <DataGridTextColumn Header="创建时间" Binding="{Binding CreatedAt}" Width="160" />
+                        <DataGridTextColumn Header="抢占时间" Binding="{Binding PickedAt}" Width="160" />
+                        <DataGridTextColumn Header="完成时间" Binding="{Binding FinishedAt}" Width="165" />
+                        <DataGridTextColumn Header="错误信息" Binding="{Binding ErrMsg}" Width="260" />
+                      </DataGrid.Columns>
+                    </DataGrid>
+                  </controls:EmptyStatePanel>
+                </Grid>
+
+                <controls:EmptyStatePanel Grid.Row="1"
+                             IsVisible="{Binding IsLogPanelExpanded}"
+                             IsEmpty="{Binding IsAutoLogsEmpty}"
+                             EmptyText="暂无自动化日志"
+                             EmptyHint="点击“立即巡检”或开启自动监控后将显示执行日志">
+                  <DataGrid x:Name="AutoLogFullGrid"
+                       Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid"
+                       ItemsSource="{Binding AutoLogs}"
+                       SelectedItem="{Binding SelectedAutoLogRow, Mode=TwoWay}"
+                       ColumnWidth="*"
+                       HeadersVisibility="All"
+                       GridLinesVisibility="All"
+                       CanUserResizeColumns="False"
+                       HorizontalScrollBarVisibility="Disabled">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn Width="44">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Border Width="24"
+                                Height="24"
+                                CornerRadius="12"
+                                Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+                              <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                        Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                        Width="{DynamicResource IconSizeSmall}"
+                                        Height="{DynamicResource IconSizeSmall}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                            </Border>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTextColumn Header="时间" Binding="{Binding At}" Width="140" />
+                      <DataGridTextColumn Header="流程阶段" Binding="{Binding Stage}" Width="160" />
+                      <DataGridTextColumn Header="详细信息" Binding="{Binding Message}" Width="*" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </controls:EmptyStatePanel>
+              </Grid>
+            </suki:GlassCard>
+          </Grid>
+        </Grid>
+        </suki:BusyArea>
+      </TabItem>
+
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+            <icons:AppIcon Kind="ClipboardList" Width="{DynamicResource IconSizeMini}" Height="{DynamicResource IconSizeMini}" />
+            <TextBlock Text="上游出库单查询" />
+          </StackPanel>
+        </TabItem.Header>
+
+        <Grid RowDefinitions="Auto,*"
+           RowSpacing="{DynamicResource FormRowSpacing}"
+           Margin="{DynamicResource MarginTopLg}">
+          <suki:GlassCard Grid.Row="0"
+                  Classes="SectionCard CompactCard"
+                 >
+            <Grid RowDefinitions="Auto,Auto"
+               RowSpacing="{DynamicResource FormRowSpacing}">
+              <Grid Grid.Row="0"
+                 ColumnDefinitions="72,360,86,320,*,Auto,Auto"
+                 ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                <TextBlock Grid.Column="0" Text="日期" VerticalAlignment="Center" />
+                <Grid Grid.Column="1" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                  <CalendarDatePicker Grid.Column="0"
+                            Classes="MsfxInput"
+                            IsTodayHighlighted="True"
+                            SelectedDate="{Binding UpoutFromDate}"
+                            DisplayDateEnd="{Binding UpoutFromMaxDate}" />
+                  <CalendarDatePicker Grid.Column="1"
+                            Classes="MsfxInput"
+                            IsTodayHighlighted="True"
+                            SelectedDate="{Binding UpoutToDate}"
+                            DisplayDateStart="{Binding UpoutToMinDate}"
+                            DisplayDateEnd="{Binding UpoutToMaxDate}" />
+                </Grid>
+
+                <TextBlock Grid.Column="2" Text="单据编码" VerticalAlignment="Center" />
+                <TextBox Grid.Column="3"
+                    Classes="MsfxInput"
+                    Text="{Binding UpoutBillCodeKeyword}"
+                    Watermark="可选：按 bill_code 过滤" />
+
+                <Button Grid.Column="5"
+                    Classes="Action"
+                    Command="{Binding QueryUpoutCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon Kind="Search" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                    <TextBlock Text="查询" />
+                  </StackPanel>
+                </Button>
+
+                <Button Grid.Column="6"
+                    Classes="Ghost"
+                    Command="{Binding ResetUpoutFiltersCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon Kind="RefreshCw" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                    <TextBlock Text="重置" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+
+              <Grid Grid.Row="1"
+                 ColumnDefinitions="72,360,86,320,*"
+                 ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                <TextBlock Grid.Column="0" Text="药品" VerticalAlignment="Center" />
+                <TextBox Grid.Column="1"
+                    Classes="MsfxInput"
+                    Text="{Binding UpoutDrugKeyword}"
+                    Watermark="可选：药品关键字" />
+
+                <TextBlock Grid.Column="2" Text="发货单位" VerticalAlignment="Center" />
+                <TextBox Grid.Column="3"
+                    Classes="MsfxInput"
+                    Text="{Binding UpoutFromEntKeyword}"
+                    Watermark="可选：发货单位关键字" />
+
+                <WrapPanel Grid.Column="4"
+                     Orientation="Horizontal"
+                     ItemSpacing="10"
+                     HorizontalAlignment="Right"
+                     VerticalAlignment="Center">
+                  <TextBlock Text="每页" VerticalAlignment="Center" />
+                  <ComboBox Width="136"
+                      
+                       Height="40"
+                       MinHeight="40"
+                       MaxHeight="40"
+                       ItemsSource="{Binding UpoutPageSizeOptions}"
+                       SelectedItem="{Binding UpoutPageSize}" />
+                  <TextBlock Text="提示" VerticalAlignment="Center" />
+                  <suki:InfoBadge VerticalAlignment="Center"
+                          Content="默认显示最近 7 天" />
+                </WrapPanel>
+              </Grid>
+            </Grid>
+          </suki:GlassCard>
+
+          <suki:GlassCard Grid.Row="1"
+                  Classes="SectionCard CompactCard"
+                 >
+            <Grid RowDefinitions="Auto,*"
+               RowSpacing="{DynamicResource DialogInnerRowSpacing}"
+               Margin="{DynamicResource MarginHorizontalTiny}">
+              <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
+                 VerticalAlignment="Center">
+                <TextBlock Text="{Binding UpoutStatus}"
+                     Classes="SectionHint"
+                     VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1"
+                      Orientation="Horizontal"
+                      Spacing="{DynamicResource SpacingInlineMd}">
+                  <Button Classes="Ghost"
+                      IsEnabled="{Binding HasUpoutPrevPage}"
+                      Command="{Binding PrevUpoutPageCommand}">
+                    <TextBlock Text="上一页" />
+                  </Button>
+                  <Border MinWidth="120"
+                      Padding="8,0"
+                      VerticalAlignment="Center">
+                    <TextBlock Text="{Binding UpoutPageText}"
+                         VerticalAlignment="Center"
+                         HorizontalAlignment="Center"
+                         TextAlignment="Center"
+                         Opacity="0.75" />
+                  </Border>
+                  <Button Classes="Ghost"
+                      IsEnabled="{Binding HasUpoutNextPage}"
+                      Command="{Binding NextUpoutPageCommand}">
+                    <TextBlock Text="下一页" />
+                  </Button>
+                </StackPanel>
+              </Grid>
+
+              <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsUpoutBusy}">
+                <controls:EmptyStatePanel IsEmpty="{Binding IsUpoutEmpty}"
+                             EmptyText="暂无上游出库单"
+                             EmptyHint="请调整筛选条件并执行查询">
+                  <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid MsfxIndexedGrid CellTemplateHighlightGrid"
+                       ItemsSource="{Binding UpoutRows}"
+                       HeadersVisibility="All"
+                       GridLinesVisibility="All"
+                       HorizontalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                    <DataGridTemplateColumn Width="44">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                          <Border Width="24"
+                              Height="24"
+                              CornerRadius="12"
+                              Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+                            <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                      Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                      Width="{DynamicResource IconSizeSmall}"
+                                      Height="{DynamicResource IconSizeSmall}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                          </Border>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="单据编码" Binding="{Binding BillCode}" Width="240" />
+                    <DataGridTextColumn Header="单据类型" Binding="{Binding BillType}" Width="120" />
+                    <DataGridTextColumn Header="时间" Binding="{Binding BillTime}" Width="170" />
+                    <DataGridTextColumn Header="药品" Binding="{Binding DrugName}" Width="260" />
+                    <DataGridTextColumn Header="包装规格" Binding="{Binding PackageSpec}" Width="130" />
+                    <DataGridTextColumn Header="制剂规格" Binding="{Binding PrepnSpec}" Width="180" />
+                    <DataGridTextColumn Header="追溯码数" Binding="{Binding CodeCount}" Width="110" />
+                    <DataGridTextColumn Header="数量" Binding="{Binding PrepnCount}" Width="100" />
+                    <DataGridTextColumn Header="批号" Binding="{Binding ProduceBatchNo}" Width="120" />
+                    <DataGridTextColumn Header="有效期" Binding="{Binding ExpireDate}" Width="120" />
+                    <DataGridTextColumn Header="发货单位" Binding="{Binding FromEntName}" Width="240" />
+                    <DataGridTextColumn Header="发货RefId" Binding="{Binding FromRefUserId}" Width="230" />
+                    <DataGridTextColumn Header="生产企业" Binding="{Binding ProduceEntName}" Width="220" />
+                    <DataGridTextColumn Header="入库状态" Binding="{Binding LogisticsStatus}" Width="130" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </controls:EmptyStatePanel>
+              </suki:BusyArea>
+            </Grid>
+          </suki:GlassCard>
+        </Grid>
+      </TabItem>
+
+      <TabItem Classes="NoDivider">
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+            <icons:AppIcon Kind="ScanBarcode" Width="{DynamicResource IconSizeMini}" Height="{DynamicResource IconSizeMini}" />
+            <TextBlock Text="子码查询" />
+          </StackPanel>
+        </TabItem.Header>
+
+        <Grid RowDefinitions="Auto,*"
+           RowSpacing="{DynamicResource FormRowSpacing}"
+           Margin="{DynamicResource MarginTopLg}">
+          <suki:GlassCard Grid.Row="0"
+                  Classes="SectionCard CompactCard"
+                 >
+            <Grid ColumnDefinitions="Auto,1.4*,2.0*,Auto,Auto"
+               ColumnSpacing="{DynamicResource PageColumnSpacing}">
+              <TextBlock Grid.Column="0"
+                   Text="单据编码"
+                   VerticalAlignment="Center" />
+              <TextBox Grid.Column="1"
+                  Classes="MsfxInput"
+                  Text="{Binding SubcodeBillCode}"
+                  Watermark="必填：订单编码">
+                <TextBox.KeyBindings>
+                  <KeyBinding Gesture="Enter" Command="{Binding QuerySubCodesCommand}" />
+                </TextBox.KeyBindings>
+              </TextBox>
+              <Border Grid.Column="2" />
+              <Button Grid.Column="3"
+                  Classes="Action"
+                  Command="{Binding QuerySubCodesCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                  <icons:AppIcon Kind="ScanSearch" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                  <TextBlock Text="查询子码" />
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="4"
+                  Classes="Ghost"
+                  Command="{Binding ClearSubcodeQueryCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                  <icons:AppIcon Kind="Delete" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                  <TextBlock Text="清除" />
+                </StackPanel>
+              </Button>
+            </Grid>
+          </suki:GlassCard>
+
+          <suki:GlassCard Grid.Row="1"
+                  Classes="SectionCard CompactCard"
+                 >
+            <Grid RowDefinitions="Auto,*"
+               RowSpacing="{DynamicResource DialogInnerRowSpacing}"
+               Margin="{DynamicResource MarginHorizontalTiny}">
+              <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
+                 VerticalAlignment="Center">
+                <TextBlock Text="{Binding SubcodeStatus}"
+                     Classes="SectionHint"
+                     VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1"
+                      Orientation="Horizontal"
+                      Spacing="{DynamicResource SpacingInlineMd}"
+                      VerticalAlignment="Center">
+                  <TextBlock Text="每页" VerticalAlignment="Center" />
+                  <ComboBox Width="136"
+                      
+                       Height="40"
+                       MinHeight="40"
+                       MaxHeight="40"
+                       ItemsSource="{Binding SubcodePageSizeOptions}"
+                       SelectedItem="{Binding SubcodePageSize}" />
+                  <Button Classes="Ghost"
+                      IsEnabled="{Binding HasSubcodePrevPage}"
+                      Command="{Binding PrevSubcodePageCommand}">
+                    <TextBlock Text="上一页" />
+                  </Button>
+                  <Border MinWidth="120"
+                      Padding="8,0"
+                      VerticalAlignment="Center">
+                    <TextBlock Text="{Binding SubcodePageText}"
+                         VerticalAlignment="Center"
+                         HorizontalAlignment="Center"
+                         TextAlignment="Center"
+                         Opacity="0.75" />
+                  </Border>
+                  <Button Classes="Ghost"
+                      IsEnabled="{Binding HasSubcodeNextPage}"
+                      Command="{Binding NextSubcodePageCommand}">
+                    <TextBlock Text="下一页" />
+                  </Button>
+                </StackPanel>
+              </Grid>
+
+              <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsSubcodeBusy}">
+                <controls:EmptyStatePanel IsEmpty="{Binding IsSubCodeEmpty}"
+                             EmptyText="暂无子码结果"
+                             EmptyHint="请输入单据编码并执行查询">
+                  <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid MsfxIndexedGrid CellTemplateHighlightGrid"
+                       ItemsSource="{Binding SubCodeRows}"
+                       HeadersVisibility="All"
+                       GridLinesVisibility="All"
+                       HorizontalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                    <DataGridTemplateColumn Width="44">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                          <Border Width="24"
+                              Height="24"
+                              CornerRadius="12"
+                              Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}">
+                            <icons:AppIcon Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
+                                      Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                      Width="{DynamicResource IconSizeSmall}"
+                                      Height="{DynamicResource IconSizeSmall}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                          </Border>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="单据编码" Binding="{Binding BillCode}" Width="220" />
+                    <DataGridTextColumn Header="药品" Binding="{Binding DrugName}" Width="280" />
+                    <DataGridTextColumn Header="包装规格" Binding="{Binding PackageSpec}" Width="140" />
+                    <DataGridTextColumn Header="制剂规格" Binding="{Binding PrepnSpec}" Width="180" />
+                    <DataGridTextColumn Header="批号" Binding="{Binding BatchNo}" Width="130" />
+                    <DataGridTextColumn Header="追溯码" Binding="{Binding Code}" Width="240" />
+                    <DataGridTextColumn Header="一级码" Binding="{Binding Level1Code}" Width="220" />
+                    <DataGridTextColumn Header="二级码" Binding="{Binding Level2Code}" Width="220" />
+                    <DataGridTextColumn Header="三级码" Binding="{Binding Level3Code}" Width="220" />
+                    <DataGridTextColumn Header="四级码" Binding="{Binding Level4Code}" Width="220" />
+                    <DataGridTextColumn Header="五级码" Binding="{Binding Level5Code}" Width="220" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </controls:EmptyStatePanel>
+              </suki:BusyArea>
+            </Grid>
+          </suki:GlassCard>
+        </Grid>
+      </TabItem>
+    </TabControl>
+  </Grid>
+</UserControl>

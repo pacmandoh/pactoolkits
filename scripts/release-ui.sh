@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-UI_DIR="$ROOT_DIR/pactoolkits-ui"
+UI_DIR="$ROOT_DIR/apps/desktop-avalonia/src"
 MANIFEST="$ROOT_DIR/release-manifest.json"
 
 usage() {
@@ -24,7 +24,7 @@ Options:
   --self-contained true|false   dotnet publish self-contained (default: false).
   --output-dir DIR           vpk output directory (default: ./Releases).
   --pack-dir DIR             publish output directory for vpk (default: bin/<cfg>/<tfm>/<rid>/publish).
-  --main-exe FILE            main exe for vpk (default: pactoolkits-ui.exe).
+  --main-exe FILE            main exe for vpk (default: PacToolkits.Desktop.Avalonia.exe).
   --icon FILE                icon for setup package (default: Assets/app.ico).
   --vpk-directive NAME       optional vpk target directive (e.g. win).
   --upload-target TARGET     Optional rsync target, e.g. user@host:/path/feed/pactoolkits
@@ -76,7 +76,7 @@ CONFIGURATION="Release"
 SELF_CONTAINED="false"
 OUTPUT_DIR="./Releases"
 PACK_DIR=""
-MAIN_EXE="pactoolkits-ui.exe"
+MAIN_EXE="PacToolkits.Desktop.Avalonia.exe"
 ICON_FILE="$UI_DIR/Assets/app.ico"
 VPK_DIRECTIVE=""
 UPLOAD_TARGET=""
@@ -187,7 +187,7 @@ echo "- framework: $FRAMEWORK"
 echo "- packDir: $PACK_DIR"
 echo "- outputDir: $OUTPUT_DIR"
 
-run_cmd dotnet publish "$UI_DIR/pactoolkits-ui.csproj" \
+run_cmd dotnet publish "$UI_DIR/PacToolkits.Desktop.Avalonia.csproj" \
   -c "$CONFIGURATION" \
   -f "$FRAMEWORK" \
   -r "$RUNTIME" \

@@ -9,7 +9,7 @@
 <table>
   <tr>
     <td align="center" width="260" valign="top">
-      <img src="./pactoolkits-ui/Assets/icon-128.png" alt="PacToolkits UI Icon" width="72" />
+      <img src="./apps/desktop-avalonia/src/Assets/icon-128.png" alt="PacToolkits UI Icon" width="72" />
       <br />
       <strong>PacToolkits UI</strong>
       <br />
@@ -22,7 +22,7 @@
       <img src="https://img.shields.io/badge/MVVM-Avalonia-475569?style=flat-square&logo=dotnet&logoColor=white" alt="MVVM Avalonia" />
     </td>
     <td align="center" width="260" valign="top">
-      <img src="./pactoolkits-agent/assets/pacinjection.ico" alt="PacToolkits Agent Icon" width="72" />
+      <img src="./runtime/agent-ahk/assets/pacinjection.ico" alt="PacToolkits Agent Icon" width="72" />
       <br />
       <strong>PacToolkits Agent</strong>
       <br />
@@ -58,9 +58,9 @@ Desktop UI, AutoHotkey automation, and PostgreSQL orchestration for drug trace-c
     <td align="center"><img src="https://img.shields.io/badge/.NET-net10.0-475569?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./pactoolkits-ui"><img src="https://img.shields.io/badge/UI-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="UI" /></a></td>
-    <td align="center"><a href="./pactoolkits-agent"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
-    <td align="center"><a href="./pactoolkits-db"><img src="https://img.shields.io/badge/Database-PostgreSQL-1d4ed8?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" /></a></td>
+    <td align="center"><a href="./apps/desktop-avalonia/src"><img src="https://img.shields.io/badge/UI-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="UI" /></a></td>
+    <td align="center"><a href="./runtime/agent-ahk"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
+    <td align="center"><a href="./database/postgres"><img src="https://img.shields.io/badge/Database-PostgreSQL-1d4ed8?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" /></a></td>
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
@@ -87,7 +87,7 @@ PacToolkits is designed for environments where **drug indexing, trace-code intak
 
 This repository is a coordinated system with:
 
-- business-facing interaction in `pactoolkits-ui`
+- business-facing interaction in `PacToolkits.Desktop.Avalonia`
 - execution and automation in `pactoolkits-agent`
 - persistence, task orchestration, and schema evolution in `pactoolkits-db`
 
@@ -111,7 +111,7 @@ This repository is a coordinated system with:
 
 ```mermaid
 flowchart LR
-    UI["pactoolkits-ui\nAvalonia Desktop App"]
+    UI["PacToolkits.Desktop.Avalonia\nAvalonia Desktop App"]
     AGENT["pactoolkits-agent\nAutoHotkey v2 Runtime"]
     DB["pactoolkits-db\nPostgreSQL Schema + Migrations"]
     SCRIPTS["scripts/\nRelease + Version Tooling"]
@@ -132,9 +132,9 @@ flowchart LR
 
 ```text
 pactoolkits/
-  pactoolkits-ui/        Avalonia desktop client
-  pactoolkits-agent/     AutoHotkey v2 automation runtime
-  pactoolkits-db/        PostgreSQL bootstrap, migration, verify, deploy scripts
+  apps/desktop-avalonia/src/  Avalonia desktop client
+  runtime/agent-ahk/          AutoHotkey v2 automation runtime
+  database/postgres/          PostgreSQL bootstrap, migration, verify, deploy scripts
   scripts/               Versioning, packaging, release helpers
   .github/workflows/     CI/CD and release workflows
   release-manifest.json  Unified version source of truth
@@ -144,7 +144,7 @@ pactoolkits/
 
 ## Module Guide
 
-## 1. `pactoolkits-ui`
+## 1. `PacToolkits.Desktop.Avalonia`
 
 **Role**
 
@@ -270,7 +270,7 @@ The database module defines the persistence and orchestration model behind the s
 **Structure**
 
 ```text
-pactoolkits-db/
+database/postgres/
   sql/bootstrap/
   sql/migrations/
   sql/verify/
@@ -440,7 +440,7 @@ Common commands:
 ## Build UI
 
 ```bash
-cd pactoolkits-ui
+cd apps/desktop-avalonia/src
 dotnet build -c Release
 ```
 
@@ -454,7 +454,7 @@ cd pactoolkits
 ## Database Deployment
 
 ```bash
-cd pactoolkits-db
+cd database/postgres
 cp scripts/config.example.json scripts/config.json
 # edit scripts/config.json
 ./scripts/deploy.sh doctor

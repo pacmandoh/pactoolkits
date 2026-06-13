@@ -1,0 +1,357 @@
+<Styles xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:con="https://github.com/kikipoulet/SukiUI"
+    xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+    xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+  <Style Selector="TabControl.DashboardSubTabs">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ItemsPanel">
+      <ItemsPanelTemplate>
+        <StackPanel Orientation="Horizontal" Spacing="0" />
+      </ItemsPanelTemplate>
+    </Setter>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <DockPanel>
+          <sukiControls:GlassCard DockPanel.Dock="Top"
+                      HorizontalAlignment="Left"
+                      Padding="{DynamicResource DashboardTabContainerPadding}"
+                      CornerRadius="{DynamicResource DashboardTabContainerRadius}">
+            <ItemsPresenter Name="PART_ItemsPresenter"
+                    ItemsPanel="{TemplateBinding ItemsPanel}" />
+          </sukiControls:GlassCard>
+          <ContentPresenter Name="PART_SelectedContentHost"
+                   Margin="{TemplateBinding Padding}"
+                   HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                   VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                   Content="{TemplateBinding SelectedContent}"
+                   ContentTemplate="{TemplateBinding SelectedContentTemplate}" />
+        </DockPanel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="{DynamicResource DashboardTabItemPadding}" />
+    <Setter Property="MinHeight" Value="{DynamicResource DashboardTabItemMinHeight}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="0">
+          <Border Name="PART_LayoutRoot"
+              Grid.Column="0"
+              Background="{TemplateBinding Background}"
+              BorderBrush="{TemplateBinding BorderBrush}"
+              BorderThickness="{TemplateBinding BorderThickness}"
+              CornerRadius="{DynamicResource DashboardTabItemRadius}"
+              Margin="{DynamicResource DashboardTabItemMargin}"
+              Padding="{TemplateBinding Padding}">
+            <ContentPresenter Name="PART_HeaderPresenter"
+                     HorizontalAlignment="Left"
+                     VerticalAlignment="Center"
+                     Content="{TemplateBinding Header}"
+                     ContentTemplate="{TemplateBinding HeaderTemplate}" />
+          </Border>
+          <Border Name="PART_Divider"
+              Grid.Column="1"
+              Width="1"
+              Height="{DynamicResource DashboardTabDividerHeight}"
+              Margin="{DynamicResource DashboardTabDividerMargin}"
+              VerticalAlignment="Center"
+              Background="{DynamicResource SukiControlBorderBrush}" />
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem.NoDivider /template/ Border#PART_Divider">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem /template/ ContentPresenter#PART_HeaderPresenter icons|AppIcon">
+    <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor75}" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem:pointerover /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem:pointerover /template/ ContentPresenter#PART_HeaderPresenter icons|AppIcon">
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="BoxShadow" Value="none" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor75}" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ ContentPresenter#PART_HeaderPresenter icons|AppIcon">
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardSubTabs TabItem:selected /template/ ContentPresenter#PART_HeaderPresenter TextBlock">
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=15}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:selected DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=35}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:selected:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=50}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=15}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:pointerover DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:selected DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=35}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid DataGridRow:selected:pointerover DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=50}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid.EditableGrid DataGridRow:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=15}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid.EditableGrid DataGridRow:selected DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid.EditableGrid DataGridRow:selected:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid.StockEditable DataGridRow:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=25}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid.StockEditable DataGridRow:selected DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=35}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.LowToneGrid.StockEditable DataGridRow:selected:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding ., Converter={StaticResource LowStockToBgBrush}, ConverterParameter=50}" />
+  </Style>
+
+  <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridCell">
+    <Setter Property="Background" Value="{DynamicResource BrushWarningBg15}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridRow:pointerover DataGridCell">
+    <Setter Property="Background" Value="{DynamicResource BrushWarningBg25}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridRow:selected DataGridCell">
+    <Setter Property="Background" Value="{DynamicResource BrushWarningBg35}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridRow:selected:pointerover DataGridCell">
+    <Setter Property="Background" Value="{DynamicResource BrushWarningBg50}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridRowHeader">
+    <Setter Property="Background" Value="{DynamicResource BrushWarningBg15}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridRow:pointerover DataGridRowHeader">
+    <Setter Property="Background" Value="{DynamicResource BrushWarningBg25}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridRow:selected DataGridRowHeader">
+    <Setter Property="Background" Value="{DynamicResource BrushWarningBg35}" />
+  </Style>
+  <Style Selector="DataGrid.InventoryGrid.MissingGrid DataGridRow:selected:pointerover DataGridRowHeader">
+    <Setter Property="Background" Value="{DynamicResource BrushWarningBg50}" />
+  </Style>
+
+  <Style Selector="DataGrid.TxnGrid DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=15}" />
+  </Style>
+  <Style Selector="DataGrid.TxnGrid DataGridRow:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=25}" />
+  </Style>
+  <Style Selector="DataGrid.TxnGrid DataGridRow:selected DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=35}" />
+  </Style>
+  <Style Selector="DataGrid.TxnGrid DataGridRow:selected:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=50}" />
+  </Style>
+  <Style Selector="DataGrid.TxnGrid DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=15}" />
+  </Style>
+  <Style Selector="DataGrid.TxnGrid DataGridRow:pointerover DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=25}" />
+  </Style>
+  <Style Selector="DataGrid.TxnGrid DataGridRow:selected DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=35}" />
+  </Style>
+  <Style Selector="DataGrid.TxnGrid DataGridRow:selected:pointerover DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.Badge, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BadgeToBgBrush}, ConverterParameter=50}" />
+  </Style>
+
+  <Style Selector="DataGrid.TraceStateGrid DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}, ConverterParameter=15}" />
+  </Style>
+  <Style Selector="DataGrid.TraceStateGrid DataGridRow:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}, ConverterParameter=25}" />
+  </Style>
+  <Style Selector="DataGrid.TraceStateGrid DataGridRow:selected DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}, ConverterParameter=35}" />
+  </Style>
+  <Style Selector="DataGrid.TraceStateGrid DataGridRow:selected:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}, ConverterParameter=50}" />
+  </Style>
+  <Style Selector="DataGrid.TraceStateGrid DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}, ConverterParameter=15}" />
+  </Style>
+  <Style Selector="DataGrid.TraceStateGrid DataGridRow:pointerover DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}, ConverterParameter=25}" />
+  </Style>
+  <Style Selector="DataGrid.TraceStateGrid DataGridRow:selected DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}, ConverterParameter=35}" />
+  </Style>
+  <Style Selector="DataGrid.TraceStateGrid DataGridRow:selected:pointerover DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}, ConverterParameter=50}" />
+  </Style>
+
+  <Style Selector="DataGrid.CellTemplateHighlightGrid DataGridCell:current">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid Background="{TemplateBinding Background}" ColumnDefinitions="*,Auto">
+          <Border Margin="{DynamicResource DgCellHighlightMargin}"
+              BorderBrush="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Background, Converter={StaticResource CellCurrentBorderBrush}}"
+              BorderThickness="{DynamicResource DgCellHighlightBorder}">
+            <ContentPresenter Margin="{TemplateBinding Padding}"
+                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                     VerticalAlignment="Center"
+                     Content="{TemplateBinding Content}"
+                     ContentTemplate="{TemplateBinding ContentTemplate}"
+                     TextBlock.Foreground="{TemplateBinding Foreground}" />
+          </Border>
+          <Rectangle Name="PART_RightGridLine"
+               Grid.Column="1"
+               HorizontalAlignment="Stretch"
+               VerticalAlignment="Stretch"
+               Stroke="{DynamicResource SukiBorderBrush}"
+               StrokeThickness="{DynamicResource DgCellGridLineStroke}" />
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="DataGrid.CellTemplateHighlightGrid DataGridRow:selected DataGridCell:current">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid Background="{TemplateBinding Background}" ColumnDefinitions="*,Auto">
+          <Border Margin="{DynamicResource DgCellHighlightMargin}"
+              BorderBrush="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Background, Converter={StaticResource CellCurrentBorderBrush}}"
+              BorderThickness="{DynamicResource DgCellHighlightBorderSelected}">
+            <ContentPresenter Margin="{TemplateBinding Padding}"
+                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                     VerticalAlignment="Center"
+                     Content="{TemplateBinding Content}"
+                     ContentTemplate="{TemplateBinding ContentTemplate}"
+                     TextBlock.Foreground="{TemplateBinding Foreground}" />
+          </Border>
+          <Rectangle Name="PART_RightGridLine"
+               Grid.Column="1"
+               HorizontalAlignment="Stretch"
+               VerticalAlignment="Stretch"
+               Stroke="{DynamicResource SukiBorderBrush}"
+               StrokeThickness="{DynamicResource DgCellGridLineStroke}" />
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="DataGrid.DrugGrid DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=15}" />
+  </Style>
+
+  <Style Selector="DataGrid.DrugGrid DataGridRow:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=25}" />
+  </Style>
+
+  <Style Selector="DataGrid.DrugGrid DataGridRow:selected DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=35}" />
+  </Style>
+
+  <Style Selector="DataGrid.DrugGrid DataGridRow:selected:pointerover DataGridCell">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=50}" />
+  </Style>
+
+  <Style Selector="DataGrid.DrugGrid DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=15}" />
+  </Style>
+
+  <Style Selector="DataGrid.DrugGrid DataGridRow:pointerover DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=25}" />
+  </Style>
+
+  <Style Selector="DataGrid.DrugGrid DataGridRow:selected DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=35}" />
+  </Style>
+
+  <Style Selector="DataGrid.DrugGrid DataGridRow:selected:pointerover DataGridRowHeader">
+    <Setter Property="Background"
+        Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=50}" />
+  </Style>
+</Styles>

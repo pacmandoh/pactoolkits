@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="${1:-pactoolkits-ui}"
+ROOT="${1:-apps/desktop-avalonia/src}"
 
 if [[ ! -d "$ROOT" ]]; then
   echo "UI root not found: $ROOT" >&2
