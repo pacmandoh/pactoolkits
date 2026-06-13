@@ -4,6 +4,7 @@
     <ResourceInclude Source="avares://pactoolkits-ui/Styles/Theme/Colors.axaml" />
     <ResourceInclude Source="avares://pactoolkits-ui/Styles/Theme/Typography.axaml" />
     <ResourceInclude Source="avares://pactoolkits-ui/Styles/Theme/Layout.axaml" />
+    <ResourceInclude Source="avares://pactoolkits-ui/Styles/Theme/NavigationResources.axaml" />
     <ResourceInclude Source="avares://pactoolkits-ui/Styles/Theme/SukiOverrides.axaml" />
     <ResourceInclude Source="avares://pactoolkits-ui/Styles/Theme/AboutColors.axaml" />
   </ResourceDictionary.MergedDictionaries>

@@ -11,19 +11,94 @@
     <Setter Property="IsVisible" Value="True" />
   </Style>
 
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem > icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource SidebarMenuIconSize}" />
+    <Setter Property="Height" Value="{DynamicResource SidebarMenuIconSize}" />
+    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenuItem /template/ TextBlock#PART_Header">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenuItem /template/ ContentControl#PART_Icon">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenuItem /template/ Border#PART_Border">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Transitions" Value="{x:Null}" />
+  </Style>
+
+  <!-- Expanded: Suki PART_Border is rounded — clip makes full-height bar look like a pill. -->
+  <Style Selector="con|SukiSideMenu[IsMenuExpanded=True] con|SukiSideMenuItem /template/ Border#PART_Border">
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ Border#PART_Border,
+                     con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ Border#PART_Border">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover,
+                     con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ TextBlock#PART_Header,
+                     con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ TextBlock#PART_Header">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ ContentControl#PART_Icon,
+                     con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ ContentControl#PART_Icon">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover > icons|AppIcon,
+                     con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed > icons|AppIcon">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenu[IsMenuExpanded=True] con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border,
+                     con|SukiSideMenu[IsMenuExpanded=True] con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ Border#PART_Border">
+    <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushExpanded}" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenu[IsMenuExpanded=False] con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border,
+                     con|SukiSideMenu[IsMenuExpanded=False] con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ Border#PART_Border">
+    <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushCollapsed}" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenuItem[IsSelected=True] /template/ TextBlock#PART_Header">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenuItem[IsSelected=True] /template/ ContentControl#PART_Icon">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ TextBlock#PART_Header">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
+  </Style>
+
+  <Style Selector="con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ ContentControl#PART_Icon">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
+  </Style>
+
   <Style Selector="Button.SidebarCompactAction">
-    <Setter Property="Width" Value="85" />
-    <Setter Property="Height" Value="54" />
+    <Setter Property="Width" Value="{DynamicResource SidebarCompactActionWidth}" />
+    <Setter Property="Height" Value="{DynamicResource SidebarCompactActionHeight}" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="15" />
+    <Setter Property="CornerRadius" Value="0" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Template">
       <ControlTemplate>
-        <Border Name="CompactActionBg"
-            Background="{TemplateBinding Background}"
+        <Border Background="{TemplateBinding Background}"
             BorderBrush="{TemplateBinding BorderBrush}"
             BorderThickness="{TemplateBinding BorderThickness}"
             CornerRadius="{TemplateBinding CornerRadius}">
@@ -35,103 +110,27 @@
     </Setter>
   </Style>
 
-  <Style Selector="Button.SidebarCompactAction:pointerover">
-    <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor5}" />
-  </Style>
-
   <Style Selector="Button.SidebarCompactAction > icons|AppIcon">
-    <Setter Property="Width" Value="15" />
-    <Setter Property="Height" Value="15" />
-    <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+    <Setter Property="Width" Value="{DynamicResource SidebarCompactIconSize}" />
+    <Setter Property="Height" Value="{DynamicResource SidebarCompactIconSize}" />
+    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
   </Style>
 
-  <Style Selector="Button.SidebarCompactAction.ActiveCompactAction">
-    <Setter Property="Background">
-      <DrawingBrush Stretch="Fill">
-        <DrawingBrush.Drawing>
-          <DrawingGroup>
-            <GeometryDrawing>
-              <GeometryDrawing.Brush>
-                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor10}" />
-              </GeometryDrawing.Brush>
-              <GeometryDrawing.Geometry>
-                <RectangleGeometry Rect="0,0,1,1" />
-              </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-            <GeometryDrawing>
-              <GeometryDrawing.Brush>
-                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor}" />
-              </GeometryDrawing.Brush>
-              <GeometryDrawing.Geometry>
-                <RectangleGeometry Rect="0.18,0.24,0.08,0.52" />
-              </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-          </DrawingGroup>
-        </DrawingBrush.Drawing>
-      </DrawingBrush>
-    </Setter>
+  <Style Selector="Button.SidebarCompactAction:pointerover">
+    <Setter Property="Background" Value="Transparent" />
   </Style>
 
-  <Style Selector="Button.SidebarCompactAction.ActiveCompactAction > icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor}" />
+  <Style Selector="Button.SidebarCompactAction:pointerover > icons|AppIcon">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem > icons|AppIcon">
-    <Setter Property="Width" Value="16" />
-    <Setter Property="Height" Value="16" />
+  <Style Selector="Button.SidebarCompactAction.ActiveCompactAction,
+                     Button.SidebarCompactAction.ActiveCompactAction:pointerover">
+    <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushCollapsed}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border">
-    <Setter Property="Background">
-      <DrawingBrush Stretch="Fill">
-        <DrawingBrush.Drawing>
-          <DrawingGroup>
-            <GeometryDrawing>
-              <GeometryDrawing.Brush>
-                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor10}" />
-              </GeometryDrawing.Brush>
-              <GeometryDrawing.Geometry>
-                <RectangleGeometry Rect="0,0,1,1" />
-              </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-            <GeometryDrawing>
-              <GeometryDrawing.Brush>
-                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor}" />
-              </GeometryDrawing.Brush>
-              <GeometryDrawing.Geometry>
-                <RectangleGeometry Rect="0.0,0.24,0.018,0.52" />
-              </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-          </DrawingGroup>
-        </DrawingBrush.Drawing>
-      </DrawingBrush>
-    </Setter>
-  </Style>
-
-  <Style Selector="con|SukiSideMenu[IsMenuExpanded=False] con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border">
-    <Setter Property="Background">
-      <DrawingBrush Stretch="Fill">
-        <DrawingBrush.Drawing>
-          <DrawingGroup>
-            <GeometryDrawing>
-              <GeometryDrawing.Brush>
-                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor10}" />
-              </GeometryDrawing.Brush>
-              <GeometryDrawing.Geometry>
-                <RectangleGeometry Rect="0,0,1,1" />
-              </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-            <GeometryDrawing>
-              <GeometryDrawing.Brush>
-                <SolidColorBrush Color="{DynamicResource SukiPrimaryColor}" />
-              </GeometryDrawing.Brush>
-              <GeometryDrawing.Geometry>
-                <RectangleGeometry Rect="0.18,0.24,0.08,0.52" />
-              </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-          </DrawingGroup>
-        </DrawingBrush.Drawing>
-      </DrawingBrush>
-    </Setter>
+  <Style Selector="Button.SidebarCompactAction.ActiveCompactAction > icons|AppIcon,
+                     Button.SidebarCompactAction.ActiveCompactAction:pointerover > icons|AppIcon">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
   </Style>
 </Styles>
