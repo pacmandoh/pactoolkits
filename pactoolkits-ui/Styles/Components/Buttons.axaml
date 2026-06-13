@@ -17,10 +17,28 @@
 
   <Style Selector="Button.Action">
     <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="MinWidth" Value="{DynamicResource ButtonActionMinWidth}" />
+    <Setter Property="MinWidth" Value="{DynamicResource MinWAction}" />
     <Setter Property="Padding" Value="{DynamicResource ButtonPaddingHorizontal}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="CornerRadius" Value="{DynamicResource ButtonCornerRadius}" />
+  </Style>
+
+  <Style Selector="Button.ActionWide">
+    <Setter Property="MinWidth" Value="{DynamicResource ButtonActionWideMinWidth}" />
+  </Style>
+
+  <Style Selector="Button.IconToggle">
+    <Setter Property="Width" Value="{DynamicResource ButtonIconToggleSize}" />
+    <Setter Property="MinWidth" Value="{DynamicResource ButtonIconToggleSize}" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="Button.MicroClear">
+    <Setter Property="Width" Value="{DynamicResource DgSortResetButtonSize}" />
+    <Setter Property="Height" Value="{DynamicResource DgSortResetButtonSize}" />
+    <Setter Property="MinWidth" Value="{DynamicResource DgSortResetButtonSize}" />
+    <Setter Property="MinHeight" Value="{DynamicResource DgSortResetButtonSize}" />
+    <Setter Property="Padding" Value="0" />
   </Style>
 
   <Style Selector="Button.MsfxMiniIconBtn">

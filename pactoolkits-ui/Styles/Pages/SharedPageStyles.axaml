@@ -296,7 +296,7 @@
         <Grid Background="{TemplateBinding Background}" ColumnDefinitions="*,Auto">
           <Border Margin="{DynamicResource DgCellHighlightMargin}"
               BorderBrush="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Background, Converter={StaticResource CellCurrentBorderBrush}}"
-              BorderThickness="1.5">
+              BorderThickness="{DynamicResource DgCellHighlightBorderSelected}">
             <ContentPresenter Margin="{TemplateBinding Padding}"
                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                      VerticalAlignment="Center"
