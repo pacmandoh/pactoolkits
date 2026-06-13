@@ -6,6 +6,7 @@ using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Application;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Integration;
 using PacToolkits.Desktop.Avalonia.ViewModels;
@@ -66,13 +67,13 @@ public static class ServiceCollectionRegistrationExtensions
         services.AddSingleton<IAgentEventSink, NullAgentEventSink>();
         services.AddSingleton<IAgentConfigWriter, AgentConfigWriter>();
         services.AddSingleton<IAgentTaskService, AgentTaskService>();
-        services.AddSingleton<IAgentRuntimeService, AhkRuntimeService>();
+        services.AddSingleton<IAutomationRuntimeService, AhkRuntimeService>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
         services.AddSingleton<IUpdateUiFlowService, UpdateUiFlowService>();
         services.AddSingleton<IMsfxApiClient, MsfxApiClient>();
         services.AddSingleton<ClientAliasStore>();
         services.AddSingleton<IClientAliasService, ClientAliasService>();
-        services.AddSingleton<IAutomationToolsConfigService, AutomationToolsConfigService>();
+        services.AddSingleton<IAutomationConfigService, AutomationConfigService>();
         return services;
     }
 

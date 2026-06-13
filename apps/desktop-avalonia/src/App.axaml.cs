@@ -12,7 +12,6 @@ using global::Avalonia.Styling;
 using global::Avalonia.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Application;
@@ -28,7 +27,7 @@ public class App : global::Avalonia.Application
     private MainWindow? _mainWindow;
     private TrayIcon? _trayIcon;
     private IUiBehaviorService? _uiBehavior;
-    private IAgentRuntimeService? _ahkRuntime;
+    private IAutomationRuntimeService? _ahkRuntime;
     private IAppLogger? _logger;
     private bool _forceExit;
     private EventHandler? _themeChangedHandler;
@@ -63,7 +62,7 @@ public class App : global::Avalonia.Application
         DataTemplates.Add(new ViewLocator(Services.GetRequiredService<AppViews>()));
 
         _uiBehavior = Services.GetRequiredService<IUiBehaviorService>();
-        _ahkRuntime = Services.GetRequiredService<IAgentRuntimeService>();
+        _ahkRuntime = Services.GetRequiredService<IAutomationRuntimeService>();
         _logger = Services.GetRequiredService<IAppLogger>();
         var releaseVersion = Services.GetRequiredService<IReleaseVersionService>().Current;
         Resources["AppVersionText"] = $"PacToolkits v{releaseVersion.SuiteVersion}";
