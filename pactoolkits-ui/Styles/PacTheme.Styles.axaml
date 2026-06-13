@@ -3,6 +3,7 @@
   <StyleInclude Source="avares://pactoolkits-ui/Styles/Components/Typography.axaml" />
   <StyleInclude Source="avares://pactoolkits-ui/Styles/Components/Buttons.axaml" />
   <StyleInclude Source="avares://pactoolkits-ui/Styles/Components/Cards.axaml" />
+  <StyleInclude Source="avares://pactoolkits-ui/Styles/Components/StatusPillStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-ui/Styles/Components/Inputs.axaml" />
   <StyleInclude Source="avares://pactoolkits-ui/Styles/Components/TextBoxContextMenu.axaml" />
   <StyleInclude Source="avares://pactoolkits-ui/Styles/Components/AppIconStyles.axaml" />
@@ -10,6 +11,5 @@
   <StyleInclude Source="avares://pactoolkits-ui/Styles/Components/Navigation.axaml" />
   <StyleInclude Source="avares://pactoolkits-ui/Styles/Pages/LayoutStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-ui/Styles/Pages/SettingsPageStyles.axaml" />
-  <StyleInclude Source="avares://pactoolkits-ui/Styles/Pages/DashboardPageStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-ui/Styles/Pages/SharedPageStyles.axaml" />
 </Styles>

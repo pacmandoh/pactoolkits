@@ -1,4 +1,0 @@
-<Styles xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <!-- DashboardShell marks multi-region dashboard layout; row definitions use DashboardShellRows token on the grid. -->
-</Styles>

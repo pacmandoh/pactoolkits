@@ -11,6 +11,15 @@ using pactoolkits_ui.ViewModels.Pages;
 
 namespace pactoolkits_ui.Converters;
 
+internal enum StatusTone
+{
+    Done,
+    Warning,
+    Danger,
+    Purple,
+    Info,
+}
+
 internal static class ConverterHelpers
 {
     private static readonly Dictionary<(Color color, double opacity), IBrush> PrimaryTintBrushCache = new();
@@ -73,6 +82,66 @@ internal static class ConverterHelpers
         return defaultLevel;
     }
 
+    public static StatusTone BackgroundToneFromTxnBadge(TxnBadge badge)
+        => badge switch
+        {
+            TxnBadge.Done => StatusTone.Done,
+            TxnBadge.Warning => StatusTone.Warning,
+            TxnBadge.Danger => StatusTone.Danger,
+            _ => StatusTone.Purple,
+        };
+
+    public static StatusTone ToneFromTraceEntry(TraceEntryState state)
+        => state switch
+        {
+            TraceEntryState.Success => StatusTone.Done,
+            TraceEntryState.Warning => StatusTone.Warning,
+            TraceEntryState.Failed => StatusTone.Danger,
+            TraceEntryState.Discarded => StatusTone.Purple,
+            _ => StatusTone.Info,
+        };
+
+    public static string ForegroundBrushKey(StatusTone tone)
+        => tone switch
+        {
+            StatusTone.Done => "BrushDone",
+            StatusTone.Warning => "BrushWarning",
+            StatusTone.Danger => "BrushDanger",
+            StatusTone.Purple => "BrushPurple",
+            _ => "BrushInfo",
+        };
+
+    public static string BackgroundBrushKey(StatusTone tone, int level)
+        => tone switch
+        {
+            StatusTone.Done => $"BrushDoneBg{level}",
+            StatusTone.Warning => $"BrushWarningBg{level}",
+            StatusTone.Danger => $"BrushDangerBg{level}",
+            StatusTone.Purple => $"BrushPurpleBg{level}",
+            _ => $"BrushInfoBg{level}",
+        };
+
+    public static string IconKindFromTxnBadge(TxnBadge badge)
+        => badge switch
+        {
+            TxnBadge.Done => "CircleCheck",
+            TxnBadge.Warning => "Undo",
+            TxnBadge.Danger => "CircleAlert",
+            _ => "Info",
+        };
+
+    public static string IconKindFromTraceEntry(TraceEntryState state)
+        => state switch
+        {
+            TraceEntryState.Success => "CircleCheck",
+            TraceEntryState.Warning => "CircleAlert",
+            TraceEntryState.Failed => "CircleX",
+            TraceEntryState.Discarded => "Ban",
+            TraceEntryState.ManualReview => "Bookmark",
+            TraceEntryState.Info => "Info",
+            _ => "Info",
+        };
+
     public static IBrush GetPrimaryTintBrush(int level)
     {
         if (level <= 15)
@@ -123,16 +192,7 @@ internal static class ConverterHelpers
 public sealed class BadgeToIconKindConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        var badge = ConverterHelpers.NormalizeTxnBadge(value);
-        return badge switch
-        {
-            TxnBadge.Done => "CircleCheck",
-            TxnBadge.Warning => "Undo",
-            TxnBadge.Danger => "CircleAlert",
-            _ => "Info",
-        };
-    }
+        => ConverterHelpers.IconKindFromTxnBadge(ConverterHelpers.NormalizeTxnBadge(value));
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();
@@ -143,13 +203,9 @@ public sealed class BadgeToFgBrushConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var badge = ConverterHelpers.NormalizeTxnBadge(value);
-        var key = badge switch
-        {
-            TxnBadge.Done => "BrushDone",
-            TxnBadge.Warning => "BrushWarning",
-            TxnBadge.Danger => "BrushDanger",
-            _ => "BrushWarning",
-        };
+        var key = badge == TxnBadge.Unknown
+            ? "BrushWarning"
+            : ConverterHelpers.ForegroundBrushKey(ConverterHelpers.BackgroundToneFromTxnBadge(badge));
 
         return ConverterHelpers.FindAppBrush(key, Brushes.White);
     }
@@ -163,17 +219,8 @@ public sealed class BadgeToBgBrushConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var badge = ConverterHelpers.NormalizeTxnBadge(value);
-
         var level = ConverterHelpers.ParseLevel(parameter, 10);
-
-        var key = badge switch
-        {
-            TxnBadge.Done => $"BrushDoneBg{level}",
-            TxnBadge.Warning => $"BrushWarningBg{level}",
-            TxnBadge.Danger => $"BrushDangerBg{level}",
-            _ => $"BrushPurpleBg{level}",
-        };
-
+        var key = ConverterHelpers.BackgroundBrushKey(ConverterHelpers.BackgroundToneFromTxnBadge(badge), level);
         return ConverterHelpers.FindAppBrush(key, Brushes.Transparent);
     }
 
@@ -213,16 +260,7 @@ public sealed class TraceEntryStateToIconKindConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var state = value is TraceEntryState s ? s : TraceEntryState.Unknown;
-        return state switch
-        {
-            TraceEntryState.Success => "CircleCheck",
-            TraceEntryState.Warning => "CircleAlert",
-            TraceEntryState.Failed => "CircleX",
-            TraceEntryState.Discarded => "Ban",
-            TraceEntryState.ManualReview => "Bookmark",
-            TraceEntryState.Info => "Info",
-            _ => "Info",
-        };
+        return ConverterHelpers.IconKindFromTraceEntry(state);
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -234,18 +272,7 @@ public sealed class TraceEntryStateToFgBrushConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var state = value is TraceEntryState s ? s : TraceEntryState.Unknown;
-
-        var key = state switch
-        {
-            TraceEntryState.Success => "BrushDone",
-            TraceEntryState.Warning => "BrushWarning",
-            TraceEntryState.Failed => "BrushDanger",
-            TraceEntryState.Discarded => "BrushPurple",
-            TraceEntryState.ManualReview => "BrushInfo",
-            TraceEntryState.Info => "BrushInfo",
-            _ => "BrushInfo",
-        };
-
+        var key = ConverterHelpers.ForegroundBrushKey(ConverterHelpers.ToneFromTraceEntry(state));
         return ConverterHelpers.FindAppBrush(key, Brushes.White);
     }
 
@@ -259,18 +286,7 @@ public sealed class TraceEntryStateToBgBrushConverter : IValueConverter
     {
         var state = value is TraceEntryState s ? s : TraceEntryState.Unknown;
         var level = ConverterHelpers.ParseLevel(parameter, 10);
-
-        var key = state switch
-        {
-            TraceEntryState.Success => $"BrushDoneBg{level}",
-            TraceEntryState.Warning => $"BrushWarningBg{level}",
-            TraceEntryState.Failed => $"BrushDangerBg{level}",
-            TraceEntryState.Discarded => $"BrushPurpleBg{level}",
-            TraceEntryState.ManualReview => $"BrushInfoBg{level}",
-            TraceEntryState.Info => $"BrushInfoBg{level}",
-            _ => $"BrushInfoBg{level}",
-        };
-
+        var key = ConverterHelpers.BackgroundBrushKey(ConverterHelpers.ToneFromTraceEntry(state), level);
         return ConverterHelpers.FindAppBrush(key, Brushes.Transparent);
     }
 
