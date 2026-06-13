@@ -454,11 +454,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
         if (!_debounceHooked)
         {
-            _debounce.Tick += (_, _) =>
-            {
-                _debounce?.Stop();
-                _ = ReloadNow();
-            };
+            _debounce.Tick += OnDebounceTimerTick;
             _debounceHooked = true;
         }
 
@@ -467,6 +463,12 @@ public sealed partial class DashboardViewModel : AppPageBase
     }
 
     private Task ReloadNow() => RunLocalReloadAsync(_ => { }, RefreshAllAsync);
+
+    private void OnDebounceTimerTick(object? sender, EventArgs e)
+    {
+        _debounce?.Stop();
+        _ = ReloadNow();
+    }
 
     private void EnsureCurrentTabDataLoaded()
     {
@@ -1486,8 +1488,11 @@ public sealed partial class DashboardViewModel : AppPageBase
         if (_debounce is not null)
         {
             SafeExecute(() => _debounce.Stop());
+            if (_debounceHooked)
+                SafeExecute(() => _debounce.Tick -= OnDebounceTimerTick);
 
             _debounce = null;
+            _debounceHooked = false;
         }
 
         base.Dispose();

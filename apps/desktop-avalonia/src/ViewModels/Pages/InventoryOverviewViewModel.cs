@@ -307,7 +307,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _scanCode = scanCode;
         _localRefreshCommand = new AsyncRelayCommand(() => ReloadAsync(), CanLocalRefresh);
         _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        _unlockStatusTimer.Tick += (_, _) => RefreshUnlockState();
+        _unlockStatusTimer.Tick += OnUnlockStatusTimerTick;
         _unlockService.StateChanged += OnUnlockScopeChanged;
         RefreshUnlockState();
 
@@ -1266,6 +1266,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             _unlockStatusTimer.Stop();
     }
 
+    private void OnUnlockStatusTimerTick(object? sender, EventArgs e)
+        => RefreshUnlockState();
+
     public void SyncUnlockStateForUi()
         => RefreshUnlockState();
 
@@ -1903,6 +1906,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _dbConfig.Applied -= OnDbApplied;
         _unlockService.StateChanged -= OnUnlockScopeChanged;
         StopUnlockStatusTimerIfNeeded();
+        _unlockStatusTimer.Tick -= OnUnlockStatusTimerTick;
         _silentReconcileCts?.Cancel();
         _silentReconcileCts?.Dispose();
         _silentReconcileCts = null;
