@@ -45,11 +45,6 @@ public partial class SettingsView : UserControl
     private bool _isAnimatingScroll;
     private CancellationTokenSource? _scrollAnimationCts;
     private static readonly CubicEaseInOut ScrollEasing = new();
-    private static readonly IBrush ActiveBackgroundFallback = new SolidColorBrush(Color.FromRgb(59, 130, 246));
-    private static readonly IBrush ActiveForegroundFallback = Brushes.White;
-    private static readonly IBrush BorderFallback = new SolidColorBrush(Color.FromRgb(120, 120, 120));
-    private static readonly IBrush NormalBackgroundFallback = Brushes.Transparent;
-    private static readonly IBrush NormalForegroundFallback = new SolidColorBrush(Color.FromRgb(225, 225, 225));
 
     public SettingsView()
     {
@@ -220,21 +215,18 @@ public partial class SettingsView : UserControl
         if (sourceTitle?.Text is null)
             return false;
 
-        var content = new Grid
+        var content = new StackPanel
         {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
-            ColumnSpacing = 8,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch
+            Orientation = Avalonia.Layout.Orientation.Horizontal,
+            Spacing = 8,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
         };
 
         var icon = new AppIcon
         {
             Kind = sourceIcon?.Kind ?? "Settings",
-            Width = 16,
-            Height = 16,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
         };
-        Grid.SetColumn(icon, 0);
 
         var text = new TextBlock
         {
@@ -243,7 +235,6 @@ public partial class SettingsView : UserControl
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextWrapping = TextWrapping.NoWrap
         };
-        Grid.SetColumn(text, 1);
 
         content.Children.Add(icon);
         content.Children.Add(text);
@@ -251,13 +242,12 @@ public partial class SettingsView : UserControl
         navButton = new Button
         {
             Content = content,
-            Tag = sectionIndex
+            Tag = sectionIndex,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+            VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center
         };
-        navButton.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
-        navButton.Classes.Add("Rounded");
         navButton.Classes.Add("SettingsNavItem");
         navButton.Click += OnNavButtonClick;
-        ApplyNavButtonVisual(navButton, isActive: false);
         return true;
     }
 
@@ -310,24 +300,7 @@ public partial class SettingsView : UserControl
         if (_activeSectionIndex != index)
         {
             for (var i = 0; i < _sectionLinks.Count; i++)
-            {
-                var navButton = _sectionLinks[i].NavButton;
-                if (i == index)
-                {
-                    if (!navButton.Classes.Contains("Active"))
-                        navButton.Classes.Add("Active");
-                    ApplyNavButtonVisual(navButton, isActive: true);
-                }
-                else if (navButton.Classes.Contains("Active"))
-                {
-                    navButton.Classes.Remove("Active");
-                    ApplyNavButtonVisual(navButton, isActive: false);
-                }
-                else
-                {
-                    ApplyNavButtonVisual(navButton, isActive: false);
-                }
-            }
+                _sectionLinks[i].NavButton.Classes.Set("Active", i == index);
 
             _activeSectionIndex = index;
         }
@@ -376,41 +349,6 @@ public partial class SettingsView : UserControl
         {
             _isAnimatingScroll = false;
         }
-    }
-
-    private void ApplyNavButtonVisual(Button navButton, bool isActive)
-    {
-        var activeBackground = ResolveBrush("SukiPrimaryColor", ActiveBackgroundFallback);
-        var activeForeground = ResolveBrush("SukiPrimaryForeground", ActiveForegroundFallback);
-        var normalBackground = ResolveBrush("SukiBackground", NormalBackgroundFallback);
-        var normalForeground = ResolveBrush("SukiText", NormalForegroundFallback);
-        var borderBrush = ResolveBrush("SukiControlBorderBrush", BorderFallback);
-
-        navButton.BorderBrush = borderBrush;
-        navButton.BorderThickness = new Thickness(1.2);
-
-        if (isActive)
-        {
-            navButton.Background = activeBackground;
-            navButton.Foreground = activeForeground;
-            return;
-        }
-
-        navButton.Background = normalBackground;
-        navButton.Foreground = normalForeground;
-    }
-
-    private IBrush ResolveBrush(string key, IBrush fallback)
-    {
-        if (Application.Current?.TryGetResource(key, ActualThemeVariant, out var resource) == true)
-        {
-            if (resource is IBrush brush)
-                return brush;
-            if (resource is Color color)
-                return new SolidColorBrush(color);
-        }
-
-        return fallback;
     }
 
     private sealed record SectionLink(Button NavButton, Control Anchor);

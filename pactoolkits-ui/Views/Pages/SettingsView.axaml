@@ -24,6 +24,7 @@
              Classes="SectionTitle"
              Margin="{DynamicResource SettingsNavTitleMargin}" />
         <StackPanel x:Name="NavItemsHost"
+              Classes="SettingsNavHost"
               Grid.Row="1"
               Spacing="{DynamicResource NavItemsSpacing}" />
       </Grid>
@@ -384,13 +385,11 @@
 
                         
                         <TextBox Grid.Column="1"
+                            Classes="FilterSearchTextBox"
                             Watermark="输入别名"
                             Text="{Binding Alias}"
                             Width="280"
-                            Height="{StaticResource ControlHeightCompact}"
                             VerticalAlignment="Center"
-                            VerticalContentAlignment="Center"
-                            Padding="10,0"
                             IsEnabled="{Binding IsClientAliasEditable, ElementName=Root}" />
 
                         
@@ -872,14 +871,10 @@
                             Label="{Binding MsfxApiBadgeLabel}" />
               <controls:StatusPill Icon="Link"
                         Text="MSFX"
-                        BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                        PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                        ForegroundBrush="{DynamicResource BrushInfo}" />
+                        Classes="ToneInfo15" />
               <controls:StatusPill Icon="Cog"
                         Text="配置中心"
-                        BackgroundBrush="{DynamicResource BrushInfoBg15}"
-                        PillBorderBrush="{DynamicResource BrushInfoBg35}"
-                        ForegroundBrush="{DynamicResource BrushInfo}" />
+                        Classes="ToneInfo15" />
             </StackPanel>
 
             <StackPanel Grid.Column="1"
