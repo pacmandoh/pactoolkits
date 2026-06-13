@@ -10,10 +10,10 @@ using System.Windows.Input;
 using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Application.Abstractions;
+using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Agent.Contracts.Commands;
 using PacToolkits.Agent.Contracts.Models;
-using PacToolkits.Desktop.Avalonia.Services.Application;
+using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -49,7 +49,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     public override int Index => 4;
     public override ICommand? RefreshCommand => _refreshRuntimeCommand;
 
-    private readonly IAhkRuntimeService _ahkRuntime;
+    private readonly IAgentRuntimeService _ahkRuntime;
     private readonly IToastService _toast;
     private readonly IAutomationToolsConfigService _automationConfig;
     private readonly IReleaseVersionService _releaseVersion;
@@ -107,7 +107,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     partial void OnIsAhkTogglingChanged(bool value) => RestartAhkCommand.NotifyCanExecuteChanged();
 
     public ToolsCenterViewModel(
-        IAhkRuntimeService ahkRuntime,
+        IAgentRuntimeService ahkRuntime,
         IToastService toast,
         IAutomationToolsConfigService automationConfig,
         IReleaseVersionService releaseVersion)

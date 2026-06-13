@@ -1,6 +1,10 @@
 using System;
+using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Agent.Contracts.Commands;
+using PacToolkits.Agent.Contracts.Events;
+using PacToolkits.Agent.Contracts.Mapping;
 using PacToolkits.Agent.Contracts.Models;
+using PacToolkits.Agent.Contracts.Validation;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -13,28 +17,12 @@ using System.Threading.Tasks;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
-public interface IAhkRuntimeService : IDisposable
-{
-    event Action? StatusChanged;
-
-    AhkToolOptions CurrentOptions { get; }
-    ToolRunState State { get; }
-    bool IsRunning { get; }
-    DateTimeOffset? LastLaunchAt { get; }
-    string? LastError { get; }
-    string ToolVersion { get; }
-
-    void Reload();
-    Task SaveOptionsAsync(AhkToolOptions options, CancellationToken ct = default);
-    Task<ToolCommandResult> StartOrRestartAsync(CancellationToken ct = default);
-    Task<ToolCommandResult> StopAsync(CancellationToken ct = default);
-}
-
-public sealed class AhkRuntimeService : IAhkRuntimeService
+public sealed class AhkRuntimeService : IAgentRuntimeService
 {
     private readonly IAppConfigStore _configStore;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IAppLogger _logger;
+    private readonly IAgentEventSink _eventSink;
     private readonly object _gate = new();
     private readonly SemaphoreSlim _commandGate = new(1, 1);
     private readonly Timer _pollTimer;
@@ -97,11 +85,30 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
         }
     }
 
-    public AhkRuntimeService(IAppConfigStore configStore, IReleaseVersionService releaseVersion, IAppLogger logger)
+    public AgentRuntimeConfig RuntimeConfig
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return AgentContractMapping.ToRuntimeConfig(
+                    Clone(_options),
+                    _configStore.ConfigPath,
+                    _releaseVersion.Current.AgentVersion ?? string.Empty);
+            }
+        }
+    }
+
+    public AhkRuntimeService(
+        IAppConfigStore configStore,
+        IReleaseVersionService releaseVersion,
+        IAppLogger logger,
+        IAgentEventSink eventSink)
     {
         _configStore = configStore;
         _releaseVersion = releaseVersion;
         _logger = logger;
+        _eventSink = eventSink;
         Reload();
 
         _pollTimer = new Timer(_ => PollStatus(), null, TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(1));
@@ -189,7 +196,10 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
 
             var validate = ValidateAgentConfig();
             if (!validate.Ok)
+            {
+                PublishEvent(AgentCommandKind.Start, null, validate.Message);
                 return SetError(validate.Message);
+            }
 
             var wasRunning = DetectState(options) == ToolRunState.Running;
             if (wasRunning)
@@ -226,11 +236,14 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
 
             RefreshState();
             RaiseChanged();
-            return new ToolCommandResult(true, wasRunning ? "已重启" : "已启动");
+            var successMessage = wasRunning ? "已重启" : "已启动";
+            PublishEvent(AgentCommandKind.Start, ToolRunState.Running, successMessage);
+            return new ToolCommandResult(true, successMessage);
         }
         catch (Exception ex)
         {
             _logger.Error("AhkRuntime", "ahk.start_or_restart.fail", "AHK start/restart failed", ex);
+            PublishEvent(AgentCommandKind.Start, null, $"启动失败：{ex.Message}", ex.Message);
             return SetError($"启动失败：{ex.Message}");
         }
         finally
@@ -297,11 +310,13 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
 
             RefreshState();
             RaiseChanged();
+            PublishEvent(AgentCommandKind.Stop, ToolRunState.Stopped, "已停止");
             return new ToolCommandResult(true, "已停止");
         }
         catch (Exception ex)
         {
             _logger.Error("AhkRuntime", "ahk.stop.fail", "AHK stop failed", ex);
+            PublishEvent(AgentCommandKind.Stop, null, $"停止失败：{ex.Message}", ex.Message);
             return SetError($"停止失败：{ex.Message}");
         }
         finally
@@ -525,52 +540,29 @@ public sealed class AhkRuntimeService : IAhkRuntimeService
     private ToolCommandResult ValidateAgentConfig()
     {
         var cfg = _configStore.Load();
-        if (cfg.SchemaVersion != 1)
-            return new ToolCommandResult(false, $"配置版本不受支持：{cfg.SchemaVersion}（仅支持 schemaVersion=1）");
-
         var pg = cfg.Postgres;
-        if (string.IsNullOrWhiteSpace(pg.Host)
-            || pg.Port <= 0
-            || string.IsNullOrWhiteSpace(pg.Database)
-            || string.IsNullOrWhiteSpace(pg.Username))
-        {
-            return new ToolCommandResult(false, "统一配置校验失败：Postgres 关键字段不完整");
-        }
+        return AgentConfigValidator.ValidateForLaunch(new AgentConfigValidator.LaunchContext(
+            cfg.SchemaVersion,
+            pg.Host,
+            pg.Port,
+            pg.Database,
+            pg.Username,
+            cfg.AutomationTools));
+    }
 
-        var agent = cfg.AutomationTools.Agent;
-        if (string.IsNullOrWhiteSpace(agent.PgDriver)
-            || string.IsNullOrWhiteSpace(agent.PgSsl)
-            || string.IsNullOrWhiteSpace(agent.OptWindowClass)
-            || string.IsNullOrWhiteSpace(agent.IptWindowClass)
-            || string.IsNullOrWhiteSpace(agent.OptParseGridClassNN)
-            || string.IsNullOrWhiteSpace(agent.OptVerifyGridClassNN)
-            || string.IsNullOrWhiteSpace(agent.IptParseGridClassNN)
-            || string.IsNullOrWhiteSpace(agent.IptVerifyGridClassNN)
-            || string.IsNullOrWhiteSpace(agent.OptInputClassNN)
-            || string.IsNullOrWhiteSpace(agent.IptInputClassNN))
-        {
-            return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent 文本字段不完整");
-        }
-
-        if (agent.AppWin is null || agent.AppWin.Count == 0)
-            return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.AppWin 不能为空");
-
-        if (agent.ColSpecs is null || agent.ColSpecs.Count == 0)
-            return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.ColSpecs 不能为空");
-
-        if (agent.ConfirmTimeoutMs < 100 || agent.ConfirmTimeoutMs > 10000)
-            return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.ConfirmTimeoutMs 超出范围（100-10000）");
-
-        if (!string.Equals(agent.CodePickPolicy, "MAX_LEVEL", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(agent.CodePickPolicy, "MIN_LEVEL", StringComparison.OrdinalIgnoreCase))
-        {
-            return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.CodePickPolicy 仅支持 MAX_LEVEL/MIN_LEVEL");
-        }
-
-        if (string.IsNullOrWhiteSpace(agent.WarehouseTaskIdentifier))
-            return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.WarehouseTaskIdentifier 不能为空");
-
-        return new ToolCommandResult(true, "ok");
+    private void PublishEvent(
+        AgentCommandKind command,
+        ToolRunState? runtimeState,
+        string message,
+        string? detail = null)
+    {
+        _eventSink.Publish(new AgentExecutionEvent(
+            DateTimeOffset.UtcNow,
+            command,
+            runtimeState,
+            null,
+            message,
+            detail));
     }
 
     private static string BuildConfigArguments(string configPath, ReleaseVersionInfo releaseVersion)
