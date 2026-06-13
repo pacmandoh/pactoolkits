@@ -5,7 +5,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\agent-contracts\PacToolkits.Agent.Contracts.csproj" />
     <ProjectReference Include="..\core\PacToolkits.Core.csproj" />
   </ItemGroup>
 

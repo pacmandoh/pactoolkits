@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Agent.Contracts.Abstractions;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
 /// <summary>
 /// Placeholder for future agent-side task orchestration. AHK still polls Postgres directly today.
