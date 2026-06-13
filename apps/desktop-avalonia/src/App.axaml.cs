@@ -12,6 +12,7 @@ using global::Avalonia.Styling;
 using global::Avalonia.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;

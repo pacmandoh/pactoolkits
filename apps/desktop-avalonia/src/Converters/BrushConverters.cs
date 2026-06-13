@@ -6,7 +6,7 @@ using global::Avalonia.Controls;
 using global::Avalonia.Data.Converters;
 using global::Avalonia.Media;
 using global::Avalonia.Styling;
-using PacToolkits.Desktop.Avalonia.Contracts;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Converters;

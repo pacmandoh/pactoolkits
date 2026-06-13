@@ -1,33 +1,13 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 public interface IReleaseVersionService
 {
     ReleaseVersionInfo Current { get; }
-}
-
-public sealed record ReleaseVersionInfo(
-    string SuiteVersion,
-    string UiVersion,
-    string AgentVersion,
-    string DbSchemaVersion,
-    string BuildChannel,
-    string BuildDate,
-    string UiMinDbSchema,
-    string AgentMinDbSchema)
-{
-    public static ReleaseVersionInfo Unknown { get; } = new(
-        SuiteVersion: "unknown",
-        UiVersion: "unknown",
-        AgentVersion: "unknown",
-        DbSchemaVersion: "unknown",
-        BuildChannel: "unknown",
-        BuildDate: "unknown",
-        UiMinDbSchema: "unknown",
-        AgentMinDbSchema: "unknown");
 }
 
 public sealed class ReleaseVersionService : IReleaseVersionService

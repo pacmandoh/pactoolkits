@@ -2,13 +2,14 @@ using System;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using PacToolkits.Desktop.Avalonia.DataAccess;
-using PacToolkits.Desktop.Avalonia.Repositories;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Integration;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
+using PacToolkits.Infrastructure.Database;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 
@@ -19,11 +20,11 @@ public static class ServiceCollectionRegistrationExtensions
     public static IServiceCollection AddPacToolkitsUiServices(this IServiceCollection services, IConfiguration config)
     {
         services.AddCoreInfrastructure(config);
+        services.AddPacToolkitsInfrastructure(config);
+        services.AddPacToolkitsApplication();
         services.AddUiShell();
         services.AddApplicationServices();
-        services.AddDataAccessServices();
         services.AddPageViewModels();
-        services.AddPostgres(config);
         return services;
     }
 
@@ -31,21 +32,15 @@ public static class ServiceCollectionRegistrationExtensions
     {
         services.AddSingleton<IConfiguration>(config);
         services.AddSingleton<IAppConfigStore, AppConfigStore>();
+        services.AddSingleton<IPostgresConfigStore>(sp => (IPostgresConfigStore)sp.GetRequiredService<IAppConfigStore>());
         services.AddSingleton<IUiBehaviorService, UiBehaviorService>();
         services.AddSingleton<ILoggingSettingsService, LoggingSettingsService>();
         services.AddSingleton<IUpdateSettingsService, UpdateSettingsService>();
-        services.AddSingleton<IDbConfigService, DbConfigService>();
         services.AddSingleton<ITraceCodeRuleService, TraceCodeRuleService>();
-        services.AddSingleton<IDbConnectionTester, DbConnectionTester>();
         services.AddSingleton<IClipboardService, ClipboardService>();
         services.AddSingleton<IAppLogger, AppLogger>();
         services.AddSingleton<IReleaseVersionService, ReleaseVersionService>();
         services.AddSingleton<IAppStartupStateService, AppStartupStateService>();
-        services.AddSingleton<IDbSchemaVersionService, DbSchemaVersionService>();
-        services.AddSingleton<IDbSchemaMigrationService, DbSchemaMigrationService>();
-        services.AddSingleton<ITraceEntryLogService, TraceEntryLogService>();
-        services.AddSingleton<IDbConnectionMonitorService, DbConnectionMonitorService>();
-        services.AddSingleton<IChangeWatermarkService, ChangeWatermarkService>();
         return services;
     }
 
@@ -71,20 +66,9 @@ public static class ServiceCollectionRegistrationExtensions
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
         services.AddSingleton<IUpdateUiFlowService, UpdateUiFlowService>();
         services.AddSingleton<IMsfxApiClient, MsfxApiClient>();
-        return services;
-    }
-
-    private static IServiceCollection AddDataAccessServices(this IServiceCollection services)
-    {
-        services.AddSingleton<IDrugIndexRepo, DrugIndexRepo>();
-        services.AddSingleton<IScanCodeRepo, ScanCodeRepo>();
-        services.AddSingleton<IDashboardRepo, DashboardRepo>();
-        services.AddSingleton<IInventoryOverviewRepo, InventoryOverviewRepo>();
-        services.AddSingleton<IClientIdReadRepo, ClientIdReadRepo>();
-        services.AddSingleton<IMsfxSyncRepo, MsfxSyncRepo>();
-        services.AddSingleton<ILookupCatalogService, LookupCatalogService>();
         services.AddSingleton<ClientAliasStore>();
         services.AddSingleton<IClientAliasService, ClientAliasService>();
+        services.AddSingleton<IAutomationToolsConfigService, AutomationToolsConfigService>();
         return services;
     }
 
@@ -104,4 +88,3 @@ public static class ServiceCollectionRegistrationExtensions
         return services;
     }
 }
-

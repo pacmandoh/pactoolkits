@@ -11,11 +11,11 @@ using System.Windows.Input;
 using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Desktop.Avalonia.Contracts;
-using PacToolkits.Desktop.Avalonia.Repositories;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using PacToolkits.Desktop.Avalonia.ViewModels.Pages.DrugIndex;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -211,7 +211,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         );
     }
 
-    private readonly IDrugIndexRepo _repo;
+    private readonly IDrugIndexService _drugIndex;
     private readonly IToastService _toast;
     private readonly IDialogService _dialog;
     private readonly ISensitiveOperationUnlockService _unlockService;
@@ -307,7 +307,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
 
     public DrugIndexViewModel(
-        IDrugIndexRepo repo,
+        IDrugIndexService drugIndex,
         IToastService toast,
         IDialogService dialog,
         ISensitiveOperationUnlockService unlockService,
@@ -315,7 +315,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         InventoryOverviewViewModel inventoryOverview,
         ScanCodeViewModel scanCode)
     {
-        _repo = repo;
+        _drugIndex = drugIndex;
         _toast = toast;
         _dialog = dialog;
         _unlockService = unlockService;
@@ -764,44 +764,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             var spec = inputSpec ?? throw new InvalidOperationException("规格不能为空");
 
             var isNew = string.IsNullOrWhiteSpace(_originDrugId) && string.IsNullOrWhiteSpace(_originSpec);
-            if (!isNew && HasPrimaryKeyChanges())
-            {
-                await _dialog.Warn("主键已变更", "药品名/规格变更请使用“纠错迁移”按钮执行");
-                return false;
-            }
-            if (!isNew && HasQtyChanged())
-            {
-                var sourceDrugId = Selected?.DrugId ?? _originDrugId ?? string.Empty;
-                var sourceSpec = Selected?.Spec ?? _originSpec ?? string.Empty;
-                if (!string.IsNullOrWhiteSpace(sourceDrugId) && !string.IsNullOrWhiteSpace(sourceSpec))
-                {
-                    var preview = await _repo.PreviewKeyFixAsync(
-                        sourceDrugId,
-                        sourceSpec,
-                        sourceDrugId,
-                        sourceSpec,
-                        default);
-                    if (preview.TracePoolAffected > 0 || preview.TraceTxnAffected > 0)
-                    {
-                        Dispatcher.UIThread.Post(() =>
-                            _toast.Warn("保存已拦截", "当前药品规格已被库存或事务引用，单盒数量变更请使用纠错迁移"));
-                        return false;
-                    }
-                }
-            }
-            if (isNew)
-            {
-                var exists = await _repo.ExistsAsync(drugId, spec, default);
-                if (exists)
-                {
-                    await _dialog.Warn("名称/规格重复",
-                        $"已存在相同记录：\nDrugId = {drugId}\nSpec = {spec}\n\n请改成“编辑已有记录”或修改 DrugId/Spec");
-                    return false;
-                }
-            }
-
             var note = NormalizeInput(EditNote);
-
             var dto = new DrugIndexDto(
                 DrugId: drugId,
                 Spec: spec,
@@ -811,27 +774,45 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                 Note: note,
                 CreatedAt: CreatedAt == default ? DateTimeOffset.UtcNow : CreatedAt,
                 UpdatedAt: DateTimeOffset.UtcNow,
-                Version: _loadedSnapshot?.Version ?? 0
-            );
+                Version: _loadedSnapshot?.Version ?? 0);
 
-            var expectedVersion = isNew ? null : _loadedSnapshot?.Version;
-            DrugIndexDto saved;
-            try
+            var saveResult = await _drugIndex.SaveAsync(
+                new DrugIndexSaveRequest(
+                    Dto: dto,
+                    OriginDrugId: _originDrugId,
+                    OriginSpec: _originSpec,
+                    ExpectedVersion: isNew ? null : _loadedSnapshot?.Version,
+                    IsNew: isNew,
+                    HasPrimaryKeyChanges: !isNew && HasPrimaryKeyChanges(),
+                    HasQtyChanged: !isNew && HasQtyChanged(),
+                    SelectedDrugId: Selected?.DrugId,
+                    SelectedSpec: Selected?.Spec),
+                default);
+
+            switch (saveResult.Outcome)
             {
-                saved = await _repo.UpsertAsync(dto, expectedVersion, default);
+                case DrugSaveOutcome.BlockedPrimaryKeyChange:
+                    await _dialog.Warn("主键已变更", "药品名/规格变更请使用“纠错迁移”按钮执行");
+                    return false;
+                case DrugSaveOutcome.BlockedQtyChange:
+                    Dispatcher.UIThread.Post(() =>
+                        _toast.Warn("保存已拦截", "当前药品规格已被库存或事务引用，单盒数量变更请使用纠错迁移"));
+                    return false;
+                case DrugSaveOutcome.BlockedDuplicate:
+                    await _dialog.Warn("名称/规格重复",
+                        $"已存在相同记录：\nDrugId = {drugId}\nSpec = {spec}\n\n请改成“编辑已有记录”或修改 DrugId/Spec");
+                    return false;
+                case DrugSaveOutcome.ConcurrencyConflict:
+                    LogWarn("drug_index.save.concurrency_conflict", "Detected optimistic concurrency conflict", saveResult.Concurrency);
+                    await _dialog.Warn("保存冲突", "该记录已被其他终端修改，请先刷新后再编辑");
+                    if (saveResult.Concurrency?.Current is not null)
+                        await ReloadAndReselectAsync(saveResult.Concurrency.Current.DrugId, saveResult.Concurrency.Current.Spec);
+                    else
+                        await ReloadAsync();
+                    return false;
             }
-            catch (DrugIndexConcurrencyException cx)
-            {
-                LogWarn("drug_index.save.concurrency_conflict", "Detected optimistic concurrency conflict", cx);
-                await _dialog.Warn("保存冲突", "该记录已被其他终端修改，请先刷新后再编辑");
 
-                if (cx.Current is not null)
-                    await ReloadAndReselectAsync(cx.Current.DrugId, cx.Current.Spec);
-                else
-                    await ReloadAsync();
-
-                return false;
-            }
+            var saved = saveResult.Saved ?? throw new InvalidOperationException("保存成功但未返回记录");
 
             Dispatcher.UIThread.Post(() => _toast.Success("已保存", $"{drugId} / {spec}"));
 
@@ -910,7 +891,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         IsBusy = true;
         try
         {
-            var source = await _repo.GetByKeyAsync(sourceDrugId, sourceSpec, default);
+            var source = await _drugIndex.GetByKeyAsync(sourceDrugId, sourceSpec, default);
             if (source is null)
             {
                 await _dialog.Warn("纠错迁移", "源药品规格不存在或已被移除，请刷新后重试");
@@ -918,7 +899,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                 return;
             }
 
-            var preview = await _repo.PreviewKeyFixAsync(
+            var preview = await _drugIndex.PreviewKeyFixAsync(
                 source.DrugId,
                 source.Spec,
                 targetDrugId,
@@ -954,16 +935,18 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                 Version: 0);
 
             var reason = $"drug-key-fix: {source.DrugId}/{source.Spec} -> {targetDrugId}/{targetSpec}";
-            var result = await _repo.ApplyKeyFixAsync(
-                source,
-                target,
-                reason,
-                Environment.UserName,
-                "drug_index_ui",
+            var commit = await _drugIndex.ApplyKeyFixAsync(
+                new DrugKeyFixRequest(
+                    Source: source,
+                    Target: target,
+                    Reason: reason,
+                    OperatorName: Environment.UserName,
+                    SourceTag: "drug_index_ui"),
                 default);
 
-            var dbSourceAfter = await _repo.GetByKeyAsync(source.DrugId, source.Spec, default);
-            var dbTargetAfter = await _repo.GetByKeyAsync(result.Current.DrugId, result.Current.Spec, default);
+            var result = commit.Apply;
+            var dbSourceAfter = commit.SourceAfter;
+            var dbTargetAfter = commit.TargetAfter;
             if (!sameKey)
             {
                 if (dbSourceAfter is not null || dbTargetAfter is null)
@@ -1037,7 +1020,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         {
             // Reason: Capture query state before async work to avoid stale reads.
             var query = _query;
-            var rows = await _repo.SearchAsync(query.Keyword, limit: 1000, ct);
+            var rows = await _drugIndex.SearchAsync(query.Keyword, limit: 1000, ct);
             var newRows = rows.Select(dto => new DrugRow(dto)).ToList();
             var prevSelectedDrugId = Selected?.DrugId;
             var prevSelectedSpec = Selected?.Spec;
@@ -1172,7 +1155,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         IsBusy = true;
         try
         {
-            await _repo.DeleteAsync(deleteDrugId, deleteSpec, default);
+            await _drugIndex.DeleteAsync(deleteDrugId, deleteSpec, default);
             Dispatcher.UIThread.Post(() => _toast.Success("已删除", $"{deleteDrugId} / {deleteSpec}"));
             Selected = null;
             ClearEditor(keepEditorVisible: false);

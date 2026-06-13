@@ -10,10 +10,10 @@ using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.Contracts;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using PacToolkits.Desktop.Avalonia.Repositories;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -96,7 +96,6 @@ public sealed record StockReassignPreviewRowItem(
 public sealed partial class InventoryOverviewViewModel : AppPageBase
 {
     private const int FixedPageSize = 50;
-    private const int LargeBatchReassignConfirmThreshold = 500;
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
     private const string UnlockScopeKey = UnlockScopes.SharedSensitiveOps;
 
@@ -107,9 +106,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     protected override bool AutoRefreshOnDbDisconnected => true;
     protected override bool AutoRefreshOnDbReconnected => true;
 
-    private readonly IInventoryOverviewRepo _repo;
+    private readonly IInventoryOverviewService _inventory;
     private readonly ILookupCatalogService _lookup;
-    private readonly IDrugIndexRepo _drugIndexRepo;
     private readonly IDbConfigService _dbConfig;
     private readonly ISensitiveOperationUnlockService _unlockService;
     private readonly IToastService _toast;
@@ -290,9 +288,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public IReadOnlyList<StockRowItem> SelectedStockRowsSnapshot => _selectedStockRowsSnapshot;
 
     public InventoryOverviewViewModel(
-        IInventoryOverviewRepo repo,
+        IInventoryOverviewService inventory,
         ILookupCatalogService lookup,
-        IDrugIndexRepo drugIndexRepo,
         IDbConfigService dbConfig,
         ISensitiveOperationUnlockService unlockService,
         IToastService toast,
@@ -300,9 +297,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         PageNavigationService nav,
         ScanCodeViewModel scanCode)
     {
-        _repo = repo;
+        _inventory = inventory;
         _lookup = lookup;
-        _drugIndexRepo = drugIndexRepo;
         _dbConfig = dbConfig;
         _unlockService = unlockService;
         _toast = toast;
@@ -792,8 +788,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     return;
 
                 using var existsCts = new CancellationTokenSource(LookupTimeout);
-                var targetExists = await _drugIndexRepo.GetByKeyAsync(targetDrug, targetSpec, existsCts.Token);
-                if (targetExists is null)
+                var targetExists = await _inventory.TargetDrugSpecExistsAsync(targetDrug, targetSpec, existsCts.Token);
+                if (!targetExists)
                 {
                     ReassignPreviewText = "预览结果：目标药品/规格不存在，无法纠错";
                     return;
@@ -846,7 +842,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             var targetQtyResolvedForFilter = int.TryParse(NormalizeInput(ReassignQtyText), out var parsedQtyForFilter)
                 ? parsedQtyForFilter
                 : 0;
-            var preview = await _repo.PreviewStockReassignByKeywordAsync(
+            var preview = await _inventory.PreviewReassignByKeywordAsync(
                 kw,
                 targetDrug,
                 targetSpec,
@@ -892,10 +888,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 ? $"预览结果：{scopeText} 命中 {preview.MatchCount.ToString(CultureInfo.InvariantCulture)} 条，可变更 {preview.WillChangeCount.ToString(CultureInfo.InvariantCulture)} 条；当前 {preview.CurrentDrugId}/{preview.CurrentSpec} -> 目标 {targetDrug}/{targetSpec}"
                 : $"预览结果：{scopeText} 命中 {preview.MatchCount.ToString(CultureInfo.InvariantCulture)} 条，可变更 {preview.WillChangeCount.ToString(CultureInfo.InvariantCulture)} 条；目标 {targetDrug}/{targetSpec}（下方显示前 {ReassignPreviewRows.Count.ToString(CultureInfo.InvariantCulture)} 条）";
 
-            if (IsFilterReassignScope && preview.WillChangeCount > LargeBatchReassignConfirmThreshold)
+            if (IsFilterReassignScope && preview.WillChangeCount > _inventory.LargeBatchReassignConfirmThreshold)
             {
                 ReassignPreviewText +=
-                    $"注意：可变更数量超过 {LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)} 条，提交时会触发二次确认";
+                    $"注意：可变更数量超过 {_inventory.LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)} 条，提交时会触发二次确认";
             }
         }
         catch (Exception ex)
@@ -967,25 +963,15 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 if (traceCodes.Length == 0)
                     return;
 
-                var affected = 0;
-                long auditId = 0;
-                foreach (var traceCode in traceCodes)
-                {
-                    var one = await _repo.ReassignStockByTraceCodeAsync(
-                        traceCode!,
-                        targetDrug,
-                        targetSpec,
-                        targetQty,
-                        reason,
-                        operatorName,
-                        "inventory_ui",
-                        default);
-                    affected += one.AffectedRows;
-                    if (auditId == 0)
-                        auditId = one.AuditId;
-                }
+                var context = new StockReassignContext(
+                    targetDrug,
+                    targetSpec,
+                    targetQty,
+                    reason,
+                    operatorName,
+                    "inventory_ui");
 
-                result = new StockReassignApplyResultDto(affected, auditId);
+                result = await _inventory.ReassignByTraceCodesAsync(traceCodes, context, default);
             }
             else
             {
@@ -996,30 +982,31 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     return;
                 }
 
-                var guardPreview = await _repo.PreviewStockReassignByKeywordAsync(
+                var guardPreview = await _inventory.PreviewReassignByKeywordAsync(
                     kw,
                     targetDrug,
                     targetSpec,
                     targetQty,
                     1,
                     default);
-                if (guardPreview.WillChangeCount > LargeBatchReassignConfirmThreshold)
+                if (guardPreview.WillChangeCount > _inventory.LargeBatchReassignConfirmThreshold)
                 {
                     var secondOk = await _dialog.Confirm(
                         "批量纠错二次确认",
-                        $"本次可变更 {guardPreview.WillChangeCount.ToString(CultureInfo.InvariantCulture)} 条，已超过阈值 {LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)}请再次确认是否提交");
+                        $"本次可变更 {guardPreview.WillChangeCount.ToString(CultureInfo.InvariantCulture)} 条，已超过阈值 {_inventory.LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)}请再次确认是否提交");
                     if (!secondOk)
                         return;
                 }
 
-                result = await _repo.ReassignStockByKeywordAsync(
+                result = await _inventory.ReassignByKeywordAsync(
                     kw,
-                    targetDrug,
-                    targetSpec,
-                    targetQty,
-                    reason,
-                    operatorName,
-                    "inventory_ui",
+                    new StockReassignContext(
+                        targetDrug,
+                        targetSpec,
+                        targetQty,
+                        reason,
+                        operatorName,
+                        "inventory_ui"),
                     default);
             }
 
@@ -1128,7 +1115,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             var wasEditing = IsStockEditEnabled;
             SuppressExternalAutoRefresh(TimeSpan.FromSeconds(8));
             await RunOnUiAsync(() => IsDetailBusy = true);
-            var affected = await _repo.DeleteStockByTraceCodesAsync(traceCodes, default);
+            var affected = await _inventory.DeleteStockByTraceCodesAsync(traceCodes, default);
             await ReloadAsync(preserveEditSession: wasEditing);
 
             await RunOnUiAsync(() =>
@@ -1163,34 +1150,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         if (edits.Length == 0)
             return (0, 0, null);
 
-        var savedCount = 0;
-        var failedCount = 0;
-        string? lastError = null;
+        var batchResult = await _inventory.ApplyStockCellEditsAsync(
+            edits.Select(e => new StockCellEditRequest(e.MatchTraceCode, e.ColumnHeader, e.NewValue)).ToArray(),
+            default).ConfigureAwait(false);
 
-        foreach (var edit in edits)
-        {
-            try
-            {
-                await _repo.UpdateStockCellAsync(edit.MatchTraceCode, edit.ColumnHeader, edit.NewValue, default).ConfigureAwait(false);
-                savedCount++;
-            }
-            catch (Exception ex)
-            {
-                LogWarn("inventory.stock.batch_update.one_fail", "Failed one stock cell update in batch", ex, new
-                {
-                    edit.DrugId,
-                    edit.Spec,
-                    edit.ColumnHeader
-                });
-                failedCount++;
-                lastError = $"{edit.DrugId}/{edit.Spec} {edit.ColumnHeader}: {ex.Message}";
-            }
-        }
-
-        if (failedCount > 0)
+        if (batchResult.FailedCount > 0)
             await ReloadAsync();
 
-        return (savedCount, failedCount, lastError);
+        return (batchResult.SavedCount, batchResult.FailedCount, batchResult.LastError);
     }
 
     private void BuildPendingEditsFromSnapshot()
@@ -1618,7 +1585,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             await Task.Delay(delay, ct).ConfigureAwait(false);
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeoutCts.CancelAfter(LookupTimeout);
-            var pageResult = await _repo.GetStockPageAsync(keyword, page, PageSize, timeoutCts.Token).ConfigureAwait(false);
+            var pageResult = await _inventory.GetStockPageAsync(keyword, page, PageSize, timeoutCts.Token).ConfigureAwait(false);
 
             await RunOnUiAsync(() =>
             {
@@ -1721,7 +1688,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     private async Task ReloadDetailModeAsync(string? keyword, CancellationToken ct)
     {
-        var page = await _repo
+        var page = await _inventory
             .GetStockPageAsync(keyword, PageIndex, PageSize, ct)
             .ConfigureAwait(false);
 
@@ -1754,7 +1721,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     private async Task ReloadAggModeAsync(string? keyword, CancellationToken ct)
     {
-        var page = await _repo
+        var page = await _inventory
             .GetDrugSpecAggPageAsync(keyword, PageIndex, PageSize, ct)
             .ConfigureAwait(false);
 
@@ -1790,7 +1757,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         string? keyword,
         CancellationToken ct)
     {
-        var page = await _repo
+        var page = await _inventory
             .GetLowStockPageAsync(keyword, PageIndex, PageSize, ct)
             .ConfigureAwait(false);
 
@@ -1821,7 +1788,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         string? keyword,
         CancellationToken ct)
     {
-        var page = await _repo
+        var page = await _inventory
             .GetMissingInventoryPageAsync(keyword, PageIndex, PageSize, ct)
             .ConfigureAwait(false);
 

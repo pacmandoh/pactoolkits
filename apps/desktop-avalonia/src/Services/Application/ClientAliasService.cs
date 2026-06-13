@@ -1,19 +1,9 @@
 using System;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Collections.Generic;
+using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
-
-public interface IClientAliasService
-{
-    event Action? Changed;
-
-    IReadOnlyDictionary<string, string> GetAll();
-    string Resolve(string? machine);
-
-    void ReplaceAll(IEnumerable<KeyValuePair<string, string>> items);
-    void Reload();
-}
 
 public sealed class ClientAliasService : IClientAliasService
 {

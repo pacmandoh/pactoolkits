@@ -9,9 +9,9 @@ using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.Contracts;
-using PacToolkits.Desktop.Avalonia.Repositories;
-using PacToolkits.Desktop.Avalonia.Services.Application;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -33,7 +33,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     protected override bool AutoRefreshOnDbDisconnected => true;
     protected override bool AutoRefreshOnDbReconnected => true;
 
-    private readonly IDashboardRepo _repo;
+    private readonly IDashboardService _dashboard;
     private readonly IToastService _toast;
     private readonly IClientAliasService _clientAlias;
     private readonly ILookupCatalogService _lookup;
@@ -352,10 +352,10 @@ public sealed partial class DashboardViewModel : AppPageBase
     private bool _firstLoadTriggered;
     private bool _filtersLoaded;
 
-    public DashboardViewModel(IDashboardRepo repo, ILookupCatalogService lookup, IToastService toast,
+    public DashboardViewModel(IDashboardService dashboard, ILookupCatalogService lookup, IToastService toast,
         IClientAliasService clientAlias, PageNavigationService nav, InventoryOverviewViewModel inventoryOverview)
     {
-        _repo = repo;
+        _dashboard = dashboard;
         _toast = toast;
         _clientAlias = clientAlias;
         _lookup = lookup;
@@ -621,7 +621,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         if (_suppressRowSelectionAction || item is null)
             return;
 
-        var parsed = TryParseDrugSpecFromTxnTitle(item.Title);
+        var parsed = DashboardDrugSpecParser.TryParseFromTxnTitle(item.Title);
         if (parsed is not null)
             await ApplyDrugSpecFilterAndReloadAsync(parsed.Value.DrugId, parsed.Value.Spec);
 
@@ -675,11 +675,11 @@ public sealed partial class DashboardViewModel : AppPageBase
         if (_suppressRowSelectionAction || item is null)
             return;
 
-        var parsed = TryParseDrugSpecFromAbnormalDetail(item.Detail);
+        var parsed = DashboardDrugSpecParser.TryParseFromAbnormalDetail(item.Detail);
         if (parsed is not null)
             await ApplyDrugSpecFilterAndReloadAsync(parsed.Value.DrugId, parsed.Value.Spec);
 
-        if (IsInventoryAbnormal(item))
+        if (DashboardDrugSpecParser.IsInventoryAbnormalTitle(item.Title))
         {
             _inventoryOverview.OpenMode(2);
             _nav.Navigate<InventoryOverviewViewModel>();
@@ -710,31 +710,20 @@ public sealed partial class DashboardViewModel : AppPageBase
         }
     }
 
-    private DashboardQuery BuildQuery(int topN)
+    private DashboardFilter CurrentFilter
     {
-        var range = CurrentRange;
-        var from = range.From;
-        var to = range.To;
-
-        var raw = SelectedClient?.Raw;
-        var client = string.IsNullOrWhiteSpace(raw) ? null : raw;
-
-        var metric = TrendMode?.Title == "按事务次数"
-            ? TrendMetric.Txn
-            : TrendMetric.Qty;
-
-        var drug = NormalizeInput(DrugText);
-
-        var spec = string.IsNullOrWhiteSpace(SelectedSpec.Raw) ? null : SelectedSpec.Raw;
-
-        return new DashboardQuery(
-            Range: new DateRange(from, to),
-            ClientName: client,
-            DrugId: drug,
-            Spec: spec,
-            TopN: topN,
-            TrendMetric: metric
-        );
+        get
+        {
+            var range = CurrentRange;
+            var raw = SelectedClient?.Raw;
+            var client = string.IsNullOrWhiteSpace(raw) ? null : raw;
+            var metric = TrendMode?.Title == "按事务次数"
+                ? TrendMetric.Txn
+                : TrendMetric.Qty;
+            var drug = NormalizeInput(DrugText);
+            var spec = string.IsNullOrWhiteSpace(SelectedSpec.Raw) ? null : SelectedSpec.Raw;
+            return new DashboardFilter(range.From, range.To, client, drug, spec, metric);
+        }
     }
 
     private DateRange CurrentRange
@@ -749,8 +738,6 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     private async Task RefreshAllAsync(CancellationToken ct)
     {
-        var qTop = BuildQuery(DefaultTopN);
-        var qPaged = BuildQuery(0);
         var showTxnBusy = ShouldShowTxnBusy();
         var showEntryBusy = ShouldShowEntryBusy();
         var showAbnormalBusy = ShouldShowAbnormalBusy();
@@ -783,55 +770,34 @@ public sealed partial class DashboardViewModel : AppPageBase
                     }
                 }
 
-                var clientNames = await _repo.GetClientNamesAsync(ct).ConfigureAwait(false);
+                var request = new DashboardLoadRequest(
+                    Filter: CurrentFilter,
+                    OverviewTopN: DefaultTopN,
+                    EntryOverviewTopN: EntryOverviewTopN,
+                    TxnPageIndex: TxnPageIndex,
+                    TxnPageSize: TxnPageSize,
+                    TxnTrendPageIndex: TxnTrendPageIndex,
+                    TxnTrendPageSize: TxnTrendPageSize,
+                    EntryPageIndex: EntryPageIndex,
+                    EntryPageSize: EntryPageSize,
+                    AbnormalPageIndex: AbnormalPageIndex,
+                    AbnormalPageSize: AbnormalPageSize);
 
-                var kpiTask = _repo.GetKpisAsync(qTop, ct);
-                var trendTask = _repo.GetTrendPageAsync(qTop, page: 1, pageSize: qTop.TopN, ct);
-                var txnOverviewTask = _repo.GetRecentTxnsPageAsync(qTop, page: 1, pageSize: DefaultTopN, ct);
-                var txnPageTask = _repo.GetRecentTxnsPageAsync(qPaged, page: TxnPageIndex, pageSize: TxnPageSize, ct);
-                var txnTrendPageTask = _repo.GetTrendPageAsync(qPaged, page: TxnTrendPageIndex, pageSize: TxnTrendPageSize, ct);
-                var entryOverviewTask = _repo.GetEntryLogsPageAsync(qTop, page: 1, pageSize: EntryOverviewTopN, ct);
-                var entryPageTask = _repo.GetEntryLogsPageAsync(qPaged, page: EntryPageIndex, pageSize: EntryPageSize, ct);
-                var topClientsTask = _repo.GetClientsAsync(qTop, ct);
-                var abnormalTask = _repo.GetAbnormalQueuePageAsync(qPaged, page: AbnormalPageIndex, pageSize: AbnormalPageSize, ct);
-
-                await Task.WhenAll(
-                        kpiTask,
-                        trendTask,
-                        txnOverviewTask,
-                        txnPageTask,
-                        txnTrendPageTask,
-                        entryOverviewTask,
-                        entryPageTask,
-                        topClientsTask,
-                        abnormalTask)
-                    .ConfigureAwait(false);
-
-                var loaded = (
-                    clientNames,
-                    kpi: await kpiTask.ConfigureAwait(false),
-                    trend: (await trendTask.ConfigureAwait(false)).Rows,
-                    txnsOverview: await txnOverviewTask.ConfigureAwait(false),
-                    txnsPage: await txnPageTask.ConfigureAwait(false),
-                    txnTrendPage: await txnTrendPageTask.ConfigureAwait(false),
-                    entriesOverview: await entryOverviewTask.ConfigureAwait(false),
-                    entriesPage: await entryPageTask.ConfigureAwait(false),
-                    topClients: await topClientsTask.ConfigureAwait(false),
-                    abnormal: await abnormalTask.ConfigureAwait(false));
+                var loaded = await _dashboard.LoadSnapshotAsync(request, ct).ConfigureAwait(false);
 
                 await RunOnUiAsync(() =>
                 {
-                    ApplyClients(loaded.clientNames);
+                    ApplyClients(loaded.ClientNames);
 
-                    ApplyKpi(loaded.kpi);
-                    ApplyTrend(loaded.trend);
-                    ApplyRecentTxnsOverview(loaded.txnsOverview.Rows);
-                    ApplyRecentTxnsPage(loaded.txnsPage.Rows, loaded.txnsPage.TotalCount);
-                    ApplyTxnTrendPage(loaded.txnTrendPage.Rows, loaded.txnTrendPage.TotalCount);
-                    ApplyEntryLogsOverview(loaded.entriesOverview.Rows);
-                    ApplyEntryLogsPage(loaded.entriesPage.Rows, loaded.entriesPage.TotalCount);
-                    ApplyTopClients(loaded.topClients);
-                    ApplyAbnormalQueue(loaded.abnormal.Rows, loaded.abnormal.TotalCount);
+                    ApplyKpi(loaded.Kpi);
+                    ApplyTrend(loaded.Trend);
+                    ApplyRecentTxnsOverview(loaded.TxnsOverview.Rows);
+                    ApplyRecentTxnsPage(loaded.TxnsPage.Rows, loaded.TxnsPage.TotalCount);
+                    ApplyTxnTrendPage(loaded.TxnTrendPage.Rows, loaded.TxnTrendPage.TotalCount);
+                    ApplyEntryLogsOverview(loaded.EntriesOverview.Rows);
+                    ApplyEntryLogsPage(loaded.EntriesPage.Rows, loaded.EntriesPage.TotalCount);
+                    ApplyTopClients(loaded.TopClients);
+                    ApplyAbnormalQueue(loaded.Abnormal.Rows, loaded.Abnormal.TotalCount);
 
                     OnPropertyChanged(nameof(IsTrendEmpty));
                     OnPropertyChanged(nameof(IsTopClientsEmpty));
@@ -875,31 +841,14 @@ public sealed partial class DashboardViewModel : AppPageBase
             Clients.Add(AllClients);
 
             foreach (var raw in list.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct())
-                Clients.Add(ParseClientWithAlias(raw));
+                Clients.Add(ClientDisplayResolver.Resolve(raw, _clientAlias));
 
             SelectedClient = Clients.FirstOrDefault(c => c.Raw == selectedRaw) ?? AllClients;
         }
     }
 
-    private ClientInfo ParseClientWithAlias(string raw)
-    {
-        var ci = ClientParser.Parse(raw);
-        var machine = (ci.Machine ?? raw).Trim();
-
-        var display = _clientAlias.Resolve(machine);
-        if (string.IsNullOrWhiteSpace(display))
-            display = machine.Length > 0 ? machine : (ci.Display);
-
-        return new ClientInfo(
-            Raw: ci.Raw,
-            Display: display,
-            Machine: ci.Machine,
-            User: ci.User,
-            Ip: ci.Ip,
-            Os: ci.Os,
-            Version: ci.Version
-        );
-    }
+    private ClientInfo ResolveClient(string raw)
+        => ClientDisplayResolver.Resolve(raw, _clientAlias);
 
     [RelayCommand]
     private async Task ApplyDrugFilterAsync()
@@ -1025,7 +974,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         var idx = 1;
         foreach (var r in rows)
         {
-            var client = ParseClientWithAlias(r.Client);
+            var client = ResolveClient(r.Client);
             TopClients.Add(new TopClientItem(
                 Index: idx++,
                 Client: client,
@@ -1086,7 +1035,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         var idx = 1;
         foreach (var e in rows.OrderByDescending(x => x.EntryAt))
         {
-            var client = ParseClientWithAlias(e.Client);
+            var client = ResolveClient(e.Client);
             EntryRecentOverview.Add(EntryRecentItem.From(e, client, idx++));
         }
     }
@@ -1099,7 +1048,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         var idx = 0;
         foreach (var e in rows.OrderByDescending(x => x.EntryAt))
         {
-            var client = ParseClientWithAlias(e.Client);
+            var client = ResolveClient(e.Client);
             EntryRecent.Add(EntryRecentItem.From(e, client, start + idx++));
         }
 
@@ -1209,54 +1158,6 @@ public sealed partial class DashboardViewModel : AppPageBase
             var cm = NormalizeInput(c.Machine ?? c.Display);
             return string.Equals(cm, machine, StringComparison.OrdinalIgnoreCase);
         });
-    }
-
-    private static bool IsInventoryAbnormal(AbnormalItem item)
-    {
-        var title = NormalizeInput(item.Title) ?? string.Empty;
-        return title.Contains("库存", StringComparison.OrdinalIgnoreCase) ||
-               title.Contains("告紧", StringComparison.OrdinalIgnoreCase) ||
-               title.Contains("low", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static (string DrugId, string Spec)? TryParseDrugSpecFromAbnormalDetail(string? detail)
-    {
-        var s = NormalizeInput(detail);
-        if (string.IsNullOrWhiteSpace(s))
-            return null;
-
-        var head = s.Split('·', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)[0];
-        if (string.IsNullOrWhiteSpace(head))
-            return null;
-
-        var idx = head.LastIndexOf(' ');
-        if (idx <= 0 || idx >= head.Length - 1)
-            return null;
-
-        var drug = NormalizeInput(head[..idx]);
-        var spec = NormalizeInput(head[(idx + 1)..]);
-        if (string.IsNullOrWhiteSpace(drug) || string.IsNullOrWhiteSpace(spec))
-            return null;
-
-        return (drug, spec);
-    }
-
-    private static (string DrugId, string Spec)? TryParseDrugSpecFromTxnTitle(string? title)
-    {
-        var s = NormalizeInput(title);
-        if (string.IsNullOrWhiteSpace(s))
-            return null;
-
-        var idx = s.LastIndexOf(' ');
-        if (idx <= 0 || idx >= s.Length - 1)
-            return null;
-
-        var drug = NormalizeInput(s[..idx]);
-        var spec = NormalizeInput(s[(idx + 1)..]);
-        if (string.IsNullOrWhiteSpace(drug) || string.IsNullOrWhiteSpace(spec))
-            return null;
-
-        return (drug, spec);
     }
 
     [RelayCommand]
@@ -1393,7 +1294,6 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     private async Task ReloadTxnPageOnlyAsync()
     {
-        var q = BuildQuery(0);
         try
         {
             await RunLocalBusyAsync(
@@ -1403,7 +1303,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                 body: async () =>
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var page = await _repo.GetRecentTxnsPageAsync(q, TxnPageIndex, TxnPageSize, cts.Token).ConfigureAwait(false);
+                var page = await _dashboard.LoadTxnPageAsync(CurrentFilter, TxnPageIndex, TxnPageSize, cts.Token).ConfigureAwait(false);
                 await RunOnUiAsync(() =>
                 {
                     ApplyRecentTxnsPage(page.Rows, page.TotalCount);
@@ -1421,7 +1321,6 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     private async Task ReloadTxnTrendPageOnlyAsync()
     {
-        var q = BuildQuery(0);
         try
         {
             await RunLocalBusyAsync(
@@ -1431,7 +1330,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                 body: async () =>
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var page = await _repo.GetTrendPageAsync(q, TxnTrendPageIndex, TxnTrendPageSize, cts.Token).ConfigureAwait(false);
+                var page = await _dashboard.LoadTxnTrendPageAsync(CurrentFilter, TxnTrendPageIndex, TxnTrendPageSize, cts.Token).ConfigureAwait(false);
                 await RunOnUiAsync(() =>
                 {
                     ApplyTxnTrendPage(page.Rows, page.TotalCount);
@@ -1449,7 +1348,6 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     private async Task ReloadEntryPageOnlyAsync()
     {
-        var q = BuildQuery(DefaultTopN);
         try
         {
             await RunLocalBusyAsync(
@@ -1459,7 +1357,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                 body: async () =>
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var page = await _repo.GetEntryLogsPageAsync(q, EntryPageIndex, EntryPageSize, cts.Token).ConfigureAwait(false);
+                var page = await _dashboard.LoadEntryPageAsync(CurrentFilter, EntryPageIndex, EntryPageSize, cts.Token).ConfigureAwait(false);
                 await RunOnUiAsync(() =>
                 {
                     ApplyEntryLogsPage(page.Rows, page.TotalCount);
@@ -1476,7 +1374,6 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     private async Task ReloadAbnormalPageOnlyAsync()
     {
-        var q = BuildQuery(DefaultTopN);
         try
         {
             await RunLocalBusyAsync(
@@ -1486,7 +1383,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                 body: async () =>
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var page = await _repo.GetAbnormalQueuePageAsync(q, AbnormalPageIndex, AbnormalPageSize, cts.Token).ConfigureAwait(false);
+                var page = await _dashboard.LoadAbnormalPageAsync(CurrentFilter, AbnormalPageIndex, AbnormalPageSize, cts.Token).ConfigureAwait(false);
                 await RunOnUiAsync(() =>
                 {
                     ApplyAbnormalQueue(page.Rows, page.TotalCount);
@@ -1624,7 +1521,7 @@ public sealed partial class DashboardViewModel : AppPageBase
             if (TopClients.Count > 0)
             {
                 var remappedTop = TopClients
-                    .Select(x => x with { Client = ParseClientWithAlias(x.Client.Raw) })
+                    .Select(x => x with { Client = ResolveClient(x.Client.Raw) })
                     .ToList();
                 TopClients.Clear();
                 foreach (var item in remappedTop)
@@ -1634,7 +1531,7 @@ public sealed partial class DashboardViewModel : AppPageBase
             if (EntryRecentOverview.Count > 0)
             {
                 var remappedOverview = EntryRecentOverview
-                    .Select(x => x.WithClient(ParseClientWithAlias(x.ClientRaw)))
+                    .Select(x => x.WithClient(ResolveClient(x.ClientRaw)))
                     .ToList();
                 EntryRecentOverview.Clear();
                 foreach (var item in remappedOverview)
@@ -1644,7 +1541,7 @@ public sealed partial class DashboardViewModel : AppPageBase
             if (EntryRecent.Count > 0)
             {
                 var remappedPage = EntryRecent
-                    .Select(x => x.WithClient(ParseClientWithAlias(x.ClientRaw)))
+                    .Select(x => x.WithClient(ResolveClient(x.ClientRaw)))
                     .ToList();
                 EntryRecent.Clear();
                 foreach (var item in remappedPage)
