@@ -4,8 +4,8 @@ using System.Threading.Tasks;
 using global::Avalonia.Controls.Notifications;
 using global::Avalonia.Threading;
 using SukiUI.Dialogs;
-using PacToolkits.Desktop.Avalonia.Contracts;
-using PacToolkits.Desktop.Avalonia.Repositories;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Views.Dialogs;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;

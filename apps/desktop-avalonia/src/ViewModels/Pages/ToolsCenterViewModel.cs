@@ -10,6 +10,9 @@ using System.Windows.Input;
 using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Agent.Contracts.Commands;
+using PacToolkits.Agent.Contracts.Models;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -48,7 +51,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
 
     private readonly IAhkRuntimeService _ahkRuntime;
     private readonly IToastService _toast;
-    private readonly IAppConfigStore _configStore;
+    private readonly IAutomationToolsConfigService _automationConfig;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IAsyncRelayCommand _refreshRuntimeCommand;
     private readonly object _agentSnapshotGate = new();
@@ -106,12 +109,12 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     public ToolsCenterViewModel(
         IAhkRuntimeService ahkRuntime,
         IToastService toast,
-        IAppConfigStore configStore,
+        IAutomationToolsConfigService automationConfig,
         IReleaseVersionService releaseVersion)
     {
         _ahkRuntime = ahkRuntime;
         _toast = toast;
-        _configStore = configStore;
+        _automationConfig = automationConfig;
         _releaseVersion = releaseVersion;
         _refreshRuntimeCommand = new AsyncRelayCommand(RefreshRuntimeStateAsync);
         WireLineCollection(AgentAppWinItems);
@@ -381,14 +384,14 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
 
         try
         {
-            var cfg = _configStore.Load();
+            var cfg = _automationConfig.Load();
             var nextAhk = new AhkToolOptions
             {
                 ExecutablePath = AhkExecutablePath,
                 ProcessName = AhkProcessName
             };
-            var changed = !SameAhkOptions(cfg.AutomationTools.Ahk, nextAhk)
-                || !SameAgentOptions(cfg.AutomationTools.Agent, parsedAgent);
+            var changed = !SameAhkOptions(cfg.Ahk, nextAhk)
+                || !SameAgentOptions(cfg.Agent, parsedAgent);
 
             if (!changed)
             {
@@ -398,9 +401,11 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 return new SaveOptionsResult(true, false);
             }
 
-            cfg.AutomationTools.Ahk = nextAhk;
-            cfg.AutomationTools.Agent = parsedAgent;
-            await _configStore.SaveAsync(cfg).ConfigureAwait(false);
+            await _automationConfig.SaveAsync(new AutomationToolsOptions
+            {
+                Ahk = nextAhk,
+                Agent = parsedAgent
+            }, CancellationToken.None).ConfigureAwait(false);
             _ahkRuntime.Reload();
             _savedSnapshot = BuildCurrentSnapshot();
             _baselineReady = _savedSnapshot is not null;
@@ -493,9 +498,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
 
     private void LoadAgentConfigSnapshot()
     {
-        var cfg = _configStore.Load();
-        var ahk = cfg.AutomationTools.Ahk;
-        var agent = cfg.AutomationTools.Agent;
+        var cfg = _automationConfig.Load();
+        var ahk = cfg.Ahk;
+        var agent = cfg.Agent;
         var appWin = agent.AppWin.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
         var colSpecs = agent.ColSpecs.ToList();
         var intCols = agent.IntCols.ToList();
