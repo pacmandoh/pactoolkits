@@ -879,30 +879,38 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             var gateway = string.IsNullOrWhiteSpace(MsfxGatewayUrl)
                 ? MsfxDefaultGatewayUrl
                 : MsfxGatewayUrl.Trim();
-            var cfg = _appConfigStore.Load();
-            cfg.MsfxApi = new MsfxApiOptions
-            {
-                GatewayUrl = gateway,
-                AppKey = MsfxAppKey.Trim(),
-                AppSecret = MsfxAppSecret.Trim(),
-                SessionToken = (MsfxSessionToken ?? string.Empty).Trim(),
-                RefEntId = (MsfxRefEntId ?? string.Empty).Trim(),
-                DefaultMethod = "alibaba.alihealth.drugtrace.top.yljg.listupout",
-                TimeoutSeconds = Math.Clamp(MsfxTimeoutSeconds, 3, 120)
-            };
+            var appKey = MsfxAppKey.Trim();
+            var appSecret = MsfxAppSecret.Trim();
+            var sessionToken = (MsfxSessionToken ?? string.Empty).Trim();
+            var refEntId = (MsfxRefEntId ?? string.Empty).Trim();
+            var timeoutSeconds = Math.Clamp(MsfxTimeoutSeconds, 3, 120);
 
-            await _appConfigStore.SaveAsync(cfg);
+            await _appConfigStore.UpdateAsync(cfg =>
+            {
+                cfg.MsfxApi = new MsfxApiOptions
+                {
+                    GatewayUrl = gateway,
+                    AppKey = appKey,
+                    AppSecret = appSecret,
+                    SessionToken = sessionToken,
+                    RefEntId = refEntId,
+                    DefaultMethod = "alibaba.alihealth.drugtrace.top.yljg.listupout",
+                    TimeoutSeconds = timeoutSeconds
+                };
+            });
+
+            var saved = _appConfigStore.Load().MsfxApi ?? new MsfxApiOptions();
             await RunOnUiAsync(() =>
             {
-                MsfxGatewayUrl = string.Equals(cfg.MsfxApi.GatewayUrl, MsfxDefaultGatewayUrl, StringComparison.OrdinalIgnoreCase)
+                MsfxGatewayUrl = string.Equals(saved.GatewayUrl, MsfxDefaultGatewayUrl, StringComparison.OrdinalIgnoreCase)
                     ? string.Empty
-                    : cfg.MsfxApi.GatewayUrl;
-                MsfxAppKey = cfg.MsfxApi.AppKey;
-                MsfxAppSecret = cfg.MsfxApi.AppSecret;
-                MsfxSessionToken = cfg.MsfxApi.SessionToken;
-                MsfxRefEntId = cfg.MsfxApi.RefEntId;
-                MsfxTimeoutSeconds = cfg.MsfxApi.TimeoutSeconds;
-                RefreshMsfxApiHint(cfg.MsfxApi);
+                    : saved.GatewayUrl;
+                MsfxAppKey = saved.AppKey;
+                MsfxAppSecret = saved.AppSecret;
+                MsfxSessionToken = saved.SessionToken;
+                MsfxRefEntId = saved.RefEntId;
+                MsfxTimeoutSeconds = saved.TimeoutSeconds;
+                RefreshMsfxApiHint(saved);
             });
 
             _toast.Success("码上放心 API", "配置已保存");

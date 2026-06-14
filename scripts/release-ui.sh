@@ -199,10 +199,34 @@ run_cmd dotnet publish "$UI_DIR/PacToolkits.Desktop.Avalonia.csproj" \
   -r "$RUNTIME" \
   --self-contained "$SELF_CONTAINED"
 
+PACINJECTOR_SRC="$UI_DIR/Tools/pacinjector.exe"
+PACINJECTOR_DST="$PACK_DIR/Tools/pacinjector.exe"
+PACINJECTOR_MIN_BYTES=4096
+
+if [[ "$DRY_RUN" == "true" ]]; then
+  printf '[dry-run] mkdir -p %q\n' "$PACK_DIR/Tools"
+  printf '[dry-run] cp -f %q %q\n' "$PACINJECTOR_SRC" "$PACINJECTOR_DST"
+else
+  [[ -f "$PACINJECTOR_SRC" ]] || {
+    echo "ERROR: missing agent binary: $PACINJECTOR_SRC" >&2
+    echo "Build agent first, e.g.: ./scripts/release-agent.sh --skip-upload --dry-run" >&2
+    exit 1
+  }
+  mkdir -p "$PACK_DIR/Tools"
+  cp -f "$PACINJECTOR_SRC" "$PACINJECTOR_DST"
+  [[ -f "$PACINJECTOR_DST" ]] || { echo "ERROR: failed to copy pacinjector.exe to publish output" >&2; exit 1; }
+  pacinjector_size="$(wc -c < "$PACINJECTOR_DST" | tr -d ' ')"
+  if [[ "${pacinjector_size:-0}" -le "$PACINJECTOR_MIN_BYTES" ]]; then
+    echo "ERROR: pacinjector.exe too small to be valid ($PACINJECTOR_DST, ${pacinjector_size} bytes)" >&2
+    exit 1
+  fi
+fi
+
 if [[ "$DRY_RUN" != "true" ]]; then
   [[ -d "$PACK_DIR" ]] || { echo "ERROR: pack dir not found: $PACK_DIR" >&2; exit 1; }
   [[ -f "$PACK_DIR/$MAIN_EXE" ]] || { echo "ERROR: main exe not found: $PACK_DIR/$MAIN_EXE" >&2; exit 1; }
   [[ -f "$ICON_FILE" ]] || { echo "ERROR: icon not found: $ICON_FILE" >&2; exit 1; }
+  [[ -f "$PACINJECTOR_DST" ]] || { echo "ERROR: pacinjector.exe not found in publish output: $PACINJECTOR_DST" >&2; exit 1; }
   [[ -f "$PACK_DIR/Sql/Bootstrap/000_init_meta.sql" ]] || { echo "ERROR: bootstrap SQL not found in publish output" >&2; exit 1; }
   [[ -d "$PACK_DIR/Sql/Migrations" ]] || { echo "ERROR: migrations SQL directory not found in publish output" >&2; exit 1; }
   [[ -d "$PACK_DIR/Sql/Verify" ]] || { echo "ERROR: verify SQL directory not found in publish output" >&2; exit 1; }

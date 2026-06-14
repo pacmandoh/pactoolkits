@@ -52,7 +52,7 @@ Desktop UI, AutoHotkey automation, and PostgreSQL orchestration for drug trace-c
 
 <table>
   <tr>
-    <td align="center"><a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-3f6212?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License" /></a></td>
+    <td align="center"><a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue?style=for-the-badge&logo=gnu&logoColor=white" alt="License: GPL-3.0-or-later" /></a></td>
     <td align="center"><a href="https://www.jetbrains.com/opensource/"><img src="https://img.shields.io/badge/JetBrains-Supported-000000?style=for-the-badge&logo=jetbrains&logoColor=white" alt="JetBrains" /></a></td>
     <td align="center"><img src="https://img.shields.io/badge/Platform-Windows-334155?style=for-the-badge&logo=microsoft&logoColor=white" alt="Platform" /></td>
     <td align="center"><img src="https://img.shields.io/badge/.NET-net10.0-475569?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET" /></td>
@@ -87,9 +87,12 @@ PacToolkits is designed for environments where **drug indexing, trace-code intak
 
 This repository is a coordinated system with:
 
-- business-facing interaction in `PacToolkits.Desktop.Avalonia`
-- execution and automation in `pactoolkits-agent`
-- persistence, task orchestration, and schema evolution in `pactoolkits-db`
+- business-facing interaction in `apps/desktop-avalonia` (Avalonia)
+- shared use cases and abstractions in `packages/application`
+- PostgreSQL implementations in `packages/infrastructure`
+- execution and automation in `runtime/agent-ahk`
+- persistence, task orchestration, and schema evolution in `database/postgres`
+- a reserved future preview shell in `apps/desktop-electron` (not in release)
 
 ---
 
@@ -111,15 +114,17 @@ This repository is a coordinated system with:
 
 ```mermaid
 flowchart LR
-    UI["PacToolkits.Desktop.Avalonia\nAvalonia Desktop App"]
-    AGENT["pactoolkits-agent\nAutoHotkey v2 Runtime"]
-    DB["pactoolkits-db\nPostgreSQL Schema + Migrations"]
+    UI["apps/desktop-avalonia\nAvalonia Desktop App"]
+    PKG["packages/\napplication · infrastructure · core"]
+    AGENT["runtime/agent-ahk\nAutoHotkey v2 Runtime"]
+    DB["database/postgres\nPostgreSQL Schema + Migrations"]
     SCRIPTS["scripts/\nRelease + Version Tooling"]
     CI[".github/workflows\nBuild + Release Automation"]
 
+    UI --> PKG
     UI -->|config / runtime control| AGENT
-    UI -->|queries / dashboards / actions| DB
     AGENT -->|task claim / state sync / event logs| DB
+    PKG --> DB
     SCRIPTS --> UI
     SCRIPTS --> AGENT
     SCRIPTS --> DB
@@ -132,23 +137,38 @@ flowchart LR
 
 ```text
 pactoolkits/
-  apps/desktop-avalonia/src/  Avalonia desktop client
+  apps/desktop-avalonia/src/  Current production UI (Avalonia)
+  apps/desktop-electron/      Future Nuxt + Electron preview (placeholder, not in release)
+  packages/
+    core/                     Pure domain helpers (no IO)
+    application/              Use cases, DTOs, service abstractions
+    infrastructure/           PostgreSQL repos and DB services
+    agent-contracts/          Shared UI ↔ Agent protocol
   runtime/agent-ahk/          AutoHotkey v2 automation runtime
   database/postgres/          PostgreSQL bootstrap, migration, verify, deploy scripts
-  scripts/               Versioning, packaging, release helpers
-  .github/workflows/     CI/CD and release workflows
-  release-manifest.json  Unified version source of truth
+  docs/                       Architecture and operations documentation
+  scripts/                    Versioning, packaging, release helpers
+  .github/workflows/          CI/CD and release workflows
+  PacToolkits.sln             .NET solution entry point
+  release-manifest.json       Unified version source of truth
 ```
+
+## Documentation
+
+- [Monorepo layout](./docs/architecture/monorepo-layout.md)
+- [Layering and dependency rules](./docs/architecture/layering.md)
+- [Avalonia extraction plan](./docs/migration/avalonia-extraction-plan.md)
+- [Release flow](./docs/operations/release-flow.md)
 
 ---
 
 ## Module Guide
 
-## 1. `PacToolkits.Desktop.Avalonia`
+## 1. `apps/desktop-avalonia`
 
 **Role**
 
-The desktop application is the operational center of the suite. It provides business workflows for inventory, drug indexing, scan entry, MSFX linkage, runtime control, update handling, and diagnostics.
+The desktop application is the operational center of the suite. It provides business workflows for inventory, drug indexing, scan entry, MSFX linkage, runtime control, update handling, and diagnostics. Page ViewModels call into `packages/application` services; database access lives in `packages/infrastructure`.
 
 **Primary responsibilities**
 
@@ -165,8 +185,7 @@ The desktop application is the operational center of the suite. It provides busi
 **Key areas**
 
 - `Views/` and `ViewModels/`
-- `Services/`
-- `DataAccess/`
+- `Services/Application/` and `Services/Infrastructure/` (UI-specific adapters)
 - `Styles/`, `Controls/`, `Behaviors/`, `Converters/`
 - `Docs/`
 
@@ -186,12 +205,12 @@ The desktop application is the operational center of the suite. It provides busi
 - CommunityToolkit.Mvvm
 - IconPacks.Avalonia.Lucide
 - SukiUI
-- Npgsql
 - Velopack
+- Project references: `PacToolkits.Application`, `PacToolkits.Infrastructure`, `PacToolkits.Agent.Contracts`
 
 ---
 
-## 2. `pactoolkits-agent`
+## 2. `runtime/agent-ahk`
 
 **Role**
 
@@ -253,7 +272,7 @@ Related warehouse execution fields:
 
 ---
 
-## 3. `pactoolkits-db`
+## 3. `database/postgres`
 
 **Role**
 
@@ -437,7 +456,13 @@ Common commands:
 - `vpk` for Velopack packaging
 - `rsync` if publishing to a remote target
 
-## Build UI
+## Build solution
+
+```bash
+dotnet build PacToolkits.sln
+```
+
+## Build UI only
 
 ```bash
 cd apps/desktop-avalonia/src
@@ -515,5 +540,5 @@ Thanks to JetBrains for supporting the project:
 
 ## License
 
-Released under the [MIT License](./LICENSE).  
-This project is open sourced under the [MIT License](./LICENSE).
+Released under the [GNU General Public License version 3 or later](./LICENSE) (`GPL-3.0-or-later`).  
+This project is free software; see the license file for copying conditions.

@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "description": "Reserved Nuxt + Electron preview shell. Not part of release.",
+  "license": "GPL-3.0-or-later",
   "main": "electron/main/index.js",
   "scripts": {
     "start": "node -e \"console.error('Electron preview is not wired yet. See README.md.'); process.exit(1)\""
