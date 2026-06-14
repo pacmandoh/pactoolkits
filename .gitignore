@@ -42,7 +42,11 @@ apps/desktop-avalonia/src/Sql/
 # ------------------------------
 # Agent local packaging artifacts
 # ------------------------------
-runtime/agent-ahk/Releases/
+runtime/agents/injector-ahk/Releases/
+artifacts/agents/**/*
+!artifacts/agents/**/.gitkeep
+artifacts/desktop/**/*
+!artifacts/desktop/**/.gitkeep
 
 # ------------------------------
 # Runtime logs / temp

@@ -62,7 +62,7 @@ Copy-Item scripts/config.example.json scripts/config.json
 
 ## Rules
 
-1. Source of target DB version: `../../release-manifest.json` -> `dbSchemaVersion`.
+1. Source of target DB version: `../../release-manifest.json` -> `components["database-postgres"].version` (legacy fallback: `dbSchemaVersion`).
 2. Every schema change must be a new migration file: `Vx_y_z__description.sql`.
 3. Applied migration files are immutable (checksum protected).
 4. `verify` is read-only and production-safe on non-empty databases.

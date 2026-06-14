@@ -67,7 +67,9 @@ public static class ServiceCollectionRegistrationExtensions
         services.AddSingleton<IAgentEventSink, NullAgentEventSink>();
         services.AddSingleton<IAgentConfigWriter, AgentConfigWriter>();
         services.AddSingleton<IAgentTaskService, AgentTaskService>();
-        services.AddSingleton<IAutomationRuntimeService, AhkRuntimeService>();
+        services.AddSingleton<AhkInjectorAgentRuntime>();
+        services.AddSingleton<IAgentRuntime>(sp => sp.GetRequiredService<AhkInjectorAgentRuntime>());
+        services.AddSingleton<IAgentManager, AgentManager>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
         services.AddSingleton<IUpdateUiFlowService, UpdateUiFlowService>();
         services.AddSingleton<IMsfxApiClient, MsfxApiClient>();

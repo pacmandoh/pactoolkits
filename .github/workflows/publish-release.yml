@@ -1,4 +1,4 @@
-name: Release Publish Assets
+name: Publish Release
 
 on:
   workflow_call:
@@ -8,32 +8,36 @@ permissions:
   contents: write
 
 jobs:
-  publish_assets:
-    name: Upload Release Assets and Sync Feed
+  publish_release:
+    name: Publish Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Download workflow artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: release-assets
-          path: dist
-
       - name: Read release manifest
         run: |
           set -euo pipefail
-          channel="$(jq -r '.build.channel // empty' release-manifest.json)"
+          # shellcheck source=manifest-v2.sh
+          source scripts/manifest-v2.sh
+          validate_manifest_v2 release-manifest.json
+          channel="$(manifest_release_channel release-manifest.json)"
+          product_version="$(manifest_product_version release-manifest.json)"
+          if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
+            validate_release_tag_matches_product_version "${GITHUB_REF_NAME:-}" release-manifest.json
+          fi
           case "$channel" in
-            stable|beta)
-              ;;
-            *)
-              echo "Unsupported release channel: ${channel:-<empty>}"
-              exit 1
-              ;;
+            stable|beta) ;;
+            *) echo "Unsupported release channel: ${channel:-<empty>}"; exit 1 ;;
           esac
           echo "RELEASE_CHANNEL=$channel" >> "$GITHUB_ENV"
+          echo "PRODUCT_VERSION=$product_version" >> "$GITHUB_ENV"
+
+      - name: Download desktop release artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: pactoolkits-desktop-win-x64-${{ env.PRODUCT_VERSION }}
+          path: dist
 
       - name: Upload assets to GitHub Release
         env:
@@ -43,10 +47,6 @@ jobs:
           set -euo pipefail
           if [[ "${GITHUB_REF:-}" != refs/tags/v* ]]; then
             echo "This job only supports tag refs like refs/tags/v*; got: ${GITHUB_REF:-<empty>}"
-            exit 1
-          fi
-          if [ -z "${GITHUB_REF_NAME:-}" ]; then
-            echo "GITHUB_REF_NAME is empty; this job must run on a tag ref."
             exit 1
           fi
           shopt -s nullglob
@@ -79,15 +79,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           printf '%s\n' "$FEED_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
-
-          # Validate key format without leaking key material.
-          if grep -q '\\n' ~/.ssh/id_ed25519; then
-            echo "KEY_HAS_LITERAL_BACKSLASH_N"
-          fi
-          if grep -q $'\r' ~/.ssh/id_ed25519; then
-            echo "KEY_HAS_CRLF"
-          fi
-          ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null && echo "KEY_PARSE_OK" || (echo "KEY_PARSE_BAD"; exit 1)
+          ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
 
       - name: Rsync release feed
         env:
@@ -97,33 +89,7 @@ jobs:
           FEED_RSYNC_PATH: ${{ secrets.FEED_RSYNC_PATH }}
         run: |
           set -euo pipefail
-          ssh_rsh="ssh -i $HOME/.ssh/id_ed25519 -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=10 -o ConnectionAttempts=1 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -p ${FEED_SSH_PORT}"
+          ssh_rsh="ssh -i $HOME/.ssh/id_ed25519 -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=10 -p ${FEED_SSH_PORT}"
           target_path="${FEED_RSYNC_PATH%/}/${RELEASE_CHANNEL}"
-
-          # Preflight to fail fast on auth/network issues before rsync.
-          if ! $ssh_rsh "${FEED_SSH_USER}@${FEED_SSH_HOST}" "echo ssh_ok" >/dev/null; then
-            echo "SSH preflight failed."
-            exit 1
-          fi
-
           $ssh_rsh "${FEED_SSH_USER}@${FEED_SSH_HOST}" "mkdir -p '${target_path}'"
-
-          max_attempts=5
-          for attempt in $(seq 1 "$max_attempts"); do
-            echo "rsync attempt ${attempt}/${max_attempts}"
-            if rsync -a --delete --timeout=60 --info=progress2,stats1 \
-              --rsh "$ssh_rsh" \
-              dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${target_path}/"; then
-              echo "rsync succeeded."
-              exit 0
-            fi
-
-            if [ "$attempt" -eq "$max_attempts" ]; then
-              echo "rsync failed after ${max_attempts} attempts."
-              exit 1
-            fi
-
-            backoff=$((attempt * 10))
-            echo "rsync failed; retrying in ${backoff}s..."
-            sleep "$backoff"
-          done
+          rsync -a --delete --timeout=60 --rsh "$ssh_rsh" dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${target_path}/"

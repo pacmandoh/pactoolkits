@@ -11,7 +11,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Application;
 public sealed record AppUpdateCheckResult(
     bool Success,
     bool HasUpdate,
-    bool? HasSuiteUpdate,
+    bool? HasProductUpdate,
     string CurrentVersion,
     string LatestVersion,
     string CurrentChannel,
@@ -32,7 +32,7 @@ public interface IAppUpdateService
     string CurrentVersion { get; }
     string LatestVersion { get; }
     bool HasUpdateAvailable { get; }
-    bool? HasSuiteUpdateAvailable { get; }
+    bool? HasProductUpdateAvailable { get; }
     bool IsChecking { get; }
     DateTimeOffset? LastCheckedAt { get; }
     string LastMessage { get; }
@@ -52,7 +52,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
     public string CurrentVersion { get; private set; }
     public string LatestVersion { get; private set; }
     public bool HasUpdateAvailable { get; private set; }
-    public bool? HasSuiteUpdateAvailable { get; private set; }
+    public bool? HasProductUpdateAvailable { get; private set; }
     public bool IsChecking { get; private set; }
     public DateTimeOffset? LastCheckedAt { get; private set; }
     public string LastMessage { get; private set; } = "未检查";
@@ -72,7 +72,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
     private AppUpdateCheckResult CreateCheckResult(
         bool success,
         bool hasUpdate,
-        bool? hasSuiteUpdate,
+        bool? hasProductUpdate,
         string latestVersion,
         string currentChannel,
         string targetChannel,
@@ -83,7 +83,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
         => new(
             success,
             hasUpdate,
-            hasSuiteUpdate,
+            hasProductUpdate,
             CurrentVersion,
             latestVersion,
             currentChannel,
@@ -119,7 +119,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 var noFeed = CreateCheckResult(
                     success: false,
                     hasUpdate: false,
-                    hasSuiteUpdate: null,
+                    hasProductUpdate: null,
                     latestVersion: CurrentVersion,
                     currentChannel: currentChannel,
                     targetChannel: targetChannel,
@@ -137,7 +137,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 var notInstalled = CreateCheckResult(
                     success: false,
                     hasUpdate: false,
-                    hasSuiteUpdate: null,
+                    hasProductUpdate: null,
                     latestVersion: CurrentVersion,
                     currentChannel: currentChannel,
                     targetChannel: targetChannel,
@@ -156,7 +156,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 var pendingResult = CreateCheckResult(
                     success: true,
                     hasUpdate: true,
-                    hasSuiteUpdate: true,
+                    hasProductUpdate: true,
                     latestVersion: pendingVersion,
                     currentChannel: currentChannel,
                     targetChannel: targetChannel,
@@ -174,7 +174,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 var mismatch = CreateCheckResult(
                     success: true,
                     hasUpdate: false,
-                    hasSuiteUpdate: false,
+                    hasProductUpdate: false,
                     latestVersion: CurrentVersion,
                     currentChannel: currentChannel,
                     targetChannel: targetChannel,
@@ -198,7 +198,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 var upToDate = CreateCheckResult(
                     success: true,
                     hasUpdate: false,
-                    hasSuiteUpdate: false,
+                    hasProductUpdate: false,
                     latestVersion: CurrentVersion,
                     currentChannel: currentChannel,
                     targetChannel: targetChannel,
@@ -225,7 +225,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             var result = CreateCheckResult(
                 success: true,
                 hasUpdate: hasUpdate,
-                hasSuiteUpdate: ignored ? false : true,
+                hasProductUpdate: ignored ? false : true,
                 latestVersion: latest,
                 currentChannel: currentChannel,
                 targetChannel: targetChannel,
@@ -253,7 +253,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             var failed = CreateCheckResult(
                 success: false,
                 hasUpdate: false,
-                hasSuiteUpdate: null,
+                hasProductUpdate: null,
                 latestVersion: CurrentVersion,
                 currentChannel: ResolveInstalledChannel(),
                 targetChannel: NormalizeChannel(_settings.Current.Channel),
@@ -392,7 +392,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
         RefreshCurrentVersion();
         LatestVersion = CurrentVersion;
         HasUpdateAvailable = false;
-        HasSuiteUpdateAvailable = null;
+        HasProductUpdateAvailable = null;
         Changed?.Invoke();
         _ = RecheckAfterSettingsChangedAsync();
     }
@@ -407,7 +407,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
     {
         LatestVersion = result.LatestVersion;
         HasUpdateAvailable = result.HasUpdate;
-        HasSuiteUpdateAvailable = result.HasSuiteUpdate;
+        HasProductUpdateAvailable = result.HasProductUpdate;
         LastCheckedAt = result.CheckedAt;
         LastMessage = result.Message;
         Changed?.Invoke();

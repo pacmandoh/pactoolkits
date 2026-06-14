@@ -22,7 +22,7 @@
       <img src="https://img.shields.io/badge/MVVM-Avalonia-475569?style=flat-square&logo=dotnet&logoColor=white" alt="MVVM Avalonia" />
     </td>
     <td align="center" width="260" valign="top">
-      <img src="./runtime/agent-ahk/assets/pacinjection.ico" alt="PacToolkits Agent Icon" width="72" />
+      <img src="./runtime/agents/injector-ahk/assets/pactoolkits-agent-injector-ahk.ico" alt="PacToolkits Agent Icon" width="72" />
       <br />
       <strong>PacToolkits Agent</strong>
       <br />
@@ -59,7 +59,7 @@ Desktop UI, AutoHotkey automation, and PostgreSQL orchestration for drug trace-c
   </tr>
   <tr>
     <td align="center"><a href="./apps/desktop-avalonia/src"><img src="https://img.shields.io/badge/UI-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="UI" /></a></td>
-    <td align="center"><a href="./runtime/agent-ahk"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
+    <td align="center"><a href="./runtime/agents/injector-ahk"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
     <td align="center"><a href="./database/postgres"><img src="https://img.shields.io/badge/Database-PostgreSQL-1d4ed8?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" /></a></td>
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
@@ -90,7 +90,7 @@ This repository is a coordinated system with:
 - business-facing interaction in `apps/desktop-avalonia` (Avalonia)
 - shared use cases and abstractions in `packages/application`
 - PostgreSQL implementations in `packages/infrastructure`
-- execution and automation in `runtime/agent-ahk`
+- execution and automation in `runtime/agents/injector-ahk`
 - persistence, task orchestration, and schema evolution in `database/postgres`
 - a reserved future preview shell in `apps/desktop-electron` (not in release)
 
@@ -116,7 +116,7 @@ This repository is a coordinated system with:
 flowchart LR
     UI["apps/desktop-avalonia\nAvalonia Desktop App"]
     PKG["packages/\napplication · infrastructure · core"]
-    AGENT["runtime/agent-ahk\nAutoHotkey v2 Runtime"]
+    AGENT["runtime/agents/injector-ahk\nAutoHotkey v2 Runtime"]
     DB["database/postgres\nPostgreSQL Schema + Migrations"]
     SCRIPTS["scripts/\nRelease + Version Tooling"]
     CI[".github/workflows\nBuild + Release Automation"]
@@ -144,7 +144,7 @@ pactoolkits/
     application/              Use cases, DTOs, service abstractions
     infrastructure/           PostgreSQL repos and DB services
     agent-contracts/          Shared UI ↔ Agent protocol
-  runtime/agent-ahk/          AutoHotkey v2 automation runtime
+  runtime/agents/injector-ahk/          AutoHotkey v2 automation runtime
   database/postgres/          PostgreSQL bootstrap, migration, verify, deploy scripts
   docs/                       Architecture and operations documentation
   scripts/                    Versioning, packaging, release helpers
@@ -210,7 +210,7 @@ The desktop application is the operational center of the suite. It provides busi
 
 ---
 
-## 2. `runtime/agent-ahk`
+## 2. `runtime/agents/injector-ahk`
 
 **Role**
 
@@ -323,10 +323,12 @@ This folder standardizes versioning, packaging, publishing, and operational depl
   - validates version consistency across the repository
 - `export-version.sh`
   - exports manifest values into generated project files
-- `release-ui.sh`
-  - packages and publishes UI artifacts
-- `release-agent.sh`
-  - packages and publishes agent artifacts
+- `release-desktop.sh`
+  - packages and publishes desktop (Velopack) artifacts
+- `release-agent-injector-ahk.sh`
+  - packages and publishes agent-injector-ahk artifacts
+- `release-ui.sh` / `release-agent.sh`
+  - deprecated aliases of the scripts above
 
 **Repository maintenance**
 
@@ -361,33 +363,39 @@ CI/CD workflows provide release automation for packaging, release-note generatio
 
 **Current workflows**
 
-- `release.yml`
-- `release-build-ui.yml`
-- `release-build-agent.yml`
-- `release-publish-assets.yml`
-- `release-generate-notes.yml`
+- `release.yml` — orchestrates tag / manual release
+- `build-agent-injector-ahk.yml` — compile AHK agent
+- `build-desktop-avalonia.yml` — publish Avalonia desktop (no bundled agents)
+- `build-desktop-electron-preview.yml` — Electron preview marker (not published to feed)
+- `package-desktop.yml` — bundle agents per `desktop.bundles`, Velopack pack
+- `generate-release-notes.yml` — release notes (tag only)
+- `publish-release.yml` — GitHub Release + update feed (tag only)
 
 ## Release and Update Flow
 
-The current release and update chain supports only `stable` and `beta`.
+The current release and update chain supports only `stable` and `beta`. Versioning is driven by **manifest schema v2** in [release-manifest.json](./release-manifest.json).
 
 1. Release manifest
-- Everything is driven from [release-manifest.json](./release-manifest.json)
-- `suiteVersion` is used as the UI Velopack package version
-- `build.channel` is used as the release channel
+- Everything is driven from [release-manifest.json](./release-manifest.json) (`schemaVersion: 2`)
+- `product.version` is used as the Velopack `packVersion`
+- `release.channel` is used as the release channel
+- `components.desktop.bundles` lists agent component IDs bundled into the desktop installer
 
-2. UI packaging
-- [release-build-ui.yml](./.github/workflows/release-build-ui.yml) builds the UI package
+2. Desktop packaging
+- [build-desktop-avalonia.yml](./.github/workflows/build-desktop-avalonia.yml) publishes the desktop app
+- [package-desktop.yml](./.github/workflows/package-desktop.yml) downloads each bundled agent artifact and runs Velopack
 - `packId` is fixed to `pactoolkits`
-- `packVersion` uses `suiteVersion`
-- `channel` uses `build.channel`
+- `packVersion` uses `product.version`
+- `channel` uses `release.channel`
+- Main executable: `pactoolkits-desktop.exe`
 
 3. Asset publishing
-- [release-publish-assets.yml](./.github/workflows/release-publish-assets.yml) uploads the release assets
+- [publish-release.yml](./.github/workflows/publish-release.yml) uploads the release assets
 - Feed payloads are synced into channel-specific subdirectories:
   - `.../stable/`
   - `.../beta/`
 - Different channels are not mixed in one shared feed directory
+- Electron preview artifacts are **not** included in the formal feed
 
 4. Client update checks
 - `AppUpdateService` resolves the feed to:
@@ -425,24 +433,26 @@ PacToolkits currently spans these major business areas:
 
 Single source of truth:
 
-- `release-manifest.json`
+- `release-manifest.json` (schema v2)
 
 Current manifest:
 
-- `suiteVersion`: `0.17.1`
-- `uiVersion`: `0.16.1`
-- `agentVersion`: `0.6.1`
-- `dbSchemaVersion`: `1.2.22`
-- `uiMinDbSchema`: `1.2.22`
-- `agentMinDbSchema`: `1.2.22`
+- `product.version`: `0.17.1`
+- `components.desktop.version`: `0.16.1`
+- `components.agent-injector-ahk.version`: `0.6.1`
+- `components.database-postgres.version`: `1.2.22`
+- `components.desktop.minDbSchema`: `1.2.22`
+- `components.agent-injector-ahk.minDbSchema`: `1.2.22`
 
 Common commands:
 
 ```bash
-./scripts/bump-version.sh --ui 0.12.1
+./scripts/bump-version.sh --desktop 0.12.1
 ./scripts/check-version.sh
 ./scripts/export-version.sh
 ```
+
+Legacy CLI aliases still work: `--suite` → `--product`, `--ui` → `--desktop`, `--agent` → agent-injector-ahk component.
 
 ---
 
@@ -473,7 +483,7 @@ dotnet build -c Release
 
 ```bash
 cd pactoolkits
-./scripts/release-agent.sh --skip-upload --dry-run
+./scripts/release-agent-injector-ahk.sh --skip-upload --dry-run
 ```
 
 ## Database Deployment
@@ -490,21 +500,21 @@ cp scripts/config.example.json scripts/config.json
 
 ## Release Workflow
 
-## UI Release
+## Desktop Release
 
 ```bash
-./scripts/release-ui.sh \
+./scripts/release-desktop.sh \
   --runtime win-arm64 \
   --vpk-directive win \
   --upload-target user@host:/var/www/updates/pactoolkits
 ```
 
-`release-ui.sh` now appends the selected channel under that root path and only supports `stable` / `beta`.
+`release-desktop.sh` appends the selected channel under that root path and only supports `stable` / `beta`.
 
 ## Agent Release
 
 ```bash
-./scripts/release-agent.sh \
+./scripts/release-agent-injector-ahk.sh \
   --upload-target user@host:/var/www/updates/pactoolkits-agent/
 ```
 
@@ -540,5 +550,5 @@ Thanks to JetBrains for supporting the project:
 
 ## License
 
-Released under the [GNU General Public License version 3 or later](./LICENSE) (`GPL-3.0-or-later`).  
+Released under the [GNU General Public License version 3 or later](./LICENSE) (`GPL-3.0-or-later`).
 This project is free software; see the license file for copying conditions.

@@ -182,7 +182,7 @@
         </Grid>
       </suki:GlassCard>
 
-      
+
       <Border Grid.Row="1"
           Padding="{DynamicResource DashboardToolbarPadding}">
         <TabControl Classes="DashboardSubTabs"
@@ -222,7 +222,7 @@
         </TabControl>
       </Border>
 
-      
+
       <Grid Grid.Row="2"
          IsVisible="{Binding IsOverviewTab}"
          Margin="{DynamicResource PagePaddingHorizontal}"
@@ -237,7 +237,7 @@
             <Grid RowDefinitions="Auto,Auto,Auto"
                RowSpacing="14">
 
-          
+
           <Grid Grid.Row="0"
              ColumnDefinitions="*,*,*,*"
              ColumnSpacing="{DynamicResource FormColumnSpacing}">
@@ -411,10 +411,10 @@
             </suki:GlassCard>
           </Grid>
 
-          
+
           <Grid Grid.Row="1" ColumnDefinitions="2*,*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
-            
+
             <suki:GlassCard Grid.Column="0" Classes="SectionCard">
               <controls:EmptyStatePanel
                 IsEmpty="{Binding IsTrendEmpty}"
@@ -514,7 +514,7 @@
               </controls:EmptyStatePanel>
             </suki:GlassCard>
 
-            
+
             <suki:GlassCard Grid.Column="1" Classes="SectionCard">
               <controls:EmptyStatePanel
                 IsEmpty="{Binding IsRecentTxnsEmpty}"
@@ -613,10 +613,10 @@
             </suki:GlassCard>
           </Grid>
 
-          
+
           <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
-            
+
             <suki:GlassCard Grid.Column="0" Classes="SectionCard" MinHeight="220">
               <controls:EmptyStatePanel
                 IsEmpty="{Binding IsTopClientsEmpty}"
@@ -697,7 +697,7 @@
               </controls:EmptyStatePanel>
             </suki:GlassCard>
 
-            
+
             <suki:GlassCard Grid.Column="1" Classes="SectionCard" MinHeight="220">
               <controls:EmptyStatePanel
                 IsEmpty="{Binding IsEntryRecentEmpty}"
@@ -734,7 +734,7 @@
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                            HorizontalScrollBarVisibility="Disabled"
                            BringIntoViewOnFocusChange="False">
-                    
+
                     <ItemsControl ItemsSource="{Binding EntryRecentOverview}">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>

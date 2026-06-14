@@ -16,11 +16,11 @@
   <Grid Classes="PageRoot">
       <Grid ColumnDefinitions="2.2*,1*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
-        
+
         <suki:GlassCard Classes="SectionCard" Grid.Column="0">
           <Grid RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
 
-            
+
             <suki:GlassCard Grid.Row="0" Classes="FilterHintCard" IsVisible="{Binding IsSearchPanelVisible}">
               <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                 <TextBox Classes="FilterSearchTextBox"
@@ -58,7 +58,7 @@
               </Grid>
             </suki:GlassCard>
 
-            
+
             <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}"
                VerticalAlignment="Center">
               <TextBlock Text="药品列表" Classes="SectionTitle" />
@@ -91,7 +91,7 @@
                     Spacing="{DynamicResource SpacingInlineMd}"
                     VerticalAlignment="Center">
                 <Button Classes="Action IconToggle"
-                                        
+
                     HorizontalContentAlignment="Center"
                     VerticalContentAlignment="Center"
                     IsEnabled="{Binding !IsUiBusy}"
@@ -137,7 +137,7 @@
               </StackPanel>
             </Grid>
 
-            
+
             <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsListBusy}">
             <controls:EmptyStatePanel
                          IsEmpty="{Binding IsItemsEmpty}"
@@ -211,7 +211,7 @@
           </Grid>
         </suki:GlassCard>
 
-        
+
         <suki:GlassCard x:Name="EditorCard"
                 Classes="SectionCard"
                 behaviors:FocusClearBehavior.SuppressGridClear="True"
@@ -282,7 +282,7 @@
               </StackPanel>
             </Grid>
 
-            
+
             <suki:GlassCard Grid.Row="1" Padding="14" IsVisible="{Binding !HasEditor}" Opacity="0.9">
               <StackPanel Spacing="{DynamicResource SpacingInlineMd}" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <icons:AppIcon Kind="Info" Foreground="{StaticResource BrushWarning}" Width="22" Height="22" />
@@ -290,7 +290,7 @@
               </StackPanel>
             </suki:GlassCard>
 
-            
+
             <suki:GlassCard Grid.Row="1" Padding="12" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}">
               <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
 
@@ -317,7 +317,7 @@
               </Grid>
             </suki:GlassCard>
 
-            
+
             <StackPanel Grid.Row="2" Spacing="4" Opacity="0.78" IsVisible="{Binding HasSelection}">
               <TextBlock>
                 <Run Text="创建：" />
@@ -329,7 +329,7 @@
               </TextBlock>
             </StackPanel>
 
-            
+
             <ScrollViewer Grid.Row="3" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}">
               <StackPanel Spacing="{DynamicResource NavItemsSpacing}" Margin="{DynamicResource MarginBottomMd}">
 
@@ -376,7 +376,7 @@
               </StackPanel>
             </ScrollViewer>
 
-            
+
             <Grid Grid.Row="4" IsVisible="{Binding HasEditor}" IsEnabled="{Binding IsEditorInputEnabled}" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
               <Button Grid.Column="0"
                   Classes="Action"

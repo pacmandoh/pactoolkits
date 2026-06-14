@@ -1,11 +1,13 @@
 namespace PacToolkits.Agent.Contracts.Models;
 
+using PacToolkits.Agent.Contracts.Agents;
+
 /// <summary>
 /// Runtime launch parameters shared between desktop UI and the AHK agent process.
 /// </summary>
 public sealed class AgentRuntimeConfig
 {
-    public string ExecutablePath { get; set; } = @".\Tools\pacinjector.exe";
+    public string ExecutablePath { get; set; } = AgentPaths.InjectorAhkExecutable;
 
     public string ProcessName { get; set; } = string.Empty;
 

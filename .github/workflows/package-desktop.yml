@@ -1,0 +1,199 @@
+name: Package Desktop
+
+on:
+  workflow_call:
+    inputs:
+      implementation:
+        required: true
+        type: string
+      desktop_artifact_name:
+        required: true
+        type: string
+      main_exe:
+        required: true
+        type: string
+      icon_path:
+        required: true
+        type: string
+      releases_dir:
+        required: true
+        type: string
+      pack_id:
+        required: true
+        type: string
+      product_version:
+        required: true
+        type: string
+      desktop_version:
+        required: true
+        type: string
+      channel:
+        required: true
+        type: string
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package_desktop:
+    name: Package Desktop (${{ inputs.implementation }})
+    runs-on: windows-latest
+    env:
+      VPK_CACHE_KEY: vpk-global-tool-v1
+      IMPLEMENTATION: ${{ inputs.implementation }}
+      DESKTOP_ARTIFACT_NAME: ${{ inputs.desktop_artifact_name }}
+      MAIN_EXE: ${{ inputs.main_exe }}
+      ICON_PATH: ${{ inputs.icon_path }}
+      RELEASES_DIR: ${{ inputs.releases_dir }}
+      PACK_ID: ${{ inputs.pack_id }}
+      PRODUCT_VERSION: ${{ inputs.product_version }}
+      DESKTOP_VERSION: ${{ inputs.desktop_version }}
+      CHANNEL: ${{ inputs.channel }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Add dotnet tools path
+        shell: pwsh
+        run: |
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Cache dotnet global tools
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~\.dotnet\tools
+            ~\.dotnet\toolResolverCache
+          key: ${{ runner.os }}-${{ env.VPK_CACHE_KEY }}-${{ hashFiles('.github/workflows/package-desktop.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.VPK_CACHE_KEY }}-
+
+      - name: Install vpk
+        shell: pwsh
+        run: |
+          if (-not (Get-Command vpk -ErrorAction SilentlyContinue)) {
+            dotnet tool install -g vpk
+          }
+
+      - name: Validate release plan inputs
+        shell: pwsh
+        run: |
+          if ($env:IMPLEMENTATION -notin @('avalonia', 'electron')) {
+            throw "Unsupported implementation: $env:IMPLEMENTATION"
+          }
+          if ($env:PRODUCT_VERSION -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid product_version" }
+          if ($env:DESKTOP_VERSION -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid desktop_version" }
+          if (-not (Test-Path $env:ICON_PATH)) { throw "Installer icon missing: $env:ICON_PATH" }
+          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
+          if ($manifest.components.desktop.implementation -ne $env:IMPLEMENTATION) {
+            throw "Manifest implementation=$($manifest.components.desktop.implementation) does not match package input=$env:IMPLEMENTATION"
+          }
+          $bundles = @($manifest.components.desktop.bundles)
+          if ($bundles.Count -eq 0) { throw "components.desktop.bundles is empty" }
+          foreach ($bundleId in $bundles) {
+            if (-not $manifest.components.$bundleId) { throw "Missing manifest component: $bundleId" }
+            if (-not $manifest.components.$bundleId.artifact.'windows-x64') {
+              throw "Missing artifact.windows-x64 for component $bundleId"
+            }
+          }
+
+      - name: Download desktop publish artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.desktop_artifact_name }}
+          path: _desktop_publish
+
+      - name: Download bundled agent artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: pactoolkits-*-win-x64-*
+          path: _agent_artifacts
+
+      - name: Bundle agents into desktop publish output
+        shell: pwsh
+        run: |
+          function Get-AgentArtifactDir {
+            param(
+              [string]$ExeName,
+              [string]$Version
+            )
+            $publishStem = [System.IO.Path]::GetFileNameWithoutExtension($ExeName)
+            Join-Path "_agent_artifacts" "$publishStem-win-x64-$Version"
+          }
+
+          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
+          foreach ($bundleId in @($manifest.components.desktop.bundles)) {
+            $component = $manifest.components.$bundleId
+            $exeName = $component.artifact.'windows-x64'
+            $installDir = $component.artifact.installDir
+            if ([string]::IsNullOrWhiteSpace($installDir)) {
+              throw "Missing artifact.installDir for component $bundleId"
+            }
+            $version = $component.version
+            $artifactDir = Get-AgentArtifactDir -ExeName $exeName -Version $version
+            $agentTargetDir = Join-Path "_desktop_publish" (Join-Path "Agents" $installDir)
+            New-Item -ItemType Directory -Path $agentTargetDir -Force | Out-Null
+            $source = Join-Path $artifactDir $exeName
+            if (-not (Test-Path $source)) {
+              throw "Bundled agent source missing: $source (component=$bundleId artifactDir=$artifactDir)"
+            }
+            Copy-Item $source (Join-Path $agentTargetDir $exeName) -Force
+            Write-Host "Bundled $bundleId -> Agents/$installDir/$exeName"
+          }
+
+      - name: Pack with vpk
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path $env:RELEASES_DIR -Force | Out-Null
+          if (-not (Test-Path (Join-Path "_desktop_publish" $env:MAIN_EXE))) {
+            throw "Main executable missing in publish output: $env:MAIN_EXE"
+          }
+          vpk pack `
+            --packId $env:PACK_ID `
+            --packVersion $env:PRODUCT_VERSION `
+            --packDir _desktop_publish `
+            --outputDir $env:RELEASES_DIR `
+            --mainExe $env:MAIN_EXE `
+            --runtime win-x64 `
+            --channel $env:CHANNEL `
+            --packTitle PacToolkits `
+            --packAuthors pacmandoh `
+            --noPortable `
+            -i $env:ICON_PATH
+
+      - name: Collect desktop release assets
+        shell: pwsh
+        run: |
+          function Get-AgentArtifactDir {
+            param(
+              [string]$ExeName,
+              [string]$Version
+            )
+            $publishStem = [System.IO.Path]::GetFileNameWithoutExtension($ExeName)
+            Join-Path "_agent_artifacts" "$publishStem-win-x64-$Version"
+          }
+
+          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
+          $dist = "_desktop_release"
+          New-Item -ItemType Directory -Path $dist -Force | Out-Null
+          Copy-Item "$env:RELEASES_DIR/*" $dist -Recurse -Force
+          foreach ($bundleId in @($manifest.components.desktop.bundles)) {
+            $component = $manifest.components.$bundleId
+            $exeName = $component.artifact.'windows-x64'
+            $version = $component.version
+            $artifactDir = Get-AgentArtifactDir -ExeName $exeName -Version $version
+            Copy-Item (Join-Path $artifactDir $exeName) (Join-Path $dist $exeName) -Force
+          }
+
+      - name: Upload desktop release artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: pactoolkits-desktop-win-x64-${{ inputs.product_version }}
+          path: _desktop_release/*
+          if-no-files-found: error

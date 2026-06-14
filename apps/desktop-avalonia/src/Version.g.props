@@ -4,6 +4,6 @@
     <Version>0.16.1</Version>
     <AssemblyVersion>0.16.1.0</AssemblyVersion>
     <FileVersion>0.16.1.0</FileVersion>
-    <InformationalVersion>0.16.1+stable.2026-03-21</InformationalVersion>
+    <InformationalVersion>0.16.1+stable.2026-06-13</InformationalVersion>
   </PropertyGroup>
 </Project>

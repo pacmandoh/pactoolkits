@@ -54,7 +54,7 @@ public partial class MainWindowViewModel
         await Task.Delay(350).ConfigureAwait(false);
 
         if (!File.Exists(_configPath)) return;
-        _ahkRuntime.Reload();
+        Injector.Reload();
 
         AppConfigRoot? loaded;
         string? json;

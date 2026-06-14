@@ -2,9 +2,11 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=manifest-v2.sh
+source "$ROOT_DIR/scripts/manifest-v2.sh"
+
 MANIFEST="$ROOT_DIR/release-manifest.json"
 UI_DIR="$ROOT_DIR/apps/desktop-avalonia/src"
-AGENT_DIR="$ROOT_DIR/runtime/agent-ahk"
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -20,64 +22,40 @@ require_cmd jq
   exit 1
 }
 
-suite_version="$(jq -r '.suiteVersion' "$MANIFEST")"
-agent_version="$(jq -r '.agentVersion' "$MANIFEST")"
-ui_version="$(jq -r '.uiVersion' "$MANIFEST")"
-db_schema_version="$(jq -r '.dbSchemaVersion' "$MANIFEST")"
-ui_min_db_schema="$(jq -r '.compat.uiMinDbSchema' "$MANIFEST")"
-agent_min_db_schema="$(jq -r '.compat.agentMinDbSchema' "$MANIFEST")"
-build_channel="$(jq -r '.build.channel' "$MANIFEST")"
-build_date="$(jq -r '.build.date' "$MANIFEST")"
+validate_manifest_v2 "$MANIFEST"
 
-mkdir -p "$UI_DIR" "$AGENT_DIR"
+desktop_version="$(manifest_desktop_version "$MANIFEST")"
+build_channel="$(manifest_release_channel "$MANIFEST")"
+build_date="$(manifest_release_date "$MANIFEST")"
+
+mkdir -p "$UI_DIR"
 
 cat > "$UI_DIR/Version.g.props" <<XML
 <Project>
   <PropertyGroup>
-    <AppVersion>$ui_version</AppVersion>
-    <Version>$ui_version</Version>
-    <AssemblyVersion>${ui_version}.0</AssemblyVersion>
-    <FileVersion>${ui_version}.0</FileVersion>
-    <InformationalVersion>${ui_version}+${build_channel}.${build_date}</InformationalVersion>
+    <AppVersion>$desktop_version</AppVersion>
+    <Version>$desktop_version</Version>
+    <AssemblyVersion>${desktop_version}.0</AssemblyVersion>
+    <FileVersion>${desktop_version}.0</FileVersion>
+    <InformationalVersion>${desktop_version}+${build_channel}.${build_date}</InformationalVersion>
   </PropertyGroup>
 </Project>
 XML
 
-cat > "$UI_DIR/version.generated.json" <<JSON
-{
-  "suiteVersion": "$suite_version",
-  "agentVersion": "$agent_version",
-  "uiVersion": "$ui_version",
-  "dbSchemaVersion": "$db_schema_version",
-  "compat": {
-    "uiMinDbSchema": "$ui_min_db_schema",
-    "agentMinDbSchema": "$agent_min_db_schema"
-  },
-  "build": {
-    "channel": "$build_channel",
-    "date": "$build_date"
-  }
-}
-JSON
+manifest_snapshot="$UI_DIR/version.generated.json"
+jq -S . "$MANIFEST" > "$manifest_snapshot"
 
-cat > "$AGENT_DIR/version.generated.json" <<JSON
-{
-  "suiteVersion": "$suite_version",
-  "agentVersion": "$agent_version",
-  "uiVersion": "$ui_version",
-  "dbSchemaVersion": "$db_schema_version",
-  "compat": {
-    "uiMinDbSchema": "$ui_min_db_schema",
-    "agentMinDbSchema": "$agent_min_db_schema"
-  },
-  "build": {
-    "channel": "$build_channel",
-    "date": "$build_date"
-  }
-}
-JSON
+while IFS= read -r component_id; do
+  [[ -n "$component_id" ]] || continue
+  agent_dir="$ROOT_DIR/$(manifest_agent_source_dir "$component_id")"
+  mkdir -p "$agent_dir"
+  cp "$manifest_snapshot" "$agent_dir/version.generated.json"
+done < <(manifest_agent_component_ids "$MANIFEST")
 
 echo "Exported version artifacts:"
 echo "- $UI_DIR/Version.g.props"
-echo "- $UI_DIR/version.generated.json"
-echo "- $AGENT_DIR/version.generated.json"
+echo "- $manifest_snapshot"
+while IFS= read -r component_id; do
+  [[ -n "$component_id" ]] || continue
+  echo "- $ROOT_DIR/$(manifest_agent_source_dir "$component_id")/version.generated.json"
+done < <(manifest_agent_component_ids "$MANIFEST")
