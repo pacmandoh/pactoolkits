@@ -797,13 +797,18 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             string.Equals(currentAppVersion, "unknown", StringComparison.OrdinalIgnoreCase))
             return;
 
-        var cfg = _appConfigStore.Load();
-        var currentStamp = NormalizeVersionForStamp(cfg.LastDbMigrationAppVersion);
-        if (string.Equals(currentStamp, currentAppVersion, StringComparison.OrdinalIgnoreCase))
+        var existingStamp = NormalizeVersionForStamp(_appConfigStore.Load().LastDbMigrationAppVersion);
+        if (string.Equals(existingStamp, currentAppVersion, StringComparison.OrdinalIgnoreCase))
             return;
 
-        cfg.LastDbMigrationAppVersion = currentAppVersion;
-        await _appConfigStore.SaveAsync(cfg, CancellationToken.None).ConfigureAwait(false);
+        await _appConfigStore.UpdateAsync(cfg =>
+        {
+            var currentStamp = NormalizeVersionForStamp(cfg.LastDbMigrationAppVersion);
+            if (string.Equals(currentStamp, currentAppVersion, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            cfg.LastDbMigrationAppVersion = currentAppVersion;
+        }, CancellationToken.None).ConfigureAwait(false);
         _logger.Info("MainWindowVM", "db.startup_check.migrate.stamp.saved", "Saved DB migration app-version stamp", new
         {
             appVersion = currentAppVersion

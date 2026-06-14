@@ -61,9 +61,8 @@ public sealed class ClientAliasStore
 
             try
             {
-                var cfg = _configStore.Load();
-                cfg.ClientAliases = new Dictionary<string, string>(_aliases, StringComparer.OrdinalIgnoreCase);
-                _configStore.Save(cfg);
+                var aliases = new Dictionary<string, string>(_aliases, StringComparer.OrdinalIgnoreCase);
+                _configStore.Update(cfg => cfg.ClientAliases = aliases);
             }
             catch (System.Exception ex)
             {

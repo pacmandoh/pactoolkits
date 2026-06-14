@@ -3,6 +3,7 @@
 
     <PropertyGroup>
         <RootNamespace>PacToolkits.Desktop.Avalonia</RootNamespace>
+        <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
         <AppVersion Condition="'$(AppVersion)' == ''">0.0.0-local</AppVersion>
         <Product>PacToolkits</Product>
         <Company>PacmanDoh</Company>

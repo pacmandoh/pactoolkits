@@ -32,9 +32,7 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
     public async Task SaveAsync(UpdateOptions options, CancellationToken ct = default)
     {
         var normalized = Normalize(options);
-        var cfg = _configStore.Load();
-        cfg.Update = Clone(normalized);
-        await _configStore.SaveAsync(cfg, ct).ConfigureAwait(false);
+        await _configStore.UpdateAsync(cfg => cfg.Update = Clone(normalized), ct).ConfigureAwait(false);
 
         _current = normalized;
         Changed?.Invoke();

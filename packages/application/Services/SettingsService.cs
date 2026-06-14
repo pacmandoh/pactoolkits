@@ -51,7 +51,7 @@ public sealed class SettingsService : ISettingsService
     }
 
     public Task SaveDatabaseConfigAsync(PgOptions options, CancellationToken ct)
-        => _dbConfig.SaveAndApplyAsync(options);
+        => _dbConfig.SaveAndApplyAsync(options, ct);
 
     public async Task<(bool Ok, string? Summary)> TestConnectionAsync(PgOptions options, CancellationToken ct)
     {

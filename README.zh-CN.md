@@ -52,7 +52,7 @@
 
 <table>
   <tr>
-    <td align="center"><a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-3f6212?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License" /></a></td>
+    <td align="center"><a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue?style=for-the-badge&logo=gnu&logoColor=white" alt="License: GPL-3.0-or-later" /></a></td>
     <td align="center"><a href="https://www.jetbrains.com/opensource/"><img src="https://img.shields.io/badge/JetBrains-Supported-000000?style=for-the-badge&logo=jetbrains&logoColor=white" alt="JetBrains" /></a></td>
     <td align="center"><img src="https://img.shields.io/badge/Platform-Windows-334155?style=for-the-badge&logo=microsoft&logoColor=white" alt="Platform" /></td>
     <td align="center"><img src="https://img.shields.io/badge/.NET-net10.0-475569?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET" /></td>
@@ -85,11 +85,14 @@
 
 它面向的不是单一页面或单一工具，而是一个需要 **UI、自动化执行、数据库状态** 保持一致的完整系统。
 
-当前仓库的三条主线分别是：
+当前仓库的主线分别是：
 
-- `PacToolkits.Desktop.Avalonia`：业务交互、配置管理、更新能力、审计与诊断
-- `pactoolkits-agent`：解析、注入、验证、任务执行
-- `pactoolkits-db`：入库、映射、任务生成、执行状态与迁移治理
+- `apps/desktop-avalonia`：业务交互、配置管理、更新能力、审计与诊断（**当前正式 UI**）
+- `packages/application`：用例层服务与抽象
+- `packages/infrastructure`：PostgreSQL 仓储与 DB 实现
+- `runtime/agent-ahk`：解析、注入、验证、任务执行（**Win7 / 旧机器兼容 runtime**）
+- `database/postgres`：入库、映射、任务生成、执行状态与迁移治理
+- `apps/desktop-electron`：未来 Nuxt + Electron Preview（**空壳占位，不参与 release**）
 
 ---
 
@@ -111,15 +114,17 @@
 
 ```mermaid
 flowchart LR
-    UI["PacToolkits.Desktop.Avalonia\nAvalonia 桌面端"]
-    AGENT["pactoolkits-agent\nAutoHotkey v2 执行层"]
-    DB["pactoolkits-db\nPostgreSQL Schema + Migrations"]
+    UI["apps/desktop-avalonia\nAvalonia 桌面端"]
+    PKG["packages/\napplication · infrastructure · core"]
+    AGENT["runtime/agent-ahk\nAutoHotkey v2 执行层"]
+    DB["database/postgres\nPostgreSQL Schema + Migrations"]
     SCRIPTS["scripts/\n版本与发布工具"]
     CI[".github/workflows\n构建与发布自动化"]
 
+    UI --> PKG
     UI -->|配置 / 运行控制| AGENT
-    UI -->|查询 / 仪表盘 / 业务操作| DB
     AGENT -->|任务领取 / 状态回写 / 事件记录| DB
+    PKG --> DB
     SCRIPTS --> UI
     SCRIPTS --> AGENT
     SCRIPTS --> DB
@@ -132,23 +137,38 @@ flowchart LR
 
 ```text
 pactoolkits/
-  apps/desktop-avalonia/src/  Avalonia 桌面客户端
+  apps/desktop-avalonia/src/  当前正式 UI（Avalonia）
+  apps/desktop-electron/      未来 Nuxt + Electron Preview（占位，不参与 release）
+  packages/
+    core/                     纯业务核心（无 IO）
+    application/              用例层：DTO、服务接口与应用服务
+    infrastructure/           外部实现：PostgreSQL 仓储
+    agent-contracts/          UI ↔ Agent 共享协议
   runtime/agent-ahk/          AutoHotkey v2 自动化运行时
   database/postgres/          PostgreSQL bootstrap / migration / verify / deploy
-  scripts/               版本、打包、发布辅助脚本
-  .github/workflows/     CI / 发布流程
-  release-manifest.json  全局版本与兼容性清单
+  docs/                       架构与运维文档
+  scripts/                    版本、打包、发布辅助脚本
+  .github/workflows/          CI / 发布流程
+  PacToolkits.sln             .NET 解决方案入口
+  release-manifest.json       全局版本与兼容性清单
 ```
+
+## 架构文档
+
+- [Monorepo 布局](./docs/architecture/monorepo-layout.md)
+- [分层与依赖规则](./docs/architecture/layering.md)
+- [Avalonia 抽离计划](./docs/migration/avalonia-extraction-plan.md)
+- [发布流程](./docs/operations/release-flow.md)
 
 ---
 
 ## 模块说明
 
-## 1. `PacToolkits.Desktop.Avalonia`
+## 1. `apps/desktop-avalonia`
 
 **定位**
 
-桌面端是整个工具套件的业务操作中心，承载页面交互、配置管理、审计展示、更新控制与运行时联动。
+桌面端是整个工具套件的业务操作中心，承载页面交互、配置管理、审计展示、更新控制与运行时联动。ViewModel 通过 `packages/application` 服务访问业务；数据库实现位于 `packages/infrastructure`。
 
 **主要职责**
 
@@ -165,8 +185,7 @@ pactoolkits/
 **主要目录**
 
 - `Views/` 与 `ViewModels/`
-- `Services/`
-- `DataAccess/`
+- `Services/Application/`、`Services/Infrastructure/`（桌面专属适配）
 - `Styles/`、`Controls/`、`Behaviors/`、`Converters/`
 - `Docs/`
 
@@ -186,12 +205,12 @@ pactoolkits/
 - CommunityToolkit.Mvvm
 - IconPacks.Avalonia.Lucide
 - SukiUI
-- Npgsql
 - Velopack
+- 项目引用：`PacToolkits.Application`、`PacToolkits.Infrastructure`、`PacToolkits.Agent.Contracts`
 
 ---
 
-## 2. `pactoolkits-agent`
+## 2. `runtime/agent-ahk`
 
 **定位**
 
@@ -253,7 +272,7 @@ Agent 是自动化执行层，负责对目标窗口进行解析、注入、验�
 
 ---
 
-## 3. `pactoolkits-db`
+## 3. `database/postgres`
 
 **定位**
 
@@ -436,6 +455,12 @@ PacToolkits 当前覆盖的业务场景包括：
 - Velopack 打包工具 `vpk`
 - 若需远端上传，建议安装 `rsync`
 
+## 构建解决方案
+
+```bash
+dotnet build PacToolkits.sln
+```
+
 ## 构建 UI
 
 ```bash
@@ -514,5 +539,5 @@ JetBrains 提供的开发工具帮助我们更高效地处理：
 
 ## License
 
-Released under the [MIT License](./LICENSE).  
-本项目基于 [MIT License](./LICENSE) 开源。
+本项目采用 [GNU 通用公共许可证第 3 版或更高版本](./LICENSE)（`GPL-3.0-or-later`）授权。  
+详见 LICENSE 文件中的复制、修改与分发条件。

@@ -52,9 +52,7 @@ public sealed class TraceCodeRuleService : ITraceCodeRuleService
     public async Task SaveAsync(TraceCodeValidationOptions options, CancellationToken ct = default)
     {
         var normalized = Normalize(options);
-        var cfg = _configStore.Load();
-        cfg.TraceCodeValidation = Clone(normalized);
-        await _configStore.SaveAsync(cfg, ct).ConfigureAwait(false);
+        await _configStore.UpdateAsync(cfg => cfg.TraceCodeValidation = Clone(normalized), ct).ConfigureAwait(false);
 
         lock (_gate)
             _current = Clone(normalized);
