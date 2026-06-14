@@ -1,0 +1,199 @@
+name: Build Agent Injector AHK
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build_agent_injector_ahk:
+    name: Build Agent Injector AHK
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Read manifest agent version
+        shell: pwsh
+        run: |
+          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
+          $agentVersion = $manifest.components.'agent-injector-ahk'.version
+          if ($agentVersion -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Invalid agent-injector-ahk version in release-manifest.json: $agentVersion"
+          }
+          "AGENT_VERSION=$agentVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Cache agent injector binary
+        id: cache_agent_injector
+        uses: actions/cache@v5
+        with:
+          path: ~\pactoolkits-injector-cache\pactoolkits-injector.exe
+          key: ${{ runner.os }}-pactoolkits-injector-${{ hashFiles('release-manifest.json', 'runtime/agents/injector-ahk/main.ahk', 'runtime/agents/injector-ahk/src/**/*.ahk', 'runtime/agents/injector-ahk/assets/pactoolkits-injector.ico', 'runtime/agents/injector-ahk/assets/pactoolkits-agent-injector-ahk.ico', '.github/workflows/build-agent-injector-ahk.yml') }}
+
+      - name: Report agent cache status
+        shell: pwsh
+        run: |
+          Write-Host "cache.agent-injector-ahk.hit=${{ steps.cache_agent_injector.outputs.cache-hit }}"
+
+      - name: Restore cached agent binary
+        if: steps.cache_agent_injector.outputs.cache-hit == 'true'
+        shell: pwsh
+        run: |
+          $cachedExe = Join-Path $env:USERPROFILE "pactoolkits-injector-cache\pactoolkits-injector.exe"
+          if (-not (Test-Path $cachedExe)) {
+            throw "cache-hit=true but cached agent binary is missing: $cachedExe"
+          }
+          $stagingDir = "artifacts/agents/agent-injector-ahk/win-x64"
+          New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
+          Copy-Item $cachedExe (Join-Path $stagingDir "pactoolkits-injector.exe") -Force
+
+      - name: Install AutoHotkey
+        if: steps.cache_agent_injector.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $ahk64 = "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
+          if (-not (Test-Path $ahk64)) {
+            choco install autohotkey --version=2.0.19 --no-progress -y
+          }
+
+      - name: Cache Ahk2Exe asset
+        if: steps.cache_agent_injector.outputs.cache-hit != 'true'
+        id: cache_ahk2exe
+        uses: actions/cache@v5
+        with:
+          path: ~\ahk2exe-cache
+          key: ${{ runner.os }}-ahk2exe-asset-v1-${{ hashFiles('.github/workflows/build-agent-injector-ahk.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-ahk2exe-asset-v1-
+
+      - name: Resolve Ahk2Exe compiler
+        if: steps.cache_agent_injector.outputs.cache-hit != 'true'
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ahkBase = "C:\Program Files\AutoHotkey"
+          $ahk64 = @(
+            (Join-Path $ahkBase "v2\AutoHotkey64.exe"),
+            (Join-Path $ahkBase "AutoHotkey64.exe")
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $ahk64) { throw "AutoHotkey64.exe not found." }
+          "AHK64_PATH=$ahk64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $compilerPath = Join-Path (Join-Path $ahkBase "Compiler") "Ahk2Exe.exe"
+          $cacheRoot = Join-Path $env:USERPROFILE "ahk2exe-cache"
+          $cachedCompiler = Join-Path $cacheRoot "Ahk2Exe.exe"
+          if (-not (Test-Path $compilerPath) -and (Test-Path $cachedCompiler)) {
+            $compilerTargetDir = Join-Path $ahkBase "Compiler"
+            New-Item -ItemType Directory -Force -Path $compilerTargetDir | Out-Null
+            Copy-Item -Path (Join-Path $cacheRoot "*") -Destination $compilerTargetDir -Recurse -Force
+          }
+          if (Test-Path $compilerPath) {
+            "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            exit 0
+          }
+
+          $api = "https://api.github.com/repos/AutoHotkey/Ahk2Exe/releases/latest"
+          $headers = @{
+            "Authorization" = "Bearer $env:GITHUB_TOKEN"
+            "Accept" = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          $release = Invoke-RestMethod -Uri $api -Headers $headers
+          $asset = $release.assets | Where-Object { $_.name -like "Ahk2Exe*.zip" } | Select-Object -First 1
+          if (-not $asset) { throw "No Ahk2Exe zip asset found." }
+
+          $stageRoot = Join-Path $env:RUNNER_TEMP "ahk2exe-stage"
+          $zipPath = Join-Path $stageRoot "Ahk2Exe.zip"
+          $extractRoot = Join-Path $stageRoot "extract"
+          if (Test-Path $stageRoot) { Remove-Item -Path $stageRoot -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $stageRoot | Out-Null
+          Invoke-WebRequest -Uri $asset.url -Headers @{
+            "Authorization" = "Bearer $env:GITHUB_TOKEN"
+            "Accept" = "application/octet-stream"
+          } -OutFile $zipPath
+          Expand-Archive -Path $zipPath -DestinationPath $extractRoot -Force
+
+          $compilerTargetDir = Join-Path $ahkBase "Compiler"
+          if (Test-Path $compilerTargetDir) { Remove-Item -Path $compilerTargetDir -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $compilerTargetDir | Out-Null
+          Copy-Item -Path (Join-Path $extractRoot "*") -Destination $compilerTargetDir -Recurse -Force
+          $compilerPath = Join-Path $compilerTargetDir "Ahk2Exe.exe"
+          if (-not (Test-Path $compilerPath)) { throw "Ahk2Exe deploy failed." }
+          New-Item -ItemType Directory -Force -Path $cacheRoot | Out-Null
+          Copy-Item -Path (Join-Path $compilerTargetDir "*") -Destination $cacheRoot -Recurse -Force
+          "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Compile agent injector AHK
+        if: steps.cache_agent_injector.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $agentVersion4 = "$env:AGENT_VERSION.0"
+          $agentDirPath = (Resolve-Path "runtime/agents/injector-ahk").Path
+          $mainScript = Join-Path $agentDirPath "main.ahk"
+          $entryPath = Join-Path $agentDirPath "__ci_compile_entry__.ahk"
+          $stagingDir = "artifacts/agents/agent-injector-ahk/win-x64"
+          New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
+          $outExe = Join-Path $stagingDir "pactoolkits-injector.exe"
+          $iconCandidates = @(
+            (Join-Path $agentDirPath "assets/pactoolkits-injector.ico"),
+            (Join-Path $agentDirPath "assets/pactoolkits-agent-injector-ahk.ico")
+          )
+          $iconPath = $iconCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iconPath) { throw "Agent icon not found under runtime/agents/injector-ahk/assets" }
+          $entryLines = @(
+            "; CI-only wrapper script for Ahk2Exe directives.",
+            ";@Ahk2Exe-Set Version, $agentVersion4",
+            ";@Ahk2Exe-Set FileVersion, $agentVersion4",
+            ";@Ahk2Exe-Set ProductVersion, $agentVersion4",
+            ";@Ahk2Exe-Set ProductName, PacToolkits Injector",
+            ";@Ahk2Exe-Set CompanyName, pacmandoh",
+            ";@Ahk2Exe-Set FileDescription, PacToolkits automation injector",
+            ";@Ahk2Exe-Set InternalName, pactoolkits-injector",
+            ";@Ahk2Exe-Set OriginalFilename, pactoolkits-injector.exe",
+            ('#Include "{0}"' -f $mainScript)
+          )
+          Set-Content -Path $entryPath -Value $entryLines -Encoding utf8
+          $compiler = $env:AHK2EXE_PATH
+          $base64 = $env:AHK64_PATH
+          $compilerDir = Split-Path -Path $compiler -Parent
+          try {
+            Remove-Item -Path $outExe -Force -ErrorAction SilentlyContinue
+            $argLine = @(
+              ('/in "{0}"' -f $entryPath),
+              ('/out "{0}"' -f $outExe),
+              ('/icon "{0}"' -f $iconPath),
+              ('/base "{0}"' -f $base64)
+            ) -join " "
+            $proc = Start-Process -FilePath $compiler -ArgumentList $argLine -WorkingDirectory $compilerDir -PassThru -Wait
+            if ($null -ne $proc.ExitCode -and $proc.ExitCode -ne 0) {
+              throw "Ahk2Exe exited with code $($proc.ExitCode)"
+            }
+          }
+          finally {
+            if (Test-Path $entryPath) { Remove-Item $entryPath -Force }
+          }
+          if (-not (Test-Path $outExe)) { throw "Agent compile output missing: $outExe" }
+          $cacheDir = Join-Path $env:USERPROFILE "pactoolkits-injector-cache"
+          New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+          Copy-Item $outExe (Join-Path $cacheDir "pactoolkits-injector.exe") -Force
+
+      - name: Validate agent binary
+        shell: pwsh
+        run: |
+          $outExe = "artifacts/agents/agent-injector-ahk/win-x64/pactoolkits-injector.exe"
+          $agentVersion4 = "$env:AGENT_VERSION.0"
+          if (-not (Test-Path $outExe)) { throw "Agent binary missing: $outExe" }
+          $fileVersion = (Get-Item $outExe).VersionInfo.FileVersion
+          if ($fileVersion -ne $agentVersion4) {
+            throw "FileVersion mismatch. expected=$agentVersion4 actual=$fileVersion"
+          }
+
+      - name: Upload agent artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: pactoolkits-injector-win-x64-${{ env.AGENT_VERSION }}
+          path: artifacts/agents/agent-injector-ahk/win-x64/pactoolkits-injector.exe
+          if-no-files-found: error

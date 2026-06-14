@@ -1,0 +1,43 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tooling_tests:
+    name: Tooling Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run tooling tests
+        run: |
+          set -euo pipefail
+          chmod +x scripts/*.sh tests/scripts/*.sh
+          ./tests/scripts/run-tooling-tests.sh
+
+  dotnet_tests:
+    name: .NET Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore PacToolkits.sln
+
+      - name: Test
+        run: dotnet test PacToolkits.sln -c Release --no-restore --verbosity minimal

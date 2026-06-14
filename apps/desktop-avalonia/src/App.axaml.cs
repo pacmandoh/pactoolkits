@@ -12,6 +12,8 @@ using global::Avalonia.Styling;
 using global::Avalonia.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PacToolkits.Agent.Contracts.Abstractions;
+using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Application;
@@ -27,7 +29,7 @@ public class App : global::Avalonia.Application
     private MainWindow? _mainWindow;
     private TrayIcon? _trayIcon;
     private IUiBehaviorService? _uiBehavior;
-    private IAutomationRuntimeService? _ahkRuntime;
+    private IAgentManager? _agentManager;
     private IAppLogger? _logger;
     private bool _forceExit;
     private EventHandler? _themeChangedHandler;
@@ -62,14 +64,15 @@ public class App : global::Avalonia.Application
         DataTemplates.Add(new ViewLocator(Services.GetRequiredService<AppViews>()));
 
         _uiBehavior = Services.GetRequiredService<IUiBehaviorService>();
-        _ahkRuntime = Services.GetRequiredService<IAutomationRuntimeService>();
+        _agentManager = Services.GetRequiredService<IAgentManager>();
         _logger = Services.GetRequiredService<IAppLogger>();
         var releaseVersion = Services.GetRequiredService<IReleaseVersionService>().Current;
-        Resources["AppVersionText"] = $"PacToolkits v{releaseVersion.SuiteVersion}";
+        Resources["AppVersionText"] = $"PacToolkits v{releaseVersion.ProductVersion}";
         _logger.Info("App", "app.start", "Application startup", new
         {
-            releaseVersion.UiVersion,
-            releaseVersion.SuiteVersion,
+            releaseVersion.DesktopVersion,
+            releaseVersion.ProductVersion,
+            releaseVersion.AgentInjectorAhkVersion,
             releaseVersion.BuildChannel,
             releaseVersion.BuildDate
         });
@@ -130,7 +133,7 @@ public class App : global::Avalonia.Application
         _trayIcon = new TrayIcon
         {
             ToolTipText = "PacToolkits",
-            Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://PacToolkits.Desktop.Avalonia/Assets/app.ico"))),
+            Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://pactoolkits-desktop/Assets/app.ico"))),
             Menu = menu,
             IsVisible = true
         };
@@ -194,11 +197,11 @@ public class App : global::Avalonia.Application
     {
         var dark = IsDarkThemeActive();
         var showUri = dark
-            ? "avares://PacToolkits.Desktop.Avalonia/Assets/open-in-app-dark.png"
-            : "avares://PacToolkits.Desktop.Avalonia/Assets/open-in-app.png";
+            ? "avares://pactoolkits-desktop/Assets/open-in-app-dark.png"
+            : "avares://pactoolkits-desktop/Assets/open-in-app.png";
         var exitUri = dark
-            ? "avares://PacToolkits.Desktop.Avalonia/Assets/exit-to-app-dark.png"
-            : "avares://PacToolkits.Desktop.Avalonia/Assets/exit-to-app.png";
+            ? "avares://pactoolkits-desktop/Assets/exit-to-app-dark.png"
+            : "avares://pactoolkits-desktop/Assets/exit-to-app.png";
 
         showItem.Icon = LoadMenuIcon(showUri);
         exitItem.Icon = LoadMenuIcon(exitUri);
@@ -267,11 +270,11 @@ public class App : global::Avalonia.Application
         UnregisterGlobalExceptionHandlers();
 
         // Real app exit: ensure the external AHK injector process is stopped.
-        if (_ahkRuntime is not null)
+        if (_agentManager is not null)
         {
             try
             {
-                _ahkRuntime.StopAsync().GetAwaiter().GetResult();
+                _agentManager.GetRequired(AgentIds.InjectorAhk).StopAsync().GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {

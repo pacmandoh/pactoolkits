@@ -20,22 +20,29 @@ public enum DbProbeKind
 public sealed record DbProbeReport(DbProbeKind Kind, bool Success, string? Reason);
 
 public sealed record ReleaseVersionInfo(
-    string SuiteVersion,
-    string UiVersion,
-    string AgentVersion,
-    string DbSchemaVersion,
+    string ProductVersion,
+    string DesktopVersion,
+    string AgentInjectorAhkVersion,
+    string DatabasePostgresVersion,
     string BuildChannel,
     string BuildDate,
-    string UiMinDbSchema,
-    string AgentMinDbSchema)
+    string DesktopMinDbSchema,
+    string AgentInjectorAhkMinDbSchema)
 {
+    public string SuiteVersion => ProductVersion;
+    public string UiVersion => DesktopVersion;
+    public string AgentVersion => AgentInjectorAhkVersion;
+    public string DbSchemaVersion => DatabasePostgresVersion;
+    public string UiMinDbSchema => DesktopMinDbSchema;
+    public string AgentMinDbSchema => AgentInjectorAhkMinDbSchema;
+
     public static ReleaseVersionInfo Unknown { get; } = new(
-        SuiteVersion: "unknown",
-        UiVersion: "unknown",
-        AgentVersion: "unknown",
-        DbSchemaVersion: "unknown",
+        ProductVersion: "unknown",
+        DesktopVersion: "unknown",
+        AgentInjectorAhkVersion: "unknown",
+        DatabasePostgresVersion: "unknown",
         BuildChannel: "unknown",
         BuildDate: "unknown",
-        UiMinDbSchema: "unknown",
-        AgentMinDbSchema: "unknown");
+        DesktopMinDbSchema: "unknown",
+        AgentInjectorAhkMinDbSchema: "unknown");
 }

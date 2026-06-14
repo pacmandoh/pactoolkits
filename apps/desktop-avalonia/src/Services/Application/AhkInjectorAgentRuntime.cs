@@ -1,5 +1,6 @@
 using System;
 using PacToolkits.Agent.Contracts.Abstractions;
+using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Agent.Contracts.Commands;
 using PacToolkits.Agent.Contracts.Events;
 using PacToolkits.Agent.Contracts.Mapping;
@@ -16,9 +17,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
+namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
-public sealed class AhkRuntimeService : IAutomationRuntimeService
+public sealed class AhkInjectorAgentRuntime : IAgentRuntime
 {
     private readonly IAppConfigStore _configStore;
     private readonly IReleaseVersionService _releaseVersion;
@@ -36,24 +37,33 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
     private string _toolVersion = "未知";
     private bool _disposed;
     private DateTimeOffset _lastCommandAt = DateTimeOffset.MinValue;
+    private int? _lastProcessId;
 
     public event Action? StatusChanged;
 
-    public AutomationAhkOptionsDto CurrentOptions
+    public AgentDescriptor Descriptor => AgentDescriptors.InjectorAhk;
+
+    public string ExecutablePath
     {
         get
         {
             lock (_gate)
-                return AutomationContractMapper.ToApplication(Clone(_options));
+                return _options.ExecutablePath;
         }
     }
 
-    public AutomationRunState State
+    public AhkToolOptions GetAhkToolOptions()
+    {
+        lock (_gate)
+            return Clone(_options);
+    }
+
+    public ToolRunState State
     {
         get
         {
             lock (_gate)
-                return AutomationContractMapper.ToApplication(_state);
+                return _state;
         }
     }
 
@@ -107,7 +117,7 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
         }
     }
 
-    public AhkRuntimeService(
+    public AhkInjectorAgentRuntime(
         IAppConfigStore configStore,
         IReleaseVersionService releaseVersion,
         IAppLogger logger,
@@ -125,7 +135,16 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
     public void Reload()
     {
         var cfg = _configStore.Load();
-        var normalized = Normalize(cfg.AutomationTools.Ahk);
+        var resolution = AgentPathResolver.ResolveInjectorAhk(
+            ResolveConfiguredPath(cfg),
+            AppContext.BaseDirectory);
+
+        var normalized = NormalizeFromResolution(cfg, resolution);
+
+        if (resolution.RequiresMigration)
+        {
+            PersistPathMigration(cfg, normalized, resolution);
+        }
 
         bool changed;
         lock (_gate)
@@ -138,19 +157,26 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
         var statusChanged = RefreshState();
         if (changed || statusChanged)
             RaiseChanged();
-        _logger.Info("AhkRuntime", "ahk.reload", "AHK runtime config reloaded", new
+
+        _logger.Info("AgentInjectorAhk", "agent.reload", "Agent injector runtime config reloaded", new
         {
+            resolution.Source,
             normalized.ExecutablePath,
             normalized.ProcessName,
-            Version = _toolVersion
+            Version = _toolVersion,
+            resolution.RequiresMigration
         });
     }
 
-    public async Task SaveOptionsAsync(AutomationAhkOptionsDto options, CancellationToken ct = default)
+    public async Task SaveOptionsAsync(AhkToolOptions options, CancellationToken ct = default)
     {
-        var normalized = Normalize(AutomationContractMapper.ToContract(options));
+        var normalized = Normalize(options);
         var cloned = Clone(normalized);
-        await _configStore.UpdateAsync(cfg => cfg.AutomationTools.Ahk = cloned, ct).ConfigureAwait(false);
+        await _configStore.UpdateAsync(cfg =>
+        {
+            EnsureAgentSection(cfg, cloned);
+            cfg.AutomationTools.Ahk = cloned;
+        }, ct).ConfigureAwait(false);
 
         bool changed;
         lock (_gate)
@@ -164,7 +190,7 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
         var statusChanged = RefreshState();
         if (changed || statusChanged)
             RaiseChanged();
-        _logger.Info("AhkRuntime", "ahk.options.saved", "AHK runtime options saved", new
+        _logger.Info("AgentInjectorAhk", "agent.options.saved", "Agent injector runtime options saved", new
         {
             normalized.ExecutablePath,
             normalized.ProcessName,
@@ -172,17 +198,21 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
         });
     }
 
-    public async Task<AutomationCommandResult> StartOrRestartAsync(CancellationToken ct = default)
+    public async Task<ToolCommandResult> StartOrRestartAsync(CancellationToken ct = default)
     {
         var entered = await _commandGate.WaitAsync(0, ct).ConfigureAwait(false);
         if (!entered)
-            return new AutomationCommandResult(true, "操作进行中，请稍候", SuppressToast: true);
+            return new ToolCommandResult(true, "操作进行中，请稍候", SuppressToast: true);
 
         AhkToolOptions options;
         try
         {
             if (IsCommandCoolingDown())
-                return new AutomationCommandResult(true, "操作过于频繁，已忽略", SuppressToast: true);
+                return new ToolCommandResult(true, "操作过于频繁，已忽略", SuppressToast: true);
+
+            var cfg = _configStore.Load();
+            if (cfg.Agents.TryGetValue(AgentIds.InjectorAhk, out var agentConfig) && !agentConfig.Enabled)
+                return new ToolCommandResult(false, "Agent 已在配置中禁用", SuppressToast: false);
 
             lock (_gate)
                 options = Clone(_options);
@@ -227,7 +257,12 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
                 UseShellExecute = true,
             };
 
-            Process.Start(startInfo);
+            Process? startedProcess = Process.Start(startInfo);
+            if (startedProcess is not null)
+            {
+                lock (_gate)
+                    _lastProcessId = startedProcess.Id;
+            }
 
             var started = await WaitUntilRunningAsync(options, TimeSpan.FromSeconds(4), ct).ConfigureAwait(false);
             if (!started)
@@ -244,7 +279,7 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
             RaiseChanged();
             var successMessage = wasRunning ? "已重启" : "已启动";
             PublishEvent(AgentCommandKind.Start, ToolRunState.Running, successMessage);
-            return new AutomationCommandResult(true, successMessage);
+            return new ToolCommandResult(true, successMessage);
         }
         catch (Exception ex)
         {
@@ -258,17 +293,17 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
         }
     }
 
-    public async Task<AutomationCommandResult> StopAsync(CancellationToken ct = default)
+    public async Task<ToolCommandResult> StopAsync(CancellationToken ct = default)
     {
         var entered = await _commandGate.WaitAsync(0, ct).ConfigureAwait(false);
         if (!entered)
-            return new AutomationCommandResult(true, "操作进行中，请稍候", SuppressToast: true);
+            return new ToolCommandResult(true, "操作进行中，请稍候", SuppressToast: true);
 
         AhkToolOptions options;
         try
         {
             if (IsCommandCoolingDown())
-                return new AutomationCommandResult(true, "操作过于频繁，已忽略", SuppressToast: true);
+                return new ToolCommandResult(true, "操作过于频繁，已忽略", SuppressToast: true);
 
             lock (_gate)
                 options = Clone(_options);
@@ -280,10 +315,13 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
             if (processes.Count == 0)
             {
                 lock (_gate)
+                {
                     _lastError = null;
+                    _lastProcessId = null;
+                }
                 RefreshState();
                 RaiseChanged();
-                return new AutomationCommandResult(true, "已停止");
+                return new ToolCommandResult(true, "已停止");
             }
 
             foreach (var p in processes)
@@ -312,12 +350,15 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
             await Task.Delay(250, ct).ConfigureAwait(false);
 
             lock (_gate)
+            {
                 _lastError = null;
+                _lastProcessId = null;
+            }
 
             RefreshState();
             RaiseChanged();
             PublishEvent(AgentCommandKind.Stop, ToolRunState.Stopped, "已停止");
-            return new AutomationCommandResult(true, "已停止");
+            return new ToolCommandResult(true, "已停止");
         }
         catch (Exception ex)
         {
@@ -351,11 +392,14 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
                 return false;
 
             _state = newState;
+            if (newState != ToolRunState.Running)
+                _lastProcessId = null;
+
             return true;
         }
     }
 
-    private static ToolRunState DetectState(AhkToolOptions options)
+    private ToolRunState DetectState(AhkToolOptions options)
     {
         try
         {
@@ -367,75 +411,112 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
         }
     }
 
-    private static IEnumerable<Process> GetTargetProcesses(AhkToolOptions options)
+    private IEnumerable<Process> GetTargetProcesses(AhkToolOptions options)
     {
-        var processName = ResolveProcessName(options);
-        if (string.IsNullOrWhiteSpace(processName))
-            return Array.Empty<Process>();
-
-        var byName = Process.GetProcessesByName(processName);
-        if (byName.Length == 0)
-            return byName;
-
-        if (string.IsNullOrWhiteSpace(options.ExecutablePath))
-            return byName;
+        int? trackedPid;
+        lock (_gate)
+            trackedPid = _lastProcessId;
 
         var normalizedExePath = NormalizePath(options.ExecutablePath);
-        if (normalizedExePath is null)
-            return byName;
+        var candidates = ResolveProcessNameCandidates(options);
+        if (candidates.Count == 0)
+            return Array.Empty<Process>();
 
-        var matched = new List<Process>(byName.Length);
-        foreach (var p in byName)
+        var seen = new HashSet<int>();
+        var matched = new List<Process>();
+
+        foreach (var processName in candidates)
         {
-            var keep = false;
-            try
+            foreach (var p in Process.GetProcessesByName(processName))
             {
-                var modulePath = p.MainModule?.FileName;
-                var normalizedModulePath = NormalizePath(modulePath);
-
-                if (normalizedModulePath is not null
-                    && string.Equals(normalizedModulePath, normalizedExePath, StringComparison.OrdinalIgnoreCase))
+                if (!seen.Add(p.Id))
                 {
-                    keep = true;
+                    p.Dispose();
+                    continue;
                 }
-            }
-            catch
-            {
-                keep = true;
-            }
 
-            if (keep)
-            {
-                matched.Add(p);
-            }
-            else
-            {
-                p.Dispose();
+                if (trackedPid is int pid && p.Id == pid)
+                {
+                    if (MatchesExe(p, normalizedExePath, permissiveOnAccessDenied: false))
+                    {
+                        matched.Add(p);
+                    }
+                    else
+                    {
+                        ClearTrackedProcessId(pid);
+                        p.Dispose();
+                    }
+
+                    continue;
+                }
+
+                if (normalizedExePath is null)
+                {
+                    matched.Add(p);
+                    continue;
+                }
+
+                if (MatchesExe(p, normalizedExePath, permissiveOnAccessDenied: true))
+                    matched.Add(p);
+                else
+                    p.Dispose();
             }
         }
 
         return matched;
     }
 
-    private static string ResolveProcessName(AhkToolOptions options)
+    private void ClearTrackedProcessId(int processId)
     {
-        if (!string.IsNullOrWhiteSpace(options.ProcessName))
-            return Path.GetFileNameWithoutExtension(options.ProcessName.Trim());
-
-        if (!string.IsNullOrWhiteSpace(options.ExecutablePath))
-            return Path.GetFileNameWithoutExtension(options.ExecutablePath.Trim());
-
-        return string.Empty;
+        lock (_gate)
+        {
+            if (_lastProcessId == processId)
+                _lastProcessId = null;
+        }
     }
 
-    private AutomationCommandResult SetError(string message)
+    internal static bool MatchesExe(
+        Process process,
+        string? normalizedExePath,
+        bool permissiveOnAccessDenied)
+    {
+        if (normalizedExePath is null)
+            return true;
+
+        try
+        {
+            if (process.HasExited)
+                return false;
+
+            var normalizedModulePath = NormalizePath(process.MainModule?.FileName);
+            return normalizedModulePath is not null
+                   && string.Equals(normalizedModulePath, normalizedExePath, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return permissiveOnAccessDenied;
+        }
+    }
+
+    private static IReadOnlyList<string> ResolveProcessNameCandidates(AhkToolOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.ProcessName))
+            return [Path.GetFileNameWithoutExtension(options.ProcessName.Trim())];
+
+        if (!string.IsNullOrWhiteSpace(options.ExecutablePath))
+            return [Path.GetFileNameWithoutExtension(options.ExecutablePath.Trim())];
+
+        return AgentPaths.InjectorAhkProcessNameCandidates;
+    }
+
+    private ToolCommandResult SetError(string message)
     {
         lock (_gate)
             _lastError = message;
 
         RefreshState();
         RaiseChanged();
-        return new AutomationCommandResult(false, message);
+        return new ToolCommandResult(false, message);
     }
 
     private bool IsCommandCoolingDown()
@@ -451,7 +532,7 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
         }
     }
 
-    private static async Task<bool> WaitUntilRunningAsync(AhkToolOptions options, TimeSpan timeout, CancellationToken ct)
+    private async Task<bool> WaitUntilRunningAsync(AhkToolOptions options, TimeSpan timeout, CancellationToken ct)
     {
         var end = DateTimeOffset.UtcNow + timeout;
 
@@ -468,7 +549,7 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
         return DetectState(options) == ToolRunState.Running;
     }
 
-    private static async Task<bool> WaitUntilStoppedAsync(AhkToolOptions options, TimeSpan timeout, CancellationToken ct)
+    private async Task<bool> WaitUntilStoppedAsync(AhkToolOptions options, TimeSpan timeout, CancellationToken ct)
     {
         var end = DateTimeOffset.UtcNow + timeout;
 
@@ -542,6 +623,76 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
         ExecutablePath = src.ExecutablePath,
         ProcessName = src.ProcessName,
     };
+
+    private static string? ResolveConfiguredPath(AppConfigRoot cfg)
+    {
+        if (cfg.Agents.TryGetValue(AgentIds.InjectorAhk, out var agent)
+            && !string.IsNullOrWhiteSpace(agent.ExecutablePath))
+        {
+            return agent.ExecutablePath;
+        }
+
+        return cfg.AutomationTools.Ahk.ExecutablePath;
+    }
+
+    private static AhkToolOptions NormalizeFromResolution(AppConfigRoot cfg, AgentExecutableResolution resolution)
+    {
+        var storedPath = string.IsNullOrWhiteSpace(resolution.StoredPath)
+            ? AgentPaths.InjectorAhkExecutable
+            : resolution.StoredPath.Trim();
+
+        var processName = cfg.Agents.TryGetValue(AgentIds.InjectorAhk, out var agent)
+            ? agent.ProcessName
+            : cfg.AutomationTools.Ahk.ProcessName;
+
+        if (resolution.RequiresMigration || string.IsNullOrWhiteSpace(processName))
+            processName = AgentPaths.InjectorProcessName;
+
+        return Normalize(new AhkToolOptions
+        {
+            ExecutablePath = storedPath,
+            ProcessName = processName ?? string.Empty,
+        });
+    }
+
+    private void PersistPathMigration(
+        AppConfigRoot cfg,
+        AhkToolOptions normalized,
+        AgentExecutableResolution resolution)
+    {
+        _logger.Info("AgentInjectorAhk", "agent.path.migrate", "Migrating agent executable path to new standard location", new
+        {
+            from = cfg.AutomationTools.Ahk.ExecutablePath,
+            to = normalized.ExecutablePath,
+            resolution.Source
+        });
+
+        try
+        {
+            _configStore.Update(root =>
+            {
+                EnsureAgentSection(root, normalized);
+                root.AutomationTools.Ahk = Clone(normalized);
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn("AgentInjectorAhk", "agent.path.migrate.fail", "Failed to persist agent path migration", ex);
+        }
+    }
+
+    private static void EnsureAgentSection(AppConfigRoot cfg, AhkToolOptions options)
+    {
+        cfg.Agents ??= new Dictionary<string, AgentInstanceConfig>(StringComparer.Ordinal);
+        if (!cfg.Agents.TryGetValue(AgentIds.InjectorAhk, out var agent))
+        {
+            agent = new AgentInstanceConfig();
+            cfg.Agents[AgentIds.InjectorAhk] = agent;
+        }
+
+        agent.ExecutablePath = options.ExecutablePath;
+        agent.ProcessName = options.ProcessName;
+    }
 
     private ToolCommandResult ValidateAgentConfig()
     {
@@ -618,23 +769,7 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
     }
 
     private static string? ResolveExecutablePath(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return null;
-
-        try
-        {
-            var trimmed = value.Trim();
-            if (Path.IsPathRooted(trimmed))
-                return Path.GetFullPath(trimmed);
-
-            return Path.GetFullPath(trimmed, AppContext.BaseDirectory);
-        }
-        catch
-        {
-            return null;
-        }
-    }
+        => AgentPathResolver.ResolvePath(value, AppContext.BaseDirectory);
 
     private void RaiseChanged()
     {

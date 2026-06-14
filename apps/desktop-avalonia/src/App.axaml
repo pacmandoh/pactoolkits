@@ -4,11 +4,11 @@
       xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
       x:Class="PacToolkits.Desktop.Avalonia.App"
       RequestedThemeVariant="Dark">
-  
+
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <ResourceInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/PacTheme.axaml" />
+        <ResourceInclude Source="avares://pactoolkits-desktop/Styles/PacTheme.axaml" />
       </ResourceDictionary.MergedDictionaries>
 
       <NativeMenu x:Key="TrayMenu">
@@ -18,7 +18,7 @@
       <NativeMenuItem Header="退出" />
       </NativeMenu>
 
-    
+
     <x:String x:Key="AppVersionText">PacToolkits v(loading)</x:String>
     <conv:BoolToDoneDangerBrushConverter x:Key="BoolToDoneDangerBrush" />
     <conv:RowIndexConverter x:Key="RowIndexPlusOne" />
@@ -34,11 +34,11 @@
     </ResourceDictionary>
   </Application.Resources>
 
-  
+
   <Application.Styles>
     <suki:SukiTheme Locale="zh-CN" ThemeColor="Blue" />
     <StyleInclude Source="avares://IconPacks.Avalonia.Lucide/Lucide.axaml" />
     <StyleInclude Source="avares://IconPacks.Avalonia.SimpleIcons/SimpleIcons.axaml" />
-    <StyleInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/PacTheme.Styles.axaml" />
+    <StyleInclude Source="avares://pactoolkits-desktop/Styles/PacTheme.Styles.axaml" />
   </Application.Styles>
 </Application>

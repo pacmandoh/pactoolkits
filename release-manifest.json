@@ -1,14 +1,33 @@
 {
-  "suiteVersion": "0.17.1",
-  "agentVersion": "0.6.1",
-  "uiVersion": "0.16.1",
-  "dbSchemaVersion": "1.2.22",
-  "compat": {
-    "uiMinDbSchema": "1.2.22",
-    "agentMinDbSchema": "1.2.22"
+  "schemaVersion": 2,
+  "product": {
+    "id": "pactoolkits",
+    "version": "0.17.1"
   },
-  "build": {
+  "components": {
+    "desktop": {
+      "version": "0.16.1",
+      "implementation": "avalonia",
+      "packageId": "pactoolkits",
+      "minDbSchema": "1.2.22",
+      "bundles": [
+        "agent-injector-ahk"
+      ]
+    },
+    "agent-injector-ahk": {
+      "version": "0.6.1",
+      "minDbSchema": "1.2.22",
+      "artifact": {
+        "windows-x64": "pactoolkits-injector.exe",
+        "installDir": "injector"
+      }
+    },
+    "database-postgres": {
+      "version": "1.2.22"
+    }
+  },
+  "release": {
     "channel": "stable",
-    "date": "2026-03-21"
+    "date": "2026-06-13"
   }
 }

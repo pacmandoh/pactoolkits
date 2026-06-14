@@ -27,7 +27,10 @@ sha256_file() {
 
 read_manifest_db_version() {
   [[ -f "$MANIFEST_PATH" ]] || die "manifest not found: $MANIFEST_PATH"
-  jq -r '.dbSchemaVersion' "$MANIFEST_PATH"
+  local version
+  version="$(jq -r '.components["database-postgres"].version // .dbSchemaVersion // empty' "$MANIFEST_PATH")"
+  [[ -n "$version" && "$version" != "null" ]] || die "manifest database-postgres.version is empty: $MANIFEST_PATH"
+  printf '%s' "$version"
 }
 
 load_db_env_from_json() {

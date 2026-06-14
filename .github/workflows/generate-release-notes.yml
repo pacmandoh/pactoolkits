@@ -1,4 +1,4 @@
-name: Release Generate Notes
+name: Generate Release Notes
 
 on:
   workflow_call:
@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  release_notes:
+  generate_release_notes:
     name: Generate Release Notes
     runs-on: ubuntu-latest
     steps:
@@ -17,11 +17,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Changelogithub release
+      - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: lts/*
-          registry-url: https://registry.npmjs.org/
 
       - name: Generate or update release notes
         run: npx changelogithub

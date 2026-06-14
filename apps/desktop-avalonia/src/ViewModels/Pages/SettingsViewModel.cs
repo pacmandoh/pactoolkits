@@ -76,10 +76,10 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _updateFeedUrl = string.Empty;
     [ObservableProperty] private int _updatePollIntervalMinutes;
     [ObservableProperty] private string _updatePollIntervalHint = "0=通道默认";
-    [ObservableProperty] private string _ignoredUiVersion = string.Empty;
-    [ObservableProperty] private string _currentSuiteVersion = "unknown";
-    [ObservableProperty] private bool? _suiteUpdateAvailable;
-    [ObservableProperty] private string _latestSuiteVersion = "unknown";
+    [ObservableProperty] private string _ignoredProductVersion = string.Empty;
+    [ObservableProperty] private string _currentProductVersion = "unknown";
+    [ObservableProperty] private bool? _productUpdateAvailable;
+    [ObservableProperty] private string _latestProductVersion = "unknown";
     [ObservableProperty] private string _updateStatusHint = "未检查更新";
     [ObservableProperty] private bool _isUpdateChecking;
     [ObservableProperty] private bool _isUpdateApplying;
@@ -137,7 +137,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     public ObservableCollection<ClientAliasRow> ClientAliases { get; } = new();
     public bool IsClientAliasesEmpty => ClientAliases.Count == 0;
-    public string SuiteUpdateAvailabilityLabel => GetAvailabilityLabel(SuiteUpdateAvailable);
+    public string ProductUpdateAvailabilityLabel => GetAvailabilityLabel(ProductUpdateAvailable);
     public string LoggingMinimumLevelHint => LoggingMinimumLevel switch
     {
         "Debug" => "记录最详细调试信息，适合临时排障",
@@ -381,7 +381,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         UpdateChannel = options.Channel;
         UpdateFeedUrl = options.FeedUrl;
         UpdatePollIntervalMinutes = options.AutoCheckIntervalMinutes;
-        IgnoredUiVersion = options.IgnoredVersion;
+        IgnoredProductVersion = options.IgnoredVersion;
         RefreshUpdatePollIntervalHint();
 
         SyncUpdateStateFromService();
@@ -430,14 +430,14 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         PostUiSafe(LoadLoggingOptions, "logging_settings.changed.ui_fail");
     }
 
-    partial void OnSuiteUpdateAvailableChanged(bool? value)
-        => OnPropertyChanged(nameof(SuiteUpdateAvailabilityLabel));
+    partial void OnProductUpdateAvailableChanged(bool? value)
+        => OnPropertyChanged(nameof(ProductUpdateAvailabilityLabel));
 
     private void SyncUpdateStateFromService()
     {
-        CurrentSuiteVersion = _updates.CurrentVersion;
-        LatestSuiteVersion = _updates.LatestVersion;
-        SuiteUpdateAvailable = _updates.HasSuiteUpdateAvailable;
+        CurrentProductVersion = _updates.CurrentVersion;
+        LatestProductVersion = _updates.LatestVersion;
+        ProductUpdateAvailable = _updates.HasProductUpdateAvailable;
         HasUpdateAvailable = _updates.HasUpdateAvailable;
         IsUpdateChecking = _updates.IsChecking;
         UpdateStatusHint = _updates.LastMessage;
@@ -1019,7 +1019,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 Channel = UpdateChannel,
                 FeedUrl = UpdateFeedUrl,
                 AutoCheckIntervalMinutes = Math.Clamp(UpdatePollIntervalMinutes, 0, 720),
-                IgnoredVersion = IgnoredUiVersion
+                IgnoredVersion = IgnoredProductVersion
             };
 
             await _updateSettings.SaveAsync(options);
@@ -1234,7 +1234,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         try
         {
-            IgnoredUiVersion = string.Empty;
+            IgnoredProductVersion = string.Empty;
             await _updateSettings.SaveIgnoredVersionAsync(string.Empty);
             _toast.Success("更新设置", "已清除忽略版本");
         }
@@ -1249,8 +1249,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     {
         try
         {
-            await _updateUiFlow.IgnoreVersionAsync(LatestSuiteVersion);
-            IgnoredUiVersion = LatestSuiteVersion;
+            await _updateUiFlow.IgnoreVersionAsync(LatestProductVersion);
+            IgnoredProductVersion = LatestProductVersion;
         }
         catch (Exception ex)
         {
