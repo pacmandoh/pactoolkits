@@ -11,7 +11,7 @@ flowchart TB
     INF["packages/infrastructure\nPostgreSQL 实现"]
     CORE["packages/core\n纯领域"]
     AGENT["packages/agent-contracts\nAgent 协议"]
-    AHK["runtime/agent-ahk\n(AHK 运行时)"]
+    AHK["runtime/agents/injector-ahk\n(AHK 运行时)"]
 
     UI --> APP
     UI --> INF
@@ -62,8 +62,8 @@ flowchart TB
 ### `packages/agent-contracts`
 
 - UI 与 AHK Agent 共享的配置与协议类型
-- `AutomationToolsOptions`、`AgentConfigValidator`、`IAgentRuntimeService`（底层契约）等
-- 桌面 `AhkRuntimeService` 实现运行时控制；AHK 源码仍在 `runtime/agent-ahk`，**尚未重写**
+- `AutomationToolsOptions`、`AgentConfigValidator`、`IAgentRuntime` / `IAgentManager`（底层契约）等
+- 桌面 `AhkInjectorAgentRuntime` / `AgentManager` 实现运行时控制；AHK 源码在 `runtime/agents/injector-ahk`
 
 ### `apps/desktop-avalonia`
 
@@ -86,9 +86,9 @@ DashboardViewModel
 **自动化套件启停：**
 
 ```text
-ToolsCenterViewModel
-  → IAutomationRuntimeService (application 抽象)
-    → AhkRuntimeService (desktop 实现)
+ToolsCenterViewModel / MainWindowViewModel
+  → IAgentManager.GetRequired(AgentIds.InjectorAhk)
+    → IAgentRuntime (AhkInjectorAgentRuntime 实现)
       → 进程启停 + AgentConfigValidator (agent-contracts)
 ```
 

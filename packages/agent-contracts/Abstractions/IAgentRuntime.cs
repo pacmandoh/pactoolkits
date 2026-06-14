@@ -1,15 +1,15 @@
+using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Agent.Contracts.Commands;
-using PacToolkits.Agent.Contracts.Models;
 
 namespace PacToolkits.Agent.Contracts.Abstractions;
 
-public interface IAgentRuntimeService : IDisposable
+public interface IAgentRuntime : IDisposable
 {
     event Action? StatusChanged;
 
-    AhkToolOptions CurrentOptions { get; }
+    AgentDescriptor Descriptor { get; }
 
-    AgentRuntimeConfig RuntimeConfig { get; }
+    string ExecutablePath { get; }
 
     ToolRunState State { get; }
 
@@ -22,8 +22,6 @@ public interface IAgentRuntimeService : IDisposable
     string ToolVersion { get; }
 
     void Reload();
-
-    Task SaveOptionsAsync(AhkToolOptions options, CancellationToken ct = default);
 
     Task<ToolCommandResult> StartOrRestartAsync(CancellationToken ct = default);
 

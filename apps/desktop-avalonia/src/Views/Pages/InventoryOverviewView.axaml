@@ -68,7 +68,7 @@
       <suki:GlassCard Classes="SectionCard">
         <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
 
-          
+
           <suki:GlassCard Grid.Row="0" Classes="FilterHintCard" IsVisible="{Binding IsSearchPanelVisible}">
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
               <TextBox Classes="FilterSearchTextBox"
@@ -104,7 +104,7 @@
             </Grid>
           </suki:GlassCard>
 
-          
+
           <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
               <icons:AppIcon Kind="Package" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
@@ -134,7 +134,7 @@
                 <icons:AppIcon Kind="SaveAll" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                 <TextBlock Text="{Binding EditSessionStateText}" />
               </StackPanel>
-              
+
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}" IsVisible="{Binding Status}">
                 <icons:AppIcon Kind="ListOrdered" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                 <TextBlock Text="{Binding Status}"
@@ -146,7 +146,7 @@
 
             <WrapPanel Grid.Column="2" Orientation="Horizontal" ItemSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
               <Button Classes="Action IconToggle"
-                                    
+
                   HorizontalContentAlignment="Center"
                   VerticalContentAlignment="Center"
                   IsEnabled="{Binding !IsUiBusy}"
@@ -227,7 +227,7 @@
           </Grid>
 
           <suki:GlassCard Classes="CompactCard" Grid.Row="2"
-                 
+
                   behaviors:FocusClearBehavior.SuppressGridClear="{Binding SuppressGridClearInReassignDialog}"
                   IsVisible="{Binding IsReassignPanelVisible}">
             <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}" ClipToBounds="True">
@@ -381,7 +381,7 @@
 
           <Grid Grid.Row="3" ClipToBounds="True">
 
-            
+
             <Grid IsVisible="{Binding IsDetailMode}">
               <suki:BusyArea IsBusy="{Binding IsDetailBusy}">
               <controls:EmptyStatePanel
@@ -416,7 +416,7 @@
               </suki:BusyArea>
             </Grid>
 
-            
+
             <Grid IsVisible="{Binding IsAggMode}">
               <suki:BusyArea IsBusy="{Binding IsAggBusy}">
               <controls:EmptyStatePanel
@@ -446,7 +446,7 @@
               </suki:BusyArea>
             </Grid>
 
-            
+
             <Grid IsVisible="{Binding IsLowMode}">
               <suki:BusyArea IsBusy="{Binding IsLowBusy}">
               <controls:EmptyStatePanel

@@ -71,10 +71,17 @@ create table if not exists schema_deploy_lock (
 
 function Read-ManifestDbVersion() {
   $m = Read-Json $ManifestPath
-  if ([string]::IsNullOrWhiteSpace("$($m.dbSchemaVersion)")) {
-    throw "[ERROR] manifest.dbSchemaVersion is empty: $ManifestPath"
+  $version = $null
+  if ($m.components -and $m.components.'database-postgres' -and $m.components.'database-postgres'.version) {
+    $version = "$($m.components.'database-postgres'.version)"
   }
-  "$($m.dbSchemaVersion)"
+  if ([string]::IsNullOrWhiteSpace($version) -and $m.dbSchemaVersion) {
+    $version = "$($m.dbSchemaVersion)"
+  }
+  if ([string]::IsNullOrWhiteSpace($version)) {
+    throw "[ERROR] manifest database-postgres.version is empty: $ManifestPath"
+  }
+  $version
 }
 
 function Migration-Version([string]$name) {
@@ -229,7 +236,7 @@ switch ($Command) {
     Ensure-MetaTables
     $expected = Read-ManifestDbVersion
     $current = Psql-Scalar 'select schema_version from schema_version where singleton=true'
-    Write-Host "manifest.dbSchemaVersion: $expected"
+    Write-Host "manifest database-postgres.version: $expected"
     Write-Host "db.schema_version:      $current"
   }
   'plan' {

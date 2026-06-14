@@ -80,7 +80,7 @@ status() {
   expected="$(read_manifest_db_version)"
   current="$(current_schema_version)"
 
-  echo "manifest.dbSchemaVersion: ${expected}"
+  echo "manifest database-postgres.version: ${expected}"
   echo "db.schema_version:      ${current:-<empty>}"
 }
 

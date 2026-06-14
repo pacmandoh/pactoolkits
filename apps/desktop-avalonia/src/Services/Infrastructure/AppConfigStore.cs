@@ -6,6 +6,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Agent.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Common;
@@ -27,6 +28,8 @@ public sealed class AppConfigRoot
     public Dictionary<string, string> ClientAliases { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public TraceCodeValidationOptions TraceCodeValidation { get; set; } = new();
     public AutomationToolsOptions AutomationTools { get; set; } = new();
+    public Dictionary<string, AgentInstanceConfig> Agents { get; set; } =
+        new(StringComparer.Ordinal);
     public MsfxApiOptions MsfxApi { get; set; } = new();
     public UiBehaviorOptions UiBehavior { get; set; } = new();
     public UpdateOptions Update { get; set; } = new();
@@ -334,7 +337,7 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         }
     }
 
-    private static AppConfigRoot Normalize(AppConfigRoot? source)
+    internal static AppConfigRoot Normalize(AppConfigRoot? source)
     {
         var root = source ?? new AppConfigRoot();
         root.SchemaVersion = 1;
@@ -342,6 +345,7 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         root.Postgres ??= new PgOptions();
         root.TraceCodeValidation ??= new TraceCodeValidationOptions();
         root.AutomationTools ??= new AutomationToolsOptions();
+        root.Agents ??= new Dictionary<string, AgentInstanceConfig>(StringComparer.Ordinal);
         root.MsfxApi ??= new MsfxApiOptions();
         root.AutomationTools.Ahk ??= new AhkToolOptions();
         root.AutomationTools.Agent ??= new AgentToolOptions();
@@ -363,6 +367,7 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
             ? ahkDefaults.ProcessName
             : root.AutomationTools.Ahk.ProcessName.Trim();
         root.AutomationTools.Agent = NormalizeAgent(root.AutomationTools.Agent);
+        root.Agents = NormalizeAgents(root);
         root.MsfxApi = NormalizeMsfxApi(root.MsfxApi);
         root.Update = NormalizeUpdate(root.Update);
         root.Logging = NormalizeLogging(root.Logging);
@@ -376,6 +381,131 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
                 StringComparer.OrdinalIgnoreCase);
 
         return root;
+    }
+
+    private static Dictionary<string, AgentInstanceConfig> NormalizeAgents(AppConfigRoot root)
+    {
+        var agents = root.Agents ?? new Dictionary<string, AgentInstanceConfig>(StringComparer.Ordinal);
+        if (agents.TryGetValue(AgentIds.InjectorAhk, out var existingInjector) && existingInjector is null)
+            agents.Remove(AgentIds.InjectorAhk);
+
+        if (!agents.TryGetValue(AgentIds.InjectorAhk, out var injector) || injector is null)
+        {
+            injector = new AgentInstanceConfig
+            {
+                Enabled = true,
+                ExecutablePath = root.AutomationTools.Ahk.ExecutablePath,
+                ProcessName = root.AutomationTools.Ahk.ProcessName,
+            };
+            agents[AgentIds.InjectorAhk] = injector;
+        }
+
+        injector.Runtime ??= new Dictionary<string, object?>(StringComparer.Ordinal);
+        injector.Settings ??= new Dictionary<string, object?>(StringComparer.Ordinal);
+
+        var toolsAgent = NormalizeAgent(root.AutomationTools.Agent);
+        var settingsEmpty = injector.Settings.Count == 0;
+        var parsedSettings = new AgentToolOptions();
+        var settingsValid = settingsEmpty
+            || AgentSettingsSync.TryFromSettings(injector.Settings, out parsedSettings);
+        AgentToolOptions? agentSettings = null;
+        if (!settingsEmpty && settingsValid)
+            agentSettings = NormalizeAgent(parsedSettings);
+
+        var preferAgentSettings = !settingsEmpty
+                                  && settingsValid
+                                  && !AgentSettingsSync.SettingsMatch(injector.Settings, toolsAgent);
+
+        AgentToolOptions agentToolOptions;
+        if (!settingsValid)
+        {
+            agentToolOptions = toolsAgent;
+            injector.Settings = AgentSettingsSync.HasData(agentToolOptions)
+                ? AgentSettingsSync.ToSettings(agentToolOptions)
+                : new Dictionary<string, object?>(StringComparer.Ordinal);
+        }
+        else if (settingsEmpty)
+        {
+            agentToolOptions = toolsAgent;
+            if (AgentSettingsSync.HasData(agentToolOptions))
+                injector.Settings = AgentSettingsSync.ToSettings(agentToolOptions);
+        }
+        else if (preferAgentSettings)
+        {
+            agentToolOptions = agentSettings!;
+        }
+        else
+        {
+            agentToolOptions = agentSettings!;
+        }
+
+        root.AutomationTools.Agent = NormalizeAgent(agentToolOptions);
+
+        var toolsPath = (root.AutomationTools.Ahk.ExecutablePath ?? string.Empty).Trim();
+        var toolsProcess = (root.AutomationTools.Ahk.ProcessName ?? string.Empty).Trim();
+        var agentPath = (injector.ExecutablePath ?? string.Empty).Trim();
+        var agentProcess = (injector.ProcessName ?? string.Empty).Trim();
+        var preferAgentPath = !string.IsNullOrWhiteSpace(agentPath)
+                              && (!string.Equals(agentPath, toolsPath, StringComparison.Ordinal)
+                                  || !string.Equals(agentProcess, toolsProcess, StringComparison.Ordinal));
+
+        SyncInjectorPaths(root, injector, toolsPathWins: !preferAgentPath);
+
+        return agents;
+    }
+
+    internal static void SyncInjectorFromTools(AppConfigRoot cfg, AutomationToolsOptions tools)
+    {
+        cfg.Agents ??= new Dictionary<string, AgentInstanceConfig>(StringComparer.Ordinal);
+        if (!cfg.Agents.TryGetValue(AgentIds.InjectorAhk, out var agent) || agent is null)
+        {
+            agent = new AgentInstanceConfig();
+            cfg.Agents[AgentIds.InjectorAhk] = agent;
+        }
+
+        agent.ExecutablePath = tools.Ahk.ExecutablePath;
+        agent.ProcessName = tools.Ahk.ProcessName;
+        agent.Settings = AgentSettingsSync.ToSettings(NormalizeAgent(tools.Agent));
+        agent.Runtime ??= new Dictionary<string, object?>(StringComparer.Ordinal);
+    }
+
+    private static void SyncInjectorPaths(
+        AppConfigRoot root,
+        AgentInstanceConfig injector,
+        bool toolsPathWins)
+    {
+        var toolsPath = (root.AutomationTools.Ahk.ExecutablePath ?? string.Empty).Trim();
+        var toolsProcess = (root.AutomationTools.Ahk.ProcessName ?? string.Empty).Trim();
+        var agentPath = (injector.ExecutablePath ?? string.Empty).Trim();
+        var agentProcess = (injector.ProcessName ?? string.Empty).Trim();
+
+        if (string.IsNullOrWhiteSpace(agentPath) && !string.IsNullOrWhiteSpace(toolsPath))
+        {
+            injector.ExecutablePath = toolsPath;
+            injector.ProcessName = toolsProcess;
+        }
+        else
+        {
+            var pathsDiffer = !string.Equals(agentPath, toolsPath, StringComparison.Ordinal)
+                              || !string.Equals(agentProcess, toolsProcess, StringComparison.Ordinal);
+            if (pathsDiffer)
+            {
+                if (toolsPathWins)
+                {
+                    injector.ExecutablePath = toolsPath;
+                    injector.ProcessName = toolsProcess;
+                }
+                else
+                {
+                    root.AutomationTools.Ahk.ExecutablePath = agentPath;
+                    if (!string.IsNullOrWhiteSpace(agentProcess))
+                        root.AutomationTools.Ahk.ProcessName = agentProcess;
+                }
+            }
+        }
+
+        root.AutomationTools.Ahk.ExecutablePath = injector.ExecutablePath ?? string.Empty;
+        root.AutomationTools.Ahk.ProcessName = injector.ProcessName ?? string.Empty;
     }
 
     private static MsfxApiOptions NormalizeMsfxApi(MsfxApiOptions? source)

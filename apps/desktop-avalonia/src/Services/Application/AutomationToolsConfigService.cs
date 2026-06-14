@@ -23,6 +23,10 @@ public sealed class AutomationConfigService : IAutomationConfigService
     public async Task SaveAsync(AutomationConfigDto options, CancellationToken ct)
     {
         var contract = AutomationContractMapper.ToContract(options);
-        await _configStore.UpdateAsync(cfg => cfg.AutomationTools = contract, ct).ConfigureAwait(false);
+        await _configStore.UpdateAsync(cfg =>
+        {
+            cfg.AutomationTools = contract;
+            AppConfigStore.SyncInjectorFromTools(cfg, contract);
+        }, ct).ConfigureAwait(false);
     }
 }

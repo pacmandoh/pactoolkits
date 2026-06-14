@@ -41,9 +41,9 @@
        KeyboardNavigation.TabNavigation="Cycle"
        RowSpacing="{DynamicResource SettingsSectionsRowSpacing}">
 
-      
+
       <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionDbAnchor"
-     
+
          VerticalAlignment="Center">
         <StackPanel Classes="SectionHeaderStack">
           <icons:AppIcon Kind="Database" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
@@ -58,14 +58,14 @@
              Opacity="0.8" />
       </Grid>
 
-      
+
       <suki:GlassCard Grid.Row="1"
               Classes="SectionCard"
               HorizontalAlignment="Stretch">
         <Grid RowDefinitions="Auto,*"
            RowSpacing="{DynamicResource FormRowSpacing}">
 
-          
+
           <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
              VerticalAlignment="Center">
             <StackPanel Classes="SectionHeaderStack">
@@ -100,7 +100,7 @@
             <Grid ColumnDefinitions="Auto,*"
                ColumnSpacing="16">
 
-              
+
               <Grid x:Name="DbParamsGrid"
                  ColumnDefinitions="120,280"
                  RowDefinitions="Auto,Auto,Auto,Auto,Auto"
@@ -160,7 +160,7 @@
                     Text="{Binding Password}" />
               </Grid>
 
-              
+
               <suki:GlassCard Grid.Column="1"
                       Classes="SectionCard"
                       HorizontalAlignment="Stretch"
@@ -277,7 +277,7 @@
 
       <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionAliasAnchor"
      Grid.Row="2"
-     
+
          VerticalAlignment="Center">
         <StackPanel Classes="SectionHeaderStack">
           <icons:AppIcon Kind="Users" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
@@ -297,7 +297,7 @@
               HorizontalAlignment="Stretch">
         <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
 
-          
+
           <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
              VerticalAlignment="Center">
             <StackPanel Classes="SectionHeaderStack">
@@ -338,16 +338,16 @@
             </StackPanel>
           </Grid>
 
-          
+
           <suki:GroupBox Grid.Row="1" Header="参数">
             <Grid ColumnDefinitions="Auto,*"
                ColumnSpacing="16">
 
-              
+
               <Grid RowDefinitions="Auto,Auto,*"
                  RowSpacing="{DynamicResource FormRowSpacing}">
 
-                
+
                 <Grid ColumnDefinitions="260,280,*"
                    ColumnSpacing="{DynamicResource FormColumnSpacing}">
                   <TextBlock Text="机器标识"
@@ -358,13 +358,13 @@
                        Opacity="0.8"
                        VerticalAlignment="Center" />
                 </Grid>
-                  
+
                 <Border Grid.Row="1"
                     Height="1"
                     Background="{DynamicResource ThemeBorderLowBrush}"
                     Opacity="0.25" />
 
-                
+
                 <controls:EmptyStatePanel Grid.Row="2"
                              IsEmpty="{Binding IsClientAliasesEmpty}"
                              EmptyText="暂无客户端别名"
@@ -377,13 +377,13 @@
                          Margin="{DynamicResource MarginBottomLg}"
                          VerticalAlignment="Center">
 
-                        
+
                         <TextBlock Text="{Binding Machine}"
                              VerticalAlignment="Center"
                              Margin="0,0,0,0"
                              TextTrimming="CharacterEllipsis" />
 
-                        
+
                         <TextBox Grid.Column="1"
                             Classes="FilterSearchTextBox"
                             Watermark="输入别名"
@@ -392,7 +392,7 @@
                             VerticalAlignment="Center"
                             IsEnabled="{Binding IsClientAliasEditable, ElementName=Root}" />
 
-                        
+
                       </Grid>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
@@ -401,7 +401,7 @@
 
               </Grid>
 
-              
+
               <suki:GlassCard Grid.Column="1"
                       Classes="SectionCard"
                       HorizontalAlignment="Stretch"
@@ -426,7 +426,7 @@
                          Classes="SectionHint"
                          Margin="{DynamicResource MarginBottomLg}" />
 
-                    
+
                     <Border Grid.Row="1" />
                   </Grid>
                 </Grid>
@@ -440,7 +440,7 @@
 
       <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionTraceRuleAnchor"
      Grid.Row="4"
-     
+
          VerticalAlignment="Center">
         <StackPanel Classes="SectionHeaderStack">
           <icons:AppIcon Kind="NotebookText" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
@@ -513,7 +513,7 @@
 
       <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionUiBehaviorAnchor"
      Grid.Row="6"
-     
+
          VerticalAlignment="Center">
         <StackPanel Classes="SectionHeaderStack">
           <icons:AppIcon Kind="MonitorCog" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
@@ -553,7 +553,7 @@
 
       <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionUpdateAnchor"
      Grid.Row="8"
-     
+
          VerticalAlignment="Center">
         <StackPanel Classes="SectionHeaderStack">
           <icons:AppIcon Kind="Download" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
@@ -592,7 +592,7 @@
                 <TextBlock Text="检查更新" />
               </StackPanel>
             </Button>
-            
+
             <Button Grid.Column="2" Classes="Ghost"
                 Command="{Binding ApplyUpdateNowCommand}"
                 IsEnabled="{Binding HasUpdateAvailable}">
@@ -626,7 +626,7 @@
               <TextBlock Text="PacToolkits 版本"
                    VerticalAlignment="Center" />
               <TextBox Grid.Row="0" Grid.Column="1"
-                  Text="{Binding CurrentSuiteVersion}"
+                  Text="{Binding CurrentProductVersion}"
                   Height="{StaticResource ControlHeightCompact}"
                   Watermark="当前已安装版本"
                   UseFloatingWatermark="False"
@@ -634,9 +634,9 @@
                   VerticalContentAlignment="Center" />
               <controls:UpdateStatusBadge Grid.Row="0"
                             Grid.Column="2"
-                            Status="{Binding SuiteUpdateAvailable}"
-                            Label="{Binding SuiteUpdateAvailabilityLabel}"
-                            LatestVersion="{Binding LatestSuiteVersion}" />
+                            Status="{Binding ProductUpdateAvailable}"
+                            Label="{Binding ProductUpdateAvailabilityLabel}"
+                            LatestVersion="{Binding LatestProductVersion}" />
 
               <TextBlock Grid.Row="1" Grid.Column="0"
                    Text="启动自动检查"
@@ -693,7 +693,7 @@
                  Grid.Column="1"
                  Classes="ToolbarPairRow"
                  ColumnDefinitions="*,Auto">
-                <TextBox Text="{Binding IgnoredUiVersion}"
+                <TextBox Text="{Binding IgnoredProductVersion}"
                     Height="{StaticResource ControlHeightCompact}"
                     Watermark="留空表示不忽略任何版本"
                     UseFloatingWatermark="False"
@@ -711,7 +711,7 @@
 
       <Grid Classes="SettingsSectionHeader" ColumnDefinitions="*,Auto" x:Name="SectionLoggingAnchor"
      Grid.Row="10"
-     
+
          VerticalAlignment="Center">
         <StackPanel Classes="SectionHeaderStack">
           <icons:AppIcon Kind="TextCursorInput" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />

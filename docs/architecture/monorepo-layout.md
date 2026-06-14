@@ -15,7 +15,7 @@ pactoolkits/
     infrastructure/           外部实现：PostgreSQL、仓储实现
     agent-contracts/          UI ↔ Agent 共享协议与校验
   runtime/
-    agent-ahk/                Win7 / 旧机器兼容的 AHK 自动化运行时
+    agent-injector-ahk/           Win7 / 旧机器兼容的 AHK 自动化运行时
   database/
     postgres/                 Schema bootstrap、migration、verify、deploy
   scripts/                    版本、打包、发布脚本
@@ -31,7 +31,7 @@ pactoolkits/
 |------|------|------|
 | `apps/desktop-avalonia` | **当前正式 UI** | Avalonia 桌面客户端；用户操作、配置、更新、诊断 |
 | `apps/desktop-electron` | **未来 preview** | 仅占位；不连库、不替代 Avalonia、不进 release |
-| `runtime/agent-ahk` | **Agent 运行时** | AutoHotkey v2；解析、注入、验证、任务执行 |
+| `runtime/agents/injector-ahk` | **Agent 运行时** | AutoHotkey v2；解析、注入、验证、任务执行 |
 | `database/postgres` | **数据库** | SQL 与部署脚本；schema 演进与校验 |
 | `packages/core` | **纯业务核心** | 无数据库、文件、日志、配置、UI 依赖 |
 | `packages/application` | **用例层** | 页面/功能对应的应用服务与抽象 |

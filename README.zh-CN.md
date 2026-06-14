@@ -22,7 +22,7 @@
       <img src="https://img.shields.io/badge/架构-MVVM-475569?style=flat-square&logo=dotnet&logoColor=white" alt="架构 MVVM" />
     </td>
     <td align="center" width="260" valign="top">
-      <img src="./runtime/agent-ahk/assets/pacinjection.ico" alt="PacToolkits Agent Icon" width="72" />
+      <img src="./runtime/agents/injector-ahk/assets/pactoolkits-agent-injector-ahk.ico" alt="PacToolkits Agent Icon" width="72" />
       <br />
       <strong>PacToolkits Agent</strong>
       <br />
@@ -59,7 +59,7 @@
   </tr>
   <tr>
     <td align="center"><a href="./apps/desktop-avalonia/src"><img src="https://img.shields.io/badge/UI-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="UI" /></a></td>
-    <td align="center"><a href="./runtime/agent-ahk"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
+    <td align="center"><a href="./runtime/agents/injector-ahk"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
     <td align="center"><a href="./database/postgres"><img src="https://img.shields.io/badge/Database-PostgreSQL-1d4ed8?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" /></a></td>
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
@@ -90,7 +90,7 @@
 - `apps/desktop-avalonia`：业务交互、配置管理、更新能力、审计与诊断（**当前正式 UI**）
 - `packages/application`：用例层服务与抽象
 - `packages/infrastructure`：PostgreSQL 仓储与 DB 实现
-- `runtime/agent-ahk`：解析、注入、验证、任务执行（**Win7 / 旧机器兼容 runtime**）
+- `runtime/agents/injector-ahk`：解析、注入、验证、任务执行（**Win7 / 旧机器兼容 runtime**）
 - `database/postgres`：入库、映射、任务生成、执行状态与迁移治理
 - `apps/desktop-electron`：未来 Nuxt + Electron Preview（**空壳占位，不参与 release**）
 
@@ -116,7 +116,7 @@
 flowchart LR
     UI["apps/desktop-avalonia\nAvalonia 桌面端"]
     PKG["packages/\napplication · infrastructure · core"]
-    AGENT["runtime/agent-ahk\nAutoHotkey v2 执行层"]
+    AGENT["runtime/agents/injector-ahk\nAutoHotkey v2 执行层"]
     DB["database/postgres\nPostgreSQL Schema + Migrations"]
     SCRIPTS["scripts/\n版本与发布工具"]
     CI[".github/workflows\n构建与发布自动化"]
@@ -144,7 +144,7 @@ pactoolkits/
     application/              用例层：DTO、服务接口与应用服务
     infrastructure/           外部实现：PostgreSQL 仓储
     agent-contracts/          UI ↔ Agent 共享协议
-  runtime/agent-ahk/          AutoHotkey v2 自动化运行时
+  runtime/agents/injector-ahk/          AutoHotkey v2 自动化运行时
   database/postgres/          PostgreSQL bootstrap / migration / verify / deploy
   docs/                       架构与运维文档
   scripts/                    版本、打包、发布辅助脚本
@@ -210,7 +210,7 @@ pactoolkits/
 
 ---
 
-## 2. `runtime/agent-ahk`
+## 2. `runtime/agents/injector-ahk`
 
 **定位**
 
@@ -323,10 +323,12 @@ database/postgres/
   - 校验仓库内版本一致性
 - `export-version.sh`
   - 将 manifest 中的版本导出到生成文件
-- `release-ui.sh`
-  - 打包并发布 UI 产物
-- `release-agent.sh`
-  - 打包并发布 agent 产物
+- `release-desktop.sh`
+  - 打包并发布 Desktop（Velopack）产物
+- `release-agent-injector-ahk.sh`
+  - 打包并发布 agent-injector-ahk 产物
+- `release-ui.sh` / `release-agent.sh`
+  - 上述脚本的弃用别名
 
 **仓库维护脚本**
 
@@ -360,33 +362,39 @@ database/postgres/
 
 **当前工作流**
 
-- `release.yml`
-- `release-build-ui.yml`
-- `release-build-agent.yml`
-- `release-publish-assets.yml`
-- `release-generate-notes.yml`
+- `release.yml` — 编排 tag / 手动发布
+- `build-agent-injector-ahk.yml` — 编译 AHK Agent
+- `build-desktop-avalonia.yml` — 发布 Avalonia Desktop（不含 Agent）
+- `build-desktop-electron-preview.yml` — Electron 预览占位（**不进正式 Feed**）
+- `package-desktop.yml` — 按 `desktop.bundles` 聚合 Agent 并 Velopack 打包
+- `generate-release-notes.yml` — 生成 Release Notes（仅 tag）
+- `publish-release.yml` — 上传 GitHub Release + 更新 Feed（仅 tag）
 
 ## 发布与更新链路
 
-当前发布与更新主链只支持 `stable` / `beta` 两个通道。
+当前发布与更新主链只支持 `stable` / `beta` 两个通道。版本由 [release-manifest.json](./release-manifest.json) **schema v2** 统一驱动。
 
 1. 发布清单
-- 统一读取 [release-manifest.json](./release-manifest.json)
-- `suiteVersion` 作为 UI Velopack 包版本
-- `build.channel` 作为当前发布通道
+- 统一读取 [release-manifest.json](./release-manifest.json)（`schemaVersion: 2`）
+- `product.version` 作为 Velopack `packVersion`
+- `release.channel` 作为当前发布通道
+- `components.desktop.bundles` 声明随 Desktop 安装的 Agent 组件 ID
 
-2. UI 打包
-- [release-build-ui.yml](./.github/workflows/release-build-ui.yml) 负责构建 UI 安装包
+2. Desktop 打包
+- [build-desktop-avalonia.yml](./.github/workflows/build-desktop-avalonia.yml) 发布 Desktop 程序
+- [package-desktop.yml](./.github/workflows/package-desktop.yml) 下载各 bundle Agent 并执行 Velopack
 - `packId` 固定为 `pactoolkits`
-- `packVersion` 使用 `suiteVersion`
-- `channel` 使用 `build.channel`
+- `packVersion` 使用 `product.version`
+- `channel` 使用 `release.channel`
+- 主程序：`pactoolkits-desktop.exe`
 
 3. 产物推送
-- [release-publish-assets.yml](./.github/workflows/release-publish-assets.yml) 负责发布产物
+- [publish-release.yml](./.github/workflows/publish-release.yml) 负责发布产物
 - feed 产物会同步到对应通道子目录：
   - `.../stable/`
   - `.../beta/`
 - 不同通道不再混放到同一个 feed 目录
+- Electron preview 产物**不**进入正式 Feed
 
 4. 客户端检查更新
 - `AppUpdateService` 会把更新地址解析成：
@@ -424,24 +432,26 @@ PacToolkits 当前覆盖的业务场景包括：
 
 统一版本源：
 
-- `release-manifest.json`
+- `release-manifest.json`（schema v2）
 
 当前版本清单：
 
-- `suiteVersion`: `0.17.1`
-- `uiVersion`: `0.16.1`
-- `agentVersion`: `0.6.1`
-- `dbSchemaVersion`: `1.2.22`
-- `uiMinDbSchema`: `1.2.22`
-- `agentMinDbSchema`: `1.2.22`
+- `product.version`: `0.17.1`
+- `components.desktop.version`: `0.16.1`
+- `components.agent-injector-ahk.version`: `0.6.1`
+- `components.database-postgres.version`: `1.2.22`
+- `components.desktop.minDbSchema`: `1.2.22`
+- `components.agent-injector-ahk.minDbSchema`: `1.2.22`
 
 常用命令：
 
 ```bash
-./scripts/bump-version.sh --ui 0.12.1
+./scripts/bump-version.sh --desktop 0.12.1
 ./scripts/check-version.sh
 ./scripts/export-version.sh
 ```
+
+旧 CLI 别名仍可用：`--suite` → `--product`，`--ui` → `--desktop`，`--agent` → agent-injector-ahk 组件。
 
 ---
 
@@ -472,7 +482,7 @@ dotnet build -c Release
 
 ```bash
 cd pactoolkits
-./scripts/release-agent.sh --skip-upload --dry-run
+./scripts/release-agent-injector-ahk.sh --skip-upload --dry-run
 ```
 
 ## 部署数据库
@@ -489,21 +499,21 @@ cp scripts/config.example.json scripts/config.json
 
 ## 发布流程
 
-## UI 发布
+## Desktop 发布
 
 ```bash
-./scripts/release-ui.sh \
+./scripts/release-desktop.sh \
   --runtime win-arm64 \
   --vpk-directive win \
   --upload-target user@host:/var/www/updates/pactoolkits
 ```
 
-`release-ui.sh` 现在会在这个根目录下自动追加所选通道子目录，并且只支持 `stable` / `beta`。
+`release-desktop.sh` 会在该根路径下自动追加所选通道子目录，并且只支持 `stable` / `beta`。
 
 ## Agent 发布
 
 ```bash
-./scripts/release-agent.sh \
+./scripts/release-agent-injector-ahk.sh \
   --upload-target user@host:/var/www/updates/pactoolkits-agent/
 ```
 
@@ -539,5 +549,5 @@ JetBrains 提供的开发工具帮助我们更高效地处理：
 
 ## License
 
-本项目采用 [GNU 通用公共许可证第 3 版或更高版本](./LICENSE)（`GPL-3.0-or-later`）授权。  
+本项目采用 [GNU 通用公共许可证第 3 版或更高版本](./LICENSE)（`GPL-3.0-or-later`）授权。
 详见 LICENSE 文件中的复制、修改与分发条件。

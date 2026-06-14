@@ -1,0 +1,65 @@
+name: Resolve Release Plan
+
+on:
+  workflow_call:
+    outputs:
+      implementation:
+        description: Formal desktop implementation from manifest (avalonia|electron)
+        value: ${{ jobs.resolve_release_plan.outputs.implementation }}
+      desktop_version:
+        description: components.desktop.version
+        value: ${{ jobs.resolve_release_plan.outputs.desktop_version }}
+      product_version:
+        description: product.version
+        value: ${{ jobs.resolve_release_plan.outputs.product_version }}
+      pack_id:
+        description: Velopack packId
+        value: ${{ jobs.resolve_release_plan.outputs.pack_id }}
+      channel:
+        description: release.channel
+        value: ${{ jobs.resolve_release_plan.outputs.channel }}
+      desktop_artifact_name:
+        description: CI artifact name for the selected desktop publish output
+        value: ${{ jobs.resolve_release_plan.outputs.desktop_artifact_name }}
+      main_exe:
+        description: Velopack main executable file name
+        value: ${{ jobs.resolve_release_plan.outputs.main_exe }}
+      icon_path:
+        description: Installer icon path relative to repo root
+        value: ${{ jobs.resolve_release_plan.outputs.icon_path }}
+      releases_dir:
+        description: Velopack output directory relative to repo root
+        value: ${{ jobs.resolve_release_plan.outputs.releases_dir }}
+      publish_subdir:
+        description: Expected dotnet/electron publish directory relative to repo root
+        value: ${{ jobs.resolve_release_plan.outputs.publish_subdir }}
+
+permissions:
+  contents: read
+
+jobs:
+  resolve_release_plan:
+    name: Resolve Release Plan
+    runs-on: ubuntu-latest
+    outputs:
+      implementation: ${{ steps.plan.outputs.implementation }}
+      desktop_version: ${{ steps.plan.outputs.desktop_version }}
+      product_version: ${{ steps.plan.outputs.product_version }}
+      pack_id: ${{ steps.plan.outputs.pack_id }}
+      channel: ${{ steps.plan.outputs.channel }}
+      desktop_artifact_name: ${{ steps.plan.outputs.desktop_artifact_name }}
+      main_exe: ${{ steps.plan.outputs.main_exe }}
+      icon_path: ${{ steps.plan.outputs.icon_path }}
+      releases_dir: ${{ steps.plan.outputs.releases_dir }}
+      publish_subdir: ${{ steps.plan.outputs.publish_subdir }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve release plan from manifest
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x scripts/resolve-release-plan.sh scripts/manifest-v2.sh
+          ./scripts/resolve-release-plan.sh --github-output release-manifest.json

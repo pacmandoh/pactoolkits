@@ -1,5 +1,8 @@
 namespace PacToolkits.Agent.Contracts.Models;
 
+using System.Text.Json;
+using PacToolkits.Agent.Contracts.Agents;
+
 public sealed class AutomationToolsOptions
 {
     public AhkToolOptions Ahk { get; set; } = new();
@@ -8,7 +11,7 @@ public sealed class AutomationToolsOptions
 
 public sealed class AhkToolOptions
 {
-    public string ExecutablePath { get; set; } = @".\Tools\pacinjector.exe";
+    public string ExecutablePath { get; set; } = AgentPaths.InjectorAhkExecutable;
     public string ProcessName { get; set; } = string.Empty;
 }
 
@@ -44,4 +47,71 @@ public sealed class AgentToolOptions
     public List<string> WarehouseAnchorTexts { get; set; } = ["患者姓名", "应扫次数"];
     public string CodePickPolicy { get; set; } = "MAX_LEVEL";
     public string WarehouseTaskIdentifier { get; set; } = "单据号||当前编号";
+}
+
+public static class AgentSettingsSync
+{
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        WriteIndented = false,
+    };
+
+    public static bool HasData(AgentToolOptions? agent)
+    {
+        if (agent is null) return false;
+        var defaults = new AgentToolOptions();
+        return !string.Equals(agent.PgDriver, defaults.PgDriver, StringComparison.Ordinal)
+               || !string.Equals(agent.PgSsl, defaults.PgSsl, StringComparison.Ordinal)
+               || agent.AppWin.Count > 0
+               || agent.ColSpecs.Count > 0;
+    }
+
+    public static Dictionary<string, object?> ToSettings(AgentToolOptions agent)
+    {
+        var json = JsonSerializer.Serialize(agent, JsonOptions);
+        using var doc = JsonDocument.Parse(json);
+        var settings = new Dictionary<string, object?>(StringComparer.Ordinal);
+        foreach (var prop in doc.RootElement.EnumerateObject())
+            settings[prop.Name] = prop.Value.Clone();
+        return settings;
+    }
+
+    public static AgentToolOptions FromSettings(IReadOnlyDictionary<string, object?>? settings)
+    {
+        return TryFromSettings(settings, out var options)
+            ? options
+            : new AgentToolOptions();
+    }
+
+    public static bool TryFromSettings(
+        IReadOnlyDictionary<string, object?>? settings,
+        out AgentToolOptions options)
+    {
+        options = new AgentToolOptions();
+        if (settings is null || settings.Count == 0)
+            return true;
+
+        try
+        {
+            var json = JsonSerializer.Serialize(settings, JsonOptions);
+            options = JsonSerializer.Deserialize<AgentToolOptions>(json, JsonOptions) ?? new AgentToolOptions();
+            return true;
+        }
+        catch (JsonException)
+        {
+            options = new AgentToolOptions();
+            return false;
+        }
+    }
+
+    public static bool SettingsMatch(IReadOnlyDictionary<string, object?>? left, AgentToolOptions right)
+    {
+        if (!TryFromSettings(left, out var fromLeft))
+            return false;
+
+        var normalizedLeft = JsonSerializer.Serialize(fromLeft, JsonOptions);
+        var normalizedRight = JsonSerializer.Serialize(right, JsonOptions);
+        return string.Equals(normalizedLeft, normalizedRight, StringComparison.Ordinal);
+    }
 }
