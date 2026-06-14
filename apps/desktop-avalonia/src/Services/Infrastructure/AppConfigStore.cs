@@ -73,6 +73,8 @@ public interface IAppConfigStore
     AppConfigRoot Load();
     void Save(AppConfigRoot config);
     Task SaveAsync(AppConfigRoot config, CancellationToken ct = default);
+    void Update(Action<AppConfigRoot> mutator);
+    Task UpdateAsync(Action<AppConfigRoot> mutator, CancellationToken ct = default);
 }
 
 public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
@@ -87,6 +89,7 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
     };
 
     private static readonly object _gate = new();
+    private readonly SemaphoreSlim _writeGate = new(1, 1);
 
     private readonly string _configDir;
 
@@ -115,22 +118,72 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
 
     public void Save(AppConfigRoot config)
     {
-        lock (_gate)
+        _writeGate.Wait();
+        try
         {
             var normalized = Normalize(config);
             var json = JsonSerializer.Serialize(normalized, _writeOptions);
             WriteAllTextAtomic(ConfigPath, json);
         }
+        finally
+        {
+            _writeGate.Release();
+        }
     }
 
     public async Task SaveAsync(AppConfigRoot config, CancellationToken ct = default)
     {
-        AppConfigRoot normalized;
-        lock (_gate)
-            normalized = Normalize(config);
+        await _writeGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            ct.ThrowIfCancellationRequested();
+            var normalized = Normalize(config);
+            var json = JsonSerializer.Serialize(normalized, _writeOptions);
+            await WriteAllTextAtomicAsync(ConfigPath, json, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
+    }
 
-        var json = JsonSerializer.Serialize(normalized, _writeOptions);
-        await WriteAllTextAtomicAsync(ConfigPath, json, ct).ConfigureAwait(false);
+    public void Update(Action<AppConfigRoot> mutator)
+    {
+        ArgumentNullException.ThrowIfNull(mutator);
+
+        _writeGate.Wait();
+        try
+        {
+            var cfg = Normalize(ReadUnifiedOrDefault());
+            mutator(cfg);
+            var normalized = Normalize(cfg);
+            var json = JsonSerializer.Serialize(normalized, _writeOptions);
+            WriteAllTextAtomic(ConfigPath, json);
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
+    }
+
+    public async Task UpdateAsync(Action<AppConfigRoot> mutator, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(mutator);
+
+        await _writeGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            ct.ThrowIfCancellationRequested();
+            var cfg = Normalize(ReadUnifiedOrDefault());
+            mutator(cfg);
+            var normalized = Normalize(cfg);
+            var json = JsonSerializer.Serialize(normalized, _writeOptions);
+            await WriteAllTextAtomicAsync(ConfigPath, json, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
     }
 
     private AppConfigRoot ReadUnifiedOrDefault()
@@ -572,9 +625,8 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
 
     async Task IPostgresConfigStore.SavePostgresOptionsAsync(PgOptions postgres, CancellationToken ct)
     {
-        var cfg = Load();
-        cfg.Postgres = ClonePostgres(postgres);
-        await SaveAsync(cfg, ct).ConfigureAwait(false);
+        var cloned = ClonePostgres(postgres);
+        await UpdateAsync(cfg => cfg.Postgres = cloned, ct).ConfigureAwait(false);
     }
 
     private static PgOptions ClonePostgres(PgOptions src) => new()
