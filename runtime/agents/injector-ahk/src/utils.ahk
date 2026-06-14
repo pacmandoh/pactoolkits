@@ -48,8 +48,15 @@ Util_ReadVersionFile() {
         if (IsObject(r) && r.Has("ok") && r["ok"] && r.Has("val")) {
             root := r["val"]
             if IsObject(root) {
-                if (root.Has("agentVersion"))
+                if (root.Has("components")
+                    && IsObject(root["components"])
+                    && root["components"].Has("agent-injector-ahk")
+                    && IsObject(root["components"]["agent-injector-ahk"])
+                    && root["components"]["agent-injector-ahk"].Has("version")) {
+                    info["agentVersion"] := root["components"]["agent-injector-ahk"]["version"]
+                } else if (root.Has("agentVersion")) {
                     info["agentVersion"] := root["agentVersion"]
+                }
             }
         }
     }

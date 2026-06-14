@@ -84,7 +84,7 @@
 
         <suki:GlassCard Classes="ActionTile" Grid.Column="1"   VerticalAlignment="Stretch">
           <Button Classes="Action ActionWide"
-              
+
               Command="{Binding RestartAhkCommand}"
               IsEnabled="{Binding !IsAhkToggling}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -96,7 +96,7 @@
 
         <suki:GlassCard Classes="ActionTile" Grid.Column="2"   VerticalAlignment="Stretch">
           <Button Classes="Action ActionWide"
-              
+
               Command="{Binding SaveAhkSettingsCommand}"
               IsEnabled="{Binding !IsSavingSettings}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -170,7 +170,7 @@
                         UseFloatingWatermark="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AhkExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                        Watermark="例如：C:\\Tools\\pacinjector.exe" />
+                        Watermark="例如：.\Agents\injector\pactoolkits-injector.exe" />
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="进程名（可选）" VerticalAlignment="Center" />
                     <TextBox Grid.Row="1" Grid.Column="1"
@@ -179,7 +179,7 @@
                         UseFloatingWatermark="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AhkProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                        Watermark="例如：pacinjector（不带 .exe）" />
+                        Watermark="例如：pactoolkits-injector（不带 .exe）" />
 
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="PG 驱动" VerticalAlignment="Center" />
                     <TextBox Grid.Row="2" Grid.Column="1"
@@ -486,25 +486,25 @@
             </StackPanel>
 
             <Grid Grid.Row="1" Classes="FormLabelReadonlyRow" ColumnDefinitions="130,*">
-              
+
               <TextBlock Text="程序版本" Opacity="{StaticResource SectionHintOpacity}" />
               <TextBlock Grid.Column="1" Text="{Binding ProgramVersionText}" />
             </Grid>
 
             <Grid Grid.Row="2" Classes="FormLabelReadonlyRow" ColumnDefinitions="130,*">
-              
+
               <TextBlock Text="工具版本" Opacity="{StaticResource SectionHintOpacity}" />
               <TextBlock Grid.Column="1" Text="{Binding AhkVersionText}" />
             </Grid>
 
             <Grid Grid.Row="3" Classes="FormLabelReadonlyRow" ColumnDefinitions="130,*">
-              
+
               <TextBlock Text="最近拉起" Opacity="{StaticResource SectionHintOpacity}" />
               <TextBlock Grid.Column="1" Text="{Binding LastLaunchText}" />
             </Grid>
 
             <Grid Grid.Row="4" Classes="FormLabelReadonlyRow" ColumnDefinitions="130,*">
-              
+
               <TextBlock Text="最近错误" Opacity="{StaticResource SectionHintOpacity}" />
               <TextBlock Grid.Column="1" Text="{Binding LastErrorText}" TextWrapping="Wrap" />
             </Grid>

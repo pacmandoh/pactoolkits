@@ -17,7 +17,7 @@
       <suki:GlassCard Grid.Row="0" Classes="SectionCard PageHero">
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
           <suki:GlassCard Classes="SectionCard" Width="{DynamicResource AboutHeroCardSize}" Height="{DynamicResource AboutHeroCardSize}">
-            <Image Source="avares://PacToolkits.Desktop.Avalonia/Assets/icon-128.png"
+            <Image Source="avares://pactoolkits-desktop/Assets/icon-128.png"
                Width="{DynamicResource AboutHeroIconSize}"
                Height="{DynamicResource AboutHeroIconSize}"
                Stretch="Uniform"
@@ -87,8 +87,8 @@
 
           <Grid Grid.Row="1" ColumnDefinitions="2*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
             <StackPanel Spacing="2">
-              <TextBlock Text="PacToolkits Suite" Classes="SectionHint" />
-              <TextBlock Text="{Binding SuiteVersion}" FontSize="26" FontWeight="Bold" />
+              <TextBlock Text="PacToolkits" Classes="SectionHint" />
+              <TextBlock Text="{Binding ProductVersion}" FontSize="26" FontWeight="Bold" />
               <TextBlock Text="{Binding VersionHint}" Classes="SectionHint" TextWrapping="Wrap" />
             </StackPanel>
             <suki:GlassCard Classes="CompactCard" Grid.Column="1" Opacity="0.9" CornerRadius="12">
@@ -102,7 +102,7 @@
                    RowSpacing="{DynamicResource DialogFormRowSpacing}">
                   <TextBlock Text="{Binding BuildChannel, StringFormat=Channel: {0}}" Classes="SectionHint" />
                   <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding BuildDate, StringFormat=Date: {0}}" Classes="SectionHint" />
-                  <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding CompatUiDbRangeText}" Classes="SectionHint" />
+                  <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding CompatDesktopDbRangeText}" Classes="SectionHint" />
                   <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CompatAgentDbRangeText}" Classes="SectionHint" />
                 </Grid>
               </Grid>
@@ -122,7 +122,7 @@
                   <icons:AppIcon Kind="Database" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
                   <TextBlock Text="DB Schema" FontWeight="SemiBold" />
                 </StackPanel>
-                <TextBlock Grid.Row="1" Text="{Binding DbSchemaVersion}" FontSize="22" FontWeight="Bold" />
+                <TextBlock Grid.Row="1" Text="{Binding DatabasePostgresVersion}" FontSize="22" FontWeight="Bold" />
                 <TextBlock Grid.Row="2" Text="用于校验数据库结构兼容性" Opacity="0.9" />
               </Grid>
             </suki:GlassCard>
@@ -137,9 +137,9 @@
               <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <simpleicons:PackIconSimpleIcons Kind="AutoHotkey" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
-                  <TextBlock Text="AHK 脚本" FontWeight="SemiBold" />
+                  <TextBlock Text="Agent Injector AHK" FontWeight="SemiBold" />
                 </StackPanel>
-                <TextBlock Grid.Row="1" Text="{Binding AhkVersion}" FontSize="22" FontWeight="Bold" />
+                <TextBlock Grid.Row="1" Text="{Binding AgentInjectorAhkVersion}" FontSize="22" FontWeight="Bold" />
                 <TextBlock Grid.Row="2" Text="用于自动化执行层版本识别" Opacity="0.9" />
               </Grid>
             </suki:GlassCard>
@@ -154,10 +154,10 @@
               <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="AppWindow" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
-                  <TextBlock Text="UI 客户端" FontWeight="SemiBold" />
+                  <TextBlock Text="Desktop (Avalonia)" FontWeight="SemiBold" />
                 </StackPanel>
-                <TextBlock Grid.Row="1" Text="{Binding UiVersion}" FontSize="22" FontWeight="Bold" />
-                <TextBlock Grid.Row="2" Text="用于桌面应用显示与构建元信息" Opacity="0.9" />
+                <TextBlock Grid.Row="1" Text="{Binding DesktopVersion}" FontSize="22" FontWeight="Bold" />
+                <TextBlock Grid.Row="2" Text="桌面组件版本 (components.desktop)" Opacity="0.9" />
               </Grid>
             </suki:GlassCard>
           </Grid>

@@ -2,29 +2,32 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-UI_DIR="$ROOT_DIR/apps/desktop-avalonia/src"
+DESKTOP_PROJECT_DIR="$ROOT_DIR/apps/desktop-avalonia/src"
+# shellcheck source=manifest-v2.sh
+source "$ROOT_DIR/scripts/manifest-v2.sh"
+
 MANIFEST="$ROOT_DIR/release-manifest.json"
 
 usage() {
   cat <<'USAGE'
 Usage:
-  release-ui.sh [options]
+  release-desktop.sh [options]
 
 Options:
-  --bump-ui X.Y.Z            Optional: bump uiVersion before release.
-  --bump-suite X.Y.Z         Optional: explicitly set suiteVersion (otherwise auto major/minor/patch by component changes when ui/agent/db bumped).
-  --bump-agent X.Y.Z         Optional: bump agentVersion.
-  --bump-db X.Y.Z            Optional: bump dbSchemaVersion.
-  --bump-channel C           Optional: bump manifest build.channel (stable|beta).
-  --pack-version X.Y.Z       Optional: vpk pack version (default: manifest suiteVersion).
-  --channel C                Optional: vpk channel (default: manifest build.channel).
+  --bump-desktop X.Y.Z       Optional: bump components.desktop.version before release.
+  --bump-product X.Y.Z       Optional: bump product.version (alias: --bump-suite).
+  --bump-agent X.Y.Z         Optional: bump components.agent-injector-ahk.version.
+  --bump-db X.Y.Z            Optional: bump components.database-postgres.version.
+  --bump-channel C           Optional: bump release.channel (stable|beta).
+  --pack-version X.Y.Z       Optional: vpk pack version (default: manifest product.version).
+  --channel C                Optional: vpk channel (default: manifest release.channel).
   --runtime RID              Runtime for publish/pack (default: win-arm64).
   --framework TFM            Target framework (default: net10.0).
   --configuration CFG        Build configuration (default: Release).
   --self-contained true|false   dotnet publish self-contained (default: false).
-  --output-dir DIR           vpk output directory (default: UI project Releases directory).
+  --output-dir DIR           vpk output directory (default: desktop Releases directory).
   --pack-dir DIR             publish output directory for vpk (default: bin/<cfg>/<tfm>/<rid>/publish).
-  --main-exe FILE            main exe for vpk (default: PacToolkits.Desktop.Avalonia.exe).
+  --main-exe FILE            main exe for vpk (default: pactoolkits-desktop.exe).
   --icon FILE                icon for setup package (default: Assets/app.ico).
   --vpk-directive NAME       optional vpk target directive (e.g. win).
   --upload-target TARGET     Optional rsync target, e.g. user@host:/path/feed/pactoolkits
@@ -33,12 +36,16 @@ Options:
   --dry-run                  print commands only.
   -h, --help                 show help.
 
+Notes:
+  - With --dry-run and a bump flag, release plan uses a preview manifest so
+    product/desktop versions reflect the bumped values.
+
 Examples:
-  ./scripts/release-ui.sh --bump-ui 0.4.2 \
+  ./scripts/release-desktop.sh --bump-desktop 0.4.2 \
     --runtime win-arm64 --vpk-directive win \
     --upload-target user@host:/var/www/updates/pactoolkits
 
-  ./scripts/release-ui.sh --channel stable --runtime win-x64 --dry-run
+  ./scripts/release-desktop.sh --channel stable --runtime win-x64 --dry-run
 USAGE
 }
 
@@ -74,20 +81,21 @@ RUNTIME="win-arm64"
 FRAMEWORK="net10.0"
 CONFIGURATION="Release"
 SELF_CONTAINED="false"
-OUTPUT_DIR="$UI_DIR/Releases"
+OUTPUT_DIR="$DESKTOP_PROJECT_DIR/Releases"
 PACK_DIR=""
-MAIN_EXE="PacToolkits.Desktop.Avalonia.exe"
-ICON_FILE="$UI_DIR/Assets/app.ico"
+MAIN_EXE="pactoolkits-desktop.exe"
+ICON_FILE="$DESKTOP_PROJECT_DIR/Assets/app.ico"
 VPK_DIRECTIVE=""
 UPLOAD_TARGET=""
 RSYNC_DELETE="true"
 SKIP_UPLOAD="false"
 DRY_RUN="false"
+PLAN_MANIFEST_TMP=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --bump-ui) BUMP_UI="${2:-}"; shift 2 ;;
-    --bump-suite) BUMP_SUITE="${2:-}"; shift 2 ;;
+    --bump-desktop|--bump-ui) BUMP_UI="${2:-}"; shift 2 ;;
+    --bump-product|--bump-suite) BUMP_SUITE="${2:-}"; shift 2 ;;
     --bump-agent) BUMP_AGENT="${2:-}"; shift 2 ;;
     --bump-db) BUMP_DB="${2:-}"; shift 2 ;;
     --bump-channel) BUMP_CHANNEL="${2:-}"; shift 2 ;;
@@ -148,12 +156,17 @@ if [[ -z "$VPK_DIRECTIVE" && "$(uname -s)" == "Darwin" && "$RUNTIME" == win-* ]]
 fi
 
 if [[ -z "$PACK_DIR" ]]; then
-  PACK_DIR="$UI_DIR/bin/$CONFIGURATION/$FRAMEWORK/$RUNTIME/publish"
+  PACK_DIR="$DESKTOP_PROJECT_DIR/bin/$CONFIGURATION/$FRAMEWORK/$RUNTIME/publish"
 fi
 
 if [[ "$OUTPUT_DIR" != /* ]]; then
   OUTPUT_DIR="$ROOT_DIR/$OUTPUT_DIR"
 fi
+
+cleanup_release_temp() {
+  [[ -n "$PLAN_MANIFEST_TMP" ]] && rm -f "$PLAN_MANIFEST_TMP"
+}
+trap cleanup_release_temp EXIT
 
 if [[ -n "$BUMP_UI$BUMP_SUITE$BUMP_AGENT$BUMP_DB$BUMP_CHANNEL" ]]; then
   bump_args=("$ROOT_DIR/scripts/bump-version.sh")
@@ -162,62 +175,77 @@ if [[ -n "$BUMP_UI$BUMP_SUITE$BUMP_AGENT$BUMP_DB$BUMP_CHANNEL" ]]; then
   [[ -n "$BUMP_AGENT" ]] && bump_args+=(--agent "$BUMP_AGENT")
   [[ -n "$BUMP_DB" ]] && bump_args+=(--db "$BUMP_DB")
   [[ -n "$BUMP_CHANNEL" ]] && bump_args+=(--channel "$BUMP_CHANNEL")
-  run_cmd "${bump_args[@]}"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    PLAN_MANIFEST_TMP="$(mktemp)"
+    bump_args+=(--output "$PLAN_MANIFEST_TMP" --dry-run)
+    printf '[dry-run] '
+    printf '%q ' "${bump_args[@]}"
+    echo
+    "${bump_args[@]}"
+  else
+    run_cmd "${bump_args[@]}"
+  fi
+fi
+
+MANIFEST_FOR_PLAN="$MANIFEST"
+if [[ -n "${PLAN_MANIFEST_TMP:-}" ]]; then
+  MANIFEST_FOR_PLAN="$PLAN_MANIFEST_TMP"
 fi
 
 run_cmd "$ROOT_DIR/scripts/check-version.sh"
 
-manifest_ui="$(jq -r '.uiVersion' "$MANIFEST")"
-manifest_suite="$(jq -r '.suiteVersion' "$MANIFEST")"
-manifest_channel="$(jq -r '.build.channel' "$MANIFEST")"
+manifest_desktop="$(manifest_desktop_version "$MANIFEST_FOR_PLAN" 2>/dev/null || jq -r '.components.desktop.version // .uiVersion' "$MANIFEST_FOR_PLAN")"
+manifest_product="$(manifest_product_version "$MANIFEST_FOR_PLAN" 2>/dev/null || jq -r '.product.version // .suiteVersion' "$MANIFEST_FOR_PLAN")"
+manifest_channel="$(manifest_release_channel "$MANIFEST_FOR_PLAN" 2>/dev/null || jq -r '.release.channel // .build.channel' "$MANIFEST_FOR_PLAN")"
 
 if [[ -z "$PACK_VERSION" ]]; then
-  PACK_VERSION="$manifest_suite"
+  PACK_VERSION="$manifest_product"
 fi
 if [[ -z "$CHANNEL" ]]; then
   CHANNEL="$manifest_channel"
 fi
 
-if [[ "$PACK_VERSION" != "$manifest_suite" ]]; then
-  echo "ERROR: --pack-version ($PACK_VERSION) != manifest suiteVersion ($manifest_suite)" >&2
-  echo "Run bump-version first, or omit --pack-version to use manifest suiteVersion." >&2
+if [[ "$PACK_VERSION" != "$manifest_product" ]]; then
+  echo "ERROR: --pack-version ($PACK_VERSION) != manifest product.version ($manifest_product)" >&2
+  echo "Run bump-version first, or omit --pack-version to use manifest product.version." >&2
   exit 1
 fi
 
 echo "Release plan:"
-echo "- suiteVersion: $PACK_VERSION"
-echo "- uiVersion: $manifest_ui"
+echo "- product.version: $PACK_VERSION"
+echo "- desktop.version: $manifest_desktop"
 echo "- channel: $CHANNEL"
 echo "- runtime: $RUNTIME"
 echo "- framework: $FRAMEWORK"
 echo "- packDir: $PACK_DIR"
 echo "- outputDir: $OUTPUT_DIR"
 
-run_cmd dotnet publish "$UI_DIR/PacToolkits.Desktop.Avalonia.csproj" \
+run_cmd dotnet publish "$DESKTOP_PROJECT_DIR/PacToolkits.Desktop.Avalonia.csproj" \
   -c "$CONFIGURATION" \
   -f "$FRAMEWORK" \
   -r "$RUNTIME" \
   --self-contained "$SELF_CONTAINED"
 
-PACINJECTOR_SRC="$UI_DIR/Tools/pacinjector.exe"
-PACINJECTOR_DST="$PACK_DIR/Tools/pacinjector.exe"
-PACINJECTOR_MIN_BYTES=4096
+AGENT_SRC="${ARTIFACT_DIR:-$ROOT_DIR/artifacts/agents/agent-injector-ahk/win-x64}/pactoolkits-injector.exe"
+AGENT_DST_DIR="$PACK_DIR/Agents/injector"
+AGENT_DST="$AGENT_DST_DIR/pactoolkits-injector.exe"
+AGENT_MIN_BYTES=4096
 
 if [[ "$DRY_RUN" == "true" ]]; then
-  printf '[dry-run] mkdir -p %q\n' "$PACK_DIR/Tools"
-  printf '[dry-run] cp -f %q %q\n' "$PACINJECTOR_SRC" "$PACINJECTOR_DST"
+  printf '[dry-run] mkdir -p %q\n' "$AGENT_DST_DIR"
+  printf '[dry-run] cp -f %q %q\n' "$AGENT_SRC" "$AGENT_DST"
 else
-  [[ -f "$PACINJECTOR_SRC" ]] || {
-    echo "ERROR: missing agent binary: $PACINJECTOR_SRC" >&2
-    echo "Build agent first, e.g.: ./scripts/release-agent.sh --skip-upload --dry-run" >&2
+  [[ -f "$AGENT_SRC" ]] || {
+    echo "ERROR: missing agent binary: $AGENT_SRC" >&2
+    echo "Build agent first, e.g.: ./scripts/release-agent-injector-ahk.sh --artifact-dir ... --skip-upload" >&2
     exit 1
   }
-  mkdir -p "$PACK_DIR/Tools"
-  cp -f "$PACINJECTOR_SRC" "$PACINJECTOR_DST"
-  [[ -f "$PACINJECTOR_DST" ]] || { echo "ERROR: failed to copy pacinjector.exe to publish output" >&2; exit 1; }
-  pacinjector_size="$(wc -c < "$PACINJECTOR_DST" | tr -d ' ')"
-  if [[ "${pacinjector_size:-0}" -le "$PACINJECTOR_MIN_BYTES" ]]; then
-    echo "ERROR: pacinjector.exe too small to be valid ($PACINJECTOR_DST, ${pacinjector_size} bytes)" >&2
+  mkdir -p "$AGENT_DST_DIR"
+  cp -f "$AGENT_SRC" "$AGENT_DST"
+  [[ -f "$AGENT_DST" ]] || { echo "ERROR: failed to copy agent binary to publish output" >&2; exit 1; }
+  agent_size="$(wc -c < "$AGENT_DST" | tr -d ' ')"
+  if [[ "${agent_size:-0}" -le "$AGENT_MIN_BYTES" ]]; then
+    echo "ERROR: agent binary too small to be valid ($AGENT_DST, ${agent_size} bytes)" >&2
     exit 1
   fi
 fi
@@ -226,7 +254,7 @@ if [[ "$DRY_RUN" != "true" ]]; then
   [[ -d "$PACK_DIR" ]] || { echo "ERROR: pack dir not found: $PACK_DIR" >&2; exit 1; }
   [[ -f "$PACK_DIR/$MAIN_EXE" ]] || { echo "ERROR: main exe not found: $PACK_DIR/$MAIN_EXE" >&2; exit 1; }
   [[ -f "$ICON_FILE" ]] || { echo "ERROR: icon not found: $ICON_FILE" >&2; exit 1; }
-  [[ -f "$PACINJECTOR_DST" ]] || { echo "ERROR: pacinjector.exe not found in publish output: $PACINJECTOR_DST" >&2; exit 1; }
+  [[ -f "$AGENT_DST" ]] || { echo "ERROR: agent binary not found in publish output: $AGENT_DST" >&2; exit 1; }
   [[ -f "$PACK_DIR/Sql/Bootstrap/000_init_meta.sql" ]] || { echo "ERROR: bootstrap SQL not found in publish output" >&2; exit 1; }
   [[ -d "$PACK_DIR/Sql/Migrations" ]] || { echo "ERROR: migrations SQL directory not found in publish output" >&2; exit 1; }
   [[ -d "$PACK_DIR/Sql/Verify" ]] || { echo "ERROR: verify SQL directory not found in publish output" >&2; exit 1; }

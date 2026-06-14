@@ -8,7 +8,7 @@ public sealed class AutomationConfigDto
 
 public sealed class AutomationAhkOptionsDto
 {
-    public string ExecutablePath { get; set; } = @".\Tools\pacinjector.exe";
+    public string ExecutablePath { get; set; } = @".\Agents\injector\pactoolkits-injector.exe";
     public string ProcessName { get; set; } = string.Empty;
 }
 

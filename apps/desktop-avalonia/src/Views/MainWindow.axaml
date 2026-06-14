@@ -8,7 +8,7 @@
          x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
          x:DataType="vm:MainWindowViewModel"
          Title="PacToolkits - 自动化套件"
-         Icon="avares://PacToolkits.Desktop.Avalonia/Assets/app.ico"
+         Icon="avares://pactoolkits-desktop/Assets/app.ico"
          BackgroundStyle="Flat"
          IsMenuVisible="True"
          Width="1450"
@@ -18,10 +18,10 @@
          behaviors:FocusClearBehavior.Enable="True"
          WindowStartupLocation="CenterScreen">
   <suki:SukiWindow.Hosts>
-    
+
     <suki:SukiToastHost Manager="{Binding ToastManager}" />
 
-    
+
     <suki:SukiDialogHost Manager="{Binding DialogManager}" />
   </suki:SukiWindow.Hosts>
 
@@ -119,7 +119,7 @@
   </suki:SukiWindow.RightWindowTitleBarControls>
 
   <suki:SukiWindow.LogoContent>
-    <Image Source="avares://PacToolkits.Desktop.Avalonia/Assets/icon-32.png"
+    <Image Source="avares://pactoolkits-desktop/Assets/icon-32.png"
        Height="20"
        Stretch="Uniform"
        VerticalAlignment="Center" />
@@ -261,7 +261,7 @@
         </Grid>
       </Grid>
     </suki:SukiSideMenu.HeaderContent>
-    
+
     <suki:SukiSideMenu.ItemTemplate>
       <DataTemplate x:DataType="vm:AppPageBase">
         <suki:SukiSideMenuItem
@@ -303,7 +303,7 @@
                       Spacing="{DynamicResource SpacingInlineSm}"
                       HorizontalAlignment="Center">
                   <icons:AppIcon Kind="Tag" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" Opacity="0.82" VerticalAlignment="Center" />
-                  <TextBlock Text="{Binding AppSuiteVersionText}" Classes="ShellMeta" FontWeight="SemiBold" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding AppProductVersionText}" Classes="ShellMeta" FontWeight="SemiBold" VerticalAlignment="Center" />
                   <TextBlock Text="{Binding AppBuildChannelText, StringFormat=· {0}}"
                        Classes="ShellMeta"
                        IsVisible="{Binding AppBuildChannelText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
@@ -357,7 +357,7 @@
                 </ContextMenu>
               </Button.ContextMenu>
               <Border Width="30" Height="30" CornerRadius="9" ClipToBounds="True">
-                <Image Source="avares://PacToolkits.Desktop.Avalonia/Assets/app.ico" Stretch="Uniform" />
+                <Image Source="avares://pactoolkits-desktop/Assets/app.ico" Stretch="Uniform" />
               </Border>
             </Button>
             <Button Classes="SidebarCompactAction ActiveCompactAction"
@@ -383,7 +383,7 @@
                 </ContextMenu>
               </Button.ContextMenu>
               <Border Width="30" Height="30" CornerRadius="9" ClipToBounds="True">
-                <Image Source="avares://PacToolkits.Desktop.Avalonia/Assets/app.ico" Stretch="Uniform" />
+                <Image Source="avares://pactoolkits-desktop/Assets/app.ico" Stretch="Uniform" />
               </Border>
             </Button>
           </StackPanel>

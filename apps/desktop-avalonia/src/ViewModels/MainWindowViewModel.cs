@@ -12,6 +12,8 @@ using global::Avalonia.Styling;
 using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PacToolkits.Agent.Contracts.Abstractions;
+using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Common;
@@ -40,7 +42,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IDbSchemaVersionService _dbSchemaVersion;
     private readonly IDbSchemaMigrationService _dbSchemaMigration;
     private readonly IChangeWatermarkService _changeWatermark;
-    private readonly IAutomationRuntimeService _ahkRuntime;
+    private readonly IAgentManager _agentManager;
+    private IAgentRuntime Injector => _agentManager.GetRequired(AgentIds.InjectorAhk);
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IAppStartupStateService _startupState;
     private readonly IAppUpdateService _updates;
@@ -120,8 +123,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isUpdateChecking;
     [ObservableProperty] private bool _isUpdateApplying;
     [ObservableProperty] private bool _hasUpdateAvailable;
-    [ObservableProperty] private string _currentUiVersion = "unknown";
-    [ObservableProperty] private string _latestUiVersion = "unknown";
+    [ObservableProperty] private string _currentProductVersion = "unknown";
+    [ObservableProperty] private string _latestProductVersion = "unknown";
     public bool CanProbeDb() => !IsDbProbeRunning;
     public bool CanControlAhk() => !IsAhkActionRunning;
 
@@ -137,25 +140,25 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool IsSettingsPageActive => ActivePage is ISettingsPage;
     public bool IsAboutPageActive => ActivePage is IAboutPage;
 
-    public bool IsAhkRunning => _ahkRuntime.IsRunning;
+    public bool IsAhkRunning => Injector.IsRunning;
 
     public string AhkStatusText
         => IsAhkRunning ? "运行中" : "未启动";
 
     public string UpdateStatusTip
         => HasUpdateAvailable
-            ? $"发现新版本：{LatestUiVersion}（当前 {CurrentUiVersion}）"
+            ? $"发现新版本：{LatestProductVersion}（当前 {CurrentProductVersion}）"
             : "应用更新：当前已是最新版本";
 
-    public string AppSuiteVersionText
+    public string AppProductVersionText
     {
         get
         {
-            var suiteVersion = _releaseVersion.Current.SuiteVersion;
-            return string.IsNullOrWhiteSpace(suiteVersion) ||
-                   string.Equals(suiteVersion, "unknown", StringComparison.OrdinalIgnoreCase)
+            var productVersion = _releaseVersion.Current.ProductVersion;
+            return string.IsNullOrWhiteSpace(productVersion) ||
+                   string.Equals(productVersion, "unknown", StringComparison.OrdinalIgnoreCase)
                 ? "PacToolkits"
-                : $"PacToolkits v{suiteVersion}";
+                : $"PacToolkits v{productVersion}";
         }
     }
 
@@ -174,8 +177,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public string AppCopyrightDisplayText => "PacmanDoh · 2026";
 
     partial void OnHasUpdateAvailableChanged(bool value) => OnPropertyChanged(nameof(UpdateStatusTip));
-    partial void OnCurrentUiVersionChanged(string value) => OnPropertyChanged(nameof(UpdateStatusTip));
-    partial void OnLatestUiVersionChanged(string value) => OnPropertyChanged(nameof(UpdateStatusTip));
+    partial void OnCurrentProductVersionChanged(string value) => OnPropertyChanged(nameof(UpdateStatusTip));
+    partial void OnLatestProductVersionChanged(string value) => OnPropertyChanged(nameof(UpdateStatusTip));
 
     private void RaiseDbStateChanged()
     {
@@ -280,7 +283,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IDbSchemaVersionService dbSchemaVersion,
         IDbSchemaMigrationService dbSchemaMigration,
         IChangeWatermarkService changeWatermark,
-        IAutomationRuntimeService ahkRuntime,
+        IAgentManager agentManager,
         IReleaseVersionService releaseVersion,
         IAppStartupStateService startupState,
         IAppUpdateService updates,
@@ -296,7 +299,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dbSchemaVersion = dbSchemaVersion ?? throw new ArgumentNullException(nameof(dbSchemaVersion));
         _dbSchemaMigration = dbSchemaMigration ?? throw new ArgumentNullException(nameof(dbSchemaMigration));
         _changeWatermark = changeWatermark ?? throw new ArgumentNullException(nameof(changeWatermark));
-        _ahkRuntime = ahkRuntime ?? throw new ArgumentNullException(nameof(ahkRuntime));
+        _agentManager = agentManager ?? throw new ArgumentNullException(nameof(agentManager));
         _releaseVersion = releaseVersion ?? throw new ArgumentNullException(nameof(releaseVersion));
         _startupState = startupState ?? throw new ArgumentNullException(nameof(startupState));
         _updates = updates ?? throw new ArgumentNullException(nameof(updates));
@@ -337,12 +340,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         _dbMonitor.Reconnected += ScheduleAutoRefresh;
         _dbMonitor.Disconnected += ScheduleAutoRefresh;
-        _ahkRuntime.StatusChanged += OnAhkStatusChanged;
+        Injector.StatusChanged += OnAhkStatusChanged;
         _updates.Changed += OnUpdateChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
 
-        CurrentUiVersion = _updates.CurrentVersion;
-        LatestUiVersion = _updates.LatestVersion;
+        CurrentProductVersion = _updates.CurrentVersion;
+        LatestProductVersion = _updates.LatestVersion;
         HasUpdateAvailable = _updates.HasUpdateAvailable;
         IsUpdateChecking = _updates.IsChecking;
 
@@ -384,12 +387,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private async Task EnsureAhkStartedOnStartupAsync()
     {
-        if (_ahkRuntime.IsRunning)
+        if (Injector.IsRunning)
             return;
 
         try
         {
-            var result = await _ahkRuntime.StartOrRestartAsync().ConfigureAwait(false);
+            var result = await Injector.StartOrRestartAsync().ConfigureAwait(false);
             if (!result.Ok && !result.SuppressToast)
             {
                 _logger.Warn(
@@ -671,10 +674,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         try
         {
-            if (_ahkRuntime.IsRunning)
+            if (Injector.IsRunning)
             {
-                _ahkRuntime.Reload();
-                var running = _ahkRuntime.IsRunning;
+                Injector.Reload();
+                var running = Injector.IsRunning;
                 if (running)
                     TryShowAhkTopToast(() => _toasts.Success("自动化套件", "健康检查通过：进程运行中"));
                 else
@@ -682,7 +685,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             }
             else
             {
-                var result = await _ahkRuntime.StartOrRestartAsync().ConfigureAwait(false);
+                var result = await Injector.StartOrRestartAsync().ConfigureAwait(false);
                 if (result.SuppressToast)
                     return;
 
@@ -740,7 +743,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         try
         {
             await RunOnUiAsync(() => IsDbProbeRunning = true);
-            var currentAppVersion = NormalizeVersionForStamp(_releaseVersion.Current.SuiteVersion);
+            var currentAppVersion = NormalizeVersionForStamp(_releaseVersion.Current.ProductVersion);
             var state = await GetDbSchemaStartupStateAsync().ConfigureAwait(false);
             if (state.ShouldMigrate)
             {
@@ -929,7 +932,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     private Task IgnoreCurrentUpdateAsync()
-        => _updateUiFlow.IgnoreVersionAsync(LatestUiVersion);
+        => _updateUiFlow.IgnoreVersionAsync(LatestProductVersion);
 
     private void ShowDbConnectionFailed(string reason)
     {
@@ -1016,7 +1019,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 });
             }
 
-            var currentAppVersion = NormalizeVersionForStamp(_releaseVersion.Current.SuiteVersion);
+            var currentAppVersion = NormalizeVersionForStamp(_releaseVersion.Current.ProductVersion);
             await SaveDbMigrationStampAsync(currentAppVersion).ConfigureAwait(false);
             await RefreshSettingsSchemaStatusAsync("db_reconnected_migrate").ConfigureAwait(false);
         }
@@ -1061,8 +1064,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         PostOnUi(() =>
         {
-            CurrentUiVersion = _updates.CurrentVersion;
-            LatestUiVersion = _updates.LatestVersion;
+            CurrentProductVersion = _updates.CurrentVersion;
+            LatestProductVersion = _updates.LatestVersion;
             HasUpdateAvailable = _updates.HasUpdateAvailable;
             IsUpdateChecking = _updates.IsChecking;
         });
@@ -1083,7 +1086,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _dbMonitor.Reconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _dbMonitor.Disconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _changeWatermark.TopicChanged -= OnWatermarkTopicChanged);
-        SafeExecute(() => _ahkRuntime.StatusChanged -= OnAhkStatusChanged);
+        SafeExecute(() => Injector.StatusChanged -= OnAhkStatusChanged);
         SafeExecute(() => _updates.Changed -= OnUpdateChanged);
         SafeExecute(() => _updateSettings.Changed -= OnUpdateSettingsChanged);
 

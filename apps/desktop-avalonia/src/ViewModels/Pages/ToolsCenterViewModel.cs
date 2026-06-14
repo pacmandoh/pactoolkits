@@ -11,8 +11,13 @@ using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Agent.Contracts.Abstractions;
+using PacToolkits.Agent.Contracts.Agents;
+using PacToolkits.Agent.Contracts.Commands;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -47,7 +52,8 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     public override int Index => 4;
     public override ICommand? RefreshCommand => _refreshRuntimeCommand;
 
-    private readonly IAutomationRuntimeService _ahkRuntime;
+    private readonly IAgentManager _agentManager;
+    private IAgentRuntime Injector => _agentManager.GetRequired(AgentIds.InjectorAhk);
     private readonly IToastService _toast;
     private readonly IAutomationConfigService _automationConfig;
     private readonly IReleaseVersionService _releaseVersion;
@@ -105,12 +111,12 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     partial void OnIsAhkTogglingChanged(bool value) => RestartAhkCommand.NotifyCanExecuteChanged();
 
     public ToolsCenterViewModel(
-        IAutomationRuntimeService ahkRuntime,
+        IAgentManager agentManager,
         IToastService toast,
         IAutomationConfigService automationConfig,
         IReleaseVersionService releaseVersion)
     {
-        _ahkRuntime = ahkRuntime;
+        _agentManager = agentManager;
         _toast = toast;
         _automationConfig = automationConfig;
         _releaseVersion = releaseVersion;
@@ -120,12 +126,12 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         WireLineCollection(AgentIntColsItems);
         WireLineCollection(AgentWarehouseAnchorItems);
 
-        ProgramVersionText = ResolveProgramVersionText(_ahkRuntime.ToolVersion, _releaseVersion.Current.AgentVersion);
+        ProgramVersionText = ResolveProgramVersionText(Injector.ToolVersion, _releaseVersion.Current.AgentInjectorAhkVersion);
         ApplyRuntimeSnapshot();
         LoadAgentConfigSnapshot();
         NotifyPendingChangesState();
 
-        _ahkRuntime.StatusChanged += OnAhkRuntimeChanged;
+        Injector.StatusChanged += OnAhkRuntimeChanged;
     }
 
     partial void OnAhkExecutablePathChanged(string value) => NotifyPendingChangesState();
@@ -194,7 +200,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
 
     protected override Task ReloadCoreAsync(CancellationToken ct)
     {
-        _ahkRuntime.Reload();
+        Injector.Reload();
         ApplyRuntimeSnapshot();
         LoadAgentConfigSnapshot();
         return Task.CompletedTask;
@@ -202,7 +208,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
 
     private Task RefreshRuntimeStateAsync()
     {
-        _ahkRuntime.Reload();
+        Injector.Reload();
         ApplyRuntimeSnapshot();
         return Task.CompletedTask;
     }
@@ -244,9 +250,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 return;
 
             var restarted = false;
-            if (result.Changed && _ahkRuntime.IsRunning)
+            if (result.Changed && Injector.IsRunning)
             {
-                var restart = await _ahkRuntime.StartOrRestartAsync().ConfigureAwait(false);
+                var restart = await Injector.StartOrRestartAsync().ConfigureAwait(false);
                 if (!restart.Ok)
                 {
                     if (!restart.SuppressToast)
@@ -279,7 +285,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             return;
         if (ShouldSkipTrigger("tools.ahk.restart"))
             return;
-        if (!_ahkRuntime.IsRunning)
+        if (!Injector.IsRunning)
             return;
 
         IsAhkToggling = true;
@@ -289,7 +295,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             if (!saved)
                 return;
 
-            var result = await _ahkRuntime.StartOrRestartAsync().ConfigureAwait(false);
+            var result = await Injector.StartOrRestartAsync().ConfigureAwait(false);
             if (result.SuppressToast)
                 return;
 
@@ -338,8 +344,8 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             }
 
             AutomationCommandResult result = enabled
-                ? await _ahkRuntime.StartOrRestartAsync().ConfigureAwait(false)
-                : await _ahkRuntime.StopAsync().ConfigureAwait(false);
+                ? (await Injector.StartOrRestartAsync().ConfigureAwait(false)).ToApplication()
+                : (await Injector.StopAsync().ConfigureAwait(false)).ToApplication();
 
             if (!result.Ok && !result.SuppressToast)
                 _toast.Error("自动化套件", result.Message);
@@ -404,7 +410,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 Ahk = nextAhk,
                 Agent = parsedAgent
             }, CancellationToken.None).ConfigureAwait(false);
-            _ahkRuntime.Reload();
+            Injector.Reload();
             _savedSnapshot = BuildCurrentSnapshot();
             _baselineReady = _savedSnapshot is not null;
             NotifyPendingChangesState();
@@ -469,19 +475,20 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         _syncingFromRuntime = true;
         try
         {
-            IsAhkEnabled = _ahkRuntime.IsRunning;
-            AhkVersionText = _ahkRuntime.ToolVersion;
-            ProgramVersionText = ResolveProgramVersionText(AhkVersionText, _releaseVersion.Current.AgentVersion);
-            LastLaunchText = _ahkRuntime.LastLaunchAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
-            LastErrorText = string.IsNullOrWhiteSpace(_ahkRuntime.LastError) ? "-" : _ahkRuntime.LastError!;
-            AhkStatusText = _ahkRuntime.State switch
+            IsAhkEnabled = Injector.IsRunning;
+            AhkVersionText = Injector.ToolVersion;
+            ProgramVersionText = ResolveProgramVersionText(AhkVersionText, _releaseVersion.Current.AgentInjectorAhkVersion);
+            LastLaunchText = Injector.LastLaunchAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
+            LastErrorText = string.IsNullOrWhiteSpace(Injector.LastError) ? "-" : Injector.LastError!;
+            var runState = AutomationContractMapper.ToApplication(Injector.State);
+            AhkStatusText = runState switch
             {
                 AutomationRunState.Running => "运行中",
                 AutomationRunState.Stopped => "未启动",
                 _ => "未知",
             };
             AhkStatusHeadline = $"状态：{AhkStatusText}";
-            AhkStatusDetail = _ahkRuntime.State switch
+            AhkStatusDetail = runState switch
             {
                 AutomationRunState.Running => "进程已运行，可在右上角或本页执行“重启”",
                 AutomationRunState.Stopped => "当前未检测到进程，开启开关或点击“重启”即可启动",
@@ -908,7 +915,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
 
     public override void Dispose()
     {
-        try { _ahkRuntime.StatusChanged -= OnAhkRuntimeChanged; }
+        try { Injector.StatusChanged -= OnAhkRuntimeChanged; }
         catch (Exception ex)
         {
             LogWarn("tools.dispose.runtime_unsub_fail", "Failed to unsubscribe runtime status", ex);

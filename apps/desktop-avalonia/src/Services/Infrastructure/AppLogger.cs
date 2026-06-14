@@ -131,7 +131,7 @@ public sealed class AppLogger : IAppLogger, IDisposable
             Event = (eventName ?? string.Empty).Trim(),
             Message = (message ?? string.Empty).Trim(),
             TraceId = string.IsNullOrWhiteSpace(traceId) ? null : traceId.Trim(),
-            Version = _releaseVersion.Current.UiVersion,
+            Version = _releaseVersion.Current.DesktopVersion,
             Context = context,
             Exception = ex is null ? null : new AppExceptionRecord
             {

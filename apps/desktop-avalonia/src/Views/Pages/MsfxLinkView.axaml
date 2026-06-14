@@ -342,7 +342,7 @@
                   <Button Grid.Column="5"
                       Classes="Ghost"
                       Height="{StaticResource ControlHeightCompact}"
-                     
+
                       Command="{Binding PrevMapQueuePageCommand}"
                       IsEnabled="{Binding HasMapQueuePrevPage}">
                     <TextBlock Text="上页" />
@@ -350,7 +350,7 @@
                   <Button Grid.Column="6"
                       Classes="Ghost"
                       Height="{StaticResource ControlHeightCompact}"
-                     
+
                       Command="{Binding NextMapQueuePageCommand}"
                       IsEnabled="{Binding HasMapQueueNextPage}">
                     <TextBlock Text="下页" />
@@ -658,7 +658,7 @@
             <suki:GlassCard Grid.Row="0" Grid.RowSpan="2"
                     Grid.ColumnSpan="2"
                     Classes="SectionCard CompactCard"
-                   
+
                     IsVisible="{Binding IsAutoExpanded}">
               <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
@@ -799,7 +799,7 @@
                     <Button Grid.Column="4"
                         Classes="Ghost"
                         Height="{StaticResource ControlHeightCompact}"
-                       
+
                         Command="{Binding PrevPullBatchPageCommand}"
                         IsEnabled="{Binding HasPullBatchPrevPage}">
                       <TextBlock Text="上页" />
@@ -807,7 +807,7 @@
                     <Button Grid.Column="5"
                         Classes="Ghost"
                         Height="{StaticResource ControlHeightCompact}"
-                       
+
                         Command="{Binding NextPullBatchPageCommand}"
                         IsEnabled="{Binding HasPullBatchNextPage}">
                       <TextBlock Text="下页" />
@@ -919,7 +919,7 @@
                       <Button Grid.Column="5"
                           Classes="Ghost"
                           Height="{StaticResource ControlHeightCompact}"
-                         
+
                           Command="{Binding PrevMapQueuePageCommand}"
                           IsEnabled="{Binding HasMapQueuePrevPage}">
                         <TextBlock Text="上页" />
@@ -936,7 +936,7 @@
                       <Button Grid.Column="7"
                           Classes="Ghost"
                           Height="{StaticResource ControlHeightCompact}"
-                         
+
                           Command="{Binding NextMapQueuePageCommand}"
                           IsEnabled="{Binding HasMapQueueNextPage}">
                         <TextBlock Text="下页" />
@@ -1252,7 +1252,7 @@
                      VerticalAlignment="Center">
                   <TextBlock Text="每页" VerticalAlignment="Center" />
                   <ComboBox Width="136"
-                      
+
                        Height="40"
                        MinHeight="40"
                        MaxHeight="40"
@@ -1416,7 +1416,7 @@
                       VerticalAlignment="Center">
                   <TextBlock Text="每页" VerticalAlignment="Center" />
                   <ComboBox Width="136"
-                      
+
                        Height="40"
                        MinHeight="40"
                        MaxHeight="40"

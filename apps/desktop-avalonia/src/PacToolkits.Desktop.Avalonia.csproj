@@ -2,15 +2,16 @@
     <Import Project="Version.g.props" Condition="Exists('Version.g.props')" />
 
     <PropertyGroup>
+        <AssemblyName>pactoolkits-desktop</AssemblyName>
         <RootNamespace>PacToolkits.Desktop.Avalonia</RootNamespace>
         <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
         <AppVersion Condition="'$(AppVersion)' == ''">0.0.0-local</AppVersion>
         <Product>PacToolkits</Product>
         <Company>PacmanDoh</Company>
-        <Version>$(AppVersion)</Version>
-        <AssemblyVersion>$(AppVersion).0</AssemblyVersion>
-        <FileVersion>$(AppVersion).0</FileVersion>
-        <InformationalVersion>$(AppVersion)+win</InformationalVersion>
+        <Version Condition="'$(Version)' == ''">$(AppVersion)</Version>
+        <AssemblyVersion Condition="'$(AssemblyVersion)' == ''">0.0.0.0</AssemblyVersion>
+        <FileVersion Condition="'$(FileVersion)' == ''">0.0.0.0</FileVersion>
+        <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(AppVersion)+win</InformationalVersion>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
@@ -19,6 +20,10 @@
         <UseAppHost>true</UseAppHost>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="PacToolkits.Desktop.Tests" />
+    </ItemGroup>
 
     <ItemGroup>
         <AvaloniaResource Include="Assets\**" />

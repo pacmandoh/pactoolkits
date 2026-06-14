@@ -2,20 +2,29 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MANIFEST="$ROOT_DIR/release-manifest.json"
+# shellcheck source=manifest-v2.sh
+source "$ROOT_DIR/scripts/manifest-v2.sh"
 
 usage() {
   cat <<'USAGE'
 Usage:
-  bump-version.sh [--suite X.Y.Z|auto] [--agent X.Y.Z] [--ui X.Y.Z] [--db X.Y.Z]
-                  [--ui-min-db X.Y.Z] [--agent-min-db X.Y.Z]
-                  [--channel stable|beta] [--date YYYY-MM-DD] [--dry-run]
+  bump-version.sh [--product X.Y.Z|auto] [--desktop X.Y.Z] [--db X.Y.Z]
+                  [--component COMPONENT_ID=X.Y.Z]...
+                  [--component-min-db COMPONENT_ID=X.Y.Z]...
+                  [--desktop-min-db X.Y.Z] [--agent-min-db X.Y.Z]
+                  [--channel stable|beta] [--date YYYY-MM-DD]
+                  [--output PATH] [--dry-run]
+
+Legacy aliases (mapped to manifest v2 fields):
+  --suite -> --product
+  --ui -> --desktop
+  --agent -> --component agent-injector-ahk=X.Y.Z
+  --agent-min-db -> --component-min-db agent-injector-ahk=X.Y.Z
 
 Examples:
-  bump-version.sh --suite 0.4.1 --ui 0.4.1 --agent 0.3.1
-  bump-version.sh --suite auto --ui 0.4.4
+  bump-version.sh --product 0.4.1 --desktop 0.4.1 --component agent-injector-ahk=0.3.1
+  bump-version.sh --product auto --desktop 0.4.4
   bump-version.sh --db 1.2.1 --channel beta
-  bump-version.sh --ui-min-db 1.2.0 --agent-min-db 1.2.0
 USAGE
 }
 
@@ -52,7 +61,6 @@ semver_bump_major() {
   printf '%s.0.0\n' "$((major + 1))"
 }
 
-# Return one of: none / patch / minor / major / downgrade
 semver_change_level() {
   local old="$1"
   local new="$2"
@@ -62,13 +70,10 @@ semver_change_level() {
 
   if (( nM < oM )); then echo "downgrade"; return; fi
   if (( nM > oM )); then echo "major"; return; fi
-
   if (( nN < oN )); then echo "downgrade"; return; fi
   if (( nN > oN )); then echo "minor"; return; fi
-
   if (( nP < oP )); then echo "downgrade"; return; fi
   if (( nP > oP )); then echo "patch"; return; fi
-
   echo "none"
 }
 
@@ -87,33 +92,72 @@ max_level() {
     minor) rank_b=2 ;;
     major) rank_b=3 ;;
   esac
-  if (( rank_b > rank_a )); then
-    echo "$b"
-  else
-    echo "$a"
-  fi
+  if (( rank_b > rank_a )); then echo "$b"; else echo "$a"; fi
 }
 
-SUITE=""
-AGENT=""
-UI=""
+report_duplicate_component_version() {
+  local component_id="$1"
+  local previous="$2"
+  local current="$3"
+  if [[ "$previous" != "$current" ]]; then
+    echo "ERROR: conflicting component version for $component_id: $previous vs $current" >&2
+  else
+    echo "ERROR: duplicate component update for $component_id" >&2
+  fi
+  exit 1
+}
+
+report_duplicate_component_min_db() {
+  local component_id="$1"
+  local previous="$2"
+  local current="$3"
+  if [[ "$previous" != "$current" ]]; then
+    echo "ERROR: conflicting component minDbSchema for $component_id: $previous vs $current" >&2
+  else
+    echo "ERROR: duplicate component minDbSchema update for $component_id" >&2
+  fi
+  exit 1
+}
+
+MANIFEST="$ROOT_DIR/release-manifest.json"
+PRODUCT=""
+DESKTOP=""
 DB=""
-UI_MIN_DB=""
+DESKTOP_MIN_DB=""
 AGENT_MIN_DB=""
 CHANNEL=""
 DATE_STR="$(date -u +%F)"
 DRY_RUN="false"
+OUTPUT_FILE=""
+declare -a COMPONENT_UPDATES=()
+declare -a COMPONENT_MIN_DB_UPDATES=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --suite) SUITE="${2:-}"; shift 2 ;;
-    --agent) AGENT="${2:-}"; shift 2 ;;
-    --ui) UI="${2:-}"; shift 2 ;;
+    --product|--suite) PRODUCT="${2:-}"; shift 2 ;;
+    --desktop|--ui) DESKTOP="${2:-}"; shift 2 ;;
+    --agent)
+      COMPONENT_UPDATES+=("agent-injector-ahk=${2:-}")
+      shift 2
+      ;;
+    --component)
+      COMPONENT_UPDATES+=("${2:-}")
+      shift 2
+      ;;
+    --component-min-db)
+      COMPONENT_MIN_DB_UPDATES+=("${2:-}")
+      shift 2
+      ;;
     --db) DB="${2:-}"; shift 2 ;;
-    --ui-min-db) UI_MIN_DB="${2:-}"; shift 2 ;;
-    --agent-min-db) AGENT_MIN_DB="${2:-}"; shift 2 ;;
+    --desktop-min-db|--ui-min-db) DESKTOP_MIN_DB="${2:-}"; shift 2 ;;
+    --agent-min-db)
+      AGENT_MIN_DB="${2:-}"
+      COMPONENT_MIN_DB_UPDATES+=("agent-injector-ahk=${2:-}")
+      shift 2
+      ;;
     --channel) CHANNEL="${2:-}"; shift 2 ;;
     --date) DATE_STR="${2:-}"; shift 2 ;;
+    --output) OUTPUT_FILE="${2:-}"; shift 2 ;;
     --dry-run) DRY_RUN="true"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "ERROR: unknown arg: $1" >&2; usage; exit 1 ;;
@@ -121,20 +165,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 require_cmd jq
+[[ -f "$MANIFEST" ]] || { echo "ERROR: manifest not found: $MANIFEST" >&2; exit 1; }
 
-[[ -f "$MANIFEST" ]] || {
-  echo "ERROR: manifest not found: $MANIFEST" >&2
-  exit 1
-}
-
-if [[ -n "$SUITE" && "$SUITE" != "auto" ]]; then
-  is_semver "$SUITE" || { echo "ERROR: invalid --suite (expect X.Y.Z or auto)" >&2; exit 1; }
+if [[ -n "$PRODUCT" && "$PRODUCT" != "auto" ]]; then
+  is_semver "$PRODUCT" || { echo "ERROR: invalid --product (expect X.Y.Z or auto)" >&2; exit 1; }
 fi
-[[ -n "$AGENT" ]] && is_semver "$AGENT" || [[ -z "$AGENT" ]] || { echo "ERROR: invalid --agent" >&2; exit 1; }
-[[ -n "$UI" ]] && is_semver "$UI" || [[ -z "$UI" ]] || { echo "ERROR: invalid --ui" >&2; exit 1; }
-[[ -n "$DB" ]] && is_semver "$DB" || [[ -z "$DB" ]] || { echo "ERROR: invalid --db" >&2; exit 1; }
-[[ -n "$UI_MIN_DB" ]] && is_semver "$UI_MIN_DB" || [[ -z "$UI_MIN_DB" ]] || { echo "ERROR: invalid --ui-min-db" >&2; exit 1; }
-[[ -n "$AGENT_MIN_DB" ]] && is_semver "$AGENT_MIN_DB" || [[ -z "$AGENT_MIN_DB" ]] || { echo "ERROR: invalid --agent-min-db" >&2; exit 1; }
+for v in "$DESKTOP" "$DB" "$DESKTOP_MIN_DB" "$AGENT_MIN_DB"; do
+  [[ -z "$v" ]] || is_semver "$v" || { echo "ERROR: invalid semver arg" >&2; exit 1; }
+done
 is_date "$DATE_STR" || { echo "ERROR: invalid --date" >&2; exit 1; }
 
 if [[ -n "$CHANNEL" ]]; then
@@ -144,55 +182,140 @@ if [[ -n "$CHANNEL" ]]; then
   esac
 fi
 
-if [[ -z "$SUITE$AGENT$UI$DB$UI_MIN_DB$AGENT_MIN_DB$CHANNEL" ]]; then
+if [[ -z "$PRODUCT$DESKTOP$DB$DESKTOP_MIN_DB$AGENT_MIN_DB$CHANNEL" && ${#COMPONENT_UPDATES[@]} -eq 0 && ${#COMPONENT_MIN_DB_UPDATES[@]} -eq 0 ]]; then
   echo "ERROR: nothing to update" >&2
   usage
   exit 1
 fi
 
-current_suite="$(jq -r '.suiteVersion' "$MANIFEST")"
-current_agent="$(jq -r '.agentVersion' "$MANIFEST")"
-current_ui="$(jq -r '.uiVersion' "$MANIFEST")"
-current_db="$(jq -r '.dbSchemaVersion' "$MANIFEST")"
-is_semver "$current_suite" || { echo "ERROR: manifest suiteVersion is not semver: $current_suite" >&2; exit 1; }
-is_semver "$current_agent" || { echo "ERROR: manifest agentVersion is not semver: $current_agent" >&2; exit 1; }
-is_semver "$current_ui" || { echo "ERROR: manifest uiVersion is not semver: $current_ui" >&2; exit 1; }
-is_semver "$current_db" || { echo "ERROR: manifest dbSchemaVersion is not semver: $current_db" >&2; exit 1; }
+validate_manifest_v2 "$MANIFEST"
 
-agent_level="none"
-ui_level="none"
+current_product="$(manifest_product_version "$MANIFEST")"
+current_desktop="$(manifest_desktop_version "$MANIFEST")"
+current_db="$(manifest_database_postgres_version "$MANIFEST")"
+
+component_updates_json='{}'
+product_auto_level="none"
+desktop_level="none"
 db_level="none"
-if [[ -n "$AGENT" ]]; then
-  agent_level="$(semver_change_level "$current_agent" "$AGENT")"
-  [[ "$agent_level" != "downgrade" ]] || { echo "ERROR: --agent cannot downgrade ($current_agent -> $AGENT)" >&2; exit 1; }
+
+for item in "${COMPONENT_UPDATES[@]}"; do
+  [[ "$item" == *=* ]] || {
+    echo "ERROR: --component expects COMPONENT_ID=X.Y.Z, got: $item" >&2
+    exit 1
+  }
+  component_id="${item%%=*}"
+  component_version="${item#*=}"
+  existing_version="$(jq -r --arg id "$component_id" '.[$id] // empty' <<< "$component_updates_json")"
+  if [[ -n "$existing_version" ]]; then
+    report_duplicate_component_version "$component_id" "$existing_version" "$component_version"
+  fi
+  is_semver "$component_version" || {
+    echo "ERROR: invalid component version for $component_id: $component_version" >&2
+    exit 1
+  }
+  jq -e --arg id "$component_id" '.components[$id].version' "$MANIFEST" >/dev/null || {
+    echo "ERROR: unknown manifest component: $component_id" >&2
+    exit 1
+  }
+  current_component_version="$(jq -r --arg id "$component_id" '.components[$id].version' "$MANIFEST")"
+  component_level="$(semver_change_level "$current_component_version" "$component_version")"
+  [[ "$component_level" != "downgrade" ]] || {
+    echo "ERROR: --component $component_id cannot downgrade ($current_component_version -> $component_version)" >&2
+    exit 1
+  }
+  product_auto_level="$(max_level "$product_auto_level" "$component_level")"
+  component_updates_json="$(jq -n \
+    --argjson base "$component_updates_json" \
+    --arg id "$component_id" \
+    --arg ver "$component_version" \
+    '$base + {($id): $ver}')"
+done
+
+if [[ -n "$DESKTOP" ]]; then
+  existing_desktop="$(jq -r '.desktop // empty' <<< "$component_updates_json")"
+  if [[ -n "$existing_desktop" ]]; then
+    if [[ "$existing_desktop" != "$DESKTOP" ]]; then
+      echo "ERROR: conflicting desktop version: --desktop $DESKTOP vs --component desktop=$existing_desktop" >&2
+    else
+      echo "ERROR: duplicate desktop update: use --desktop or --component desktop=..., not both" >&2
+    fi
+    exit 1
+  fi
 fi
-if [[ -n "$UI" ]]; then
-  ui_level="$(semver_change_level "$current_ui" "$UI")"
-  [[ "$ui_level" != "downgrade" ]] || { echo "ERROR: --ui cannot downgrade ($current_ui -> $UI)" >&2; exit 1; }
-fi
+
 if [[ -n "$DB" ]]; then
-  db_level="$(semver_change_level "$current_db" "$DB")"
-  [[ "$db_level" != "downgrade" ]] || { echo "ERROR: --db cannot downgrade ($current_db -> $DB)" >&2; exit 1; }
+  existing_db="$(jq -r '."database-postgres" // empty' <<< "$component_updates_json")"
+  if [[ -n "$existing_db" ]]; then
+    if [[ "$existing_db" != "$DB" ]]; then
+      echo "ERROR: conflicting database version: --db $DB vs --component database-postgres=$existing_db" >&2
+    else
+      echo "ERROR: duplicate database update: use --db or --component database-postgres=..., not both" >&2
+    fi
+    exit 1
+  fi
 fi
 
-suite_auto_level="none"
-suite_auto_level="$(max_level "$suite_auto_level" "$agent_level")"
-suite_auto_level="$(max_level "$suite_auto_level" "$ui_level")"
-suite_auto_level="$(max_level "$suite_auto_level" "$db_level")"
+component_min_db_json='{}'
+for item in "${COMPONENT_MIN_DB_UPDATES[@]}"; do
+  [[ "$item" == *=* ]] || {
+    echo "ERROR: --component-min-db expects COMPONENT_ID=X.Y.Z, got: $item" >&2
+    exit 1
+  }
+  component_id="${item%%=*}"
+  min_db_version="${item#*=}"
+  existing_min_db="$(jq -r --arg id "$component_id" '.[$id] // empty' <<< "$component_min_db_json")"
+  if [[ -n "$existing_min_db" ]]; then
+    report_duplicate_component_min_db "$component_id" "$existing_min_db" "$min_db_version"
+  fi
+  is_semver "$min_db_version" || {
+    echo "ERROR: invalid component minDbSchema for $component_id: $min_db_version" >&2
+    exit 1
+  }
+  jq -e --arg id "$component_id" '.components[$id].minDbSchema' "$MANIFEST" >/dev/null || {
+    echo "ERROR: unknown manifest component for minDbSchema: $component_id" >&2
+    exit 1
+  }
+  component_min_db_json="$(jq -n \
+    --argjson base "$component_min_db_json" \
+    --arg id "$component_id" \
+    --arg ver "$min_db_version" \
+    '$base + {($id): $ver}')"
+done
 
-if [[ "$SUITE" == "auto" ]]; then
-  case "$suite_auto_level" in
-    major) SUITE="$(semver_bump_major "$current_suite")" ;;
-    minor) SUITE="$(semver_bump_minor "$current_suite")" ;;
-    patch) SUITE="$(semver_bump_patch "$current_suite")" ;;
-    none) SUITE="$current_suite" ;;
+if [[ -n "$DESKTOP_MIN_DB" ]]; then
+  existing_desktop_min_db="$(jq -r '.desktop // empty' <<< "$component_min_db_json")"
+  if [[ -n "$existing_desktop_min_db" ]]; then
+    if [[ "$existing_desktop_min_db" != "$DESKTOP_MIN_DB" ]]; then
+      echo "ERROR: conflicting desktop minDbSchema: --desktop-min-db $DESKTOP_MIN_DB vs --component-min-db desktop=$existing_desktop_min_db" >&2
+    else
+      echo "ERROR: duplicate desktop minDbSchema update: use --desktop-min-db or --component-min-db desktop=..., not both" >&2
+    fi
+    exit 1
+  fi
+fi
+
+[[ -n "$DESKTOP" ]] && desktop_level="$(semver_change_level "$current_desktop" "$DESKTOP")"
+[[ -n "$DB" ]] && db_level="$(semver_change_level "$current_db" "$DB")"
+[[ "$desktop_level" != "downgrade" ]] || { echo "ERROR: --desktop cannot downgrade ($current_desktop -> $DESKTOP)" >&2; exit 1; }
+[[ "$db_level" != "downgrade" ]] || { echo "ERROR: --db cannot downgrade ($current_db -> $DB)" >&2; exit 1; }
+
+product_auto_level="$(max_level "$product_auto_level" "$desktop_level")"
+product_auto_level="$(max_level "$product_auto_level" "$db_level")"
+
+if [[ "$PRODUCT" == "auto" ]]; then
+  case "$product_auto_level" in
+    major) PRODUCT="$(semver_bump_major "$current_product")" ;;
+    minor) PRODUCT="$(semver_bump_minor "$current_product")" ;;
+    patch) PRODUCT="$(semver_bump_patch "$current_product")" ;;
+    none) PRODUCT="$current_product" ;;
   esac
-elif [[ -z "$SUITE" && -n "$AGENT$UI$DB" ]]; then
-  case "$suite_auto_level" in
-    major) SUITE="$(semver_bump_major "$current_suite")" ;;
-    minor) SUITE="$(semver_bump_minor "$current_suite")" ;;
-    patch) SUITE="$(semver_bump_patch "$current_suite")" ;;
-    none) SUITE="$current_suite" ;;
+elif [[ -z "$PRODUCT" && ( ${#COMPONENT_UPDATES[@]} -gt 0 || -n "$DESKTOP$DB" ) ]]; then
+  case "$product_auto_level" in
+    major) PRODUCT="$(semver_bump_major "$current_product")" ;;
+    minor) PRODUCT="$(semver_bump_minor "$current_product")" ;;
+    patch) PRODUCT="$(semver_bump_patch "$current_product")" ;;
+    none) PRODUCT="$current_product" ;;
   esac
 fi
 
@@ -200,30 +323,35 @@ TMP_FILE="$(mktemp)"
 trap 'rm -f "$TMP_FILE"' EXIT
 
 jq \
-  --arg suite "$SUITE" \
-  --arg agent "$AGENT" \
-  --arg ui "$UI" \
+  --arg product "$PRODUCT" \
+  --arg desktop "$DESKTOP" \
   --arg db "$DB" \
-  --arg ui_min_db "$UI_MIN_DB" \
+  --arg desktop_min_db "$DESKTOP_MIN_DB" \
   --arg agent_min_db "$AGENT_MIN_DB" \
   --arg channel "$CHANNEL" \
   --arg date "$DATE_STR" \
+  --argjson component_updates "$component_updates_json" \
+  --argjson component_min_db_updates "$component_min_db_json" \
   '
-  .suiteVersion = (if $suite == "" then .suiteVersion else $suite end) |
-  .agentVersion = (if $agent == "" then .agentVersion else $agent end) |
-  .uiVersion = (if $ui == "" then .uiVersion else $ui end) |
-  .dbSchemaVersion = (if $db == "" then .dbSchemaVersion else $db end) |
-  .compat.uiMinDbSchema = (if $ui_min_db == "" then .compat.uiMinDbSchema else $ui_min_db end) |
-  .compat.agentMinDbSchema = (if $agent_min_db == "" then .compat.agentMinDbSchema else $agent_min_db end) |
-  .build.channel = (if $channel == "" then .build.channel else $channel end) |
-  .build.date = $date
+  .product.version = (if $product == "" then .product.version else $product end) |
+  reduce ($component_updates | to_entries[]) as $item (.;
+    .components[$item.key].version = $item.value
+  ) |
+  reduce ($component_min_db_updates | to_entries[]) as $item (.;
+    .components[$item.key].minDbSchema = $item.value
+  ) |
+  .components.desktop.version = (if $desktop == "" then .components.desktop.version else $desktop end) |
+  .components["database-postgres"].version = (if $db == "" then .components["database-postgres"].version else $db end) |
+  .components.desktop.minDbSchema = (if $desktop_min_db == "" then .components.desktop.minDbSchema else $desktop_min_db end) |
+  .release.channel = (if $channel == "" then .release.channel else $channel end) |
+  .release.date = $date
   ' "$MANIFEST" > "$TMP_FILE"
 
-jq -e '
-  .suiteVersion and .agentVersion and .uiVersion and .dbSchemaVersion and
-  .compat.uiMinDbSchema and .compat.agentMinDbSchema and
-  .build.channel and .build.date
-' "$TMP_FILE" >/dev/null
+validate_manifest_v2 "$TMP_FILE"
+
+if [[ -n "$OUTPUT_FILE" ]]; then
+  cp "$TMP_FILE" "$OUTPUT_FILE"
+fi
 
 if [[ "$DRY_RUN" == "true" ]]; then
   echo "=== DRY RUN ==="
@@ -231,9 +359,15 @@ if [[ "$DRY_RUN" == "true" ]]; then
   exit 0
 fi
 
+if [[ -n "$OUTPUT_FILE" ]]; then
+  echo "Preview written to $OUTPUT_FILE"
+  jq '{schemaVersion, product, components, release}' "$OUTPUT_FILE"
+  exit 0
+fi
+
 mv "$TMP_FILE" "$MANIFEST"
 
 echo "Updated $MANIFEST"
-jq '{suiteVersion, agentVersion, uiVersion, dbSchemaVersion, compat, build}' "$MANIFEST"
+jq '{schemaVersion, product, components, release}' "$MANIFEST"
 
 "$ROOT_DIR/scripts/export-version.sh"

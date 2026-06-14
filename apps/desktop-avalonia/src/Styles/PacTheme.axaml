@@ -1,11 +1,11 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.MergedDictionaries>
-    <ResourceInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Theme/Colors.axaml" />
-    <ResourceInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Theme/Typography.axaml" />
-    <ResourceInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Theme/Layout.axaml" />
-    <ResourceInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Theme/NavigationResources.axaml" />
-    <ResourceInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Theme/SukiOverrides.axaml" />
-    <ResourceInclude Source="avares://PacToolkits.Desktop.Avalonia/Styles/Theme/AboutColors.axaml" />
+    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/Colors.axaml" />
+    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/Typography.axaml" />
+    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/Layout.axaml" />
+    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/NavigationResources.axaml" />
+    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/SukiOverrides.axaml" />
+    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/AboutColors.axaml" />
   </ResourceDictionary.MergedDictionaries>
 </ResourceDictionary>
