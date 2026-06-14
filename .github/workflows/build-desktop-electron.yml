@@ -60,11 +60,7 @@ jobs:
           try {
             $buildScript = (npm run 2>$null | Select-String -Pattern '^\s+build:desktop\b')
             if (-not $buildScript) {
-              throw @"
-Formal electron desktop build is not wired yet.
-Add an npm script 'build:desktop' that emits '$publishDir/$mainExe', or keep components.desktop.implementation='avalonia'.
-See docs/migration/desktop-electron-cutover.md
-"@
+              throw "Formal electron desktop build is not wired yet. Add an npm script 'build:desktop' that emits '$publishDir/$mainExe', or keep components.desktop.implementation='avalonia'. See docs/migration/desktop-electron-cutover.md"
             }
             npm run build:desktop
           } finally {
