@@ -149,10 +149,8 @@ public sealed class AhkRuntimeService : IAutomationRuntimeService
     public async Task SaveOptionsAsync(AutomationAhkOptionsDto options, CancellationToken ct = default)
     {
         var normalized = Normalize(AutomationContractMapper.ToContract(options));
-
-        var cfg = _configStore.Load();
-        cfg.AutomationTools.Ahk = Clone(normalized);
-        await _configStore.SaveAsync(cfg, ct).ConfigureAwait(false);
+        var cloned = Clone(normalized);
+        await _configStore.UpdateAsync(cfg => cfg.AutomationTools.Ahk = cloned, ct).ConfigureAwait(false);
 
         bool changed;
         lock (_gate)
