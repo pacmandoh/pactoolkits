@@ -65,6 +65,11 @@ runtime/agent-ahk/Releases/
 database/postgres/scripts/config.json
 
 # ------------------------------
+# Node / Electron (desktop-electron preview shell)
+# ------------------------------
+**/node_modules/
+
+# ------------------------------
 # Optional local release scratch files
 # ------------------------------
 *.zip
