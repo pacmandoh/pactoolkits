@@ -1,0 +1,13 @@
+{
+  "name": "@pactoolkits/desktop-electron",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Reserved Nuxt + Electron preview shell. Not part of release.",
+  "main": "electron/main/index.js",
+  "scripts": {
+    "start": "node -e \"console.error('Electron preview is not wired yet. See README.md.'); process.exit(1)\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
