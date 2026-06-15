@@ -6,7 +6,7 @@
       xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
       xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
       xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
-      xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Views.Dialogs"
+      xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
       x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxMappingBatchDialogView"
       x:Name="Root"
       x:DataType="dialogs:MsfxMappingBatchDialogModel"
