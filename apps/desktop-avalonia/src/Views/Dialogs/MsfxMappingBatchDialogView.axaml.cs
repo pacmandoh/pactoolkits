@@ -19,13 +19,6 @@ using System.Threading.Tasks;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Dialogs;
 
-public sealed record MsfxMappingBatchDialogModel(
-    IReadOnlyList<MsfxMappingBatchGroupRow> Groups,
-    string MapStatusFilter,
-    string CodeStatusFilter,
-    string SearchScope,
-    string Keyword);
-
 public partial class MsfxMappingBatchDialogView : UserControl
 {
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);

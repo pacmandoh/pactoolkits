@@ -67,6 +67,28 @@ public sealed record MsfxTaskSplitDialogResult(
     MsfxTaskSplitDialogAction Action,
     string? CustomQuantities = null);
 
+public sealed record InfoDetailItem(string Label, string Value);
+
+public sealed record InfoDetailDialogModel(
+    string Header,
+    string SubHeader,
+    IReadOnlyList<InfoDetailItem> Items);
+
+public sealed record MsfxMappingBatchDialogModel(
+    IReadOnlyList<MsfxMappingBatchGroupRow> Groups,
+    string MapStatusFilter,
+    string CodeStatusFilter,
+    string SearchScope,
+    string Keyword);
+
+public sealed record MsfxStateDetailDialogModel(
+    string Header,
+    string SubHeader,
+    TraceEntryState State,
+    string HighlightTitle,
+    string HighlightMessage,
+    IReadOnlyList<InfoDetailItem> Items);
+
 public sealed class DialogService : IDialogService
 {
     private static readonly string[] GhostButtonClasses = { "Ghost" };

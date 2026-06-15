@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-      xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Views.Dialogs"
+      xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
       x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InfoDetailDialogView"
       x:DataType="dialogs:InfoDetailDialogModel">
   <Border MinWidth="460"
