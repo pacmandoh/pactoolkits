@@ -269,16 +269,16 @@ public class App : global::Avalonia.Application
 
         UnregisterGlobalExceptionHandlers();
 
-        // Real app exit: ensure the external AHK injector process is stopped.
+        // Real app exit: ensure every registered external Agent process is stopped.
         if (_agentManager is not null)
         {
             try
             {
-                _agentManager.GetRequired(AgentIds.InjectorAhk).StopAsync().GetAwaiter().GetResult();
+                _agentManager.StopAllAsync().GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
-                _logger?.Warn("App", "shutdown.ahk_stop_fail", "Failed to stop AHK runtime during shutdown", ex);
+                _logger?.Warn("App", "shutdown.agents_stop_fail", "Failed to stop registered Agent runtimes during shutdown", ex);
             }
         }
 

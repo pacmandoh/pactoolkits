@@ -1,0 +1,109 @@
+name: Validate Release
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - beta
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Validate only; do not authorize a formal release
+        required: true
+        type: boolean
+        default: true
+      confirm:
+        description: Required for a formal release
+        required: true
+        type: boolean
+        default: false
+      allow_beta_db_migration:
+        description: Explicitly authorize isolated Beta database migrations
+        required: true
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      dry_run:
+        required: false
+        type: boolean
+        default: true
+      confirm:
+        required: false
+        type: boolean
+        default: false
+      allow_beta_db_migration:
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve validation inputs
+        id: inputs
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          INPUT_CONFIRM: ${{ inputs.confirm }}
+          INPUT_ALLOW_BETA_DB_MIGRATION: ${{ inputs.allow_beta_db_migration }}
+        run: |
+          set -euo pipefail
+          dry_run="${INPUT_DRY_RUN:-true}"
+          confirm="${INPUT_CONFIRM:-false}"
+          allow_beta_db_migration="${INPUT_ALLOW_BETA_DB_MIGRATION:-false}"
+          if [[ "$EVENT_NAME" == "push" && "${GITHUB_REF:-}" == refs/tags/v* ]]; then
+            dry_run=false
+            confirm=true
+          fi
+          echo "dry_run=$dry_run" >> "$GITHUB_OUTPUT"
+          echo "confirm=$confirm" >> "$GITHUB_OUTPUT"
+          echo "allow_beta_db_migration=$allow_beta_db_migration" >> "$GITHUB_OUTPUT"
+
+      - name: Validate release channel
+        shell: bash
+        env:
+          DRY_RUN: ${{ steps.inputs.outputs.dry_run }}
+          CONFIRM: ${{ steps.inputs.outputs.confirm }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/validate-release-channel.sh scripts/validate-database-policy.sh
+          channel="$(jq -r '.release.channel' release-manifest.json)"
+          tag=""
+          if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF_NAME}"
+          fi
+          prerelease="$(jq -r 'if .release.channel == "beta" then "true" else "false" end' release-manifest.json)"
+          scripts/validate-release-channel.sh \
+            --manifest release-manifest.json \
+            --tag "$tag" \
+            --prerelease "$prerelease" \
+            --feed-root /feed/pactoolkits \
+            --feed-target "/feed/pactoolkits/$channel" \
+            --dry-run "$DRY_RUN" \
+            --confirm "$CONFIRM"
+
+      - name: Validate database policy
+        shell: bash
+        env:
+          ALLOW_BETA_DB_MIGRATION: ${{ steps.inputs.outputs.allow_beta_db_migration }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          scripts/validate-database-policy.sh \
+            --manifest release-manifest.json \
+            --base-ref origin/main \
+            --allow-beta-migration "$ALLOW_BETA_DB_MIGRATION"

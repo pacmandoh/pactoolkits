@@ -54,7 +54,15 @@ public partial class MainWindowViewModel
         await Task.Delay(350).ConfigureAwait(false);
 
         if (!File.Exists(_configPath)) return;
-        Injector.Reload();
+
+        try
+        {
+            await _agentManager.SynchronizeConfigurationAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn("MainWindowVM", "config.agent_sync_fail", "Failed to synchronize agent configuration", ex);
+        }
 
         AppConfigRoot? loaded;
         string? json;

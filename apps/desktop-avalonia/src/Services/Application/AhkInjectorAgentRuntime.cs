@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
-public sealed class AhkInjectorAgentRuntime : IAgentRuntime
+public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
 {
     private readonly IAppConfigStore _configStore;
     private readonly IReleaseVersionService _releaseVersion;
@@ -45,6 +45,26 @@ public sealed class AhkInjectorAgentRuntime : IAgentRuntime
     public event Action? StatusChanged;
 
     public AgentDescriptor Descriptor => AgentDescriptors.InjectorAhk;
+
+    public bool IsEnabled
+    {
+        get
+        {
+            var cfg = _configStore.Load();
+            return !cfg.Agents.TryGetValue(AgentIds.InjectorAhk, out var agentConfig)
+                   || agentConfig.Enabled;
+        }
+    }
+
+    public string MinDbSchema
+        => DbSchemaCompat.NormalizeBound(
+            _releaseVersion.Current.AgentMinDbSchema,
+            _releaseVersion.Current.DbSchemaVersion);
+
+    public string MaxDbSchema
+        => DbSchemaCompat.NormalizeBound(
+            _releaseVersion.Current.AgentMaxDbSchema,
+            _releaseVersion.Current.DbSchemaVersion);
 
     public string ExecutablePath
     {
@@ -217,8 +237,7 @@ public sealed class AhkInjectorAgentRuntime : IAgentRuntime
             if (IsCommandCoolingDown())
                 return new ToolCommandResult(true, "操作过于频繁，已忽略", SuppressToast: true);
 
-            var cfg = _configStore.Load();
-            if (cfg.Agents.TryGetValue(AgentIds.InjectorAhk, out var agentConfig) && !agentConfig.Enabled)
+            if (!IsEnabled)
                 return new ToolCommandResult(false, "Agent 已在配置中禁用", SuppressToast: false);
 
             var schemaValidation = await ValidateDatabaseCompatibilityAsync(ct).ConfigureAwait(false);
@@ -724,8 +743,8 @@ public sealed class AhkInjectorAgentRuntime : IAgentRuntime
     private async Task<ToolCommandResult> ValidateDatabaseCompatibilityAsync(CancellationToken ct)
     {
         var version = _releaseVersion.Current;
-        var minimum = DbSchemaCompat.NormalizeBound(version.AgentMinDbSchema, version.DbSchemaVersion);
-        var maximum = DbSchemaCompat.NormalizeBound(version.AgentMaxDbSchema, version.DbSchemaVersion);
+        var minimum = MinDbSchema;
+        var maximum = MaxDbSchema;
         var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(ct).ConfigureAwait(false);
         var compatibility = schema.Ok
             ? DbSchemaCompat.Evaluate(schema.Value, minimum, maximum)

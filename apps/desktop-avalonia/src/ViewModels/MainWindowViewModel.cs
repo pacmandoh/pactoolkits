@@ -40,10 +40,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IAppConfigStore _appConfigStore;
     private readonly IDbConfigService _dbConfig;
     private readonly IDbConnectionMonitorService _dbMonitor;
-    private readonly IDbSchemaVersionService _dbSchemaVersion;
     private readonly ISettingsService _settings;
-    private readonly IDatabaseAccessGuard _databaseAccessGuard;
-    private readonly IDatabaseMigrationPolicyService _migrationPolicy;
     private readonly IChangeWatermarkService _changeWatermark;
     private readonly IAgentManager _agentManager;
     private IAgentRuntime Injector => _agentManager.GetRequired(AgentIds.InjectorAhk);
@@ -283,10 +280,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         ISukiToastManager toastManager,
         ISukiDialogManager dialogManager,
         IDbConnectionMonitorService dbMonitor,
-        IDbSchemaVersionService dbSchemaVersion,
         ISettingsService settings,
-        IDatabaseAccessGuard databaseAccessGuard,
-        IDatabaseMigrationPolicyService migrationPolicy,
         IChangeWatermarkService changeWatermark,
         IAgentManager agentManager,
         IReleaseVersionService releaseVersion,
@@ -301,10 +295,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _appConfigStore = appConfigStore ?? throw new ArgumentNullException(nameof(appConfigStore));
         _dbConfig = dbConfig ?? throw new ArgumentNullException(nameof(dbConfig));
         _dbMonitor = dbMonitor ?? throw new ArgumentNullException(nameof(dbMonitor));
-        _dbSchemaVersion = dbSchemaVersion ?? throw new ArgumentNullException(nameof(dbSchemaVersion));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-        _databaseAccessGuard = databaseAccessGuard ?? throw new ArgumentNullException(nameof(databaseAccessGuard));
-        _migrationPolicy = migrationPolicy ?? throw new ArgumentNullException(nameof(migrationPolicy));
         _changeWatermark = changeWatermark ?? throw new ArgumentNullException(nameof(changeWatermark));
         _agentManager = agentManager ?? throw new ArgumentNullException(nameof(agentManager));
         _releaseVersion = releaseVersion ?? throw new ArgumentNullException(nameof(releaseVersion));
@@ -394,7 +385,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private async Task EnsureAhkStartedOnStartupAsync()
     {
-        if (Injector.IsRunning)
+        if (!Injector.IsEnabled || Injector.IsRunning)
             return;
 
         try
@@ -873,48 +864,21 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         DatabaseMigrationTrigger trigger = DatabaseMigrationTrigger.Startup)
     {
         var version = _releaseVersion.Current;
-        var target = DbSchemaCompat.NormalizeBound(version.DbSchemaVersion, version.DbSchemaVersion);
+        var context = BuildSchemaContext();
         var uiMin = DbSchemaCompat.NormalizeBound(version.UiMinDbSchema, version.DbSchemaVersion);
         var uiMax = DbSchemaCompat.NormalizeBound(version.UiMaxDbSchema, version.DbSchemaVersion);
         var agentMin = DbSchemaCompat.NormalizeBound(version.AgentMinDbSchema, version.DbSchemaVersion);
         var agentMax = DbSchemaCompat.NormalizeBound(version.AgentMaxDbSchema, version.DbSchemaVersion);
-        var requiredMin = DbSchemaCompat.GetRequiredMin(uiMin, agentMin);
-        var requiredMax = DbSchemaCompat.GetRequiredMax(uiMax, agentMax);
+        var target = DbSchemaCompat.NormalizeBound(version.DbSchemaVersion, version.DbSchemaVersion);
 
-        var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
-        var compatibility = schema.Ok
-            ? DbSchemaCompat.Evaluate(schema.Value, requiredMin, requiredMax)
-            : schema.IsMetadataMissing
-                ? new DbSchemaCompatibilityResult(
-                    DbSchemaCompatibility.MetadataMissing,
-                    schema.Value ?? string.Empty,
-                    requiredMin,
-                    requiredMax,
-                    schema.Reason ?? "数据库元数据缺失，需要初始化")
-                : new DbSchemaCompatibilityResult(
-                    DbSchemaCompatibility.Unknown,
-                    schema.Value ?? string.Empty,
-                    requiredMin,
-                    requiredMax,
-                    schema.Reason ?? "读取失败");
-        var migrationPolicy = await _migrationPolicy.EvaluateAsync(
-            trigger,
-            compatibility.Status,
-            version.BuildChannel,
-            version.DatabaseMigrationPolicy,
-            ct: CancellationToken.None).ConfigureAwait(false);
-        var compatible = compatibility.IsCompatible;
-        var shouldMigrate = migrationPolicy.ShouldExecuteMigration;
+        var snapshot = await _settings
+            .ReadSchemaStatusAsync(context, trigger, CancellationToken.None)
+            .ConfigureAwait(false);
 
-        if (compatible)
-            _databaseAccessGuard.Clear();
-        else
-            _databaseAccessGuard.Block(compatibility.Message);
-
-        if (compatible)
+        if (snapshot.Satisfied)
             _logger.Info("MainWindowVM", "db.schema.ok", "Database schema version compatible", new
             {
-                schemaValue = schema.Value,
+                schemaValue = snapshot.CurrentVersion,
                 target,
                 uiMin,
                 uiMax,
@@ -929,35 +893,24 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 uiMax,
                 agentMin,
                 agentMax,
-                schemaOk = schema.Ok,
-                schemaValue = schema.Value,
-                schemaReason = schema.Reason,
-                compatibility.Status
+                schemaOk = snapshot.SchemaOk,
+                schemaValue = snapshot.CurrentVersion,
+                schemaReason = snapshot.Reason,
+                snapshot.Compatibility
             });
 
-        var message = DbSchemaCompat.BuildIncompatibleMessage(
-            schema.Ok,
-            schema.Value,
-            schema.Reason,
-            uiMin,
-            agentMin,
-            uiMax,
-            agentMax,
-            requiredMin,
-            requiredMax);
-
         return new DbSchemaStartupState(
-            Compatible: compatible,
-            ShouldMigrate: shouldMigrate,
-            Message: message,
-            Target: target,
+            Compatible: snapshot.Satisfied,
+            ShouldMigrate: snapshot.ManualMigrationPolicy.ShouldExecuteMigration,
+            Message: snapshot.IncompatibleMessage ?? "数据库版本不兼容",
+            Target: snapshot.TargetVersion,
             UiMin: uiMin,
             UiMax: uiMax,
             AgentMin: agentMin,
             AgentMax: agentMax,
-            SchemaOk: schema.Ok,
-            DbVersion: schema.Value,
-            Reason: schema.Reason);
+            SchemaOk: snapshot.SchemaOk,
+            DbVersion: snapshot.CurrentVersion,
+            Reason: snapshot.Reason);
     }
 
     private sealed record DbSchemaStartupState(

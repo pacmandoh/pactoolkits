@@ -15,6 +15,22 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class AhkInjectorAgentRuntimeTests
 {
     [Fact]
+    public void Declares_independent_database_compatibility_range()
+    {
+        using var runtime = new AhkInjectorAgentRuntime(
+            new FakeAppConfigStore(),
+            new FakeReleaseVersionService(),
+            new FakeDbSchemaVersionService(),
+            new DatabaseMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new NullAppLogger(),
+            new NullAgentEventSink());
+
+        Assert.True(runtime.IsEnabled);
+        Assert.Equal("1.2.22", runtime.MinDbSchema);
+        Assert.Equal("1.2.22", runtime.MaxDbSchema);
+    }
+
+    [Fact]
     public async Task Start_when_disabled()
     {
         var config = new FakeAppConfigStore
@@ -44,6 +60,24 @@ public sealed class AhkInjectorAgentRuntimeTests
 
         Assert.False(result.Ok);
         Assert.Contains("禁用", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Start_when_database_schema_is_below_minimum()
+    {
+        var config = new FakeAppConfigStore();
+        using var runtime = new AhkInjectorAgentRuntime(
+            config,
+            new FakeReleaseVersionService(),
+            new FakeDbSchemaVersionService("1.2.20"),
+            new DatabaseMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new NullAppLogger(),
+            new NullAgentEventSink());
+
+        var result = await runtime.StartOrRestartAsync();
+
+        Assert.False(result.Ok);
+        Assert.Contains("低于最低支持版本", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]
