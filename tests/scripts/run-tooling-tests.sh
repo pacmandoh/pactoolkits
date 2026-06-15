@@ -42,7 +42,7 @@ eval "$(./scripts/resolve-release-plan.sh "$electron_manifest" | sed 's/^\([^=]*
 
 beta_manifest="$(mktemp)"
 trap 'rm -f "$electron_manifest" "$beta_manifest"' EXIT
-jq '.release.channel = "beta"' "$ROOT_DIR/release-manifest.json" > "$beta_manifest"
+jq '.release.channel = "beta" | .product.version = "0.17.1-beta.1" | .components.desktop.version = "0.17.1-beta.1"' "$ROOT_DIR/release-manifest.json" > "$beta_manifest"
 validate_manifest_v2 "$beta_manifest"
 db_version="$(jq -r '.components["database-postgres"].version' "$beta_manifest")"
 desktop_min_db="$(jq -r '.components.desktop.minDbSchema' "$beta_manifest")"
@@ -55,6 +55,133 @@ agent_min_db="$(jq -r '.components["agent-injector-ahk"].minDbSchema' "$beta_man
   echo "ERROR: beta channel agent minDbSchema must track database-postgres.version" >&2
   exit 1
 }
+if validate_release_tag_matches_product_version "v0.17.1-beta.1" "$beta_manifest"; then
+  :
+else
+  echo "ERROR: beta release tag validation should succeed" >&2
+  exit 1
+fi
+[[ "$(expected_release_prerelease "$beta_manifest")" == "true" ]] || {
+  echo "ERROR: beta channel should require GitHub prerelease=true" >&2
+  exit 1
+}
+validate_release_prerelease_flag "$beta_manifest" "true"
+if validate_release_prerelease_flag "$beta_manifest" "false" >/dev/null 2>&1; then
+  echo "ERROR: beta channel should reject prerelease=false" >&2
+  exit 1
+fi
+
+stable_beta_product_manifest="$(mktemp)"
+jq '.product.version = "0.17.1-beta.1"' "$ROOT_DIR/release-manifest.json" > "$stable_beta_product_manifest"
+if validate_manifest_v2 "$stable_beta_product_manifest" >/dev/null 2>&1; then
+  echo "ERROR: stable channel should reject beta product.version" >&2
+  exit 1
+fi
+
+beta_stable_product_manifest="$(mktemp)"
+jq '.release.channel = "beta"' "$ROOT_DIR/release-manifest.json" > "$beta_stable_product_manifest"
+if validate_manifest_v2 "$beta_stable_product_manifest" >/dev/null 2>&1; then
+  echo "ERROR: beta channel should reject stable-only product.version" >&2
+  exit 1
+fi
+
+invalid_min_max_manifest="$(mktemp)"
+jq '.components.desktop.maxDbSchema = "1.2.21"' "$ROOT_DIR/release-manifest.json" > "$invalid_min_max_manifest"
+if validate_manifest_v2 "$invalid_min_max_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject minDbSchema > maxDbSchema" >&2
+  exit 1
+fi
+
+invalid_db_compat_manifest="$(mktemp)"
+jq '.components["database-postgres"].version = "9.9.9"' "$ROOT_DIR/release-manifest.json" > "$invalid_db_compat_manifest"
+if validate_manifest_v2 "$invalid_db_compat_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject database-postgres.version outside component bounds" >&2
+  exit 1
+fi
+
+invalid_migration_policy_manifest="$(mktemp)"
+jq '.components["database-postgres"].migrationPolicy = "auto"' "$ROOT_DIR/release-manifest.json" > "$invalid_migration_policy_manifest"
+if validate_manifest_v2 "$invalid_migration_policy_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject invalid migrationPolicy" >&2
+  exit 1
+fi
+
+stable_isolated_beta_manifest="$(mktemp)"
+trap 'rm -f "$electron_manifest" "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$invalid_migration_policy_manifest" "$stable_isolated_beta_manifest"' EXIT
+jq '.components["database-postgres"].migrationPolicy = "isolated-beta"' "$ROOT_DIR/release-manifest.json" > "$stable_isolated_beta_manifest"
+if validate_manifest_v2 "$stable_isolated_beta_manifest" >/dev/null 2>&1; then
+  echo "ERROR: stable channel should reject isolated-beta migrationPolicy" >&2
+  exit 1
+fi
+
+[[ "$(expected_release_prerelease "$ROOT_DIR/release-manifest.json")" == "false" ]] || {
+  echo "ERROR: stable channel should require GitHub prerelease=false" >&2
+  exit 1
+}
+validate_release_prerelease_flag "$ROOT_DIR/release-manifest.json" "false"
+
+target_beta_manifest="$(mktemp)"
+jq '
+  .product.version = "0.18.0-beta.1" |
+  .components.desktop.version = "0.18.0-beta.1" |
+  .release.channel = "beta"
+' "$ROOT_DIR/release-manifest.json" > "$target_beta_manifest"
+validate_manifest_v2 "$target_beta_manifest"
+if validate_release_tag_matches_product_version "v0.18.0-beta.1" "$target_beta_manifest"; then
+  :
+else
+  echo "ERROR: target beta manifest tag validation should succeed" >&2
+  exit 1
+fi
+
+beta_desktop_on_stable_manifest="$(mktemp)"
+jq '.components.desktop.version = "0.18.0-beta.1"' "$ROOT_DIR/release-manifest.json" > "$beta_desktop_on_stable_manifest"
+if validate_manifest_v2 "$beta_desktop_on_stable_manifest" >/dev/null 2>&1; then
+  echo "ERROR: stable channel should reject beta desktop.version" >&2
+  exit 1
+fi
+
+stable_desktop_on_beta_manifest="$(mktemp)"
+jq '.release.channel = "beta" | .product.version = "0.17.1-beta.1" | .components.desktop.version = "0.16.1"' "$ROOT_DIR/release-manifest.json" > "$stable_desktop_on_beta_manifest"
+if validate_manifest_v2 "$stable_desktop_on_beta_manifest" >/dev/null 2>&1; then
+  echo "ERROR: beta channel should reject stable-only desktop.version" >&2
+  exit 1
+fi
+
+for bad_version in "01.2.3" "1.02.3" "1.2.03" "1.2.3-beta.01"; do
+  if is_stable_semver "$bad_version" || is_beta_semver "$bad_version"; then
+    echo "ERROR: strict semver should reject leading-zero version: $bad_version" >&2
+    exit 1
+  fi
+done
+leading_zero_manifest="$(mktemp)"
+jq '.product.version = "01.2.3"' "$ROOT_DIR/release-manifest.json" > "$leading_zero_manifest"
+if validate_manifest_v2 "$leading_zero_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject leading-zero product.version" >&2
+  exit 1
+fi
+
+beta_auto_out="$(./scripts/bump-version.sh --channel beta --product auto --dry-run 2>&1)"
+echo "$beta_auto_out" | grep -Fq '"version": "0.17.1-beta.1"' || {
+  echo "ERROR: --channel beta --product auto should produce 0.17.1-beta.1" >&2
+  exit 1
+}
+beta_auto_hits="$(echo "$beta_auto_out" | grep -c '"version": "0.17.1-beta.1"' || true)"
+[[ "$beta_auto_hits" -ge 2 ]] || {
+  echo "ERROR: --channel beta --product auto should sync product.version and desktop.version" >&2
+  exit 1
+}
+
+existing_beta_product="$(resolve_product_auto_version "0.17.1-beta.1" "beta" "none")"
+[[ "$existing_beta_product" == "0.17.1-beta.1" ]] || {
+  echo "ERROR: resolve_product_auto_version should keep existing beta when auto_level=none" >&2
+  exit 1
+}
+next_beta_product="$(resolve_product_auto_version "0.17.1-beta.1" "beta" "patch")"
+[[ "$next_beta_product" == "0.17.2-beta.1" ]] || {
+  echo "ERROR: resolve_product_auto_version should open a new beta line after component patch bump" >&2
+  exit 1
+}
 
 invalid_manifest="$(mktemp)"
 jq '.components.desktop.bundles += ["missing-agent"]' "$ROOT_DIR/release-manifest.json" > "$invalid_manifest"
@@ -64,7 +191,7 @@ if validate_manifest_v2 "$invalid_manifest" >/dev/null 2>&1; then
 fi
 
 invalid_component_manifest="$(mktemp)"
-trap 'rm -f "$electron_manifest" "$beta_manifest" "$invalid_manifest" "$invalid_component_manifest"' EXIT
+trap 'rm -f "$electron_manifest" "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$invalid_migration_policy_manifest" "$stable_isolated_beta_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_component_manifest"' EXIT
 jq '.components = ({"bad-component": {"version": "not-semver"}} + .components)' "$ROOT_DIR/release-manifest.json" > "$invalid_component_manifest"
 if validate_manifest_v2 "$invalid_component_manifest" >/dev/null 2>&1; then
   echo "ERROR: manifest validation should reject invalid component semver anywhere in components" >&2
@@ -72,7 +199,7 @@ if validate_manifest_v2 "$invalid_component_manifest" >/dev/null 2>&1; then
 fi
 
 invalid_bundle_version_manifest="$(mktemp)"
-trap 'rm -f "$electron_manifest" "$beta_manifest" "$invalid_manifest" "$invalid_component_manifest" "$invalid_bundle_version_manifest"' EXIT
+trap 'rm -f "$electron_manifest" "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$invalid_migration_policy_manifest" "$stable_isolated_beta_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_component_manifest" "$invalid_bundle_version_manifest"' EXIT
 jq '.components["agent-injector-ahk"].version = "not-semver"' "$ROOT_DIR/release-manifest.json" > "$invalid_bundle_version_manifest"
 if validate_manifest_v2 "$invalid_bundle_version_manifest" >/dev/null 2>&1; then
   echo "ERROR: manifest validation should reject invalid bundled component versions" >&2
@@ -155,6 +282,81 @@ desktop_min_db_conflict_out="$(./scripts/bump-version.sh --desktop-min-db "$curr
 }
 echo "$desktop_min_db_conflict_out" | grep -Fq "conflicting desktop minDbSchema" || {
   echo "ERROR: expected bump-version desktop minDbSchema conflict error message" >&2
+  exit 1
+}
+
+beta_db_name="$(./scripts/create-beta-database.sh --version 0.18.0-beta.1 --name-only)"
+[[ "$beta_db_name" == "pactoolkits_beta_0_18_0_beta_1" ]] || {
+  echo "ERROR: unexpected isolated Beta database name: $beta_db_name" >&2
+  exit 1
+}
+
+beta_build_db_name="$(./scripts/create-beta-database.sh --version 0.18.0-beta.1+sha.7 --name-only)"
+[[ "$beta_build_db_name" == "pactoolkits_beta_0_18_0_beta_1_sha_7" ]] || {
+  echo "ERROR: unexpected isolated Beta database name with build metadata: $beta_build_db_name" >&2
+  exit 1
+}
+
+if ./scripts/create-beta-database.sh --version 0.18.0 --name-only >/dev/null 2>&1; then
+  echo "ERROR: isolated Beta database script should reject a Stable version" >&2
+  exit 1
+fi
+
+beta_db_plan="$(./scripts/create-beta-database.sh --version 0.18.0-beta.1 --template pactoolkits_production --dry-run)"
+echo "$beta_db_plan" | grep -Fq "createdb" || {
+  echo "ERROR: isolated Beta database dry-run should include createdb" >&2
+  exit 1
+}
+echo "$beta_db_plan" | grep -Fq "production-clone" || {
+  echo "ERROR: isolated Beta database dry-run should write the production-clone marker" >&2
+  exit 1
+}
+
+plain_sql_backup_dir="$(mktemp -d)"
+plain_sql_backup="$plain_sql_backup_dir/pactoolkits-beta-backup.SQL"
+touch "$plain_sql_backup"
+beta_sql_restore_plan="$(./scripts/create-beta-database.sh --version 0.18.0-beta.2 --backup "$plain_sql_backup" --dry-run)"
+rm -rf "$plain_sql_backup_dir"
+echo "$beta_sql_restore_plan" | grep -Fq "psql" || {
+  echo "ERROR: uppercase .SQL backup should use psql restore" >&2
+  exit 1
+}
+if echo "$beta_sql_restore_plan" | grep -Fq "pg_restore"; then
+  echo "ERROR: uppercase .SQL backup should not use pg_restore" >&2
+  exit 1
+fi
+
+grep -Fq "('Database.Environment', 'isolated')" scripts/create-beta-database.sql || {
+  echo "ERROR: isolated Beta database SQL is missing the environment marker" >&2
+  exit 1
+}
+grep -Fq "('Database.AllowBetaMigrations', 'true')" scripts/create-beta-database.sql || {
+  echo "ERROR: isolated Beta database SQL is missing the migration authorization marker" >&2
+  exit 1
+}
+
+grep -Fq '04_environment_settings.sql' database/postgres/scripts/lib/verify.sh || {
+  echo "ERROR: Bash verify suite is missing environment settings verification" >&2
+  exit 1
+}
+grep -Fq '04_environment_settings.sql' database/postgres/scripts/deploy.ps1 || {
+  echo "ERROR: PowerShell verify suite is missing environment settings verification" >&2
+  exit 1
+}
+grep -Fq "current_setting('pactoolkits.expected_schema_version'" database/postgres/sql/verify/03_schema_version.sql || {
+  echo "ERROR: schema version verification should bridge the psql variable through a session setting" >&2
+  exit 1
+}
+if grep -Fq "pg_try_advisory_lock" database/postgres/scripts/lib/common.sh; then
+  echo "ERROR: Bash deploy lock must survive separate psql processes" >&2
+  exit 1
+fi
+if grep -Fq "datname = :'database_name'" scripts/create-beta-database.sh scripts/create-beta-database.ps1; then
+  echo "ERROR: psql -c database lookups must not rely on psql variable interpolation" >&2
+  exit 1
+fi
+grep -Fq 'cp release-manifest.json dist/release-manifest.json' .github/workflows/publish-release.yml || {
+  echo "ERROR: release feed must publish channel release-manifest.json" >&2
   exit 1
 }
 

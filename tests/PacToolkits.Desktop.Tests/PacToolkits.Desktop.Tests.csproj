@@ -20,4 +20,8 @@
     <ProjectReference Include="..\..\apps\desktop-avalonia\src\PacToolkits.Desktop.Avalonia.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(PostgresIntegration)' != 'true'">
+    <Compile Remove="PostgresIntegrationTests.cs" />
+  </ItemGroup>
+
 </Project>

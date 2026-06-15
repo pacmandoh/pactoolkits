@@ -95,6 +95,7 @@ apply_one_migration() {
   fi
 
   log "apply migration: V${version} (${name})"
+  renew_deploy_lock
   psql_file "$file"
 
   record_migration "$version" "$name" "$checksum" "applied by database/postgres/scripts/deploy.sh"

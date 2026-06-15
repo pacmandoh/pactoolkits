@@ -8,6 +8,7 @@ using PacToolkits.Agent.Contracts.Models;
 using PacToolkits.Agent.Contracts.Validation;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Collections.Generic;
@@ -23,6 +24,8 @@ public sealed class AhkInjectorAgentRuntime : IAgentRuntime
 {
     private readonly IAppConfigStore _configStore;
     private readonly IReleaseVersionService _releaseVersion;
+    private readonly IDbSchemaVersionService _dbSchemaVersion;
+    private readonly IDatabaseMigrationPolicyService _migrationPolicy;
     private readonly IAppLogger _logger;
     private readonly IAgentEventSink _eventSink;
     private readonly object _gate = new();
@@ -120,11 +123,15 @@ public sealed class AhkInjectorAgentRuntime : IAgentRuntime
     public AhkInjectorAgentRuntime(
         IAppConfigStore configStore,
         IReleaseVersionService releaseVersion,
+        IDbSchemaVersionService dbSchemaVersion,
+        IDatabaseMigrationPolicyService migrationPolicy,
         IAppLogger logger,
         IAgentEventSink eventSink)
     {
         _configStore = configStore;
         _releaseVersion = releaseVersion;
+        _dbSchemaVersion = dbSchemaVersion;
+        _migrationPolicy = migrationPolicy;
         _logger = logger;
         _eventSink = eventSink;
         Reload();
@@ -213,6 +220,13 @@ public sealed class AhkInjectorAgentRuntime : IAgentRuntime
             var cfg = _configStore.Load();
             if (cfg.Agents.TryGetValue(AgentIds.InjectorAhk, out var agentConfig) && !agentConfig.Enabled)
                 return new ToolCommandResult(false, "Agent 已在配置中禁用", SuppressToast: false);
+
+            var schemaValidation = await ValidateDatabaseCompatibilityAsync(ct).ConfigureAwait(false);
+            if (!schemaValidation.Ok)
+            {
+                PublishEvent(AgentCommandKind.Start, null, schemaValidation.Message);
+                return SetError(schemaValidation.Message);
+            }
 
             lock (_gate)
                 options = Clone(_options);
@@ -705,6 +719,43 @@ public sealed class AhkInjectorAgentRuntime : IAgentRuntime
             pg.Database,
             pg.Username,
             cfg.AutomationTools));
+    }
+
+    private async Task<ToolCommandResult> ValidateDatabaseCompatibilityAsync(CancellationToken ct)
+    {
+        var version = _releaseVersion.Current;
+        var minimum = DbSchemaCompat.NormalizeBound(version.AgentMinDbSchema, version.DbSchemaVersion);
+        var maximum = DbSchemaCompat.NormalizeBound(version.AgentMaxDbSchema, version.DbSchemaVersion);
+        var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(ct).ConfigureAwait(false);
+        var compatibility = schema.Ok
+            ? DbSchemaCompat.Evaluate(schema.Value, minimum, maximum)
+            : schema.IsMetadataMissing
+                ? new DbSchemaCompatibilityResult(
+                    DbSchemaCompatibility.MetadataMissing,
+                    schema.Value ?? string.Empty,
+                    minimum,
+                    maximum,
+                    schema.Reason ?? "数据库元数据缺失，需要初始化")
+                : new DbSchemaCompatibilityResult(
+                    DbSchemaCompatibility.Unknown,
+                    schema.Value ?? string.Empty,
+                    minimum,
+                    maximum,
+                    schema.Reason ?? "读取失败");
+
+        if (!compatibility.IsCompatible)
+            return new ToolCommandResult(false, compatibility.Message);
+
+        var policy = await _migrationPolicy.EvaluateAsync(
+            DatabaseMigrationTrigger.Startup,
+            compatibility.Status,
+            version.BuildChannel,
+            version.DatabaseMigrationPolicy,
+            ct: ct).ConfigureAwait(false);
+
+        return policy.Decision == DatabaseMigrationDecision.Allowed
+            ? new ToolCommandResult(true, policy.Reason)
+            : new ToolCommandResult(false, policy.Reason);
     }
 
     private void PublishEvent(

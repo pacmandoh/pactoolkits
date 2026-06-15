@@ -23,6 +23,7 @@ jobs:
           validate_manifest_v2 release-manifest.json
           channel="$(manifest_release_channel release-manifest.json)"
           product_version="$(manifest_product_version release-manifest.json)"
+          migration_policy="$(manifest_database_migration_policy release-manifest.json)"
           if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
             validate_release_tag_matches_product_version "${GITHUB_REF_NAME:-}" release-manifest.json
           fi
@@ -32,12 +33,17 @@ jobs:
           esac
           echo "RELEASE_CHANNEL=$channel" >> "$GITHUB_ENV"
           echo "PRODUCT_VERSION=$product_version" >> "$GITHUB_ENV"
+          echo "MIGRATION_POLICY=$migration_policy" >> "$GITHUB_ENV"
+          echo "Release plan: channel=$channel version=$product_version migrationPolicy=$migration_policy desktop=$(manifest_desktop_implementation release-manifest.json)"
 
       - name: Download desktop release artifact
         uses: actions/download-artifact@v8
         with:
           name: pactoolkits-desktop-win-x64-${{ env.PRODUCT_VERSION }}
           path: dist
+
+      - name: Add channel release metadata
+        run: cp release-manifest.json dist/release-manifest.json
 
       - name: Upload assets to GitHub Release
         env:

@@ -87,8 +87,8 @@ jobs:
           if ($env:IMPLEMENTATION -notin @('avalonia', 'electron')) {
             throw "Unsupported implementation: $env:IMPLEMENTATION"
           }
-          if ($env:PRODUCT_VERSION -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid product_version" }
-          if ($env:DESKTOP_VERSION -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid desktop_version" }
+          if ($env:PRODUCT_VERSION -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-beta\.(0|[1-9][0-9]*))?$') { throw "Invalid product_version" }
+          if ($env:DESKTOP_VERSION -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-beta\.(0|[1-9][0-9]*))?$') { throw "Invalid desktop_version" }
           if (-not (Test-Path $env:ICON_PATH)) { throw "Installer icon missing: $env:ICON_PATH" }
           $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
           if ($manifest.components.desktop.implementation -ne $env:IMPLEMENTATION) {

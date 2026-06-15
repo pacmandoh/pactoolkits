@@ -71,6 +71,7 @@ public static class ServiceCollectionRegistrationExtensions
         services.AddSingleton<IAgentRuntime>(sp => sp.GetRequiredService<AhkInjectorAgentRuntime>());
         services.AddSingleton<IAgentManager, AgentManager>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
+        services.AddSingleton<IReleaseChannelSwitchService, ReleaseChannelSwitchService>();
         services.AddSingleton<IUpdateUiFlowService, UpdateUiFlowService>();
         services.AddSingleton<IMsfxApiClient, MsfxApiClient>();
         services.AddSingleton<ClientAliasStore>();
