@@ -74,6 +74,44 @@ public sealed class ReleaseChannelSwitchServiceTests
     }
 
     [Fact]
+    public async Task Probe_rejects_unsupported_channel_without_throwing()
+    {
+        var service = CreateService("1.2.23", Manifest("beta", "1.2.22", "1.2.24"));
+
+        var result = await service.ProbeAsync(
+            "https://updates.example/feed/pactoolkits",
+            "preview",
+            new PgOptions(),
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Contains("不支持的更新通道", result.Message, StringComparison.Ordinal);
+        Assert.Contains("preview", result.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("stable", "https://updates.example/feed/pactoolkits/stable/release-manifest.json")]
+    [InlineData("beta", "https://updates.example/feed/pactoolkits/beta/release-manifest.json")]
+    public void ResolveChannelManifestUrl_accepts_supported_channels(string channel, string expected)
+    {
+        var url = ReleaseChannelSwitchService.ResolveChannelManifestUrl(
+            "https://updates.example/feed/pactoolkits/stable",
+            channel);
+
+        Assert.Equal(expected, url);
+    }
+
+    [Fact]
+    public void ResolveChannelManifestUrl_returns_empty_for_unsupported_channel()
+    {
+        var url = ReleaseChannelSwitchService.ResolveChannelManifestUrl(
+            "https://updates.example/feed/pactoolkits",
+            "preview");
+
+        Assert.Equal(string.Empty, url);
+    }
+
+    [Fact]
     public async Task Probe_rejects_manifest_from_wrong_channel()
     {
         var service = CreateService("1.2.23", Manifest("stable", "1.2.20", "1.2.23"));

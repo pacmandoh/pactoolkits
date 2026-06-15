@@ -168,6 +168,36 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 return pendingResult;
             }
 
+            if (!ReleaseChannelSwitchAuthorization.IsAuthorized(
+                    targetChannel,
+                    currentChannel,
+                    options.ValidatedChannel))
+            {
+                var blockedMessage = ReleaseChannelSwitchAuthorization.BuildBlockedMessage(
+                    currentChannel,
+                    targetChannel);
+                var blocked = CreateCheckResult(
+                    success: false,
+                    hasUpdate: false,
+                    hasProductUpdate: null,
+                    latestVersion: CurrentVersion,
+                    currentChannel: currentChannel,
+                    targetChannel: targetChannel,
+                    channelSwitchRequired: true,
+                    message: blockedMessage,
+                    checkedAt: now,
+                    source: source);
+                _logger.Warn("AppUpdateService", "update.check.channel_unauthorized",
+                    "Update check blocked because release channel switch was not validated", null, new
+                    {
+                        CurrentChannel = currentChannel,
+                        TargetChannel = targetChannel,
+                        options.ValidatedChannel
+                    });
+                SetState(blocked);
+                return blocked;
+            }
+
             if (!string.IsNullOrWhiteSpace(currentChannel)
                 && !string.Equals(currentChannel, targetChannel, StringComparison.OrdinalIgnoreCase))
             {
@@ -176,7 +206,8 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 {
                     CurrentVersion,
                     CurrentChannel = currentChannel,
-                    TargetChannel = targetChannel
+                    TargetChannel = targetChannel,
+                    options.ValidatedChannel
                 });
             }
 
@@ -293,6 +324,24 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 return new AppUpdateApplyResult(true, true, $"更新已下载：{pendingVersion}，可直接重启应用", pendingVersion);
             }
 
+            if (!ReleaseChannelSwitchAuthorization.IsAuthorized(
+                    targetChannel,
+                    currentChannel,
+                    options.ValidatedChannel))
+            {
+                var blockedMessage = ReleaseChannelSwitchAuthorization.BuildBlockedMessage(
+                    currentChannel,
+                    targetChannel);
+                _logger.Warn("AppUpdateService", "update.apply.channel_unauthorized",
+                    "Update apply blocked because release channel switch was not validated", null, new
+                    {
+                        CurrentChannel = currentChannel,
+                        TargetChannel = targetChannel,
+                        options.ValidatedChannel
+                    });
+                return new AppUpdateApplyResult(false, false, blockedMessage, CurrentVersion);
+            }
+
             if (!string.IsNullOrWhiteSpace(currentChannel)
                 && !string.Equals(currentChannel, targetChannel, StringComparison.OrdinalIgnoreCase))
             {
@@ -301,7 +350,8 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 {
                     CurrentVersion,
                     CurrentChannel = currentChannel,
-                    TargetChannel = targetChannel
+                    TargetChannel = targetChannel,
+                    options.ValidatedChannel
                 });
             }
 
