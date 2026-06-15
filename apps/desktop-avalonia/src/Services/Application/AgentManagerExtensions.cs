@@ -14,9 +14,12 @@ public static class AgentManagerExtensions
     public static IAgentRuntime GetAgent(this IAgentManager manager, string agentId)
         => manager.GetRequired(agentId);
 
+    public static AutomationRunState GetAutomationState(this IAgentRuntime runtime)
+        => AutomationContractMapper.ToApplication(runtime.State);
+
     public static AutomationCommandResult ToApplication(this ToolCommandResult result)
         => new(result.Ok, result.Message, result.SuppressToast);
 
     public static AutomationRunState GetAutomationState(this IAgentManager manager, string agentId)
-        => AutomationContractMapper.ToApplication(manager.GetRequired(agentId).State);
+        => manager.GetRequired(agentId).GetAutomationState();
 }

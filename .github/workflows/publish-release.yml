@@ -24,6 +24,7 @@ jobs:
           channel="$(manifest_release_channel release-manifest.json)"
           product_version="$(manifest_product_version release-manifest.json)"
           migration_policy="$(manifest_database_migration_policy release-manifest.json)"
+          prerelease="$(expected_release_prerelease release-manifest.json)"
           if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
             validate_release_tag_matches_product_version "${GITHUB_REF_NAME:-}" release-manifest.json
           fi
@@ -34,6 +35,7 @@ jobs:
           echo "RELEASE_CHANNEL=$channel" >> "$GITHUB_ENV"
           echo "PRODUCT_VERSION=$product_version" >> "$GITHUB_ENV"
           echo "MIGRATION_POLICY=$migration_policy" >> "$GITHUB_ENV"
+          echo "EXPECTED_PRERELEASE=$prerelease" >> "$GITHUB_ENV"
           echo "Release plan: channel=$channel version=$product_version migrationPolicy=$migration_policy desktop=$(manifest_desktop_implementation release-manifest.json)"
 
       - name: Download desktop release artifact
@@ -97,5 +99,13 @@ jobs:
           set -euo pipefail
           ssh_rsh="ssh -i $HOME/.ssh/id_ed25519 -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=10 -p ${FEED_SSH_PORT}"
           target_path="${FEED_RSYNC_PATH%/}/${RELEASE_CHANNEL}"
+          scripts/validate-release-channel.sh \
+            --manifest release-manifest.json \
+            --tag "${GITHUB_REF_NAME}" \
+            --prerelease "${EXPECTED_PRERELEASE}" \
+            --feed-root "${FEED_RSYNC_PATH%/}" \
+            --feed-target "$target_path" \
+            --dry-run false \
+            --confirm true
           $ssh_rsh "${FEED_SSH_USER}@${FEED_SSH_HOST}" "mkdir -p '${target_path}'"
           rsync -a --delete --timeout=60 --rsh "$ssh_rsh" dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${target_path}/"

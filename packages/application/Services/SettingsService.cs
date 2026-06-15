@@ -50,6 +50,17 @@ public interface ISettingsService
 
     Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
+        DatabaseMigrationTrigger trigger,
+        CancellationToken ct);
+
+    Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+        DbSchemaVersionContext schemaContext,
+        PgOptions connectionOptions,
+        CancellationToken ct);
+
+    Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+        DbSchemaVersionContext schemaContext,
+        DatabaseMigrationTrigger trigger,
         PgOptions connectionOptions,
         CancellationToken ct);
 
@@ -224,7 +235,7 @@ public sealed class SettingsService : ISettingsService
         PgOptions? connectionOptions,
         CancellationToken ct)
     {
-        var status = await ReadSchemaStatusAsync(schemaContext, connectionOptions, ct).ConfigureAwait(false);
+        var status = await ReadSchemaStatusAsync(schemaContext, trigger, connectionOptions, ct).ConfigureAwait(false);
         if (status.Compatibility == DbSchemaCompatibility.AboveMaximum)
         {
             return (false, $"数据库版本高于当前程序支持范围：当前 {status.CurrentVersion}，最高支持 {status.RequiredMaxVersion}。不会执行自动降级。");
@@ -266,20 +277,45 @@ public sealed class SettingsService : ISettingsService
         PgOptions? connectionOptions,
         CancellationToken ct)
     {
-        var snapshot = await ReadSchemaStatusAsync(schemaContext, connectionOptions, ct).ConfigureAwait(false);
+        var snapshot = await ReadSchemaStatusAsync(
+            schemaContext,
+            DatabaseMigrationTrigger.SettingsManual,
+            connectionOptions,
+            ct).ConfigureAwait(false);
         if (snapshot.Satisfied)
             return (true, null);
 
-        return (false, BuildIncompatibleMessage(schemaContext, snapshot));
+        return (false, snapshot.IncompatibleMessage ?? BuildIncompatibleMessage(schemaContext, snapshot));
     }
 
     public Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
         CancellationToken ct)
-        => ReadSchemaStatusAsync(schemaContext, connectionOptions: null, ct);
+        => ReadSchemaStatusAsync(
+            schemaContext,
+            DatabaseMigrationTrigger.SettingsManual,
+            connectionOptions: null,
+            ct);
+
+    public Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+        DbSchemaVersionContext schemaContext,
+        DatabaseMigrationTrigger trigger,
+        CancellationToken ct)
+        => ReadSchemaStatusAsync(schemaContext, trigger, connectionOptions: null, ct);
+
+    public Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+        DbSchemaVersionContext schemaContext,
+        PgOptions connectionOptions,
+        CancellationToken ct)
+        => ReadSchemaStatusAsync(
+            schemaContext,
+            DatabaseMigrationTrigger.SettingsManual,
+            connectionOptions,
+            ct);
 
     public async Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
+        DatabaseMigrationTrigger trigger,
         PgOptions? connectionOptions,
         CancellationToken ct)
     {
@@ -300,8 +336,8 @@ public sealed class SettingsService : ISettingsService
         if (ShouldApplyDatabaseGuard(connectionOptions))
             ApplyDatabaseGuard(compatibility);
 
-        var manualMigrationPolicy = await EvaluatePolicyAsync(
-            DatabaseMigrationTrigger.SettingsManual,
+        var migrationPolicy = await EvaluatePolicyAsync(
+            trigger,
             compatibility.Status,
             schemaContext,
             userConfirmed: false,
@@ -312,9 +348,9 @@ public sealed class SettingsService : ISettingsService
         var current = schema.Value ?? string.Empty;
         var updatable = (compatibility.IsTooLow || compatibility.IsMetadataMissing)
                         && (compatibility.IsMetadataMissing || IsSchemaUpdatable(current, localTarget))
-                        && (manualMigrationPolicy.ShouldExecuteMigration
-                            || manualMigrationPolicy.Decision == DatabaseMigrationDecision.RequiresConfirmation);
-        return new DbSchemaStatusSnapshot(
+                        && (migrationPolicy.ShouldExecuteMigration
+                            || migrationPolicy.Decision == DatabaseMigrationDecision.RequiresConfirmation);
+        var snapshot = new DbSchemaStatusSnapshot(
             SchemaOk: schema.Ok,
             CurrentVersion: current,
             Reason: schema.Ok ? null : schema.Reason ?? "读取失败",
@@ -324,7 +360,14 @@ public sealed class SettingsService : ISettingsService
             Compatibility: compatibility.Status,
             Satisfied: compatibility.IsCompatible,
             Updatable: updatable,
-            ManualMigrationPolicy: manualMigrationPolicy);
+            ManualMigrationPolicy: migrationPolicy,
+            IncompatibleMessage: null);
+        return snapshot with
+        {
+            IncompatibleMessage = snapshot.Satisfied
+                ? null
+                : BuildIncompatibleMessage(schemaContext, snapshot)
+        };
     }
 
     private async Task<DatabaseMigrationPolicyResult> EvaluatePolicyAsync(

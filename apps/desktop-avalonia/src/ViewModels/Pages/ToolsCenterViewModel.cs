@@ -17,7 +17,6 @@ using PacToolkits.Agent.Contracts.Commands;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -52,8 +51,8 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     public override int Index => 4;
     public override ICommand? RefreshCommand => _refreshRuntimeCommand;
 
-    private readonly IAgentManager _agentManager;
-    private IAgentRuntime Injector => _agentManager.GetRequired(AgentIds.InjectorAhk);
+    private readonly IInjectorAgentRuntime _injector;
+    private IInjectorAgentRuntime Injector => _injector;
     private readonly IToastService _toast;
     private readonly IAutomationConfigService _automationConfig;
     private readonly IReleaseVersionService _releaseVersion;
@@ -111,12 +110,12 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     partial void OnIsAhkTogglingChanged(bool value) => RestartAhkCommand.NotifyCanExecuteChanged();
 
     public ToolsCenterViewModel(
-        IAgentManager agentManager,
+        IInjectorAgentRuntime injector,
         IToastService toast,
         IAutomationConfigService automationConfig,
         IReleaseVersionService releaseVersion)
     {
-        _agentManager = agentManager;
+        _injector = injector;
         _toast = toast;
         _automationConfig = automationConfig;
         _releaseVersion = releaseVersion;
@@ -343,12 +342,16 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 }
             }
 
-            AutomationCommandResult result = enabled
-                ? (await Injector.StartOrRestartAsync().ConfigureAwait(false)).ToApplication()
-                : (await Injector.StopAsync().ConfigureAwait(false)).ToApplication();
+            await _automationConfig
+                .SetAgentEnabledAsync(AgentIds.InjectorAhk, enabled, CancellationToken.None)
+                .ConfigureAwait(false);
 
-            if (!result.Ok && !result.SuppressToast)
-                _toast.Error("自动化套件", result.Message);
+            if (enabled)
+            {
+                var result = (await Injector.StartOrRestartAsync().ConfigureAwait(false)).ToApplication();
+                if (!result.Ok && !result.SuppressToast)
+                    _toast.Error("自动化套件", result.Message);
+            }
         }
         catch (Exception ex)
         {
@@ -410,7 +413,6 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 Ahk = nextAhk,
                 Agent = parsedAgent
             }, CancellationToken.None).ConfigureAwait(false);
-            Injector.Reload();
             _savedSnapshot = BuildCurrentSnapshot();
             _baselineReady = _savedSnapshot is not null;
             NotifyPendingChangesState();
@@ -480,7 +482,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             ProgramVersionText = ResolveProgramVersionText(AhkVersionText, _releaseVersion.Current.AgentInjectorAhkVersion);
             LastLaunchText = Injector.LastLaunchAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
             LastErrorText = string.IsNullOrWhiteSpace(Injector.LastError) ? "-" : Injector.LastError!;
-            var runState = AutomationContractMapper.ToApplication(Injector.State);
+            var runState = Injector.GetAutomationState();
             AhkStatusText = runState switch
             {
                 AutomationRunState.Running => "运行中",

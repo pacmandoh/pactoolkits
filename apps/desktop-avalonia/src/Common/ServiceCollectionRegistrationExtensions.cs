@@ -68,6 +68,7 @@ public static class ServiceCollectionRegistrationExtensions
         services.AddSingleton<IAgentConfigWriter, AgentConfigWriter>();
         services.AddSingleton<IAgentTaskService, AgentTaskService>();
         services.AddSingleton<AhkInjectorAgentRuntime>();
+        services.AddSingleton<IInjectorAgentRuntime>(sp => sp.GetRequiredService<AhkInjectorAgentRuntime>());
         services.AddSingleton<IAgentRuntime>(sp => sp.GetRequiredService<AhkInjectorAgentRuntime>());
         services.AddSingleton<IAgentManager, AgentManager>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();

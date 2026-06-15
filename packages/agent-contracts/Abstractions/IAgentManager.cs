@@ -1,10 +1,17 @@
 namespace PacToolkits.Agent.Contracts.Abstractions;
 
 using PacToolkits.Agent.Contracts.Agents;
+using PacToolkits.Agent.Contracts.Commands;
 
 public interface IAgentManager : IAgentRegistry
 {
     IAgentRuntime Get(string agentId) => GetRequired(agentId);
 
     IAgentRuntime Get(AgentId agentId) => GetRequired(agentId.Value);
+
+    Task<IReadOnlyDictionary<string, ToolCommandResult>> SynchronizeConfigurationAsync(
+        CancellationToken ct = default);
+
+    Task<IReadOnlyDictionary<string, ToolCommandResult>> StopAllAsync(
+        CancellationToken ct = default);
 }

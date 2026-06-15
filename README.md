@@ -67,7 +67,7 @@ Desktop UI, AutoHotkey automation, and PostgreSQL orchestration for drug trace-c
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.17.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.16.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.6.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.22-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.23-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
 
@@ -159,6 +159,8 @@ pactoolkits/
 - [Layering and dependency rules](./docs/architecture/layering.md)
 - [Avalonia extraction plan](./docs/migration/avalonia-extraction-plan.md)
 - [Release flow](./docs/operations/release-flow.md)
+- [Beta release policy](./docs/operations/beta-release-policy.md)
+- [Database compatibility policy](./docs/operations/database-compatibility-policy.md)
 
 ---
 
@@ -375,6 +377,10 @@ CI/CD workflows provide release automation for packaging, release-note generatio
 
 The current release and update chain supports only `stable` and `beta`. Versioning is driven by **manifest schema v2** in [release-manifest.json](./release-manifest.json).
 
+> Beta is a test channel, not a production database upgrade path. A Beta application
+> cannot migrate a shared production database by default. Beta database work requires
+> an explicitly authorized isolated database.
+
 1. Release manifest
 - Everything is driven from [release-manifest.json](./release-manifest.json) (`schemaVersion: 2`)
 - `product.version` is used as the Velopack `packVersion`
@@ -412,6 +418,14 @@ The current release and update chain supports only `stable` and `beta`. Versioni
   - it explicitly tells the user to install the latest installer for the target channel
 - This keeps database and config rollback risks out of the normal update flow
 
+6. Database safety policy
+- Application packages may be rolled back, but database schemas evolve forward by default
+- A database above the target Stable `maxDbSchema` blocks switching back to Stable
+- Restoring a database backup is a disaster-recovery operation, not a routine version rollback
+- `isolated-beta` is limited to development and testing; it is not a production upgrade channel
+- See [Beta release policy](./docs/operations/beta-release-policy.md) and
+  [database compatibility policy](./docs/operations/database-compatibility-policy.md)
+
 ---
 
 ## Domain Coverage
@@ -440,9 +454,11 @@ Current manifest:
 - `product.version`: `0.17.1`
 - `components.desktop.version`: `0.16.1`
 - `components.agent-injector-ahk.version`: `0.6.1`
-- `components.database-postgres.version`: `1.2.22`
-- `components.desktop.minDbSchema`: `1.2.22`
-- `components.agent-injector-ahk.minDbSchema`: `1.2.22`
+- `components.database-postgres.version`: `1.2.23`
+- `components.desktop.minDbSchema`: `1.2.23`
+- `components.desktop.maxDbSchema`: `1.2.23`
+- `components.agent-injector-ahk.minDbSchema`: `1.2.23`
+- `components.agent-injector-ahk.maxDbSchema`: `1.2.23`
 
 Common commands:
 
