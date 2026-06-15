@@ -67,7 +67,7 @@
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.17.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.16.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.6.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.22-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.23-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
 </table>
 
@@ -159,6 +159,8 @@ pactoolkits/
 - [分层与依赖规则](./docs/architecture/layering.md)
 - [Avalonia 抽离计划](./docs/migration/avalonia-extraction-plan.md)
 - [发布流程](./docs/operations/release-flow.md)
+- [Beta 发布政策](./docs/operations/beta-release-policy.md)
+- [数据库兼容与回退政策](./docs/operations/database-compatibility-policy.md)
 
 ---
 
@@ -374,6 +376,9 @@ database/postgres/
 
 当前发布与更新主链只支持 `stable` / `beta` 两个通道。版本由 [release-manifest.json](./release-manifest.json) **schema v2** 统一驱动。
 
+> Beta 是开发/测试通道，不是生产数据库升级通道。Beta 应用默认不能迁移共享生产数据库；
+> 需要验证 Beta 数据库变更时，必须使用经过显式授权的隔离数据库。
+
 1. 发布清单
 - 统一读取 [release-manifest.json](./release-manifest.json)（`schemaVersion: 2`）
 - `product.version` 作为 Velopack `packVersion`
@@ -411,6 +416,14 @@ database/postgres/
   - 明确提示下载安装目标通道最新安装包完成切换
 - 这样可以避免数据库或配置无法安全回退时的风险
 
+6. 数据库安全原则
+- 应用程序可以回退，但数据库 Schema 默认只前向演进
+- 当前数据库高于目标 Stable 的 `maxDbSchema` 时，禁止切回 Stable
+- 数据库备份恢复属于灾难恢复操作，禁止当作普通版本回退手段
+- `isolated-beta` 仅用于开发和测试，不得作为生产升级通道
+- 详细规则见 [Beta 发布政策](./docs/operations/beta-release-policy.md) 与
+  [数据库兼容与回退政策](./docs/operations/database-compatibility-policy.md)
+
 ---
 
 ## 业务覆盖范围
@@ -439,9 +452,11 @@ PacToolkits 当前覆盖的业务场景包括：
 - `product.version`: `0.17.1`
 - `components.desktop.version`: `0.16.1`
 - `components.agent-injector-ahk.version`: `0.6.1`
-- `components.database-postgres.version`: `1.2.22`
-- `components.desktop.minDbSchema`: `1.2.22`
-- `components.agent-injector-ahk.minDbSchema`: `1.2.22`
+- `components.database-postgres.version`: `1.2.23`
+- `components.desktop.minDbSchema`: `1.2.23`
+- `components.desktop.maxDbSchema`: `1.2.23`
+- `components.agent-injector-ahk.minDbSchema`: `1.2.23`
+- `components.agent-injector-ahk.maxDbSchema`: `1.2.23`
 
 常用命令：
 

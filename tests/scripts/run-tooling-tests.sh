@@ -40,6 +40,30 @@ eval "$(./scripts/resolve-release-plan.sh "$electron_manifest" | sed 's/^\([^=]*
   exit 1
 }
 
+invalid_implementation_manifest="$(mktemp)"
+jq '.components.desktop.implementation = "hybrid"' "$ROOT_DIR/release-manifest.json" > "$invalid_implementation_manifest"
+if validate_manifest_v2 "$invalid_implementation_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject multiple or unknown desktop implementations" >&2
+  exit 1
+fi
+rm -f "$invalid_implementation_manifest"
+
+invalid_package_id_manifest="$(mktemp)"
+jq '.components.desktop.packageId = "pactoolkits-beta"' "$ROOT_DIR/release-manifest.json" > "$invalid_package_id_manifest"
+if validate_manifest_v2 "$invalid_package_id_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject an unexpected desktop packageId" >&2
+  exit 1
+fi
+rm -f "$invalid_package_id_manifest"
+
+invalid_channel_manifest="$(mktemp)"
+jq '.release.channel = "preview"' "$ROOT_DIR/release-manifest.json" > "$invalid_channel_manifest"
+if validate_manifest_v2 "$invalid_channel_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject an unsupported release channel" >&2
+  exit 1
+fi
+rm -f "$invalid_channel_manifest"
+
 beta_manifest="$(mktemp)"
 trap 'rm -f "$electron_manifest" "$beta_manifest"' EXIT
 jq '.release.channel = "beta" | .product.version = "0.17.1-beta.1" | .components.desktop.version = "0.17.1-beta.1"' "$ROOT_DIR/release-manifest.json" > "$beta_manifest"
@@ -68,6 +92,31 @@ fi
 validate_release_prerelease_flag "$beta_manifest" "true"
 if validate_release_prerelease_flag "$beta_manifest" "false" >/dev/null 2>&1; then
   echo "ERROR: beta channel should reject prerelease=false" >&2
+  exit 1
+fi
+beta_release_channel_plan="$(
+  ./scripts/validate-release-channel.sh \
+    --manifest "$beta_manifest" \
+    --tag "v0.17.1-beta.1" \
+    --prerelease true \
+    --feed-root /feed/pactoolkits \
+    --feed-target /feed/pactoolkits/beta \
+    --dry-run false \
+    --confirm true
+)"
+echo "$beta_release_channel_plan" | grep -Fq 'feed=/feed/pactoolkits/beta' || {
+  echo "ERROR: beta release validation should resolve the beta feed" >&2
+  exit 1
+}
+if ./scripts/validate-release-channel.sh \
+  --manifest "$beta_manifest" \
+  --tag "v0.17.1-beta.1" \
+  --prerelease true \
+  --feed-root /feed/pactoolkits \
+  --feed-target /feed/pactoolkits/stable \
+  --dry-run false \
+  --confirm true >/dev/null 2>&1; then
+  echo "ERROR: beta release validation should reject the stable feed target" >&2
   exit 1
 fi
 
@@ -119,6 +168,138 @@ fi
   exit 1
 }
 validate_release_prerelease_flag "$ROOT_DIR/release-manifest.json" "false"
+
+release_channel_plan="$(
+  ./scripts/validate-release-channel.sh \
+    --manifest "$ROOT_DIR/release-manifest.json" \
+    --tag "v$(manifest_product_version "$ROOT_DIR/release-manifest.json")" \
+    --prerelease false \
+    --feed-root /feed/pactoolkits \
+    --feed-target /feed/pactoolkits/stable \
+    --dry-run false \
+    --confirm true
+)"
+echo "$release_channel_plan" | grep -Fq 'feed=/feed/pactoolkits/stable' || {
+  echo "ERROR: stable release validation should resolve the stable feed" >&2
+  exit 1
+}
+if ./scripts/validate-release-channel.sh \
+  --manifest "$ROOT_DIR/release-manifest.json" \
+  --tag "v$(manifest_product_version "$ROOT_DIR/release-manifest.json")" \
+  --prerelease false \
+  --feed-root /feed/pactoolkits \
+  --feed-target /feed/pactoolkits/beta \
+  --dry-run false \
+  --confirm true >/dev/null 2>&1; then
+  echo "ERROR: stable release validation should reject the beta feed target" >&2
+  exit 1
+fi
+if ./scripts/validate-release-channel.sh \
+  --manifest "$ROOT_DIR/release-manifest.json" \
+  --tag "v$(manifest_product_version "$ROOT_DIR/release-manifest.json")" \
+  --prerelease false \
+  --dry-run false \
+  --confirm false >/dev/null 2>&1; then
+  echo "ERROR: formal release validation should require confirm=true" >&2
+  exit 1
+fi
+
+database_policy_base_manifest="$(mktemp)"
+cp "$ROOT_DIR/release-manifest.json" "$database_policy_base_manifest"
+./scripts/validate-database-policy.sh \
+  --manifest "$ROOT_DIR/release-manifest.json" \
+  --base-ref refs/heads/pactoolkits-missing-test-ref \
+  --base-manifest "$database_policy_base_manifest" \
+  --allow-beta-migration false >/dev/null
+
+beta_db_upgrade_manifest="$(mktemp)"
+jq '
+  .release.channel = "beta" |
+  .product.version = "0.18.0-beta.1" |
+  .components.desktop.version = "0.18.0-beta.1" |
+  .components.desktop.minDbSchema = "1.2.24" |
+  .components.desktop.maxDbSchema = "1.2.24" |
+  .components["agent-injector-ahk"].minDbSchema = "1.2.24" |
+  .components["agent-injector-ahk"].maxDbSchema = "1.2.24" |
+  .components["database-postgres"].version = "1.2.24"
+' "$ROOT_DIR/release-manifest.json" > "$beta_db_upgrade_manifest"
+if ./scripts/validate-database-policy.sh \
+  --manifest "$beta_db_upgrade_manifest" \
+  --base-ref refs/heads/pactoolkits-missing-test-ref \
+  --base-manifest "$database_policy_base_manifest" \
+  --allow-beta-migration false >/dev/null 2>&1; then
+  echo "ERROR: ordinary Beta must not raise database-postgres.version above Stable" >&2
+  exit 1
+fi
+jq '.components["database-postgres"].migrationPolicy = "isolated-beta"' \
+  "$beta_db_upgrade_manifest" > "${beta_db_upgrade_manifest}.authorized"
+./scripts/validate-database-policy.sh \
+  --manifest "${beta_db_upgrade_manifest}.authorized" \
+  --base-ref refs/heads/pactoolkits-missing-test-ref \
+  --base-manifest "$database_policy_base_manifest" \
+  --allow-beta-migration true >/dev/null
+
+policy_git_dir="$(mktemp -d)"
+git -C "$policy_git_dir" init -q
+git -C "$policy_git_dir" config user.email tooling-tests@example.invalid
+git -C "$policy_git_dir" config user.name tooling-tests
+mkdir -p "$policy_git_dir/database/postgres/sql/migrations"
+cp "$database_policy_base_manifest" "$policy_git_dir/release-manifest.json"
+printf '%s\n' 'select 1;' > "$policy_git_dir/database/postgres/sql/migrations/V1_0_0__baseline.sql"
+git -C "$policy_git_dir" add .
+git -C "$policy_git_dir" commit -qm baseline
+policy_base_ref="$(git -C "$policy_git_dir" rev-parse HEAD)"
+printf '%s\n' 'select 2;' > "$policy_git_dir/database/postgres/sql/migrations/V1_0_0__baseline.sql"
+git -C "$policy_git_dir" add .
+git -C "$policy_git_dir" commit -qm modify-migration
+if (
+  cd "$policy_git_dir"
+  "$ROOT_DIR/scripts/validate-database-policy.sh" \
+    --manifest release-manifest.json \
+    --base-ref "$policy_base_ref" \
+    --allow-beta-migration false
+) >/dev/null 2>&1; then
+  echo "ERROR: database policy should reject modification of an existing migration" >&2
+  exit 1
+fi
+
+beta_new_migration_git_dir="$(mktemp -d)"
+git -C "$beta_new_migration_git_dir" init -q
+git -C "$beta_new_migration_git_dir" config user.email tooling-tests@example.invalid
+git -C "$beta_new_migration_git_dir" config user.name tooling-tests
+mkdir -p "$beta_new_migration_git_dir/database/postgres/sql/migrations"
+cp "$database_policy_base_manifest" "$beta_new_migration_git_dir/release-manifest.json"
+printf '%s\n' 'select 1;' > "$beta_new_migration_git_dir/database/postgres/sql/migrations/V1_0_0__baseline.sql"
+git -C "$beta_new_migration_git_dir" add .
+git -C "$beta_new_migration_git_dir" commit -qm baseline
+beta_new_migration_base_ref="$(git -C "$beta_new_migration_git_dir" rev-parse HEAD)"
+jq '
+  .release.channel = "beta" |
+  .product.version = "0.18.0-beta.1" |
+  .components.desktop.version = "0.18.0-beta.1"
+' "$database_policy_base_manifest" > "$beta_new_migration_git_dir/release-manifest.json"
+printf '%s\n' \
+  '-- app_environment_settings stores deployment environment flags for migration policy.' \
+  'create table if not exists public.app_environment_settings (' \
+  '  key   text primary key,' \
+  '  value text not null default ''''' \
+  ');' \
+  > "$beta_new_migration_git_dir/database/postgres/sql/migrations/V1_2_23__app_environment_settings.sql"
+git -C "$beta_new_migration_git_dir" add .
+git -C "$beta_new_migration_git_dir" commit -qm add-beta-migration
+if (
+  cd "$beta_new_migration_git_dir"
+  "$ROOT_DIR/scripts/validate-database-policy.sh" \
+    --manifest release-manifest.json \
+    --base-ref "$beta_new_migration_base_ref" \
+    --allow-beta-migration false
+) >/dev/null 2>&1; then
+  echo "ERROR: beta channel should reject new SQL migration without explicit authorization" >&2
+  exit 1
+fi
+rm -rf "$beta_new_migration_git_dir"
+rm -rf "$policy_git_dir"
+rm -f "$database_policy_base_manifest" "$beta_db_upgrade_manifest" "${beta_db_upgrade_manifest}.authorized"
 
 target_beta_manifest="$(mktemp)"
 jq '

@@ -14,6 +14,7 @@ PacToolkits 的 Desktop、Agent、DB Schema 版本由 **`release-manifest.json`�
 | `components.desktop.bundles` | 随 Desktop 发布的 Agent 组件 ID 列表 |
 | `components.agent-injector-ahk.version` | AHK Agent 版本 |
 | `components.database-postgres.version` | PostgreSQL migration 目标版本 |
+| `components.database-postgres.migrationPolicy` | 数据库迁移策略：`stable-only` / `manual` / `isolated-beta` |
 | `release.channel` | 发布通道：`stable` / `beta` |
 
 同步到各子项目：
@@ -28,10 +29,13 @@ PacToolkits 的 Desktop、Agent、DB Schema 版本由 **`release-manifest.json`�
 
 触发：推送 `v*` tag 或手动 `workflow_dispatch`。
 
-**Tag 规则：** 推送 tag 发布时，Git 标签必须形如 `vX.Y.Z`，且 `X.Y.Z` 与 `release-manifest.json` 的 `product.version` 完全一致（例如 tag `v0.17.1` ↔ manifest `0.17.1`）。`resolve-release-plan` 与 `publish-release` 会在 tag 发布时校验，不匹配则失败。
+**Tag 规则：** Stable 标签必须形如 `vX.Y.Z`，Beta 标签必须形如
+`vX.Y.Z-beta.N`，并与 `release-manifest.json` 的 `product.version` 完全一致。
+tag、version、channel 或 GitHub prerelease 标志不一致时，验证工作流会失败。
 
 ```text
 release.yml
+  ├─ validate-release.yml              校验 tag / channel / prerelease / Feed / DB policy
   ├─ resolve-release-plan.yml          读取 manifest，输出 implementation / artifact / mainExe / icon 等
   ├─ build-agent-injector-ahk.yml      所有 agent 组件（按 bundles）
   ├─ build-desktop-avalonia.yml        仅当 implementation=avalonia
@@ -93,6 +97,7 @@ release.yml
 需先将 Agent 二进制放入 `artifacts/agents/agent-injector-ahk/win-x64/`。
 
 Feed 按通道分子目录：`.../stable/`、`.../beta/`（`packId=pactoolkits` 不变）。
+Stable 和 Beta Feed 必须完全隔离；Beta GitHub Release 必须标记为 prerelease。
 
 ### Agent（独立 artifact）
 
@@ -150,6 +155,23 @@ Windows PowerShell：
 - Beta → Stable 需要当前 DB 位于 Stable min/max 范围；高于 Stable max 时阻止切换
 - 通道切换只保存更新源选择，不触发数据库迁移或降级
 
+## 发布与数据库安全边界
+
+- Beta 应用默认不能迁移共享生产数据库
+- Beta 数据库测试必须使用隔离数据库
+- `isolated-beta` 需要 `Database.Environment=isolated`、
+  `Database.AllowBetaMigrations=true` 与对应的用户或 CI 显式授权
+- `isolated-beta` 是开发/测试通道，不是生产升级通道
+- 应用可以回退，数据库默认只前向演进
+- 数据库高于 Stable `maxDbSchema` 时，Stable 必须停止写入，且不能切回该 Stable
+- 禁止把数据库备份恢复当作普通版本回退；恢复备份仅用于经过审批的灾难恢复
+- 已执行的 SQL migration 不得修改、删除或覆盖，只能追加新的前向 migration
+
+完整决策与操作要求见：
+
+- [Beta 发布政策](beta-release-policy.md)
+- [数据库兼容与回退政策](database-compatibility-policy.md)
+
 ## Agent 路径解析
 
 启动时 `AgentPathResolver` 按以下顺序解析（相对路径基于 Desktop 安装目录）：
@@ -164,4 +186,6 @@ Windows PowerShell：
 ## 相关文档
 
 - [Monorepo 布局](../architecture/monorepo-layout.md)
+- [Beta 发布政策](beta-release-policy.md)
+- [数据库兼容与回退政策](database-compatibility-policy.md)
 - [根目录 README 发布章节](../../README.zh-CN.md)

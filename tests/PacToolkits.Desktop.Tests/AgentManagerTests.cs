@@ -44,8 +44,61 @@ public sealed class AgentManagerTests
             ]));
     }
 
+    [Fact]
+    public async Task Synchronize_stops_running_agent_after_it_is_disabled()
+    {
+        var runtime = new FakeAgentRuntime(AgentDescriptors.InjectorAhk)
+        {
+            IsEnabledValue = false,
+            IsRunningValue = true,
+        };
+        var manager = new AgentManager([runtime]);
+
+        var results = await manager.SynchronizeConfigurationAsync();
+
+        Assert.Equal(1, runtime.ReloadCount);
+        Assert.Equal(1, runtime.StopCount);
+        Assert.True(results[AgentIds.InjectorAhk].Ok);
+    }
+
+    [Fact]
+    public async Task Synchronize_keeps_enabled_running_agent_alive()
+    {
+        var runtime = new FakeAgentRuntime(AgentDescriptors.InjectorAhk)
+        {
+            IsEnabledValue = true,
+            IsRunningValue = true,
+        };
+        var manager = new AgentManager([runtime]);
+
+        await manager.SynchronizeConfigurationAsync();
+
+        Assert.Equal(1, runtime.ReloadCount);
+        Assert.Equal(0, runtime.StopCount);
+        Assert.True(runtime.IsRunning);
+    }
+
+    [Fact]
+    public async Task Stop_all_stops_each_registered_agent()
+    {
+        var first = new FakeAgentRuntime(new AgentDescriptor("agent-a", "A", "test", "a.exe"));
+        var second = new FakeAgentRuntime(new AgentDescriptor("agent-b", "B", "test", "b.exe"));
+        var manager = new AgentManager([first, second]);
+
+        var results = await manager.StopAllAsync();
+
+        Assert.Equal(2, results.Count);
+        Assert.Equal(1, first.StopCount);
+        Assert.Equal(1, second.StopCount);
+    }
+
     private sealed class FakeAgentRuntime(AgentDescriptor descriptor) : IAgentRuntime
     {
+        public bool IsEnabledValue { get; set; } = true;
+        public bool IsRunningValue { get; set; }
+        public int ReloadCount { get; private set; }
+        public int StopCount { get; private set; }
+
         public event Action? StatusChanged
         {
             add { }
@@ -54,11 +107,17 @@ public sealed class AgentManagerTests
 
         public AgentDescriptor Descriptor { get; } = descriptor;
 
+        public bool IsEnabled => IsEnabledValue;
+
+        public string MinDbSchema => "1.0.0";
+
+        public string MaxDbSchema => "1.0.0";
+
         public string ExecutablePath => "agent.exe";
 
         public ToolRunState State => ToolRunState.Unknown;
 
-        public bool IsRunning => false;
+        public bool IsRunning => IsRunningValue;
 
         public DateTimeOffset? LastLaunchAt => null;
 
@@ -72,12 +131,17 @@ public sealed class AgentManagerTests
 
         public void Reload()
         {
+            ReloadCount++;
         }
 
         public Task<ToolCommandResult> StartOrRestartAsync(CancellationToken ct = default)
             => Task.FromResult(new ToolCommandResult(true, "ok"));
 
         public Task<ToolCommandResult> StopAsync(CancellationToken ct = default)
-            => Task.FromResult(new ToolCommandResult(true, "ok"));
+        {
+            StopCount++;
+            IsRunningValue = false;
+            return Task.FromResult(new ToolCommandResult(true, "ok"));
+        }
     }
 }

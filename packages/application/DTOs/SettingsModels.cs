@@ -29,7 +29,8 @@ public sealed record DbSchemaStatusSnapshot(
     DbSchemaCompatibility Compatibility,
     bool Satisfied,
     bool Updatable,
-    DatabaseMigrationPolicyResult ManualMigrationPolicy);
+    DatabaseMigrationPolicyResult ManualMigrationPolicy,
+    string? IncompatibleMessage);
 
 public sealed record ClientAliasSourceLoadResult(
     bool IsDbConnected,

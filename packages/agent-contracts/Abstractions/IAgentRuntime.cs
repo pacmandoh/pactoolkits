@@ -9,6 +9,12 @@ public interface IAgentRuntime : IDisposable
 
     AgentDescriptor Descriptor { get; }
 
+    bool IsEnabled { get; }
+
+    string MinDbSchema { get; }
+
+    string MaxDbSchema { get; }
+
     string ExecutablePath { get; }
 
     ToolRunState State { get; }
