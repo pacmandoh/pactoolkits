@@ -25,7 +25,7 @@ static SettingsService CreateService(PgOptions options, DatabaseAccessGuard guar
         new DbConnectionTester(logger),
         new DbSchemaVersionService(config, logger),
         new DbSchemaMigrationService(config, logger),
-        new ClientIdReadRepo(logger),
+        new ClientIdReadRepo(logger, guard),
         guard,
         new DatabaseMigrationPolicyService(new DatabaseEnvironmentSettingsService(config, logger)),
         new DatabaseEnvironmentSettingsService(config, logger));
@@ -66,11 +66,11 @@ try
     else
         Pass("production_env_defaults=production/false");
 
-    var clients = new ClientIdReadRepo(logger);
+    var guard = new DatabaseAccessGuard();
+    var clients = new ClientIdReadRepo(logger, guard);
     var machines = await clients.GetDistinctClientIdsAsync(options, CancellationToken.None);
     Pass($"client_alias_read count={machines.Count}");
 
-    var guard = new DatabaseAccessGuard();
     var service = CreateService(options, guard);
     var stableContext = new DbSchemaVersionContext(
         "1.2.20", "1.2.23", "1.2.20", "1.2.23", "1.2.23", "stable", DatabaseMigrationPolicies.StableOnly);

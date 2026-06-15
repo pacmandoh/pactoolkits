@@ -56,6 +56,7 @@ public sealed class UpdateOptions
 {
     public bool AutoCheckOnStartup { get; set; } = true;
     public string Channel { get; set; } = "stable";
+    public string ValidatedChannel { get; set; } = string.Empty;
     public string FeedUrl { get; set; } = "https://updates.pacdocs.com/feed/pactoolkits";
     public int AutoCheckIntervalMinutes { get; set; } = 0;
     public string IgnoredVersion { get; set; } = string.Empty;
@@ -535,6 +536,7 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         var options = source ?? new UpdateOptions();
 
         options.Channel = NormalizeUpdateChannel(options.Channel, defaults.Channel);
+        options.ValidatedChannel = NormalizeValidatedChannel(options.ValidatedChannel);
         options.FeedUrl = string.IsNullOrWhiteSpace(options.FeedUrl) ? defaults.FeedUrl : options.FeedUrl.Trim();
         options.AutoCheckIntervalMinutes = options.AutoCheckIntervalMinutes < 0
             ? defaults.AutoCheckIntervalMinutes
@@ -646,6 +648,17 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         return SupportedUpdateChannels.Contains(normalized, StringComparer.Ordinal)
             ? normalized
             : fallback;
+    }
+
+    private static string NormalizeValidatedChannel(string? channel)
+    {
+        if (string.IsNullOrWhiteSpace(channel))
+            return string.Empty;
+
+        var normalized = channel.Trim().ToLowerInvariant();
+        return SupportedUpdateChannels.Contains(normalized, StringComparer.Ordinal)
+            ? normalized
+            : string.Empty;
     }
 
     private void PersistNormalizedIfNeeded(AppConfigRoot normalized)
