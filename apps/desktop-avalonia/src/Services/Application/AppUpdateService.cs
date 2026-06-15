@@ -171,25 +171,13 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             if (!string.IsNullOrWhiteSpace(currentChannel)
                 && !string.Equals(currentChannel, targetChannel, StringComparison.OrdinalIgnoreCase))
             {
-                var mismatch = CreateCheckResult(
-                    success: true,
-                    hasUpdate: false,
-                    hasProductUpdate: false,
-                    latestVersion: CurrentVersion,
-                    currentChannel: currentChannel,
-                    targetChannel: targetChannel,
-                    channelSwitchRequired: true,
-                    message: $"当前程序通道：{currentChannel}；目标通道：{targetChannel}；建议动作：下载安装 {targetChannel} 通道最新安装包完成切换",
-                    checkedAt: now,
-                    source: source);
-                _logger.Warn("AppUpdateService", "update.check.channel_mismatch", "Installed channel differs from selected channel", null, new
+                _logger.Info("AppUpdateService", "update.check.channel_switch",
+                    "Checking selected channel after validated channel switch", new
                 {
                     CurrentVersion,
                     CurrentChannel = currentChannel,
                     TargetChannel = targetChannel
                 });
-                SetState(mismatch);
-                return mismatch;
             }
 
             var updates = await mgr.CheckForUpdatesAsync().ConfigureAwait(false);
@@ -308,13 +296,13 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             if (!string.IsNullOrWhiteSpace(currentChannel)
                 && !string.Equals(currentChannel, targetChannel, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.Warn("AppUpdateService", "update.apply.channel_mismatch", "Blocked update apply because installed channel differs from selected channel", null, new
+                _logger.Info("AppUpdateService", "update.apply.channel_switch",
+                    "Applying update from selected channel after validated channel switch", new
                 {
                     CurrentVersion,
                     CurrentChannel = currentChannel,
                     TargetChannel = targetChannel
                 });
-                return new AppUpdateApplyResult(false, false, $"当前程序通道：{currentChannel}；目标通道：{targetChannel}；建议动作：下载安装 {targetChannel} 通道最新安装包完成切换", CurrentVersion);
             }
 
             var updates = await mgr.CheckForUpdatesAsync().ConfigureAwait(false);

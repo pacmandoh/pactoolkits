@@ -1,5 +1,27 @@
 namespace PacToolkits.Core;
 
+public enum DbSchemaCompatibility
+{
+    Unknown,
+    MetadataMissing,
+    BelowMinimum,
+    Compatible,
+    AboveMaximum,
+}
+
+public sealed record DbSchemaCompatibilityResult(
+    DbSchemaCompatibility Status,
+    string CurrentVersion,
+    string MinimumVersion,
+    string MaximumVersion,
+    string Message)
+{
+    public bool IsCompatible => Status == DbSchemaCompatibility.Compatible;
+    public bool IsMetadataMissing => Status == DbSchemaCompatibility.MetadataMissing;
+    public bool IsTooLow => Status == DbSchemaCompatibility.BelowMinimum;
+    public bool IsTooHigh => Status == DbSchemaCompatibility.AboveMaximum;
+}
+
 public static class DbSchemaCompat
 {
     private const string IncompatibleTitle = "数据库版本不兼容";
@@ -9,11 +31,61 @@ public static class DbSchemaCompat
             ? fallback
             : bound;
 
-    public static bool IsSemVerAtLeast(string value, string min)
+    public static DbSchemaCompatibilityResult Evaluate(
+        string? current,
+        string minimum,
+        string maximum)
     {
-        if (!TryParseSemVer(value, out var v) || !TryParseSemVer(min, out var minV))
-            return false;
-        return CompareSemVer(v, minV) >= 0;
+        var currentText = (current ?? string.Empty).Trim();
+        var minimumText = (minimum ?? string.Empty).Trim();
+        var maximumText = (maximum ?? string.Empty).Trim();
+
+        if (!TryParseSemVer(currentText, out var currentVersion)
+            || !TryParseSemVer(minimumText, out var minimumVersion)
+            || !TryParseSemVer(maximumText, out var maximumVersion)
+            || CompareSemVer(minimumVersion, maximumVersion) > 0)
+        {
+            return new DbSchemaCompatibilityResult(
+                DbSchemaCompatibility.Unknown,
+                currentText,
+                minimumText,
+                maximumText,
+                "无法确定数据库版本兼容范围");
+        }
+
+        if (CompareSemVer(currentVersion, minimumVersion) < 0)
+        {
+            return new DbSchemaCompatibilityResult(
+                DbSchemaCompatibility.BelowMinimum,
+                currentText,
+                minimumText,
+                maximumText,
+                $"数据库版本 {currentText} 低于最低支持版本 {minimumText}");
+        }
+
+        if (CompareSemVer(currentVersion, maximumVersion) > 0)
+        {
+            return new DbSchemaCompatibilityResult(
+                DbSchemaCompatibility.AboveMaximum,
+                currentText,
+                minimumText,
+                maximumText,
+                $"数据库版本高于当前程序支持范围：当前 {currentText}，最高支持 {maximumText}");
+        }
+
+        return new DbSchemaCompatibilityResult(
+            DbSchemaCompatibility.Compatible,
+            currentText,
+            minimumText,
+            maximumText,
+            $"数据库版本 {currentText} 位于支持范围 {minimumText} - {maximumText}");
+    }
+
+    public static string GetRequiredMax(string uiMax, string agentMax)
+    {
+        if (!TryParseSemVer(uiMax, out var ui) || !TryParseSemVer(agentMax, out var agent))
+            return uiMax;
+        return CompareSemVer(ui, agent) <= 0 ? uiMax : agentMax;
     }
 
     public static string GetRequiredMin(string uiMin, string agentMin)
@@ -51,16 +123,28 @@ public static class DbSchemaCompat
         string? schemaReason,
         string uiMin,
         string agentMin,
-        string? requiredMin = null)
+        string uiMax,
+        string agentMax,
+        string? requiredMin = null,
+        string? requiredMax = null)
     {
         var detail = schemaOk
-            ? $"数据库版本：{schemaValue}\nUI 最低要求：{uiMin}\nAgent 最低要求：{agentMin}"
-            : $"读取失败：{schemaReason ?? "缺少 schema_version 表或版本记录"}\nUI 最低要求：{uiMin}\nAgent 最低要求：{agentMin}";
+            ? $"数据库版本：{schemaValue}\nDesktop 支持范围：{uiMin} - {uiMax}\nAgent 支持范围：{agentMin} - {agentMax}"
+            : $"读取失败：{schemaReason ?? "缺少 schema_version 表或版本记录"}\nDesktop 支持范围：{uiMin} - {uiMax}\nAgent 支持范围：{agentMin} - {agentMax}";
 
         if (!string.IsNullOrWhiteSpace(requiredMin))
             detail += $"\n实际最低门槛：{requiredMin}";
+        if (!string.IsNullOrWhiteSpace(requiredMax))
+            detail += $"\n实际最高门槛：{requiredMax}";
 
-        return $"检测到当前数据库版本与 PacToolkits 不兼容\n{detail}\n\n请联系维护者将数据库更新到适配版本后再连接";
+        var guidance = schemaOk
+                       && TryParseSemVer(schemaValue ?? string.Empty, out var current)
+                       && TryParseSemVer(requiredMax ?? string.Empty, out var max)
+                       && CompareSemVer(current, max) > 0
+            ? "数据库版本高于当前程序支持范围。已阻断数据库业务操作，不会执行自动降级。请升级 PacToolkits。"
+            : "请联系维护者将数据库更新到适配版本后再连接";
+
+        return $"检测到当前数据库版本与 PacToolkits 不兼容\n{detail}\n\n{guidance}";
     }
 
     public static string GetIncompatibleTitle() => IncompatibleTitle;

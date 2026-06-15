@@ -11,6 +11,20 @@ public sealed record DbSchemaMigrationResult(
     public bool HasChanges => AppliedCount > 0;
 }
 
+public sealed record DbSchemaMigrationPlanItem(
+    string Version,
+    string FileName,
+    bool Applied);
+
+public sealed record DbSchemaMigrationPlan(
+    string? CurrentVersion,
+    string TargetVersion,
+    bool BootstrapRequired,
+    IReadOnlyList<DbSchemaMigrationPlanItem> Items)
+{
+    public int PendingCount => Items.Count(x => !x.Applied);
+}
+
 public enum DbProbeKind
 {
     HealthCheck,
@@ -27,14 +41,19 @@ public sealed record ReleaseVersionInfo(
     string BuildChannel,
     string BuildDate,
     string DesktopMinDbSchema,
-    string AgentInjectorAhkMinDbSchema)
+    string DesktopMaxDbSchema,
+    string AgentInjectorAhkMinDbSchema,
+    string AgentInjectorAhkMaxDbSchema,
+    string DatabaseMigrationPolicy = DatabaseMigrationPolicies.StableOnly)
 {
     public string SuiteVersion => ProductVersion;
     public string UiVersion => DesktopVersion;
     public string AgentVersion => AgentInjectorAhkVersion;
     public string DbSchemaVersion => DatabasePostgresVersion;
     public string UiMinDbSchema => DesktopMinDbSchema;
+    public string UiMaxDbSchema => DesktopMaxDbSchema;
     public string AgentMinDbSchema => AgentInjectorAhkMinDbSchema;
+    public string AgentMaxDbSchema => AgentInjectorAhkMaxDbSchema;
 
     public static ReleaseVersionInfo Unknown { get; } = new(
         ProductVersion: "unknown",
@@ -44,5 +63,8 @@ public sealed record ReleaseVersionInfo(
         BuildChannel: "unknown",
         BuildDate: "unknown",
         DesktopMinDbSchema: "unknown",
-        AgentInjectorAhkMinDbSchema: "unknown");
+        DesktopMaxDbSchema: "unknown",
+        AgentInjectorAhkMinDbSchema: "unknown",
+        AgentInjectorAhkMaxDbSchema: "unknown",
+        DatabaseMigrationPolicy: DatabaseMigrationPolicies.StableOnly);
 }

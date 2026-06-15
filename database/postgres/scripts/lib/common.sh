@@ -54,16 +54,73 @@ psql_file() {
   psql -v ON_ERROR_STOP=1 -X -f "$file"
 }
 
+sql_literal() {
+  printf '%s' "$1" | sed "s/'/''/g"
+}
+
+DEPLOY_LOCK_OWNER=""
+
+ensure_deploy_lock_table() {
+  psql_exec "
+create table if not exists schema_deploy_lock (
+  singleton        boolean primary key default true check (singleton),
+  lock_owner       text not null,
+  lock_acquired_at timestamptz not null default clock_timestamp(),
+  lock_expires_at  timestamptz not null
+);
+" >/dev/null
+}
+
+renew_deploy_lock() {
+  [[ -n "$DEPLOY_LOCK_OWNER" ]] || return 0
+
+  local owner
+  owner="$(sql_literal "$DEPLOY_LOCK_OWNER")"
+  psql_exec "
+update schema_deploy_lock
+set lock_expires_at = clock_timestamp() + interval '60 minutes'
+where singleton = true and lock_owner = '${owner}';
+" >/dev/null
+}
+
+release_deploy_lock() {
+  [[ -n "$DEPLOY_LOCK_OWNER" ]] || return 0
+
+  local owner
+  owner="$(sql_literal "$DEPLOY_LOCK_OWNER")"
+  psql_exec "
+delete from schema_deploy_lock
+where singleton = true and lock_owner = '${owner}';
+" >/dev/null 2>&1 || true
+  DEPLOY_LOCK_OWNER=""
+}
+
 with_advisory_lock() {
   local lock_id="$1"
   local action="$2"
+  local owner acquired
 
-  local locked
-  locked="$(psql_exec "select pg_try_advisory_lock(${lock_id})")"
-  [[ "$locked" == "t" ]] || die "another deploy process is running (lock_id=${lock_id})"
+  ensure_deploy_lock_table
+  owner="${USER:-unknown}@$(hostname):$$:${lock_id}:$(date +%s)"
+  owner="$(sql_literal "$owner")"
+  acquired="$(psql_exec "
+with got as (
+  insert into schema_deploy_lock(singleton, lock_owner, lock_acquired_at, lock_expires_at)
+  values (true, '${owner}', clock_timestamp(), clock_timestamp() + interval '60 minutes')
+  on conflict (singleton) do update
+    set lock_owner = excluded.lock_owner,
+        lock_acquired_at = excluded.lock_acquired_at,
+        lock_expires_at = excluded.lock_expires_at
+  where schema_deploy_lock.lock_expires_at < clock_timestamp()
+  returning lock_owner
+)
+select lock_owner from got;
+")"
+  [[ -n "$acquired" ]] || die "another deploy process is running (lock_id=${lock_id})"
 
-  trap 'psql_exec "select pg_advisory_unlock('${lock_id}')" >/dev/null 2>&1 || true' EXIT
+  DEPLOY_LOCK_OWNER="$acquired"
+  trap release_deploy_lock EXIT
   "$action"
-  psql_exec "select pg_advisory_unlock(${lock_id})" >/dev/null || true
+  release_deploy_lock
   trap - EXIT
 }

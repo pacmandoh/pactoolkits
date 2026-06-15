@@ -5,6 +5,8 @@ using PacToolkits.Agent.Contracts.Events;
 using PacToolkits.Agent.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Services;
+using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -33,6 +35,8 @@ public sealed class AhkInjectorAgentRuntimeTests
         using var runtime = new AhkInjectorAgentRuntime(
             config,
             new FakeReleaseVersionService(),
+            new FakeDbSchemaVersionService(),
+            new DatabaseMigrationPolicyService(new FakeEnvironmentSettingsService()),
             new NullAppLogger(),
             new NullAgentEventSink());
 
@@ -40,6 +44,24 @@ public sealed class AhkInjectorAgentRuntimeTests
 
         Assert.False(result.Ok);
         Assert.Contains("禁用", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Start_when_database_schema_is_above_agent_maximum()
+    {
+        var config = new FakeAppConfigStore();
+        using var runtime = new AhkInjectorAgentRuntime(
+            config,
+            new FakeReleaseVersionService(),
+            new FakeDbSchemaVersionService("1.2.23"),
+            new DatabaseMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new NullAppLogger(),
+            new NullAgentEventSink());
+
+        var result = await runtime.StartOrRestartAsync();
+
+        Assert.False(result.Ok);
+        Assert.Contains("数据库版本高于当前程序支持范围", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -97,7 +119,28 @@ public sealed class AhkInjectorAgentRuntimeTests
             BuildChannel: "stable",
             BuildDate: "2026-06-13",
             DesktopMinDbSchema: "1.2.22",
-            AgentInjectorAhkMinDbSchema: "1.2.22");
+            DesktopMaxDbSchema: "1.2.22",
+            AgentInjectorAhkMinDbSchema: "1.2.22",
+            AgentInjectorAhkMaxDbSchema: "1.2.22",
+            DatabaseMigrationPolicy: DatabaseMigrationPolicies.StableOnly);
+    }
+
+    private sealed class FakeDbSchemaVersionService(string version = "1.2.22") : IDbSchemaVersionService
+    {
+        public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(CancellationToken ct)
+            => Task.FromResult(new DbSchemaVersionReadResult(true, version, null));
+
+        public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
+            => Task.FromResult(new DbSchemaVersionReadResult(true, version, null));
+    }
+
+    private sealed class FakeEnvironmentSettingsService : IDatabaseEnvironmentSettingsService
+    {
+        public Task<DatabaseEnvironmentSettings> TryReadAsync(CancellationToken ct)
+            => Task.FromResult(DatabaseEnvironmentSettings.ProductionDefaults);
+
+        public Task<DatabaseEnvironmentSettings> TryReadAsync(PgOptions options, CancellationToken ct)
+            => Task.FromResult(DatabaseEnvironmentSettings.ProductionDefaults);
     }
 
     private sealed class NullAppLogger : IAppLogger

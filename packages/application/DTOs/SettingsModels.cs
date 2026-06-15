@@ -1,9 +1,15 @@
+using PacToolkits.Core;
+
 namespace PacToolkits.Application.DTOs;
 
 public sealed record DbSchemaVersionContext(
     string UiMinDbSchema,
+    string UiMaxDbSchema,
     string AgentMinDbSchema,
-    string TargetDbSchemaVersion);
+    string AgentMaxDbSchema,
+    string TargetDbSchemaVersion,
+    string ReleaseChannel = "stable",
+    string MigrationPolicy = DatabaseMigrationPolicies.StableOnly);
 
 public sealed record DbConnectionValidationResult(
     bool ConnectionOk,
@@ -19,8 +25,11 @@ public sealed record DbSchemaStatusSnapshot(
     string? Reason,
     string TargetVersion,
     string RequiredMinVersion,
+    string RequiredMaxVersion,
+    DbSchemaCompatibility Compatibility,
     bool Satisfied,
-    bool Updatable);
+    bool Updatable,
+    DatabaseMigrationPolicyResult ManualMigrationPolicy);
 
 public sealed record ClientAliasSourceLoadResult(
     bool IsDbConnected,

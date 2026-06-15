@@ -1,0 +1,99 @@
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Core;
+using Npgsql;
+
+namespace PacToolkits.Infrastructure.Database;
+
+public sealed class DatabaseEnvironmentSettingsService : IDatabaseEnvironmentSettingsService
+{
+    private readonly IDbConfigService _dbConfig;
+    private readonly IAppLogger _logger;
+
+    public DatabaseEnvironmentSettingsService(IDbConfigService dbConfig, IAppLogger logger)
+    {
+        _dbConfig = dbConfig ?? throw new ArgumentNullException(nameof(dbConfig));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public Task<DatabaseEnvironmentSettings> TryReadAsync(CancellationToken ct)
+        => TryReadAsync(_dbConfig.Current, ct);
+
+    public async Task<DatabaseEnvironmentSettings> TryReadAsync(PgOptions options, CancellationToken ct)
+    {
+        try
+        {
+            await using var conn = await OpenConnectionAsync(options, ct).ConfigureAwait(false);
+
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                select key, value
+                from public.app_environment_settings
+                where key = any(@keys)
+                """;
+            cmd.Parameters.AddWithValue(
+                "keys",
+                new[] { "Database.Environment", "Database.AllowBetaMigrations" });
+
+            var environment = "production";
+            var allowBetaMigrations = false;
+
+            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            {
+                var key = reader.GetString(0);
+                var value = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
+                if (string.Equals(key, "Database.Environment", StringComparison.Ordinal))
+                    environment = value.Trim();
+                else if (string.Equals(key, "Database.AllowBetaMigrations", StringComparison.Ordinal))
+                    allowBetaMigrations = IsTruthy(value);
+            }
+
+            return new DatabaseEnvironmentSettings(environment, allowBetaMigrations);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UndefinedTable)
+        {
+            _logger.Info(
+                "DatabaseEnvironment",
+                "environment_settings.missing",
+                "app_environment_settings table not found; using production defaults");
+            return DatabaseEnvironmentSettings.ProductionDefaults;
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn(
+                "DatabaseEnvironment",
+                "environment_settings.read_fail",
+                "Failed reading app_environment_settings; using production defaults",
+                ex);
+            return DatabaseEnvironmentSettings.ProductionDefaults;
+        }
+    }
+
+    private static async Task<NpgsqlConnection> OpenConnectionAsync(PgOptions opt, CancellationToken ct)
+    {
+        var csb = new NpgsqlConnectionStringBuilder
+        {
+            Host = opt.Host,
+            Port = opt.Port,
+            Database = opt.Database,
+            Username = opt.Username,
+            Password = opt.Password,
+            SearchPath = "public",
+            Timeout = opt.ConnectTimeoutSeconds,
+            KeepAlive = opt.KeepAliveSeconds
+        };
+
+        var conn = new NpgsqlConnection(csb.ToString());
+        await conn.OpenAsync(ct).ConfigureAwait(false);
+        return conn;
+    }
+
+    private static bool IsTruthy(string? value)
+    {
+        var normalized = (value ?? string.Empty).Trim();
+        return normalized.Equals("true", StringComparison.OrdinalIgnoreCase)
+               || normalized.Equals("1", StringComparison.Ordinal)
+               || normalized.Equals("yes", StringComparison.OrdinalIgnoreCase);
+    }
+}

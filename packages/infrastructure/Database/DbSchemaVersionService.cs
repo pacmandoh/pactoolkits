@@ -1,7 +1,6 @@
 using PacToolkits.Application.Abstractions;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Core;
 using Npgsql;
 
 namespace PacToolkits.Infrastructure.Database;
@@ -17,25 +16,14 @@ public sealed class DbSchemaVersionService : IDbSchemaVersionService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<(bool ok, string? value, string? reason)> TryReadSchemaVersionAsync(CancellationToken ct)
+    public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(CancellationToken ct)
+        => TryReadSchemaVersionAsync(_dbConfig.Current, ct);
+
+    public async Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
     {
         try
         {
-            var opt = _dbConfig.Current;
-            var csb = new NpgsqlConnectionStringBuilder
-            {
-                Host = opt.Host,
-                Port = opt.Port,
-                Database = opt.Database,
-                Username = opt.Username,
-                Password = opt.Password,
-                SearchPath = "public",
-                Timeout = opt.ConnectTimeoutSeconds,
-                KeepAlive = opt.KeepAliveSeconds
-            };
-
-            await using var conn = new NpgsqlConnection(csb.ToString());
-            await conn.OpenAsync(ct).ConfigureAwait(false);
+            await using var conn = await OpenConnectionAsync(options, ct).ConfigureAwait(false);
 
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = "select schema_version from public.schema_version where singleton = true";
@@ -43,14 +31,47 @@ public sealed class DbSchemaVersionService : IDbSchemaVersionService
             var version = result?.ToString()?.Trim();
 
             if (string.IsNullOrWhiteSpace(version))
-                return (false, null, "数据库缺少 schema_version 当前值");
+            {
+                return new DbSchemaVersionReadResult(
+                    false,
+                    null,
+                    "数据库缺少 schema_version 当前值",
+                    IsMetadataMissing: true);
+            }
 
-            return (true, version, null);
+            return new DbSchemaVersionReadResult(true, version, null);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UndefinedTable)
+        {
+            return new DbSchemaVersionReadResult(
+                false,
+                null,
+                "schema_version 表不存在",
+                IsMetadataMissing: true);
         }
         catch (Exception ex)
         {
             _logger.Warn("DbSchemaVersion", "schema_version.read_fail", "Failed reading schema_version", ex);
-            return (false, null, ex.Message);
+            return new DbSchemaVersionReadResult(false, null, ex.Message);
         }
+    }
+
+    private static async Task<NpgsqlConnection> OpenConnectionAsync(PgOptions opt, CancellationToken ct)
+    {
+        var csb = new NpgsqlConnectionStringBuilder
+        {
+            Host = opt.Host,
+            Port = opt.Port,
+            Database = opt.Database,
+            Username = opt.Username,
+            Password = opt.Password,
+            SearchPath = "public",
+            Timeout = opt.ConnectTimeoutSeconds,
+            KeepAlive = opt.KeepAliveSeconds
+        };
+
+        var conn = new NpgsqlConnection(csb.ToString());
+        await conn.OpenAsync(ct).ConfigureAwait(false);
+        return conn;
     }
 }
