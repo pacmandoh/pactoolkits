@@ -40,6 +40,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private readonly IUiBehaviorService _uiBehavior;
     private readonly IUpdateSettingsService _updateSettings;
     private readonly IAppUpdateService _updates;
+    private readonly IReleaseChannelSwitchService _releaseChannelSwitch;
     private readonly IUpdateUiFlowService _updateUiFlow;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IDialogService _dialog;
@@ -81,6 +82,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private bool? _productUpdateAvailable;
     [ObservableProperty] private string _latestProductVersion = "unknown";
     [ObservableProperty] private string _updateStatusHint = "未检查更新";
+    [ObservableProperty] private string _updateChannelSwitchHint = "切换通道前会检查目标 Feed 与数据库兼容范围";
     [ObservableProperty] private bool _isUpdateChecking;
     [ObservableProperty] private bool _isUpdateApplying;
     [ObservableProperty] private bool _hasUpdateAvailable;
@@ -94,6 +96,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _dbSchemaCurrentVersion = "unknown";
     [ObservableProperty] private string _dbSchemaTargetVersion = "unknown";
     [ObservableProperty] private string _dbSchemaRequiredMinVersion = "unknown";
+    [ObservableProperty] private string _dbSchemaRequiredMaxVersion = "unknown";
     [ObservableProperty] private string _dbSchemaStatusText = "未检查";
     [ObservableProperty] private bool _isDbSchemaSatisfied;
     [ObservableProperty] private bool _isDbSchemaChecking;
@@ -104,7 +107,12 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _dbSchemaLastCheckedAtText = "--";
     [ObservableProperty] private string _dbSchemaLastCheckSourceText = "--";
     [ObservableProperty] private string _dbSchemaLastMigrationText = "尚无迁移记录";
-    [ObservableProperty] private string _dbSchemaPolicyText = "启动/保存连接时强制迁移，统一写入 public schema";
+    [ObservableProperty] private string _dbSchemaMigrationPlanText = "尚未查看迁移计划";
+    [ObservableProperty] private string _dbSchemaPolicyText = DatabaseMigrationPolicies.StableOnly;
+    public string DbSchemaBetaConceptText
+        => string.Equals(_releaseVersion.Current.BuildChannel, "beta", StringComparison.OrdinalIgnoreCase)
+            ? "当前是 Beta 应用。Beta 应用与 Beta 数据库是两个独立概念；默认不会升级共享生产数据库。"
+            : "应用发布通道与数据库环境相互独立；数据库迁移始终受清单策略和环境授权约束。";
     [ObservableProperty] private string _msfxGatewayUrl = "https://eco.taobao.com/router/rest";
     [ObservableProperty] private string _msfxAppKey = string.Empty;
     [ObservableProperty] private string _msfxAppSecret = string.Empty;
@@ -120,7 +128,11 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private bool _isClientAliasEditMode;
     [ObservableProperty] private bool _isClientAliasReadOnly = true;
     public bool CanCopyDbSchemaDiagnostics => !string.IsNullOrWhiteSpace(BuildDbSchemaDiagnosticsText());
-    public bool CanApplyDbSchemaUpdate => !IsDbSchemaChecking && !string.Equals(DbSchemaStatusText, "更新中", StringComparison.Ordinal);
+    public bool CanApplyDbSchemaUpdate => !IsDbSchemaChecking
+        && !string.Equals(DbSchemaStatusText, "更新中", StringComparison.Ordinal)
+        && !string.Equals(DbSchemaStatusText, "版本过高", StringComparison.Ordinal)
+        && CanApplyDbSchemaUpdateByPolicy;
+    [ObservableProperty] private bool _canApplyDbSchemaUpdateByPolicy;
     public ObservableCollection<string> LoggingLevelOptions { get; } = new()
     {
         "Debug",
@@ -158,6 +170,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IUiBehaviorService uiBehavior,
         IUpdateSettingsService updateSettings,
         IAppUpdateService updates,
+        IReleaseChannelSwitchService releaseChannelSwitch,
         IUpdateUiFlowService updateUiFlow,
         IReleaseVersionService releaseVersion,
         IDialogService dialog,
@@ -174,6 +187,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         _uiBehavior = uiBehavior;
         _updateSettings = updateSettings;
         _updates = updates;
+        _releaseChannelSwitch = releaseChannelSwitch;
         _updateUiFlow = updateUiFlow;
         _releaseVersion = releaseVersion;
         _dialog = dialog;
@@ -201,6 +215,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         LoadUiBehavior();
         LoadUpdateOptions();
         LoadLoggingOptions();
+        DbSchemaPolicyText = _releaseVersion.Current.DatabaseMigrationPolicy;
         SafeFireAndForget(RefreshDbSchemaStatusOnStartupAsync, "db.schema.startup_refresh.fire_and_forget_fail");
         _uiBehavior.Changed += OnUiBehaviorChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
@@ -533,9 +548,11 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             if (!validation.SchemaMigrationOk)
             {
-                Status = "数据库结构更新失败";
+                var reason = validation.MigrationSummary ?? "数据库结构更新失败";
+                Status = reason;
                 IsDbConnected = false;
                 UpdateClientAliasUiState();
+                _toast.Warn("数据库迁移策略", reason);
                 return;
             }
 
@@ -624,7 +641,41 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         if (ShouldSkipTrigger() || IsDbSchemaChecking)
             return;
 
-        await RefreshDbSchemaStatusAsync("manual_check", manualProbe: true, operationCt: _pageWorkCts.Token);
+        await RefreshDbSchemaStatusAsync(
+            "manual_check",
+            manualProbe: true,
+            connectionOptions: ToOptions(),
+            operationCt: _pageWorkCts.Token);
+    }
+
+    [RelayCommand]
+    private async Task ViewDbSchemaMigrationPlanAsync()
+    {
+        if (ShouldSkipTrigger() || IsDbSchemaChecking)
+            return;
+
+        SetDbSchemaStatus("读取计划", checking: true, failed: false, error: null);
+        try
+        {
+            using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(30));
+            var plan = await _settings.GetSchemaMigrationPlanAsync(
+                BuildSchemaContext(),
+                ToOptions(),
+                cts.Token);
+            DbSchemaMigrationPlanText = FormatMigrationPlan(plan);
+            _toast.Info("数据库迁移计划", DbSchemaMigrationPlanText);
+            await RefreshDbSchemaStatusAsync(
+                "migration_plan",
+                manualProbe: false,
+                connectionOptions: ToOptions(),
+                operationCt: cts.Token);
+        }
+        catch (Exception ex)
+        {
+            DbSchemaMigrationPlanText = $"读取迁移计划失败：{ex.Message}";
+            SetDbSchemaStatus("计划失败", checking: false, failed: true, error: ex.Message);
+            _toast.Error("数据库迁移计划", ex.Message);
+        }
     }
 
     [RelayCommand]
@@ -633,7 +684,24 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         if (ShouldSkipTrigger() || IsDbSchemaChecking)
             return;
 
-        await EnsureDbSchemaUpToDateAsync();
+        var options = ToOptions();
+        var snapshot = await _settings.ReadSchemaStatusAsync(
+            BuildSchemaContext(),
+            options,
+            _pageWorkCts.Token);
+        if (snapshot.ManualMigrationPolicy.Decision == DatabaseMigrationDecision.RequiresConfirmation)
+        {
+            var confirmed = await _dialog.Confirm(
+                "确认更新数据库",
+                $"{snapshot.ManualMigrationPolicy.Reason}\n\n此操作将修改 Beta 隔离测试库结构，是否继续？");
+            if (!confirmed)
+                return;
+
+            await EnsureDbSchemaUpToDateAsync(options, userConfirmed: true);
+            return;
+        }
+
+        await EnsureDbSchemaUpToDateAsync(options);
     }
 
     [RelayCommand]
@@ -1013,10 +1081,19 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IsUpdateChecking = true;
         try
         {
+            var previous = _updateSettings.Current;
+            var targetChannel = NormalizeUpdateChannel(UpdateChannel);
+            if (!string.Equals(previous.Channel, targetChannel, StringComparison.Ordinal))
+            {
+                var switched = await TrySwitchUpdateChannelAsync(previous, targetChannel);
+                if (!switched)
+                    return;
+            }
+
             var options = new UpdateOptions
             {
                 AutoCheckOnStartup = AutoCheckUpdateOnStartup,
-                Channel = UpdateChannel,
+                Channel = targetChannel,
                 FeedUrl = UpdateFeedUrl,
                 AutoCheckIntervalMinutes = Math.Clamp(UpdatePollIntervalMinutes, 0, 720),
                 IgnoredVersion = IgnoredProductVersion
@@ -1035,6 +1112,61 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             SyncUpdateStateFromService();
             IsBusy = false;
         }
+    }
+
+    private async Task<bool> TrySwitchUpdateChannelAsync(UpdateOptions previous, string targetChannel)
+    {
+        if (targetChannel == "beta")
+        {
+            var confirmed = await _dialog.Confirm(
+                "切换到 Beta 更新通道",
+                "Beta 版本可能包含尚未完成验证的功能。切换前将检查 Beta Feed 和当前数据库兼容范围；不会执行数据库迁移。是否继续？");
+            if (!confirmed)
+            {
+                RestoreUpdateChannel(previous.Channel);
+                return false;
+            }
+        }
+
+        using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(20));
+        var probe = await _releaseChannelSwitch.ProbeAsync(
+            UpdateFeedUrl,
+            targetChannel,
+            ToOptions(),
+            cts.Token);
+        UpdateChannelSwitchHint = probe.Message;
+        if (!probe.Success)
+        {
+            RestoreUpdateChannel(previous.Channel);
+            await _dialog.Warn("无法切换更新通道", probe.Message);
+            return false;
+        }
+
+        _logger.Info("SettingsVM", "update.channel.switch.validated",
+            "Release channel switch validated without database migration", new
+            {
+                PreviousChannel = previous.Channel,
+                TargetChannel = targetChannel,
+                probe.FeedManifestUrl,
+                probe.CurrentDbSchema,
+                probe.RequiredMinDbSchema,
+                probe.RequiredMaxDbSchema
+            });
+        return true;
+    }
+
+    private void RestoreUpdateChannel(string channel)
+    {
+        _syncingUpdateOptions = true;
+        UpdateChannel = channel;
+        _syncingUpdateOptions = false;
+        RefreshUpdatePollIntervalHint();
+    }
+
+    private static string NormalizeUpdateChannel(string? channel)
+    {
+        var normalized = channel?.Trim().ToLowerInvariant();
+        return normalized is "stable" or "beta" ? normalized : "stable";
     }
 
     [RelayCommand]
@@ -1264,14 +1396,26 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         var version = _releaseVersion.Current;
         return new DbSchemaVersionContext(
             version.UiMinDbSchema,
+            version.UiMaxDbSchema,
             version.AgentMinDbSchema,
-            version.DbSchemaVersion);
+            version.AgentMaxDbSchema,
+            version.DbSchemaVersion,
+            version.BuildChannel,
+            version.DatabaseMigrationPolicy);
     }
 
-    private async Task<bool> EnsureDbSchemaCompatibleAsync()
+    private async Task<bool> EnsureDbSchemaCompatibleAsync(PgOptions? connectionOptions = null)
     {
-        var compat = await _settings.CheckSchemaCompatibilityAsync(BuildSchemaContext(), _pageWorkCts.Token);
-        await RefreshDbSchemaStatusAsync("compat_check", manualProbe: false, operationCt: _pageWorkCts.Token);
+        var options = connectionOptions ?? ToOptions();
+        var compat = await _settings.CheckSchemaCompatibilityAsync(
+            BuildSchemaContext(),
+            options,
+            _pageWorkCts.Token);
+        await RefreshDbSchemaStatusAsync(
+            "compat_check",
+            manualProbe: false,
+            connectionOptions: options,
+            operationCt: _pageWorkCts.Token);
         if (compat.Compatible)
             return true;
 
@@ -1279,21 +1423,60 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         return false;
     }
 
-    private async Task<bool> EnsureDbSchemaUpToDateAsync()
+    private Task<bool> EnsureDbSchemaUpToDateAsync(bool userConfirmed = false)
+        => EnsureDbSchemaUpToDateAsync(ToOptions(), userConfirmed);
+
+    private async Task<bool> EnsureDbSchemaUpToDateAsync(
+        PgOptions connectionOptions,
+        bool userConfirmed = false)
     {
         SetDbSchemaStatus("更新中", checking: true, failed: false, error: null);
         try
         {
             using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(120));
-            var migration = await _settings.EnsureSchemaUpToDateAsync(
-                _releaseVersion.Current.DbSchemaVersion,
+            var status = await _settings.ReadSchemaStatusAsync(
+                BuildSchemaContext(),
+                connectionOptions,
                 cts.Token);
+            if (status.Compatibility == DbSchemaCompatibility.AboveMaximum)
+            {
+                DbSchemaCurrentVersion = status.CurrentVersion ?? "unknown";
+                DbSchemaTargetVersion = status.TargetVersion;
+                DbSchemaRequiredMinVersion = status.RequiredMinVersion;
+                DbSchemaRequiredMaxVersion = status.RequiredMaxVersion;
+                var message =
+                    $"数据库版本高于当前程序支持范围：当前 {status.CurrentVersion}，最高支持 {status.RequiredMaxVersion}。不会执行自动降级。";
+                SetDbSchemaStatus("版本过高", checking: false, failed: true, error: message);
+                _toast.Error("数据库结构更新", message);
+                return false;
+            }
+
+            var migration = await _settings.EnsureSchemaUpToDateAsync(
+                BuildSchemaContext(),
+                DatabaseMigrationTrigger.SettingsManual,
+                connectionOptions,
+                userConfirmed: userConfirmed,
+                ciMigrationAuthorized: false,
+                ct: cts.Token);
+            if (!migration.Ok)
+            {
+                SetDbSchemaStatus("更新失败", checking: false, failed: true, error: migration.Summary);
+                DbSchemaLastMigrationText = migration.Summary;
+                _toast.Error("数据库结构更新", migration.Summary);
+                return false;
+            }
+
             DbSchemaLastMigrationText = migration.Summary;
             if (migration.Summary.Contains("applied=", StringComparison.Ordinal))
-            {
                 _toast.Success("数据库结构更新", "数据库结构已更新");
-            }
-            await RefreshDbSchemaStatusAsync("migrate_done", manualProbe: false, operationCt: cts.Token);
+            else if (status.ManualMigrationPolicy.Decision == DatabaseMigrationDecision.ReadOnlyRequired)
+                _toast.Warn("数据库结构更新", migration.Summary);
+
+            await RefreshDbSchemaStatusAsync(
+                "migrate_done",
+                manualProbe: false,
+                connectionOptions: connectionOptions,
+                operationCt: cts.Token);
             return true;
         }
         catch (Exception ex)
@@ -1309,7 +1492,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private async Task RefreshDbSchemaStatusAsync(
         string source,
         bool manualProbe,
-        (bool ok, string? value, string? reason)? cachedSchema = null,
+        PgOptions? connectionOptions = null,
         CancellationToken operationCt = default)
     {
         if (IsDbSchemaChecking && manualProbe)
@@ -1321,12 +1504,29 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         try
         {
             var ct = operationCt.CanBeCanceled ? operationCt : _pageWorkCts.Token;
-            var snapshot = await _settings.ReadSchemaStatusAsync(BuildSchemaContext(), ct);
+            var options = connectionOptions ?? ToOptions();
+            var snapshot = await _settings.ReadSchemaStatusAsync(BuildSchemaContext(), options, ct);
             DbSchemaLastCheckedAtText = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
             DbSchemaLastCheckSourceText = MapDbSchemaCheckSource(source);
             DbSchemaTargetVersion = snapshot.TargetVersion;
             DbSchemaRequiredMinVersion = snapshot.RequiredMinVersion;
+            DbSchemaRequiredMaxVersion = snapshot.RequiredMaxVersion;
             DbSchemaCurrentVersion = snapshot.CurrentVersion ?? "unknown";
+
+            IsDbSchemaSatisfied = snapshot.Satisfied;
+            UpdateManualMigrationPolicyState(snapshot.ManualMigrationPolicy);
+
+            if (snapshot.Compatibility == DbSchemaCompatibility.MetadataMissing)
+            {
+                SetDbSchemaStatus(
+                    "需要初始化",
+                    checking: false,
+                    failed: false,
+                    error: snapshot.Reason ?? "数据库缺少迁移元数据，需要初始化");
+                if (manualProbe)
+                    _toast.Warn("数据库结构更新", snapshot.Reason ?? "数据库缺少迁移元数据，需要初始化");
+                return;
+            }
 
             if (!snapshot.SchemaOk)
             {
@@ -1336,8 +1536,15 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 return;
             }
 
-            IsDbSchemaSatisfied = snapshot.Satisfied;
-            if (!snapshot.Satisfied)
+            if (snapshot.Compatibility == DbSchemaCompatibility.AboveMaximum)
+            {
+                SetDbSchemaStatus(
+                    "版本过高",
+                    checking: false,
+                    failed: true,
+                    error: $"数据库版本高于当前程序支持范围：当前 {snapshot.CurrentVersion}，最高支持 {snapshot.RequiredMaxVersion}");
+            }
+            else if (!snapshot.Satisfied)
             {
                 SetDbSchemaStatus("需要更新", checking: false, failed: false, error: $"当前版本 {snapshot.CurrentVersion} 低于最低要求 {snapshot.RequiredMinVersion}");
             }
@@ -1352,7 +1559,9 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             if (manualProbe)
             {
-                if (!snapshot.Satisfied)
+                if (snapshot.Compatibility == DbSchemaCompatibility.AboveMaximum)
+                    _toast.Error("数据库结构更新", $"数据库版本高于当前程序支持范围，最高支持 {snapshot.RequiredMaxVersion}");
+                else if (!snapshot.Satisfied)
                     _toast.Warn("数据库结构更新", $"当前版本 {snapshot.CurrentVersion}，低于最低要求 {snapshot.RequiredMinVersion}");
                 else if (snapshot.Updatable)
                     _toast.Warn("数据库结构更新", $"当前版本 {snapshot.CurrentVersion}，可更新到本地版本 {snapshot.TargetVersion}");
@@ -1389,10 +1598,22 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             "open_settings" => "打开设置页",
             "db_reconnected" => "数据库重连后回读",
             "manual_check" => "手动检查",
+            "migration_plan" => "查看迁移计划",
             "compat_check" => "兼容性校验",
             "migrate_done" => "迁移完成后回读",
             _ => source
         };
+
+    private static string FormatMigrationPlan(DbSchemaMigrationPlan plan)
+    {
+        var pending = plan.Items.Where(x => !x.Applied).ToArray();
+        if (pending.Length == 0)
+            return $"当前 {plan.CurrentVersion ?? "未初始化"}，目标 {plan.TargetVersion}，无待执行迁移";
+
+        var files = string.Join(", ", pending.Select(x => x.FileName));
+        var bootstrap = plan.BootstrapRequired ? "，需要初始化迁移元数据" : string.Empty;
+        return $"当前 {plan.CurrentVersion ?? "未初始化"}，目标 {plan.TargetVersion}，待执行 {pending.Length} 项{bootstrap}：{files}";
+    }
 
     private string GetRequiredMinSchemaVersion()
     {
@@ -1416,6 +1637,15 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         OnPropertyChanged(nameof(CanApplyDbSchemaUpdate));
     }
 
+    private void UpdateManualMigrationPolicyState(DatabaseMigrationPolicyResult policy)
+    {
+        CanApplyDbSchemaUpdateByPolicy =
+            policy.Decision is DatabaseMigrationDecision.Allowed
+                or DatabaseMigrationDecision.RequiresConfirmation;
+        DbSchemaPolicyText = $"{_releaseVersion.Current.DatabaseMigrationPolicy}: {policy.Reason}";
+        OnPropertyChanged(nameof(CanApplyDbSchemaUpdate));
+    }
+
     private string BuildDbSchemaDiagnosticsText()
     {
         var lines = new List<string>
@@ -1424,9 +1654,11 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             $"target={DbSchemaTargetVersion}",
             $"current={DbSchemaCurrentVersion}",
             $"required_min={DbSchemaRequiredMinVersion}",
+            $"required_max={DbSchemaRequiredMaxVersion}",
             $"last_checked_at={DbSchemaLastCheckedAtText}",
             $"last_check_source={DbSchemaLastCheckSourceText}",
             $"last_migration={DbSchemaLastMigrationText}",
+            $"migration_plan={DbSchemaMigrationPlanText}",
             $"policy={DbSchemaPolicyText}"
         };
 
@@ -1442,6 +1674,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             DbSchemaBadgeStatus = null;
             DbSchemaBadgeLabel = "更新中";
+            return;
+        }
+
+        if (string.Equals(status, "版本过高", StringComparison.Ordinal))
+        {
+            DbSchemaBadgeStatus = null;
+            DbSchemaBadgeLabel = "版本过高";
             return;
         }
 

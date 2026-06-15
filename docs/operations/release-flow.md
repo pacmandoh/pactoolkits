@@ -107,14 +107,48 @@ cd database/postgres
 cp scripts/config.example.json scripts/config.json
 ./scripts/deploy.sh doctor
 ./scripts/deploy.sh plan
-./scripts/deploy.sh apply
+./scripts/deploy.sh upgrade
+./scripts/deploy.sh verify
 ```
+
+### Beta 隔离数据库
+
+Beta 迁移不得直接作用于共享生产库。发布 Beta 前，由运维人员显式克隆 Stable
+数据库或恢复 Stable 备份；Desktop 不会自动执行这些脚本。
+
+macOS / Linux：
+
+```bash
+./scripts/create-beta-database.sh \
+  --version 0.18.0-beta.1 \
+  --template pactoolkits_production \
+  --config database/postgres/scripts/config.json
+```
+
+Windows PowerShell：
+
+```powershell
+./scripts/create-beta-database.ps1 `
+  -Version 0.18.0-beta.1 `
+  -TemplateDatabase pactoolkits_production `
+  -ConfigPath database/postgres/scripts/config.json
+```
+
+目标库按 `pactoolkits_beta_<版本>` 命名，`.`、`-`、`+` 转换为 `_`。同名库存在时
+脚本立即失败且不会覆盖或删除。使用模板库时，创建前必须断开模板库的全部活跃连接。
+创建成功后脚本写入 `Database.Environment=isolated`、
+`Database.AllowBetaMigrations=true`、克隆来源和 Beta 版本标记，并输出不含密码的连接串。
+
+详细参数见 [PostgreSQL 运维说明](../../database/postgres/README.md)。
 
 ## 客户端更新策略
 
 - `AppUpdateService` 使用 Velopack 已安装版本作为当前版本
 - Feed URL 解析为 `{FeedUrl}/stable` 或 `{FeedUrl}/beta`
-- **不**自动跨通道切换
+- 每个通道目录发布 `release-manifest.json`，客户端切换前读取目标通道的 DB 兼容范围
+- Stable → Beta 需要风险确认、目标 Feed 可用且当前 DB 位于 Beta min/max 范围
+- Beta → Stable 需要当前 DB 位于 Stable min/max 范围；高于 Stable max 时阻止切换
+- 通道切换只保存更新源选择，不触发数据库迁移或降级
 
 ## Agent 路径解析
 

@@ -26,3 +26,29 @@ jobs:
         run: npx changelogithub
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Align GitHub release prerelease flag with channel
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/manifest-v2.sh
+          # shellcheck source=manifest-v2.sh
+          source scripts/manifest-v2.sh
+          validate_manifest_v2 release-manifest.json
+          channel="$(manifest_release_channel release-manifest.json)"
+          case "$channel" in
+            beta)
+              gh release edit "${GITHUB_REF_NAME}" --prerelease
+              ;;
+            stable)
+              gh release edit "${GITHUB_REF_NAME}" --prerelease=false
+              ;;
+            *)
+              echo "Unsupported release channel: $channel"
+              exit 1
+              ;;
+          esac
+          actual="$(gh release view "${GITHUB_REF_NAME}" --json isPrerelease --jq .isPrerelease)"
+          validate_release_prerelease_flag release-manifest.json "$actual"

@@ -18,6 +18,7 @@ using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Services;
 using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -40,7 +41,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IDbConfigService _dbConfig;
     private readonly IDbConnectionMonitorService _dbMonitor;
     private readonly IDbSchemaVersionService _dbSchemaVersion;
-    private readonly IDbSchemaMigrationService _dbSchemaMigration;
+    private readonly ISettingsService _settings;
+    private readonly IDatabaseAccessGuard _databaseAccessGuard;
+    private readonly IDatabaseMigrationPolicyService _migrationPolicy;
     private readonly IChangeWatermarkService _changeWatermark;
     private readonly IAgentManager _agentManager;
     private IAgentRuntime Injector => _agentManager.GetRequired(AgentIds.InjectorAhk);
@@ -281,7 +284,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         ISukiDialogManager dialogManager,
         IDbConnectionMonitorService dbMonitor,
         IDbSchemaVersionService dbSchemaVersion,
-        IDbSchemaMigrationService dbSchemaMigration,
+        ISettingsService settings,
+        IDatabaseAccessGuard databaseAccessGuard,
+        IDatabaseMigrationPolicyService migrationPolicy,
         IChangeWatermarkService changeWatermark,
         IAgentManager agentManager,
         IReleaseVersionService releaseVersion,
@@ -297,7 +302,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dbConfig = dbConfig ?? throw new ArgumentNullException(nameof(dbConfig));
         _dbMonitor = dbMonitor ?? throw new ArgumentNullException(nameof(dbMonitor));
         _dbSchemaVersion = dbSchemaVersion ?? throw new ArgumentNullException(nameof(dbSchemaVersion));
-        _dbSchemaMigration = dbSchemaMigration ?? throw new ArgumentNullException(nameof(dbSchemaMigration));
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _databaseAccessGuard = databaseAccessGuard ?? throw new ArgumentNullException(nameof(databaseAccessGuard));
+        _migrationPolicy = migrationPolicy ?? throw new ArgumentNullException(nameof(migrationPolicy));
         _changeWatermark = changeWatermark ?? throw new ArgumentNullException(nameof(changeWatermark));
         _agentManager = agentManager ?? throw new ArgumentNullException(nameof(agentManager));
         _releaseVersion = releaseVersion ?? throw new ArgumentNullException(nameof(releaseVersion));
@@ -748,22 +755,34 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             if (state.ShouldMigrate)
             {
                 using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
-                var migration = await _dbSchemaMigration
-                    .EnsureUpToDateAsync(cts.Token, _releaseVersion.Current.DbSchemaVersion)
+                var (migrationOk, summary) = await _settings
+                    .EnsureSchemaUpToDateAsync(
+                        BuildSchemaContext(),
+                        DatabaseMigrationTrigger.Startup,
+                        ct: cts.Token)
                     .ConfigureAwait(false);
-                if (migration.HasChanges)
-                    _toasts.Success("数据库结构更新", $"已应用 {migration.AppliedCount} 个迁移，当前版本 {migration.AfterVersion ?? "unknown"}");
+                if (!migrationOk)
+                {
+                    _logger.Warn("MainWindowVM", "db.startup_check.migrate.blocked",
+                        "Startup migration blocked by policy", null, new { summary });
+                }
+                else if (TryParseAppliedCount(summary, out var applied) && applied > 0)
+                {
+                    _toasts.Success("数据库结构更新", $"已应用 {applied} 个迁移");
+                }
 
                 state = await GetDbSchemaStartupStateAsync().ConfigureAwait(false);
             }
 
             if (!state.Compatible)
             {
-                _toasts.Error("数据库结构更新", $"自动更新后仍不兼容：{state.Message}");
-                _logger.Error("MainWindowVM", "db.schema.incompatible.single_path.still_bad", "Schema incompatible after startup single-path migration", null, new
+                _toasts.Error("数据库版本不兼容", state.Message);
+                _logger.Error("MainWindowVM", "db.schema.incompatible.startup", "Database schema incompatible during startup", null, new
                 {
                     state.UiMin,
+                    state.UiMax,
                     state.AgentMin,
+                    state.AgentMax,
                     state.Target,
                     state.DbVersion,
                     state.SchemaOk,
@@ -821,49 +840,111 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private static string NormalizeVersionForStamp(string? value)
         => (value ?? string.Empty).Trim();
 
-    private async Task<DbSchemaStartupState> GetDbSchemaStartupStateAsync()
+    private DbSchemaVersionContext BuildSchemaContext()
+    {
+        var version = _releaseVersion.Current;
+        return new DbSchemaVersionContext(
+            version.UiMinDbSchema,
+            version.UiMaxDbSchema,
+            version.AgentMinDbSchema,
+            version.AgentMaxDbSchema,
+            version.DbSchemaVersion,
+            version.BuildChannel,
+            version.DatabaseMigrationPolicy);
+    }
+
+    private static bool TryParseAppliedCount(string summary, out int applied)
+    {
+        applied = 0;
+        const string marker = "applied=";
+        var idx = summary.IndexOf(marker, StringComparison.Ordinal);
+        if (idx < 0)
+            return false;
+
+        var start = idx + marker.Length;
+        var end = start;
+        while (end < summary.Length && char.IsDigit(summary[end]))
+            end++;
+
+        return end > start && int.TryParse(summary[start..end], out applied);
+    }
+
+    private async Task<DbSchemaStartupState> GetDbSchemaStartupStateAsync(
+        DatabaseMigrationTrigger trigger = DatabaseMigrationTrigger.Startup)
     {
         var version = _releaseVersion.Current;
         var target = DbSchemaCompat.NormalizeBound(version.DbSchemaVersion, version.DbSchemaVersion);
         var uiMin = DbSchemaCompat.NormalizeBound(version.UiMinDbSchema, version.DbSchemaVersion);
+        var uiMax = DbSchemaCompat.NormalizeBound(version.UiMaxDbSchema, version.DbSchemaVersion);
         var agentMin = DbSchemaCompat.NormalizeBound(version.AgentMinDbSchema, version.DbSchemaVersion);
+        var agentMax = DbSchemaCompat.NormalizeBound(version.AgentMaxDbSchema, version.DbSchemaVersion);
+        var requiredMin = DbSchemaCompat.GetRequiredMin(uiMin, agentMin);
+        var requiredMax = DbSchemaCompat.GetRequiredMax(uiMax, agentMax);
 
         var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(CancellationToken.None).ConfigureAwait(false);
-        var db = schema.value ?? string.Empty;
-        var targetOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, target);
-        var uiOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, uiMin);
-        var agentOk = schema.ok && DbSchemaCompat.IsSemVerAtLeast(db, agentMin);
-        var compatible = uiOk && agentOk;
-        var shouldMigrate = !compatible;
+        var compatibility = schema.Ok
+            ? DbSchemaCompat.Evaluate(schema.Value, requiredMin, requiredMax)
+            : schema.IsMetadataMissing
+                ? new DbSchemaCompatibilityResult(
+                    DbSchemaCompatibility.MetadataMissing,
+                    schema.Value ?? string.Empty,
+                    requiredMin,
+                    requiredMax,
+                    schema.Reason ?? "数据库元数据缺失，需要初始化")
+                : new DbSchemaCompatibilityResult(
+                    DbSchemaCompatibility.Unknown,
+                    schema.Value ?? string.Empty,
+                    requiredMin,
+                    requiredMax,
+                    schema.Reason ?? "读取失败");
+        var migrationPolicy = await _migrationPolicy.EvaluateAsync(
+            trigger,
+            compatibility.Status,
+            version.BuildChannel,
+            version.DatabaseMigrationPolicy,
+            ct: CancellationToken.None).ConfigureAwait(false);
+        var compatible = compatibility.IsCompatible;
+        var shouldMigrate = migrationPolicy.ShouldExecuteMigration;
+
+        if (compatible)
+            _databaseAccessGuard.Clear();
+        else
+            _databaseAccessGuard.Block(compatibility.Message);
 
         if (compatible)
             _logger.Info("MainWindowVM", "db.schema.ok", "Database schema version compatible", new
             {
-                schema.value,
+                schemaValue = schema.Value,
                 target,
                 uiMin,
-                agentMin
+                uiMax,
+                agentMin,
+                agentMax
             });
         else
             _logger.Warn("MainWindowVM", "db.schema.incompatible", "Database schema incompatible", null, new
             {
                 target,
                 uiMin,
+                uiMax,
                 agentMin,
-                schemaOk = schema.ok,
-                schemaValue = schema.value,
-                schema.reason,
-                targetOk,
-                uiOk,
-                agentOk
+                agentMax,
+                schemaOk = schema.Ok,
+                schemaValue = schema.Value,
+                schemaReason = schema.Reason,
+                compatibility.Status
             });
 
         var message = DbSchemaCompat.BuildIncompatibleMessage(
-            schema.ok,
-            schema.value,
-            schema.reason,
+            schema.Ok,
+            schema.Value,
+            schema.Reason,
             uiMin,
-            agentMin);
+            agentMin,
+            uiMax,
+            agentMax,
+            requiredMin,
+            requiredMax);
 
         return new DbSchemaStartupState(
             Compatible: compatible,
@@ -871,10 +952,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             Message: message,
             Target: target,
             UiMin: uiMin,
+            UiMax: uiMax,
             AgentMin: agentMin,
-            SchemaOk: schema.ok,
-            DbVersion: schema.value,
-            Reason: schema.reason);
+            AgentMax: agentMax,
+            SchemaOk: schema.Ok,
+            DbVersion: schema.Value,
+            Reason: schema.Reason);
     }
 
     private sealed record DbSchemaStartupState(
@@ -883,7 +966,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         string Message,
         string Target,
         string UiMin,
+        string UiMax,
         string AgentMin,
+        string AgentMax,
         bool SchemaOk,
         string? DbVersion,
         string? Reason);
@@ -1000,7 +1085,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         try
         {
-            var state = await GetDbSchemaStartupStateAsync().ConfigureAwait(false);
+            var state = await GetDbSchemaStartupStateAsync(DatabaseMigrationTrigger.Reconnect).ConfigureAwait(false);
             if (!state.ShouldMigrate)
             {
                 await RefreshSettingsSchemaStatusAsync("db_reconnected").ConfigureAwait(false);
@@ -1008,14 +1093,22 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             }
 
             using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
-            var migration = await _dbSchemaMigration
-                .EnsureUpToDateAsync(cts.Token, _releaseVersion.Current.DbSchemaVersion)
+            var (migrationOk, summary) = await _settings
+                .EnsureSchemaUpToDateAsync(
+                    BuildSchemaContext(),
+                    DatabaseMigrationTrigger.Reconnect,
+                    ct: cts.Token)
                 .ConfigureAwait(false);
-            if (migration.HasChanges)
+            if (!migrationOk)
+            {
+                _logger.Warn("MainWindowVM", "db.reconnect.migrate.blocked",
+                    "Reconnect migration blocked by policy", null, new { summary });
+            }
+            else if (TryParseAppliedCount(summary, out var applied) && applied > 0)
             {
                 PostOnUi(() =>
                 {
-                    _toasts.Success("数据库结构更新", $"连接恢复后已自动应用 {migration.AppliedCount} 个迁移，当前版本 {migration.AfterVersion ?? "unknown"}");
+                    _toasts.Success("数据库结构更新", $"连接恢复后已自动应用 {applied} 个迁移");
                 });
             }
 

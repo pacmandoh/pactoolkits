@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Npgsql;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Core;
 
 namespace PacToolkits.Infrastructure.Database;
 
@@ -30,29 +31,60 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<DbSchemaMigrationResult> EnsureUpToDateAsync(CancellationToken ct, string? targetVersion = null)
-    {
-        var opt = _dbConfig.Current;
-        var csb = new NpgsqlConnectionStringBuilder
-        {
-            Host = opt.Host,
-            Port = opt.Port,
-            Database = opt.Database,
-            Username = opt.Username,
-            Password = opt.Password,
-            SearchPath = "public",
-            Timeout = opt.ConnectTimeoutSeconds,
-            KeepAlive = opt.KeepAliveSeconds
-        };
+    public Task<DbSchemaMigrationResult> EnsureUpToDateAsync(CancellationToken ct, string? targetVersion = null)
+        => EnsureUpToDateAsync(_dbConfig.Current, ct, targetVersion);
 
+    public Task<DbSchemaMigrationPlan> GetPlanAsync(CancellationToken ct, string? targetVersion = null)
+        => GetPlanAsync(_dbConfig.Current, ct, targetVersion);
+
+    public async Task<DbSchemaMigrationPlan> GetPlanAsync(
+        PgOptions options,
+        CancellationToken ct,
+        string? targetVersion = null)
+    {
+        var migrationScripts = LoadTargetMigrationScripts(targetVersion);
+        await using var conn = new NpgsqlConnection(BuildConnectionString(options));
+        await conn.OpenAsync(ct).ConfigureAwait(false);
+
+        var commandTimeout = Math.Max(15, options.CommandTimeoutSeconds);
+        var bootstrapRequired = !await TableExistsAsync(conn, "schema_migrations", commandTimeout, ct)
+            .ConfigureAwait(false);
+        var currentVersion = await TryReadSchemaVersionAsync(conn, commandTimeout, ct).ConfigureAwait(false);
+        var appliedMap = bootstrapRequired
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : await ReadAppliedMigrationsAsync(conn, commandTimeout, ct).ConfigureAwait(false);
+
+        var items = migrationScripts
+            .Select(script => new DbSchemaMigrationPlanItem(
+                script.Version,
+                script.FileName,
+                appliedMap.ContainsKey(script.Version)))
+            .ToArray();
+
+        return new DbSchemaMigrationPlan(
+            currentVersion,
+            NormalizeTargetVersion(targetVersion, migrationScripts),
+            bootstrapRequired,
+            items);
+    }
+
+    public Task<DbSchemaMigrationResult> EnsureUpToDateAsync(
+        PgOptions options,
+        CancellationToken ct,
+        string? targetVersion = null)
+        => EnsureUpToDateInternalAsync(options, ct, targetVersion);
+
+    private async Task<DbSchemaMigrationResult> EnsureUpToDateInternalAsync(
+        PgOptions opt,
+        CancellationToken ct,
+        string? targetVersion)
+    {
         var bootstrapScripts = LoadBootstrapScripts();
-        var migrationScripts = LoadMigrationScripts();
+        var migrationScripts = LoadTargetMigrationScripts(targetVersion);
         var hasTarget = TryParseSemVer(targetVersion, out var targetSemVer);
-        if (hasTarget)
-            migrationScripts = migrationScripts.Where(x => CompareSemVer(x.SemVer, targetSemVer) <= 0).ToList();
         ValidateScriptBatches(bootstrapScripts, migrationScripts);
 
-        await using var conn = new NpgsqlConnection(csb.ToString());
+        await using var conn = new NpgsqlConnection(BuildConnectionString(opt));
         await conn.OpenAsync(ct).ConfigureAwait(false);
 
         var commandTimeout = Math.Max(15, opt.CommandTimeoutSeconds);
@@ -354,6 +386,35 @@ set schema_version = excluded.schema_version,
             .OrderBy(x => x.SemVer, SemVerComparer.Instance)
             .ToList();
     }
+
+    private static List<SqlScript> LoadTargetMigrationScripts(string? targetVersion)
+    {
+        var scripts = LoadMigrationScripts();
+        if (TryParseSemVer(targetVersion, out var targetSemVer))
+            scripts = scripts.Where(x => CompareSemVer(x.SemVer, targetSemVer) <= 0).ToList();
+        ValidateScriptBatches(LoadBootstrapScripts(), scripts);
+        return scripts;
+    }
+
+    private static string NormalizeTargetVersion(string? targetVersion, IReadOnlyList<SqlScript> scripts)
+    {
+        if (TryParseSemVer(targetVersion, out var target))
+            return $"{target.major}.{target.minor}.{target.patch}";
+        return scripts.Count > 0 ? scripts[^1].Version : "unknown";
+    }
+
+    private static string BuildConnectionString(PgOptions opt)
+        => new NpgsqlConnectionStringBuilder
+        {
+            Host = opt.Host,
+            Port = opt.Port,
+            Database = opt.Database,
+            Username = opt.Username,
+            Password = opt.Password,
+            SearchPath = "public",
+            Timeout = opt.ConnectTimeoutSeconds,
+            KeepAlive = opt.KeepAliveSeconds
+        }.ToString();
 
     private static string ReadExecutableScript(string path)
         => StripPsqlMetaCommands(File.ReadAllText(path));

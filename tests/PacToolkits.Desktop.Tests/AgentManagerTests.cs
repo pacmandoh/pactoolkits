@@ -46,7 +46,11 @@ public sealed class AgentManagerTests
 
     private sealed class FakeAgentRuntime(AgentDescriptor descriptor) : IAgentRuntime
     {
-        public event Action? StatusChanged;
+        public event Action? StatusChanged
+        {
+            add { }
+            remove { }
+        }
 
         public AgentDescriptor Descriptor { get; } = descriptor;
 

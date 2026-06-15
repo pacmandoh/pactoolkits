@@ -17,14 +17,20 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
     public AboutViewModel(IReleaseVersionService releaseVersion)
     {
         _version = releaseVersion.Current;
-        var desktopDbOk = DbSchemaCompat.IsSemVerAtLeast(_version.DatabasePostgresVersion, DesktopMinDbSchema);
-        var agentDbOk = DbSchemaCompat.IsSemVerAtLeast(_version.DatabasePostgresVersion, AgentInjectorAhkMinDbSchema);
+        var desktopDbOk = DbSchemaCompat.Evaluate(
+            _version.DatabasePostgresVersion,
+            DesktopMinDbSchema,
+            DesktopMaxDbSchema).IsCompatible;
+        var agentDbOk = DbSchemaCompat.Evaluate(
+            _version.DatabasePostgresVersion,
+            AgentInjectorAhkMinDbSchema,
+            AgentInjectorAhkMaxDbSchema).IsCompatible;
         var compatSummary = desktopDbOk && agentDbOk ? "DB Compatible" : "DB Check Required";
 
         VersionBadges = new ReadOnlyCollection<VersionBadgeItem>(new[]
         {
-            new VersionBadgeItem("Desktop 最低 DB", DesktopMinDbSchema),
-            new VersionBadgeItem("Agent 最低 DB", AgentInjectorAhkMinDbSchema),
+            new VersionBadgeItem("Desktop DB 范围", $"{DesktopMinDbSchema} - {DesktopMaxDbSchema}"),
+            new VersionBadgeItem("Agent DB 范围", $"{AgentInjectorAhkMinDbSchema} - {AgentInjectorAhkMaxDbSchema}"),
             new VersionBadgeItem("发布通道", _version.BuildChannel),
             new VersionBadgeItem("兼容状态", compatSummary),
             new VersionBadgeItem("版本来源", "version.generated.json")
@@ -52,9 +58,11 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
     public string BuildChannel => _version.BuildChannel;
     public string BuildDate => _version.BuildDate;
     public string DesktopMinDbSchema => DbSchemaCompat.NormalizeBound(_version.DesktopMinDbSchema, _version.DatabasePostgresVersion);
+    public string DesktopMaxDbSchema => DbSchemaCompat.NormalizeBound(_version.DesktopMaxDbSchema, _version.DatabasePostgresVersion);
     public string AgentInjectorAhkMinDbSchema => DbSchemaCompat.NormalizeBound(_version.AgentInjectorAhkMinDbSchema, _version.DatabasePostgresVersion);
-    public string CompatDesktopDbRangeText => $"Desktop 最低 DB: {DesktopMinDbSchema}";
-    public string CompatAgentDbRangeText => $"Agent 最低 DB: {AgentInjectorAhkMinDbSchema}";
+    public string AgentInjectorAhkMaxDbSchema => DbSchemaCompat.NormalizeBound(_version.AgentInjectorAhkMaxDbSchema, _version.DatabasePostgresVersion);
+    public string CompatDesktopDbRangeText => $"Desktop DB: {DesktopMinDbSchema} - {DesktopMaxDbSchema}";
+    public string CompatAgentDbRangeText => $"Agent DB: {AgentInjectorAhkMinDbSchema} - {AgentInjectorAhkMaxDbSchema}";
     public string VersionStatus => BuildVersionStatus();
     public string VersionHint => "版本由 release-manifest.json (schema v2) 统一生成并下发";
 
@@ -65,8 +73,14 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
         if (_version.DesktopVersion == "unknown" || _version.AgentInjectorAhkVersion == "unknown" || _version.DatabasePostgresVersion == "unknown")
             return "Version Source Missing";
 
-        var desktopDbOk = DbSchemaCompat.IsSemVerAtLeast(_version.DatabasePostgresVersion, DesktopMinDbSchema);
-        var agentDbOk = DbSchemaCompat.IsSemVerAtLeast(_version.DatabasePostgresVersion, AgentInjectorAhkMinDbSchema);
+        var desktopDbOk = DbSchemaCompat.Evaluate(
+            _version.DatabasePostgresVersion,
+            DesktopMinDbSchema,
+            DesktopMaxDbSchema).IsCompatible;
+        var agentDbOk = DbSchemaCompat.Evaluate(
+            _version.DatabasePostgresVersion,
+            AgentInjectorAhkMinDbSchema,
+            AgentInjectorAhkMaxDbSchema).IsCompatible;
         return desktopDbOk && agentDbOk
             ? "Manifest Loaded / Compatible"
             : "Manifest Loaded / Compatibility Warning";

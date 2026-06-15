@@ -68,7 +68,10 @@ public sealed class ReleaseVersionService : IReleaseVersionService
                 BuildChannel: ReadString(release, "channel"),
                 BuildDate: ReadString(release, "date"),
                 DesktopMinDbSchema: ReadString(desktop, "minDbSchema"),
-                AgentInjectorAhkMinDbSchema: ReadString(agent, "minDbSchema"));
+                DesktopMaxDbSchema: ReadString(desktop, "maxDbSchema"),
+                AgentInjectorAhkMinDbSchema: ReadString(agent, "minDbSchema"),
+                AgentInjectorAhkMaxDbSchema: ReadString(agent, "maxDbSchema"),
+                DatabaseMigrationPolicy: ReadString(database, "migrationPolicy"));
         }
 
         var compat = root.TryGetProperty("compat", out var compatElem) ? compatElem : default;
@@ -82,7 +85,10 @@ public sealed class ReleaseVersionService : IReleaseVersionService
             BuildChannel: ReadString(build, "channel"),
             BuildDate: ReadString(build, "date"),
             DesktopMinDbSchema: ReadString(compat, "uiMinDbSchema"),
-            AgentInjectorAhkMinDbSchema: ReadString(compat, "agentMinDbSchema"));
+            DesktopMaxDbSchema: ReadString(compat, "uiMaxDbSchema"),
+            AgentInjectorAhkMinDbSchema: ReadString(compat, "agentMinDbSchema"),
+            AgentInjectorAhkMaxDbSchema: ReadString(compat, "agentMaxDbSchema"),
+            DatabaseMigrationPolicy: DatabaseMigrationPolicies.StableOnly);
     }
 
     private static string ReadString(JsonElement elem, string name)

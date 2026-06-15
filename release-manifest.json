@@ -9,21 +9,24 @@
       "version": "0.16.1",
       "implementation": "avalonia",
       "packageId": "pactoolkits",
-      "minDbSchema": "1.2.22",
+      "minDbSchema": "1.2.23",
+      "maxDbSchema": "1.2.23",
       "bundles": [
         "agent-injector-ahk"
       ]
     },
     "agent-injector-ahk": {
       "version": "0.6.1",
-      "minDbSchema": "1.2.22",
+      "minDbSchema": "1.2.23",
+      "maxDbSchema": "1.2.23",
       "artifact": {
         "windows-x64": "pactoolkits-injector.exe",
         "installDir": "injector"
       }
     },
     "database-postgres": {
-      "version": "1.2.22"
+      "version": "1.2.23",
+      "migrationPolicy": "stable-only"
     }
   },
   "release": {

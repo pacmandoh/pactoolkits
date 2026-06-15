@@ -2,10 +2,17 @@
 \pset pager off
 
 -- Requires: -v expected_schema_version='x.y.z'
+select set_config(
+  'pactoolkits.expected_schema_version',
+  :'expected_schema_version',
+  false
+) as expected_schema_version
+\gset
+
 do $$
 declare
   actual text;
-  expected text := :'expected_schema_version';
+  expected text := current_setting('pactoolkits.expected_schema_version', true);
 begin
   if expected is null or btrim(expected) = '' then
     raise exception 'expected_schema_version is empty';
