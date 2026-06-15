@@ -10,14 +10,19 @@ namespace PacToolkits.Infrastructure.Database;
 public sealed class ClientIdReadRepo : IClientIdReadRepo
 {
     private readonly IAppLogger _logger;
+    private readonly IDatabaseAccessGuard _accessGuard;
 
-    public ClientIdReadRepo(IAppLogger logger)
+    public ClientIdReadRepo(IAppLogger logger, IDatabaseAccessGuard accessGuard)
     {
         _logger = logger;
+        _accessGuard = accessGuard ?? throw new ArgumentNullException(nameof(accessGuard));
     }
 
     public async Task<HashSet<string>> GetDistinctClientIdsAsync(PgOptions opt, CancellationToken ct)
     {
+        // Uses an explicit connection string for settings-page probes, so it cannot go through IDb.
+        _accessGuard.ThrowIfBlocked();
+
         var cs =
             $"Host={opt.Host};Port={opt.Port};Database={opt.Database};Username={opt.Username};Password={opt.Password};Timeout=6;Command Timeout=6";
 

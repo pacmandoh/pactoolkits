@@ -600,16 +600,18 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             await _settings.SaveDatabaseConfigAsync(ToOptions(), _pageWorkCts.Token);
             if (!await EnsureDbSchemaUpToDateAsync())
             {
-                Status = "数据库结构更新失败";
+                Status = "配置已保存，但迁移失败，当前不可用";
                 IsDbConnected = false;
                 UpdateClientAliasUiState();
+                _toast.Warn("数据库配置", "配置已保存，但迁移失败，当前不可用");
                 return;
             }
             if (!await EnsureDbSchemaCompatibleAsync())
             {
-                Status = "数据库版本不兼容";
+                Status = "配置已保存，但数据库版本不兼容，当前不可用";
                 IsDbConnected = false;
                 UpdateClientAliasUiState();
+                _toast.Warn("数据库配置", "配置已保存，但数据库版本不兼容，当前不可用");
                 return;
             }
 
@@ -1083,7 +1085,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             var previous = _updateSettings.Current;
             var targetChannel = NormalizeUpdateChannel(UpdateChannel);
-            if (!string.Equals(previous.Channel, targetChannel, StringComparison.Ordinal))
+            var channelChanged = !string.Equals(previous.Channel, targetChannel, StringComparison.Ordinal);
+            if (channelChanged)
             {
                 var switched = await TrySwitchUpdateChannelAsync(previous, targetChannel);
                 if (!switched)
@@ -1094,6 +1097,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             {
                 AutoCheckOnStartup = AutoCheckUpdateOnStartup,
                 Channel = targetChannel,
+                ValidatedChannel = channelChanged ? targetChannel : previous.ValidatedChannel,
                 FeedUrl = UpdateFeedUrl,
                 AutoCheckIntervalMinutes = Math.Clamp(UpdatePollIntervalMinutes, 0, 720),
                 IgnoredVersion = IgnoredProductVersion

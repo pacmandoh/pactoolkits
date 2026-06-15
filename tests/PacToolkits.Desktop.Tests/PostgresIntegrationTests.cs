@@ -31,7 +31,8 @@ public sealed class PostgresIntegrationTests
         Assert.True(read.Ok, read.Reason);
         Assert.False(string.IsNullOrWhiteSpace(read.Value));
 
-        var clients = new ClientIdReadRepo(logger);
+        var guard = new DatabaseAccessGuard();
+        var clients = new ClientIdReadRepo(logger, guard);
         var machines = await clients.GetDistinctClientIdsAsync(options, CancellationToken.None);
         Assert.NotNull(machines);
     }
@@ -156,13 +157,14 @@ public sealed class PostgresIntegrationTests
     {
         var config = new FixedDbConfig(options);
         var logger = new NullInfraLogger();
+        var guard = new DatabaseAccessGuard();
         return new SettingsService(
             config,
             new DbConnectionTester(logger),
             new DbSchemaVersionService(config, logger),
             new DbSchemaMigrationService(config, logger),
-            new ClientIdReadRepo(logger),
-            new DatabaseAccessGuard(),
+            new ClientIdReadRepo(logger, guard),
+            guard,
             new DatabaseMigrationPolicyService(new DatabaseEnvironmentSettingsService(config, logger)),
             new DatabaseEnvironmentSettingsService(config, logger));
     }

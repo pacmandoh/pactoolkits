@@ -61,6 +61,7 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
         {
             AutoCheckOnStartup = options.AutoCheckOnStartup,
             Channel = NormalizeChannel(options.Channel, defaults.Channel),
+            ValidatedChannel = NormalizeValidatedChannel(options.ValidatedChannel),
             FeedUrl = string.IsNullOrWhiteSpace(options.FeedUrl) ? defaults.FeedUrl : options.FeedUrl.Trim(),
             AutoCheckIntervalMinutes = options.AutoCheckIntervalMinutes < 0
                 ? defaults.AutoCheckIntervalMinutes
@@ -73,6 +74,7 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
     {
         AutoCheckOnStartup = source.AutoCheckOnStartup,
         Channel = source.Channel,
+        ValidatedChannel = source.ValidatedChannel,
         FeedUrl = source.FeedUrl,
         AutoCheckIntervalMinutes = source.AutoCheckIntervalMinutes,
         IgnoredVersion = source.IgnoredVersion
@@ -84,5 +86,16 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
         return Array.Exists(SupportedChannels, x => string.Equals(x, normalized, StringComparison.Ordinal))
             ? normalized
             : fallback;
+    }
+
+    private static string NormalizeValidatedChannel(string? channel)
+    {
+        if (string.IsNullOrWhiteSpace(channel))
+            return string.Empty;
+
+        var normalized = channel.Trim().ToLowerInvariant();
+        return Array.Exists(SupportedChannels, x => string.Equals(x, normalized, StringComparison.Ordinal))
+            ? normalized
+            : string.Empty;
     }
 }

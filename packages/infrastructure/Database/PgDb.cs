@@ -10,6 +10,8 @@ using Npgsql;
 
 namespace PacToolkits.Infrastructure.Database;
 
+// All business database access should go through IDb. Compatibility blocking is enforced
+// here via IDatabaseAccessGuard so Application services do not need per-call checks.
 public sealed class PgDb : IDb
 {
     private readonly IPgDataSourceFactory _factory;

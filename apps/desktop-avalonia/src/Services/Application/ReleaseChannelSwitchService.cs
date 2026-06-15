@@ -62,7 +62,9 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
         PgOptions databaseOptions,
         CancellationToken ct = default)
     {
-        var channel = NormalizeChannel(targetChannel);
+        if (!TryNormalizeChannel(targetChannel, out var channel))
+            return Failed(string.Empty, string.Empty, $"不支持的更新通道：{targetChannel}");
+
         var manifestUrl = ResolveChannelManifestUrl(baseFeedUrl, channel);
         if (string.IsNullOrWhiteSpace(manifestUrl))
             return Failed(channel, manifestUrl, "未配置更新源地址");
@@ -125,6 +127,9 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
 
     internal static string ResolveChannelManifestUrl(string? baseFeedUrl, string channel)
     {
+        if (!TryNormalizeChannel(channel, out var normalizedChannel))
+            return string.Empty;
+
         var normalizedBase = string.IsNullOrWhiteSpace(baseFeedUrl)
             ? string.Empty
             : baseFeedUrl.Trim().TrimEnd('/');
@@ -139,7 +144,7 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
                 normalizedBase = normalizedBase[..lastSlash];
         }
 
-        return $"{normalizedBase}/{NormalizeChannel(channel)}/release-manifest.json";
+        return $"{normalizedBase}/{normalizedChannel}/release-manifest.json";
     }
 
     private static ChannelManifest ReadManifest(System.IO.Stream stream)
@@ -172,7 +177,15 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
         for (var i = 1; i < maximums.Count; i++)
             requiredMax = DbSchemaCompat.GetRequiredMax(requiredMax, maximums[i]);
 
-        return new ChannelManifest(NormalizeChannel(channel), requiredMin, requiredMax);
+        return new ChannelManifest(NormalizeManifestChannel(channel), requiredMin, requiredMax);
+    }
+
+    private static string NormalizeManifestChannel(string channel)
+    {
+        if (!TryNormalizeChannel(channel, out var normalized))
+            throw new InvalidOperationException($"更新清单通道无效：{channel}");
+
+        return normalized;
     }
 
     private static string ReadRequiredString(JsonElement element, string property)
@@ -183,12 +196,14 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
             : value;
     }
 
-    private static string NormalizeChannel(string? channel)
+    internal static bool TryNormalizeChannel(string? channel, out string normalized)
     {
-        var normalized = channel?.Trim().ToLowerInvariant();
-        return normalized is "stable" or "beta"
-            ? normalized
-            : throw new ArgumentException($"不支持的更新通道：{channel}", nameof(channel));
+        normalized = (channel ?? string.Empty).Trim().ToLowerInvariant();
+        if (normalized is "stable" or "beta")
+            return true;
+
+        normalized = string.Empty;
+        return false;
     }
 
     private static ReleaseChannelSwitchProbe Failed(string channel, string url, string message)
