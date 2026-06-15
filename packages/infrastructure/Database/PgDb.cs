@@ -14,11 +14,16 @@ public sealed class PgDb : IDb
 {
     private readonly IPgDataSourceFactory _factory;
     private readonly IAppLogger _logger;
+    private readonly IDatabaseAccessGuard _accessGuard;
 
-    public PgDb(IPgDataSourceFactory factory, IAppLogger logger)
+    public PgDb(
+        IPgDataSourceFactory factory,
+        IAppLogger logger,
+        IDatabaseAccessGuard accessGuard)
     {
         _factory = factory;
         _logger = logger;
+        _accessGuard = accessGuard;
     }
 
     public async Task<T> WithConnection<T>(
@@ -64,6 +69,7 @@ public sealed class PgDb : IDb
         Func<IDbConnection, CancellationToken, Task<T>> work,
         CancellationToken ct)
     {
+        _accessGuard.ThrowIfBlocked();
         await using var conn = await OpenConnectionWithRetryAsync(ct).ConfigureAwait(false);
         return await work(conn, ct).ConfigureAwait(false);
     }
@@ -73,6 +79,7 @@ public sealed class PgDb : IDb
         IsolationLevel isolation,
         CancellationToken ct)
     {
+        _accessGuard.ThrowIfBlocked();
         await using var conn = await OpenConnectionWithRetryAsync(ct).ConfigureAwait(false);
         await using var tx = await conn.BeginTransactionAsync(isolation, ct).ConfigureAwait(false);
 

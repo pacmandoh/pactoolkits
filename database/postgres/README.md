@@ -66,3 +66,49 @@ Copy-Item scripts/config.example.json scripts/config.json
 2. Every schema change must be a new migration file: `Vx_y_z__description.sql`.
 3. Applied migration files are immutable (checksum protected).
 4. `verify` is read-only and production-safe on non-empty databases.
+
+## Isolated Beta database
+
+Beta databases are created only by an explicit operator command. The Desktop
+application does not run these scripts.
+
+Clone a Stable database on macOS/Linux:
+
+```bash
+./scripts/create-beta-database.sh \
+  --version 0.18.0-beta.1 \
+  --template pactoolkits_production \
+  --config database/postgres/scripts/config.json
+```
+
+The template database must have no active connections. The scripts check this
+before cloning and stop with an explicit error; disconnect application and
+administrative sessions from the template database first.
+
+Restore a Stable backup:
+
+```bash
+./scripts/create-beta-database.sh \
+  --version 0.18.0-beta.1 \
+  --backup /secure/backups/pactoolkits.dump \
+  --config database/postgres/scripts/config.json
+```
+
+Windows PowerShell uses the same policy:
+
+```powershell
+./scripts/create-beta-database.ps1 `
+  -Version 0.18.0-beta.1 `
+  -TemplateDatabase pactoolkits_production `
+  -ConfigPath database/postgres/scripts/config.json
+```
+
+The generated name is `pactoolkits_beta_0_18_0_beta_1`. Existing databases are
+never overwritten or deleted. After cloning, the script writes:
+
+- `Database.Environment=isolated`
+- `Database.AllowBetaMigrations=true`
+- `Database.Source=production-clone`
+- `Database.BetaVersion=<version>`
+
+The connection string printed at completion intentionally omits the password.

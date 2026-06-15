@@ -8,8 +8,8 @@ source "$ROOT_DIR/scripts/manifest-v2.sh"
 usage() {
   cat <<'USAGE'
 Usage:
-  bump-version.sh [--product X.Y.Z|auto] [--desktop X.Y.Z] [--db X.Y.Z]
-                  [--component COMPONENT_ID=X.Y.Z]...
+  bump-version.sh [--product X.Y.Z|X.Y.Z-beta.N|auto] [--desktop X.Y.Z|X.Y.Z-beta.N]
+                  [--db X.Y.Z] [--component COMPONENT_ID=X.Y.Z]...
                   [--component-min-db COMPONENT_ID=X.Y.Z]...
                   [--desktop-min-db X.Y.Z] [--agent-min-db X.Y.Z]
                   [--channel stable|beta] [--date YYYY-MM-DD]
@@ -36,35 +36,39 @@ require_cmd() {
 }
 
 is_semver() {
-  [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+  is_stable_semver "$1"
+}
+
+is_product_semver_arg() {
+  local version="$1"
+  local channel="${2:-}"
+  if [[ -z "$channel" ]]; then
+    is_stable_semver "$version" || is_beta_semver "$version"
+    return
+  fi
+  is_product_semver_for_channel "$channel" "$version"
+}
+
+is_desktop_semver_arg() {
+  local version="$1"
+  local channel="${2:-}"
+  if [[ -z "$channel" ]]; then
+    is_stable_semver "$version" || is_beta_semver "$version"
+    return
+  fi
+  is_desktop_semver_for_channel "$channel" "$version"
 }
 
 is_date() {
   [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]
 }
 
-semver_bump_patch() {
-  local ver="$1"
-  IFS='.' read -r major minor patch <<< "$ver"
-  printf '%s.%s.%s\n' "$major" "$minor" "$((patch + 1))"
-}
-
-semver_bump_minor() {
-  local ver="$1"
-  IFS='.' read -r major minor _patch <<< "$ver"
-  printf '%s.%s.0\n' "$major" "$((minor + 1))"
-}
-
-semver_bump_major() {
-  local ver="$1"
-  IFS='.' read -r major _minor _patch <<< "$ver"
-  printf '%s.0.0\n' "$((major + 1))"
-}
-
 semver_change_level() {
   local old="$1"
   local new="$2"
   local oM oN oP nM nN nP
+  old="$(semver_stable_base "$old")"
+  new="$(semver_stable_base "$new")"
   IFS='.' read -r oM oN oP <<< "$old"
   IFS='.' read -r nM nN nP <<< "$new"
 
@@ -167,10 +171,39 @@ done
 require_cmd jq
 [[ -f "$MANIFEST" ]] || { echo "ERROR: manifest not found: $MANIFEST" >&2; exit 1; }
 
-if [[ -n "$PRODUCT" && "$PRODUCT" != "auto" ]]; then
-  is_semver "$PRODUCT" || { echo "ERROR: invalid --product (expect X.Y.Z or auto)" >&2; exit 1; }
+effective_channel="$CHANNEL"
+if [[ -z "$effective_channel" ]]; then
+  effective_channel="$(manifest_release_channel "$MANIFEST")"
 fi
-for v in "$DESKTOP" "$DB" "$DESKTOP_MIN_DB" "$AGENT_MIN_DB"; do
+final_channel="$effective_channel"
+
+if [[ -n "$PRODUCT" && "$PRODUCT" != "auto" ]]; then
+  is_product_semver_arg "$PRODUCT" "$final_channel" || {
+    case "$final_channel" in
+      beta)
+        echo "ERROR: invalid --product for beta channel (expect X.Y.Z-beta.N or auto)" >&2
+        ;;
+      *)
+        echo "ERROR: invalid --product (expect X.Y.Z or auto)" >&2
+        ;;
+    esac
+    exit 1
+  }
+fi
+if [[ -n "$DESKTOP" ]]; then
+  is_desktop_semver_arg "$DESKTOP" "$final_channel" || {
+    case "$final_channel" in
+      beta)
+        echo "ERROR: invalid --desktop for beta channel (expect X.Y.Z-beta.N)" >&2
+        ;;
+      *)
+        echo "ERROR: invalid --desktop (expect X.Y.Z)" >&2
+        ;;
+    esac
+    exit 1
+  }
+fi
+for v in "$DB" "$DESKTOP_MIN_DB" "$AGENT_MIN_DB"; do
   [[ -z "$v" ]] || is_semver "$v" || { echo "ERROR: invalid semver arg" >&2; exit 1; }
 done
 is_date "$DATE_STR" || { echo "ERROR: invalid --date" >&2; exit 1; }
@@ -295,7 +328,7 @@ if [[ -n "$DESKTOP_MIN_DB" ]]; then
   fi
 fi
 
-[[ -n "$DESKTOP" ]] && desktop_level="$(semver_change_level "$current_desktop" "$DESKTOP")"
+[[ -n "$DESKTOP" ]] && desktop_level="$(semver_change_level "$(semver_stable_base "$current_desktop")" "$(semver_stable_base "$DESKTOP")")"
 [[ -n "$DB" ]] && db_level="$(semver_change_level "$current_db" "$DB")"
 [[ "$desktop_level" != "downgrade" ]] || { echo "ERROR: --desktop cannot downgrade ($current_desktop -> $DESKTOP)" >&2; exit 1; }
 [[ "$db_level" != "downgrade" ]] || { echo "ERROR: --db cannot downgrade ($current_db -> $DB)" >&2; exit 1; }
@@ -303,20 +336,31 @@ fi
 product_auto_level="$(max_level "$product_auto_level" "$desktop_level")"
 product_auto_level="$(max_level "$product_auto_level" "$db_level")"
 
+current_manifest_channel="$(manifest_release_channel "$MANIFEST")"
+entering_beta_channel=false
+if [[ "$final_channel" == "beta" && "$current_manifest_channel" == "stable" ]]; then
+  if is_stable_semver "$current_product"; then
+    entering_beta_channel=true
+  fi
+fi
+
+should_auto_product=false
 if [[ "$PRODUCT" == "auto" ]]; then
-  case "$product_auto_level" in
-    major) PRODUCT="$(semver_bump_major "$current_product")" ;;
-    minor) PRODUCT="$(semver_bump_minor "$current_product")" ;;
-    patch) PRODUCT="$(semver_bump_patch "$current_product")" ;;
-    none) PRODUCT="$current_product" ;;
-  esac
+  should_auto_product=true
 elif [[ -z "$PRODUCT" && ( ${#COMPONENT_UPDATES[@]} -gt 0 || -n "$DESKTOP$DB" ) ]]; then
-  case "$product_auto_level" in
-    major) PRODUCT="$(semver_bump_major "$current_product")" ;;
-    minor) PRODUCT="$(semver_bump_minor "$current_product")" ;;
-    patch) PRODUCT="$(semver_bump_patch "$current_product")" ;;
-    none) PRODUCT="$current_product" ;;
-  esac
+  should_auto_product=true
+elif [[ "$entering_beta_channel" == "true" ]]; then
+  should_auto_product=true
+fi
+
+if [[ "$should_auto_product" == "true" ]]; then
+  PRODUCT="$(resolve_product_auto_version "$current_product" "$final_channel" "$product_auto_level")"
+elif [[ -z "$PRODUCT" ]]; then
+  PRODUCT=""
+fi
+
+if [[ "$final_channel" == "beta" && -z "$DESKTOP" && -n "$PRODUCT" ]]; then
+  DESKTOP="$PRODUCT"
 fi
 
 TMP_FILE="$(mktemp)"

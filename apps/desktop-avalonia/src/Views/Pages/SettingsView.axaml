@@ -166,9 +166,9 @@
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Top"
                       Height="{Binding #DbParamsGrid.Bounds.Height}">
-                <Grid RowDefinitions="Auto,*"
+                <Grid RowDefinitions="Auto,Auto,*"
                    RowSpacing="{DynamicResource FormRowSpacing}">
-                  <Grid ColumnDefinitions="Auto,*,Auto,Auto"
+                  <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto"
                      ColumnSpacing="{DynamicResource SpacingInlineMd}"
                      VerticalAlignment="Center">
                     <StackPanel Classes="SectionHeaderStack">
@@ -193,6 +193,24 @@
                       </StackPanel>
                     </Button>
                     <Button Grid.Column="3"
+                        Classes="Ghost"
+                        Command="{Binding ViewDbSchemaMigrationPlanCommand}"
+                        IsEnabled="{Binding !IsDbSchemaChecking}">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="ListTree" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                        <TextBlock Text="查看计划" />
+                      </StackPanel>
+                    </Button>
+                    <Button Grid.Column="4"
+                        Classes="Ghost"
+                        Command="{Binding CopyDbSchemaDiagnosticsCommand}"
+                        IsEnabled="{Binding CanCopyDbSchemaDiagnostics}">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon Kind="Copy" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
+                        <TextBlock Text="复制诊断" />
+                      </StackPanel>
+                    </Button>
+                    <Button Grid.Column="5"
                         Classes="Primary"
                         Command="{Binding ApplyDbSchemaUpdateCommand}"
                         theme:ButtonExtensions.ShowProgress="{Binding IsDbSchemaChecking}"
@@ -204,14 +222,23 @@
                     </Button>
                   </Grid>
 
-                  <Grid Grid.Row="1"
+                  <StackPanel Grid.Row="1" Margin="0,8,0,0" Spacing="4">
+                    <TextBlock Text="{Binding DbSchemaBetaConceptText}"
+                         TextWrapping="Wrap"
+                         Classes="SectionHint" />
+                    <TextBlock Text="{Binding DbSchemaPolicyText}"
+                         TextWrapping="Wrap"
+                         Classes="SectionHint" />
+                  </StackPanel>
+
+                  <Grid Grid.Row="2"
                      ColumnDefinitions="250,*"
                      ColumnSpacing="{DynamicResource PageColumnSpacing}">
                     <suki:GroupBox Header="结构信息"
                            VerticalAlignment="Stretch">
                       <ScrollViewer VerticalScrollBarVisibility="Auto"
                              HorizontalScrollBarVisibility="Disabled">
-                        <Grid RowDefinitions="Auto,Auto,Auto"
+                        <Grid RowDefinitions="Auto,Auto,Auto,Auto"
                            RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                           <Grid ColumnDefinitions="90,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                             <TextBlock Text="最新版本" VerticalAlignment="Center" Opacity="0.85" />
@@ -231,6 +258,14 @@
                             <TextBlock Text="最低要求" VerticalAlignment="Center" Opacity="0.85" />
                             <TextBlock Grid.Column="1"
                                  Text="{Binding DbSchemaRequiredMinVersion}"
+                                 VerticalAlignment="Center"
+                                 Classes="SectionHint" />
+                          </Grid>
+
+                          <Grid Grid.Row="3" ColumnDefinitions="90,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                            <TextBlock Text="最高支持" VerticalAlignment="Center" Opacity="0.85" />
+                            <TextBlock Grid.Column="1"
+                                 Text="{Binding DbSchemaRequiredMaxVersion}"
                                  VerticalAlignment="Center"
                                  Classes="SectionHint" />
                           </Grid>
@@ -407,7 +442,7 @@
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
                       VerticalContentAlignment="Stretch">
-                <Grid RowDefinitions="Auto,*"
+                <Grid RowDefinitions="Auto,Auto,*"
                    RowSpacing="{DynamicResource FormRowSpacing}"
                    VerticalAlignment="Stretch">
                   <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
@@ -653,6 +688,12 @@
                    Grid.Column="1"
                    ItemsSource="{Binding UpdateChannelOptions}"
                    SelectedItem="{Binding UpdateChannel}" />
+              <TextBlock Grid.Row="2"
+                   Grid.Column="2"
+                   Text="{Binding UpdateChannelSwitchHint}"
+                   Classes="SectionHint"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Center" />
 
               <TextBlock Grid.Row="3" Grid.Column="0"
                    Text="更新源地址"
