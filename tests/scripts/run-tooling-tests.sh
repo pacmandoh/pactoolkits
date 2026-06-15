@@ -16,6 +16,23 @@ chmod +x scripts/*.sh tests/scripts/*.sh
 run ./scripts/export-version.sh
 run ./scripts/check-version.sh
 
+stable_fixture_manifest="$(mktemp)"
+jq '
+  .release.channel = "stable" |
+  .product.version = (
+    if (.product.version | test("-beta\\.")) then
+      (.product.version | sub("-beta\\.[0-9]+$"; ""))
+    else .product.version end
+  ) |
+  .components.desktop.version = (
+    if (.components.desktop.version | test("-beta\\.")) then
+      (.components.desktop.version | sub("-beta\\.[0-9]+$"; ""))
+    else .components.desktop.version end
+  )
+' "$ROOT_DIR/release-manifest.json" > "$stable_fixture_manifest"
+validate_manifest_v2 "$stable_fixture_manifest"
+live_release_channel="$(manifest_release_channel "$ROOT_DIR/release-manifest.json")"
+
 eval "$(./scripts/resolve-release-plan.sh "$ROOT_DIR/release-manifest.json" | sed 's/^\([^=]*\)=\(.*\)$/export \1=\2/')"
 [[ "${implementation:-}" == "avalonia" ]] || {
   echo "ERROR: expected default implementation=avalonia, got: ${implementation:-<empty>}" >&2
@@ -66,7 +83,7 @@ rm -f "$invalid_channel_manifest"
 
 beta_manifest="$(mktemp)"
 trap 'rm -f "$electron_manifest" "$beta_manifest"' EXIT
-jq '.release.channel = "beta" | .product.version = "0.17.1-beta.1" | .components.desktop.version = "0.17.1-beta.1"' "$ROOT_DIR/release-manifest.json" > "$beta_manifest"
+jq '.release.channel = "beta" | .product.version = "0.17.1-beta.1" | .components.desktop.version = "0.17.1-beta.1"' "$stable_fixture_manifest" > "$beta_manifest"
 validate_manifest_v2 "$beta_manifest"
 db_version="$(jq -r '.components["database-postgres"].version' "$beta_manifest")"
 desktop_min_db="$(jq -r '.components.desktop.minDbSchema' "$beta_manifest")"
@@ -121,14 +138,14 @@ if ./scripts/validate-release-channel.sh \
 fi
 
 stable_beta_product_manifest="$(mktemp)"
-jq '.product.version = "0.17.1-beta.1"' "$ROOT_DIR/release-manifest.json" > "$stable_beta_product_manifest"
+jq '.release.channel = "stable" | .product.version = "0.17.1-beta.1"' "$stable_fixture_manifest" > "$stable_beta_product_manifest"
 if validate_manifest_v2 "$stable_beta_product_manifest" >/dev/null 2>&1; then
   echo "ERROR: stable channel should reject beta product.version" >&2
   exit 1
 fi
 
 beta_stable_product_manifest="$(mktemp)"
-jq '.release.channel = "beta"' "$ROOT_DIR/release-manifest.json" > "$beta_stable_product_manifest"
+jq '.release.channel = "beta"' "$stable_fixture_manifest" > "$beta_stable_product_manifest"
 if validate_manifest_v2 "$beta_stable_product_manifest" >/dev/null 2>&1; then
   echo "ERROR: beta channel should reject stable-only product.version" >&2
   exit 1
@@ -157,22 +174,22 @@ fi
 
 stable_isolated_beta_manifest="$(mktemp)"
 trap 'rm -f "$electron_manifest" "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$invalid_migration_policy_manifest" "$stable_isolated_beta_manifest"' EXIT
-jq '.components["database-postgres"].migrationPolicy = "isolated-beta"' "$ROOT_DIR/release-manifest.json" > "$stable_isolated_beta_manifest"
+jq '.components["database-postgres"].migrationPolicy = "isolated-beta"' "$stable_fixture_manifest" > "$stable_isolated_beta_manifest"
 if validate_manifest_v2 "$stable_isolated_beta_manifest" >/dev/null 2>&1; then
   echo "ERROR: stable channel should reject isolated-beta migrationPolicy" >&2
   exit 1
 fi
 
-[[ "$(expected_release_prerelease "$ROOT_DIR/release-manifest.json")" == "false" ]] || {
+[[ "$(expected_release_prerelease "$stable_fixture_manifest")" == "false" ]] || {
   echo "ERROR: stable channel should require GitHub prerelease=false" >&2
   exit 1
 }
-validate_release_prerelease_flag "$ROOT_DIR/release-manifest.json" "false"
+validate_release_prerelease_flag "$stable_fixture_manifest" "false"
 
 release_channel_plan="$(
   ./scripts/validate-release-channel.sh \
-    --manifest "$ROOT_DIR/release-manifest.json" \
-    --tag "v$(manifest_product_version "$ROOT_DIR/release-manifest.json")" \
+    --manifest "$stable_fixture_manifest" \
+    --tag "v$(manifest_product_version "$stable_fixture_manifest")" \
     --prerelease false \
     --feed-root /feed/pactoolkits \
     --feed-target /feed/pactoolkits/stable \
@@ -184,8 +201,8 @@ echo "$release_channel_plan" | grep -Fq 'feed=/feed/pactoolkits/stable' || {
   exit 1
 }
 if ./scripts/validate-release-channel.sh \
-  --manifest "$ROOT_DIR/release-manifest.json" \
-  --tag "v$(manifest_product_version "$ROOT_DIR/release-manifest.json")" \
+  --manifest "$stable_fixture_manifest" \
+  --tag "v$(manifest_product_version "$stable_fixture_manifest")" \
   --prerelease false \
   --feed-root /feed/pactoolkits \
   --feed-target /feed/pactoolkits/beta \
@@ -195,8 +212,8 @@ if ./scripts/validate-release-channel.sh \
   exit 1
 fi
 if ./scripts/validate-release-channel.sh \
-  --manifest "$ROOT_DIR/release-manifest.json" \
-  --tag "v$(manifest_product_version "$ROOT_DIR/release-manifest.json")" \
+  --manifest "$stable_fixture_manifest" \
+  --tag "v$(manifest_product_version "$stable_fixture_manifest")" \
   --prerelease false \
   --dry-run false \
   --confirm false >/dev/null 2>&1; then
@@ -205,9 +222,9 @@ if ./scripts/validate-release-channel.sh \
 fi
 
 database_policy_base_manifest="$(mktemp)"
-cp "$ROOT_DIR/release-manifest.json" "$database_policy_base_manifest"
+cp "$stable_fixture_manifest" "$database_policy_base_manifest"
 ./scripts/validate-database-policy.sh \
-  --manifest "$ROOT_DIR/release-manifest.json" \
+  --manifest "$stable_fixture_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
   --base-manifest "$database_policy_base_manifest" \
   --allow-beta-migration false >/dev/null
@@ -222,7 +239,7 @@ jq '
   .components["agent-injector-ahk"].minDbSchema = "1.2.24" |
   .components["agent-injector-ahk"].maxDbSchema = "1.2.24" |
   .components["database-postgres"].version = "1.2.24"
-' "$ROOT_DIR/release-manifest.json" > "$beta_db_upgrade_manifest"
+' "$stable_fixture_manifest" > "$beta_db_upgrade_manifest"
 if ./scripts/validate-database-policy.sh \
   --manifest "$beta_db_upgrade_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
@@ -238,6 +255,27 @@ jq '.components["database-postgres"].migrationPolicy = "isolated-beta"' \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
   --base-manifest "$database_policy_base_manifest" \
   --allow-beta-migration true >/dev/null
+
+legacy_baseline_manifest="$(mktemp)"
+cat > "$legacy_baseline_manifest" <<'EOF'
+{
+  "suiteVersion": "0.17.1",
+  "dbSchemaVersion": "1.2.22",
+  "build": { "channel": "stable" }
+}
+EOF
+if [[ "$live_release_channel" == "beta" ]]; then
+  ./scripts/validate-database-policy.sh \
+    --manifest "$ROOT_DIR/release-manifest.json" \
+    --base-ref refs/heads/pactoolkits-missing-test-ref \
+    --base-manifest "$legacy_baseline_manifest" \
+    --allow-beta-migration false >/dev/null
+fi
+if grep -Fq 'beta' "$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props" \
+  && grep -Eq '<AssemblyVersion>[^<]*beta' "$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props"; then
+  echo "ERROR: AssemblyVersion must use numeric major.minor.build.revision only" >&2
+  exit 1
+fi
 
 policy_git_dir="$(mktemp -d)"
 git -C "$policy_git_dir" init -q
@@ -306,7 +344,7 @@ jq '
   .product.version = "0.18.0-beta.1" |
   .components.desktop.version = "0.18.0-beta.1" |
   .release.channel = "beta"
-' "$ROOT_DIR/release-manifest.json" > "$target_beta_manifest"
+' "$stable_fixture_manifest" > "$target_beta_manifest"
 validate_manifest_v2 "$target_beta_manifest"
 if validate_release_tag_matches_product_version "v0.18.0-beta.1" "$target_beta_manifest"; then
   :
@@ -316,14 +354,14 @@ else
 fi
 
 beta_desktop_on_stable_manifest="$(mktemp)"
-jq '.components.desktop.version = "0.18.0-beta.1"' "$ROOT_DIR/release-manifest.json" > "$beta_desktop_on_stable_manifest"
+jq '.release.channel = "stable" | .components.desktop.version = "0.18.0-beta.1"' "$stable_fixture_manifest" > "$beta_desktop_on_stable_manifest"
 if validate_manifest_v2 "$beta_desktop_on_stable_manifest" >/dev/null 2>&1; then
   echo "ERROR: stable channel should reject beta desktop.version" >&2
   exit 1
 fi
 
 stable_desktop_on_beta_manifest="$(mktemp)"
-jq '.release.channel = "beta" | .product.version = "0.17.1-beta.1" | .components.desktop.version = "0.16.1"' "$ROOT_DIR/release-manifest.json" > "$stable_desktop_on_beta_manifest"
+jq '.release.channel = "beta" | .product.version = "0.17.1-beta.1" | .components.desktop.version = "0.16.1"' "$stable_fixture_manifest" > "$stable_desktop_on_beta_manifest"
 if validate_manifest_v2 "$stable_desktop_on_beta_manifest" >/dev/null 2>&1; then
   echo "ERROR: beta channel should reject stable-only desktop.version" >&2
   exit 1
@@ -342,12 +380,18 @@ if validate_manifest_v2 "$leading_zero_manifest" >/dev/null 2>&1; then
   exit 1
 fi
 
+beta_auto_expected="$(resolve_product_auto_version "$(manifest_product_version "$stable_fixture_manifest")" "beta" "none")"
+manifest_backup="$(mktemp)"
+cp "$ROOT_DIR/release-manifest.json" "$manifest_backup"
+cp "$stable_fixture_manifest" "$ROOT_DIR/release-manifest.json"
 beta_auto_out="$(./scripts/bump-version.sh --channel beta --product auto --dry-run 2>&1)"
-echo "$beta_auto_out" | grep -Fq '"version": "0.17.1-beta.1"' || {
-  echo "ERROR: --channel beta --product auto should produce 0.17.1-beta.1" >&2
+cp "$manifest_backup" "$ROOT_DIR/release-manifest.json"
+rm -f "$manifest_backup"
+echo "$beta_auto_out" | grep -Fq "\"version\": \"$beta_auto_expected\"" || {
+  echo "ERROR: --channel beta --product auto should produce $beta_auto_expected" >&2
   exit 1
 }
-beta_auto_hits="$(echo "$beta_auto_out" | grep -c '"version": "0.17.1-beta.1"' || true)"
+beta_auto_hits="$(echo "$beta_auto_out" | grep -c "\"version\": \"$beta_auto_expected\"" || true)"
 [[ "$beta_auto_hits" -ge 2 ]] || {
   echo "ERROR: --channel beta --product auto should sync product.version and desktop.version" >&2
   exit 1
@@ -407,7 +451,12 @@ echo "$agent_plan_out" | grep -Fq "pactoolkits-injector-win-x64-${next_agent}-" 
   exit 1
 }
 
+manifest_backup="$(mktemp)"
+cp "$ROOT_DIR/release-manifest.json" "$manifest_backup"
+cp "$stable_fixture_manifest" "$ROOT_DIR/release-manifest.json"
 desktop_plan_out="$(./scripts/release-desktop.sh --bump-desktop 9.9.9 --dry-run --skip-upload 2>&1)"
+cp "$manifest_backup" "$ROOT_DIR/release-manifest.json"
+rm -f "$manifest_backup"
 echo "$desktop_plan_out" | grep -Fq "desktop.version: 9.9.9" || {
   echo "ERROR: dry-run desktop release plan should reflect bumped desktop version (9.9.9)" >&2
   exit 1

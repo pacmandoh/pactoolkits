@@ -25,6 +25,7 @@ require_cmd jq
 validate_manifest_v2 "$MANIFEST"
 
 desktop_version="$(manifest_desktop_version "$MANIFEST")"
+assembly_version="$(semver_stable_base "$desktop_version")"
 build_channel="$(manifest_release_channel "$MANIFEST")"
 build_date="$(manifest_release_date "$MANIFEST")"
 
@@ -35,8 +36,8 @@ cat > "$UI_DIR/Version.g.props" <<XML
   <PropertyGroup>
     <AppVersion>$desktop_version</AppVersion>
     <Version>$desktop_version</Version>
-    <AssemblyVersion>${desktop_version}.0</AssemblyVersion>
-    <FileVersion>${desktop_version}.0</FileVersion>
+    <AssemblyVersion>${assembly_version}.0</AssemblyVersion>
+    <FileVersion>${assembly_version}.0</FileVersion>
     <InformationalVersion>${desktop_version}+${build_channel}.${build_date}</InformationalVersion>
   </PropertyGroup>
 </Project>

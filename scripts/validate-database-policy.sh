@@ -68,6 +68,7 @@ if [[ -z "$BASE_MANIFEST" ]]; then
 fi
 
 [[ -f "$BASE_MANIFEST" ]] || die "base manifest not found: $BASE_MANIFEST"
+base_schema_version="$(manifest_schema_version "$BASE_MANIFEST")"
 base_db_version="$(manifest_database_postgres_version "$BASE_MANIFEST")"
 is_stable_semver "$base_db_version" ||
   die "invalid stable/main baseline database version: $base_db_version"
@@ -95,6 +96,8 @@ changed_migrations="$(
 
 if [[ "$channel" == "beta" ]]; then
   if semver_gte_stable "$base_db_version" "$candidate_db_version"; then
+    :
+  elif [[ "$base_schema_version" -lt 2 ]]; then
     :
   elif [[ "$policy" == "isolated-beta" && "$ALLOW_BETA_MIGRATION" == "true" ]]; then
     :
