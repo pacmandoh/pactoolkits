@@ -5,6 +5,22 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and validate only
+        required: true
+        type: boolean
+        default: true
+      confirm:
+        description: Required for a formal release
+        required: true
+        type: boolean
+        default: false
+      allow_beta_db_migration:
+        description: Explicitly authorize isolated Beta database migrations
+        required: true
+        type: boolean
+        default: false
 
 concurrency:
   group: release-${{ github.ref_name }}
@@ -14,7 +30,15 @@ permissions:
   contents: write
 
 jobs:
+  validate_release:
+    uses: ./.github/workflows/validate-release.yml
+    with:
+      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+      confirm: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.confirm) }}
+      allow_beta_db_migration: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_beta_db_migration || false }}
+
   resolve_release_plan:
+    needs: validate_release
     uses: ./.github/workflows/resolve-release-plan.yml
 
   build_agent_injector_ahk:

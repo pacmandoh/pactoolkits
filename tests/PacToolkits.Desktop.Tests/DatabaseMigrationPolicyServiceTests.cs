@@ -22,11 +22,34 @@ public sealed class DatabaseMigrationPolicyServiceTests
         Assert.True(result.ShouldExecuteMigration);
     }
 
-    [Fact]
-    public void Beta_channel_with_stable_only_blocks_in_app_migration()
+    [Theory]
+    [InlineData(DatabaseMigrationTrigger.Startup)]
+    [InlineData(DatabaseMigrationTrigger.Reconnect)]
+    [InlineData(DatabaseMigrationTrigger.SettingsManual)]
+    [InlineData(DatabaseMigrationTrigger.ExternalDeploy)]
+    public void Stable_only_policy_is_consistent_across_all_migration_triggers(
+        DatabaseMigrationTrigger trigger)
     {
         var result = Evaluate(
-            DatabaseMigrationTrigger.SettingsManual,
+            trigger,
+            DbSchemaCompatibility.BelowMinimum,
+            releaseChannel: "stable",
+            DatabaseMigrationPolicies.StableOnly);
+
+        Assert.Equal(DatabaseMigrationDecision.Allowed, result.Decision);
+        Assert.True(result.ShouldExecuteMigration);
+    }
+
+    [Theory]
+    [InlineData(DatabaseMigrationTrigger.Startup)]
+    [InlineData(DatabaseMigrationTrigger.Reconnect)]
+    [InlineData(DatabaseMigrationTrigger.SettingsManual)]
+    [InlineData(DatabaseMigrationTrigger.ExternalDeploy)]
+    public void Beta_channel_with_stable_only_blocks_every_migration_trigger(
+        DatabaseMigrationTrigger trigger)
+    {
+        var result = Evaluate(
+            trigger,
             DbSchemaCompatibility.BelowMinimum,
             releaseChannel: "beta",
             DatabaseMigrationPolicies.StableOnly);
@@ -53,6 +76,23 @@ public sealed class DatabaseMigrationPolicyServiceTests
         Assert.Equal(DatabaseMigrationDecision.ReadOnlyRequired, inApp.Decision);
         Assert.Equal(DatabaseMigrationDecision.Allowed, external.Decision);
         Assert.True(external.ShouldExecuteMigration);
+    }
+
+    [Theory]
+    [InlineData(DatabaseMigrationTrigger.Startup)]
+    [InlineData(DatabaseMigrationTrigger.Reconnect)]
+    [InlineData(DatabaseMigrationTrigger.SettingsManual)]
+    public void Manual_policy_blocks_every_in_app_migration_trigger(
+        DatabaseMigrationTrigger trigger)
+    {
+        var result = Evaluate(
+            trigger,
+            DbSchemaCompatibility.BelowMinimum,
+            releaseChannel: "stable",
+            DatabaseMigrationPolicies.Manual);
+
+        Assert.Equal(DatabaseMigrationDecision.ReadOnlyRequired, result.Decision);
+        Assert.False(result.ShouldExecuteMigration);
     }
 
     [Fact]
@@ -85,6 +125,34 @@ public sealed class DatabaseMigrationPolicyServiceTests
             releaseChannel: "beta",
             DatabaseMigrationPolicies.IsolatedBeta,
             environment: new DatabaseEnvironmentSettings("isolated", true),
+            userConfirmed: true);
+
+        Assert.Equal(DatabaseMigrationDecision.RequiresConfirmation, pending.Decision);
+        Assert.False(pending.ShouldExecuteMigration);
+        Assert.Equal(DatabaseMigrationDecision.Allowed, allowed.Decision);
+        Assert.True(allowed.ShouldExecuteMigration);
+    }
+
+    [Theory]
+    [InlineData(DatabaseMigrationTrigger.Startup)]
+    [InlineData(DatabaseMigrationTrigger.Reconnect)]
+    [InlineData(DatabaseMigrationTrigger.SettingsManual)]
+    public void Isolated_beta_requires_user_confirmation_for_every_in_app_trigger(
+        DatabaseMigrationTrigger trigger)
+    {
+        var environment = new DatabaseEnvironmentSettings("isolated", true);
+        var pending = Evaluate(
+            trigger,
+            DbSchemaCompatibility.BelowMinimum,
+            releaseChannel: "beta",
+            DatabaseMigrationPolicies.IsolatedBeta,
+            environment);
+        var allowed = Evaluate(
+            trigger,
+            DbSchemaCompatibility.BelowMinimum,
+            releaseChannel: "beta",
+            DatabaseMigrationPolicies.IsolatedBeta,
+            environment,
             userConfirmed: true);
 
         Assert.Equal(DatabaseMigrationDecision.RequiresConfirmation, pending.Decision);

@@ -12,7 +12,8 @@ public sealed class ReleaseChannelSwitchServiceTests
     [Fact]
     public async Task Probe_allows_compatible_beta_feed()
     {
-        var service = CreateService("1.2.23", Manifest("beta", "1.2.22", "1.2.24"));
+        var schema = new FakeDbSchemaVersionService("1.2.23");
+        var service = CreateService(schema, Manifest("beta", "1.2.22", "1.2.24"));
 
         var result = await service.ProbeAsync(
             "https://updates.example/feed/pactoolkits/stable",
@@ -25,6 +26,8 @@ public sealed class ReleaseChannelSwitchServiceTests
             result.FeedManifestUrl);
         Assert.Equal("1.2.22", result.RequiredMinDbSchema);
         Assert.Equal("1.2.24", result.RequiredMaxDbSchema);
+        Assert.Equal("1.2.23", schema.Version);
+        Assert.Equal(1, schema.ReadCount);
     }
 
     [Fact]
@@ -127,10 +130,15 @@ public sealed class ReleaseChannelSwitchServiceTests
     }
 
     private static ReleaseChannelSwitchService CreateService(string dbVersion, string manifest)
+        => CreateService(new FakeDbSchemaVersionService(dbVersion), manifest);
+
+    private static ReleaseChannelSwitchService CreateService(
+        FakeDbSchemaVersionService schema,
+        string manifest)
     {
         var http = new HttpClient(new StaticResponseHandler(manifest));
         return new ReleaseChannelSwitchService(
-            new FakeDbSchemaVersionService(dbVersion),
+            schema,
             new NullLogger(),
             http);
     }
@@ -166,11 +174,21 @@ public sealed class ReleaseChannelSwitchServiceTests
 
     private sealed class FakeDbSchemaVersionService(string version) : IDbSchemaVersionService
     {
+        public string Version { get; } = version;
+
+        public int ReadCount { get; private set; }
+
         public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(CancellationToken ct)
-            => Task.FromResult(new DbSchemaVersionReadResult(true, version, null));
+        {
+            ReadCount++;
+            return Task.FromResult(new DbSchemaVersionReadResult(true, Version, null));
+        }
 
         public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
-            => Task.FromResult(new DbSchemaVersionReadResult(true, version, null));
+        {
+            ReadCount++;
+            return Task.FromResult(new DbSchemaVersionReadResult(true, Version, null));
+        }
     }
 
     private sealed class NullLogger : IAppLogger
