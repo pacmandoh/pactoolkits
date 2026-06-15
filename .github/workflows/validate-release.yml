@@ -100,10 +100,19 @@ jobs:
         shell: bash
         env:
           ALLOW_BETA_DB_MIGRATION: ${{ steps.inputs.outputs.allow_beta_db_migration }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          git fetch --no-tags origin main
+          git fetch --no-tags origin main beta
+          base_ref="origin/main"
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "${GITHUB_BASE_REF:-}" == "beta" ]]; then
+            base_ref="origin/beta"
+          elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "beta" ]]; then
+            base_ref="origin/beta"
+          fi
           scripts/validate-database-policy.sh \
             --manifest release-manifest.json \
-            --base-ref origin/main \
+            --base-ref "$base_ref" \
             --allow-beta-migration "$ALLOW_BETA_DB_MIGRATION"
