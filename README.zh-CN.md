@@ -9,9 +9,9 @@
 <table>
   <tr>
     <td align="center" width="260" valign="top">
-      <img src="./apps/desktop-avalonia/src/Assets/icon-128.png" alt="PacToolkits UI Icon" width="72" />
+      <img src="./apps/desktop-avalonia/src/Assets/icon-128.png" alt="PacToolkits Desktop Icon" width="72" />
       <br />
-      <strong>PacToolkits UI</strong>
+      <strong>PacToolkits Desktop</strong>
       <br />
       <sub>Avalonia 桌面客户端</sub>
       <br />
@@ -39,14 +39,14 @@
 
 <br />
 
-<sub><strong>UI</strong> 负责业务交互 · <strong>Agent</strong> 负责自动化执行 · <strong>DB</strong> 负责任务编排与持久化</sub>
+<sub><strong>Desktop</strong> 负责业务交互 · <strong>Agent</strong> 负责自动化执行 · <strong>DB</strong> 负责任务编排与持久化</sub>
 
 <br />
 <br />
 
 **面向药品追溯码业务的桌面端、自动化与数据库一体化工具套件**
 
-用于药品追溯码业务的桌面 UI、AutoHotkey 自动化执行层与 PostgreSQL 任务编排数据库系统。
+用于药品追溯码业务的 PacToolkits Desktop、AutoHotkey 自动化执行层与 PostgreSQL 任务编排数据库系统。
 
 <br />
 
@@ -58,14 +58,14 @@
     <td align="center"><img src="https://img.shields.io/badge/.NET-net10.0-475569?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET" /></td>
   </tr>
   <tr>
-    <td align="center"><a href="./apps/desktop-avalonia/src"><img src="https://img.shields.io/badge/UI-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="UI" /></a></td>
+    <td align="center"><a href="./apps/desktop-avalonia/src"><img src="https://img.shields.io/badge/Desktop-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="Desktop" /></a></td>
     <td align="center"><a href="./runtime/agents/injector-ahk"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
     <td align="center"><a href="./database/postgres"><img src="https://img.shields.io/badge/Database-PostgreSQL-1d4ed8?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" /></a></td>
     <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
   </tr>
   <tr>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.17.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/UI%20Version-0.16.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="UI Version" /></a></td>
+    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Desktop%20Version-0.16.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Desktop Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.6.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
     <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.23-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
   </tr>
@@ -79,15 +79,15 @@
 
 **PacToolkits** 是一个围绕药品追溯码业务构建的单仓库项目，统一管理三类核心能力：
 
-- 面向业务操作的桌面 UI
+- PacToolkits Desktop 业务客户端
 - 基于 AutoHotkey 的自动化 Agent
 - 负责落库、映射、建任务、执行状态管理的 PostgreSQL 数据库体系
 
-它面向的不是单一页面或单一工具，而是一个需要 **UI、自动化执行、数据库状态** 保持一致的完整系统。
+它面向的不是单一页面或单一工具，而是一个需要 **Desktop、自动化执行、数据库状态** 保持一致的完整系统。
 
 当前仓库的主线分别是：
 
-- `apps/desktop-avalonia`：业务交互、配置管理、更新能力、审计与诊断（**当前正式 UI**）
+- `apps/desktop-avalonia`：业务交互、配置管理、更新能力、审计与诊断（**当前正式 Desktop，Avalonia 实现**）
 - `packages/application`：用例层服务与抽象
 - `packages/infrastructure`：PostgreSQL 仓储与 DB 实现
 - `runtime/agents/injector-ahk`：解析、注入、验证、任务执行（**Win7 / 旧机器兼容 runtime**）
@@ -98,13 +98,13 @@
 
 ## 核心特性
 
-- UI、Agent、DB 一体化单仓库设计
+- Desktop、Agent、DB 一体化单仓库设计
 - 基于 Avalonia 的桌面业务客户端
 - 基于 Lucide 的图标体系与轻量级状态 / 忙碌控件
 - 基于 AutoHotkey v2 的自动化执行引擎
 - Agent 运行目标已切换为完整 `ClassNN` 配置模型
 - 基于 PostgreSQL Migration 的数据库演进体系
-- UI / Agent / DB 版本统一由 Manifest 管控
+- Desktop / Agent / DB 版本统一由 Manifest 管控
 - 支持库存、追溯码录入、联调映射、任务队列、重开与审计
 - 支持 `MSFX` bill watch 补偿重查与任务手动弃用
 
@@ -114,18 +114,18 @@
 
 ```mermaid
 flowchart LR
-    UI["apps/desktop-avalonia\nAvalonia 桌面端"]
+    DESKTOP["apps/desktop-avalonia\nAvalonia Desktop"]
     PKG["packages/\napplication · infrastructure · core"]
     AGENT["runtime/agents/injector-ahk\nAutoHotkey v2 执行层"]
     DB["database/postgres\nPostgreSQL Schema + Migrations"]
     SCRIPTS["scripts/\n版本与发布工具"]
     CI[".github/workflows\n构建与发布自动化"]
 
-    UI --> PKG
-    UI -->|配置 / 运行控制| AGENT
+    DESKTOP --> PKG
+    DESKTOP -->|配置 / 运行控制| AGENT
     AGENT -->|任务领取 / 状态回写 / 事件记录| DB
     PKG --> DB
-    SCRIPTS --> UI
+    SCRIPTS --> DESKTOP
     SCRIPTS --> AGENT
     SCRIPTS --> DB
     CI --> SCRIPTS
@@ -137,13 +137,13 @@ flowchart LR
 
 ```text
 pactoolkits/
-  apps/desktop-avalonia/src/  当前正式 UI（Avalonia）
+  apps/desktop-avalonia/src/  当前正式 Desktop（Avalonia）
   apps/desktop-electron/      未来 Nuxt + Electron Preview（占位，不参与 release）
   packages/
     core/                     纯业务核心（无 IO）
     application/              用例层：DTO、服务接口与应用服务
     infrastructure/           外部实现：PostgreSQL 仓储
-    agent-contracts/          UI ↔ Agent 共享协议
+    agent-contracts/          Desktop ↔ Agent 共享协议
   runtime/agents/injector-ahk/          AutoHotkey v2 自动化运行时
   database/postgres/          PostgreSQL bootstrap / migration / verify / deploy
   docs/                       架构与运维文档
@@ -225,7 +225,7 @@ Agent 是自动化执行层，负责对目标窗口进行解析、注入、验�
 - 注入后验证结果
 - 领取并执行仓库注入任务
 - 将执行结果与事件回写 PostgreSQL
-- 读取 UI 生成的共享配置
+- 读取 Desktop 生成的共享配置
 
 **核心模块**
 
@@ -315,12 +315,12 @@ database/postgres/
 
 **定位**
 
-统一管理版本号、构建发布、资源审计以及 Windows 侧部署同步任务，保证 UI、Agent、DB 三端协同演进。
+统一管理版本号、构建发布、资源审计以及 Windows 侧部署同步任务，保证 Desktop、Agent、DB 三端协同演进。
 
 **版本与发布脚本**
 
 - `bump-version.sh`
-  - 统一提升 suite / UI / agent / DB schema 版本
+  - 统一提升 product / desktop / agent / DB schema 版本
 - `check-version.sh`
   - 校验仓库内版本一致性
 - `export-version.sh`
@@ -335,7 +335,7 @@ database/postgres/
 **仓库维护脚本**
 
 - `audit-unused-ui-resources.sh`
-  - 扫描 UI 项目中未引用的样式、资源与相关残留
+  - 扫描 Desktop 项目中未引用的样式、资源与相关残留
 
 **Windows 部署 / 同步脚本**
 
@@ -350,7 +350,7 @@ database/postgres/
 
 **当前职责补充**
 
-- UI 保存 Agent 配置时会自动补全和收敛必要字段
+- Desktop 保存 Agent 配置时会自动补全和收敛必要字段
 - Agent 运行时按配置中的完整窗口 / 解析区 / 验证区 / 输入控件目标执行
 - Windows 同步任务适合库房双网环境下的静默后台执行
 
@@ -486,7 +486,7 @@ PacToolkits 当前覆盖的业务场景包括：
 dotnet build PacToolkits.sln
 ```
 
-## 构建 UI
+## 构建 Desktop
 
 ```bash
 cd apps/desktop-avalonia/src
@@ -537,11 +537,11 @@ cp scripts/config.example.json scripts/config.json
 ## 设计原则
 
 - 一个仓库，一个版本事实来源
-- UI、Agent、DB 协同演进
+- Desktop、Agent、DB 协同演进
 - 业务流程可观察、可追溯
 - 自动化能力可配置，不塞入页面逻辑
 - 数据库拥有任务状态真相
-- UI、运行时、持久化边界清晰
+- Desktop、运行时、持久化边界清晰
 
 ---
 

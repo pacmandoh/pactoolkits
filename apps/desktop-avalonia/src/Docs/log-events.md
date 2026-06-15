@@ -1,7 +1,9 @@
-# Pactoolkits UI 日志事件对照与分级
+# PacToolkits Desktop 日志事件对照与分级
 
 更新时间: 2026-03-13
 适用范围: `PacToolkits.Desktop.Avalonia`
+
+> 说明：部分事件名（如 `unhandled.ui`）沿用历史命名；其中 `ui` 指 Desktop 进程内未捕获异常，与 manifest 组件 ID `desktop` 并存，运行时字段不做重命名。
 
 ## 1. 使用说明
 
@@ -95,13 +97,13 @@
 
 这类事件:
 
-- 不写入 UI 日志文件
+- 不写入 Desktop 日志文件
 - 不走 `module/event/message` 统一结构
 - 主要用于联调链路的页面内追踪与人工排查
 
 说明:
 
-- 当前已将部分关键节点同步写入 UI JSON logger，见下方 `MsfxLinkViewModel` 模块事件表
+- 当前已将部分关键节点同步写入 Desktop JSON logger，见下方 `MsfxLinkViewModel` 模块事件表
 - 但页面内绝大多数即时轨迹仍以审计面板为主，不做全量持久化
 
 常见阶段名:
@@ -125,7 +127,7 @@
 - `日志`
 
 如果要排查 `MSFX` 页面联调执行链，优先看页面内审计面板；
-如果要排查 UI 程序异常、保存失败、更新失败等，再看本文件下面的 JSON logger 事件总表。
+如果要排查 Desktop 程序异常、保存失败、更新失败等，再看本文件下面的 JSON logger 事件总表。
 
 ---
 

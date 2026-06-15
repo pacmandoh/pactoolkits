@@ -34,7 +34,7 @@
 ## 仍留在桌面端的内容（合理保留）
 
 - Avalonia Views / ViewModels / Styles / Behaviors
-- UI 壳层服务：Toast、Dialog、Update、Clipboard、UiBehavior
+- 桌面壳层服务：Toast、Dialog、Update、Clipboard、UiBehavior
 - `AhkInjectorAgentRuntime` + `AgentManager`：Agent 进程启停（ViewModel 经 `IAgentManager` 访问）
 - `AppConfigStore`：统一 JSON 配置（含 `agents.agent-injector-ahk`）
 - MSFX HTTP 客户端等与桌面集成强相关的适配层
