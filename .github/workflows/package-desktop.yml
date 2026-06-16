@@ -55,6 +55,7 @@ jobs:
       DESKTOP_VERSION: ${{ inputs.desktop_version }}
       CHANNEL: ${{ inputs.channel }}
       RUNTIME: ${{ inputs.runtime || 'win-x64' }}
+      AGENT_RUNTIME: win-x64
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -124,26 +125,43 @@ jobs:
       - name: Download bundled agent artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: pactoolkits-*-win-x64-*
+          pattern: pactoolkits-*-${{ env.AGENT_RUNTIME }}-*
           path: _agent_artifacts
 
       - name: Bundle agents into desktop publish output
         shell: bash
         run: |
           set -euo pipefail
+          resolve_agent_source() {
+            local artifact_dir="$1"
+            local exe_name="$2"
+            local direct="${artifact_dir}/${exe_name}"
+            if [[ -f "$direct" ]]; then
+              printf '%s\n' "$direct"
+              return 0
+            fi
+            local found=""
+            found="$(find "$artifact_dir" -name "$exe_name" -type f -print -quit 2>/dev/null || true)"
+            if [[ -n "$found" ]]; then
+              printf '%s\n' "$found"
+              return 0
+            fi
+            return 1
+          }
           while IFS=$'\t' read -r bundle_id version exe_name install_dir; do
             [[ -n "$install_dir" ]] || { echo "Missing artifact.installDir for component $bundle_id" >&2; exit 1; }
             publish_stem="${exe_name%.*}"
-            artifact_dir="_agent_artifacts/${publish_stem}-win-x64-${version}"
+            artifact_dir="_agent_artifacts/${publish_stem}-${AGENT_RUNTIME}-${version}"
             agent_target_dir="_desktop_publish/Agents/${install_dir}"
-            source="${artifact_dir}/${exe_name}"
-            [[ -f "$source" ]] || {
-              echo "Bundled agent source missing: $source (component=$bundle_id artifactDir=$artifact_dir)" >&2
+            source="$(resolve_agent_source "$artifact_dir" "$exe_name" || true)"
+            [[ -n "$source" ]] || {
+              echo "Bundled agent source missing under $artifact_dir (component=$bundle_id exe=$exe_name)" >&2
+              find "$artifact_dir" -type f 2>/dev/null | sed 's/^/  /' || true
               exit 1
             }
             mkdir -p "$agent_target_dir"
             cp "$source" "$agent_target_dir/$exe_name"
-            echo "Bundled $bundle_id -> Agents/$install_dir/$exe_name"
+            echo "Bundled $bundle_id -> Agents/$install_dir/$exe_name (from $source)"
           done < <(jq -r '
             .components.desktop.bundles[] as $id |
             .components[$id] |
@@ -177,13 +195,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          resolve_agent_source() {
+            local artifact_dir="$1"
+            local exe_name="$2"
+            local direct="${artifact_dir}/${exe_name}"
+            if [[ -f "$direct" ]]; then
+              printf '%s\n' "$direct"
+              return 0
+            fi
+            local found=""
+            found="$(find "$artifact_dir" -name "$exe_name" -type f -print -quit 2>/dev/null || true)"
+            if [[ -n "$found" ]]; then
+              printf '%s\n' "$found"
+              return 0
+            fi
+            return 1
+          }
           dist="_desktop_release"
           mkdir -p "$dist"
           cp -R "$RELEASES_DIR"/. "$dist"/
           while IFS=$'\t' read -r version exe_name; do
             publish_stem="${exe_name%.*}"
-            artifact_dir="_agent_artifacts/${publish_stem}-${RUNTIME}-${version}"
-            cp "$artifact_dir/$exe_name" "$dist/$exe_name"
+            artifact_dir="_agent_artifacts/${publish_stem}-${AGENT_RUNTIME}-${version}"
+            source="$(resolve_agent_source "$artifact_dir" "$exe_name" || true)"
+            [[ -n "$source" ]] || {
+              echo "Bundled agent source missing under $artifact_dir (exe=$exe_name)" >&2
+              exit 1
+            }
+            cp "$source" "$dist/$exe_name"
           done < <(jq -r '
             .components.desktop.bundles[] as $id |
             .components[$id] |
