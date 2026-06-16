@@ -18,7 +18,7 @@ on:
           - win-x64
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: windows-test-package-${{ github.ref_name }}-${{ inputs.runtime || 'win-arm64' }}
@@ -70,4 +70,16 @@ jobs:
       desktop_version: ${{ needs.resolve_release_plan.outputs.desktop_version }}
       channel: ${{ needs.resolve_release_plan.outputs.channel }}
       runtime: ${{ inputs.runtime || 'win-arm64' }}
+    secrets: inherit
+
+  publish_test_release:
+    needs:
+      - resolve_release_plan
+      - package_desktop
+    if: needs.package_desktop.result == 'success'
+    uses: ./.github/workflows/publish-test-release.yml
+    with:
+      product_version: ${{ needs.resolve_release_plan.outputs.product_version }}
+      runtime: ${{ inputs.runtime || 'win-arm64' }}
+      release_tag: test-v${{ needs.resolve_release_plan.outputs.product_version }}-${{ inputs.runtime || 'win-arm64' }}
     secrets: inherit
