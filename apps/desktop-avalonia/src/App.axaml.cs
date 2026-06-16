@@ -1,9 +1,7 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using global::Avalonia.Controls;
 using global::Avalonia.Controls.ApplicationLifetimes;
-using global::Avalonia.Data.Core.Plugins;
 using global::Avalonia.Markup.Xaml;
 using global::Avalonia.Media.Imaging;
 using global::Avalonia.Platform;
@@ -44,8 +42,6 @@ public class App : global::Avalonia.Application
             base.OnFrameworkInitializationCompleted();
             return;
         }
-
-        DisableAvaloniaDataAnnotationValidation();
 
         var config = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
@@ -303,18 +299,6 @@ public class App : global::Avalonia.Application
         catch (Exception ex)
         {
             _logger?.Warn("App", "shutdown.services_dispose_fail", "Failed to dispose service provider", ex);
-        }
-    }
-
-    private static void DisableAvaloniaDataAnnotationValidation()
-    {
-        var toRemove = BindingPlugins.DataValidators
-            .OfType<DataAnnotationsValidationPlugin>()
-            .ToArray();
-
-        foreach (var plugin in toRemove)
-        {
-            BindingPlugins.DataValidators.Remove(plugin);
         }
     }
 

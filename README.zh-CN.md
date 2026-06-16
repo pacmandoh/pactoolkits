@@ -205,7 +205,7 @@ pactoolkits/
 
 - Avalonia 11
 - CommunityToolkit.Mvvm
-- IconPacks.Avalonia.Lucide
+- Lucide.Avalonia
 - SukiUI
 - Velopack
 - 项目引用：`PacToolkits.Application`、`PacToolkits.Infrastructure`、`PacToolkits.Agent.Contracts`
