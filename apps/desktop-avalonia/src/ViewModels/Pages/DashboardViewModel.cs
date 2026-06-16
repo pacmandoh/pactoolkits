@@ -985,8 +985,30 @@ public sealed partial class DashboardViewModel : AppPageBase
             return v;
         }
 
-        Kpi.AvailableRemainPct = Pct(dto.AvailableRemain, dto.TotalQty);
-        Kpi.PeriodUsedPct = Pct(dto.PeriodUsed, dto.TotalQty);
+        static double PctRemainHealth(long remain, long used)
+        {
+            var active = remain + used;
+            if (active <= 0)
+            {
+                return remain > 0 ? 100 : 0;
+            }
+
+            return Pct(remain, active);
+        }
+
+        static double PctUsageIntensity(long remain, long used)
+        {
+            var active = remain + used;
+            if (active <= 0)
+            {
+                return used > 0 ? 100 : 0;
+            }
+
+            return Pct(used, active);
+        }
+
+        Kpi.AvailableRemainPct = PctRemainHealth(dto.AvailableRemain, dto.PeriodUsed);
+        Kpi.PeriodUsedPct = PctUsageIntensity(dto.AvailableRemain, dto.PeriodUsed);
         Kpi.AbnormalPct = Pct(dto.Abnormal, dto.TotalTxnCount);
 
         if (dto.SelectedPoolCount is { } n && dto.SelectedZeroRemainCount is { } m)

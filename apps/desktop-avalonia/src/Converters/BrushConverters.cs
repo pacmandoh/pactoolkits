@@ -389,6 +389,50 @@ public sealed class ContextStatusToBrushConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
+public sealed class KpiPctToBrushConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var pct = value switch
+        {
+            double d => d,
+            float f => f,
+            int i => i,
+            _ => 0d,
+        };
+
+        var mode = parameter?.ToString() ?? "Alert";
+        var tone = mode.Equals("Remain", StringComparison.OrdinalIgnoreCase)
+            ? ToneForRemain(pct)
+            : ToneForAlert(pct);
+
+        return ConverterHelpers.FindAppBrush(ToneToBrushKey(tone), Brushes.White);
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+
+    private static StatusTone ToneForRemain(double pct) =>
+        pct >= 60 ? StatusTone.Done :
+        pct >= 35 ? StatusTone.Info :
+        pct >= 15 ? StatusTone.Warning :
+        StatusTone.Danger;
+
+    private static StatusTone ToneForAlert(double pct) =>
+        pct <= 8 ? StatusTone.Done :
+        pct <= 25 ? StatusTone.Warning :
+        StatusTone.Danger;
+
+    private static string ToneToBrushKey(StatusTone tone) =>
+        tone switch
+        {
+            StatusTone.Done => "BrushDone",
+            StatusTone.Warning => "BrushWarning",
+            StatusTone.Danger => "BrushDanger",
+            _ => "BrushInfo",
+        };
+}
+
 public sealed class BoolToDoneDangerBrushConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
