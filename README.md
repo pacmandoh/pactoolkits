@@ -205,7 +205,7 @@ The desktop application is the operational center of the suite. It provides busi
 
 - Avalonia 11
 - CommunityToolkit.Mvvm
-- IconPacks.Avalonia.Lucide
+- Lucide.Avalonia
 - SukiUI
 - Velopack
 - Project references: `PacToolkits.Application`, `PacToolkits.Infrastructure`, `PacToolkits.Agent.Contracts`
