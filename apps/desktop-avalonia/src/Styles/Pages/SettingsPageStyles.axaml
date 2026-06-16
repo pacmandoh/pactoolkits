@@ -4,7 +4,7 @@
   <Style Selector="UserControl.SettingsPage TextBox">
     <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="UseFloatingWatermark" Value="False" />
+    <Setter Property="UseFloatingPlaceholder" Value="False" />
   </Style>
 
   <Style Selector="UserControl.SettingsPage ComboBox">
