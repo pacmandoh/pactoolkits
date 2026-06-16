@@ -69,6 +69,26 @@ jobs:
             dry_run=false
             confirm=true
           fi
+          # Beta branch CI expects isolated-beta migration work relative to origin/main.
+          # Explicit authorization is enforced for tag/release via workflow_dispatch inputs and release.yml release_gate.
+          if [[ "$allow_beta_db_migration" != "true" ]]; then
+            channel="$(jq -r '.release.channel // empty' release-manifest.json)"
+            policy="$(jq -r '.components["database-postgres"].migrationPolicy // "stable-only"' release-manifest.json)"
+            if [[ "$channel" == "beta" && "$policy" == "isolated-beta" ]]; then
+              case "$EVENT_NAME" in
+                push)
+                  if [[ "${GITHUB_REF:-}" == refs/heads/beta ]]; then
+                    allow_beta_db_migration=true
+                  fi
+                  ;;
+                pull_request)
+                  if [[ "${GITHUB_BASE_REF:-}" == "beta" ]]; then
+                    allow_beta_db_migration=true
+                  fi
+                  ;;
+              esac
+            fi
+          fi
           echo "dry_run=$dry_run" >> "$GITHUB_OUTPUT"
           echo "confirm=$confirm" >> "$GITHUB_OUTPUT"
           echo "allow_beta_db_migration=$allow_beta_db_migration" >> "$GITHUB_OUTPUT"

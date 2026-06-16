@@ -339,6 +339,43 @@ if (
   exit 1
 fi
 
+legacy_reloc_git_dir="$(mktemp -d)"
+git -C "$legacy_reloc_git_dir" init -q
+git -C "$legacy_reloc_git_dir" config user.email tooling-tests@example.invalid
+git -C "$legacy_reloc_git_dir" config user.name tooling-tests
+cat > "$legacy_reloc_git_dir/release-manifest.json" <<'EOF'
+{
+  "suiteVersion": "0.17.1",
+  "dbSchemaVersion": "1.2.23",
+  "build": { "channel": "stable" }
+}
+EOF
+mkdir -p "$legacy_reloc_git_dir/pactoolkits-db/sql/migrations"
+cp "$ROOT_DIR/database/postgres/sql/migrations/V1_2_0__baseline.sql" \
+  "$legacy_reloc_git_dir/pactoolkits-db/sql/migrations/V1_2_0__baseline.sql"
+git -C "$legacy_reloc_git_dir" add .
+git -C "$legacy_reloc_git_dir" commit -qm legacy-main
+legacy_reloc_base_ref="$(git -C "$legacy_reloc_git_dir" rev-parse HEAD)"
+mkdir -p "$legacy_reloc_git_dir/database/postgres/sql/migrations"
+git -C "$legacy_reloc_git_dir" mv pactoolkits-db/sql/migrations/V1_2_0__baseline.sql \
+  database/postgres/sql/migrations/V1_2_0__baseline.sql
+jq '
+  .release.channel = "beta" |
+  .product.version = "1.0.0-beta.1" |
+  .components.desktop.version = "1.0.0-beta.1" |
+  .components["database-postgres"].migrationPolicy = "stable-only"
+' "$stable_fixture_manifest" > "$legacy_reloc_git_dir/release-manifest.json"
+git -C "$legacy_reloc_git_dir" add .
+git -C "$legacy_reloc_git_dir" commit -qm monorepo-reloc
+(
+  cd "$legacy_reloc_git_dir"
+  "$ROOT_DIR/scripts/validate-database-policy.sh" \
+    --manifest release-manifest.json \
+    --base-ref "$legacy_reloc_base_ref" \
+    --allow-beta-migration false
+) >/dev/null
+rm -rf "$legacy_reloc_git_dir"
+
 beta_new_migration_git_dir="$(mktemp -d)"
 git -C "$beta_new_migration_git_dir" init -q
 git -C "$beta_new_migration_git_dir" config user.email tooling-tests@example.invalid
@@ -355,10 +392,13 @@ jq '
   .components.desktop.version = "0.18.0-beta.1"
 ' "$database_policy_base_manifest" > "$beta_new_migration_git_dir/release-manifest.json"
 printf '%s\n' \
-  '-- app_environment_settings stores deployment environment flags for migration policy.' \
-  'create table if not exists public.app_environment_settings (' \
-  '  key   text primary key,' \
-  '  value text not null default ''''' \
+  'create table if not exists app_environment_settings (' \
+  '  environment text not null,' \
+  '  setting_key text not null,' \
+  '  setting_value jsonb not null default '"'"'{}'"'"'::jsonb,' \
+  '  created_at timestamptz not null default now(),' \
+  '  updated_at timestamptz not null default now(),' \
+  '  primary key (environment, setting_key)' \
   ');' \
   > "$beta_new_migration_git_dir/database/postgres/sql/migrations/V1_2_23__app_environment_settings.sql"
 git -C "$beta_new_migration_git_dir" add .
@@ -603,11 +643,11 @@ if echo "$beta_sql_restore_plan" | grep -Fq "pg_restore"; then
   exit 1
 fi
 
-grep -Fq "('Database.Environment', 'isolated')" scripts/create-beta-database.sql || {
+grep -Fq "('isolated', 'Database.Environment'" scripts/create-beta-database.sql || {
   echo "ERROR: isolated Beta database SQL is missing the environment marker" >&2
   exit 1
 }
-grep -Fq "('Database.AllowBetaMigrations', 'true')" scripts/create-beta-database.sql || {
+grep -Fq "('isolated', 'Database.AllowBetaMigrations'" scripts/create-beta-database.sql || {
   echo "ERROR: isolated Beta database SQL is missing the migration authorization marker" >&2
   exit 1
 }
