@@ -19,11 +19,11 @@ public sealed class ClientIdReadRepo : IClientIdReadRepo
         // Uses an explicit connection string for settings-page probes, so it cannot go through IDb.
         _accessGuard.ThrowIfBlocked();
 
-        var cs =
-            $"Host={opt.Host};Port={opt.Port};Database={opt.Database};Username={opt.Username};Password={opt.Password};Timeout=6;Command Timeout=6";
-
-        await using var conn = new NpgsqlConnection(cs);
-        await conn.OpenAsync(ct);
+        await using var conn = await PgConnectionFactory.OpenAsync(
+            opt,
+            ct,
+            includeKeepAlive: false,
+            timeoutSeconds: 6).ConfigureAwait(false);
 
         var candidates = new (string table, string sql)[]
         {

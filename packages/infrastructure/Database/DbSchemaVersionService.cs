@@ -22,7 +22,7 @@ public sealed class DbSchemaVersionService : IDbSchemaVersionService
     {
         try
         {
-            await using var conn = await OpenConnectionAsync(options, ct).ConfigureAwait(false);
+            await using var conn = await PgConnectionFactory.OpenAsync(options, ct).ConfigureAwait(false);
 
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = "select schema_version from public.schema_version where singleton = true";
@@ -55,22 +55,4 @@ public sealed class DbSchemaVersionService : IDbSchemaVersionService
         }
     }
 
-    private static async Task<NpgsqlConnection> OpenConnectionAsync(PgOptions opt, CancellationToken ct)
-    {
-        var csb = new NpgsqlConnectionStringBuilder
-        {
-            Host = opt.Host,
-            Port = opt.Port,
-            Database = opt.Database,
-            Username = opt.Username,
-            Password = opt.Password,
-            SearchPath = "public",
-            Timeout = opt.ConnectTimeoutSeconds,
-            KeepAlive = opt.KeepAliveSeconds
-        };
-
-        var conn = new NpgsqlConnection(csb.ToString());
-        await conn.OpenAsync(ct).ConfigureAwait(false);
-        return conn;
-    }
 }

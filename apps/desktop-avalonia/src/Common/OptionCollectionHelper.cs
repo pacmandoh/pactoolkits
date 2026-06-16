@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
@@ -10,15 +11,14 @@ public static class OptionCollectionHelper
         ObservableCollection<ViewModels.Pages.OptionItem> target,
         IEnumerable<string> values,
         StringComparison comparison = StringComparison.Ordinal)
+        => Replace(target, LookupOptionLoader.ToOptions(values), comparison);
+
+    public static bool Replace(
+        ObservableCollection<ViewModels.Pages.OptionItem> target,
+        IEnumerable<ViewModels.Pages.OptionItem> values,
+        StringComparison comparison = StringComparison.Ordinal)
     {
-        var next = new List<ViewModels.Pages.OptionItem>();
-        foreach (var value in values)
-        {
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                next.Add(new ViewModels.Pages.OptionItem(value, value));
-            }
-        }
+        var next = values.ToList();
 
         if (IsSame(target, next, comparison))
         {
