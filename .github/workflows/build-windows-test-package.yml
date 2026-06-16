@@ -1,6 +1,11 @@
 name: Build Windows Test Package
 
 on:
+  push:
+    branches:
+      - beta
+    paths:
+      - 'release-manifest.json'
   workflow_dispatch:
     inputs:
       runtime:
@@ -16,21 +21,21 @@ permissions:
   contents: read
 
 concurrency:
-  group: windows-test-package-${{ github.ref_name }}-${{ inputs.runtime }}
+  group: windows-test-package-${{ github.ref_name }}-${{ inputs.runtime || 'win-arm64' }}
   cancel-in-progress: false
 
 jobs:
   resolve_release_plan:
     uses: ./.github/workflows/resolve-release-plan.yml
     with:
-      runtime: ${{ inputs.runtime }}
+      runtime: ${{ inputs.runtime || 'win-arm64' }}
 
   build_agent_injector_ahk:
     needs:
       - resolve_release_plan
     uses: ./.github/workflows/build-agent-injector-ahk.yml
     with:
-      runtime: ${{ inputs.runtime }}
+      runtime: ${{ inputs.runtime || 'win-arm64' }}
     secrets: inherit
 
   build_desktop_avalonia:
@@ -39,7 +44,7 @@ jobs:
     if: needs.resolve_release_plan.outputs.implementation == 'avalonia'
     uses: ./.github/workflows/build-desktop-avalonia.yml
     with:
-      runtime: ${{ inputs.runtime }}
+      runtime: ${{ inputs.runtime || 'win-arm64' }}
     secrets: inherit
 
   package_desktop:
@@ -64,5 +69,5 @@ jobs:
       product_version: ${{ needs.resolve_release_plan.outputs.product_version }}
       desktop_version: ${{ needs.resolve_release_plan.outputs.desktop_version }}
       channel: ${{ needs.resolve_release_plan.outputs.channel }}
-      runtime: ${{ inputs.runtime }}
+      runtime: ${{ inputs.runtime || 'win-arm64' }}
     secrets: inherit
