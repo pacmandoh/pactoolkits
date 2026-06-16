@@ -16,7 +16,9 @@ public sealed class AgentPathResolverTests : IDisposable
     public void Dispose()
     {
         if (Directory.Exists(_baseDirectory))
+        {
             Directory.Delete(_baseDirectory, recursive: true);
+        }
     }
 
     [Fact]

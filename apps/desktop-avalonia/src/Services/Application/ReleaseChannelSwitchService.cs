@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Application.DTOs;
 using PacToolkits.Core;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
@@ -63,18 +62,24 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
         CancellationToken ct = default)
     {
         if (!TryNormalizeChannel(targetChannel, out var channel))
+        {
             return Failed(string.Empty, string.Empty, $"不支持的更新通道：{targetChannel}");
+        }
 
         var manifestUrl = ResolveChannelManifestUrl(baseFeedUrl, channel);
         if (string.IsNullOrWhiteSpace(manifestUrl))
+        {
             return Failed(channel, manifestUrl, "未配置更新源地址");
+        }
 
         ChannelManifest manifest;
         try
         {
             using var response = await _http.GetAsync(manifestUrl, ct).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
+            {
                 return Failed(channel, manifestUrl, $"目标更新源不可用：HTTP {(int)response.StatusCode}");
+            }
 
             await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
             manifest = ReadManifest(stream);
@@ -91,12 +96,16 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
         }
 
         if (!string.Equals(manifest.Channel, channel, StringComparison.Ordinal))
+        {
             return Failed(channel, manifestUrl,
                 $"更新源通道不匹配：请求 {channel}，清单为 {manifest.Channel}");
+        }
 
         var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(databaseOptions, ct).ConfigureAwait(false);
         if (!schema.Ok)
+        {
             return Failed(channel, manifestUrl, schema.Reason ?? "无法读取当前数据库版本");
+        }
 
         var compatibility = DbSchemaCompat.Evaluate(
             schema.Value,
@@ -128,20 +137,26 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
     internal static string ResolveChannelManifestUrl(string? baseFeedUrl, string channel)
     {
         if (!TryNormalizeChannel(channel, out var normalizedChannel))
+        {
             return string.Empty;
+        }
 
         var normalizedBase = string.IsNullOrWhiteSpace(baseFeedUrl)
             ? string.Empty
             : baseFeedUrl.Trim().TrimEnd('/');
         if (string.IsNullOrWhiteSpace(normalizedBase))
+        {
             return string.Empty;
+        }
 
         if (normalizedBase.EndsWith("/stable", StringComparison.OrdinalIgnoreCase)
             || normalizedBase.EndsWith("/beta", StringComparison.OrdinalIgnoreCase))
         {
             var lastSlash = normalizedBase.LastIndexOf('/');
             if (lastSlash > 0)
+            {
                 normalizedBase = normalizedBase[..lastSlash];
+            }
         }
 
         return $"{normalizedBase}/{normalizedChannel}/release-manifest.json";
@@ -163,7 +178,10 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
             {
                 var id = bundle.GetString();
                 if (string.IsNullOrWhiteSpace(id) || !components.TryGetProperty(id, out var component))
+                {
                     throw new InvalidOperationException($"更新清单引用了不存在的组件：{id}");
+                }
+
                 minimums.Add(ReadRequiredString(component, "minDbSchema"));
                 maximums.Add(ReadRequiredString(component, "maxDbSchema"));
             }
@@ -171,11 +189,15 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
 
         var requiredMin = minimums[0];
         for (var i = 1; i < minimums.Count; i++)
+        {
             requiredMin = DbSchemaCompat.GetRequiredMin(requiredMin, minimums[i]);
+        }
 
         var requiredMax = maximums[0];
         for (var i = 1; i < maximums.Count; i++)
+        {
             requiredMax = DbSchemaCompat.GetRequiredMax(requiredMax, maximums[i]);
+        }
 
         return new ChannelManifest(NormalizeManifestChannel(channel), requiredMin, requiredMax);
     }
@@ -183,7 +205,9 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
     private static string NormalizeManifestChannel(string channel)
     {
         if (!TryNormalizeChannel(channel, out var normalized))
+        {
             throw new InvalidOperationException($"更新清单通道无效：{channel}");
+        }
 
         return normalized;
     }
@@ -200,7 +224,9 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
     {
         normalized = (channel ?? string.Empty).Trim().ToLowerInvariant();
         if (normalized is "stable" or "beta")
+        {
             return true;
+        }
 
         normalized = string.Empty;
         return false;

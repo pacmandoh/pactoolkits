@@ -196,7 +196,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         try
         {
             if (!File.Exists(readablePath))
+            {
                 return new AppConfigRoot();
+            }
 
             var json = File.ReadAllText(readablePath);
             return JsonSerializer.Deserialize<AppConfigRoot>(json) ?? new AppConfigRoot();
@@ -211,11 +213,15 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
     {
         var primaryPath = Path.Combine(_configDir, UnifiedConfigFileName);
         if (File.Exists(primaryPath))
+        {
             return primaryPath;
+        }
 
         var legacyPath = Path.Combine(_configDir, LegacyConfigFileName);
         if (File.Exists(legacyPath))
+        {
             return legacyPath;
+        }
 
         return primaryPath;
     }
@@ -251,7 +257,10 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
                 && HasRequiredConfigKeys(existingJson))
             {
                 if (!string.Equals(readablePath, ConfigPath, StringComparison.OrdinalIgnoreCase))
+                {
                     WriteAllTextAtomic(ConfigPath, JsonSerializer.Serialize(normalized, _writeOptions));
+                }
+
                 return;
             }
 
@@ -262,24 +271,90 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
 
     private static bool HasPersistedDefaults(AppConfigRoot? root)
     {
-        if (root is null) return false;
-        if (root.AutomationTools?.Agent is not { } a) return false;
+        if (root is null)
+        {
+            return false;
+        }
 
-        if (string.IsNullOrWhiteSpace(a.PgDriver)) return false;
-        if (string.IsNullOrWhiteSpace(a.PgSsl)) return false;
-        if (string.IsNullOrWhiteSpace(a.OptWindowClass)) return false;
-        if (string.IsNullOrWhiteSpace(a.IptWindowClass)) return false;
-        if (string.IsNullOrWhiteSpace(a.OptParseGridClassNN)) return false;
-        if (string.IsNullOrWhiteSpace(a.OptVerifyGridClassNN)) return false;
-        if (string.IsNullOrWhiteSpace(a.IptParseGridClassNN)) return false;
-        if (string.IsNullOrWhiteSpace(a.IptVerifyGridClassNN)) return false;
-        if (string.IsNullOrWhiteSpace(a.OptInputClassNN)) return false;
-        if (string.IsNullOrWhiteSpace(a.IptInputClassNN)) return false;
-        if (a.ConfirmTimeoutMs <= 0) return false;
-        if (a.AppWin is null || a.AppWin.Count == 0) return false;
-        if (a.ColSpecs is null || a.ColSpecs.Count == 0) return false;
-        if (a.IntCols is null) return false;
-        if (string.IsNullOrWhiteSpace(a.WarehouseTaskIdentifier)) return false;
+        if (root.AutomationTools?.Agent is not { } a)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(a.PgDriver))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(a.PgSsl))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(a.OptWindowClass))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(a.IptWindowClass))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(a.OptParseGridClassNN))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(a.OptVerifyGridClassNN))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(a.IptParseGridClassNN))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(a.IptVerifyGridClassNN))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(a.OptInputClassNN))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(a.IptInputClassNN))
+        {
+            return false;
+        }
+
+        if (a.ConfirmTimeoutMs <= 0)
+        {
+            return false;
+        }
+
+        if (a.AppWin is null || a.AppWin.Count == 0)
+        {
+            return false;
+        }
+
+        if (a.ColSpecs is null || a.ColSpecs.Count == 0)
+        {
+            return false;
+        }
+
+        if (a.IntCols is null)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(a.WarehouseTaskIdentifier))
+        {
+            return false;
+        }
 
         return true;
     }
@@ -287,48 +362,98 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
     private static bool HasRequiredConfigKeys(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
+        {
             return false;
+        }
 
         try
         {
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
+            {
                 return false;
+            }
 
             if (!root.TryGetProperty("MsfxApi", out var msfx) || msfx.ValueKind != JsonValueKind.Object)
+            {
                 return false;
+            }
+
             if (!msfx.TryGetProperty("RefEntId", out _))
+            {
                 return false;
+            }
 
             if (!root.TryGetProperty("AutomationTools", out var automationTools) || automationTools.ValueKind != JsonValueKind.Object)
+            {
                 return false;
+            }
+
             if (!automationTools.TryGetProperty("Agent", out var agent) || agent.ValueKind != JsonValueKind.Object)
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("WarehouseEnabled", out _))
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("WarehouseAnchorTexts", out _))
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("CodePickPolicy", out _))
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("WarehouseTaskIdentifier", out _))
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("OptWindowClass", out _))
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("IptWindowClass", out _))
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("OptParseGridClassNN", out _))
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("OptVerifyGridClassNN", out _))
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("IptParseGridClassNN", out _))
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("IptVerifyGridClassNN", out _))
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("OptInputClassNN", out _))
+            {
                 return false;
+            }
+
             if (!agent.TryGetProperty("IptInputClassNN", out _))
+            {
                 return false;
+            }
 
             return true;
         }
@@ -355,10 +480,14 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         root.Logging ??= new LoggingOptions();
 
         if (root.TraceCodeValidation.RequiredLength <= 0)
+        {
             root.TraceCodeValidation.RequiredLength = 20;
+        }
 
         if (string.IsNullOrWhiteSpace(root.TraceCodeValidation.Pattern))
+        {
             root.TraceCodeValidation.Pattern = "^8\\d+$";
+        }
 
         var ahkDefaults = new AhkToolOptions();
         root.AutomationTools.Ahk.ExecutablePath = string.IsNullOrWhiteSpace(root.AutomationTools.Ahk.ExecutablePath)
@@ -388,7 +517,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
     {
         var agents = root.Agents ?? new Dictionary<string, AgentInstanceConfig>(StringComparer.Ordinal);
         if (agents.TryGetValue(AgentIds.InjectorAhk, out var existingInjector) && existingInjector is null)
+        {
             agents.Remove(AgentIds.InjectorAhk);
+        }
 
         if (!agents.TryGetValue(AgentIds.InjectorAhk, out var injector) || injector is null)
         {
@@ -411,7 +542,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
             || AgentSettingsSync.TryFromSettings(injector.Settings, out parsedSettings);
         AgentToolOptions? agentSettings = null;
         if (!settingsEmpty && settingsValid)
+        {
             agentSettings = NormalizeAgent(parsedSettings);
+        }
 
         var preferAgentSettings = !settingsEmpty
                                   && settingsValid
@@ -429,7 +562,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         {
             agentToolOptions = toolsAgent;
             if (AgentSettingsSync.HasData(agentToolOptions))
+            {
                 injector.Settings = AgentSettingsSync.ToSettings(agentToolOptions);
+            }
         }
         else if (preferAgentSettings)
         {
@@ -500,7 +635,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
                 {
                     root.AutomationTools.Ahk.ExecutablePath = agentPath;
                     if (!string.IsNullOrWhiteSpace(agentProcess))
+                    {
                         root.AutomationTools.Ahk.ProcessName = agentProcess;
+                    }
                 }
             }
         }
@@ -523,9 +660,14 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         options.RefEntId = (options.RefEntId ?? string.Empty).Trim();
         options.DefaultMethod = (options.DefaultMethod ?? string.Empty).Trim();
         if (options.TimeoutSeconds <= 0)
+        {
             options.TimeoutSeconds = defaults.TimeoutSeconds;
+        }
+
         if (options.TimeoutSeconds > 120)
+        {
             options.TimeoutSeconds = 120;
+        }
 
         return options;
     }
@@ -637,7 +779,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
             .ToList();
 
         if (requireNonEmpty && normalized.Count == 0)
+        {
             return fallback.Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
 
         return normalized;
     }
@@ -653,7 +797,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
     private static string NormalizeValidatedChannel(string? channel)
     {
         if (string.IsNullOrWhiteSpace(channel))
+        {
             return string.Empty;
+        }
 
         var normalized = channel.Trim().ToLowerInvariant();
         return SupportedUpdateChannels.Contains(normalized, StringComparer.Ordinal)
@@ -682,7 +828,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         }
 
         if (string.Equals(existing, json, StringComparison.Ordinal))
+        {
             return;
+        }
 
         WriteAllTextAtomic(ConfigPath, json);
     }
@@ -691,7 +839,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
     {
         var dir = Path.GetDirectoryName(path);
         if (string.IsNullOrWhiteSpace(dir))
+        {
             throw new InvalidOperationException("配置目录无效");
+        }
 
         Directory.CreateDirectory(dir);
 
@@ -704,7 +854,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
     {
         var dir = Path.GetDirectoryName(path);
         if (string.IsNullOrWhiteSpace(dir))
+        {
             throw new InvalidOperationException("配置目录无效");
+        }
 
         Directory.CreateDirectory(dir);
 
@@ -735,7 +887,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
             try
             {
                 if (File.Exists(tempPath))
+                {
                     File.Delete(tempPath);
+                }
             }
             catch (System.Exception ex)
             {
@@ -750,7 +904,9 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         var newPath = Path.Combine(configDir, UnifiedConfigFileName);
         var legacyPath = Path.Combine(configDir, LegacyConfigFileName);
         if (File.Exists(newPath) || !File.Exists(legacyPath))
+        {
             return;
+        }
 
         try
         {

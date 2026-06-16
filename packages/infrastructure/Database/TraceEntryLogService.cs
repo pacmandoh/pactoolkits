@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
@@ -64,7 +61,7 @@ public sealed class TraceEntryLogService : ITraceEntryLogService
             cmd.AddParam("result", NormalizeToken(dto.Result));
             cmd.AddParam("client_id", SanitizeLine(dto.Client));
             cmd.AddParam("source", NormalizeToken(dto.Source));
-            cmd.Parameters.AddWithValue("txn_id", dto.TxnId.HasValue ? dto.TxnId.Value : (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("txn_id", dto.TxnId ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("message", string.IsNullOrWhiteSpace(dto.Message)
                 ? DBNull.Value
                 : SanitizeLine(dto.Message));

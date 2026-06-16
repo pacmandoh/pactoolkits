@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -39,11 +39,15 @@ public static class GridContextMenuHelper
     public static async Task CopyRowAsTextAsync(IClipboardService clipboard, object? rowItem, params string[] preferredProps)
     {
         if (rowItem is null)
+        {
             return;
+        }
 
         var text = BuildRowText(rowItem, preferredProps);
         if (string.IsNullOrWhiteSpace(text))
+        {
             return;
+        }
 
         await clipboard.SetTextAsync(text);
     }
@@ -58,20 +62,29 @@ public static class GridContextMenuHelper
         foreach (var row in rows)
         {
             if (row is null)
+            {
                 continue;
+            }
 
             var text = BuildRowText(row, preferredProps);
             if (string.IsNullOrWhiteSpace(text))
+            {
                 continue;
+            }
 
             if (hasAny)
+            {
                 sb.AppendLine();
+            }
+
             sb.Append(text);
             hasAny = true;
         }
 
         if (!hasAny)
+        {
             return;
+        }
 
         await clipboard.SetTextAsync(sb.ToString());
     }
@@ -90,18 +103,26 @@ public static class GridContextMenuHelper
     public static DataGrid? FindOwnerGrid(MenuItem? menuItem)
     {
         if (menuItem is null)
+        {
             return null;
+        }
 
         var cm = menuItem.FindAncestorOfType<ContextMenu>();
         var target = cm?.PlacementTarget;
         if (target is null)
+        {
             return null;
+        }
 
         if (target is DataGrid dg)
+        {
             return dg;
+        }
 
         if (target is { } control)
+        {
             return control.FindAncestorOfType<DataGrid>();
+        }
 
         return null;
     }
@@ -116,11 +137,15 @@ public static class GridContextMenuHelper
             var p = ResolveProperty(t, name);
             var v = p?.GetValue(rowItem)?.ToString()?.Trim();
             if (!string.IsNullOrWhiteSpace(v))
+            {
                 values.Add(v);
+            }
         }
 
         if (values.Count > 0)
+        {
             return string.Join(" / ", values);
+        }
 
         var simpleProps = SimpleReadablePropertyCache.GetOrAdd(
             t,
@@ -133,10 +158,14 @@ public static class GridContextMenuHelper
         {
             var v = p.GetValue(rowItem)?.ToString()?.Trim();
             if (!string.IsNullOrWhiteSpace(v))
+            {
                 values.Add(v);
+            }
 
             if (values.Count >= 4)
+            {
                 break;
+            }
         }
 
         return string.Join(" / ", values);

@@ -12,7 +12,9 @@ public static class ClientDisplayResolver
 
         var display = aliasService.Resolve(machine);
         if (string.IsNullOrWhiteSpace(display))
+        {
             display = machine.Length > 0 ? machine : ci.Display;
+        }
 
         return new ClientInfo(
             Raw: ci.Raw,
@@ -34,10 +36,14 @@ public static class ClientDisplayResolver
         foreach (var raw in rawClients)
         {
             if (string.IsNullOrWhiteSpace(raw))
+            {
                 continue;
+            }
 
             if (!seen.Add(raw))
+            {
                 continue;
+            }
 
             list.Add(Resolve(raw, aliasService));
         }

@@ -25,9 +25,13 @@ public sealed class ToastService : IToastService
     private static void RunOnUiThread(Action show)
     {
         if (Dispatcher.UIThread.CheckAccess())
+        {
             show();
+        }
         else
+        {
             Dispatcher.UIThread.Post(show);
+        }
     }
 
     public void Success(string title, string message)

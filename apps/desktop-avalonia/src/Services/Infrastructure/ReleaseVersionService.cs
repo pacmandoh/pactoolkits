@@ -35,7 +35,9 @@ public sealed class ReleaseVersionService : IReleaseVersionService
     private static ReleaseVersionInfo? TryLoad(string path)
     {
         if (!File.Exists(path))
+        {
             return null;
+        }
 
         using var stream = File.OpenRead(path);
         using var doc = JsonDocument.Parse(stream);
@@ -94,7 +96,9 @@ public sealed class ReleaseVersionService : IReleaseVersionService
     private static string ReadString(JsonElement elem, string name)
     {
         if (elem.ValueKind != JsonValueKind.Object)
+        {
             return "unknown";
+        }
 
         return elem.TryGetProperty(name, out var value)
             ? value.GetString() ?? "unknown"

@@ -1,4 +1,3 @@
-using System;
 using Npgsql;
 using PacToolkits.Application.Abstractions;
 
@@ -18,7 +17,9 @@ public sealed class PgDataSourceFactory : IPgDataSourceFactory, IDisposable
     public NpgsqlDataSource Get()
     {
         if (_dataSource == null)
+        {
             throw new InvalidOperationException("PostgreSQL 未配置");
+        }
 
         return _dataSource;
     }

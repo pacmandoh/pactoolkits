@@ -22,7 +22,9 @@ public partial class ToolsCenterView : UserControl
     {
         var editor = this.FindControl<Control>("ToolEditorCard");
         if (editor is null)
+        {
             return;
+        }
 
         var inputs = InputFocusHelper.EnumerateInputs(editor, typeof(TextBox));
         InputFocusHelper.TryHandleTabCycle(this, e, inputs);
@@ -50,15 +52,21 @@ public partial class ToolsCenterView : UserControl
             }
 
             if (string.IsNullOrWhiteSpace(targetName))
+            {
                 return;
+            }
 
             var itemsControl = this.FindControl<ItemsControl>(targetName);
             if (itemsControl is null)
+            {
                 return;
+            }
 
             var targetBox = itemsControl.GetVisualDescendants().OfType<TextBox>().LastOrDefault();
             if (targetBox is null)
+            {
                 return;
+            }
 
             targetBox.Focus();
             targetBox.CaretIndex = targetBox.Text?.Length ?? 0;

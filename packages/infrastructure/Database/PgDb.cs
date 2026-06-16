@@ -1,11 +1,7 @@
-using PacToolkits.Application.Abstractions;
-using System;
 using System.Data;
-using System.IO;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 using Npgsql;
+using PacToolkits.Application.Abstractions;
 
 
 namespace PacToolkits.Infrastructure.Database;
@@ -120,18 +116,39 @@ public sealed class PgDb : IDb
 
     private static bool IsTransientDisconnect(Exception ex, CancellationToken ct)
     {
-        if (ct.IsCancellationRequested) return false;
+        if (ct.IsCancellationRequested)
+        {
+            return false;
+        }
 
-        if (ex is NpgsqlException) return true;
-        if (ex is EndOfStreamException) return true;
-        if (ex is IOException) return true;
-        if (ex is SocketException) return true;
+        if (ex is NpgsqlException)
+        {
+            return true;
+        }
+
+        if (ex is EndOfStreamException)
+        {
+            return true;
+        }
+
+        if (ex is IOException)
+        {
+            return true;
+        }
+
+        if (ex is SocketException)
+        {
+            return true;
+        }
 
         var inner = ex.InnerException;
         while (inner is not null)
         {
             if (inner is NpgsqlException or EndOfStreamException or IOException or SocketException)
+            {
                 return true;
+            }
+
             inner = inner.InnerException;
         }
 

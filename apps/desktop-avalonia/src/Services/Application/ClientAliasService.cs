@@ -1,5 +1,4 @@
 using System;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Collections.Generic;
 using PacToolkits.Application.Abstractions;
 
@@ -22,7 +21,10 @@ public sealed class ClientAliasService : IClientAliasService
     public string Resolve(string? machineOrClient)
     {
         var key = (machineOrClient ?? string.Empty).Trim();
-        if (key.Length == 0) return string.Empty;
+        if (key.Length == 0)
+        {
+            return string.Empty;
+        }
 
         var alias = _store.TryGet(key);
         return string.IsNullOrWhiteSpace(alias) ? key : alias;

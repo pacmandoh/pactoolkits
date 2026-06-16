@@ -84,14 +84,20 @@ public static class DbSchemaCompat
     public static string GetRequiredMax(string uiMax, string agentMax)
     {
         if (!TryParseSemVer(uiMax, out var ui) || !TryParseSemVer(agentMax, out var agent))
+        {
             return uiMax;
+        }
+
         return CompareSemVer(ui, agent) <= 0 ? uiMax : agentMax;
     }
 
     public static string GetRequiredMin(string uiMin, string agentMin)
     {
         if (!TryParseSemVer(uiMin, out var ui) || !TryParseSemVer(agentMin, out var agent))
+        {
             return uiMin;
+        }
+
         return CompareSemVer(ui, agent) >= 0 ? uiMin : agentMin;
     }
 
@@ -99,21 +105,47 @@ public static class DbSchemaCompat
     {
         ver = (0, 0, 0);
         if (string.IsNullOrWhiteSpace(value))
+        {
             return false;
+        }
+
         var parts = value.Split('.', StringSplitOptions.TrimEntries);
         if (parts.Length != 3)
+        {
             return false;
-        if (!int.TryParse(parts[0], out var major)) return false;
-        if (!int.TryParse(parts[1], out var minor)) return false;
-        if (!int.TryParse(parts[2], out var patch)) return false;
+        }
+
+        if (!int.TryParse(parts[0], out var major))
+        {
+            return false;
+        }
+
+        if (!int.TryParse(parts[1], out var minor))
+        {
+            return false;
+        }
+
+        if (!int.TryParse(parts[2], out var patch))
+        {
+            return false;
+        }
+
         ver = (major, minor, patch);
         return true;
     }
 
     public static int CompareSemVer((int major, int minor, int patch) left, (int major, int minor, int patch) right)
     {
-        if (left.major != right.major) return left.major.CompareTo(right.major);
-        if (left.minor != right.minor) return left.minor.CompareTo(right.minor);
+        if (left.major != right.major)
+        {
+            return left.major.CompareTo(right.major);
+        }
+
+        if (left.minor != right.minor)
+        {
+            return left.minor.CompareTo(right.minor);
+        }
+
         return left.patch.CompareTo(right.patch);
     }
 
@@ -133,9 +165,14 @@ public static class DbSchemaCompat
             : $"读取失败：{schemaReason ?? "缺少 schema_version 表或版本记录"}\nDesktop 支持范围：{uiMin} - {uiMax}\nAgent 支持范围：{agentMin} - {agentMax}";
 
         if (!string.IsNullOrWhiteSpace(requiredMin))
+        {
             detail += $"\n实际最低门槛：{requiredMin}";
+        }
+
         if (!string.IsNullOrWhiteSpace(requiredMax))
+        {
             detail += $"\n实际最高门槛：{requiredMax}";
+        }
 
         var guidance = schemaOk
                        && TryParseSemVer(schemaValue ?? string.Empty, out var current)

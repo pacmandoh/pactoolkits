@@ -22,9 +22,13 @@ public class DataGridSortResetBehavior
         {
             var enabled = args.NewValue is bool b && b;
             if (enabled)
+            {
                 Attach(grid);
+            }
             else
+            {
                 Detach(grid);
+            }
         });
     }
 
@@ -35,11 +39,15 @@ public class DataGridSortResetBehavior
     private static void Attach(DataGrid grid)
     {
         if (States.ContainsKey(grid))
+        {
             return;
+        }
 
         var state = new BehaviorState(grid);
         if (!States.TryAdd(grid, state))
+        {
             return;
+        }
 
         state.Attach();
     }
@@ -47,7 +55,9 @@ public class DataGridSortResetBehavior
     private static void Detach(DataGrid grid)
     {
         if (!States.TryRemove(grid, out var state))
+        {
             return;
+        }
 
         state.Dispose();
     }
@@ -77,7 +87,9 @@ public class DataGridSortResetBehavior
         public void Dispose()
         {
             if (_disposed)
+            {
                 return;
+            }
 
             _disposed = true;
             _grid.AttachedToVisualTree -= OnAttachedToVisualTree;
@@ -142,7 +154,9 @@ public class DataGridSortResetBehavior
             try
             {
                 foreach (var column in _grid.Columns)
+                {
                     column.ClearSort();
+                }
 
                 var sortDescriptions = _grid.CollectionView?.SortDescriptions;
                 sortDescriptions?.Clear();
@@ -162,10 +176,14 @@ public class DataGridSortResetBehavior
             {
                 var topLeft = FindTopLeftHeader();
                 if (topLeft is null)
+                {
                     return;
+                }
 
                 if (!ReferenceEquals(topLeft.Content, _button))
+                {
                     topLeft.Content = _button;
+                }
             }
 
             TryInstall();
@@ -178,7 +196,9 @@ public class DataGridSortResetBehavior
             foreach (var c in _grid.GetVisualDescendants())
             {
                 if (c is DataGridColumnHeader header && header.Name == "PART_TopLeftCornerHeader")
+                {
                     return header;
+                }
             }
 
             return null;

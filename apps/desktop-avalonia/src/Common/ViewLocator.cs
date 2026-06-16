@@ -1,7 +1,7 @@
+using System.Collections.Generic;
+using CommunityToolkit.Mvvm.ComponentModel;
 using global::Avalonia.Controls;
 using global::Avalonia.Controls.Templates;
-using CommunityToolkit.Mvvm.ComponentModel;
-using System.Collections.Generic;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
@@ -12,8 +12,15 @@ public class ViewLocator(AppViews views) : IDataTemplate
 
     public Control Build(object? param)
     {
-        if (param is Control c) return c;
-        if (param is null) return CreateText("Data is null.");
+        if (param is Control c)
+        {
+            return c;
+        }
+
+        if (param is null)
+        {
+            return CreateText("Data is null.");
+        }
 
         if (param is AppPageBase)
         {

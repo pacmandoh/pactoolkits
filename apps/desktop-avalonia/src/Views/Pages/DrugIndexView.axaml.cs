@@ -1,15 +1,13 @@
-using global::Avalonia.Controls;
-using global::Avalonia.Controls.Primitives;
-using global::Avalonia.Input;
-using global::Avalonia.Interactivity;
 using System;
-using Avalonia;
-using global::Avalonia.Threading;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
-using PacToolkits.Desktop.Avalonia.Common;
 using System.Collections.Generic;
 using System.Linq;
+using global::Avalonia.Controls;
+using global::Avalonia.Input;
+using global::Avalonia.Interactivity;
+using global::Avalonia.Threading;
+using Microsoft.Extensions.DependencyInjection;
+using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
@@ -36,7 +34,9 @@ public partial class DrugIndexView : UserControl
     private void DrugIndexSearchBox_OnKeyUp(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter)
+        {
             return;
+        }
 
         InputFocusHelper.FocusControlByName(this, "DrugIndexSearchButton", DispatcherPriority.Background);
     }
@@ -44,11 +44,15 @@ public partial class DrugIndexView : UserControl
     private void OnEditorAreaKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Tab && e.Key != Key.Enter)
+        {
             return;
+        }
 
         var editorCard = this.FindControl<Control>("EditorCard");
         if (editorCard is null)
+        {
             return;
+        }
 
         var inputs = EnumerateEditorInputs(editorCard).ToList();
         InputFocusHelper.TryHandleTabCycle(this, e, inputs);
@@ -59,7 +63,11 @@ public partial class DrugIndexView : UserControl
 
     public async void OnGridRowCopy(object? sender, RoutedEventArgs e)
     {
-        if (sender is not MenuItem mi) return;
+        if (sender is not MenuItem mi)
+        {
+            return;
+        }
+
         await GridContextMenuActions.CopySafeAsync(
             _clipboard,
             this,
@@ -74,7 +82,11 @@ public partial class DrugIndexView : UserControl
 
     public void OnGridSelectAll(object? sender, RoutedEventArgs e)
     {
-        if (sender is not MenuItem mi) return;
+        if (sender is not MenuItem mi)
+        {
+            return;
+        }
+
         GridContextMenuActions.SelectAllSafe(
             this,
             mi,
@@ -87,28 +99,46 @@ public partial class DrugIndexView : UserControl
 
     public void OnGridToggleDeprecated(object? sender, RoutedEventArgs e)
     {
-        if (sender is not MenuItem mi) return;
+        if (sender is not MenuItem mi)
+        {
+            return;
+        }
+
         var rowItem = mi.CommandParameter;
-        if (rowItem is null) return;
+        if (rowItem is null)
+        {
+            return;
+        }
 
         var grid = this.FindControl<DataGrid>("DrugGrid");
-        if (grid is not null) grid.SelectedItem = rowItem;
+        grid?.SelectedItem = rowItem;
 
         if (DataContext is PacToolkits.Desktop.Avalonia.ViewModels.Pages.DrugIndexViewModel vm)
+        {
             vm.ToggleDeprecatedCommand.Execute(null);
+        }
     }
 
     public void OnGridToggleNoSplit(object? sender, RoutedEventArgs e)
     {
-        if (sender is not MenuItem mi) return;
+        if (sender is not MenuItem mi)
+        {
+            return;
+        }
+
         var rowItem = mi.CommandParameter;
-        if (rowItem is null) return;
+        if (rowItem is null)
+        {
+            return;
+        }
 
         var grid = this.FindControl<DataGrid>("DrugGrid");
-        if (grid is not null) grid.SelectedItem = rowItem;
+        grid?.SelectedItem = rowItem;
 
         if (DataContext is PacToolkits.Desktop.Avalonia.ViewModels.Pages.DrugIndexViewModel vm)
+        {
             vm.ToggleNoSplitCommand.Execute(null);
+        }
     }
 
 }

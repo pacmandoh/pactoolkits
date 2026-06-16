@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Data.Converters;
 using global::Avalonia.Media;
@@ -27,7 +26,9 @@ internal static class ConverterHelpers
     public static TxnBadge NormalizeTxnBadge(object? value)
     {
         if (value is TxnBadge b)
+        {
             return b;
+        }
 
         if (value is TxnStatus s)
         {
@@ -47,13 +48,20 @@ internal static class ConverterHelpers
     {
         var app = global::Avalonia.Application.Current;
         if (app == null)
+        {
             return fallback;
+        }
 
         var variant = app.ActualThemeVariant;
         if (app.TryFindResource(key, variant, out var v) && v is IBrush b)
+        {
             return b;
+        }
+
         if (variant != ThemeVariant.Default && app.TryFindResource(key, ThemeVariant.Default, out var v2) && v2 is IBrush b2)
+        {
             return b2;
+        }
 
         return fallback;
     }
@@ -62,13 +70,20 @@ internal static class ConverterHelpers
     {
         var app = global::Avalonia.Application.Current;
         if (app == null)
+        {
             return fallback;
+        }
 
         var variant = app.ActualThemeVariant;
         if (TryReadColor(app, key, variant, out var color))
+        {
             return color;
+        }
+
         if (variant != ThemeVariant.Default && TryReadColor(app, key, ThemeVariant.Default, out color))
+        {
             return color;
+        }
 
         return fallback;
     }
@@ -76,9 +91,15 @@ internal static class ConverterHelpers
     public static int ParseLevel(object? parameter, int defaultLevel)
     {
         if (parameter is int i)
+        {
             return i;
+        }
+
         if (parameter is string s && int.TryParse(s, out var j))
+        {
             return j;
+        }
+
         return defaultLevel;
     }
 
@@ -145,7 +166,9 @@ internal static class ConverterHelpers
     public static IBrush GetPrimaryTintBrush(int level)
     {
         if (level <= 15)
+        {
             return Brushes.Transparent;
+        }
 
         var opacity = level switch
         {
@@ -156,11 +179,15 @@ internal static class ConverterHelpers
 
         var color = FindAppColor("SukiPrimaryColor", Colors.Transparent);
         if (color.A == 0 && color.R == 0 && color.G == 0 && color.B == 0)
+        {
             return Brushes.Transparent;
+        }
 
         var key = (color, opacity);
         if (PrimaryTintBrushCache.TryGetValue(key, out var cached))
+        {
             return cached;
+        }
 
         var brush = new SolidColorBrush(color, opacity);
         PrimaryTintBrushCache[key] = brush;
@@ -246,7 +273,9 @@ public sealed class RowStateToBgBrushConverter : IValueConverter
         };
 
         if (key != null)
+        {
             return ConverterHelpers.FindAppBrush(key, Brushes.Transparent);
+        }
 
         return ConverterHelpers.GetPrimaryTintBrush(level);
     }
@@ -308,7 +337,9 @@ public sealed class LowStockToBgBrushConverter : IValueConverter
         };
 
         if (isDeprecated)
+        {
             return ConverterHelpers.FindAppBrush($"BrushPurpleBg{level}", Brushes.Transparent);
+        }
 
         var isLow = value switch
         {
@@ -322,7 +353,9 @@ public sealed class LowStockToBgBrushConverter : IValueConverter
         };
 
         if (isLow)
+        {
             return ConverterHelpers.FindAppBrush($"BrushDangerBg{level}", Brushes.Transparent);
+        }
 
         return ConverterHelpers.GetPrimaryTintBrush(level);
     }
@@ -377,7 +410,9 @@ public sealed class CellCurrentBorderBrushConverter : IValueConverter
         {
             var c = solid.Color;
             if (c.A == 0)
+            {
                 return ConverterHelpers.FindAppBrush("SukiPrimaryColor", Brushes.White);
+            }
 
             static byte Mix(byte baseCh, byte to, double factor)
                 => (byte)Math.Clamp((int)Math.Round(baseCh + ((to - baseCh) * factor)), 0, 255);

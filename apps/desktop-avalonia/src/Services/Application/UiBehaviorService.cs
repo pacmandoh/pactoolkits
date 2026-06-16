@@ -1,7 +1,7 @@
 using System;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Threading;
 using System.Threading.Tasks;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 

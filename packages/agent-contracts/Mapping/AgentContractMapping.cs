@@ -32,7 +32,9 @@ public static class AgentContractMapping
     public static IReadOnlyList<AgentWindowTarget> ToWindowTargets(AgentToolOptions agent)
     {
         if (agent.AppWin is null || agent.AppWin.Count == 0)
+        {
             return Array.Empty<AgentWindowTarget>();
+        }
 
         return agent.AppWin
             .Select(kv => new AgentWindowTarget(kv.Key, kv.Value, agent.OptWindowClass))

@@ -32,7 +32,9 @@ public static class AutoCompleteHelper
         Action? applyAction)
     {
         if (sender is not AutoCompleteBox box || e.Key != Key.Enter)
+        {
             return false;
+        }
 
         e.Handled = true;
         Dispatcher.UIThread.Post(() =>
@@ -40,7 +42,9 @@ public static class AutoCompleteHelper
             InputFocusHelper.CommitAutoCompleteInput(box);
             applyAction?.Invoke();
             if (!string.IsNullOrWhiteSpace(nextControlName))
+            {
                 InputFocusHelper.FocusControlByName(owner, nextControlName);
+            }
         }, DispatcherPriority.Input);
         return true;
     }
@@ -53,16 +57,23 @@ public static class AutoCompleteHelper
         Func<AutoCompleteBox, Task>? applyAsync)
     {
         if (sender is not AutoCompleteBox box || e.Key != Key.Enter)
+        {
             return false;
+        }
 
         e.Handled = true;
         Dispatcher.UIThread.Post(async () =>
         {
             InputFocusHelper.CommitAutoCompleteInput(box);
             if (applyAsync is not null)
+            {
                 await applyAsync(box);
+            }
+
             if (!string.IsNullOrWhiteSpace(nextControlName))
+            {
                 InputFocusHelper.FocusControlByName(owner, nextControlName);
+            }
         }, DispatcherPriority.Input);
         return true;
     }

@@ -1,15 +1,15 @@
 using System;
-using PacToolkits.Application.DTOs;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Integration;
 
@@ -57,13 +57,24 @@ public sealed class MsfxApiClient : IMsfxApiClient
         var methodName = (method ?? string.Empty).Trim();
 
         if (string.IsNullOrWhiteSpace(gateway))
+        {
             return Fail("网关地址不能为空");
+        }
+
         if (string.IsNullOrWhiteSpace(appKey))
+        {
             return Fail("AppKey 不能为空");
+        }
+
         if (string.IsNullOrWhiteSpace(appSecret))
+        {
             return Fail("AppSecret 不能为空");
+        }
+
         if (string.IsNullOrWhiteSpace(methodName))
+        {
             return Fail("接口方法名不能为空");
+        }
 
         var parameters = BuildSignedParameters(
             appKey: appKey,
@@ -116,7 +127,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }, ct).ConfigureAwait(false);
 
         if (!call.Ok)
+        {
             return new MsfxListUpoutResult(call, 0, Array.Empty<MsfxListUpoutItem>());
+        }
 
         var items = new List<MsfxListUpoutItem>();
         var total = 0L;
@@ -125,24 +138,36 @@ public sealed class MsfxApiClient : IMsfxApiClient
             using var doc = JsonDocument.Parse(call.ResponseText);
             var response = GetTopResponseNode(doc.RootElement);
             if (response.ValueKind == JsonValueKind.Undefined)
+            {
                 return new MsfxListUpoutResult(call, 0, Array.Empty<MsfxListUpoutItem>());
+            }
 
             var result = GetPropertyOrDefault(response, "result");
             var model = GetPropertyOrDefault(result, "model");
             total = GetInt64(model, "total_num");
             var resultList = GetPropertyOrDefault(model, "result_list");
             if (resultList.ValueKind == JsonValueKind.Undefined)
+            {
                 resultList = GetPropertyOrDefault(model, "resultList");
+            }
+
             if (resultList.ValueKind == JsonValueKind.Undefined)
+            {
                 resultList = GetPropertyOrDefault(model, "bill_up_out_detail_do_list");
+            }
+
             if (resultList.ValueKind == JsonValueKind.Undefined)
+            {
                 resultList = GetPropertyOrDefault(model, "rows");
+            }
             // Some responses wrap rows as: result_list.bill_up_out_detail_do[]
             if (resultList.ValueKind == JsonValueKind.Object)
             {
                 var wrapped = GetPropertyOrDefault(resultList, "bill_up_out_detail_do");
                 if (wrapped.ValueKind == JsonValueKind.Array)
+                {
                     resultList = wrapped;
+                }
             }
             if (resultList.ValueKind == JsonValueKind.Array)
             {
@@ -201,7 +226,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }, ct).ConfigureAwait(false);
 
         if (!call.Ok)
+        {
             return new MsfxListUpoutDetailResult(call, request.BillCode, Array.Empty<MsfxDrugDetailItem>(), Array.Empty<string>(), string.Empty);
+        }
 
         var drugs = new List<MsfxDrugDetailItem>();
         try
@@ -209,7 +236,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
             using var doc = JsonDocument.Parse(call.ResponseText);
             var response = GetTopResponseNode(doc.RootElement);
             if (response.ValueKind == JsonValueKind.Undefined)
+            {
                 return new MsfxListUpoutDetailResult(call, request.BillCode, Array.Empty<MsfxDrugDetailItem>(), Array.Empty<string>(), string.Empty);
+            }
 
             var result = GetPropertyOrDefault(response, "result");
             var model = GetPropertyOrDefault(result, "model");
@@ -218,7 +247,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
             {
                 var wrapped = GetPropertyOrDefault(drugList, "drug_infos_dto");
                 if (wrapped.ValueKind == JsonValueKind.Array)
+                {
                     drugList = wrapped;
+                }
             }
             if (drugList.ValueKind == JsonValueKind.Array)
             {
@@ -230,7 +261,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
                     {
                         var wrapped = GetPropertyOrDefault(codeList, "code_info_list_dto");
                         if (wrapped.ValueKind == JsonValueKind.Array)
+                        {
                             codeList = wrapped;
+                        }
                     }
                     if (codeList.ValueKind == JsonValueKind.Array)
                     {
@@ -238,7 +271,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
                         {
                             var codeValue = GetString(code, "code");
                             if (string.IsNullOrWhiteSpace(codeValue))
+                            {
                                 continue;
+                            }
 
                             traceCodes.Add(new MsfxTraceCodeItem(
                                 Code: codeValue,
@@ -277,7 +312,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
                 ct).ConfigureAwait(false);
 
             foreach (var code in minimalCodes)
+            {
                 minimalCodeSet.Add(code.Code);
+            }
 
             normalizedDrugs.Add(drug with { TraceCodes = minimalCodes });
         }
@@ -330,7 +367,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
         foreach (var c in seedCodes)
         {
             if (!IsCandidateTraceCode(c.Code))
+            {
                 continue;
+            }
 
             seedSet.Add(c.Code);
             var level = ParseLevel(c.CodeLevel);
@@ -346,7 +385,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }
 
         if (seedSet.Count == 0)
+        {
             throw new InvalidOperationException($"[{errEmptySeed}] 未找到可下钻追溯码种子");
+        }
 
         var frontier = seedSet
             .Where(code => !seedLevel.TryGetValue(code, out var level) || level is null || level > 1)
@@ -379,21 +420,29 @@ public sealed class MsfxApiClient : IMsfxApiClient
                 foreach (var code in rel.LevelOneCodes)
                 {
                     if (IsCandidateTraceCode(code))
+                    {
                         levelOneCodes.Add(code);
+                    }
                 }
 
                 foreach (var parent in batch)
                 {
                     if (!rel.ChildrenMap.TryGetValue(parent, out var children) || children.Count == 0)
+                    {
                         continue;
+                    }
 
                     foreach (var child in children)
                     {
                         if (!IsCandidateTraceCode(child) || string.Equals(child, parent, StringComparison.Ordinal))
+                        {
                             continue;
+                        }
 
                         if (!parentMap.ContainsKey(child))
+                        {
                             parentMap[child] = parent;
+                        }
 
                         var parentLevel = resolvedLevel.TryGetValue(parent, out var pLv)
                             ? pLv
@@ -420,9 +469,13 @@ public sealed class MsfxApiClient : IMsfxApiClient
 
                         if (rel.LevelOneCodes.Contains(child) ||
                             (resolvedLevel.TryGetValue(child, out var childLevel) && childLevel == 1))
+                        {
                             minimalCodes.Add(child);
+                        }
                         else if (seen.Add(child))
+                        {
                             next.Add(child);
+                        }
                     }
                 }
             }
@@ -477,7 +530,10 @@ public sealed class MsfxApiClient : IMsfxApiClient
         for (var i = 0; i < 16; i++)
         {
             if (!parentMap.TryGetValue(current, out var p) || string.IsNullOrWhiteSpace(p))
+            {
                 break;
+            }
+
             chain.Add(p);
             current = p;
         }
@@ -493,7 +549,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
         {
             var level = start + i;
             if (level > 5)
+            {
                 break;
+            }
 
             var code = chain[i];
             switch (level)
@@ -550,7 +608,10 @@ public sealed class MsfxApiClient : IMsfxApiClient
                 ? relationCall.Summary
                 : $"{relationCall.BizCode}: {relationCall.BizMessage}";
             if (!string.IsNullOrWhiteSpace(errorHint))
+            {
                 relationErrors.Add(errorHint);
+            }
+
             return new RelationBatchResult(
                 new Dictionary<string, HashSet<string>>(StringComparer.Ordinal),
                 new Dictionary<string, int>(StringComparer.Ordinal),
@@ -566,7 +627,10 @@ public sealed class MsfxApiClient : IMsfxApiClient
     private static void AppendRelationTrace(List<string> traces, MsfxApiCallResult call)
     {
         if (string.IsNullOrWhiteSpace(call.RequestTrace))
+        {
             return;
+        }
+
         traces.Add(call.RequestTrace.TrimEnd());
     }
 
@@ -658,14 +722,18 @@ public sealed class MsfxApiClient : IMsfxApiClient
             }
             if (parentSet.Contains(parent) && IsCandidateTraceCode(c1) &&
                 !string.Equals(parent, c1, StringComparison.Ordinal))
+            {
                 AddRelationChild(map, parent, c1);
+            }
 
             var self = code;
             if (parentSet.Contains(self))
             {
                 var c2 = GetStringAny(node, "child_code", "childCode", "ChildCode", "sub_code", "to_code", "des_code", "target_code");
                 if (IsCandidateTraceCode(c2) && !string.Equals(self, c2, StringComparison.Ordinal))
+                {
                     AddRelationChild(map, self, c2);
+                }
             }
 
             foreach (var p in node.EnumerateObject())
@@ -679,7 +747,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
         if (node.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in node.EnumerateArray())
+            {
                 WalkRelationChildren(item, parentSet, map);
+            }
         }
     }
 
@@ -696,14 +766,19 @@ public sealed class MsfxApiClient : IMsfxApiClient
             }
 
             foreach (var p in node.EnumerateObject())
+            {
                 WalkRelationCodeLevels(p.Value, levels);
+            }
+
             return;
         }
 
         if (node.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in node.EnumerateArray())
+            {
                 WalkRelationCodeLevels(item, levels);
+            }
         }
     }
 
@@ -716,18 +791,25 @@ public sealed class MsfxApiClient : IMsfxApiClient
             {
                 var code = GetStringAny(node, "code", "Code", "child_code", "childCode", "sub_code", "trace_code", "traceCode", "drug_trace_code");
                 if (IsCandidateTraceCode(code))
+                {
                     output.Add(code);
+                }
             }
 
             foreach (var p in node.EnumerateObject())
+            {
                 WalkRelationLevelOneCodes(p.Value, output);
+            }
+
             return;
         }
 
         if (node.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in node.EnumerateArray())
+            {
                 WalkRelationLevelOneCodes(item, output);
+            }
         }
     }
 
@@ -750,14 +832,19 @@ public sealed class MsfxApiClient : IMsfxApiClient
         };
 
         if (!string.IsNullOrWhiteSpace(session))
+        {
             parameters["session"] = session;
+        }
 
         foreach (var kv in bizParams)
         {
             var key = (kv.Key ?? string.Empty).Trim();
             var value = (kv.Value ?? string.Empty).Trim();
             if (key.Length == 0 || value.Length == 0)
+            {
                 continue;
+            }
+
             parameters[key] = value;
         }
 
@@ -783,11 +870,15 @@ public sealed class MsfxApiClient : IMsfxApiClient
 
             var response = GetTopResponseNode(root);
             if (response.ValueKind == JsonValueKind.Undefined)
+            {
                 return ("", "", false);
+            }
 
             var result = GetPropertyOrDefault(response, "result");
             if (result.ValueKind == JsonValueKind.Undefined)
+            {
                 return ("", "", true);
+            }
 
             var msgCode = GetString(result, "msg_code");
             var msgInfo = GetString(result, "msg_info");
@@ -797,7 +888,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
                 : TryGetBool(result, "success", out var success) && success;
 
             if (!ok && string.IsNullOrWhiteSpace(msgCode) && string.IsNullOrWhiteSpace(msgInfo))
+            {
                 return ("", "", false);
+            }
 
             return (msgCode, msgInfo, ok || string.IsNullOrWhiteSpace(msgCode));
         }
@@ -832,7 +925,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
 
         var hex = new StringBuilder(hash.Length * 2);
         foreach (var b in hash)
+        {
             hex.Append(b.ToString("X2", CultureInfo.InvariantCulture));
+        }
 
         return hex.ToString();
     }
@@ -843,16 +938,25 @@ public sealed class MsfxApiClient : IMsfxApiClient
     private static string ParseRequestId(string body)
     {
         if (string.IsNullOrWhiteSpace(body))
+        {
             return string.Empty;
+        }
+
         try
         {
             using var doc = JsonDocument.Parse(body);
             var response = GetTopResponseNode(doc.RootElement);
             if (response.ValueKind == JsonValueKind.Undefined)
+            {
                 return string.Empty;
+            }
+
             var rid = GetString(response, "request_id");
             if (!string.IsNullOrWhiteSpace(rid))
+            {
                 return rid.Trim();
+            }
+
             rid = GetString(response, "requestId");
             return rid?.Trim() ?? string.Empty;
         }
@@ -921,7 +1025,9 @@ public sealed class MsfxApiClient : IMsfxApiClient
         {
             var value = GetString(node, name);
             if (!string.IsNullOrWhiteSpace(value))
+            {
                 return value;
+            }
         }
 
         return string.Empty;
@@ -931,7 +1037,10 @@ public sealed class MsfxApiClient : IMsfxApiClient
     {
         var value = GetPropertyOrDefault(node, name);
         if (value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var num))
+        {
             return num;
+        }
+
         if (value.ValueKind == JsonValueKind.String &&
             long.TryParse(value.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
         {
@@ -970,19 +1079,26 @@ public sealed class MsfxApiClient : IMsfxApiClient
     private static int? ParseLevel(string raw)
     {
         if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var level))
+        {
             return level;
+        }
+
         return null;
     }
 
     private static bool IsCandidateTraceCode(string code)
     {
         if (string.IsNullOrWhiteSpace(code) || code.Length != 20)
+        {
             return false;
+        }
 
         for (var i = 0; i < code.Length; i++)
         {
             if (!char.IsDigit(code[i]))
+            {
                 return false;
+            }
         }
 
         return code[0] == '8';

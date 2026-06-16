@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Npgsql;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
@@ -46,7 +42,10 @@ public sealed class DashboardRepo : IDashboardRepo
             var list = new List<string>();
             await using var reader = await cmd.ExecuteReaderAsync(token);
             while (await reader.ReadAsync(token))
+            {
                 list.Add(reader.GetString(0));
+            }
+
             return (IReadOnlyList<string>)list;
         }, ct);
 
@@ -275,7 +274,9 @@ public sealed class DashboardRepo : IDashboardRepo
 
             await using var reader = await cmd.ExecuteReaderAsync(token);
             if (!await reader.ReadAsync(token))
+            {
                 return new DashboardKpiDto(0, 0, 0, 0, 0, 0, 0, null, null);
+            }
 
             return new DashboardKpiDto(
                 AvailableRemain: reader.GetInt64(0),
@@ -560,7 +561,10 @@ public sealed class DashboardRepo : IDashboardRepo
             var list = new List<string>();
             await using var reader = await cmd.ExecuteReaderAsync(token);
             while (await reader.ReadAsync(token))
+            {
                 list.Add(reader.GetString(0));
+            }
+
             return (IReadOnlyList<string>)list;
         }, ct);
 
@@ -582,7 +586,10 @@ public sealed class DashboardRepo : IDashboardRepo
             var list = new List<string>();
             await using var reader = await cmd.ExecuteReaderAsync(token);
             while (await reader.ReadAsync(token))
+            {
                 list.Add(reader.GetString(0));
+            }
+
             return (IReadOnlyList<string>)list;
         }, ct);
 
@@ -705,7 +712,10 @@ public sealed class DashboardRepo : IDashboardRepo
     {
         var p = q.GetType().GetProperty("TrendMetric");
         if (p?.GetValue(q) is { } v)
+        {
             return v is int i ? i : Convert.ToInt32(v);
+        }
+
         return 0;
     }
 
@@ -721,11 +731,17 @@ public sealed class DashboardRepo : IDashboardRepo
 
     private string FormatClient(string raw)
     {
-        if (string.IsNullOrWhiteSpace(raw)) return raw;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return raw;
+        }
 
         var ci = ClientParser.Parse(raw);
         var machine = (ci.Machine ?? raw).Trim();
-        if (machine.Length == 0) return raw;
+        if (machine.Length == 0)
+        {
+            return raw;
+        }
 
         var display = _alias.Resolve(machine);
         return string.IsNullOrWhiteSpace(display) ? machine : display;

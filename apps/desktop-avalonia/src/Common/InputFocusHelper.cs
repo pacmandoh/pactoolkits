@@ -16,7 +16,9 @@ public static class InputFocusHelper
         while (current is not null)
         {
             if (current is T typed)
+            {
                 return typed;
+            }
 
             current = (current as StyledElement)?.Parent;
         }
@@ -33,12 +35,16 @@ public static class InputFocusHelper
         {
             var current = stack.Pop();
             if (current is T hit)
+            {
                 return hit;
+            }
 
             foreach (var child in current.GetVisualChildren())
             {
                 if (child is Control controlChild)
+                {
                     stack.Push(controlChild);
+                }
             }
         }
 
@@ -51,7 +57,9 @@ public static class InputFocusHelper
 
         var tb = FindDescendant<TextBox>(box);
         if (tb is null)
+        {
             return;
+        }
 
         CommitTextInput(tb);
     }
@@ -79,10 +87,14 @@ public static class InputFocusHelper
     public static bool TryHandleTabCycle(Control host, KeyEventArgs e, IReadOnlyList<Control> inputs)
     {
         if ((e.Key != Key.Tab && e.Key != Key.Enter) || inputs.Count == 0)
+        {
             return false;
+        }
 
         if (TopLevel.GetTopLevel(host)?.FocusManager?.GetFocusedElement() is not Control focused)
+        {
             return false;
+        }
 
         var idx = -1;
         for (var i = 0; i < inputs.Count; i++)
@@ -94,7 +106,9 @@ public static class InputFocusHelper
             }
         }
         if (idx < 0)
+        {
             return false;
+        }
 
         var backward = e.Key == Key.Tab &&
                        (e.KeyModifiers & KeyModifiers.Shift) == KeyModifiers.Shift;
@@ -108,7 +122,9 @@ public static class InputFocusHelper
     public static IReadOnlyList<Control> EnumerateInputs(Control root, params System.Type[] allowedTypes)
     {
         if (allowedTypes.Length == 0)
+        {
             return [];
+        }
 
         return root.GetVisualDescendants()
             .OfType<Control>()
@@ -122,7 +138,9 @@ public static class InputFocusHelper
         for (var i = 0; i < allowedTypes.Count; i++)
         {
             if (allowedTypes[i].IsInstanceOfType(control))
+            {
                 return true;
+            }
         }
 
         return false;
@@ -131,13 +149,17 @@ public static class InputFocusHelper
     private static TextBox? ResolveTextBox(Control control)
     {
         if (control is TextBox tb)
+        {
             return tb;
+        }
 
         var current = control as StyledElement;
         while (current is not null)
         {
             if (current is TextBox owner)
+            {
                 return owner;
+            }
 
             current = current.Parent;
         }
@@ -153,11 +175,15 @@ public static class InputFocusHelper
         {
             var top = TopLevel.GetTopLevel(target);
             if (top?.FocusManager?.GetFocusedElement() is not Control focused)
+            {
                 return;
+            }
 
             var tb = ResolveTextBox(focused) ?? focused.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
             if (tb is null)
+            {
                 return;
+            }
 
             var end = tb.Text?.Length ?? 0;
             tb.CaretIndex = end;

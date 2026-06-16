@@ -8,11 +8,15 @@ public static class ReleaseChannelSwitchAuthorization
     {
         var target = NormalizeChannel(targetChannel);
         if (string.IsNullOrWhiteSpace(installedChannel))
+        {
             return true;
+        }
 
         var installed = NormalizeChannel(installedChannel);
         if (string.Equals(target, installed, StringComparison.Ordinal))
+        {
             return true;
+        }
 
         var validated = NormalizeOptionalChannel(validatedChannel);
         return !string.IsNullOrWhiteSpace(validated)
@@ -36,7 +40,9 @@ public static class ReleaseChannelSwitchAuthorization
     private static string NormalizeOptionalChannel(string? channel)
     {
         if (string.IsNullOrWhiteSpace(channel))
+        {
             return string.Empty;
+        }
 
         var normalized = channel.Trim().ToLowerInvariant();
         return normalized is "stable" or "beta" ? normalized : string.Empty;

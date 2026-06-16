@@ -1,12 +1,6 @@
-using System;
-using PacToolkits.Application.Abstractions;
-using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 using Npgsql;
-
-using PacToolkits.Infrastructure.Database;
+using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Infrastructure.Database;
 
@@ -187,7 +181,9 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
             }
 
             if (shouldEmit)
+            {
                 TopicChanged?.Invoke(topic);
+            }
         }
     }
 
@@ -206,10 +202,18 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
-                if (reader.IsDBNull(0) || reader.IsDBNull(1)) continue;
+                if (reader.IsDBNull(0) || reader.IsDBNull(1))
+                {
+                    continue;
+                }
+
                 var topic = reader.GetString(0);
                 var version = reader.GetInt64(1);
-                if (string.IsNullOrWhiteSpace(topic)) continue;
+                if (string.IsNullOrWhiteSpace(topic))
+                {
+                    continue;
+                }
+
                 list.Add((topic, version));
             }
 
