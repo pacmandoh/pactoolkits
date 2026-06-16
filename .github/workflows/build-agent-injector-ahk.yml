@@ -142,11 +142,12 @@ jobs:
           if (-not (Test-Path $compiler)) { throw "Ahk2Exe.exe not found: $compiler" }
           if (-not $base64) { throw "AutoHotkey64.exe not found under C:\Program Files\AutoHotkey." }
 
-          $agentDirPath = (Resolve-Path "runtime/agents/injector-ahk").Path
+          $workspace = $env:GITHUB_WORKSPACE
+          $agentDirPath = (Resolve-Path (Join-Path $workspace "runtime/agents/injector-ahk")).Path
           $mainScript = Join-Path $agentDirPath "main.ahk"
           if (-not (Test-Path $mainScript)) { throw "AHK entry script not found: $mainScript" }
           $entryPath = Join-Path $agentDirPath "__ci_compile_entry__.ahk"
-          $stagingDir = "artifacts/agents/agent-injector-ahk/win-x64"
+          $stagingDir = Join-Path $workspace "artifacts/agents/agent-injector-ahk/win-x64"
           New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
           $outExe = Join-Path $stagingDir "pactoolkits-injector.exe"
           $iconCandidates = @(
@@ -175,10 +176,13 @@ jobs:
               ('/in "{0}"' -f $entryPath),
               ('/out "{0}"' -f $outExe),
               ('/icon "{0}"' -f $iconPath),
-              ('/base "{0}"' -f $base64)
+              ('/base "{0}"' -f $base64),
+              '/silent'
             ) -join " "
             Write-Host ("Ahk2Exe args: " + $argLine)
-            # Ahk2Exe is a GUI tool; do not redirect stdout/stderr or Start-Process can hang.
+            Write-Host ("Ahk2Exe working directory: " + $compilerDir)
+            Write-Host ("Expected output: " + $outExe)
+            # Ahk2Exe is a GUI tool: use /silent for headless CI and absolute /out (main uses workspace paths).
             $proc = Start-Process -FilePath $compiler -ArgumentList $argLine -WorkingDirectory $compilerDir -PassThru -Wait
             if ($null -ne $proc.ExitCode -and $proc.ExitCode -ne 0) {
               throw "Ahk2Exe exited with code $($proc.ExitCode)"
