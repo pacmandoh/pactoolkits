@@ -4,6 +4,7 @@
   <Thickness x:Key="SectionCardPadding">18</Thickness>
 
   <x:Double x:Key="ControlHeightCompact">38</x:Double>
+  <x:Double x:Key="FilterFieldComboBoxHeight">42</x:Double>
   <Thickness x:Key="CompactPadding">10,8</Thickness>
   <Thickness x:Key="FilterHintCardPadding">12,10</Thickness>
   <Thickness x:Key="ScanCodeHeroCardPadding">16,14</Thickness>
@@ -84,8 +85,10 @@
   <x:Double x:Key="NavItemsSpacing">10</x:Double>
   <x:Double x:Key="LegendDotSize">10</x:Double>
   <x:Double x:Key="ShellNavIconSize">17</x:Double>
-  <x:Double x:Key="SidebarMenuIconSize">16</x:Double>
-  <x:Double x:Key="SidebarCompactIconSize">15</x:Double>
+  <x:Double x:Key="SidebarMenuIconSize">18</x:Double>
+  <x:Double x:Key="SidebarMenuIconStroke">2.0</x:Double>
+  <x:Double x:Key="SidebarCompactIconSize">17</x:Double>
+  <x:Double x:Key="SidebarCompactIconStroke">2.0</x:Double>
   <x:Double x:Key="SidebarCompactActionWidth">85</x:Double>
   <x:Double x:Key="SidebarCompactActionHeight">54</x:Double>
 
@@ -123,6 +126,8 @@
   <CornerRadius x:Key="DashboardTabItemRadius">8</CornerRadius>
   <Thickness x:Key="DashboardTabItemMargin">2,3,2,3</Thickness>
   <x:Double x:Key="DashboardTabDividerHeight">14</x:Double>
+  <x:Double x:Key="DashboardTabIconSize">14</x:Double>
+  <x:Double x:Key="DashboardTabIconStroke">2.25</x:Double>
   <Thickness x:Key="DashboardTabDividerMargin">6,0,6,0</Thickness>
   <Thickness x:Key="DgCellHighlightMargin">1</Thickness>
   <Thickness x:Key="DgCellHighlightBorder">1</Thickness>
