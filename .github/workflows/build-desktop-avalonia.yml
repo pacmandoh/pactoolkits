@@ -10,7 +10,7 @@ permissions:
 jobs:
   build_desktop_avalonia:
     name: Build Desktop Avalonia
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: '1'
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
@@ -26,7 +26,7 @@ jobs:
       - name: Cache NuGet packages
         uses: actions/cache@v5
         with:
-          path: ~\.nuget\packages
+          path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.sln', '**/*.csproj', '**/Directory.Packages.props', '**/NuGet.Config', 'global.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
@@ -39,35 +39,38 @@ jobs:
           ./scripts/check-version.sh
 
       - name: Read release manifest
-        shell: pwsh
+        shell: bash
         run: |
-          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
-          $desktopVersion = $manifest.components.desktop.version
-          if ($desktopVersion -notmatch '^\d+\.\d+\.\d+$') {
-            throw "Invalid desktop version in release-manifest.json: $desktopVersion"
-          }
-          "DESKTOP_VERSION=$desktopVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          set -euo pipefail
+          # shellcheck source=manifest-v2.sh
+          source scripts/manifest-v2.sh
+          validate_manifest_v2 release-manifest.json
+          echo "DESKTOP_VERSION=$(manifest_desktop_version release-manifest.json)" >> "$GITHUB_ENV"
 
       - name: Publish desktop
-        shell: pwsh
+        shell: bash
         run: |
           dotnet publish apps/desktop-avalonia/src/PacToolkits.Desktop.Avalonia.csproj -c Release -f net10.0 -r win-x64 --self-contained false
 
       - name: Validate publish output
-        shell: pwsh
+        shell: bash
         run: |
-          $publishDir = "apps/desktop-avalonia/src/bin/Release/net10.0/win-x64/publish"
-          $requiredFiles = @(
-            "pactoolkits-desktop.exe",
-            "Sql/Bootstrap/000_init_meta.sql",
-            "Sql/Verify/01_structure.sql",
-            "Sql/Verify/02_constraints.sql",
+          set -euo pipefail
+          publish_dir="apps/desktop-avalonia/src/bin/Release/net10.0/win-x64/publish"
+          required_files=(
+            "pactoolkits-desktop.exe"
+            "Sql/Bootstrap/000_init_meta.sql"
+            "Sql/Verify/01_structure.sql"
+            "Sql/Verify/02_constraints.sql"
             "Sql/Verify/03_schema_version.sql"
           )
-          foreach ($file in $requiredFiles) {
-            $path = Join-Path $publishDir $file
-            if (-not (Test-Path $path)) { throw "Required publish output missing: $path" }
-          }
+          for file in "${required_files[@]}"; do
+            path="$publish_dir/$file"
+            [[ -f "$path" ]] || {
+              echo "Required publish output missing: $path" >&2
+              exit 1
+            }
+          done
 
       - name: Upload desktop publish artifact
         uses: actions/upload-artifact@v7

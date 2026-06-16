@@ -229,6 +229,28 @@ cp "$stable_fixture_manifest" "$database_policy_base_manifest"
   --base-manifest "$database_policy_base_manifest" \
   --allow-beta-migration false >/dev/null
 
+beta_db_follow_main_manifest="$(mktemp)"
+jq '
+  .release.channel = "beta" |
+  .product.version = "0.18.0-beta.1" |
+  .components.desktop.version = "0.18.0-beta.1" |
+  .components["database-postgres"].migrationPolicy = "stable-only"
+' "$stable_fixture_manifest" > "$beta_db_follow_main_manifest"
+./scripts/validate-database-policy.sh \
+  --manifest "$beta_db_follow_main_manifest" \
+  --base-ref refs/heads/pactoolkits-missing-test-ref \
+  --base-manifest "$database_policy_base_manifest" \
+  --allow-beta-migration false >/dev/null
+
+beta_db_isolated_follow_main_manifest="$(mktemp)"
+jq '.components["database-postgres"].migrationPolicy = "isolated-beta"' \
+  "$beta_db_follow_main_manifest" > "$beta_db_isolated_follow_main_manifest"
+./scripts/validate-database-policy.sh \
+  --manifest "$beta_db_isolated_follow_main_manifest" \
+  --base-ref refs/heads/pactoolkits-missing-test-ref \
+  --base-manifest "$database_policy_base_manifest" \
+  --allow-beta-migration false >/dev/null
+
 beta_db_upgrade_manifest="$(mktemp)"
 jq '
   .release.channel = "beta" |
@@ -260,7 +282,7 @@ legacy_baseline_manifest="$(mktemp)"
 cat > "$legacy_baseline_manifest" <<'EOF'
 {
   "suiteVersion": "0.17.1",
-  "dbSchemaVersion": "1.2.22",
+  "dbSchemaVersion": "1.2.23",
   "build": { "channel": "stable" }
 }
 EOF
@@ -270,6 +292,21 @@ if [[ "$live_release_channel" == "beta" ]]; then
     --base-ref refs/heads/pactoolkits-missing-test-ref \
     --base-manifest "$legacy_baseline_manifest" \
     --allow-beta-migration false >/dev/null
+  jq '
+    .components.desktop.minDbSchema = "1.2.24" |
+    .components.desktop.maxDbSchema = "1.2.24" |
+    .components["agent-injector-ahk"].minDbSchema = "1.2.24" |
+    .components["agent-injector-ahk"].maxDbSchema = "1.2.24" |
+    .components["database-postgres"].version = "1.2.24"
+  ' "$ROOT_DIR/release-manifest.json" > "${legacy_baseline_manifest}.candidate"
+  if ./scripts/validate-database-policy.sh \
+    --manifest "${legacy_baseline_manifest}.candidate" \
+    --base-ref refs/heads/pactoolkits-missing-test-ref \
+    --base-manifest "$legacy_baseline_manifest" \
+    --allow-beta-migration false >/dev/null 2>&1; then
+    echo "ERROR: beta database policy should reject DB versions above the legacy stable/main baseline" >&2
+    exit 1
+  fi
 fi
 if grep -Fq 'beta' "$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props" \
   && grep -Eq '<AssemblyVersion>[^<]*beta' "$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props"; then
@@ -335,9 +372,18 @@ if (
   echo "ERROR: beta channel should reject new SQL migration without explicit authorization" >&2
   exit 1
 fi
+jq '.components["database-postgres"].migrationPolicy = "isolated-beta"' \
+  "$beta_new_migration_git_dir/release-manifest.json" > "$beta_new_migration_git_dir/release-manifest.authorized.json"
+(
+  cd "$beta_new_migration_git_dir"
+  "$ROOT_DIR/scripts/validate-database-policy.sh" \
+    --manifest release-manifest.authorized.json \
+    --base-ref "$beta_new_migration_base_ref" \
+    --allow-beta-migration true
+) >/dev/null
 rm -rf "$beta_new_migration_git_dir"
 rm -rf "$policy_git_dir"
-rm -f "$database_policy_base_manifest" "$beta_db_upgrade_manifest" "${beta_db_upgrade_manifest}.authorized"
+rm -f "$database_policy_base_manifest" "$beta_db_follow_main_manifest" "$beta_db_isolated_follow_main_manifest" "$beta_db_upgrade_manifest" "${beta_db_upgrade_manifest}.authorized" "$legacy_baseline_manifest" "${legacy_baseline_manifest}.candidate"
 
 target_beta_manifest="$(mktemp)"
 jq '
