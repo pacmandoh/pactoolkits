@@ -129,7 +129,14 @@ psql -v ON_ERROR_STOP=1 -X --dbname="$BETA_DB" \
   -f "$MARKER_SQL" >/dev/null
 
 beta_env="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$BETA_DB" \
-  -c "select key || '=' || value from public.app_environment_settings order by key")"
+  -c "select setting_key || '=' ||
+        case jsonb_typeof(setting_value)
+          when 'string' then setting_value #>> '{}'
+          else setting_value::text
+        end
+      from public.app_environment_settings
+      where environment = 'isolated'
+      order by setting_key")"
 echo "$beta_env" | grep -Fq 'Database.Environment=isolated' || die "beta env marker missing"
 echo "$beta_env" | grep -Fq 'Database.AllowBetaMigrations=true' || die "beta migration marker missing"
 echo "$beta_env" | grep -Fq 'Database.Source=production-clone' || die "beta source marker missing"
