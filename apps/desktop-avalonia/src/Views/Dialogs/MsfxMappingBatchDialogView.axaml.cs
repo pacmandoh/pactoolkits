@@ -11,6 +11,7 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -36,7 +37,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
         AttachedToVisualTree += OnAttachedToVisualTree;
         AutoCompleteHelper.AttachDrugOptionFilter(DrugIdBox);
 
-        DrugIdBox.PropertyChanged += OnDrugBoxPropertyChanged;
+        DrugIdBox.BoxPropertyChanged += OnDrugBoxPropertyChanged;
         SpecBox.SelectionChanged += OnSpecSelectionChanged;
         GroupGrid.SelectionChanged += OnGroupSelectionChanged;
     }
@@ -252,7 +253,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
 
     private async void OnDrugBoxPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
-        if (e.Property != AutoCompleteBox.TextProperty)
+        if (e.Property != PlainAutoCompleteBox.TextProperty && e.Property != TextBox.TextProperty)
         {
             return;
         }

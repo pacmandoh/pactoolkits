@@ -3,13 +3,14 @@ using System.Threading.Tasks;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using global::Avalonia.Threading;
+using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
 public static class AutoCompleteHelper
 {
-    public static void AttachDrugOptionFilter(AutoCompleteBox box)
+    public static void AttachDrugOptionFilter(PlainAutoCompleteBox box)
     {
         box.ItemFilter = static (search, item) =>
         {
@@ -24,6 +25,9 @@ public static class AutoCompleteHelper
         };
     }
 
+    private static PlainAutoCompleteBox? ResolveBox(object? sender) =>
+        sender as PlainAutoCompleteBox;
+
     public static bool HandleEnterCommitAndApply(
         UserControl owner,
         object? sender,
@@ -31,7 +35,7 @@ public static class AutoCompleteHelper
         string nextControlName,
         Action? applyAction)
     {
-        if (sender is not AutoCompleteBox box || e.Key != Key.Enter)
+        if (ResolveBox(sender) is not { } box || e.Key != Key.Enter)
         {
             return false;
         }
@@ -39,7 +43,7 @@ public static class AutoCompleteHelper
         e.Handled = true;
         Dispatcher.UIThread.Post(() =>
         {
-            InputFocusHelper.CommitAutoCompleteInput(box);
+            CommitSuggestInput(box);
             applyAction?.Invoke();
             if (!string.IsNullOrWhiteSpace(nextControlName))
             {
@@ -54,9 +58,9 @@ public static class AutoCompleteHelper
         object? sender,
         KeyEventArgs e,
         string nextControlName,
-        Func<AutoCompleteBox, Task>? applyAsync)
+        Func<PlainAutoCompleteBox, Task>? applyAsync)
     {
-        if (sender is not AutoCompleteBox box || e.Key != Key.Enter)
+        if (ResolveBox(sender) is not { } box || e.Key != Key.Enter)
         {
             return false;
         }
@@ -64,7 +68,7 @@ public static class AutoCompleteHelper
         e.Handled = true;
         Dispatcher.UIThread.Post(async () =>
         {
-            InputFocusHelper.CommitAutoCompleteInput(box);
+            CommitSuggestInput(box);
             if (applyAsync is not null)
             {
                 await applyAsync(box);
@@ -76,5 +80,11 @@ public static class AutoCompleteHelper
             }
         }, DispatcherPriority.Input);
         return true;
+    }
+
+    private static void CommitSuggestInput(PlainAutoCompleteBox box)
+    {
+        box.IsDropDownOpen = false;
+        InputFocusHelper.CommitAutoCompleteInput(box.Box);
     }
 }
