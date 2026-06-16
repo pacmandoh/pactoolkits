@@ -1,0 +1,68 @@
+name: Build Windows Test Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      runtime:
+        description: Windows runtime identifier
+        required: true
+        type: choice
+        default: win-arm64
+        options:
+          - win-arm64
+          - win-x64
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-test-package-${{ github.ref_name }}-${{ inputs.runtime }}
+  cancel-in-progress: false
+
+jobs:
+  resolve_release_plan:
+    uses: ./.github/workflows/resolve-release-plan.yml
+    with:
+      runtime: ${{ inputs.runtime }}
+
+  build_agent_injector_ahk:
+    needs:
+      - resolve_release_plan
+    uses: ./.github/workflows/build-agent-injector-ahk.yml
+    with:
+      runtime: ${{ inputs.runtime }}
+    secrets: inherit
+
+  build_desktop_avalonia:
+    needs:
+      - resolve_release_plan
+    if: needs.resolve_release_plan.outputs.implementation == 'avalonia'
+    uses: ./.github/workflows/build-desktop-avalonia.yml
+    with:
+      runtime: ${{ inputs.runtime }}
+    secrets: inherit
+
+  package_desktop:
+    needs:
+      - resolve_release_plan
+      - build_agent_injector_ahk
+      - build_desktop_avalonia
+    if: |
+      always() &&
+      needs.resolve_release_plan.result == 'success' &&
+      needs.build_agent_injector_ahk.result == 'success' &&
+      needs.resolve_release_plan.outputs.implementation == 'avalonia' &&
+      needs.build_desktop_avalonia.result == 'success'
+    uses: ./.github/workflows/package-desktop.yml
+    with:
+      implementation: ${{ needs.resolve_release_plan.outputs.implementation }}
+      desktop_artifact_name: ${{ needs.resolve_release_plan.outputs.desktop_artifact_name }}
+      main_exe: ${{ needs.resolve_release_plan.outputs.main_exe }}
+      icon_path: ${{ needs.resolve_release_plan.outputs.icon_path }}
+      releases_dir: ${{ needs.resolve_release_plan.outputs.releases_dir }}
+      pack_id: ${{ needs.resolve_release_plan.outputs.pack_id }}
+      product_version: ${{ needs.resolve_release_plan.outputs.product_version }}
+      desktop_version: ${{ needs.resolve_release_plan.outputs.desktop_version }}
+      channel: ${{ needs.resolve_release_plan.outputs.channel }}
+      runtime: ${{ inputs.runtime }}
+    secrets: inherit

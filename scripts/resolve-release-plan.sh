@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Resolve formal desktop release parameters from release-manifest.json (schema v2).
 # Usage:
-#   resolve-release-plan.sh [manifest-path]
-#   resolve-release-plan.sh --github-output [manifest-path]
+#   resolve-release-plan.sh [--runtime RID] [manifest-path]
+#   resolve-release-plan.sh --github-output [--runtime RID] [manifest-path]
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=manifest-v2.sh
@@ -12,6 +12,7 @@ source "$ROOT_DIR/scripts/manifest-v2.sh"
 
 GITHUB_OUTPUT_MODE="false"
 MANIFEST="$ROOT_DIR/release-manifest.json"
+RUNTIME="win-x64"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -19,10 +20,14 @@ while [[ $# -gt 0 ]]; do
       GITHUB_OUTPUT_MODE="true"
       shift
       ;;
+    --runtime)
+      RUNTIME="${2:-}"
+      shift 2
+      ;;
     -h | --help)
       cat << 'USAGE'
 Usage:
-  resolve-release-plan.sh [--github-output] [manifest-path]
+  resolve-release-plan.sh [--github-output] [--runtime RID] [manifest-path]
 
 Prints shell assignments or GitHub Actions output pairs for the formal desktop release plan.
 USAGE
@@ -42,6 +47,14 @@ done
 
 validate_manifest_v2 "$MANIFEST"
 
+case "$RUNTIME" in
+  win-x64 | win-arm64) ;;
+  *)
+    echo "ERROR: unsupported runtime: $RUNTIME" >&2
+    exit 1
+    ;;
+esac
+
 release_tag="${RELEASE_TAG:-}"
 if [[ -z "$release_tag" && "${GITHUB_REF:-}" == refs/tags/v* ]]; then
   release_tag="${GITHUB_REF_NAME:-}"
@@ -56,21 +69,21 @@ channel="$(manifest_release_channel "$MANIFEST")"
 
 case "$implementation" in
   avalonia)
-    desktop_artifact_name="pactoolkits-desktop-avalonia-win-x64-${desktop_version}"
+    desktop_artifact_name="pactoolkits-desktop-avalonia-${RUNTIME}-${desktop_version}"
     main_exe="pactoolkits-desktop.exe"
     icon_path="apps/desktop-avalonia/src/Assets/app.ico"
     releases_dir="apps/desktop-avalonia/src/Releases"
-    publish_subdir="apps/desktop-avalonia/src/bin/Release/net10.0/win-x64/publish"
+    publish_subdir="apps/desktop-avalonia/src/bin/Release/net10.0/${RUNTIME}/publish"
     ;;
   electron)
-    desktop_artifact_name="pactoolkits-desktop-electron-win-x64-${desktop_version}"
+    desktop_artifact_name="pactoolkits-desktop-electron-${RUNTIME}-${desktop_version}"
     main_exe="pactoolkits-desktop.exe"
     icon_path="apps/desktop-electron/build/icon.ico"
     if [[ ! -f "$ROOT_DIR/$icon_path" ]]; then
       icon_path="apps/desktop-avalonia/src/Assets/app.ico"
     fi
     releases_dir="apps/desktop-electron/Releases"
-    publish_subdir="apps/desktop-electron/dist/win-x64"
+    publish_subdir="apps/desktop-electron/dist/${RUNTIME}"
     ;;
   *)
     echo "ERROR: unsupported components.desktop.implementation: $implementation" >&2
@@ -102,3 +115,4 @@ emit main_exe "$main_exe"
 emit icon_path "$icon_path"
 emit releases_dir "$releases_dir"
 emit publish_subdir "$publish_subdir"
+emit runtime "$RUNTIME"
