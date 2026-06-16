@@ -1,3 +1,4 @@
+using System.Text.Json;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Core;
@@ -27,9 +28,9 @@ public sealed class DatabaseEnvironmentSettingsService : IDatabaseEnvironmentSet
 
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                select key, value
+                select setting_key, setting_value::text
                 from public.app_environment_settings
-                where key = any(@keys)
+                where setting_key = any(@keys)
                 """;
             cmd.Parameters.AddWithValue(
                 "keys",
@@ -44,9 +45,9 @@ public sealed class DatabaseEnvironmentSettingsService : IDatabaseEnvironmentSet
                 var key = reader.GetString(0);
                 var value = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
                 if (string.Equals(key, "Database.Environment", StringComparison.Ordinal))
-                    environment = value.Trim();
+                    environment = ParseJsonScalar(value);
                 else if (string.Equals(key, "Database.AllowBetaMigrations", StringComparison.Ordinal))
-                    allowBetaMigrations = IsTruthy(value);
+                    allowBetaMigrations = IsTruthy(ParseJsonScalar(value));
             }
 
             return new DatabaseEnvironmentSettings(environment, allowBetaMigrations);
@@ -67,6 +68,29 @@ public sealed class DatabaseEnvironmentSettingsService : IDatabaseEnvironmentSet
                 "Failed reading app_environment_settings; using production defaults",
                 ex);
             return DatabaseEnvironmentSettings.ProductionDefaults;
+        }
+    }
+
+    private static string ParseJsonScalar(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return string.Empty;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            return doc.RootElement.ValueKind switch
+            {
+                JsonValueKind.String => doc.RootElement.GetString() ?? string.Empty,
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                JsonValueKind.Number => doc.RootElement.GetRawText(),
+                _ => raw.Trim(),
+            };
+        }
+        catch (JsonException)
+        {
+            return raw.Trim().Trim('"');
         }
     }
 
