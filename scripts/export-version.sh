@@ -9,7 +9,7 @@ MANIFEST="$ROOT_DIR/release-manifest.json"
 UI_DIR="$ROOT_DIR/apps/desktop-avalonia/src"
 
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
+  command -v "$1" > /dev/null 2>&1 || {
     echo "ERROR: required command not found: $1" >&2
     exit 1
   }
@@ -31,7 +31,7 @@ build_date="$(manifest_release_date "$MANIFEST")"
 
 mkdir -p "$UI_DIR"
 
-cat > "$UI_DIR/Version.g.props" <<XML
+cat > "$UI_DIR/Version.g.props" << XML
 <Project>
   <PropertyGroup>
     <AppVersion>$desktop_version</AppVersion>

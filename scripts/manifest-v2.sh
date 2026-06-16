@@ -133,16 +133,16 @@ semver_compare_stable() {
   local aM aN aP bM bN bP
   IFS='.' read -r aM aN aP <<< "$a"
   IFS='.' read -r bM bN bP <<< "$b"
-  if (( aM != bM )); then
-    (( aM > bM )) && printf 'greater' || printf 'less'
+  if ((aM != bM)); then
+    ((aM > bM)) && printf 'greater' || printf 'less'
     return
   fi
-  if (( aN != bN )); then
-    (( aN > bN )) && printf 'greater' || printf 'less'
+  if ((aN != bN)); then
+    ((aN > bN)) && printf 'greater' || printf 'less'
     return
   fi
-  if (( aP != bP )); then
-    (( aP > bP )) && printf 'greater' || printf 'less'
+  if ((aP != bP)); then
+    ((aP > bP)) && printf 'greater' || printf 'less'
     return
   fi
   printf 'equal'
@@ -382,7 +382,7 @@ validate_manifest_v2() {
           or (.value.version | semver)
         )
     )
-  ' "$manifest" >/dev/null || {
+  ' "$manifest" > /dev/null || {
     echo "ERROR: manifest validation failed for $manifest" >&2
     return 1
   }
@@ -452,7 +452,7 @@ validate_release_prerelease_flag() {
   local expected
   expected="$(expected_release_prerelease "$manifest")" || return 1
   case "$actual_prerelease" in
-    true|false) ;;
+    true | false) ;;
     *)
       echo "ERROR: prerelease flag must be true or false, got: $actual_prerelease" >&2
       return 1

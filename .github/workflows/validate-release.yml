@@ -7,7 +7,7 @@ on:
       - main
       - beta
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       dry_run:

@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/manifest-v2.sh"
 
 usage() {
-  cat <<'USAGE'
+  cat << 'USAGE'
 Usage:
   validate-database-policy.sh [options]
 
@@ -27,7 +27,7 @@ die() {
 
 normalize_bool() {
   case "${1:-}" in
-    true|false) printf '%s' "$1" ;;
+    true | false) printf '%s' "$1" ;;
     *) die "expected boolean true/false, got: ${1:-<empty>}" ;;
   esac
 }
@@ -39,11 +39,26 @@ ALLOW_BETA_MIGRATION="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --manifest) MANIFEST="$2"; shift 2 ;;
-    --base-ref) BASE_REF="$2"; shift 2 ;;
-    --base-manifest) BASE_MANIFEST="$2"; shift 2 ;;
-    --allow-beta-migration) ALLOW_BETA_MIGRATION="$2"; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
+    --manifest)
+      MANIFEST="$2"
+      shift 2
+      ;;
+    --base-ref)
+      BASE_REF="$2"
+      shift 2
+      ;;
+    --base-manifest)
+      BASE_MANIFEST="$2"
+      shift 2
+      ;;
+    --allow-beta-migration)
+      ALLOW_BETA_MIGRATION="$2"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
     *) die "unknown argument: $1" ;;
   esac
 done
@@ -59,19 +74,19 @@ cleanup() {
 trap cleanup EXIT
 
 if [[ -z "$BASE_MANIFEST" ]]; then
-  git rev-parse --verify "$BASE_REF^{commit}" >/dev/null 2>&1 ||
-    die "base ref not found: $BASE_REF"
+  git rev-parse --verify "$BASE_REF^{commit}" > /dev/null 2>&1 \
+    || die "base ref not found: $BASE_REF"
   temp_base_manifest="$(mktemp)"
-  git show "$BASE_REF:release-manifest.json" > "$temp_base_manifest" 2>/dev/null ||
-    die "release-manifest.json not found at base ref $BASE_REF"
+  git show "$BASE_REF:release-manifest.json" > "$temp_base_manifest" 2> /dev/null \
+    || die "release-manifest.json not found at base ref $BASE_REF"
   BASE_MANIFEST="$temp_base_manifest"
 fi
 
 [[ -f "$BASE_MANIFEST" ]] || die "base manifest not found: $BASE_MANIFEST"
 base_schema_version="$(manifest_schema_version "$BASE_MANIFEST")"
 base_db_version="$(manifest_database_postgres_version "$BASE_MANIFEST")"
-is_stable_semver "$base_db_version" ||
-  die "stable/main baseline release-manifest.json must expose a stable DB version via components.database-postgres.version or legacy dbSchemaVersion"
+is_stable_semver "$base_db_version" \
+  || die "stable/main baseline release-manifest.json must expose a stable DB version via components.database-postgres.version or legacy dbSchemaVersion"
 
 channel="$(manifest_release_channel "$MANIFEST")"
 policy="$(manifest_database_migration_policy "$MANIFEST")"
@@ -82,11 +97,11 @@ CURRENT_MIGRATION_DIR="database/postgres/sql/migrations"
 
 migration_dir_at_ref() {
   local ref="$1"
-  if git ls-tree -r --name-only "$ref" -- "$CURRENT_MIGRATION_DIR" 2>/dev/null | grep -q .; then
+  if git ls-tree -r --name-only "$ref" -- "$CURRENT_MIGRATION_DIR" 2> /dev/null | grep -q .; then
     printf '%s' "$CURRENT_MIGRATION_DIR"
     return 0
   fi
-  if git ls-tree -r --name-only "$ref" -- "$LEGACY_MIGRATION_DIR" 2>/dev/null | grep -q .; then
+  if git ls-tree -r --name-only "$ref" -- "$LEGACY_MIGRATION_DIR" 2> /dev/null | grep -q .; then
     printf '%s' "$LEGACY_MIGRATION_DIR"
     return 0
   fi
@@ -97,16 +112,16 @@ migration_basenames_at_ref() {
   local ref="$1"
   local dir="$2"
   [[ -n "$dir" ]] || return 0
-  git ls-tree -r --name-only "$ref" -- "$dir" 2>/dev/null |
-    awk -F/ '{print $NF}' |
-    sort -u
+  git ls-tree -r --name-only "$ref" -- "$dir" 2> /dev/null \
+    | awk -F/ '{print $NF}' \
+    | sort -u
 }
 
 migration_content_sha256() {
   local ref="$1"
   local dir="$2"
   local basename="$3"
-  git show "${ref}:${dir}/${basename}" 2>/dev/null | shasum -a 256 | awk '{print $1}'
+  git show "${ref}:${dir}/${basename}" 2> /dev/null | shasum -a 256 | awk '{print $1}'
 }
 
 collect_migration_changes() {
@@ -140,35 +155,35 @@ collect_migration_changes() {
 }
 
 migration_diff=""
-if git rev-parse --verify "$BASE_REF^{commit}" >/dev/null 2>&1; then
+if git rev-parse --verify "$BASE_REF^{commit}" > /dev/null 2>&1; then
   migration_diff="$(collect_migration_changes "$BASE_REF")"
 fi
 
 modified_applied="$(
-  printf '%s\n' "$migration_diff" |
-    awk '$1 ~ /^(M|D|R|C)/ { print }'
+  printf '%s\n' "$migration_diff" \
+    | awk '$1 ~ /^(M|D|R|C)/ { print }'
 )"
-[[ -z "$modified_applied" ]] ||
-  die "existing SQL migration files are immutable relative to $BASE_REF: $(printf '%s' "$modified_applied" | tr '\n' ';')"
+[[ -z "$modified_applied" ]] \
+  || die "existing SQL migration files are immutable relative to $BASE_REF: $(printf '%s' "$modified_applied" | tr '\n' ';')"
 
 changed_migrations="$(
-  printf '%s\n' "$migration_diff" |
-    awk 'NF > 0 { print }'
+  printf '%s\n' "$migration_diff" \
+    | awk 'NF > 0 { print }'
 )"
 
 if [[ "$channel" == "beta" ]]; then
   case "$policy" in
     stable-only)
-      semver_lte_stable "$candidate_db_version" "$base_db_version" ||
-        die "stable-only beta DB version cannot exceed stable/main baseline ($base_db_version): $candidate_db_version"
-      [[ -z "$changed_migrations" ]] ||
-        die "stable-only beta cannot change SQL migrations relative to $BASE_REF"
+      semver_lte_stable "$candidate_db_version" "$base_db_version" \
+        || die "stable-only beta DB version cannot exceed stable/main baseline ($base_db_version): $candidate_db_version"
+      [[ -z "$changed_migrations" ]] \
+        || die "stable-only beta cannot change SQL migrations relative to $BASE_REF"
       ;;
     isolated-beta)
-      if [[ -n "$changed_migrations" ]] ||
-        ! semver_lte_stable "$candidate_db_version" "$base_db_version"; then
-        [[ "$ALLOW_BETA_MIGRATION" == "true" ]] ||
-          die "isolated beta migration requires explicit CI authorization"
+      if [[ -n "$changed_migrations" ]] \
+        || ! semver_lte_stable "$candidate_db_version" "$base_db_version"; then
+        [[ "$ALLOW_BETA_MIGRATION" == "true" ]] \
+          || die "isolated beta migration requires explicit CI authorization"
       fi
       ;;
     manual)

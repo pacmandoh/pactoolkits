@@ -19,8 +19,8 @@ while [[ $# -gt 0 ]]; do
       GITHUB_OUTPUT_MODE="true"
       shift
       ;;
-    -h|--help)
-      cat <<'USAGE'
+    -h | --help)
+      cat << 'USAGE'
 Usage:
   resolve-release-plan.sh [--github-output] [manifest-path]
 
@@ -66,9 +66,9 @@ case "$implementation" in
     desktop_artifact_name="pactoolkits-desktop-electron-win-x64-${desktop_version}"
     main_exe="pactoolkits-desktop.exe"
     icon_path="apps/desktop-electron/build/icon.ico"
-  if [[ ! -f "$ROOT_DIR/$icon_path" ]]; then
-    icon_path="apps/desktop-avalonia/src/Assets/app.ico"
-  fi
+    if [[ ! -f "$ROOT_DIR/$icon_path" ]]; then
+      icon_path="apps/desktop-avalonia/src/Assets/app.ico"
+    fi
     releases_dir="apps/desktop-electron/Releases"
     publish_subdir="apps/desktop-electron/dist/win-x64"
     ;;

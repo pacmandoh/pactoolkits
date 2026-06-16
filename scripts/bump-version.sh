@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/manifest-v2.sh"
 
 usage() {
-  cat <<'USAGE'
+  cat << 'USAGE'
 Usage:
   bump-version.sh [--product X.Y.Z|X.Y.Z-beta.N|auto] [--desktop X.Y.Z|X.Y.Z-beta.N]
                   [--db X.Y.Z] [--component COMPONENT_ID=X.Y.Z]...
@@ -29,7 +29,7 @@ USAGE
 }
 
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
+  command -v "$1" > /dev/null 2>&1 || {
     echo "ERROR: required command not found: $1" >&2
     exit 1
   }
@@ -72,12 +72,30 @@ semver_change_level() {
   IFS='.' read -r oM oN oP <<< "$old"
   IFS='.' read -r nM nN nP <<< "$new"
 
-  if (( nM < oM )); then echo "downgrade"; return; fi
-  if (( nM > oM )); then echo "major"; return; fi
-  if (( nN < oN )); then echo "downgrade"; return; fi
-  if (( nN > oN )); then echo "minor"; return; fi
-  if (( nP < oP )); then echo "downgrade"; return; fi
-  if (( nP > oP )); then echo "patch"; return; fi
+  if ((nM < oM)); then
+    echo "downgrade"
+    return
+  fi
+  if ((nM > oM)); then
+    echo "major"
+    return
+  fi
+  if ((nN < oN)); then
+    echo "downgrade"
+    return
+  fi
+  if ((nN > oN)); then
+    echo "minor"
+    return
+  fi
+  if ((nP < oP)); then
+    echo "downgrade"
+    return
+  fi
+  if ((nP > oP)); then
+    echo "patch"
+    return
+  fi
   echo "none"
 }
 
@@ -96,7 +114,7 @@ max_level() {
     minor) rank_b=2 ;;
     major) rank_b=3 ;;
   esac
-  if (( rank_b > rank_a )); then echo "$b"; else echo "$a"; fi
+  if ((rank_b > rank_a)); then echo "$b"; else echo "$a"; fi
 }
 
 report_duplicate_component_version() {
@@ -138,8 +156,14 @@ declare -a COMPONENT_MIN_DB_UPDATES=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --product|--suite) PRODUCT="${2:-}"; shift 2 ;;
-    --desktop|--ui) DESKTOP="${2:-}"; shift 2 ;;
+    --product | --suite)
+      PRODUCT="${2:-}"
+      shift 2
+      ;;
+    --desktop | --ui)
+      DESKTOP="${2:-}"
+      shift 2
+      ;;
     --agent)
       COMPONENT_UPDATES+=("agent-injector-ahk=${2:-}")
       shift 2
@@ -152,24 +176,52 @@ while [[ $# -gt 0 ]]; do
       COMPONENT_MIN_DB_UPDATES+=("${2:-}")
       shift 2
       ;;
-    --db) DB="${2:-}"; shift 2 ;;
-    --desktop-min-db|--ui-min-db) DESKTOP_MIN_DB="${2:-}"; shift 2 ;;
+    --db)
+      DB="${2:-}"
+      shift 2
+      ;;
+    --desktop-min-db | --ui-min-db)
+      DESKTOP_MIN_DB="${2:-}"
+      shift 2
+      ;;
     --agent-min-db)
       AGENT_MIN_DB="${2:-}"
       COMPONENT_MIN_DB_UPDATES+=("agent-injector-ahk=${2:-}")
       shift 2
       ;;
-    --channel) CHANNEL="${2:-}"; shift 2 ;;
-    --date) DATE_STR="${2:-}"; shift 2 ;;
-    --output) OUTPUT_FILE="${2:-}"; shift 2 ;;
-    --dry-run) DRY_RUN="true"; shift ;;
-    -h|--help) usage; exit 0 ;;
-    *) echo "ERROR: unknown arg: $1" >&2; usage; exit 1 ;;
+    --channel)
+      CHANNEL="${2:-}"
+      shift 2
+      ;;
+    --date)
+      DATE_STR="${2:-}"
+      shift 2
+      ;;
+    --output)
+      OUTPUT_FILE="${2:-}"
+      shift 2
+      ;;
+    --dry-run)
+      DRY_RUN="true"
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "ERROR: unknown arg: $1" >&2
+      usage
+      exit 1
+      ;;
   esac
 done
 
 require_cmd jq
-[[ -f "$MANIFEST" ]] || { echo "ERROR: manifest not found: $MANIFEST" >&2; exit 1; }
+[[ -f "$MANIFEST" ]] || {
+  echo "ERROR: manifest not found: $MANIFEST" >&2
+  exit 1
+}
 
 effective_channel="$CHANNEL"
 if [[ -z "$effective_channel" ]]; then
@@ -204,14 +256,23 @@ if [[ -n "$DESKTOP" ]]; then
   }
 fi
 for v in "$DB" "$DESKTOP_MIN_DB" "$AGENT_MIN_DB"; do
-  [[ -z "$v" ]] || is_semver "$v" || { echo "ERROR: invalid semver arg" >&2; exit 1; }
+  [[ -z "$v" ]] || is_semver "$v" || {
+    echo "ERROR: invalid semver arg" >&2
+    exit 1
+  }
 done
-is_date "$DATE_STR" || { echo "ERROR: invalid --date" >&2; exit 1; }
+is_date "$DATE_STR" || {
+  echo "ERROR: invalid --date" >&2
+  exit 1
+}
 
 if [[ -n "$CHANNEL" ]]; then
   case "$CHANNEL" in
-    stable|beta) ;;
-    *) echo "ERROR: --channel must be stable|beta" >&2; exit 1 ;;
+    stable | beta) ;;
+    *)
+      echo "ERROR: --channel must be stable|beta" >&2
+      exit 1
+      ;;
   esac
 fi
 
@@ -247,7 +308,7 @@ for item in "${COMPONENT_UPDATES[@]}"; do
     echo "ERROR: invalid component version for $component_id: $component_version" >&2
     exit 1
   }
-  jq -e --arg id "$component_id" '.components[$id].version' "$MANIFEST" >/dev/null || {
+  jq -e --arg id "$component_id" '.components[$id].version' "$MANIFEST" > /dev/null || {
     echo "ERROR: unknown manifest component: $component_id" >&2
     exit 1
   }
@@ -305,7 +366,7 @@ for item in "${COMPONENT_MIN_DB_UPDATES[@]}"; do
     echo "ERROR: invalid component minDbSchema for $component_id: $min_db_version" >&2
     exit 1
   }
-  jq -e --arg id "$component_id" '.components[$id].minDbSchema' "$MANIFEST" >/dev/null || {
+  jq -e --arg id "$component_id" '.components[$id].minDbSchema' "$MANIFEST" > /dev/null || {
     echo "ERROR: unknown manifest component for minDbSchema: $component_id" >&2
     exit 1
   }
@@ -330,8 +391,14 @@ fi
 
 [[ -n "$DESKTOP" ]] && desktop_level="$(semver_change_level "$(semver_stable_base "$current_desktop")" "$(semver_stable_base "$DESKTOP")")"
 [[ -n "$DB" ]] && db_level="$(semver_change_level "$current_db" "$DB")"
-[[ "$desktop_level" != "downgrade" ]] || { echo "ERROR: --desktop cannot downgrade ($current_desktop -> $DESKTOP)" >&2; exit 1; }
-[[ "$db_level" != "downgrade" ]] || { echo "ERROR: --db cannot downgrade ($current_db -> $DB)" >&2; exit 1; }
+[[ "$desktop_level" != "downgrade" ]] || {
+  echo "ERROR: --desktop cannot downgrade ($current_desktop -> $DESKTOP)" >&2
+  exit 1
+}
+[[ "$db_level" != "downgrade" ]] || {
+  echo "ERROR: --db cannot downgrade ($current_db -> $DB)" >&2
+  exit 1
+}
 
 product_auto_level="$(max_level "$product_auto_level" "$desktop_level")"
 product_auto_level="$(max_level "$product_auto_level" "$db_level")"
@@ -347,7 +414,7 @@ fi
 should_auto_product=false
 if [[ "$PRODUCT" == "auto" ]]; then
   should_auto_product=true
-elif [[ -z "$PRODUCT" && ( ${#COMPONENT_UPDATES[@]} -gt 0 || -n "$DESKTOP$DB" ) ]]; then
+elif [[ -z "$PRODUCT" && (${#COMPONENT_UPDATES[@]} -gt 0 || -n "$DESKTOP$DB") ]]; then
   should_auto_product=true
 elif [[ "$entering_beta_channel" == "true" ]]; then
   should_auto_product=true

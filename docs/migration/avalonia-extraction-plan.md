@@ -11,18 +11,18 @@
 
 ## 阶段完成情况
 
-| 阶段 | 内容 | 状态 |
-|------|------|------|
-| 0–2 | 目录迁移、命名空间统一、`PacToolkits.sln` | ✅ |
-| 3 | DTO / 契约迁入 `packages/application`、`agent-contracts` | ✅ |
-| 4 | 仓储接口迁入 Application Abstractions | ✅ |
-| 5 | Npgsql 与仓储实现迁入 Infrastructure | ✅ |
-| 6 | 页面 ViewModel 改用 Application 服务 | ✅ |
-| 7 | Agent 边界：`IAgentManager` + `AhkInjectorAgentRuntime` | ✅ |
-| 8 | `apps/desktop-electron` 空壳占位 | ✅ |
-| 9 | 架构文档与 README 更新 | ✅ |
-| **Foundation** | Agent 命名、Manifest V2、CI 拆分、`package-desktop` | ✅ |
-| **7–10** | Electron 对齐、切换 implementation、删除 Avalonia | ⏳ 见 [desktop-electron-cutover.md](./desktop-electron-cutover.md) |
+| 阶段           | 内容                                                     | 状态                                                               |
+| -------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| 0–2            | 目录迁移、命名空间统一、`PacToolkits.sln`                | ✅                                                                 |
+| 3              | DTO / 契约迁入 `packages/application`、`agent-contracts` | ✅                                                                 |
+| 4              | 仓储接口迁入 Application Abstractions                    | ✅                                                                 |
+| 5              | Npgsql 与仓储实现迁入 Infrastructure                     | ✅                                                                 |
+| 6              | 页面 ViewModel 改用 Application 服务                     | ✅                                                                 |
+| 7              | Agent 边界：`IAgentManager` + `AhkInjectorAgentRuntime`  | ✅                                                                 |
+| 8              | `apps/desktop-electron` 空壳占位                         | ✅                                                                 |
+| 9              | 架构文档与 README 更新                                   | ✅                                                                 |
+| **Foundation** | Agent 命名、Manifest V2、CI 拆分、`package-desktop`      | ✅                                                                 |
+| **7–10**       | Electron 对齐、切换 implementation、删除 Avalonia        | ⏳ 见 [desktop-electron-cutover.md](./desktop-electron-cutover.md) |
 
 ## 已从 Avalonia 移出的内容
 
