@@ -124,7 +124,8 @@ jobs:
     needs:
       - release_gate
       - resolve_release_plan
-    if: needs.release_gate.outputs.should_run == 'true' && needs.resolve_release_plan.outputs.implementation != 'electron'
+    # Preview is validated locally via run-tooling-tests.sh; skip release CI for now.
+    if: false
     uses: ./.github/workflows/build-desktop-electron-preview.yml
     secrets: inherit
 
