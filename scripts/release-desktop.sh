@@ -9,7 +9,7 @@ source "$ROOT_DIR/scripts/manifest-v2.sh"
 MANIFEST="$ROOT_DIR/release-manifest.json"
 
 usage() {
-  cat <<'USAGE'
+  cat << 'USAGE'
 Usage:
   release-desktop.sh [options]
 
@@ -50,7 +50,7 @@ USAGE
 }
 
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
+  command -v "$1" > /dev/null 2>&1 || {
     echo "ERROR: required command not found: $1" >&2
     exit 1
   }
@@ -94,28 +94,95 @@ PLAN_MANIFEST_TMP=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --bump-desktop|--bump-ui) BUMP_UI="${2:-}"; shift 2 ;;
-    --bump-product|--bump-suite) BUMP_SUITE="${2:-}"; shift 2 ;;
-    --bump-agent) BUMP_AGENT="${2:-}"; shift 2 ;;
-    --bump-db) BUMP_DB="${2:-}"; shift 2 ;;
-    --bump-channel) BUMP_CHANNEL="${2:-}"; shift 2 ;;
-    --pack-version) PACK_VERSION="${2:-}"; shift 2 ;;
-    --channel) CHANNEL="${2:-}"; shift 2 ;;
-    --runtime) RUNTIME="${2:-}"; shift 2 ;;
-    --framework) FRAMEWORK="${2:-}"; shift 2 ;;
-    --configuration) CONFIGURATION="${2:-}"; shift 2 ;;
-    --self-contained) SELF_CONTAINED="${2:-}"; shift 2 ;;
-    --output-dir) OUTPUT_DIR="${2:-}"; shift 2 ;;
-    --pack-dir) PACK_DIR="${2:-}"; shift 2 ;;
-    --main-exe) MAIN_EXE="${2:-}"; shift 2 ;;
-    --icon) ICON_FILE="${2:-}"; shift 2 ;;
-    --vpk-directive) VPK_DIRECTIVE="${2:-}"; shift 2 ;;
-    --upload-target) UPLOAD_TARGET="${2:-}"; shift 2 ;;
-    --no-delete) RSYNC_DELETE="false"; shift ;;
-    --skip-upload) SKIP_UPLOAD="true"; shift ;;
-    --dry-run) DRY_RUN="true"; shift ;;
-    -h|--help) usage; exit 0 ;;
-    *) echo "ERROR: unknown arg: $1" >&2; usage; exit 1 ;;
+    --bump-desktop | --bump-ui)
+      BUMP_UI="${2:-}"
+      shift 2
+      ;;
+    --bump-product | --bump-suite)
+      BUMP_SUITE="${2:-}"
+      shift 2
+      ;;
+    --bump-agent)
+      BUMP_AGENT="${2:-}"
+      shift 2
+      ;;
+    --bump-db)
+      BUMP_DB="${2:-}"
+      shift 2
+      ;;
+    --bump-channel)
+      BUMP_CHANNEL="${2:-}"
+      shift 2
+      ;;
+    --pack-version)
+      PACK_VERSION="${2:-}"
+      shift 2
+      ;;
+    --channel)
+      CHANNEL="${2:-}"
+      shift 2
+      ;;
+    --runtime)
+      RUNTIME="${2:-}"
+      shift 2
+      ;;
+    --framework)
+      FRAMEWORK="${2:-}"
+      shift 2
+      ;;
+    --configuration)
+      CONFIGURATION="${2:-}"
+      shift 2
+      ;;
+    --self-contained)
+      SELF_CONTAINED="${2:-}"
+      shift 2
+      ;;
+    --output-dir)
+      OUTPUT_DIR="${2:-}"
+      shift 2
+      ;;
+    --pack-dir)
+      PACK_DIR="${2:-}"
+      shift 2
+      ;;
+    --main-exe)
+      MAIN_EXE="${2:-}"
+      shift 2
+      ;;
+    --icon)
+      ICON_FILE="${2:-}"
+      shift 2
+      ;;
+    --vpk-directive)
+      VPK_DIRECTIVE="${2:-}"
+      shift 2
+      ;;
+    --upload-target)
+      UPLOAD_TARGET="${2:-}"
+      shift 2
+      ;;
+    --no-delete)
+      RSYNC_DELETE="false"
+      shift
+      ;;
+    --skip-upload)
+      SKIP_UPLOAD="true"
+      shift
+      ;;
+    --dry-run)
+      DRY_RUN="true"
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "ERROR: unknown arg: $1" >&2
+      usage
+      exit 1
+      ;;
   esac
 done
 
@@ -125,35 +192,59 @@ if [[ "$DRY_RUN" != "true" ]]; then
   require_cmd vpk
 fi
 
-[[ -f "$MANIFEST" ]] || { echo "ERROR: missing $MANIFEST" >&2; exit 1; }
+[[ -f "$MANIFEST" ]] || {
+  echo "ERROR: missing $MANIFEST" >&2
+  exit 1
+}
 [[ "$SELF_CONTAINED" == "true" || "$SELF_CONTAINED" == "false" ]] || {
   echo "ERROR: --self-contained must be true|false" >&2
   exit 1
 }
 
-[[ -z "$BUMP_UI" ]] || is_semver "$BUMP_UI" || { echo "ERROR: invalid --bump-ui" >&2; exit 1; }
-[[ -z "$BUMP_SUITE" ]] || is_semver "$BUMP_SUITE" || { echo "ERROR: invalid --bump-suite" >&2; exit 1; }
-[[ -z "$BUMP_AGENT" ]] || is_semver "$BUMP_AGENT" || { echo "ERROR: invalid --bump-agent" >&2; exit 1; }
-[[ -z "$BUMP_DB" ]] || is_semver "$BUMP_DB" || { echo "ERROR: invalid --bump-db" >&2; exit 1; }
-[[ -z "$PACK_VERSION" ]] || is_semver "$PACK_VERSION" || { echo "ERROR: invalid --pack-version" >&2; exit 1; }
+[[ -z "$BUMP_UI" ]] || is_semver "$BUMP_UI" || {
+  echo "ERROR: invalid --bump-ui" >&2
+  exit 1
+}
+[[ -z "$BUMP_SUITE" ]] || is_semver "$BUMP_SUITE" || {
+  echo "ERROR: invalid --bump-suite" >&2
+  exit 1
+}
+[[ -z "$BUMP_AGENT" ]] || is_semver "$BUMP_AGENT" || {
+  echo "ERROR: invalid --bump-agent" >&2
+  exit 1
+}
+[[ -z "$BUMP_DB" ]] || is_semver "$BUMP_DB" || {
+  echo "ERROR: invalid --bump-db" >&2
+  exit 1
+}
+[[ -z "$PACK_VERSION" ]] || is_semver "$PACK_VERSION" || {
+  echo "ERROR: invalid --pack-version" >&2
+  exit 1
+}
 
 if [[ -n "$CHANNEL" ]]; then
   case "$CHANNEL" in
-    stable|beta) ;;
-    *) echo "ERROR: --channel must be stable|beta" >&2; exit 1 ;;
+    stable | beta) ;;
+    *)
+      echo "ERROR: --channel must be stable|beta" >&2
+      exit 1
+      ;;
   esac
 fi
 
 if [[ -n "$BUMP_CHANNEL" ]]; then
   case "$BUMP_CHANNEL" in
-    stable|beta) ;;
-    *) echo "ERROR: --bump-channel must be stable|beta" >&2; exit 1 ;;
+    stable | beta) ;;
+    *)
+      echo "ERROR: --bump-channel must be stable|beta" >&2
+      exit 1
+      ;;
   esac
 fi
 
 if [[ -z "$VPK_DIRECTIVE" && "$RUNTIME" == win-* ]]; then
   case "$(uname -s)" in
-    Darwin|Linux) VPK_DIRECTIVE="win" ;;
+    Darwin | Linux) VPK_DIRECTIVE="win" ;;
   esac
 fi
 
@@ -196,9 +287,9 @@ fi
 
 run_cmd "$ROOT_DIR/scripts/check-version.sh"
 
-manifest_desktop="$(manifest_desktop_version "$MANIFEST_FOR_PLAN" 2>/dev/null || jq -r '.components.desktop.version // .uiVersion' "$MANIFEST_FOR_PLAN")"
-manifest_product="$(manifest_product_version "$MANIFEST_FOR_PLAN" 2>/dev/null || jq -r '.product.version // .suiteVersion' "$MANIFEST_FOR_PLAN")"
-manifest_channel="$(manifest_release_channel "$MANIFEST_FOR_PLAN" 2>/dev/null || jq -r '.release.channel // .build.channel' "$MANIFEST_FOR_PLAN")"
+manifest_desktop="$(manifest_desktop_version "$MANIFEST_FOR_PLAN" 2> /dev/null || jq -r '.components.desktop.version // .uiVersion' "$MANIFEST_FOR_PLAN")"
+manifest_product="$(manifest_product_version "$MANIFEST_FOR_PLAN" 2> /dev/null || jq -r '.product.version // .suiteVersion' "$MANIFEST_FOR_PLAN")"
+manifest_channel="$(manifest_release_channel "$MANIFEST_FOR_PLAN" 2> /dev/null || jq -r '.release.channel // .build.channel' "$MANIFEST_FOR_PLAN")"
 
 if [[ -z "$PACK_VERSION" ]]; then
   PACK_VERSION="$manifest_product"
@@ -244,7 +335,10 @@ else
   }
   mkdir -p "$AGENT_DST_DIR"
   cp -f "$AGENT_SRC" "$AGENT_DST"
-  [[ -f "$AGENT_DST" ]] || { echo "ERROR: failed to copy agent binary to publish output" >&2; exit 1; }
+  [[ -f "$AGENT_DST" ]] || {
+    echo "ERROR: failed to copy agent binary to publish output" >&2
+    exit 1
+  }
   agent_size="$(wc -c < "$AGENT_DST" | tr -d ' ')"
   if [[ "${agent_size:-0}" -le "$AGENT_MIN_BYTES" ]]; then
     echo "ERROR: agent binary too small to be valid ($AGENT_DST, ${agent_size} bytes)" >&2
@@ -253,13 +347,34 @@ else
 fi
 
 if [[ "$DRY_RUN" != "true" ]]; then
-  [[ -d "$PACK_DIR" ]] || { echo "ERROR: pack dir not found: $PACK_DIR" >&2; exit 1; }
-  [[ -f "$PACK_DIR/$MAIN_EXE" ]] || { echo "ERROR: main exe not found: $PACK_DIR/$MAIN_EXE" >&2; exit 1; }
-  [[ -f "$ICON_FILE" ]] || { echo "ERROR: icon not found: $ICON_FILE" >&2; exit 1; }
-  [[ -f "$AGENT_DST" ]] || { echo "ERROR: agent binary not found in publish output: $AGENT_DST" >&2; exit 1; }
-  [[ -f "$PACK_DIR/Sql/Bootstrap/000_init_meta.sql" ]] || { echo "ERROR: bootstrap SQL not found in publish output" >&2; exit 1; }
-  [[ -d "$PACK_DIR/Sql/Migrations" ]] || { echo "ERROR: migrations SQL directory not found in publish output" >&2; exit 1; }
-  [[ -d "$PACK_DIR/Sql/Verify" ]] || { echo "ERROR: verify SQL directory not found in publish output" >&2; exit 1; }
+  [[ -d "$PACK_DIR" ]] || {
+    echo "ERROR: pack dir not found: $PACK_DIR" >&2
+    exit 1
+  }
+  [[ -f "$PACK_DIR/$MAIN_EXE" ]] || {
+    echo "ERROR: main exe not found: $PACK_DIR/$MAIN_EXE" >&2
+    exit 1
+  }
+  [[ -f "$ICON_FILE" ]] || {
+    echo "ERROR: icon not found: $ICON_FILE" >&2
+    exit 1
+  }
+  [[ -f "$AGENT_DST" ]] || {
+    echo "ERROR: agent binary not found in publish output: $AGENT_DST" >&2
+    exit 1
+  }
+  [[ -f "$PACK_DIR/Sql/Bootstrap/000_init_meta.sql" ]] || {
+    echo "ERROR: bootstrap SQL not found in publish output" >&2
+    exit 1
+  }
+  [[ -d "$PACK_DIR/Sql/Migrations" ]] || {
+    echo "ERROR: migrations SQL directory not found in publish output" >&2
+    exit 1
+  }
+  [[ -d "$PACK_DIR/Sql/Verify" ]] || {
+    echo "ERROR: verify SQL directory not found in publish output" >&2
+    exit 1
+  }
 fi
 
 vpk_args=(vpk)

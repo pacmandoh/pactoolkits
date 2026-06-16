@@ -24,6 +24,19 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup shfmt
+        run: |
+          set -euo pipefail
+          curl -sSLo "$RUNNER_TEMP/shfmt" \
+            "https://github.com/mvdan/sh/releases/download/v3.10.0/shfmt_v3.10.0_linux_amd64"
+          chmod +x "$RUNNER_TEMP/shfmt"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
       - name: Restore
         run: dotnet restore PacToolkits.sln
 

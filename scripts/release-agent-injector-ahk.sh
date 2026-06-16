@@ -11,7 +11,7 @@ MANIFEST="$ROOT_DIR/release-manifest.json"
 RELEASES_DIR="$AGENT_DIR/Releases"
 
 usage() {
-  cat <<'USAGE'
+  cat << 'USAGE'
 Usage:
   release-agent-injector-ahk.sh [options]
 
@@ -40,7 +40,7 @@ USAGE
 }
 
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
+  command -v "$1" > /dev/null 2>&1 || {
     echo "ERROR: required command not found: $1" >&2
     exit 1
   }
@@ -63,7 +63,7 @@ validate_bump_component() {
     exit 1
   }
   case "$component_id" in
-    agent-injector-ahk|desktop|database-postgres) ;;
+    agent-injector-ahk | desktop | database-postgres) ;;
     *)
       echo "ERROR: unknown component in --bump-component: $component_id" >&2
       exit 1
@@ -141,42 +141,100 @@ while [[ $# -gt 0 ]]; do
       BUMP_AGENT="${2:-}"
       shift 2
       ;;
-    --bump-product|--bump-suite) BUMP_SUITE="${2:-}"; shift 2 ;;
-    --bump-desktop|--bump-ui) BUMP_UI="${2:-}"; shift 2 ;;
-    --bump-db) BUMP_DB="${2:-}"; shift 2 ;;
-    --bump-channel) BUMP_CHANNEL="${2:-}"; shift 2 ;;
-    --artifact-dir) ARTIFACT_DIR="${2:-}"; shift 2 ;;
-    --channel) CHANNEL="${2:-}"; shift 2 ;;
-    --output-dir) OUTPUT_DIR="${2:-}"; shift 2 ;;
-    --upload-target) UPLOAD_TARGET="${2:-}"; shift 2 ;;
-    --skip-upload) SKIP_UPLOAD="true"; shift ;;
-    --dry-run) DRY_RUN="true"; shift ;;
-    -h|--help) usage; exit 0 ;;
-    *) echo "ERROR: unknown arg: $1" >&2; usage; exit 1 ;;
+    --bump-product | --bump-suite)
+      BUMP_SUITE="${2:-}"
+      shift 2
+      ;;
+    --bump-desktop | --bump-ui)
+      BUMP_UI="${2:-}"
+      shift 2
+      ;;
+    --bump-db)
+      BUMP_DB="${2:-}"
+      shift 2
+      ;;
+    --bump-channel)
+      BUMP_CHANNEL="${2:-}"
+      shift 2
+      ;;
+    --artifact-dir)
+      ARTIFACT_DIR="${2:-}"
+      shift 2
+      ;;
+    --channel)
+      CHANNEL="${2:-}"
+      shift 2
+      ;;
+    --output-dir)
+      OUTPUT_DIR="${2:-}"
+      shift 2
+      ;;
+    --upload-target)
+      UPLOAD_TARGET="${2:-}"
+      shift 2
+      ;;
+    --skip-upload)
+      SKIP_UPLOAD="true"
+      shift
+      ;;
+    --dry-run)
+      DRY_RUN="true"
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "ERROR: unknown arg: $1" >&2
+      usage
+      exit 1
+      ;;
   esac
 done
 
 require_cmd jq
 require_cmd zip
 
-[[ -f "$MANIFEST" ]] || { echo "ERROR: missing $MANIFEST" >&2; exit 1; }
-[[ -z "$BUMP_AGENT" ]] || is_semver "$BUMP_AGENT" || { echo "ERROR: invalid --bump-agent" >&2; exit 1; }
-[[ -z "$BUMP_SUITE" ]] || is_semver "$BUMP_SUITE" || { echo "ERROR: invalid --bump-suite" >&2; exit 1; }
-[[ -z "$BUMP_UI" ]] || is_semver "$BUMP_UI" || { echo "ERROR: invalid --bump-ui" >&2; exit 1; }
-[[ -z "$BUMP_DB" ]] || is_semver "$BUMP_DB" || { echo "ERROR: invalid --bump-db" >&2; exit 1; }
+[[ -f "$MANIFEST" ]] || {
+  echo "ERROR: missing $MANIFEST" >&2
+  exit 1
+}
+[[ -z "$BUMP_AGENT" ]] || is_semver "$BUMP_AGENT" || {
+  echo "ERROR: invalid --bump-agent" >&2
+  exit 1
+}
+[[ -z "$BUMP_SUITE" ]] || is_semver "$BUMP_SUITE" || {
+  echo "ERROR: invalid --bump-suite" >&2
+  exit 1
+}
+[[ -z "$BUMP_UI" ]] || is_semver "$BUMP_UI" || {
+  echo "ERROR: invalid --bump-ui" >&2
+  exit 1
+}
+[[ -z "$BUMP_DB" ]] || is_semver "$BUMP_DB" || {
+  echo "ERROR: invalid --bump-db" >&2
+  exit 1
+}
 [[ -z "$BUMP_COMPONENT" ]] || validate_bump_component "$BUMP_COMPONENT"
 validate_bump_conflicts
 
 if [[ -n "$CHANNEL" ]]; then
   case "$CHANNEL" in
-    stable|beta) ;;
-    *) echo "ERROR: --channel must be stable|beta" >&2; exit 1 ;;
+    stable | beta) ;;
+    *)
+      echo "ERROR: --channel must be stable|beta" >&2
+      exit 1
+      ;;
   esac
 fi
 if [[ -n "$BUMP_CHANNEL" ]]; then
   case "$BUMP_CHANNEL" in
-    stable|beta) ;;
-    *) echo "ERROR: --bump-channel must be stable|beta" >&2; exit 1 ;;
+    stable | beta) ;;
+    *)
+      echo "ERROR: --bump-channel must be stable|beta" >&2
+      exit 1
+      ;;
   esac
 fi
 
@@ -213,8 +271,8 @@ fi
 
 run_cmd "$ROOT_DIR/scripts/check-version.sh"
 
-agent_version="$(manifest_agent_injector_ahk_version "$MANIFEST_FOR_PLAN" 2>/dev/null || jq -r '.components["agent-injector-ahk"].version // .agentVersion' "$MANIFEST_FOR_PLAN")"
-manifest_channel="$(manifest_release_channel "$MANIFEST_FOR_PLAN" 2>/dev/null || jq -r '.release.channel // .build.channel' "$MANIFEST_FOR_PLAN")"
+agent_version="$(manifest_agent_injector_ahk_version "$MANIFEST_FOR_PLAN" 2> /dev/null || jq -r '.components["agent-injector-ahk"].version // .agentVersion' "$MANIFEST_FOR_PLAN")"
+manifest_channel="$(manifest_release_channel "$MANIFEST_FOR_PLAN" 2> /dev/null || jq -r '.release.channel // .build.channel' "$MANIFEST_FOR_PLAN")"
 if [[ -z "$CHANNEL" ]]; then
   CHANNEL="$manifest_channel"
 fi

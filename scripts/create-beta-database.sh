@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MARKER_SQL="$ROOT_DIR/scripts/create-beta-database.sql"
 
 usage() {
-  cat <<'USAGE'
+  cat << 'USAGE'
 Usage:
   create-beta-database.sh --version X.Y.Z-beta.N \
     (--backup FILE | --template DATABASE) [options]
@@ -38,7 +38,7 @@ log() {
 }
 
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || die "command not found: $1"
+  command -v "$1" > /dev/null 2>&1 || die "command not found: $1"
 }
 
 require_value() {
@@ -114,7 +114,7 @@ while [[ $# -gt 0 ]]; do
       DRY_RUN="true"
       shift
       ;;
-    -h|--help)
+    -h | --help)
       usage
       exit 0
       ;;
@@ -128,8 +128,8 @@ done
 is_beta_semver "$VERSION" || die "--version must match strict Beta SemVer: X.Y.Z-beta.N"
 
 TARGET_DATABASE="$(database_name_for_version "$VERSION")"
-[[ ${#TARGET_DATABASE} -le 63 ]] ||
-  die "generated database name exceeds PostgreSQL's 63-byte identifier limit: $TARGET_DATABASE"
+[[ ${#TARGET_DATABASE} -le 63 ]] \
+  || die "generated database name exceeds PostgreSQL's 63-byte identifier limit: $TARGET_DATABASE"
 
 if [[ "$NAME_ONLY" == "true" ]]; then
   printf '%s\n' "$TARGET_DATABASE"
@@ -199,8 +199,8 @@ database_exists="$(
   psql -v ON_ERROR_STOP=1 -X -q -t -A --dbname="$ADMIN_DATABASE" \
     -c "select exists(select 1 from pg_database where datname = '${target_database_literal}')"
 )"
-[[ "$database_exists" == "f" ]] ||
-  die "database already exists; refusing to overwrite: $TARGET_DATABASE"
+[[ "$database_exists" == "f" ]] \
+  || die "database already exists; refusing to overwrite: $TARGET_DATABASE"
 
 if [[ -n "$TEMPLATE_DATABASE" ]]; then
   template_database_literal="$(sql_literal "$TEMPLATE_DATABASE")"
@@ -214,8 +214,8 @@ if [[ -n "$TEMPLATE_DATABASE" ]]; then
     psql -v ON_ERROR_STOP=1 -X -q -t -A --dbname="$ADMIN_DATABASE" \
       -c "select count(*) from pg_stat_activity where datname = '${template_database_literal}'"
   )"
-  [[ "$active_connections" == "0" ]] ||
-    die "template database has active connections ($active_connections); disconnect them before cloning: $TEMPLATE_DATABASE"
+  [[ "$active_connections" == "0" ]] \
+    || die "template database has active connections ($active_connections); disconnect them before cloning: $TEMPLATE_DATABASE"
 
   createdb --maintenance-db="$ADMIN_DATABASE" \
     --template="$TEMPLATE_DATABASE" "$TARGET_DATABASE"
