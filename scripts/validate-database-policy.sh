@@ -71,7 +71,7 @@ fi
 base_schema_version="$(manifest_schema_version "$BASE_MANIFEST")"
 base_db_version="$(manifest_database_postgres_version "$BASE_MANIFEST")"
 is_stable_semver "$base_db_version" ||
-  die "invalid stable/main baseline database version: $base_db_version"
+  die "stable/main baseline release-manifest.json must expose a stable DB version via components.database-postgres.version or legacy dbSchemaVersion"
 
 channel="$(manifest_release_channel "$MANIFEST")"
 policy="$(manifest_database_migration_policy "$MANIFEST")"
@@ -95,22 +95,27 @@ changed_migrations="$(
 )"
 
 if [[ "$channel" == "beta" ]]; then
-  if semver_gte_stable "$base_db_version" "$candidate_db_version"; then
-    :
-  elif [[ "$base_schema_version" -lt 2 ]]; then
-    :
-  elif [[ "$policy" == "isolated-beta" && "$ALLOW_BETA_MIGRATION" == "true" ]]; then
-    :
-  else
-    die "ordinary Beta database-postgres.version ($candidate_db_version) cannot exceed stable/main baseline ($base_db_version)"
-  fi
-
-  if [[ -n "$changed_migrations" ]]; then
-    [[ "$policy" == "isolated-beta" ]] ||
-      die "Beta SQL migration changes require migrationPolicy=isolated-beta"
-    [[ "$ALLOW_BETA_MIGRATION" == "true" ]] ||
-      die "Beta SQL migration changes require explicit CI authorization"
-  fi
+  case "$policy" in
+    stable-only)
+      semver_lte_stable "$candidate_db_version" "$base_db_version" ||
+        die "stable-only beta DB version cannot exceed stable/main baseline ($base_db_version): $candidate_db_version"
+      [[ -z "$changed_migrations" ]] ||
+        die "stable-only beta cannot change SQL migrations relative to $BASE_REF"
+      ;;
+    isolated-beta)
+      if [[ -n "$changed_migrations" ]] ||
+        ! semver_lte_stable "$candidate_db_version" "$base_db_version"; then
+        [[ "$ALLOW_BETA_MIGRATION" == "true" ]] ||
+          die "isolated beta migration requires explicit CI authorization"
+      fi
+      ;;
+    manual)
+      die "manual database migration policy is not allowed in automated beta release validation"
+      ;;
+    *)
+      die "unsupported migrationPolicy for beta: $policy"
+      ;;
+  esac
 fi
 
 printf 'channel=%s\n' "$channel"

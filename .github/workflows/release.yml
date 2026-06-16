@@ -30,7 +30,59 @@ permissions:
   contents: write
 
 jobs:
+  release_gate:
+    name: Resolve release trigger policy
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.gate.outputs.should_run }}
+      reason: ${{ steps.gate.outputs.reason }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve gate
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          should_run=false
+          reason="unsupported event"
+
+          if [[ "${GITHUB_EVENT_NAME:-}" == "workflow_dispatch" ]]; then
+            should_run=true
+            reason="manual dispatch"
+          elif [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
+            git fetch --no-tags origin \
+              +refs/heads/main:refs/remotes/origin/main \
+              +refs/heads/beta:refs/remotes/origin/beta
+            branches="$(git branch -r --contains HEAD || true)"
+            channel="$(jq -r '.release.channel // empty' release-manifest.json)"
+            migration_policy="$(jq -r '.components["database-postgres"].migrationPolicy // "stable-only"' release-manifest.json)"
+
+            if grep -q 'origin/main' <<< "$branches"; then
+              should_run=true
+              reason="stable tag on main"
+            elif grep -q 'origin/beta' <<< "$branches"; then
+              if [[ "$channel" == "beta" && "$migration_policy" == "stable-only" ]]; then
+                should_run=true
+                reason="beta tag with stable-only migrationPolicy"
+              else
+                reason="beta tag requires manual dispatch for migrationPolicy=$migration_policy"
+              fi
+            else
+              reason="tag commit is not contained in origin/main or origin/beta"
+            fi
+          fi
+
+          echo "should_run=$should_run" >> "$GITHUB_OUTPUT"
+          echo "reason=$reason" >> "$GITHUB_OUTPUT"
+          echo "Release gate: should_run=$should_run reason=$reason"
+
   validate_release:
+    needs: release_gate
+    if: needs.release_gate.outputs.should_run == 'true'
     uses: ./.github/workflows/validate-release.yml
     with:
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
@@ -38,40 +90,54 @@ jobs:
       allow_beta_db_migration: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_beta_db_migration || false }}
 
   resolve_release_plan:
-    needs: validate_release
+    needs:
+      - release_gate
+      - validate_release
+    if: needs.release_gate.outputs.should_run == 'true'
     uses: ./.github/workflows/resolve-release-plan.yml
 
   build_agent_injector_ahk:
-    needs: resolve_release_plan
+    needs:
+      - release_gate
+      - resolve_release_plan
+    if: needs.release_gate.outputs.should_run == 'true'
     uses: ./.github/workflows/build-agent-injector-ahk.yml
     secrets: inherit
 
   build_desktop_avalonia:
-    needs: resolve_release_plan
-    if: needs.resolve_release_plan.outputs.implementation == 'avalonia'
+    needs:
+      - release_gate
+      - resolve_release_plan
+    if: needs.release_gate.outputs.should_run == 'true' && needs.resolve_release_plan.outputs.implementation == 'avalonia'
     uses: ./.github/workflows/build-desktop-avalonia.yml
     secrets: inherit
 
   build_desktop_electron:
-    needs: resolve_release_plan
-    if: needs.resolve_release_plan.outputs.implementation == 'electron'
+    needs:
+      - release_gate
+      - resolve_release_plan
+    if: needs.release_gate.outputs.should_run == 'true' && needs.resolve_release_plan.outputs.implementation == 'electron'
     uses: ./.github/workflows/build-desktop-electron.yml
     secrets: inherit
 
   build_desktop_electron_preview:
-    needs: resolve_release_plan
-    if: needs.resolve_release_plan.outputs.implementation != 'electron'
+    needs:
+      - release_gate
+      - resolve_release_plan
+    if: needs.release_gate.outputs.should_run == 'true' && needs.resolve_release_plan.outputs.implementation != 'electron'
     uses: ./.github/workflows/build-desktop-electron-preview.yml
     secrets: inherit
 
   package_desktop:
     needs:
+      - release_gate
       - resolve_release_plan
       - build_agent_injector_ahk
       - build_desktop_avalonia
       - build_desktop_electron
     if: |
       always() &&
+      needs.release_gate.outputs.should_run == 'true' &&
       needs.resolve_release_plan.result == 'success' &&
       needs.build_agent_injector_ahk.result == 'success' &&
       (
@@ -92,15 +158,18 @@ jobs:
     secrets: inherit
 
   generate_release_notes:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: needs.release_gate.outputs.should_run == 'true' && startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/generate-release-notes.yml
-    needs: package_desktop
+    needs:
+      - release_gate
+      - package_desktop
     secrets: inherit
 
   publish_release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: needs.release_gate.outputs.should_run == 'true' && startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/publish-release.yml
     needs:
+      - release_gate
       - package_desktop
       - generate_release_notes
     secrets: inherit

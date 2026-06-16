@@ -17,7 +17,7 @@ Stable 遇到高于其 `maxDbSchema` 的数据库时，必须停止写入。此�
 
 ## 迁移策略
 
-- `stable-only`：Stable 可按应用入口执行前向迁移；Beta 禁止迁移
+- `stable-only`：Stable 可按应用入口执行前向迁移；Beta 只能跟随 main 已有 DB 版本，禁止迁移
 - `manual`：应用内入口全部禁止，仅允许外部受控部署
 - `isolated-beta`：只允许 Beta 对显式授权的隔离数据库执行迁移
 
@@ -42,8 +42,9 @@ min/max 范围内。数据库高于目标 Stable `maxDbSchema` 时，禁止切�
 1. 校验 Manifest 的 DB 版本及所有组件 min/max 范围
 2. 确认 Stable/Beta Feed 隔离且目标 manifest 来自正确通道
 3. 确认没有修改或删除已执行 migration
-4. Beta DB 变更必须使用 `isolated-beta` 和隔离数据库授权
-5. 验证 Desktop 与所有启用 Agent 对当前 Schema 均兼容
-6. 验证目标版本失败时保持只读或阻止 Agent 启动
+4. Beta `stable-only` 必须以 main 为 DB 基线且不得包含 migration diff
+5. Beta DB 变更必须使用 `isolated-beta` 和隔离数据库授权
+6. 验证 Desktop 与所有启用 Agent 对当前 Schema 均兼容
+7. 验证目标版本失败时保持只读或阻止 Agent 启动
 
 Beta 的具体发布要求见 [Beta 发布政策](beta-release-policy.md)。

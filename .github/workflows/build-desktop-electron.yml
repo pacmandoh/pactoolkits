@@ -10,7 +10,7 @@ permissions:
 jobs:
   build_desktop_electron:
     name: Build Desktop Electron
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
