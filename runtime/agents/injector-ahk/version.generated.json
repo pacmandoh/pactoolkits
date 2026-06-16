@@ -10,7 +10,7 @@
       "version": "0.6.1"
     },
     "database-postgres": {
-      "migrationPolicy": "stable-only",
+      "migrationPolicy": "isolated-beta",
       "version": "1.2.23"
     },
     "desktop": {
