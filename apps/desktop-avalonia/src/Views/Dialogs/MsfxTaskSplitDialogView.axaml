@@ -55,7 +55,7 @@
         <TextBox x:Name="QuantitySplitBox"
             Grid.Column="1"
             Classes="Control"
-            Watermark="例如：400, 400, 400, 400"
+            PlaceholderText="例如：400, 400, 400, 400"
             HorizontalAlignment="Stretch" />
       </Grid>
 

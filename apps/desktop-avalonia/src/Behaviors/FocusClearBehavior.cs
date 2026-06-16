@@ -104,7 +104,7 @@ public class FocusClearBehavior
         }
     }
 
-    private static void OnGotFocus(object? sender, GotFocusEventArgs e)
+    private static void OnGotFocus(object? sender, FocusChangedEventArgs e)
     {
         if (e.Source is not TextBox current)
         {
