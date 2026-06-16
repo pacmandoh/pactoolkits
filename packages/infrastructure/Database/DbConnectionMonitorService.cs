@@ -1,9 +1,6 @@
-using PacToolkits.Application.Abstractions;
-using System;
-using System.Threading;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 using Npgsql;
+using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 
 
@@ -63,7 +60,9 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
         var tcs = new TaskCompletionSource<DbProbeReport>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         if (!_signals.Writer.TryWrite(new ProbeRequest(kind, tcs)))
+        {
             return new DbProbeReport(kind, Success: false, Reason: "无法提交探测请求：监控服务不可用");
+        }
 
         try
         {
@@ -72,10 +71,14 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
         catch (OperationCanceledException)
         {
             if (_cts.IsCancellationRequested)
+            {
                 return new DbProbeReport(kind, Success: false, Reason: "探测已中止：监控服务已停止");
+            }
 
             if (ct.IsCancellationRequested)
+            {
                 return new DbProbeReport(kind, Success: false, Reason: "探测超时：监控未在限定时间内完成");
+            }
 
             return new DbProbeReport(kind, Success: false, Reason: "探测已取消");
         }
@@ -83,11 +86,20 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
 
     private void ScheduleRetryIfNeeded(TimeSpan delay, CancellationToken ct)
     {
-        if (delay <= TimeSpan.Zero) return;
-        if (ct.IsCancellationRequested) return;
+        if (delay <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        if (ct.IsCancellationRequested)
+        {
+            return;
+        }
 
         if (Interlocked.Exchange(ref _retryScheduled, 1) == 1)
+        {
             return;
+        }
 
         _ = Task.Run(async () =>
         {
@@ -95,7 +107,9 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
             {
                 await Task.Delay(delay, ct).ConfigureAwait(false);
                 if (!ct.IsCancellationRequested)
+                {
                     Signal();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -306,7 +320,9 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
         CancellationToken ct)
     {
         if (req.Tcs is null)
+        {
             return;
+        }
 
         var timeout = TimeSpan.FromSeconds(Math.Max(1, opt.MonitorPingTimeoutSeconds));
         try
@@ -347,7 +363,9 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
     {
         var intervalSeconds = Math.Max(0, opt.MonitorPingSeconds);
         if (intervalSeconds == 0)
+        {
             return;
+        }
 
         var interval = TimeSpan.FromSeconds(intervalSeconds);
         var timeout = TimeSpan.FromSeconds(Math.Max(1, opt.MonitorPingTimeoutSeconds));
@@ -366,7 +384,9 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
                 }
 
                 if (ct.IsCancellationRequested || dropped.Task.IsCompleted)
+                {
                     break;
+                }
 
                 try
                 {

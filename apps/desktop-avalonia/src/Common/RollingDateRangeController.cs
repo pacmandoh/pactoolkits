@@ -26,9 +26,20 @@ public sealed class RollingDateRangeController : IDisposable
         var from = (fromDate ?? DefaultFromDate).Date;
         var to = (toDate ?? DefaultToDate).Date;
 
-        if (from > today) from = today;
-        if (to > today) to = today;
-        if (from > to) from = to;
+        if (from > today)
+        {
+            from = today;
+        }
+
+        if (to > today)
+        {
+            to = today;
+        }
+
+        if (from > to)
+        {
+            from = to;
+        }
 
         return (from, to);
     }
@@ -51,7 +62,10 @@ public sealed class RollingDateRangeController : IDisposable
         var nextMidnight = DateTime.Today.AddDays(1).AddSeconds(1);
         var interval = nextMidnight - now;
         if (interval < TimeSpan.FromSeconds(1))
+        {
             interval = TimeSpan.FromSeconds(1);
+        }
+
         _timer.Interval = interval;
     }
 

@@ -13,7 +13,7 @@ public partial class BusyCircle : UserControl
 
     private readonly DispatcherTimer _timer;
     private int _phase;
-    private Border[]? _dots;
+    private readonly Border[]? _dots;
 
     public IBrush? DotBrush
     {
@@ -34,7 +34,9 @@ public partial class BusyCircle : UserControl
     private void Start()
     {
         if (!_timer.IsEnabled)
+        {
             _timer.Start();
+        }
     }
 
     private void Stop()
@@ -53,7 +55,9 @@ public partial class BusyCircle : UserControl
     private void UpdateDots()
     {
         if (_dots is null)
+        {
             return;
+        }
 
         for (var i = 0; i < _dots.Length; i++)
         {

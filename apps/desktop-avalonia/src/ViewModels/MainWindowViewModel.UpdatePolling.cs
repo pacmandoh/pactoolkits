@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
@@ -15,7 +14,9 @@ public partial class MainWindowViewModel
         _updatePollCts = null;
 
         if (!TryGetUpdatePollInterval(_updateSettings.Current, out var interval))
+        {
             return;
+        }
 
         _updatePollCts = new CancellationTokenSource();
         _ = RunUpdatePollingAsync(interval, _updatePollCts.Token);
@@ -35,7 +36,9 @@ public partial class MainWindowViewModel
             }
 
             if (ct.IsCancellationRequested || _disposed)
+            {
                 return;
+            }
 
             await CheckAndPromptUpdateAsync(showNoUpdateToast: false, startupMode: false).ConfigureAwait(false);
         }
@@ -45,7 +48,9 @@ public partial class MainWindowViewModel
     {
         interval = TimeSpan.Zero;
         if (!options.AutoCheckOnStartup)
+        {
             return false;
+        }
 
         var configured = options.AutoCheckIntervalMinutes;
         if (configured > 0)

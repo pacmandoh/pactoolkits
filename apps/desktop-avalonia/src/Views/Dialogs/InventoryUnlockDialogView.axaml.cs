@@ -3,7 +3,6 @@ using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using global::Avalonia.Threading;
-using global::Avalonia.VisualTree;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Dialogs;
 
@@ -35,7 +34,9 @@ public partial class InventoryUnlockDialogView : UserControl
     private void PasswordBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter)
+        {
             return;
+        }
 
         e.Handled = true;
         SubmitRequested?.Invoke();

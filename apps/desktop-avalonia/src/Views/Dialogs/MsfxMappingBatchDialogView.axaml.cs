@@ -1,21 +1,18 @@
-using Avalonia;
-using global::Avalonia.Controls;
-using global::Avalonia.Controls.Primitives;
-using global::Avalonia.Input;
-using global::Avalonia.Interactivity;
-using global::Avalonia.VisualTree;
-using Microsoft.Extensions.DependencyInjection;
-using PacToolkits.Application.DTOs;
-using PacToolkits.Application.Services;
-using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Application.Abstractions;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using global::Avalonia.Controls;
+using global::Avalonia.Input;
+using Microsoft.Extensions.DependencyInjection;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Services;
+using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Dialogs;
 
@@ -55,7 +52,9 @@ public partial class MsfxMappingBatchDialogView : UserControl
     private async void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
         if (_initialized)
+        {
             return;
+        }
 
         _initialized = true;
         await InitializeAsync();
@@ -116,7 +115,9 @@ public partial class MsfxMappingBatchDialogView : UserControl
     private async Task OnDrugInputChangedAsync(string? text)
     {
         if (_lookup is null)
+        {
             return;
+        }
 
         var input = NormalizeInput(text);
         await RunOnUiAsync(() =>
@@ -142,16 +143,22 @@ public partial class MsfxMappingBatchDialogView : UserControl
     private async Task ApplyDrugAsync(string drugInput, int? version = null)
     {
         if (_lookup is null)
+        {
             return;
+        }
 
         using var cts = new CancellationTokenSource(LookupTimeout);
         var canonical = await _lookup.ResolveCanonicalDrugIdAsync(drugInput, cts.Token).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(canonical))
+        {
             return;
+        }
 
         var specs = await _lookup.GetSpecsByDrugAsync(canonical, cts.Token).ConfigureAwait(false);
         if (version.HasValue && version.Value != _drugInputVersion)
+        {
             return;
+        }
 
         await RunOnUiAsync(() =>
         {
@@ -167,7 +174,9 @@ public partial class MsfxMappingBatchDialogView : UserControl
     private async Task RefreshPreviewAsync()
     {
         if (_syncService is null)
+        {
             return;
+        }
 
         MsfxMappingBatchDialogModel? model = null;
         MsfxMappingBatchGroupRow? group = null;
@@ -218,7 +227,9 @@ public partial class MsfxMappingBatchDialogView : UserControl
     private void GroupGrid_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is not DataGrid grid)
+        {
             return;
+        }
 
         if (DataGridInteractionHelper.TrySelectRowFromPointer(
                 grid,
@@ -242,7 +253,9 @@ public partial class MsfxMappingBatchDialogView : UserControl
     private async void OnDrugBoxPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
         if (e.Property != AutoCompleteBox.TextProperty)
+        {
             return;
+        }
 
         var text = (e.NewValue as OptionItem)?.Raw ?? e.NewValue?.ToString();
         _drugIdDraft = text ?? string.Empty;
@@ -252,7 +265,9 @@ public partial class MsfxMappingBatchDialogView : UserControl
     private void UpdateSpecPlaceholder()
     {
         if (SpecPlaceholder is null || SpecBox is null)
+        {
             return;
+        }
 
         var hasValue = !string.IsNullOrWhiteSpace(SpecBox.SelectedItem?.ToString()) ||
                        !string.IsNullOrWhiteSpace(SpecBox.Text);

@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
@@ -68,7 +64,10 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             cmd.AddParam("spec", spec);
 
             await using var reader = await cmd.ExecuteReaderAsync(token);
-            if (!await reader.ReadAsync(token)) return null;
+            if (!await reader.ReadAsync(token))
+            {
+                return null;
+            }
 
             return ReadDrugIndexDto(reader);
         }, ct);
@@ -89,7 +88,9 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
 
             await using var reader = await cmd.ExecuteReaderAsync(token);
             if (!await reader.ReadAsync(token))
+            {
                 return false;
+            }
 
             var total = reader.GetInt32(0);
             var deprecated = reader.GetInt32(1);
@@ -135,7 +136,9 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
 
                 await using var reader = await cmd.ExecuteReaderAsync(token);
                 if (await reader.ReadAsync(token))
+                {
                     return ReadDrugIndexDto(reader);
+                }
 
                 var current = await GetByKeyInternalAsync(conn, dto.DrugId, dto.Spec, token);
                 throw new DrugIndexConcurrencyException("该记录已被其他终端创建，请刷新后重试", current);
@@ -166,7 +169,9 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
 
             await using var updated = await update.ExecuteReaderAsync(token);
             if (await updated.ReadAsync(token))
+            {
                 return ReadDrugIndexDto(updated);
+            }
 
             var latest = await GetByKeyInternalAsync(conn, dto.DrugId, dto.Spec, token);
             throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", latest);
@@ -205,9 +210,14 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             var dstSpecCheck = dstSpec.Trim();
 
             if (srcDrugCheck.Length == 0 || srcSpecCheck.Length == 0)
+            {
                 throw new ArgumentException("源药品名与规格不能为空");
+            }
+
             if (dstDrugCheck.Length == 0 || dstSpecCheck.Length == 0)
+            {
                 throw new ArgumentException("目标药品名与规格不能为空");
+            }
 
             const string srcSql = """
                 select exists(
@@ -297,17 +307,35 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             var dstSpecCheck = dstSpec.Trim();
 
             if (srcDrugCheck.Length == 0 || srcSpecCheck.Length == 0)
+            {
                 throw new ArgumentException("源药品名与规格不能为空");
+            }
+
             if (dstDrugCheck.Length == 0 || dstSpecCheck.Length == 0)
+            {
                 throw new ArgumentException("目标药品名与规格不能为空");
+            }
+
             if (dstQty <= 0)
+            {
                 throw new ArgumentException("目标单盒数量必须大于 0");
+            }
+
             if (reasonSafe.Length == 0)
+            {
                 throw new ArgumentException("迁移原因不能为空", nameof(reason));
+            }
+
             if (operatorSafe.Length == 0)
+            {
                 throw new ArgumentException("操作人不能为空", nameof(operatorName));
+            }
+
             if (sourceSafe.Length == 0)
+            {
                 throw new ArgumentException("来源不能为空", nameof(sourceTag));
+            }
+
             var sameKey =
                 string.Equals(srcDrug, dstDrug, StringComparison.Ordinal) &&
                 string.Equals(srcSpec, dstSpec, StringComparison.Ordinal);
@@ -326,14 +354,20 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 cmd.AddParam("src_spec", srcSpec);
                 await using var reader = await cmd.ExecuteReaderAsync(token);
                 if (await reader.ReadAsync(token))
+                {
                     sourceDb = ReadDrugIndexDto(reader);
+                }
             }
 
             if (sourceDb is null)
+            {
                 throw new InvalidOperationException("源药品规格不存在或已被移除");
+            }
 
             if (sourceDb.Version != source.Version)
+            {
                 throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", sourceDb);
+            }
 
             var targetExisted = false;
             if (!sameKey)
@@ -405,7 +439,10 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                     cmd.AddParam("src_version", source.Version);
                     await using var reader = await cmd.ExecuteReaderAsync(token);
                     if (!await reader.ReadAsync(token))
+                    {
                         throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", sourceDb);
+                    }
+
                     current = ReadDrugIndexDto(reader);
                 }
 
@@ -456,7 +493,10 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
 
                 await using var reader = await moveCmd.ExecuteReaderAsync(token);
                 if (!await reader.ReadAsync(token))
+                {
                     throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", sourceDb);
+                }
+
                 current = ReadDrugIndexDto(reader);
             }
             else
@@ -484,7 +524,10 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                     cmd.AddParam("dst_note", dstNote);
                     await using var reader = await cmd.ExecuteReaderAsync(token);
                     if (!await reader.ReadAsync(token))
+                    {
                         throw new InvalidOperationException("目标药品规格写入失败");
+                    }
+
                     current = ReadDrugIndexDto(reader);
                 }
 
@@ -531,7 +574,9 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                     cmd.AddParam("src_spec", srcSpec);
                     var deleted = await cmd.ExecuteNonQueryAsync(token);
                     if (deleted <= 0)
+                    {
                         throw new InvalidOperationException("源药品规格删除失败");
+                    }
                 }
             }
 
@@ -650,7 +695,11 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
         cmd.AddParam("spec", spec);
 
         await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct)) return null;
+        if (!await reader.ReadAsync(ct))
+        {
+            return null;
+        }
+
         return ReadDrugIndexDto(reader);
     }
 }

@@ -57,7 +57,9 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
         CancellationToken ct)
     {
         if (edits.Count == 0)
+        {
             return new StockCellEditBatchResult(0, 0, null);
+        }
 
         var savedCount = 0;
         var failedCount = 0;
@@ -113,7 +115,9 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
         foreach (var traceCode in traceCodes)
         {
             if (string.IsNullOrWhiteSpace(traceCode))
+            {
                 continue;
+            }
 
             var one = await _repo.ReassignStockByTraceCodeAsync(
                 traceCode,
@@ -127,7 +131,9 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
 
             affected += one.AffectedRows;
             if (auditId == 0)
+            {
                 auditId = one.AuditId;
+            }
         }
 
         return new StockReassignApplyResultDto(affected, auditId);

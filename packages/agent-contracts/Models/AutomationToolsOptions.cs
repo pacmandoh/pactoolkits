@@ -1,7 +1,8 @@
-namespace PacToolkits.Agent.Contracts.Models;
 
 using System.Text.Json;
 using PacToolkits.Agent.Contracts.Agents;
+
+namespace PacToolkits.Agent.Contracts.Models;
 
 public sealed class AutomationToolsOptions
 {
@@ -59,7 +60,11 @@ public static class AgentSettingsSync
 
     public static bool HasData(AgentToolOptions? agent)
     {
-        if (agent is null) return false;
+        if (agent is null)
+        {
+            return false;
+        }
+
         var defaults = new AgentToolOptions();
         return !string.Equals(agent.PgDriver, defaults.PgDriver, StringComparison.Ordinal)
                || !string.Equals(agent.PgSsl, defaults.PgSsl, StringComparison.Ordinal)
@@ -73,7 +78,10 @@ public static class AgentSettingsSync
         using var doc = JsonDocument.Parse(json);
         var settings = new Dictionary<string, object?>(StringComparer.Ordinal);
         foreach (var prop in doc.RootElement.EnumerateObject())
+        {
             settings[prop.Name] = prop.Value.Clone();
+        }
+
         return settings;
     }
 
@@ -90,7 +98,9 @@ public static class AgentSettingsSync
     {
         options = new AgentToolOptions();
         if (settings is null || settings.Count == 0)
+        {
             return true;
+        }
 
         try
         {
@@ -108,7 +118,9 @@ public static class AgentSettingsSync
     public static bool SettingsMatch(IReadOnlyDictionary<string, object?>? left, AgentToolOptions right)
     {
         if (!TryFromSettings(left, out var fromLeft))
+        {
             return false;
+        }
 
         var normalizedLeft = JsonSerializer.Serialize(fromLeft, JsonOptions);
         var normalizedRight = JsonSerializer.Serialize(right, JsonOptions);

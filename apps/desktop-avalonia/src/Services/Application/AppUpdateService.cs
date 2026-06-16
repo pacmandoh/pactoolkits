@@ -1,8 +1,7 @@
 using System;
-using PacToolkits.Application.Abstractions;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Threading;
 using System.Threading.Tasks;
+using PacToolkits.Application.Abstractions;
 using Velopack;
 using Velopack.Locators;
 
@@ -203,12 +202,12 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             {
                 _logger.Info("AppUpdateService", "update.check.channel_switch",
                     "Checking selected channel after validated channel switch", new
-                {
-                    CurrentVersion,
-                    CurrentChannel = currentChannel,
-                    TargetChannel = targetChannel,
-                    options.ValidatedChannel
-                });
+                    {
+                        CurrentVersion,
+                        CurrentChannel = currentChannel,
+                        TargetChannel = targetChannel,
+                        options.ValidatedChannel
+                    });
             }
 
             var updates = await mgr.CheckForUpdatesAsync().ConfigureAwait(false);
@@ -305,11 +304,15 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             var currentChannel = ResolveInstalledChannel();
             var targetChannel = NormalizeChannel(options.Channel);
             if (string.IsNullOrWhiteSpace(options.FeedUrl))
+            {
                 return new AppUpdateApplyResult(false, false, "未配置更新源地址", CurrentVersion);
+            }
 
             var mgr = CreateUpdateManager(options);
             if (!mgr.IsInstalled)
+            {
                 return new AppUpdateApplyResult(false, false, "当前不是 Velopack 安装包运行，无法在线更新", CurrentVersion);
+            }
 
             var pending = mgr.UpdatePendingRestart;
             if (pending is not null)
@@ -347,12 +350,12 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             {
                 _logger.Info("AppUpdateService", "update.apply.channel_switch",
                     "Applying update from selected channel after validated channel switch", new
-                {
-                    CurrentVersion,
-                    CurrentChannel = currentChannel,
-                    TargetChannel = targetChannel,
-                    options.ValidatedChannel
-                });
+                    {
+                        CurrentVersion,
+                        CurrentChannel = currentChannel,
+                        TargetChannel = targetChannel,
+                        options.ValidatedChannel
+                    });
             }
 
             var updates = await mgr.CheckForUpdatesAsync().ConfigureAwait(false);
@@ -369,7 +372,9 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
 
             var latest = updates.TargetFullRelease.Version.ToString();
             if (string.Equals(latest, options.IgnoredVersion, StringComparison.Ordinal))
+            {
                 return new AppUpdateApplyResult(false, false, $"已忽略版本 {latest}", latest);
+            }
 
             await mgr.DownloadUpdatesAsync(
                 updates,
@@ -400,15 +405,21 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             RefreshCurrentVersion();
             var options = _settings.Current;
             if (string.IsNullOrWhiteSpace(options.FeedUrl))
+            {
                 return false;
+            }
 
             var mgr = CreateUpdateManager(options);
             if (!mgr.IsInstalled)
+            {
                 return false;
+            }
 
             var pending = mgr.UpdatePendingRestart;
             if (pending is null)
+            {
                 return false;
+            }
 
             _logger.Info("AppUpdateService", "update.restart.apply", "Applying pending update and restarting", new
             {
@@ -454,7 +465,9 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
     private void SetChecking(bool value)
     {
         if (IsChecking == value)
+        {
             return;
+        }
 
         IsChecking = value;
         Changed?.Invoke();
@@ -483,14 +496,18 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
     {
         var normalizedBase = string.IsNullOrWhiteSpace(baseFeedUrl) ? string.Empty : baseFeedUrl.Trim().TrimEnd('/');
         if (string.IsNullOrWhiteSpace(normalizedBase))
+        {
             return string.Empty;
+        }
 
         if (normalizedBase.EndsWith("/stable", StringComparison.OrdinalIgnoreCase)
             || normalizedBase.EndsWith("/beta", StringComparison.OrdinalIgnoreCase))
         {
             var lastSlash = normalizedBase.LastIndexOf('/');
             if (lastSlash > 0)
+            {
                 normalizedBase = normalizedBase[..lastSlash];
+            }
         }
 
         return $"{normalizedBase}/{channel}";
@@ -500,7 +517,9 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
     {
         var installed = ResolveInstalledVersion();
         if (string.Equals(CurrentVersion, installed, StringComparison.Ordinal))
+        {
             return;
+        }
 
         CurrentVersion = installed;
     }
@@ -513,7 +532,9 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             {
                 var version = VelopackLocator.Current.CurrentlyInstalledVersion?.ToString();
                 if (!string.IsNullOrWhiteSpace(version))
+                {
                     return version;
+                }
             }
         }
         catch
@@ -531,7 +552,9 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             {
                 var channel = VelopackLocator.Current.Channel?.Trim().ToLowerInvariant();
                 if (!string.IsNullOrWhiteSpace(channel))
+                {
                     return channel;
+                }
             }
         }
         catch

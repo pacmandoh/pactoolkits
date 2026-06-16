@@ -17,7 +17,9 @@ public sealed class TriggerDebounceGate
         lock (_lock)
         {
             if (_lastByKey.TryGetValue(key, out var last) && now - last < interval)
+            {
                 return true;
+            }
 
             _lastByKey[key] = now;
             return false;

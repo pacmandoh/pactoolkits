@@ -1,7 +1,7 @@
-using global::Avalonia.Controls;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using global::Avalonia.Controls;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
@@ -31,7 +31,9 @@ public sealed class AppViews
         var vmName = viewModel.GetType().Name;
 
         if (!vmName.EndsWith("ViewModel", StringComparison.Ordinal))
+        {
             return false;
+        }
 
         var viewTypeName = vmName[..^"ViewModel".Length] + "View";
 

@@ -1,20 +1,19 @@
 using System;
-using global::Avalonia.Collections;
-using System.Collections.Specialized;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using global::Avalonia.Collections;
+using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
-using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -43,7 +42,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private async Task ImportDataAsync()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         if (!IsEditorUnlocked)
         {
@@ -83,8 +84,8 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             _suppressSelectionGuard = true;
             try
             {
-                if (Selected is not null)
-                    Selected.NotePreview = null;
+                Selected?.NotePreview = null;
+
                 Selected = null;
                 _selectionBeforeChange = null;
             }
@@ -125,7 +126,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private async Task ExportDataAsync()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         await _dialog.Warn("未实现", "导出功能稍后接入格式选择/保存路径");
     }
@@ -150,9 +153,21 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         {
             get
             {
-                if (IsDeprecated && IsNoSplit) return "both";
-                if (IsDeprecated) return "deprecated";
-                if (IsNoSplit) return "nosplit";
+                if (IsDeprecated && IsNoSplit)
+                {
+                    return "both";
+                }
+
+                if (IsDeprecated)
+                {
+                    return "deprecated";
+                }
+
+                if (IsNoSplit)
+                {
+                    return "nosplit";
+                }
+
                 return "";
             }
         }
@@ -442,7 +457,10 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                         }
 
                         if (!string.IsNullOrWhiteSpace(nextDrugId) && !string.IsNullOrWhiteSpace(nextSpec))
+                        {
                             next = FindRow(nextDrugId, nextSpec);
+                        }
+
                         break;
                     }
                 case 2:
@@ -454,8 +472,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             }
         }
 
-        if (prev is not null)
-            prev.NotePreview = null;
+        prev?.NotePreview = null;
 
         _suppressSelectionGuard = true;
         try
@@ -478,7 +495,10 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         if (value is null)
         {
             if (!HasEditor)
+            {
                 ClearEditor(keepEditorVisible: false);
+            }
+
             return;
         }
 
@@ -570,8 +590,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
         _loadedSnapshot = null;
 
-        if (Selected is not null)
-            Selected.NotePreview = null;
+        Selected?.NotePreview = null;
 
         HasSelection = false;
         HasEditor = keepEditorVisible;
@@ -586,12 +605,36 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     {
         if (_loadedSnapshot is null)
         {
-            if (!string.IsNullOrWhiteSpace(EditDrugId)) return true;
-            if (!string.IsNullOrWhiteSpace(EditSpec)) return true;
-            if (EditQty is > 0) return true;
-            if (!string.IsNullOrWhiteSpace(EditRuleKey)) return true;
-            if (!string.IsNullOrWhiteSpace(EditPreTc)) return true;
-            if (!string.IsNullOrWhiteSpace(EditNote)) return true;
+            if (!string.IsNullOrWhiteSpace(EditDrugId))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(EditSpec))
+            {
+                return true;
+            }
+
+            if (EditQty is > 0)
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(EditRuleKey))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(EditPreTc))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(EditNote))
+            {
+                return true;
+            }
+
             return false;
         }
 
@@ -625,8 +668,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
         RecalcEditorFlags(EditNote);
 
-        if (Selected is not null)
-            Selected.NotePreview = EditNote;
+        Selected?.NotePreview = EditNote;
 
         IsDirty = false;
         NotifyAllCommands();
@@ -700,9 +742,13 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         EditorUnlockCooldownUntilUtc = snap.CooldownUntilUtc;
 
         if (IsEditorUnlocked || EditorUnlockCooldownUntilUtc > DateTimeOffset.UtcNow)
+        {
             StartUnlockStatusTimerIfNeeded();
+        }
         else
+        {
             StopUnlockStatusTimerIfNeeded();
+        }
     }
 
     private void NotifyEditorUnlockUiStateChanged()
@@ -725,19 +771,25 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private void StartUnlockStatusTimerIfNeeded()
     {
         if (!_unlockStatusTimer.IsEnabled)
+        {
             _unlockStatusTimer.Start();
+        }
     }
 
     private void StopUnlockStatusTimerIfNeeded()
     {
         if (_unlockStatusTimer.IsEnabled)
+        {
             _unlockStatusTimer.Stop();
+        }
     }
 
     private void OnUnlockScopeChanged(string scopeKey)
     {
         if (!string.Equals(scopeKey, UnlockScopeKey, StringComparison.Ordinal))
+        {
             return;
+        }
 
         PostOnUi(RefreshEditorUnlockState, DispatcherPriority.Background);
     }
@@ -746,7 +798,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private async Task SaveAsync()
     {
         if (ShouldSkipTrigger(milliseconds: 800))
+        {
             return;
+        }
 
         await SaveInternalAsync(reselectSavedRow: true, refreshAfterSave: false);
     }
@@ -806,9 +860,14 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                     LogWarn("drug_index.save.concurrency_conflict", "Detected optimistic concurrency conflict", saveResult.Concurrency);
                     await _dialog.Warn("保存冲突", "该记录已被其他终端修改，请先刷新后再编辑");
                     if (saveResult.Concurrency?.Current is not null)
+                    {
                         await ReloadAndReselectAsync(saveResult.Concurrency.Current.DrugId, saveResult.Concurrency.Current.Spec);
+                    }
                     else
+                    {
                         await ReloadAsync();
+                    }
+
                     return false;
             }
 
@@ -831,7 +890,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                     ReplaceOrInsertRowInPlace(saved);
 
                     if (reselectSavedRow)
+                    {
                         Selected = FindRow(drugId, spec);
+                    }
                 }, DispatcherPriority.Normal);
 
                 _inventoryOverview.NotifyDrugIndexChanged();
@@ -840,9 +901,13 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             }
 
             if (reselectSavedRow)
+            {
                 await ReloadAndReselectAsync(drugId, spec);
+            }
             else
+            {
                 await ReloadAsync();
+            }
 
             _inventoryOverview.NotifyDrugIndexChanged();
             _scanCode.NotifyDrugIndexChanged();
@@ -869,19 +934,32 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private async Task FixDrugKeyAsync()
     {
         if (ShouldSkipTrigger("drug.fix_key", 800))
+        {
             return;
+        }
+
         if (EditQty is not > 0)
+        {
             return;
+        }
+
         if (Selected is null)
+        {
             return;
+        }
+
         if (string.IsNullOrWhiteSpace(Selected.DrugId) || string.IsNullOrWhiteSpace(Selected.Spec))
+        {
             return;
+        }
 
         var targetDrugId = NormalizeInput(EditDrugId) ?? string.Empty;
         var targetSpec = NormalizeInput(EditSpec) ?? string.Empty;
 
         if (targetDrugId.Length == 0 || targetSpec.Length == 0)
+        {
             return;
+        }
 
         var sourceDrugId = Selected.DrugId;
         var sourceSpec = Selected.Spec;
@@ -921,7 +999,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                 preview.TracePoolAffected,
                 preview.TraceTxnAffected);
             if (!confirm)
+            {
                 return;
+            }
 
             var target = new DrugIndexDto(
                 DrugId: targetDrugId,
@@ -950,16 +1030,23 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             if (!sameKey)
             {
                 if (dbSourceAfter is not null || dbTargetAfter is null)
+                {
                     throw new InvalidOperationException(
                         $"迁移提交校验失败(DB)：sourceExists={(dbSourceAfter is not null ? 1 : 0)}, targetExists={(dbTargetAfter is not null ? 1 : 0)}");
+                }
             }
             else
             {
                 if (dbTargetAfter is null)
+                {
                     throw new InvalidOperationException("迁移提交校验失败(DB)：目标键未找到");
+                }
+
                 if (dbTargetAfter.Qty != EditQty.Value)
+                {
                     throw new InvalidOperationException(
                         $"迁移提交校验失败(DB)：qty 未生效，期望 {EditQty.Value}，实际 {dbTargetAfter.Qty}");
+                }
             }
 
             _originDrugId = dbTargetAfter.DrugId;
@@ -1030,8 +1117,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                 _suppressSelectionGuard = true;
                 try
                 {
-                    if (Selected is not null)
-                        Selected.NotePreview = null;
+                    Selected?.NotePreview = null;
 
                     Selected = null;
                     _selectionBeforeChange = null;
@@ -1050,7 +1136,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                         Selected = Items.FirstOrDefault(x =>
                             x.DrugId == prevSelectedDrugId && x.Spec == prevSelectedSpec);
                         if (Selected is not null)
+                        {
                             ApplySelection(Selected);
+                        }
                     }
                 }
                 finally
@@ -1073,13 +1161,19 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             }
 
             if (ct.IsCancellationRequested)
+            {
                 return;
+            }
 
             if (Volatile.Read(ref _lastSuccessfulReloadEpoch) > epoch)
+            {
                 return;
+            }
 
             if (!IsDbConnected)
+            {
                 return;
+            }
 
             Dispatcher.UIThread.Post(() =>
                 _toast.Error("药品信息加载失败", ex.Message));
@@ -1093,7 +1187,10 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private Task SearchAsync()
     {
         if (ShouldSkipTrigger(milliseconds: 300))
+        {
             return Task.CompletedTask;
+        }
+
         return ReloadAsync();
     }
 
@@ -1101,7 +1198,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private async Task ClearSearchAsync()
     {
         if (ShouldSkipTrigger(milliseconds: 300))
+        {
             return;
+        }
 
         Keyword = null;
         await ReloadAsync();
@@ -1111,10 +1210,11 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private void NewItem()
     {
         if (ShouldSkipTrigger(milliseconds: 250))
+        {
             return;
+        }
 
-        if (Selected is not null)
-            Selected.NotePreview = null;
+        Selected?.NotePreview = null;
 
         _suppressSelectionGuard = true;
         try
@@ -1139,10 +1239,14 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private async Task DeleteAsync()
     {
         if (ShouldSkipTrigger(milliseconds: 800))
+        {
             return;
+        }
 
         if (string.IsNullOrWhiteSpace(_originDrugId) || string.IsNullOrWhiteSpace(_originSpec))
+        {
             return;
+        }
 
         var deleteDrugId = _originDrugId!;
         var deleteSpec = _originSpec!;
@@ -1150,7 +1254,10 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         var ok = await _dialog.Confirm("删除药品规格",
             $"确认删除？\n{deleteDrugId} / {deleteSpec}\n\n注意：trace_pool / trace_txn 外键会阻止删除正在引用的记录");
 
-        if (!ok) return;
+        if (!ok)
+        {
+            return;
+        }
 
         IsBusy = true;
         try
@@ -1179,10 +1286,16 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private async Task CopyNameAsync(DrugRow? row)
     {
         if (ShouldSkipTrigger("drug.copy.name", 350))
+        {
             return;
+        }
 
         row ??= Selected;
-        if (row is null) return;
+        if (row is null)
+        {
+            return;
+        }
+
         await _clipboard.SetTextAsync(row.DrugId);
         Dispatcher.UIThread.Post(() => _toast.Info("已复制", "名称(DrugId) 已复制到剪贴板"));
     }
@@ -1191,10 +1304,16 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private async Task CopyCodeAsync(DrugRow? row)
     {
         if (ShouldSkipTrigger("drug.copy.code", 350))
+        {
             return;
+        }
 
         row ??= Selected;
-        if (row is null) return;
+        if (row is null)
+        {
+            return;
+        }
+
         var code = row.RuleKey ?? row.PreTc ?? string.Empty;
         await _clipboard.SetTextAsync(code);
         Dispatcher.UIThread.Post(() => _toast.Info("已复制", "编码(RuleKey/PreTc) 已复制到剪贴板"));
@@ -1224,13 +1343,21 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
     private void ApplyToggleDeprecated()
     {
-        if (!HasEditor) return;
+        if (!HasEditor)
+        {
+            return;
+        }
+
         EditNote = ToggleToken(EditNote, "弃用");
     }
 
     private void ApplyToggleNoSplit()
     {
-        if (!HasEditor) return;
+        if (!HasEditor)
+        {
+            return;
+        }
+
         EditNote = ToggleToken(EditNote, "未拆零");
     }
 
@@ -1238,7 +1365,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     {
         var s = (note ?? string.Empty).Trim();
         if (s.Length == 0)
+        {
             return token;
+        }
 
         if (s.Contains(token, StringComparison.Ordinal))
         {
@@ -1296,13 +1425,19 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private bool HasQtyChanged()
     {
         if (EditQty is not > 0)
+        {
             return false;
+        }
 
         if (Selected is not null)
+        {
             return Selected.Qty != EditQty.Value;
+        }
 
         if (_loadedSnapshot is not null)
+        {
             return _loadedSnapshot.Qty != EditQty.Value;
+        }
 
         return false;
     }
@@ -1323,14 +1458,18 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             .ToList();
 
         if (lines.Count < 2)
+        {
             return new ClipboardParseResult(Array.Empty<ClipboardDrugRow>());
+        }
 
         var header = lines[0].Split('\t').Select(NormalizeHeader).ToArray();
         var nameIdx = FindFirstHeaderIndex(header, "物资名称", "药品名称", "品名");
         var specIdx = FindFirstHeaderIndex(header, "规格", "包装规格", "制剂规格");
 
         if (nameIdx < 0 || specIdx < 0)
+        {
             return new ClipboardParseResult(Array.Empty<ClipboardDrugRow>());
+        }
 
         var rows = new List<ClipboardDrugRow>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1339,16 +1478,22 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         {
             var cols = raw.Split('\t');
             if (cols.Length <= Math.Max(nameIdx, specIdx))
+            {
                 continue;
+            }
 
             var drugId = cols[nameIdx].Trim();
             var spec = cols[specIdx].Trim();
             if (drugId.Length == 0 || spec.Length == 0)
+            {
                 continue;
+            }
 
             var key = $"{drugId}||{spec}";
             if (!seen.Add(key))
+            {
                 continue;
+            }
 
             rows.Add(new ClipboardDrugRow(drugId, spec, InferQtyFromSpec(spec)));
         }
@@ -1368,7 +1513,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             for (var j = 0; j < names.Length; j++)
             {
                 if (string.Equals(headers[i], names[j], StringComparison.OrdinalIgnoreCase))
+                {
                     return i;
+                }
             }
         }
         return -1;
@@ -1377,17 +1524,23 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private static int InferQtyFromSpec(string spec)
     {
         if (string.IsNullOrWhiteSpace(spec))
+        {
             return 1;
+        }
 
         var s = spec.Trim();
 
         var m1 = QtyAsteriskRegex.Match(s);
         if (m1.Success && int.TryParse(m1.Groups[1].Value, out var q1) && q1 > 0)
+        {
             return q1;
+        }
 
         var m2 = QtySuffixRegex.Match(s);
         if (m2.Success && int.TryParse(m2.Groups[1].Value, out var q2) && q2 > 0)
+        {
             return q2;
+        }
 
         return 1;
     }

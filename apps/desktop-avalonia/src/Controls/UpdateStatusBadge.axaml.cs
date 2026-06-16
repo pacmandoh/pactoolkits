@@ -66,7 +66,9 @@ public partial class UpdateStatusBadge : UserControl
         base.OnPropertyChanged(change);
 
         if (change.Property == StatusProperty || change.Property == LatestVersionProperty)
+        {
             RefreshVisualState();
+        }
     }
 
     private void RefreshVisualState()

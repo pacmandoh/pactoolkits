@@ -42,13 +42,19 @@ public static class PinyinInitialMatcher
     {
         var query = NormalizeSearch(searchText);
         if (query.Length == 0)
+        {
             return true;
+        }
 
         if (string.IsNullOrWhiteSpace(candidate))
+        {
             return false;
+        }
 
         if (candidate.Contains(query, StringComparison.OrdinalIgnoreCase))
+        {
             return true;
+        }
 
         var initials = InitialsCache.GetOrAdd(candidate, BuildInitials);
         return initials.Length > 0 &&
@@ -58,7 +64,9 @@ public static class PinyinInitialMatcher
     private static string NormalizeSearch(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
+        {
             return string.Empty;
+        }
 
         var s = value.Trim().ToLowerInvariant();
         return s.Replace(" ", string.Empty);
@@ -67,17 +75,23 @@ public static class PinyinInitialMatcher
     private static string BuildInitials(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
+        {
             return string.Empty;
+        }
 
         var normalized = value.Trim();
         if (normalized.Length == 0)
+        {
             return string.Empty;
+        }
 
         var sb = new StringBuilder(normalized.Length);
         foreach (var ch in normalized)
         {
             if (char.IsWhiteSpace(ch))
+            {
                 continue;
+            }
 
             if (ch is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9')
             {
@@ -87,7 +101,9 @@ public static class PinyinInitialMatcher
 
             var initial = ToPinyinInitial(ch);
             if (initial is not null)
+            {
                 sb.Append(initial.Value);
+            }
         }
 
         return sb.ToString();
@@ -96,7 +112,9 @@ public static class PinyinInitialMatcher
     private static char? ToPinyinInitial(char c)
     {
         if (Gb2312Encoding is null)
+        {
             return null;
+        }
 
         byte[] bytes;
         try
@@ -109,12 +127,16 @@ public static class PinyinInitialMatcher
         }
 
         if (bytes.Length != 2)
+        {
             return null;
+        }
 
         var code = (short)bytes[0] * 256 + (short)bytes[1] - 65536;
         var rangeCount = Math.Min(InitialChars.Length, CodeBoundaries.Length);
         if (rangeCount == 0)
+        {
             return null;
+        }
 
         for (var i = 0; i < rangeCount; i++)
         {
@@ -123,7 +145,9 @@ public static class PinyinInitialMatcher
                 ? int.MaxValue
                 : CodeBoundaries[i + 1];
             if (code >= start && code < end)
+            {
                 return InitialChars[i];
+            }
         }
 
         return null;

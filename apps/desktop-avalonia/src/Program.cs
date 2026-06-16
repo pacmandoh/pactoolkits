@@ -1,11 +1,11 @@
-using Avalonia;
 using System;
 using System.Globalization;
+using Avalonia;
 using Velopack;
 
 namespace PacToolkits.Desktop.Avalonia;
 
-sealed class Program
+internal sealed class Program
 {
     [STAThread]
     public static void Main(string[] args)

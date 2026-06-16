@@ -1,7 +1,8 @@
-namespace PacToolkits.Agent.Contracts.Abstractions;
 
 using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Agent.Contracts.Commands;
+
+namespace PacToolkits.Agent.Contracts.Abstractions;
 
 public interface IAgentManager : IAgentRegistry
 {
