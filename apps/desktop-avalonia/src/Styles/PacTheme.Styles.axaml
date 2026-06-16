@@ -11,5 +11,6 @@
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Navigation.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Pages/LayoutStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Pages/SettingsPageStyles.axaml" />
+  <StyleInclude Source="avares://pactoolkits-desktop/Styles/Pages/AboutPageStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Pages/SharedPageStyles.axaml" />
 </Styles>
