@@ -21,12 +21,12 @@
       "maxDbSchema": "1.2.23",
       "minDbSchema": "1.2.23",
       "packageId": "pactoolkits",
-      "version": "1.0.1-beta.2"
+      "version": "1.0.1-beta.3"
     }
   },
   "product": {
     "id": "pactoolkits",
-    "version": "1.0.1-beta.2"
+    "version": "1.0.1-beta.3"
   },
   "release": {
     "channel": "beta",
