@@ -22,7 +22,6 @@ Thumbs.db
 *.userosscache
 *.sln.docstates
 .vs/
-.vscode/
 _ReSharper*/
 *.[Rr]e[Ss]harper
 
