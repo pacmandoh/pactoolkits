@@ -2,7 +2,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:con="https://github.com/kikipoulet/SukiUI"
     xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-    xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+    xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
   <Style Selector="TabControl.DashboardSubTabs">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
@@ -78,6 +79,9 @@
   </Style>
 
   <Style Selector="TabControl.DashboardSubTabs TabItem /template/ ContentPresenter#PART_HeaderPresenter icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource DashboardTabIconSize}" />
+    <Setter Property="Height" Value="{DynamicResource DashboardTabIconSize}" />
+    <Setter Property="StrokeWidth" Value="{DynamicResource DashboardTabIconStroke}" />
     <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
   </Style>
 
@@ -353,5 +357,15 @@
   <Style Selector="DataGrid.DrugGrid DataGridRow:selected:pointerover DataGridRowHeader">
     <Setter Property="Background"
         Value="{ReflectionBinding DataContext.RowState, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowStateToBgBrush}, ConverterParameter=50}" />
+  </Style>
+
+  <Style Selector="sukiControls|InfoBadge.MsfxMetaBadge">
+    <Setter Property="MaxWidth" Value="{x:Static sys:Double.PositiveInfinity}" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+
+  <Style Selector="sukiControls|InfoBadge.MsfxMetaBadge /template/ ContentPresenter">
+    <Setter Property="MaxWidth" Value="{x:Static sys:Double.PositiveInfinity}" />
+    <Setter Property="TextTrimming" Value="None" />
   </Style>
 </Styles>
