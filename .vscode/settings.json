@@ -11,5 +11,6 @@
   },
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "shfmt.executableArgs": ["-i", "2", "-ci", "-bn", "-sr"]
 }

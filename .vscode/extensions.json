@@ -4,6 +4,6 @@
     "ms-dotnettools.csharp",
     "esbenp.prettier-vscode",
     "mkhl.shfmt",
-    "avalonia-team.vscode-avalonia"
+    "AvaloniaTeam.vscode-avalonia"
   ]
 }
