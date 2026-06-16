@@ -151,8 +151,10 @@ if [[ -n "$BUMP_CHANNEL" ]]; then
   esac
 fi
 
-if [[ -z "$VPK_DIRECTIVE" && "$(uname -s)" == "Darwin" && "$RUNTIME" == win-* ]]; then
-  VPK_DIRECTIVE="win"
+if [[ -z "$VPK_DIRECTIVE" && "$RUNTIME" == win-* ]]; then
+  case "$(uname -s)" in
+    Darwin|Linux) VPK_DIRECTIVE="win" ;;
+  esac
 fi
 
 if [[ -z "$PACK_DIR" ]]; then
