@@ -123,10 +123,7 @@ public sealed class DialogService : IDialogService
         NotificationType type,
         string okText = "确认",
         params string[] okButtonClasses)
-    {
-        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        Dispatcher.UIThread.Post(() =>
+        => ShowDialogAsync<object?>(tcs =>
         {
             var classes = (okButtonClasses is { Length: > 0 })
                 ? okButtonClasses
@@ -142,9 +139,6 @@ public sealed class DialogService : IDialogService
                 .TryShow();
         });
 
-        return tcs.Task;
-    }
-
     public Task<bool> Confirm(
         string title,
         string message,
@@ -153,10 +147,7 @@ public sealed class DialogService : IDialogService
         NotificationType type = NotificationType.Warning,
         string[]? okButtonClasses = null,
         string[]? cancelButtonClasses = null)
-    {
-        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        Dispatcher.UIThread.Post(() =>
+        => ShowDialogAsync<bool>(tcs =>
         {
             okButtonClasses ??= FlatAccentButtonClasses;
             cancelButtonClasses ??= GhostButtonClasses;
@@ -172,19 +163,13 @@ public sealed class DialogService : IDialogService
                 .TryShow();
         });
 
-        return tcs.Task;
-    }
-
     public Task<int> Confirm3(
         string title,
         string message,
         string primaryText,
         string secondaryText,
         string cancelText)
-    {
-        var tcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        Dispatcher.UIThread.Post(() =>
+        => ShowDialogAsync<int>(tcs =>
         {
             _dialogManager.CreateDialog()
                 .OfType(NotificationType.Warning)
@@ -198,9 +183,6 @@ public sealed class DialogService : IDialogService
                 .TryShow();
         });
 
-        return tcs.Task;
-    }
-
     public Task<bool> ConfirmDrugKeyFixPreview(
         string sourceDrugId,
         string sourceSpec,
@@ -209,10 +191,7 @@ public sealed class DialogService : IDialogService
         bool targetExists,
         int tracePoolAffected,
         int traceTxnAffected)
-    {
-        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        Dispatcher.UIThread.Post(() =>
+        => ShowDialogAsync<bool>(tcs =>
         {
             var content = new DrugKeyFixPreviewDialogView
             {
@@ -237,14 +216,8 @@ public sealed class DialogService : IDialogService
                 .TryShow();
         });
 
-        return tcs.Task;
-    }
-
     public Task<string?> PromptInventoryUnlockPassword(string title, string hintMessage)
-    {
-        var tcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        Dispatcher.UIThread.Post(() =>
+        => ShowDialogAsync<string?>(tcs =>
         {
             var content = new InventoryUnlockDialogView
             {
@@ -265,14 +238,8 @@ public sealed class DialogService : IDialogService
                 .TryShow();
         });
 
-        return tcs.Task;
-    }
-
     public Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items)
-    {
-        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        Dispatcher.UIThread.Post(() =>
+        => ShowDialogAsync<object?>(tcs =>
         {
             var content = new InfoDetailDialogView
             {
@@ -292,14 +259,8 @@ public sealed class DialogService : IDialogService
                 .TryShow();
         });
 
-        return tcs.Task;
-    }
-
     public Task ShowMsfxStateDetailDialog(MsfxStateDetailDialogModel model)
-    {
-        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        Dispatcher.UIThread.Post(() =>
+        => ShowDialogAsync<object?>(tcs =>
         {
             var content = new MsfxStateDetailDialogView
             {
@@ -316,14 +277,8 @@ public sealed class DialogService : IDialogService
                 .TryShow();
         });
 
-        return tcs.Task;
-    }
-
     public Task<MsfxMappingBatchDialogResult> ShowMsfxMappingBatchDialog(MsfxMappingBatchDialogModel model)
-    {
-        var tcs = new TaskCompletionSource<MsfxMappingBatchDialogResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        Dispatcher.UIThread.Post(() =>
+        => ShowDialogAsync<MsfxMappingBatchDialogResult>(tcs =>
         {
             var content = new MsfxMappingBatchDialogView
             {
@@ -344,14 +299,8 @@ public sealed class DialogService : IDialogService
                 .TryShow();
         });
 
-        return tcs.Task;
-    }
-
     public Task<MsfxTaskSplitDialogResult> ShowMsfxTaskSplitDialog(MsfxTaskSplitDialogModel model)
-    {
-        var tcs = new TaskCompletionSource<MsfxTaskSplitDialogResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        Dispatcher.UIThread.Post(() =>
+        => ShowDialogAsync<MsfxTaskSplitDialogResult>(tcs =>
         {
             var content = new MsfxTaskSplitDialogView
             {
@@ -371,6 +320,10 @@ public sealed class DialogService : IDialogService
                 .TryShow();
         });
 
+    private static Task<T> ShowDialogAsync<T>(Action<TaskCompletionSource<T>> show)
+    {
+        var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Dispatcher.UIThread.Post(() => show(tcs));
         return tcs.Task;
     }
 

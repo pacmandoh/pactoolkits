@@ -127,13 +127,13 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     private async Task ReloadDrugOptionsAsync(CancellationToken ct)
     {
-        var list = await _lookup.GetDrugIdsAsync(ct).ConfigureAwait(false);
+        var list = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, ct).ConfigureAwait(false);
 
         await RunOnUiAsync(() =>
         {
             using (SuppressReload())
             {
-                OptionCollectionHelper.ReplaceRaw(DrugOptions, list, StringComparison.Ordinal);
+                OptionCollectionHelper.Replace(DrugOptions, list, StringComparison.Ordinal);
 
                 if (SpecOptions.Count == 0)
                 {
@@ -154,7 +154,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
             if (!string.IsNullOrWhiteSpace(drug))
             {
-                specs = await _lookup.GetSpecsByDrugAsync(drug, ct).ConfigureAwait(false);
+                specs = await LookupOptionLoader.LoadSpecsAsync(_lookup, drug, ct).ConfigureAwait(false);
             }
 
             await RunOnUiAsync(() =>

@@ -36,8 +36,7 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
         string? targetVersion = null)
     {
         var migrationScripts = LoadTargetMigrationScripts(targetVersion);
-        await using var conn = new NpgsqlConnection(BuildConnectionString(options));
-        await conn.OpenAsync(ct).ConfigureAwait(false);
+        await using var conn = await PgConnectionFactory.OpenAsync(options, ct).ConfigureAwait(false);
 
         var commandTimeout = Math.Max(15, options.CommandTimeoutSeconds);
         var bootstrapRequired = !await TableExistsAsync(conn, "schema_migrations", commandTimeout, ct)
@@ -77,8 +76,7 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
         var hasTarget = TryParseSemVer(targetVersion, out var targetSemVer);
         ValidateScriptBatches(bootstrapScripts, migrationScripts);
 
-        await using var conn = new NpgsqlConnection(BuildConnectionString(opt));
-        await conn.OpenAsync(ct).ConfigureAwait(false);
+        await using var conn = await PgConnectionFactory.OpenAsync(opt, ct).ConfigureAwait(false);
 
         var commandTimeout = Math.Max(15, opt.CommandTimeoutSeconds);
         _logger.Info(Module, "db.migrate.start", "Start schema migration", new
@@ -426,19 +424,6 @@ set schema_version = excluded.schema_version,
 
         return scripts.Count > 0 ? scripts[^1].Version : "unknown";
     }
-
-    private static string BuildConnectionString(PgOptions opt)
-        => new NpgsqlConnectionStringBuilder
-        {
-            Host = opt.Host,
-            Port = opt.Port,
-            Database = opt.Database,
-            Username = opt.Username,
-            Password = opt.Password,
-            SearchPath = "public",
-            Timeout = opt.ConnectTimeoutSeconds,
-            KeepAlive = opt.KeepAliveSeconds
-        }.ToString();
 
     private static string ReadExecutableScript(string path)
         => StripPsqlMetaCommands(File.ReadAllText(path));

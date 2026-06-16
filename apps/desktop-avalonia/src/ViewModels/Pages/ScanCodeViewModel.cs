@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
@@ -101,11 +100,14 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             {
                 _lookup.InvalidateDrugCatalog();
                 using var cts = new CancellationTokenSource(LookupTimeout);
-                var drugs = await _lookup.GetDrugIdsAsync(cts.Token, forceRefresh: true).ConfigureAwait(false);
+                var drugs = await LookupOptionLoader.LoadDrugOptionsAsync(
+                    _lookup,
+                    cts.Token,
+                    forceRefresh: true).ConfigureAwait(false);
                 await RunOnUiAsync(() =>
                 {
                     var currentDrug = NormalizeInput(DrugText);
-                    ReplaceOptions(DrugOptions, drugs);
+                    OptionCollectionHelper.Replace(DrugOptions, drugs, StringComparison.Ordinal);
 
                     if (string.IsNullOrWhiteSpace(currentDrug))
                     {
@@ -552,11 +554,11 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
     private async Task ReloadLookupAsync(CancellationToken ct)
     {
-        var drugs = await _lookup.GetDrugIdsAsync(ct).ConfigureAwait(false);
+        var drugs = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, ct).ConfigureAwait(false);
 
         await RunOnUiAsync(() =>
         {
-            ReplaceOptions(DrugOptions, drugs);
+            OptionCollectionHelper.Replace(DrugOptions, drugs, StringComparison.Ordinal);
 
             var currentDrug = NormalizeInput(DrugText);
             if (!string.IsNullOrWhiteSpace(currentDrug))
@@ -582,12 +584,12 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
     private async Task ReloadSpecsByDrugAsync(string drugId, CancellationToken ct)
     {
-        var specs = await _lookup.GetSpecsByDrugAsync(drugId, ct).ConfigureAwait(false);
+        var specs = await LookupOptionLoader.LoadSpecsAsync(_lookup, drugId, ct).ConfigureAwait(false);
         string? selectedSpecRaw = null;
 
         await RunOnUiAsync(() =>
         {
-            ReplaceOptions(SpecOptions, specs);
+            OptionCollectionHelper.ReplaceRaw(SpecOptions, specs, StringComparison.Ordinal);
 
             if (SpecOptions.Count == 0)
             {
@@ -752,9 +754,6 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         NotifyActionCommands();
     }
 
-    private static void ReplaceOptions(ObservableCollection<OptionItem> target, IEnumerable<string> values)
-        => OptionCollectionHelper.ReplaceRaw(target, values, StringComparison.Ordinal);
-
     private static string NowText() => DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
     private void RecalcCodeStats(string? text)
@@ -816,4 +815,3 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 public sealed record AutoFetchTaskItem(string Name, string Schedule, string State, string Detail);
 public sealed record AutoFetchRunItem(string Name, string StartedAtText, string Result, string Detail);
 public sealed record AutoFetchRetryItem(string Name, string Reason, string RetryCountText);
-

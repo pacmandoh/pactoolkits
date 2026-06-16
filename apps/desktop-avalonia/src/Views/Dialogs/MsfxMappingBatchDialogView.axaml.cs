@@ -65,8 +65,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
         if (_lookup is not null)
         {
             using var cts = new CancellationTokenSource(LookupTimeout);
-            var ids = await _lookup.GetDrugIdsAsync(cts.Token).ConfigureAwait(false);
-            _allDrugIds = ids.Select(x => new OptionItem(x, x)).ToArray();
+            _allDrugIds = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, cts.Token).ConfigureAwait(false);
             await RunOnUiAsync(() =>
             {
                 DrugIdBox.ItemsSource = _allDrugIds;
@@ -148,13 +147,14 @@ public partial class MsfxMappingBatchDialogView : UserControl
         }
 
         using var cts = new CancellationTokenSource(LookupTimeout);
-        var canonical = await _lookup.ResolveCanonicalDrugIdAsync(drugInput, cts.Token).ConfigureAwait(false);
+        var (canonical, specs) = await LookupOptionLoader.ResolveDrugAndSpecsAsync(
+            _lookup,
+            drugInput,
+            cts.Token).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(canonical))
         {
             return;
         }
-
-        var specs = await _lookup.GetSpecsByDrugAsync(canonical, cts.Token).ConfigureAwait(false);
         if (version.HasValue && version.Value != _drugInputVersion)
         {
             return;
