@@ -223,14 +223,10 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
     private string BuildListenConnectionString()
     {
         var opt = _dbConfig.Current;
-        var csb = new NpgsqlConnectionStringBuilder
+        var csb = new NpgsqlConnectionStringBuilder(PgConnectionFactory.BuildConnectionString(
+            opt,
+            timeoutSeconds: Math.Max(3, opt.ConnectTimeoutSeconds)))
         {
-            Host = opt.Host,
-            Port = opt.Port,
-            Database = opt.Database,
-            Username = opt.Username,
-            Password = opt.Password,
-            Timeout = Math.Max(3, opt.ConnectTimeoutSeconds),
             KeepAlive = Math.Max(5, opt.KeepAliveSeconds),
             Pooling = false
         };

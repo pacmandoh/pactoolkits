@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using Npgsql;
 using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Infrastructure.Database;
@@ -33,19 +32,10 @@ public sealed class DbConfigService : IDbConfigService
     {
         try
         {
-            var csb = new NpgsqlConnectionStringBuilder
-            {
-                Host = opt.Host,
-                Port = opt.Port,
-                Database = opt.Database,
-                Username = opt.Username,
-                Password = opt.Password,
-                SearchPath = "public",
-                Timeout = opt.ConnectTimeoutSeconds
-            };
-
-            await using var conn = new NpgsqlConnection(csb.ToString());
-            await conn.OpenAsync(ct);
+            await using var conn = await PgConnectionFactory.OpenAsync(
+                opt,
+                ct,
+                includeKeepAlive: false).ConfigureAwait(false);
             return true;
         }
         catch

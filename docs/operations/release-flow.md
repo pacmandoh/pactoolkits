@@ -22,7 +22,7 @@ PacToolkits 的 Desktop、Agent、DB Schema 版本由 **`release-manifest.json`�
 ```bash
 ./scripts/export-version.sh   # 生成 Version.g.props、version.generated.json 等
 ./scripts/check-version.sh    # 校验 manifest v2 与生成文件一致
-./scripts/bump-version.sh     # 按规则 bump 版本（支持 --product/--desktop/--agent 及旧别名）
+./scripts/bump-version.sh     # 按规则 bump 版本
 ```
 
 ## CI 工作流（GitHub Actions）

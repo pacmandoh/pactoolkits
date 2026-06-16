@@ -1,4 +1,3 @@
-using Npgsql;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 
@@ -17,18 +16,11 @@ public sealed class DbConnectionTester : IDbConnectionTester
     {
         try
         {
-            var csb = new NpgsqlConnectionStringBuilder
-            {
-                Host = opt.Host,
-                Port = opt.Port,
-                Database = opt.Database,
-                Username = opt.Username,
-                Password = opt.Password,
-                Timeout = 5,
-            };
-
-            await using var conn = new NpgsqlConnection(csb.ToString());
-            await conn.OpenAsync(ct).ConfigureAwait(false);
+            await using var conn = await PgConnectionFactory.OpenAsync(
+                opt,
+                ct,
+                includeKeepAlive: false,
+                timeoutSeconds: 5).ConfigureAwait(false);
 
             return new DbTestResult(true, "连接成功");
         }
