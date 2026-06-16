@@ -48,7 +48,7 @@
             Height="{StaticResource ControlHeightCompact}"
             PasswordChar="●"
             KeyDown="PasswordBox_OnKeyDown"
-            Watermark="请输入数据库密码进行验证" />
+            PlaceholderText="请输入数据库密码进行验证" />
       </StackPanel>
     </StackPanel>
   </Border>
