@@ -151,7 +151,7 @@ jobs:
             echo "Main executable missing in publish output: $MAIN_EXE" >&2
             exit 1
           }
-          vpk pack \
+          vpk [win] pack \
             --packId "$PACK_ID" \
             --packVersion "$PRODUCT_VERSION" \
             --packDir _desktop_publish \
