@@ -4,7 +4,6 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:suki="https://github.com/kikipoulet/SukiUI"
       xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-      xmlns:simpleicons="clr-namespace:IconPacks.Avalonia.SimpleIcons;assembly=IconPacks.Avalonia.SimpleIcons"
       xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
       xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
       mc:Ignorable="d"
@@ -15,51 +14,49 @@
       x:Name="Root"
       Focusable="True">
   <Grid>
-    <Grid Classes="PageRootLayout" RowDefinitions="Auto,Auto,Auto,*"
+    <Grid Classes="PageRootLayout" RowDefinitions="Auto,Auto,*"
        KeyboardNavigation.TabNavigation="Cycle">
-      <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-          <icons:AppIcon Kind="Syringe" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
-          <StackPanel Spacing="2" VerticalAlignment="Center">
-            <TextBlock Text="自动化套件" Classes="SectionTitle" />
-            <TextBlock Text="PacInjector 与自动化运行参数配置" Classes="SectionHint" />
+      <suki:GlassCard Grid.Row="0" Classes="SectionCard PageHero">
+        <Grid ColumnDefinitions="Auto,*,Auto"
+           ColumnSpacing="{DynamicResource PageColumnSpacing}"
+           VerticalAlignment="Center">
+          <Border Classes="HeroIconBadge">
+            <icons:AppIcon Kind="Syringe" />
+          </Border>
+
+          <StackPanel Grid.Column="1"
+                Spacing="2"
+                VerticalAlignment="Center">
+            <TextBlock Text="自动化套件"
+                 Classes="SectionTitle" />
+            <TextBlock Text="pactoolkits-injector 与自动化运行参数配置"
+                 Classes="SectionHint" />
           </StackPanel>
-        </StackPanel>
 
-        <StackPanel Grid.Column="1"
-              Orientation="Horizontal"
-              Spacing="{DynamicResource SpacingInlineMd}"
-              VerticalAlignment="Center">
-          <TextBlock Text="状态"
-               Classes="SectionHint"
-               VerticalAlignment="Center" />
-          <controls:StatusPill IsVisible="{Binding IsAhkStatusUnknown}"
-                    Icon="BadgeQuestionMark"
-                    Text="{Binding AhkStatusText}"
-                    Classes="ToneInfo15"
-                    VerticalAlignment="Center" />
-          <controls:StatusPill IsVisible="{Binding IsAhkStatusRunning}"
-                    Icon="CircleCheck"
-                    Text="{Binding AhkStatusText}"
-                    Classes="ToneDone25"
-                    VerticalAlignment="Center" />
-          <controls:StatusPill IsVisible="{Binding IsAhkStatusStopped}"
-                    Icon="CircleAlert"
-                    Text="{Binding AhkStatusText}"
-                    Classes="ToneDanger15"
-                    VerticalAlignment="Center" />
-        </StackPanel>
-      </Grid>
-
-      <suki:GlassCard Classes="CompactCard" Grid.Row="1">
-        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-          <icons:AppIcon Kind="Lightbulb" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
-          <TextBlock Classes="SectionHint"
-               Text="支持状态检测、开关控制与一键重启" />
-        </StackPanel>
+          <StackPanel Grid.Column="2"
+                Orientation="Horizontal"
+                Spacing="{DynamicResource SpacingInlineMd}"
+                VerticalAlignment="Center">
+            <controls:StatusPill IsVisible="{Binding IsAhkStatusUnknown}"
+                      Icon="BadgeQuestionMark"
+                      Text="{Binding AhkStatusText}"
+                      Classes="ToneInfo15"
+                      VerticalAlignment="Center" />
+            <controls:StatusPill IsVisible="{Binding IsAhkStatusRunning}"
+                      Icon="CircleCheck"
+                      Text="{Binding AhkStatusText}"
+                      Classes="ToneDone25"
+                      VerticalAlignment="Center" />
+            <controls:StatusPill IsVisible="{Binding IsAhkStatusStopped}"
+                      Icon="CircleAlert"
+                      Text="{Binding AhkStatusText}"
+                      Classes="ToneDanger15"
+                      VerticalAlignment="Center" />
+          </StackPanel>
+        </Grid>
       </suki:GlassCard>
 
-      <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Stretch">
+      <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Stretch">
         <suki:GlassCard Classes="ActionTile" Grid.Column="0"   VerticalAlignment="Stretch"
                 HorizontalContentAlignment="Center">
           <Grid ColumnDefinitions="Auto,Auto,Auto"
@@ -113,7 +110,7 @@
 
         <suki:GlassCard Classes="ActionTile" Grid.Column="3"   VerticalAlignment="Stretch">
           <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
-            <simpleicons:PackIconSimpleIcons Kind="AutoHotkey"
+            <icons:AppIcon Kind="Keyboard"
                             Width="25"
                             Height="25" />
           </Grid>
@@ -146,7 +143,7 @@
         </suki:GlassCard>
       </Grid>
 
-      <Grid Grid.Row="3" ColumnDefinitions="1.55*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+      <Grid Grid.Row="2" ColumnDefinitions="1.55*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
         <suki:GlassCard x:Name="ToolEditorCard" Grid.Column="0" Classes="SectionCard PageHero">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
@@ -167,25 +164,25 @@
                     <TextBox Grid.Row="0" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
                         HorizontalAlignment="Stretch"
-                        UseFloatingWatermark="False"
+                        UseFloatingPlaceholder="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AhkExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                        Watermark="例如：.\Agents\injector\pactoolkits-injector.exe" />
+                        PlaceholderText="例如：.\Agents\injector\pactoolkits-injector.exe" />
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="进程名（可选）" VerticalAlignment="Center" />
                     <TextBox Grid.Row="1" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
                         HorizontalAlignment="Stretch"
-                        UseFloatingWatermark="False"
+                        UseFloatingPlaceholder="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AhkProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                        Watermark="例如：pactoolkits-injector（不带 .exe）" />
+                        PlaceholderText="例如：pactoolkits-injector（不带 .exe）" />
 
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="PG 驱动" VerticalAlignment="Center" />
                     <TextBox Grid.Row="2" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
                         HorizontalAlignment="Stretch"
-                        UseFloatingWatermark="False"
+                        UseFloatingPlaceholder="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AgentPgDriver, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -236,7 +233,7 @@
                               <TextBox HorizontalAlignment="Stretch"
                                   Height="{StaticResource ControlHeightCompact}"
                                   Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  UseFloatingWatermark="False"
+                                  UseFloatingPlaceholder="False"
                                   VerticalContentAlignment="Center" />
                               <Button Grid.Column="1"
                                   Classes="Ghost"
@@ -259,7 +256,7 @@
                     <TextBox Grid.Row="0" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
                         HorizontalAlignment="Stretch"
-                        UseFloatingWatermark="False"
+                        UseFloatingPlaceholder="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AgentOptWindowClass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -267,7 +264,7 @@
                     <TextBox Grid.Row="1" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
                         HorizontalAlignment="Stretch"
-                        UseFloatingWatermark="False"
+                        UseFloatingPlaceholder="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AgentOptParseGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -275,7 +272,7 @@
                     <TextBox Grid.Row="2" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
                         HorizontalAlignment="Stretch"
-                        UseFloatingWatermark="False"
+                        UseFloatingPlaceholder="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AgentOptVerifyGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -283,7 +280,7 @@
                     <TextBox Grid.Row="3" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
                         HorizontalAlignment="Stretch"
-                        UseFloatingWatermark="False"
+                        UseFloatingPlaceholder="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AgentOptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                   </Grid>
@@ -296,7 +293,7 @@
                     <TextBox Grid.Row="0" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
                         HorizontalAlignment="Stretch"
-                        UseFloatingWatermark="False"
+                        UseFloatingPlaceholder="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AgentIptWindowClass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -304,7 +301,7 @@
                     <TextBox Grid.Row="1" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
                         HorizontalAlignment="Stretch"
-                        UseFloatingWatermark="False"
+                        UseFloatingPlaceholder="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AgentIptParseGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -312,7 +309,7 @@
                     <TextBox Grid.Row="2" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
                         HorizontalAlignment="Stretch"
-                        UseFloatingWatermark="False"
+                        UseFloatingPlaceholder="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AgentIptVerifyGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -320,7 +317,7 @@
                     <TextBox Grid.Row="3" Grid.Column="1"
                         Height="{StaticResource ControlHeightCompact}"
                         HorizontalAlignment="Stretch"
-                        UseFloatingWatermark="False"
+                        UseFloatingPlaceholder="False"
                         VerticalContentAlignment="Center"
                         Text="{Binding AgentIptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                   </Grid>
@@ -338,7 +335,7 @@
                     <StackPanel Grid.Row="1" Grid.Column="1" Spacing="{DynamicResource SpacingInlineSm}">
                       <TextBox Height="{StaticResource ControlHeightCompact}"
                           HorizontalAlignment="Stretch"
-                          UseFloatingWatermark="False"
+                          UseFloatingPlaceholder="False"
                           VerticalContentAlignment="Center"
                           Text="{Binding AgentWarehouseTaskIdentifier, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                       <TextBlock Text="用于识别单据，按 agent 别名表达式填写，默认：单据号||当前编号"
@@ -379,7 +376,7 @@
                               <TextBox HorizontalAlignment="Stretch"
                                   Height="{StaticResource ControlHeightCompact}"
                                   Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  UseFloatingWatermark="False"
+                                  UseFloatingPlaceholder="False"
                                   VerticalContentAlignment="Center" />
                               <Button Grid.Column="1"
                                   Classes="Ghost"
@@ -421,7 +418,7 @@
                               <TextBox HorizontalAlignment="Stretch"
                                   Height="{StaticResource ControlHeightCompact}"
                                   Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  UseFloatingWatermark="False"
+                                  UseFloatingPlaceholder="False"
                                   VerticalContentAlignment="Center" />
                               <Button Grid.Column="1"
                                   Classes="Ghost"
@@ -458,7 +455,7 @@
                               <TextBox HorizontalAlignment="Stretch"
                                   Height="{StaticResource ControlHeightCompact}"
                                   Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  UseFloatingWatermark="False"
+                                  UseFloatingPlaceholder="False"
                                   VerticalContentAlignment="Center" />
                               <Button Grid.Column="1"
                                   Classes="Ghost"
