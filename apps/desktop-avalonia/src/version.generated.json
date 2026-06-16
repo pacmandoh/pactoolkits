@@ -10,7 +10,7 @@
       "version": "0.6.1"
     },
     "database-postgres": {
-      "migrationPolicy": "isolated-beta",
+      "migrationPolicy": "stable-only",
       "version": "1.2.23"
     },
     "desktop": {
@@ -21,12 +21,12 @@
       "maxDbSchema": "1.2.23",
       "minDbSchema": "1.2.23",
       "packageId": "pactoolkits",
-      "version": "1.0.0-beta.1"
+      "version": "1.0.1-beta.1"
     }
   },
   "product": {
     "id": "pactoolkits",
-    "version": "1.0.0-beta.1"
+    "version": "1.0.1-beta.1"
   },
   "release": {
     "channel": "beta",
