@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Controls;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
@@ -38,7 +39,7 @@ public partial class ScanCodeView : UserControl
             });
     }
 
-    private void CodeEditor_OnGotFocus(object? sender, GotFocusEventArgs e)
+    private void CodeEditor_OnGotFocus(object? sender, FocusChangedEventArgs e)
     {
         if (DataContext is not PacToolkits.Desktop.Avalonia.ViewModels.Pages.ScanCodeViewModel vm)
         {
@@ -94,7 +95,7 @@ public partial class ScanCodeView : UserControl
 
     private void AttachDrugFilter()
     {
-        if (this.FindControl<AutoCompleteBox>("DrugBox") is not { } box)
+        if (this.FindControl<PlainAutoCompleteBox>("DrugBox") is not { } box)
         {
             return;
         }

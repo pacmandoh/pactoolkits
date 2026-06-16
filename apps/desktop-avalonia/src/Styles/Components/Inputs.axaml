@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:con="https://github.com/kikipoulet/SukiUI"
     xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
     xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
     xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
@@ -33,23 +34,102 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Border.AutoCompleteInputHost">
-    <Setter Property="CornerRadius" Value="{DynamicResource InputCornerRadius}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="BorderBrush" Value="{DynamicResource SukiControlBorderBrush}" />
-    <Setter Property="Background" Value="{DynamicResource ThemeBorderLowBrush}" />
+  <Style Selector="controls|FilterFieldInput">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="ClipToBounds" Value="False" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="controls:FilterFieldInput">
+        <Border Classes="FilterFieldInputHost"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
+          <ContentPresenter HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
   </Style>
 
-  <Style Selector="Border.AutoCompleteInputHost.DarkMode">
-    <Setter Property="Background" Value="{DynamicResource AutoCompleteDarkBackgroundBrush}" />
+  <Style Selector="controls|FilterFieldInput:disabled">
+    <Setter Property="Opacity" Value="0.72" />
   </Style>
 
-  <Style Selector="Border.AutoCompleteInputHost:enabled:focus-within">
-    <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor}" />
+  <Style Selector="Border.FilterFieldInputHost">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ClipToBounds" Value="False" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
 
-  <Style Selector="Border.AutoCompleteInputHost:enabled:pointerover">
-    <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor}" />
+  <Style Selector="Border.FilterFieldInputHost > Grid,
+                     Border.FilterFieldInputHost Grid,
+                     controls|FilterFieldInput > Grid">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="controls|FilterFieldInput ComboBox">
+    <Setter Property="MinHeight" Value="{DynamicResource FilterFieldComboBoxHeight}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="ClipToBounds" Value="False" />
+  </Style>
+
+  <Style Selector="controls|FilterFieldInput TextBox">
+    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="controls|FilterFieldInput CalendarDatePicker">
+    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="ClipToBounds" Value="False" />
+  </Style>
+
+  <Style Selector="con|GlassCard.AutoCompleteInputHost">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="Padding" Value="{DynamicResource InputPaddingHorizontal}" />
+    <Setter Property="Opacity" Value="0.96" />
+    <Setter Property="ClipToBounds" Value="False" />
+  </Style>
+
+  <Style Selector="controls|PlainAutoCompleteBox">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="ClipToBounds" Value="False" />
+  </Style>
+
+  <Style Selector="AutoCompleteBox.FilterFieldInnerInput">
+    <Setter Property="BorderThickness" Value="0,0,0,0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="ClipToBounds" Value="False" />
+  </Style>
+
+  <Style Selector="AutoCompleteBox.FilterFieldInnerInput /template/ TextBox#PART_TextBox">
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="{DynamicResource InputPaddingHorizontal}" />
+    <Setter Property="UseFloatingPlaceholder" Value="False" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
   <Style Selector="Border.RowItem">

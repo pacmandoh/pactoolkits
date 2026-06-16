@@ -36,9 +36,10 @@
           <Grid Grid.Row="1"
              ColumnDefinitions="320,260,150,*"
              ColumnSpacing="{DynamicResource FormColumnSpacing}"
-             VerticalAlignment="Center">
-            <suki:GlassCard Grid.Column="0" Classes="FilterFieldCard">
-              <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+             VerticalAlignment="Stretch">
+            <suki:GlassCard Grid.Column="0" Classes="FilterFieldCard" VerticalAlignment="Stretch">
+              <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
+                 VerticalAlignment="Stretch">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Grid.Column="0"
                             Kind="Pill"
@@ -59,76 +60,71 @@
                               Height="{DynamicResource IconSizeSmall}" />
                   </Button>
                 </Grid>
-                <Border Grid.Row="1"
-                    Height="36"
-                    Classes="AutoCompleteInputHost"
-                    Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
-                    Padding="8,0">
-                  <AutoCompleteBox x:Name="DrugBox"
-                          Height="32"
-                          BorderThickness="0"
-                          Background="Transparent"
-                          ItemsSource="{Binding DrugOptions}"
-                          Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}"
-                          FilterMode="Contains"
-                          IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
-                          Watermark="输入药品名并回车"
-                          KeyDown="DrugBox_OnKeyDown">
-                    <AutoCompleteBox.ItemTemplate>
-                      <DataTemplate x:DataType="vm:OptionItem">
-                        <TextBlock Text="{Binding Display}" />
-                      </DataTemplate>
-                    </AutoCompleteBox.ItemTemplate>
-                  </AutoCompleteBox>
-                </Border>
+                <controls:PlainAutoCompleteBox Grid.Row="1"
+                        x:Name="DrugBox"
+                        VerticalAlignment="Bottom"
+                        ItemsSource="{Binding DrugOptions}"
+                        Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}"
+                        PlaceholderText="输入药品名并回车"
+                        IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
+                        KeyDown="DrugBox_OnKeyDown">
+                  <controls:PlainAutoCompleteBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OptionItem">
+                      <TextBlock Text="{Binding Display}" />
+                    </DataTemplate>
+                  </controls:PlainAutoCompleteBox.ItemTemplate>
+                </controls:PlainAutoCompleteBox>
               </Grid>
             </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="1" Classes="FilterFieldCard">
-              <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+            <suki:GlassCard Grid.Column="1" Classes="FilterFieldCard" VerticalAlignment="Stretch">
+              <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
+                 VerticalAlignment="Stretch">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="SlidersHorizontal" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                   <TextBlock Text="规格" Classes="FilterLabel" />
                 </StackPanel>
-                <Grid Grid.Row="1">
-                  <ComboBox x:Name="SpecBox"
-                       ItemsSource="{Binding SpecOptions}"
-                       SelectedItem="{Binding SelectedSpec}"
-                       DisplayMemberBinding="{Binding Display}" />
-                  <TextBlock IsHitTestVisible="False"
-                       IsVisible="{Binding !IsSpecSelected}"
-                       Margin="{DynamicResource MarginLeftMd}"
-                       VerticalAlignment="Center"
-                       Opacity="0.55"
-                       Text="请选择规格" />
+                <Grid Grid.Row="1" VerticalAlignment="Bottom">
+                  <controls:FilterFieldInput>
+                    <Grid>
+                      <ComboBox x:Name="SpecBox"
+                           ItemsSource="{Binding SpecOptions}"
+                           SelectedItem="{Binding SelectedSpec}"
+                           DisplayMemberBinding="{Binding Display}" />
+                      <TextBlock IsHitTestVisible="False"
+                           IsVisible="{Binding !IsSpecSelected}"
+                           Margin="{DynamicResource MarginLeftMd}"
+                           VerticalAlignment="Center"
+                           Opacity="0.55"
+                           Text="请选择规格" />
+                    </Grid>
+                  </controls:FilterFieldInput>
                 </Grid>
               </Grid>
             </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="2" Classes="FilterFieldCard">
-              <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+            <suki:GlassCard Grid.Column="2" Classes="FilterFieldCard" VerticalAlignment="Stretch">
+              <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
+                 VerticalAlignment="Stretch">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Kind="PillBottle" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                   <TextBlock Text="单条数量" Classes="FilterLabel" />
                 </StackPanel>
-                <Border Grid.Row="1"
-                    Height="36"
-                    Classes="AutoCompleteInputHost"
-                    Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
-                    IsEnabled="False"
-                    Padding="8,0">
-                  <Grid VerticalAlignment="Center">
-                    <TextBlock IsVisible="{Binding IsSpecSelected}"
-                         Text="{Binding SelectedQtyText}"
-                         FontSize="{DynamicResource EmptyStateTitleSize}"
-                         VerticalAlignment="Center" />
-                    <TextBlock IsVisible="{Binding !IsSpecSelected}"
-                         Text="自动带出"
-                         Opacity="0.55"
-                         FontSize="{DynamicResource EmptyStateTitleSize}"
-                         VerticalAlignment="Center" />
-                  </Grid>
-                </Border>
+                <Grid Grid.Row="1" VerticalAlignment="Bottom">
+                  <controls:FilterFieldInput>
+                    <Grid>
+                      <TextBox
+                           IsEnabled="False"
+                           Text="{Binding SelectedQtyText, Mode=OneWay}" />
+                      <TextBlock IsHitTestVisible="False"
+                           IsVisible="{Binding !IsSpecSelected}"
+                           Margin="{DynamicResource MarginLeftMd}"
+                           VerticalAlignment="Center"
+                           Opacity="0.55"
+                           Text="自动" />
+                    </Grid>
+                  </controls:FilterFieldInput>
+                </Grid>
               </Grid>
             </suki:GlassCard>
 
@@ -187,7 +183,7 @@
                     MinHeight="0"
                     GotFocus="CodeEditor_OnGotFocus"
                     Text="{Binding TraceCodesText, Mode=TwoWay}"
-                    Watermark="示例：&#10;89012345678901234567&#10;89012345678901234568&#10;89012345678901234569" />
+                    PlaceholderText="示例：&#10;89012345678901234567&#10;89012345678901234568&#10;89012345678901234569" />
               </Border>
 
               <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
