@@ -49,16 +49,24 @@ public static class AgentConfigValidator
         }
 
         if (!IsSupportedPgSslMode(agent.PgSsl))
+        {
             return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.PgSsl 仅支持 disable/allow/prefer/require/verify-ca/verify-full");
+        }
 
         if (agent.AppWin is null || agent.AppWin.Count == 0)
+        {
             return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.AppWin 不能为空");
+        }
 
         if (agent.ColSpecs is null || agent.ColSpecs.Count == 0)
+        {
             return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.ColSpecs 不能为空");
+        }
 
         if (agent.ConfirmTimeoutMs < 100 || agent.ConfirmTimeoutMs > 10000)
+        {
             return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.ConfirmTimeoutMs 超出范围（100-10000）");
+        }
 
         if (!string.Equals(agent.CodePickPolicy, "MAX_LEVEL", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(agent.CodePickPolicy, "MIN_LEVEL", StringComparison.OrdinalIgnoreCase))
@@ -67,7 +75,9 @@ public static class AgentConfigValidator
         }
 
         if (string.IsNullOrWhiteSpace(agent.WarehouseTaskIdentifier))
+        {
             return new ToolCommandResult(false, "统一配置校验失败：AutomationTools.Agent.WarehouseTaskIdentifier 不能为空");
+        }
 
         return new ToolCommandResult(true, "ok");
     }

@@ -1,17 +1,10 @@
-using PacToolkits.Application.Abstractions;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Npgsql;
+using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Core;
 
 namespace PacToolkits.Infrastructure.Database;
 
@@ -118,7 +111,10 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
                 {
                     await ExecuteSqlAsync(conn, "set local search_path to public", commandTimeout, ct, tx).ConfigureAwait(false);
                     foreach (var script in bootstrapScripts)
+                    {
                         await ExecuteSqlAsync(conn, script.Sql, commandTimeout, ct, tx).ConfigureAwait(false);
+                    }
+
                     await tx.CommitAsync(ct).ConfigureAwait(false);
                 }
                 catch
@@ -140,7 +136,10 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
                 if (appliedMap.TryGetValue(script.Version, out var appliedChecksum))
                 {
                     if (!string.Equals(appliedChecksum, script.Checksum, StringComparison.OrdinalIgnoreCase))
+                    {
                         throw new InvalidOperationException($"迁移脚本校验和冲突：{script.Version}");
+                    }
+
                     skipped++;
                     continue;
                 }
@@ -248,7 +247,10 @@ set schema_version = excluded.schema_version,
         cmd.CommandText = sql;
         cmd.CommandTimeout = timeoutSeconds;
         foreach (var (name, value) in args)
+        {
             cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+        }
+
         return await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
     }
 
@@ -265,7 +267,10 @@ set schema_version = excluded.schema_version,
         cmd.CommandTimeout = timeoutSeconds;
         cmd.Transaction = tx;
         foreach (var (name, value) in args)
+        {
             cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+        }
+
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
@@ -290,7 +295,9 @@ set schema_version = excluded.schema_version,
         CancellationToken ct)
     {
         if (!await TableExistsAsync(conn, "schema_version", timeoutSeconds, ct).ConfigureAwait(false))
+        {
             return null;
+        }
 
         var value = await ExecuteScalarAsync(conn,
             "select schema_version from public.schema_version where singleton = true",
@@ -307,7 +314,9 @@ set schema_version = excluded.schema_version,
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (!await TableExistsAsync(conn, "schema_migrations", timeoutSeconds, ct).ConfigureAwait(false))
+        {
             return map;
+        }
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandTimeout = timeoutSeconds;
@@ -326,7 +335,9 @@ set schema_version = excluded.schema_version,
     {
         var root = Path.Combine(AppContext.BaseDirectory, "Sql", "Bootstrap");
         if (!Directory.Exists(root))
+        {
             throw new DirectoryNotFoundException($"缺少迁移目录：{root}");
+        }
 
         var scripts = Directory
             .EnumerateFiles(root, "*.sql", SearchOption.TopDirectoryOnly)
@@ -334,7 +345,10 @@ set schema_version = excluded.schema_version,
             .Select(path => new SqlScript(Path.GetFileName(path), "bootstrap", ReadExecutableScript(path), (0, 0, 0), string.Empty))
             .ToList();
         if (scripts.Count == 0)
+        {
             throw new InvalidOperationException($"未发现 bootstrap 脚本：{root}");
+        }
+
         return scripts;
     }
 
@@ -342,14 +356,18 @@ set schema_version = excluded.schema_version,
     {
         var root = Path.Combine(AppContext.BaseDirectory, "Sql", "Migrations");
         if (!Directory.Exists(root))
+        {
             throw new DirectoryNotFoundException($"缺少迁移目录：{root}");
+        }
 
         var allSqlFiles = Directory
             .EnumerateFiles(root, "*.sql", SearchOption.TopDirectoryOnly)
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .ToList();
         if (allSqlFiles.Count == 0)
+        {
             throw new InvalidOperationException($"未发现迁移脚本：{root}");
+        }
 
         var scripts = new List<SqlScript>();
         var invalidFiles = new List<string>();
@@ -391,7 +409,10 @@ set schema_version = excluded.schema_version,
     {
         var scripts = LoadMigrationScripts();
         if (TryParseSemVer(targetVersion, out var targetSemVer))
+        {
             scripts = scripts.Where(x => CompareSemVer(x.SemVer, targetSemVer) <= 0).ToList();
+        }
+
         ValidateScriptBatches(LoadBootstrapScripts(), scripts);
         return scripts;
     }
@@ -399,7 +420,10 @@ set schema_version = excluded.schema_version,
     private static string NormalizeTargetVersion(string? targetVersion, IReadOnlyList<SqlScript> scripts)
     {
         if (TryParseSemVer(targetVersion, out var target))
+        {
             return $"{target.major}.{target.minor}.{target.patch}";
+        }
+
         return scripts.Count > 0 ? scripts[^1].Version : "unknown";
     }
 
@@ -450,7 +474,9 @@ set schema_version = excluded.schema_version,
             .Select(g => g.Key)
             .ToList();
         if (dupVersions.Count > 0)
+        {
             throw new InvalidOperationException($"存在重复迁移版本：{string.Join(", ", dupVersions)}");
+        }
     }
 
     private static void EnsureSqlNotEmpty(IEnumerable<SqlScript> scripts)
@@ -458,14 +484,24 @@ set schema_version = excluded.schema_version,
         foreach (var script in scripts)
         {
             if (string.IsNullOrWhiteSpace(script.Sql))
+            {
                 throw new InvalidOperationException($"迁移脚本为空：{script.FileName}");
+            }
         }
     }
 
     private static int CompareSemVer((int major, int minor, int patch) left, (int major, int minor, int patch) right)
     {
-        if (left.major != right.major) return left.major.CompareTo(right.major);
-        if (left.minor != right.minor) return left.minor.CompareTo(right.minor);
+        if (left.major != right.major)
+        {
+            return left.major.CompareTo(right.major);
+        }
+
+        if (left.minor != right.minor)
+        {
+            return left.minor.CompareTo(right.minor);
+        }
+
         return left.patch.CompareTo(right.patch);
     }
 
@@ -473,16 +509,22 @@ set schema_version = excluded.schema_version,
     {
         semVer = default;
         if (string.IsNullOrWhiteSpace(text))
+        {
             return false;
+        }
 
         var parts = text.Trim().Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (parts.Length != 3)
+        {
             return false;
+        }
 
         if (!int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var major) ||
             !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var minor) ||
             !int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var patch))
+        {
             return false;
+        }
 
         semVer = (major, minor, patch);
         return true;

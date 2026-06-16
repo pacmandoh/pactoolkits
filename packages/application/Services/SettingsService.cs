@@ -251,13 +251,19 @@ public sealed class SettingsService : ISettingsService
             ct).ConfigureAwait(false);
 
         if (policy.Decision == DatabaseMigrationDecision.RequiresConfirmation)
+        {
             return (false, policy.Reason);
+        }
 
         if (policy.Decision == DatabaseMigrationDecision.ReadOnlyRequired)
+        {
             return (false, policy.Reason);
+        }
 
         if (!policy.ShouldExecuteMigration)
+        {
             return (true, policy.Reason);
+        }
 
         var migration = connectionOptions is null
             ? await _schemaMigration.EnsureUpToDateAsync(ct, schemaContext.TargetDbSchemaVersion).ConfigureAwait(false)
@@ -283,7 +289,9 @@ public sealed class SettingsService : ISettingsService
             connectionOptions,
             ct).ConfigureAwait(false);
         if (snapshot.Satisfied)
+        {
             return (true, null);
+        }
 
         return (false, snapshot.IncompatibleMessage ?? BuildIncompatibleMessage(schemaContext, snapshot));
     }
@@ -334,7 +342,9 @@ public sealed class SettingsService : ISettingsService
         var compatibility = BuildCompatibility(schema, requiredMin, requiredMax);
 
         if (ShouldApplyDatabaseGuard(connectionOptions))
+        {
             ApplyDatabaseGuard(compatibility);
+        }
 
         var migrationPolicy = await EvaluatePolicyAsync(
             trigger,
@@ -398,7 +408,9 @@ public sealed class SettingsService : ISettingsService
         string requiredMax)
     {
         if (schema.Ok)
+        {
             return DbSchemaCompat.Evaluate(schema.Value, requiredMin, requiredMax);
+        }
 
         if (schema.IsMetadataMissing)
         {
@@ -428,7 +440,9 @@ public sealed class SettingsService : ISettingsService
             {
                 var machine = ExtractMachine(raw);
                 if (machine.Length > 0)
+                {
                     machines.Add(machine);
+                }
             }
 
             return new ClientAliasSourceLoadResult(
@@ -446,24 +460,36 @@ public sealed class SettingsService : ISettingsService
     private static bool IsSchemaUpdatable(string? currentVersion, string? localTargetVersion)
     {
         if (!DbSchemaCompat.TryParseSemVer(currentVersion ?? string.Empty, out var current))
+        {
             return false;
+        }
+
         if (!DbSchemaCompat.TryParseSemVer(localTargetVersion ?? string.Empty, out var target))
+        {
             return false;
+        }
+
         return DbSchemaCompat.CompareSemVer(current, target) < 0;
     }
 
     private void ApplyDatabaseGuard(DbSchemaCompatibilityResult compatibility)
     {
         if (compatibility.IsCompatible)
+        {
             _databaseAccessGuard.Clear();
+        }
         else
+        {
             _databaseAccessGuard.Block(compatibility.Message);
+        }
     }
 
     private bool ShouldApplyDatabaseGuard(PgOptions? connectionOptions)
     {
         if (connectionOptions is null)
+        {
             return true;
+        }
 
         var current = _dbConfig.Current;
         return string.Equals(connectionOptions.Host, current.Host, StringComparison.OrdinalIgnoreCase)
@@ -497,7 +523,9 @@ public sealed class SettingsService : ISettingsService
     {
         var text = (raw ?? string.Empty).Trim();
         if (text.Length == 0)
+        {
             return string.Empty;
+        }
 
         var parsed = ClientParser.Parse(text);
         return (parsed.Machine ?? text).Trim();

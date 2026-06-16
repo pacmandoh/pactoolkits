@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
@@ -358,7 +353,9 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         => _db.WithConnection(async (conn, token) =>
         {
             if (string.IsNullOrWhiteSpace(traceCode))
+            {
                 throw new ArgumentException("trace_code 不能为空", nameof(traceCode));
+            }
 
             var header = (columnHeader ?? string.Empty).Trim();
             var value = (rawValue ?? string.Empty).Trim();
@@ -370,13 +367,19 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             {
                 case "追溯码":
                     if (value.Length == 0)
+                    {
                         throw new ArgumentException("追溯码不能为空", nameof(rawValue));
+                    }
+
                     sql = "update trace_pool set trace_code = @v where trace_code = @trace_code";
                     param = value;
                     break;
                 case "数量":
                     if (!int.TryParse(value, out var qty) || qty <= 0)
+                    {
                         throw new ArgumentException("数量必须为大于 0 的整数", nameof(rawValue));
+                    }
+
                     sql = """
                           update trace_pool
                           set qty = @v,
@@ -387,7 +390,10 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                     break;
                 case "剩余":
                     if (!int.TryParse(value, out var remain) || remain < 0)
+                    {
                         throw new ArgumentException("剩余必须为大于等于 0 的整数", nameof(rawValue));
+                    }
+
                     sql = """
                           update trace_pool
                           set remain = least(@v, greatest(qty, 0))
@@ -404,7 +410,9 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             cmd.AddParam("v", param);
             var affected = await cmd.ExecuteNonQueryAsync(token);
             if (affected <= 0)
+            {
                 throw new InvalidOperationException("更新失败：未找到对应追溯码记录");
+            }
         }, ct);
 
     public Task<int> DeleteStockByTraceCodesAsync(
@@ -413,7 +421,9 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         => _db.WithConnection(async (conn, token) =>
         {
             if (traceCodes is null || traceCodes.Count == 0)
+            {
                 return 0;
+            }
 
             var normalized = traceCodes
                 .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -421,7 +431,9 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
             if (normalized.Length == 0)
+            {
                 return 0;
+            }
 
             const string sql = """
                 with deleted as (
@@ -450,9 +462,14 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             var targetSpecSafe = (targetSpec ?? string.Empty).Trim();
 
             if (trace.Length == 0)
+            {
                 throw new ArgumentException("trace_code 不能为空", nameof(traceCode));
+            }
+
             if (targetDrug.Length == 0 || targetSpecSafe.Length == 0)
+            {
                 throw new ArgumentException("目标药品名与规格不能为空");
+            }
 
             const string currentSql = """
                 select drug_id, spec
@@ -476,7 +493,9 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             }
 
             if (currentDrugId is null || currentSpec is null)
+            {
                 return new StockReassignPreviewDto(false, 0, 0, null, null, false, Array.Empty<StockReassignPreviewItemDto>());
+            }
 
             const string targetSql = """
                 select exists(
@@ -580,17 +599,34 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             var sourceSafe = (source ?? string.Empty).Trim();
 
             if (trace.Length == 0)
+            {
                 throw new ArgumentException("trace_code 不能为空", nameof(traceCode));
+            }
+
             if (targetDrug.Length == 0 || targetSpecSafe.Length == 0)
+            {
                 throw new ArgumentException("目标药品名与规格不能为空");
+            }
+
             if (qty <= 0)
+            {
                 throw new ArgumentException("目标数量必须为大于 0 的整数", nameof(targetQty));
+            }
+
             if (reasonSafe.Length == 0)
+            {
                 throw new ArgumentException("迁移原因不能为空", nameof(reason));
+            }
+
             if (operatorSafe.Length == 0)
+            {
                 operatorSafe = "unknown";
+            }
+
             if (sourceSafe.Length == 0)
+            {
                 sourceSafe = "inventory_ui";
+            }
 
             const string targetSql = """
                 select exists(
@@ -609,7 +645,9 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             }
 
             if (!targetExists)
+            {
                 throw new InvalidOperationException("目标药品规格不存在，无法迁移");
+            }
 
             const string lockSql = """
                 select drug_id, spec, qty
@@ -634,12 +672,16 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             }
 
             if (oldDrugId is null || oldSpec is null)
+            {
                 throw new InvalidOperationException("未找到对应追溯码记录");
+            }
 
             if (string.Equals(oldDrugId, targetDrug, StringComparison.Ordinal)
                 && string.Equals(oldSpec, targetSpecSafe, StringComparison.Ordinal)
                 && oldQty == qty)
+            {
                 throw new InvalidOperationException("目标药品规格与数量与当前一致，无需迁移");
+            }
 
             const string updateSql = """
                 update trace_pool
@@ -660,7 +702,9 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             }
 
             if (affected <= 0)
+            {
                 throw new InvalidOperationException("迁移失败：未更新任何记录");
+            }
 
             const string auditSql = """
                 insert into inventory_reassign_audit(
@@ -730,11 +774,19 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             var safeLimit = Math.Clamp(sampleLimit, 1, 200);
 
             if (kw.Length == 0)
+            {
                 throw new ArgumentException("筛选关键字不能为空", nameof(keyword));
+            }
+
             if (targetDrug.Length == 0 || targetSpecSafe.Length == 0)
+            {
                 throw new ArgumentException("目标药品名与规格不能为空");
+            }
+
             if (qty <= 0)
+            {
                 throw new ArgumentException("目标数量必须为大于 0 的整数", nameof(targetQty));
+            }
 
             const string targetSql = """
                 select exists(
@@ -849,17 +901,34 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             var sourceSafe = (source ?? string.Empty).Trim();
 
             if (kw.Length == 0)
+            {
                 throw new ArgumentException("筛选关键字不能为空", nameof(keyword));
+            }
+
             if (targetDrug.Length == 0 || targetSpecSafe.Length == 0)
+            {
                 throw new ArgumentException("目标药品名与规格不能为空");
+            }
+
             if (qty <= 0)
+            {
                 throw new ArgumentException("目标数量必须为大于 0 的整数", nameof(targetQty));
+            }
+
             if (reasonSafe.Length == 0)
+            {
                 throw new ArgumentException("迁移原因不能为空", nameof(reason));
+            }
+
             if (operatorSafe.Length == 0)
+            {
                 operatorSafe = "unknown";
+            }
+
             if (sourceSafe.Length == 0)
+            {
                 sourceSafe = "inventory_ui";
+            }
 
             const string targetSql = """
                 select exists(
@@ -877,7 +946,9 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 targetExists = scalar is bool b && b;
             }
             if (!targetExists)
+            {
                 throw new InvalidOperationException("目标药品规格不存在，无法迁移");
+            }
 
             const string updateSql = """
                 update trace_pool t
@@ -902,7 +973,9 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             }
 
             if (affected <= 0)
+            {
                 throw new InvalidOperationException("未检测到需要迁移的数据");
+            }
 
             const string auditSql = """
                 insert into inventory_reassign_audit(

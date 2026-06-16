@@ -12,8 +12,10 @@ public static class DbCmd
         IDbTransaction? tx = null)
     {
         var npgConn = (NpgsqlConnection)conn;
-        var cmd = new NpgsqlCommand(sql, npgConn, tx as NpgsqlTransaction);
-        cmd.CommandTimeout = timeoutSeconds;
+        var cmd = new NpgsqlCommand(sql, npgConn, tx as NpgsqlTransaction)
+        {
+            CommandTimeout = timeoutSeconds
+        };
         return cmd;
     }
 

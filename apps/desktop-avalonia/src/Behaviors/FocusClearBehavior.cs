@@ -1,11 +1,11 @@
+using System;
+using System.Linq;
 using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Controls.Primitives;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
 using global::Avalonia.VisualTree;
-using System;
-using System.Linq;
 using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
@@ -51,14 +51,20 @@ public class FocusClearBehavior
     private static void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is not InputElement scope)
+        {
             return;
+        }
 
         if (IsInsideContextMenu(e.Source))
+        {
             return;
+        }
 
         var focused = TopLevel.GetTopLevel(scope)?.FocusManager?.GetFocusedElement();
         if (focused is not Control ctrl)
+        {
             return;
+        }
 
         var insideDataGrid = IsInsideDataGrid(e.Source);
 
@@ -66,32 +72,44 @@ public class FocusClearBehavior
         if (ownerAutoComplete is not null)
         {
             if (IsInsideControl(e.Source, ownerAutoComplete))
+            {
                 return;
+            }
 
             ownerAutoComplete.IsDropDownOpen = false;
         }
 
         if (IsInsideControl(e.Source, ctrl))
+        {
             return;
+        }
 
         if (ctrl is TextBox tb)
+        {
             tb.ClearSelection();
+        }
 
         TryClearDataGridSelections(scope, e.Source);
 
         // Clicking inside a grid should not trigger force-unfocus.
         // Otherwise the first click is often consumed by focus transfer.
         if (insideDataGrid)
+        {
             return;
+        }
 
         if (scope is Control host)
+        {
             host.Focus();
+        }
     }
 
     private static void OnGotFocus(object? sender, GotFocusEventArgs e)
     {
         if (e.Source is not TextBox current)
+        {
             return;
+        }
 
         if (_lastFocusedTextBox is not null &&
             _lastFocusedTextBox.TryGetTarget(out var previous) &&
@@ -109,7 +127,9 @@ public class FocusClearBehavior
         while (current is not null)
         {
             if (ReferenceEquals(current, target))
+            {
                 return true;
+            }
 
             current = (current as StyledElement)?.Parent;
         }
@@ -123,7 +143,9 @@ public class FocusClearBehavior
         while (current is not null)
         {
             if (current is DataGrid or DataGridRow or DataGridCell or DataGridColumnHeader or ScrollBar)
+            {
                 return true;
+            }
 
             current = (current as StyledElement)?.Parent;
         }
@@ -137,7 +159,9 @@ public class FocusClearBehavior
         while (current is not null)
         {
             if (current is ContextMenu or MenuItem)
+            {
                 return true;
+            }
 
             current = (current as StyledElement)?.Parent;
         }
@@ -148,21 +172,31 @@ public class FocusClearBehavior
     private static void TryClearDataGridSelections(InputElement scope, object? source)
     {
         if (IsInsideDataGrid(source))
+        {
             return;
+        }
 
         // MainWindow-level behavior should not clear all grid selections globally.
         // Otherwise dialog action button click may clear dialog grid selection before command executes.
         if (scope is TopLevel)
+        {
             return;
+        }
 
         if (scope is Control scopeControl && scopeControl.GetValue(SuppressGridClearProperty))
+        {
             return;
+        }
 
         if (HasSuppressedGridClearAncestor(source))
+        {
             return;
+        }
 
         if (TopLevel.GetTopLevel(scope) is not TopLevel top)
+        {
             return;
+        }
 
         foreach (var grid in top.GetVisualDescendants().OfType<DataGrid>())
         {
@@ -176,7 +210,9 @@ public class FocusClearBehavior
         while (current is not null)
         {
             if (current is Control c && c.GetValue(SuppressGridClearProperty))
+            {
                 return true;
+            }
 
             current = (current as StyledElement)?.Parent;
         }

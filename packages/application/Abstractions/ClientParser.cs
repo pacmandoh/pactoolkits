@@ -32,7 +32,10 @@ public static class ClientParser
         {
             var p = parts[i];
             var eq = p.IndexOf('=');
-            if (eq <= 0) continue;
+            if (eq <= 0)
+            {
+                continue;
+            }
 
             var key = p[..eq].ToLowerInvariant();
             var val = p[(eq + 1)..];

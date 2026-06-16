@@ -6,13 +6,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Application.DTOs;
+using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Desktop.Avalonia.Services.Application;
+using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -267,7 +266,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         get
         {
             if (!IsDetailMode)
+            {
                 return string.Empty;
+            }
 
             return IsOperationUnlocked ? "已解锁" : "未解锁";
         }
@@ -339,7 +340,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     {
         _selectedStockRows.Clear();
         foreach (var row in rows)
+        {
             _selectedStockRows.Add(row);
+        }
+
         _selectedStockRowsSnapshot = _selectedStockRows.ToArray();
         OnPropertyChanged(nameof(SelectedStockRowsSnapshot));
 
@@ -513,7 +517,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private async Task EnsureReassignDrugOptionsAsync()
     {
         if (ReassignDrugOptions.Count > 0)
+        {
             return;
+        }
 
         try
         {
@@ -545,13 +551,15 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             using var cts = new CancellationTokenSource(LookupTimeout);
             var canonicalDrug = await _lookup.ResolveCanonicalDrugIdAsync(drug, cts.Token).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(canonicalDrug))
+            {
                 drug = canonicalDrug;
+            }
 
             var qty = await _lookup.GetQtyAsync(drug, spec, cts.Token).ConfigureAwait(false);
             await RunOnUiAsync(() =>
             {
                 ReassignTargetDrugId = drug;
-                ReassignQtyText = qty is null ? null : qty.Value.ToString(CultureInfo.InvariantCulture);
+                ReassignQtyText = qty?.ToString(CultureInfo.InvariantCulture);
             });
         }
         catch
@@ -570,7 +578,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     {
         var drug = NormalizeInput(drugText);
         if (string.IsNullOrWhiteSpace(drug))
+        {
             return;
+        }
 
         await EnsureReassignDrugOptionsAsync();
 
@@ -598,7 +608,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
 
         if (string.IsNullOrWhiteSpace(canonical))
+        {
             return;
+        }
 
         await LoadReassignSpecsByDrugAsync(canonical);
     }
@@ -658,7 +670,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private async Task LockOperationsAsync()
     {
         if (IsStockEditEnabled)
+        {
             await ToggleStockEditMode();
+        }
 
         IsReassignPanelVisible = false;
         ReassignPreviewText = null;
@@ -676,14 +690,18 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private async Task ToggleStockEditMode()
     {
         if (ShouldSkipTrigger("inventory.stock.edit", 250))
+        {
             return;
+        }
 
         if (IsStockEditEnabled)
         {
             BuildPendingEditsFromSnapshot();
             var (savedCount, failedCount, lastError) = (0, 0, (string?)null);
             if (_pendingStockEdits.Count > 0)
+            {
                 (savedCount, failedCount, lastError) = await ApplyPendingStockEditsAsync();
+            }
 
             if (savedCount > 0)
             {
@@ -709,7 +727,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
 
         if (!await EnsureUnlockedAsync("库存明细编辑"))
+        {
             return;
+        }
 
         _pendingStockEdits.Clear();
         CaptureStockEditSnapshotFromCurrentRows();
@@ -721,12 +741,16 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public async Task OpenScanCodeByRowAsync(string? drugId, string? spec)
     {
         if (!IsLowMode && !IsMissingMode)
+        {
             return;
+        }
 
         var d = NormalizeInput(drugId);
         var s = NormalizeInput(spec);
         if (string.IsNullOrWhiteSpace(d) || string.IsNullOrWhiteSpace(s))
+        {
             return;
+        }
 
         _nav.Navigate<ScanCodeViewModel>();
         await _scanCode.PrefillFromInventoryAsync(d, s);
@@ -736,10 +760,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private Task ToggleReassignPanelAsync()
     {
         if (ShouldSkipTrigger("inventory.reassign.panel", 250))
+        {
             return Task.CompletedTask;
+        }
 
         if (!CanToggleReassignPanel)
+        {
             return Task.CompletedTask;
+        }
 
         return ToggleReassignPanelInnerAsync();
     }
@@ -747,7 +775,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private async Task ToggleReassignPanelInnerAsync()
     {
         if (!IsReassignPanelVisible && !await EnsureUnlockedAsync("药品纠错"))
+        {
             return;
+        }
 
         IsReassignPanelVisible = !IsReassignPanelVisible;
         if (IsReassignPanelVisible)
@@ -771,12 +801,16 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private async Task PreviewReassignAsync()
     {
         if (!CanPreviewReassign)
+        {
             return;
+        }
 
         var targetDrug = NormalizeInput(ReassignTargetDrugId);
         var targetSpec = NormalizeInput(ReassignTargetSpec);
         if (string.IsNullOrWhiteSpace(targetDrug) || string.IsNullOrWhiteSpace(targetSpec))
+        {
             return;
+        }
 
         await SetReassignBusyAsync(true);
         try
@@ -785,7 +819,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             {
                 var selectedRows = GetEffectiveSelectedRows();
                 if (selectedRows.Count == 0)
+                {
                     return;
+                }
 
                 using var existsCts = new CancellationTokenSource(LookupTimeout);
                 var targetExists = await _inventory.TargetDrugSpecExistsAsync(targetDrug, targetSpec, existsCts.Token);
@@ -807,7 +843,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                                      || !string.Equals(row.Spec, targetSpec, StringComparison.Ordinal)
                                      || row.Qty != targetQtyResolved;
                     if (willChange)
+                    {
                         willChangeCount++;
+                    }
 
                     ReassignPreviewRows.Add(new StockReassignPreviewRowItem(
                         CurrentDrugId: row.DrugId,
@@ -910,7 +948,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private async Task ApplyReassignAsync()
     {
         if (!CanApplyReassign)
+        {
             return;
+        }
 
         var targetDrug = NormalizeInput(ReassignTargetDrugId);
         var targetSpec = NormalizeInput(ReassignTargetSpec);
@@ -921,17 +961,23 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             || !int.TryParse(qtyText, out var targetQty)
             || targetQty <= 0
             || string.IsNullOrWhiteSpace(reason))
+        {
             return;
+        }
 
         if (!await EnsureUnlockedAsync("药品纠错提交"))
+        {
             return;
+        }
 
         var confirmMessage = IsSingleReassignScope
             ? $"将选中追溯码纠错到 {targetDrug}/{targetSpec}，是否继续？"
             : $"将“当前筛选关键字”命中的库存批量纠错到 {targetDrug}/{targetSpec}，是否继续？";
         var ok = await _dialog.Confirm("确认纠错", confirmMessage);
         if (!ok)
+        {
             return;
+        }
 
         var isSingleScope = IsSingleReassignScope;
         var selectedTraceCodes = Array.Empty<string>();
@@ -956,12 +1002,16 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             {
                 var selectedRows = GetEffectiveSelectedRows();
                 if (selectedRows.Count == 0)
+                {
                     return;
+                }
 
                 var traceCodes = selectedTraceCodes;
 
                 if (traceCodes.Length == 0)
+                {
                     return;
+                }
 
                 var context = new StockReassignContext(
                     targetDrug,
@@ -995,7 +1045,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                         "批量纠错二次确认",
                         $"本次可变更 {guardPreview.WillChangeCount.ToString(CultureInfo.InvariantCulture)} 条，已超过阈值 {_inventory.LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)}请再次确认是否提交");
                     if (!secondOk)
+                    {
                         return;
+                    }
                 }
 
                 result = await _inventory.ReassignByKeywordAsync(
@@ -1051,7 +1103,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public Task CommitStockCellEditAsync(StockRowItem? row, string? header, string? newValue)
     {
         if (row is null || !IsStockEditEnabled || !IsDetailMode)
+        {
             return Task.CompletedTask;
+        }
 
         BuildPendingEditsFromSnapshot();
         Status = _pendingStockEdits.Count > 0
@@ -1065,10 +1119,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public void NotifyReadonlyStockColumnEditAttempt(string? header)
     {
         if (!IsStockEditEnabled || !IsDetailMode)
+        {
             return;
+        }
 
         if (ShouldSkipTrigger("inventory.stock.readonly_column_edit", 1200))
+        {
             return;
+        }
 
         var col = string.IsNullOrWhiteSpace(header) ? "该列" : header;
         _toast.Warn("库存明细编辑", $"{col}不可直接编辑，请使用药品纠错");
@@ -1077,7 +1135,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public async Task DeleteSelectedStockRowsAsync(StockRowItem? contextRow)
     {
         if (!IsDetailMode)
+        {
             return;
+        }
 
         if (!IsStockEditEnabled)
         {
@@ -1086,11 +1146,15 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
 
         if (!await EnsureUnlockedAsync("库存明细删除"))
+        {
             return;
+        }
 
         var selectedRows = GetEffectiveSelectedRows();
         if (selectedRows.Count == 0 && contextRow is not null)
+        {
             selectedRows.Add(contextRow);
+        }
 
         var traceCodes = selectedRows
             .Select(x => NormalizeInput(x.TraceCode))
@@ -1108,7 +1172,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             "确认删除",
             $"将删除 {traceCodes.Length.ToString(CultureInfo.InvariantCulture)} 条库存明细记录，操作不可撤销是否继续？");
         if (!ok)
+        {
             return;
+        }
 
         try
         {
@@ -1148,14 +1214,18 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _pendingStockEdits.CopyTo(edits, 0);
         _pendingStockEdits.Clear();
         if (edits.Length == 0)
+        {
             return (0, 0, null);
+        }
 
         var batchResult = await _inventory.ApplyStockCellEditsAsync(
             edits.Select(e => new StockCellEditRequest(e.MatchTraceCode, e.ColumnHeader, e.NewValue)).ToArray(),
             default).ConfigureAwait(false);
 
         if (batchResult.FailedCount > 0)
+        {
             await ReloadAsync();
+        }
 
         return (batchResult.SavedCount, batchResult.FailedCount, batchResult.LastError);
     }
@@ -1166,7 +1236,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         foreach (var row in StockRows)
         {
             if (!_stockEditSnapshotByRow.TryGetValue(row.RowNo, out var snap))
+            {
                 continue;
+            }
 
             var oldTrace = (snap.TraceCode ?? string.Empty).Trim();
             var newTrace = (row.TraceCode ?? string.Empty).Trim();
@@ -1239,31 +1311,43 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         if (wasUnlocked && !IsOperationUnlocked)
         {
             if (IsStockEditEnabled)
+            {
                 AbandonPendingStockEditsIfNeeded();
+            }
 
             IsReassignPanelVisible = false;
             ReassignPreviewRows.Clear();
             OnPropertyChanged(nameof(IsReassignPreviewEmpty));
             if (IsDetailMode)
+            {
                 Status = "库存安全会话已过期，请重新验证";
+            }
         }
 
         if (IsOperationUnlocked || OperationUnlockCooldownUntilUtc > DateTimeOffset.UtcNow)
+        {
             StartUnlockStatusTimerIfNeeded();
+        }
         else
+        {
             StopUnlockStatusTimerIfNeeded();
+        }
     }
 
     private void StartUnlockStatusTimerIfNeeded()
     {
         if (!_unlockStatusTimer.IsEnabled)
+        {
             _unlockStatusTimer.Start();
+        }
     }
 
     private void StopUnlockStatusTimerIfNeeded()
     {
         if (_unlockStatusTimer.IsEnabled)
+        {
             _unlockStatusTimer.Stop();
+        }
     }
 
     private void OnUnlockStatusTimerTick(object? sender, EventArgs e)
@@ -1283,7 +1367,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private List<StockRowItem> GetEffectiveSelectedRows()
     {
         if (_selectedStockRows.Count > 0)
+        {
             return _selectedStockRows.DistinctBy(x => x.RowNo).ToList();
+        }
 
         return SelectedStockRow is null
             ? new List<StockRowItem>()
@@ -1299,7 +1385,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         string? batchKeyword)
     {
         if (!IsDetailMode || StockRows.Count == 0)
+        {
             return Array.Empty<StockRowItem>();
+        }
 
         var changedRows = new List<StockRowItem>();
         if (singleScope)
@@ -1314,7 +1402,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             {
                 var trace = NormalizeInput(row.TraceCode);
                 if (string.IsNullOrWhiteSpace(trace) || !traces.Contains(trace!))
+                {
                     continue;
+                }
 
                 ApplyReassignToRow(row, targetDrug, targetSpec, targetQty);
                 changedRows.Add(row);
@@ -1328,12 +1418,16 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 foreach (var row in StockRows)
                 {
                     if (!MatchesKeyword(row, kw!))
+                    {
                         continue;
+                    }
 
                     // Keep semantics aligned with backend update predicate.
                     if (string.Equals(NormalizeInput(row.DrugId), targetDrug, StringComparison.Ordinal) &&
                         string.Equals(NormalizeInput(row.Spec), targetSpec, StringComparison.Ordinal))
+                    {
                         continue;
+                    }
 
                     ApplyReassignToRow(row, targetDrug, targetSpec, targetQty);
                     changedRows.Add(row);
@@ -1380,7 +1474,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private void AbandonPendingStockEditsIfNeeded()
     {
         if (!IsStockEditEnabled)
+        {
             return;
+        }
 
         BuildPendingEditsFromSnapshot();
         if (_pendingStockEdits.Count <= 0)
@@ -1401,7 +1497,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         foreach (var row in StockRows)
         {
             if (!_stockEditSnapshotByRow.TryGetValue(row.RowNo, out var snap))
+            {
                 continue;
+            }
 
             row.TraceCode = snap.TraceCode;
             row.Remain = snap.Remain;
@@ -1480,7 +1578,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private async Task SearchAsync()
     {
         if (ShouldSkipTrigger(milliseconds: 350))
+        {
             return;
+        }
+
         AbandonPendingStockEditsIfNeeded();
 
         PageIndex = 1;
@@ -1491,7 +1592,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private async Task ClearSearchAsync()
     {
         if (ShouldSkipTrigger(milliseconds: 350))
+        {
             return;
+        }
+
         AbandonPendingStockEditsIfNeeded();
 
         Keyword = null;
@@ -1503,10 +1607,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private async Task FirstPageAsync()
     {
         if (ShouldSkipTrigger("inventory.page.first", 180))
+        {
             return;
+        }
 
         if (!CanGoFirstPage())
+        {
             return;
+        }
 
         AbandonPendingStockEditsIfNeeded();
 
@@ -1518,10 +1626,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private async Task PrevPageAsync()
     {
         if (ShouldSkipTrigger("inventory.page.prev", 180))
+        {
             return;
+        }
 
         if (!CanGoPrevPage())
+        {
             return;
+        }
 
         AbandonPendingStockEditsIfNeeded();
 
@@ -1533,10 +1645,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private async Task NextPageAsync()
     {
         if (ShouldSkipTrigger("inventory.page.next", 180))
+        {
             return;
+        }
 
         if (!CanGoNextPage())
+        {
             return;
+        }
 
         AbandonPendingStockEditsIfNeeded();
 
@@ -1552,7 +1668,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     {
         var until = DateTimeOffset.UtcNow + duration;
         if (until > _suppressAutoRefreshUntilUtc)
+        {
             _suppressAutoRefreshUntilUtc = until;
+        }
 
         NotifyAllCommands();
     }
@@ -1560,7 +1678,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public bool ShouldDeferExternalRefreshForTopic(string? topic)
     {
         if (DateTimeOffset.UtcNow >= _suppressAutoRefreshUntilUtc)
+        {
             return false;
+        }
 
         var key = (topic ?? string.Empty).Trim().ToLowerInvariant();
         return key is "inventory" or "trace_pool" or "trace_txn" or "trace_txn_item" or "";
@@ -1593,11 +1713,19 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             await RunOnUiAsync(() =>
             {
                 if (ct.IsCancellationRequested)
+                {
                     return;
+                }
+
                 if (!IsDetailMode || page != PageIndex)
+                {
                     return;
+                }
+
                 if (!string.Equals(NormalizeInput(Keyword), keyword, StringComparison.Ordinal))
+                {
                     return;
+                }
 
                 // Silent reconcile: keep in-place update only when row count is unchanged.
                 // If count changed, rebuild the page rows to avoid stale tail rows.
@@ -1659,7 +1787,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private Task ReloadAsync(bool preserveEditSession = false)
     {
         if (IsStockEditEnabled && !preserveEditSession)
+        {
             AbandonPendingStockEditsIfNeeded();
+        }
 
         var mode = ModeIndex;
         return RunLocalReloadAsync(
@@ -1835,7 +1965,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private void OnUnlockScopeChanged(string scopeKey)
     {
         if (!string.Equals(scopeKey, UnlockScopeKey, StringComparison.Ordinal))
+        {
             return;
+        }
 
         PostOnUi(RefreshUnlockState, DispatcherPriority.Background);
     }
@@ -1898,7 +2030,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
         ModeIndex = next;
         if (forceReload)
+        {
             _ = ReloadAsync();
+        }
     }
 
     public override void Dispose()

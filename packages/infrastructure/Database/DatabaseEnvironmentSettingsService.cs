@@ -1,8 +1,7 @@
 using System.Text.Json;
+using Npgsql;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Core;
-using Npgsql;
 
 namespace PacToolkits.Infrastructure.Database;
 
@@ -45,9 +44,13 @@ public sealed class DatabaseEnvironmentSettingsService : IDatabaseEnvironmentSet
                 var key = reader.GetString(0);
                 var value = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
                 if (string.Equals(key, "Database.Environment", StringComparison.Ordinal))
+                {
                     environment = ParseJsonScalar(value);
+                }
                 else if (string.Equals(key, "Database.AllowBetaMigrations", StringComparison.Ordinal))
+                {
                     allowBetaMigrations = IsTruthy(ParseJsonScalar(value));
+                }
             }
 
             return new DatabaseEnvironmentSettings(environment, allowBetaMigrations);
@@ -74,7 +77,9 @@ public sealed class DatabaseEnvironmentSettingsService : IDatabaseEnvironmentSet
     private static string ParseJsonScalar(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
+        {
             return string.Empty;
+        }
 
         try
         {

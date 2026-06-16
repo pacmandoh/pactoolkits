@@ -2,24 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia;
-using global::Avalonia.Controls;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Collections;
 using global::Avalonia.Styling;
 using global::Avalonia.Threading;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Agent.Contracts.Agents;
-using PacToolkits.Application.DTOs;
-using PacToolkits.Desktop.Avalonia.Contracts;
-using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Core;
+using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -96,24 +93,32 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void OpenSettings()
     {
         if (ShouldSkipTrigger("main.nav.settings", 250))
+        {
             return;
+        }
 
         var page = _settingsPage;
 
         if (page is not null)
+        {
             ActivePage = page;
+        }
     }
 
     [RelayCommand]
     private void OpenAbout()
     {
         if (ShouldSkipTrigger("main.nav.about", 250))
+        {
             return;
+        }
 
         var page = _aboutPage;
 
         if (page is not null)
+        {
             ActivePage = page;
+        }
     }
 
     [ObservableProperty] private AppPageBase? _activePage;
@@ -233,7 +238,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void RefreshActivePage()
     {
         if (ShouldSkipTrigger("main.top.refresh", 300))
+        {
             return;
+        }
 
         if (IsDbProbeRunning)
         {
@@ -243,14 +250,18 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         var cmd = TopRefreshCommand;
         if (cmd?.CanExecute(null) == true)
+        {
             cmd.Execute(null);
+        }
     }
 
     [RelayCommand]
     private async Task CheckAppUpdateAsync()
     {
         if (ShouldSkipTrigger("main.top.update.check", 450))
+        {
             return;
+        }
 
         await CheckAndPromptUpdateAsync(showNoUpdateToast: true, startupMode: false).ConfigureAwait(false);
     }
@@ -259,7 +270,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task OpenUpdateCenterAsync()
     {
         if (ShouldSkipTrigger("main.top.update.open", 450))
+        {
             return;
+        }
 
         if (IsUpdateApplying)
         {
@@ -386,7 +399,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task EnsureAhkStartedOnStartupAsync()
     {
         if (!Injector.IsEnabled || Injector.IsRunning)
+        {
             return;
+        }
 
         try
         {
@@ -448,7 +463,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             PostOnUi(RaiseDbStateChanged);
 
             if (_dbMonitor.IsConnected || ct.IsCancellationRequested)
+            {
                 return;
+            }
         }
     }
 
@@ -468,13 +485,21 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         void Attach(System.Windows.Input.ICommand? cmd)
         {
-            if (cmd is null) return;
+            if (cmd is null)
+            {
+                return;
+            }
+
             cmd.CanExecuteChanged += OnTopBarCanExecuteChanged;
         }
 
         void Detach(System.Windows.Input.ICommand? cmd)
         {
-            if (cmd is null) return;
+            if (cmd is null)
+            {
+                return;
+            }
+
             cmd.CanExecuteChanged -= OnTopBarCanExecuteChanged;
         }
     }
@@ -529,7 +554,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         try
         {
             if (previous is IPageLifecycleAware oldPage)
+            {
                 await oldPage.OnPageDeactivatedAsync(ct).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -546,7 +573,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         try
         {
             if (current is IPageLifecycleAware newPage)
+            {
                 await newPage.OnPageActivatedAsync(ct).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -563,14 +592,18 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void OnNavigationRequested(Type pageType)
     {
         if (_pageByType.TryGetValue(pageType, out var page))
+        {
             ActivePage = page;
+        }
     }
 
     [RelayCommand]
     private void ToggleBaseTheme()
     {
         if (ShouldSkipTrigger("main.theme.base", 220))
+        {
             return;
+        }
 
         var keepName = _theme.ActiveColorTheme?.DisplayName;
 
@@ -578,27 +611,39 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         SyncThemeState();
 
-        if (keepName is null) return;
+        if (keepName is null)
+        {
+            return;
+        }
 
         var match = Themes.FirstOrDefault(t => t.DisplayName == keepName);
         if (match is not null)
+        {
             _theme.ChangeColorTheme(match);
+        }
     }
 
     [RelayCommand]
     private void CycleThemeColor()
     {
         if (ShouldSkipTrigger("main.theme.color", 220))
+        {
             return;
+        }
 
         var themes = Themes;
-        if (themes.Count == 0) return;
+        if (themes.Count == 0)
+        {
+            return;
+        }
 
         var currentName = _theme.ActiveColorTheme?.DisplayName;
         var idx = -1;
 
         if (currentName is not null)
+        {
             idx = themes.ToList().FindIndex(t => t.DisplayName == currentName);
+        }
 
         var next = themes[(idx + 1) % themes.Count];
         _theme.ChangeColorTheme(next);
@@ -608,7 +653,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task TryReconnectDb()
     {
         if (ShouldSkipTrigger("top.db.probe", (int)TopActionDebounce.TotalMilliseconds))
+        {
             return;
+        }
 
         await RunOnUiAsync(() =>
         {
@@ -649,7 +696,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         if (report.Success)
+        {
             _toasts.Success("数据库", kind == DbProbeKind.HealthCheck ? "健康检查通过" : "重连成功");
+        }
         else
         {
             _logger.Warn("MainWindowVM", "db.probe.unsuccessful", "Database probe finished with unsuccessful result", null, new
@@ -665,7 +714,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task StartOrRestartAhk()
     {
         if (ShouldSkipTrigger("top.ahk.action", (int)TopActionDebounce.TotalMilliseconds))
+        {
             return;
+        }
 
         IsAhkActionRunning = true;
         StartOrRestartAhkCommand.NotifyCanExecuteChanged();
@@ -677,20 +728,30 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 Injector.Reload();
                 var running = Injector.IsRunning;
                 if (running)
+                {
                     TryShowAhkTopToast(() => _toasts.Success("自动化套件", "健康检查通过：进程运行中"));
+                }
                 else
+                {
                     TryShowAhkTopToast(() => _toasts.Error("自动化套件", "健康检查失败：未检测到进程运行"));
+                }
             }
             else
             {
                 var result = await Injector.StartOrRestartAsync().ConfigureAwait(false);
                 if (result.SuppressToast)
+                {
                     return;
+                }
 
                 if (result.Ok)
+                {
                     TryShowAhkTopToast(() => _toasts.Success("自动化套件", result.Message));
+                }
                 else
+                {
                     TryShowAhkTopToast(() => _toasts.Error("自动化套件", result.Message));
+                }
             }
         }
         catch (Exception ex)
@@ -713,7 +774,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         var now = DateTimeOffset.UtcNow;
         if (now - _lastAhkTopToastAt < AhkTopToastDebounce)
+        {
             return;
+        }
 
         _lastAhkTopToastAt = now;
         show();
@@ -722,7 +785,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task<bool> CheckDatabaseOnStartupAsync()
     {
         if (!File.Exists(_configPath))
+        {
             return false;
+        }
 
         _logger.Info("MainWindowVM", "db.startup_check.start", "Checking database connectivity on startup");
         var ok = await _dbConfig.TestConnectionAsync(_dbConfig.Current, CancellationToken.None).ConfigureAwait(false);
@@ -734,7 +799,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 .ConfigureAwait(false);
 
             if (openSettings)
+            {
                 await RunOnUiAsync(OpenSettings);
+            }
+
             return false;
         }
 
@@ -795,7 +863,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 .ConfigureAwait(false);
 
             if (openSettings)
+            {
                 await RunOnUiAsync(OpenSettings);
+            }
+
             return false;
         }
         finally
@@ -808,17 +879,23 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         if (string.IsNullOrWhiteSpace(currentAppVersion) ||
             string.Equals(currentAppVersion, "unknown", StringComparison.OrdinalIgnoreCase))
+        {
             return;
+        }
 
         var existingStamp = NormalizeVersionForStamp(_appConfigStore.Load().LastDbMigrationAppVersion);
         if (string.Equals(existingStamp, currentAppVersion, StringComparison.OrdinalIgnoreCase))
+        {
             return;
+        }
 
         await _appConfigStore.UpdateAsync(cfg =>
         {
             var currentStamp = NormalizeVersionForStamp(cfg.LastDbMigrationAppVersion);
             if (string.Equals(currentStamp, currentAppVersion, StringComparison.OrdinalIgnoreCase))
+            {
                 return;
+            }
 
             cfg.LastDbMigrationAppVersion = currentAppVersion;
         }, CancellationToken.None).ConfigureAwait(false);
@@ -850,12 +927,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         const string marker = "applied=";
         var idx = summary.IndexOf(marker, StringComparison.Ordinal);
         if (idx < 0)
+        {
             return false;
+        }
 
         var start = idx + marker.Length;
         var end = start;
         while (end < summary.Length && char.IsDigit(summary[end]))
+        {
             end++;
+        }
 
         return end > start && int.TryParse(summary[start..end], out applied);
     }
@@ -876,6 +957,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             .ConfigureAwait(false);
 
         if (snapshot.Satisfied)
+        {
             _logger.Info("MainWindowVM", "db.schema.ok", "Database schema version compatible", new
             {
                 schemaValue = snapshot.CurrentVersion,
@@ -885,7 +967,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 agentMin,
                 agentMax
             });
+        }
         else
+        {
             _logger.Warn("MainWindowVM", "db.schema.incompatible", "Database schema incompatible", null, new
             {
                 target,
@@ -898,6 +982,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 schemaReason = snapshot.Reason,
                 snapshot.Compatibility
             });
+        }
 
         return new DbSchemaStartupState(
             Compatible: snapshot.Satisfied,
@@ -929,7 +1014,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task CheckUpdatesOnStartupAsync()
     {
         if (!_updateSettings.Current.AutoCheckOnStartup)
+        {
             return;
+        }
 
         _logger.Info("MainWindowVM", "update.check.startup", "Auto checking updates on startup");
         await CheckAndPromptUpdateAsync(showNoUpdateToast: false, startupMode: true).ConfigureAwait(false);
@@ -938,7 +1025,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task CheckAndPromptUpdateAsync(bool showNoUpdateToast, bool startupMode)
     {
         if (_updates.IsChecking || IsUpdateApplying)
+        {
             return;
+        }
 
         await _updateUiFlow.CheckAndHandleAsync(
             showNoUpdateToast: showNoUpdateToast,
@@ -951,7 +1040,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task ApplyUpdateFlowAsync()
     {
         if (IsUpdateApplying)
+        {
             return;
+        }
 
         IsUpdateApplying = true;
         try
@@ -982,7 +1073,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (now - _lastDbErrorToastAt < TimeSpan.FromSeconds(60)
             && string.Equals(_lastDbFailReason, reason, StringComparison.Ordinal))
+        {
             return;
+        }
 
         _lastDbErrorToastAt = now;
         _lastDbFailReason = reason;
@@ -1009,12 +1102,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         PostOnUi(RaiseDbStateChanged);
 
         if (!_dbEverDisconnected)
+        {
             return;
+        }
 
         var now = DateTimeOffset.Now;
 
         if (now - _lastDbOkToastAt < TimeSpan.FromSeconds(15))
+        {
             return;
+        }
 
         _lastDbOkToastAt = now;
         _lastDbFailReason = null;
@@ -1034,7 +1131,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task EnsureSchemaUpToDateOnReconnectAsync()
     {
         if (Interlocked.Exchange(ref _dbReconnectMigrationRunning, 1) == 1)
+        {
             return;
+        }
 
         try
         {
@@ -1082,7 +1181,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task RefreshSettingsSchemaStatusAsync(string source)
     {
         if (_settingsPage is not SettingsViewModel settingsPage)
+        {
             return;
+        }
 
         try
         {
@@ -1119,7 +1220,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
 
         SafeExecute(() => _dbConfig.Applied -= OnDbConfigAppliedEvent);

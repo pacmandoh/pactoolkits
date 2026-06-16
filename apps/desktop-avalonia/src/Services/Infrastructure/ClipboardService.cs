@@ -1,10 +1,9 @@
 using System;
 using System.Threading.Tasks;
-using Avalonia;
-using global::Avalonia.Threading;
 using global::Avalonia.Controls;
 using global::Avalonia.Controls.ApplicationLifetimes;
 using global::Avalonia.Input.Platform;
+using global::Avalonia.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -22,7 +21,9 @@ public sealed class ClipboardService : IClipboardService
             if (global::Avalonia.Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop ||
                 desktop.MainWindow is not TopLevel top ||
                 top.Clipboard is null)
+            {
                 return;
+            }
 
             await top.Clipboard.SetTextAsync(text ?? string.Empty);
         }));
@@ -33,7 +34,9 @@ public sealed class ClipboardService : IClipboardService
             if (global::Avalonia.Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop ||
                 desktop.MainWindow is not TopLevel top ||
                 top.Clipboard is null)
+            {
                 return null;
+            }
 
             return await ClipboardExtensions.TryGetTextAsync(top.Clipboard);
         }));

@@ -1,11 +1,11 @@
 using System;
-using PacToolkits.Application.Abstractions;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Threading;
 using System.Threading.Tasks;
 using global::Avalonia.Controls;
 using global::Avalonia.Controls.Notifications;
+using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using SukiUI.Enums;
 using SukiUI.Toasts;
 
@@ -70,7 +70,9 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
         Func<Task>? ignoreVersionAction = null)
     {
         if (applyNowAction is null)
+        {
             throw new ArgumentNullException(nameof(applyNowAction));
+        }
 
         var title = startupMode ? "启动时发现更新" : "发现新版本";
         var content = $"当前 {currentVersion} -> 最新 {latestVersion}";
@@ -83,10 +85,14 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
             {
                 if (_activeUpdateToast is not null
                     && string.Equals(_activeUpdateToastKey, toastKey, StringComparison.Ordinal))
+                {
                     return;
+                }
 
                 if (_activeUpdateToast is not null)
+                {
                     _toastManager.Dismiss(_activeUpdateToast);
+                }
 
                 _activeUpdateToast = _toastManager.CreateToast()
                 .OfType(NotificationType.Information)
@@ -129,7 +135,10 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
             if (!result.Success)
             {
                 if (!startupMode)
+                {
                     _toasts.Warn("应用更新", result.Message);
+                }
+
                 return result;
             }
 
@@ -142,7 +151,10 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
             if (!result.HasUpdate)
             {
                 if (showNoUpdateToast)
+                {
                     _toasts.Info("应用更新", "当前已是最新版本");
+                }
+
                 return result;
             }
 
@@ -214,8 +226,7 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
             {
                 PostOnUi(() =>
                 {
-                    if (progressBar is not null)
-                        progressBar.Value = Math.Clamp(value, 0, 100);
+                    progressBar?.Value = Math.Clamp(value, 0, 100);
                 });
             });
 
@@ -224,7 +235,10 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
             await RunOnUiAsync(() =>
             {
                 if (progressToast is not null)
+                {
                     _toastManager.Dismiss(progressToast);
+                }
+
                 progressToast = null;
             });
 
@@ -243,7 +257,9 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
             {
                 var started = await _updates.RestartToApplyAsync().ConfigureAwait(false);
                 if (!started)
+                {
                     _toasts.Warn("应用更新", "未检测到待应用更新包，请重新检查更新后再试");
+                }
             }
             else
             {
@@ -255,7 +271,9 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
             await RunOnUiAsync(() =>
             {
                 if (progressToast is not null)
+                {
                     _toastManager.Dismiss(progressToast);
+                }
             });
 
             _logger.Error("UpdateUiFlow", "update.apply.flow_fail", "Update apply flow failed", ex);
@@ -290,7 +308,10 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
             lock (_toastGate)
             {
                 if (_activeUpdateToast is not null)
+                {
                     _toastManager.Dismiss(_activeUpdateToast);
+                }
+
                 _activeUpdateToast = null;
                 _activeUpdateToastKey = string.Empty;
             }

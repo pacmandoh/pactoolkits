@@ -24,10 +24,14 @@ public sealed class AgentManager : IAgentManager
             ArgumentNullException.ThrowIfNull(runtime);
             var id = runtime.Descriptor.Id;
             if (string.IsNullOrWhiteSpace(id))
+            {
                 throw new InvalidOperationException("Agent runtime descriptor id is required.");
+            }
 
             if (map.ContainsKey(id))
+            {
                 throw new InvalidOperationException($"Duplicate agent runtime id: {id}");
+            }
 
             map[id] = runtime;
         }
@@ -41,7 +45,9 @@ public sealed class AgentManager : IAgentManager
     public IAgentRuntime GetRequired(string agentId)
     {
         if (_runtimes.TryGetValue(agentId, out var runtime))
+        {
             return runtime;
+        }
 
         throw new KeyNotFoundException($"Unknown agent id: {agentId}");
     }

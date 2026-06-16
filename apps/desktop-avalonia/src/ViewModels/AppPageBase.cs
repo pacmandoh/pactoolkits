@@ -1,16 +1,13 @@
-using PacToolkits.Desktop.Avalonia.Behaviors;
-using System.Threading;
-using System.Threading.Tasks;
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
-using Avalonia;
-using global::Avalonia.Threading;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Desktop.Avalonia.Common;
+using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Behaviors;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -108,7 +105,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     protected static void NotifyCommands(params IRelayCommand?[] commands)
     {
         foreach (var command in commands)
+        {
             command?.NotifyCanExecuteChanged();
+        }
     }
 
     protected static Task RunOnUiAsync(Action action)
@@ -132,7 +131,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         }
 
         if (!_uiCoalesceGates.TryAdd(gateKey, 0))
+        {
             return;
+        }
 
         PostOnUi(() =>
         {
@@ -181,7 +182,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
                 {
                     var ready = await WaitForStartupDbInitCompletedAsync(startup, ct).ConfigureAwait(false);
                     if (!ready)
+                    {
                         return;
+                    }
                 }
 
                 var mon = GetDbMonitor();
@@ -189,7 +192,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
                 {
                     var ok = await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
                     if (!ok)
+                    {
                         return;
+                    }
                 }
 
                 await action(ct).ConfigureAwait(false);
@@ -211,7 +216,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
                 {
                     var ready = await WaitForStartupDbInitCompletedAsync(startup, ct).ConfigureAwait(false);
                     if (!ready)
+                    {
                         return;
+                    }
                 }
 
                 var mon = GetDbMonitor();
@@ -219,7 +226,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
                 {
                     var ok = await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
                     if (!ok)
+                    {
                         return;
+                    }
                 }
 
                 try
@@ -232,11 +241,15 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
                     // Keep local reload behavior aligned with page reload:
                     // transport failures mark DB disconnected and wait for reconnect/timeout.
                     if (mon is null)
+                    {
                         mon = GetDbMonitor();
+                    }
 
                     mon?.Signal();
                     if (mon is not null)
+                    {
                         await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
+                    }
                 }
             },
             onFinished: onFinished);
@@ -260,7 +273,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             try
             {
                 if (busyDelayCts.IsCancellationRequested)
+                {
                     return;
+                }
 
                 await global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
                     () => setBusy(true),
@@ -306,16 +321,39 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     protected bool IsDbTransportError(Exception ex)
     {
-        if (IsPostgresProviderException(ex)) return true;
-        if (ex is System.IO.EndOfStreamException) return true;
-        if (ex is System.IO.IOException) return true;
+        if (IsPostgresProviderException(ex))
+        {
+            return true;
+        }
+
+        if (ex is System.IO.EndOfStreamException)
+        {
+            return true;
+        }
+
+        if (ex is System.IO.IOException)
+        {
+            return true;
+        }
 
         var inner = ex.InnerException;
         while (inner is not null)
         {
-            if (IsPostgresProviderException(inner)) return true;
-            if (inner is System.IO.EndOfStreamException) return true;
-            if (inner is System.IO.IOException) return true;
+            if (IsPostgresProviderException(inner))
+            {
+                return true;
+            }
+
+            if (inner is System.IO.EndOfStreamException)
+            {
+                return true;
+            }
+
+            if (inner is System.IO.IOException)
+            {
+                return true;
+            }
+
             inner = inner.InnerException;
         }
 
@@ -333,7 +371,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     protected bool MarkDbDisconnectedOnTransportError(Exception ex)
     {
         if (!IsDbTransportError(ex))
+        {
             return false;
+        }
 
         SignalDbDisconnected();
         return true;
@@ -353,7 +393,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             {
                 _cachedDbMonitor = app.Services.GetService(typeof(IDbConnectionMonitorService)) as IDbConnectionMonitorService;
                 if (_cachedDbMonitor is not null)
+                {
                     EnsureDbMonitorEventsHooked(_cachedDbMonitor);
+                }
             }
         }
         catch (System.Exception ex)
@@ -367,12 +409,16 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     private IAppStartupStateService? GetStartupState()
     {
         if (_cachedStartupState is not null)
+        {
             return _cachedStartupState;
+        }
 
         try
         {
             if (global::Avalonia.Application.Current is App app)
+            {
                 _cachedStartupState = app.Services.GetService(typeof(IAppStartupStateService)) as IAppStartupStateService;
+            }
         }
         catch (System.Exception ex)
         {
@@ -385,7 +431,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     private void EnsureDbMonitorEventsHooked(IDbConnectionMonitorService monitor)
     {
         if (_dbMonitorEventsHooked)
+        {
             return;
+        }
 
         monitor.Disconnected += OnDbMonitorDisconnected;
         monitor.Reconnected += OnDbMonitorReconnected;
@@ -394,13 +442,17 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         // If page initializes while DB is already disconnected, trigger the same
         // auto-refresh path as a disconnect signal so busy state appears immediately.
         if (!monitor.IsConnected && AutoRefreshOnDbDisconnected)
+        {
             ScheduleAutoRefreshFromDbSignal();
+        }
     }
 
     private void OnDbMonitorDisconnected()
     {
         if (!AutoRefreshOnDbDisconnected)
+        {
             return;
+        }
 
         ScheduleAutoRefreshFromDbSignal();
     }
@@ -408,7 +460,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     private void OnDbMonitorReconnected()
     {
         if (!AutoRefreshOnDbReconnected)
+        {
             return;
+        }
 
         ScheduleAutoRefreshFromDbSignal();
     }
@@ -416,7 +470,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     private void ScheduleAutoRefreshFromDbSignal()
     {
         if (Interlocked.Exchange(ref _dbSignalRefreshQueued, 1) == 1)
+        {
             return;
+        }
 
         PostOnUi(() => _ = ExecuteAutoRefreshFromDbSignalAsync(), DispatcherPriority.Background);
     }
@@ -426,14 +482,20 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         try
         {
             if (!CanAutoRefreshFromDbSignal())
+            {
                 return;
+            }
 
             var refresh = RefreshCommand;
             if (refresh is null)
+            {
                 return;
+            }
 
             if (!refresh.CanExecute(null))
+            {
                 return;
+            }
 
             if (refresh is IAsyncRelayCommand asyncRefresh)
             {
@@ -460,7 +522,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     private static async Task<bool> WaitForConnectedAsync(IDbConnectionMonitorService mon, CancellationToken ct)
     {
         if (mon.IsConnected)
+        {
             return true;
+        }
 
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -471,7 +535,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         try
         {
             if (mon.IsConnected)
+            {
                 return true;
+            }
 
             await tcs.Task.WaitAsync(ct).ConfigureAwait(false);
             return mon.IsConnected;
@@ -489,7 +555,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     private static async Task<bool> WaitForStartupDbInitCompletedAsync(IAppStartupStateService startup, CancellationToken ct)
     {
         if (startup.IsDbInitCompleted)
+        {
             return true;
+        }
 
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -500,7 +568,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         try
         {
             if (startup.IsDbInitCompleted)
+            {
                 return true;
+            }
 
             await tcs.Task.WaitAsync(ct).ConfigureAwait(false);
             return startup.IsDbInitCompleted;

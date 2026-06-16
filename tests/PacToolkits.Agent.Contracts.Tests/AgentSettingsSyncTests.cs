@@ -1,4 +1,3 @@
-using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Agent.Contracts.Models;
 using Xunit;
 

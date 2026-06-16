@@ -1,10 +1,10 @@
 using System;
-using PacToolkits.Application.Abstractions;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
@@ -73,7 +73,9 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
         }
 
         if (changed)
+        {
             RaiseStateChanged(key);
+        }
     }
 
     public void Lock(string scopeKey)
@@ -89,7 +91,9 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
         }
 
         if (changed)
+        {
             RaiseStateChanged(key);
+        }
     }
 
     public async Task<bool> EnsureUnlockedAsync(
@@ -105,7 +109,9 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
         {
             state = GetOrCreateState(key);
             if (state.IsPromptActive)
+            {
                 return false;
+            }
         }
 
         Refresh(key);
@@ -114,7 +120,9 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
         {
             state = GetOrCreateState(key);
             if (state.IsUnlocked)
+            {
                 return true;
+            }
         }
 
         var expectedPassword = NormalizeInput(_dbConfig.Current.Password);
@@ -146,7 +154,10 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
             {
                 state = GetOrCreateState(key);
                 if (state.IsPromptActive)
+                {
                     return false;
+                }
+
                 state.IsPromptActive = true;
             }
 
@@ -170,10 +181,14 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
         }
 
         if (ct.IsCancellationRequested)
+        {
             return false;
+        }
 
         if (string.IsNullOrWhiteSpace(input))
+        {
             return false;
+        }
 
         if (!string.Equals(input, expectedPassword, StringComparison.Ordinal))
         {
@@ -199,12 +214,19 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
             }
 
             if (lockout)
+            {
                 _toast.Error(scene, $"密码连续错误过多，已锁定 {UnlockCooldownDuration.TotalSeconds.ToString(CultureInfo.InvariantCulture)} 秒");
+            }
             else
+            {
                 _toast.Error(scene, $"密码错误，还可重试 {remaining} 次");
+            }
 
             if (changed)
+            {
                 RaiseStateChanged(key);
+            }
+
             return false;
         }
 
@@ -237,7 +259,9 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
     {
         var handler = StateChanged;
         if (handler is null)
+        {
             return;
+        }
 
         foreach (var subscriber in handler.GetInvocationList())
         {
@@ -255,7 +279,9 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
     private ScopeState GetOrCreateState(string key)
     {
         if (_states.TryGetValue(key, out var state))
+        {
             return state;
+        }
 
         state = new ScopeState();
         _states[key] = state;

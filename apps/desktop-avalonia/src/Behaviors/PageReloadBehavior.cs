@@ -1,7 +1,7 @@
 using System;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Runtime.ExceptionServices;
 using global::Avalonia.Threading;
 using PacToolkits.Desktop.Avalonia.Common;
 
@@ -21,7 +21,9 @@ public sealed class PageReloadBehavior : IDisposable
         Action? onFinished = null)
     {
         if (_disposed)
+        {
             throw new ObjectDisposedException(nameof(PageReloadBehavior));
+        }
 
         var cts = new CancellationTokenSource();
         var previous = Interlocked.Exchange(ref _cts, cts);
@@ -59,23 +61,31 @@ public sealed class PageReloadBehavior : IDisposable
         finally
         {
             if (busyShown && IsCurrentRun(runId, cts))
+            {
                 await Dispatcher.UIThread.InvokeAsync(() => setBusy(false));
+            }
 
             if (onFinished is not null && IsCurrentRun(runId, cts))
+            {
                 await Dispatcher.UIThread.InvokeAsync(onFinished);
+            }
 
             Interlocked.CompareExchange(ref _cts, null, cts);
             cts.Dispose();
         }
 
         if (error is not null)
+        {
             ExceptionDispatchInfo.Capture(error).Throw();
+        }
     }
 
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _disposed = true;
         CancelActiveRun();
@@ -88,7 +98,9 @@ public sealed class PageReloadBehavior : IDisposable
     {
         var cts = Interlocked.Exchange(ref _cts, null);
         if (cts is null)
+        {
             return;
+        }
 
         CancelCts(cts);
     }
@@ -96,7 +108,9 @@ public sealed class PageReloadBehavior : IDisposable
     private static void CancelCts(CancellationTokenSource? cts)
     {
         if (cts is null)
+        {
             return;
+        }
 
         try
         {

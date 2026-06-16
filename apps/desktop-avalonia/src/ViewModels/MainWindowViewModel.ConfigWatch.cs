@@ -11,7 +11,10 @@ public partial class MainWindowViewModel
 {
     private async Task CheckConfigOnStartupAsync()
     {
-        if (File.Exists(_configPath)) return;
+        if (File.Exists(_configPath))
+        {
+            return;
+        }
 
         var openSettings = await _dialogs.Confirm(
                 "未找到配置文件",
@@ -19,7 +22,9 @@ public partial class MainWindowViewModel
             .ConfigureAwait(false);
 
         if (openSettings)
+        {
             await RunOnUiAsync(OpenSettings);
+        }
     }
 
     private void StartConfigWatcher()
@@ -47,13 +52,23 @@ public partial class MainWindowViewModel
 
     private async Task OnConfigChangedAsync()
     {
-        if (_disposed) return;
-        if (_isApplyingConfig) return;
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (_isApplyingConfig)
+        {
+            return;
+        }
 
         // Reason: Debounce file watcher bursts from editor write patterns.
         await Task.Delay(350).ConfigureAwait(false);
 
-        if (!File.Exists(_configPath)) return;
+        if (!File.Exists(_configPath))
+        {
+            return;
+        }
 
         try
         {
@@ -71,7 +86,9 @@ public partial class MainWindowViewModel
             json = await File.ReadAllTextAsync(_configPath).ConfigureAwait(false);
 
             if (string.Equals(json, _lastSeenConfigJson, StringComparison.Ordinal))
+            {
                 return;
+            }
 
             loaded = JsonSerializer.Deserialize<AppConfigRoot>(json);
         }
@@ -81,7 +98,10 @@ public partial class MainWindowViewModel
             json = null;
         }
 
-        if (loaded?.Postgres is null) return;
+        if (loaded?.Postgres is null)
+        {
+            return;
+        }
 
         if (IsSamePgOptions(_dbConfig.Current, loaded.Postgres))
         {
@@ -145,6 +165,8 @@ public partial class MainWindowViewModel
         RaiseDbStateChanged();
 
         if (_dbMonitor.IsConnected)
+        {
             ScheduleAutoRefresh();
+        }
     }
 }

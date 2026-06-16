@@ -1,4 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Agent.Contracts.Commands;
@@ -9,14 +15,7 @@ using PacToolkits.Agent.Contracts.Validation;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Core;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
@@ -71,14 +70,18 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         get
         {
             lock (_gate)
+            {
                 return _options.ExecutablePath;
+            }
         }
     }
 
     public AhkToolOptions GetAhkToolOptions()
     {
         lock (_gate)
+        {
             return Clone(_options);
+        }
     }
 
     public ToolRunState State
@@ -86,7 +89,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         get
         {
             lock (_gate)
+            {
                 return _state;
+            }
         }
     }
 
@@ -95,7 +100,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         get
         {
             lock (_gate)
+            {
                 return _state == ToolRunState.Running;
+            }
         }
     }
 
@@ -104,7 +111,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         get
         {
             lock (_gate)
+            {
                 return _lastLaunchAt;
+            }
         }
     }
 
@@ -113,7 +122,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         get
         {
             lock (_gate)
+            {
                 return _lastError;
+            }
         }
     }
 
@@ -122,7 +133,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         get
         {
             lock (_gate)
+            {
                 return _toolVersion;
+            }
         }
     }
 
@@ -183,7 +196,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
 
         var statusChanged = RefreshState();
         if (changed || statusChanged)
+        {
             RaiseChanged();
+        }
 
         _logger.Info("AgentInjectorAhk", "agent.reload", "Agent injector runtime config reloaded", new
         {
@@ -216,7 +231,10 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
 
         var statusChanged = RefreshState();
         if (changed || statusChanged)
+        {
             RaiseChanged();
+        }
+
         _logger.Info("AgentInjectorAhk", "agent.options.saved", "Agent injector runtime options saved", new
         {
             normalized.ExecutablePath,
@@ -229,16 +247,22 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
     {
         var entered = await _commandGate.WaitAsync(0, ct).ConfigureAwait(false);
         if (!entered)
+        {
             return new ToolCommandResult(true, "操作进行中，请稍候", SuppressToast: true);
+        }
 
         AhkToolOptions options;
         try
         {
             if (IsCommandCoolingDown())
+            {
                 return new ToolCommandResult(true, "操作过于频繁，已忽略", SuppressToast: true);
+            }
 
             if (!IsEnabled)
+            {
                 return new ToolCommandResult(false, "Agent 已在配置中禁用", SuppressToast: false);
+            }
 
             var schemaValidation = await ValidateDatabaseCompatibilityAsync(ct).ConfigureAwait(false);
             if (!schemaValidation.Ok)
@@ -248,20 +272,30 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             }
 
             lock (_gate)
+            {
                 options = Clone(_options);
+            }
 
             if (!OperatingSystem.IsWindows())
+            {
                 return SetError("当前系统不支持启动自动化套件");
+            }
 
             if (string.IsNullOrWhiteSpace(options.ExecutablePath))
+            {
                 return SetError("请先配置自动化套件的可执行文件路径");
+            }
 
             var resolvedExePath = ResolveExecutablePath(options.ExecutablePath);
             if (resolvedExePath is null)
+            {
                 return SetError($"路径无效：{options.ExecutablePath}");
+            }
 
             if (!File.Exists(resolvedExePath))
+            {
                 return SetError($"文件不存在：{options.ExecutablePath}");
+            }
 
             var validate = ValidateAgentConfig();
             if (!validate.Ok)
@@ -276,7 +310,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
                 StopTargetProcesses(options);
                 var stopped = await WaitUntilStoppedAsync(options, TimeSpan.FromSeconds(4), ct).ConfigureAwait(false);
                 if (!stopped)
+                {
                     return SetError("重启失败：检测到进程仍在运行，已取消本次启动");
+                }
 
                 // Give shell tray time to remove icon before relaunch.
                 await Task.Delay(250, ct).ConfigureAwait(false);
@@ -294,12 +330,16 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             if (startedProcess is not null)
             {
                 lock (_gate)
+                {
                     _lastProcessId = startedProcess.Id;
+                }
             }
 
             var started = await WaitUntilRunningAsync(options, TimeSpan.FromSeconds(4), ct).ConfigureAwait(false);
             if (!started)
+            {
                 return SetError("已触发启动，但未检测到进程运行");
+            }
 
             lock (_gate)
             {
@@ -330,19 +370,27 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
     {
         var entered = await _commandGate.WaitAsync(0, ct).ConfigureAwait(false);
         if (!entered)
+        {
             return new ToolCommandResult(true, "操作进行中，请稍候", SuppressToast: true);
+        }
 
         AhkToolOptions options;
         try
         {
             if (IsCommandCoolingDown())
+            {
                 return new ToolCommandResult(true, "操作过于频繁，已忽略", SuppressToast: true);
+            }
 
             lock (_gate)
+            {
                 options = Clone(_options);
+            }
 
             if (!OperatingSystem.IsWindows())
+            {
                 return SetError("当前系统不支持停止自动化套件");
+            }
 
             var processes = GetTargetProcesses(options).ToList();
             if (processes.Count == 0)
@@ -377,7 +425,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             }
 
             if (!stopped)
+            {
                 return SetError("停止失败：检测到进程仍在运行");
+            }
 
             // Allow shell to clean tray icon cache after process exit.
             await Task.Delay(250, ct).ConfigureAwait(false);
@@ -407,26 +457,38 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
 
     private void PollStatus()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         if (RefreshState())
+        {
             RaiseChanged();
+        }
     }
 
     private bool RefreshState()
     {
         AhkToolOptions options;
         lock (_gate)
+        {
             options = Clone(_options);
+        }
 
         var newState = DetectState(options);
         lock (_gate)
         {
             if (_state == newState)
+            {
                 return false;
+            }
 
             _state = newState;
             if (newState != ToolRunState.Running)
+            {
                 _lastProcessId = null;
+            }
 
             return true;
         }
@@ -448,12 +510,16 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
     {
         int? trackedPid;
         lock (_gate)
+        {
             trackedPid = _lastProcessId;
+        }
 
         var normalizedExePath = NormalizePath(options.ExecutablePath);
         var candidates = ResolveProcessNameCandidates(options);
         if (candidates.Count == 0)
+        {
             return Array.Empty<Process>();
+        }
 
         var seen = new HashSet<int>();
         var matched = new List<Process>();
@@ -490,9 +556,13 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
                 }
 
                 if (MatchesExe(p, normalizedExePath, permissiveOnAccessDenied: true))
+                {
                     matched.Add(p);
+                }
                 else
+                {
                     p.Dispose();
+                }
             }
         }
 
@@ -504,7 +574,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         lock (_gate)
         {
             if (_lastProcessId == processId)
+            {
                 _lastProcessId = null;
+            }
         }
     }
 
@@ -514,12 +586,16 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         bool permissiveOnAccessDenied)
     {
         if (normalizedExePath is null)
+        {
             return true;
+        }
 
         try
         {
             if (process.HasExited)
+            {
                 return false;
+            }
 
             var normalizedModulePath = NormalizePath(process.MainModule?.FileName);
             return normalizedModulePath is not null
@@ -534,10 +610,14 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
     private static IReadOnlyList<string> ResolveProcessNameCandidates(AhkToolOptions options)
     {
         if (!string.IsNullOrWhiteSpace(options.ProcessName))
+        {
             return [Path.GetFileNameWithoutExtension(options.ProcessName.Trim())];
+        }
 
         if (!string.IsNullOrWhiteSpace(options.ExecutablePath))
+        {
             return [Path.GetFileNameWithoutExtension(options.ExecutablePath.Trim())];
+        }
 
         return AgentPaths.InjectorAhkProcessNameCandidates;
     }
@@ -545,7 +625,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
     private ToolCommandResult SetError(string message)
     {
         lock (_gate)
+        {
             _lastError = message;
+        }
 
         RefreshState();
         RaiseChanged();
@@ -558,7 +640,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         lock (_gate)
         {
             if (now - _lastCommandAt < CommandCooldown)
+            {
                 return true;
+            }
 
             _lastCommandAt = now;
             return false;
@@ -574,7 +658,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             ct.ThrowIfCancellationRequested();
 
             if (DetectState(options) == ToolRunState.Running)
+            {
                 return true;
+            }
 
             await Task.Delay(180, ct).ConfigureAwait(false);
         }
@@ -591,7 +677,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             ct.ThrowIfCancellationRequested();
 
             if (DetectState(options) != ToolRunState.Running)
+            {
                 return true;
+            }
 
             await Task.Delay(180, ct).ConfigureAwait(false);
         }
@@ -621,7 +709,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
     private void TryTerminateProcess(Process p)
     {
         if (p.HasExited)
+        {
             return;
+        }
 
         try
         {
@@ -629,7 +719,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             if (p.CloseMainWindow())
             {
                 if (p.WaitForExit(2200))
+                {
                     return;
+                }
             }
         }
         catch (System.Exception ex)
@@ -679,7 +771,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             : cfg.AutomationTools.Ahk.ProcessName;
 
         if (resolution.RequiresMigration || string.IsNullOrWhiteSpace(processName))
+        {
             processName = AgentPaths.InjectorProcessName;
+        }
 
         return Normalize(new AhkToolOptions
         {
@@ -763,7 +857,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
                     schema.Reason ?? "读取失败");
 
         if (!compatibility.IsCompatible)
+        {
             return new ToolCommandResult(false, compatibility.Message);
+        }
 
         var policy = await _migrationPolicy.EvaluateAsync(
             DatabaseMigrationTrigger.Startup,
@@ -820,7 +916,9 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
     {
         var resolvedPath = ResolveExecutablePath(executablePath);
         if (resolvedPath is null || !File.Exists(resolvedPath))
+        {
             return "未配置";
+        }
 
         try
         {
@@ -855,7 +953,11 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
 
         try { _pollTimer.Dispose(); }

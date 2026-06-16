@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using PacToolkits.Application.Abstractions;
@@ -559,7 +554,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 var rowKey = BuildSourceRowKey(billCode, drug.DrugName, drug.PackageSpec, drug.PrepnSpec, drug.BatchNo);
                 var itemId = await UpsertDetailItemAsync(conn, tx, billId, rowKey, drug, token).ConfigureAwait(false);
                 if (itemId > 0)
+                {
                     insertedItems++;
+                }
 
                 var batch = await UpsertCodeRelationAndStagingBatchAsync(
                     conn,
@@ -585,7 +582,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             var safeLimit = Math.Max(0, limit);
             var pendingBefore = await GetPendingCountAsync(conn, token).ConfigureAwait(false);
             if (pendingBefore <= 0)
+            {
                 return new MsfxMapApplyResult(0, 0, 0);
+            }
 
             var result = await ApplyMappingViaFunctionAsync(conn, safeLimit, token).ConfigureAwait(false);
             if (result.ProcessedCount == 0)
@@ -620,7 +619,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
                 return new MsfxMappingStatusSnapshot(0, 0, 0, 0, 0);
+            }
 
             return new MsfxMappingStatusSnapshot(
                 PendingCount: reader.IsDBNull(0) ? 0 : reader.GetInt32(0),
@@ -649,7 +650,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
                 return new MsfxMappingBacklogDiagnostic(0, 0, 0, 0, 0, 0);
+            }
 
             return new MsfxMappingBacklogDiagnostic(
                 PendingCount: reader.GetInt32(0),
@@ -670,7 +673,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             cmd.AddParam("max_groups", Math.Max(0, maxGroups));
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
                 return new MsfxBuildTaskResult(0, 0);
+            }
 
             return new MsfxBuildTaskResult(
                 reader.GetInt32(0),
@@ -927,7 +932,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
 
             var pageRows = scanned.Take(size).ToList();
             if (newer)
+            {
                 pageRows.Reverse();
+            }
 
             await using var countCmd = conn.CreateCommand(countSql, _opt.CommandTimeoutSeconds);
             AddNullableParam(countCmd, "map_status", NormalizeOptional(mapStatus));
@@ -1017,7 +1024,10 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             var sql = useLimit ? $"{sqlBody}\nlimit @limit" : sqlBody;
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             if (useLimit)
+            {
                 cmd.AddParam("limit", Math.Clamp(limit, 1, 5000));
+            }
+
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             var rows = new List<MsfxInjectTaskQueueRow>(Math.Max(1, useLimit ? limit : 256));
             while (await reader.ReadAsync(token).ConfigureAwait(false))
@@ -1060,7 +1070,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
 
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
                 throw new InvalidOperationException($"未能重开任务 {taskId}");
+            }
 
             return new MsfxReopenInjectTaskResult(
                 TaskId: reader.GetInt64(0),
@@ -1085,7 +1097,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
 
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
                 throw new InvalidOperationException($"未能弃用任务 {taskId}");
+            }
 
             return new MsfxDiscardInjectTaskResult(
                 TaskId: reader.GetInt64(0),
@@ -1110,7 +1124,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
 
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
                 throw new InvalidOperationException($"未能回退任务 {taskId} 到映射队列");
+            }
 
             return new MsfxRemapInjectTaskResult(
                 TaskId: reader.GetInt64(0),
@@ -1138,7 +1154,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 .Distinct()
                 .ToArray() ?? Array.Empty<long>();
             if (ids.Length < 2)
+            {
                 throw new InvalidOperationException("至少需要两条任务才能执行合并");
+            }
 
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             cmd.AddParam("task_ids", ids);
@@ -1147,7 +1165,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
 
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
                 throw new InvalidOperationException("未能完成任务合并");
+            }
 
             return new MsfxMergeInjectTaskResult(
                 TaskId: reader.GetInt64(0),
@@ -1177,7 +1197,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
 
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
                 throw new InvalidOperationException($"未能完成任务 {taskId} 的拆分");
+            }
 
             return new MsfxSplitInjectTaskResult(
                 CreatedTasks: reader.GetInt32(0),
@@ -1204,7 +1226,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 .ToArray() ?? Array.Empty<string>();
             var buckets = bucketIndexes?.ToArray() ?? Array.Empty<int>();
             if (keys.Length == 0 || keys.Length != buckets.Length)
+            {
                 throw new InvalidOperationException("自定义拆分参数无效");
+            }
 
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             cmd.AddParam("task_id", taskId);
@@ -1215,7 +1239,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
 
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
                 throw new InvalidOperationException($"未能完成任务 {taskId} 的自定义拆分");
+            }
 
             return new MsfxSplitInjectTaskCustomResult(
                 CreatedTasks: reader.GetInt32(0),
@@ -1512,7 +1538,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             if (actionNorm == "APPLY_MAP")
             {
                 if (string.IsNullOrWhiteSpace(normalizedDrugId) || string.IsNullOrWhiteSpace(normalizedSpec))
+                {
                     return new MsfxMappingBatchPreview(0, 0, 0);
+                }
 
                 const string existsSql = """
                     select exists(
@@ -1537,7 +1565,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             AddKeywordParams(cmd, tokens);
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
                 return new MsfxMappingBatchPreview(0, 0, 0);
+            }
 
             var candidate = reader.GetInt32(0);
             var eligible = targetExists ? candidate : 0;
@@ -1752,7 +1782,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             var normalizedDrugId = NormalizeOptional(drugId);
             var normalizedSpec = NormalizeOptional(spec);
             if (string.IsNullOrWhiteSpace(normalizedDrugId) || string.IsNullOrWhiteSpace(normalizedSpec))
+            {
                 return new MsfxMappingBatchApplyResult(0);
+            }
 
             cmd.AddParam("drug_id", normalizedDrugId);
             cmd.AddParam("spec", normalizedSpec);
@@ -1843,17 +1875,23 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         CancellationToken ct)
     {
         if (codes.Count == 0)
+        {
             return (0, 0);
+        }
 
         var deduped = new Dictionary<string, (string? L1, string? L2, string? L3, string? L4, string? L5)>(StringComparer.Ordinal);
         foreach (var c in codes)
         {
             var leaf = NullIfWhiteSpace(c.Code);
             if (leaf is null)
+            {
                 continue;
+            }
 
             if (deduped.ContainsKey(leaf))
+            {
                 continue;
+            }
 
             deduped[leaf] = BuildCodeHierarchy(
                 leaf,
@@ -1866,7 +1904,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         }
 
         if (deduped.Count == 0)
+        {
             return (0, 0);
+        }
 
         var leafCodes = new string[deduped.Count];
         var level1Codes = new string?[deduped.Count];
@@ -2011,7 +2051,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
             return (0, 0);
+        }
 
         return (reader.GetInt32(0), reader.GetInt32(1));
     }
@@ -2176,14 +2218,19 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
     {
         var text = (keyword ?? string.Empty).Trim();
         if (text.Length == 0)
+        {
             return [];
+        }
+
         return text.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private static string BuildKeywordClause(string scope, IReadOnlyList<string> tokens)
     {
         if (tokens.Count == 0)
+        {
             return string.Empty;
+        }
 
         var fieldExpr = scope switch
         {
@@ -2199,7 +2246,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
 
         var parts = new List<string>(tokens.Count);
         for (var i = 0; i < tokens.Count; i++)
+        {
             parts.Add(string.Format(CultureInfo.InvariantCulture, fieldExpr, $"@kw_{i}"));
+        }
 
         return $"and ({string.Join(" and ", parts)})";
     }
@@ -2207,7 +2256,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
     private static void AddKeywordParams(NpgsqlCommand cmd, IReadOnlyList<string> tokens)
     {
         for (var i = 0; i < tokens.Count; i++)
+        {
             cmd.AddParam($"kw_{i}", $"%{tokens[i]}%");
+        }
     }
 
     private async Task<int> GetPendingCountAsync(System.Data.IDbConnection conn, CancellationToken ct)
@@ -2228,7 +2279,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         cmd.AddParam("limit", limit);
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
             return new MsfxMapApplyResult(0, 0, 0);
+        }
 
         return new MsfxMapApplyResult(
             reader.GetInt32(0),
@@ -2254,7 +2307,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
             return new MsfxMappingBacklogDiagnostic(0, 0, 0, 0, 0, 0);
+        }
 
         return new MsfxMappingBacklogDiagnostic(
             PendingCount: reader.GetInt32(0),
@@ -2268,22 +2323,37 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
     private static DateTime? ParseDateOrNull(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
+        {
             return null;
+        }
+
         if (DateTime.TryParse(value, out var dt))
+        {
             return dt.Date;
+        }
+
         return null;
     }
 
     private static DateTime? ParseDateTimeUtcOrNull(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
+        {
             return null;
+        }
+
         if (DateTimeOffset.TryParse(value, out var dto))
+        {
             return dto.UtcDateTime;
+        }
+
         if (DateTime.TryParse(value, out var d))
         {
             if (d.Kind == DateTimeKind.Unspecified)
+            {
                 d = DateTime.SpecifyKind(d, DateTimeKind.Local);
+            }
+
             return d.ToUniversalTime();
         }
         return null;
@@ -2307,10 +2377,14 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         var level = ParseLevelInt(codeLevel);
 
         if (l1 is not null || l2 is not null || l3 is not null || l4 is not null || l5 is not null)
+        {
             return (l1, l2, l3, l4, l5);
+        }
 
         if (c is null)
+        {
             return (null, null, null, null, null);
+        }
 
         return level switch
         {
@@ -2325,7 +2399,10 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
     private static int ParseLevelInt(string? levelText)
     {
         if (string.IsNullOrWhiteSpace(levelText))
+        {
             return 0;
+        }
+
         return int.TryParse(levelText.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)
             ? n
             : 0;

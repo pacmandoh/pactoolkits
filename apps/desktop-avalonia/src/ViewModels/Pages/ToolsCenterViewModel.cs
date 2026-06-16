@@ -1,19 +1,18 @@
 using System;
-using System.Collections.Specialized;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Application.Abstractions;
+using global::Avalonia.Threading;
 using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Agent.Contracts.Agents;
-using PacToolkits.Agent.Contracts.Commands;
+using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -239,14 +238,18 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     private async Task SaveAhkSettingsAsync()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         IsSavingSettings = true;
         try
         {
             var result = await SaveOptionsToConfigAsync(showToastOnError: true).ConfigureAwait(false);
             if (!result.Saved)
+            {
                 return;
+            }
 
             var restarted = false;
             if (result.Changed && Injector.IsRunning)
@@ -255,7 +258,10 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 if (!restart.Ok)
                 {
                     if (!restart.SuppressToast)
+                    {
                         _toast.Error("自动化套件", restart.Message);
+                    }
+
                     return;
                 }
 
@@ -281,27 +287,43 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     private async Task RestartAhkAsync()
     {
         if (IsAhkToggling)
+        {
             return;
+        }
+
         if (ShouldSkipTrigger("tools.ahk.restart"))
+        {
             return;
+        }
+
         if (!Injector.IsRunning)
+        {
             return;
+        }
 
         IsAhkToggling = true;
         try
         {
             var saved = await SaveCurrentOptionsSilentlyAsync().ConfigureAwait(false);
             if (!saved)
+            {
                 return;
+            }
 
             var result = await Injector.StartOrRestartAsync().ConfigureAwait(false);
             if (result.SuppressToast)
+            {
                 return;
+            }
 
             if (result.Ok)
+            {
                 _toast.Success("自动化套件", result.Message);
+            }
             else
+            {
                 _toast.Error("自动化套件", result.Message);
+            }
         }
         catch (Exception ex)
         {
@@ -321,9 +343,14 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     private async Task ToggleAhkAsync(bool enabled)
     {
         if (IsAhkToggling)
+        {
             return;
+        }
+
         if (ShouldSkipTrigger(enabled ? "tools.ahk.enable" : "tools.ahk.disable"))
+        {
             return;
+        }
 
         IsAhkToggling = true;
         try
@@ -350,7 +377,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             {
                 var result = (await Injector.StartOrRestartAsync().ConfigureAwait(false)).ToApplication();
                 if (!result.Ok && !result.SuppressToast)
+                {
                     _toast.Error("自动化套件", result.Message);
+                }
             }
         }
         catch (Exception ex)
@@ -387,7 +416,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     {
         var parsedAgent = ParseAgentOptionsForSave();
         if (parsedAgent is null)
+        {
             return new SaveOptionsResult(false, false);
+        }
 
         try
         {
@@ -422,7 +453,10 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         {
             LogError("tools.save_options.fail", "Failed to save tool options to config", ex);
             if (showToastOnError)
+            {
                 _toast.Error("自动化套件", $"配置保存失败：{ex.Message}");
+            }
+
             return new SaveOptionsResult(false, false);
         }
     }
@@ -441,12 +475,16 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         static bool SameAppWin(IReadOnlyDictionary<string, int> a, IReadOnlyDictionary<string, int> b)
         {
             if (a.Count != b.Count)
+            {
                 return false;
+            }
 
             foreach (var kv in a)
             {
                 if (!b.TryGetValue(kv.Key, out var value) || value != kv.Value)
+                {
                     return false;
+                }
             }
 
             return true;
@@ -630,7 +668,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     {
         collection.CollectionChanged += OnAgentLineCollectionChanged;
         foreach (var item in collection)
+        {
             item.PropertyChanged += OnAgentLineItemPropertyChanged;
+        }
     }
 
     private void OnAgentLineCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -640,7 +680,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             foreach (var item in e.OldItems)
             {
                 if (item is AgentLineItem line)
+                {
                     line.PropertyChanged -= OnAgentLineItemPropertyChanged;
+                }
             }
         }
 
@@ -649,7 +691,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             foreach (var item in e.NewItems)
             {
                 if (item is AgentLineItem line)
+                {
                     line.PropertyChanged += OnAgentLineItemPropertyChanged;
+                }
             }
         }
 
@@ -659,13 +703,17 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     private void OnAgentLineItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(AgentLineItem.Value) or null or "")
+        {
             NotifyPendingChangesState();
+        }
     }
 
     private void NotifyPendingChangesState()
     {
         if (_suppressPendingRecalc)
+        {
             return;
+        }
 
         if (!_baselineReady || _savedSnapshot is null)
         {
@@ -681,7 +729,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         var current = BuildCurrentSnapshot();
         var pending = current is null || !SnapshotEquals(_savedSnapshot, current);
         if (_hasPendingChanges == pending)
+        {
             return;
+        }
 
         _hasPendingChanges = pending;
         OnPropertyChanged(nameof(HasPendingChanges));
@@ -760,7 +810,11 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     [RelayCommand]
     private void RemoveAgentAppWinItem(AgentLineItem? item)
     {
-        if (item is null) return;
+        if (item is null)
+        {
+            return;
+        }
+
         AgentAppWinItems.Remove(item);
     }
 
@@ -770,7 +824,11 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     [RelayCommand]
     private void RemoveAgentColSpecsItem(AgentLineItem? item)
     {
-        if (item is null) return;
+        if (item is null)
+        {
+            return;
+        }
+
         AgentColSpecsItems.Remove(item);
     }
 
@@ -780,7 +838,11 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     [RelayCommand]
     private void RemoveAgentIntColsItem(AgentLineItem? item)
     {
-        if (item is null) return;
+        if (item is null)
+        {
+            return;
+        }
+
         AgentIntColsItems.Remove(item);
     }
 
@@ -790,7 +852,11 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     [RelayCommand]
     private void RemoveAgentWarehouseAnchorItem(AgentLineItem? item)
     {
-        if (item is null) return;
+        if (item is null)
+        {
+            return;
+        }
+
         AgentWarehouseAnchorItems.Remove(item);
     }
 
@@ -798,7 +864,10 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     {
         var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var v in ParseLineItems(items))
+        {
             result[v] = 1;
+        }
+
         return result;
     }
 
@@ -815,7 +884,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                      .Select(x => x.Trim())
                      .Where(x => x != "")
                      .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
             target.Add(new AgentLineItem(value));
+        }
     }
 
     private ToolEditorSnapshot? BuildCurrentSnapshot()
@@ -853,45 +924,104 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     private static bool SnapshotEquals(ToolEditorSnapshot left, ToolEditorSnapshot right)
     {
         if (!string.Equals(left.AhkExecutablePath, right.AhkExecutablePath, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!string.Equals(left.AhkProcessName, right.AhkProcessName, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentPgDriver, right.AgentPgDriver, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentPgSsl, right.AgentPgSsl, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentOptWindowClass, right.AgentOptWindowClass, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentIptWindowClass, right.AgentIptWindowClass, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (left.AgentConfirmTimeoutMs != right.AgentConfirmTimeoutMs)
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentOptParseGridClassNN, right.AgentOptParseGridClassNN, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentOptVerifyGridClassNN, right.AgentOptVerifyGridClassNN, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentIptParseGridClassNN, right.AgentIptParseGridClassNN, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentIptVerifyGridClassNN, right.AgentIptVerifyGridClassNN, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentOptInputClassNN, right.AgentOptInputClassNN, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentIptInputClassNN, right.AgentIptInputClassNN, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (left.AgentWarehouseEnabled != right.AgentWarehouseEnabled)
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentWarehouseTaskIdentifier, right.AgentWarehouseTaskIdentifier, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!string.Equals(left.AgentCodePickPolicy, right.AgentCodePickPolicy, StringComparison.Ordinal))
+        {
             return false;
+        }
+
         if (!left.AgentAppWinItems.SequenceEqual(right.AgentAppWinItems, StringComparer.Ordinal))
+        {
             return false;
+        }
+
         if (!left.AgentColSpecsItems.SequenceEqual(right.AgentColSpecsItems, StringComparer.Ordinal))
+        {
             return false;
+        }
+
         if (!left.AgentIntColsItems.SequenceEqual(right.AgentIntColsItems, StringComparer.Ordinal))
+        {
             return false;
+        }
+
         if (!left.AgentWarehouseAnchorItems.SequenceEqual(right.AgentWarehouseAnchorItems, StringComparer.Ordinal))
+        {
             return false;
+        }
 
         return true;
     }
@@ -900,7 +1030,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     {
         var runtime = NormalizeVersionText(runtimeVersion);
         if (runtime is not null)
+        {
             return runtime;
+        }
 
         var manifest = NormalizeVersionText(manifestAgentVersion);
         return manifest ?? "未知";
@@ -909,7 +1041,9 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     private static string? NormalizeVersionText(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
+        {
             return null;
+        }
 
         var v = value.Trim();
         return v is "未知" or "未配置" ? null : v;

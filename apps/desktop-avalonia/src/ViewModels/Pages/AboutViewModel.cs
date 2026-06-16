@@ -1,7 +1,6 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using System.Windows.Input;
 using System.Collections.ObjectModel;
-using System;
+using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -71,7 +70,9 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
     private string BuildVersionStatus()
     {
         if (_version.DesktopVersion == "unknown" || _version.AgentInjectorAhkVersion == "unknown" || _version.DatabasePostgresVersion == "unknown")
+        {
             return "Version Source Missing";
+        }
 
         var desktopDbOk = DbSchemaCompat.Evaluate(
             _version.DatabasePostgresVersion,

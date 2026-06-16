@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Controls.ApplicationLifetimes;
 using global::Avalonia.Data.Core.Plugins;
@@ -13,7 +12,6 @@ using global::Avalonia.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Agent.Contracts.Abstractions;
-using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Application;
@@ -102,7 +100,9 @@ public class App : global::Avalonia.Application
     private void BuildTrayIcon(MainWindow window, IClassicDesktopStyleApplicationLifetime desktop)
     {
         if (!TryGetResource("TrayMenu", null, out var menuResource) || menuResource is not NativeMenu menu)
+        {
             throw new InvalidOperationException("TrayMenu resource not found.");
+        }
 
         if (menu.Items.Count < 4 ||
             menu.Items[0] is not NativeMenuItem showItem ||
@@ -146,22 +146,21 @@ public class App : global::Avalonia.Application
         };
         ActualThemeVariantChanged += _themeChangedHandler;
 
-        if (_uiBehavior is not null)
-        {
-            _uiBehavior.Changed += () =>
+        _uiBehavior?.Changed += () =>
             {
                 Dispatcher.UIThread.Post(() =>
                 {
                     trayModeItem.IsChecked = _uiBehavior.Current.MinimizeToTrayOnClose;
                 });
             };
-        }
     }
 
     private async System.Threading.Tasks.Task PersistTrayModeAsync(bool enabled, NativeMenuItem trayModeItem)
     {
         if (_uiBehavior is null)
+        {
             return;
+        }
 
         try
         {
@@ -211,7 +210,9 @@ public class App : global::Avalonia.Application
     {
         var variant = ActualThemeVariant;
         if (variant == ThemeVariant.Default)
+        {
             variant = RequestedThemeVariant;
+        }
 
         return variant == ThemeVariant.Dark;
     }
@@ -219,10 +220,14 @@ public class App : global::Avalonia.Application
     private void ShowMainWindow(MainWindow window)
     {
         if (!window.IsVisible)
+        {
             window.Show();
+        }
 
         if (window.WindowState == WindowState.Minimized)
+        {
             window.WindowState = WindowState.Normal;
+        }
 
         window.Activate();
     }
@@ -231,13 +236,19 @@ public class App : global::Avalonia.Application
     {
         if (_forceExit ||
             e.CloseReason is WindowCloseReason.ApplicationShutdown or WindowCloseReason.OSShutdown)
+        {
             return;
+        }
 
         if (_uiBehavior?.Current.MinimizeToTrayOnClose != true)
+        {
             return;
+        }
 
         if (_trayIcon is null)
+        {
             return;
+        }
 
         if (sender is MainWindow window)
         {
@@ -249,7 +260,9 @@ public class App : global::Avalonia.Application
     private void OnDesktopExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
             desktop.Exit -= OnDesktopExit;
+        }
 
         if (_themeChangedHandler is not null)
         {
@@ -257,8 +270,7 @@ public class App : global::Avalonia.Application
             _themeChangedHandler = null;
         }
 
-        if (_mainWindow is not null)
-            _mainWindow.Closing -= OnMainWindowClosing;
+        _mainWindow?.Closing -= OnMainWindowClosing;
 
         if (_trayIcon is not null)
         {
@@ -301,7 +313,9 @@ public class App : global::Avalonia.Application
             .ToArray();
 
         foreach (var plugin in toRemove)
+        {
             BindingPlugins.DataValidators.Remove(plugin);
+        }
     }
 
     private void RegisterGlobalExceptionHandlers()
