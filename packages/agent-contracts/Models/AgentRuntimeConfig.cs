@@ -1,7 +1,7 @@
-namespace PacToolkits.Agent.Contracts.Models;
 
 using PacToolkits.Agent.Contracts.Agents;
 
+namespace PacToolkits.Agent.Contracts.Models;
 /// <summary>
 /// Runtime launch parameters shared between desktop UI and the AHK agent process.
 /// </summary>

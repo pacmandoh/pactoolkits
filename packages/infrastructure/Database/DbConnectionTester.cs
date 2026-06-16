@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Npgsql;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;

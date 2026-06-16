@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -29,7 +28,9 @@ public partial class MainWindowViewModel
         }
 
         if (ct.IsCancellationRequested)
+        {
             return;
+        }
 
         // Reason: Refresh runs on the UI thread because page commands touch bindings.
         PostOnUi(RefreshActiveAndMarkOthersDirty);
@@ -44,7 +45,9 @@ public partial class MainWindowViewModel
             foreach (var p in Pages)
             {
                 if (!CanRefreshPage(p))
+                {
                     continue;
+                }
 
                 if (!ReferenceEquals(p, active))
                 {
@@ -55,9 +58,13 @@ public partial class MainWindowViewModel
             if (active is not null && CanRefreshPage(active))
             {
                 if (TryRefreshPage(active))
+                {
                     ClearDirty(active);
+                }
                 else
+                {
                     MarkPageDirty(active);
+                }
             }
         }
         catch (Exception ex)
@@ -69,12 +76,25 @@ public partial class MainWindowViewModel
     private void TryRefreshDirtyActivePage()
     {
         var active = ActivePage;
-        if (active is null) return;
-        if (!CanRefreshPage(active)) return;
-        if (!IsDirty(active)) return;
+        if (active is null)
+        {
+            return;
+        }
+
+        if (!CanRefreshPage(active))
+        {
+            return;
+        }
+
+        if (!IsDirty(active))
+        {
+            return;
+        }
 
         if (TryRefreshPage(active))
+        {
             ClearDirty(active);
+        }
     }
 
     private static bool CanRefreshPage(AppPageBase page)
@@ -84,10 +104,14 @@ public partial class MainWindowViewModel
     private static bool TryRefreshPage(AppPageBase page)
     {
         if (page is not ITopBarActions top || top.RefreshCommand is not { } cmd)
+        {
             return false;
+        }
 
         if (!cmd.CanExecute(null))
+        {
             return false;
+        }
 
         cmd.Execute(null);
         return true;
@@ -96,19 +120,25 @@ public partial class MainWindowViewModel
     private void MarkPageDirty(AppPageBase page)
     {
         lock (_dirtyPagesGate)
+        {
             _dirtyPages.Add(page);
+        }
     }
 
     private bool IsDirty(AppPageBase page)
     {
         lock (_dirtyPagesGate)
+        {
             return _dirtyPages.Contains(page);
+        }
     }
 
     private void ClearDirty(AppPageBase page)
     {
         lock (_dirtyPagesGate)
+        {
             _dirtyPages.Remove(page);
+        }
     }
 
     private void OnWatermarkTopicChanged(string topic)
@@ -121,7 +151,9 @@ public partial class MainWindowViewModel
             MarkPagesDirtyByTopic(topic, skipInventoryRefresh);
             if (ShouldRefreshActiveImmediatelyForTopic(topic)
                 && !(skipInventoryRefresh && ActivePage is InventoryOverviewViewModel))
+            {
                 TryRefreshDirtyActivePage();
+            }
         });
     }
 
@@ -133,7 +165,9 @@ public partial class MainWindowViewModel
             // Drug-key migration may emit trace_pool/trace_txn topics due FK cascade.
             // Keep DrugIndex page stable (no full-page flash); defer refresh until navigation/reopen.
             if (key is "drug_index" or "inventory" or "trace_pool" or "trace_txn" or "trace_txn_item")
+            {
                 return false;
+            }
         }
 
         return true;
@@ -155,7 +189,10 @@ public partial class MainWindowViewModel
             case "trace_txn":
             case "trace_txn_item":
                 if (!skipInventoryPage)
+                {
                     MarkDirtyByType<InventoryOverviewViewModel>();
+                }
+
                 MarkDirtyByType<DashboardViewModel>();
                 break;
 
@@ -163,7 +200,9 @@ public partial class MainWindowViewModel
                 foreach (var page in Pages)
                 {
                     if (CanRefreshPage(page))
+                    {
                         MarkPageDirty(page);
+                    }
                 }
                 break;
         }
@@ -172,7 +211,9 @@ public partial class MainWindowViewModel
     private void MarkDirtyByType<TPage>() where TPage : AppPageBase
     {
         if (_pageByType.TryGetValue(typeof(TPage), out var page) && CanRefreshPage(page))
+        {
             MarkPageDirty(page);
+        }
     }
 }
 

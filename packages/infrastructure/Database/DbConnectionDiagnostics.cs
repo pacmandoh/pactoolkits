@@ -1,4 +1,3 @@
-using System;
 using System.Net.Sockets;
 using System.Text;
 using Npgsql;
@@ -10,7 +9,10 @@ internal static class DbConnectionDiagnostics
     public static (string reason, string? sqlState) Classify(Exception ex)
     {
         var root = ex;
-        while (root.InnerException is not null) root = root.InnerException;
+        while (root.InnerException is not null)
+        {
+            root = root.InnerException;
+        }
 
         if (root is SocketException se)
         {
@@ -25,7 +27,9 @@ internal static class DbConnectionDiagnostics
         }
 
         if (root is TimeoutException)
+        {
             return ("连接超时：网络不通/服务器无响应", null);
+        }
 
         var pe = FindInChain<PostgresException>(ex);
         if (pe is not null)
@@ -46,19 +50,27 @@ internal static class DbConnectionDiagnostics
             var msgAll = CollectMessages(ex);
 
             if (msgAll.Contains("no pg_hba.conf entry", StringComparison.OrdinalIgnoreCase))
+            {
                 return ("访问被拒绝：pg_hba.conf 未允许该来源/用户/库", null);
+            }
 
             if (msgAll.Contains("pg_hba.conf rejects", StringComparison.OrdinalIgnoreCase))
+            {
                 return ("访问被拒绝：pg_hba.conf 拒绝连接", null);
+            }
 
             if (msgAll.Contains("password authentication failed", StringComparison.OrdinalIgnoreCase))
+            {
                 return ("认证失败：用户名或密码错误", "28P01");
+            }
 
             if (msgAll.Contains("SSL", StringComparison.OrdinalIgnoreCase)
                 || msgAll.Contains("TLS", StringComparison.OrdinalIgnoreCase)
                 || msgAll.Contains("certificate", StringComparison.OrdinalIgnoreCase)
                 || msgAll.Contains("handshake", StringComparison.OrdinalIgnoreCase))
+            {
                 return ("SSL/TLS 协商失败：检查 SSL 选项/证书/服务器要求", null);
+            }
 
             return ("连接失败：数据库返回错误（详见日志）", null);
         }
@@ -71,7 +83,11 @@ internal static class DbConnectionDiagnostics
         var cur = ex;
         while (cur is not null)
         {
-            if (cur is T hit) return hit;
+            if (cur is T hit)
+            {
+                return hit;
+            }
+
             cur = cur.InnerException;
         }
         return null;
@@ -85,7 +101,11 @@ internal static class DbConnectionDiagnostics
         {
             if (!string.IsNullOrWhiteSpace(cur.Message))
             {
-                if (sb.Length > 0) sb.Append(" | ");
+                if (sb.Length > 0)
+                {
+                    sb.Append(" | ");
+                }
+
                 sb.Append(cur.Message);
             }
             cur = cur.InnerException;

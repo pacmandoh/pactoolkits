@@ -5,13 +5,13 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Desktop.Avalonia.Common;
+using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -136,7 +136,9 @@ public sealed partial class DashboardViewModel : AppPageBase
                 OptionCollectionHelper.ReplaceRaw(DrugOptions, list, StringComparison.Ordinal);
 
                 if (SpecOptions.Count == 0)
+                {
                     SpecOptions.Add(AllSpec);
+                }
             }
         }, DispatcherPriority.Background);
     }
@@ -163,7 +165,9 @@ public sealed partial class DashboardViewModel : AppPageBase
 
                     OptionCollectionHelper.ReplaceRaw(SpecOptions, specs, StringComparison.Ordinal);
                     if (SpecOptions.Count == 0 || !string.IsNullOrWhiteSpace(SpecOptions[0].Raw))
+                    {
                         SpecOptions.Insert(0, AllSpec);
+                    }
 
                     SelectedSpec = string.IsNullOrWhiteSpace(prevRaw)
                         ? AllSpec
@@ -404,7 +408,11 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     private async Task InitializeAsync()
     {
-        if (_firstLoadTriggered) return;
+        if (_firstLoadTriggered)
+        {
+            return;
+        }
+
         _firstLoadTriggered = true;
 
         try
@@ -416,9 +424,13 @@ public sealed partial class DashboardViewModel : AppPageBase
                 await ReloadDrugOptionsAsync(cts.Token);
 
                 if (!string.IsNullOrWhiteSpace(DrugText))
+                {
                     await ReloadSpecsAsync(NormalizeInput(DrugText)!);
+                }
                 else
+                {
                     await RunOnUiAsync(EnsureAllSpecOnly, DispatcherPriority.Background);
+                }
             }
         }
         catch (System.Exception ex)
@@ -448,7 +460,10 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     private void RequestReload()
     {
-        if (IsReloadSuppressed) return;
+        if (IsReloadSuppressed)
+        {
+            return;
+        }
 
         _debounce ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
 
@@ -481,7 +496,9 @@ public sealed partial class DashboardViewModel : AppPageBase
                 if (IsTxnPanelTrendMode)
                 {
                     if (TxnTrendRows.Count == 0)
+                    {
                         _ = ReloadTxnTrendPageOnlyAsync();
+                    }
                 }
                 else if (RecentTxns.Count == 0)
                 {
@@ -518,9 +535,13 @@ public sealed partial class DashboardViewModel : AppPageBase
             using (SuppressReload())
             {
                 if (updateFromBoundary)
+                {
                     FromDate = clamped;
+                }
                 else
+                {
                     ToDate = clamped;
+                }
             }
 
             value = clamped;
@@ -550,7 +571,9 @@ public sealed partial class DashboardViewModel : AppPageBase
         }
 
         if (IsReloadSuppressed)
+        {
             return;
+        }
 
         RequestReloadWithPagingReset();
     }
@@ -613,7 +636,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     public async Task HandleTrendRowSelectedAsync(TrendDrugItem? item)
     {
         if (_suppressRowSelectionAction || item is null)
+        {
             return;
+        }
 
         await ApplyDrugSpecFilterAndReloadAsync(item.Name, item.Sub);
     }
@@ -621,14 +646,20 @@ public sealed partial class DashboardViewModel : AppPageBase
     public async Task HandleRecentTxnRowSelectedAsync(TxnItem? item)
     {
         if (_suppressRowSelectionAction || item is null)
+        {
             return;
+        }
 
         var parsed = DashboardDrugSpecParser.TryParseFromTxnTitle(item.Title);
         if (parsed is not null)
+        {
             await ApplyDrugSpecFilterAndReloadAsync(parsed.Value.DrugId, parsed.Value.Spec);
+        }
 
         using (SuppressReload())
+        {
             TxnPanelMode = TxnPanelModes.FirstOrDefault();
+        }
 
         SelectedTabIndex = 2;
 
@@ -646,7 +677,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     public async Task HandleEntryRecentRowSelectedAsync(EntryRecentItem? item)
     {
         if (_suppressRowSelectionAction || item is null)
+        {
             return;
+        }
 
         await ApplyDrugSpecFilterAndReloadAsync(item.DrugId, item.Spec);
 
@@ -657,11 +690,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     public async Task HandleTopClientRowSelectedAsync(TopClientItem? item)
     {
         if (item is null)
+        {
             return;
+        }
 
         var target = FindClientOption(item.Client);
         if (target is null)
+        {
             return;
+        }
 
         await RunOnUiAsync(() =>
         {
@@ -675,11 +712,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     public async Task HandleAbnormalRowSelectedAsync(AbnormalItem? item)
     {
         if (_suppressRowSelectionAction || item is null)
+        {
             return;
+        }
 
         var parsed = DashboardDrugSpecParser.TryParseFromAbnormalDetail(item.Detail);
         if (parsed is not null)
+        {
             await ApplyDrugSpecFilterAndReloadAsync(parsed.Value.DrugId, parsed.Value.Spec);
+        }
 
         if (DashboardDrugSpecParser.IsInventoryAbnormalTitle(item.Title))
         {
@@ -751,9 +792,20 @@ public sealed partial class DashboardViewModel : AppPageBase
                 ct,
                 setBusy: v =>
                 {
-                    if (showTxnBusy) IsTxnBusy = v;
-                    if (showEntryBusy) IsEntryBusy = v;
-                    if (showAbnormalBusy) IsAbnormalBusy = v;
+                    if (showTxnBusy)
+                    {
+                        IsTxnBusy = v;
+                    }
+
+                    if (showEntryBusy)
+                    {
+                        IsEntryBusy = v;
+                    }
+
+                    if (showAbnormalBusy)
+                    {
+                        IsAbnormalBusy = v;
+                    }
                 },
                 showBusy: showAnyBusy,
                 body: async () =>
@@ -764,7 +816,9 @@ public sealed partial class DashboardViewModel : AppPageBase
                     {
                         await ReloadDrugOptionsAsync(ct).ConfigureAwait(false);
                         if (!string.IsNullOrWhiteSpace(DrugText))
+                        {
                             await ReloadSpecsAsync(NormalizeInput(DrugText)!).ConfigureAwait(false);
+                        }
                     }
                     catch (System.Exception ex)
                     {
@@ -818,7 +872,9 @@ public sealed partial class DashboardViewModel : AppPageBase
         {
             LogError("dashboard.reload.fail", "Failed to reload dashboard", ex);
             if (!IsDbConnected || ct.IsCancellationRequested)
+            {
                 return;
+            }
 
             PostOnUi(() => _toast.Error("概览加载失败", ex.Message));
         }
@@ -843,7 +899,9 @@ public sealed partial class DashboardViewModel : AppPageBase
             Clients.Add(AllClients);
 
             foreach (var raw in list.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct())
+            {
                 Clients.Add(ClientDisplayResolver.Resolve(raw, _clientAlias));
+            }
 
             SelectedClient = Clients.FirstOrDefault(c => c.Raw == selectedRaw) ?? AllClients;
         }
@@ -856,7 +914,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task ApplyDrugFilterAsync()
     {
         if (ShouldSkipTrigger("dashboard.filter.apply", 350))
+        {
             return;
+        }
 
         IsDrugSuggestOpen = false;
         ResetPagedIndexes();
@@ -879,7 +939,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task ClearDrugSpecFilterAsync()
     {
         if (ShouldSkipTrigger("dashboard.filter.clear", 350))
+        {
             return;
+        }
 
         IsDrugSuggestOpen = false;
         ResetPagedIndexes();
@@ -904,10 +966,22 @@ public sealed partial class DashboardViewModel : AppPageBase
 
         static double Pct(long num, long den)
         {
-            if (den <= 0) return 0;
+            if (den <= 0)
+            {
+                return 0;
+            }
+
             var v = num * 100.0 / den;
-            if (v < 0) return 0;
-            if (v > 100) return 100;
+            if (v < 0)
+            {
+                return 0;
+            }
+
+            if (v > 100)
+            {
+                return 100;
+            }
+
             return v;
         }
 
@@ -1080,7 +1154,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     private static string BuildTrendSourceText(string? rawClient, decimal pct)
     {
         if (string.IsNullOrWhiteSpace(rawClient))
+        {
             return "未知客户端";
+        }
 
         var client = ClientParser.Parse(rawClient);
 
@@ -1132,7 +1208,9 @@ public sealed partial class DashboardViewModel : AppPageBase
                     var match = SpecOptions.FirstOrDefault(x =>
                         string.Equals(x.Raw, specText, StringComparison.OrdinalIgnoreCase));
                     if (match is not null)
+                    {
                         SelectedSpec = match;
+                    }
                 });
             }
         }
@@ -1148,12 +1226,16 @@ public sealed partial class DashboardViewModel : AppPageBase
             var hit = Clients.FirstOrDefault(c =>
                 string.Equals(c.Raw, raw, StringComparison.OrdinalIgnoreCase));
             if (hit is not null)
+            {
                 return hit;
+            }
         }
 
         var machine = NormalizeInput(selected.Machine ?? selected.Display);
         if (string.IsNullOrWhiteSpace(machine))
+        {
             return null;
+        }
 
         return Clients.FirstOrDefault(c =>
         {
@@ -1166,9 +1248,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task FirstEntryPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.entry.first", 180))
+        {
             return;
+        }
 
-        if (!HasEntryPrevPage) return;
+        if (!HasEntryPrevPage)
+        {
+            return;
+        }
+
         EntryPageIndex = 1;
         await ReloadEntryPageOnlyAsync();
     }
@@ -1177,9 +1265,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task PrevEntryPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.entry.prev", 180))
+        {
             return;
+        }
 
-        if (!HasEntryPrevPage) return;
+        if (!HasEntryPrevPage)
+        {
+            return;
+        }
+
         EntryPageIndex--;
         await ReloadEntryPageOnlyAsync();
     }
@@ -1188,9 +1282,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task NextEntryPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.entry.next", 180))
+        {
             return;
+        }
 
-        if (!HasEntryNextPage) return;
+        if (!HasEntryNextPage)
+        {
+            return;
+        }
+
         EntryPageIndex++;
         await ReloadEntryPageOnlyAsync();
     }
@@ -1199,9 +1299,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task FirstTxnPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.txn.first", 180))
+        {
             return;
+        }
 
-        if (!HasTxnPrevPage) return;
+        if (!HasTxnPrevPage)
+        {
+            return;
+        }
+
         TxnPageIndex = 1;
         await ReloadTxnPageOnlyAsync();
     }
@@ -1210,9 +1316,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task PrevTxnPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.txn.prev", 180))
+        {
             return;
+        }
 
-        if (!HasTxnPrevPage) return;
+        if (!HasTxnPrevPage)
+        {
+            return;
+        }
+
         TxnPageIndex--;
         await ReloadTxnPageOnlyAsync();
     }
@@ -1221,9 +1333,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task NextTxnPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.txn.next", 180))
+        {
             return;
+        }
 
-        if (!HasTxnNextPage) return;
+        if (!HasTxnNextPage)
+        {
+            return;
+        }
+
         TxnPageIndex++;
         await ReloadTxnPageOnlyAsync();
     }
@@ -1232,9 +1350,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task FirstTxnTrendPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.txntrend.first", 180))
+        {
             return;
+        }
 
-        if (!HasTxnTrendPrevPage) return;
+        if (!HasTxnTrendPrevPage)
+        {
+            return;
+        }
+
         TxnTrendPageIndex = 1;
         await ReloadTxnTrendPageOnlyAsync();
     }
@@ -1243,9 +1367,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task PrevTxnTrendPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.txntrend.prev", 180))
+        {
             return;
+        }
 
-        if (!HasTxnTrendPrevPage) return;
+        if (!HasTxnTrendPrevPage)
+        {
+            return;
+        }
+
         TxnTrendPageIndex--;
         await ReloadTxnTrendPageOnlyAsync();
     }
@@ -1254,9 +1384,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task NextTxnTrendPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.txntrend.next", 180))
+        {
             return;
+        }
 
-        if (!HasTxnTrendNextPage) return;
+        if (!HasTxnTrendNextPage)
+        {
+            return;
+        }
+
         TxnTrendPageIndex++;
         await ReloadTxnTrendPageOnlyAsync();
     }
@@ -1265,9 +1401,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task FirstAbnormalPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.abnormal.first", 180))
+        {
             return;
+        }
 
-        if (!HasAbnormalPrevPage) return;
+        if (!HasAbnormalPrevPage)
+        {
+            return;
+        }
+
         AbnormalPageIndex = 1;
         await ReloadAbnormalPageOnlyAsync();
     }
@@ -1276,9 +1418,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task PrevAbnormalPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.abnormal.prev", 180))
+        {
             return;
+        }
 
-        if (!HasAbnormalPrevPage) return;
+        if (!HasAbnormalPrevPage)
+        {
+            return;
+        }
+
         AbnormalPageIndex--;
         await ReloadAbnormalPageOnlyAsync();
     }
@@ -1287,9 +1435,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     private async Task NextAbnormalPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.abnormal.next", 180))
+        {
             return;
+        }
 
-        if (!HasAbnormalNextPage) return;
+        if (!HasAbnormalNextPage)
+        {
+            return;
+        }
+
         AbnormalPageIndex++;
         await ReloadAbnormalPageOnlyAsync();
     }
@@ -1317,7 +1471,9 @@ public sealed partial class DashboardViewModel : AppPageBase
         {
             LogError("dashboard.txn_page.reload_fail", "Failed to reload transaction page", ex);
             if (IsDbConnected)
+            {
                 PostOnUi(() => _toast.Error("事务列表加载失败", ex.Message));
+            }
         }
     }
 
@@ -1344,7 +1500,9 @@ public sealed partial class DashboardViewModel : AppPageBase
         {
             LogError("dashboard.txn_trend.reload_fail", "Failed to reload transaction trend page", ex);
             if (IsDbConnected)
+            {
                 PostOnUi(() => _toast.Error("事务趋势加载失败", ex.Message));
+            }
         }
     }
 
@@ -1370,7 +1528,9 @@ public sealed partial class DashboardViewModel : AppPageBase
         {
             LogError("dashboard.entry_page.reload_fail", "Failed to reload entry page", ex);
             if (IsDbConnected)
+            {
                 PostOnUi(() => _toast.Error("录入列表加载失败", ex.Message));
+            }
         }
     }
 
@@ -1396,7 +1556,9 @@ public sealed partial class DashboardViewModel : AppPageBase
         {
             LogError("dashboard.abnormal_page.reload_fail", "Failed to reload abnormal page", ex);
             if (IsDbConnected)
+            {
                 PostOnUi(() => _toast.Error("异常列表加载失败", ex.Message));
+            }
         }
     }
 
@@ -1409,7 +1571,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     private void OpenTxnList()
     {
         if (ShouldSkipTrigger("dashboard.nav.txn", 250))
+        {
             return;
+        }
 
         SelectedTabIndex = 2;
     }
@@ -1418,7 +1582,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     private void OpenInventory()
     {
         if (ShouldSkipTrigger("dashboard.nav.inventory", 300))
+        {
             return;
+        }
 
         _inventoryOverview.OpenMode(0);
         _nav.Navigate<InventoryOverviewViewModel>();
@@ -1428,7 +1594,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     private void OpenAbnormal()
     {
         if (ShouldSkipTrigger("dashboard.nav.abnormal", 250))
+        {
             return;
+        }
 
         SelectedTabIndex = 3;
     }
@@ -1437,7 +1605,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     private void GoInputTab()
     {
         if (ShouldSkipTrigger("dashboard.nav.input", 300))
+        {
             return;
+        }
 
         _nav.Navigate<ScanCodeViewModel>();
     }
@@ -1446,7 +1616,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     private void OpenPeriodUsage()
     {
         if (ShouldSkipTrigger("dashboard.nav.period", 250))
+        {
             return;
+        }
 
         SelectedTabIndex = 2;
     }
@@ -1455,7 +1627,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     private void OpenLowStock()
     {
         if (ShouldSkipTrigger("dashboard.nav.lowstock", 300))
+        {
             return;
+        }
 
         _inventoryOverview.Keyword = null;
         _inventoryOverview.OpenMode(2);
@@ -1466,7 +1640,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     private void OpenInputHistory()
     {
         if (ShouldSkipTrigger("dashboard.nav.inputhistory", 250))
+        {
             return;
+        }
 
         SelectedTabIndex = 1;
     }
@@ -1475,7 +1651,9 @@ public sealed partial class DashboardViewModel : AppPageBase
     private void OpenOverviewTab()
     {
         if (ShouldSkipTrigger("dashboard.nav.overview", 250))
+        {
             return;
+        }
 
         SelectedTabIndex = 0;
     }
@@ -1489,7 +1667,9 @@ public sealed partial class DashboardViewModel : AppPageBase
         {
             SafeExecute(() => _debounce.Stop());
             if (_debounceHooked)
+            {
                 SafeExecute(() => _debounce.Tick -= OnDebounceTimerTick);
+            }
 
             _debounce = null;
             _debounceHooked = false;
@@ -1518,10 +1698,14 @@ public sealed partial class DashboardViewModel : AppPageBase
 
             // Local re-map for existing UI rows so alias changes are visible immediately.
             if (Clients.Count > 0)
+            {
                 ApplyClients(Clients.Select(c => c.Raw).Where(r => !string.IsNullOrWhiteSpace(r)).ToList());
+            }
 
             if (!string.IsNullOrWhiteSpace(selectedRaw))
+            {
                 SelectedClient = Clients.FirstOrDefault(c => string.Equals(c.Raw, selectedRaw, StringComparison.OrdinalIgnoreCase)) ?? AllClients;
+            }
 
             if (TopClients.Count > 0)
             {
@@ -1530,7 +1714,9 @@ public sealed partial class DashboardViewModel : AppPageBase
                     .ToList();
                 TopClients.Clear();
                 foreach (var item in remappedTop)
+                {
                     TopClients.Add(item);
+                }
             }
 
             if (EntryRecentOverview.Count > 0)
@@ -1540,7 +1726,9 @@ public sealed partial class DashboardViewModel : AppPageBase
                     .ToList();
                 EntryRecentOverview.Clear();
                 foreach (var item in remappedOverview)
+                {
                     EntryRecentOverview.Add(item);
+                }
             }
 
             if (EntryRecent.Count > 0)
@@ -1550,7 +1738,9 @@ public sealed partial class DashboardViewModel : AppPageBase
                     .ToList();
                 EntryRecent.Clear();
                 foreach (var item in remappedPage)
+                {
                     EntryRecent.Add(item);
+                }
             }
 
             OnPropertyChanged(nameof(SectionHint));
@@ -1611,10 +1801,26 @@ public sealed record TopClientItem(int Index, ClientInfo Client, string Value)
         get
         {
             var parts = new List<string>(4);
-            if (!string.IsNullOrWhiteSpace(User)) parts.Add(User!);
-            if (!string.IsNullOrWhiteSpace(Ip)) parts.Add(Ip!);
-            if (!string.IsNullOrWhiteSpace(Os)) parts.Add(Os!);
-            if (!string.IsNullOrWhiteSpace(Ver)) parts.Add(Ver!);
+            if (!string.IsNullOrWhiteSpace(User))
+            {
+                parts.Add(User!);
+            }
+
+            if (!string.IsNullOrWhiteSpace(Ip))
+            {
+                parts.Add(Ip!);
+            }
+
+            if (!string.IsNullOrWhiteSpace(Os))
+            {
+                parts.Add(Os!);
+            }
+
+            if (!string.IsNullOrWhiteSpace(Ver))
+            {
+                parts.Add(Ver!);
+            }
+
             return string.Join(" · ", parts);
         }
     }
@@ -1714,9 +1920,11 @@ public sealed record EntryRecentItem(
     {
         var parsed = ParseSummary(rawMessage);
         if (parsed is null)
+        {
             return string.IsNullOrWhiteSpace(rawMessage)
                 ? $"{sourceText} · {resultText}"
                 : $"{sourceText} · {resultText} · {rawMessage}";
+        }
 
         return
             $"{sourceText} · {resultText} · 总数 {parsed.Value.Total} · 成功 {parsed.Value.Valid} · 重复 {parsed.Value.Duplicate} · 无效 {parsed.Value.Invalid} · 写入 {parsed.Value.Inserted} · 跳过 {parsed.Value.Skipped}";
@@ -1725,7 +1933,9 @@ public sealed record EntryRecentItem(
     private static (int Total, int Valid, int Duplicate, int Invalid, int Inserted, int Skipped)? ParseSummary(string? rawMessage)
     {
         if (string.IsNullOrWhiteSpace(rawMessage))
+        {
             return null;
+        }
 
         var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var parts = rawMessage.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
@@ -1733,12 +1943,16 @@ public sealed record EntryRecentItem(
         {
             var idx = part.IndexOf('=');
             if (idx <= 0 || idx >= part.Length - 1)
+            {
                 continue;
+            }
 
             var key = NormalizeSummaryKey(part[..idx].Trim());
             var val = part[(idx + 1)..].Trim();
             if (int.TryParse(val, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
+            {
                 map[key] = number;
+            }
         }
 
         if (!map.TryGetValue("input", out var total) ||
@@ -1747,7 +1961,9 @@ public sealed record EntryRecentItem(
             !map.TryGetValue("invalid", out var invalid) ||
             !map.TryGetValue("inserted", out var inserted) ||
             !map.TryGetValue("skipped", out var skipped))
+        {
             return null;
+        }
 
         return (total, valid, duplicate, invalid, inserted, skipped);
     }
@@ -1755,11 +1971,16 @@ public sealed record EntryRecentItem(
     private static string NormalizeSummaryKey(string rawKey)
     {
         if (string.IsNullOrWhiteSpace(rawKey))
+        {
             return string.Empty;
+        }
 
         var key = rawKey.Trim().ToLowerInvariant();
         if (key.EndsWith(" input", StringComparison.Ordinal))
+        {
             return "input";
+        }
+
         return key;
     }
 }

@@ -2,12 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using PacToolkits.Application.Abstractions;
-using PacToolkits.Application.DTOs;
 using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Agent.Contracts.Models;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
@@ -39,7 +37,9 @@ public sealed class AutomationConfigService : IAutomationConfigService
         foreach (var (agentId, result) in synchronization)
         {
             if (!result.Ok)
+            {
                 throw new InvalidOperationException($"Agent 配置同步失败（{agentId}）：{result.Message}");
+            }
         }
     }
 
@@ -61,6 +61,8 @@ public sealed class AutomationConfigService : IAutomationConfigService
 
         var synchronization = await _agentManager.SynchronizeConfigurationAsync(ct).ConfigureAwait(false);
         if (synchronization.TryGetValue(agentId, out var result) && !result.Ok)
+        {
             throw new InvalidOperationException($"Agent 配置同步失败（{agentId}）：{result.Message}");
+        }
     }
 }

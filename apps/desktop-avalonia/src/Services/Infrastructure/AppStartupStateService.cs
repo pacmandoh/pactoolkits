@@ -18,7 +18,9 @@ public sealed class AppStartupStateService : IAppStartupStateService
     public void MarkDbInitCompleted()
     {
         if (_isDbInitCompleted)
+        {
             return;
+        }
 
         _isDbInitCompleted = true;
         DbInitCompleted?.Invoke();

@@ -62,10 +62,11 @@ public partial class SettingsView : UserControl
     private void TryAttach(SettingsViewModel? vm)
     {
         if (ReferenceEquals(_vm, vm))
+        {
             return;
+        }
 
-        if (_vm is not null)
-            _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm?.PropertyChanged -= OnVmPropertyChanged;
 
         _vm = vm;
 
@@ -95,13 +96,14 @@ public partial class SettingsView : UserControl
     {
         base.OnDetachedFromVisualTree(e);
 
-        if (_contentScrollViewer is not null)
-            _contentScrollViewer.ScrollChanged -= OnContentScrollChanged;
-        foreach (var link in _sectionLinks)
-            link.NavButton.Click -= OnNavButtonClick;
+        _contentScrollViewer?.ScrollChanged -= OnContentScrollChanged;
 
-        if (_vm is not null)
-            _vm.PropertyChanged -= OnVmPropertyChanged;
+        foreach (var link in _sectionLinks)
+        {
+            link.NavButton.Click -= OnNavButtonClick;
+        }
+
+        _vm?.PropertyChanged -= OnVmPropertyChanged;
 
         _sectionLinks.Clear();
         _contentScrollViewer = null;
@@ -124,7 +126,9 @@ public partial class SettingsView : UserControl
     private void OnSettingsKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Tab && e.Key != Key.Enter)
+        {
             return;
+        }
 
         var inputs = EnumerateTabInputs().ToList();
         InputFocusHelper.TryHandleTabCycle(this, e, inputs);
@@ -136,7 +140,9 @@ public partial class SettingsView : UserControl
     private async void OnNavButtonClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (sender is not Button navButton || navButton.Tag is null)
+        {
             return;
+        }
 
         var sectionIndex = navButton.Tag switch
         {
@@ -146,7 +152,9 @@ public partial class SettingsView : UserControl
         };
 
         if (sectionIndex < 0)
+        {
             return;
+        }
 
         await SetActiveSectionAsync(sectionIndex, scrollToSection: true);
     }
@@ -154,14 +162,18 @@ public partial class SettingsView : UserControl
     private void InitializeSectionNavigation()
     {
         if (_contentScrollViewer is not null && _settingsSectionsGrid is not null && _sectionLinks.Count > 0)
+        {
             return;
+        }
 
         _contentScrollViewer = this.FindControl<ScrollViewer>("ContentScrollViewer");
         _settingsSectionsGrid = this.FindControl<Grid>("SettingsSectionsGrid");
         _navItemsHost = this.FindControl<StackPanel>("NavItemsHost");
 
         if (_contentScrollViewer is null || _settingsSectionsGrid is null || _navItemsHost is null)
+        {
             return;
+        }
 
         _navItemsHost.Children.Clear();
         _sectionLinks.Clear();
@@ -175,7 +187,9 @@ public partial class SettingsView : UserControl
     private void BuildSectionsFromAnchors()
     {
         if (_settingsSectionsGrid is null || _navItemsHost is null)
+        {
             return;
+        }
 
         var anchors = _settingsSectionsGrid.Children
             .OfType<Grid>()
@@ -187,7 +201,9 @@ public partial class SettingsView : UserControl
         foreach (var anchor in anchors)
         {
             if (!TryCreateNavButtonForAnchor(anchor, sectionIndex, out var navButton))
+            {
                 continue;
+            }
 
             _navItemsHost.Children.Add(navButton);
             _sectionLinks.Add(new SectionLink(navButton, anchor));
@@ -213,7 +229,9 @@ public partial class SettingsView : UserControl
             text.Classes.Contains("SectionTitle") && !string.IsNullOrWhiteSpace(text.Text));
 
         if (sourceTitle?.Text is null)
+        {
             return false;
+        }
 
         var content = new StackPanel
         {
@@ -254,7 +272,9 @@ public partial class SettingsView : UserControl
     private void OnContentScrollChanged(object? sender, ScrollChangedEventArgs e)
     {
         if (_isAnimatingScroll || _contentScrollViewer is null || _settingsSectionsGrid is null || _sectionLinks.Count == 0)
+        {
             return;
+        }
 
         var offsetY = _contentScrollViewer.Offset.Y;
         var extentHeight = Math.Max(0, _contentScrollViewer.Extent.Height);
@@ -283,7 +303,9 @@ public partial class SettingsView : UserControl
     private double GetAnchorTop(Control anchor)
     {
         if (_settingsSectionsGrid is null)
+        {
             return 0;
+        }
 
         var origin = anchor.TranslatePoint(default, _settingsSectionsGrid);
         return origin?.Y ?? 0;
@@ -292,21 +314,29 @@ public partial class SettingsView : UserControl
     private async Task SetActiveSectionAsync(int index, bool scrollToSection)
     {
         if (_contentScrollViewer is null || _sectionLinks.Count == 0)
+        {
             return;
+        }
 
         if (index < 0 || index >= _sectionLinks.Count)
+        {
             return;
+        }
 
         if (_activeSectionIndex != index)
         {
             for (var i = 0; i < _sectionLinks.Count; i++)
+            {
                 _sectionLinks[i].NavButton.Classes.Set("Active", i == index);
+            }
 
             _activeSectionIndex = index;
         }
 
         if (!scrollToSection)
+        {
             return;
+        }
 
         var targetTop = GetAnchorTop(_sectionLinks[index].Anchor);
         await AnimateScroll(targetTop);
@@ -315,7 +345,9 @@ public partial class SettingsView : UserControl
     private async Task AnimateScroll(double desiredScroll)
     {
         if (_contentScrollViewer is null)
+        {
             return;
+        }
 
         _scrollAnimationCts?.Cancel();
         _scrollAnimationCts?.Dispose();
@@ -340,7 +372,9 @@ public partial class SettingsView : UserControl
             }
 
             if (!token.IsCancellationRequested)
+            {
                 _contentScrollViewer.Offset = new Vector(_contentScrollViewer.Offset.X, targetOffset);
+            }
         }
         catch (TaskCanceledException)
         {

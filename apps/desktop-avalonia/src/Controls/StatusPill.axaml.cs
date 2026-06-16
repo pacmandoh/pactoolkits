@@ -104,7 +104,9 @@ public partial class StatusPill : UserControl
     {
         base.OnPropertyChanged(change);
         if (change.Property == SuffixContentProperty)
+        {
             RefreshState();
+        }
     }
 
     private void RefreshState()

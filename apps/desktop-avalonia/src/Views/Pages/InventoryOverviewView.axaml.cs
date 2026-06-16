@@ -1,17 +1,16 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
 using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
 using global::Avalonia.Threading;
-using global::Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
@@ -53,7 +52,9 @@ public partial class InventoryOverviewView : UserControl
         try
         {
             if (DataContext is not InventoryOverviewViewModel vm)
+            {
                 return;
+            }
 
             var row = InputFocusHelper.FindAncestor<DataGridRow>(e.Source);
             if (TryExtractDrugSpec(row?.DataContext, out var drug, out var spec))
@@ -72,13 +73,19 @@ public partial class InventoryOverviewView : UserControl
         try
         {
             if (DataContext is not InventoryOverviewViewModel vm)
+            {
                 return;
+            }
 
             if (e.Row.DataContext is not StockRowItem row)
+            {
                 return;
+            }
 
             if (e.EditingElement is not TextBox editor)
+            {
                 return;
+            }
 
             var header = e.Column?.Header?.ToString();
             await vm.CommitStockCellEditAsync(row, header, editor.Text);
@@ -94,7 +101,9 @@ public partial class InventoryOverviewView : UserControl
         try
         {
             if (DataContext is not InventoryOverviewViewModel vm)
+            {
                 return;
+            }
 
             var row = e.Row?.DataContext as StockRowItem;
             _stockContextRow = row;
@@ -114,7 +123,9 @@ public partial class InventoryOverviewView : UserControl
             }
 
             if (!vm.IsStockEditEnabled || !vm.IsDetailMode)
+            {
                 return;
+            }
 
             var clickCount = e.PointerPressedEventArgs.ClickCount;
             if (clickCount >= 2 && e.Column.IsReadOnly)
@@ -133,13 +144,19 @@ public partial class InventoryOverviewView : UserControl
         try
         {
             if (DataContext is not InventoryOverviewViewModel vm)
+            {
                 return;
+            }
 
             if (!vm.IsStockEditEnabled || !vm.IsDetailMode)
+            {
                 return;
+            }
 
             if (e.Column?.IsReadOnly != true)
+            {
                 return;
+            }
 
             e.Cancel = true;
             vm.NotifyReadonlyStockColumnEditAttempt(e.Column?.Header?.ToString());
@@ -153,10 +170,14 @@ public partial class InventoryOverviewView : UserControl
     private void OnStockSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_isSyncingSelectionFromVm || _isSyncingSelectionToVm)
+        {
             return;
+        }
 
         if (DataContext is not InventoryOverviewViewModel vm || sender is not DataGrid dg)
+        {
             return;
+        }
 
         var rows = dg.SelectedItems.OfType<StockRowItem>().ToArray();
         _isSyncingSelectionToVm = true;
@@ -180,23 +201,34 @@ public partial class InventoryOverviewView : UserControl
             () =>
             {
                 if (DataContext is not InventoryOverviewViewModel vm)
+                {
                     return;
+                }
+
                 if (vm.ApplyReassignDrugFilterCommand.CanExecute(null))
+                {
                     vm.ApplyReassignDrugFilterCommand.Execute(null);
+                }
             });
     }
 
     private void InventorySearchBox_OnKeyUp(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter)
+        {
             return;
+        }
 
         InputFocusHelper.FocusControlByName(this, "InventorySearchButton", DispatcherPriority.Background);
     }
 
     public async void OnGridRowCopy(object? sender, RoutedEventArgs e)
     {
-        if (sender is not MenuItem mi) return;
+        if (sender is not MenuItem mi)
+        {
+            return;
+        }
+
         await GridContextMenuActions.CopySafeAsync(
             _clipboard,
             this,
@@ -227,10 +259,14 @@ public partial class InventoryOverviewView : UserControl
         try
         {
             if (DataContext is not InventoryOverviewViewModel vm)
+            {
                 return;
+            }
 
             if (sender is not MenuItem mi)
+            {
                 return;
+            }
 
             await vm.DeleteSelectedStockRowsAsync(mi.CommandParameter as StockRowItem);
         }
@@ -243,10 +279,14 @@ public partial class InventoryOverviewView : UserControl
     public void OnStockDetailContextMenuOpened(object? sender, RoutedEventArgs e)
     {
         if (sender is not ContextMenu cm)
+        {
             return;
+        }
 
         if (DataContext is not InventoryOverviewViewModel vm)
+        {
             return;
+        }
 
         vm.SyncUnlockStateForUi();
         var canShowDelete = vm.IsStockEditEnabled && vm.IsOperationUnlocked;
@@ -258,7 +298,9 @@ public partial class InventoryOverviewView : UserControl
         foreach (var item in cm.Items.OfType<MenuItem>())
         {
             if (string.Equals(item.Header?.ToString(), "删除", StringComparison.Ordinal))
+            {
                 item.IsVisible = canShowDelete;
+            }
             else if (string.Equals(item.Header?.ToString(), "编辑", StringComparison.Ordinal))
             {
                 item.IsVisible = canShowEdit;
@@ -272,19 +314,27 @@ public partial class InventoryOverviewView : UserControl
         try
         {
             if (DataContext is not InventoryOverviewViewModel vm || !vm.IsStockEditEnabled || !vm.IsDetailMode)
+            {
                 return;
+            }
 
             var grid = this.FindControl<DataGrid>("StockDetailGrid");
             if (grid is null)
+            {
                 return;
+            }
 
             var row = _stockContextRow ?? vm.SelectedStockRow;
             if (row is null)
+            {
                 return;
+            }
 
             var column = _stockContextColumn ?? grid.Columns.FirstOrDefault(c => !c.IsReadOnly);
             if (column is null)
+            {
                 return;
+            }
 
             if (column.IsReadOnly)
             {
@@ -309,12 +359,10 @@ public partial class InventoryOverviewView : UserControl
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (_vm is not null)
-            _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm?.PropertyChanged -= OnVmPropertyChanged;
 
         _vm = DataContext as InventoryOverviewViewModel;
-        if (_vm is not null)
-            _vm.PropertyChanged += OnVmPropertyChanged;
+        _vm?.PropertyChanged += OnVmPropertyChanged;
 
         SyncStockEditClass();
     }
@@ -322,7 +370,10 @@ public partial class InventoryOverviewView : UserControl
     private void AttachReassignDrugFilter()
     {
         if (this.FindControl<AutoCompleteBox>("ReassignDrugBox") is not { } box)
+        {
             return;
+        }
+
         AutoCompleteHelper.AttachDrugOptionFilter(box);
     }
 
@@ -335,34 +386,44 @@ public partial class InventoryOverviewView : UserControl
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        if (_vm is not null)
-            _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm?.PropertyChanged -= OnVmPropertyChanged;
+
         _vm = null;
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(InventoryOverviewViewModel.IsStockEditEnabled))
+        {
             SyncStockEditClass();
+        }
 
         if (e.PropertyName == nameof(InventoryOverviewViewModel.SelectedStockRow))
+        {
             ScrollToSelectedStockRow();
+        }
 
         if (e.PropertyName == nameof(InventoryOverviewViewModel.SelectedStockRowsSnapshot) && !_isSyncingSelectionToVm)
+        {
             SyncSelectionFromVm();
+        }
     }
 
     private void SyncStockEditClass()
     {
         var grid = this.FindControl<DataGrid>("StockDetailGrid");
         if (grid is null)
+        {
             return;
+        }
 
         var editable = _vm?.IsStockEditEnabled == true;
         if (editable)
         {
             if (!grid.Classes.Contains("StockEditable"))
+            {
                 grid.Classes.Add("StockEditable");
+            }
         }
         else
         {
@@ -394,7 +455,9 @@ public partial class InventoryOverviewView : UserControl
     {
         var selected = _vm?.SelectedStockRow;
         if (selected is null)
+        {
             return;
+        }
 
         Dispatcher.UIThread.Post(() => EnsureGridSelectionAndScroll(selected), DispatcherPriority.Background);
     }
@@ -403,7 +466,9 @@ public partial class InventoryOverviewView : UserControl
     {
         var grid = this.FindControl<DataGrid>("StockDetailGrid");
         if (grid is null)
+        {
             return;
+        }
 
         grid.ScrollIntoView(selected, null);
     }
@@ -412,17 +477,23 @@ public partial class InventoryOverviewView : UserControl
     {
         var grid = this.FindControl<DataGrid>("StockDetailGrid");
         if (grid is null || _vm is null)
+        {
             return;
+        }
 
         if (IsSelectionAlreadySynced(grid, _vm.SelectedStockRowsSnapshot))
+        {
             return;
+        }
 
         _isSyncingSelectionFromVm = true;
         try
         {
             grid.SelectedItems.Clear();
             foreach (var row in _vm.SelectedStockRowsSnapshot)
+            {
                 grid.SelectedItems.Add(row);
+            }
         }
         finally
         {
@@ -433,12 +504,16 @@ public partial class InventoryOverviewView : UserControl
     private static bool IsSelectionAlreadySynced(DataGrid grid, IReadOnlyList<StockRowItem> snapshot)
     {
         if (grid.SelectedItems.Count != snapshot.Count)
+        {
             return false;
+        }
 
         for (var i = 0; i < snapshot.Count; i++)
         {
             if (!ReferenceEquals(grid.SelectedItems[i], snapshot[i]))
+            {
                 return false;
+            }
         }
 
         return true;

@@ -1,7 +1,7 @@
+using System.Collections;
+using System.Collections.Generic;
 using Avalonia;
 using global::Avalonia.Controls;
-using System.Collections.Generic;
-using System.Collections;
 using global::Avalonia.Controls.Primitives;
 using global::Avalonia.Input;
 
@@ -11,7 +11,11 @@ public static class DataGridInteractionHelper
 {
     public static void ClearSelection(DataGrid? grid)
     {
-        if (grid is null) return;
+        if (grid is null)
+        {
+            return;
+        }
+
         try
         {
             grid.SelectedItem = null;
@@ -57,12 +61,16 @@ public static class DataGridInteractionHelper
         {
             var selectedItems = grid.SelectedItems;
             if (selectedItems is null)
+            {
                 return list;
+            }
 
             foreach (var it in selectedItems)
             {
                 if (it is not null)
+                {
                     list.Add(it);
+                }
             }
         }
         catch (System.Exception ex)
@@ -76,13 +84,17 @@ public static class DataGridInteractionHelper
     public static DataGrid? FindGridByRowItem(Control host, object? rowItem, params string[] gridNames)
     {
         if (rowItem is null || gridNames.Length == 0)
+        {
             return null;
+        }
 
         foreach (var name in gridNames)
         {
             var grid = host.FindControl<DataGrid>(name);
             if (ContainsItemReference(grid?.ItemsSource, rowItem))
+            {
                 return grid;
+            }
         }
 
         return null;
@@ -95,10 +107,14 @@ public static class DataGridInteractionHelper
         while (current is not null)
         {
             if (current is DataGridRowHeader)
+            {
                 hitRowHeader = true;
+            }
 
             if (current is DataGridRow row)
+            {
                 return row;
+            }
 
             current = current.Parent as StyledElement;
         }
@@ -116,10 +132,14 @@ public static class DataGridInteractionHelper
         rowData = null;
         var row = FindRowFromPointerSource(pointerSource, out hitRowHeader);
         if (row?.DataContext is null)
+        {
             return false;
+        }
 
         if (requireRowHeader && !hitRowHeader)
+        {
             return false;
+        }
 
         rowData = row.DataContext;
         grid.SelectedItem = rowData;
@@ -138,12 +158,16 @@ public static class DataGridInteractionHelper
     private static bool ContainsItemReference(IEnumerable? source, object rowItem)
     {
         if (source is null)
+        {
             return false;
+        }
 
         foreach (var item in source)
         {
             if (ReferenceEquals(item, rowItem))
+            {
                 return true;
+            }
         }
 
         return false;

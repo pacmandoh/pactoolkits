@@ -58,13 +58,17 @@ public sealed class AppLogger : IAppLogger, IDisposable
     public async Task<string> ExportRecentAsync(TimeSpan window, CancellationToken ct = default)
     {
         if (window <= TimeSpan.Zero)
+        {
             window = TimeSpan.FromHours(24);
+        }
 
         var cutoff = DateTimeOffset.Now.Subtract(window);
         var sourceFiles = GetCandidateFiles(cutoff).ToList();
 
         if (sourceFiles.Count == 0)
+        {
             throw new FileNotFoundException("未找到可导出的日志文件");
+        }
 
         var exportDir = Path.Combine(LogDirectory, "exports");
         Directory.CreateDirectory(exportDir);
@@ -81,7 +85,9 @@ public sealed class AppLogger : IAppLogger, IDisposable
             {
                 ct.ThrowIfCancellationRequested();
                 if (!File.Exists(file))
+                {
                     continue;
+                }
 
                 await using var source = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 using var reader = new StreamReader(source);
@@ -90,16 +96,24 @@ public sealed class AppLogger : IAppLogger, IDisposable
                     ct.ThrowIfCancellationRequested();
                     var line = await reader.ReadLineAsync(ct).ConfigureAwait(false);
                     if (line is null)
+                    {
                         break;
+                    }
 
                     if (line.Length == 0)
+                    {
                         continue;
+                    }
 
                     if (!TryReadTimestamp(line, out var ts))
+                    {
                         continue;
+                    }
 
                     if (ts < cutoff)
+                    {
                         continue;
+                    }
 
                     await writer.WriteLineAsync(line).ConfigureAwait(false);
                 }
@@ -118,10 +132,14 @@ public sealed class AppLogger : IAppLogger, IDisposable
     {
         var settings = _settings.Current;
         if (!settings.Enabled)
+        {
             return;
+        }
 
         if (level < ParseLevel(settings.MinimumLevel))
+        {
             return;
+        }
 
         var record = new AppLogRecord
         {
@@ -142,7 +160,9 @@ public sealed class AppLogger : IAppLogger, IDisposable
         };
 
         if (!_queue.Writer.TryWrite(new PendingLog(record, settings)))
+        {
             System.Diagnostics.Debug.WriteLine("Log queue write failed: channel is closed");
+        }
     }
 
     private async Task WriteRecordAsync(AppLogRecord record, LoggingOptions settings)
@@ -177,11 +197,15 @@ public sealed class AppLogger : IAppLogger, IDisposable
         {
             var path = BuildLogPath(now, i);
             if (!File.Exists(path))
+            {
                 return i;
+            }
 
             var size = new FileInfo(path).Length;
             if (size < maxBytes)
+            {
                 return i;
+            }
         }
 
         return 9;
@@ -197,7 +221,9 @@ public sealed class AppLogger : IAppLogger, IDisposable
             {
                 var info = new FileInfo(file);
                 if (info.LastWriteTimeUtc < thresholdUtc)
+                {
                     info.Delete();
+                }
             }
             catch (Exception ex)
             {
@@ -217,7 +243,9 @@ public sealed class AppLogger : IAppLogger, IDisposable
             {
                 var path = BuildLogPath(d, suffix);
                 if (File.Exists(path))
+                {
                     yield return path;
+                }
             }
         }
     }
@@ -233,11 +261,15 @@ public sealed class AppLogger : IAppLogger, IDisposable
             using var doc = JsonDocument.Parse(line);
             var root = doc.RootElement;
             if (!root.TryGetProperty("ts", out var ts))
+            {
                 return false;
+            }
 
             var raw = ts.GetString();
             if (string.IsNullOrWhiteSpace(raw))
+            {
                 return false;
+            }
 
             return DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out value);
         }
@@ -271,7 +303,9 @@ public sealed class AppLogger : IAppLogger, IDisposable
     private static string ResolveLogDirectory(LoggingOptions options)
     {
         if (!string.IsNullOrWhiteSpace(options.LogDirectory))
+        {
             return options.LogDirectory;
+        }
 
         var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         return Path.Combine(baseDir, "PacToolkits", "logs", "ui");

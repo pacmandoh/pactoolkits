@@ -8,7 +8,9 @@ public static class TraceCodeAnalyzer
     public static CodeAnalysis Analyze(string? text, TraceCodeValidationRule rule)
     {
         if (string.IsNullOrWhiteSpace(text))
+        {
             return new CodeAnalysis(0, 0, 0, Array.Empty<string>());
+        }
 
         var total = 0;
         var invalid = 0;
@@ -20,7 +22,9 @@ public static class TraceCodeAnalyzer
         {
             var code = raw.Trim();
             if (code.Length == 0)
+            {
                 continue;
+            }
 
             total++;
 
@@ -45,10 +49,14 @@ public static class TraceCodeAnalyzer
     public static bool IsValid(string code, TraceCodeValidationRule rule)
     {
         if (code.Length != rule.RequiredLength)
+        {
             return false;
+        }
 
         if (string.IsNullOrWhiteSpace(rule.Pattern))
+        {
             return true;
+        }
 
         try
         {

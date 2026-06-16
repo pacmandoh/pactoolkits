@@ -1,7 +1,7 @@
 using System;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Collections.Generic;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
@@ -19,7 +19,9 @@ public sealed class ClientAliasStore
     public IReadOnlyDictionary<string, string> Snapshot()
     {
         lock (_lock)
+        {
             return new Dictionary<string, string>(_aliases, StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     public void Load()
@@ -49,10 +51,16 @@ public sealed class ClientAliasStore
             foreach (var kv in items)
             {
                 var k = (kv.Key).Trim();
-                if (k.Length == 0) continue;
+                if (k.Length == 0)
+                {
+                    continue;
+                }
 
                 var v = (kv.Value).Trim();
-                if (v.Length == 0) continue;
+                if (v.Length == 0)
+                {
+                    continue;
+                }
 
                 dict[k] = v;
             }
@@ -73,8 +81,14 @@ public sealed class ClientAliasStore
 
     public string? TryGet(string? machine)
     {
-        if (string.IsNullOrWhiteSpace(machine)) return null;
+        if (string.IsNullOrWhiteSpace(machine))
+        {
+            return null;
+        }
+
         lock (_lock)
+        {
             return _aliases.TryGetValue(machine.Trim(), out var v) ? v : null;
+        }
     }
 }

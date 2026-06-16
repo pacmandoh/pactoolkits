@@ -38,7 +38,9 @@ public partial class AppIcon : UserControl
         base.OnPropertyChanged(change);
 
         if (change.Property == KindProperty)
+        {
             UpdateKind();
+        }
     }
 
     private void UpdateKind()

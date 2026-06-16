@@ -6,16 +6,15 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Application.DTOs;
+using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -109,7 +108,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                     ReplaceOptions(DrugOptions, drugs);
 
                     if (string.IsNullOrWhiteSpace(currentDrug))
+                    {
                         return;
+                    }
 
                     var stillExists = DrugOptions.Any(x =>
                         string.Equals(x.Raw, currentDrug, StringComparison.OrdinalIgnoreCase));
@@ -135,7 +136,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     {
         var drug = NormalizeInput(drugId);
         if (string.IsNullOrWhiteSpace(drug))
+        {
             return;
+        }
 
         await RunOnUiAsync(() =>
         {
@@ -155,7 +158,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                 var hit = SpecOptions.FirstOrDefault(x =>
                     string.Equals(NormalizeInput(x.Raw), specText, StringComparison.OrdinalIgnoreCase));
                 if (hit is not null)
+                {
                     SelectedSpec = hit;
+                }
             }, DispatcherPriority.Background);
 
             try
@@ -164,7 +169,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                 var qty = await _lookup.GetQtyAsync(drug, specText, qtyCts.Token, forceRefresh: true).ConfigureAwait(false);
                 await RunOnUiAsync(() =>
                 {
-                    SelectedQtyText = qty is null ? null : qty.Value.ToString();
+                    SelectedQtyText = qty?.ToString();
                 }, DispatcherPriority.Background);
             }
             catch (System.Exception ex)
@@ -212,7 +217,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private async Task ApplyDrugFilterAsync()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         IsDrugSuggestOpen = false;
 
@@ -277,7 +284,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private async Task SubmitAsync()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         try
         {
@@ -328,7 +337,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                         ? new InvalidOperationException(submit.EntryMessage)
                         : null;
                     if (logWriteError is not null)
+                    {
                         LogWarn("scan.entry_log.write_fail", "trace_entry_log write failed after submit", logWriteError);
+                    }
 
                     var result = submit.Insert;
 
@@ -378,7 +389,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private void ClearCodes()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         TraceCodesText = string.Empty;
         Status = "已清空输入框";
@@ -388,7 +401,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private void ClearDrugSpecFilter()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         IsDrugSuggestOpen = false;
         DrugText = null;
@@ -406,12 +421,16 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private void EnsureEditorContext()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         if (!string.IsNullOrWhiteSpace(NormalizeInput(DrugText))
             && SelectedSpec is not null
             && !string.IsNullOrWhiteSpace(SelectedQtyText))
+        {
             return;
+        }
 
         _toast.Warn("追溯码录入", "请先选择药品、规格并确认单条数量");
     }
@@ -420,7 +439,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private void StartAutoFetch()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         if (!IsAutoFetchEnabled)
         {
@@ -449,7 +470,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private void OpenAutoFetchSettings()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         AutoFetchStatus = "参数配置面板准备中：将支持账号、时间窗、拉取频率和失败重试";
         _toast.Info("自动拉取", "参数配置面板预留中");
@@ -471,7 +494,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private void StopAutoFetch()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         if (!IsAutoFetchRunning)
         {
@@ -494,7 +519,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     private void RetryFailed()
     {
         if (ShouldSkipTrigger())
+        {
             return;
+        }
 
         if (RetryQueue.Count == 0)
         {
@@ -537,7 +564,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                 var stillExists = DrugOptions.Any(x =>
                     string.Equals(x.Raw, currentDrug, StringComparison.OrdinalIgnoreCase));
                 if (stillExists)
+                {
                     return;
+                }
             }
 
             DrugText = null;
@@ -615,7 +644,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
             await RunOnUiAsync(() =>
             {
-                SelectedQtyText = qty is null ? null : qty.Value.ToString();
+                SelectedQtyText = qty?.ToString();
             }, DispatcherPriority.Background);
         }
         catch
@@ -644,11 +673,13 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
         await RunOnUiAsync(() =>
         {
-            SelectedQtyText = qty is null ? null : qty.Value.ToString();
+            SelectedQtyText = qty?.ToString();
             var qtyText = NormalizeInput(SelectedQtyText);
 
             if (string.IsNullOrWhiteSpace(drug) || string.IsNullOrWhiteSpace(spec))
+            {
                 return;
+            }
 
             if (string.IsNullOrWhiteSpace(qtyText))
             {
@@ -714,7 +745,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     {
         RecentRuns.Insert(0, item);
         while (RecentRuns.Count > 8)
+        {
             RecentRuns.RemoveAt(RecentRuns.Count - 1);
+        }
 
         NotifyActionCommands();
     }

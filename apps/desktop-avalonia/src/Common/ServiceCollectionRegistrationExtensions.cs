@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,11 +5,10 @@ using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Application;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 using PacToolkits.Desktop.Avalonia.Services.Integration;
 using PacToolkits.Desktop.Avalonia.ViewModels;
-using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 using PacToolkits.Infrastructure.Database;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;

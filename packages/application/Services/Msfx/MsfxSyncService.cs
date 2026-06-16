@@ -59,7 +59,10 @@ public sealed class MsfxSyncService : IMsfxSyncService
     {
         EnsureSourceApi(sourceApi);
         if (endAt <= beginAt)
+        {
             throw new ArgumentException("MSFX pull batch end time must be later than begin time.", nameof(endAt));
+        }
+
         return _repo.StartPullBatchAsync(sourceApi, beginAt, endAt, ct);
     }
 
@@ -67,9 +70,15 @@ public sealed class MsfxSyncService : IMsfxSyncService
     {
         EnsurePositiveId(batchId, nameof(batchId));
         if (string.IsNullOrWhiteSpace(status))
+        {
             throw new ArgumentException("MSFX pull batch status is required.", nameof(status));
+        }
+
         if (successCount < 0 || failCount < 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(successCount), "MSFX pull batch counts cannot be negative.");
+        }
+
         return _repo.FinishPullBatchAsync(batchId, status.Trim(), successCount, failCount, errMsg, ct);
     }
 
@@ -84,9 +93,15 @@ public sealed class MsfxSyncService : IMsfxSyncService
         EnsureSourceApi(sourceApi);
         EnsurePositiveId(batchId, nameof(batchId));
         if (endAt <= beginAt)
+        {
             throw new ArgumentException("MSFX pull cursor end time must be later than begin time.", nameof(endAt));
+        }
+
         if (string.IsNullOrWhiteSpace(batchStatus))
+        {
             throw new ArgumentException("MSFX pull cursor batch status is required.", nameof(batchStatus));
+        }
+
         return _repo.AdvancePullCursorAsync(sourceApi, beginAt, endAt, batchId, batchStatus.Trim(), ct);
     }
 
@@ -199,9 +214,15 @@ public sealed class MsfxSyncService : IMsfxSyncService
     {
         ArgumentNullException.ThrowIfNull(taskIds);
         if (taskIds.Count < 2)
+        {
             throw new ArgumentException("At least two MSFX tasks are required for merge.", nameof(taskIds));
+        }
+
         if (taskIds.Any(x => x <= 0))
+        {
             throw new ArgumentOutOfRangeException(nameof(taskIds), "MSFX task ids must be positive.");
+        }
+
         return _repo.MergeInjectTasksAsync(taskIds, operatorName, reason, ct);
     }
 
@@ -230,7 +251,10 @@ public sealed class MsfxSyncService : IMsfxSyncService
         ArgumentNullException.ThrowIfNull(groupKeys);
         ArgumentNullException.ThrowIfNull(bucketIndexes);
         if (groupKeys.Count == 0 || bucketIndexes.Count == 0 || groupKeys.Count != bucketIndexes.Count)
+        {
             throw new ArgumentException("Custom split requires matching group keys and bucket indexes.");
+        }
+
         return _repo.SplitInjectTaskCustomAsync(taskId, groupKeys, bucketIndexes, operatorName, reason, ct);
     }
 
@@ -255,13 +279,17 @@ public sealed class MsfxSyncService : IMsfxSyncService
     private static void EnsurePositiveId(long value, string parameterName)
     {
         if (value <= 0)
+        {
             throw new ArgumentOutOfRangeException(parameterName, value, "Identifier must be positive.");
+        }
     }
 
     private static void EnsureText(string value, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(value))
+        {
             throw new ArgumentException("Value is required.", parameterName);
+        }
     }
 
     private static int NormalizeLimit(int limit)

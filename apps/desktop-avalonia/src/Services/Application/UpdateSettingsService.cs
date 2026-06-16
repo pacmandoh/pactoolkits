@@ -1,7 +1,7 @@
 using System;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Threading;
 using System.Threading.Tasks;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
@@ -91,7 +91,9 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
     private static string NormalizeValidatedChannel(string? channel)
     {
         if (string.IsNullOrWhiteSpace(channel))
+        {
             return string.Empty;
+        }
 
         var normalized = channel.Trim().ToLowerInvariant();
         return Array.Exists(SupportedChannels, x => string.Equals(x, normalized, StringComparison.Ordinal))

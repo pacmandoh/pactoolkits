@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Npgsql;
 using PacToolkits.Application.Abstractions;
 
@@ -42,7 +38,9 @@ public sealed class ClientIdReadRepo : IClientIdReadRepo
             try
             {
                 if (!await TableExistsAsync(conn, table, ct).ConfigureAwait(false))
+                {
                     continue;
+                }
 
                 await using var cmd = new NpgsqlCommand(sql, conn);
                 cmd.CommandTimeout = 6;
@@ -50,9 +48,17 @@ public sealed class ClientIdReadRepo : IClientIdReadRepo
 
                 while (await reader.ReadAsync(ct))
                 {
-                    if (reader.IsDBNull(0)) continue;
+                    if (reader.IsDBNull(0))
+                    {
+                        continue;
+                    }
+
                     var v = reader.GetString(0).Trim();
-                    if (v.Length == 0) continue;
+                    if (v.Length == 0)
+                    {
+                        continue;
+                    }
+
                     merged.Add(v);
                 }
             }

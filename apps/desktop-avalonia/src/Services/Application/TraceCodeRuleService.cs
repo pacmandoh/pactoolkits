@@ -1,7 +1,7 @@
 using System;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using System.Threading;
 using System.Threading.Tasks;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
@@ -55,7 +55,9 @@ public sealed class TraceCodeRuleService : ITraceCodeRuleService
         await _configStore.UpdateAsync(cfg => cfg.TraceCodeValidation = Clone(normalized), ct).ConfigureAwait(false);
 
         lock (_gate)
+        {
             _current = Clone(normalized);
+        }
 
         Changed?.Invoke();
     }
@@ -64,9 +66,15 @@ public sealed class TraceCodeRuleService : ITraceCodeRuleService
     {
         var o = src ?? new TraceCodeValidationOptions();
         if (o.RequiredLength <= 0)
+        {
             o.RequiredLength = 20;
+        }
+
         if (string.IsNullOrWhiteSpace(o.Pattern))
+        {
             o.Pattern = "^8\\d+$";
+        }
+
         return o;
     }
 

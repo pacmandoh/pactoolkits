@@ -1,7 +1,6 @@
+using Npgsql;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Core;
-using Npgsql;
 
 namespace PacToolkits.Infrastructure.Database;
 

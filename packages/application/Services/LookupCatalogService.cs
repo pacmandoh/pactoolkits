@@ -33,14 +33,19 @@ public sealed class LookupCatalogService : ILookupCatalogService
             lock (_gate)
             {
                 if (TryGetValid(_drugIdsCache, now, out var cached))
+                {
                     return cached;
+                }
             }
         }
 
         var rows = await _dashboardRepo.GetDrugIdsAsync(ct).ConfigureAwait(false);
         var normalized = rows.Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
         lock (_gate)
+        {
             _drugIdsCache = new CacheItem<IReadOnlyList<string>>(normalized, now.Add(DrugIdsTtl));
+        }
+
         return normalized;
     }
 
@@ -48,7 +53,9 @@ public sealed class LookupCatalogService : ILookupCatalogService
     {
         var key = InputNormalizer.Normalize(drugId);
         if (string.IsNullOrWhiteSpace(key))
+        {
             return Array.Empty<string>();
+        }
 
         var now = DateTimeOffset.UtcNow;
         if (!forceRefresh)
@@ -66,7 +73,10 @@ public sealed class LookupCatalogService : ILookupCatalogService
         var rows = await _dashboardRepo.GetSpecsByDrugAsync(key, ct).ConfigureAwait(false);
         var normalized = rows.Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
         lock (_gate)
+        {
             _specsByDrug[key] = new CacheItem<IReadOnlyList<string>>(normalized, now.Add(SpecsTtl));
+        }
+
         return normalized;
     }
 
@@ -74,7 +84,9 @@ public sealed class LookupCatalogService : ILookupCatalogService
     {
         var key = InputNormalizer.Normalize(input);
         if (string.IsNullOrWhiteSpace(key))
+        {
             return null;
+        }
 
         var now = DateTimeOffset.UtcNow;
         if (!forceRefresh)
@@ -93,17 +105,26 @@ public sealed class LookupCatalogService : ILookupCatalogService
         lock (_gate)
         {
             if (!forceRefresh && TryGetValid(_drugIdsCache, now, out var drugIdsCached))
+            {
                 allDrugIds = drugIdsCached;
+            }
             else
+            {
                 allDrugIds = Array.Empty<string>();
+            }
         }
 
         if (allDrugIds.Count == 0)
+        {
             allDrugIds = await GetDrugIdsAsync(ct, forceRefresh: forceRefresh).ConfigureAwait(false);
+        }
 
         var canonical = allDrugIds.FirstOrDefault(x => string.Equals(x, key, StringComparison.OrdinalIgnoreCase));
         lock (_gate)
+        {
             _canonicalDrugByInput[key] = new CacheItem<string?>(canonical, now.Add(CanonicalTtl));
+        }
+
         return canonical;
     }
 
@@ -112,7 +133,9 @@ public sealed class LookupCatalogService : ILookupCatalogService
         var drug = InputNormalizer.Normalize(drugId);
         var specValue = InputNormalizer.Normalize(spec);
         if (string.IsNullOrWhiteSpace(drug) || string.IsNullOrWhiteSpace(specValue))
+        {
             return null;
+        }
 
         var key = $"{drug}|{specValue}";
         var now = DateTimeOffset.UtcNow;
@@ -132,7 +155,10 @@ public sealed class LookupCatalogService : ILookupCatalogService
         var dto = await _drugIndexRepo.GetByKeyAsync(drug, specValue, ct).ConfigureAwait(false);
         int? qty = dto is null || IsDeprecatedNote(dto.Note) ? null : dto.Qty;
         lock (_gate)
+        {
             _qtyByDrugSpec[key] = new CacheItem<int?>(qty, now.Add(QtyTtl));
+        }
+
         return qty;
     }
 
@@ -140,7 +166,9 @@ public sealed class LookupCatalogService : ILookupCatalogService
     {
         var key = InputNormalizer.Normalize(drugId);
         if (string.IsNullOrWhiteSpace(key))
+        {
             return false;
+        }
 
         var now = DateTimeOffset.UtcNow;
         if (!forceRefresh)
@@ -158,7 +186,10 @@ public sealed class LookupCatalogService : ILookupCatalogService
         var isDeprecated = await _drugIndexRepo.IsDrugDeprecatedAsync(key, ct).ConfigureAwait(false);
 
         lock (_gate)
+        {
             _deprecatedDrugByInput[key] = new CacheItem<bool>(isDeprecated, now.Add(CanonicalTtl));
+        }
+
         return isDeprecated;
     }
 

@@ -1,7 +1,5 @@
 using System;
-using Avalonia;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
@@ -12,7 +10,9 @@ public static class AppLog
         try
         {
             if (global::Avalonia.Application.Current is App app)
+            {
                 return app.Services.GetService(typeof(IAppLogger)) as IAppLogger;
+            }
         }
         catch
         {
@@ -26,7 +26,9 @@ public static class AppLog
     {
         var logger = TryGetLogger();
         if (logger is null)
+        {
             return;
+        }
 
         logger.Info(module, eventName, message, context);
     }
@@ -35,7 +37,9 @@ public static class AppLog
     {
         var logger = TryGetLogger();
         if (logger is null)
+        {
             return;
+        }
 
         logger.Warn(module, eventName, message, ex, context);
     }
@@ -44,7 +48,9 @@ public static class AppLog
     {
         var logger = TryGetLogger();
         if (logger is null)
+        {
             return;
+        }
 
         logger.Error(module, eventName, message, ex, context);
     }

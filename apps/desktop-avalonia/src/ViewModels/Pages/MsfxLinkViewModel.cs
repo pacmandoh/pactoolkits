@@ -1,20 +1,20 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using global::Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Application.DTOs;
+using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Integration;
 
@@ -498,9 +498,14 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             safeValue = today;
             if (updateFromBoundary)
+            {
                 UpoutFromDate = safeValue;
+            }
             else
+            {
                 UpoutToDate = safeValue;
+            }
+
             return;
         }
 
@@ -920,7 +925,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private void EnterTaskQueueBatchMode(TaskQueueBatchActionMode mode)
     {
         if (IsAutoBoardBusy)
+        {
             return;
+        }
 
         SelectedAutoTaskQueueRow = null;
         ClearTaskQueueChecks();
@@ -930,9 +937,15 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private void ClearTaskQueueChecks()
     {
         foreach (var row in _allTaskQueueRows)
+        {
             row.IsChecked = false;
+        }
+
         foreach (var row in AutoTaskQueueRows)
+        {
             row.IsChecked = false;
+        }
+
         SetSelectedAutoTaskQueueRows(Array.Empty<MsfxAutoTaskQueueGridRow>());
     }
 
@@ -950,7 +963,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task QueryUpoutCoreAsync(bool resetPage)
     {
         if (IsUpoutBusy)
+        {
             return;
+        }
 
         if (UpoutFromDate is null || UpoutToDate is null)
         {
@@ -967,7 +982,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         if (resetPage)
+        {
             UpoutPage = 1;
+        }
 
         IsUpoutBusy = true;
         try
@@ -1018,7 +1035,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 UpoutRows.Clear();
                 foreach (var row in filtered)
+                {
                     UpoutRows.Add(row);
+                }
 
                 UpoutTotal = result.Total;
                 UpoutStatus = $"查询成功：第 {UpoutPage} 页 / 返回 {result.Items.Count} 条 / 筛选后 {filtered.Count} 条 / 服务器总数 {result.Total}";
@@ -1042,7 +1061,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task PrevUpoutPageAsync()
     {
         if (!HasUpoutPrevPage || IsUpoutBusy)
+        {
             return;
+        }
 
         UpoutPage -= 1;
         await QueryUpoutCoreAsync(resetPage: false);
@@ -1052,7 +1073,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task NextUpoutPageAsync()
     {
         if (!HasUpoutNextPage || IsUpoutBusy)
+        {
             return;
+        }
 
         UpoutPage += 1;
         await QueryUpoutCoreAsync(resetPage: false);
@@ -1062,7 +1085,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task QuerySubCodesAsync()
     {
         if (IsSubcodeBusy)
+        {
             return;
+        }
 
         var billCode = (SubcodeBillCode ?? string.Empty).Trim();
         if (billCode.Length == 0)
@@ -1181,7 +1206,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     cts.Token).ConfigureAwait(false);
 
                 if (!list.Call.Ok)
+                {
                     throw new InvalidOperationException($"上游出库单查询失败：{BuildApiErrorMessage(list.Call)}");
+                }
 
                 var found = list.Items.FirstOrDefault(x => string.Equals(x.BillCode, billCode, StringComparison.OrdinalIgnoreCase));
                 if (found is not null)
@@ -1192,7 +1219,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 }
 
                 if (list.Items.Count < pageSize)
+                {
                     break;
+                }
             }
         }
 
@@ -1203,7 +1232,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task PrevSubcodePageAsync()
     {
         if (!HasSubcodePrevPage || IsSubcodeBusy)
+        {
             return;
+        }
 
         SubcodePage -= 1;
         await Task.CompletedTask;
@@ -1213,7 +1244,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task NextSubcodePageAsync()
     {
         if (!HasSubcodeNextPage || IsSubcodeBusy)
+        {
             return;
+        }
 
         SubcodePage += 1;
         await Task.CompletedTask;
@@ -1411,7 +1444,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 }
 
                 if (!detail.Call.Ok)
+                {
                     return await QueueRetryAndLogAsync(BuildApiErrorMessage(detail.Call)).ConfigureAwait(false);
+                }
 
                 var swIngest = Stopwatch.StartNew();
                 var ingest = await _syncService.IngestMsfxBillDetailAsync(
@@ -1462,7 +1497,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 {
                     ct.ThrowIfCancellationRequested();
                     if (!processedBillCodes.Add(retry.BillCode))
+                    {
                         continue;
+                    }
+
                     processedBills++;
                     expectedBills = Math.Max(expectedBills, processedBills + 1);
                     SetAutoProgress(
@@ -1554,7 +1592,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 {
                     ct.ThrowIfCancellationRequested();
                     if (!processedBillCodes.Add(bill.BillCode))
+                    {
                         continue;
+                    }
+
                     processedBills++;
                     SetAutoProgress(
                         40 + Math.Min(45, processedBills * (45d / Math.Max(1, expectedBills))),
@@ -1578,7 +1619,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
                 var loaded = page * pageSize;
                 if (list.Items.Count == 0 || loaded >= list.Total)
+                {
                     break;
+                }
+
                 page++;
             }
 
@@ -1590,7 +1634,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 {
                     ct.ThrowIfCancellationRequested();
                     if (!processedBillCodes.Add(watch.BillCode))
+                    {
                         continue;
+                    }
 
                     processedBills++;
                     expectedBills = Math.Max(expectedBills, processedBills + 1);
@@ -1676,7 +1722,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             AutoStatus = $"自动化拉取完成：API {totalApiRows}，已入库 {totalInboundRows}，单据 {totalBills}，码 {detailSubCodes}，重试成功 {retrySucceededCount}，重试失败 {retryFailedCount}，重试入队 {retryQueuedCount}，待确认入池 {watchQueuedCount}，补偿成功 {watchResolvedCount}，补偿延后 {watchDeferredCount}，新增任务 {taskResult.CreatedTasks}";
             AutoLastRunAtText = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             if (IsAutoEnabled)
+            {
                 AutoNextRunAtText = DateTime.Now.AddMinutes(Math.Max(1, AutoIntervalMinutes)).ToString("yyyy-MM-dd HH:mm:ss");
+            }
+
             AddAutoLog(
                 "性能",
                 $"总耗时 {FormatElapsed(swTotal.Elapsed)}，列表API {FormatElapsed(listApiMs)}，详情API {FormatElapsed(detailApiMs)}，入库 {FormatElapsed(ingestMs)}，映射 {FormatElapsed(mapMs)}，建任务 {FormatElapsed(taskBuildMs)}",
@@ -1721,7 +1770,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             });
             AutoStatus = $"自动化拉取异常：{ex.Message}";
             if (IsDbConnected)
+            {
                 _toast.Error("自动化监控", ex.Message);
+            }
         }
         finally
         {
@@ -1771,7 +1822,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     {
         var key = (panelKey ?? string.Empty).Trim().ToUpperInvariant();
         if (key.Length == 0)
+        {
             return;
+        }
 
         AutoExpandedPanel = string.Equals(AutoExpandedPanel, key, StringComparison.OrdinalIgnoreCase)
             ? string.Empty
@@ -1782,7 +1835,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task PrevMapQueuePageAsync()
     {
         if (!HasMapQueuePrevPage || IsAutoBoardBusy)
+        {
             return;
+        }
 
         await RunLocalReloadAsync(
             setBusy: v => IsAutoBoardBusy = v,
@@ -1793,7 +1848,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private Task PrevPullBatchPageAsync()
     {
         if (!HasPullBatchPrevPage)
+        {
             return Task.CompletedTask;
+        }
 
         PullBatchPage -= 1;
         return Task.CompletedTask;
@@ -1803,7 +1860,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private Task NextPullBatchPageAsync()
     {
         if (!HasPullBatchNextPage)
+        {
             return Task.CompletedTask;
+        }
 
         PullBatchPage += 1;
         return Task.CompletedTask;
@@ -1813,7 +1872,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task NextMapQueuePageAsync()
     {
         if (!HasMapQueueNextPage || IsAutoBoardBusy)
+        {
             return;
+        }
 
         await RunLocalReloadAsync(
             setBusy: v => IsAutoBoardBusy = v,
@@ -1919,20 +1980,26 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         if (IsAutoBoardBusy)
+        {
             return;
+        }
 
         var ok = await _dialog.Confirm(
             "重开注入任务",
             $"将重开选中的 {selectedRows.Count} 条 SUCCESS / DISCARDED 任务，并重置为可执行队列。确认继续？").ConfigureAwait(false);
         if (!ok)
+        {
             return;
+        }
 
         if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
                 SensitiveOperationKind.MsfxReopen,
                 "任务重开",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
                 "manual reopen from ui").ConfigureAwait(false))
+        {
             return;
+        }
 
         try
         {
@@ -1973,9 +2040,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
 
             if (failedCount == 0)
+            {
                 _toast.Success("任务重开", $"成功 {successCount} 条，失败 {failedCount} 条");
+            }
             else
+            {
                 _toast.Warn("任务重开", $"成功 {successCount} 条，失败 {failedCount} 条");
+            }
 
             await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
         }
@@ -2004,20 +2075,26 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         if (IsAutoBoardBusy)
+        {
             return;
+        }
 
         var ok = await _dialog.Confirm(
             "弃用注入任务",
             $"将弃用选中的 {selectedRows.Count} 条任务。弃用后 Agent 将不再执行这些任务。确认继续？").ConfigureAwait(false);
         if (!ok)
+        {
             return;
+        }
 
         if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
                 SensitiveOperationKind.MsfxDiscard,
                 "任务弃用",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
                 "manual discard from ui").ConfigureAwait(false))
+        {
             return;
+        }
 
         try
         {
@@ -2058,9 +2135,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
 
             if (failedCount == 0)
+            {
                 _toast.Success("任务弃用", $"成功 {successCount} 条，失败 {failedCount} 条");
+            }
             else
+            {
                 _toast.Warn("任务弃用", $"成功 {successCount} 条，失败 {failedCount} 条");
+            }
 
             await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
         }
@@ -2088,20 +2169,26 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         if (IsAutoBoardBusy)
+        {
             return;
+        }
 
         var ok = await _dialog.Confirm(
             "回退到映射队列",
             $"将把选中的 {selectedRows.Count} 条任务回退到映射结果队列，并等待重新映射。原任务会停止执行并保留审计记录。确认继续？").ConfigureAwait(false);
         if (!ok)
+        {
             return;
+        }
 
         if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
                 SensitiveOperationKind.MsfxRemap,
                 "重新映射",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
                 "manual remap from task queue").ConfigureAwait(false))
+        {
             return;
+        }
 
         try
         {
@@ -2145,9 +2232,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
 
             if (failedCount == 0)
+            {
                 _toast.Success("重新映射", $"成功 {successCount} 条，回退码 {resetStagingCount} 条");
+            }
             else
+            {
                 _toast.Warn("重新映射", $"成功 {successCount} 条，失败 {failedCount} 条，回退码 {resetStagingCount} 条");
+            }
 
             ResetMapQueueCursor();
             await RefreshMapQueueLatestAsync().ConfigureAwait(false);
@@ -2190,21 +2281,27 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         if (IsAutoBoardBusy)
+        {
             return;
+        }
 
         var totalCodes = selectedRows.Sum(x => x.TotalCodes);
         var ok = await _dialog.Confirm(
             "合并任务",
             $"将把选中的 {selectedRows.Count} 条任务合并为 1 条执行任务，总码数约 {totalCodes} 条。允许跨 bill.code 合并，确认继续？").ConfigureAwait(false);
         if (!ok)
+        {
             return;
+        }
 
         if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
                 SensitiveOperationKind.MsfxMerge,
                 "合并任务",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
                 "manual merge from task queue").ConfigureAwait(false))
+        {
             return;
+        }
 
         try
         {
@@ -2260,7 +2357,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         if (IsAutoBoardBusy)
+        {
             return;
+        }
 
         var splitUnits = await _syncService.LoadMsfxTaskSplitUnitsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
         var splitCodeRows = await _syncService.LoadMsfxTaskSplitCodeRowsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
@@ -2271,7 +2370,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             TotalCodes: taskRow.TotalCodes,
             SplitCodeRows: splitCodeRows)).ConfigureAwait(false);
         if (choice.Action == MsfxTaskSplitDialogAction.Cancel)
+        {
             return;
+        }
 
         var splitReason = choice.Action == MsfxTaskSplitDialogAction.CustomQuantity
             ? $"manual custom split from task queue: {choice.CustomQuantities}"
@@ -2281,7 +2382,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 "拆分任务",
                 taskRow.TaskId.ToString(CultureInfo.InvariantCulture),
                 splitReason).ConfigureAwait(false))
+        {
             return;
+        }
 
         try
         {
@@ -2363,7 +2466,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task OpenMapBatchDialogAsync()
     {
         if (IsAutoBoardBusy)
+        {
             return;
+        }
 
         try
         {
@@ -2389,7 +2494,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 Keyword: string.Empty)).ConfigureAwait(false);
 
             if (res.Action == MsfxMappingBatchDialogAction.Cancel)
+            {
                 return;
+            }
 
             if (res.Group is null)
             {
@@ -2440,7 +2547,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             };
             var ok = await _dialog.Confirm("批量映射", confirmMsg).ConfigureAwait(false);
             if (!ok)
+            {
                 return;
+            }
 
             var mappingKind = res.Action == MsfxMappingBatchDialogAction.DiscardTask
                 ? SensitiveOperationKind.MsfxDiscard
@@ -2453,7 +2562,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     "批量映射",
                     $"{group.SourceDrugNameRaw}/{group.SourceSpecRaw}",
                     mappingReason).ConfigureAwait(false))
+            {
                 return;
+            }
 
             var apply = await _syncService.ApplyMsfxMappingBatchAsync(
                 mapStatus: null,
@@ -2520,7 +2631,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private Task ShowPullBatchDetailAsync(MsfxAutoPullBatchGridRow? row)
     {
         if (row is null)
+        {
             return Task.CompletedTask;
+        }
 
         var items = new List<InfoDetailItem>
         {
@@ -2548,7 +2661,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private Task ShowTaskQueueDetailAsync(MsfxAutoTaskQueueGridRow? row)
     {
         if (row is null)
+        {
             return Task.CompletedTask;
+        }
 
         var items = new List<InfoDetailItem>
         {
@@ -2578,7 +2693,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private Task ShowAutoLogDetailAsync(MsfxAutoLogRow? row)
     {
         if (row is null)
+        {
             return Task.CompletedTask;
+        }
+
         return _dialog.ShowMsfxStateDetailDialog(new MsfxStateDetailDialogModel(
             Header: "运行日志详情",
             SubHeader: "自动化执行链路事件",
@@ -2632,7 +2750,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             AddAutoLog("审计", $"刷新数据库概览失败：{ex.Message}", TraceEntryState.Warning);
             LogWarn("msfx.audit.snapshot.refresh_fail", "MSFX snapshot refresh failed", ex);
             if (IsDbConnected)
+            {
                 _toast.Error("刷新审计", ex.Message);
+            }
         }
     }
 
@@ -2688,7 +2808,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     State: ToBatchState(x.Status))).ToList();
             PullBatchTotalCount = _allPullBatchRows.Count;
             if (PullBatchPage > PullBatchTotalPages)
+            {
                 PullBatchPage = PullBatchTotalPages;
+            }
+
             ApplyPullBatchPage();
         });
         return snap;
@@ -2728,7 +2851,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     State: ToTaskState(x.Status)))
                 .ToList();
             foreach (var row in _allTaskQueueRows)
+            {
                 row.IsChecked = checkedIds.Contains(row.TaskId);
+            }
 
             ApplyTaskQueueFilter();
             SyncCheckedAutoTaskQueueRows();
@@ -2741,7 +2866,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var keyword = TaskQueueKeyword?.Trim() ?? string.Empty;
         IEnumerable<MsfxAutoTaskQueueGridRow> filtered = _allTaskQueueRows;
         if (!string.Equals(TaskQueueStatusFilter, "ALL", StringComparison.OrdinalIgnoreCase))
+        {
             filtered = filtered.Where(row => string.Equals(row.Status, TaskQueueStatusFilter, StringComparison.OrdinalIgnoreCase));
+        }
+
         if (!string.IsNullOrWhiteSpace(keyword))
         {
             filtered = filtered.Where(row => TaskQueueSearchScope switch
@@ -2759,7 +2887,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         AutoTaskQueueRows.Clear();
         foreach (var row in filtered)
+        {
             AutoTaskQueueRows.Add(row);
+        }
 
         OnPropertyChanged(nameof(CanEnterTaskMergeMode));
         OnPropertyChanged(nameof(CanEnterTaskRemapMode));
@@ -2873,21 +3003,31 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         bool Dfs(int index)
         {
             if (index >= ordered.Count)
+            {
                 return remaining.All(x => x == 0);
+            }
 
             var unit = ordered[index];
             var triedRemaining = new HashSet<int>();
             for (var bucket = 0; bucket < remaining.Length; bucket++)
             {
                 if (remaining[bucket] < unit.CodeCount)
+                {
                     continue;
+                }
+
                 if (!triedRemaining.Add(remaining[bucket]))
+                {
                     continue;
+                }
 
                 remaining[bucket] -= unit.CodeCount;
                 placed[index] = bucket + 1;
                 if (Dfs(index + 1))
+                {
                     return true;
+                }
+
                 remaining[bucket] += unit.CodeCount;
                 placed[index] = 0;
             }
@@ -2896,7 +3036,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         if (!Dfs(0))
+        {
             return null;
+        }
 
         return ordered.Select((unit, idx) => (unit.GroupKey, placed[idx])).ToList();
     }
@@ -2904,7 +3046,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task RefreshMapQueueLatestAsync()
     {
         if (IsAutoBoardBusy || SelectedTabIndex != 0)
+        {
             return;
+        }
 
         await RunLocalReloadAsync(
             setBusy: v => IsAutoBoardBusy = v,
@@ -2979,9 +3123,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             if (fullMapMode)
             {
                 if (olderPage == true)
+                {
                     requestedPage = Math.Max(1, MapQueuePage + 1);
+                }
                 else if (olderPage == false)
+                {
                     requestedPage = Math.Max(1, MapQueuePage - 1);
+                }
             }
 
             var displayStart = ((requestedPage - 1) * pageSize) + 1;
@@ -3022,11 +3170,17 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             if (fullMapMode)
             {
                 if (olderPage == true && page.Rows.Count > 0)
+                {
                     MapQueuePage += 1;
+                }
                 else if (olderPage == false && page.Rows.Count > 0)
+                {
                     MapQueuePage = Math.Max(1, MapQueuePage - 1);
+                }
                 else if (olderPage is null)
+                {
                     MapQueuePage = 1;
+                }
             }
             else
             {
@@ -3066,7 +3220,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async void OnAutoTimerTick(object? sender, EventArgs e)
     {
         if (!IsAutoEnabled || IsAutoBusy)
+        {
             return;
+        }
 
         await RunAutoOnceInternalAsync(showProgressPanel: false);
     }
@@ -3078,11 +3234,19 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var ent = NormalizeText(UpoutFromEntKeyword);
 
         if (!string.IsNullOrWhiteSpace(bill) && !ContainsIgnoreCase(item.BillCode, bill))
+        {
             return false;
+        }
+
         if (!string.IsNullOrWhiteSpace(drug) && !ContainsIgnoreCase(item.PhysicName, drug))
+        {
             return false;
+        }
+
         if (!string.IsNullOrWhiteSpace(ent) && !ContainsIgnoreCase(item.FromEntName, ent))
+        {
             return false;
+        }
 
         return true;
     }
@@ -3093,7 +3257,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private int GetPageSize()
     {
         if (!int.TryParse(UpoutPageSize, out var pageSize))
+        {
             return 20;
+        }
 
         return Math.Clamp(pageSize, 1, 200);
     }
@@ -3101,7 +3267,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private int GetSubcodePageSize()
     {
         if (!int.TryParse(SubcodePageSize, out var pageSize))
+        {
             return 200;
+        }
 
         return Math.Clamp(pageSize, 20, 2000);
     }
@@ -3109,7 +3277,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private int GetPullBatchPageSize()
     {
         if (!int.TryParse(PullBatchPageSize, out var pageSize))
+        {
             return 20;
+        }
 
         return Math.Clamp(pageSize, 10, 500);
     }
@@ -3119,7 +3289,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var pageSize = GetPullBatchPageSize();
         var totalPages = Math.Max(1, (int)Math.Ceiling(PullBatchTotalCount / (double)pageSize));
         if (PullBatchPage > totalPages)
+        {
             PullBatchPage = totalPages;
+        }
 
         var page = Math.Max(1, PullBatchPage);
         var skip = (page - 1) * pageSize;
@@ -3127,7 +3299,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         AutoPullBatchRows.Clear();
         foreach (var row in rows)
+        {
             AutoPullBatchRows.Add(row);
+        }
 
         HasPullBatchPrevPage = page > 1;
         HasPullBatchNextPage = page < totalPages;
@@ -3136,7 +3310,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private int GetMapQueuePageSize()
     {
         if (!int.TryParse(MapQueuePageSize, out var pageSize))
+        {
             return 120;
+        }
 
         return Math.Clamp(pageSize, 1, 500);
     }
@@ -3157,7 +3333,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             var endExclusive = Math.Min(offset + pageSize, _allSubCodeRows.Count);
             for (var i = offset; i < endExclusive; i++)
+            {
                 SubCodeRows.Add(_allSubCodeRows[i]);
+            }
         }
 
         OnPropertyChanged(nameof(HasSubcodePrevPage));
@@ -3168,7 +3346,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     {
         var options = _configStore.Load().MsfxApi ?? new MsfxApiOptions();
         if (string.IsNullOrWhiteSpace(options.RefEntId))
+        {
             throw new InvalidOperationException("请先在设置页面配置接收企业 RefEntId");
+        }
 
         return options;
     }
@@ -3183,7 +3363,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     {
         var text = (value ?? string.Empty).Trim();
         if (text.Length == 0 || string.Equals(text, "ALL", StringComparison.OrdinalIgnoreCase))
+        {
             return null;
+        }
+
         return text;
     }
 
@@ -3222,7 +3405,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var normalizedMessage = (message ?? string.Empty).Trim();
         var signature = $"{normalizedStage}|{normalizedMessage}|{state}";
         if (string.Equals(_lastAutoLogSignature, signature, StringComparison.Ordinal))
+        {
             return;
+        }
 
         var row = new MsfxAutoLogRow(
             At: DateTime.Now.ToString("HH:mm:ss"),
@@ -3235,7 +3420,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             _lastAutoLogSignature = signature;
             AutoLogs.Insert(0, row);
             while (AutoLogs.Count > AutoLogMaxRows)
+            {
                 AutoLogs.RemoveAt(AutoLogs.Count - 1);
+            }
         }, DispatcherPriority.Background);
     }
 
@@ -3290,17 +3477,28 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var parts = new List<string>(4);
         var biz = $"{call.BizCode} {call.BizMessage}".Trim();
         if (!string.IsNullOrWhiteSpace(biz))
+        {
             parts.Add(biz);
+        }
+
         if (!string.IsNullOrWhiteSpace(call.Summary))
+        {
             parts.Add(call.Summary.Trim());
+        }
+
         if (!string.IsNullOrWhiteSpace(call.RequestId))
+        {
             parts.Add($"request_id={call.RequestId.Trim()}");
+        }
 
         if (parts.Count == 0 && !string.IsNullOrWhiteSpace(call.ResponseText))
         {
             var text = call.ResponseText.Trim().Replace("\r", " ").Replace("\n", " ");
             if (text.Length > 220)
+            {
                 text = text[..220] + "...";
+            }
+
             parts.Add(text);
         }
 

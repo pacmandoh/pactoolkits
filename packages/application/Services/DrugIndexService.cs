@@ -41,7 +41,9 @@ public sealed class DrugIndexService : IDrugIndexService
     public async Task<DrugIndexSaveResult> SaveAsync(DrugIndexSaveRequest request, CancellationToken ct)
     {
         if (!request.IsNew && request.HasPrimaryKeyChanges)
+        {
             return new DrugIndexSaveResult(DrugSaveOutcome.BlockedPrimaryKeyChange, null, null);
+        }
 
         if (!request.IsNew && request.HasQtyChanged)
         {
@@ -56,7 +58,9 @@ public sealed class DrugIndexService : IDrugIndexService
                     sourceSpec,
                     ct).ConfigureAwait(false);
                 if (preview.TracePoolAffected > 0 || preview.TraceTxnAffected > 0)
+                {
                     return new DrugIndexSaveResult(DrugSaveOutcome.BlockedQtyChange, null, null);
+                }
             }
         }
 
@@ -64,7 +68,9 @@ public sealed class DrugIndexService : IDrugIndexService
         {
             var exists = await _repo.ExistsAsync(request.Dto.DrugId, request.Dto.Spec, ct).ConfigureAwait(false);
             if (exists)
+            {
                 return new DrugIndexSaveResult(DrugSaveOutcome.BlockedDuplicate, null, null);
+            }
         }
 
         try

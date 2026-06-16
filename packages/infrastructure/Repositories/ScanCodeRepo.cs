@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using PacToolkits.Application.Abstractions;
@@ -29,13 +25,24 @@ public sealed class ScanCodeRepo : IScanCodeRepo
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(drugId))
+        {
             throw new ArgumentException("drug_id 不能为空", nameof(drugId));
+        }
+
         if (string.IsNullOrWhiteSpace(spec))
+        {
             throw new ArgumentException("spec 不能为空", nameof(spec));
+        }
+
         if (qty <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(qty), "qty 必须大于 0");
+        }
+
         if (traceCodes.Count == 0)
+        {
             return Task.FromResult(new ScanCodeInsertResult(0, 0, 0));
+        }
 
         return InsertWithRetryAsync(drugId, spec, qty, traceCodes, ct);
     }
@@ -95,7 +102,9 @@ public sealed class ScanCodeRepo : IScanCodeRepo
 
         await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
         if (!await reader.ReadAsync(token).ConfigureAwait(false))
+        {
             return new ScanCodeInsertResult(0, 0, 0);
+        }
 
         var requested = reader.GetInt32(0);
         var inserted = reader.GetInt32(1);
