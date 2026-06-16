@@ -29,7 +29,7 @@
                     TextWrapping="NoWrap"
 
                     AcceptsReturn="False"
-                    Watermark="搜索：药品名 / 规格 / 简称 / 前缀 / 备注..."
+                    PlaceholderText="搜索：药品名 / 规格 / 简称 / 前缀 / 备注..."
                     KeyUp="DrugIndexSearchBox_OnKeyUp"
                     Text="{Binding Keyword, Mode=TwoWay}">
                   <TextBox.KeyBindings>
@@ -337,40 +337,40 @@
                     VerticalContentAlignment="Center"
                     TextWrapping="NoWrap"
                     AcceptsReturn="False"
-                    Watermark="药品名（必填）"
+                    PlaceholderText="药品名（必填）"
                     Text="{Binding EditDrugId, Mode=TwoWay}" />
 
                 <TextBox Classes="FilterSearchTextBox"
                     VerticalContentAlignment="Center"
                     TextWrapping="NoWrap"
                     AcceptsReturn="False"
-                    Watermark="规格（必填）"
+                    PlaceholderText="规格（必填）"
                     Text="{Binding EditSpec, Mode=TwoWay}" />
 
                 <NumericUpDown Minimum="1"
                        Maximum="999999"
                        Value="{Binding EditQty, Mode=TwoWay}"
                        FormatString="0"
-                       Watermark="单盒数量（必填）" />
+                       PlaceholderText="单盒数量（必填）" />
 
                 <TextBox Classes="FilterSearchTextBox"
                     VerticalContentAlignment="Center"
                     TextWrapping="NoWrap"
                     AcceptsReturn="False"
-                    Watermark="简称（可选）"
+                    PlaceholderText="简称（可选）"
                     Text="{Binding EditRuleKey, Mode=TwoWay}" />
 
                 <TextBox Classes="FilterSearchTextBox"
                     VerticalContentAlignment="Center"
                     TextWrapping="NoWrap"
                     AcceptsReturn="False"
-                    Watermark="追溯码前缀（可选）"
+                    PlaceholderText="追溯码前缀（可选）"
                     Text="{Binding EditPreTc, Mode=TwoWay}" />
 
                 <TextBox AcceptsReturn="True"
                     TextWrapping="Wrap"
                     MinHeight="140"
-                    Watermark="备注（可选，弃用/未拆零为特殊值）"
+                    PlaceholderText="备注（可选，弃用/未拆零为特殊值）"
                     Text="{Binding EditNote, Mode=TwoWay}" />
 
               </StackPanel>

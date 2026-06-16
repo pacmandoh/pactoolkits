@@ -35,14 +35,15 @@
   <suki:BusyArea BusyText="加载中..." IsBusy="{Binding IsBusy}">
     <Grid Classes="DashboardShell" RowDefinitions="Auto,Auto,*">
       <suki:GlassCard Grid.Row="0"
-              Classes="SectionCard"
+              Classes="SectionCard FilterSectionCard"
               Margin="{DynamicResource DashboardFilterCardMargin}"
               Padding="{DynamicResource DashboardFilterCardPadding}">
         <Grid ColumnDefinitions="1.9*,1.35*,1.15*,1.35*"
            ColumnSpacing="{DynamicResource PageColumnSpacing}"
-           VerticalAlignment="Center">
-          <suki:GlassCard Grid.Column="0" Classes="FilterFieldCard">
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FilterFieldRowSpacing}">
+           VerticalAlignment="Stretch">
+          <suki:GlassCard Grid.Column="0" Classes="FilterFieldCard" VerticalAlignment="Stretch">
+            <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
+               VerticalAlignment="Stretch">
               <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
                 <StackPanel Grid.Column="0" Classes="SectionHeaderStack" Spacing="{DynamicResource SpacingInlineSm}"
                       VerticalAlignment="Center">
@@ -75,25 +76,31 @@
                             Height="{DynamicResource IconSizeSmall}" />
                 </Button>
               </Grid>
-              <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <CalendarDatePicker Grid.Column="0"
+              <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}"
+                 VerticalAlignment="Bottom">
+                <controls:FilterFieldInput Grid.Column="0">
+                  <CalendarDatePicker
                           MinWidth="126"
                           IsTodayHighlighted="True"
                           SelectedDate="{Binding FromDate}"
                           DisplayDateEnd="{Binding FromMaxDate}" />
-                <CalendarDatePicker Grid.Column="1"
+                </controls:FilterFieldInput>
+                <controls:FilterFieldInput Grid.Column="1">
+                  <CalendarDatePicker
                           MinWidth="126"
                           IsTodayHighlighted="True"
                           SelectedDate="{Binding ToDate}"
                           DisplayDateStart="{Binding ToMinDate}"
                           DisplayDateEnd="{Binding ToMaxDate}"
                           SelectedDateFormat="Short" />
+                </controls:FilterFieldInput>
               </Grid>
             </Grid>
           </suki:GlassCard>
 
-          <suki:GlassCard Grid.Column="1" Classes="FilterFieldCard">
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FilterFieldRowSpacing}">
+          <suki:GlassCard Grid.Column="1" Classes="FilterFieldCard" VerticalAlignment="Stretch">
+            <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
+               VerticalAlignment="Stretch">
               <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon Grid.Column="0"
                           Kind="Pill"
@@ -114,33 +121,26 @@
                             Height="{DynamicResource IconSizeSmall}" />
                 </Button>
               </Grid>
-              <Border Grid.Row="1"
-                  Height="{StaticResource ControlHeightCompact}"
-                  Classes="AutoCompleteInputHost"
-                  Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
-                  Padding="8,0">
-                <AutoCompleteBox x:Name="DrugBox"
-                        Height="32"
-                        BorderThickness="0"
-                        Background="Transparent"
+              <controls:PlainAutoCompleteBox Grid.Row="1"
+                        x:Name="DrugBox"
+                        VerticalAlignment="Bottom"
                         ItemsSource="{Binding DrugOptions}"
                         Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}"
-                        FilterMode="Contains"
-                        Watermark="全部药品"
-                        KeyDown="DrugBox_OnKeyDown"
-                        IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}">
-                  <AutoCompleteBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:OptionItem">
-                      <TextBlock Text="{Binding Display}" />
-                    </DataTemplate>
-                  </AutoCompleteBox.ItemTemplate>
-                </AutoCompleteBox>
-              </Border>
+                        PlaceholderText="全部药品"
+                        IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
+                        KeyDown="DrugBox_OnKeyDown">
+                <controls:PlainAutoCompleteBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:OptionItem">
+                    <TextBlock Text="{Binding Display}" />
+                  </DataTemplate>
+                </controls:PlainAutoCompleteBox.ItemTemplate>
+              </controls:PlainAutoCompleteBox>
             </Grid>
           </suki:GlassCard>
 
-          <suki:GlassCard Grid.Column="2" Classes="FilterFieldCard">
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+          <suki:GlassCard Grid.Column="2" Classes="FilterFieldCard" VerticalAlignment="Stretch">
+            <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
+               VerticalAlignment="Stretch">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}"
                     VerticalAlignment="Center">
                 <icons:AppIcon Kind="SlidersHorizontal"
@@ -151,17 +151,20 @@
                      Opacity="{StaticResource SectionHintOpacity}"
                      FontSize="{DynamicResource SectionHintSize}" />
               </StackPanel>
-              <ComboBox Grid.Row="1"
-                   x:Name="SpecBox"
-                   ItemsSource="{Binding SpecOptions}"
-                   SelectedItem="{Binding SelectedSpec}"
-                   DisplayMemberBinding="{Binding Display}"
-                   HorizontalContentAlignment="Stretch" />
+              <controls:FilterFieldInput Grid.Row="1">
+                <ComboBox
+                     x:Name="SpecBox"
+                     ItemsSource="{Binding SpecOptions}"
+                     SelectedItem="{Binding SelectedSpec}"
+                     DisplayMemberBinding="{Binding Display}"
+                     HorizontalContentAlignment="Stretch" />
+              </controls:FilterFieldInput>
             </Grid>
           </suki:GlassCard>
 
-          <suki:GlassCard Grid.Column="3" Classes="FilterFieldCard">
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+          <suki:GlassCard Grid.Column="3" Classes="FilterFieldCard" VerticalAlignment="Stretch">
+            <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
+               VerticalAlignment="Stretch">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}"
                     VerticalAlignment="Center">
                 <icons:AppIcon Kind="Laptop"
@@ -172,10 +175,13 @@
                      Opacity="{StaticResource SectionHintOpacity}"
                      FontSize="{DynamicResource SectionHintSize}" />
               </StackPanel>
-              <ComboBox Grid.Row="1"
-                   ItemsSource="{Binding Clients}"
-                   SelectedItem="{Binding SelectedClient}"
-                   DisplayMemberBinding="{Binding Display}" />
+              <controls:FilterFieldInput Grid.Row="1">
+                <ComboBox
+                     ItemsSource="{Binding Clients}"
+                     SelectedItem="{Binding SelectedClient}"
+                     DisplayMemberBinding="{Binding Display}"
+                     HorizontalContentAlignment="Stretch" />
+              </controls:FilterFieldInput>
             </Grid>
           </suki:GlassCard>
 
@@ -190,7 +196,7 @@
           <TabItem>
             <TabItem.Header>
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                <icons:AppIcon Kind="ChartLine" Width="12" Height="12" />
+                <icons:AppIcon Kind="ChartLine" />
                 <TextBlock Text="总览" />
               </StackPanel>
             </TabItem.Header>
@@ -198,7 +204,7 @@
           <TabItem>
             <TabItem.Header>
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                <icons:AppIcon Kind="Clipboard" Width="12" Height="12" />
+                <icons:AppIcon Kind="Clipboard" />
                 <TextBlock Text="录入" />
               </StackPanel>
             </TabItem.Header>
@@ -206,7 +212,7 @@
           <TabItem>
             <TabItem.Header>
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                <icons:AppIcon Kind="ArrowRightLeft" Width="12" Height="12" />
+                <icons:AppIcon Kind="ArrowRightLeft" />
                 <TextBlock Text="事务" />
               </StackPanel>
             </TabItem.Header>
@@ -214,7 +220,7 @@
           <TabItem Classes="NoDivider">
             <TabItem.Header>
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                <icons:AppIcon Kind="OctagonAlert" Width="12" Height="12" />
+                <icons:AppIcon Kind="OctagonAlert" />
                 <TextBlock Text="异常" />
               </StackPanel>
             </TabItem.Header>
@@ -259,9 +265,11 @@
                      Opacity="0.85"
                      Margin="{DynamicResource MarginLeftSm}" />
 
-                <suki:InfoBadge Grid.Row="0" Grid.Column="2"
-                        Content="库存"
-                        HorizontalAlignment="Right" />
+                <TextBlock Grid.Row="0" Grid.Column="2"
+                     Text="{Binding Kpi.AvailableRemainPct, StringFormat={}{0:F0}%}"
+                     Classes="SectionHint"
+                     HorizontalAlignment="Right"
+                     VerticalAlignment="Center" />
 
                 <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
                      Text="{Binding Kpi.AvailableRemain}"
@@ -274,11 +282,12 @@
                      TextWrapping="Wrap"
                      MaxLines="2" />
 
-                <suki:WaveProgress Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
-                         Width="200"
-                         Height="200"
-                         HorizontalAlignment="Center"
+                <ProgressBar Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                         Minimum="0"
+                         Maximum="100"
+                         Height="6"
                          Margin="{DynamicResource MarginTopMd}"
+                         Foreground="{Binding Kpi.AvailableRemainPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Remain}"
                          Value="{Binding Kpi.AvailableRemainPct}" />
               </Grid>
             </suki:GlassCard>
@@ -300,9 +309,11 @@
                      Opacity="0.85"
                      Margin="{DynamicResource MarginLeftSm}" />
 
-                <suki:InfoBadge Grid.Row="0" Grid.Column="2"
-                        Content="期间"
-                        HorizontalAlignment="Right" />
+                <TextBlock Grid.Row="0" Grid.Column="2"
+                     Text="{Binding Kpi.PeriodUsedPct, StringFormat={}{0:F0}%}"
+                     Classes="SectionHint"
+                     HorizontalAlignment="Right"
+                     VerticalAlignment="Center" />
 
                 <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
                      Text="{Binding Kpi.PeriodUsed}"
@@ -315,11 +326,12 @@
                      TextWrapping="Wrap"
                      MaxLines="2" />
 
-                <suki:WaveProgress Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
-                         Width="200"
-                         Height="200"
-                         HorizontalAlignment="Center"
+                <ProgressBar Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                         Minimum="0"
+                         Maximum="100"
+                         Height="6"
                          Margin="{DynamicResource MarginTopMd}"
+                         Foreground="{Binding Kpi.PeriodUsedPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
                          Value="{Binding Kpi.PeriodUsedPct}" />
               </Grid>
             </suki:GlassCard>
@@ -342,9 +354,11 @@
                      Opacity="0.85"
                      Margin="{DynamicResource MarginLeftSm}" />
 
-                <suki:InfoBadge Grid.Row="0" Grid.Column="2"
-                        Content="注意"
-                        HorizontalAlignment="Right" />
+                <TextBlock Grid.Row="0" Grid.Column="2"
+                     Text="{Binding Kpi.AbnormalPct, StringFormat={}{0:F0}%}"
+                     Classes="SectionHint"
+                     HorizontalAlignment="Right"
+                     VerticalAlignment="Center" />
 
                 <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
                      Text="{Binding Kpi.Abnormal}"
@@ -358,11 +372,12 @@
                      TextWrapping="Wrap"
                      MaxLines="2" />
 
-                <suki:WaveProgress Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
-                         Width="200"
-                         Height="200"
-                         HorizontalAlignment="Center"
+                <ProgressBar Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                         Minimum="0"
+                         Maximum="100"
+                         Height="6"
                          Margin="{DynamicResource MarginTopMd}"
+                         Foreground="{Binding Kpi.AbnormalPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
                          Value="{Binding Kpi.AbnormalPct}" />
               </Grid>
             </suki:GlassCard>
@@ -386,8 +401,11 @@
                      Opacity="0.85"
                      Margin="{DynamicResource MarginLeftSm}" />
 
-                <suki:InfoBadge Grid.Row="0" Grid.Column="2" Content="告警"
-                        HorizontalAlignment="Right" />
+                <TextBlock Grid.Row="0" Grid.Column="2"
+                     Text="{Binding Kpi.LowStockPct, StringFormat={}{0:F0}%}"
+                     Classes="SectionHint"
+                     HorizontalAlignment="Right"
+                     VerticalAlignment="Center" />
 
                 <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
                      Text="{Binding Kpi.LowStockCount}"
@@ -401,11 +419,12 @@
                      TextWrapping="Wrap"
                      MaxLines="2" />
 
-                <suki:WaveProgress Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
-                         Width="200"
-                         Height="200"
-                         HorizontalAlignment="Center"
+                <ProgressBar Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                         Minimum="0"
+                         Maximum="100"
+                         Height="6"
                          Margin="{DynamicResource MarginTopMd}"
+                         Foreground="{Binding Kpi.LowStockPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
                          Value="{Binding Kpi.LowStockPct}" />
               </Grid>
             </suki:GlassCard>

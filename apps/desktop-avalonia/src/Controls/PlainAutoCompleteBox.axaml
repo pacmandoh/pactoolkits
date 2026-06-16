@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+      x:Class="PacToolkits.Desktop.Avalonia.Controls.PlainAutoCompleteBox"
+      x:Name="Root"
+      Background="Transparent"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch">
+  <suki:GlassCard Classes="AutoCompleteInputHost"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch">
+    <AutoCompleteBox x:Name="InnerBox"
+                     Classes="FilterFieldInnerInput"
+                     HorizontalAlignment="Stretch"
+                     VerticalAlignment="Stretch"
+                     FilterMode="{Binding FilterMode, ElementName=Root}"
+                     MinimumPrefixLength="{Binding MinimumPrefixLength, ElementName=Root}"
+                     IsTextCompletionEnabled="{Binding IsTextCompletionEnabled, ElementName=Root}"
+                     Text="{Binding Text, ElementName=Root, Mode=TwoWay, TargetNullValue='', FallbackValue=''}"
+                     ItemsSource="{Binding ItemsSource, ElementName=Root}"
+                     PlaceholderText="{Binding PlaceholderText, ElementName=Root}"
+                     IsDropDownOpen="{Binding IsDropDownOpen, ElementName=Root, Mode=TwoWay}"
+                     ItemTemplate="{Binding ItemTemplate, ElementName=Root}"
+                     IsEnabled="{Binding IsEnabled, ElementName=Root}" />
+  </suki:GlassCard>
+</UserControl>

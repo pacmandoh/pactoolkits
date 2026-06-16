@@ -95,26 +95,17 @@
                 <icons:AppIcon Kind="Pill" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
                 <TextBlock Text="药品名称" Opacity="0.82" />
               </StackPanel>
-              <Border Grid.Row="1"
-                  Height="{DynamicResource ControlHeightCompact}"
-                  Classes="AutoCompleteInputHost"
-                  Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
-                  Padding="8,0">
-                <AutoCompleteBox x:Name="DrugIdBox"
-                        Height="{StaticResource ControlHeightCompact}"
-                        BorderThickness="0"
-                        Background="Transparent"
-                        Watermark="输入院内药品信息"
-                        MinimumPrefixLength="1"
-                        IsTextCompletionEnabled="False"
-                        KeyDown="DrugIdBox_OnKeyDown">
-                  <AutoCompleteBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:OptionItem">
-                      <TextBlock Text="{Binding Display}" />
-                    </DataTemplate>
-                  </AutoCompleteBox.ItemTemplate>
-                </AutoCompleteBox>
-              </Border>
+              <controls:PlainAutoCompleteBox Grid.Row="1"
+                  x:Name="DrugIdBox"
+                  PlaceholderText="输入院内药品信息"
+                  MinimumPrefixLength="1"
+                  KeyDown="DrugIdBox_OnKeyDown">
+                <controls:PlainAutoCompleteBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:OptionItem">
+                    <TextBlock Text="{Binding Display}" />
+                  </DataTemplate>
+                </controls:PlainAutoCompleteBox.ItemTemplate>
+              </controls:PlainAutoCompleteBox>
             </Grid>
           </con:GlassCard>
 

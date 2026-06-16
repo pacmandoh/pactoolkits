@@ -76,7 +76,7 @@
                   IsEnabled="{Binding !IsUiBusy}"
                   TextWrapping="NoWrap"
                   AcceptsReturn="False"
-                  Watermark="搜索：药品名 / 规格 / 追溯码"
+                  PlaceholderText="搜索：药品名 / 规格 / 追溯码"
                   KeyUp="InventorySearchBox_OnKeyUp"
                   Text="{Binding Keyword, Mode=TwoWay}">
                 <TextBox.KeyBindings>
@@ -265,37 +265,27 @@
               <Grid Grid.Row="1"
                  ColumnDefinitions="2.3*,1.5*,160,2*"
                  ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                <Border Grid.Column="0"
-                    Height="{StaticResource ControlHeightCompact}"
-                    Classes="AutoCompleteInputHost"
-                    Classes.DarkMode="{ReflectionBinding DataContext.IsNightMode, RelativeSource={RelativeSource AncestorType=Window}}"
-                    Padding="8,0">
-                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon Grid.Column="0"
+                <Grid Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineSm}">
+                  <icons:AppIcon Grid.Column="0"
                               Kind="Pill"
                               Width="{DynamicResource IconSizeCompact}"
                               Height="{DynamicResource IconSizeCompact}"
                               VerticalAlignment="Center"
                               Opacity="{StaticResource SectionHintOpacity}" />
-                    <AutoCompleteBox Grid.Column="1"
-                            Height="32"
+                  <controls:PlainAutoCompleteBox Grid.Column="1"
                             x:Name="ReassignDrugBox"
-                            BorderThickness="0"
-                            Background="Transparent"
                             ItemsSource="{Binding ReassignDrugOptions}"
                             Text="{Binding ReassignDrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}"
-                            FilterMode="Contains"
                             IsDropDownOpen="{Binding IsReassignDrugSuggestOpen, Mode=TwoWay}"
-                            Watermark="目标药品名（必填）"
+                            PlaceholderText="目标药品名（必填）"
                             KeyDown="ReassignDrugBox_OnKeyDown">
-                      <AutoCompleteBox.ItemTemplate>
-                        <DataTemplate x:DataType="vm:OptionItem">
-                          <TextBlock Text="{Binding Display}" />
-                        </DataTemplate>
-                      </AutoCompleteBox.ItemTemplate>
-                    </AutoCompleteBox>
-                  </Grid>
-                </Border>
+                    <controls:PlainAutoCompleteBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:OptionItem">
+                        <TextBlock Text="{Binding Display}" />
+                      </DataTemplate>
+                    </controls:PlainAutoCompleteBox.ItemTemplate>
+                  </controls:PlainAutoCompleteBox>
+                </Grid>
 
                 <Grid Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon Grid.Column="0"
@@ -332,7 +322,7 @@
                       IsEnabled="False"
                       TextWrapping="NoWrap"
                       AcceptsReturn="False"
-                      Watermark="纠错数量"
+                      PlaceholderText="纠错数量"
                       Text="{Binding ReassignQtyText, Mode=OneWay}" />
                 </Grid>
 
@@ -348,7 +338,7 @@
                       VerticalContentAlignment="Center"
                       TextWrapping="NoWrap"
                       AcceptsReturn="False"
-                      Watermark="纠错原因（必填）"
+                      PlaceholderText="纠错原因（必填）"
                       Text="{Binding ReassignReason, Mode=TwoWay}" />
                 </Grid>
               </Grid>
