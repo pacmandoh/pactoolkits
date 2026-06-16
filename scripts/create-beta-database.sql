@@ -2,18 +2,14 @@
 
 begin;
 
-create table if not exists public.app_environment_settings (
-  key text primary key,
-  value text not null default ''
-);
-
-insert into public.app_environment_settings(key, value)
+insert into public.app_environment_settings(environment, setting_key, setting_value)
 values
-  ('Database.Environment', 'isolated'),
-  ('Database.AllowBetaMigrations', 'true'),
-  ('Database.Source', :'database_source'),
-  ('Database.BetaVersion', :'beta_version')
-on conflict (key) do update
-set value = excluded.value;
+  ('isolated', 'Database.Environment', '"isolated"'::jsonb),
+  ('isolated', 'Database.AllowBetaMigrations', 'true'::jsonb),
+  ('isolated', 'Database.Source', to_jsonb(:'database_source'::text)),
+  ('isolated', 'Database.BetaVersion', to_jsonb(:'beta_version'::text))
+on conflict (environment, setting_key) do update
+set setting_value = excluded.setting_value,
+    updated_at = now();
 
 commit;

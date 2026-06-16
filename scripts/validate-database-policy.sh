@@ -77,9 +77,71 @@ channel="$(manifest_release_channel "$MANIFEST")"
 policy="$(manifest_database_migration_policy "$MANIFEST")"
 candidate_db_version="$(manifest_database_postgres_version "$MANIFEST")"
 
+LEGACY_MIGRATION_DIR="pactoolkits-db/sql/migrations"
+CURRENT_MIGRATION_DIR="database/postgres/sql/migrations"
+
+migration_dir_at_ref() {
+  local ref="$1"
+  if git ls-tree -r --name-only "$ref" -- "$CURRENT_MIGRATION_DIR" 2>/dev/null | grep -q .; then
+    printf '%s' "$CURRENT_MIGRATION_DIR"
+    return 0
+  fi
+  if git ls-tree -r --name-only "$ref" -- "$LEGACY_MIGRATION_DIR" 2>/dev/null | grep -q .; then
+    printf '%s' "$LEGACY_MIGRATION_DIR"
+    return 0
+  fi
+  printf ''
+}
+
+migration_basenames_at_ref() {
+  local ref="$1"
+  local dir="$2"
+  [[ -n "$dir" ]] || return 0
+  git ls-tree -r --name-only "$ref" -- "$dir" 2>/dev/null |
+    awk -F/ '{print $NF}' |
+    sort -u
+}
+
+migration_content_sha256() {
+  local ref="$1"
+  local dir="$2"
+  local basename="$3"
+  git show "${ref}:${dir}/${basename}" 2>/dev/null | shasum -a 256 | awk '{print $1}'
+}
+
+collect_migration_changes() {
+  local base_ref="$1"
+  local base_dir head_dir base_names head_names name
+
+  base_dir="$(migration_dir_at_ref "$base_ref")"
+  head_dir="$(migration_dir_at_ref "HEAD")"
+  [[ -n "$base_dir" || -n "$head_dir" ]] || return 0
+
+  base_names="$(migration_basenames_at_ref "$base_ref" "$base_dir")"
+  head_names="$(migration_basenames_at_ref "HEAD" "$head_dir")"
+
+  while IFS= read -r name; do
+    [[ -n "$name" ]] || continue
+    if ! grep -Fxq "$name" <<< "$head_names"; then
+      printf 'D\t%s\n' "$name"
+    fi
+  done <<< "$base_names"
+
+  while IFS= read -r name; do
+    [[ -n "$name" ]] || continue
+    if ! grep -Fxq "$name" <<< "$base_names"; then
+      printf 'A\t%s\n' "$name"
+      continue
+    fi
+    base_hash="$(migration_content_sha256 "$base_ref" "$base_dir" "$name")"
+    head_hash="$(migration_content_sha256 "HEAD" "$head_dir" "$name")"
+    [[ "$base_hash" == "$head_hash" ]] || printf 'M\t%s\n' "$name"
+  done <<< "$head_names"
+}
+
 migration_diff=""
 if git rev-parse --verify "$BASE_REF^{commit}" >/dev/null 2>&1; then
-  migration_diff="$(git diff --name-status "$BASE_REF"...HEAD -- database/postgres/sql/migrations || true)"
+  migration_diff="$(collect_migration_changes "$BASE_REF")"
 fi
 
 modified_applied="$(

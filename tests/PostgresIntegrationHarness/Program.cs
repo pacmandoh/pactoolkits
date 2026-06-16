@@ -121,12 +121,15 @@ try
                 throw new InvalidOperationException("expected NpgsqlConnection");
             await using var cmd = new NpgsqlCommand(
                 """
-                insert into public.app_environment_settings(key, value)
-                values (@k, @v)
-                on conflict (key) do update set value = excluded.value
+                insert into public.app_environment_settings(environment, setting_key, setting_value)
+                values (@env, @k, to_jsonb(@v::text))
+                on conflict (environment, setting_key) do update
+                set setting_value = excluded.setting_value,
+                    updated_at = now()
                 """,
                 npgsqlConn,
                 (NpgsqlTransaction)tx);
+            cmd.Parameters.AddWithValue("env", "integration-test");
             cmd.Parameters.AddWithValue("k", probeKey);
             cmd.Parameters.AddWithValue("v", "probe");
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
@@ -182,7 +185,12 @@ static async Task<int> CountEnvSettingAsync(PgOptions options, string key)
 {
     await using var conn = await OpenConnectionAsync(options);
     await using var cmd = conn.CreateCommand();
-    cmd.CommandText = "select count(*) from public.app_environment_settings where key = @k";
+    cmd.CommandText = """
+        select count(*)
+        from public.app_environment_settings
+        where environment = @env and setting_key = @k
+        """;
+    cmd.Parameters.AddWithValue("env", "integration-test");
     cmd.Parameters.AddWithValue("k", key);
     var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
     return Convert.ToInt32(result);

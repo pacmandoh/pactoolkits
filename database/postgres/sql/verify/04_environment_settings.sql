@@ -15,11 +15,11 @@ begin
     from information_schema.columns
     where table_schema = 'public'
       and table_name = 'app_environment_settings'
-      and column_name = 'key'
+      and column_name = 'environment'
       and data_type = 'text'
       and is_nullable = 'NO'
   ) then
-    raise exception 'invalid column: app_environment_settings.key';
+    raise exception 'invalid column: app_environment_settings.environment';
   end if;
 
   if not exists (
@@ -27,11 +27,23 @@ begin
     from information_schema.columns
     where table_schema = 'public'
       and table_name = 'app_environment_settings'
-      and column_name = 'value'
+      and column_name = 'setting_key'
       and data_type = 'text'
       and is_nullable = 'NO'
   ) then
-    raise exception 'invalid column: app_environment_settings.value';
+    raise exception 'invalid column: app_environment_settings.setting_key';
+  end if;
+
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'app_environment_settings'
+      and column_name = 'setting_value'
+      and udt_name = 'jsonb'
+      and is_nullable = 'NO'
+  ) then
+    raise exception 'invalid column: app_environment_settings.setting_value';
   end if;
 
   select exists (
@@ -45,11 +57,12 @@ begin
       and tc.table_name = 'app_environment_settings'
       and tc.constraint_type = 'PRIMARY KEY'
     group by tc.constraint_catalog, tc.constraint_schema, tc.constraint_name
-    having count(*) = 1 and min(kcu.column_name) = 'key'
+    having count(*) = 2
+       and count(*) filter (where kcu.column_name in ('environment', 'setting_key')) = 2
   ) into has_primary_key;
 
   if not has_primary_key then
-    raise exception 'missing primary key: app_environment_settings(key)';
+    raise exception 'missing primary key: app_environment_settings(environment, setting_key)';
   end if;
 end $$;
 
