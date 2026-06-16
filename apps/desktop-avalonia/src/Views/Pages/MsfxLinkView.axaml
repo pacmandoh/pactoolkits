@@ -142,10 +142,17 @@
                           Height="{DynamicResource IconSizeDefault}"
                           Foreground="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
                           VerticalAlignment="Center" />
-                <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
-                  <suki:InfoBadge Content="{Binding AutoLogs.Count, StringFormat=日志 {0}}" VerticalAlignment="Center" />
-                  <suki:InfoBadge Grid.Column="1" Content="{Binding AutoLastRunAtText, StringFormat=最近 {0}}" VerticalAlignment="Center" />
-                </Grid>
+                <StackPanel Grid.Column="1"
+                      Orientation="Horizontal"
+                      Spacing="{DynamicResource SpacingInlineMd}"
+                      VerticalAlignment="Center">
+                  <suki:InfoBadge Classes="MsfxMetaBadge"
+                          Content="{Binding AutoLogs.Count, StringFormat=日志 {0}}"
+                          VerticalAlignment="Center" />
+                  <suki:InfoBadge Classes="MsfxMetaBadge"
+                          Content="{Binding AutoLastRunAtText, StringFormat=最近 {0}}"
+                          VerticalAlignment="Center" />
+                </StackPanel>
                 <Button Grid.Column="2"
                     Classes="Ghost"
                     Command="{Binding RefreshAutoBoardCommand}">
@@ -183,23 +190,29 @@
                      Opacity="0.9"
                      TextTrimming="CharacterEllipsis" />
 
-                <suki:InfoBadge Grid.Row="0" Grid.Column="2"
-                        Content="{Binding AutoIntervalMinutes, StringFormat=轮询 {0} 分}"
-                        VerticalAlignment="Center" />
+                <StackPanel Grid.Row="0"
+                      Grid.RowSpan="2"
+                      Grid.Column="2"
+                      Spacing="{DynamicResource SpacingInlineSm}"
+                      VerticalAlignment="Center"
+                      MinWidth="108">
+                  <suki:InfoBadge Classes="MsfxMetaBadge"
+                          Content="{Binding AutoIntervalMinutes, StringFormat=轮询 {0} 分}"
+                          VerticalAlignment="Center" />
+                  <suki:InfoBadge Classes="MsfxMetaBadge"
+                          Content="{Binding AutoRunProgressValue, StringFormat=进度 {0:F0}%}"
+                          VerticalAlignment="Center" />
+                </StackPanel>
 
                 <ProgressBar Grid.Row="1"
-                      Grid.ColumnSpan="2" Grid.Column="0"
+                      Grid.Column="1"
                       Minimum="0"
                       Maximum="100"
                       Value="{Binding AutoRunProgressValue}"
                       IsIndeterminate="False"
                       Height="6"
-                      MinWidth="260" />
-
-                <suki:InfoBadge Grid.Row="1"
-                        Grid.Column="2"
-                        Content="{Binding AutoRunProgressValue, StringFormat=进度 {0:F0}%}"
-                        VerticalAlignment="Center" />
+                      MinWidth="260"
+                      VerticalAlignment="Center" />
 
               </Grid>
             </suki:GlassCard>
@@ -552,8 +565,7 @@
                               <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"
-                                   Checked="OnTaskQueueCheckChanged"
-                                   Unchecked="OnTaskQueueCheckChanged" />
+                                   IsCheckedChanged="OnTaskQueueCheckChanged" />
                             </Grid>
                           </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -875,7 +887,7 @@
                       <TextBox Grid.Column="4"
                           Classes="MsfxInput"
                           Text="{Binding MapQueueKeyword, UpdateSourceTrigger=PropertyChanged}"
-                          Watermark="搜索...">
+                          PlaceholderText="搜索...">
                         <TextBox.KeyBindings>
                           <KeyBinding Gesture="Enter" Command="{Binding SearchMapQueueCommand}" />
                         </TextBox.KeyBindings>
@@ -1040,7 +1052,7 @@
                           VerticalContentAlignment="Center"
                           TextWrapping="NoWrap"
                           AcceptsReturn="False"
-                          Watermark="搜索：单据编号 / 药品 / 规格"
+                          PlaceholderText="搜索：单据编号 / 药品 / 规格"
                           Text="{Binding TaskQueueKeyword, Mode=TwoWay}">
                         <TextBox.KeyBindings>
                           <KeyBinding Gesture="Enter" Command="{Binding SearchTaskQueueCommand}" />
@@ -1087,8 +1099,7 @@
                                 <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"
                                      HorizontalAlignment="Center"
                                      VerticalAlignment="Center"
-                                     Checked="OnTaskQueueCheckChanged"
-                                     Unchecked="OnTaskQueueCheckChanged" />
+                                     IsCheckedChanged="OnTaskQueueCheckChanged" />
                               </Grid>
                             </DataTemplate>
                           </DataGridTemplateColumn.CellTemplate>
@@ -1209,7 +1220,7 @@
                 <TextBox Grid.Column="3"
                     Classes="MsfxInput"
                     Text="{Binding UpoutBillCodeKeyword}"
-                    Watermark="可选：按 bill_code 过滤" />
+                    PlaceholderText="可选：按 bill_code 过滤" />
 
                 <Button Grid.Column="5"
                     Classes="Action"
@@ -1237,13 +1248,13 @@
                 <TextBox Grid.Column="1"
                     Classes="MsfxInput"
                     Text="{Binding UpoutDrugKeyword}"
-                    Watermark="可选：药品关键字" />
+                    PlaceholderText="可选：药品关键字" />
 
                 <TextBlock Grid.Column="2" Text="发货单位" VerticalAlignment="Center" />
                 <TextBox Grid.Column="3"
                     Classes="MsfxInput"
                     Text="{Binding UpoutFromEntKeyword}"
-                    Watermark="可选：发货单位关键字" />
+                    PlaceholderText="可选：发货单位关键字" />
 
                 <WrapPanel Grid.Column="4"
                      Orientation="Horizontal"
@@ -1374,7 +1385,7 @@
               <TextBox Grid.Column="1"
                   Classes="MsfxInput"
                   Text="{Binding SubcodeBillCode}"
-                  Watermark="必填：订单编码">
+                  PlaceholderText="必填：订单编码">
                 <TextBox.KeyBindings>
                   <KeyBinding Gesture="Enter" Command="{Binding QuerySubCodesCommand}" />
                 </TextBox.KeyBindings>
