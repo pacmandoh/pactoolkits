@@ -9,15 +9,15 @@ fail=0
 search() {
   local pattern="$1"
   shift
-  if command -v rg >/dev/null 2>&1; then
+  if command -v rg > /dev/null 2>&1; then
     rg -n --no-heading \
       --glob '!.git/**' --glob '!**/bin/**' --glob '!**/obj/**' --glob '!.idea/**' \
       --glob '!scripts/audit-legacy-identity.sh' \
-      "$pattern" "$@" 2>/dev/null || true
+      "$pattern" "$@" 2> /dev/null || true
   else
     grep -RIn --exclude-dir=.git --exclude-dir=bin --exclude-dir=obj --exclude-dir=.idea \
       --exclude=audit-legacy-identity.sh \
-      -E "$pattern" "$@" 2>/dev/null || true
+      -E "$pattern" "$@" 2> /dev/null || true
   fi
 }
 
