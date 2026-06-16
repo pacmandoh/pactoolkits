@@ -19,6 +19,7 @@ run ./scripts/check-version.sh
 stable_fixture_manifest="$(mktemp)"
 jq '
   .release.channel = "stable" |
+  .components["database-postgres"].migrationPolicy = "stable-only" |
   .product.version = (
     if (.product.version | test("-beta\\.")) then
       (.product.version | sub("-beta\\.[0-9]+$"; ""))
