@@ -24,6 +24,7 @@
     <conv:RowIndexConverter x:Key="RowIndexPlusOne" />
     <conv:RowStateToBgBrushConverter x:Key="RowStateToBgBrush" />
     <conv:LowStockToBgBrushConverter x:Key="LowStockToBgBrush" />
+    <conv:KpiPctToBrushConverter x:Key="KpiPctToBrush" />
     <conv:BadgeToIconKindConverter x:Key="BadgeToIconKind" />
     <conv:BadgeToFgBrushConverter x:Key="BadgeToFgBrush" />
     <conv:BadgeToBgBrushConverter x:Key="BadgeToBgBrush" />
@@ -37,8 +38,6 @@
 
   <Application.Styles>
     <suki:SukiTheme Locale="zh-CN" ThemeColor="Blue" />
-    <StyleInclude Source="avares://IconPacks.Avalonia.Lucide/Lucide.axaml" />
-    <StyleInclude Source="avares://IconPacks.Avalonia.SimpleIcons/SimpleIcons.axaml" />
     <StyleInclude Source="avares://pactoolkits-desktop/Styles/PacTheme.Styles.axaml" />
   </Application.Styles>
 </Application>
