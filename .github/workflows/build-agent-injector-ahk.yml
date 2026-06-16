@@ -2,15 +2,31 @@ name: Build Agent Injector AHK
 
 on:
   workflow_call:
+    inputs:
+      runtime:
+        required: false
+        type: string
+        default: win-x64
   workflow_dispatch:
+    inputs:
+      runtime:
+        description: Windows runtime identifier
+        required: true
+        type: choice
+        default: win-x64
+        options:
+          - win-x64
+          - win-arm64
 
 permissions:
   contents: read
 
 jobs:
   build_agent_injector_ahk:
-    name: Build Agent Injector AHK
+    name: Build Agent Injector AHK (${{ inputs.runtime || 'win-x64' }})
     runs-on: windows-latest
+    env:
+      RUNTIME: ${{ inputs.runtime || 'win-x64' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -25,12 +41,19 @@ jobs:
           }
           "AGENT_VERSION=$agentVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      - name: Validate runtime
+        shell: pwsh
+        run: |
+          if ($env:RUNTIME -notin @("win-x64", "win-arm64")) {
+            throw "Unsupported runtime: $env:RUNTIME"
+          }
+
       - name: Cache agent injector binary
         id: cache_agent_injector
         uses: actions/cache@v5
         with:
-          path: ~\pactoolkits-injector-cache\pactoolkits-injector.exe
-          key: ${{ runner.os }}-pactoolkits-injector-${{ hashFiles('release-manifest.json', 'runtime/agents/injector-ahk/main.ahk', 'runtime/agents/injector-ahk/src/**/*.ahk', 'runtime/agents/injector-ahk/assets/pactoolkits-injector.ico', 'runtime/agents/injector-ahk/assets/pactoolkits-agent-injector-ahk.ico', '.github/workflows/build-agent-injector-ahk.yml') }}
+          path: ~\pactoolkits-injector-cache\${{ env.RUNTIME }}\pactoolkits-injector.exe
+          key: ${{ runner.os }}-pactoolkits-injector-${{ env.RUNTIME }}-${{ hashFiles('release-manifest.json', 'runtime/agents/injector-ahk/main.ahk', 'runtime/agents/injector-ahk/src/**/*.ahk', 'runtime/agents/injector-ahk/assets/pactoolkits-injector.ico', 'runtime/agents/injector-ahk/assets/pactoolkits-agent-injector-ahk.ico', '.github/workflows/build-agent-injector-ahk.yml') }}
 
       - name: Report agent cache status
         shell: pwsh
@@ -41,11 +64,11 @@ jobs:
         if: steps.cache_agent_injector.outputs.cache-hit == 'true'
         shell: pwsh
         run: |
-          $cachedExe = Join-Path $env:USERPROFILE "pactoolkits-injector-cache\pactoolkits-injector.exe"
+          $cachedExe = Join-Path $env:USERPROFILE "pactoolkits-injector-cache\$env:RUNTIME\pactoolkits-injector.exe"
           if (-not (Test-Path $cachedExe)) {
             throw "cache-hit=true but cached agent binary is missing: $cachedExe"
           }
-          $stagingDir = "artifacts/agents/agent-injector-ahk/win-x64"
+          $stagingDir = "artifacts/agents/agent-injector-ahk/$env:RUNTIME"
           New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
           Copy-Item $cachedExe (Join-Path $stagingDir "pactoolkits-injector.exe") -Force
 
@@ -53,8 +76,18 @@ jobs:
         if: steps.cache_agent_injector.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          $ahk64 = "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
-          if (-not (Test-Path $ahk64)) {
+          $baseCandidates = if ($env:RUNTIME -eq "win-arm64") {
+            @(
+              "C:\Program Files\AutoHotkey\v2\AutoHotkeyARM64.exe",
+              "C:\Program Files\AutoHotkey\AutoHotkeyARM64.exe"
+            )
+          } else {
+            @(
+              "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe",
+              "C:\Program Files\AutoHotkey\AutoHotkey64.exe"
+            )
+          }
+          if (-not ($baseCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1)) {
             choco install autohotkey --version=2.0.19 --no-progress -y
           }
 
@@ -75,12 +108,28 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ahkBase = "C:\Program Files\AutoHotkey"
-          $ahk64 = @(
-            (Join-Path $ahkBase "v2\AutoHotkey64.exe"),
-            (Join-Path $ahkBase "AutoHotkey64.exe")
-          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $ahk64) { throw "AutoHotkey64.exe not found." }
-          "AHK64_PATH=$ahk64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          function Find-AhkBase {
+            $directCandidates = if ($env:RUNTIME -eq "win-arm64") {
+              @(
+                (Join-Path $ahkBase "v2\AutoHotkeyARM64.exe"),
+                (Join-Path $ahkBase "AutoHotkeyARM64.exe"),
+                (Join-Path $ahkBase "Compiler\AutoHotkeyARM64.exe"),
+                (Join-Path $ahkBase "Compiler\Base Files\AutoHotkeyARM64.exe")
+              )
+            } else {
+              @(
+                (Join-Path $ahkBase "v2\AutoHotkey64.exe"),
+                (Join-Path $ahkBase "AutoHotkey64.exe"),
+                (Join-Path $ahkBase "Compiler\AutoHotkey64.exe"),
+                (Join-Path $ahkBase "Compiler\Base Files\AutoHotkey64.exe")
+              )
+            }
+            $base = $directCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+            if ($base) { return $base }
+            $pattern = if ($env:RUNTIME -eq "win-arm64") { "*ARM64*.bin" } else { "*64-bit*.bin" }
+            Get-ChildItem -Path $ahkBase -Recurse -File -Filter $pattern -ErrorAction SilentlyContinue |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
 
           $compilerPath = Join-Path (Join-Path $ahkBase "Compiler") "Ahk2Exe.exe"
           $cacheRoot = Join-Path $env:USERPROFILE "ahk2exe-cache"
@@ -91,7 +140,10 @@ jobs:
             Copy-Item -Path (Join-Path $cacheRoot "*") -Destination $compilerTargetDir -Recurse -Force
           }
           if (Test-Path $compilerPath) {
+            $baseExe = Find-AhkBase
+            if (-not $baseExe) { throw "AutoHotkey base executable not found for runtime=$env:RUNTIME." }
             "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "AHK_BASE_PATH=$baseExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
             exit 0
           }
 
@@ -129,7 +181,10 @@ jobs:
           if (-not (Test-Path $compilerPath)) { throw "Ahk2Exe deploy failed: $compilerPath not found after copy." }
           New-Item -ItemType Directory -Force -Path $cacheRoot | Out-Null
           Copy-Item -Path (Join-Path $compilerTargetDir "*") -Destination $cacheRoot -Recurse -Force
+          $baseExe = Find-AhkBase
+          if (-not $baseExe) { throw "AutoHotkey base executable not found for runtime=$env:RUNTIME." }
           "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "AHK_BASE_PATH=$baseExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Compile agent injector AHK
         if: steps.cache_agent_injector.outputs.cache-hit != 'true'
@@ -138,16 +193,16 @@ jobs:
           Write-Host "Compiling pactoolkits-injector.exe from release-manifest agentVersion=$env:AGENT_VERSION"
           $agentVersion4 = "$env:AGENT_VERSION.0"
           $compiler = $env:AHK2EXE_PATH
-          $base64 = $env:AHK64_PATH
+          $baseExe = $env:AHK_BASE_PATH
           if (-not (Test-Path $compiler)) { throw "Ahk2Exe.exe not found: $compiler" }
-          if (-not $base64) { throw "AutoHotkey64.exe not found under C:\Program Files\AutoHotkey." }
+          if (-not $baseExe) { throw "AutoHotkey base executable not found under C:\Program Files\AutoHotkey." }
 
           $workspace = $env:GITHUB_WORKSPACE
           $agentDirPath = (Resolve-Path (Join-Path $workspace "runtime/agents/injector-ahk")).Path
           $mainScript = Join-Path $agentDirPath "main.ahk"
           if (-not (Test-Path $mainScript)) { throw "AHK entry script not found: $mainScript" }
           $entryPath = Join-Path $agentDirPath "__ci_compile_entry__.ahk"
-          $stagingDir = Join-Path $workspace "artifacts/agents/agent-injector-ahk/win-x64"
+          $stagingDir = Join-Path $workspace "artifacts/agents/agent-injector-ahk/$env:RUNTIME"
           New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
           $outExe = Join-Path $stagingDir "pactoolkits-injector.exe"
           $iconCandidates = @(
@@ -176,7 +231,7 @@ jobs:
               ('/in "{0}"' -f $entryPath),
               ('/out "{0}"' -f $outExe),
               ('/icon "{0}"' -f $iconPath),
-              ('/base "{0}"' -f $base64),
+              ('/base "{0}"' -f $baseExe),
               '/silent'
             ) -join " "
             Write-Host ("Ahk2Exe args: " + $argLine)
@@ -196,7 +251,7 @@ jobs:
             Get-ChildItem -Path $compilerDir -Force | Select-Object Name, Length, Mode | Format-Table -AutoSize | Out-String | Write-Host
             throw "Agent compile output missing: $outExe"
           }
-          $cacheDir = Join-Path $env:USERPROFILE "pactoolkits-injector-cache"
+          $cacheDir = Join-Path $env:USERPROFILE "pactoolkits-injector-cache\$env:RUNTIME"
           New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
           Copy-Item $outExe (Join-Path $cacheDir "pactoolkits-injector.exe") -Force
           Write-Host "Cached pactoolkits-injector.exe for future runs."
@@ -204,7 +259,7 @@ jobs:
       - name: Validate agent binary
         shell: pwsh
         run: |
-          $outExe = "artifacts/agents/agent-injector-ahk/win-x64/pactoolkits-injector.exe"
+          $outExe = "artifacts/agents/agent-injector-ahk/$env:RUNTIME/pactoolkits-injector.exe"
           $agentVersion4 = "$env:AGENT_VERSION.0"
           if (-not (Test-Path $outExe)) { throw "Agent binary missing: $outExe" }
           $fileVersion = (Get-Item $outExe).VersionInfo.FileVersion
@@ -215,6 +270,6 @@ jobs:
       - name: Upload agent artifact
         uses: actions/upload-artifact@v7
         with:
-          name: pactoolkits-injector-win-x64-${{ env.AGENT_VERSION }}
-          path: artifacts/agents/agent-injector-ahk/win-x64/pactoolkits-injector.exe
+          name: pactoolkits-injector-${{ env.RUNTIME }}-${{ env.AGENT_VERSION }}
+          path: artifacts/agents/agent-injector-ahk/${{ env.RUNTIME }}/pactoolkits-injector.exe
           if-no-files-found: error
