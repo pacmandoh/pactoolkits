@@ -9,6 +9,7 @@ using global::Avalonia.Interactivity;
 using global::Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -369,7 +370,7 @@ public partial class InventoryOverviewView : UserControl
 
     private void AttachReassignDrugFilter()
     {
-        if (this.FindControl<AutoCompleteBox>("ReassignDrugBox") is not { } box)
+        if (this.FindControl<PlainAutoCompleteBox>("ReassignDrugBox") is not { } box)
         {
             return;
         }
