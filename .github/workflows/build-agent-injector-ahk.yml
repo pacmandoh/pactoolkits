@@ -159,6 +159,8 @@ jobs:
           $compiler = $env:AHK2EXE_PATH
           $base64 = $env:AHK64_PATH
           $compilerDir = Split-Path -Path $compiler -Parent
+          $stdoutPath = Join-Path $env:RUNNER_TEMP "ahk2exe.stdout.log"
+          $stderrPath = Join-Path $env:RUNNER_TEMP "ahk2exe.stderr.log"
           try {
             Remove-Item -Path $outExe -Force -ErrorAction SilentlyContinue
             $argLine = @(
@@ -167,7 +169,36 @@ jobs:
               ('/icon "{0}"' -f $iconPath),
               ('/base "{0}"' -f $base64)
             ) -join " "
-            $proc = Start-Process -FilePath $compiler -ArgumentList $argLine -WorkingDirectory $compilerDir -PassThru -Wait
+            Write-Host "Running Ahk2Exe: $compiler $argLine"
+            $proc = Start-Process `
+              -FilePath $compiler `
+              -ArgumentList $argLine `
+              -WorkingDirectory $compilerDir `
+              -RedirectStandardOutput $stdoutPath `
+              -RedirectStandardError $stderrPath `
+              -PassThru
+            if (-not $proc.WaitForExit(600000)) {
+              $children = Get-CimInstance Win32_Process |
+                Where-Object { $_.ParentProcessId -eq $proc.Id } |
+                Select-Object ProcessId, Name, CommandLine
+              if ($children) {
+                Write-Host "Ahk2Exe child processes:"
+                $children | Format-List | Out-String | Write-Host
+                $children | ForEach-Object {
+                  Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+                }
+              }
+              Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+              throw "Ahk2Exe timed out after 10 minutes"
+            }
+            if (Test-Path $stdoutPath) {
+              $stdout = Get-Content $stdoutPath -Raw
+              if (-not [string]::IsNullOrWhiteSpace($stdout)) { Write-Host $stdout }
+            }
+            if (Test-Path $stderrPath) {
+              $stderr = Get-Content $stderrPath -Raw
+              if (-not [string]::IsNullOrWhiteSpace($stderr)) { Write-Host $stderr }
+            }
             if ($null -ne $proc.ExitCode -and $proc.ExitCode -ne 0) {
               throw "Ahk2Exe exited with code $($proc.ExitCode)"
             }

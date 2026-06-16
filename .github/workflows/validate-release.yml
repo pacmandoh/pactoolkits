@@ -105,13 +105,10 @@ jobs:
           GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          git fetch --no-tags origin main beta
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/beta:refs/remotes/origin/beta
           base_ref="origin/main"
-          if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "${GITHUB_BASE_REF:-}" == "beta" ]]; then
-            base_ref="origin/beta"
-          elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "beta" ]]; then
-            base_ref="origin/beta"
-          fi
           scripts/validate-database-policy.sh \
             --manifest release-manifest.json \
             --base-ref "$base_ref" \

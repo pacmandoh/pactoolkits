@@ -20,8 +20,13 @@ CI 会通过 `validate-release.yml`、`validate-release-channel.sh` 和
 
 Beta 应用默认不能迁移共享生产数据库。普通 Beta 应继续使用
 `migrationPolicy=stable-only`，并只连接处于其兼容范围内的数据库。
+CI 会始终使用 `origin/main` 作为稳定数据库基线：`stable-only` Beta 可以等于
+main 的 `database-postgres.version`，但不能高于 main，也不能新增、修改、删除或重命名
+SQL migration。
+重构过渡期内，如果 main 仍使用 legacy manifest，CI 会用 legacy `dbSchemaVersion`
+作为稳定基线；缺少可解析 DB 版本时才失败。
 
-需要验证新的数据库 migration 时，必须同时满足：
+需要验证新的 Beta 专用数据库 migration 时，必须同时满足：
 
 1. `migrationPolicy=isolated-beta`
 2. 使用从 Stable 环境克隆或由受控备份创建的隔离测试数据库
@@ -31,6 +36,7 @@ Beta 应用默认不能迁移共享生产数据库。普通 Beta 应继续使用
 
 `isolated-beta` 仅用于开发和测试，不是生产升级通道。不得把生产连接串标记为
 `isolated`，也不得在共享生产数据库上开启 `AllowBetaMigrations`。
+`manual` 不参与自动 Beta 发布，用于人工处理或特殊场景。
 
 ## 隔离数据库操作
 
