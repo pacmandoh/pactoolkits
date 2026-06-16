@@ -35,7 +35,7 @@ jobs:
       - resolve_release_plan
     uses: ./.github/workflows/build-agent-injector-ahk.yml
     with:
-      runtime: ${{ inputs.runtime || 'win-arm64' }}
+      runtime: win-x64
     secrets: inherit
 
   build_desktop_avalonia:

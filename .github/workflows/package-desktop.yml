@@ -124,7 +124,7 @@ jobs:
       - name: Download bundled agent artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: pactoolkits-*-${{ env.RUNTIME }}-*
+          pattern: pactoolkits-*-win-x64-*
           path: _agent_artifacts
 
       - name: Bundle agents into desktop publish output
@@ -134,7 +134,7 @@ jobs:
           while IFS=$'\t' read -r bundle_id version exe_name install_dir; do
             [[ -n "$install_dir" ]] || { echo "Missing artifact.installDir for component $bundle_id" >&2; exit 1; }
             publish_stem="${exe_name%.*}"
-            artifact_dir="_agent_artifacts/${publish_stem}-${RUNTIME}-${version}"
+            artifact_dir="_agent_artifacts/${publish_stem}-win-x64-${version}"
             agent_target_dir="_desktop_publish/Agents/${install_dir}"
             source="${artifact_dir}/${exe_name}"
             [[ -f "$source" ]] || {

@@ -8,25 +8,16 @@ on:
         type: string
         default: win-x64
   workflow_dispatch:
-    inputs:
-      runtime:
-        description: Windows runtime identifier
-        required: true
-        type: choice
-        default: win-x64
-        options:
-          - win-x64
-          - win-arm64
 
 permissions:
   contents: read
 
 jobs:
   build_agent_injector_ahk:
-    name: Build Agent Injector AHK (${{ inputs.runtime || 'win-x64' }})
+    name: Build Agent Injector AHK
     runs-on: windows-latest
     env:
-      RUNTIME: ${{ inputs.runtime || 'win-x64' }}
+      RUNTIME: win-x64
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -40,13 +31,6 @@ jobs:
             throw "Invalid agent-injector-ahk version in release-manifest.json: $agentVersion"
           }
           "AGENT_VERSION=$agentVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Validate runtime
-        shell: pwsh
-        run: |
-          if ($env:RUNTIME -notin @("win-x64", "win-arm64")) {
-            throw "Unsupported runtime: $env:RUNTIME"
-          }
 
       - name: Cache agent injector binary
         id: cache_agent_injector
@@ -76,17 +60,10 @@ jobs:
         if: steps.cache_agent_injector.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          $baseCandidates = if ($env:RUNTIME -eq "win-arm64") {
-            @(
-              "C:\Program Files\AutoHotkey\v2\AutoHotkeyARM64.exe",
-              "C:\Program Files\AutoHotkey\AutoHotkeyARM64.exe"
-            )
-          } else {
-            @(
-              "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe",
-              "C:\Program Files\AutoHotkey\AutoHotkey64.exe"
-            )
-          }
+          $baseCandidates = @(
+            "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe",
+            "C:\Program Files\AutoHotkey\AutoHotkey64.exe"
+          )
           if (-not ($baseCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1)) {
             choco install autohotkey --version=2.0.19 --no-progress -y
           }
@@ -109,25 +86,15 @@ jobs:
         run: |
           $ahkBase = "C:\Program Files\AutoHotkey"
           function Find-AhkBase {
-            $directCandidates = if ($env:RUNTIME -eq "win-arm64") {
-              @(
-                (Join-Path $ahkBase "v2\AutoHotkeyARM64.exe"),
-                (Join-Path $ahkBase "AutoHotkeyARM64.exe"),
-                (Join-Path $ahkBase "Compiler\AutoHotkeyARM64.exe"),
-                (Join-Path $ahkBase "Compiler\Base Files\AutoHotkeyARM64.exe")
-              )
-            } else {
-              @(
-                (Join-Path $ahkBase "v2\AutoHotkey64.exe"),
-                (Join-Path $ahkBase "AutoHotkey64.exe"),
-                (Join-Path $ahkBase "Compiler\AutoHotkey64.exe"),
-                (Join-Path $ahkBase "Compiler\Base Files\AutoHotkey64.exe")
-              )
-            }
+            $directCandidates = @(
+              (Join-Path $ahkBase "v2\AutoHotkey64.exe"),
+              (Join-Path $ahkBase "AutoHotkey64.exe"),
+              (Join-Path $ahkBase "Compiler\AutoHotkey64.exe"),
+              (Join-Path $ahkBase "Compiler\Base Files\AutoHotkey64.exe")
+            )
             $base = $directCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
             if ($base) { return $base }
-            $pattern = if ($env:RUNTIME -eq "win-arm64") { "*ARM64*.bin" } else { "*64-bit*.bin" }
-            Get-ChildItem -Path $ahkBase -Recurse -File -Filter $pattern -ErrorAction SilentlyContinue |
+            Get-ChildItem -Path $ahkBase -Recurse -File -Filter "*64-bit*.bin" -ErrorAction SilentlyContinue |
               Select-Object -First 1 -ExpandProperty FullName
           }
 
