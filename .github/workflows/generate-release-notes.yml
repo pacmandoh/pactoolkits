@@ -23,7 +23,15 @@ jobs:
           node-version: lts/*
 
       - name: Generate or update release notes
-        run: npx changelogithub
+        run: |
+          set -euo pipefail
+          # Pin refs so test-v* tags on the same commit do not break changelogen.
+          PREV_V_TAG="$(git tag -l 'v*' --sort=-version:refname | grep -vx "${GITHUB_REF_NAME}" | head -1 || true)"
+          ARGS=(--to "${GITHUB_REF_NAME}")
+          if [[ -n "$PREV_V_TAG" ]]; then
+            ARGS+=(--from "$PREV_V_TAG")
+          fi
+          npx changelogithub "${ARGS[@]}"
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
