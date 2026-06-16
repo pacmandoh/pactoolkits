@@ -26,6 +26,15 @@
       <Color x:Key="VersionAhkEnd">#2E15554A</Color>
       <Color x:Key="VersionDbStart">#7A6D4CFF</Color>
       <Color x:Key="VersionDbEnd">#2E3F2A9A</Color>
+      <Color x:Key="TechBrandAvalonia">#165BFF</Color>
+      <Color x:Key="TechBrandDotNet">#512BD4</Color>
+      <Color x:Key="TechBrandPostgre">#336791</Color>
+      <Color x:Key="TechBrandPython">#3776AB</Color>
+      <Color x:Key="TechBrandAhk">#008080</Color>
+      <Color x:Key="TechBrandMac">#555555</Color>
+      <Color x:Key="TechBrandRider">#DD1265</Color>
+      <Color x:Key="TechBrandDataGrip">#087CFA</Color>
+      <Color x:Key="TechBrandVsCode">#007ACC</Color>
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
       <Color x:Key="TechAvaloniaStart">#165BFF</Color>
@@ -52,6 +61,15 @@
       <Color x:Key="VersionAhkEnd">#15554A</Color>
       <Color x:Key="VersionDbStart">#6D4CFF</Color>
       <Color x:Key="VersionDbEnd">#3F2A9A</Color>
+      <Color x:Key="TechBrandAvalonia">#5B9DFF</Color>
+      <Color x:Key="TechBrandDotNet">#9B7DFF</Color>
+      <Color x:Key="TechBrandPostgre">#4DA3D9</Color>
+      <Color x:Key="TechBrandPython">#5DA5D5</Color>
+      <Color x:Key="TechBrandAhk">#3CB8B8</Color>
+      <Color x:Key="TechBrandMac">#A3A3A3</Color>
+      <Color x:Key="TechBrandRider">#FF4D9A</Color>
+      <Color x:Key="TechBrandDataGrip">#4DA3FF</Color>
+      <Color x:Key="TechBrandVsCode">#4FC1FF</Color>
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>
