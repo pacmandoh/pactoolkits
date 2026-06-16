@@ -6,9 +6,12 @@
   "proseWrap": "preserve",
   "overrides": [
     {
-      "files": ["*.yml", "*.yaml"],
+      "files": [
+        "*.yml",
+        "*.yaml"
+      ],
       "options": {
-        "singleQuote": false
+        "singleQuote": true
       }
     }
   ]
