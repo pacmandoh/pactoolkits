@@ -166,19 +166,7 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
             {
                 var opt = _dbConfig.Current;
 
-                var csb = new NpgsqlConnectionStringBuilder
-                {
-                    Host = opt.Host,
-                    Port = opt.Port,
-                    Database = opt.Database,
-                    Username = opt.Username,
-                    Password = opt.Password,
-                    Timeout = opt.ConnectTimeoutSeconds,
-                    KeepAlive = opt.KeepAliveSeconds
-                };
-
-                conn = new NpgsqlConnection(csb.ToString());
-                await conn.OpenAsync(ct).ConfigureAwait(false);
+                conn = await PgConnectionFactory.OpenAsync(opt, ct).ConfigureAwait(false);
 
                 Interlocked.Exchange(ref _retryScheduled, 0);
                 _lastProbeFailReason = string.Empty;

@@ -524,10 +524,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         try
         {
             using var cts = new CancellationTokenSource(LookupTimeout);
-            var drugs = await _lookup.GetDrugIdsAsync(cts.Token).ConfigureAwait(false);
+            var drugs = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, cts.Token).ConfigureAwait(false);
             await RunOnUiAsync(() =>
             {
-                ReplaceOptions(ReassignDrugOptions, drugs);
+                OptionCollectionHelper.Replace(ReassignDrugOptions, drugs, StringComparison.Ordinal);
             });
         }
         catch (System.Exception ex)
@@ -570,9 +570,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             });
         }
     }
-
-    private static void ReplaceOptions(ObservableCollection<OptionItem> target, IReadOnlyList<string> raws)
-        => OptionCollectionHelper.ReplaceRaw(target, raws, StringComparison.Ordinal);
 
     private async Task TryAutoResolveReassignContextAsync(string? drugText)
     {
@@ -620,13 +617,13 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         try
         {
             using var cts = new CancellationTokenSource(LookupTimeout);
-            var specs = await _lookup.GetSpecsByDrugAsync(canonicalDrug, cts.Token).ConfigureAwait(false);
+            var specs = await LookupOptionLoader.LoadSpecsAsync(_lookup, canonicalDrug, cts.Token).ConfigureAwait(false);
             await RunOnUiAsync(() =>
             {
                 ReassignDrugText = canonicalDrug;
                 IsReassignDrugSuggestOpen = false;
                 ReassignTargetDrugId = canonicalDrug;
-                ReplaceOptions(ReassignSpecOptions, specs);
+                OptionCollectionHelper.ReplaceRaw(ReassignSpecOptions, specs, StringComparison.Ordinal);
                 if (ReassignSpecOptions.Count == 0)
                 {
                     ReassignSelectedSpec = null;

@@ -329,8 +329,6 @@ database/postgres/
   - 打包并发布 Desktop（Velopack）产物
 - `release-agent-injector-ahk.sh`
   - 打包并发布 agent-injector-ahk 产物
-- `release-ui.sh` / `release-agent.sh`
-  - 上述脚本的弃用别名
 
 **仓库维护脚本**
 
@@ -465,10 +463,6 @@ PacToolkits 当前覆盖的业务场景包括：
 ./scripts/check-version.sh
 ./scripts/export-version.sh
 ```
-
-旧 CLI 别名仍可用：`--suite` → `--product`，`--ui` → `--desktop`，`--agent` → agent-injector-ahk 组件。
-
----
 
 ## 快速开始
 

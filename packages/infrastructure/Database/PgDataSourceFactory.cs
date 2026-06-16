@@ -30,17 +30,10 @@ public sealed class PgDataSourceFactory : IPgDataSourceFactory, IDisposable
         {
             _dataSource?.Dispose();
 
-            var csb = new NpgsqlConnectionStringBuilder
+            var csb = new NpgsqlConnectionStringBuilder(PgConnectionFactory.BuildConnectionString(opt))
             {
-                Host = opt.Host,
-                Port = opt.Port,
-                Database = opt.Database,
-                Username = opt.Username,
-                Password = opt.Password,
-                SearchPath = "public",
                 Pooling = true,
-                MaxPoolSize = opt.PoolSize,
-                Timeout = opt.ConnectTimeoutSeconds
+                MaxPoolSize = opt.PoolSize
             };
 
             _dataSource = NpgsqlDataSource.Create(csb);

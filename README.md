@@ -329,8 +329,6 @@ This folder standardizes versioning, packaging, publishing, and operational depl
   - packages and publishes desktop (Velopack) artifacts
 - `release-agent-injector-ahk.sh`
   - packages and publishes agent-injector-ahk artifacts
-- `release-ui.sh` / `release-agent.sh`
-  - deprecated aliases of the scripts above
 
 **Repository maintenance**
 
@@ -467,10 +465,6 @@ Common commands:
 ./scripts/check-version.sh
 ./scripts/export-version.sh
 ```
-
-Legacy CLI aliases still work: `--suite` → `--product`, `--ui` → `--desktop`, `--agent` → agent-injector-ahk component.
-
----
 
 ## Getting Started
 
