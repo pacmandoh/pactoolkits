@@ -10,7 +10,7 @@ UI_PROPS="$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props"
 UI_JSON="$ROOT_DIR/apps/desktop-avalonia/src/version.generated.json"
 
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
+  command -v "$1" > /dev/null 2>&1 || {
     echo "ERROR: required command not found: $1" >&2
     exit 1
   }
@@ -18,9 +18,18 @@ require_cmd() {
 
 require_cmd jq
 
-[[ -f "$MANIFEST" ]] || { echo "ERROR: missing $MANIFEST" >&2; exit 1; }
-[[ -f "$UI_PROPS" ]] || { echo "ERROR: missing $UI_PROPS (run scripts/export-version.sh)" >&2; exit 1; }
-[[ -f "$UI_JSON" ]] || { echo "ERROR: missing $UI_JSON (run scripts/export-version.sh)" >&2; exit 1; }
+[[ -f "$MANIFEST" ]] || {
+  echo "ERROR: missing $MANIFEST" >&2
+  exit 1
+}
+[[ -f "$UI_PROPS" ]] || {
+  echo "ERROR: missing $UI_PROPS (run scripts/export-version.sh)" >&2
+  exit 1
+}
+[[ -f "$UI_JSON" ]] || {
+  echo "ERROR: missing $UI_JSON (run scripts/export-version.sh)" >&2
+  exit 1
+}
 
 validate_manifest_v2 "$MANIFEST"
 
@@ -35,7 +44,7 @@ fi
 
 manifest_desktop="$(manifest_desktop_version "$MANIFEST")"
 
-if command -v rg >/dev/null 2>&1; then
+if command -v rg > /dev/null 2>&1; then
   ui_props_app="$(rg -o "<AppVersion>[^<]+</AppVersion>" "$UI_PROPS" | sed -E 's#<AppVersion>([^<]+)</AppVersion>#\1#')"
 else
   ui_props_app="$(grep -oE "<AppVersion>[^<]+</AppVersion>" "$UI_PROPS" | sed -E 's#<AppVersion>([^<]+)</AppVersion>#\1#')"

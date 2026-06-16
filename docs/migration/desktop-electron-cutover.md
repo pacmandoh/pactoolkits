@@ -4,14 +4,14 @@
 
 ## 已完成（步骤 1–6）
 
-| 步骤 | 内容 | 状态 |
-|------|------|------|
-| 1 | Agent ID、目录、图标、二进制与 Artifact 统一命名 | ✅ |
-| 2 | `pacinjector.exe` 旧路径兼容与配置迁移 | ✅ |
-| 3 | Agent 构建与 Desktop 实现解耦（独立 workflow） | ✅ |
-| 4 | `package-desktop` 聚合 Agent + Desktop | ✅ |
-| 5 | Manifest V2 + `bump/export/check-version.sh` | ✅ |
-| 6 | 多 Agent 管理模型（`IAgentManager`、`AhkInjectorAgentRuntime`） | ✅ |
+| 步骤 | 内容                                                            | 状态 |
+| ---- | --------------------------------------------------------------- | ---- |
+| 1    | Agent ID、目录、图标、二进制与 Artifact 统一命名                | ✅   |
+| 2    | `pacinjector.exe` 旧路径兼容与配置迁移                          | ✅   |
+| 3    | Agent 构建与 Desktop 实现解耦（独立 workflow）                  | ✅   |
+| 4    | `package-desktop` 聚合 Agent + Desktop                          | ✅   |
+| 5    | Manifest V2 + `bump/export/check-version.sh`                    | ✅   |
+| 6    | 多 Agent 管理模型（`IAgentManager`、`AhkInjectorAgentRuntime`） | ✅   |
 
 组件 ID 与路径约定见 [发布流程](../operations/release-flow.md)。
 
@@ -21,13 +21,13 @@
 
 **目标：** `apps/desktop-electron` 在 preview 通道可演示核心流程，**不进入正式 Feed**。
 
-| 项 | 说明 |
-|----|------|
-| CI | `build-desktop-electron-preview.yml`（当前为占位） |
-| Artifact | `pactoolkits-desktop-electron-preview-win-x64-<version>` |
+| 项       | 说明                                                                          |
+| -------- | ----------------------------------------------------------------------------- |
+| CI       | `build-desktop-electron-preview.yml`（当前为占位）                            |
+| Artifact | `pactoolkits-desktop-electron-preview-win-x64-<version>`                      |
 | Manifest | `components.desktop.implementation` 仍为 `avalonia`；Electron 仅 preview 构建 |
-| 范围 | 壳层 + 导航 + 与 .NET 宿主或 API 的集成方案（待定） |
-| 禁止 | 复制 Postgres 访问；不得发布到 `/feed/pactoolkits/{channel}/` |
+| 范围     | 壳层 + 导航 + 与 .NET 宿主或 API 的集成方案（待定）                           |
+| 禁止     | 复制 Postgres 访问；不得发布到 `/feed/pactoolkits/{channel}/`                 |
 
 **验收：**
 
@@ -39,12 +39,12 @@
 
 **目标：** 已安装 Avalonia 包的用户，在切换实现后保留配置与数据。
 
-| 项 | 说明 |
-|----|------|
-| 不变 | `packId=pactoolkits`、Feed 路径、用户配置目录 `%AppData%\PacToolkits` |
-| 迁移 | `agents.*`、`AutomationTools.*` 继续由 `AppConfigStore` 读写；Electron 读取同一 JSON |
+| 项    | 说明                                                                                                                   |
+| ----- | ---------------------------------------------------------------------------------------------------------------------- |
+| 不变  | `packId=pactoolkits`、Feed 路径、用户配置目录 `%AppData%\PacToolkits`                                                  |
+| 迁移  | `agents.*`、`AutomationTools.*` 继续由 `AppConfigStore` 读写；Electron 读取同一 JSON                                   |
 | Agent | 仍从 `Agents/injector/` 启动；配置若为 legacy `Tools/pacinjector.exe` 或旧标准路径，且 bundled 新 exe 存在，则自动迁移 |
-| DB | `database-postgres` 版本规则不变 |
+| DB    | `database-postgres` 版本规则不变                                                                                       |
 
 **验收：**
 
@@ -65,11 +65,11 @@
 }
 ```
 
-| 项 | 说明 |
-|----|------|
-| CI | `package-desktop` 默认聚合 Electron 构建产物 |
+| 项        | 说明                                                                                        |
+| --------- | ------------------------------------------------------------------------------------------- |
+| CI        | `package-desktop` 默认聚合 Electron 构建产物                                                |
 | 正式 Feed | 仅发布 `pactoolkits-desktop-win-x64-<product.version>`（implementation 在 manifest 中声明） |
-| Avalonia | 仍可保留 `build-desktop-avalonia.yml` 若干版本用于回滚，但不进 stable Feed |
+| Avalonia  | 仍可保留 `build-desktop-avalonia.yml` 若干版本用于回滚，但不进 stable Feed                  |
 
 ### 步骤 10 — 删除 Avalonia 项目及专属 CI
 

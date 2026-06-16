@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/manifest-v2.sh"
 
 usage() {
-  cat <<'USAGE'
+  cat << 'USAGE'
 Usage:
   validate-release-channel.sh [options]
 
@@ -29,7 +29,7 @@ die() {
 
 normalize_bool() {
   case "${1:-}" in
-    true|false) printf '%s' "$1" ;;
+    true | false) printf '%s' "$1" ;;
     *) die "expected boolean true/false, got: ${1:-<empty>}" ;;
   esac
 }
@@ -39,7 +39,7 @@ resolve_feed_target() {
   local channel="$2"
   [[ -n "$root" ]] || die "feed root is empty"
   case "$root" in
-    */stable|*/beta) die "feed root must not include a channel suffix: $root" ;;
+    */stable | */beta) die "feed root must not include a channel suffix: $root" ;;
   esac
   printf '%s/%s' "$root" "$channel"
 }
@@ -54,14 +54,38 @@ CONFIRM="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --manifest) MANIFEST="$2"; shift 2 ;;
-    --tag) TAG="$2"; shift 2 ;;
-    --prerelease) PRERELEASE="$2"; shift 2 ;;
-    --feed-root) FEED_ROOT="$2"; shift 2 ;;
-    --feed-target) FEED_TARGET="$2"; shift 2 ;;
-    --dry-run) DRY_RUN="$2"; shift 2 ;;
-    --confirm) CONFIRM="$2"; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
+    --manifest)
+      MANIFEST="$2"
+      shift 2
+      ;;
+    --tag)
+      TAG="$2"
+      shift 2
+      ;;
+    --prerelease)
+      PRERELEASE="$2"
+      shift 2
+      ;;
+    --feed-root)
+      FEED_ROOT="$2"
+      shift 2
+      ;;
+    --feed-target)
+      FEED_TARGET="$2"
+      shift 2
+      ;;
+    --dry-run)
+      DRY_RUN="$2"
+      shift 2
+      ;;
+    --confirm)
+      CONFIRM="$2"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
     *) die "unknown argument: $1" ;;
   esac
 done
@@ -93,11 +117,11 @@ fi
 if [[ -z "$FEED_TARGET" ]]; then
   FEED_TARGET="$expected_feed_target"
 fi
-[[ "${FEED_TARGET%/}" == "$expected_feed_target" ]] ||
-  die "feed target must be the exact $channel channel directory: expected $expected_feed_target, got $FEED_TARGET"
+[[ "${FEED_TARGET%/}" == "$expected_feed_target" ]] \
+  || die "feed target must be the exact $channel channel directory: expected $expected_feed_target, got $FEED_TARGET"
 
 case "${FEED_TARGET%/}" in
-  */stable|*/beta) ;;
+  */stable | */beta) ;;
   *) die "feed target must end with /stable or /beta: $FEED_TARGET" ;;
 esac
 

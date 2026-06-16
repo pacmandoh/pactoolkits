@@ -5,12 +5,12 @@ PacToolkits 使用 `release-manifest.json` 中 Desktop 与 Agent 的
 
 ## 兼容性决策
 
-| 当前数据库状态 | 应用行为 |
-|---|---|
-| 低于 `minDbSchema` | 仅在当前通道与 `migrationPolicy` 明确允许时执行前向 migration，否则只读 |
-| 位于 min/max 范围内 | 允许正常运行，不执行 migration |
-| 高于 `maxDbSchema` | 禁止 migration 与写入；Agent 不得启动 |
-| 无法读取 Schema 版本 | 失败关闭，禁止 migration 与写入 |
+| 当前数据库状态       | 应用行为                                                                |
+| -------------------- | ----------------------------------------------------------------------- |
+| 低于 `minDbSchema`   | 仅在当前通道与 `migrationPolicy` 明确允许时执行前向 migration，否则只读 |
+| 位于 min/max 范围内  | 允许正常运行，不执行 migration                                          |
+| 高于 `maxDbSchema`   | 禁止 migration 与写入；Agent 不得启动                                   |
+| 无法读取 Schema 版本 | 失败关闭，禁止 migration 与写入                                         |
 
 Stable 遇到高于其 `maxDbSchema` 的数据库时，必须停止写入。此时不能通过安装旧版 Stable
 恢复业务写入，应升级到兼容版本或按正式事故流程处理。
