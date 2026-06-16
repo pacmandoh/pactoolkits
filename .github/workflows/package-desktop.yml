@@ -30,6 +30,10 @@ on:
       channel:
         required: true
         type: string
+      runtime:
+        required: false
+        type: string
+        default: win-x64
   workflow_dispatch:
 
 permissions:
@@ -50,6 +54,7 @@ jobs:
       PRODUCT_VERSION: ${{ inputs.product_version }}
       DESKTOP_VERSION: ${{ inputs.desktop_version }}
       CHANNEL: ${{ inputs.channel }}
+      RUNTIME: ${{ inputs.runtime || 'win-x64' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -88,6 +93,10 @@ jobs:
             avalonia|electron) ;;
             *) echo "Unsupported implementation: $IMPLEMENTATION" >&2; exit 1 ;;
           esac
+          case "$RUNTIME" in
+            win-x64|win-arm64) ;;
+            *) echo "Unsupported runtime: $RUNTIME" >&2; exit 1 ;;
+          esac
           semver_re='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-beta\.(0|[1-9][0-9]*))?$'
           [[ "$PRODUCT_VERSION" =~ $semver_re ]] || { echo "Invalid product_version: $PRODUCT_VERSION" >&2; exit 1; }
           [[ "$DESKTOP_VERSION" =~ $semver_re ]] || { echo "Invalid desktop_version: $DESKTOP_VERSION" >&2; exit 1; }
@@ -115,7 +124,7 @@ jobs:
       - name: Download bundled agent artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: pactoolkits-*-win-x64-*
+          pattern: pactoolkits-*-${{ env.RUNTIME }}-*
           path: _agent_artifacts
 
       - name: Bundle agents into desktop publish output
@@ -125,7 +134,7 @@ jobs:
           while IFS=$'\t' read -r bundle_id version exe_name install_dir; do
             [[ -n "$install_dir" ]] || { echo "Missing artifact.installDir for component $bundle_id" >&2; exit 1; }
             publish_stem="${exe_name%.*}"
-            artifact_dir="_agent_artifacts/${publish_stem}-win-x64-${version}"
+            artifact_dir="_agent_artifacts/${publish_stem}-${RUNTIME}-${version}"
             agent_target_dir="_desktop_publish/Agents/${install_dir}"
             source="${artifact_dir}/${exe_name}"
             [[ -f "$source" ]] || {
@@ -157,7 +166,7 @@ jobs:
             --packDir _desktop_publish \
             --outputDir "$RELEASES_DIR" \
             --mainExe "$MAIN_EXE" \
-            --runtime win-x64 \
+            --runtime "$RUNTIME" \
             --channel "$CHANNEL" \
             --packTitle PacToolkits \
             --packAuthors pacmandoh \
@@ -173,7 +182,7 @@ jobs:
           cp -R "$RELEASES_DIR"/. "$dist"/
           while IFS=$'\t' read -r version exe_name; do
             publish_stem="${exe_name%.*}"
-            artifact_dir="_agent_artifacts/${publish_stem}-win-x64-${version}"
+            artifact_dir="_agent_artifacts/${publish_stem}-${RUNTIME}-${version}"
             cp "$artifact_dir/$exe_name" "$dist/$exe_name"
           done < <(jq -r '
             .components.desktop.bundles[] as $id |
@@ -185,6 +194,6 @@ jobs:
       - name: Upload desktop release artifact
         uses: actions/upload-artifact@v7
         with:
-          name: pactoolkits-desktop-win-x64-${{ inputs.product_version }}
+          name: pactoolkits-desktop-${{ env.RUNTIME }}-${{ inputs.product_version }}
           path: _desktop_release/*
           if-no-files-found: error

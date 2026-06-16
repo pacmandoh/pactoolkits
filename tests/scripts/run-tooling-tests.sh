@@ -15,6 +15,8 @@ chmod +x scripts/*.sh tests/scripts/*.sh
 
 run ./scripts/export-version.sh
 run ./scripts/check-version.sh
+bash -n ./scripts/clean-build-artifacts.sh
+./scripts/clean-build-artifacts.sh --dry-run >/dev/null
 
 stable_fixture_manifest="$(mktemp)"
 jq '

@@ -2,18 +2,33 @@ name: Build Desktop Avalonia
 
 on:
   workflow_call:
+    inputs:
+      runtime:
+        required: false
+        type: string
+        default: win-x64
   workflow_dispatch:
+    inputs:
+      runtime:
+        description: Windows runtime identifier
+        required: true
+        type: choice
+        default: win-x64
+        options:
+          - win-x64
+          - win-arm64
 
 permissions:
   contents: read
 
 jobs:
   build_desktop_avalonia:
-    name: Build Desktop Avalonia
+    name: Build Desktop Avalonia (${{ inputs.runtime || 'win-x64' }})
     runs-on: ubuntu-latest
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: '1'
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+      RUNTIME: ${{ inputs.runtime || 'win-x64' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -50,13 +65,18 @@ jobs:
       - name: Publish desktop
         shell: bash
         run: |
-          dotnet publish apps/desktop-avalonia/src/PacToolkits.Desktop.Avalonia.csproj -c Release -f net10.0 -r win-x64 --self-contained false
+          set -euo pipefail
+          case "$RUNTIME" in
+            win-x64|win-arm64) ;;
+            *) echo "Unsupported runtime: $RUNTIME" >&2; exit 1 ;;
+          esac
+          dotnet publish apps/desktop-avalonia/src/PacToolkits.Desktop.Avalonia.csproj -c Release -f net10.0 -r "$RUNTIME" --self-contained false
 
       - name: Validate publish output
         shell: bash
         run: |
           set -euo pipefail
-          publish_dir="apps/desktop-avalonia/src/bin/Release/net10.0/win-x64/publish"
+          publish_dir="apps/desktop-avalonia/src/bin/Release/net10.0/$RUNTIME/publish"
           required_files=(
             "pactoolkits-desktop.exe"
             "Sql/Bootstrap/000_init_meta.sql"
@@ -75,6 +95,6 @@ jobs:
       - name: Upload desktop publish artifact
         uses: actions/upload-artifact@v7
         with:
-          name: pactoolkits-desktop-avalonia-win-x64-${{ env.DESKTOP_VERSION }}
-          path: apps/desktop-avalonia/src/bin/Release/net10.0/win-x64/publish/
+          name: pactoolkits-desktop-avalonia-${{ env.RUNTIME }}-${{ env.DESKTOP_VERSION }}
+          path: apps/desktop-avalonia/src/bin/Release/net10.0/${{ env.RUNTIME }}/publish/
           if-no-files-found: error
