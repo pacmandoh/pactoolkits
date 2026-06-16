@@ -20,9 +20,17 @@
             VerticalAlignment="Stretch">
       <Grid RowDefinitions="Auto,*"
          RowSpacing="{DynamicResource FormRowSpacing}">
-        <TextBlock Text="设置目录"
-             Classes="SectionTitle"
-             Margin="{DynamicResource SettingsNavTitleMargin}" />
+        <StackPanel Orientation="Horizontal"
+              Spacing="{DynamicResource SpacingInlineSm}"
+              Margin="{DynamicResource SettingsNavTitleMargin}"
+              VerticalAlignment="Center">
+          <icons:AppIcon Kind="List"
+                   Width="{DynamicResource IconSizeSectionHeader}"
+                   Height="{DynamicResource IconSizeSectionHeader}" />
+          <TextBlock Text="设置目录"
+               Classes="SectionTitle"
+               VerticalAlignment="Center" />
+        </StackPanel>
         <StackPanel x:Name="NavItemsHost"
               Classes="SettingsNavHost"
               Grid.Row="1"
@@ -111,8 +119,8 @@
                 <TextBox Grid.Row="0" Grid.Column="1"
                     Width="280"
                     Height="{StaticResource ControlHeightCompact}"
-                    Watermark="例如：127.0.0.1"
-                    UseFloatingWatermark="False"
+                    PlaceholderText="例如：127.0.0.1"
+                    UseFloatingPlaceholder="False"
                     VerticalContentAlignment="Center"
                     Text="{Binding Host}" />
 
@@ -121,7 +129,7 @@
                        Grid.Column="1"
                        Width="280"
                        VerticalContentAlignment="Center"
-                       Watermark="例如：5432"
+                       PlaceholderText="例如：5432"
                        Minimum="1"
                        Maximum="65535"
                        Increment="1"
@@ -133,8 +141,8 @@
                     Grid.Column="1"
                     Width="280"
                     Height="{StaticResource ControlHeightCompact}"
-                    Watermark="例如：pactoolkits"
-                    UseFloatingWatermark="False"
+                    PlaceholderText="例如：pactoolkits"
+                    UseFloatingPlaceholder="False"
                     VerticalContentAlignment="Center"
                     Text="{Binding Database}" />
 
@@ -143,8 +151,8 @@
                     Grid.Column="1"
                     Width="280"
                     Height="{StaticResource ControlHeightCompact}"
-                    Watermark="例如：postgres"
-                    UseFloatingWatermark="False"
+                    PlaceholderText="例如：postgres"
+                    UseFloatingPlaceholder="False"
                     VerticalContentAlignment="Center"
                     Text="{Binding Username}" />
 
@@ -153,9 +161,9 @@
                     Grid.Column="1"
                     Width="280"
                     Height="{StaticResource ControlHeightCompact}"
-                    Watermark="请输入数据库密码"
+                    PlaceholderText="请输入数据库密码"
                     PasswordChar="●"
-                    UseFloatingWatermark="False"
+                    UseFloatingPlaceholder="False"
                     VerticalContentAlignment="Center"
                     Text="{Binding Password}" />
               </Grid>
@@ -421,7 +429,7 @@
 
                         <TextBox Grid.Column="1"
                             Classes="FilterSearchTextBox"
-                            Watermark="输入别名"
+                            PlaceholderText="输入别名"
                             Text="{Binding Alias}"
                             Width="280"
                             VerticalAlignment="Center"
@@ -532,8 +540,8 @@
               <TextBox Grid.Row="1"
                   Grid.Column="1"
                   Height="{StaticResource ControlHeightCompact}"
-                  Watermark="例如：^8\\d+$"
-                  UseFloatingWatermark="False"
+                  PlaceholderText="例如：^8\\d+$"
+                  UseFloatingPlaceholder="False"
                   VerticalContentAlignment="Center"
                   Text="{Binding TraceCodePattern}" />
               <TextBlock Grid.Row="1"
@@ -663,8 +671,8 @@
               <TextBox Grid.Row="0" Grid.Column="1"
                   Text="{Binding CurrentProductVersion}"
                   Height="{StaticResource ControlHeightCompact}"
-                  Watermark="当前已安装版本"
-                  UseFloatingWatermark="False"
+                  PlaceholderText="当前已安装版本"
+                  UseFloatingPlaceholder="False"
                   IsEnabled="False"
                   VerticalContentAlignment="Center" />
               <controls:UpdateStatusBadge Grid.Row="0"
@@ -702,8 +710,8 @@
                   Grid.Column="1"
                   Text="{Binding UpdateFeedUrl}"
                   Height="{StaticResource ControlHeightCompact}"
-                  Watermark="留空使用默认更新源"
-                  UseFloatingWatermark="False"
+                  PlaceholderText="留空使用默认更新源"
+                  UseFloatingPlaceholder="False"
                   VerticalContentAlignment="Center" />
 
               <TextBlock Grid.Row="4" Grid.Column="0"
@@ -736,8 +744,8 @@
                  ColumnDefinitions="*,Auto">
                 <TextBox Text="{Binding IgnoredProductVersion}"
                     Height="{StaticResource ControlHeightCompact}"
-                    Watermark="留空表示不忽略任何版本"
-                    UseFloatingWatermark="False"
+                    PlaceholderText="留空表示不忽略任何版本"
+                    UseFloatingPlaceholder="False"
                     VerticalContentAlignment="Center" />
                 <Button Grid.Column="1"
                     Classes="Ghost"
@@ -872,8 +880,8 @@
                   Grid.Column="1"
                   Text="{Binding LoggingDirectory}"
                   Height="{StaticResource ControlHeightCompact}"
-                  Watermark="留空使用默认日志目录"
-                  UseFloatingWatermark="False"
+                  PlaceholderText="留空使用默认日志目录"
+                  UseFloatingPlaceholder="False"
                   VerticalContentAlignment="Center" />
 
               <TextBlock Grid.Row="5"
@@ -943,8 +951,8 @@
                     Grid.Column="1"
                     Text="{Binding MsfxGatewayUrl}"
                     Height="{StaticResource ControlHeightCompact}"
-                    Watermark="https://eco.taobao.com/router/rest"
-                    UseFloatingWatermark="False"
+                    PlaceholderText="https://eco.taobao.com/router/rest"
+                    UseFloatingPlaceholder="False"
                     VerticalContentAlignment="Center" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0"
@@ -954,8 +962,8 @@
                     Grid.Column="1"
                     Text="{Binding MsfxAppKey}"
                     Height="{StaticResource ControlHeightCompact}"
-                    Watermark="请输入 AppKey"
-                    UseFloatingWatermark="False"
+                    PlaceholderText="请输入 AppKey"
+                    UseFloatingPlaceholder="False"
                     VerticalContentAlignment="Center" />
 
                 <TextBlock Grid.Row="2" Grid.Column="0"
@@ -967,9 +975,9 @@
                    ColumnSpacing="{DynamicResource SpacingInlineMd}">
                   <TextBox Text="{Binding MsfxAppSecret}"
                       Height="{StaticResource ControlHeightCompact}"
-                      Watermark="请输入 AppSecret"
+                      PlaceholderText="请输入 AppSecret"
                       PasswordChar="{Binding MsfxAppSecretPasswordChar}"
-                      UseFloatingWatermark="False"
+                      UseFloatingPlaceholder="False"
                       VerticalContentAlignment="Center" />
                   <Button Grid.Column="1"
                       Classes="Ghost"
@@ -1007,8 +1015,8 @@
                     Grid.Column="1"
                     Text="{Binding MsfxSessionToken}"
                     Height="{StaticResource ControlHeightCompact}"
-                    Watermark="非必填，可留空"
-                    UseFloatingWatermark="False"
+                    PlaceholderText="非必填，可留空"
+                    UseFloatingPlaceholder="False"
                     VerticalContentAlignment="Center" />
 
                 <TextBlock Grid.Row="4" Grid.Column="0"
@@ -1019,8 +1027,8 @@
                     Text="{Binding MsfxRefEntId}"
                     Height="{StaticResource ControlHeightCompact}"
                     VerticalContentAlignment="Center"
-                    UseFloatingWatermark="False"
-                    Watermark="用于 ref_ent_id / 默认 to_ref_user_id" />
+                    UseFloatingPlaceholder="False"
+                    PlaceholderText="用于 ref_ent_id / 默认 to_ref_user_id" />
 
                 <TextBlock Grid.Row="5" Grid.Column="0"
                      Text="超时（秒）"
