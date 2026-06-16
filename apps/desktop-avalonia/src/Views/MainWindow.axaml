@@ -216,8 +216,8 @@
             <TextBox Height="{StaticResource ControlHeightCompact}"
                 VerticalContentAlignment="Center"
                 Padding="31,0,10,0"
-                Watermark="搜索页面 / 命令"
-                UseFloatingWatermark="False"
+                PlaceholderText="搜索页面 / 命令"
+                UseFloatingPlaceholder="False"
                 Text="{Binding #MainSideMenu.SearchText, Mode=TwoWay}" />
             <icons:AppIcon Kind="Search"
                       Width="{DynamicResource IconSizeSmall}"
@@ -268,7 +268,10 @@
           Header="{Binding DisplayName}"
           IsEnabled="{Binding IsEnabled}">
           <suki:SukiSideMenuItem.Icon>
-            <icons:AppIcon Kind="{Binding Icon}" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+            <icons:AppIcon Kind="{Binding Icon}"
+                           Width="{DynamicResource SidebarMenuIconSize}"
+                           Height="{DynamicResource SidebarMenuIconSize}"
+                           StrokeWidth="{DynamicResource SidebarMenuIconStroke}" />
           </suki:SukiSideMenuItem.Icon>
         </suki:SukiSideMenuItem>
       </DataTemplate>
@@ -326,12 +329,18 @@
             <Button Classes="SidebarCompactAction"
                 IsVisible="{Binding !IsSettingsPageActive}"
                 Command="{Binding OpenSettingsCommand}">
-              <icons:AppIcon Kind="Settings" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+              <icons:AppIcon Kind="Settings"
+                             Width="{DynamicResource SidebarCompactIconSize}"
+                             Height="{DynamicResource SidebarCompactIconSize}"
+                             StrokeWidth="{DynamicResource SidebarCompactIconStroke}" />
             </Button>
             <Button Classes="SidebarCompactAction ActiveCompactAction"
                 IsVisible="{Binding IsSettingsPageActive}"
                 Command="{Binding OpenSettingsCommand}">
-              <icons:AppIcon Kind="Settings" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+              <icons:AppIcon Kind="Settings"
+                             Width="{DynamicResource SidebarCompactIconSize}"
+                             Height="{DynamicResource SidebarCompactIconSize}"
+                             StrokeWidth="{DynamicResource SidebarCompactIconStroke}" />
             </Button>
 
             <Button Classes="SidebarCompactAction"
