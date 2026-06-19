@@ -118,19 +118,21 @@ public partial class ScanCodeView : UserControl
             sender,
             e,
             "SpecBox",
-            () =>
-            {
-                if (DataContext is not PacToolkits.Desktop.Avalonia.ViewModels.Pages.ScanCodeViewModel vm)
-                {
-                    return;
-                }
+            ApplyDrugFilterFromBox);
+    }
 
-                var cmd = vm.ApplyDrugFilterCommand;
-                if (cmd?.CanExecute(null) == true)
-                {
-                    cmd.Execute(null);
-                }
-            });
+    private void ApplyDrugFilterFromBox()
+    {
+        if (DataContext is not PacToolkits.Desktop.Avalonia.ViewModels.Pages.ScanCodeViewModel vm)
+        {
+            return;
+        }
+
+        var cmd = vm.ApplyDrugFilterCommand;
+        if (cmd?.CanExecute(null) == true)
+        {
+            cmd.Execute(null);
+        }
     }
 
     private void CodeEditor_OnGotFocus(object? sender, FocusChangedEventArgs e)
@@ -206,5 +208,6 @@ public partial class ScanCodeView : UserControl
         }
 
         AutoCompleteHelper.AttachDrugOptionFilter(box);
+        AutoCompleteHelper.AttachCandidateCommitApply(box, this, "SpecBox", ApplyDrugFilterFromBox);
     }
 }
