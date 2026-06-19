@@ -1,5 +1,6 @@
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.TextSearch;
 
 namespace PacToolkits.Application.Services;
 
@@ -9,42 +10,63 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
 
     private readonly IInventoryOverviewRepo _repo;
     private readonly IDrugIndexRepo _drugIndexRepo;
+    private readonly IPinyinSearchCatalogCache _catalogCache;
 
-    public InventoryOverviewService(IInventoryOverviewRepo repo, IDrugIndexRepo drugIndexRepo)
+    public InventoryOverviewService(
+        IInventoryOverviewRepo repo,
+        IDrugIndexRepo drugIndexRepo,
+        IPinyinSearchCatalogCache catalogCache)
     {
         _repo = repo ?? throw new ArgumentNullException(nameof(repo));
         _drugIndexRepo = drugIndexRepo ?? throw new ArgumentNullException(nameof(drugIndexRepo));
+        _catalogCache = catalogCache ?? throw new ArgumentNullException(nameof(catalogCache));
     }
 
     public int LargeBatchReassignConfirmThreshold => DefaultLargeBatchReassignConfirmThreshold;
 
-    public Task<PagedResult<TracePoolStockRowDto>> GetStockPageAsync(
+    public async Task<PagedResult<TracePoolStockRowDto>> GetStockPageAsync(
         string? keyword,
         int page,
         int pageSize,
         CancellationToken ct)
-        => _repo.GetStockPageAsync(keyword, page, pageSize, ct);
+        => await _repo.GetStockPageAsync(
+            await BuildKeywordContextAsync(keyword, ct).ConfigureAwait(false),
+            page,
+            pageSize,
+            ct).ConfigureAwait(false);
 
-    public Task<PagedResult<TracePoolDrugSpecAggDto>> GetDrugSpecAggPageAsync(
+    public async Task<PagedResult<TracePoolDrugSpecAggDto>> GetDrugSpecAggPageAsync(
         string? keyword,
         int page,
         int pageSize,
         CancellationToken ct)
-        => _repo.GetDrugSpecAggPageAsync(keyword, page, pageSize, ct);
+        => await _repo.GetDrugSpecAggPageAsync(
+            await BuildKeywordContextAsync(keyword, ct).ConfigureAwait(false),
+            page,
+            pageSize,
+            ct).ConfigureAwait(false);
 
-    public Task<PagedResult<LowStockRowDto>> GetLowStockPageAsync(
+    public async Task<PagedResult<LowStockRowDto>> GetLowStockPageAsync(
         string? keyword,
         int page,
         int pageSize,
         CancellationToken ct)
-        => _repo.GetLowStockPageAsync(keyword, page, pageSize, ct);
+        => await _repo.GetLowStockPageAsync(
+            await BuildKeywordContextAsync(keyword, ct).ConfigureAwait(false),
+            page,
+            pageSize,
+            ct).ConfigureAwait(false);
 
-    public Task<PagedResult<MissingInventoryRowDto>> GetMissingInventoryPageAsync(
+    public async Task<PagedResult<MissingInventoryRowDto>> GetMissingInventoryPageAsync(
         string? keyword,
         int page,
         int pageSize,
         CancellationToken ct)
-        => _repo.GetMissingInventoryPageAsync(keyword, page, pageSize, ct);
+        => await _repo.GetMissingInventoryPageAsync(
+            await BuildKeywordContextAsync(keyword, ct).ConfigureAwait(false),
+            page,
+            pageSize,
+            ct).ConfigureAwait(false);
 
     public async Task<bool> TargetDrugSpecExistsAsync(string drugId, string spec, CancellationToken ct)
     {
@@ -89,20 +111,20 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
     public Task<int> DeleteStockByTraceCodesAsync(IReadOnlyList<string> traceCodes, CancellationToken ct)
         => _repo.DeleteStockByTraceCodesAsync(traceCodes, ct);
 
-    public Task<StockReassignPreviewDto> PreviewReassignByKeywordAsync(
+    public async Task<StockReassignPreviewDto> PreviewReassignByKeywordAsync(
         string keyword,
         string targetDrugId,
         string targetSpec,
         int targetQty,
         int sampleLimit,
         CancellationToken ct)
-        => _repo.PreviewStockReassignByKeywordAsync(
-            keyword,
+        => await _repo.PreviewStockReassignByKeywordAsync(
+            await BuildKeywordContextAsync(keyword, ct).ConfigureAwait(false),
             targetDrugId,
             targetSpec,
             targetQty,
             sampleLimit,
-            ct);
+            ct).ConfigureAwait(false);
 
     public async Task<StockReassignApplyResultDto> ReassignByTraceCodesAsync(
         IReadOnlyList<string> traceCodes,
@@ -139,17 +161,20 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
         return new StockReassignApplyResultDto(affected, auditId);
     }
 
-    public Task<StockReassignApplyResultDto> ReassignByKeywordAsync(
+    public async Task<StockReassignApplyResultDto> ReassignByKeywordAsync(
         string keyword,
         StockReassignContext context,
         CancellationToken ct)
-        => _repo.ReassignStockByKeywordAsync(
-            keyword,
+        => await _repo.ReassignStockByKeywordAsync(
+            await BuildKeywordContextAsync(keyword, ct).ConfigureAwait(false),
             context.TargetDrugId,
             context.TargetSpec,
             context.TargetQty,
             context.Reason,
             context.OperatorName,
             context.Source,
-            ct);
+            ct).ConfigureAwait(false);
+
+    private Task<KeywordSearchContext> BuildKeywordContextAsync(string? keyword, CancellationToken ct)
+        => PinyinCatalogExpander.ExpandDrugKeywordAsync(_catalogCache, keyword, ct);
 }

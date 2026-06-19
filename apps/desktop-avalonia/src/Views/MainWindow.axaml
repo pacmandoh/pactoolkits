@@ -237,7 +237,7 @@
       IsEnabled="{Binding !IsDbProbeRunning}"
       IsMenuExpanded="False"
       IsSelectedItemContentMovable="False"
-      ItemsSource="{Binding SidebarPages}"
+      ItemsSource="{Binding FilteredSidebarPages}"
       SelectedItem="{Binding ActivePage}">
       <suki:SukiSideMenu.HeaderContent>
         <Grid
@@ -303,7 +303,7 @@
                 Padding="31,0,10,0"
                 VerticalContentAlignment="Center"
                 PlaceholderText="搜索页面 / 命令"
-                Text="{Binding #MainSideMenu.SearchText, Mode=TwoWay}"
+                Text="{Binding SidebarSearchText, Mode=TwoWay}"
                 UseFloatingPlaceholder="False" />
               <icons:AppIcon
                 Width="{DynamicResource IconSizeSmall}"
