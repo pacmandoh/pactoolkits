@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -64,7 +65,7 @@ public sealed class LoggingSettingsService : ILoggingSettingsService
             MinimumLevel = normalizedLevel,
             RetentionDays = Math.Clamp(options.RetentionDays <= 0 ? defaults.RetentionDays : options.RetentionDays, 1, 180),
             MaxFileSizeMb = Math.Clamp(options.MaxFileSizeMb <= 0 ? defaults.MaxFileSizeMb : options.MaxFileSizeMb, 1, 200),
-            LogDirectory = (options.LogDirectory ?? string.Empty).Trim()
+            LogDirectory = DesktopLogDirectoryResolver.Resolve(options.LogDirectory).StoredDirectory
         };
     }
 
