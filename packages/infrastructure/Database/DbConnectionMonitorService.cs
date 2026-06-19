@@ -53,10 +53,15 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
     }
 
     public void Signal()
-        => _signals.Writer.TryWrite(new ProbeRequest(DbProbeKind.Reconnect, null));
+    {
+        Start();
+        _signals.Writer.TryWrite(new ProbeRequest(DbProbeKind.Reconnect, null));
+    }
 
     public async Task<DbProbeReport> ProbeAsync(DbProbeKind kind, CancellationToken ct)
     {
+        Start();
+
         var tcs = new TaskCompletionSource<DbProbeReport>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         if (!_signals.Writer.TryWrite(new ProbeRequest(kind, tcs)))
