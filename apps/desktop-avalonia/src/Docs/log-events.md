@@ -9,6 +9,7 @@
   - macOS: `~/Library/Application Support/PacToolkits/logs/desktop`
   - Linux: `~/.config/PacToolkits/logs/desktop`
 - 日志文件: `desktop-YYYY-MM-DD.log`（同日滚动为 `desktop-YYYY-MM-DD.N.log`）
+- 升级迁移：若本地配置仍保存旧默认目录 `.../PacToolkits/logs/ui`，启动加载配置时会自动改写为 `.../logs/desktop` 并写回配置文件（事件 `logging.directory.migrate`）；旧目录中的历史日志文件不会自动搬迁
 - 日志格式: JSON Line（每行一个 JSON 对象）
 - 关键字段:
   - `ts`: 时间
@@ -379,6 +380,7 @@
 ## AppConfigStore
 
 - `config.atomic_cleanup.fail`
+- `logging.directory.migrate`
 
 ## PageReloadBehavior
 

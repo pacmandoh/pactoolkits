@@ -450,7 +450,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void OnLoggingSettingsChanged()
     {
-        PostUiSafe(LoadLoggingOptions, "logging_settings.changed.ui_fail");
+        PostUiSafe(LoadLoggingOptions, "logging_settings.changed.fail");
     }
 
     partial void OnProductUpdateAvailableChanged(bool? value)
