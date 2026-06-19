@@ -227,7 +227,11 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private int _autoIntervalMinutes = 30;
     [ObservableProperty] private bool _isAutoBusy;
     [ObservableProperty] private bool _showAutoProgressPanel;
-    [ObservableProperty] private bool _isAutoBoardBusy;
+    [ObservableProperty] private bool _isPullPanelBusy;
+    [ObservableProperty] private bool _isMapPanelBusy;
+    [ObservableProperty] private bool _isTaskPanelBusy;
+
+    public bool IsAutoBoardBusy => IsPullPanelBusy || IsMapPanelBusy || IsTaskPanelBusy;
     [ObservableProperty] private string _autoStatus = "未启动";
     [ObservableProperty] private double _autoRunProgressValue;
     [ObservableProperty] private string _autoLastRunAtText = "--";
@@ -580,8 +584,15 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             NotifyCommands(RunAutoOnceCommand, ClearAutoLogsCommand, RefreshAutoBoardCommand));
     }
 
-    partial void OnIsAutoBoardBusyChanged(bool value)
+    partial void OnIsPullPanelBusyChanged(bool value) => NotifyAutoBoardBusyStateChanged();
+
+    partial void OnIsMapPanelBusyChanged(bool value) => NotifyAutoBoardBusyStateChanged();
+
+    partial void OnIsTaskPanelBusyChanged(bool value) => NotifyAutoBoardBusyStateChanged();
+
+    private void NotifyAutoBoardBusyStateChanged()
     {
+        OnPropertyChanged(nameof(IsAutoBoardBusy));
         NotifyCommandsCoalesced("msfx.auto.board.commands", () =>
             NotifyCommands(RefreshAutoBoardCommand));
         PostOnUi(() => OnPropertyChanged(nameof(CanBatchReopenSelectedTasks)), DispatcherPriority.Background);
@@ -590,6 +601,24 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         PostOnUi(() => OnPropertyChanged(nameof(CanBatchMergeSelectedTasks)), DispatcherPriority.Background);
         PostOnUi(() => OnPropertyChanged(nameof(CanSplitSelectedTasks)), DispatcherPriority.Background);
     }
+
+    private bool ShouldShowPullPanelBusy() => AutoPullBatchRows.Count == 0;
+
+    private bool ShouldShowMapPanelBusy() => AutoMapQueueRows.Count == 0;
+
+    private bool ShouldShowTaskPanelBusy() => AutoTaskQueueRows.Count == 0;
+
+    private Task RunMapPanelQueryAsync(Func<CancellationToken, Task> query)
+        => RunLocalReloadAsync(
+            _ => { },
+            async ct =>
+            {
+                await RunLocalBusyAsync(
+                    ct,
+                    v => IsMapPanelBusy = v,
+                    () => query(ct),
+                    ShouldShowMapPanelBusy()).ConfigureAwait(false);
+            });
 
     partial void OnUpoutPageChanged(int value)
     {
@@ -1833,14 +1862,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private async Task PrevMapQueuePageAsync()
     {
-        if (!HasMapQueuePrevPage || IsAutoBoardBusy)
+        if (!HasMapQueuePrevPage || IsMapPanelBusy)
         {
             return;
         }
 
-        await RunLocalReloadAsync(
-            setBusy: v => IsAutoBoardBusy = v,
-            action: ct => RefreshMapQueueAsync(ct, olderPage: false));
+        await RunMapPanelQueryAsync(ct => RefreshMapQueueAsync(ct, olderPage: false)).ConfigureAwait(false);
     }
 
     [RelayCommand]
@@ -1870,14 +1897,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private async Task NextMapQueuePageAsync()
     {
-        if (!HasMapQueueNextPage || IsAutoBoardBusy)
+        if (!HasMapQueueNextPage || IsMapPanelBusy)
         {
             return;
         }
 
-        await RunLocalReloadAsync(
-            setBusy: v => IsAutoBoardBusy = v,
-            action: ct => RefreshMapQueueAsync(ct, olderPage: true));
+        await RunMapPanelQueryAsync(ct => RefreshMapQueueAsync(ct, olderPage: true)).ConfigureAwait(false);
     }
 
     [RelayCommand]
@@ -2002,7 +2027,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         try
         {
-            IsAutoBoardBusy = true;
+            IsTaskPanelBusy = true;
             var opName = Environment.UserName;
             var successCount = 0;
             var failedCount = 0;
@@ -2053,7 +2078,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             await RunOnUiAsync(() =>
             {
-                IsAutoBoardBusy = false;
+                IsTaskPanelBusy = false;
                 TaskQueueBatchMode = TaskQueueBatchActionMode.None;
             });
         }
@@ -2097,7 +2122,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         try
         {
-            IsAutoBoardBusy = true;
+            IsTaskPanelBusy = true;
             var opName = Environment.UserName;
             var successCount = 0;
             var failedCount = 0;
@@ -2148,7 +2173,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             await RunOnUiAsync(() =>
             {
-                IsAutoBoardBusy = false;
+                IsTaskPanelBusy = false;
                 TaskQueueBatchMode = TaskQueueBatchActionMode.None;
             });
         }
@@ -2191,7 +2216,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         try
         {
-            IsAutoBoardBusy = true;
+            IsTaskPanelBusy = true;
             var opName = Environment.UserName;
             var successCount = 0;
             var failedCount = 0;
@@ -2247,7 +2272,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             await RunOnUiAsync(() =>
             {
-                IsAutoBoardBusy = false;
+                IsTaskPanelBusy = false;
                 TaskQueueBatchMode = TaskQueueBatchActionMode.None;
             });
         }
@@ -2304,7 +2329,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         try
         {
-            IsAutoBoardBusy = true;
+            IsTaskPanelBusy = true;
             var opName = Environment.UserName;
             var result = await _syncService.MergeMsfxTasksAsync(
                 selectedRows.Select(x => x.TaskId).ToArray(),
@@ -2334,7 +2359,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             await RunOnUiAsync(() =>
             {
-                IsAutoBoardBusy = false;
+                IsTaskPanelBusy = false;
                 TaskQueueBatchMode = TaskQueueBatchActionMode.None;
             });
         }
@@ -2387,7 +2412,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         try
         {
-            IsAutoBoardBusy = true;
+            IsTaskPanelBusy = true;
             var opName = Environment.UserName;
             if (choice.Action == MsfxTaskSplitDialogAction.CustomQuantity)
             {
@@ -2457,7 +2482,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
         finally
         {
-            await RunOnUiAsync(() => IsAutoBoardBusy = false);
+            await RunOnUiAsync(() => IsTaskPanelBusy = false);
         }
     }
 
@@ -2711,20 +2736,29 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     [RelayCommand(CanExecute = nameof(CanRefreshAutoBoard))]
-    private async Task RefreshAutoBoardAsync()
-    {
-        await RunLocalReloadAsync(
-            setBusy: v => IsAutoBoardBusy = v,
-            action: RefreshAutoBoardCoreAsync);
-    }
+    private Task RefreshAutoBoardAsync()
+        => RunLocalReloadAsync(_ => { }, RefreshAutoBoardCoreAsync);
 
     private async Task RefreshAutoBoardCoreAsync(CancellationToken ct)
     {
         try
         {
-            var snap = await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
-            await RefreshAutoMapPanelCoreAsync(ct).ConfigureAwait(false);
-            await RefreshAutoTaskPanelCoreAsync(ct).ConfigureAwait(false);
+            MsfxAutoBoardSnapshot snap = default!;
+            await RunLocalBusyAsync(
+                ct,
+                v => IsPullPanelBusy = v,
+                async () => snap = await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false),
+                ShouldShowPullPanelBusy()).ConfigureAwait(false);
+            await RunLocalBusyAsync(
+                ct,
+                v => IsMapPanelBusy = v,
+                () => RefreshAutoMapPanelCoreAsync(ct),
+                ShouldShowMapPanelBusy()).ConfigureAwait(false);
+            await RunLocalBusyAsync(
+                ct,
+                v => IsTaskPanelBusy = v,
+                () => RefreshAutoTaskPanelCoreAsync(ct),
+                ShouldShowTaskPanelBusy()).ConfigureAwait(false);
             await RunOnUiAsync(ClearAllDetailSelectionsSilent);
 
             if (snap.MapPendingCount > 0 && snap.MapMappedCount == 0 && snap.TaskNewCount == 0 && snap.TaskRunningCount == 0)
@@ -3041,16 +3075,14 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         return ordered.Select((unit, idx) => (unit.GroupKey, placed[idx])).ToList();
     }
 
-    private async Task RefreshMapQueueLatestAsync()
+    private Task RefreshMapQueueLatestAsync()
     {
         if (IsAutoBoardBusy || SelectedTabIndex != 0)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        await RunLocalReloadAsync(
-            setBusy: v => IsAutoBoardBusy = v,
-            action: ct => RefreshMapQueueAsync(ct, olderPage: null));
+        return RunMapPanelQueryAsync(ct => RefreshMapQueueAsync(ct, olderPage: null));
     }
 
     private void ResetMapQueueCursor()
