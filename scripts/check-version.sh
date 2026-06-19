@@ -6,8 +6,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/manifest-v2.sh"
 
 MANIFEST="$ROOT_DIR/release-manifest.json"
-UI_PROPS="$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props"
-UI_JSON="$ROOT_DIR/apps/desktop-avalonia/src/version.generated.json"
+DESKTOP_VERSION_PROPS="$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props"
+DESKTOP_VERSION_JSON="$ROOT_DIR/apps/desktop-avalonia/src/version.generated.json"
 
 require_cmd() {
   command -v "$1" > /dev/null 2>&1 || {
@@ -22,19 +22,19 @@ require_cmd jq
   echo "ERROR: missing $MANIFEST" >&2
   exit 1
 }
-[[ -f "$UI_PROPS" ]] || {
-  echo "ERROR: missing $UI_PROPS (run scripts/export-version.sh)" >&2
+[[ -f "$DESKTOP_VERSION_PROPS" ]] || {
+  echo "ERROR: missing $DESKTOP_VERSION_PROPS (run scripts/export-version.sh)" >&2
   exit 1
 }
-[[ -f "$UI_JSON" ]] || {
-  echo "ERROR: missing $UI_JSON (run scripts/export-version.sh)" >&2
+[[ -f "$DESKTOP_VERSION_JSON" ]] || {
+  echo "ERROR: missing $DESKTOP_VERSION_JSON (run scripts/export-version.sh)" >&2
   exit 1
 }
 
 validate_manifest_v2 "$MANIFEST"
 
 manifest_canonical="$(jq -S . "$MANIFEST")"
-export_canonical="$(jq -S . "$UI_JSON")"
+export_canonical="$(jq -S . "$DESKTOP_VERSION_JSON")"
 
 if [[ "$manifest_canonical" != "$export_canonical" ]]; then
   echo "ERROR: version.generated.json does not match release-manifest.json" >&2
@@ -45,13 +45,13 @@ fi
 manifest_desktop="$(manifest_desktop_version "$MANIFEST")"
 
 if command -v rg > /dev/null 2>&1; then
-  ui_props_app="$(rg -o "<AppVersion>[^<]+</AppVersion>" "$UI_PROPS" | sed -E 's#<AppVersion>([^<]+)</AppVersion>#\1#')"
+  desktop_props_app="$(rg -o "<AppVersion>[^<]+</AppVersion>" "$DESKTOP_VERSION_PROPS" | sed -E 's#<AppVersion>([^<]+)</AppVersion>#\1#')"
 else
-  ui_props_app="$(grep -oE "<AppVersion>[^<]+</AppVersion>" "$UI_PROPS" | sed -E 's#<AppVersion>([^<]+)</AppVersion>#\1#')"
+  desktop_props_app="$(grep -oE "<AppVersion>[^<]+</AppVersion>" "$DESKTOP_VERSION_PROPS" | sed -E 's#<AppVersion>([^<]+)</AppVersion>#\1#')"
 fi
 
-[[ "$ui_props_app" == "$manifest_desktop" ]] || {
-  echo "ERROR: Version.g.props AppVersion=$ui_props_app != manifest desktop.version=$manifest_desktop" >&2
+[[ "$desktop_props_app" == "$manifest_desktop" ]] || {
+  echo "ERROR: Version.g.props AppVersion=$desktop_props_app != manifest desktop.version=$manifest_desktop" >&2
   exit 1
 }
 

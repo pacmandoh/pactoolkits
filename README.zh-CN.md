@@ -332,7 +332,7 @@ database/postgres/
 
 **仓库维护脚本**
 
-- `audit-unused-ui-resources.sh`
+- `audit-unused-desktop-avalonia-resources.sh`
   - 扫描 Desktop 项目中未引用的样式、资源与相关残留
 
 **Windows 部署 / 同步脚本**
