@@ -13,7 +13,14 @@
       x:DataType="vm:DrugIndexViewModel"
       Focusable="True"
       x:Name="Root">
-  <Grid Classes="PageRoot">
+  <controls:PageDataShell IsLoadingData="{Binding IsBusy}"
+                          ShowUnavailable="{Binding ShowPageUnavailable}"
+                          UnavailableTitle="{Binding PageUnavailableTitle}"
+                          UnavailableHint="{Binding PageUnavailableHint}"
+                          UnavailableIcon="{Binding PageUnavailableIcon}"
+                          ShowStale="{Binding IsShowingStaleData}"
+                          StaleHint="{Binding PageStaleHint}">
+    <Grid Classes="PageRoot">
       <Grid ColumnDefinitions="2.2*,1*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
 
@@ -141,8 +148,11 @@
             <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsListBusy}">
             <controls:EmptyStatePanel
                          IsEmpty="{Binding IsItemsEmpty}"
-                         EmptyText="暂无药品数据"
-                         EmptyHint="当前筛选条件下没有药品信息">
+                         EmptyText="{Binding ItemsEmptyText}"
+                         EmptyHint="{Binding ItemsEmptyHint}"
+                         Icon="{Binding SectionEmptyIcon}"
+                         IsPending="{Binding IsSectionPending}"
+                         SlotMinHeight="{DynamicResource DgH10Rows}">
               <DataGrid Classes="SectionGrid DrugGrid StickyIndexGrid"
                    ItemsSource="{Binding Items}"
                    SelectedItem="{Binding Selected, Mode=TwoWay}"
@@ -408,4 +418,5 @@
 
       </Grid>
     </Grid>
+  </controls:PageDataShell>
 </UserControl>

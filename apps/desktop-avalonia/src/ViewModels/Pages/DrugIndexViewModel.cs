@@ -241,7 +241,17 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private int _lastSuccessfulReloadEpoch;
 
     public AvaloniaList<DrugRow> Items { get; } = new();
-    public bool IsItemsEmpty => Items.Count == 0;
+    protected override void OnPageAvailabilityChanged()
+    {
+        OnPropertyChanged(nameof(IsItemsEmpty));
+        OnPropertyChanged(nameof(ItemsEmptyText));
+        OnPropertyChanged(nameof(ItemsEmptyHint));
+    }
+
+    public bool IsItemsEmpty => ShouldShowSectionEmpty(Items.Count == 0);
+
+    public string ItemsEmptyText => GetSectionEmptyTitle("暂无药品数据");
+    public string ItemsEmptyHint => GetSectionEmptyHint("当前筛选条件下没有药品信息");
 
     public string? Keyword
     {
@@ -355,7 +365,11 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     }
 
     private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        => OnPropertyChanged(nameof(IsItemsEmpty));
+    {
+        OnPropertyChanged(nameof(IsItemsEmpty));
+        OnPropertyChanged(nameof(ItemsEmptyText));
+        OnPropertyChanged(nameof(ItemsEmptyHint));
+    }
 
     private bool CanRefreshLocal() => CanOperateUi();
 

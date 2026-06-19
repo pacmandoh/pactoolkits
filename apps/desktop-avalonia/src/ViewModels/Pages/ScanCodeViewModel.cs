@@ -43,9 +43,40 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     public ObservableCollection<AutoFetchTaskItem> AutoTasks { get; } = new();
     public ObservableCollection<AutoFetchRunItem> RecentRuns { get; } = new();
     public ObservableCollection<AutoFetchRetryItem> RetryQueue { get; } = new();
-    public bool IsAutoTasksEmpty => AutoTasks.Count == 0;
-    public bool IsRecentRunsEmpty => RecentRuns.Count == 0;
-    public bool IsRetryQueueEmpty => RetryQueue.Count == 0;
+    protected override void OnLookupCatalogSuspended()
+    {
+        DrugOptions.Clear();
+        SpecOptions.Clear();
+        IsDrugSuggestOpen = false;
+        DrugText = null;
+        SelectedSpec = null;
+        SelectedQtyText = null;
+        IsSpecSelected = false;
+    }
+
+    protected override void OnPageAvailabilityChanged()
+    {
+        OnPropertyChanged(nameof(IsAutoTasksEmpty));
+        OnPropertyChanged(nameof(AutoTasksEmptyText));
+        OnPropertyChanged(nameof(AutoTasksEmptyHint));
+        OnPropertyChanged(nameof(IsRecentRunsEmpty));
+        OnPropertyChanged(nameof(RecentRunsEmptyText));
+        OnPropertyChanged(nameof(RecentRunsEmptyHint));
+        OnPropertyChanged(nameof(IsRetryQueueEmpty));
+        OnPropertyChanged(nameof(RetryQueueEmptyText));
+        OnPropertyChanged(nameof(RetryQueueEmptyHint));
+    }
+
+    public string AutoTasksEmptyText => GetSectionEmptyTitle("暂无任务");
+    public string AutoTasksEmptyHint => GetSectionEmptyHint("当前没有自动拉取任务");
+    public string RecentRunsEmptyText => GetSectionEmptyTitle("暂无执行记录");
+    public string RecentRunsEmptyHint => GetSectionEmptyHint("当前没有任务执行历史");
+    public string RetryQueueEmptyText => GetSectionEmptyTitle("暂无重试项");
+    public string RetryQueueEmptyHint => GetSectionEmptyHint("当前没有失败重试任务");
+
+    public bool IsAutoTasksEmpty => ShouldShowSectionEmpty(AutoTasks.Count == 0);
+    public bool IsRecentRunsEmpty => ShouldShowSectionEmpty(RecentRuns.Count == 0);
+    public bool IsRetryQueueEmpty => ShouldShowSectionEmpty(RetryQueue.Count == 0);
 
     [ObservableProperty] private int _selectedTabIndex;
     [ObservableProperty] private string? _drugText;
@@ -98,6 +129,12 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         {
             try
             {
+                if (IsLookupCatalogSuspended())
+                {
+                    OnLookupCatalogSuspended();
+                    return;
+                }
+
                 _lookup.InvalidateDrugCatalog();
                 using var cts = new CancellationTokenSource(LookupTimeout);
                 var drugs = await LookupOptionLoader.LoadDrugOptionsAsync(
@@ -560,6 +597,12 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
     private async Task ReloadLookupAsync(CancellationToken ct)
     {
+        if (IsLookupCatalogSuspended())
+        {
+            await RunOnUiAsync(() => OnLookupCatalogSuspended(), DispatcherPriority.Background);
+            return;
+        }
+
         var drugs = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, ct).ConfigureAwait(false);
 
         await RunOnUiAsync(() =>
