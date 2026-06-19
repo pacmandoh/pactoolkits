@@ -127,6 +127,20 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     private async Task ReloadDrugOptionsAsync(CancellationToken ct)
     {
+        if (IsLookupCatalogSuspended())
+        {
+            await RunOnUiAsync(() =>
+            {
+                using (SuppressReload())
+                {
+                    DrugOptions.Clear();
+                    IsDrugSuggestOpen = false;
+                    EnsureAllSpecOnly();
+                }
+            }, DispatcherPriority.Background);
+            return;
+        }
+
         var list = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, ct).ConfigureAwait(false);
 
         await RunOnUiAsync(() =>
@@ -341,12 +355,63 @@ public sealed partial class DashboardViewModel : AppPageBase
         OnPropertyChanged(nameof(IsAbnormalEmpty));
     }
 
-    public bool IsTrendEmpty => DrugTrend.Count == 0;
-    public bool IsTxnTrendEmpty => TxnTrendTotalCount == 0;
-    public bool IsTopClientsEmpty => TopClients.Count == 0;
-    public bool IsRecentTxnsEmpty => TxnTotalCount == 0;
-    public bool IsEntryRecentEmpty => EntryTotalCount == 0;
-    public bool IsAbnormalEmpty => AbnormalTotalCount == 0;
+    protected override void OnLookupCatalogSuspended()
+    {
+        using (SuppressReload())
+        {
+            DrugOptions.Clear();
+            IsDrugSuggestOpen = false;
+            DrugText = null;
+            EnsureAllSpecOnly();
+        }
+    }
+
+    protected override void OnPageAvailabilityChanged()
+    {
+        OnPropertyChanged(nameof(IsTrendEmpty));
+        OnPropertyChanged(nameof(TrendEmptyText));
+        OnPropertyChanged(nameof(TrendEmptyHint));
+        OnPropertyChanged(nameof(IsTxnTrendEmpty));
+        OnPropertyChanged(nameof(TxnTrendEmptyText));
+        OnPropertyChanged(nameof(TxnTrendEmptyHint));
+        OnPropertyChanged(nameof(IsTopClientsEmpty));
+        OnPropertyChanged(nameof(TopClientsEmptyText));
+        OnPropertyChanged(nameof(TopClientsEmptyHint));
+        OnPropertyChanged(nameof(IsRecentTxnsEmpty));
+        OnPropertyChanged(nameof(RecentTxnsEmptyText));
+        OnPropertyChanged(nameof(RecentTxnsEmptyHint));
+        OnPropertyChanged(nameof(IsEntryRecentEmpty));
+        OnPropertyChanged(nameof(EntryRecentEmptyText));
+        OnPropertyChanged(nameof(EntryRecentEmptyHint));
+        OnPropertyChanged(nameof(AbnormalEmptyText));
+        OnPropertyChanged(nameof(AbnormalEmptyHint));
+        OnPropertyChanged(nameof(IsAbnormalEmpty));
+        OnPropertyChanged(nameof(IsTxnPanelEmpty));
+        OnPropertyChanged(nameof(TxnPanelEmptyText));
+        OnPropertyChanged(nameof(TxnPanelEmptyHint));
+    }
+
+    public string TrendEmptyText => GetSectionEmptyTitle("期间无使用情况");
+    public string TrendEmptyHint => GetSectionEmptyHint("当前筛选条件下没有追溯码使用记录");
+    public string TxnTrendEmptyText => GetSectionEmptyTitle("期间无趋势");
+    public string TxnTrendEmptyHint => GetSectionEmptyHint("当前筛选条件下没有取码事务趋势");
+    public string TopClientsEmptyText => GetSectionEmptyTitle("暂无客户端使用记录");
+    public string TopClientsEmptyHint => GetSectionEmptyHint("当前时间范围内没有任何客户端操作");
+    public string RecentTxnsEmptyText => GetSectionEmptyTitle("期间无事务");
+    public string RecentTxnsEmptyHint => GetSectionEmptyHint("当前筛选条件下没有取码事务记录");
+    public string EntryRecentEmptyText => GetSectionEmptyTitle("暂无录入记录");
+    public string EntryRecentEmptyHint => GetSectionEmptyHint("期间内未发生追溯码录入");
+    public string TxnPanelEmptyText => GetSectionEmptyTitle("暂无事务数据");
+    public string TxnPanelEmptyHint => GetSectionEmptyHint("当前筛选条件下没有取码事务记录");
+    public string AbnormalEmptyText => GetSectionEmptyTitle("暂无异常队列");
+    public string AbnormalEmptyHint => GetSectionEmptyHint("当前筛选条件下没有回滚/异常事务");
+
+    public bool IsTrendEmpty => ShouldShowSectionEmpty(DrugTrend.Count == 0);
+    public bool IsTxnTrendEmpty => ShouldShowSectionEmpty(TxnTrendTotalCount == 0);
+    public bool IsTopClientsEmpty => ShouldShowSectionEmpty(TopClients.Count == 0);
+    public bool IsRecentTxnsEmpty => ShouldShowSectionEmpty(TxnTotalCount == 0);
+    public bool IsEntryRecentEmpty => ShouldShowSectionEmpty(EntryTotalCount == 0);
+    public bool IsAbnormalEmpty => ShouldShowSectionEmpty(AbnormalTotalCount == 0);
 
     private DispatcherTimer? _debounce;
     private bool _debounceHooked;
@@ -420,16 +485,20 @@ public sealed partial class DashboardViewModel : AppPageBase
             if (!_filtersLoaded)
             {
                 _filtersLoaded = true;
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-                await ReloadDrugOptionsAsync(cts.Token);
 
-                if (!string.IsNullOrWhiteSpace(DrugText))
+                if (!IsDatabaseAccessBlocked(out _))
                 {
-                    await ReloadSpecsAsync(NormalizeInput(DrugText)!);
-                }
-                else
-                {
-                    await RunOnUiAsync(EnsureAllSpecOnly, DispatcherPriority.Background);
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+                    await ReloadDrugOptionsAsync(cts.Token);
+
+                    if (!string.IsNullOrWhiteSpace(DrugText))
+                    {
+                        await ReloadSpecsAsync(NormalizeInput(DrugText)!);
+                    }
+                    else
+                    {
+                        await RunOnUiAsync(EnsureAllSpecOnly, DispatcherPriority.Background);
+                    }
                 }
             }
         }

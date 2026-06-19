@@ -275,10 +275,48 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     }
     public bool ShowUnlockStatus => IsDetailMode;
     public bool ShowEditSessionState => IsDetailMode && IsStockEditEnabled;
-    public bool IsStockEmpty => StockRows.Count == 0;
-    public bool IsAggEmpty => DrugSpecRows.Count == 0;
-    public bool IsLowEmpty => LowStockRows.Count == 0;
-    public bool IsMissingEmpty => MissingStockRows.Count == 0;
+    protected override void OnLookupCatalogSuspended()
+    {
+        ReassignDrugOptions.Clear();
+        ReassignSpecOptions.Clear();
+        IsReassignDrugSuggestOpen = false;
+        ReassignDrugText = null;
+        ReassignTargetDrugId = null;
+        ReassignSelectedSpec = null;
+        ReassignTargetSpec = null;
+        ReassignQtyText = null;
+        IsReassignSpecSelected = false;
+    }
+
+    protected override void OnPageAvailabilityChanged()
+    {
+        OnPropertyChanged(nameof(IsStockEmpty));
+        OnPropertyChanged(nameof(StockEmptyText));
+        OnPropertyChanged(nameof(StockEmptyHint));
+        OnPropertyChanged(nameof(IsAggEmpty));
+        OnPropertyChanged(nameof(AggEmptyText));
+        OnPropertyChanged(nameof(AggEmptyHint));
+        OnPropertyChanged(nameof(IsLowEmpty));
+        OnPropertyChanged(nameof(LowEmptyText));
+        OnPropertyChanged(nameof(LowEmptyHint));
+        OnPropertyChanged(nameof(IsMissingEmpty));
+        OnPropertyChanged(nameof(MissingEmptyText));
+        OnPropertyChanged(nameof(MissingEmptyHint));
+    }
+
+    public string StockEmptyText => GetSectionEmptyTitle("暂无库存明细");
+    public string StockEmptyHint => GetSectionEmptyHint("当前筛选条件下没有库存明细");
+    public string AggEmptyText => GetSectionEmptyTitle("暂无汇总数据");
+    public string AggEmptyHint => GetSectionEmptyHint("当前筛选条件下没有汇总数据");
+    public string LowEmptyText => GetSectionEmptyTitle("暂无低库存药品");
+    public string LowEmptyHint => GetSectionEmptyHint("当前筛选条件下没有低库存药品");
+    public string MissingEmptyText => GetSectionEmptyTitle("暂无缺失药品");
+    public string MissingEmptyHint => GetSectionEmptyHint("当前筛选条件下没有缺失药品");
+
+    public bool IsStockEmpty => ShouldShowSectionEmpty(StockRows.Count == 0);
+    public bool IsAggEmpty => ShouldShowSectionEmpty(DrugSpecRows.Count == 0);
+    public bool IsLowEmpty => ShouldShowSectionEmpty(LowStockRows.Count == 0);
+    public bool IsMissingEmpty => ShouldShowSectionEmpty(MissingStockRows.Count == 0);
     public bool IsUiBusy => IsBusy || IsDetailBusy || IsAggBusy || IsLowBusy || IsMissingBusy || IsReassignBusy;
     public bool IsPagedMode => ModeIndex is 0 or 1 or 2 or 3;
     public int PageSize => FixedPageSize;
@@ -516,6 +554,12 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     private async Task EnsureReassignDrugOptionsAsync()
     {
+        if (IsLookupCatalogSuspended())
+        {
+            await RunOnUiAsync(OnLookupCatalogSuspended);
+            return;
+        }
+
         if (ReassignDrugOptions.Count > 0)
         {
             return;
