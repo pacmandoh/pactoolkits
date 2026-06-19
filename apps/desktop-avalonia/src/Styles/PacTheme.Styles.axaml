@@ -9,6 +9,7 @@
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/AppIconStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/DataGrid.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Navigation.axaml" />
+  <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/ShellStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Pages/LayoutStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Pages/SettingsPageStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Pages/AboutPageStyles.axaml" />
