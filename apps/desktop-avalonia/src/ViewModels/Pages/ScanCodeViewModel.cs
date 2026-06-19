@@ -264,7 +264,10 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             await RunOnUiAsync(() =>
             {
                 UpdateStatus($"加载规格失败：{ex.Message}", 2);
-                _toast.Error("规格加载失败", ex.Message);
+                if (ShouldShowOperationErrorToast(ex))
+                {
+                    _toast.Error("规格加载失败", ex.Message);
+                }
             });
         }
     }
@@ -379,7 +382,10 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             await RunOnUiAsync(() =>
             {
                 Status = $"录入失败：{ex.Message}";
-                _toast.Error("追溯码录入失败", ex.Message);
+                if (ShouldShowOperationErrorToast(ex))
+                {
+                    _toast.Error("追溯码录入失败", ex.Message);
+                }
             });
         }
     }
