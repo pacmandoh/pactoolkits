@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -1208,16 +1208,16 @@
 
             <controls:DataGridPager
               Grid.Row="2"
-              IsContentEmpty="{Binding IsEntryRecentEmpty}"
               FirstPageCommand="{Binding FirstEntryPageCommand}"
+              IsContentEmpty="{Binding IsEntryRecentEmpty}"
               LastPageCommand="{Binding LastEntryPageCommand}"
               NextPageCommand="{Binding NextEntryPageCommand}"
-              PageIndex="{Binding EntryPageIndex}"
               PageSizeOptions="{Binding TabPageSizeOptions}"
               PrevPageCommand="{Binding PrevEntryPageCommand}"
               SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
               TotalCount="{Binding EntryTotalCount}"
-              TotalPages="{Binding EntryTotalPages}" />
+              TotalPages="{Binding EntryTotalPages}"
+              PageIndex="{Binding EntryPageIndex}" />
           </Grid>
         </suki:GlassCard>
       </Grid>
@@ -1377,31 +1377,31 @@
 
             <controls:DataGridPager
               Grid.Row="2"
+              FirstPageCommand="{Binding FirstTxnPageCommand}"
               IsActive="{Binding IsTxnPanelDetailMode}"
               IsContentEmpty="{Binding IsRecentTxnsEmpty}"
-              FirstPageCommand="{Binding FirstTxnPageCommand}"
               LastPageCommand="{Binding LastTxnPageCommand}"
               NextPageCommand="{Binding NextTxnPageCommand}"
-              PageIndex="{Binding TxnPageIndex}"
               PageSizeOptions="{Binding TabPageSizeOptions}"
               PrevPageCommand="{Binding PrevTxnPageCommand}"
               SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
               TotalCount="{Binding TxnTotalCount}"
-              TotalPages="{Binding TxnTotalPages}" />
+              TotalPages="{Binding TxnTotalPages}"
+              PageIndex="{Binding TxnPageIndex}" />
 
             <controls:DataGridPager
               Grid.Row="2"
+              FirstPageCommand="{Binding FirstTxnTrendPageCommand}"
               IsActive="{Binding IsTxnPanelTrendMode}"
               IsContentEmpty="{Binding IsTxnTrendEmpty}"
-              FirstPageCommand="{Binding FirstTxnTrendPageCommand}"
               LastPageCommand="{Binding LastTxnTrendPageCommand}"
               NextPageCommand="{Binding NextTxnTrendPageCommand}"
-              PageIndex="{Binding TxnTrendPageIndex}"
               PageSizeOptions="{Binding TabPageSizeOptions}"
               PrevPageCommand="{Binding PrevTxnTrendPageCommand}"
               SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
               TotalCount="{Binding TxnTrendTotalCount}"
-              TotalPages="{Binding TxnTrendTotalPages}" />
+              TotalPages="{Binding TxnTrendTotalPages}"
+              PageIndex="{Binding TxnTrendPageIndex}" />
           </Grid>
         </suki:GlassCard>
       </Grid>
@@ -1510,16 +1510,16 @@
 
             <controls:DataGridPager
               Grid.Row="2"
-              IsContentEmpty="{Binding IsAbnormalEmpty}"
               FirstPageCommand="{Binding FirstAbnormalPageCommand}"
+              IsContentEmpty="{Binding IsAbnormalEmpty}"
               LastPageCommand="{Binding LastAbnormalPageCommand}"
               NextPageCommand="{Binding NextAbnormalPageCommand}"
-              PageIndex="{Binding AbnormalPageIndex}"
               PageSizeOptions="{Binding TabPageSizeOptions}"
               PrevPageCommand="{Binding PrevAbnormalPageCommand}"
               SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
               TotalCount="{Binding AbnormalTotalCount}"
-              TotalPages="{Binding AbnormalTotalPages}" />
+              TotalPages="{Binding AbnormalTotalPages}"
+              PageIndex="{Binding AbnormalPageIndex}" />
           </Grid>
         </suki:GlassCard>
       </Grid>

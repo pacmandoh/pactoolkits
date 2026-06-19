@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ToolsCenterView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -268,9 +268,7 @@
                       Grid.Column="1"
                       Spacing="{DynamicResource SpacingInlineSm}">
                       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                        <ToggleSwitch
-                          VerticalAlignment="Center"
-                          IsChecked="{Binding AgentPgSslEnabled, Mode=TwoWay}" />
+                        <ToggleSwitch VerticalAlignment="Center" IsChecked="{Binding AgentPgSslEnabled, Mode=TwoWay}" />
                         <controls:StatusPill
                           VerticalAlignment="Center"
                           Classes="ToneDone25"
@@ -507,9 +505,7 @@
                       Grid.Column="1"
                       Spacing="{DynamicResource SpacingInlineSm}">
                       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                        <ToggleSwitch
-                          VerticalAlignment="Center"
-                          IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}" />
+                        <ToggleSwitch VerticalAlignment="Center" IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}" />
                         <controls:StatusPill
                           VerticalAlignment="Center"
                           Classes="ToneDone25"

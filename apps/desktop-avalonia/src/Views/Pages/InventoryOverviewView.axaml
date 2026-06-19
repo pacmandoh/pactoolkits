@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.InventoryOverviewView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -737,17 +737,17 @@
 
           <controls:DataGridPager
             Grid.Row="4"
+            FirstPageCommand="{Binding FirstPageCommand}"
             IsActive="{Binding IsPagedMode}"
             IsContentEmpty="{Binding IsStockEmpty}"
-            FirstPageCommand="{Binding FirstPageCommand}"
             LastPageCommand="{Binding LastPageCommand}"
             NextPageCommand="{Binding NextPageCommand}"
-            PageIndex="{Binding PageIndex}"
             PageSizeOptions="{Binding PageSizeOptions}"
             PrevPageCommand="{Binding PrevPageCommand}"
             SelectedPageSize="{Binding PageSize, Mode=TwoWay}"
             TotalCount="{Binding TotalCount}"
-            TotalPages="{Binding TotalPages}" />
+            TotalPages="{Binding TotalPages}"
+            PageIndex="{Binding PageIndex}" />
         </Grid>
       </suki:GlassCard>
 
