@@ -34,7 +34,7 @@ public static class GridContextMenuActions
             if (selectedCount > 1)
             {
                 var selected = DataGridInteractionHelper.ReadSelectedItems(grid);
-                await GridContextMenuHelper.CopyRowsAsTextAsync(clipboard, selected, preferredProps);
+                await GridContextMenuHelper.CopyRowsAsTextAsync(clipboard, grid, selected, preferredProps);
                 return;
             }
 
@@ -45,7 +45,7 @@ public static class GridContextMenuActions
         var transformed = selectedRowsTransform(grid, DataGridInteractionHelper.ReadSelectedItems(grid));
         if (transformed.Count > 1)
         {
-            await GridContextMenuHelper.CopyRowsAsTextAsync(clipboard, transformed, preferredProps);
+            await GridContextMenuHelper.CopyRowsAsTextAsync(clipboard, grid, transformed, preferredProps);
             return;
         }
 
