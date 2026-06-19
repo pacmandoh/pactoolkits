@@ -12,6 +12,13 @@
       Focusable="True"
       behaviors:FocusClearBehavior.Enable="True"
       ClipToBounds="True">
+  <controls:PageDataShell IsLoadingData="{Binding IsBusy}"
+                          ShowUnavailable="{Binding ShowPageUnavailable}"
+                          UnavailableTitle="{Binding PageUnavailableTitle}"
+                          UnavailableHint="{Binding PageUnavailableHint}"
+                          UnavailableIcon="{Binding PageUnavailableIcon}"
+                          ShowStale="{Binding IsShowingStaleData}"
+                          StaleHint="{Binding PageStaleHint}">
   <Grid RowDefinitions="Auto,*"
      RowSpacing="{DynamicResource FormRowSpacing}"
      Classes="PageRoot">
@@ -61,7 +68,6 @@
           </StackPanel>
         </TabItem.Header>
 
-        <suki:BusyArea BusyText="加载中..." IsBusy="{Binding IsAutoBoardBusy}">
         <Grid Margin="{DynamicResource MarginTopLg}"
            RowDefinitions="Auto,*"
            RowSpacing="{DynamicResource FormRowSpacing}">
@@ -256,7 +262,8 @@
                     </Button>
                   </StackPanel>
                 </Grid>
-                <controls:EmptyStatePanel Grid.Row="1"
+                <suki:BusyArea Grid.Row="1" BusyText="加载中..." IsBusy="{Binding IsPullPanelBusy}">
+                <controls:EmptyStatePanel
                              IsEmpty="{Binding IsAutoPullBatchEmpty}"
                              EmptyText="暂无拉取批次数据"
                              EmptyHint="执行一次巡检后查看最近批次详情">
@@ -297,6 +304,7 @@
                     </DataGrid.Columns>
                   </DataGrid>
                 </controls:EmptyStatePanel>
+                </suki:BusyArea>
               </Grid>
             </suki:GlassCard>
 
@@ -369,7 +377,8 @@
                     <TextBlock Text="下页" />
                   </Button>
                 </Grid>
-                <controls:EmptyStatePanel Grid.Row="2"
+                <suki:BusyArea Grid.Row="2" BusyText="加载中..." IsBusy="{Binding IsMapPanelBusy}">
+                <controls:EmptyStatePanel
                              IsEmpty="{Binding IsAutoMapQueueEmpty}"
                              EmptyText="暂无映射队列数据"
                              EmptyHint="待映射、需人工、失败和待下发记录将显示在这里">
@@ -421,6 +430,7 @@
                     </DataGrid.Columns>
                   </DataGrid>
                 </controls:EmptyStatePanel>
+                </suki:BusyArea>
               </Grid>
             </suki:GlassCard>
 
@@ -543,7 +553,8 @@
                               PillPadding="8,3" />
                   </WrapPanel>
                 </Grid>
-                <controls:EmptyStatePanel Grid.Row="1"
+                <suki:BusyArea Grid.Row="1" BusyText="加载中..." IsBusy="{Binding IsTaskPanelBusy}">
+                <controls:EmptyStatePanel
                              IsEmpty="{Binding IsAutoTaskQueueEmpty}"
                              EmptyText="暂无 Agent 任务队列"
                              EmptyHint="仅 MAPPED + NEW 的码会创建任务">
@@ -601,6 +612,7 @@
                     </DataGrid.Columns>
                   </DataGrid>
                 </controls:EmptyStatePanel>
+                </suki:BusyArea>
               </Grid>
             </suki:GlassCard>
 
@@ -825,7 +837,8 @@
                       <TextBlock Text="下页" />
                     </Button>
                   </Grid>
-                  <controls:EmptyStatePanel Grid.Row="1"
+                  <suki:BusyArea Grid.Row="1" BusyText="加载中..." IsBusy="{Binding IsPullPanelBusy}">
+                  <controls:EmptyStatePanel
                                IsEmpty="{Binding IsAutoPullBatchEmpty}"
                                EmptyText="暂无拉取批次数据"
                                EmptyHint="执行一次巡检后查看最近批次详情">
@@ -866,6 +879,7 @@
                       </DataGrid.Columns>
                     </DataGrid>
                   </controls:EmptyStatePanel>
+                  </suki:BusyArea>
                 </Grid>
 
                 <Grid Grid.Row="1"
@@ -956,7 +970,8 @@
                     </Grid>
                   </Grid>
 
-                  <controls:EmptyStatePanel Grid.Row="1"
+                  <suki:BusyArea Grid.Row="1" BusyText="加载中..." IsBusy="{Binding IsMapPanelBusy}">
+                  <controls:EmptyStatePanel
                                IsEmpty="{Binding IsAutoMapQueueEmpty}"
                                EmptyText="暂无映射队列数据"
                                EmptyHint="调整筛选后可继续查询">
@@ -1008,6 +1023,7 @@
                       </DataGrid.Columns>
                     </DataGrid>
                   </controls:EmptyStatePanel>
+                  </suki:BusyArea>
                 </Grid>
 
                 <Grid Grid.Row="1"
@@ -1076,7 +1092,8 @@
                       </Button>
                     </Grid>
                   </suki:GlassCard>
-                  <controls:EmptyStatePanel Grid.Row="2"
+                  <suki:BusyArea Grid.Row="2" BusyText="加载中..." IsBusy="{Binding IsTaskPanelBusy}">
+                  <controls:EmptyStatePanel
                                IsEmpty="{Binding IsAutoTaskQueueEmpty}"
                                EmptyText="暂无 Agent 任务队列"
                                EmptyHint="仅 MAPPED + NEW 的码会创建任务">
@@ -1135,6 +1152,7 @@
                       </DataGrid.Columns>
                     </DataGrid>
                   </controls:EmptyStatePanel>
+                  </suki:BusyArea>
                 </Grid>
 
                 <controls:EmptyStatePanel Grid.Row="1"
@@ -1179,7 +1197,6 @@
             </suki:GlassCard>
           </Grid>
         </Grid>
-        </suki:BusyArea>
       </TabItem>
 
       <TabItem>
@@ -1503,4 +1520,5 @@
       </TabItem>
     </TabControl>
   </Grid>
+  </controls:PageDataShell>
 </UserControl>

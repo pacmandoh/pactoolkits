@@ -18,8 +18,14 @@
     <conv:ContextStatusToBrushConverter x:Key="ContextStatusToBrush" />
   </UserControl.Resources>
 
-  <suki:BusyArea BusyText="加载中..." IsBusy="{Binding IsBusy}">
-    <Grid Classes="PageRootLayout" RowDefinitions="Auto,*">
+  <controls:PageDataShell IsLoadingData="{Binding IsBusy}"
+                          ShowUnavailable="{Binding ShowPageUnavailable}"
+                          UnavailableTitle="{Binding PageUnavailableTitle}"
+                          UnavailableHint="{Binding PageUnavailableHint}"
+                          UnavailableIcon="{Binding PageUnavailableIcon}"
+                          ShowStale="{Binding IsShowingStaleData}"
+                          StaleHint="{Binding PageStaleHint}">
+  <Grid Classes="PageRootLayout" RowDefinitions="Auto,*">
       <suki:GlassCard Grid.Row="0" Classes="SectionCard ScanCodeHeroCard">
         <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
           <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
@@ -359,8 +365,11 @@
 
                     <controls:EmptyStatePanel Grid.Row="1"
                                  IsEmpty="{Binding IsAutoTasksEmpty}"
-                                 EmptyText="暂无任务"
-                                 EmptyHint="当前没有自动拉取任务">
+                                 EmptyText="{Binding AutoTasksEmptyText}"
+                                 EmptyHint="{Binding AutoTasksEmptyHint}"
+                                 Icon="{Binding SectionEmptyIcon}"
+                                 IsPending="{Binding IsSectionPending}"
+                                 SlotMinHeight="{DynamicResource DgH10Rows}">
                     <suki:BusyArea IsBusy="{Binding IsBusy}">
                       <DataGrid x:Name="AutoTaskGrid"
                            Classes="SectionGrid"
@@ -393,8 +402,11 @@
 
                     <controls:EmptyStatePanel Grid.Row="1"
                                  IsEmpty="{Binding IsRecentRunsEmpty}"
-                                 EmptyText="暂无执行记录"
-                                 EmptyHint="当前没有任务执行历史">
+                                 EmptyText="{Binding RecentRunsEmptyText}"
+                                 EmptyHint="{Binding RecentRunsEmptyHint}"
+                                 Icon="{Binding SectionEmptyIcon}"
+                                 IsPending="{Binding IsSectionPending}"
+                                 SlotMinHeight="{DynamicResource DgH10Rows}">
                     <suki:BusyArea IsBusy="{Binding IsBusy}">
                       <DataGrid x:Name="RecentRunGrid"
                            Classes="SectionGrid"
@@ -427,8 +439,11 @@
 
                     <controls:EmptyStatePanel Grid.Row="1"
                                  IsEmpty="{Binding IsRetryQueueEmpty}"
-                                 EmptyText="暂无重试项"
-                                 EmptyHint="当前没有失败重试任务">
+                                 EmptyText="{Binding RetryQueueEmptyText}"
+                                 EmptyHint="{Binding RetryQueueEmptyHint}"
+                                 Icon="{Binding SectionEmptyIcon}"
+                                 IsPending="{Binding IsSectionPending}"
+                                 SlotMinHeight="{DynamicResource DgH10Rows}">
                     <suki:BusyArea IsBusy="{Binding IsBusy}">
                       <DataGrid x:Name="RetryQueueGrid"
                            Classes="SectionGrid"
@@ -481,5 +496,5 @@
         </TabControl>
       </suki:GlassCard>
     </Grid>
-  </suki:BusyArea>
+  </controls:PageDataShell>
 </UserControl>

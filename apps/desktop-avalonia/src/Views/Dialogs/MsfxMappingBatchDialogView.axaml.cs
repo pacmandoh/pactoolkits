@@ -22,6 +22,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
     private readonly ILookupCatalogService? _lookup;
     private readonly IMsfxSyncService? _syncService;
+    private readonly IDatabaseAccessGuard? _accessGuard;
     private IReadOnlyList<OptionItem> _allDrugIds = Array.Empty<OptionItem>();
     private bool _initialized;
     private int _drugInputVersion;
@@ -34,6 +35,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
         InitializeComponent();
         _lookup = (global::Avalonia.Application.Current as App)?.Services.GetService<ILookupCatalogService>();
         _syncService = (global::Avalonia.Application.Current as App)?.Services.GetService<IMsfxSyncService>();
+        _accessGuard = (global::Avalonia.Application.Current as App)?.Services.GetService<IDatabaseAccessGuard>();
         AttachedToVisualTree += OnAttachedToVisualTree;
         AutoCompleteHelper.AttachDrugOptionFilter(DrugIdBox);
 
@@ -63,18 +65,36 @@ public partial class MsfxMappingBatchDialogView : UserControl
 
     private async Task InitializeAsync()
     {
-        if (_lookup is not null)
+        await RefreshDrugCatalogAsync().ConfigureAwait(false);
+        await RefreshPreviewAsync().ConfigureAwait(false);
+    }
+
+    private bool IsLookupCatalogSuspended()
+        => _accessGuard?.IsBlocked == true;
+
+    private async Task RefreshDrugCatalogAsync()
+    {
+        if (_lookup is null || IsLookupCatalogSuspended())
         {
-            using var cts = new CancellationTokenSource(LookupTimeout);
-            _allDrugIds = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, cts.Token).ConfigureAwait(false);
+            _allDrugIds = Array.Empty<OptionItem>();
             await RunOnUiAsync(() =>
             {
                 DrugIdBox.ItemsSource = _allDrugIds;
+                SpecBox.ItemsSource = null;
+                SpecBox.SelectedItem = null;
+                _specDraft = string.Empty;
                 UpdateSpecPlaceholder();
             }).ConfigureAwait(false);
+            return;
         }
 
-        await RefreshPreviewAsync().ConfigureAwait(false);
+        using var cts = new CancellationTokenSource(LookupTimeout);
+        _allDrugIds = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, cts.Token).ConfigureAwait(false);
+        await RunOnUiAsync(() =>
+        {
+            DrugIdBox.ItemsSource = _allDrugIds;
+            UpdateSpecPlaceholder();
+        }).ConfigureAwait(false);
     }
 
     private async void DrugIdBox_OnKeyDown(object? sender, KeyEventArgs e)
@@ -119,6 +139,13 @@ public partial class MsfxMappingBatchDialogView : UserControl
             return;
         }
 
+        if (IsLookupCatalogSuspended())
+        {
+            await RefreshDrugCatalogAsync().ConfigureAwait(false);
+            await RefreshPreviewAsync().ConfigureAwait(false);
+            return;
+        }
+
         var input = NormalizeInput(text);
         await RunOnUiAsync(() =>
         {
@@ -142,8 +169,9 @@ public partial class MsfxMappingBatchDialogView : UserControl
 
     private async Task ApplyDrugAsync(string drugInput, int? version = null)
     {
-        if (_lookup is null)
+        if (_lookup is null || IsLookupCatalogSuspended())
         {
+            await RefreshDrugCatalogAsync().ConfigureAwait(false);
             return;
         }
 

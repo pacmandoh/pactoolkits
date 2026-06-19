@@ -11,7 +11,10 @@
       d:DesignHeight="820"
       x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.AboutView"
       x:DataType="vm:AboutViewModel">
-  <ScrollViewer VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
+  <ScrollViewer VerticalScrollBarVisibility="Visible"
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
     <Grid Classes="PageRootLayout" RowDefinitions="Auto,Auto,Auto,Auto">
 
       <!-- Hero -->

@@ -40,6 +40,8 @@
 
     <ScrollViewer x:Name="ContentScrollViewer"
            Grid.Column="2"
+           HorizontalAlignment="Stretch"
+           VerticalAlignment="Stretch"
            VerticalScrollBarVisibility="Auto"
            HorizontalScrollBarVisibility="Disabled">
 
