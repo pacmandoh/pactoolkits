@@ -120,6 +120,7 @@ public interface IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         DateTimeOffset? cursorUpdatedAt,
         long? cursorId,
         bool newer,
@@ -149,6 +150,7 @@ public interface IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         int limit,
         CancellationToken ct);
 
@@ -157,6 +159,7 @@ public interface IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         string? groupSourceDrugNameRaw,
         string? groupSourceSpecRaw,
         string? groupSourceNameNorm,
@@ -171,6 +174,7 @@ public interface IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         string? groupSourceDrugNameRaw,
         string? groupSourceSpecRaw,
         string? groupSourceNameNorm,
