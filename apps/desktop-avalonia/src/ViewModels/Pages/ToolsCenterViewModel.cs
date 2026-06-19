@@ -70,7 +70,6 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     [ObservableProperty] private string _ahkExecutablePath = string.Empty;
     [ObservableProperty] private string _ahkProcessName = string.Empty;
     [ObservableProperty] private string _ahkStatusText = "检测中";
-    [ObservableProperty] private string _ahkStatusHeadline = "状态：检测中";
     [ObservableProperty] private string _ahkStatusDetail = "等待进程状态刷新";
     [ObservableProperty] private string _ahkVersionText = "未知";
     [ObservableProperty] private string _programVersionText = "未知";
@@ -527,7 +526,6 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 AutomationRunState.Stopped => "未启动",
                 _ => "未知",
             };
-            AhkStatusHeadline = $"状态：{AhkStatusText}";
             AhkStatusDetail = runState switch
             {
                 AutomationRunState.Running => "进程已运行，可在右上角或本页执行“重启”",

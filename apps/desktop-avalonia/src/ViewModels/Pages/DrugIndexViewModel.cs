@@ -191,8 +191,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         [ObservableProperty] private bool _isDeprecated;
         [ObservableProperty] private bool _isNoSplit;
 
-        public bool IsHitBoth => IsDeprecated && IsNoSplit;
-
         partial void OnNoteChanged(string? value)
         {
             OnPropertyChanged(nameof(EffectiveNote));
@@ -210,7 +208,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             var note = EffectiveNote;
             IsDeprecated = note.Contains("弃用", StringComparison.Ordinal);
             IsNoSplit = note.Contains("未拆零", StringComparison.Ordinal);
-            OnPropertyChanged(nameof(IsHitBoth));
             OnPropertyChanged(nameof(RowState));
         }
 
