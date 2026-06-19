@@ -199,18 +199,20 @@ public partial class InventoryOverviewView : UserControl
             sender,
             e,
             "ReassignSpecBox",
-            () =>
-            {
-                if (DataContext is not InventoryOverviewViewModel vm)
-                {
-                    return;
-                }
+            ApplyReassignDrugFilterFromBox);
+    }
 
-                if (vm.ApplyReassignDrugFilterCommand.CanExecute(null))
-                {
-                    vm.ApplyReassignDrugFilterCommand.Execute(null);
-                }
-            });
+    private void ApplyReassignDrugFilterFromBox()
+    {
+        if (DataContext is not InventoryOverviewViewModel vm)
+        {
+            return;
+        }
+
+        if (vm.ApplyReassignDrugFilterCommand.CanExecute(null))
+        {
+            vm.ApplyReassignDrugFilterCommand.Execute(null);
+        }
     }
 
     private void InventorySearchBox_OnKeyUp(object? sender, KeyEventArgs e)
@@ -376,6 +378,7 @@ public partial class InventoryOverviewView : UserControl
         }
 
         AutoCompleteHelper.AttachDrugOptionFilter(box);
+        AutoCompleteHelper.AttachCandidateCommitApply(box, this, "ReassignSpecBox", ApplyReassignDrugFilterFromBox);
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
