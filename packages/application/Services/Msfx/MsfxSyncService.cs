@@ -25,7 +25,7 @@ public interface IMsfxSyncService
     Task<MsfxBuildTaskResult> BuildMsfxInjectTasksAsync(int maxGroups, CancellationToken ct);
     Task<MsfxAutoBoardSnapshot> LoadMsfxDashboardAsync(CancellationToken ct);
     Task<IReadOnlyList<MsfxPullBatchRow>> LoadRecentPullBatchesAsync(int limit, CancellationToken ct);
-    Task<MsfxMappingQueuePage> LoadMappingQueuePageAsync(int pageSize, string? mapStatus, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, CancellationToken ct);
+    Task<MsfxMappingQueuePage> LoadMappingQueuePageAsync(int pageSize, string? mapStatus, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, bool seekLastPage, CancellationToken ct);
     Task<IReadOnlyList<MsfxInjectTaskQueueRow>> LoadInjectTaskQueueAsync(int limit, CancellationToken ct);
     Task<MsfxReopenInjectTaskResult> ReopenMsfxTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
     Task<MsfxDiscardInjectTaskResult> DiscardMsfxTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
@@ -186,8 +186,8 @@ public sealed class MsfxSyncService : IMsfxSyncService
     public Task<IReadOnlyList<MsfxPullBatchRow>> LoadRecentPullBatchesAsync(int limit, CancellationToken ct)
         => _repo.GetRecentPullBatchesAsync(NormalizeLimit(limit), ct);
 
-    public Task<MsfxMappingQueuePage> LoadMappingQueuePageAsync(int pageSize, string? mapStatus, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, CancellationToken ct)
-        => _repo.GetMappingQueuePageAsync(NormalizeLimit(pageSize), mapStatus, codeStatus, searchScope, keyword, cursorUpdatedAt, cursorId, newer, ct);
+    public Task<MsfxMappingQueuePage> LoadMappingQueuePageAsync(int pageSize, string? mapStatus, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, bool seekLastPage, CancellationToken ct)
+        => _repo.GetMappingQueuePageAsync(NormalizeLimit(pageSize), mapStatus, codeStatus, searchScope, keyword, cursorUpdatedAt, cursorId, newer, seekLastPage, ct);
 
     public Task<IReadOnlyList<MsfxInjectTaskQueueRow>> LoadInjectTaskQueueAsync(int limit, CancellationToken ct)
         => _repo.GetInjectTaskQueueAsync(limit < 0 ? 0 : limit, ct);
