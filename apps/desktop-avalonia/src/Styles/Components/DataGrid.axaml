@@ -18,6 +18,10 @@
     <Setter Property="behaviors:DataGridSortResetBehavior.Enabled" Value="True" />
   </Style>
 
+  <Style Selector="DataGrid.DrugGrid">
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+  </Style>
+
   <Style Selector="DataGrid.MsfxIndexedGrid">
     <Setter Property="RowHeaderWidth" Value="{DynamicResource DgRowHeaderWidth}" />
     <Setter Property="behaviors:DataGridSortResetBehavior.Enabled" Value="True" />

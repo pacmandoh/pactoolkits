@@ -1,0 +1,109 @@
+<Styles xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+  <Style Selector="Button.ShellStatusItem">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+    <Setter Property="Padding" Value="{DynamicResource ShellStatusItemPadding}" />
+    <Setter Property="MinHeight" Value="{DynamicResource ShellStatusBarHeight}" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="PART_Border"
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="{TemplateBinding BorderThickness}"
+            CornerRadius="{TemplateBinding CornerRadius}"
+            Padding="{TemplateBinding Padding}">
+          <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                   VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                   Content="{TemplateBinding Content}"
+                   ContentTemplate="{TemplateBinding ContentTemplate}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.ShellStatusItem:pointerover /template/ Border#PART_Border">
+    <Setter Property="Background" Value="{DynamicResource ShellStatusItemHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusItem:pressed /template/ Border#PART_Border">
+    <Setter Property="Background" Value="{DynamicResource ShellStatusItemHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusItem.active /template/ Border#PART_Border">
+    <Setter Property="Background" Value="{DynamicResource ShellStatusItemActiveBrush}" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusItem.active:pointerover /template/ Border#PART_Border,
+                     Button.ShellStatusItem.active:pressed /template/ Border#PART_Border">
+    <Setter Property="Background" Value="{DynamicResource ShellStatusItemActiveBrush}" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusItem:disabled">
+    <Setter Property="Opacity" Value="1" />
+    <Setter Property="Cursor" Value="Arrow" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusItem:disabled:pointerover /template/ Border#PART_Border">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusItem:pointerover,
+                     Button.ShellStatusItem:pressed,
+                     Button.ShellStatusItem.active,
+                     Button.ShellStatusItem.active:pointerover,
+                     Button.ShellStatusItem.active:pressed">
+    <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusItem TextBlock.ShellStatusLabel,
+                     Button.ShellStatusItem:pointerover TextBlock.ShellStatusLabel,
+                     Button.ShellStatusItem:pressed TextBlock.ShellStatusLabel,
+                     Button.ShellStatusItem.active TextBlock.ShellStatusLabel,
+                     Button.ShellStatusItem.active:pointerover TextBlock.ShellStatusLabel,
+                     Button.ShellStatusItem.active:pressed TextBlock.ShellStatusLabel">
+    <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem) icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="StrokeWidth" Value="{DynamicResource SidebarMenuIconStroke}" />
+    <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem):pointerover icons|AppIcon,
+                     Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem):pressed icons|AppIcon,
+                     Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active icons|AppIcon,
+                     Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active:pointerover icons|AppIcon,
+                     Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active:pressed icons|AppIcon">
+    <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusDbItem icons|AppIcon,
+                     Button.ShellStatusAgentItem icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="StrokeWidth" Value="{DynamicResource SidebarMenuIconStroke}" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusIconItem">
+    <Setter Property="Padding" Value="{DynamicResource ShellStatusIconItemPadding}" />
+  </Style>
+
+  <Style Selector="Border.ShellStatusDivider">
+    <Setter Property="Width" Value="1" />
+    <Setter Property="Height" Value="{DynamicResource ShellStatusDividerHeight}" />
+    <Setter Property="Background" Value="{DynamicResource SukiControlBorderBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="1,0" />
+    <Setter Property="Opacity" Value="0.65" />
+  </Style>
+</Styles>
