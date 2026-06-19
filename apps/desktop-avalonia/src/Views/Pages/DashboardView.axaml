@@ -32,7 +32,13 @@
     </Style>
   </UserControl.Styles>
 
-  <suki:BusyArea BusyText="加载中..." IsBusy="{Binding IsBusy}">
+  <controls:PageDataShell IsLoadingData="{Binding IsBusy}"
+                          ShowUnavailable="{Binding ShowPageUnavailable}"
+                          UnavailableTitle="{Binding PageUnavailableTitle}"
+                          UnavailableHint="{Binding PageUnavailableHint}"
+                          UnavailableIcon="{Binding PageUnavailableIcon}"
+                          ShowStale="{Binding IsShowingStaleData}"
+                          StaleHint="{Binding PageStaleHint}">
     <Grid Classes="DashboardShell" RowDefinitions="Auto,Auto,*">
       <suki:GlassCard Grid.Row="0"
               Classes="SectionCard FilterSectionCard"
@@ -235,13 +241,16 @@
          RowDefinitions="*">
           <ScrollViewer Grid.Row="0"
                  Classes="Stack"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Stretch"
                  BringIntoViewOnFocusChange="False"
                  Padding="0"
                  AllowAutoHide="False"
                  VerticalScrollBarVisibility="Auto"
                  HorizontalScrollBarVisibility="Disabled">
             <Grid RowDefinitions="Auto,Auto,Auto"
-               RowSpacing="14">
+               RowSpacing="14"
+               Margin="{DynamicResource PageScrollExtentBottomMargin}">
 
 
           <Grid Grid.Row="0"
@@ -435,16 +444,11 @@
 
 
             <suki:GlassCard Grid.Column="0" Classes="SectionCard">
-              <controls:EmptyStatePanel
-                IsEmpty="{Binding IsTrendEmpty}"
-                EmptyText="期间无使用情况"
-                EmptyHint="当前筛选条件下没有追溯码使用记录">
-                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}">
+              <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}" MinHeight="0">
                   <Grid ColumnDefinitions="Auto,*,240" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                     <icons:AppIcon Kind="ChartSpline"
                               Width="{DynamicResource IconSizeSectionHeader}"
                               Height="{DynamicResource IconSizeSectionHeader}"
-                              Foreground="{StaticResource BrushDone}"
                               VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                       <TextBlock Text="药品使用统计"
@@ -459,7 +463,16 @@
                          VerticalAlignment="Center"
                          HorizontalAlignment="Right" />
                   </Grid>
-                  <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsTxnBusy}">
+                  <controls:EmptyStatePanel Grid.Row="1"
+                MinHeight="0"
+                IsEmpty="{Binding IsTrendEmpty}"
+                EmptyText="{Binding TrendEmptyText}"
+                EmptyHint="{Binding TrendEmptyHint}"
+                Icon="{Binding SectionEmptyIcon}"
+                IsPending="{Binding IsSectionPending}"
+                SlotMode="Always"
+                SlotMinHeight="{DynamicResource DgH10Rows}">
+                  <suki:BusyArea MinHeight="{StaticResource DgH10Rows}" IsBusy="{Binding IsTxnBusy}">
                     <DataGrid
                        x:Name="TrendGridOverview"
                        Classes="SectionGrid"
@@ -467,6 +480,7 @@
                        SelectedItem="{Binding SelectedTrendItem}"
                        SelectionChanged="OnBrowsingGridSelectionChanged"
                        SelectionMode="Single"
+                       HeadersVisibility="None"
                        RowHeight="{StaticResource RowMinHeight}"
                        VerticalAlignment="Top"
                        HorizontalAlignment="Stretch">
@@ -520,6 +534,7 @@
                     </DataGrid.Columns>
                     </DataGrid>
                   </suki:BusyArea>
+                  </controls:EmptyStatePanel>
 
                   <Border Grid.Row="2"
                       Padding="2,6,2,0"
@@ -530,16 +545,11 @@
                          Text="{Binding DrugTrend.Count, StringFormat=共 {0} 条趋势项}" />
                   </Border>
                 </Grid>
-              </controls:EmptyStatePanel>
             </suki:GlassCard>
 
 
             <suki:GlassCard Grid.Column="1" Classes="SectionCard">
-              <controls:EmptyStatePanel
-                IsEmpty="{Binding IsRecentTxnsEmpty}"
-                EmptyText="期间无事务"
-                EmptyHint="当前筛选条件下没有取码事务记录">
-                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
+              <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}" MinHeight="0">
                   <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                     <icons:AppIcon Grid.Column="0"
                               Kind="ReceiptText"
@@ -560,7 +570,16 @@
                         VerticalAlignment="Center"
                         Command="{Binding OpenTxnListCommand}" />
                   </Grid>
-                  <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsTxnBusy}">
+                  <controls:EmptyStatePanel Grid.Row="1"
+                MinHeight="0"
+                IsEmpty="{Binding IsRecentTxnsEmpty}"
+                EmptyText="{Binding RecentTxnsEmptyText}"
+                EmptyHint="{Binding RecentTxnsEmptyHint}"
+                Icon="{Binding SectionEmptyIcon}"
+                IsPending="{Binding IsSectionPending}"
+                SlotMode="Always"
+                SlotMinHeight="{DynamicResource DgH10Rows}">
+                  <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
                     <DataGrid
                        x:Name="RecentTxnGridOverview"
                        Classes="SectionGrid TxnGrid StickyIndexGrid"
@@ -568,8 +587,9 @@
                        SelectedItem="{Binding SelectedTxn}"
                        SelectionChanged="OnBrowsingGridSelectionChanged"
                        SelectionMode="Single"
+                       HeadersVisibility="Row"
                        RowHeight="{StaticResource RowMinHeight}"
-                       VerticalAlignment="Stretch"
+                       VerticalAlignment="Top"
                        HorizontalAlignment="Stretch">
                     <DataGrid.Columns>
                       <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
@@ -618,6 +638,7 @@
                     </DataGrid.Columns>
                     </DataGrid>
                   </suki:BusyArea>
+                  </controls:EmptyStatePanel>
 
                   <Border Grid.Row="2"
                       Padding="2,6,2,0"
@@ -628,7 +649,6 @@
                          Text="{Binding RecentTxnsOverview.Count, StringFormat=共 {0} 条事务}" />
                   </Border>
                 </Grid>
-              </controls:EmptyStatePanel>
             </suki:GlassCard>
           </Grid>
 
@@ -636,17 +656,12 @@
           <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
 
-            <suki:GlassCard Grid.Column="0" Classes="SectionCard" MinHeight="220">
-              <controls:EmptyStatePanel
-                IsEmpty="{Binding IsTopClientsEmpty}"
-                EmptyText="暂无客户端使用记录"
-                EmptyHint="当前时间范围内没有任何客户端操作">
-                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
+            <suki:GlassCard Grid.Column="0" Classes="SectionCard" MinHeight="220" VerticalAlignment="Stretch">
+              <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}" VerticalAlignment="Stretch">
                   <Grid ColumnDefinitions="Auto,*,220" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                     <icons:AppIcon Kind="Users"
                               Width="{DynamicResource IconSizeSectionHeader}"
                               Height="{DynamicResource IconSizeSectionHeader}"
-                              Foreground="{StaticResource BrushDone}"
                               VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
                       <TextBlock Text="客户端"
@@ -660,7 +675,16 @@
                          HorizontalAlignment="Right" />
                   </Grid>
 
-                  <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsTxnBusy}">
+                  <controls:EmptyStatePanel Grid.Row="1"
+                MinHeight="0"
+                IsEmpty="{Binding IsTopClientsEmpty}"
+                EmptyText="{Binding TopClientsEmptyText}"
+                EmptyHint="{Binding TopClientsEmptyHint}"
+                Icon="{Binding SectionEmptyIcon}"
+                IsPending="{Binding IsSectionPending}"
+                SlotMode="PendingOnly"
+                SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}">
+                  <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                            HorizontalScrollBarVisibility="Disabled"
                            BringIntoViewOnFocusChange="False">
@@ -703,6 +727,7 @@
                     </ItemsControl>
                     </ScrollViewer>
                   </suki:BusyArea>
+                  </controls:EmptyStatePanel>
 
                   <Border Grid.Row="2"
                       Padding="2,6,2,0"
@@ -713,16 +738,11 @@
                          Text="{Binding TopClients.Count, StringFormat=共 {0} 个客户端}" />
                   </Border>
                 </Grid>
-              </controls:EmptyStatePanel>
             </suki:GlassCard>
 
 
-            <suki:GlassCard Grid.Column="1" Classes="SectionCard" MinHeight="220">
-              <controls:EmptyStatePanel
-                IsEmpty="{Binding IsEntryRecentEmpty}"
-                EmptyText="暂无录入记录"
-                EmptyHint="期间内未发生追溯码录入">
-                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
+            <suki:GlassCard Grid.Column="1" Classes="SectionCard" MinHeight="220" VerticalAlignment="Stretch">
+              <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}" VerticalAlignment="Stretch">
 
                   <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}"
                      VerticalAlignment="Center">
@@ -749,7 +769,16 @@
                         Command="{Binding OpenInputHistoryCommand}" />
                   </Grid>
 
-                  <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsEntryBusy}">
+                  <controls:EmptyStatePanel Grid.Row="1"
+                MinHeight="0"
+                IsEmpty="{Binding IsEntryRecentEmpty}"
+                EmptyText="{Binding EntryRecentEmptyText}"
+                EmptyHint="{Binding EntryRecentEmptyHint}"
+                Icon="{Binding SectionEmptyIcon}"
+                IsPending="{Binding IsSectionPending}"
+                SlotMode="PendingOnly"
+                SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}">
+                  <suki:BusyArea IsBusy="{Binding IsEntryBusy}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                            HorizontalScrollBarVisibility="Disabled"
                            BringIntoViewOnFocusChange="False">
@@ -813,6 +842,7 @@
                     </ItemsControl>
                     </ScrollViewer>
                   </suki:BusyArea>
+                  </controls:EmptyStatePanel>
 
                   <Border Grid.Row="2"
                       Padding="2,6,2,0"
@@ -824,7 +854,6 @@
                   </Border>
 
                 </Grid>
-              </controls:EmptyStatePanel>
             </suki:GlassCard>
             </Grid>
             </Grid>
@@ -833,13 +862,9 @@
 
       <Grid Grid.Row="2"
          IsVisible="{Binding IsInputTab}"
-         Margin="{DynamicResource PagePaddingHorizontal}"
+         Margin="{DynamicResource PageTabScrollMargin}"
          RowDefinitions="*">
         <suki:GlassCard Grid.Row="0" Classes="SectionCard">
-          <controls:EmptyStatePanel
-            IsEmpty="{Binding IsEntryRecentEmpty}"
-            EmptyText="暂无录入记录"
-            EmptyHint="当前筛选条件下没有录入流水">
             <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
               <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                 <icons:AppIcon Kind="NotebookText"
@@ -863,7 +888,15 @@
                     Command="{Binding OpenOverviewTabCommand}" />
               </Grid>
               <TextBlock Grid.Row="1" Text="{Binding SectionHint}" Classes="SectionHint" />
-              <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsEntryBusy}">
+              <controls:EmptyStatePanel Grid.Row="2"
+            MinHeight="0"
+            IsEmpty="{Binding IsEntryRecentEmpty}"
+            EmptyText="{Binding EntryRecentEmptyText}"
+            EmptyHint="{Binding EntryRecentEmptyHint}"
+            Icon="{Binding SectionEmptyIcon}"
+            IsPending="{Binding IsSectionPending}"
+            SlotMinHeight="{DynamicResource DgH10Rows}">
+              <suki:BusyArea IsBusy="{Binding IsEntryBusy}">
                 <DataGrid x:Name="EntryRecentGridInputTab"
                      Classes="SectionGrid CopySelectMenuGrid TraceStateGrid StickyIndexGrid StickyIndexDisplayIndex"
                      ItemsSource="{Binding EntryRecent}"
@@ -909,6 +942,7 @@
                 </DataGrid.Columns>
                 </DataGrid>
               </suki:BusyArea>
+              </controls:EmptyStatePanel>
 
               <Grid Grid.Row="3"
                  Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
@@ -938,20 +972,15 @@
                 </StackPanel>
               </Grid>
             </Grid>
-          </controls:EmptyStatePanel>
         </suki:GlassCard>
       </Grid>
 
 
       <Grid Grid.Row="2"
          IsVisible="{Binding IsTxnTab}"
-         Margin="{DynamicResource PagePaddingHorizontal}"
+         Margin="{DynamicResource PageTabScrollMargin}"
          RowDefinitions="*">
         <suki:GlassCard Grid.Row="0" Classes="SectionCard">
-          <controls:EmptyStatePanel
-            IsEmpty="{Binding IsTxnPanelEmpty}"
-            EmptyText="暂无事务数据"
-            EmptyHint="当前筛选条件下没有取码事务记录">
             <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
               <Grid ColumnDefinitions="Auto,*,220,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                 <icons:AppIcon Grid.Column="0"
@@ -976,7 +1005,15 @@
                     Command="{Binding OpenAbnormalCommand}" />
               </Grid>
               <TextBlock Grid.Row="1" Classes="SectionHint" Text="{Binding SectionHint}" />
-              <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsTxnBusy}">
+              <controls:EmptyStatePanel Grid.Row="2"
+            MinHeight="0"
+            IsEmpty="{Binding IsTxnPanelEmpty}"
+            EmptyText="{Binding TxnPanelEmptyText}"
+            EmptyHint="{Binding TxnPanelEmptyHint}"
+            Icon="{Binding SectionEmptyIcon}"
+            IsPending="{Binding IsSectionPending}"
+            SlotMinHeight="{DynamicResource DgH10Rows}">
+              <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
                 <Grid>
                   <DataGrid x:Name="TxnDetailGrid"
                      IsVisible="{Binding IsTxnPanelDetailMode}"
@@ -1044,6 +1081,7 @@
                   </DataGrid>
                 </Grid>
               </suki:BusyArea>
+              </controls:EmptyStatePanel>
 
               <Grid Grid.Row="3"
                  IsVisible="{Binding IsTxnPanelDetailMode}"
@@ -1103,19 +1141,14 @@
                 </StackPanel>
               </Grid>
             </Grid>
-          </controls:EmptyStatePanel>
         </suki:GlassCard>
       </Grid>
 
       <Grid Grid.Row="2"
          IsVisible="{Binding IsAbnormalTab}"
-         Margin="{DynamicResource PagePaddingHorizontal}"
+         Margin="{DynamicResource PageTabScrollMargin}"
          RowDefinitions="*">
         <suki:GlassCard Grid.Row="0" Classes="SectionCard">
-          <controls:EmptyStatePanel
-            IsEmpty="{Binding IsAbnormalEmpty}"
-            EmptyText="暂无异常队列"
-            EmptyHint="当前筛选条件下没有回滚/异常事务">
             <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
               <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
                 <icons:AppIcon Kind="OctagonAlert"
@@ -1140,7 +1173,15 @@
                     Command="{Binding GoInputTabCommand}" />
               </Grid>
               <TextBlock Grid.Row="1" Text="{Binding SectionHint}" Classes="SectionHint" />
-                <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsAbnormalBusy}">
+              <controls:EmptyStatePanel Grid.Row="2"
+            MinHeight="0"
+            IsEmpty="{Binding IsAbnormalEmpty}"
+            EmptyText="{Binding AbnormalEmptyText}"
+            EmptyHint="{Binding AbnormalEmptyHint}"
+            Icon="{Binding SectionEmptyIcon}"
+            IsPending="{Binding IsSectionPending}"
+            SlotMinHeight="{DynamicResource DgH10Rows}">
+                <suki:BusyArea IsBusy="{Binding IsAbnormalBusy}">
                   <DataGrid x:Name="AbnormalGrid"
                        Classes="SectionGrid TxnGrid AbnormalGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
                        ItemsSource="{Binding AbnormalQueue}"
@@ -1180,6 +1221,7 @@
                 </DataGrid.Columns>
                   </DataGrid>
                 </suki:BusyArea>
+              </controls:EmptyStatePanel>
 
               <Grid Grid.Row="3"
                  Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
@@ -1209,11 +1251,10 @@
                 </StackPanel>
               </Grid>
             </Grid>
-          </controls:EmptyStatePanel>
         </suki:GlassCard>
       </Grid>
 
 
     </Grid>
-  </suki:BusyArea>
+  </controls:PageDataShell>
 </UserControl>

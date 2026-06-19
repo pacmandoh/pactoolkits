@@ -30,6 +30,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     public override string DisplayName => "设置";
     public override bool ShowInSidebar => false;
     public override ICommand? RefreshCommand => null;
+    protected override bool SupportsStaleWhileReconnect => false;
 
     private readonly ISettingsService _settings;
     private readonly IDbConfigService _svc;
@@ -301,6 +302,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     public override Task OnPageActivatedAsync(CancellationToken ct = default)
     {
+        SyncPageAvailabilityFromEnvironment();
         _pageWorkCancelled = false;
         return Task.CompletedTask;
     }
