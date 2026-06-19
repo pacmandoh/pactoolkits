@@ -148,28 +148,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsDbConnected => _dbMonitor.IsConnected;
 
-    public string DbStatusTip
-        => IsDbConnected ? "数据库：已连接" : "数据库：已断开";
     public string DbStatusText
         => IsDbConnected ? "已连接" : "已断开";
-
-    public string ShellStatusText
-    {
-        get
-        {
-            if (IsDbProbeRunning)
-            {
-                return "数据库：正在检测连接…";
-            }
-
-            if (!IsDbConnected)
-            {
-                return "数据库：未连接 · 等待重连";
-            }
-
-            return "数据库：已连接";
-        }
-    }
 
     public string ShellDatabaseItemText
         => IsDbProbeRunning ? "数据库：检测中…"
@@ -224,18 +204,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public string AhkStatusText
         => IsAhkRunning ? "运行中" : "未启动";
 
-    public string AppProductVersionText
-    {
-        get
-        {
-            var productVersion = _releaseVersion.Current.ProductVersion;
-            return string.IsNullOrWhiteSpace(productVersion) ||
-                   string.Equals(productVersion, "unknown", StringComparison.OrdinalIgnoreCase)
-                ? "PacToolkits"
-                : $"PacToolkits v{productVersion}";
-        }
-    }
-
     public string AppBuildChannelText
     {
         get
@@ -247,8 +215,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 : channel;
         }
     }
-
-    public string AppCopyrightDisplayText => "PacmanDoh · 2026";
 
     partial void OnCurrentProductVersionChanged(string value)
     {
@@ -268,9 +234,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void RaiseDbStateChanged()
     {
         OnPropertyChanged(nameof(IsDbConnected));
-        OnPropertyChanged(nameof(DbStatusTip));
         OnPropertyChanged(nameof(DbStatusText));
-        OnPropertyChanged(nameof(ShellStatusText));
         OnPropertyChanged(nameof(ShellDatabaseItemText));
         OnPropertyChanged(nameof(ShowDbConnectedIcon));
         OnPropertyChanged(nameof(ShowDbDisconnectedIcon));
@@ -386,7 +350,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShowDbBusyIcon));
         OnPropertyChanged(nameof(ShowDbConnectedIcon));
         OnPropertyChanged(nameof(ShowDbDisconnectedIcon));
-        OnPropertyChanged(nameof(ShellStatusText));
         OnPropertyChanged(nameof(ShellDatabaseItemText));
     }
 
@@ -418,10 +381,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool CanTopRefresh => TopRefreshCommand?.CanExecute(null) == true;
     public bool CanTopImport => TopImportCommand?.CanExecute(null) == true;
     public bool CanTopExport => TopExportCommand?.CanExecute(null) == true;
-
-    public string? TopRefreshTip => ActiveTopBar?.RefreshTip;
-    public string? TopImportTip => ActiveTopBar?.ImportTip;
-    public string? TopExportTip => ActiveTopBar?.ExportTip;
 
     [RelayCommand]
     private void RefreshActivePage()
@@ -763,9 +722,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(CanTopImport));
         OnPropertyChanged(nameof(CanTopExport));
 
-        OnPropertyChanged(nameof(TopRefreshTip));
-        OnPropertyChanged(nameof(TopImportTip));
-        OnPropertyChanged(nameof(TopExportTip));
         OnPropertyChanged(nameof(IsSettingsPageActive));
         OnPropertyChanged(nameof(IsAboutPageActive));
         RaiseShellStatusItemsChanged();

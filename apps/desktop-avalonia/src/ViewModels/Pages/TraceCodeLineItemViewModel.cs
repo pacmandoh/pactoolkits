@@ -16,12 +16,6 @@ public sealed class TraceCodeLineItemViewModel
 
     public bool IsValid => Status == TraceCodeLineStatus.Valid;
 
-    public bool IsBlank => Status == TraceCodeLineStatus.Blank;
-
-    public bool IsScanDuplicate => Status == TraceCodeLineStatus.ScanDuplicate;
-
-    public bool IsPoolDuplicate => Status == TraceCodeLineStatus.PoolDuplicate;
-
     public bool IsDuplicate => Status is TraceCodeLineStatus.ScanDuplicate or TraceCodeLineStatus.PoolDuplicate;
 
     public bool IsInvalid => Status == TraceCodeLineStatus.Invalid;

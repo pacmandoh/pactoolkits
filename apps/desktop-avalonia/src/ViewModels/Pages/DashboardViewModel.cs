@@ -234,15 +234,6 @@ public sealed partial class DashboardViewModel : AppPageBase
     [ObservableProperty] private EntryRecentItem? _selectedEntryRecent;
     [ObservableProperty] private AbnormalItem? _selectedAbnormal;
 
-    public IReadOnlyList<GridRowActionRule> GridRowActionRules { get; } = new[]
-    {
-        new GridRowActionRule("TrendGrid", GridInteractionType.Browsing, "点击行：写入顶部 DrugId/Spec 筛选并刷新"),
-        new GridRowActionRule("RecentTxnGrid", GridInteractionType.Browsing, "点击行：切到事务 Tab 并高亮该事务"),
-        new GridRowActionRule("EntryRecentGrid", GridInteractionType.Browsing, "点击行：切到录入 Tab，并按该药品规格预填筛选"),
-        new GridRowActionRule("TopClientsList", GridInteractionType.Browsing, "展示排行信息（不可点击）"),
-        new GridRowActionRule("AbnormalGrid", GridInteractionType.Browsing, "点击行：按异常类型跳转事务/库存，并带药品规格筛选")
-    };
-
     public ObservableCollection<SimpleModeItem> TrendModes { get; } = new()
     {
         new("按使用量"),
@@ -1746,11 +1737,6 @@ public sealed partial class DashboardViewModel : AppPageBase
     }
 
     [RelayCommand]
-    private void Export()
-    {
-    }
-
-    [RelayCommand]
     private void OpenTxnList()
     {
         if (ShouldSkipTrigger("dashboard.nav.txn", 250))
@@ -2167,11 +2153,3 @@ public sealed record EntryRecentItem(
         return key;
     }
 }
-
-public enum GridInteractionType
-{
-    Browsing = 0,
-    Editing = 1
-}
-
-public sealed record GridRowActionRule(string GridKey, GridInteractionType Type, string Action);
