@@ -124,7 +124,6 @@ public class DataGridSortResetBehavior
                 Content = icon,
                 IsVisible = false
             };
-            ToolTip.SetTip(btn, "清除排序");
             btn.Click += OnClearSortClicked;
             return btn;
         }
