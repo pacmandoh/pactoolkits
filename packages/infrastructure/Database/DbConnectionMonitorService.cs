@@ -47,14 +47,23 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
 
     public void Start()
     {
-        // Reason: Start one loop instance and trigger the initial probe.
-        _loop ??= Task.Run(() => RunAsync(_cts.Token));
-        Signal();
+        EnsureLoopRunning();
+        EnqueueSignal();
     }
 
     public void Signal()
     {
-        Start();
+        EnsureLoopRunning();
+        EnqueueSignal();
+    }
+
+    private void EnsureLoopRunning()
+    {
+        _loop ??= Task.Run(() => RunAsync(_cts.Token));
+    }
+
+    private void EnqueueSignal()
+    {
         _signals.Writer.TryWrite(new ProbeRequest(DbProbeKind.Reconnect, null));
     }
 
