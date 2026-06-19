@@ -2,10 +2,13 @@ using System;
 using System.Collections;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
@@ -13,6 +16,16 @@ namespace PacToolkits.Desktop.Avalonia.Controls;
 public partial class PlainAutoCompleteBox : UserControl
 {
     private readonly AutoCompleteBox _innerBox;
+    private bool _pendingCandidateCommit;
+    private TopLevel? _dropDownPointerTopLevel;
+    private EventHandler<PointerPressedEventArgs>? _dropDownPointerPressedHandler;
+    private EventHandler<PointerReleasedEventArgs>? _dropDownPointerReleasedHandler;
+
+    public static readonly RoutedEvent<RoutedEventArgs> CandidateCommittedEvent =
+        RoutedEvent.Register<PlainAutoCompleteBox, RoutedEventArgs>(
+            nameof(CandidateCommitted),
+            RoutingStrategies.Bubble);
+
     public static readonly StyledProperty<string?> TextProperty =
         AutoCompleteBox.TextProperty.AddOwner<PlainAutoCompleteBox>();
 
@@ -49,6 +62,9 @@ public partial class PlainAutoCompleteBox : UserControl
         _innerBox = this.FindControl<AutoCompleteBox>("InnerBox")
                     ?? throw new InvalidOperationException("AutoCompleteBox host is not ready.");
         _innerBox.PropertyChanged += OnInnerBoxPropertyChanged;
+        _innerBox.DropDownOpened += OnInnerDropDownOpened;
+        _innerBox.DropDownClosed += OnInnerDropDownClosed;
+        AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(KeyDownEvent, OnInnerKeyDown, RoutingStrategies.Tunnel);
     }
 
@@ -113,6 +129,12 @@ public partial class PlainAutoCompleteBox : UserControl
 
     public event EventHandler<AvaloniaPropertyChangedEventArgs>? BoxPropertyChanged;
 
+    public event EventHandler<RoutedEventArgs>? CandidateCommitted
+    {
+        add => AddHandler(CandidateCommittedEvent, value);
+        remove => RemoveHandler(CandidateCommittedEvent, value);
+    }
+
     private void OnInnerBoxPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
         BoxPropertyChanged?.Invoke(this, e);
@@ -132,5 +154,126 @@ public partial class PlainAutoCompleteBox : UserControl
             KeyModifiers = e.KeyModifiers,
             Source = this,
         });
+    }
+
+    private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && _innerBox.IsDropDownOpen)
+        {
+            _pendingCandidateCommit = true;
+        }
+    }
+
+    private void OnInnerDropDownOpened(object? sender, EventArgs e)
+    {
+        HookDropDownPointerHandlers();
+    }
+
+    private void HookDropDownPointerHandlers()
+    {
+        UnhookDropDownPointerHandlers();
+
+        _dropDownPointerTopLevel = TopLevel.GetTopLevel(this);
+        if (_dropDownPointerTopLevel is null)
+        {
+            return;
+        }
+
+        _dropDownPointerPressedHandler ??= OnTopLevelPointerPressed;
+        _dropDownPointerReleasedHandler ??= OnTopLevelPointerReleased;
+        _dropDownPointerTopLevel.AddHandler(
+            PointerPressedEvent,
+            _dropDownPointerPressedHandler,
+            RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
+            handledEventsToo: true);
+        _dropDownPointerTopLevel.AddHandler(
+            PointerReleasedEvent,
+            _dropDownPointerReleasedHandler,
+            RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
+            handledEventsToo: true);
+    }
+
+    private void OnInnerDropDownClosed(object? sender, EventArgs e)
+    {
+        UnhookDropDownPointerHandlers();
+
+        if (!_pendingCandidateCommit)
+        {
+            return;
+        }
+
+        _pendingCandidateCommit = false;
+        Dispatcher.UIThread.Post(
+            () => RaiseEvent(new RoutedEventArgs(CandidateCommittedEvent, this)),
+            DispatcherPriority.Loaded);
+    }
+
+    private void UnhookDropDownPointerHandlers()
+    {
+        if (_dropDownPointerTopLevel is null)
+        {
+            return;
+        }
+
+        if (_dropDownPointerPressedHandler is not null)
+        {
+            _dropDownPointerTopLevel.RemoveHandler(PointerPressedEvent, _dropDownPointerPressedHandler);
+        }
+
+        if (_dropDownPointerReleasedHandler is not null)
+        {
+            _dropDownPointerTopLevel.RemoveHandler(PointerReleasedEvent, _dropDownPointerReleasedHandler);
+        }
+
+        _dropDownPointerTopLevel = null;
+    }
+
+    private void OnTopLevelPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!_innerBox.IsDropDownOpen)
+        {
+            return;
+        }
+
+        if (IsInsideOpenDropDownSurface(e.Source))
+        {
+            _pendingCandidateCommit = true;
+        }
+    }
+
+    private void OnTopLevelPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (e.InitialPressMouseButton != MouseButton.Left)
+        {
+            return;
+        }
+
+        if (IsInsideOpenDropDownSurface(e.Source))
+        {
+            _pendingCandidateCommit = true;
+        }
+    }
+
+    private static bool IsInsideOpenDropDownSurface(object? source)
+    {
+        if (source is not Visual visual)
+        {
+            return false;
+        }
+
+        foreach (var ancestor in visual.GetVisualAncestors())
+        {
+            if (ancestor is PopupRoot or OverlayPopupHost)
+            {
+                return true;
+            }
+
+            if (ancestor is ListBoxItem or ComboBoxItem or TreeViewItem)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

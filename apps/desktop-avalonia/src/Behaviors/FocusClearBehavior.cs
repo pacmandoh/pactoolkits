@@ -5,6 +5,7 @@ using global::Avalonia.Controls;
 using global::Avalonia.Controls.Primitives;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
+using global::Avalonia.Threading;
 using global::Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Common;
 
@@ -55,12 +56,18 @@ public class FocusClearBehavior
             return;
         }
 
-        if (IsInsideContextMenu(e.Source))
+        var topLevel = TopLevel.GetTopLevel(scope);
+        if (topLevel is not null && !PopupDismissHelper.ShouldSkipPopupDismiss(e.Source))
+        {
+            PopupDismissHelper.DismissOpenPopups(topLevel);
+        }
+
+        if (PopupDismissHelper.ShouldSkipPopupDismiss(e.Source))
         {
             return;
         }
 
-        var focused = TopLevel.GetTopLevel(scope)?.FocusManager?.GetFocusedElement();
+        var focused = topLevel?.FocusManager?.GetFocusedElement();
         if (focused is not Control ctrl)
         {
             return;
@@ -98,9 +105,15 @@ public class FocusClearBehavior
             return;
         }
 
+        if (IsNaturalFocusTarget(e.Source))
+        {
+            return;
+        }
+
         if (scope is Control host)
         {
-            host.Focus();
+            // Defer focus transfer so popup light-dismiss and the clicked control can process first.
+            Dispatcher.UIThread.Post(() => host.Focus(), DispatcherPriority.Input);
         }
     }
 
@@ -153,17 +166,24 @@ public class FocusClearBehavior
         return false;
     }
 
-    private static bool IsInsideContextMenu(object? source)
+    private static bool IsNaturalFocusTarget(object? source)
     {
-        var current = source;
-        while (current is not null)
+        for (var current = source; current is not null; current = (current as StyledElement)?.Parent)
         {
-            if (current is ContextMenu or MenuItem)
+            switch (current)
+            {
+                case TextBox:
+                case ComboBox:
+                case AutoCompleteBox:
+                case CalendarDatePicker:
+                case NumericUpDown:
+                    return true;
+            }
+
+            if (current.GetType().Name is "PlainAutoCompleteBox")
             {
                 return true;
             }
-
-            current = (current as StyledElement)?.Parent;
         }
 
         return false;

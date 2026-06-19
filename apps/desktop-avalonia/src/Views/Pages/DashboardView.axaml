@@ -108,8 +108,7 @@
                   HorizontalAlignment="Right"
                   VerticalAlignment="Center"
                   Classes="Basic MicroClear"
-                  Command="{Binding ResetDateRangeCommand}"
-                  ToolTip.Tip="归位日期">
+                  Command="{Binding ResetDateRangeCommand}">
                   <icons:AppIcon
                     Width="{DynamicResource IconSizeSmall}"
                     Height="{DynamicResource IconSizeSmall}"
@@ -166,8 +165,7 @@
                   HorizontalAlignment="Right"
                   VerticalAlignment="Center"
                   Classes="Basic MicroClear"
-                  Command="{Binding ClearDrugSpecFilterCommand}"
-                  ToolTip.Tip="清空筛选">
+                  Command="{Binding ClearDrugSpecFilterCommand}">
                   <icons:AppIcon
                     Width="{DynamicResource IconSizeSmall}"
                     Height="{DynamicResource IconSizeSmall}"
@@ -1095,7 +1093,7 @@
         IsVisible="{Binding IsInputTab}"
         RowDefinitions="*">
         <suki:GlassCard Grid.Row="0" Classes="SectionCard">
-          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
             <Grid
               VerticalAlignment="Center"
               ColumnDefinitions="Auto,*,Auto,Auto"
@@ -1111,6 +1109,7 @@
                 Spacing="2">
                 <TextBlock Classes="SectionTitle" Text="录入追溯码情况" />
                 <TextBlock Classes="SectionHint" Text="受顶部药品/规格/客户端/日期筛选影响，展示录入条码明细" />
+                <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
               </StackPanel>
               <Button
                 Grid.Column="2"
@@ -1125,24 +1124,21 @@
                 Command="{Binding OpenOverviewTabCommand}"
                 Content="回总览" />
             </Grid>
-            <TextBlock
-              Grid.Row="1"
-              Classes="SectionHint"
-              Text="{Binding SectionHint}" />
             <controls:EmptyStatePanel
-              Grid.Row="2"
+              Grid.Row="1"
               MinHeight="0"
               EmptyHint="{Binding EntryRecentEmptyHint}"
               EmptyText="{Binding EntryRecentEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
               IsEmpty="{Binding IsEntryRecentEmpty}"
               IsPending="{Binding IsSectionPending}"
-              SlotMinHeight="{DynamicResource DgH10Rows}">
+              SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+              SlotMode="PendingOnly">
               <suki:BusyArea IsBusy="{Binding IsEntryBusy}">
                 <DataGrid
                   x:Name="EntryRecentGridInputTab"
+                  MinHeight="0"
                   HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch"
                   CanUserResizeColumns="True"
                   Classes="SectionGrid CopySelectMenuGrid TraceStateGrid StickyIndexGrid StickyIndexDisplayIndex"
                   GridLinesVisibility="All"
@@ -1210,44 +1206,18 @@
               </suki:BusyArea>
             </controls:EmptyStatePanel>
 
-            <Grid
-              Grid.Row="3"
-              VerticalAlignment="Center"
-              Classes="ToolbarPairRow"
-              ColumnDefinitions="*,Auto">
-              <StackPanel
-                Opacity="{StaticResource SectionHintOpacity}"
-                Orientation="Horizontal"
-                Spacing="10">
-                <TextBlock Text="{Binding EntryTotalCount, StringFormat=共 {0} 条}" />
-                <TextBlock Text="{Binding EntryPageIndex, StringFormat=第 {0} 页}" />
-                <TextBlock Text="{Binding EntryTotalPages, StringFormat=/ {0} 页}" />
-                <TextBlock Text="{Binding EntryPageSize, StringFormat=每页 {0} 条}" />
-              </StackPanel>
-              <StackPanel
-                Grid.Column="1"
-                Orientation="Horizontal"
-                Spacing="{DynamicResource SpacingInlineMd}">
-                <Button
-                  Classes="Action"
-                  Command="{Binding FirstEntryPageCommand}"
-                  IsEnabled="{Binding HasEntryPrevPage}">
-                  <TextBlock Text="首页" />
-                </Button>
-                <Button
-                  Classes="Action"
-                  Command="{Binding PrevEntryPageCommand}"
-                  IsEnabled="{Binding HasEntryPrevPage}">
-                  <TextBlock Text="上一页" />
-                </Button>
-                <Button
-                  Classes="Action"
-                  Command="{Binding NextEntryPageCommand}"
-                  IsEnabled="{Binding HasEntryNextPage}">
-                  <TextBlock Text="下一页" />
-                </Button>
-              </StackPanel>
-            </Grid>
+            <controls:DataGridPager
+              Grid.Row="2"
+              FirstPageCommand="{Binding FirstEntryPageCommand}"
+              IsContentEmpty="{Binding IsEntryRecentEmpty}"
+              LastPageCommand="{Binding LastEntryPageCommand}"
+              NextPageCommand="{Binding NextEntryPageCommand}"
+              PageSizeOptions="{Binding TabPageSizeOptions}"
+              PrevPageCommand="{Binding PrevEntryPageCommand}"
+              SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
+              TotalCount="{Binding EntryTotalCount}"
+              TotalPages="{Binding EntryTotalPages}"
+              PageIndex="{Binding EntryPageIndex}" />
           </Grid>
         </suki:GlassCard>
       </Grid>
@@ -1259,7 +1229,7 @@
         IsVisible="{Binding IsTxnTab}"
         RowDefinitions="*">
         <suki:GlassCard Grid.Row="0" Classes="SectionCard">
-          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
             <Grid
               VerticalAlignment="Center"
               ColumnDefinitions="Auto,*,220,Auto"
@@ -1279,6 +1249,7 @@
                   Classes="SectionTitle"
                   Text="{Binding TxnPanelMode.Title}" />
                 <TextBlock Classes="SectionHint" Text="受顶部药品/规格/客户端/日期筛选影响，展示取码事务明细" />
+                <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
               </StackPanel>
               <ComboBox
                 Grid.Column="2"
@@ -1293,25 +1264,22 @@
                 Command="{Binding OpenAbnormalCommand}"
                 Content="查看异常" />
             </Grid>
-            <TextBlock
-              Grid.Row="1"
-              Classes="SectionHint"
-              Text="{Binding SectionHint}" />
             <controls:EmptyStatePanel
-              Grid.Row="2"
+              Grid.Row="1"
               MinHeight="0"
               EmptyHint="{Binding TxnPanelEmptyHint}"
               EmptyText="{Binding TxnPanelEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
               IsEmpty="{Binding IsTxnPanelEmpty}"
               IsPending="{Binding IsSectionPending}"
-              SlotMinHeight="{DynamicResource DgH10Rows}">
+              SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+              SlotMode="PendingOnly">
               <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
-                <Grid>
+                <Grid MinHeight="0">
                   <DataGrid
                     x:Name="TxnDetailGrid"
+                    MinHeight="0"
                     HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch"
                     Classes="SectionGrid TxnGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
                     GridLinesVisibility="All"
                     HeadersVisibility="All"
@@ -1367,8 +1335,8 @@
 
                   <DataGrid
                     x:Name="TxnTrendGrid"
+                    MinHeight="0"
                     HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch"
                     Classes="SectionGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
                     HeadersVisibility="All"
                     HorizontalScrollBarVisibility="Disabled"
@@ -1407,85 +1375,33 @@
               </suki:BusyArea>
             </controls:EmptyStatePanel>
 
-            <Grid
-              Grid.Row="3"
-              VerticalAlignment="Center"
-              Classes="ToolbarPairRow"
-              ColumnDefinitions="*,Auto"
-              IsVisible="{Binding IsTxnPanelDetailMode}">
-              <StackPanel
-                Opacity="{StaticResource SectionHintOpacity}"
-                Orientation="Horizontal"
-                Spacing="10">
-                <TextBlock Text="{Binding TxnTotalCount, StringFormat=共 {0} 条}" />
-                <TextBlock Text="{Binding TxnPageIndex, StringFormat=第 {0} 页}" />
-                <TextBlock Text="{Binding TxnTotalPages, StringFormat=/ {0} 页}" />
-                <TextBlock Text="{Binding TxnPageSize, StringFormat=每页 {0} 条}" />
-              </StackPanel>
-              <StackPanel
-                Grid.Column="1"
-                Orientation="Horizontal"
-                Spacing="{DynamicResource SpacingInlineMd}">
-                <Button
-                  Classes="Action"
-                  Command="{Binding FirstTxnPageCommand}"
-                  IsEnabled="{Binding HasTxnPrevPage}">
-                  <TextBlock Text="首页" />
-                </Button>
-                <Button
-                  Classes="Action"
-                  Command="{Binding PrevTxnPageCommand}"
-                  IsEnabled="{Binding HasTxnPrevPage}">
-                  <TextBlock Text="上一页" />
-                </Button>
-                <Button
-                  Classes="Action"
-                  Command="{Binding NextTxnPageCommand}"
-                  IsEnabled="{Binding HasTxnNextPage}">
-                  <TextBlock Text="下一页" />
-                </Button>
-              </StackPanel>
-            </Grid>
+            <controls:DataGridPager
+              Grid.Row="2"
+              FirstPageCommand="{Binding FirstTxnPageCommand}"
+              IsActive="{Binding IsTxnPanelDetailMode}"
+              IsContentEmpty="{Binding IsRecentTxnsEmpty}"
+              LastPageCommand="{Binding LastTxnPageCommand}"
+              NextPageCommand="{Binding NextTxnPageCommand}"
+              PageSizeOptions="{Binding TabPageSizeOptions}"
+              PrevPageCommand="{Binding PrevTxnPageCommand}"
+              SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
+              TotalCount="{Binding TxnTotalCount}"
+              TotalPages="{Binding TxnTotalPages}"
+              PageIndex="{Binding TxnPageIndex}" />
 
-            <Grid
-              Grid.Row="3"
-              VerticalAlignment="Center"
-              Classes="ToolbarPairRow"
-              ColumnDefinitions="*,Auto"
-              IsVisible="{Binding IsTxnPanelTrendMode}">
-              <StackPanel
-                Opacity="{StaticResource SectionHintOpacity}"
-                Orientation="Horizontal"
-                Spacing="10">
-                <TextBlock Text="{Binding TxnTrendTotalCount, StringFormat=共 {0} 条}" />
-                <TextBlock Text="{Binding TxnTrendPageIndex, StringFormat=第 {0} 页}" />
-                <TextBlock Text="{Binding TxnTrendTotalPages, StringFormat=/ {0} 页}" />
-                <TextBlock Text="{Binding TxnTrendPageSize, StringFormat=每页 {0} 条}" />
-              </StackPanel>
-              <StackPanel
-                Grid.Column="1"
-                Orientation="Horizontal"
-                Spacing="{DynamicResource SpacingInlineMd}">
-                <Button
-                  Classes="Action"
-                  Command="{Binding FirstTxnTrendPageCommand}"
-                  IsEnabled="{Binding HasTxnTrendPrevPage}">
-                  <TextBlock Text="首页" />
-                </Button>
-                <Button
-                  Classes="Action"
-                  Command="{Binding PrevTxnTrendPageCommand}"
-                  IsEnabled="{Binding HasTxnTrendPrevPage}">
-                  <TextBlock Text="上一页" />
-                </Button>
-                <Button
-                  Classes="Action"
-                  Command="{Binding NextTxnTrendPageCommand}"
-                  IsEnabled="{Binding HasTxnTrendNextPage}">
-                  <TextBlock Text="下一页" />
-                </Button>
-              </StackPanel>
-            </Grid>
+            <controls:DataGridPager
+              Grid.Row="2"
+              FirstPageCommand="{Binding FirstTxnTrendPageCommand}"
+              IsActive="{Binding IsTxnPanelTrendMode}"
+              IsContentEmpty="{Binding IsTxnTrendEmpty}"
+              LastPageCommand="{Binding LastTxnTrendPageCommand}"
+              NextPageCommand="{Binding NextTxnTrendPageCommand}"
+              PageSizeOptions="{Binding TabPageSizeOptions}"
+              PrevPageCommand="{Binding PrevTxnTrendPageCommand}"
+              SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
+              TotalCount="{Binding TxnTrendTotalCount}"
+              TotalPages="{Binding TxnTrendTotalPages}"
+              PageIndex="{Binding TxnTrendPageIndex}" />
           </Grid>
         </suki:GlassCard>
       </Grid>
@@ -1496,7 +1412,7 @@
         IsVisible="{Binding IsAbnormalTab}"
         RowDefinitions="*">
         <suki:GlassCard Grid.Row="0" Classes="SectionCard">
-          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
             <Grid
               VerticalAlignment="Center"
               ColumnDefinitions="Auto,*,Auto,Auto"
@@ -1513,6 +1429,7 @@
                 Spacing="2">
                 <TextBlock Classes="SectionTitle" Text="异常事务队列" />
                 <TextBlock Classes="SectionHint" Text="优先处理回滚事务，确认客户端与库存状态后再重试" />
+                <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
               </StackPanel>
               <Button
                 Grid.Column="2"
@@ -1527,24 +1444,21 @@
                 Command="{Binding GoInputTabCommand}"
                 Content="去录入页" />
             </Grid>
-            <TextBlock
-              Grid.Row="1"
-              Classes="SectionHint"
-              Text="{Binding SectionHint}" />
             <controls:EmptyStatePanel
-              Grid.Row="2"
+              Grid.Row="1"
               MinHeight="0"
               EmptyHint="{Binding AbnormalEmptyHint}"
               EmptyText="{Binding AbnormalEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
               IsEmpty="{Binding IsAbnormalEmpty}"
               IsPending="{Binding IsSectionPending}"
-              SlotMinHeight="{DynamicResource DgH10Rows}">
+              SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+              SlotMode="PendingOnly">
               <suki:BusyArea IsBusy="{Binding IsAbnormalBusy}">
                 <DataGrid
                   x:Name="AbnormalGrid"
+                  MinHeight="0"
                   HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch"
                   Classes="SectionGrid TxnGrid AbnormalGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
                   GridLinesVisibility="All"
                   HorizontalScrollBarVisibility="Disabled"
@@ -1594,44 +1508,18 @@
               </suki:BusyArea>
             </controls:EmptyStatePanel>
 
-            <Grid
-              Grid.Row="3"
-              VerticalAlignment="Center"
-              Classes="ToolbarPairRow"
-              ColumnDefinitions="*,Auto">
-              <StackPanel
-                Opacity="{StaticResource SectionHintOpacity}"
-                Orientation="Horizontal"
-                Spacing="10">
-                <TextBlock Text="{Binding AbnormalTotalCount, StringFormat=共 {0} 条}" />
-                <TextBlock Text="{Binding AbnormalPageIndex, StringFormat=第 {0} 页}" />
-                <TextBlock Text="{Binding AbnormalTotalPages, StringFormat=/ {0} 页}" />
-                <TextBlock Text="{Binding AbnormalPageSize, StringFormat=每页 {0} 条}" />
-              </StackPanel>
-              <StackPanel
-                Grid.Column="1"
-                Orientation="Horizontal"
-                Spacing="{DynamicResource SpacingInlineMd}">
-                <Button
-                  Classes="Action"
-                  Command="{Binding FirstAbnormalPageCommand}"
-                  IsEnabled="{Binding HasAbnormalPrevPage}">
-                  <TextBlock Text="首页" />
-                </Button>
-                <Button
-                  Classes="Action"
-                  Command="{Binding PrevAbnormalPageCommand}"
-                  IsEnabled="{Binding HasAbnormalPrevPage}">
-                  <TextBlock Text="上一页" />
-                </Button>
-                <Button
-                  Classes="Action"
-                  Command="{Binding NextAbnormalPageCommand}"
-                  IsEnabled="{Binding HasAbnormalNextPage}">
-                  <TextBlock Text="下一页" />
-                </Button>
-              </StackPanel>
-            </Grid>
+            <controls:DataGridPager
+              Grid.Row="2"
+              FirstPageCommand="{Binding FirstAbnormalPageCommand}"
+              IsContentEmpty="{Binding IsAbnormalEmpty}"
+              LastPageCommand="{Binding LastAbnormalPageCommand}"
+              NextPageCommand="{Binding NextAbnormalPageCommand}"
+              PageSizeOptions="{Binding TabPageSizeOptions}"
+              PrevPageCommand="{Binding PrevAbnormalPageCommand}"
+              SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
+              TotalCount="{Binding AbnormalTotalCount}"
+              TotalPages="{Binding AbnormalTotalPages}"
+              PageIndex="{Binding AbnormalPageIndex}" />
           </Grid>
         </suki:GlassCard>
       </Grid>

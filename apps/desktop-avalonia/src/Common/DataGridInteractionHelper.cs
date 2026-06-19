@@ -42,6 +42,25 @@ public static class DataGridInteractionHelper
         {
             AppLog.Warn("DataGridInteraction", "grid.clear_selection_items.fail", "Failed to clear selected items", ex);
         }
+
+        ClearCurrentCell(grid);
+    }
+
+    public static void ClearCurrentCell(DataGrid? grid)
+    {
+        if (grid is null)
+        {
+            return;
+        }
+
+        try
+        {
+            grid.CurrentColumn = null;
+        }
+        catch (System.Exception ex)
+        {
+            AppLog.Warn("DataGridInteraction", "grid.clear_current_column.fail", "Failed to clear current column", ex);
+        }
     }
 
     public static List<object> ReadSelectedItems(DataGrid grid)

@@ -1,4 +1,4 @@
-﻿<suki:SukiWindow
+<suki:SukiWindow
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -8,7 +8,7 @@
   xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
   xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels"
   Title="PacToolkits - 自动化套件"
-  Width="1450"
+  Width="1460"
   Height="900"
   MinWidth="1350"
   MinHeight="800"
@@ -31,8 +31,7 @@
       Margin="{DynamicResource ShellNavItemMargin}"
       Classes="WindowControlsButton"
       Command="{Binding OpenUpdateCenterCommand}"
-      IsVisible="{Binding HasUpdateAvailable}"
-      ToolTip.Tip="{Binding UpdateStatusTip}">
+      IsVisible="{Binding HasUpdateAvailable}">
       <icons:AppIcon
         Width="{DynamicResource ShellNavIconSize}"
         Height="{DynamicResource ShellNavIconSize}"
@@ -237,7 +236,7 @@
       IsEnabled="{Binding !IsDbProbeRunning}"
       IsMenuExpanded="False"
       IsSelectedItemContentMovable="False"
-      ItemsSource="{Binding SidebarPages}"
+      ItemsSource="{Binding FilteredSidebarPages}"
       SelectedItem="{Binding ActivePage}">
       <suki:SukiSideMenu.HeaderContent>
         <Grid
@@ -303,7 +302,7 @@
                 Padding="31,0,10,0"
                 VerticalContentAlignment="Center"
                 PlaceholderText="搜索页面 / 命令"
-                Text="{Binding #MainSideMenu.SearchText, Mode=TwoWay}"
+                Text="{Binding SidebarSearchText, Mode=TwoWay}"
                 UseFloatingPlaceholder="False" />
               <icons:AppIcon
                 Width="{DynamicResource IconSizeSmall}"

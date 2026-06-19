@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using global::Avalonia.Threading;
+using PacToolkits.Application.TextSearch;
 using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -11,6 +12,9 @@ namespace PacToolkits.Desktop.Avalonia.Common;
 public static class AutoCompleteHelper
 {
     public static void AttachDrugOptionFilter(PlainAutoCompleteBox box)
+        => AttachPinyinFilter(box);
+
+    public static void AttachPinyinFilter(PlainAutoCompleteBox box)
     {
         box.ItemFilter = static (search, item) =>
         {
@@ -41,15 +45,7 @@ public static class AutoCompleteHelper
         }
 
         e.Handled = true;
-        Dispatcher.UIThread.Post(() =>
-        {
-            CommitSuggestInput(box);
-            applyAction?.Invoke();
-            if (!string.IsNullOrWhiteSpace(nextControlName))
-            {
-                InputFocusHelper.FocusControlByName(owner, nextControlName);
-            }
-        }, DispatcherPriority.Input);
+        RunCommitAndApply(box, owner, nextControlName, applyAction);
         return true;
     }
 
@@ -66,6 +62,53 @@ public static class AutoCompleteHelper
         }
 
         e.Handled = true;
+        RunCommitAndApplyAsync(box, owner, nextControlName, applyAsync);
+        return true;
+    }
+
+    public static void AttachCandidateCommitApply(
+        PlainAutoCompleteBox box,
+        UserControl owner,
+        string nextControlName,
+        Action? applyAction)
+    {
+        box.CandidateCommitted += (_, _) =>
+            RunCommitAndApplyImmediate(box, owner, nextControlName, applyAction);
+    }
+
+    public static void AttachCandidateCommitApplyAsync(
+        PlainAutoCompleteBox box,
+        UserControl owner,
+        string nextControlName,
+        Func<PlainAutoCompleteBox, Task>? applyAsync)
+    {
+        box.CandidateCommitted += (_, _) =>
+            _ = RunCommitAndApplyImmediateAsync(box, owner, nextControlName, applyAsync);
+    }
+
+    public static void RunCommitAndApply(
+        PlainAutoCompleteBox box,
+        UserControl owner,
+        string nextControlName,
+        Action? applyAction)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            CommitSuggestInput(box);
+            applyAction?.Invoke();
+            if (!string.IsNullOrWhiteSpace(nextControlName))
+            {
+                InputFocusHelper.FocusControlByName(owner, nextControlName);
+            }
+        }, DispatcherPriority.Input);
+    }
+
+    public static void RunCommitAndApplyAsync(
+        PlainAutoCompleteBox box,
+        UserControl owner,
+        string nextControlName,
+        Func<PlainAutoCompleteBox, Task>? applyAsync)
+    {
         Dispatcher.UIThread.Post(async () =>
         {
             CommitSuggestInput(box);
@@ -79,7 +122,38 @@ public static class AutoCompleteHelper
                 InputFocusHelper.FocusControlByName(owner, nextControlName);
             }
         }, DispatcherPriority.Input);
-        return true;
+    }
+
+    private static void RunCommitAndApplyImmediate(
+        PlainAutoCompleteBox box,
+        UserControl owner,
+        string nextControlName,
+        Action? applyAction)
+    {
+        CommitSuggestInput(box);
+        applyAction?.Invoke();
+        if (!string.IsNullOrWhiteSpace(nextControlName))
+        {
+            InputFocusHelper.FocusControlByName(owner, nextControlName);
+        }
+    }
+
+    private static async Task RunCommitAndApplyImmediateAsync(
+        PlainAutoCompleteBox box,
+        UserControl owner,
+        string nextControlName,
+        Func<PlainAutoCompleteBox, Task>? applyAsync)
+    {
+        CommitSuggestInput(box);
+        if (applyAsync is not null)
+        {
+            await applyAsync(box).ConfigureAwait(true);
+        }
+
+        if (!string.IsNullOrWhiteSpace(nextControlName))
+        {
+            InputFocusHelper.FocusControlByName(owner, nextControlName);
+        }
     }
 
     private static void CommitSuggestInput(PlainAutoCompleteBox box)

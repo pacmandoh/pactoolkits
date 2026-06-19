@@ -112,6 +112,37 @@ public sealed class ScanCodeRepo : IScanCodeRepo
         return new ScanCodeInsertResult(requested, inserted, skipped);
     }
 
+    public Task<IReadOnlyList<string>> FindExistingTraceCodesAsync(
+        IReadOnlyList<string> traceCodes,
+        CancellationToken ct)
+    {
+        if (traceCodes.Count == 0)
+        {
+            return Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+        }
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            const string sql = """
+                select trace_code
+                from trace_pool
+                where trace_code = any(@codes)
+                """;
+
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("codes", traceCodes as string[] ?? traceCodes.ToArray());
+
+            var existing = new List<string>();
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                existing.Add(reader.GetString(0));
+            }
+
+            return (IReadOnlyList<string>)existing;
+        }, ct);
+    }
+
     private async Task SyncTracePoolIdSequenceAsync(System.Data.IDbConnection conn, CancellationToken token)
     {
         const string sql = """

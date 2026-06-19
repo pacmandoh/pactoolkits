@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DrugIndexView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -137,8 +137,7 @@
                   VerticalContentAlignment="Center"
                   Classes="Action IconToggle"
                   Command="{Binding ToggleSearchPanelCommand}"
-                  IsEnabled="{Binding !IsUiBusy}"
-                  ToolTip.Tip="显示/隐藏搜索">
+                  IsEnabled="{Binding !IsUiBusy}">
                   <Panel
                     Width="{DynamicResource IconSizeDefault}"
                     Height="{DynamicResource IconSizeDefault}"
@@ -212,7 +211,7 @@
                     <Style Selector="DataGrid.DrugGrid DataGridRow">
                       <Setter Property="ContextMenu">
                         <Setter.Value>
-                          <ContextMenu>
+                          <ContextMenu Opened="OnDrugGridContextMenuOpened">
                             <MenuItem
                               Click="OnGridRowCopy"
                               CommandParameter="{Binding}"
@@ -237,9 +236,10 @@
                               </MenuItem.Icon>
                             </MenuItem>
 
-                            <Separator />
+                            <Separator Classes="DrugIndexSensitiveMenuSeparator" />
 
                             <MenuItem
+                              Classes="DrugIndexSensitiveMenuItem"
                               Click="OnGridToggleDeprecated"
                               CommandParameter="{Binding}"
                               Header="弃用 / 启用">
@@ -252,6 +252,7 @@
                             </MenuItem>
 
                             <MenuItem
+                              Classes="DrugIndexSensitiveMenuItem"
                               Click="OnGridToggleNoSplit"
                               CommandParameter="{Binding}"
                               Header="未拆零 / 可拆零">
@@ -271,13 +272,18 @@
                   <DataGrid.Columns>
                     <DataGridTextColumn
                       Width="2*"
-                      Binding="{Binding DrugId}"
-                      Header="药品名" />
+                      Binding="{ReflectionBinding DrugId}"
+                      Header="药品名"
+                      SortMemberPath="DrugId" />
                     <DataGridTextColumn
                       Width="1.2*"
-                      Binding="{Binding Spec}"
-                      Header="规格" />
-                    <DataGridTemplateColumn Width="{StaticResource DgWRightSmall}" Header="单盒数量">
+                      Binding="{ReflectionBinding Spec}"
+                      Header="规格"
+                      SortMemberPath="Spec" />
+                    <DataGridTemplateColumn
+                      Width="{StaticResource DgWRightSmall}"
+                      Header="单盒数量"
+                      SortMemberPath="Qty">
                       <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                           <TextBlock Classes="DGRightCell DGNum" Text="{Binding Qty}" />
@@ -286,16 +292,19 @@
                     </DataGridTemplateColumn>
                     <DataGridTextColumn
                       Width="1.2*"
-                      Binding="{Binding RuleKey}"
-                      Header="简称" />
+                      Binding="{ReflectionBinding RuleKey}"
+                      Header="简称"
+                      SortMemberPath="RuleKey" />
                     <DataGridTextColumn
                       Width="1.2*"
-                      Binding="{Binding PreTc}"
-                      Header="前缀" />
+                      Binding="{ReflectionBinding PreTc}"
+                      Header="前缀"
+                      SortMemberPath="PreTc" />
                     <DataGridTextColumn
                       Width="1.4*"
-                      Binding="{Binding EffectiveNote}"
-                      Header="备注" />
+                      Binding="{ReflectionBinding EffectiveNote}"
+                      Header="备注"
+                      SortMemberPath="EffectiveNote" />
                   </DataGrid.Columns>
                 </DataGrid>
               </controls:EmptyStatePanel>

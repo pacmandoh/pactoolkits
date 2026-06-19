@@ -94,4 +94,46 @@
     <Setter Property="Margin" Value="1,0" />
     <Setter Property="Opacity" Value="0.65" />
   </Style>
+
+  <Style Selector="Button.WindowControlsButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+    <Setter Property="Padding" Value="{DynamicResource ShellTitleBarCapsuleButtonPadding}" />
+    <Setter Property="MinWidth" Value="{DynamicResource ShellTitleBarCapsuleButtonMinSize}" />
+    <Setter Property="MinHeight" Value="{DynamicResource ShellTitleBarCapsuleButtonMinSize}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border
+          x:Name="PART_Border"
+          Padding="{TemplateBinding Padding}"
+          Background="{TemplateBinding Background}"
+          BorderBrush="{TemplateBinding BorderBrush}"
+          BorderThickness="{TemplateBinding BorderThickness}"
+          CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter
+            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+            Content="{TemplateBinding Content}"
+            ContentTemplate="{TemplateBinding ContentTemplate}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.WindowControlsButton:pointerover /template/ Border#PART_Border">
+    <Setter Property="Background" Value="{DynamicResource ShellStatusItemHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.WindowControlsButton:pressed /template/ Border#PART_Border">
+    <Setter Property="Background" Value="{DynamicResource ShellStatusItemHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.WindowControlsButton:pointerover,                      Button.WindowControlsButton:pressed">
+    <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+  </Style>
 </Styles>
