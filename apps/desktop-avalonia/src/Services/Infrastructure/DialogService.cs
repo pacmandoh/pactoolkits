@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using global::Avalonia.Controls.Notifications;
 using global::Avalonia.Threading;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Views.Dialogs;
 using SukiUI.Dialogs;
 
@@ -284,20 +285,49 @@ public sealed class DialogService : IDialogService
             {
                 DataContext = model
             };
-            MsfxMappingBatchGroupRow? ResolveGroup()
-                => content.SelectedGroup;
 
             _dialogManager.CreateDialog()
                 .OfType(NotificationType.Information)
                 .WithTitle("批量映射")
                 .WithContent(content)
                 .WithActionButton("关闭", _ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.Cancel, null, "", "")), dismissOnClick: true, classes: GhostButtonClasses)
-                .WithActionButton("弃用任务", _ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.DiscardTask, ResolveGroup(), content.DrugId, content.Spec)), dismissOnClick: true, classes: FlatButtonClasses)
-                .WithActionButton("批量映射", _ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.ApplyMap, ResolveGroup(), content.DrugId, content.Spec)), dismissOnClick: true, classes: FlatAccentButtonClasses)
+                .WithActionButton("弃用任务", _ => QueueMsfxMappingBatchDialogAction(content, tcs, MsfxMappingBatchDialogAction.DiscardTask), dismissOnClick: false, classes: FlatButtonClasses)
+                .WithActionButton("批量映射", _ => QueueMsfxMappingBatchDialogAction(content, tcs, MsfxMappingBatchDialogAction.ApplyMap), dismissOnClick: false, classes: FlatAccentButtonClasses)
                 .Dismiss().ByClickingBackground()
                 .OnDismissed(_ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.Cancel, null, "", "")))
                 .TryShow();
         });
+
+    private void QueueMsfxMappingBatchDialogAction(
+        MsfxMappingBatchDialogView content,
+        TaskCompletionSource<MsfxMappingBatchDialogResult> tcs,
+        MsfxMappingBatchDialogAction action)
+        => _ = CompleteMsfxMappingBatchDialogAsync(content, tcs, action);
+
+    private async Task CompleteMsfxMappingBatchDialogAsync(
+        MsfxMappingBatchDialogView content,
+        TaskCompletionSource<MsfxMappingBatchDialogResult> tcs,
+        MsfxMappingBatchDialogAction action)
+    {
+        try
+        {
+            await content.PrepareForActionAsync().ConfigureAwait(true);
+            tcs.TrySetResult(new MsfxMappingBatchDialogResult(
+                action,
+                content.SelectedGroup,
+                content.DrugId,
+                content.Spec));
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("DialogService", "msfx.batch_dialog.complete.fail", "Failed to finalize MSFX batch mapping dialog action", ex);
+            tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.Cancel, null, "", ""));
+        }
+        finally
+        {
+            _dialogManager.DismissDialog();
+        }
+    }
 
     public Task<MsfxTaskSplitDialogResult> ShowMsfxTaskSplitDialog(MsfxTaskSplitDialogModel model)
         => ShowDialogAsync<MsfxTaskSplitDialogResult>(tcs =>
