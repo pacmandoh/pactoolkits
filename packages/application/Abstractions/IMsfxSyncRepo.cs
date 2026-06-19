@@ -106,8 +106,6 @@ public interface IMsfxSyncRepo
 
     Task<MsfxMappingStatusSnapshot> GetMappingStatusSnapshotAsync(CancellationToken ct);
 
-    Task<MsfxMappingBacklogDiagnostic> GetMappingBacklogDiagnosticAsync(CancellationToken ct);
-
     Task<MsfxBuildTaskResult> BuildInjectTasksAsync(int maxGroups, CancellationToken ct);
 
     Task<MsfxAutoBoardSnapshot> GetAutoBoardSnapshotAsync(CancellationToken ct);
@@ -120,9 +118,11 @@ public interface IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         DateTimeOffset? cursorUpdatedAt,
         long? cursorId,
         bool newer,
+        bool seekLastPage,
         CancellationToken ct);
 
     Task<IReadOnlyList<MsfxInjectTaskQueueRow>> GetInjectTaskQueueAsync(int limit, CancellationToken ct);
@@ -148,6 +148,7 @@ public interface IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         int limit,
         CancellationToken ct);
 
@@ -156,6 +157,7 @@ public interface IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         string? groupSourceDrugNameRaw,
         string? groupSourceSpecRaw,
         string? groupSourceNameNorm,
@@ -170,6 +172,7 @@ public interface IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         string? groupSourceDrugNameRaw,
         string? groupSourceSpecRaw,
         string? groupSourceNameNorm,

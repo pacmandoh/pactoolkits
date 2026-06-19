@@ -14,6 +14,7 @@ using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
+using PacToolkits.Application.TextSearch;
 using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Contracts;
@@ -77,12 +78,19 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _pageLifecycleCts;
     private readonly object _dirtyPagesGate = new();
     private readonly HashSet<AppPageBase> _dirtyPages = new();
+    private readonly SearchInputDebouncer _sidebarSearchDebouncer = new(250);
 
     private readonly SukiTheme _theme = SukiTheme.GetInstance();
     private IAvaloniaReadOnlyList<SukiColorTheme> Themes => _theme.ColorThemes;
 
     private IReadOnlyList<AppPageBase> Pages { get; }
     public IReadOnlyList<AppPageBase> SidebarPages { get; }
+
+    [ObservableProperty]
+    private string _sidebarSearchText = string.Empty;
+
+    public IReadOnlyList<AppPageBase> FilteredSidebarPages
+        => FilterSidebarPages(SidebarSearchText);
     private readonly Dictionary<Type, AppPageBase> _pageByType;
     private readonly AppPageBase? _settingsPage;
     private readonly AppPageBase? _aboutPage;
@@ -140,28 +148,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsDbConnected => _dbMonitor.IsConnected;
 
-    public string DbStatusTip
-        => IsDbConnected ? "数据库：已连接" : "数据库：已断开";
     public string DbStatusText
         => IsDbConnected ? "已连接" : "已断开";
-
-    public string ShellStatusText
-    {
-        get
-        {
-            if (IsDbProbeRunning)
-            {
-                return "数据库：正在检测连接…";
-            }
-
-            if (!IsDbConnected)
-            {
-                return "数据库：未连接 · 等待重连";
-            }
-
-            return "数据库：已连接";
-        }
-    }
 
     public string ShellDatabaseItemText
         => IsDbProbeRunning ? "数据库：检测中…"
@@ -216,23 +204,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public string AhkStatusText
         => IsAhkRunning ? "运行中" : "未启动";
 
-    public string UpdateStatusTip
-        => HasUpdateAvailable
-            ? $"发现新版本：{LatestProductVersion}（当前 {CurrentProductVersion}）"
-            : "应用更新：当前已是最新版本";
-
-    public string AppProductVersionText
-    {
-        get
-        {
-            var productVersion = _releaseVersion.Current.ProductVersion;
-            return string.IsNullOrWhiteSpace(productVersion) ||
-                   string.Equals(productVersion, "unknown", StringComparison.OrdinalIgnoreCase)
-                ? "PacToolkits"
-                : $"PacToolkits v{productVersion}";
-        }
-    }
-
     public string AppBuildChannelText
     {
         get
@@ -245,16 +216,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public string AppCopyrightDisplayText => "PacmanDoh · 2026";
-
-    partial void OnHasUpdateAvailableChanged(bool value) => OnPropertyChanged(nameof(UpdateStatusTip));
     partial void OnCurrentProductVersionChanged(string value)
     {
-        OnPropertyChanged(nameof(UpdateStatusTip));
         OnPropertyChanged(nameof(ShellVersionText));
     }
-
-    partial void OnLatestProductVersionChanged(string value) => OnPropertyChanged(nameof(UpdateStatusTip));
 
     private void MarkDbConnectivityKnown()
     {
@@ -269,9 +234,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void RaiseDbStateChanged()
     {
         OnPropertyChanged(nameof(IsDbConnected));
-        OnPropertyChanged(nameof(DbStatusTip));
         OnPropertyChanged(nameof(DbStatusText));
-        OnPropertyChanged(nameof(ShellStatusText));
         OnPropertyChanged(nameof(ShellDatabaseItemText));
         OnPropertyChanged(nameof(ShowDbConnectedIcon));
         OnPropertyChanged(nameof(ShowDbDisconnectedIcon));
@@ -387,7 +350,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShowDbBusyIcon));
         OnPropertyChanged(nameof(ShowDbConnectedIcon));
         OnPropertyChanged(nameof(ShowDbDisconnectedIcon));
-        OnPropertyChanged(nameof(ShellStatusText));
         OnPropertyChanged(nameof(ShellDatabaseItemText));
     }
 
@@ -419,10 +381,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool CanTopRefresh => TopRefreshCommand?.CanExecute(null) == true;
     public bool CanTopImport => TopImportCommand?.CanExecute(null) == true;
     public bool CanTopExport => TopExportCommand?.CanExecute(null) == true;
-
-    public string? TopRefreshTip => ActiveTopBar?.RefreshTip;
-    public string? TopImportTip => ActiveTopBar?.ImportTip;
-    public string? TopExportTip => ActiveTopBar?.ExportTip;
 
     [RelayCommand]
     private void RefreshActivePage()
@@ -710,6 +668,32 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
 
+    partial void OnSidebarSearchTextChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _sidebarSearchDebouncer.Cancel();
+            OnPropertyChanged(nameof(FilteredSidebarPages));
+            return;
+        }
+
+        _sidebarSearchDebouncer.Schedule(() =>
+            Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(FilteredSidebarPages))));
+    }
+
+    private IReadOnlyList<AppPageBase> FilterSidebarPages(string? search)
+    {
+        var keyword = (search ?? string.Empty).Trim();
+        if (keyword.Length == 0)
+        {
+            return SidebarPages;
+        }
+
+        return SidebarPages
+            .Where(page => TextSearchHelper.Matches(keyword, page.DisplayName))
+            .ToList();
+    }
+
     partial void OnActivePageChanged(AppPageBase? value)
     {
         var previous = _activeLifecyclePage;
@@ -738,9 +722,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(CanTopImport));
         OnPropertyChanged(nameof(CanTopExport));
 
-        OnPropertyChanged(nameof(TopRefreshTip));
-        OnPropertyChanged(nameof(TopImportTip));
-        OnPropertyChanged(nameof(TopExportTip));
         OnPropertyChanged(nameof(IsSettingsPageActive));
         OnPropertyChanged(nameof(IsAboutPageActive));
         RaiseShellStatusItemsChanged();
@@ -1030,17 +1011,34 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             if (!state.Compatible)
             {
                 _toasts.Error("数据库版本不兼容", state.Message);
-                _logger.Error("MainWindowVM", "db.schema.incompatible.startup", "Database schema incompatible during startup", null, new
+                var logContext = new
                 {
-                    state.UiMin,
-                    state.UiMax,
-                    state.AgentMin,
-                    state.AgentMax,
-                    state.Target,
-                    state.DbVersion,
-                    state.SchemaOk,
-                    state.Reason
-                });
+                    desktopMin = state.DesktopMin,
+                    desktopMax = state.DesktopMax,
+                    agentMin = state.AgentMin,
+                    agentMax = state.AgentMax,
+                    target = state.Target,
+                    dbVersion = state.DbVersion,
+                    schemaOk = state.SchemaOk,
+                    compatibility = state.Compatibility,
+                    reason = state.Reason
+                };
+
+                if (state.SchemaOk && string.Equals(state.Compatibility, "BelowMinimum", StringComparison.Ordinal))
+                {
+                    _logger.Warn("MainWindowVM", "db.schema.pending_migration.startup",
+                        "Database schema below app minimum during startup; migration required before business access",
+                        null,
+                        logContext);
+                }
+                else
+                {
+                    _logger.Error("MainWindowVM", "db.schema.incompatible.startup",
+                        "Database schema incompatible during startup",
+                        null,
+                        logContext);
+                }
+
                 return false;
             }
 
@@ -1156,8 +1154,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 schemaValue = snapshot.CurrentVersion,
                 target,
-                uiMin,
-                uiMax,
+                desktopMin = uiMin,
+                desktopMax = uiMax,
                 agentMin,
                 agentMax
             });
@@ -1167,14 +1165,14 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _logger.Warn("MainWindowVM", "db.schema.incompatible", "Database schema incompatible", null, new
             {
                 target,
-                uiMin,
-                uiMax,
+                desktopMin = uiMin,
+                desktopMax = uiMax,
                 agentMin,
                 agentMax,
                 schemaOk = snapshot.SchemaOk,
                 schemaValue = snapshot.CurrentVersion,
                 schemaReason = snapshot.Reason,
-                snapshot.Compatibility
+                compatibility = snapshot.Compatibility.ToString()
             });
         }
 
@@ -1183,12 +1181,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             ShouldMigrate: snapshot.ManualMigrationPolicy.ShouldExecuteMigration,
             Message: snapshot.IncompatibleMessage ?? "数据库版本不兼容",
             Target: snapshot.TargetVersion,
-            UiMin: uiMin,
-            UiMax: uiMax,
+            DesktopMin: uiMin,
+            DesktopMax: uiMax,
             AgentMin: agentMin,
             AgentMax: agentMax,
             SchemaOk: snapshot.SchemaOk,
             DbVersion: snapshot.CurrentVersion,
+            Compatibility: snapshot.Compatibility.ToString(),
             Reason: snapshot.Reason);
     }
 
@@ -1197,12 +1196,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         bool ShouldMigrate,
         string Message,
         string Target,
-        string UiMin,
-        string UiMax,
+        string DesktopMin,
+        string DesktopMax,
         string AgentMin,
         string AgentMax,
         bool SchemaOk,
         string? DbVersion,
+        string Compatibility,
         string? Reason);
 
     private async Task CheckUpdatesOnStartupAsync()
@@ -1476,6 +1476,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _pageLifecycleCts?.Cancel();
             _pageLifecycleCts?.Dispose();
             _pageLifecycleCts = null;
+            _sidebarSearchDebouncer.Dispose();
         });
     }
 

@@ -4,10 +4,6 @@ namespace PacToolkits.Application.Abstractions;
 
 public interface IDashboardService
 {
-    DashboardQuery BuildQuery(DashboardFilter filter, int topN);
-
-    Task<IReadOnlyList<string>> GetClientNamesAsync(CancellationToken ct);
-
     Task<DashboardSnapshot> LoadSnapshotAsync(DashboardLoadRequest request, CancellationToken ct);
 
     Task<PagedResult<TraceTxnDto>> LoadTxnPageAsync(

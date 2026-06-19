@@ -14,6 +14,7 @@ using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -190,8 +191,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         [ObservableProperty] private bool _isDeprecated;
         [ObservableProperty] private bool _isNoSplit;
 
-        public bool IsHitBoth => IsDeprecated && IsNoSplit;
-
         partial void OnNoteChanged(string? value)
         {
             OnPropertyChanged(nameof(EffectiveNote));
@@ -209,7 +208,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             var note = EffectiveNote;
             IsDeprecated = note.Contains("弃用", StringComparison.Ordinal);
             IsNoSplit = note.Contains("未拆零", StringComparison.Ordinal);
-            OnPropertyChanged(nameof(IsHitBoth));
             OnPropertyChanged(nameof(RowState));
         }
 
@@ -234,6 +232,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private readonly InventoryOverviewViewModel _inventoryOverview;
     private readonly ScanCodeViewModel _scanCode;
     private readonly AsyncRelayCommand _localRefreshCommand;
+    private readonly SearchInputDebouncer _keywordSearchDebouncer = new(450);
     private readonly DispatcherTimer _unlockStatusTimer;
     private IRelayCommand?[]? _notifiableCommands;
     private DrugIndexQuery _query = new(null);
@@ -260,7 +259,21 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         {
             _query = new DrugIndexQuery(Keyword: value);
             OnPropertyChanged();
+            ScheduleKeywordSearch(value);
         }
+    }
+
+    private void ScheduleKeywordSearch(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _keywordSearchDebouncer.Cancel();
+            _ = ReloadAsync();
+            return;
+        }
+
+        _keywordSearchDebouncer.Schedule(async () =>
+            await Dispatcher.UIThread.InvokeAsync(ReloadAsync));
     }
     [ObservableProperty] private bool _isSearchPanelVisible = false;
 
@@ -1202,19 +1215,21 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             return Task.CompletedTask;
         }
 
+        _keywordSearchDebouncer.Cancel();
         return ReloadAsync();
     }
 
     [RelayCommand]
-    private async Task ClearSearchAsync()
+    private Task ClearSearchAsync()
     {
         if (ShouldSkipTrigger(milliseconds: 300))
         {
-            return;
+            return Task.CompletedTask;
         }
 
+        _keywordSearchDebouncer.Cancel();
         Keyword = null;
-        await ReloadAsync();
+        return Task.CompletedTask;
     }
 
     [RelayCommand(CanExecute = nameof(CanNewItem))]
@@ -1330,7 +1345,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         Dispatcher.UIThread.Post(() => _toast.Info("已复制", "编码(RuleKey/PreTc) 已复制到剪贴板"));
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanToggleEditorFlags))]
     private void ToggleDeprecated(object? arg)
     {
         if (arg is DrugRow row)
@@ -1341,7 +1356,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         ApplyToggleDeprecated();
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanToggleEditorFlags))]
     private void ToggleNoSplit(object? arg)
     {
         if (arg is DrugRow row)
@@ -1352,9 +1367,12 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         ApplyToggleNoSplit();
     }
 
+    private bool CanToggleEditorFlags()
+        => IsEditorInputEnabled;
+
     private void ApplyToggleDeprecated()
     {
-        if (!HasEditor)
+        if (!HasEditor || !IsEditorUnlocked)
         {
             return;
         }
@@ -1364,7 +1382,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
     private void ApplyToggleNoSplit()
     {
-        if (!HasEditor)
+        if (!HasEditor || !IsEditorUnlocked)
         {
             return;
         }
@@ -1406,6 +1424,8 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             FixDrugKeyCommand,
             RequestEditorUnlockCommand,
             LockEditorCommand,
+            ToggleDeprecatedCommand,
+            ToggleNoSplitCommand,
             ImportDataCommand,
             ExportDataCommand
         ];
@@ -1559,12 +1579,16 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private void OnUnlockStatusTimerTick(object? sender, EventArgs e)
         => RefreshEditorUnlockState();
 
+    public void SyncEditorUnlockStateForUi()
+        => RefreshEditorUnlockState();
+
     public override void Dispose()
     {
         Items.CollectionChanged -= OnItemsCollectionChanged;
         _unlockService.StateChanged -= OnUnlockScopeChanged;
         StopUnlockStatusTimerIfNeeded();
         _unlockStatusTimer.Tick -= OnUnlockStatusTimerTick;
+        _keywordSearchDebouncer.Dispose();
         base.Dispose();
     }
 

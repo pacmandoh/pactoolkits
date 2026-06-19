@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Specialized;
 using Avalonia;
+using Avalonia.Collections;
 using global::Avalonia.Controls;
 using global::Avalonia.Interactivity;
 using global::Avalonia.Threading;
@@ -66,6 +68,7 @@ public class DataGridSortResetBehavior
     {
         private readonly DataGrid _grid;
         private readonly Button _button;
+        private DataGridSortDescriptionCollection? _sortDescriptions;
         private bool _disposed;
 
         public BehaviorState(DataGrid grid)
@@ -80,6 +83,9 @@ public class DataGridSortResetBehavior
             _grid.DetachedFromVisualTree += OnDetachedFromVisualTree;
             _grid.Sorting += OnSorting;
             _grid.PropertyChanged += OnGridPropertyChanged;
+            _grid.Columns.CollectionChanged += OnColumnsChanged;
+            DataGridSortSupportBehavior.Apply(_grid);
+            AttachSortDescriptions(_grid.CollectionView?.SortDescriptions);
             EnsureHeaderButtonInstalled();
             UpdateButtonVisibility();
         }
@@ -92,10 +98,12 @@ public class DataGridSortResetBehavior
             }
 
             _disposed = true;
+            DetachSortDescriptions();
             _grid.AttachedToVisualTree -= OnAttachedToVisualTree;
             _grid.DetachedFromVisualTree -= OnDetachedFromVisualTree;
             _grid.Sorting -= OnSorting;
             _grid.PropertyChanged -= OnGridPropertyChanged;
+            _grid.Columns.CollectionChanged -= OnColumnsChanged;
             _button.Click -= OnClearSortClicked;
         }
 
@@ -116,15 +124,20 @@ public class DataGridSortResetBehavior
                 Content = icon,
                 IsVisible = false
             };
-            ToolTip.SetTip(btn, "清除排序");
             btn.Click += OnClearSortClicked;
             return btn;
         }
 
         private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
         {
+            DataGridSortSupportBehavior.Apply(_grid);
             EnsureHeaderButtonInstalled();
             UpdateButtonVisibility();
+        }
+
+        private void OnColumnsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            DataGridSortSupportBehavior.Apply(_grid);
         }
 
         private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
@@ -137,9 +150,39 @@ public class DataGridSortResetBehavior
         {
             if (e.Property == DataGrid.CollectionViewProperty)
             {
+                DataGridSortSupportBehavior.Apply(_grid);
+                AttachSortDescriptions(_grid.CollectionView?.SortDescriptions);
                 EnsureHeaderButtonInstalled();
                 Dispatcher.UIThread.Post(UpdateButtonVisibility, DispatcherPriority.Background);
             }
+        }
+
+        private void AttachSortDescriptions(DataGridSortDescriptionCollection? sortDescriptions)
+        {
+            if (ReferenceEquals(_sortDescriptions, sortDescriptions))
+            {
+                return;
+            }
+
+            DetachSortDescriptions();
+            _sortDescriptions = sortDescriptions;
+            _sortDescriptions?.CollectionChanged += OnSortDescriptionsChanged;
+        }
+
+        private void DetachSortDescriptions()
+        {
+            if (_sortDescriptions is null)
+            {
+                return;
+            }
+
+            _sortDescriptions.CollectionChanged -= OnSortDescriptionsChanged;
+            _sortDescriptions = null;
+        }
+
+        private void OnSortDescriptionsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            Dispatcher.UIThread.Post(UpdateButtonVisibility, DispatcherPriority.Background);
         }
 
         private void OnSorting(object? sender, DataGridColumnEventArgs e)

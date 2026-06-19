@@ -19,12 +19,12 @@ public sealed class AgentManagerTests
     }
 
     [Fact]
-    public void GetAgent_by_id()
+    public void GetRequired_by_agent_id()
     {
         var descriptor = AgentDescriptors.InjectorAhk;
         var manager = new AgentManager([new FakeAgentRuntime(descriptor)]);
 
-        var runtime = manager.GetAgent(AgentId.InjectorAhk);
+        var runtime = manager.GetRequired(AgentId.InjectorAhk.Value);
 
         Assert.Same(descriptor, runtime.Descriptor);
     }

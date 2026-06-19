@@ -261,25 +261,38 @@
                     <TextBlock
                       Grid.Row="3"
                       Grid.Column="0"
-                      VerticalAlignment="Center"
+                      VerticalAlignment="Top"
                       Text="PG SSL" />
-                    <Grid
+                    <StackPanel
                       Grid.Row="3"
                       Grid.Column="1"
-                      ColumnDefinitions="Auto,Auto,*"
-                      ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                      <ToggleSwitch VerticalAlignment="Center" IsChecked="{Binding AgentPgSslEnabled, Mode=TwoWay}" />
-                      <suki:InfoBadge
-                        Grid.Column="1"
-                        VerticalAlignment="Center"
-                        Content="{Binding AgentPgSsl}"
-                        Foreground="{Binding AgentPgSslEnabled, Converter={StaticResource BoolToDoneDangerBrush}}" />
+                      Spacing="{DynamicResource SpacingInlineSm}">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                        <ToggleSwitch VerticalAlignment="Center" IsChecked="{Binding AgentPgSslEnabled, Mode=TwoWay}" />
+                        <controls:StatusPill
+                          VerticalAlignment="Center"
+                          Classes="ToneDone25"
+                          Icon="ShieldCheck"
+                          IconSize="12"
+                          IsVisible="{Binding AgentPgSslEnabled}"
+                          PillPadding="8,3"
+                          Text="已开启"
+                          TextSize="11" />
+                        <controls:StatusPill
+                          VerticalAlignment="Center"
+                          Classes="ToneInfo15"
+                          Icon="ShieldHalf"
+                          IconSize="12"
+                          IsVisible="{Binding !AgentPgSslEnabled}"
+                          PillPadding="8,3"
+                          Text="已关闭"
+                          TextSize="11" />
+                      </StackPanel>
                       <TextBlock
-                        Grid.Column="2"
-                        VerticalAlignment="Center"
                         Classes="SectionHint"
-                        Text="关闭=disable，开启=enable" />
-                    </Grid>
+                        Text="控制 Agent 连接 PostgreSQL 时是否启用 SSL"
+                        TextWrapping="Wrap" />
+                    </StackPanel>
 
                     <TextBlock
                       Grid.Row="4"
@@ -482,12 +495,41 @@
                     Classes="FormLabelLayout"
                     ColumnDefinitions="140,*"
                     RowDefinitions="Auto,Auto,Auto,Auto">
-                    <TextBlock VerticalAlignment="Center" Text="仓库模式" />
-                    <ToggleSwitch
+                    <TextBlock
+                      Grid.Row="0"
+                      Grid.Column="0"
+                      VerticalAlignment="Top"
+                      Text="仓库模式" />
+                    <StackPanel
                       Grid.Row="0"
                       Grid.Column="1"
-                      HorizontalAlignment="Left"
-                      IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}" />
+                      Spacing="{DynamicResource SpacingInlineSm}">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                        <ToggleSwitch VerticalAlignment="Center" IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}" />
+                        <controls:StatusPill
+                          VerticalAlignment="Center"
+                          Classes="ToneDone25"
+                          Icon="PackageCheck"
+                          IconSize="12"
+                          IsVisible="{Binding AgentWarehouseEnabled}"
+                          PillPadding="8,3"
+                          Text="已开启"
+                          TextSize="11" />
+                        <controls:StatusPill
+                          VerticalAlignment="Center"
+                          Classes="ToneInfo15"
+                          Icon="Package"
+                          IconSize="12"
+                          IsVisible="{Binding !AgentWarehouseEnabled}"
+                          PillPadding="8,3"
+                          Text="已关闭"
+                          TextSize="11" />
+                      </StackPanel>
+                      <TextBlock
+                        Classes="SectionHint"
+                        Text="开启后 Agent 从数据库任务队列取单注入，关闭则走普通住院/门诊流程"
+                        TextWrapping="Wrap" />
+                    </StackPanel>
 
                     <TextBlock
                       Grid.Row="1"

@@ -25,7 +25,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 {
     private const int DefaultTopN = 10;
     private const int EntryOverviewTopN = 6;
-    private const int TabPageSize = 50;
+    private static readonly int[] TabPageSizeOptionValues = [20, 50, 100];
 
     public override string DisplayName => "概览";
     public override string Icon => "LayoutDashboard";
@@ -57,6 +57,28 @@ public sealed partial class DashboardViewModel : AppPageBase
 
         ClearBrowsingSelections();
 
+        EnsureCurrentTabDataLoaded();
+    }
+
+    partial void OnTabPageSizeChanged(int value)
+    {
+        if (value <= 0)
+        {
+            return;
+        }
+
+        EntryPageIndex = 1;
+        TxnPageIndex = 1;
+        TxnTrendPageIndex = 1;
+        AbnormalPageIndex = 1;
+        OnPropertyChanged(nameof(EntryPageSize));
+        OnPropertyChanged(nameof(TxnPageSize));
+        OnPropertyChanged(nameof(TxnTrendPageSize));
+        OnPropertyChanged(nameof(AbnormalPageSize));
+        OnPropertyChanged(nameof(EntryTotalPages));
+        OnPropertyChanged(nameof(TxnTotalPages));
+        OnPropertyChanged(nameof(TxnTrendTotalPages));
+        OnPropertyChanged(nameof(AbnormalTotalPages));
         EnsureCurrentTabDataLoaded();
     }
 
@@ -212,15 +234,6 @@ public sealed partial class DashboardViewModel : AppPageBase
     [ObservableProperty] private EntryRecentItem? _selectedEntryRecent;
     [ObservableProperty] private AbnormalItem? _selectedAbnormal;
 
-    public IReadOnlyList<GridRowActionRule> GridRowActionRules { get; } = new[]
-    {
-        new GridRowActionRule("TrendGrid", GridInteractionType.Browsing, "点击行：写入顶部 DrugId/Spec 筛选并刷新"),
-        new GridRowActionRule("RecentTxnGrid", GridInteractionType.Browsing, "点击行：切到事务 Tab 并高亮该事务"),
-        new GridRowActionRule("EntryRecentGrid", GridInteractionType.Browsing, "点击行：切到录入 Tab，并按该药品规格预填筛选"),
-        new GridRowActionRule("TopClientsList", GridInteractionType.Browsing, "展示排行信息（不可点击）"),
-        new GridRowActionRule("AbnormalGrid", GridInteractionType.Browsing, "点击行：按异常类型跳转事务/库存，并带药品规格筛选")
-    };
-
     public ObservableCollection<SimpleModeItem> TrendModes { get; } = new()
     {
         new("按使用量"),
@@ -231,6 +244,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     partial void OnTrendModeChanged(SimpleModeItem? value) => RequestReload();
 
     public ObservableCollection<TopClientItem> TopClients { get; } = new();
+    public ObservableCollection<int> TabPageSizeOptions { get; } = new(TabPageSizeOptionValues);
 
     public ObservableCollection<SimpleModeItem> ClientMetricModes { get; } = new()
     {
@@ -245,6 +259,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [ObservableProperty] private bool _isTxnBusy;
     [ObservableProperty] private int _txnPageIndex = 1;
     [ObservableProperty] private int _txnTotalCount;
+    [ObservableProperty] private int _tabPageSize = 50;
     public int TxnPageSize => TabPageSize;
     public int TxnTotalPages => Math.Max(1, (int)Math.Ceiling(TxnTotalCount / (double)TxnPageSize));
     public bool HasTxnPrevPage => TxnPageIndex > 1;
@@ -1387,6 +1402,23 @@ public sealed partial class DashboardViewModel : AppPageBase
     }
 
     [RelayCommand]
+    private async Task LastEntryPageAsync()
+    {
+        if (ShouldSkipTrigger("dashboard.entry.last", 180))
+        {
+            return;
+        }
+
+        if (!HasEntryNextPage)
+        {
+            return;
+        }
+
+        EntryPageIndex = EntryTotalPages;
+        await ReloadEntryPageOnlyAsync();
+    }
+
+    [RelayCommand]
     private async Task FirstTxnPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.txn.first", 180))
@@ -1434,6 +1466,23 @@ public sealed partial class DashboardViewModel : AppPageBase
         }
 
         TxnPageIndex++;
+        await ReloadTxnPageOnlyAsync();
+    }
+
+    [RelayCommand]
+    private async Task LastTxnPageAsync()
+    {
+        if (ShouldSkipTrigger("dashboard.txn.last", 180))
+        {
+            return;
+        }
+
+        if (!HasTxnNextPage)
+        {
+            return;
+        }
+
+        TxnPageIndex = TxnTotalPages;
         await ReloadTxnPageOnlyAsync();
     }
 
@@ -1489,6 +1538,23 @@ public sealed partial class DashboardViewModel : AppPageBase
     }
 
     [RelayCommand]
+    private async Task LastTxnTrendPageAsync()
+    {
+        if (ShouldSkipTrigger("dashboard.txntrend.last", 180))
+        {
+            return;
+        }
+
+        if (!HasTxnTrendNextPage)
+        {
+            return;
+        }
+
+        TxnTrendPageIndex = TxnTrendTotalPages;
+        await ReloadTxnTrendPageOnlyAsync();
+    }
+
+    [RelayCommand]
     private async Task FirstAbnormalPageAsync()
     {
         if (ShouldSkipTrigger("dashboard.abnormal.first", 180))
@@ -1536,6 +1602,23 @@ public sealed partial class DashboardViewModel : AppPageBase
         }
 
         AbnormalPageIndex++;
+        await ReloadAbnormalPageOnlyAsync();
+    }
+
+    [RelayCommand]
+    private async Task LastAbnormalPageAsync()
+    {
+        if (ShouldSkipTrigger("dashboard.abnormal.last", 180))
+        {
+            return;
+        }
+
+        if (!HasAbnormalNextPage)
+        {
+            return;
+        }
+
+        AbnormalPageIndex = AbnormalTotalPages;
         await ReloadAbnormalPageOnlyAsync();
     }
 
@@ -1651,11 +1734,6 @@ public sealed partial class DashboardViewModel : AppPageBase
                 PostOnUi(() => _toast.Error("异常列表加载失败", ex.Message));
             }
         }
-    }
-
-    [RelayCommand]
-    private void Export()
-    {
     }
 
     [RelayCommand]
@@ -2075,11 +2153,3 @@ public sealed record EntryRecentItem(
         return key;
     }
 }
-
-public enum GridInteractionType
-{
-    Browsing = 0,
-    Editing = 1
-}
-
-public sealed record GridRowActionRule(string GridKey, GridInteractionType Type, string Action);

@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.TextSearch;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -94,9 +95,9 @@ public sealed record StockReassignPreviewRowItem(
 
 public sealed partial class InventoryOverviewViewModel : AppPageBase
 {
-    private const int FixedPageSize = 50;
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
     private const string UnlockScopeKey = UnlockScopes.SharedSensitiveOps;
+    private static readonly int[] PageSizeOptionValues = [20, 50, 100];
 
     public override string DisplayName => "追溯码库存";
     public override string Icon => "Package";
@@ -122,12 +123,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public ObservableCollection<StockReassignPreviewRowItem> ReassignPreviewRows { get; } = new();
     public ObservableCollection<OptionItem> ReassignDrugOptions { get; } = new();
     public ObservableCollection<OptionItem> ReassignSpecOptions { get; } = new();
+    public ObservableCollection<int> PageSizeOptions { get; } = new(PageSizeOptionValues);
 
     [ObservableProperty] private int _modeIndex;
     [ObservableProperty] private string? _keyword;
     [ObservableProperty] private bool _isSearchPanelVisible = false;
     [ObservableProperty] private string? _status;
     [ObservableProperty] private int _pageIndex = 1;
+    [ObservableProperty] private int _pageSize = 50;
     [ObservableProperty] private int _totalCount;
     [ObservableProperty] private bool _isDetailBusy;
     [ObservableProperty] private bool _isAggBusy;
@@ -158,6 +161,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private int _lastModeIndex;
     private DateTimeOffset _suppressAutoRefreshUntilUtc = DateTimeOffset.MinValue;
     private CancellationTokenSource? _silentReconcileCts;
+    private readonly SearchInputDebouncer _keywordSearchDebouncer = new(450);
     private readonly DispatcherTimer _unlockStatusTimer;
     private IRelayCommand?[]? _notifiableCommands;
     partial void OnIsDetailBusyChanged(bool value)
@@ -319,7 +323,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public bool IsMissingEmpty => ShouldShowSectionEmpty(MissingStockRows.Count == 0);
     public bool IsUiBusy => IsBusy || IsDetailBusy || IsAggBusy || IsLowBusy || IsMissingBusy || IsReassignBusy;
     public bool IsPagedMode => ModeIndex is 0 or 1 or 2 or 3;
-    public int PageSize => FixedPageSize;
     public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
     public bool HasPrevPage => IsPagedMode && PageIndex > 1;
     public bool HasNextPage => IsPagedMode && PageIndex < TotalPages;
@@ -1500,17 +1503,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     }
 
     private static bool MatchesKeyword(StockRowItem row, string keyword)
-    {
-        return ContainsIgnoreCase(row.DrugId, keyword)
-               || ContainsIgnoreCase(row.Spec, keyword)
-               || ContainsIgnoreCase(row.TraceCode, keyword);
-    }
-
-    private static bool ContainsIgnoreCase(string? source, string keyword)
-    {
-        return !string.IsNullOrWhiteSpace(source)
-               && source.Contains(keyword, StringComparison.OrdinalIgnoreCase);
-    }
+        => TextSearchHelper.MatchesAny(keyword, row.DrugId, row.Spec, row.TraceCode);
 
     private void AbandonPendingStockEditsIfNeeded()
     {
@@ -1598,6 +1591,23 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         NotifyAllCommands();
     }
 
+    partial void OnPageSizeChanged(int value)
+    {
+        if (value <= 0)
+        {
+            return;
+        }
+
+        if (PageIndex != 1)
+        {
+            PageIndex = 1;
+        }
+
+        RefreshPagingState();
+        NotifyAllCommands();
+        _ = ReloadAsync();
+    }
+
     partial void OnKeywordChanged(string? value)
     {
         if (IsFilterReassignScope)
@@ -1605,9 +1615,28 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             ReassignPreviewText = null;
             ReassignPreviewRows.Clear();
             OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+            NotifyAllCommands();
+            return;
         }
 
         NotifyAllCommands();
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _keywordSearchDebouncer.Cancel();
+            AbandonPendingStockEditsIfNeeded();
+            PageIndex = 1;
+            _ = ReloadAsync();
+            return;
+        }
+
+        _keywordSearchDebouncer.Schedule(async () =>
+            await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                AbandonPendingStockEditsIfNeeded();
+                PageIndex = 1;
+                await ReloadAsync().ConfigureAwait(true);
+            }));
     }
 
     partial void OnTotalCountChanged(int value)
@@ -1623,6 +1652,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
+        _keywordSearchDebouncer.Cancel();
         AbandonPendingStockEditsIfNeeded();
 
         PageIndex = 1;
@@ -1630,18 +1660,17 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     }
 
     [RelayCommand]
-    private async Task ClearSearchAsync()
+    private Task ClearSearchAsync()
     {
         if (ShouldSkipTrigger(milliseconds: 350))
         {
-            return;
+            return Task.CompletedTask;
         }
 
+        _keywordSearchDebouncer.Cancel();
         AbandonPendingStockEditsIfNeeded();
-
         Keyword = null;
-        PageIndex = 1;
-        await ReloadAsync();
+        return Task.CompletedTask;
     }
 
     [RelayCommand(CanExecute = nameof(CanGoFirstPage))]
@@ -1704,6 +1733,26 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private bool CanGoFirstPage() => CanOperateUi() && HasPrevPage;
     private bool CanGoPrevPage() => CanOperateUi() && HasPrevPage;
     private bool CanGoNextPage() => CanOperateUi() && HasNextPage;
+    private bool CanGoLastPage() => CanOperateUi() && HasNextPage;
+
+    [RelayCommand(CanExecute = nameof(CanGoLastPage))]
+    private async Task LastPageAsync()
+    {
+        if (ShouldSkipTrigger("inventory.page.last", 180))
+        {
+            return;
+        }
+
+        if (!CanGoLastPage())
+        {
+            return;
+        }
+
+        AbandonPendingStockEditsIfNeeded();
+
+        PageIndex = TotalPages;
+        await ReloadAsync();
+    }
 
     private void SuppressExternalAutoRefresh(TimeSpan duration)
     {
@@ -2031,6 +2080,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             FirstPageCommand,
             PrevPageCommand,
             NextPageCommand,
+            LastPageCommand,
             RequestUnlockCommand,
             LockOperationsCommand,
             ToggleStockEditModeCommand,
@@ -2085,6 +2135,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _silentReconcileCts?.Cancel();
         _silentReconcileCts?.Dispose();
         _silentReconcileCts = null;
+        _keywordSearchDebouncer.Dispose();
         base.Dispose();
     }
 

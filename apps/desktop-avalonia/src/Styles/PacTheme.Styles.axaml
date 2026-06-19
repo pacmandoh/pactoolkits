@@ -1,4 +1,4 @@
-﻿<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Typography.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Buttons.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Cards.axaml" />
@@ -7,6 +7,7 @@
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/TextBoxContextMenu.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/AppIconStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/DataGrid.axaml" />
+  <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/DataGridPagerStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Navigation.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/ShellStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Pages/LayoutStyles.axaml" />

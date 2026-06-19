@@ -10,4 +10,8 @@ public interface IScanCodeRepo
         int qty,
         IReadOnlyList<string> traceCodes,
         CancellationToken ct);
+
+    Task<IReadOnlyList<string>> FindExistingTraceCodesAsync(
+        IReadOnlyList<string> traceCodes,
+        CancellationToken ct);
 }

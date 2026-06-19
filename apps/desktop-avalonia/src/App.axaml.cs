@@ -33,7 +33,11 @@ public class App : global::Avalonia.Application
     private EventHandler<UnobservedTaskExceptionEventArgs>? _taskUnhandledHandler;
     private DispatcherUnhandledExceptionEventHandler? _uiUnhandledHandler;
 
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        ContextMenuDismissTracker.InstallGlobalHandlers();
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {
@@ -61,7 +65,6 @@ public class App : global::Avalonia.Application
         _agentManager = Services.GetRequiredService<IAgentManager>();
         _logger = Services.GetRequiredService<IAppLogger>();
         var releaseVersion = Services.GetRequiredService<IReleaseVersionService>().Current;
-        Resources["AppVersionText"] = $"PacToolkits v{releaseVersion.ProductVersion}";
         _logger.Info("App", "app.start", "Application startup", new
         {
             releaseVersion.DesktopVersion,

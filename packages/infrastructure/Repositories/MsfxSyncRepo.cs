@@ -21,6 +21,29 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         and (@code_status::text is null or s.code_status = @code_status::text)
         """;
 
+    private const string ManualMapNormBackfillSetClause = """
+        source_name_norm = coalesce(
+          nullif(trim(s.source_name_norm), ''),
+          nullif(trim(@g_source_name_norm), ''),
+          nullif(trim(msfx_norm_name(s.source_drug_name_raw)), ''),
+          nullif(trim(msfx_norm_name(@drug_id)), ''),
+          '-'),
+        source_spec_norm = coalesce(
+          nullif(trim(s.source_spec_norm), ''),
+          nullif(trim(@g_source_spec_norm), ''),
+          nullif(trim(msfx_norm_spec(s.source_spec_raw, (
+            select i.pkg_spec
+            from msfx_code_relation r
+            join msfx_upout_item i on i.id = r.upout_item_id
+            where r.id = s.source_relation_id
+            limit 1
+          ))), ''),
+          nullif(trim(msfx_norm_spec(@spec, null)), ''),
+          '-'),
+        mapped_drug_id = coalesce(nullif(trim(@drug_id), ''), s.mapped_drug_id),
+        mapped_spec = coalesce(nullif(trim(@spec), ''), s.mapped_spec),
+        """;
+
     private readonly IDb _db;
     private readonly PgOptions _opt;
 
@@ -632,44 +655,27 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         }, ct);
     }
 
-    public Task<MsfxMappingBacklogDiagnostic> GetMappingBacklogDiagnosticAsync(CancellationToken ct)
-    {
-        const string sql = """
-            select
-              sum(case when s.map_status = 'PENDING' then 1 else 0 end)::int as pending_count,
-              sum(case when s.map_status = 'PENDING' and coalesce(nullif(s.source_drug_name_raw, ''), '') <> '' then 1 else 0 end)::int as pending_with_drug_raw_count,
-              sum(case when s.map_status = 'PENDING' and coalesce(nullif(s.source_spec_raw, ''), '') <> '' then 1 else 0 end)::int as pending_with_spec_raw_count,
-              sum(case when s.map_status = 'PENDING' and s.source_relation_id is not null then 1 else 0 end)::int as pending_with_relation_count,
-              sum(case when s.map_status = 'PENDING' and coalesce(nullif(s.source_name_norm, ''), '') <> '' then 1 else 0 end)::int as pending_with_name_norm_count,
-              sum(case when s.map_status = 'PENDING' and coalesce(nullif(s.source_spec_norm, ''), '') <> '' then 1 else 0 end)::int as pending_with_spec_norm_count
-            from msfx_code_staging s
-            """;
-
-        return _db.WithConnection(async (conn, token) =>
-        {
-            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
-            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
-            if (!await reader.ReadAsync(token).ConfigureAwait(false))
-            {
-                return new MsfxMappingBacklogDiagnostic(0, 0, 0, 0, 0, 0);
-            }
-
-            return new MsfxMappingBacklogDiagnostic(
-                PendingCount: reader.GetInt32(0),
-                PendingWithDrugRawCount: reader.GetInt32(1),
-                PendingWithSpecRawCount: reader.GetInt32(2),
-                PendingWithRelationCount: reader.GetInt32(3),
-                PendingWithNameNormCount: reader.GetInt32(4),
-                PendingWithSpecNormCount: reader.GetInt32(5));
-        }, ct);
-    }
-
     public Task<MsfxBuildTaskResult> BuildInjectTasksAsync(int maxGroups, CancellationToken ct)
     {
-        const string sql = "select created_tasks, tasked_codes from msfx_build_inject_tasks(@max_groups)";
+        const string cleanupSql = """
+            delete from msfx_inject_task_code tc
+            where tc.staging_id in (
+              select s.id
+              from msfx_code_staging s
+              where s.map_status = 'MAPPED'
+                and s.code_status = 'NEW'
+                and s.inject_task_id is null
+            )
+            """;
+        const string buildSql = "select created_tasks, tasked_codes from msfx_build_inject_tasks(@max_groups)";
         return _db.WithConnection(async (conn, token) =>
         {
-            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            await using (var cleanupCmd = conn.CreateCommand(cleanupSql, _opt.CommandTimeoutSeconds))
+            {
+                await cleanupCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            await using var cmd = conn.CreateCommand(buildSql, _opt.CommandTimeoutSeconds);
             cmd.AddParam("max_groups", Math.Max(0, maxGroups));
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
@@ -814,20 +820,24 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         DateTimeOffset? cursorUpdatedAt,
         long? cursorId,
         bool newer,
+        bool seekLastPage,
         CancellationToken ct)
     {
         var scope = NormalizeSearchScope(searchScope);
         var tokens = SplitKeywords(keyword);
-        var keywordClause = BuildKeywordClause(scope, tokens);
-        var orderDir = newer ? "asc" : "desc";
-        var cursorClause = cursorUpdatedAt.HasValue && cursorId.HasValue
-            ? newer
-                ? "and (s.updated_at, s.id) > (@cursor_updated_at, @cursor_id)"
-                : "and (s.updated_at, s.id) < (@cursor_updated_at, @cursor_id)"
-            : string.Empty;
+        var keywordClause = BuildKeywordClause(scope, tokens, pinyinExactPerToken);
+        var orderDir = seekLastPage ? "asc" : newer ? "asc" : "desc";
+        var cursorClause = seekLastPage
+            ? string.Empty
+            : cursorUpdatedAt.HasValue && cursorId.HasValue
+                ? newer
+                    ? "and (s.updated_at, s.id) > (@cursor_updated_at, @cursor_id)"
+                    : "and (s.updated_at, s.id) < (@cursor_updated_at, @cursor_id)"
+                : string.Empty;
         var listSql = $"""
             select
               s.id,
@@ -894,7 +904,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 await using var listCmd = conn.CreateCommand(listSql, _opt.CommandTimeoutSeconds);
                 AddNullableParam(listCmd, "map_status", NormalizeOptional(mapStatus));
                 AddNullableParam(listCmd, "code_status", NormalizeOptional(codeStatus));
-                AddKeywordParams(listCmd, tokens);
+                AddKeywordParams(listCmd, tokens, pinyinExactPerToken);
                 listCmd.AddParam("limit", size + 1);
                 if (cursorUpdatedAt.HasValue && cursorId.HasValue)
                 {
@@ -931,7 +941,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             }
 
             var pageRows = scanned.Take(size).ToList();
-            if (newer)
+            if (newer || seekLastPage)
             {
                 pageRows.Reverse();
             }
@@ -939,7 +949,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             await using var countCmd = conn.CreateCommand(countSql, _opt.CommandTimeoutSeconds);
             AddNullableParam(countCmd, "map_status", NormalizeOptional(mapStatus));
             AddNullableParam(countCmd, "code_status", NormalizeOptional(codeStatus));
-            AddKeywordParams(countCmd, tokens);
+            AddKeywordParams(countCmd, tokens, pinyinExactPerToken);
             var totalCount = Convert.ToInt32((await countCmd.ExecuteScalarAsync(token).ConfigureAwait(false)) ?? 0, CultureInfo.InvariantCulture);
 
             var hasNewer = false;
@@ -952,7 +962,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 await using var newerCmd = conn.CreateCommand(hasNewerSql, _opt.CommandTimeoutSeconds);
                 AddNullableParam(newerCmd, "map_status", NormalizeOptional(mapStatus));
                 AddNullableParam(newerCmd, "code_status", NormalizeOptional(codeStatus));
-                AddKeywordParams(newerCmd, tokens);
+                AddKeywordParams(newerCmd, tokens, pinyinExactPerToken);
                 newerCmd.AddParam("first_updated_at", first.UpdatedAt.ToUniversalTime());
                 newerCmd.AddParam("first_id", first.StagingId);
                 hasNewer = Convert.ToBoolean((await newerCmd.ExecuteScalarAsync(token).ConfigureAwait(false)) ?? false, CultureInfo.InvariantCulture);
@@ -960,10 +970,12 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 await using var olderCmd = conn.CreateCommand(hasOlderSql, _opt.CommandTimeoutSeconds);
                 AddNullableParam(olderCmd, "map_status", NormalizeOptional(mapStatus));
                 AddNullableParam(olderCmd, "code_status", NormalizeOptional(codeStatus));
-                AddKeywordParams(olderCmd, tokens);
+                AddKeywordParams(olderCmd, tokens, pinyinExactPerToken);
                 olderCmd.AddParam("last_updated_at", last.UpdatedAt.ToUniversalTime());
                 olderCmd.AddParam("last_id", last.StagingId);
-                hasOlder = Convert.ToBoolean((await olderCmd.ExecuteScalarAsync(token).ConfigureAwait(false)) ?? false, CultureInfo.InvariantCulture);
+                hasOlder = seekLastPage
+                    ? false
+                    : Convert.ToBoolean((await olderCmd.ExecuteScalarAsync(token).ConfigureAwait(false)) ?? false, CultureInfo.InvariantCulture);
             }
 
             return new MsfxMappingQueuePage(pageRows, totalCount, hasNewer, hasOlder);
@@ -1407,12 +1419,13 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         int limit,
         CancellationToken ct)
     {
         var scope = NormalizeSearchScope(searchScope);
         var tokens = SplitKeywords(keyword);
-        var keywordClause = BuildKeywordClause(scope, tokens);
+        var keywordClause = BuildKeywordClause(scope, tokens, pinyinExactPerToken);
         var sql = $"""
             select
               coalesce(
@@ -1464,7 +1477,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             AddNullableParam(cmd, "map_status", NormalizeOptional(mapStatus));
             AddNullableParam(cmd, "code_status", NormalizeOptional(codeStatus));
-            AddKeywordParams(cmd, tokens);
+            AddKeywordParams(cmd, tokens, pinyinExactPerToken);
             cmd.AddParam("limit", Math.Clamp(limit, 1, 1000));
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             var rows = new List<MsfxMappingBatchGroupRow>();
@@ -1495,6 +1508,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         string? groupSourceDrugNameRaw,
         string? groupSourceSpecRaw,
         string? groupSourceNameNorm,
@@ -1506,7 +1520,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
     {
         var scope = NormalizeSearchScope(searchScope);
         var tokens = SplitKeywords(keyword);
-        var keywordClause = BuildKeywordClause(scope, tokens);
+        var keywordClause = BuildKeywordClause(scope, tokens, pinyinExactPerToken);
         var actionNorm = NormalizeOptional(action)?.ToUpperInvariant() ?? "APPLY_MAP";
         const string groupClause = """
             and coalesce(s.source_drug_name_raw, '') = @g_source_drug_name_raw
@@ -1535,7 +1549,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             var normalizedDrugId = NormalizeOptional(drugId);
             var normalizedSpec = NormalizeOptional(spec);
             var targetExists = false;
-            if (actionNorm == "APPLY_MAP")
+            if (actionNorm is "APPLY_MAP" or "APPLY_DISCARD")
             {
                 if (string.IsNullOrWhiteSpace(normalizedDrugId) || string.IsNullOrWhiteSpace(normalizedSpec))
                 {
@@ -1562,7 +1576,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             cmd.AddParam("g_source_spec_raw", NormalizeGroupKey(groupSourceSpecRaw));
             cmd.AddParam("g_source_name_norm", NormalizeGroupKey(groupSourceNameNorm));
             cmd.AddParam("g_source_spec_norm", NormalizeGroupKey(groupSourceSpecNorm));
-            AddKeywordParams(cmd, tokens);
+            AddKeywordParams(cmd, tokens, pinyinExactPerToken);
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
             {
@@ -1581,6 +1595,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         string? codeStatus,
         string? searchScope,
         string? keyword,
+        string[][]? pinyinExactPerToken,
         string? groupSourceDrugNameRaw,
         string? groupSourceSpecRaw,
         string? groupSourceNameNorm,
@@ -1592,7 +1607,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
     {
         var scope = NormalizeSearchScope(searchScope);
         var tokens = SplitKeywords(keyword);
-        var keywordClause = BuildKeywordClause(scope, tokens);
+        var keywordClause = BuildKeywordClause(scope, tokens, pinyinExactPerToken);
         var actionNorm = NormalizeOptional(action)?.ToUpperInvariant() ?? "APPLY_MAP";
         const string groupClause = """
             and coalesce(s.source_drug_name_raw, '') = @g_source_drug_name_raw
@@ -1619,11 +1634,11 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 ),
                 upd_map as (
                   update msfx_code_staging s
-                  set mapped_drug_id = @drug_id,
-                      mapped_spec = @spec,
+                  set {ManualMapNormBackfillSetClause}
                       map_status = 'MAPPED',
                       map_reason_code = 'MANUAL_MAP_DISCARD',
                       map_reason_detail = 'manual map and discard task',
+                      inject_task_id = null,
                       code_status = case when s.code_status in ('FAILED', 'DUPLICATE') then 'NEW' else s.code_status end,
                       err_msg = null,
                       updated_at = now()
@@ -1640,6 +1655,11 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                   select t.*
                   from target t
                   join upd_map u on u.id = t.staging_id
+                ),
+                del_old_code as (
+                  delete from msfx_inject_task_code tc
+                  using mapped m
+                  where tc.staging_id = m.staging_id
                 ),
                 picked_groups as (
                   select
@@ -1738,8 +1758,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                   from ins_task t
                   returning 1
                 )
-                select count(*)::int
-                from upd_stage
+                select coalesce((select count(*)::int from upd_map), 0)
                 """,
             _ => $"""
                 with target as (
@@ -1749,23 +1768,32 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                     {keywordClause}
                     {groupClause}
                     and s.map_status in ('PENDING', 'FAILED', 'NEED_REVIEW')
+                ),
+                del_old_code as (
+                  delete from msfx_inject_task_code tc
+                  using target t
+                  where tc.staging_id = t.id
+                ),
+                upd_map as (
+                  update msfx_code_staging s
+                  set {ManualMapNormBackfillSetClause}
+                      map_status = 'MAPPED',
+                      map_reason_code = 'MANUAL_MAP',
+                      map_reason_detail = null,
+                      inject_task_id = null,
+                      code_status = case when s.code_status in ('FAILED', 'DUPLICATE') then 'NEW' else s.code_status end,
+                      err_msg = null,
+                      updated_at = now()
+                  from target t
+                  where s.id = t.id
+                    and exists (
+                      select 1 from drug_index d
+                      where d.drug_id = @drug_id
+                        and d.spec = @spec
+                    )
+                  returning s.id
                 )
-                update msfx_code_staging s
-                set mapped_drug_id = @drug_id,
-                    mapped_spec = @spec,
-                    map_status = 'MAPPED',
-                    map_reason_code = 'MANUAL_MAP',
-                    map_reason_detail = null,
-                    code_status = case when s.code_status in ('FAILED', 'DUPLICATE') then 'NEW' else s.code_status end,
-                    err_msg = null,
-                    updated_at = now()
-                from target t
-                where s.id = t.id
-                  and exists (
-                    select 1 from drug_index d
-                    where d.drug_id = @drug_id
-                      and d.spec = @spec
-                  )
+                select count(*)::int from upd_map
                 """
         };
 
@@ -1778,7 +1806,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             cmd.AddParam("g_source_spec_raw", NormalizeGroupKey(groupSourceSpecRaw));
             cmd.AddParam("g_source_name_norm", NormalizeGroupKey(groupSourceNameNorm));
             cmd.AddParam("g_source_spec_norm", NormalizeGroupKey(groupSourceSpecNorm));
-            AddKeywordParams(cmd, tokens);
+            AddKeywordParams(cmd, tokens, pinyinExactPerToken);
             var normalizedDrugId = NormalizeOptional(drugId);
             var normalizedSpec = NormalizeOptional(spec);
             if (string.IsNullOrWhiteSpace(normalizedDrugId) || string.IsNullOrWhiteSpace(normalizedSpec))
@@ -1789,14 +1817,8 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             cmd.AddParam("drug_id", normalizedDrugId);
             cmd.AddParam("spec", normalizedSpec);
 
-            if (actionNorm == "APPLY_DISCARD")
-            {
-                var affectedCount = Convert.ToInt32((await cmd.ExecuteScalarAsync(token).ConfigureAwait(false)) ?? 0, CultureInfo.InvariantCulture);
-                return new MsfxMappingBatchApplyResult(affectedCount);
-            }
-
-            var affected = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-            return new MsfxMappingBatchApplyResult(affected);
+            var affectedCount = Convert.ToInt32((await cmd.ExecuteScalarAsync(token).ConfigureAwait(false)) ?? 0, CultureInfo.InvariantCulture);
+            return new MsfxMappingBatchApplyResult(affectedCount);
         }, ct);
     }
 
@@ -2225,7 +2247,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         return text.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
-    private static string BuildKeywordClause(string scope, IReadOnlyList<string> tokens)
+    private static string BuildKeywordClause(string scope, IReadOnlyList<string> tokens, string[][]? pinyinExactPerToken)
     {
         if (tokens.Count == 0)
         {
@@ -2247,17 +2269,50 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         var parts = new List<string>(tokens.Count);
         for (var i = 0; i < tokens.Count; i++)
         {
-            parts.Add(string.Format(CultureInfo.InvariantCulture, fieldExpr, $"@kw_{i}"));
+            var ilikePart = string.Format(CultureInfo.InvariantCulture, fieldExpr, $"@kw_{i}");
+            var exactPart = BuildExactMatchClause(scope, $"@exact_{i}");
+            var exactValues = pinyinExactPerToken is not null && i < pinyinExactPerToken.Length
+                ? pinyinExactPerToken[i]
+                : [];
+
+            if (exactValues.Length > 0 && exactPart.Length > 0)
+            {
+                parts.Add($"({ilikePart} or {exactPart})");
+            }
+            else
+            {
+                parts.Add(ilikePart);
+            }
         }
 
         return $"and ({string.Join(" and ", parts)})";
     }
 
-    private static void AddKeywordParams(NpgsqlCommand cmd, IReadOnlyList<string> tokens)
+    private static string BuildExactMatchClause(string scope, string paramName)
+    {
+        return scope switch
+        {
+            "BILL" => string.Empty,
+            "TRACE" => string.Empty,
+            "SOURCE_RAW" => $"(coalesce(s.source_drug_name_raw, '') = any({paramName}) or coalesce(s.source_spec_raw, '') = any({paramName}))",
+            "SOURCE_NORM" => $"(coalesce(s.source_name_norm, '') = any({paramName}) or coalesce(s.source_spec_norm, '') = any({paramName}))",
+            "LEVEL_CODE" => string.Empty,
+            "REASON" => string.Empty,
+            "TARGET" => $"(coalesce(s.mapped_drug_id, '') = any({paramName}) or coalesce(s.mapped_spec, '') = any({paramName}))",
+            _ => $"(coalesce(s.source_drug_name_raw, '') = any({paramName}) or coalesce(s.source_spec_raw, '') = any({paramName}) or coalesce(s.source_name_norm, '') = any({paramName}) or coalesce(s.source_spec_norm, '') = any({paramName}) or coalesce(s.mapped_drug_id, '') = any({paramName}) or coalesce(s.mapped_spec, '') = any({paramName}))"
+        };
+    }
+
+    private static void AddKeywordParams(NpgsqlCommand cmd, IReadOnlyList<string> tokens, string[][]? pinyinExactPerToken)
     {
         for (var i = 0; i < tokens.Count; i++)
         {
             cmd.AddParam($"kw_{i}", $"%{tokens[i]}%");
+
+            var exactValues = pinyinExactPerToken is not null && i < pinyinExactPerToken.Length
+                ? pinyinExactPerToken[i]
+                : [];
+            cmd.AddParam($"exact_{i}", exactValues);
         }
     }
 

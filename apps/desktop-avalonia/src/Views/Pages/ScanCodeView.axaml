@@ -79,8 +79,7 @@
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Classes="Basic MicroClear"
-                    Command="{Binding ClearDrugSpecFilterCommand}"
-                    ToolTip.Tip="清空药品和规格">
+                    Command="{Binding ClearDrugSpecFilterCommand}">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeSmall}"
                       Height="{DynamicResource IconSizeSmall}"
@@ -230,27 +229,114 @@
                     Width="{DynamicResource IconSizeDefault}"
                     Height="{DynamicResource IconSizeDefault}"
                     Kind="Clipboard" />
-                  <TextBlock Classes="SectionHint" Text="每行一个追溯码，会根据相应规则筛除不合条件条码" />
+                  <TextBlock Classes="SectionHint" Text="左侧录入追溯码，右侧实时预览；有效条码为绿色，其余标注具体原因" />
                 </StackPanel>
               </suki:GlassCard>
 
-              <Border Grid.Row="1" Classes="RowItem">
-                <TextBox
-                  MinHeight="0"
-                  Padding="12,10"
-                  VerticalAlignment="Stretch"
-                  VerticalContentAlignment="Top"
-                  AcceptsReturn="True"
-                  GotFocus="CodeEditor_OnGotFocus"
-                  PlaceholderText="示例：&#10;89012345678901234567&#10;89012345678901234568&#10;89012345678901234569"
-                  Text="{Binding TraceCodesText, Mode=TwoWay}"
-                  TextWrapping="NoWrap" />
-              </Border>
+              <Grid
+                Grid.Row="1"
+                ColumnDefinitions="*,*"
+                ColumnSpacing="{DynamicResource TraceCodeColumnSpacing}">
+                <Grid
+                  Grid.Column="0"
+                  RowDefinitions="Auto,*"
+                  RowSpacing="{DynamicResource FilterFieldRowSpacing}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="Keyboard"
+                      Opacity="{StaticResource SectionHintOpacity}" />
+                    <TextBlock Classes="FilterLabel" Text="录入追溯码区域" />
+                  </StackPanel>
+                  <Grid Grid.Row="1">
+                    <TextBox
+                      x:Name="TraceCodeInput"
+                      Classes="TraceCodeInput"
+                      GotFocus="CodeEditor_OnGotFocus"
+                      IsEnabled="{Binding IsTraceCodeInputEnabled}"
+                      PlaceholderText="示例：&#10;89012345678901234567&#10;89012345678901234568&#10;89012345678901234569"
+                      Text="{Binding TraceCodesText, Mode=TwoWay}" />
+                    <Border
+                      Background="Transparent"
+                      CornerRadius="{DynamicResource RowRadius}"
+                      IsVisible="{Binding IsTraceCodeInputBlocked}"
+                      PointerPressed="TraceCodeInputBlocked_OnPointerPressed" />
+                  </Grid>
+                </Grid>
+
+                <Grid
+                  Grid.Column="1"
+                  RowDefinitions="Auto,*"
+                  RowSpacing="{DynamicResource FilterFieldRowSpacing}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="ListChecks"
+                      Opacity="{StaticResource SectionHintOpacity}" />
+                    <TextBlock Classes="FilterLabel" Text="预览区域" />
+                  </StackPanel>
+                  <suki:GlassCard
+                    Grid.Row="1"
+                    VerticalAlignment="Stretch"
+                    Classes="TraceCodePreviewCard">
+                    <controls:EmptyStatePanel
+                      EmptyHint="左侧录入追溯码后，将在此显示逐行校验结果"
+                      EmptyText="等待录入"
+                      Icon="ListChecks"
+                      IsEmpty="{Binding IsTraceCodePreviewEmpty}"
+                      SlotMinHeight="120">
+                      <ScrollViewer
+                        x:Name="TraceCodePreviewScroll"
+                        HorizontalScrollBarVisibility="Auto"
+                        VerticalScrollBarVisibility="Auto">
+                        <ItemsControl Padding="{DynamicResource TraceCodeInputPadding}" ItemsSource="{Binding TraceCodeLines}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <StackPanel Spacing="0" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TraceCodeLineItemViewModel">
+                              <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock
+                                  Grid.Column="0"
+                                  Height="{DynamicResource TraceCodeLineHeight}"
+                                  VerticalAlignment="Top"
+                                  Classes="TraceCodeText"
+                                  Classes.Duplicate="{Binding IsDuplicate}"
+                                  Classes.Invalid="{Binding IsInvalid}"
+                                  Classes.Valid="{Binding IsValid}"
+                                  FontFamily="{DynamicResource TraceCodeInputFontFamily}"
+                                  FontSize="{DynamicResource TraceCodeInputFontSize}"
+                                  LineHeight="{DynamicResource TraceCodeLineHeight}"
+                                  Text="{Binding DisplayText}"
+                                  TextWrapping="NoWrap" />
+                                <TextBlock
+                                  Grid.Column="1"
+                                  Height="{DynamicResource TraceCodeLineHeight}"
+                                  VerticalAlignment="Top"
+                                  Classes="TraceCodeStatusHint"
+                                  Classes.Duplicate="{Binding IsDuplicate}"
+                                  Classes.Invalid="{Binding IsInvalid}"
+                                  IsVisible="{Binding ShowStatusHint}"
+                                  LineHeight="{DynamicResource TraceCodeLineHeight}"
+                                  Text="{Binding StatusHint}" />
+                              </Grid>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </ScrollViewer>
+                    </controls:EmptyStatePanel>
+                  </suki:GlassCard>
+                </Grid>
+              </Grid>
 
               <Grid
                 Grid.Row="2"
-                ColumnDefinitions="*,*,*,*"
-                ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                ColumnDefinitions="*,*,*,*,*"
+                ColumnSpacing="{DynamicResource SpacingInlineSm}">
                 <suki:GlassCard Grid.Column="0" Classes="CounterPillCard">
                   <StackPanel
                     VerticalAlignment="Center"
@@ -291,7 +377,25 @@
                   <StackPanel
                     VerticalAlignment="Center"
                     Orientation="Horizontal"
-                    Spacing="{DynamicResource SpacingInlineMd}">
+                    Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Foreground="{StaticResource BrushWarning}"
+                      Kind="Ban" />
+                    <TextBlock Opacity="0.8" Text="跳过入库" />
+                    <TextBlock
+                      FontWeight="Bold"
+                      Foreground="{StaticResource BrushWarning}"
+                      Text="{Binding PoolSkipCount}" />
+                  </StackPanel>
+                </suki:GlassCard>
+
+                <suki:GlassCard Grid.Column="3" Classes="CounterPillCard">
+                  <StackPanel
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeDefault}"
                       Height="{DynamicResource IconSizeDefault}"
@@ -305,11 +409,11 @@
                   </StackPanel>
                 </suki:GlassCard>
 
-                <suki:GlassCard Grid.Column="3" Classes="CounterPillCard">
+                <suki:GlassCard Grid.Column="4" Classes="CounterPillCard">
                   <StackPanel
                     VerticalAlignment="Center"
                     Orientation="Horizontal"
-                    Spacing="{DynamicResource SpacingInlineMd}">
+                    Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeDefault}"
                       Height="{DynamicResource IconSizeDefault}"

@@ -1,0 +1,107 @@
+<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.DataGridPager"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  x:Name="Root"
+  Classes="DataGridPager Bottom">
+  <Border
+    x:Name="PagerChrome"
+    Padding="{Binding PagerPadding, ElementName=Root}"
+    BorderBrush="{DynamicResource SukiControlBorderBrush}">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+      <StackPanel
+        VerticalAlignment="Center"
+        Classes="DataGridPagerLeft"
+        Orientation="Horizontal"
+        Spacing="{DynamicResource SpacingInlineMd}">
+        <TextBlock
+          VerticalAlignment="Center"
+          Classes="SectionHint"
+          IsVisible="{Binding HasStatusText, ElementName=Root}"
+          Text="{Binding StatusText, ElementName=Root}"
+          TextWrapping="Wrap" />
+
+        <StackPanel
+          VerticalAlignment="Center"
+          IsVisible="{Binding ShowPageSizeSection, ElementName=Root}"
+          Orientation="Horizontal"
+          Spacing="{DynamicResource SpacingInlineSm}">
+          <TextBlock
+            VerticalAlignment="Center"
+            Classes="SectionHint"
+            Text="每页行数" />
+          <ComboBox
+            x:Name="PageSizeCombo"
+            Height="{StaticResource ControlHeightCompact}"
+            MinWidth="72"
+            SelectedItem="{Binding SelectedPageSize, ElementName=Root, Mode=TwoWay}" />
+        </StackPanel>
+
+        <TextBlock
+          VerticalAlignment="Center"
+          Classes="SectionHint"
+          IsVisible="{Binding ShowSelectionSummary, ElementName=Root}"
+          Text="{Binding SelectionSummaryText, ElementName=Root}" />
+      </StackPanel>
+
+      <StackPanel
+        Grid.Column="1"
+        VerticalAlignment="Center"
+        Classes="DataGridPagerRight"
+        Orientation="Horizontal"
+        Spacing="{DynamicResource SpacingInlineMd}">
+        <TextBlock
+          VerticalAlignment="Center"
+          Classes="SectionHint"
+          Text="{Binding PageSummaryText, ElementName=Root}" />
+
+        <StackPanel
+          VerticalAlignment="Center"
+          Orientation="Horizontal"
+          Spacing="{DynamicResource SpacingInlineSm}">
+          <Button
+            Classes="Action PagerIconOnly"
+            Command="{Binding FirstPageCommand, ElementName=Root}"
+            IsEnabled="{Binding CanGoFirstPage, ElementName=Root}"
+            IsVisible="{Binding HasFirstPageCommand, ElementName=Root}">
+            <icons:AppIcon
+              Width="{DynamicResource PagerNavIconSize}"
+              Height="{DynamicResource PagerNavIconSize}"
+              Kind="ChevronsLeft" />
+          </Button>
+          <Button
+            Classes="Action PagerIconOnly"
+            Command="{Binding PrevPageCommand, ElementName=Root}"
+            IsEnabled="{Binding CanGoPrevPage, ElementName=Root}"
+            IsVisible="{Binding HasPrevPageCommand, ElementName=Root}">
+            <icons:AppIcon
+              Width="{DynamicResource PagerNavIconSize}"
+              Height="{DynamicResource PagerNavIconSize}"
+              Kind="ChevronLeft" />
+          </Button>
+          <Button
+            Classes="Action PagerIconOnly"
+            Command="{Binding NextPageCommand, ElementName=Root}"
+            IsEnabled="{Binding CanGoNextPage, ElementName=Root}"
+            IsVisible="{Binding HasNextPageCommand, ElementName=Root}">
+            <icons:AppIcon
+              Width="{DynamicResource PagerNavIconSize}"
+              Height="{DynamicResource PagerNavIconSize}"
+              Kind="ChevronRight" />
+          </Button>
+          <Button
+            Classes="Action PagerIconOnly"
+            Command="{Binding LastPageCommand, ElementName=Root}"
+            IsEnabled="{Binding CanGoLastPage, ElementName=Root}"
+            IsVisible="{Binding HasLastPageCommand, ElementName=Root}">
+            <icons:AppIcon
+              Width="{DynamicResource PagerNavIconSize}"
+              Height="{DynamicResource PagerNavIconSize}"
+              Kind="ChevronsRight" />
+          </Button>
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

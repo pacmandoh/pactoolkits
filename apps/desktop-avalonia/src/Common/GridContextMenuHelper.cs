@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using global::Avalonia.Controls;
+using global::Avalonia.Data;
 using global::Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -13,8 +14,9 @@ namespace PacToolkits.Desktop.Avalonia.Common;
 
 public static class GridContextMenuHelper
 {
+    private sealed record ExportColumn(string Header, string PropertyPath);
+
     private static readonly ConcurrentDictionary<(Type Type, string Name), PropertyInfo?> PropertyCache = new();
-    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> SimpleReadablePropertyCache = new();
 
     public static async Task CopyRowAsTextAsync(
         IClipboardService clipboard,
@@ -23,7 +25,7 @@ public static class GridContextMenuHelper
         params string[] preferredProps)
     {
         var target = rowItem ?? grid?.SelectedItem;
-        await CopyRowAsTextAsync(clipboard, target, preferredProps);
+        await CopyRowsAsTextAsync(clipboard, grid, target is null ? [] : [target], preferredProps);
     }
 
     public static async Task CopyRowAsTextAsync(
@@ -32,61 +34,42 @@ public static class GridContextMenuHelper
         object? rowItem,
         params string[] preferredProps)
     {
-        var target = rowItem ?? FindOwnerGrid(menuItem)?.SelectedItem;
-        await CopyRowAsTextAsync(clipboard, target, preferredProps);
+        var grid = FindOwnerGrid(menuItem);
+        var target = rowItem ?? grid?.SelectedItem;
+        await CopyRowsAsTextAsync(clipboard, grid, target is null ? [] : [target], preferredProps);
     }
 
     public static async Task CopyRowAsTextAsync(IClipboardService clipboard, object? rowItem, params string[] preferredProps)
-    {
-        if (rowItem is null)
-        {
-            return;
-        }
-
-        var text = BuildRowText(rowItem, preferredProps);
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return;
-        }
-
-        await clipboard.SetTextAsync(text);
-    }
+        => await CopyRowsAsTextAsync(clipboard, null, rowItem is null ? [] : [rowItem], preferredProps);
 
     public static async Task CopyRowsAsTextAsync(
         IClipboardService clipboard,
         IEnumerable<object?> rows,
         params string[] preferredProps)
+        => await CopyRowsAsTextAsync(clipboard, null, rows, preferredProps);
+
+    public static async Task CopyRowsAsTextAsync(
+        IClipboardService clipboard,
+        DataGrid? grid,
+        IEnumerable<object?> rows,
+        params string[] preferredProps)
     {
-        var sb = new StringBuilder(256);
-        var hasAny = false;
-        foreach (var row in rows)
-        {
-            if (row is null)
-            {
-                continue;
-            }
-
-            var text = BuildRowText(row, preferredProps);
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                continue;
-            }
-
-            if (hasAny)
-            {
-                sb.AppendLine();
-            }
-
-            sb.Append(text);
-            hasAny = true;
-        }
-
-        if (!hasAny)
+        var materialized = rows.Where(static r => r is not null).Cast<object>().ToList();
+        if (materialized.Count == 0)
         {
             return;
         }
 
-        await clipboard.SetTextAsync(sb.ToString());
+        var csv = grid is not null
+            ? BuildCsvFromGrid(grid, materialized)
+            : BuildCsvFromPreferredProps(materialized, preferredProps);
+
+        if (string.IsNullOrWhiteSpace(csv))
+        {
+            return;
+        }
+
+        await clipboard.SetTextAsync(csv);
     }
 
     public static void SelectAllFromMenu(MenuItem? menuItem)
@@ -127,48 +110,136 @@ public static class GridContextMenuHelper
         return null;
     }
 
-    private static string BuildRowText(object rowItem, IReadOnlyList<string> preferredProps)
+    private static string? BuildCsvFromGrid(DataGrid grid, IReadOnlyList<object> rows)
     {
-        var t = rowItem.GetType();
-        var values = new List<string>(4);
+        var columns = ResolveExportColumns(grid);
+        return columns.Count == 0 ? null : BuildCsv(columns, rows);
+    }
 
-        foreach (var name in preferredProps)
+    private static string? BuildCsvFromPreferredProps(IReadOnlyList<object> rows, IReadOnlyList<string> preferredProps)
+    {
+        if (preferredProps.Count == 0)
         {
-            var p = ResolveProperty(t, name);
-            var v = p?.GetValue(rowItem)?.ToString()?.Trim();
-            if (!string.IsNullOrWhiteSpace(v))
-            {
-                values.Add(v);
-            }
+            return null;
         }
 
-        if (values.Count > 0)
-        {
-            return string.Join(" / ", values);
-        }
+        var columns = preferredProps
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .Select(static name => new ExportColumn(name, name))
+            .ToList();
 
-        var simpleProps = SimpleReadablePropertyCache.GetOrAdd(
-            t,
-            static type => type
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.CanRead && IsSimpleType(p.PropertyType))
-                .ToArray());
+        return columns.Count == 0 ? null : BuildCsv(columns, rows);
+    }
 
-        foreach (var p in simpleProps)
+    private static List<ExportColumn> ResolveExportColumns(DataGrid grid)
+    {
+        var columns = new List<ExportColumn>(grid.Columns.Count);
+        foreach (var column in grid.Columns)
         {
-            var v = p.GetValue(rowItem)?.ToString()?.Trim();
-            if (!string.IsNullOrWhiteSpace(v))
+            if (column.IsVisible == false)
             {
-                values.Add(v);
+                continue;
             }
 
-            if (values.Count >= 4)
+            var header = column.Header?.ToString()?.Trim();
+            if (string.IsNullOrWhiteSpace(header))
             {
-                break;
+                continue;
             }
+
+            var path = ResolveBindingPath(column);
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                continue;
+            }
+
+            columns.Add(new ExportColumn(header, path));
         }
 
-        return string.Join(" / ", values);
+        return columns;
+    }
+
+    private static string? ResolveBindingPath(DataGridColumn column)
+    {
+        if (!string.IsNullOrWhiteSpace(column.SortMemberPath))
+        {
+            return column.SortMemberPath;
+        }
+
+        if (column is DataGridBoundColumn boundColumn)
+        {
+            return GetBindingPath(boundColumn.Binding);
+        }
+
+        return null;
+    }
+
+    private static string? GetBindingPath(BindingBase? binding)
+    {
+        if (binding is null)
+        {
+            return null;
+        }
+
+        return binding switch
+        {
+            Binding reflection => reflection.Path,
+            _ => binding.GetType().GetProperty("Path")?.GetValue(binding)?.ToString()
+        };
+    }
+
+    private static string BuildCsv(IReadOnlyList<ExportColumn> columns, IReadOnlyList<object> rows)
+    {
+        var sb = new StringBuilder(Math.Max(256, columns.Count * rows.Count * 16));
+        AppendCsvRow(sb, columns.Select(static c => c.Header));
+
+        foreach (var row in rows)
+        {
+            sb.AppendLine();
+            AppendCsvRow(
+                sb,
+                columns.Select(column => GetPropertyValue(row, column.PropertyPath)));
+        }
+
+        return sb.ToString();
+    }
+
+    private static void AppendCsvRow(StringBuilder sb, IEnumerable<string?> values)
+    {
+        var first = true;
+        foreach (var value in values)
+        {
+            if (!first)
+            {
+                sb.Append(',');
+            }
+
+            sb.Append(EscapeCsvField(value));
+            first = false;
+        }
+    }
+
+    private static string EscapeCsvField(string? value)
+    {
+        var text = value ?? string.Empty;
+        if (text.IndexOfAny([',', '"', '\r', '\n']) >= 0)
+        {
+            return $"\"{text.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+        }
+
+        return text;
+    }
+
+    private static string? GetPropertyValue(object rowItem, string propertyPath)
+    {
+        var p = ResolveProperty(rowItem.GetType(), propertyPath);
+        var raw = p?.GetValue(rowItem);
+        return raw switch
+        {
+            null => string.Empty,
+            IFormattable formattable when raw is not string => formattable.ToString(null, null),
+            _ => raw.ToString()
+        };
     }
 
     private static PropertyInfo? ResolveProperty(Type type, string name)
@@ -177,16 +248,4 @@ public static class GridContextMenuHelper
             static key => key.Type.GetProperty(
                 key.Name,
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase));
-
-    private static bool IsSimpleType(Type t)
-    {
-        var u = Nullable.GetUnderlyingType(t) ?? t;
-        return u.IsPrimitive ||
-               u.IsEnum ||
-               u == typeof(string) ||
-               u == typeof(decimal) ||
-               u == typeof(DateTime) ||
-               u == typeof(DateTimeOffset) ||
-               u == typeof(Guid);
-    }
 }

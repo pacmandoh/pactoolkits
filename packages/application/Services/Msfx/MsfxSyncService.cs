@@ -1,5 +1,6 @@
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.TextSearch;
 
 namespace PacToolkits.Application.Services;
 
@@ -21,11 +22,10 @@ public interface IMsfxSyncService
     Task<MsfxIngestDetailResult> IngestMsfxBillDetailAsync(long billId, string billCode, IReadOnlyList<(string DrugName, string PackageSpec, string PrepnSpec, string BatchNo, IReadOnlyList<(string Code, string CodeLevel, string? Level1Code, string? Level2Code, string? Level3Code, string? Level4Code, string? Level5Code)> Codes)> drugs, CancellationToken ct);
     Task<MsfxMapApplyResult> ApplyMsfxMappingAsync(int limit, CancellationToken ct);
     Task<MsfxMappingStatusSnapshot> LoadMappingStatusSnapshotAsync(CancellationToken ct);
-    Task<MsfxMappingBacklogDiagnostic> DiagnoseMappingBacklogAsync(CancellationToken ct);
     Task<MsfxBuildTaskResult> BuildMsfxInjectTasksAsync(int maxGroups, CancellationToken ct);
     Task<MsfxAutoBoardSnapshot> LoadMsfxDashboardAsync(CancellationToken ct);
     Task<IReadOnlyList<MsfxPullBatchRow>> LoadRecentPullBatchesAsync(int limit, CancellationToken ct);
-    Task<MsfxMappingQueuePage> LoadMappingQueuePageAsync(int pageSize, string? mapStatus, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, CancellationToken ct);
+    Task<MsfxMappingQueuePage> LoadMappingQueuePageAsync(int pageSize, string? mapStatus, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, bool seekLastPage, CancellationToken ct);
     Task<IReadOnlyList<MsfxInjectTaskQueueRow>> LoadInjectTaskQueueAsync(int limit, CancellationToken ct);
     Task<MsfxReopenInjectTaskResult> ReopenMsfxTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
     Task<MsfxDiscardInjectTaskResult> DiscardMsfxTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
@@ -43,10 +43,13 @@ public interface IMsfxSyncService
 public sealed class MsfxSyncService : IMsfxSyncService
 {
     private readonly IMsfxSyncRepo _repo;
+    private readonly IPinyinSearchCatalogCache _catalogCache;
+    private readonly PinyinKeywordExpansionCache _expansionCache = new();
 
-    public MsfxSyncService(IMsfxSyncRepo repo)
+    public MsfxSyncService(IMsfxSyncRepo repo, IPinyinSearchCatalogCache catalogCache)
     {
         _repo = repo ?? throw new ArgumentNullException(nameof(repo));
+        _catalogCache = catalogCache ?? throw new ArgumentNullException(nameof(catalogCache));
     }
 
     public Task<MsfxPullWindow> LoadPullWindowAsync(string sourceApi, CancellationToken ct)
@@ -174,9 +177,6 @@ public sealed class MsfxSyncService : IMsfxSyncService
     public Task<MsfxMappingStatusSnapshot> LoadMappingStatusSnapshotAsync(CancellationToken ct)
         => _repo.GetMappingStatusSnapshotAsync(ct);
 
-    public Task<MsfxMappingBacklogDiagnostic> DiagnoseMappingBacklogAsync(CancellationToken ct)
-        => _repo.GetMappingBacklogDiagnosticAsync(ct);
-
     public Task<MsfxBuildTaskResult> BuildMsfxInjectTasksAsync(int maxGroups, CancellationToken ct)
         => _repo.BuildInjectTasksAsync(NormalizeLimit(maxGroups), ct);
 
@@ -186,8 +186,19 @@ public sealed class MsfxSyncService : IMsfxSyncService
     public Task<IReadOnlyList<MsfxPullBatchRow>> LoadRecentPullBatchesAsync(int limit, CancellationToken ct)
         => _repo.GetRecentPullBatchesAsync(NormalizeLimit(limit), ct);
 
-    public Task<MsfxMappingQueuePage> LoadMappingQueuePageAsync(int pageSize, string? mapStatus, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, CancellationToken ct)
-        => _repo.GetMappingQueuePageAsync(NormalizeLimit(pageSize), mapStatus, codeStatus, searchScope, keyword, cursorUpdatedAt, cursorId, newer, ct);
+    public async Task<MsfxMappingQueuePage> LoadMappingQueuePageAsync(int pageSize, string? mapStatus, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, bool seekLastPage, CancellationToken ct)
+        => await _repo.GetMappingQueuePageAsync(
+            NormalizeLimit(pageSize),
+            mapStatus,
+            codeStatus,
+            searchScope,
+            keyword,
+            await BuildPinyinExactPerTokenAsync(keyword, ct).ConfigureAwait(false),
+            cursorUpdatedAt,
+            cursorId,
+            newer,
+            seekLastPage,
+            ct).ConfigureAwait(false);
 
     public Task<IReadOnlyList<MsfxInjectTaskQueueRow>> LoadInjectTaskQueueAsync(int limit, CancellationToken ct)
         => _repo.GetInjectTaskQueueAsync(limit < 0 ? 0 : limit, ct);
@@ -258,19 +269,71 @@ public sealed class MsfxSyncService : IMsfxSyncService
         return _repo.SplitInjectTaskCustomAsync(taskId, groupKeys, bucketIndexes, operatorName, reason, ct);
     }
 
-    public Task<IReadOnlyList<MsfxMappingBatchGroupRow>> LoadMappingBatchGroupsAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, int limit, CancellationToken ct)
-        => _repo.GetMappingBatchGroupsAsync(mapStatus, codeStatus, searchScope, keyword, NormalizeLimit(limit), ct);
+    public async Task<IReadOnlyList<MsfxMappingBatchGroupRow>> LoadMappingBatchGroupsAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, int limit, CancellationToken ct)
+        => await _repo.GetMappingBatchGroupsAsync(
+            mapStatus,
+            codeStatus,
+            searchScope,
+            keyword,
+            await BuildPinyinExactPerTokenAsync(keyword, ct).ConfigureAwait(false),
+            NormalizeLimit(limit),
+            ct).ConfigureAwait(false);
 
-    public Task<MsfxMappingBatchPreview> PreviewMsfxMappingBatchAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, string? groupSourceDrugNameRaw, string? groupSourceSpecRaw, string? groupSourceNameNorm, string? groupSourceSpecNorm, string action, string? drugId, string? spec, CancellationToken ct)
+    public async Task<MsfxMappingBatchPreview> PreviewMsfxMappingBatchAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, string? groupSourceDrugNameRaw, string? groupSourceSpecRaw, string? groupSourceNameNorm, string? groupSourceSpecNorm, string action, string? drugId, string? spec, CancellationToken ct)
     {
         EnsureText(action, nameof(action));
-        return _repo.PreviewMappingBatchByGroupAsync(mapStatus, codeStatus, searchScope, keyword, groupSourceDrugNameRaw, groupSourceSpecRaw, groupSourceNameNorm, groupSourceSpecNorm, action.Trim(), drugId, spec, ct);
+        return await _repo.PreviewMappingBatchByGroupAsync(
+            mapStatus,
+            codeStatus,
+            searchScope,
+            keyword,
+            await BuildPinyinExactPerTokenAsync(keyword, ct).ConfigureAwait(false),
+            groupSourceDrugNameRaw,
+            groupSourceSpecRaw,
+            groupSourceNameNorm,
+            groupSourceSpecNorm,
+            action.Trim(),
+            drugId,
+            spec,
+            ct).ConfigureAwait(false);
     }
 
-    public Task<MsfxMappingBatchApplyResult> ApplyMsfxMappingBatchAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, string? groupSourceDrugNameRaw, string? groupSourceSpecRaw, string? groupSourceNameNorm, string? groupSourceSpecNorm, string action, string? drugId, string? spec, CancellationToken ct)
+    public async Task<MsfxMappingBatchApplyResult> ApplyMsfxMappingBatchAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, string? groupSourceDrugNameRaw, string? groupSourceSpecRaw, string? groupSourceNameNorm, string? groupSourceSpecNorm, string action, string? drugId, string? spec, CancellationToken ct)
     {
         EnsureText(action, nameof(action));
-        return _repo.ApplyMappingBatchByGroupAsync(mapStatus, codeStatus, searchScope, keyword, groupSourceDrugNameRaw, groupSourceSpecRaw, groupSourceNameNorm, groupSourceSpecNorm, action.Trim(), drugId, spec, ct);
+        return await _repo.ApplyMappingBatchByGroupAsync(
+            mapStatus,
+            codeStatus,
+            searchScope,
+            keyword,
+            await BuildPinyinExactPerTokenAsync(keyword, ct).ConfigureAwait(false),
+            groupSourceDrugNameRaw,
+            groupSourceSpecRaw,
+            groupSourceNameNorm,
+            groupSourceSpecNorm,
+            action.Trim(),
+            drugId,
+            spec,
+            ct).ConfigureAwait(false);
+    }
+
+    private async Task<string[][]?> BuildPinyinExactPerTokenAsync(string? keyword, CancellationToken ct)
+    {
+        var normalized = (keyword ?? string.Empty).Trim();
+        if (normalized.Length == 0)
+        {
+            return null;
+        }
+
+        if (_expansionCache.TryGet(normalized, out var cached))
+        {
+            return cached;
+        }
+
+        var texts = await _catalogCache.GetSearchTextsAsync(ct).ConfigureAwait(false);
+        var exactPerToken = TextSearchHelper.BuildPinyinExactPerToken(normalized, texts);
+        _expansionCache.Set(normalized, exactPerToken);
+        return exactPerToken;
     }
 
     private static void EnsureSourceApi(string sourceApi)
