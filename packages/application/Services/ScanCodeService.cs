@@ -6,6 +6,8 @@ namespace PacToolkits.Application.Services;
 public interface IScanCodeService
 {
     Task<ScanCodeSubmitResult> SubmitAsync(ScanCodeSubmitRequest request, CancellationToken ct);
+
+    Task<IReadOnlyList<string>> FindExistingTraceCodesAsync(IReadOnlyList<string> traceCodes, CancellationToken ct);
 }
 
 public sealed class ScanCodeService : IScanCodeService
@@ -77,4 +79,7 @@ public sealed class ScanCodeService : IScanCodeService
             EntryResult: entryResult,
             EntryMessage: entryMessage);
     }
+
+    public Task<IReadOnlyList<string>> FindExistingTraceCodesAsync(IReadOnlyList<string> traceCodes, CancellationToken ct)
+        => _scanCodeRepo.FindExistingTraceCodesAsync(traceCodes, ct);
 }
