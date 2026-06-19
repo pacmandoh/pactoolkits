@@ -239,8 +239,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public bool IsAutoBoardBusy => IsPullPanelBusy || IsMapPanelBusy || IsTaskPanelBusy;
     [ObservableProperty] private string _autoStatus = "未启动";
     [ObservableProperty] private double _autoRunProgressValue;
-    [ObservableProperty] private string _autoLastRunAtText = "--";
-    [ObservableProperty] private string _autoNextRunAtText = "--";
+    [ObservableProperty] private string _autoLastRunAtText = "尚未巡检";
+    [ObservableProperty] private string? _autoLastRunAtTip;
     [ObservableProperty] private string _autoPullSummary = "批次：暂无";
     [ObservableProperty] private string _autoMapSummary = "映射：暂无";
     [ObservableProperty] private string _autoTaskSummary = "任务：暂无";
@@ -269,7 +269,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private string _mapQueueRangeText = "序号 --";
     [ObservableProperty] private bool _hasMapQueuePrevPage;
     [ObservableProperty] private bool _hasMapQueueNextPage;
-    [ObservableProperty] private bool _isMapQueueLatestPage = true;
     [ObservableProperty] private int _mapQueuePage = 1;
     [ObservableProperty] private bool _isMapQueueSearchPanelVisible;
     [ObservableProperty] private bool _isTaskQueueSearchPanelVisible;
@@ -405,10 +404,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public bool IsAutoTaskQueueEmpty => AutoTaskQueueRows.Count == 0;
     public string MapQueueDisplayText => $"显示 {AutoMapQueueRows.Count} / 总 {MapQueueTotalCount}";
     public int PullBatchTotalPages => Math.Max(1, (int)Math.Ceiling(PullBatchTotalCount / (double)GetPullBatchPageSize()));
-    public string PullBatchPageText => $"第 {PullBatchPage} / {PullBatchTotalPages} 页";
     public int MapQueueEffectivePageSize => GetMapQueuePageSize();
     public int MapQueueTotalPages => Math.Max(1, (int)Math.Ceiling(MapQueueTotalCount / (double)Math.Max(1, MapQueueEffectivePageSize)));
-    public string MapQueuePageText => $"第 {MapQueuePage} / {MapQueueTotalPages} 页";
     public string MapQueuePagerStatusText => $"{MapQueueDisplayText} · {MapQueueRangeText}";
     public int TaskQueueFilteredCount => _filteredTaskQueueRows.Count;
     public int TaskQueueTotalPages => Math.Max(1, (int)Math.Ceiling(TaskQueueFilteredCount / (double)GetTaskQueuePageSize()));
@@ -416,11 +413,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public bool HasUpoutPrevPage => UpoutPage > 1;
     public int UpoutTotalPages => Math.Max(1, (int)Math.Ceiling(UpoutTotal / (double)GetPageSize()));
     public bool HasUpoutNextPage => UpoutPage < UpoutTotalPages;
-    public string UpoutPageText => $"第 {UpoutPage} / {UpoutTotalPages} 页";
     public bool HasSubcodePrevPage => SubcodePage > 1;
     public int SubcodeTotalPages => Math.Max(1, (int)Math.Ceiling(SubcodeTotal / (double)GetSubcodePageSize()));
     public bool HasSubcodeNextPage => SubcodePage < SubcodeTotalPages;
-    public string SubcodePageText => $"第 {SubcodePage} / {SubcodeTotalPages} 页";
     public DateTime? UpoutFromMaxDate => UpoutToDate?.Date;
     public DateTime? UpoutToMinDate => UpoutFromDate?.Date;
     public DateTime? UpoutToMaxDate => DateTime.Today;
@@ -575,8 +570,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             AutoIntervalMinutes = next;
 
         _autoTimer.Interval = TimeSpan.FromMinutes(next);
-        if (IsAutoEnabled)
-            AutoNextRunAtText = DateTime.Now.AddMinutes(next).ToString("yyyy-MM-dd HH:mm:ss");
     }
 
     partial void OnIsAutoEnabledChanged(bool value)
@@ -585,14 +578,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             _autoTimer.Start();
             AutoStatus = "自动化监控运行中";
-            AutoNextRunAtText = DateTime.Now.AddMinutes(Math.Max(1, AutoIntervalMinutes)).ToString("yyyy-MM-dd HH:mm:ss");
             AddAutoLog("调度", "已启用自动化监控", TraceEntryState.Success);
         }
         else
         {
             _autoTimer.Stop();
             AutoStatus = "自动化监控已停止";
-            AutoNextRunAtText = "--";
             AddAutoLog("调度", "已停止自动化监控", TraceEntryState.Warning);
         }
 
@@ -652,7 +643,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         if (normalized != value)
             UpoutPage = normalized;
 
-        OnPropertyChanged(nameof(UpoutPageText));
         OnPropertyChanged(nameof(HasUpoutPrevPage));
         OnPropertyChanged(nameof(HasUpoutNextPage));
     }
@@ -660,14 +650,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     partial void OnUpoutTotalChanged(long value)
     {
         OnPropertyChanged(nameof(UpoutTotalPages));
-        OnPropertyChanged(nameof(UpoutPageText));
         OnPropertyChanged(nameof(HasUpoutNextPage));
     }
 
     partial void OnUpoutPageSizeChanged(string value)
     {
         OnPropertyChanged(nameof(UpoutTotalPages));
-        OnPropertyChanged(nameof(UpoutPageText));
         OnPropertyChanged(nameof(HasUpoutNextPage));
     }
 
@@ -681,7 +669,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         ApplySubCodePage();
-        OnPropertyChanged(nameof(SubcodePageText));
         OnPropertyChanged(nameof(HasSubcodePrevPage));
         OnPropertyChanged(nameof(HasSubcodeNextPage));
     }
@@ -689,14 +676,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     partial void OnSubcodeTotalChanged(int value)
     {
         OnPropertyChanged(nameof(SubcodeTotalPages));
-        OnPropertyChanged(nameof(SubcodePageText));
         OnPropertyChanged(nameof(HasSubcodeNextPage));
     }
 
     partial void OnSubcodePageSizeChanged(string value)
     {
         OnPropertyChanged(nameof(SubcodeTotalPages));
-        OnPropertyChanged(nameof(SubcodePageText));
         if (SubcodePage != 1)
         {
             SubcodePage = 1;
@@ -717,7 +702,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         ApplyPullBatchPage();
-        OnPropertyChanged(nameof(PullBatchPageText));
         OnPropertyChanged(nameof(HasPullBatchPrevPage));
         OnPropertyChanged(nameof(HasPullBatchNextPage));
     }
@@ -725,14 +709,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     partial void OnPullBatchTotalCountChanged(int value)
     {
         OnPropertyChanged(nameof(PullBatchTotalPages));
-        OnPropertyChanged(nameof(PullBatchPageText));
         OnPropertyChanged(nameof(HasPullBatchNextPage));
     }
 
     partial void OnPullBatchPageSizeChanged(string value)
     {
         OnPropertyChanged(nameof(PullBatchTotalPages));
-        OnPropertyChanged(nameof(PullBatchPageText));
         if (PullBatchPage != 1)
         {
             PullBatchPage = 1;
@@ -754,7 +736,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         OnPropertyChanged(nameof(AutoExpandedPanelIcon));
         OnPropertyChanged(nameof(MapQueueEffectivePageSize));
         OnPropertyChanged(nameof(MapQueueTotalPages));
-        OnPropertyChanged(nameof(MapQueuePageText));
         if (string.Equals(value, "MAP", StringComparison.OrdinalIgnoreCase) && AutoMapQueueRows.Count == 0)
             _ = RefreshMapQueueLatestAsync();
     }
@@ -776,7 +757,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         MapQueuePage = 1;
         OnPropertyChanged(nameof(MapQueueEffectivePageSize));
         OnPropertyChanged(nameof(MapQueueTotalPages));
-        OnPropertyChanged(nameof(MapQueuePageText));
         _ = RefreshMapQueueLatestAsync();
     }
 
@@ -818,7 +798,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         OnPropertyChanged(nameof(MapQueueDisplayText));
         OnPropertyChanged(nameof(MapQueuePagerStatusText));
         OnPropertyChanged(nameof(MapQueueTotalPages));
-        OnPropertyChanged(nameof(MapQueuePageText));
     }
 
     partial void OnMapQueueRangeTextChanged(string value)
@@ -826,17 +805,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         OnPropertyChanged(nameof(MapQueuePagerStatusText));
     }
 
-    partial void OnIsMapQueueLatestPageChanged(bool value)
-    {
-        OnPropertyChanged(nameof(MapQueueDisplayText));
-        OnPropertyChanged(nameof(MapQueuePageText));
-    }
-
     partial void OnMapQueuePageChanged(int value)
     {
         if (value < 1)
             MapQueuePage = 1;
-        OnPropertyChanged(nameof(MapQueuePageText));
     }
 
     partial void OnTaskQueueSearchScopeChanged(string value)
@@ -1997,11 +1969,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
             SetAutoProgress(100, "巡检完成");
             AutoStatus = $"自动化拉取完成：API {totalApiRows}，已入库 {totalInboundRows}，单据 {totalBills}，码 {detailSubCodes}，重试成功 {retrySucceededCount}，重试失败 {retryFailedCount}，重试入队 {retryQueuedCount}，待确认入池 {watchQueuedCount}，补偿成功 {watchResolvedCount}，补偿延后 {watchDeferredCount}，新增任务 {taskResult.CreatedTasks}";
-            AutoLastRunAtText = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            if (IsAutoEnabled)
-            {
-                AutoNextRunAtText = DateTime.Now.AddMinutes(Math.Max(1, AutoIntervalMinutes)).ToString("yyyy-MM-dd HH:mm:ss");
-            }
 
             AddAutoLog(
                 "性能",
@@ -2090,10 +2057,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         ApplyAutoLogPage();
         AddAutoLog("日志", "日志已清空", TraceEntryState.Info);
     }
-
-    [RelayCommand]
-    private void ToggleAutoMonitor()
-        => IsAutoEnabled = !IsAutoEnabled;
 
     [RelayCommand]
     private void ToggleAutoPanelExpand(string panelKey)
@@ -2242,7 +2205,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         OnPropertyChanged(nameof(MapQueueEffectivePageSize));
         OnPropertyChanged(nameof(MapQueueTotalPages));
-        OnPropertyChanged(nameof(MapQueuePageText));
         await RefreshMapQueueLatestAsync().ConfigureAwait(false);
     }
 
@@ -2301,7 +2263,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         NotifyCommands(RunAutoOnceCommand);
     }
 
-    [RelayCommand]
     private async Task ReopenSelectedTaskAsync()
     {
         var selectedRows = SelectedAutoTaskQueueRowsSnapshot
@@ -2396,7 +2357,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
     }
 
-    [RelayCommand]
     private async Task DiscardSelectedTaskAsync()
     {
         var selectedRows = SelectedAutoTaskQueueRowsSnapshot
@@ -2491,7 +2451,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
     }
 
-    [RelayCommand]
     private async Task RemapSelectedTaskAsync()
     {
         var selectedRows = SelectedAutoTaskQueueRowsSnapshot
@@ -2590,7 +2549,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
     }
 
-    [RelayCommand]
     private async Task MergeSelectedTaskAsync()
     {
         var selectedRows = SelectedAutoTaskQueueRowsSnapshot
@@ -3127,6 +3085,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             AutoRiskState = (snap.StagingFailedCount + snap.StagingDuplicateCount + snap.TaskCancelledCount + snap.LastBatchFailCount) > 0
                 ? TraceEntryState.Warning
                 : TraceEntryState.Success;
+            AutoLastRunAtText = FormatAutoLastRunDisplay(snap);
+            AutoLastRunAtTip = FormatAutoLastRunTip(snap);
         });
 
         return snap;
@@ -3586,7 +3546,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
             HasMapQueuePrevPage = page.HasNewer;
             HasMapQueueNextPage = page.HasOlder;
-            IsMapQueueLatestPage = !page.HasNewer;
             if (fullMapMode)
             {
                 if (seekLastPage)
@@ -3912,6 +3871,46 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
             ApplyAutoLogPage();
         }, DispatcherPriority.Background);
+    }
+
+    private static string FormatAutoLastRunDisplay(MsfxAutoBoardSnapshot snap)
+    {
+        if (snap.LastBatchId <= 0)
+        {
+            return "尚未巡检";
+        }
+
+        var status = (snap.LastBatchStatus ?? string.Empty).Trim().ToUpperInvariant();
+        if (snap.LastBatchFinishedAt is { } finished)
+        {
+            var stamp = finished.ToLocalTime().ToString("MM-dd HH:mm");
+            return status is "FAILED" ? $"{stamp} 失败" : stamp;
+        }
+
+        if (status is "RUNNING" && snap.LastBatchStartedAt is { } runningStarted)
+        {
+            return $"{runningStarted.ToLocalTime():MM-dd HH:mm} 进行中";
+        }
+
+        if (snap.LastBatchStartedAt is { } started)
+        {
+            return started.ToLocalTime().ToString("MM-dd HH:mm");
+        }
+
+        return "尚未巡检";
+    }
+
+    private static string? FormatAutoLastRunTip(MsfxAutoBoardSnapshot snap)
+    {
+        if (snap.LastBatchId <= 0)
+        {
+            return "暂无自动化巡检记录，执行一次巡检或点击刷新审计后显示最近批次时间。";
+        }
+
+        var status = string.IsNullOrWhiteSpace(snap.LastBatchStatus) ? "UNKNOWN" : snap.LastBatchStatus.Trim().ToUpperInvariant();
+        var started = snap.LastBatchStartedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--";
+        var finished = snap.LastBatchFinishedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--";
+        return $"批次 #{snap.LastBatchId} · {status} · 成功 {snap.LastBatchSuccessCount} / 失败 {snap.LastBatchFailCount}\n开始 {started} · 结束 {finished}";
     }
 
     private static string FormatElapsed(TimeSpan elapsed)
