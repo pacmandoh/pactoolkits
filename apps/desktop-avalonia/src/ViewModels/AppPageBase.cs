@@ -32,9 +32,6 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     public virtual ICommand? ImportCommand => null;
     public virtual ICommand? ExportCommand => null;
 
-    public virtual string? RefreshTip => null;
-    public virtual string? ImportTip => null;
-    public virtual string? ExportTip => null;
     protected virtual bool AutoRefreshOnDbDisconnected => false;
     protected virtual bool AutoRefreshOnDbReconnected => false;
     protected virtual bool SupportsStaleWhileReconnect => true;

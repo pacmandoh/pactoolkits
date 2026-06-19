@@ -61,7 +61,6 @@ public sealed partial class AboutViewModel : AppPageBase, IAboutPage
     public string AgentInjectorAhkMinDbSchema => DbSchemaCompat.NormalizeBound(_version.AgentInjectorAhkMinDbSchema, _version.DatabasePostgresVersion);
     public string AgentInjectorAhkMaxDbSchema => DbSchemaCompat.NormalizeBound(_version.AgentInjectorAhkMaxDbSchema, _version.DatabasePostgresVersion);
     public string CompatDesktopDbRangeText => $"Desktop DB: {DesktopMinDbSchema} - {DesktopMaxDbSchema}";
-    public string CompatAgentDbRangeText => $"Agent DB: {AgentInjectorAhkMinDbSchema} - {AgentInjectorAhkMaxDbSchema}";
     public string VersionStatus => BuildVersionStatus();
     public string VersionHint => "版本由 release-manifest.json (schema v2) 统一生成并下发";
 
