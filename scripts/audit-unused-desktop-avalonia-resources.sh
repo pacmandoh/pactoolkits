@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="${1:-apps/desktop-avalonia/src}"
 
 if [[ ! -d "$ROOT" ]]; then
-  echo "UI root not found: $ROOT" >&2
+  echo "Desktop Avalonia root not found: $ROOT" >&2
   exit 1
 fi
 

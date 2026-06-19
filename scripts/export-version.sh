@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/manifest-v2.sh"
 
 MANIFEST="$ROOT_DIR/release-manifest.json"
-UI_DIR="$ROOT_DIR/apps/desktop-avalonia/src"
+DESKTOP_AVALONIA_DIR="$ROOT_DIR/apps/desktop-avalonia/src"
 
 require_cmd() {
   command -v "$1" > /dev/null 2>&1 || {
@@ -29,9 +29,9 @@ assembly_version="$(semver_stable_base "$desktop_version")"
 build_channel="$(manifest_release_channel "$MANIFEST")"
 build_date="$(manifest_release_date "$MANIFEST")"
 
-mkdir -p "$UI_DIR"
+mkdir -p "$DESKTOP_AVALONIA_DIR"
 
-cat > "$UI_DIR/Version.g.props" << XML
+cat > "$DESKTOP_AVALONIA_DIR/Version.g.props" << XML
 <Project>
   <PropertyGroup>
     <AppVersion>$desktop_version</AppVersion>
@@ -43,7 +43,7 @@ cat > "$UI_DIR/Version.g.props" << XML
 </Project>
 XML
 
-manifest_snapshot="$UI_DIR/version.generated.json"
+manifest_snapshot="$DESKTOP_AVALONIA_DIR/version.generated.json"
 jq -S . "$MANIFEST" > "$manifest_snapshot"
 
 while IFS= read -r component_id; do
@@ -54,7 +54,7 @@ while IFS= read -r component_id; do
 done < <(manifest_agent_component_ids "$MANIFEST")
 
 echo "Exported version artifacts:"
-echo "- $UI_DIR/Version.g.props"
+echo "- $DESKTOP_AVALONIA_DIR/Version.g.props"
 echo "- $manifest_snapshot"
 while IFS= read -r component_id; do
   [[ -n "$component_id" ]] || continue
