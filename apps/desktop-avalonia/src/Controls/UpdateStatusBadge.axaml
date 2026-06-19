@@ -1,41 +1,45 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-      xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-      x:Class="PacToolkits.Desktop.Avalonia.Controls.UpdateStatusBadge"
-      x:Name="Root">
-  <Grid HorizontalAlignment="Left"
-     VerticalAlignment="Center">
-    <controls:StatusPill IsVisible="{Binding IsUnknown, ElementName=Root}"
-              Icon="BadgeQuestionMark"
-              Text="{Binding Label, ElementName=Root}"
-              BackgroundBrush="{DynamicResource BrushInfoBg15}"
-              PillBorderBrush="{DynamicResource BrushInfoBg35}"
-              ForegroundBrush="{DynamicResource BrushInfo}" />
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.UpdateStatusBadge"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  x:Name="Root">
+  <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
+    <controls:StatusPill
+      BackgroundBrush="{DynamicResource BrushInfoBg15}"
+      ForegroundBrush="{DynamicResource BrushInfo}"
+      Icon="BadgeQuestionMark"
+      IsVisible="{Binding IsUnknown, ElementName=Root}"
+      PillBorderBrush="{DynamicResource BrushInfoBg35}"
+      Text="{Binding Label, ElementName=Root}" />
 
-    <controls:StatusPill IsVisible="{Binding IsUpToDate, ElementName=Root}"
-              Icon="CircleCheck"
-              Text="{Binding Label, ElementName=Root}"
-              BackgroundBrush="{DynamicResource BrushDoneBg25}"
-              PillBorderBrush="{DynamicResource BrushDoneBg50}"
-              ForegroundBrush="{DynamicResource BrushDone}" />
+    <controls:StatusPill
+      BackgroundBrush="{DynamicResource BrushDoneBg25}"
+      ForegroundBrush="{DynamicResource BrushDone}"
+      Icon="CircleCheck"
+      IsVisible="{Binding IsUpToDate, ElementName=Root}"
+      PillBorderBrush="{DynamicResource BrushDoneBg50}"
+      Text="{Binding Label, ElementName=Root}" />
 
-    <controls:StatusPill IsVisible="{Binding IsUpdateAvailable, ElementName=Root}"
-              Icon="CloudDownload"
-              Text="{Binding Label, ElementName=Root}"
-              BackgroundBrush="{DynamicResource BrushWarningBg25}"
-              PillBorderBrush="{DynamicResource BrushWarningBg50}"
-              ForegroundBrush="{DynamicResource BrushWarning}">
+    <controls:StatusPill
+      BackgroundBrush="{DynamicResource BrushWarningBg25}"
+      ForegroundBrush="{DynamicResource BrushWarning}"
+      Icon="CloudDownload"
+      IsVisible="{Binding IsUpdateAvailable, ElementName=Root}"
+      PillBorderBrush="{DynamicResource BrushWarningBg50}"
+      Text="{Binding Label, ElementName=Root}">
       <controls:StatusPill.SuffixContent>
-        <StackPanel Orientation="Horizontal"
-              Spacing="{DynamicResource SpacingInlineSm}"
-              IsVisible="{Binding ShowLatestVersion, ElementName=Root}">
-          <icons:AppIcon Kind="ArrowRight"
-                    Width="{DynamicResource IconSizeSmall}"
-                    Height="{DynamicResource IconSizeSmall}"
-                    Foreground="{DynamicResource BrushWarning}" />
-          <TextBlock Text="{Binding LatestVersion, ElementName=Root}"
-               Foreground="{DynamicResource BrushWarning}" />
+        <StackPanel
+          IsVisible="{Binding ShowLatestVersion, ElementName=Root}"
+          Orientation="Horizontal"
+          Spacing="{DynamicResource SpacingInlineSm}">
+          <icons:AppIcon
+            Width="{DynamicResource IconSizeSmall}"
+            Height="{DynamicResource IconSizeSmall}"
+            Foreground="{DynamicResource BrushWarning}"
+            Kind="ArrowRight" />
+          <TextBlock Foreground="{DynamicResource BrushWarning}" Text="{Binding LatestVersion, ElementName=Root}" />
         </StackPanel>
       </controls:StatusPill.SuffixContent>
     </controls:StatusPill>

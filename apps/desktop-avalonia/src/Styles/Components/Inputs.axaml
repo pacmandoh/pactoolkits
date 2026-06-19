@@ -1,9 +1,10 @@
-<Styles xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:con="https://github.com/kikipoulet/SukiUI"
-    xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-    xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-    xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+﻿<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:con="https://github.com/kikipoulet/SukiUI"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI">
   <Style Selector="sukiControls|BusyArea[IsBusy=true]">
     <Setter Property="IsEnabled" Value="False" />
   </Style>
@@ -41,13 +42,15 @@
     <Setter Property="VerticalAlignment" Value="Stretch" />
     <Setter Property="Template">
       <ControlTemplate TargetType="controls:FilterFieldInput">
-        <Border Classes="FilterFieldInputHost"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch">
-          <ContentPresenter HorizontalAlignment="Stretch"
-                            VerticalAlignment="Stretch"
-                            Content="{TemplateBinding Content}"
-                            ContentTemplate="{TemplateBinding ContentTemplate}" />
+        <Border
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          Classes="FilterFieldInputHost">
+          <ContentPresenter
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Content="{TemplateBinding Content}"
+            ContentTemplate="{TemplateBinding ContentTemplate}" />
         </Border>
       </ControlTemplate>
     </Setter>
@@ -67,9 +70,7 @@
     <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
 
-  <Style Selector="Border.FilterFieldInputHost > Grid,
-                     Border.FilterFieldInputHost Grid,
-                     controls|FilterFieldInput > Grid">
+  <Style Selector="Border.FilterFieldInputHost &gt; Grid,                      Border.FilterFieldInputHost Grid,                      controls|FilterFieldInput &gt; Grid">
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
@@ -144,57 +145,59 @@
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="Template">
       <ControlTemplate>
-        <Grid MinHeight="{Binding EffectiveSlotMinHeight, RelativeSource={RelativeSource TemplatedParent}}"
-              VerticalAlignment="Stretch"
-              HorizontalAlignment="Stretch">
+        <Grid
+          MinHeight="{Binding EffectiveSlotMinHeight, RelativeSource={RelativeSource TemplatedParent}}"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
           <ContentPresenter
-            Content="{TemplateBinding Content}"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
             HorizontalContentAlignment="Stretch"
             VerticalContentAlignment="Stretch"
-            Opacity="{Binding ContentOpacity, RelativeSource={RelativeSource TemplatedParent}}"
+            Content="{TemplateBinding Content}"
+            IsEnabled="{Binding ShowContent, RelativeSource={RelativeSource TemplatedParent}}"
             IsHitTestVisible="{Binding ShowContent, RelativeSource={RelativeSource TemplatedParent}}"
-            IsEnabled="{Binding ShowContent, RelativeSource={RelativeSource TemplatedParent}}" />
+            Opacity="{Binding ContentOpacity, RelativeSource={RelativeSource TemplatedParent}}" />
 
           <Border
-            IsVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
-            IsHitTestVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
+            Padding="{DynamicResource EmptyStatePadding}"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
-            Padding="{DynamicResource EmptyStatePadding}">
-            <StackPanel Spacing="{DynamicResource EmptyStateSpacing}"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center">
+            IsHitTestVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
+            IsVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}">
+            <StackPanel
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Spacing="{DynamicResource EmptyStateSpacing}">
               <icons:AppIcon
-                Kind="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}"
                 Width="{DynamicResource EmptyStateIconSize}"
                 Height="{DynamicResource EmptyStateIconSize}"
-                Foreground="{StaticResource BrushWarning}" />
+                Foreground="{StaticResource BrushWarning}"
+                Kind="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}" />
 
               <TextBlock
-                Text="{Binding EmptyText, RelativeSource={RelativeSource TemplatedParent}}"
+                HorizontalAlignment="Center"
                 FontSize="{DynamicResource EmptyStateTitleSize}"
                 FontWeight="SemiBold"
-                HorizontalAlignment="Center"
-                Foreground="{DynamicResource SukiText}" />
+                Foreground="{DynamicResource SukiText}"
+                Text="{Binding EmptyText, RelativeSource={RelativeSource TemplatedParent}}" />
 
               <TextBlock
-                Text="{Binding EmptyHint, RelativeSource={RelativeSource TemplatedParent}}"
                 Classes="SectionHint"
-                IsVisible="{Binding HasHint, RelativeSource={RelativeSource TemplatedParent}}" />
+                IsVisible="{Binding HasHint, RelativeSource={RelativeSource TemplatedParent}}"
+                Text="{Binding EmptyHint, RelativeSource={RelativeSource TemplatedParent}}" />
             </StackPanel>
           </Border>
 
           <sukiControls:BusyArea
-              IsVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
-              IsBusy="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
-              IsHitTestVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
-              HorizontalAlignment="Stretch"
-              VerticalAlignment="Stretch"
-              HorizontalContentAlignment="Stretch"
-              VerticalContentAlignment="Stretch"
-              MinHeight="0">
+            MinHeight="0"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            VerticalContentAlignment="Stretch"
+            IsBusy="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
+            IsHitTestVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
+            IsVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}">
             <Panel />
           </sukiControls:BusyArea>
         </Grid>
