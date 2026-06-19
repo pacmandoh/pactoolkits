@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.SettingsView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -418,8 +418,7 @@
                                 VerticalAlignment="Center"
                                 Text="{Binding DbSchemaLastMigrationText}"
                                 TextTrimming="CharacterEllipsis"
-                                TextWrapping="NoWrap"
-                                ToolTip.Tip="{Binding DbSchemaLastMigrationText}" />
+                                TextWrapping="NoWrap" />
                             </Grid>
                           </Grid>
                         </ScrollViewer>
@@ -1262,8 +1261,7 @@
                     HorizontalContentAlignment="Center"
                     VerticalContentAlignment="Center"
                     Classes="Ghost"
-                    Command="{Binding ToggleMsfxAppSecretVisibilityCommand}"
-                    ToolTip.Tip="显示/隐藏 AppSecret">
+                    Command="{Binding ToggleMsfxAppSecretVisibilityCommand}">
                     <Panel
                       Width="{DynamicResource IconSizeDefault}"
                       Height="{DynamicResource IconSizeDefault}"
