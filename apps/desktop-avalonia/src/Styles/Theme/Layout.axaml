@@ -21,6 +21,12 @@
   <CornerRadius x:Key="RowRadius">12</CornerRadius>
   <Thickness x:Key="RowPadding">10,8</Thickness>
   <x:Double x:Key="DgH10Rows">460</x:Double>
+  <x:Double x:Key="PagerEdgeSpacing">4</x:Double>
+  <x:Double x:Key="TraceCodeLineHeight">19</x:Double>
+  <x:Double x:Key="TraceCodeColumnSpacing">8</x:Double>
+  <x:Double x:Key="TraceCodeInputFontSize">13</x:Double>
+  <FontFamily x:Key="TraceCodeInputFontFamily">Consolas,Menlo,monospace</FontFamily>
+  <Thickness x:Key="TraceCodeInputPadding">12,10</Thickness>
   <x:Double x:Key="OverviewListPendingMinHeight">160</x:Double>
 
   <Thickness x:Key="DgCellPadCell">6,4,6,4</Thickness>
@@ -152,4 +158,6 @@
 
   <x:Double x:Key="DgRowHeaderWidth">36</x:Double>
   <x:Double x:Key="DgSortResetButtonSize">20</x:Double>
+  <x:Double x:Key="PagerNavButtonSize">32</x:Double>
+  <x:Double x:Key="PagerNavIconSize">14</x:Double>
 </ResourceDictionary>
