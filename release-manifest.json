@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "product": {
     "id": "pactoolkits",
-    "version": "1.0.2-beta.2"
+    "version": "1.0.2-beta.3"
   },
   "components": {
     "desktop": {
-      "version": "1.0.2-beta.2",
+      "version": "1.0.2-beta.3",
       "implementation": "avalonia",
       "packageId": "pactoolkits",
       "minDbSchema": "1.2.23",
@@ -31,6 +31,6 @@
   },
   "release": {
     "channel": "beta",
-    "date": "2026-06-16"
+    "date": "2026-06-19"
   }
 }
