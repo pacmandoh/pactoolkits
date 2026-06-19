@@ -8,6 +8,7 @@ using global::Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
@@ -97,6 +98,35 @@ public partial class DrugIndexView : UserControl
             "Failed selecting all rows");
     }
 
+    public void OnDrugGridContextMenuOpened(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not ContextMenu menu)
+        {
+            return;
+        }
+
+        if (DataContext is not DrugIndexViewModel vm)
+        {
+            return;
+        }
+
+        vm.SyncEditorUnlockStateForUi();
+        var canToggle = vm.IsEditorInputEnabled;
+        foreach (var item in menu.Items)
+        {
+            switch (item)
+            {
+                case MenuItem menuItem when menuItem.Classes.Contains("DrugIndexSensitiveMenuItem"):
+                    menuItem.IsVisible = canToggle;
+                    menuItem.IsEnabled = canToggle;
+                    break;
+                case Separator separator when separator.Classes.Contains("DrugIndexSensitiveMenuSeparator"):
+                    separator.IsVisible = canToggle;
+                    break;
+            }
+        }
+    }
+
     public void OnGridToggleDeprecated(object? sender, RoutedEventArgs e)
     {
         if (sender is not MenuItem mi)
@@ -113,9 +143,10 @@ public partial class DrugIndexView : UserControl
         var grid = this.FindControl<DataGrid>("DrugGrid");
         grid?.SelectedItem = rowItem;
 
-        if (DataContext is PacToolkits.Desktop.Avalonia.ViewModels.Pages.DrugIndexViewModel vm)
+        if (DataContext is DrugIndexViewModel vm
+            && vm.ToggleDeprecatedCommand.CanExecute(rowItem))
         {
-            vm.ToggleDeprecatedCommand.Execute(null);
+            vm.ToggleDeprecatedCommand.Execute(rowItem);
         }
     }
 
@@ -135,9 +166,10 @@ public partial class DrugIndexView : UserControl
         var grid = this.FindControl<DataGrid>("DrugGrid");
         grid?.SelectedItem = rowItem;
 
-        if (DataContext is PacToolkits.Desktop.Avalonia.ViewModels.Pages.DrugIndexViewModel vm)
+        if (DataContext is DrugIndexViewModel vm
+            && vm.ToggleNoSplitCommand.CanExecute(rowItem))
         {
-            vm.ToggleNoSplitCommand.Execute(null);
+            vm.ToggleNoSplitCommand.Execute(rowItem);
         }
     }
 
