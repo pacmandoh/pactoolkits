@@ -871,7 +871,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.reload.fail", "Failed to reload dashboard", ex);
-            if (!IsDbConnected || ct.IsCancellationRequested)
+            if (ct.IsCancellationRequested || !ShouldShowOperationErrorToast(ex))
             {
                 return;
             }
@@ -1492,7 +1492,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.txn_page.reload_fail", "Failed to reload transaction page", ex);
-            if (IsDbConnected)
+            if (ShouldShowOperationErrorToast(ex))
             {
                 PostOnUi(() => _toast.Error("事务列表加载失败", ex.Message));
             }
@@ -1521,7 +1521,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.txn_trend.reload_fail", "Failed to reload transaction trend page", ex);
-            if (IsDbConnected)
+            if (ShouldShowOperationErrorToast(ex))
             {
                 PostOnUi(() => _toast.Error("事务趋势加载失败", ex.Message));
             }
@@ -1549,7 +1549,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.entry_page.reload_fail", "Failed to reload entry page", ex);
-            if (IsDbConnected)
+            if (ShouldShowOperationErrorToast(ex))
             {
                 PostOnUi(() => _toast.Error("录入列表加载失败", ex.Message));
             }
@@ -1577,7 +1577,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.abnormal_page.reload_fail", "Failed to reload abnormal page", ex);
-            if (IsDbConnected)
+            if (ShouldShowOperationErrorToast(ex))
             {
                 PostOnUi(() => _toast.Error("异常列表加载失败", ex.Message));
             }

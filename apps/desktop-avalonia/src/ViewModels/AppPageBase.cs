@@ -40,6 +40,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     private readonly PageReloadBehavior _reload = new();
     private readonly ConcurrentDictionary<string, byte> _uiCoalesceGates = new(StringComparer.Ordinal);
+    private static readonly TimeSpan ReconnectSettleDelay = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan ReconnectToastSuppressWindow = TimeSpan.FromSeconds(5);
+    private DateTimeOffset _reconnectToastSuppressUntil = DateTimeOffset.MinValue;
 
     private IDbConnectionMonitorService? _cachedDbMonitor;
     private IAppStartupStateService? _cachedStartupState;
@@ -175,30 +178,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     {
         return _reload.RunAsync(
             setBusy: v => IsBusy = v,
-            action: async ct =>
-            {
-                var startup = GetStartupState();
-                if (startup is not null && !startup.IsDbInitCompleted)
-                {
-                    var ready = await WaitForStartupDbInitCompletedAsync(startup, ct).ConfigureAwait(false);
-                    if (!ready)
-                    {
-                        return;
-                    }
-                }
-
-                var mon = GetDbMonitor();
-                if (mon is not null && !mon.IsConnected)
-                {
-                    var ok = await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
-                    if (!ok)
-                    {
-                        return;
-                    }
-                }
-
-                await action(ct).ConfigureAwait(false);
-            },
+            action: ct => ExecuteReloadActionAsync(action, ct),
             onFinished: onFinished);
     }
 
@@ -209,19 +189,77 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     {
         return _reload.RunAsync(
             setBusy: setBusy,
-            action: async ct =>
+            action: ct => ExecuteReloadActionAsync(action, ct),
+            onFinished: onFinished);
+    }
+
+    private async Task ExecuteReloadActionAsync(Func<CancellationToken, Task> action, CancellationToken ct)
+    {
+        var startup = GetStartupState();
+        if (startup is not null && !startup.IsDbInitCompleted)
+        {
+            var ready = await WaitForStartupDbInitCompletedAsync(startup, ct).ConfigureAwait(false);
+            if (!ready)
             {
-                var startup = GetStartupState();
-                if (startup is not null && !startup.IsDbInitCompleted)
+                return;
+            }
+        }
+
+        var mon = GetDbMonitor();
+        var resumedFromWait = false;
+        if (mon is not null && !mon.IsConnected)
+        {
+            var ok = await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
+            if (!ok)
+            {
+                return;
+            }
+
+            resumedFromWait = true;
+        }
+
+        if (resumedFromWait)
+        {
+            try
+            {
+                await Task.Delay(ReconnectSettleDelay, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+        }
+
+        await RunWithTransportRetryAsync(action, mon, ct).ConfigureAwait(false);
+    }
+
+    private async Task RunWithTransportRetryAsync(
+        Func<CancellationToken, Task> action,
+        IDbConnectionMonitorService? mon,
+        CancellationToken ct,
+        int maxAttempts = 2)
+    {
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                await action(ct).ConfigureAwait(false);
+                return;
+            }
+            catch (Exception ex) when (IsDbTransportError(ex) && attempt < maxAttempts)
+            {
+                LogWarn("reload.transport_retry", "Retrying reload after transport error", ex, new { attempt });
+                MarkDbDisconnectedOnTransportError(ex);
+
+                try
                 {
-                    var ready = await WaitForStartupDbInitCompletedAsync(startup, ct).ConfigureAwait(false);
-                    if (!ready)
-                    {
-                        return;
-                    }
+                    await Task.Delay(ReconnectSettleDelay, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
                 }
 
-                var mon = GetDbMonitor();
                 if (mon is not null && !mon.IsConnected)
                 {
                     var ok = await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
@@ -230,29 +268,8 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
                         return;
                     }
                 }
-
-                try
-                {
-                    await action(ct).ConfigureAwait(false);
-                }
-                catch (Exception ex) when (IsDbTransportError(ex))
-                {
-                    LogWarn("reload.local.db_transport_error", "Local reload hit DB transport error", ex);
-                    // Keep local reload behavior aligned with page reload:
-                    // transport failures mark DB disconnected and wait for reconnect/timeout.
-                    if (mon is null)
-                    {
-                        mon = GetDbMonitor();
-                    }
-
-                    mon?.Signal();
-                    if (mon is not null)
-                    {
-                        await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
-                    }
-                }
-            },
-            onFinished: onFinished);
+            }
+        }
     }
 
     protected async Task RunLocalBusyAsync(
@@ -320,48 +337,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     }
 
     protected bool IsDbTransportError(Exception ex)
-    {
-        if (IsPostgresProviderException(ex))
-        {
-            return true;
-        }
-
-        if (ex is System.IO.EndOfStreamException)
-        {
-            return true;
-        }
-
-        if (ex is System.IO.IOException)
-        {
-            return true;
-        }
-
-        var inner = ex.InnerException;
-        while (inner is not null)
-        {
-            if (IsPostgresProviderException(inner))
-            {
-                return true;
-            }
-
-            if (inner is System.IO.EndOfStreamException)
-            {
-                return true;
-            }
-
-            if (inner is System.IO.IOException)
-            {
-                return true;
-            }
-
-            inner = inner.InnerException;
-        }
-
-        return false;
-    }
-
-    private static bool IsPostgresProviderException(Exception ex)
-        => ex.GetType().FullName?.StartsWith("Npgsql.", StringComparison.Ordinal) == true;
+        => DbTransportErrorClassifier.IsTransportError(ex);
 
     protected void SignalDbDisconnected()
     {
@@ -377,6 +353,26 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
         SignalDbDisconnected();
         return true;
+    }
+
+    /// <summary>
+    /// Page-level operation errors should not toast when DB transport failed or DB is disconnected;
+    /// MainWindowViewModel owns the consolidated connection failure/recovery toasts.
+    /// </summary>
+    protected bool ShouldShowOperationErrorToast(Exception ex)
+    {
+        if (DbTransportErrorClassifier.IsTransportError(ex))
+        {
+            MarkDbDisconnectedOnTransportError(ex);
+            return false;
+        }
+
+        if (DateTimeOffset.UtcNow < _reconnectToastSuppressUntil)
+        {
+            return false;
+        }
+
+        return IsDbConnected;
     }
 
     private IDbConnectionMonitorService? GetDbMonitor()
@@ -437,6 +433,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
         monitor.Disconnected += OnDbMonitorDisconnected;
         monitor.Reconnected += OnDbMonitorReconnected;
+        monitor.Reconnected += OnDbMonitorReconnectedForToastSuppress;
         _dbMonitorEventsHooked = true;
 
         // If page initializes while DB is already disconnected, trigger the same
@@ -457,9 +454,18 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         ScheduleAutoRefreshFromDbSignal();
     }
 
+    private void OnDbMonitorReconnectedForToastSuppress()
+        => _reconnectToastSuppressUntil = DateTimeOffset.UtcNow + ReconnectToastSuppressWindow;
+
     private void OnDbMonitorReconnected()
     {
         if (!AutoRefreshOnDbReconnected)
+        {
+            return;
+        }
+
+        // A reload already waiting on DB will resume on reconnect — avoid queuing a duplicate.
+        if (_reload.IsActive)
         {
             return;
         }
@@ -593,6 +599,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             {
                 _cachedDbMonitor.Disconnected -= OnDbMonitorDisconnected;
                 _cachedDbMonitor.Reconnected -= OnDbMonitorReconnected;
+                _cachedDbMonitor.Reconnected -= OnDbMonitorReconnectedForToastSuppress;
             }
             catch (System.Exception ex)
             {
