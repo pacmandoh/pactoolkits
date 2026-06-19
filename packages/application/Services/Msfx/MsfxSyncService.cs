@@ -22,7 +22,6 @@ public interface IMsfxSyncService
     Task<MsfxIngestDetailResult> IngestMsfxBillDetailAsync(long billId, string billCode, IReadOnlyList<(string DrugName, string PackageSpec, string PrepnSpec, string BatchNo, IReadOnlyList<(string Code, string CodeLevel, string? Level1Code, string? Level2Code, string? Level3Code, string? Level4Code, string? Level5Code)> Codes)> drugs, CancellationToken ct);
     Task<MsfxMapApplyResult> ApplyMsfxMappingAsync(int limit, CancellationToken ct);
     Task<MsfxMappingStatusSnapshot> LoadMappingStatusSnapshotAsync(CancellationToken ct);
-    Task<MsfxMappingBacklogDiagnostic> DiagnoseMappingBacklogAsync(CancellationToken ct);
     Task<MsfxBuildTaskResult> BuildMsfxInjectTasksAsync(int maxGroups, CancellationToken ct);
     Task<MsfxAutoBoardSnapshot> LoadMsfxDashboardAsync(CancellationToken ct);
     Task<IReadOnlyList<MsfxPullBatchRow>> LoadRecentPullBatchesAsync(int limit, CancellationToken ct);
@@ -177,9 +176,6 @@ public sealed class MsfxSyncService : IMsfxSyncService
 
     public Task<MsfxMappingStatusSnapshot> LoadMappingStatusSnapshotAsync(CancellationToken ct)
         => _repo.GetMappingStatusSnapshotAsync(ct);
-
-    public Task<MsfxMappingBacklogDiagnostic> DiagnoseMappingBacklogAsync(CancellationToken ct)
-        => _repo.GetMappingBacklogDiagnosticAsync(ct);
 
     public Task<MsfxBuildTaskResult> BuildMsfxInjectTasksAsync(int maxGroups, CancellationToken ct)
         => _repo.BuildInjectTasksAsync(NormalizeLimit(maxGroups), ct);
