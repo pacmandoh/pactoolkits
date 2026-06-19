@@ -139,6 +139,8 @@
   <Thickness x:Key="ShellTrayDividerMargin">2,0,2,2</Thickness>
   <Thickness x:Key="ShellStatusLabelMargin">10,0,0,0</Thickness>
   <Thickness x:Key="ShellNavButtonMargin">3,0</Thickness>
+  <Thickness x:Key="ShellTitleBarCapsuleButtonPadding">8,2</Thickness>
+  <x:Double x:Key="ShellTitleBarCapsuleButtonMinSize">26</x:Double>
 
   <CornerRadius x:Key="DashboardTabContainerRadius">11</CornerRadius>
   <Thickness x:Key="DashboardTabContainerPadding">3</Thickness>
