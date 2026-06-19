@@ -112,12 +112,38 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
 
     public AppConfigRoot Load()
     {
+        string? migratedLogDirectoryFrom = null;
+        string? migratedLogDirectoryTo = null;
+        AppConfigRoot normalized;
+
         lock (_gate)
         {
-            var normalized = Normalize(ReadUnifiedOrDefault());
+            var raw = ReadUnifiedOrDefault();
+            var rawLogDirectory = raw.Logging?.LogDirectory ?? string.Empty;
+            normalized = Normalize(raw);
+            if (DesktopLogDirectoryResolver.IsLegacyLogsDirectory(rawLogDirectory))
+            {
+                migratedLogDirectoryFrom = rawLogDirectory.Trim();
+                migratedLogDirectoryTo = normalized.Logging.LogDirectory;
+            }
+
             PersistNormalizedIfNeeded(normalized);
-            return normalized;
         }
+
+        if (migratedLogDirectoryFrom is not null)
+        {
+            AppLog.TryGetLogger()?.Info(
+                "AppConfigStore",
+                "logging.directory.migrate",
+                "Migrating legacy desktop log directory to new standard location",
+                context: new
+                {
+                    from = migratedLogDirectoryFrom,
+                    to = migratedLogDirectoryTo
+                });
+        }
+
+        return normalized;
     }
 
     public void Save(AppConfigRoot config)
@@ -695,7 +721,7 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         options.MinimumLevel = NormalizeLevel(options.MinimumLevel);
         options.RetentionDays = Math.Clamp(options.RetentionDays <= 0 ? defaults.RetentionDays : options.RetentionDays, 1, 180);
         options.MaxFileSizeMb = Math.Clamp(options.MaxFileSizeMb <= 0 ? defaults.MaxFileSizeMb : options.MaxFileSizeMb, 1, 200);
-        options.LogDirectory = (options.LogDirectory ?? string.Empty).Trim();
+        options.LogDirectory = DesktopLogDirectoryResolver.Resolve(options.LogDirectory).StoredDirectory;
         return options;
     }
 

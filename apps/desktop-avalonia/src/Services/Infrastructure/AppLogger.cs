@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -304,15 +305,7 @@ public sealed class AppLogger : IAppLogger, IDisposable
     }
 
     private static string ResolveLogDirectory(LoggingOptions options)
-    {
-        if (!string.IsNullOrWhiteSpace(options.LogDirectory))
-        {
-            return options.LogDirectory;
-        }
-
-        var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        return Path.Combine(baseDir, "PacToolkits", "logs", "desktop");
-    }
+        => DesktopLogDirectoryResolver.Resolve(options.LogDirectory).RuntimeDirectory;
 
     private sealed class AppLogRecord
     {
