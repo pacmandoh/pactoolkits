@@ -71,7 +71,7 @@ public static class ServiceCollectionRegistrationExtensions
         services.AddSingleton<IAgentManager, AgentManager>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
         services.AddSingleton<IReleaseChannelSwitchService, ReleaseChannelSwitchService>();
-        services.AddSingleton<IUpdateUiFlowService, UpdateUiFlowService>();
+        services.AddSingleton<IUpdateDesktopFlowService, UpdateDesktopFlowService>();
         services.AddSingleton<IMsfxApiClient, MsfxApiClient>();
         services.AddSingleton<ClientAliasStore>();
         services.AddSingleton<IClientAliasService, ClientAliasService>();

@@ -306,7 +306,7 @@ public class App : global::Avalonia.Application
     {
         _uiUnhandledHandler = (_, e) =>
         {
-            _logger?.Fatal("App", "unhandled.ui", "Unhandled UI exception", e.Exception);
+            _logger?.Fatal("App", "unhandled.desktop", "Unhandled desktop exception", e.Exception);
         };
         global::Avalonia.Threading.Dispatcher.UIThread.UnhandledException += _uiUnhandledHandler;
 
