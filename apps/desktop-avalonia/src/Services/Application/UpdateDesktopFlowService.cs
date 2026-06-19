@@ -11,7 +11,7 @@ using SukiUI.Toasts;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
-public interface IUpdateUiFlowService
+public interface IUpdateDesktopFlowService
 {
     Task<AppUpdateCheckResult?> CheckAndHandleAsync(
         bool showNoUpdateToast,
@@ -19,7 +19,7 @@ public interface IUpdateUiFlowService
         Func<Task> applyNowAction,
         Func<Task>? ignoreVersionAction = null,
         Action<AppUpdateCheckResult>? syncState = null,
-        string logScope = "UpdateUiFlow",
+        string logScope = "UpdateDesktopFlow",
         CancellationToken ct = default);
 
     Task ShowUpdateAvailableToastAsync(
@@ -32,7 +32,7 @@ public interface IUpdateUiFlowService
     Task ApplyUpdateFlowAsync();
 }
 
-public sealed class UpdateUiFlowService : IUpdateUiFlowService
+public sealed class UpdateDesktopFlowService : IUpdateDesktopFlowService
 {
     private static readonly TimeSpan UpdateCheckTimeout = TimeSpan.FromSeconds(10);
     private readonly object _toastGate = new();
@@ -46,7 +46,7 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
     private ISukiToast? _activeUpdateToast;
     private string _activeUpdateToastKey = string.Empty;
 
-    public UpdateUiFlowService(
+    public UpdateDesktopFlowService(
         IAppUpdateService updates,
         IUpdateSettingsService updateSettings,
         IToastService toasts,
@@ -113,7 +113,7 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
         Func<Task> applyNowAction,
         Func<Task>? ignoreVersionAction = null,
         Action<AppUpdateCheckResult>? syncState = null,
-        string logScope = "UpdateUiFlow",
+        string logScope = "UpdateDesktopFlow",
         CancellationToken ct = default)
     {
         try
@@ -276,7 +276,7 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
                 }
             });
 
-            _logger.Error("UpdateUiFlow", "update.apply.flow_fail", "Update apply flow failed", ex);
+            _logger.Error("UpdateDesktopFlow", "update.apply.flow_fail", "Update apply flow failed", ex);
             _toasts.Error("应用更新", ex.Message);
         }
     }
@@ -297,7 +297,7 @@ public sealed class UpdateUiFlowService : IUpdateUiFlowService
             }
             catch (Exception ex)
             {
-                _logger.Error("UpdateUiFlow", eventName, "Background action from update toast failed", ex);
+                _logger.Error("UpdateDesktopFlow", eventName, "Background action from update toast failed", ex);
             }
         });
     }
