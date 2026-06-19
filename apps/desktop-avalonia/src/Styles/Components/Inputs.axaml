@@ -139,21 +139,33 @@
   </Style>
 
   <Style Selector="controls|EmptyStatePanel">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="MinHeight" Value="0" />
     <Setter Property="Template">
       <ControlTemplate>
-        <Grid>
+        <Grid MinHeight="{Binding EffectiveSlotMinHeight, RelativeSource={RelativeSource TemplatedParent}}"
+              VerticalAlignment="Stretch"
+              HorizontalAlignment="Stretch">
           <ContentPresenter
             Content="{TemplateBinding Content}"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
-            IsVisible="{Binding !IsEmpty, RelativeSource={RelativeSource TemplatedParent}}" />
+            HorizontalContentAlignment="Stretch"
+            VerticalContentAlignment="Stretch"
+            Opacity="{Binding ContentOpacity, RelativeSource={RelativeSource TemplatedParent}}"
+            IsHitTestVisible="{Binding ShowContent, RelativeSource={RelativeSource TemplatedParent}}"
+            IsEnabled="{Binding ShowContent, RelativeSource={RelativeSource TemplatedParent}}" />
 
           <Border
             IsVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
-            Padding="{DynamicResource EmptyStatePadding}"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center">
-            <StackPanel Spacing="{DynamicResource EmptyStateSpacing}" HorizontalAlignment="Center">
+            IsHitTestVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Padding="{DynamicResource EmptyStatePadding}">
+            <StackPanel Spacing="{DynamicResource EmptyStateSpacing}"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center">
               <icons:AppIcon
                 Kind="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}"
                 Width="{DynamicResource EmptyStateIconSize}"
@@ -173,6 +185,18 @@
                 IsVisible="{Binding HasHint, RelativeSource={RelativeSource TemplatedParent}}" />
             </StackPanel>
           </Border>
+
+          <sukiControls:BusyArea
+              IsVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
+              IsBusy="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
+              IsHitTestVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch"
+              HorizontalContentAlignment="Stretch"
+              VerticalContentAlignment="Stretch"
+              MinHeight="0">
+            <Panel />
+          </sukiControls:BusyArea>
         </Grid>
       </ControlTemplate>
     </Setter>
