@@ -1,6 +1,7 @@
-<Styles xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+﻿<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
   <Style Selector="icons|AppIcon">
     <Setter Property="Width" Value="{DynamicResource AppIconDefaultSize}" />
     <Setter Property="Height" Value="{DynamicResource AppIconDefaultSize}" />

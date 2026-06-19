@@ -1,17 +1,19 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:lucide="clr-namespace:Lucide.Avalonia;assembly=Lucide.Avalonia"
-      x:Class="PacToolkits.Desktop.Avalonia.Controls.AppIcon"
-      x:Name="Root"
-      HorizontalAlignment="Center"
-      VerticalAlignment="Center"
-      ClipToBounds="True">
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.AppIcon"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:lucide="clr-namespace:Lucide.Avalonia;assembly=Lucide.Avalonia"
+  x:Name="Root"
+  HorizontalAlignment="Center"
+  VerticalAlignment="Center"
+  ClipToBounds="True">
 
-  <lucide:LucideIcon x:Name="IconPresenter"
-             Kind="{Binding ResolvedKind, ElementName=Root}"
-             Size="{Binding IconSize, ElementName=Root}"
-             StrokeWidth="{Binding StrokeWidth, ElementName=Root}"
-             Foreground="{Binding Foreground, ElementName=Root}"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
+  <lucide:LucideIcon
+    x:Name="IconPresenter"
+    HorizontalAlignment="Center"
+    VerticalAlignment="Center"
+    Foreground="{Binding Foreground, ElementName=Root}"
+    Kind="{Binding ResolvedKind, ElementName=Root}"
+    Size="{Binding IconSize, ElementName=Root}"
+    StrokeWidth="{Binding StrokeWidth, ElementName=Root}" />
 </UserControl>

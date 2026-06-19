@@ -1,54 +1,62 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-      mc:Ignorable="d"
-      d:DesignWidth="360" d:DesignHeight="340"
-      x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InventoryUnlockDialogView"
-      x:Name="Root">
-  <Border MinWidth="320"
-      MaxWidth="420"
-      Padding="{DynamicResource DialogPadding}"
-      CornerRadius="16">
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InventoryUnlockDialogView"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  x:Name="Root"
+  d:DesignHeight="340"
+  d:DesignWidth="360"
+  mc:Ignorable="d">
+  <Border
+    MinWidth="320"
+    MaxWidth="420"
+    Padding="{DynamicResource DialogPadding}"
+    CornerRadius="16">
     <StackPanel Spacing="14">
-      <Border Width="44"
-          Height="44"
-          CornerRadius="22"
-          HorizontalAlignment="Center">
-        <icons:AppIcon Kind="Shield"
-                  Width="24"
-                  Height="24"
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  />
+      <Border
+        Width="44"
+        Height="44"
+        HorizontalAlignment="Center"
+        CornerRadius="22">
+        <icons:AppIcon
+          Width="24"
+          Height="24"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Kind="Shield" />
       </Border>
 
-      <TextBlock HorizontalAlignment="Center"
-           Classes="DialogTitleLg"
-           FontWeight="SemiBold"
-           Text="库存操作身份验证" />
+      <TextBlock
+        HorizontalAlignment="Center"
+        Classes="DialogTitleLg"
+        FontWeight="SemiBold"
+        Text="库存操作身份验证" />
 
-      <TextBlock HorizontalAlignment="Center"
-           TextAlignment="Center"
-           Opacity="0.8"
-           TextWrapping="Wrap"
-           Text="{Binding HintMessage, ElementName=Root}" />
+      <TextBlock
+        HorizontalAlignment="Center"
+        Opacity="0.8"
+        Text="{Binding HintMessage, ElementName=Root}"
+        TextAlignment="Center"
+        TextWrapping="Wrap" />
 
       <StackPanel Spacing="{DynamicResource SpacingInlineSm}">
-        <TextBlock Text="账户名" Opacity="0.85" />
-        <TextBox IsEnabled="False"
-            Height="{StaticResource ControlHeightCompact}"
-            Text="pacmandoh" />
+        <TextBlock Opacity="0.85" Text="账户名" />
+        <TextBox
+          Height="{StaticResource ControlHeightCompact}"
+          IsEnabled="False"
+          Text="pacmandoh" />
       </StackPanel>
 
       <StackPanel Spacing="{DynamicResource SpacingInlineSm}">
-        <TextBlock Text="数据库密码" Opacity="0.85" />
-        <TextBox x:Name="PasswordBox"
-            Height="{StaticResource ControlHeightCompact}"
-            PasswordChar="●"
-            KeyDown="PasswordBox_OnKeyDown"
-            PlaceholderText="请输入数据库密码进行验证" />
+        <TextBlock Opacity="0.85" Text="数据库密码" />
+        <TextBox
+          x:Name="PasswordBox"
+          Height="{StaticResource ControlHeightCompact}"
+          KeyDown="PasswordBox_OnKeyDown"
+          PasswordChar="●"
+          PlaceholderText="请输入数据库密码进行验证" />
       </StackPanel>
     </StackPanel>
   </Border>

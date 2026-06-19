@@ -70,6 +70,7 @@ flowchart TB
 - Views / ViewModels / Avalonia 样式与行为
 - **桌面专属**服务：Toast、Dialog、更新流程、剪贴板、桌面行为（UiBehavior）等（`Services/Application`、`Services/Infrastructure`）
 - 通过 DI 组装 Application + Infrastructure 层
+- 页面连接/可用性/空态三层模型见 [desktop-ui-state.md](./desktop-ui-state.md)
 
 ## 典型请求路径（示例）
 

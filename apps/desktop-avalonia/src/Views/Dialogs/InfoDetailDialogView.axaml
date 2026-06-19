@@ -1,49 +1,72 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-      xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
-      x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InfoDetailDialogView"
-      x:DataType="dialogs:InfoDetailDialogModel">
-  <Border MinWidth="460"
-      MaxWidth="720"
-      Padding="{DynamicResource DialogPadding}"
-      CornerRadius="16">
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InfoDetailDialogView"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  x:DataType="dialogs:InfoDetailDialogModel">
+  <Border
+    MinWidth="460"
+    MaxWidth="720"
+    Padding="{DynamicResource DialogPadding}"
+    CornerRadius="16">
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource PageRowSpacing}">
       <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-        <Border Width="40" Height="40" CornerRadius="20">
-          <icons:AppIcon Kind="Info"
-                    Width="{DynamicResource IconSizeDialog}"
-                    Height="{DynamicResource IconSizeDialog}"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center" />
+        <Border
+          Width="40"
+          Height="40"
+          CornerRadius="20">
+          <icons:AppIcon
+            Width="{DynamicResource IconSizeDialog}"
+            Height="{DynamicResource IconSizeDialog}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Kind="Info" />
         </Border>
-        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-          <TextBlock Text="{Binding Header}" Classes="DialogTitle" />
-          <TextBlock Text="{Binding SubHeader}" Opacity="0.78" TextWrapping="Wrap" />
+        <StackPanel
+          Grid.Column="1"
+          VerticalAlignment="Center"
+          Spacing="2">
+          <TextBlock Classes="DialogTitle" Text="{Binding Header}" />
+          <TextBlock
+            Opacity="0.78"
+            Text="{Binding SubHeader}"
+            TextWrapping="Wrap" />
         </StackPanel>
       </Grid>
 
-      <Border Grid.Row="1" Height="1" Opacity="0.22" />
+      <Border
+        Grid.Row="1"
+        Height="1"
+        Opacity="0.22" />
 
-      <ScrollViewer Grid.Row="2"
-             VerticalScrollBarVisibility="Auto"
-             HorizontalScrollBarVisibility="Disabled"
-             MaxHeight="420">
+      <ScrollViewer
+        Grid.Row="2"
+        MaxHeight="420"
+        HorizontalScrollBarVisibility="Disabled"
+        VerticalScrollBarVisibility="Auto">
         <ItemsControl ItemsSource="{Binding Items}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <WrapPanel ItemWidth="320" ItemSpacing="{DynamicResource SpacingInlineMd}" LineSpacing="{DynamicResource SpacingInlineMd}" />
+              <WrapPanel
+                ItemSpacing="{DynamicResource SpacingInlineMd}"
+                ItemWidth="320"
+                LineSpacing="{DynamicResource SpacingInlineMd}" />
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="dialogs:InfoDetailItem">
               <Border Padding="10,8" CornerRadius="10">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
-                  <TextBlock Text="{Binding Label}" Opacity="0.75" VerticalAlignment="Center" />
-                  <TextBlock Grid.Row="1"
-                       Text="{Binding Value}"
-                       TextWrapping="Wrap"
-                       VerticalAlignment="Center" />
+                  <TextBlock
+                    VerticalAlignment="Center"
+                    Opacity="0.75"
+                    Text="{Binding Label}" />
+                  <TextBlock
+                    Grid.Row="1"
+                    VerticalAlignment="Center"
+                    Text="{Binding Value}"
+                    TextWrapping="Wrap" />
                 </Grid>
               </Border>
             </DataTemplate>
