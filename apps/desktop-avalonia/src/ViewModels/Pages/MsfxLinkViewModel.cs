@@ -170,11 +170,12 @@ public enum TaskQueueBatchActionMode
 public sealed partial class MsfxLinkViewModel : AppPageBase
 {
     private const int AutoLogMaxRows = 500;
-    private const int CompactMapQueueRows = 120;
     private static readonly string[] PullBatchPageSizes = ["20", "50", "100"];
     private static readonly string[] UpoutPageSizes = ["20", "30", "50", "100"];
     private static readonly string[] SubcodePageSizes = ["100", "200", "500", "1000"];
     private static readonly string[] MapQueuePageSizes = ["120", "240", "500"];
+    private static readonly string[] TaskQueuePageSizes = ["20", "50", "100"];
+    private static readonly string[] AutoLogPageSizes = ["20", "50", "100"];
     private static readonly string[] MapStatusFilters = ["ALL", "PENDING", "MAPPED", "NEED_REVIEW", "FAILED"];
     private static readonly string[] CodeStatusFilters = ["ALL", "NEW", "TASKED", "FAILED"];
     private static readonly string[] MapQueueSearchScopes =
@@ -266,10 +267,19 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private bool _hasMapQueueNextPage;
     [ObservableProperty] private bool _isMapQueueLatestPage = true;
     [ObservableProperty] private int _mapQueuePage = 1;
+    [ObservableProperty] private bool _isMapQueueSearchPanelVisible;
     [ObservableProperty] private bool _isTaskQueueSearchPanelVisible;
     [ObservableProperty] private string _taskQueueStatusFilter = "ALL";
     [ObservableProperty] private string _taskQueueSearchScope = "全部字段";
     [ObservableProperty] private string _taskQueueKeyword = string.Empty;
+    [ObservableProperty] private string _taskQueuePageSize = "50";
+    [ObservableProperty] private int _taskQueuePage = 1;
+    [ObservableProperty] private bool _hasTaskQueuePrevPage;
+    [ObservableProperty] private bool _hasTaskQueueNextPage;
+    [ObservableProperty] private string _autoLogPageSize = "50";
+    [ObservableProperty] private int _autoLogPage = 1;
+    [ObservableProperty] private bool _hasAutoLogPrevPage;
+    [ObservableProperty] private bool _hasAutoLogNextPage;
     [ObservableProperty] private TaskQueueBatchActionMode _taskQueueBatchMode;
 
     [ObservableProperty] private DateTime? _upoutFromDate = DateTime.Today.AddDays(-6);
@@ -299,6 +309,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public ObservableCollection<string> PullBatchPageSizeOptions { get; } = new(PullBatchPageSizes);
     public ObservableCollection<string> SubcodePageSizeOptions { get; } = new(SubcodePageSizes);
     public ObservableCollection<string> MapQueuePageSizeOptions { get; } = new(MapQueuePageSizes);
+    public ObservableCollection<string> TaskQueuePageSizeOptions { get; } = new(TaskQueuePageSizes);
+    public ObservableCollection<string> AutoLogPageSizeOptions { get; } = new(AutoLogPageSizes);
     public ObservableCollection<string> MapStatusFilterOptions { get; } = new(MapStatusFilters);
     public ObservableCollection<string> CodeStatusFilterOptions { get; } = new(CodeStatusFilters);
     public ObservableCollection<string> MapQueueSearchScopeOptions { get; } = new(MapQueueSearchScopes);
@@ -307,6 +319,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public ObservableCollection<MsfxUpoutGridRow> UpoutRows { get; } = new();
     public ObservableCollection<MsfxSubCodeGridRow> SubCodeRows { get; } = new();
     public ObservableCollection<MsfxAutoLogRow> AutoLogs { get; } = new();
+    public ObservableCollection<MsfxAutoLogRow> AutoLogPageRows { get; } = new();
     public ObservableCollection<MsfxAutoPullBatchGridRow> AutoPullBatchRows { get; } = new();
     public ObservableCollection<MsfxAutoMapQueueGridRow> AutoMapQueueRows { get; } = new();
     public ObservableCollection<MsfxAutoTaskQueueGridRow> AutoTaskQueueRows { get; } = new();
@@ -390,9 +403,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public string MapQueueDisplayText => $"显示 {AutoMapQueueRows.Count} / 总 {MapQueueTotalCount}";
     public int PullBatchTotalPages => Math.Max(1, (int)Math.Ceiling(PullBatchTotalCount / (double)GetPullBatchPageSize()));
     public string PullBatchPageText => $"第 {PullBatchPage} / {PullBatchTotalPages} 页";
-    public int MapQueueEffectivePageSize => IsMapPanelExpanded ? GetMapQueuePageSize() : CompactMapQueueRows;
+    public int MapQueueEffectivePageSize => GetMapQueuePageSize();
     public int MapQueueTotalPages => Math.Max(1, (int)Math.Ceiling(MapQueueTotalCount / (double)Math.Max(1, MapQueueEffectivePageSize)));
     public string MapQueuePageText => $"第 {MapQueuePage} / {MapQueueTotalPages} 页";
+    public string MapQueuePagerStatusText => $"{MapQueueDisplayText} · {MapQueueRangeText}";
+    public int TaskQueueFilteredCount => _filteredTaskQueueRows.Count;
+    public int TaskQueueTotalPages => Math.Max(1, (int)Math.Ceiling(TaskQueueFilteredCount / (double)GetTaskQueuePageSize()));
+    public int AutoLogTotalPages => Math.Max(1, (int)Math.Ceiling(AutoLogs.Count / (double)GetAutoLogPageSize()));
     public bool HasUpoutPrevPage => UpoutPage > 1;
     public int UpoutTotalPages => Math.Max(1, (int)Math.Ceiling(UpoutTotal / (double)GetPageSize()));
     public bool HasUpoutNextPage => UpoutPage < UpoutTotalPages;
@@ -428,6 +445,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private List<MsfxSubCodeGridRow> _allSubCodeRows = new();
     private List<MsfxAutoPullBatchGridRow> _allPullBatchRows = new();
     private List<MsfxAutoTaskQueueGridRow> _allTaskQueueRows = new();
+    private List<MsfxAutoTaskQueueGridRow> _filteredTaskQueueRows = new();
     private List<MsfxAutoTaskQueueGridRow> _selectedAutoTaskQueueRowsSnapshot = new();
     private DateTimeOffset? _mapCursorUpdatedAt;
     private long? _mapCursorId;
@@ -790,8 +808,14 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     partial void OnMapQueueTotalCountChanged(int value)
     {
         OnPropertyChanged(nameof(MapQueueDisplayText));
+        OnPropertyChanged(nameof(MapQueuePagerStatusText));
         OnPropertyChanged(nameof(MapQueueTotalPages));
         OnPropertyChanged(nameof(MapQueuePageText));
+    }
+
+    partial void OnMapQueueRangeTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(MapQueuePagerStatusText));
     }
 
     partial void OnIsMapQueueLatestPageChanged(bool value)
@@ -809,20 +833,57 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     partial void OnTaskQueueSearchScopeChanged(string value)
     {
-        if (IsTaskPanelExpanded)
-            ApplyTaskQueueFilter();
+        TaskQueuePage = 1;
+        ApplyTaskQueueFilter();
     }
 
     partial void OnTaskQueueStatusFilterChanged(string value)
     {
-        if (IsTaskPanelExpanded)
-            ApplyTaskQueueFilter();
+        TaskQueuePage = 1;
+        ApplyTaskQueueFilter();
     }
 
     partial void OnTaskQueueKeywordChanged(string value)
     {
-        if (string.IsNullOrWhiteSpace(value) && IsTaskPanelExpanded)
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            TaskQueuePage = 1;
             ApplyTaskQueueFilter();
+        }
+    }
+
+    partial void OnTaskQueuePageSizeChanged(string value)
+    {
+        TaskQueuePage = 1;
+        ApplyTaskQueueFilter();
+    }
+
+    partial void OnTaskQueuePageChanged(int value)
+    {
+        if (value < 1)
+        {
+            TaskQueuePage = 1;
+            return;
+        }
+
+        ApplyTaskQueuePage();
+    }
+
+    partial void OnAutoLogPageSizeChanged(string value)
+    {
+        AutoLogPage = 1;
+        ApplyAutoLogPage();
+    }
+
+    partial void OnAutoLogPageChanged(int value)
+    {
+        if (value < 1)
+        {
+            AutoLogPage = 1;
+            return;
+        }
+
+        ApplyAutoLogPage();
     }
 
     partial void OnSelectedAutoPullBatchRowChanged(MsfxAutoPullBatchGridRow? value)
@@ -893,6 +954,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private void SearchTaskQueue()
     {
+        TaskQueuePage = 1;
         ApplyTaskQueueFilter();
     }
 
@@ -902,6 +964,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         TaskQueueStatusFilter = "ALL";
         TaskQueueSearchScope = "全部字段";
         TaskQueueKeyword = string.Empty;
+        TaskQueuePage = 1;
         ApplyTaskQueueFilter();
     }
 
@@ -909,6 +972,116 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private void ToggleTaskQueueSearchPanel()
     {
         IsTaskQueueSearchPanelVisible = !IsTaskQueueSearchPanelVisible;
+    }
+
+    [RelayCommand]
+    private void ToggleMapQueueSearchPanel()
+    {
+        IsMapQueueSearchPanelVisible = !IsMapQueueSearchPanelVisible;
+    }
+
+    [RelayCommand]
+    private Task FirstTaskQueuePageAsync()
+    {
+        if (TaskQueuePage <= 1)
+        {
+            return Task.CompletedTask;
+        }
+
+        TaskQueuePage = 1;
+        ApplyTaskQueuePage();
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private Task PrevTaskQueuePageAsync()
+    {
+        if (!HasTaskQueuePrevPage)
+        {
+            return Task.CompletedTask;
+        }
+
+        TaskQueuePage -= 1;
+        ApplyTaskQueuePage();
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private Task NextTaskQueuePageAsync()
+    {
+        if (!HasTaskQueueNextPage)
+        {
+            return Task.CompletedTask;
+        }
+
+        TaskQueuePage += 1;
+        ApplyTaskQueuePage();
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private Task LastTaskQueuePageAsync()
+    {
+        if (!HasTaskQueueNextPage)
+        {
+            return Task.CompletedTask;
+        }
+
+        TaskQueuePage = TaskQueueTotalPages;
+        ApplyTaskQueuePage();
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private Task FirstAutoLogPageAsync()
+    {
+        if (AutoLogPage <= 1)
+        {
+            return Task.CompletedTask;
+        }
+
+        AutoLogPage = 1;
+        ApplyAutoLogPage();
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private Task PrevAutoLogPageAsync()
+    {
+        if (!HasAutoLogPrevPage)
+        {
+            return Task.CompletedTask;
+        }
+
+        AutoLogPage -= 1;
+        ApplyAutoLogPage();
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private Task NextAutoLogPageAsync()
+    {
+        if (!HasAutoLogNextPage)
+        {
+            return Task.CompletedTask;
+        }
+
+        AutoLogPage += 1;
+        ApplyAutoLogPage();
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private Task LastAutoLogPageAsync()
+    {
+        if (!HasAutoLogNextPage)
+        {
+            return Task.CompletedTask;
+        }
+
+        AutoLogPage = AutoLogTotalPages;
+        ApplyAutoLogPage();
+        return Task.CompletedTask;
     }
 
     [RelayCommand]
@@ -1087,6 +1260,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     [RelayCommand]
+    private async Task FirstUpoutPageAsync()
+    {
+        if (!HasUpoutPrevPage || IsUpoutBusy)
+        {
+            return;
+        }
+
+        UpoutPage = 1;
+        await QueryUpoutCoreAsync(resetPage: false);
+    }
+
+    [RelayCommand]
     private async Task PrevUpoutPageAsync()
     {
         if (!HasUpoutPrevPage || IsUpoutBusy)
@@ -1107,6 +1292,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         UpoutPage += 1;
+        await QueryUpoutCoreAsync(resetPage: false);
+    }
+
+    [RelayCommand]
+    private async Task LastUpoutPageAsync()
+    {
+        if (!HasUpoutNextPage || IsUpoutBusy)
+        {
+            return;
+        }
+
+        UpoutPage = UpoutTotalPages;
         await QueryUpoutCoreAsync(resetPage: false);
     }
 
@@ -1258,6 +1455,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     [RelayCommand]
+    private async Task FirstSubcodePageAsync()
+    {
+        if (!HasSubcodePrevPage || IsSubcodeBusy)
+        {
+            return;
+        }
+
+        SubcodePage = 1;
+        await Task.CompletedTask;
+    }
+
+    [RelayCommand]
     private async Task PrevSubcodePageAsync()
     {
         if (!HasSubcodePrevPage || IsSubcodeBusy)
@@ -1278,6 +1487,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         SubcodePage += 1;
+        await Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private async Task LastSubcodePageAsync()
+    {
+        if (!HasSubcodeNextPage || IsSubcodeBusy)
+        {
+            return;
+        }
+
+        SubcodePage = SubcodeTotalPages;
         await Task.CompletedTask;
     }
 
@@ -1838,6 +2059,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     {
         AutoLogs.Clear();
         _lastAutoLogSignature = null;
+        AutoLogPage = 1;
+        ApplyAutoLogPage();
         AddAutoLog("日志", "日志已清空", TraceEntryState.Info);
     }
 
@@ -1860,6 +2083,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     [RelayCommand]
+    private async Task FirstMapQueuePageAsync()
+    {
+        if (MapQueuePage <= 1 && !HasMapQueuePrevPage)
+        {
+            return;
+        }
+
+        ResetMapQueueCursor();
+        await RunMapPanelQueryAsync(ct => RefreshMapQueueAsync(ct, olderPage: null)).ConfigureAwait(false);
+    }
+
+    [RelayCommand]
     private async Task PrevMapQueuePageAsync()
     {
         if (!HasMapQueuePrevPage || IsMapPanelBusy)
@@ -1868,6 +2103,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         await RunMapPanelQueryAsync(ct => RefreshMapQueueAsync(ct, olderPage: false)).ConfigureAwait(false);
+    }
+
+    [RelayCommand]
+    private Task FirstPullBatchPageAsync()
+    {
+        if (!HasPullBatchPrevPage)
+        {
+            return Task.CompletedTask;
+        }
+
+        PullBatchPage = 1;
+        return Task.CompletedTask;
     }
 
     [RelayCommand]
@@ -1895,6 +2142,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     [RelayCommand]
+    private Task LastPullBatchPageAsync()
+    {
+        if (!HasPullBatchNextPage)
+        {
+            return Task.CompletedTask;
+        }
+
+        PullBatchPage = PullBatchTotalPages;
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
     private async Task NextMapQueuePageAsync()
     {
         if (!HasMapQueueNextPage || IsMapPanelBusy)
@@ -1903,6 +2162,17 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         await RunMapPanelQueryAsync(ct => RefreshMapQueueAsync(ct, olderPage: true)).ConfigureAwait(false);
+    }
+
+    [RelayCommand]
+    private async Task LastMapQueuePageAsync()
+    {
+        if (!HasMapQueueNextPage || IsMapPanelBusy)
+        {
+            return;
+        }
+
+        await RunMapPanelQueryAsync(ct => RefreshMapQueueAsync(ct, olderPage: null, seekLastPage: true)).ConfigureAwait(false);
     }
 
     [RelayCommand]
@@ -2917,16 +3187,89 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             });
         }
 
-        AutoTaskQueueRows.Clear();
-        foreach (var row in filtered)
+        _filteredTaskQueueRows = filtered.ToList();
+        if (TaskQueuePage > TaskQueueTotalPages)
         {
-            AutoTaskQueueRows.Add(row);
+            TaskQueuePage = TaskQueueTotalPages;
         }
+
+        ApplyTaskQueuePage();
 
         OnPropertyChanged(nameof(CanEnterTaskMergeMode));
         OnPropertyChanged(nameof(CanEnterTaskRemapMode));
         OnPropertyChanged(nameof(CanEnterTaskDiscardMode));
         OnPropertyChanged(nameof(CanEnterTaskReopenMode));
+        OnPropertyChanged(nameof(TaskQueueTotalPages));
+        OnPropertyChanged(nameof(TaskQueueFilteredCount));
+    }
+
+    private void ApplyTaskQueuePage()
+    {
+        var pageSize = GetTaskQueuePageSize();
+        var totalPages = TaskQueueTotalPages;
+        if (TaskQueuePage > totalPages)
+        {
+            TaskQueuePage = totalPages;
+        }
+
+        var page = Math.Max(1, TaskQueuePage);
+        var skip = (page - 1) * pageSize;
+        var rows = _filteredTaskQueueRows.Skip(skip).Take(pageSize).ToList();
+
+        AutoTaskQueueRows.Clear();
+        foreach (var row in rows)
+        {
+            AutoTaskQueueRows.Add(row);
+        }
+
+        HasTaskQueuePrevPage = page > 1;
+        HasTaskQueueNextPage = page < totalPages;
+        OnPropertyChanged(nameof(TaskQueueTotalPages));
+    }
+
+    private void ApplyAutoLogPage()
+    {
+        var pageSize = GetAutoLogPageSize();
+        var totalPages = AutoLogTotalPages;
+        if (AutoLogPage > totalPages)
+        {
+            AutoLogPage = totalPages;
+        }
+
+        var page = Math.Max(1, AutoLogPage);
+        var skip = (page - 1) * pageSize;
+        var rows = AutoLogs.Skip(skip).Take(pageSize).ToList();
+
+        AutoLogPageRows.Clear();
+        foreach (var row in rows)
+        {
+            AutoLogPageRows.Add(row);
+        }
+
+        HasAutoLogPrevPage = page > 1;
+        HasAutoLogNextPage = page < totalPages;
+        OnPropertyChanged(nameof(AutoLogTotalPages));
+        OnPropertyChanged(nameof(IsAutoLogsEmpty));
+    }
+
+    private int GetTaskQueuePageSize()
+    {
+        if (!int.TryParse(TaskQueuePageSize, out var pageSize))
+        {
+            return 50;
+        }
+
+        return Math.Clamp(pageSize, 10, 500);
+    }
+
+    private int GetAutoLogPageSize()
+    {
+        if (!int.TryParse(AutoLogPageSize, out var pageSize))
+        {
+            return 50;
+        }
+
+        return Math.Clamp(pageSize, 10, 500);
     }
 
     private static bool ContainsTaskQueueIgnoreCase(string? text, string keyword)
@@ -3092,14 +3435,20 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         MapQueuePage = 1;
     }
 
-    private async Task RefreshMapQueueAsync(CancellationToken ct, bool? olderPage)
+    private async Task RefreshMapQueueAsync(CancellationToken ct, bool? olderPage, bool seekLastPage = false)
     {
         var newer = olderPage.HasValue && !olderPage.Value;
         var hasCursor = _mapCursorUpdatedAt.HasValue && _mapCursorId.HasValue;
         DateTimeOffset? cursorAt = null;
         long? cursorId = null;
 
-        if (olderPage == true && AutoMapQueueRows.Count > 0)
+        if (seekLastPage)
+        {
+            newer = false;
+            cursorAt = null;
+            cursorId = null;
+        }
+        else if (olderPage == true && AutoMapQueueRows.Count > 0)
         {
             var last = AutoMapQueueRows[^1];
             cursorAt = last.UpdatedAtRaw;
@@ -3131,9 +3480,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             cursorId = null;
             newer = false;
             olderPage = null;
+            seekLastPage = false;
         }
 
-        var pageSize = fullMapMode ? GetMapQueuePageSize() : CompactMapQueueRows;
+        var pageSize = GetMapQueuePageSize();
         var page = await _syncService.LoadMappingQueuePageAsync(
             pageSize: pageSize,
             mapStatus: NormalizeFilterValue(MapQueueMapStatusFilter),
@@ -3143,16 +3493,23 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             cursorUpdatedAt: cursorAt,
             cursorId: cursorId,
             newer: newer,
+            seekLastPage: seekLastPage,
             ct: ct).ConfigureAwait(false);
 
         await RunOnUiAsync(() =>
         {
             AutoMapQueueRows.Clear();
-            var pageSize = fullMapMode ? GetMapQueuePageSize() : CompactMapQueueRows;
+            var pageSize = GetMapQueuePageSize();
+            MapQueueTotalCount = page.TotalCount;
+            var totalPages = Math.Max(1, (int)Math.Ceiling(page.TotalCount / (double)Math.Max(1, pageSize)));
             var requestedPage = Math.Max(1, MapQueuePage);
             if (fullMapMode)
             {
-                if (olderPage == true)
+                if (seekLastPage)
+                {
+                    requestedPage = totalPages;
+                }
+                else if (olderPage == true)
                 {
                     requestedPage = Math.Max(1, MapQueuePage + 1);
                 }
@@ -3193,13 +3550,16 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     UpdatedAtRaw: x.UpdatedAt));
             }
 
-            MapQueueTotalCount = page.TotalCount;
             HasMapQueuePrevPage = page.HasNewer;
             HasMapQueueNextPage = page.HasOlder;
             IsMapQueueLatestPage = !page.HasNewer;
             if (fullMapMode)
             {
-                if (olderPage == true && page.Rows.Count > 0)
+                if (seekLastPage)
+                {
+                    MapQueuePage = totalPages;
+                }
+                else if (olderPage == true && page.Rows.Count > 0)
                 {
                     MapQueuePage += 1;
                 }
@@ -3226,6 +3586,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 var start = displayStart;
                 var end = start + AutoMapQueueRows.Count - 1;
                 MapQueueRangeText = $"序号 {start}-{end}";
+            }
+            else if (MapQueueTotalCount > 0)
+            {
+                _mapCursorUpdatedAt = null;
+                _mapCursorId = null;
+                var end = Math.Min(displayStart + pageSize - 1, MapQueueTotalCount);
+                MapQueueRangeText = $"序号 {displayStart}-{end}";
             }
             else
             {
@@ -3453,6 +3820,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 AutoLogs.RemoveAt(AutoLogs.Count - 1);
             }
+
+            if (AutoLogPage != 1)
+            {
+                AutoLogPage = 1;
+            }
+
+            ApplyAutoLogPage();
         }, DispatcherPriority.Background);
     }
 
@@ -3536,7 +3910,11 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     private void OnAutoLogsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        => OnPropertyChanged(nameof(IsAutoLogsEmpty));
+    {
+        OnPropertyChanged(nameof(IsAutoLogsEmpty));
+        OnPropertyChanged(nameof(AutoLogTotalPages));
+        ApplyAutoLogPage();
+    }
 
     private void OnAutoPullBatchRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsAutoPullBatchEmpty));
@@ -3545,6 +3923,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     {
         OnPropertyChanged(nameof(IsAutoMapQueueEmpty));
         OnPropertyChanged(nameof(MapQueueDisplayText));
+        OnPropertyChanged(nameof(MapQueuePagerStatusText));
     }
 
     private void OnAutoTaskQueueRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

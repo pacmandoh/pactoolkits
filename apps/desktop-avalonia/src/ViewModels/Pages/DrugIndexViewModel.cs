@@ -1330,7 +1330,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         Dispatcher.UIThread.Post(() => _toast.Info("已复制", "编码(RuleKey/PreTc) 已复制到剪贴板"));
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanToggleEditorFlags))]
     private void ToggleDeprecated(object? arg)
     {
         if (arg is DrugRow row)
@@ -1341,7 +1341,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         ApplyToggleDeprecated();
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanToggleEditorFlags))]
     private void ToggleNoSplit(object? arg)
     {
         if (arg is DrugRow row)
@@ -1352,9 +1352,12 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         ApplyToggleNoSplit();
     }
 
+    private bool CanToggleEditorFlags()
+        => IsEditorInputEnabled;
+
     private void ApplyToggleDeprecated()
     {
-        if (!HasEditor)
+        if (!HasEditor || !IsEditorUnlocked)
         {
             return;
         }
@@ -1364,7 +1367,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
     private void ApplyToggleNoSplit()
     {
-        if (!HasEditor)
+        if (!HasEditor || !IsEditorUnlocked)
         {
             return;
         }
@@ -1406,6 +1409,8 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             FixDrugKeyCommand,
             RequestEditorUnlockCommand,
             LockEditorCommand,
+            ToggleDeprecatedCommand,
+            ToggleNoSplitCommand,
             ImportDataCommand,
             ExportDataCommand
         ];
@@ -1557,6 +1562,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     }
 
     private void OnUnlockStatusTimerTick(object? sender, EventArgs e)
+        => RefreshEditorUnlockState();
+
+    public void SyncEditorUnlockStateForUi()
         => RefreshEditorUnlockState();
 
     public override void Dispose()

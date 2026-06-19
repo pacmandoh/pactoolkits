@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.InventoryOverviewView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -736,37 +736,19 @@
 
           </Grid>
 
-          <Grid
+          <controls:DataGridPager
             Grid.Row="4"
-            VerticalAlignment="Center"
-            Classes="ToolbarPairRow"
-            ColumnDefinitions="*,Auto"
-            IsVisible="{Binding IsPagedMode}">
-            <StackPanel
-              Opacity="{StaticResource SectionHintOpacity}"
-              Orientation="Horizontal"
-              Spacing="{DynamicResource NavItemsSpacing}">
-              <TextBlock Text="{Binding TotalCount, StringFormat=共 {0} 条}" />
-              <TextBlock Text="{Binding PageIndex, StringFormat=第 {0} 页}" />
-              <TextBlock Text="{Binding TotalPages, StringFormat=/ {0} 页}" />
-              <TextBlock Text="{Binding PageSize, StringFormat=每页 {0} 条}" />
-            </StackPanel>
-
-            <StackPanel
-              Grid.Column="1"
-              Orientation="Horizontal"
-              Spacing="{DynamicResource SpacingInlineMd}">
-              <Button Classes="Action" Command="{Binding FirstPageCommand}">
-                <TextBlock Text="首页" />
-              </Button>
-              <Button Classes="Action" Command="{Binding PrevPageCommand}">
-                <TextBlock Text="上一页" />
-              </Button>
-              <Button Classes="Action" Command="{Binding NextPageCommand}">
-                <TextBlock Text="下一页" />
-              </Button>
-            </StackPanel>
-          </Grid>
+            IsActive="{Binding IsPagedMode}"
+            IsContentEmpty="{Binding IsStockEmpty}"
+            FirstPageCommand="{Binding FirstPageCommand}"
+            LastPageCommand="{Binding LastPageCommand}"
+            NextPageCommand="{Binding NextPageCommand}"
+            PageIndex="{Binding PageIndex}"
+            PageSizeOptions="{Binding PageSizeOptions}"
+            PrevPageCommand="{Binding PrevPageCommand}"
+            SelectedPageSize="{Binding PageSize, Mode=TwoWay}"
+            TotalCount="{Binding TotalCount}"
+            TotalPages="{Binding TotalPages}" />
         </Grid>
       </suki:GlassCard>
 
