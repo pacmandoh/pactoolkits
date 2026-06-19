@@ -468,8 +468,7 @@
                           GridLinesVisibility="All"
                           HeadersVisibility="All"
                           HorizontalScrollBarVisibility="Auto"
-                          ItemsSource="{Binding AutoMapQueueRows}"
-                          SelectedItem="{Binding SelectedAutoMapQueueRow, Mode=TwoWay}">
+                          ItemsSource="{Binding AutoMapQueueRows}">
                           <DataGrid.Columns>
                             <DataGridTemplateColumn Width="44">
                               <DataGridTemplateColumn.CellTemplate>
@@ -609,8 +608,7 @@
                             behaviors:FocusClearBehavior.SuppressGridClear="True"
                             Classes="Ghost MsfxMiniIconBtn"
                             Command="{Binding BeginMergeTaskSelectionCommand}"
-                            IsEnabled="{Binding CanEnterTaskMergeMode}"
-                            ToolTip.Tip="合并同药名同规格任务">
+                            IsEnabled="{Binding CanEnterTaskMergeMode}">
                             <icons:AppIcon
                               Width="{DynamicResource IconSizeCompact}"
                               Height="{DynamicResource IconSizeCompact}"
@@ -620,8 +618,7 @@
                             behaviors:FocusClearBehavior.SuppressGridClear="True"
                             Classes="Ghost MsfxMiniIconBtn"
                             Command="{Binding SplitSelectedTaskCommand}"
-                            IsEnabled="{Binding CanSplitSelectedTasks}"
-                            ToolTip.Tip="拆分当前任务">
+                            IsEnabled="{Binding CanSplitSelectedTasks}">
                             <icons:AppIcon
                               Width="{DynamicResource IconSizeCompact}"
                               Height="{DynamicResource IconSizeCompact}"
@@ -631,8 +628,7 @@
                             behaviors:FocusClearBehavior.SuppressGridClear="True"
                             Classes="Ghost MsfxMiniIconBtn"
                             Command="{Binding BeginRemapTaskSelectionCommand}"
-                            IsEnabled="{Binding CanEnterTaskRemapMode}"
-                            ToolTip.Tip="重新映射选中任务">
+                            IsEnabled="{Binding CanEnterTaskRemapMode}">
                             <icons:AppIcon
                               Width="{DynamicResource IconSizeCompact}"
                               Height="{DynamicResource IconSizeCompact}"
@@ -642,8 +638,7 @@
                             behaviors:FocusClearBehavior.SuppressGridClear="True"
                             Classes="Ghost MsfxMiniIconBtn"
                             Command="{Binding BeginDiscardTaskSelectionCommand}"
-                            IsEnabled="{Binding CanEnterTaskDiscardMode}"
-                            ToolTip.Tip="弃用选中任务">
+                            IsEnabled="{Binding CanEnterTaskDiscardMode}">
                             <icons:AppIcon
                               Width="{DynamicResource IconSizeCompact}"
                               Height="{DynamicResource IconSizeCompact}"
@@ -653,8 +648,7 @@
                             behaviors:FocusClearBehavior.SuppressGridClear="True"
                             Classes="Ghost MsfxMiniIconBtn"
                             Command="{Binding BeginReopenTaskSelectionCommand}"
-                            IsEnabled="{Binding CanEnterTaskReopenMode}"
-                            ToolTip.Tip="重开选中任务">
+                            IsEnabled="{Binding CanEnterTaskReopenMode}">
                             <icons:AppIcon
                               Width="{DynamicResource IconSizeCompact}"
                               Height="{DynamicResource IconSizeCompact}"
@@ -664,8 +658,7 @@
                             behaviors:FocusClearBehavior.SuppressGridClear="True"
                             Classes="Ghost MsfxMiniIconBtn"
                             Command="{Binding ToggleAutoPanelExpandCommand}"
-                            CommandParameter="TASK"
-                            ToolTip.Tip="全屏查看执行队列">
+                            CommandParameter="TASK">
                             <icons:AppIcon
                               Width="{DynamicResource IconSizeCompact}"
                               Height="{DynamicResource IconSizeCompact}"
@@ -1072,8 +1065,7 @@
                         VerticalContentAlignment="Center"
                         Classes="Action"
                         Command="{Binding ToggleMapQueueSearchPanelCommand}"
-                        IsVisible="{Binding IsMapPanelExpanded}"
-                        ToolTip.Tip="显示/隐藏映射队列搜索">
+                        IsVisible="{Binding IsMapPanelExpanded}">
                         <Panel
                           Width="{DynamicResource IconSizeDefault}"
                           Height="{DynamicResource IconSizeDefault}"
@@ -1104,8 +1096,7 @@
                         VerticalContentAlignment="Center"
                         Classes="Action"
                         Command="{Binding ToggleTaskQueueSearchPanelCommand}"
-                        IsVisible="{Binding IsTaskPanelExpanded}"
-                        ToolTip.Tip="显示/隐藏执行队列搜索">
+                        IsVisible="{Binding IsTaskPanelExpanded}">
                         <Panel
                           Width="{DynamicResource IconSizeDefault}"
                           Height="{DynamicResource IconSizeDefault}"
@@ -1346,8 +1337,7 @@
                           GridLinesVisibility="All"
                           HeadersVisibility="All"
                           HorizontalScrollBarVisibility="Auto"
-                          ItemsSource="{Binding AutoMapQueueRows}"
-                          SelectedItem="{Binding SelectedAutoMapQueueRow, Mode=TwoWay}">
+                          ItemsSource="{Binding AutoMapQueueRows}">
                           <DataGrid.Columns>
                             <DataGridTemplateColumn Width="44">
                               <DataGridTemplateColumn.CellTemplate>

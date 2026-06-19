@@ -101,19 +101,11 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
         string scene,
         string promptTitle,
         string promptHint,
+        bool notifySuccess = true,
         CancellationToken ct = default)
     {
         var key = NormalizeScope(scopeKey);
         ScopeState state;
-        lock (_gate)
-        {
-            state = GetOrCreateState(key);
-            if (state.IsPromptActive)
-            {
-                return false;
-            }
-        }
-
         Refresh(key);
 
         lock (_gate)
@@ -121,7 +113,13 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
             state = GetOrCreateState(key);
             if (state.IsUnlocked)
             {
+                state.ExpiresAtUtc = DateTimeOffset.UtcNow + UnlockSessionDuration;
                 return true;
+            }
+
+            if (state.IsPromptActive)
+            {
+                return false;
             }
         }
 
@@ -239,7 +237,11 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
             state.ExpiresAtUtc = DateTimeOffset.UtcNow + UnlockSessionDuration;
         }
 
-        _toast.Success(scene, "验证通过，已解锁敏感操作");
+        if (notifySuccess)
+        {
+            _toast.Success(scene, "验证通过，已解锁敏感操作");
+        }
+
         RaiseStateChanged(key);
         return true;
     }
@@ -252,6 +254,7 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
             request.Scene,
             request.PromptTitle,
             request.PromptHint,
+            request.NotifySuccess,
             ct);
     }
 
