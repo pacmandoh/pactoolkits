@@ -11,6 +11,7 @@ public sealed class LookupCatalogService : ILookupCatalogService
 
     private readonly IDashboardRepo _dashboardRepo;
     private readonly IDrugIndexRepo _drugIndexRepo;
+    private readonly IDatabaseAccessGuard _accessGuard;
     private readonly object _gate = new();
 
     private CacheItem<IReadOnlyList<string>>? _drugIdsCache;
@@ -19,14 +20,23 @@ public sealed class LookupCatalogService : ILookupCatalogService
     private readonly Dictionary<string, CacheItem<int?>> _qtyByDrugSpec = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, CacheItem<bool>> _deprecatedDrugByInput = new(StringComparer.OrdinalIgnoreCase);
 
-    public LookupCatalogService(IDashboardRepo dashboardRepo, IDrugIndexRepo drugIndexRepo)
+    public LookupCatalogService(
+        IDashboardRepo dashboardRepo,
+        IDrugIndexRepo drugIndexRepo,
+        IDatabaseAccessGuard accessGuard)
     {
         _dashboardRepo = dashboardRepo ?? throw new ArgumentNullException(nameof(dashboardRepo));
         _drugIndexRepo = drugIndexRepo ?? throw new ArgumentNullException(nameof(drugIndexRepo));
+        _accessGuard = accessGuard ?? throw new ArgumentNullException(nameof(accessGuard));
     }
 
     public async Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct, bool forceRefresh = false)
     {
+        if (IsCatalogAccessBlocked())
+        {
+            return Array.Empty<string>();
+        }
+
         var now = DateTimeOffset.UtcNow;
         if (!forceRefresh)
         {
@@ -51,6 +61,11 @@ public sealed class LookupCatalogService : ILookupCatalogService
 
     public async Task<IReadOnlyList<string>> GetSpecsByDrugAsync(string drugId, CancellationToken ct, bool forceRefresh = false)
     {
+        if (IsCatalogAccessBlocked())
+        {
+            return Array.Empty<string>();
+        }
+
         var key = InputNormalizer.Normalize(drugId);
         if (string.IsNullOrWhiteSpace(key))
         {
@@ -82,6 +97,11 @@ public sealed class LookupCatalogService : ILookupCatalogService
 
     public async Task<string?> ResolveCanonicalDrugIdAsync(string? input, CancellationToken ct, bool forceRefresh = false)
     {
+        if (IsCatalogAccessBlocked())
+        {
+            return null;
+        }
+
         var key = InputNormalizer.Normalize(input);
         if (string.IsNullOrWhiteSpace(key))
         {
@@ -130,6 +150,11 @@ public sealed class LookupCatalogService : ILookupCatalogService
 
     public async Task<int?> GetQtyAsync(string? drugId, string? spec, CancellationToken ct, bool forceRefresh = false)
     {
+        if (IsCatalogAccessBlocked())
+        {
+            return null;
+        }
+
         var drug = InputNormalizer.Normalize(drugId);
         var specValue = InputNormalizer.Normalize(spec);
         if (string.IsNullOrWhiteSpace(drug) || string.IsNullOrWhiteSpace(specValue))
@@ -164,6 +189,11 @@ public sealed class LookupCatalogService : ILookupCatalogService
 
     public async Task<bool> IsDeprecatedDrugIdAsync(string? drugId, CancellationToken ct, bool forceRefresh = false)
     {
+        if (IsCatalogAccessBlocked())
+        {
+            return false;
+        }
+
         var key = InputNormalizer.Normalize(drugId);
         if (string.IsNullOrWhiteSpace(key))
         {
@@ -203,6 +233,17 @@ public sealed class LookupCatalogService : ILookupCatalogService
             _qtyByDrugSpec.Clear();
             _deprecatedDrugByInput.Clear();
         }
+    }
+
+    private bool IsCatalogAccessBlocked()
+    {
+        if (!_accessGuard.IsBlocked)
+        {
+            return false;
+        }
+
+        InvalidateDrugCatalog();
+        return true;
     }
 
     private static bool TryGetValid<T>(CacheItem<T>? cache, DateTimeOffset now, out T value)
