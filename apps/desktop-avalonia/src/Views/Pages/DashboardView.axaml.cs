@@ -68,19 +68,7 @@ public partial class DashboardView : UserControl
             sender,
             e,
             "SpecBox",
-            () =>
-            {
-                if (DataContext is not PacToolkits.Desktop.Avalonia.ViewModels.Pages.DashboardViewModel vm)
-                {
-                    return;
-                }
-
-                var cmd = vm.ApplyDrugFilterCommand;
-                if (cmd.CanExecute(null))
-                {
-                    cmd.Execute(null);
-                }
-            });
+            ApplyDrugFilterFromBox);
     }
 
     private async void OnBrowsingGridSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -139,6 +127,21 @@ public partial class DashboardView : UserControl
         }
 
         AutoCompleteHelper.AttachDrugOptionFilter(box);
+        AutoCompleteHelper.AttachCandidateCommitApply(box, this, "SpecBox", ApplyDrugFilterFromBox);
+    }
+
+    private void ApplyDrugFilterFromBox()
+    {
+        if (DataContext is not PacToolkits.Desktop.Avalonia.ViewModels.Pages.DashboardViewModel vm)
+        {
+            return;
+        }
+
+        var cmd = vm.ApplyDrugFilterCommand;
+        if (cmd.CanExecute(null))
+        {
+            cmd.Execute(null);
+        }
     }
 
     public async void OnGridRowCopy(object? sender, RoutedEventArgs e)
