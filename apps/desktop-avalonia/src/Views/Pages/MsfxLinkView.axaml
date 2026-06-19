@@ -192,7 +192,8 @@
                       <suki:InfoBadge
                         VerticalAlignment="Center"
                         Classes="MsfxMetaBadge"
-                        Content="{Binding AutoLastRunAtText, StringFormat=最近 {0}}" />
+                        Content="{Binding AutoLastRunAtText, StringFormat=最近 {0}}"
+                        ToolTip.Tip="{Binding AutoLastRunAtTip}" />
                     </StackPanel>
                     <Button
                       Grid.Column="2"
