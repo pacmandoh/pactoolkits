@@ -49,6 +49,29 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             return (IReadOnlyList<DrugIndexDto>)list;
         }, ct);
 
+    public Task<IReadOnlyList<DrugIndexDto>> ListCatalogAsync(int limit, CancellationToken ct)
+        => _db.WithConnection(async (conn, token) =>
+        {
+            const string sql = """
+                select drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
+                from drug_index
+                order by drug_id asc, spec asc
+                limit @n
+            """;
+
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("n", Math.Clamp(limit, 1, 10_000));
+
+            var list = new List<DrugIndexDto>();
+            await using var reader = await cmd.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token))
+            {
+                list.Add(ReadDrugIndexDto(reader));
+            }
+
+            return (IReadOnlyList<DrugIndexDto>)list;
+        }, ct);
+
     public Task<DrugIndexDto?> GetByKeyAsync(string drugId, string spec, CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {

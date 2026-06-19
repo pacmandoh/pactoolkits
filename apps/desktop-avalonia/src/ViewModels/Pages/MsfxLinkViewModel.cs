@@ -14,6 +14,7 @@ using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
+using PacToolkits.Application.TextSearch;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Integration;
@@ -447,10 +448,15 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private List<MsfxAutoTaskQueueGridRow> _allTaskQueueRows = new();
     private List<MsfxAutoTaskQueueGridRow> _filteredTaskQueueRows = new();
     private List<MsfxAutoTaskQueueGridRow> _selectedAutoTaskQueueRowsSnapshot = new();
+    private List<MsfxUpoutGridRow> _allUpoutRows = new();
+    private long _upoutLastServerTotal;
     private DateTimeOffset? _mapCursorUpdatedAt;
     private long? _mapCursorId;
     private string? _lastAutoLogSignature;
     private bool _isResettingMapQueueFilters;
+    private readonly SearchInputDebouncer _mapQueueSearchDebouncer = new(450);
+    private readonly SearchInputDebouncer _taskQueueSearchDebouncer = new(300);
+    private readonly SearchInputDebouncer _upoutFilterDebouncer = new(300);
     private readonly RollingDateRangeController _upoutDateRangeController;
 
     public MsfxLinkViewModel(
@@ -847,9 +853,32 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     {
         if (string.IsNullOrWhiteSpace(value))
         {
+            _taskQueueSearchDebouncer.Cancel();
             TaskQueuePage = 1;
             ApplyTaskQueueFilter();
+            return;
         }
+
+        _taskQueueSearchDebouncer.Schedule(async () =>
+            await Dispatcher.UIThread.InvokeAsync(SearchTaskQueue));
+    }
+
+    partial void OnMapQueueKeywordChanged(string value)
+    {
+        if (_isResettingMapQueueFilters)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _mapQueueSearchDebouncer.Cancel();
+            _ = SearchMapQueueAsync();
+            return;
+        }
+
+        _mapQueueSearchDebouncer.Schedule(async () =>
+            await Dispatcher.UIThread.InvokeAsync(SearchMapQueueAsync));
     }
 
     partial void OnTaskQueuePageSizeChanged(string value)
@@ -954,6 +983,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private void SearchTaskQueue()
     {
+        _taskQueueSearchDebouncer.Cancel();
         TaskQueuePage = 1;
         ApplyTaskQueueFilter();
     }
@@ -1159,6 +1189,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private async Task QueryUpoutAsync()
     {
+        _upoutFilterDebouncer.Cancel();
         await QueryUpoutCoreAsync(resetPage: true).ConfigureAwait(false);
     }
 
@@ -1213,36 +1244,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 return;
             }
 
-            var filtered = result.Items
-                .Where(MatchUpoutFilter)
-                .Select(x => new MsfxUpoutGridRow(
-                    BillCode: x.BillCode,
-                    BillType: x.BillType,
-                    BillTime: x.BillTime,
-                    DrugName: x.PhysicName,
-                    PackageSpec: x.PkgSpec,
-                    PrepnSpec: x.PrepnSpec,
-                    CodeCount: x.CodeCount,
-                    PrepnCount: x.PrepnCount,
-                    ProduceBatchNo: x.ProduceBatchNo,
-                    ExpireDate: x.ExpireDate,
-                    FromEntName: x.FromEntName,
-                    FromRefUserId: x.FromRefUserId,
-                    ProduceEntName: x.ProduceEntName,
-                    LogisticsStatus: string.IsNullOrWhiteSpace(x.LogisticsStatus) ? x.Status : x.LogisticsStatus,
-                    State: ParseUpoutState(x.Status)))
-                .ToList();
+            var mapped = result.Items.Select(MapUpoutRow).ToList();
+            _upoutLastServerTotal = result.Total;
 
             await RunOnUiAsync(() =>
             {
-                UpoutRows.Clear();
-                foreach (var row in filtered)
-                {
-                    UpoutRows.Add(row);
-                }
-
-                UpoutTotal = result.Total;
-                UpoutStatus = $"查询成功：第 {UpoutPage} 页 / 返回 {result.Items.Count} 条 / 筛选后 {filtered.Count} 条 / 服务器总数 {result.Total}";
+                _allUpoutRows = mapped;
+                ApplyUpoutFilter();
             });
         }
         catch (Exception ex)
@@ -1516,6 +1524,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private void ResetUpoutFilters()
     {
+        _upoutFilterDebouncer.Cancel();
+        _allUpoutRows.Clear();
+        UpoutRows.Clear();
+        UpoutTotal = 0;
         var defaults = RollingDateRangeController.Normalize(
             RollingDateRangeController.DefaultFromDate,
             RollingDateRangeController.DefaultToDate);
@@ -1528,6 +1540,15 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         UpoutPageSize = "20";
         UpoutStatus = "筛选条件已重置";
     }
+
+    partial void OnUpoutBillCodeKeywordChanged(string value)
+        => ScheduleUpoutFilter();
+
+    partial void OnUpoutDrugKeywordChanged(string value)
+        => ScheduleUpoutFilter();
+
+    partial void OnUpoutFromEntKeywordChanged(string value)
+        => ScheduleUpoutFilter();
 
     private bool CanRunAutoOnce()
         => !IsAutoBusy;
@@ -2178,6 +2199,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private async Task SearchMapQueueAsync()
     {
+        _mapQueueSearchDebouncer.Cancel();
         ResetMapQueueCursor();
         await RefreshMapQueueLatestAsync().ConfigureAwait(false);
     }
@@ -2199,6 +2221,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         _isResettingMapQueueFilters = true;
         try
         {
+            _mapQueueSearchDebouncer.Cancel();
             MapQueuePageSize = "120";
             MapQueueMapStatusFilter = "ALL";
             MapQueueCodeStatusFilter = "ALL";
@@ -3273,8 +3296,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     private static bool ContainsTaskQueueIgnoreCase(string? text, string keyword)
-        => !string.IsNullOrWhiteSpace(text)
-           && text.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+        => TextSearchHelper.Matches(keyword, text);
 
     private static string NormalizeMergeKeyPart(string? value)
         => value?.Trim() ?? string.Empty;
@@ -3624,32 +3646,87 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         await RunAutoOnceInternalAsync(showProgressPanel: false);
     }
 
-    private bool MatchUpoutFilter(MsfxListUpoutItem item)
+    private static MsfxUpoutGridRow MapUpoutRow(MsfxListUpoutItem x)
+        => new(
+            BillCode: x.BillCode,
+            BillType: x.BillType,
+            BillTime: x.BillTime,
+            DrugName: x.PhysicName,
+            PackageSpec: x.PkgSpec,
+            PrepnSpec: x.PrepnSpec,
+            CodeCount: x.CodeCount,
+            PrepnCount: x.PrepnCount,
+            ProduceBatchNo: x.ProduceBatchNo,
+            ExpireDate: x.ExpireDate,
+            FromEntName: x.FromEntName,
+            FromRefUserId: x.FromRefUserId,
+            ProduceEntName: x.ProduceEntName,
+            LogisticsStatus: string.IsNullOrWhiteSpace(x.LogisticsStatus) ? x.Status : x.LogisticsStatus,
+            State: ParseUpoutState(x.Status));
+
+    private void ScheduleUpoutFilter()
+    {
+        if (_allUpoutRows.Count == 0)
+        {
+            return;
+        }
+
+        var hasKeyword = !string.IsNullOrWhiteSpace(UpoutBillCodeKeyword)
+                         || !string.IsNullOrWhiteSpace(UpoutDrugKeyword)
+                         || !string.IsNullOrWhiteSpace(UpoutFromEntKeyword);
+        if (!hasKeyword)
+        {
+            _upoutFilterDebouncer.Cancel();
+            ApplyUpoutFilter();
+            return;
+        }
+
+        _upoutFilterDebouncer.Schedule(async () =>
+            await Dispatcher.UIThread.InvokeAsync(ApplyUpoutFilter));
+    }
+
+    private void ApplyUpoutFilter()
+    {
+        if (_allUpoutRows.Count == 0)
+        {
+            return;
+        }
+
+        var filtered = _allUpoutRows.Where(MatchUpoutFilter).ToList();
+        UpoutRows.Clear();
+        foreach (var row in filtered)
+        {
+            UpoutRows.Add(row);
+        }
+
+        UpoutTotal = _upoutLastServerTotal;
+        UpoutStatus =
+            $"第 {UpoutPage} 页 / 本页 {_allUpoutRows.Count} 条 / 筛选后 {filtered.Count} 条 / 服务器总数 {_upoutLastServerTotal}";
+    }
+
+    private bool MatchUpoutFilter(MsfxUpoutGridRow row)
     {
         var bill = NormalizeText(UpoutBillCodeKeyword);
         var drug = NormalizeText(UpoutDrugKeyword);
         var ent = NormalizeText(UpoutFromEntKeyword);
 
-        if (!string.IsNullOrWhiteSpace(bill) && !ContainsIgnoreCase(item.BillCode, bill))
+        if (!string.IsNullOrWhiteSpace(bill) && !TextSearchHelper.Matches(bill, row.BillCode))
         {
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(drug) && !ContainsIgnoreCase(item.PhysicName, drug))
+        if (!string.IsNullOrWhiteSpace(drug) && !TextSearchHelper.Matches(drug, row.DrugName))
         {
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(ent) && !ContainsIgnoreCase(item.FromEntName, ent))
+        if (!string.IsNullOrWhiteSpace(ent) && !TextSearchHelper.Matches(ent, row.FromEntName))
         {
             return false;
         }
 
         return true;
     }
-
-    private static bool ContainsIgnoreCase(string? source, string value)
-        => (source ?? string.Empty).Contains(value, StringComparison.OrdinalIgnoreCase);
 
     private int GetPageSize()
     {
@@ -3948,6 +4025,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         AutoTaskQueueRows.CollectionChanged -= OnAutoTaskQueueRowsCollectionChanged;
         UpoutRows.CollectionChanged -= OnUpoutRowsCollectionChanged;
         SubCodeRows.CollectionChanged -= OnSubCodeRowsCollectionChanged;
+        _mapQueueSearchDebouncer.Dispose();
+        _taskQueueSearchDebouncer.Dispose();
+        _upoutFilterDebouncer.Dispose();
         _upoutDateRangeController.Dispose();
         base.Dispose();
     }

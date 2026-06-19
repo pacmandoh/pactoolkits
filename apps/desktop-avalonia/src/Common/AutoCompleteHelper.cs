@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using global::Avalonia.Threading;
+using PacToolkits.Application.TextSearch;
 using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -11,6 +12,9 @@ namespace PacToolkits.Desktop.Avalonia.Common;
 public static class AutoCompleteHelper
 {
     public static void AttachDrugOptionFilter(PlainAutoCompleteBox box)
+        => AttachPinyinFilter(box);
+
+    public static void AttachPinyinFilter(PlainAutoCompleteBox box)
     {
         box.ItemFilter = static (search, item) =>
         {

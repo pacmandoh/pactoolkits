@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.TextSearch;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -160,6 +161,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private int _lastModeIndex;
     private DateTimeOffset _suppressAutoRefreshUntilUtc = DateTimeOffset.MinValue;
     private CancellationTokenSource? _silentReconcileCts;
+    private readonly SearchInputDebouncer _keywordSearchDebouncer = new(450);
     private readonly DispatcherTimer _unlockStatusTimer;
     private IRelayCommand?[]? _notifiableCommands;
     partial void OnIsDetailBusyChanged(bool value)
@@ -1501,17 +1503,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     }
 
     private static bool MatchesKeyword(StockRowItem row, string keyword)
-    {
-        return ContainsIgnoreCase(row.DrugId, keyword)
-               || ContainsIgnoreCase(row.Spec, keyword)
-               || ContainsIgnoreCase(row.TraceCode, keyword);
-    }
-
-    private static bool ContainsIgnoreCase(string? source, string keyword)
-    {
-        return !string.IsNullOrWhiteSpace(source)
-               && source.Contains(keyword, StringComparison.OrdinalIgnoreCase);
-    }
+        => TextSearchHelper.MatchesAny(keyword, row.DrugId, row.Spec, row.TraceCode);
 
     private void AbandonPendingStockEditsIfNeeded()
     {
@@ -1623,9 +1615,28 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             ReassignPreviewText = null;
             ReassignPreviewRows.Clear();
             OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+            NotifyAllCommands();
+            return;
         }
 
         NotifyAllCommands();
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _keywordSearchDebouncer.Cancel();
+            AbandonPendingStockEditsIfNeeded();
+            PageIndex = 1;
+            _ = ReloadAsync();
+            return;
+        }
+
+        _keywordSearchDebouncer.Schedule(async () =>
+            await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                AbandonPendingStockEditsIfNeeded();
+                PageIndex = 1;
+                await ReloadAsync().ConfigureAwait(true);
+            }));
     }
 
     partial void OnTotalCountChanged(int value)
@@ -1641,6 +1652,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
+        _keywordSearchDebouncer.Cancel();
         AbandonPendingStockEditsIfNeeded();
 
         PageIndex = 1;
@@ -1648,18 +1660,17 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     }
 
     [RelayCommand]
-    private async Task ClearSearchAsync()
+    private Task ClearSearchAsync()
     {
         if (ShouldSkipTrigger(milliseconds: 350))
         {
-            return;
+            return Task.CompletedTask;
         }
 
+        _keywordSearchDebouncer.Cancel();
         AbandonPendingStockEditsIfNeeded();
-
         Keyword = null;
-        PageIndex = 1;
-        await ReloadAsync();
+        return Task.CompletedTask;
     }
 
     [RelayCommand(CanExecute = nameof(CanGoFirstPage))]
@@ -2124,6 +2135,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _silentReconcileCts?.Cancel();
         _silentReconcileCts?.Dispose();
         _silentReconcileCts = null;
+        _keywordSearchDebouncer.Dispose();
         base.Dispose();
     }
 
