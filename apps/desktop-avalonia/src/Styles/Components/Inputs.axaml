@@ -1,4 +1,4 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:con="https://github.com/kikipoulet/SukiUI"
@@ -191,25 +191,25 @@
       <ControlTemplate>
         <Grid
           MinHeight="{Binding EffectiveSlotMinHeight, RelativeSource={RelativeSource TemplatedParent}}"
-          ClipToBounds="False"
           HorizontalAlignment="Stretch"
-          VerticalAlignment="Stretch">
+          VerticalAlignment="Stretch"
+          ClipToBounds="False">
           <ContentPresenter
-            ClipToBounds="False"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
             HorizontalContentAlignment="Stretch"
             VerticalContentAlignment="Stretch"
+            ClipToBounds="False"
             Content="{TemplateBinding Content}"
             Opacity="{Binding ContentOpacity, RelativeSource={RelativeSource TemplatedParent}}" />
 
           <Border
-            ZIndex="1"
             Padding="{DynamicResource EmptyStatePadding}"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
             IsHitTestVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
-            IsVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}">
+            IsVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
+            ZIndex="1">
             <StackPanel
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
@@ -235,7 +235,6 @@
           </Border>
 
           <sukiControls:BusyArea
-            ZIndex="2"
             MinHeight="0"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
@@ -243,7 +242,8 @@
             VerticalContentAlignment="Stretch"
             IsBusy="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
             IsHitTestVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
-            IsVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}">
+            IsVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
+            ZIndex="2">
             <Panel />
           </sukiControls:BusyArea>
         </Grid>
