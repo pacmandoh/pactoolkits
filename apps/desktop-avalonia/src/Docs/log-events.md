@@ -1,15 +1,14 @@
 # PacToolkits Desktop 日志事件对照与分级
 
-更新时间: 2026-03-13
-适用范围: `PacToolkits.Desktop.Avalonia`
-
-> 说明：部分事件名（如 `unhandled.ui`）沿用历史命名；其中 `ui` 指 Desktop 进程内未捕获异常，与 manifest 组件 ID `desktop` 并存，运行时字段不做重命名。
+更新时间: 2026-06-19
+适用范围: `PacToolkits.Desktop.Avalonia`（manifest 组件 `desktop`，当前实现 `avalonia`）
 
 ## 1. 使用说明
 
 - 日志目录默认:
-  - macOS: `~/Library/Application Support/PacToolkits/logs/ui`
-  - Linux: `~/.config/PacToolkits/logs/ui`
+  - macOS: `~/Library/Application Support/PacToolkits/logs/desktop`
+  - Linux: `~/.config/PacToolkits/logs/desktop`
+- 日志文件: `desktop-YYYY-MM-DD.log`（同日滚动为 `desktop-YYYY-MM-DD.N.log`）
 - 日志格式: JSON Line（每行一个 JSON 对象）
 - 关键字段:
   - `ts`: 时间
@@ -27,7 +26,7 @@
 
 先看是否出现以下事件:
 
-- `unhandled.ui`
+- `unhandled.desktop`
 - `unobserved.task`
 - `unhandled.appdomain`
 
@@ -138,7 +137,7 @@
 - `app.start`
 - `app.ready`
 - `app.shutdown`
-- `unhandled.ui`
+- `unhandled.desktop`
 - `unobserved.task`
 - `unhandled.appdomain`
 - `shutdown.ahk_stop_fail`
@@ -208,7 +207,7 @@
 - `client_alias.save.fail`
 - `trace_rule.regex_invalid`
 - `trace_rule.save.fail`
-- `ui_behavior.save.fail`
+- `desktop_behavior.save.fail`
 - `update.settings.save.fail`
 - `update.check.fail`
 - `update.apply.fail`
@@ -221,7 +220,7 @@
 - `logging.copy_path_fail`
 - `logging.export_recent`
 - `logging.export_recent_fail`
-- `dispose.ui_behavior_unsub_fail`
+- `dispose.desktop_behavior_unsub_fail`
 - `dispose.update_settings_unsub_fail`
 - `dispose.updates_unsub_fail`
 - `dispose.logging_settings_unsub_fail`
@@ -348,7 +347,7 @@
 - `db.migrate.apply.fail`
 - `db.migrate.finish`
 
-## UpdateUiFlow
+## UpdateDesktopFlow
 
 - `update.check.result`
 - `update.check.cancel`
@@ -425,16 +424,16 @@
 
 ```bash
 # 看最近 Fatal/Error
-rg '"level":"(Fatal|Error)"' ui-*.log
+rg '"level":"(Fatal|Error)"' desktop-*.log
 
 # 看更新链路
-rg '"event":"update\.' ui-*.log
+rg '"event":"update\.' desktop-*.log
 
 # 看 DB 相关
-rg '"module":"(DbConnectionMonitor|PgDb|DbSchemaVersion|DbConnectionTester)"' ui-*.log
+rg '"module":"(DbConnectionMonitor|PgDb|DbSchemaVersion|DbConnectionTester)"' desktop-*.log
 
 # 看页面失败热点
-rg '"event":"(dashboard\.|scan\.|inventory\.|drug_index\.|tools\.)' ui-*.log
+rg '"event":"(dashboard\.|scan\.|inventory\.|drug_index\.|tools\.)' desktop-*.log
 ```
 
 ---
