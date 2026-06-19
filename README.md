@@ -332,7 +332,7 @@ This folder standardizes versioning, packaging, publishing, and operational depl
 
 **Repository maintenance**
 
-- `audit-unused-ui-resources.sh`
+- `audit-unused-desktop-avalonia-resources.sh`
   - scans the desktop project for unreferenced styles, resources, and related leftovers
 
 **Windows deployment / sync automation**
