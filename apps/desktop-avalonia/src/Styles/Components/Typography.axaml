@@ -78,4 +78,10 @@
     <Setter Property="FontSize" Value="{DynamicResource ShellMetaSize}" />
     <Setter Property="Opacity" Value="{DynamicResource ShellMetaOpacity}" />
   </Style>
+
+  <Style Selector="TextBlock.ShellStatusLabel">
+    <Setter Property="FontSize" Value="{DynamicResource ShellStatusLabelSize}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Opacity" Value="0.88" />
+  </Style>
 </Styles>
