@@ -7,18 +7,18 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
+/// <summary>
+/// Single-flight gate for page reload work. Busy/loading UI is owned by the caller.
+/// </summary>
 public sealed class PageReloadBehavior : IDisposable
 {
     private CancellationTokenSource? _cts;
     private int _runId;
     private bool _disposed;
 
-    private static readonly TimeSpan BusyDelay = TimeSpan.FromMilliseconds(300);
-
     public bool IsActive => Volatile.Read(ref _cts) is not null;
 
     public async Task RunAsync(
-        Action<bool> setBusy,
         Func<CancellationToken, Task> action,
         Action? onFinished = null)
     {
@@ -34,23 +34,11 @@ public sealed class PageReloadBehavior : IDisposable
         var runId = Interlocked.Increment(ref _runId);
         var ct = cts.Token;
 
-        var busyShown = false;
         Exception? error = null;
 
         try
         {
-            var actionTask = action(ct);
-            var delayTask = Task.Delay(BusyDelay, ct);
-
-            var first = await Task.WhenAny(actionTask, delayTask).ConfigureAwait(false);
-
-            if (first == delayTask && !actionTask.IsCompleted && !ct.IsCancellationRequested && IsCurrentRun(runId, cts))
-            {
-                busyShown = true;
-                await Dispatcher.UIThread.InvokeAsync(() => setBusy(true));
-            }
-
-            await actionTask.ConfigureAwait(false);
+            await action(ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -62,11 +50,6 @@ public sealed class PageReloadBehavior : IDisposable
         }
         finally
         {
-            if (busyShown && IsCurrentRun(runId, cts))
-            {
-                await Dispatcher.UIThread.InvokeAsync(() => setBusy(false));
-            }
-
             if (onFinished is not null && IsCurrentRun(runId, cts))
             {
                 await Dispatcher.UIThread.InvokeAsync(onFinished);
@@ -120,7 +103,6 @@ public sealed class PageReloadBehavior : IDisposable
         }
         catch (ObjectDisposedException)
         {
-            // Ignore races: the owning reload disposes its CTS when it exits.
         }
     }
 }

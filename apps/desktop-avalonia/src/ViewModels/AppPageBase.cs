@@ -9,6 +9,7 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Behaviors;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Contracts;
+using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
@@ -36,6 +37,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     public virtual string? ExportTip => null;
     protected virtual bool AutoRefreshOnDbDisconnected => false;
     protected virtual bool AutoRefreshOnDbReconnected => false;
+    protected virtual bool SupportsStaleWhileReconnect => true;
     protected virtual bool CanAutoRefreshFromDbSignal() => IsEnabled && RefreshCommand is not null;
 
     private readonly PageReloadBehavior _reload = new();
@@ -46,11 +48,77 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     private IDbConnectionMonitorService? _cachedDbMonitor;
     private IAppStartupStateService? _cachedStartupState;
+    private IDatabaseAccessGuard? _cachedAccessGuard;
     private bool _dbMonitorEventsHooked;
     private int _dbSignalRefreshQueued;
 
+    private PageDataAvailability _pageDataAvailability = PageDataAvailability.NotLoaded;
+    private string? _accessBlockedReason;
+    private string? _loadFailedMessage;
+    private bool _hasLoadedOnce;
     private bool _isBusy;
+    private bool _reloadFromDbSignal;
 
+    public bool HasLoadedOnce => _hasLoadedOnce;
+
+    public bool IsShowingStaleData => _pageDataAvailability == PageDataAvailability.Stale;
+
+    public string PageStaleHint
+        => "数据库已断开，当前显示的是上次成功加载的数据。连接恢复后将自动刷新。";
+
+    public bool ShowPageUnavailable => _pageDataAvailability switch
+    {
+        PageDataAvailability.AccessBlocked => true,
+        PageDataAvailability.LoadFailed => true,
+        PageDataAvailability.AwaitingDatabase => !_hasLoadedOnce,
+        PageDataAvailability.NotLoaded => !_hasLoadedOnce,
+        _ => false
+    };
+
+    public string PageUnavailableTitle => _pageDataAvailability switch
+    {
+        PageDataAvailability.AccessBlocked => string.IsNullOrWhiteSpace(_accessBlockedReason)
+            ? "数据库不可用"
+            : _accessBlockedReason!,
+        PageDataAvailability.LoadFailed => "加载失败",
+        PageDataAvailability.AwaitingDatabase => "等待数据库连接",
+        PageDataAvailability.NotLoaded => "等待数据库连接",
+        _ => string.Empty
+    };
+
+    public string? PageUnavailableHint => _pageDataAvailability switch
+    {
+        PageDataAvailability.AccessBlocked => "请前往设置检查数据库版本与迁移状态",
+        PageDataAvailability.LoadFailed => _loadFailedMessage ?? "请稍后重试，或使用顶部菜单刷新",
+        PageDataAvailability.AwaitingDatabase => "连接恢复后将自动加载",
+        PageDataAvailability.NotLoaded => "连接恢复后将自动加载",
+        _ => null
+    };
+
+    public string PageUnavailableIcon => _pageDataAvailability switch
+    {
+        PageDataAvailability.AccessBlocked => "ShieldAlert",
+        PageDataAvailability.LoadFailed => "CircleAlert",
+        _ => "Database"
+    };
+
+    public string SectionEmptyIcon => SectionEmptyCopy.GetIcon(_pageDataAvailability);
+
+    public bool IsSectionPending => SectionPendingPolicy.ShouldShow(_pageDataAvailability, _hasLoadedOnce);
+
+    protected string GetSectionEmptyTitle(string? readyTitle)
+        => SectionEmptyCopy.GetTitle(_pageDataAvailability, readyTitle);
+
+    protected string GetSectionEmptyHint(string? readyHint)
+        => SectionEmptyCopy.GetHint(
+            _pageDataAvailability,
+            readyHint,
+            _accessBlockedReason,
+            _loadFailedMessage);
+
+    /// <summary>
+    /// True only while fetching data — not while waiting for DB connectivity.
+    /// </summary>
     public bool IsBusy
     {
         get => _isBusy;
@@ -66,7 +134,10 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     protected virtual void OnBusyChanged(bool isBusy) { }
 
-    protected bool IsDbConnected => _cachedDbMonitor?.IsConnected ?? true;
+    protected bool IsDbConnected => _cachedDbMonitor?.IsConnected == true;
+
+    protected bool ShouldShowSectionEmpty(bool isContentEmpty)
+        => SectionEmptyVisibilityPolicy.ShouldShow(isContentEmpty, _pageDataAvailability, _hasLoadedOnce);
 
     protected AppPageBase()
     {
@@ -87,7 +158,11 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     protected virtual void OnReloadFinished() { }
 
-    public virtual Task OnPageActivatedAsync(CancellationToken ct = default) => Task.CompletedTask;
+    public virtual Task OnPageActivatedAsync(CancellationToken ct = default)
+    {
+        SyncPageAvailabilityFromEnvironment();
+        return Task.CompletedTask;
+    }
 
     public virtual Task OnPageDeactivatedAsync(CancellationToken ct = default) => Task.CompletedTask;
 
@@ -177,9 +252,8 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         Action? onFinished = null)
     {
         return _reload.RunAsync(
-            setBusy: v => IsBusy = v,
-            action: ct => ExecuteReloadActionAsync(action, ct),
-            onFinished: onFinished);
+            ct => ExecuteReloadPipelineAsync(ct, v => IsBusy = v, action),
+            onFinished);
     }
 
     protected Task RunLocalReloadAsync(
@@ -188,27 +262,39 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         Action? onFinished = null)
     {
         return _reload.RunAsync(
-            setBusy: setBusy,
-            action: ct => ExecuteReloadActionAsync(action, ct),
-            onFinished: onFinished);
+            ct => ExecuteReloadPipelineAsync(ct, setBusy, action),
+            onFinished);
     }
 
-    private async Task ExecuteReloadActionAsync(Func<CancellationToken, Task> action, CancellationToken ct)
+    private async Task ExecuteReloadPipelineAsync(
+        CancellationToken ct,
+        Action<bool> setLoadingBusy,
+        Func<CancellationToken, Task> fetch)
     {
-        var startup = GetStartupState();
-        if (startup is not null && !startup.IsDbInitCompleted)
+        _ = GetDbMonitor();
+        _ = GetDatabaseAccessGuard();
+
+        if (IsDatabaseAccessBlocked(out var blockReason))
         {
-            var ready = await WaitForStartupDbInitCompletedAsync(startup, ct).ConfigureAwait(false);
-            if (!ready)
-            {
-                return;
-            }
+            SetPageAvailability(PageDataAvailability.AccessBlocked, blockReason);
+            return;
+        }
+
+        if (!IsDbConnected)
+        {
+            SetPageAvailability(GetDisconnectedAvailability());
+        }
+
+        if (!await EnsureStartupReadyAsync(ct).ConfigureAwait(false))
+        {
+            return;
         }
 
         var mon = GetDbMonitor();
         var resumedFromWait = false;
         if (mon is not null && !mon.IsConnected)
         {
+            SetPageAvailability(GetDisconnectedAvailability());
             var ok = await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
             if (!ok)
             {
@@ -216,6 +302,12 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             }
 
             resumedFromWait = true;
+        }
+
+        if (IsDatabaseAccessBlocked(out blockReason))
+        {
+            SetPageAvailability(PageDataAvailability.AccessBlocked, blockReason);
+            return;
         }
 
         if (resumedFromWait)
@@ -230,7 +322,233 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             }
         }
 
-        await RunWithTransportRetryAsync(action, mon, ct).ConfigureAwait(false);
+        var suppressReloadBusy = ShouldSuppressReloadBusy();
+        if (!suppressReloadBusy)
+        {
+            SetPageAvailability(PageDataAvailability.Loading);
+        }
+
+        try
+        {
+            if (suppressReloadBusy)
+            {
+                await RunWithTransportRetryAsync(fetch, mon, ct).ConfigureAwait(false);
+            }
+            else
+            {
+                await PageReloadBusyDelay.RunAsync(
+                    ct,
+                    setLoadingBusy,
+                    () => RunWithTransportRetryAsync(fetch, mon, ct)).ConfigureAwait(false);
+            }
+
+            MarkHasLoadedOnce();
+            SetPageAvailability(PageDataAvailability.Ready);
+        }
+        catch (OperationCanceledException)
+        {
+            RestoreAvailabilityAfterCancelledReload();
+        }
+        catch (Exception ex) when (IsDatabaseAccessBlockedException(ex))
+        {
+            LogWarn("reload.access_blocked.fail", "Reload stopped because database access is blocked", ex);
+            SetPageAvailability(PageDataAvailability.AccessBlocked, GetDatabaseAccessGuard()?.BlockReason);
+        }
+        catch (Exception ex)
+        {
+            HandleReloadException(ex);
+
+            if (IsDbTransportError(ex) || IsDatabaseAccessBlockedException(ex))
+            {
+                RestoreAvailabilityAfterFailedReload();
+                return;
+            }
+
+            var message = ex.Message;
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                message = "页面数据加载失败";
+            }
+
+            LogError("reload.pipeline.fail", "Page reload failed with non-transport error", ex);
+            SetPageAvailability(PageDataAvailability.LoadFailed, message);
+        }
+    }
+
+    private void RestoreAvailabilityAfterCancelledReload()
+    {
+        if (IsDatabaseAccessBlocked(out var reason))
+        {
+            SetPageAvailability(PageDataAvailability.AccessBlocked, reason);
+            return;
+        }
+
+        if (!IsDbConnected)
+        {
+            SetPageAvailability(GetDisconnectedAvailability());
+            return;
+        }
+
+        SetPageAvailability(_hasLoadedOnce ? PageDataAvailability.Ready : PageDataAvailability.NotLoaded);
+    }
+
+    private void RestoreAvailabilityAfterFailedReload()
+    {
+        if (IsDatabaseAccessBlocked(out var reason))
+        {
+            SetPageAvailability(PageDataAvailability.AccessBlocked, reason);
+            return;
+        }
+
+        if (!IsDbConnected)
+        {
+            SetPageAvailability(GetDisconnectedAvailability());
+            return;
+        }
+
+        SetPageAvailability(_hasLoadedOnce ? PageDataAvailability.Ready : PageDataAvailability.NotLoaded);
+    }
+
+    private PageDataAvailability GetDisconnectedAvailability()
+        => PageStaleWhileReconnectPolicy.DisconnectedAvailability(_hasLoadedOnce, SupportsStaleWhileReconnect);
+
+    private bool ShouldSuppressReloadBusy()
+        => PageStaleWhileReconnectPolicy.ShouldSuppressReloadBusy(
+            _hasLoadedOnce,
+            SupportsStaleWhileReconnect,
+            _reloadFromDbSignal);
+
+    private async Task<bool> EnsureStartupReadyAsync(CancellationToken ct)
+    {
+        var startup = GetStartupState();
+        if (startup is null || startup.IsDbInitCompleted)
+        {
+            return true;
+        }
+
+        return await WaitForStartupDbInitCompletedAsync(startup, ct).ConfigureAwait(false);
+    }
+
+    private void MarkHasLoadedOnce()
+    {
+        if (_hasLoadedOnce)
+        {
+            return;
+        }
+
+        _hasLoadedOnce = true;
+        OnPropertyChanged(nameof(HasLoadedOnce));
+        OnPropertyChanged(nameof(IsSectionPending));
+        OnSectionEmptyVisibilityMayHaveChanged();
+    }
+
+    protected virtual void OnSectionEmptyVisibilityMayHaveChanged()
+    {
+        OnPageAvailabilityChanged();
+    }
+
+    private void SetPageAvailability(PageDataAvailability availability, string? detail = null)
+    {
+        if (availability == PageDataAvailability.AccessBlocked)
+        {
+            _accessBlockedReason = detail;
+            _loadFailedMessage = null;
+        }
+        else if (availability == PageDataAvailability.LoadFailed)
+        {
+            _loadFailedMessage = detail;
+            _accessBlockedReason = null;
+        }
+        else
+        {
+            _accessBlockedReason = null;
+            _loadFailedMessage = null;
+        }
+
+        if (_pageDataAvailability == availability
+            && availability == PageDataAvailability.AccessBlocked
+            && string.Equals(_accessBlockedReason, detail, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (_pageDataAvailability == availability
+            && availability == PageDataAvailability.LoadFailed
+            && string.Equals(_loadFailedMessage, detail, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (_pageDataAvailability == availability
+            && availability is not PageDataAvailability.AccessBlocked
+            and not PageDataAvailability.LoadFailed)
+        {
+            return;
+        }
+
+        _pageDataAvailability = availability;
+        if (ShowPageUnavailable || availability == PageDataAvailability.Stale)
+        {
+            IsBusy = false;
+        }
+
+        if (availability == PageDataAvailability.AccessBlocked)
+        {
+            OnLookupCatalogSuspended();
+        }
+
+        NotifyPageAvailabilityChanged();
+    }
+
+    protected bool IsLookupCatalogSuspended()
+        => IsDatabaseAccessBlocked(out _);
+
+    protected virtual void OnLookupCatalogSuspended()
+    {
+    }
+
+    protected virtual void OnPageAvailabilityChanged()
+    {
+    }
+
+    private void NotifyPageAvailabilityChanged()
+    {
+        OnPropertyChanged(nameof(ShowPageUnavailable));
+        OnPropertyChanged(nameof(PageUnavailableTitle));
+        OnPropertyChanged(nameof(PageUnavailableHint));
+        OnPropertyChanged(nameof(PageUnavailableIcon));
+        OnPropertyChanged(nameof(IsShowingStaleData));
+        OnPropertyChanged(nameof(SectionEmptyIcon));
+        OnPropertyChanged(nameof(IsSectionPending));
+        OnPageAvailabilityChanged();
+    }
+
+    private void SyncPageAvailabilityFromConnectivity()
+        => SyncPageAvailabilityFromEnvironment();
+
+    /// <summary>
+    /// Reconcile page availability with current guard and DB monitor without fetching data.
+    /// </summary>
+    public void SyncPageAvailabilityFromEnvironment()
+    {
+        if (IsDatabaseAccessBlocked(out var reason))
+        {
+            SetPageAvailability(PageDataAvailability.AccessBlocked, reason);
+            return;
+        }
+
+        if (!IsDbConnected)
+        {
+            SetPageAvailability(GetDisconnectedAvailability());
+            return;
+        }
+
+        if (_pageDataAvailability is PageDataAvailability.Stale
+            or PageDataAvailability.AwaitingDatabase
+            or PageDataAvailability.NotLoaded)
+        {
+            SetPageAvailability(_hasLoadedOnce ? PageDataAvailability.Ready : PageDataAvailability.NotLoaded);
+        }
     }
 
     private async Task RunWithTransportRetryAsync(
@@ -284,56 +602,71 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             return;
         }
 
-        using var busyDelayCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var busyDelayTask = Task.Delay(TimeSpan.FromMilliseconds(300), busyDelayCts.Token).ContinueWith(async _ =>
-        {
-            try
-            {
-                if (busyDelayCts.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                await global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
-                    () => setBusy(true),
-                    global::Avalonia.Threading.DispatcherPriority.Background);
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default).Unwrap();
-
-        try
-        {
-            await body().ConfigureAwait(false);
-        }
-        finally
-        {
-            busyDelayCts.Cancel();
-            try
-            {
-                await busyDelayTask.ConfigureAwait(false);
-            }
-            catch (System.Exception ex)
-            {
-                LogWarn("reload.busy_delay.fail", "Busy delay task failed", ex);
-            }
-
-            await global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
-                () => setBusy(false),
-                global::Avalonia.Threading.DispatcherPriority.Background);
-        }
+        await PageReloadBusyDelay.RunAsync(ct, setBusy, body).ConfigureAwait(false);
     }
 
 
     private void HandleReloadException(Exception ex)
     {
+        if (IsDatabaseAccessBlockedException(ex))
+        {
+            LogWarn("reload.access_blocked.fail", "Reload stopped because database access is blocked", ex);
+            return;
+        }
+
         if (IsDbTransportError(ex))
         {
             LogWarn("reload.db_transport_error", "Reload hit transport error, signaling monitor", ex);
             GetDbMonitor()?.Signal();
         }
 
+    }
+
+    protected bool IsDatabaseAccessBlocked(out string? reason)
+    {
+        var guard = GetDatabaseAccessGuard();
+        reason = guard?.BlockReason;
+        return guard?.IsBlocked == true;
+    }
+
+    protected bool IsDatabaseAccessBlockedException(Exception ex)
+    {
+        if (!IsDatabaseAccessBlocked(out var reason) || string.IsNullOrWhiteSpace(reason))
+        {
+            return false;
+        }
+
+        for (var cur = ex; cur is not null; cur = cur.InnerException)
+        {
+            if (cur is InvalidOperationException && string.Equals(cur.Message, reason, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private IDatabaseAccessGuard? GetDatabaseAccessGuard()
+    {
+        if (_cachedAccessGuard is not null)
+        {
+            return _cachedAccessGuard;
+        }
+
+        try
+        {
+            if (global::Avalonia.Application.Current is App app)
+            {
+                _cachedAccessGuard = app.Services.GetService(typeof(IDatabaseAccessGuard)) as IDatabaseAccessGuard;
+            }
+        }
+        catch (System.Exception ex)
+        {
+            LogWarn("reload.get_access_guard.fail", "Failed to resolve database access guard from DI", ex);
+        }
+
+        return _cachedAccessGuard;
     }
 
     protected bool IsDbTransportError(Exception ex)
@@ -361,6 +694,11 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     /// </summary>
     protected bool ShouldShowOperationErrorToast(Exception ex)
     {
+        if (IsDatabaseAccessBlockedException(ex))
+        {
+            return false;
+        }
+
         if (DbTransportErrorClassifier.IsTransportError(ex))
         {
             MarkDbDisconnectedOnTransportError(ex);
@@ -436,16 +774,21 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         monitor.Reconnected += OnDbMonitorReconnectedForToastSuppress;
         _dbMonitorEventsHooked = true;
 
-        // If page initializes while DB is already disconnected, trigger the same
-        // auto-refresh path as a disconnect signal so busy state appears immediately.
-        if (!monitor.IsConnected && AutoRefreshOnDbDisconnected)
+        // If page initializes while DB is already disconnected, show unavailable and queue refresh.
+        if (!monitor.IsConnected)
         {
-            ScheduleAutoRefreshFromDbSignal();
+            PostOnUi(SyncPageAvailabilityFromConnectivity);
+            if (AutoRefreshOnDbDisconnected)
+            {
+                ScheduleAutoRefreshFromDbSignal();
+            }
         }
     }
 
     private void OnDbMonitorDisconnected()
     {
+        PostOnUi(SyncPageAvailabilityFromConnectivity);
+
         if (!AutoRefreshOnDbDisconnected)
         {
             return;
@@ -459,6 +802,8 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     private void OnDbMonitorReconnected()
     {
+        PostOnUi(SyncPageAvailabilityFromConnectivity);
+
         if (!AutoRefreshOnDbReconnected)
         {
             return;
@@ -485,6 +830,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     private async Task ExecuteAutoRefreshFromDbSignalAsync()
     {
+        _reloadFromDbSignal = true;
         try
         {
             if (!CanAutoRefreshFromDbSignal())
@@ -521,6 +867,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         }
         finally
         {
+            _reloadFromDbSignal = false;
             Interlocked.Exchange(ref _dbSignalRefreshQueued, 0);
         }
     }
@@ -611,5 +958,6 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         _dbMonitorEventsHooked = false;
         _cachedDbMonitor = null;
         _cachedStartupState = null;
+        _cachedAccessGuard = null;
     }
 }
