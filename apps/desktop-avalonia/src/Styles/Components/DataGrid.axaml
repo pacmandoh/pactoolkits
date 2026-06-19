@@ -1,4 +1,4 @@
-﻿<Styles
+<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors">
@@ -9,9 +9,11 @@
     <Setter Property="HeadersVisibility" Value="All" />
     <Setter Property="GridLinesVisibility" Value="None" />
     <Setter Property="CanUserResizeColumns" Value="True" />
+    <Setter Property="CanUserSortColumns" Value="True" />
     <Setter Property="RowHeight" Value="{DynamicResource RowMinHeight}" />
     <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
     <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+    <Setter Property="behaviors:DataGridSortSupportBehavior.Enabled" Value="True" />
   </Style>
 
   <Style Selector="DataGrid.StickyIndexGrid">
