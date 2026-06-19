@@ -63,6 +63,13 @@
     </Style>
   </UserControl.Styles>
 
+  <controls:PageDataShell IsLoadingData="{Binding IsBusy}"
+                          ShowUnavailable="{Binding ShowPageUnavailable}"
+                          UnavailableTitle="{Binding PageUnavailableTitle}"
+                          UnavailableHint="{Binding PageUnavailableHint}"
+                          UnavailableIcon="{Binding PageUnavailableIcon}"
+                          ShowStale="{Binding IsShowingStaleData}"
+                          StaleHint="{Binding PageStaleHint}">
   <Grid Classes="PageRoot">
 
       <suki:GlassCard Classes="SectionCard">
@@ -376,8 +383,11 @@
               <suki:BusyArea IsBusy="{Binding IsDetailBusy}">
               <controls:EmptyStatePanel
                 IsEmpty="{Binding IsStockEmpty}"
-                EmptyText="暂无库存明细"
-                EmptyHint="当前筛选条件下没有数据">
+                EmptyText="{Binding StockEmptyText}"
+                EmptyHint="{Binding StockEmptyHint}"
+                Icon="{Binding SectionEmptyIcon}"
+                IsPending="{Binding IsSectionPending}"
+                SlotMinHeight="{DynamicResource DgH10Rows}">
                 <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid EditableGrid StockDetailContextMenuGrid StickyIndexGrid StickyIndexRowNo"
                      Classes.CellTemplateHighlightGrid="{Binding IsStockEditEnabled}"
                      ItemsSource="{Binding StockRows}"
@@ -411,8 +421,11 @@
               <suki:BusyArea IsBusy="{Binding IsAggBusy}">
               <controls:EmptyStatePanel
                 IsEmpty="{Binding IsAggEmpty}"
-                EmptyText="暂无汇总数据"
-                EmptyHint="当前筛选条件下没有数据">
+                EmptyText="{Binding AggEmptyText}"
+                EmptyHint="{Binding AggEmptyHint}"
+                Icon="{Binding SectionEmptyIcon}"
+                IsPending="{Binding IsSectionPending}"
+                SlotMinHeight="{DynamicResource DgH10Rows}">
                 <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
                      ItemsSource="{Binding DrugSpecRows}"
                      x:Name="AggGrid"
@@ -441,8 +454,11 @@
               <suki:BusyArea IsBusy="{Binding IsLowBusy}">
               <controls:EmptyStatePanel
                 IsEmpty="{Binding IsLowEmpty}"
-                EmptyText="暂无低库存药品"
-                EmptyHint="当前筛选条件下没有数据">
+                EmptyText="{Binding LowEmptyText}"
+                EmptyHint="{Binding LowEmptyHint}"
+                Icon="{Binding SectionEmptyIcon}"
+                IsPending="{Binding IsSectionPending}"
+                SlotMinHeight="{DynamicResource DgH10Rows}">
                 <DataGrid Classes="SectionGrid InventoryGrid LowToneGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
                      ItemsSource="{Binding LowStockRows}"
                      x:Name="LowStockGrid"
@@ -468,8 +484,11 @@
               <suki:BusyArea IsBusy="{Binding IsMissingBusy}">
               <controls:EmptyStatePanel
                 IsEmpty="{Binding IsMissingEmpty}"
-                EmptyText="暂无缺失药品"
-                EmptyHint="当前筛选条件下没有数据">
+                EmptyText="{Binding MissingEmptyText}"
+                EmptyHint="{Binding MissingEmptyHint}"
+                Icon="{Binding SectionEmptyIcon}"
+                IsPending="{Binding IsSectionPending}"
+                SlotMinHeight="{DynamicResource DgH10Rows}">
                 <DataGrid Classes="SectionGrid InventoryGrid MissingGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
                      ItemsSource="{Binding MissingStockRows}"
                      x:Name="MissingGrid"
@@ -522,4 +541,5 @@
       </suki:GlassCard>
 
     </Grid>
+  </controls:PageDataShell>
 </UserControl>
