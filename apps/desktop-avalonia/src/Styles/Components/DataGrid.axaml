@@ -1,6 +1,7 @@
-<Styles xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors">
+﻿<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors">
 
   <Style Selector="DataGrid.SectionGrid">
     <Setter Property="AutoGenerateColumns" Value="False" />
@@ -57,9 +58,10 @@
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Content">
       <Setter.Value>
-        <Binding RelativeSource="{RelativeSource AncestorType=DataGridRow}"
-            Path="Index"
-            Converter="{StaticResource RowIndexPlusOne}" />
+        <Binding
+          Converter="{StaticResource RowIndexPlusOne}"
+          Path="Index"
+          RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
       </Setter.Value>
     </Setter>
   </Style>
@@ -74,9 +76,10 @@
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Content">
       <Setter.Value>
-        <Binding RelativeSource="{RelativeSource AncestorType=DataGridRow}"
-            Path="Index"
-            Converter="{StaticResource RowIndexPlusOne}" />
+        <Binding
+          Converter="{StaticResource RowIndexPlusOne}"
+          Path="Index"
+          RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
       </Setter.Value>
     </Setter>
   </Style>
@@ -84,8 +87,7 @@
   <Style Selector="DataGrid.StickyIndexGrid.StickyIndexDisplayIndex DataGridRowHeader">
     <Setter Property="Content">
       <Setter.Value>
-        <ReflectionBinding RelativeSource="{RelativeSource AncestorType=DataGridRow}"
-                 Path="DataContext.DisplayIndex" />
+        <ReflectionBinding Path="DataContext.DisplayIndex" RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
       </Setter.Value>
     </Setter>
   </Style>
@@ -93,8 +95,7 @@
   <Style Selector="DataGrid.StickyIndexGrid.StickyIndexRowNo DataGridRowHeader">
     <Setter Property="Content">
       <Setter.Value>
-        <ReflectionBinding RelativeSource="{RelativeSource AncestorType=DataGridRow}"
-                 Path="DataContext.RowNo" />
+        <ReflectionBinding Path="DataContext.RowNo" RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
       </Setter.Value>
     </Setter>
   </Style>
@@ -102,8 +103,7 @@
   <Style Selector="DataGrid.MsfxIndexedGrid.MapIndexedGrid DataGridRowHeader">
     <Setter Property="Content">
       <Setter.Value>
-        <ReflectionBinding RelativeSource="{RelativeSource AncestorType=DataGridRow}"
-                 Path="DataContext.DisplayIndex" />
+        <ReflectionBinding Path="DataContext.DisplayIndex" RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
       </Setter.Value>
     </Setter>
   </Style>

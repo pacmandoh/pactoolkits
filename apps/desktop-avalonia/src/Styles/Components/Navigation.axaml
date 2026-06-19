@@ -1,8 +1,9 @@
-<Styles xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:con="https://github.com/kikipoulet/SukiUI"
-    xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-    xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+﻿<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:con="https://github.com/kikipoulet/SukiUI"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI">
   <Style Selector="con|SukiWindow MenuItem:disabled">
     <Setter Property="Opacity" Value="0.4" />
   </Style>
@@ -30,18 +31,16 @@
     <Setter Property="Transitions" Value="{x:Null}" />
   </Style>
 
-  <!-- Expanded: Suki PART_Border is rounded — clip makes full-height bar look like a pill. -->
+  <!--  Expanded: Suki PART_Border is rounded — clip makes full-height bar look like a pill.  -->
   <Style Selector="con|SukiSideMenu[IsMenuExpanded=True] con|SukiSideMenuItem /template/ Border#PART_Border">
     <Setter Property="CornerRadius" Value="0" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ Border#PART_Border,
-                     con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ Border#PART_Border">
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ Border#PART_Border,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ Border#PART_Border">
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover,
-                     con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed">
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed">
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
@@ -49,33 +48,27 @@
     <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ TextBlock#PART_Header,
-                     con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ TextBlock#PART_Header">
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ TextBlock#PART_Header,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ TextBlock#PART_Header">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ ContentControl#PART_Icon,
-                     con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ ContentControl#PART_Icon">
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ ContentControl#PART_Icon,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ ContentControl#PART_Icon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=True] icons|AppIcon,
-                     con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=True]:pointerover icons|AppIcon">
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=True] icons|AppIcon,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=True]:pointerover icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover icons|AppIcon,
-                     con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed icons|AppIcon">
+  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover icons|AppIcon,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu[IsMenuExpanded=True] con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border,
-                     con|SukiSideMenu[IsMenuExpanded=True] con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ Border#PART_Border">
+  <Style Selector="con|SukiSideMenu[IsMenuExpanded=True] con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border,                      con|SukiSideMenu[IsMenuExpanded=True] con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ Border#PART_Border">
     <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushExpanded}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu[IsMenuExpanded=False] con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border,
-                     con|SukiSideMenu[IsMenuExpanded=False] con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ Border#PART_Border">
+  <Style Selector="con|SukiSideMenu[IsMenuExpanded=False] con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border,                      con|SukiSideMenu[IsMenuExpanded=False] con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ Border#PART_Border">
     <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushCollapsed}" />
   </Style>
 
@@ -106,16 +99,18 @@
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="Template">
       <ControlTemplate>
-        <Border x:Name="PART_Border"
-            Background="{TemplateBinding Background}"
-            BorderBrush="{TemplateBinding BorderBrush}"
-            BorderThickness="{TemplateBinding BorderThickness}"
-            CornerRadius="{TemplateBinding CornerRadius}"
-            Padding="{TemplateBinding Padding}">
-          <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                   VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                   Content="{TemplateBinding Content}"
-                   ContentTemplate="{TemplateBinding ContentTemplate}" />
+        <Border
+          x:Name="PART_Border"
+          Padding="{TemplateBinding Padding}"
+          Background="{TemplateBinding Background}"
+          BorderBrush="{TemplateBinding BorderBrush}"
+          BorderThickness="{TemplateBinding BorderThickness}"
+          CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter
+            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+            Content="{TemplateBinding Content}"
+            ContentTemplate="{TemplateBinding ContentTemplate}" />
         </Border>
       </ControlTemplate>
     </Setter>
@@ -155,58 +150,43 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pointerover,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pressed">
+  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pointerover,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pressed">
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pointerover icons|AppIcon,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pressed icons|AppIcon">
+  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pointerover icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pressed icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pointerover,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pressed">
+  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pointerover,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pressed">
     <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushCollapsed}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active icons|AppIcon,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pointerover icons|AppIcon,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pressed icons|AppIcon">
+  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pointerover icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pressed icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pointerover,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pressed">
+  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pointerover,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pressed">
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pointerover icons|AppIcon,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pressed icons|AppIcon">
+  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pointerover icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pressed icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pointerover TextBlock.SidebarFooterLabel,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pressed TextBlock.SidebarFooterLabel">
+  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pointerover TextBlock.SidebarFooterLabel,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pressed TextBlock.SidebarFooterLabel">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pointerover,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pressed">
+  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pointerover,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pressed">
     <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushExpanded}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active icons|AppIcon,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pointerover icons|AppIcon,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pressed icons|AppIcon">
+  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pointerover icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pressed icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active TextBlock.SidebarFooterLabel,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pointerover TextBlock.SidebarFooterLabel,
-                     con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pressed TextBlock.SidebarFooterLabel">
+  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active TextBlock.SidebarFooterLabel,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pointerover TextBlock.SidebarFooterLabel,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pressed TextBlock.SidebarFooterLabel">
     <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
