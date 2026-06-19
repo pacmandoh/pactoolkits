@@ -73,7 +73,7 @@ public sealed class AppLogger : IAppLogger, IDisposable
         var exportDir = Path.Combine(LogDirectory, "exports");
         Directory.CreateDirectory(exportDir);
 
-        var exportPath = Path.Combine(exportDir, $"ui-recent-{DateTimeOffset.Now:yyyyMMdd-HHmmss}.log");
+        var exportPath = Path.Combine(exportDir, $"desktop-recent-{DateTimeOffset.Now:yyyyMMdd-HHmmss}.log");
 
         await _ioGate.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -215,19 +215,22 @@ public sealed class AppLogger : IAppLogger, IDisposable
     {
         var thresholdUtc = DateTime.UtcNow.Date.AddDays(-retentionDays);
 
-        foreach (var file in Directory.EnumerateFiles(LogDirectory, "ui-*.log", SearchOption.TopDirectoryOnly))
+        foreach (var pattern in new[] { "desktop-*.log", "ui-*.log" })
         {
-            try
+            foreach (var file in Directory.EnumerateFiles(LogDirectory, pattern, SearchOption.TopDirectoryOnly))
             {
-                var info = new FileInfo(file);
-                if (info.LastWriteTimeUtc < thresholdUtc)
+                try
                 {
-                    info.Delete();
+                    var info = new FileInfo(file);
+                    if (info.LastWriteTimeUtc < thresholdUtc)
+                    {
+                        info.Delete();
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Log cleanup failed: {ex}");
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Log cleanup failed: {ex}");
+                }
             }
         }
     }
@@ -281,7 +284,7 @@ public sealed class AppLogger : IAppLogger, IDisposable
 
     private string BuildLogPath(DateTimeOffset at, int suffix)
     {
-        var baseName = $"ui-{at:yyyy-MM-dd}";
+        var baseName = $"desktop-{at:yyyy-MM-dd}";
         var name = suffix == 0 ? $"{baseName}.log" : $"{baseName}.{suffix}.log";
         return Path.Combine(LogDirectory, name);
     }
@@ -308,7 +311,7 @@ public sealed class AppLogger : IAppLogger, IDisposable
         }
 
         var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        return Path.Combine(baseDir, "PacToolkits", "logs", "ui");
+        return Path.Combine(baseDir, "PacToolkits", "logs", "desktop");
     }
 
     private sealed class AppLogRecord
