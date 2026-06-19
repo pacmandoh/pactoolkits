@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ScanCodeView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -291,9 +291,7 @@
                         x:Name="TraceCodePreviewScroll"
                         HorizontalScrollBarVisibility="Auto"
                         VerticalScrollBarVisibility="Auto">
-                        <ItemsControl
-                          Padding="{DynamicResource TraceCodeInputPadding}"
-                          ItemsSource="{Binding TraceCodeLines}">
+                        <ItemsControl Padding="{DynamicResource TraceCodeInputPadding}" ItemsSource="{Binding TraceCodeLines}">
                           <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                               <StackPanel Spacing="0" />

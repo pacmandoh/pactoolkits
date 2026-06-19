@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxLinkView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -806,28 +806,28 @@
                               Binding="{Binding Target}"
                               Header="目标药品/规格" />
                             <DataGridTextColumn
-                              MinWidth="88"
                               Width="100"
+                              MinWidth="88"
                               Binding="{Binding Status}"
                               Header="状态" />
                             <DataGridTextColumn
-                              MinWidth="120"
                               Width="170"
+                              MinWidth="120"
                               Binding="{Binding Progress}"
                               Header="进度" />
                             <DataGridTextColumn
-                              MinWidth="72"
                               Width="88"
+                              MinWidth="72"
                               Binding="{Binding RetryCount}"
                               Header="重试" />
                             <DataGridTextColumn
-                              MinWidth="128"
                               Width="160"
+                              MinWidth="128"
                               Binding="{Binding CreatedAt}"
                               Header="创建时间" />
                             <DataGridTextColumn
-                              MinWidth="128"
                               Width="160"
+                              MinWidth="128"
                               Binding="{Binding PickedAt}"
                               Header="抢占时间" />
                             <DataGridTextColumn
@@ -1148,12 +1148,12 @@
                       IsContentEmpty="{Binding IsAutoPullBatchEmpty}"
                       LastPageCommand="{Binding LastPullBatchPageCommand}"
                       NextPageCommand="{Binding NextPullBatchPageCommand}"
-                      PageIndex="{Binding PullBatchPage}"
                       PageSizeOptions="{Binding PullBatchPageSizeOptions}"
                       Placement="Top"
                       PrevPageCommand="{Binding PrevPullBatchPageCommand}"
                       SelectedPageSize="{Binding PullBatchPageSize, Mode=TwoWay}"
-                      TotalPages="{Binding PullBatchTotalPages}" />
+                      TotalPages="{Binding PullBatchTotalPages}"
+                      PageIndex="{Binding PullBatchPage}" />
                     <suki:BusyArea
                       Grid.Row="1"
                       BusyText="加载中..."
@@ -1237,9 +1237,7 @@
                     IsVisible="{Binding IsMapPanelExpanded}"
                     RowDefinitions="Auto,Auto,*"
                     RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-                    <suki:GlassCard
-                      Classes="FilterHintCard"
-                      IsVisible="{Binding IsMapQueueSearchPanelVisible}">
+                    <suki:GlassCard Classes="FilterHintCard" IsVisible="{Binding IsMapQueueSearchPanelVisible}">
                       <Grid
                         VerticalAlignment="Center"
                         ColumnDefinitions="180,Auto,220,Auto,150,*,Auto,Auto"
@@ -1316,13 +1314,13 @@
                       IsContentEmpty="{Binding IsAutoMapQueueEmpty}"
                       LastPageCommand="{Binding LastMapQueuePageCommand}"
                       NextPageCommand="{Binding NextMapQueuePageCommand}"
-                      PageIndex="{Binding MapQueuePage}"
                       PageSizeOptions="{Binding MapQueuePageSizeOptions}"
                       Placement="Top"
                       PrevPageCommand="{Binding PrevMapQueuePageCommand}"
                       SelectedPageSize="{Binding MapQueuePageSize, Mode=TwoWay}"
                       StatusText="{Binding MapQueuePagerStatusText}"
-                      TotalPages="{Binding MapQueueTotalPages}" />
+                      TotalPages="{Binding MapQueueTotalPages}"
+                      PageIndex="{Binding MapQueuePage}" />
 
                     <suki:BusyArea
                       Grid.Row="2"
@@ -1610,28 +1608,28 @@
                               Binding="{Binding Target}"
                               Header="目标药品/规格" />
                             <DataGridTextColumn
-                              MinWidth="88"
                               Width="100"
+                              MinWidth="88"
                               Binding="{Binding Status}"
                               Header="状态" />
                             <DataGridTextColumn
-                              MinWidth="120"
                               Width="170"
+                              MinWidth="120"
                               Binding="{Binding Progress}"
                               Header="进度" />
                             <DataGridTextColumn
-                              MinWidth="72"
                               Width="88"
+                              MinWidth="72"
                               Binding="{Binding RetryCount}"
                               Header="重试" />
                             <DataGridTextColumn
-                              MinWidth="128"
                               Width="160"
+                              MinWidth="128"
                               Binding="{Binding CreatedAt}"
                               Header="创建时间" />
                             <DataGridTextColumn
-                              MinWidth="128"
                               Width="160"
+                              MinWidth="128"
                               Binding="{Binding PickedAt}"
                               Header="抢占时间" />
                             <DataGridTextColumn
@@ -1652,12 +1650,12 @@
                       IsContentEmpty="{Binding IsAutoTaskQueueEmpty}"
                       LastPageCommand="{Binding LastTaskQueuePageCommand}"
                       NextPageCommand="{Binding NextTaskQueuePageCommand}"
-                      PageIndex="{Binding TaskQueuePage}"
                       PageSizeOptions="{Binding TaskQueuePageSizeOptions}"
                       PrevPageCommand="{Binding PrevTaskQueuePageCommand}"
                       SelectedPageSize="{Binding TaskQueuePageSize, Mode=TwoWay}"
                       TotalCount="{Binding TaskQueueFilteredCount}"
-                      TotalPages="{Binding TaskQueueTotalPages}" />
+                      TotalPages="{Binding TaskQueueTotalPages}"
+                      PageIndex="{Binding TaskQueuePage}" />
                   </Grid>
 
                   <Grid
@@ -1670,13 +1668,13 @@
                       IsContentEmpty="{Binding IsAutoLogsEmpty}"
                       LastPageCommand="{Binding LastAutoLogPageCommand}"
                       NextPageCommand="{Binding NextAutoLogPageCommand}"
-                      PageIndex="{Binding AutoLogPage}"
                       PageSizeOptions="{Binding AutoLogPageSizeOptions}"
                       Placement="Top"
                       PrevPageCommand="{Binding PrevAutoLogPageCommand}"
                       SelectedPageSize="{Binding AutoLogPageSize, Mode=TwoWay}"
                       TotalCount="{Binding AutoLogs.Count}"
-                      TotalPages="{Binding AutoLogTotalPages}" />
+                      TotalPages="{Binding AutoLogTotalPages}"
+                      PageIndex="{Binding AutoLogPage}" />
                     <controls:EmptyStatePanel
                       Grid.Row="1"
                       EmptyHint="点击“立即巡检”或开启自动监控后将显示执行日志"
@@ -1711,18 +1709,18 @@
                             </DataGridTemplateColumn.CellTemplate>
                           </DataGridTemplateColumn>
                           <DataGridTextColumn
-                            MinWidth="120"
                             Width="140"
+                            MinWidth="120"
                             Binding="{Binding At}"
                             Header="时间" />
                           <DataGridTextColumn
-                            MinWidth="120"
                             Width="160"
+                            MinWidth="120"
                             Binding="{Binding Stage}"
                             Header="流程阶段" />
                           <DataGridTextColumn
-                            MinWidth="240"
                             Width="2*"
+                            MinWidth="240"
                             Binding="{Binding Message}"
                             Header="详细信息" />
                         </DataGrid.Columns>
@@ -1862,14 +1860,14 @@
                   IsContentEmpty="{Binding IsUpoutEmpty}"
                   LastPageCommand="{Binding LastUpoutPageCommand}"
                   NextPageCommand="{Binding NextUpoutPageCommand}"
-                  PageIndex="{Binding UpoutPage}"
                   PageSizeOptions="{Binding UpoutPageSizeOptions}"
                   Placement="Top"
                   PrevPageCommand="{Binding PrevUpoutPageCommand}"
                   SelectedPageSize="{Binding UpoutPageSize, Mode=TwoWay}"
                   StatusText="{Binding UpoutStatus}"
                   TotalCount="{Binding UpoutTotal}"
-                  TotalPages="{Binding UpoutTotalPages}" />
+                  TotalPages="{Binding UpoutTotalPages}"
+                  PageIndex="{Binding UpoutPage}" />
 
                 <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsUpoutBusy}">
                   <controls:EmptyStatePanel
@@ -2035,14 +2033,14 @@
                   IsContentEmpty="{Binding IsSubCodeEmpty}"
                   LastPageCommand="{Binding LastSubcodePageCommand}"
                   NextPageCommand="{Binding NextSubcodePageCommand}"
-                  PageIndex="{Binding SubcodePage}"
                   PageSizeOptions="{Binding SubcodePageSizeOptions}"
                   Placement="Top"
                   PrevPageCommand="{Binding PrevSubcodePageCommand}"
                   SelectedPageSize="{Binding SubcodePageSize, Mode=TwoWay}"
                   StatusText="{Binding SubcodeStatus}"
                   TotalCount="{Binding SubcodeTotal}"
-                  TotalPages="{Binding SubcodeTotalPages}" />
+                  TotalPages="{Binding SubcodeTotalPages}"
+                  PageIndex="{Binding SubcodePage}" />
 
                 <suki:BusyArea Grid.Row="1" IsBusy="{Binding IsSubcodeBusy}">
                   <controls:EmptyStatePanel

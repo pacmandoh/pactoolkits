@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxMappingBatchDialogView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -79,8 +79,8 @@
         RowSpacing="{DynamicResource DialogInnerRowSpacing}">
         <con:GlassCard
           x:Name="SearchPanel"
-          IsVisible="False"
-          Classes="FilterHintCard">
+          Classes="FilterHintCard"
+          IsVisible="False">
           <Grid
             VerticalAlignment="Center"
             ColumnDefinitions="160,Auto,180,Auto,130,*,Auto,Auto"
