@@ -244,7 +244,7 @@
     <Setter Property="Background" Value="{ReflectionBinding DataContext.State, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource TraceEntryStateToBgBrush}, ConverterParameter=50}" />
   </Style>
 
-  <Style Selector="DataGrid.CellTemplateHighlightGrid DataGridCell:current">
+  <Style Selector="DataGrid.CellTemplateHighlightGrid:focus-within DataGridCell:current">
     <Setter Property="Template">
       <ControlTemplate>
         <Grid Background="{TemplateBinding Background}" ColumnDefinitions="*,Auto">
@@ -272,7 +272,7 @@
     </Setter>
   </Style>
 
-  <Style Selector="DataGrid.CellTemplateHighlightGrid DataGridRow:selected DataGridCell:current">
+  <Style Selector="DataGrid.CellTemplateHighlightGrid:focus-within DataGridRow:selected DataGridCell:current">
     <Setter Property="Template">
       <ControlTemplate>
         <Grid Background="{TemplateBinding Background}" ColumnDefinitions="*,Auto">
