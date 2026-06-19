@@ -182,10 +182,13 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     protected static void NotifyCommands(params IRelayCommand?[] commands)
     {
-        foreach (var command in commands)
+        PostOnUi(() =>
         {
-            command?.NotifyCanExecuteChanged();
-        }
+            foreach (var command in commands)
+            {
+                command?.NotifyCanExecuteChanged();
+            }
+        });
     }
 
     protected static Task RunOnUiAsync(Action action)

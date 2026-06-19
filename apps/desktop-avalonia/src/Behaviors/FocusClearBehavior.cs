@@ -105,6 +105,11 @@ public class FocusClearBehavior
             return;
         }
 
+        if (IsNaturalFocusTarget(e.Source))
+        {
+            return;
+        }
+
         if (scope is Control host)
         {
             // Defer focus transfer so popup light-dismiss and the clicked control can process first.
@@ -156,6 +161,29 @@ public class FocusClearBehavior
             }
 
             current = (current as StyledElement)?.Parent;
+        }
+
+        return false;
+    }
+
+    private static bool IsNaturalFocusTarget(object? source)
+    {
+        for (var current = source; current is not null; current = (current as StyledElement)?.Parent)
+        {
+            switch (current)
+            {
+                case TextBox:
+                case ComboBox:
+                case AutoCompleteBox:
+                case CalendarDatePicker:
+                case NumericUpDown:
+                    return true;
+            }
+
+            if (current.GetType().Name is "PlainAutoCompleteBox")
+            {
+                return true;
+            }
         }
 
         return false;
