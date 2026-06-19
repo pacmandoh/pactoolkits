@@ -56,15 +56,15 @@ public class FocusClearBehavior
             return;
         }
 
-        if (PopupDismissHelper.IsInsideOpenPopupSurface(e.Source))
-        {
-            return;
-        }
-
         var topLevel = TopLevel.GetTopLevel(scope);
-        if (topLevel is not null)
+        if (topLevel is not null && !PopupDismissHelper.ShouldSkipPopupDismiss(e.Source))
         {
             PopupDismissHelper.DismissOpenPopups(topLevel);
+        }
+
+        if (PopupDismissHelper.ShouldSkipPopupDismiss(e.Source))
+        {
+            return;
         }
 
         var focused = topLevel?.FocusManager?.GetFocusedElement();
