@@ -1,13 +1,12 @@
 using System.Diagnostics;
-using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Agent.Contracts.Agents;
-using PacToolkits.Agent.Contracts.Events;
 using PacToolkits.Agent.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
 namespace PacToolkits.Desktop.Tests;
 
@@ -194,12 +193,5 @@ public sealed class AhkInjectorAgentRuntimeTests
 
         public Task<string> ExportRecentAsync(TimeSpan window, CancellationToken ct = default)
             => Task.FromResult(string.Empty);
-    }
-
-    private sealed class NullAgentEventSink : IAgentEventSink
-    {
-        public void Publish(AgentExecutionEvent executionEvent)
-        {
-        }
     }
 }
