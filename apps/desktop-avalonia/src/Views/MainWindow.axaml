@@ -1,4 +1,4 @@
-﻿<suki:SukiWindow
+<suki:SukiWindow
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -31,8 +31,7 @@
       Margin="{DynamicResource ShellNavItemMargin}"
       Classes="WindowControlsButton"
       Command="{Binding OpenUpdateCenterCommand}"
-      IsVisible="{Binding HasUpdateAvailable}"
-      ToolTip.Tip="{Binding UpdateStatusTip}">
+      IsVisible="{Binding HasUpdateAvailable}">
       <icons:AppIcon
         Width="{DynamicResource ShellNavIconSize}"
         Height="{DynamicResource ShellNavIconSize}"

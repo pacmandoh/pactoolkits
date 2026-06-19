@@ -224,11 +224,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public string AhkStatusText
         => IsAhkRunning ? "运行中" : "未启动";
 
-    public string UpdateStatusTip
-        => HasUpdateAvailable
-            ? $"发现新版本：{LatestProductVersion}（当前 {CurrentProductVersion}）"
-            : "应用更新：当前已是最新版本";
-
     public string AppProductVersionText
     {
         get
@@ -255,14 +250,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public string AppCopyrightDisplayText => "PacmanDoh · 2026";
 
-    partial void OnHasUpdateAvailableChanged(bool value) => OnPropertyChanged(nameof(UpdateStatusTip));
     partial void OnCurrentProductVersionChanged(string value)
     {
-        OnPropertyChanged(nameof(UpdateStatusTip));
         OnPropertyChanged(nameof(ShellVersionText));
     }
-
-    partial void OnLatestProductVersionChanged(string value) => OnPropertyChanged(nameof(UpdateStatusTip));
 
     private void MarkDbConnectivityKnown()
     {
@@ -1064,17 +1055,34 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             if (!state.Compatible)
             {
                 _toasts.Error("数据库版本不兼容", state.Message);
-                _logger.Error("MainWindowVM", "db.schema.incompatible.startup", "Database schema incompatible during startup", null, new
+                var logContext = new
                 {
-                    state.UiMin,
-                    state.UiMax,
-                    state.AgentMin,
-                    state.AgentMax,
-                    state.Target,
-                    state.DbVersion,
-                    state.SchemaOk,
-                    state.Reason
-                });
+                    desktopMin = state.DesktopMin,
+                    desktopMax = state.DesktopMax,
+                    agentMin = state.AgentMin,
+                    agentMax = state.AgentMax,
+                    target = state.Target,
+                    dbVersion = state.DbVersion,
+                    schemaOk = state.SchemaOk,
+                    compatibility = state.Compatibility,
+                    reason = state.Reason
+                };
+
+                if (state.SchemaOk && string.Equals(state.Compatibility, "BelowMinimum", StringComparison.Ordinal))
+                {
+                    _logger.Warn("MainWindowVM", "db.schema.pending_migration.startup",
+                        "Database schema below app minimum during startup; migration required before business access",
+                        null,
+                        logContext);
+                }
+                else
+                {
+                    _logger.Error("MainWindowVM", "db.schema.incompatible.startup",
+                        "Database schema incompatible during startup",
+                        null,
+                        logContext);
+                }
+
                 return false;
             }
 
@@ -1190,8 +1198,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 schemaValue = snapshot.CurrentVersion,
                 target,
-                uiMin,
-                uiMax,
+                desktopMin = uiMin,
+                desktopMax = uiMax,
                 agentMin,
                 agentMax
             });
@@ -1201,14 +1209,14 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _logger.Warn("MainWindowVM", "db.schema.incompatible", "Database schema incompatible", null, new
             {
                 target,
-                uiMin,
-                uiMax,
+                desktopMin = uiMin,
+                desktopMax = uiMax,
                 agentMin,
                 agentMax,
                 schemaOk = snapshot.SchemaOk,
                 schemaValue = snapshot.CurrentVersion,
                 schemaReason = snapshot.Reason,
-                snapshot.Compatibility
+                compatibility = snapshot.Compatibility.ToString()
             });
         }
 
@@ -1217,12 +1225,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             ShouldMigrate: snapshot.ManualMigrationPolicy.ShouldExecuteMigration,
             Message: snapshot.IncompatibleMessage ?? "数据库版本不兼容",
             Target: snapshot.TargetVersion,
-            UiMin: uiMin,
-            UiMax: uiMax,
+            DesktopMin: uiMin,
+            DesktopMax: uiMax,
             AgentMin: agentMin,
             AgentMax: agentMax,
             SchemaOk: snapshot.SchemaOk,
             DbVersion: snapshot.CurrentVersion,
+            Compatibility: snapshot.Compatibility.ToString(),
             Reason: snapshot.Reason);
     }
 
@@ -1231,12 +1240,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         bool ShouldMigrate,
         string Message,
         string Target,
-        string UiMin,
-        string UiMax,
+        string DesktopMin,
+        string DesktopMax,
         string AgentMin,
         string AgentMax,
         bool SchemaOk,
         string? DbVersion,
+        string Compatibility,
         string? Reason);
 
     private async Task CheckUpdatesOnStartupAsync()

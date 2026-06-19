@@ -108,8 +108,7 @@
                   HorizontalAlignment="Right"
                   VerticalAlignment="Center"
                   Classes="Basic MicroClear"
-                  Command="{Binding ResetDateRangeCommand}"
-                  ToolTip.Tip="归位日期">
+                  Command="{Binding ResetDateRangeCommand}">
                   <icons:AppIcon
                     Width="{DynamicResource IconSizeSmall}"
                     Height="{DynamicResource IconSizeSmall}"
@@ -166,8 +165,7 @@
                   HorizontalAlignment="Right"
                   VerticalAlignment="Center"
                   Classes="Basic MicroClear"
-                  Command="{Binding ClearDrugSpecFilterCommand}"
-                  ToolTip.Tip="清空筛选">
+                  Command="{Binding ClearDrugSpecFilterCommand}">
                   <icons:AppIcon
                     Width="{DynamicResource IconSizeSmall}"
                     Height="{DynamicResource IconSizeSmall}"

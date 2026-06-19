@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ScanCodeView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -79,8 +79,7 @@
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Classes="Basic MicroClear"
-                    Command="{Binding ClearDrugSpecFilterCommand}"
-                    ToolTip.Tip="清空药品和规格">
+                    Command="{Binding ClearDrugSpecFilterCommand}">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeSmall}"
                       Height="{DynamicResource IconSizeSmall}"

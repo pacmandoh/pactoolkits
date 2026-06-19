@@ -64,8 +64,7 @@
             Classes="Action PagerIconOnly"
             Command="{Binding FirstPageCommand, ElementName=Root}"
             IsEnabled="{Binding CanGoFirstPage, ElementName=Root}"
-            IsVisible="{Binding HasFirstPageCommand, ElementName=Root}"
-            ToolTip.Tip="首页">
+            IsVisible="{Binding HasFirstPageCommand, ElementName=Root}">
             <icons:AppIcon
               Width="{DynamicResource PagerNavIconSize}"
               Height="{DynamicResource PagerNavIconSize}"
@@ -75,8 +74,7 @@
             Classes="Action PagerIconOnly"
             Command="{Binding PrevPageCommand, ElementName=Root}"
             IsEnabled="{Binding CanGoPrevPage, ElementName=Root}"
-            IsVisible="{Binding HasPrevPageCommand, ElementName=Root}"
-            ToolTip.Tip="上一页">
+            IsVisible="{Binding HasPrevPageCommand, ElementName=Root}">
             <icons:AppIcon
               Width="{DynamicResource PagerNavIconSize}"
               Height="{DynamicResource PagerNavIconSize}"
@@ -86,8 +84,7 @@
             Classes="Action PagerIconOnly"
             Command="{Binding NextPageCommand, ElementName=Root}"
             IsEnabled="{Binding CanGoNextPage, ElementName=Root}"
-            IsVisible="{Binding HasNextPageCommand, ElementName=Root}"
-            ToolTip.Tip="下一页">
+            IsVisible="{Binding HasNextPageCommand, ElementName=Root}">
             <icons:AppIcon
               Width="{DynamicResource PagerNavIconSize}"
               Height="{DynamicResource PagerNavIconSize}"
@@ -97,8 +94,7 @@
             Classes="Action PagerIconOnly"
             Command="{Binding LastPageCommand, ElementName=Root}"
             IsEnabled="{Binding CanGoLastPage, ElementName=Root}"
-            IsVisible="{Binding HasLastPageCommand, ElementName=Root}"
-            ToolTip.Tip="末页">
+            IsVisible="{Binding HasLastPageCommand, ElementName=Root}">
             <icons:AppIcon
               Width="{DynamicResource PagerNavIconSize}"
               Height="{DynamicResource PagerNavIconSize}"
