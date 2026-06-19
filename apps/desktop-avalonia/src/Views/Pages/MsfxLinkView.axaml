@@ -9,7 +9,6 @@
   xmlns:theme="clr-namespace:SukiUI.Theme;assembly=SukiUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
-  behaviors:FocusClearBehavior.Enable="True"
   x:DataType="vm:MsfxLinkViewModel"
   ClipToBounds="True"
   Focusable="True">
