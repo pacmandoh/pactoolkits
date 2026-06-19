@@ -214,6 +214,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private readonly IToastService _toast;
     private readonly IDialogService _dialog;
     private readonly DispatcherTimer _autoTimer;
+    private int _manualMsfxWriteDepth;
+
+    private bool IsManualMsfxWriteActive => _manualMsfxWriteDepth > 0;
 
     public override string DisplayName => "码上放心联调";
     public override string Icon => "CloudCog";
@@ -302,7 +305,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private string _subcodeStatus = "请输入单据编码后查询子码";
     [ObservableProperty] private bool _isSubcodeBusy;
     [ObservableProperty] private MsfxAutoPullBatchGridRow? _selectedAutoPullBatchRow;
-    [ObservableProperty] private MsfxAutoMapQueueGridRow? _selectedAutoMapQueueRow;
     [ObservableProperty] private MsfxAutoTaskQueueGridRow? _selectedAutoTaskQueueRow;
     [ObservableProperty] private MsfxAutoLogRow? _selectedAutoLogRow;
 
@@ -916,11 +918,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     }
 
     partial void OnSelectedAutoPullBatchRowChanged(MsfxAutoPullBatchGridRow? value)
-    {
-        // 详情仅由行头点击触发，单元格点击不弹窗
-    }
-
-    partial void OnSelectedAutoMapQueueRowChanged(MsfxAutoMapQueueGridRow? value)
     {
         // 详情仅由行头点击触发，单元格点击不弹窗
     }
@@ -1551,7 +1548,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         => ScheduleUpoutFilter();
 
     private bool CanRunAutoOnce()
-        => !IsAutoBusy;
+        => !IsAutoBusy && !IsManualMsfxWriteActive;
 
     private bool CanRefreshAutoBoard()
         => !IsAutoBoardBusy && !IsAutoBusy;
@@ -1938,7 +1935,14 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 "映射自检",
                 $"执行前 PENDING {mapBefore.PendingCount}，MAPPED {mapBefore.MappedCount}，NEED_REVIEW {mapBefore.NeedReviewCount}，FAILED {mapBefore.FailedCount}，TOTAL {mapBefore.TotalCount}",
                 TraceEntryState.Info);
-            if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
+
+            MsfxBuildTaskResult taskResult = new(0, 0);
+            if (IsManualMsfxWriteActive)
+            {
+                AddAutoLog("自动巡检", "手动敏感操作进行中，跳过映射与建任务", TraceEntryState.Info);
+                SetAutoProgress(96, "跳过映射与建任务");
+            }
+            else if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
                     SensitiveOperationKind.MsfxMappingApply,
                     "自动映射",
                     batchId > 0 ? $"batch:{batchId}" : "auto-run",
@@ -1947,39 +1951,41 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 throw new InvalidOperationException("MSFX 自动映射未解锁，已停止在映射写入前");
             }
-
-            var map = await _syncService.ApplyMsfxMappingAsync(50000, ct).ConfigureAwait(false);
-            var mapAfter = await _syncService.LoadMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
-            mapMs += swMap.ElapsedMilliseconds;
-            SetAutoProgress(90, "执行自动映射");
-            var mapState = map.ProcessedCount == 0
-                ? TraceEntryState.Warning
-                : map.ReviewCount > 0 ? TraceEntryState.Warning : TraceEntryState.Success;
-            AddAutoLog("映射", $"处理 {map.ProcessedCount}，命中 {map.MappedCount}，待人工 {map.ReviewCount}", mapState);
-            LogInfo("msfx.auto.map.summary", "MSFX auto mapping finished", new
+            else
             {
-                map.ProcessedCount,
-                map.MappedCount,
-                map.ReviewCount
-            });
-            AddAutoLog(
-                "映射自检",
-                $"执行后 PENDING {mapAfter.PendingCount}，MAPPED {mapAfter.MappedCount}，NEED_REVIEW {mapAfter.NeedReviewCount}，FAILED {mapAfter.FailedCount}，TOTAL {mapAfter.TotalCount}",
-                map.ProcessedCount == 0 ? TraceEntryState.Warning : TraceEntryState.Success);
-            await RefreshAutoMapPanelCoreAsync(ct).ConfigureAwait(false);
+                var map = await _syncService.ApplyMsfxMappingAsync(50000, ct).ConfigureAwait(false);
+                var mapAfter = await _syncService.LoadMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
+                mapMs += swMap.ElapsedMilliseconds;
+                SetAutoProgress(90, "执行自动映射");
+                var mapState = map.ProcessedCount == 0
+                    ? TraceEntryState.Warning
+                    : map.ReviewCount > 0 ? TraceEntryState.Warning : TraceEntryState.Success;
+                AddAutoLog("映射", $"处理 {map.ProcessedCount}，命中 {map.MappedCount}，待人工 {map.ReviewCount}", mapState);
+                LogInfo("msfx.auto.map.summary", "MSFX auto mapping finished", new
+                {
+                    map.ProcessedCount,
+                    map.MappedCount,
+                    map.ReviewCount
+                });
+                AddAutoLog(
+                    "映射自检",
+                    $"执行后 PENDING {mapAfter.PendingCount}，MAPPED {mapAfter.MappedCount}，NEED_REVIEW {mapAfter.NeedReviewCount}，FAILED {mapAfter.FailedCount}，TOTAL {mapAfter.TotalCount}",
+                    map.ProcessedCount == 0 ? TraceEntryState.Warning : TraceEntryState.Success);
+                await RefreshAutoMapPanelCoreAsync(ct).ConfigureAwait(false);
 
-            var swTask = Stopwatch.StartNew();
-            var taskResult = await _syncService.BuildMsfxInjectTasksAsync(500, ct).ConfigureAwait(false);
-            taskBuildMs += swTask.ElapsedMilliseconds;
-            SetAutoProgress(96, "构建注入任务");
-            var taskState = taskResult.CreatedTasks > 0 ? TraceEntryState.Success : TraceEntryState.Warning;
-            AddAutoLog("建任务", $"创建任务 {taskResult.CreatedTasks}，下发码 {taskResult.TaskedCodes}", taskState);
-            LogInfo("msfx.auto.task_build.summary", "MSFX inject tasks built", new
-            {
-                taskResult.CreatedTasks,
-                taskResult.TaskedCodes
-            });
-            await RefreshAutoTaskPanelCoreAsync(ct).ConfigureAwait(false);
+                var swTask = Stopwatch.StartNew();
+                taskResult = await _syncService.BuildMsfxInjectTasksAsync(500, ct).ConfigureAwait(false);
+                taskBuildMs += swTask.ElapsedMilliseconds;
+                SetAutoProgress(96, "构建注入任务");
+                var taskState = taskResult.CreatedTasks > 0 ? TraceEntryState.Success : TraceEntryState.Warning;
+                AddAutoLog("建任务", $"创建任务 {taskResult.CreatedTasks}，下发码 {taskResult.TaskedCodes}", taskState);
+                LogInfo("msfx.auto.task_build.summary", "MSFX inject tasks built", new
+                {
+                    taskResult.CreatedTasks,
+                    taskResult.TaskedCodes
+                });
+                await RefreshAutoTaskPanelCoreAsync(ct).ConfigureAwait(false);
+            }
 
             var batchStatus = failCount > 0 ? "FAILED" : "SUCCESS";
             await _syncService.CompleteMsfxPullBatchAsync(batchId, batchStatus, succeedCount, failCount, null, CancellationToken.None)
@@ -2256,7 +2262,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             PromptHint: $"{scene} 属于高风险 MSFX 操作。\n目标：{targetId}\n原因：{reason}\n请输入当前数据库密码以解锁。",
             OperatorName: operatorName,
             TargetId: targetId,
-            Reason: reason), ct).ConfigureAwait(false);
+            Reason: reason,
+            NotifySuccess: false), ct).ConfigureAwait(false);
 
         var audit = new
         {
@@ -2280,6 +2287,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         return ok;
+    }
+
+    private void EnterManualMsfxWrite()
+    {
+        Interlocked.Increment(ref _manualMsfxWriteDepth);
+        NotifyCommands(RunAutoOnceCommand);
+    }
+
+    private void ExitManualMsfxWrite()
+    {
+        Interlocked.Decrement(ref _manualMsfxWriteDepth);
+        NotifyCommands(RunAutoOnceCommand);
     }
 
     [RelayCommand]
@@ -2787,28 +2806,23 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
+        EnterManualMsfxWrite();
         try
         {
             var groups = await _syncService.LoadMappingBatchGroupsAsync(
-                mapStatus: null,
-                codeStatus: null,
-                searchScope: "ALL",
-                keyword: null,
+                mapStatus: NormalizeFilterValue(MapQueueMapStatusFilter),
+                codeStatus: NormalizeFilterValue(MapQueueCodeStatusFilter),
+                searchScope: ResolveSearchScope(MapQueueSearchScope),
+                keyword: NormalizeText(MapQueueKeyword),
                 limit: 500,
                 ct: CancellationToken.None).ConfigureAwait(false);
 
-            if (groups.Count == 0)
-            {
-                _toast.Info("批量映射", "当前没有可处理分组");
-                return;
-            }
-
             var res = await _dialog.ShowMsfxMappingBatchDialog(new MsfxMappingBatchDialogModel(
                 Groups: groups,
-                MapStatusFilter: "ALL",
-                CodeStatusFilter: "ALL",
-                SearchScope: "全部字段",
-                Keyword: string.Empty)).ConfigureAwait(false);
+                MapStatusFilter: MapQueueMapStatusFilter,
+                CodeStatusFilter: MapQueueCodeStatusFilter,
+                SearchScope: MapQueueSearchScope,
+                Keyword: MapQueueKeyword ?? string.Empty)).ConfigureAwait(false);
 
             if (res.Action == MsfxMappingBatchDialogAction.Cancel)
             {
@@ -2907,7 +2921,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 var built = await _syncService.BuildMsfxInjectTasksAsync(500, CancellationToken.None).ConfigureAwait(false);
                 AddAutoLog("批量映射", $"分组处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}", TraceEntryState.Success);
-                LogWarn("msfx.map.batch.apply", "MSFX batch mapping applied", null, new
+                LogInfo("msfx.map.batch.apply", "MSFX batch mapping applied", new
                 {
                     apply.AffectedCount,
                     built.CreatedTasks,
@@ -2920,8 +2934,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
             else if (res.Action == MsfxMappingBatchDialogAction.DiscardTask)
             {
-                AddAutoLog("批量映射", $"分组弃用 {apply.AffectedCount} 条，已进入弃用任务队列", apply.AffectedCount > 0 ? TraceEntryState.Discarded : TraceEntryState.Info);
-                LogWarn("msfx.map.batch.discard", "MSFX batch mapping discarded into task queue", null, new
+                AddAutoLog("批量映射", $"分组弃用 {apply.AffectedCount} 条，已进入弃用任务队列", TraceEntryState.Discarded);
+                LogInfo("msfx.map.batch.discard", "MSFX batch mapping discarded into task queue", new
                 {
                     apply.AffectedCount,
                     group.SourceDrugNameRaw,
@@ -2929,7 +2943,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     DrugId = res.DrugId,
                     Spec = res.Spec
                 });
-                _toast.Info("批量映射", $"已处理 {apply.AffectedCount} 条，并直接进入弃用任务队列");
+                _toast.Success("批量映射", $"已处理 {apply.AffectedCount} 条，并直接进入弃用任务队列");
             }
             else
             {
@@ -2941,6 +2955,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         catch (Exception ex)
         {
             _toast.Error("批量映射", ex.Message);
+        }
+        finally
+        {
+            await RunOnUiAsync(ExitManualMsfxWrite);
         }
     }
 
@@ -3239,11 +3257,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var skip = (page - 1) * pageSize;
         var rows = _filteredTaskQueueRows.Skip(skip).Take(pageSize).ToList();
 
-        AutoTaskQueueRows.Clear();
-        foreach (var row in rows)
-        {
-            AutoTaskQueueRows.Add(row);
-        }
+        AutoTaskQueueRows.ResetContents(rows);
 
         HasTaskQueuePrevPage = page > 1;
         HasTaskQueueNextPage = page < totalPages;
@@ -3263,11 +3277,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var skip = (page - 1) * pageSize;
         var rows = AutoLogs.Skip(skip).Take(pageSize).ToList();
 
-        AutoLogPageRows.Clear();
-        foreach (var row in rows)
-        {
-            AutoLogPageRows.Add(row);
-        }
+        AutoLogPageRows.ResetContents(rows);
 
         HasAutoLogPrevPage = page > 1;
         HasAutoLogNextPage = page < totalPages;
@@ -3520,7 +3530,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         await RunOnUiAsync(() =>
         {
-            AutoMapQueueRows.Clear();
             var pageSize = GetMapQueuePageSize();
             MapQueueTotalCount = page.TotalCount;
             var totalPages = Math.Max(1, (int)Math.Ceiling(page.TotalCount / (double)Math.Max(1, pageSize)));
@@ -3542,10 +3551,11 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
 
             var displayStart = ((requestedPage - 1) * pageSize) + 1;
+            var gridRows = new List<MsfxAutoMapQueueGridRow>(page.Rows.Count);
             for (var i = 0; i < page.Rows.Count; i++)
             {
                 var x = page.Rows[i];
-                AutoMapQueueRows.Add(new MsfxAutoMapQueueGridRow(
+                gridRows.Add(new MsfxAutoMapQueueGridRow(
                     DisplayIndex: displayStart + i,
                     StagingId: x.StagingId,
                     LeafCode: x.LeafCode,
@@ -3571,6 +3581,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     State: ToMapState(x.MapStatus),
                     UpdatedAtRaw: x.UpdatedAt));
             }
+
+            AutoMapQueueRows.ResetContents(gridRows);
 
             HasMapQueuePrevPage = page.HasNewer;
             HasMapQueueNextPage = page.HasOlder;
@@ -3630,7 +3642,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private void ClearAllDetailSelectionsSilent()
     {
         SelectedAutoPullBatchRow = null;
-        SelectedAutoMapQueueRow = null;
         SelectedAutoTaskQueueRow = null;
         SelectedAutoLogRow = null;
         SetSelectedAutoTaskQueueRows(Array.Empty<MsfxAutoTaskQueueGridRow>());
@@ -3638,7 +3649,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     private async void OnAutoTimerTick(object? sender, EventArgs e)
     {
-        if (!IsAutoEnabled || IsAutoBusy)
+        if (!IsAutoEnabled || IsAutoBusy || IsManualMsfxWriteActive)
         {
             return;
         }
@@ -3771,11 +3782,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var skip = (page - 1) * pageSize;
         var rows = _allPullBatchRows.Skip(skip).Take(pageSize).ToList();
 
-        AutoPullBatchRows.Clear();
-        foreach (var row in rows)
-        {
-            AutoPullBatchRows.Add(row);
-        }
+        AutoPullBatchRows.ResetContents(rows);
 
         HasPullBatchPrevPage = page > 1;
         HasPullBatchNextPage = page < totalPages;
@@ -3851,9 +3858,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             "最小包装码" => "TRACE",
             "单据编码" => "BILL",
-            "药名/规格(原始)" => "SOURCE_RAW",
-            "药名/规格(归一化)" => "SOURCE_NORM",
-            "层级码(1-5)" => "LEVEL_CODE",
+            "原始药/规" or "药名/规格(原始)" => "SOURCE_RAW",
+            "校正药/规" or "药名/规格(归一化)" => "SOURCE_NORM",
+            "层级码" or "层级码(1-5)" => "LEVEL_CODE",
             "映射目标" => "TARGET",
             "原因信息" => "REASON",
             _ => "ALL"
