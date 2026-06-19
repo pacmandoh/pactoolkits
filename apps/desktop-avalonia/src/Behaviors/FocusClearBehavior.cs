@@ -5,6 +5,7 @@ using global::Avalonia.Controls;
 using global::Avalonia.Controls.Primitives;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
+using global::Avalonia.Threading;
 using global::Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Common;
 
@@ -55,12 +56,18 @@ public class FocusClearBehavior
             return;
         }
 
-        if (IsInsideContextMenu(e.Source))
+        if (PopupDismissHelper.IsInsideOpenPopupSurface(e.Source))
         {
             return;
         }
 
-        var focused = TopLevel.GetTopLevel(scope)?.FocusManager?.GetFocusedElement();
+        var topLevel = TopLevel.GetTopLevel(scope);
+        if (topLevel is not null)
+        {
+            PopupDismissHelper.DismissOpenPopups(topLevel);
+        }
+
+        var focused = topLevel?.FocusManager?.GetFocusedElement();
         if (focused is not Control ctrl)
         {
             return;
@@ -100,7 +107,8 @@ public class FocusClearBehavior
 
         if (scope is Control host)
         {
-            host.Focus();
+            // Defer focus transfer so popup light-dismiss and the clicked control can process first.
+            Dispatcher.UIThread.Post(() => host.Focus(), DispatcherPriority.Input);
         }
     }
 
@@ -143,22 +151,6 @@ public class FocusClearBehavior
         while (current is not null)
         {
             if (current is DataGrid or DataGridRow or DataGridCell or DataGridColumnHeader or ScrollBar)
-            {
-                return true;
-            }
-
-            current = (current as StyledElement)?.Parent;
-        }
-
-        return false;
-    }
-
-    private static bool IsInsideContextMenu(object? source)
-    {
-        var current = source;
-        while (current is not null)
-        {
-            if (current is ContextMenu or MenuItem)
             {
                 return true;
             }
