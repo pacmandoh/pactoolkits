@@ -243,8 +243,7 @@
                 VerticalContentAlignment="Center"
                 Classes="Action IconToggle"
                 Command="{Binding ToggleSearchPanelCommand}"
-                IsEnabled="{Binding !IsUiBusy}"
-                ToolTip.Tip="显示/隐藏搜索">
+                IsEnabled="{Binding !IsUiBusy}">
                 <Panel
                   Width="{DynamicResource IconSizeDefault}"
                   Height="{DynamicResource IconSizeDefault}"
