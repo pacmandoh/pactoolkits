@@ -94,9 +94,9 @@ public sealed record StockReassignPreviewRowItem(
 
 public sealed partial class InventoryOverviewViewModel : AppPageBase
 {
-    private const int FixedPageSize = 50;
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
     private const string UnlockScopeKey = UnlockScopes.SharedSensitiveOps;
+    private static readonly int[] PageSizeOptionValues = [20, 50, 100];
 
     public override string DisplayName => "追溯码库存";
     public override string Icon => "Package";
@@ -122,12 +122,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public ObservableCollection<StockReassignPreviewRowItem> ReassignPreviewRows { get; } = new();
     public ObservableCollection<OptionItem> ReassignDrugOptions { get; } = new();
     public ObservableCollection<OptionItem> ReassignSpecOptions { get; } = new();
+    public ObservableCollection<int> PageSizeOptions { get; } = new(PageSizeOptionValues);
 
     [ObservableProperty] private int _modeIndex;
     [ObservableProperty] private string? _keyword;
     [ObservableProperty] private bool _isSearchPanelVisible = false;
     [ObservableProperty] private string? _status;
     [ObservableProperty] private int _pageIndex = 1;
+    [ObservableProperty] private int _pageSize = 50;
     [ObservableProperty] private int _totalCount;
     [ObservableProperty] private bool _isDetailBusy;
     [ObservableProperty] private bool _isAggBusy;
@@ -319,7 +321,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public bool IsMissingEmpty => ShouldShowSectionEmpty(MissingStockRows.Count == 0);
     public bool IsUiBusy => IsBusy || IsDetailBusy || IsAggBusy || IsLowBusy || IsMissingBusy || IsReassignBusy;
     public bool IsPagedMode => ModeIndex is 0 or 1 or 2 or 3;
-    public int PageSize => FixedPageSize;
     public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
     public bool HasPrevPage => IsPagedMode && PageIndex > 1;
     public bool HasNextPage => IsPagedMode && PageIndex < TotalPages;
@@ -1598,6 +1599,23 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         NotifyAllCommands();
     }
 
+    partial void OnPageSizeChanged(int value)
+    {
+        if (value <= 0)
+        {
+            return;
+        }
+
+        if (PageIndex != 1)
+        {
+            PageIndex = 1;
+        }
+
+        RefreshPagingState();
+        NotifyAllCommands();
+        _ = ReloadAsync();
+    }
+
     partial void OnKeywordChanged(string? value)
     {
         if (IsFilterReassignScope)
@@ -1704,6 +1722,26 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private bool CanGoFirstPage() => CanOperateUi() && HasPrevPage;
     private bool CanGoPrevPage() => CanOperateUi() && HasPrevPage;
     private bool CanGoNextPage() => CanOperateUi() && HasNextPage;
+    private bool CanGoLastPage() => CanOperateUi() && HasNextPage;
+
+    [RelayCommand(CanExecute = nameof(CanGoLastPage))]
+    private async Task LastPageAsync()
+    {
+        if (ShouldSkipTrigger("inventory.page.last", 180))
+        {
+            return;
+        }
+
+        if (!CanGoLastPage())
+        {
+            return;
+        }
+
+        AbandonPendingStockEditsIfNeeded();
+
+        PageIndex = TotalPages;
+        await ReloadAsync();
+    }
 
     private void SuppressExternalAutoRefresh(TimeSpan duration)
     {
@@ -2031,6 +2069,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             FirstPageCommand,
             PrevPageCommand,
             NextPageCommand,
+            LastPageCommand,
             RequestUnlockCommand,
             LockOperationsCommand,
             ToggleStockEditModeCommand,
