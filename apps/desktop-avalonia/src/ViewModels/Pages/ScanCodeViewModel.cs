@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
@@ -43,6 +44,12 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     public ObservableCollection<AutoFetchTaskItem> AutoTasks { get; } = new();
     public ObservableCollection<AutoFetchRunItem> RecentRuns { get; } = new();
     public ObservableCollection<AutoFetchRetryItem> RetryQueue { get; } = new();
+    public ObservableCollection<TraceCodeLineItemViewModel> TraceCodeLines { get; } = new();
+
+    private readonly HashSet<string> _existingPoolCodes = new(StringComparer.Ordinal);
+    private CancellationTokenSource? _poolCheckCts;
+    private string _lastPoolCheckKey = string.Empty;
+    private static readonly TimeSpan PoolCheckDebounce = TimeSpan.FromMilliseconds(450);
     protected override void OnLookupCatalogSuspended()
     {
         DrugOptions.Clear();
@@ -78,6 +85,16 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     public bool IsRecentRunsEmpty => ShouldShowSectionEmpty(RecentRuns.Count == 0);
     public bool IsRetryQueueEmpty => ShouldShowSectionEmpty(RetryQueue.Count == 0);
 
+    public bool IsTraceCodeInputEnabled =>
+        CanOperateUi()
+        && !string.IsNullOrWhiteSpace(NormalizeInput(DrugText))
+        && SelectedSpec is not null
+        && !string.IsNullOrWhiteSpace(SelectedQtyText);
+
+    public bool IsTraceCodeInputBlocked => !IsTraceCodeInputEnabled;
+
+    public bool IsTraceCodePreviewEmpty => TraceCodeLines.Count == 0;
+
     [ObservableProperty] private int _selectedTabIndex;
     [ObservableProperty] private string? _drugText;
     [ObservableProperty] private OptionItem? _selectedSpec;
@@ -89,6 +106,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     [ObservableProperty] private int _totalCodeCount;
     [ObservableProperty] private int _validCodeCount;
     [ObservableProperty] private int _duplicateCodeCount;
+    [ObservableProperty] private int _poolSkipCount;
     [ObservableProperty] private int _invalidCodeCount;
     [ObservableProperty] private bool _isAutoFetchEnabled;
     [ObservableProperty] private bool _isAutoFetchRunning;
@@ -238,6 +256,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
         NotifyActionCommands();
     }
+
+    partial void OnSelectedQtyTextChanged(string? value)
+        => NotifyActionCommands();
 
     partial void OnSelectedSpecChanged(OptionItem? value)
     {
@@ -390,7 +411,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                         SelectedQtyText = submit.QtyPerTrace.ToString();
                         Status = $"处理 {result.RequestedCount} 条，成功 {result.InsertedCount} 条，跳过 {result.SkippedCount} 条";
                         var summary =
-                            $"{drug}/{spec} · 总数 {analysis.Total} · 有效 {analysis.ValidUniqueCodes.Count} · 重复 {analysis.Duplicate} · 无效 {analysis.Invalid} · 写入 {result.InsertedCount} · 跳过 {result.SkippedCount}";
+                            $"{drug}/{spec} · 总数 {analysis.Total} · 有效 {analysis.ValidUniqueCodes.Count} · 重复 {analysis.Duplicate} · 跳过入库 {PoolSkipCount} · 无效 {analysis.Invalid} · 写入 {result.InsertedCount} · 跳过 {result.SkippedCount}";
 
                         if (logWriteError is not null)
                         {
@@ -439,6 +460,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         }
 
         TraceCodesText = string.Empty;
+        _existingPoolCodes.Clear();
+        _lastPoolCheckKey = string.Empty;
+        _poolCheckCts?.Cancel();
         Status = "已清空输入框";
     }
 
@@ -749,7 +773,11 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     }
 
     private void NotifyActionCommands()
-        => NotifyCommands(GetNotifiableCommands());
+    {
+        OnPropertyChanged(nameof(IsTraceCodeInputEnabled));
+        OnPropertyChanged(nameof(IsTraceCodeInputBlocked));
+        NotifyCommands(GetNotifiableCommands());
+    }
 
     private IRelayCommand?[] GetNotifiableCommands()
         => _notifiableCommands ??=
@@ -807,18 +835,115 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
     private void RecalcCodeStats(string? text)
     {
-        var analysis = AnalyzeCodes(text);
-        InputLineCount = analysis.Total;
-        TotalCodeCount = analysis.Total;
-        ValidCodeCount = analysis.ValidUniqueCodes.Count;
-        DuplicateCodeCount = analysis.Duplicate;
-        InvalidCodeCount = analysis.Invalid;
+        var detailed = AnalyzeCodesDetailed(text);
+        ReplaceTraceCodeLines(detailed.Lines);
+        InputLineCount = detailed.Total;
+        TotalCodeCount = detailed.Total;
+        ValidCodeCount = detailed.Valid;
+        DuplicateCodeCount = detailed.ScanDuplicate;
+        PoolSkipCount = detailed.PoolDuplicate;
+        InvalidCodeCount = detailed.Invalid;
+        SchedulePoolCheck(detailed.ValidUniqueCodes);
+    }
+
+    private void ReplaceTraceCodeLines(IReadOnlyList<TraceCodeLineAnalysis> lines)
+    {
+        TraceCodeLines.Clear();
+        foreach (var line in lines)
+        {
+            TraceCodeLines.Add(new TraceCodeLineItemViewModel(line));
+        }
+
+        OnPropertyChanged(nameof(IsTraceCodePreviewEmpty));
+    }
+
+    private TraceCodeDetailedAnalysis AnalyzeCodesDetailed(string? text)
+    {
+        var rule = _traceCodeRule.Current;
+        return TraceCodeAnalyzer.AnalyzeDetailed(
+            text,
+            new TraceCodeValidationRule(rule.RequiredLength, rule.Pattern),
+            _existingPoolCodes);
     }
 
     private CodeAnalysis AnalyzeCodes(string? text)
     {
-        var rule = _traceCodeRule.Current;
-        return TraceCodeAnalyzer.Analyze(text, new TraceCodeValidationRule(rule.RequiredLength, rule.Pattern));
+        var detailed = AnalyzeCodesDetailed(text);
+        return new CodeAnalysis(
+            detailed.Total,
+            detailed.Invalid,
+            detailed.ScanDuplicate,
+            detailed.ValidUniqueCodes);
+    }
+
+    private void SchedulePoolCheck(IReadOnlyList<string> candidateCodes)
+    {
+        var key = candidateCodes.Count == 0
+            ? string.Empty
+            : string.Join('\n', candidateCodes.OrderBy(static x => x, StringComparer.Ordinal));
+        if (string.Equals(key, _lastPoolCheckKey, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastPoolCheckKey = key;
+        _poolCheckCts?.Cancel();
+        _poolCheckCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _poolCheckCts = cts;
+        _ = RunPoolCheckAsync(candidateCodes, cts.Token);
+    }
+
+    private async Task RunPoolCheckAsync(IReadOnlyList<string> candidateCodes, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(PoolCheckDebounce, ct).ConfigureAwait(false);
+            if (candidateCodes.Count == 0 || !IsDbConnected)
+            {
+                await RunOnUiAsync(() =>
+                {
+                    _existingPoolCodes.Clear();
+                    _lastPoolCheckKey = string.Empty;
+                    RecalcCodeStatsWithoutPoolReschedule(TraceCodesText);
+                }).ConfigureAwait(false);
+                return;
+            }
+
+            var existing = await _scanCode.FindExistingTraceCodesAsync(candidateCodes, ct).ConfigureAwait(false);
+            await RunOnUiAsync(() =>
+            {
+                _existingPoolCodes.Clear();
+                foreach (var code in existing)
+                {
+                    _existingPoolCodes.Add(code);
+                }
+
+                RecalcCodeStatsWithoutPoolReschedule(TraceCodesText);
+                _lastPoolCheckKey = string.Join(
+                    '\n',
+                    candidateCodes.OrderBy(static x => x, StringComparer.Ordinal));
+            }).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            LogWarn("scan.pool_check.fail", "Failed to pre-check trace codes in pool", ex);
+        }
+    }
+
+    private void RecalcCodeStatsWithoutPoolReschedule(string? text)
+    {
+        var detailed = AnalyzeCodesDetailed(text);
+        ReplaceTraceCodeLines(detailed.Lines);
+        InputLineCount = detailed.Total;
+        TotalCodeCount = detailed.Total;
+        ValidCodeCount = detailed.Valid;
+        DuplicateCodeCount = detailed.ScanDuplicate;
+        PoolSkipCount = detailed.PoolDuplicate;
+        InvalidCodeCount = detailed.Invalid;
     }
 
     private void OnTraceCodeRuleChanged()
@@ -826,6 +951,8 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
     public override void Dispose()
     {
+        _poolCheckCts?.Cancel();
+        _poolCheckCts?.Dispose();
         _traceCodeRule.Changed -= OnTraceCodeRuleChanged;
         AutoTasks.CollectionChanged -= OnAutoTasksChanged;
         RecentRuns.CollectionChanged -= OnRecentRunsChanged;
