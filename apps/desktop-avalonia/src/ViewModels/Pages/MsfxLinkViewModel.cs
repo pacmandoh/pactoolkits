@@ -1755,7 +1755,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
         catch (Exception ex)
         {
-            MarkDbDisconnectedOnTransportError(ex);
             batchErrMsg = ex.Message;
             SetAutoProgress(100, $"巡检失败：{ex.Message}");
 
@@ -1769,7 +1768,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 failCount
             });
             AutoStatus = $"自动化拉取异常：{ex.Message}";
-            if (IsDbConnected)
+            if (ShouldShowOperationErrorToast(ex))
             {
                 _toast.Error("自动化监控", ex.Message);
             }
@@ -2746,10 +2745,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
         catch (Exception ex)
         {
-            MarkDbDisconnectedOnTransportError(ex);
             AddAutoLog("审计", $"刷新数据库概览失败：{ex.Message}", TraceEntryState.Warning);
             LogWarn("msfx.audit.snapshot.refresh_fail", "MSFX snapshot refresh failed", ex);
-            if (IsDbConnected)
+            if (ShouldShowOperationErrorToast(ex))
             {
                 _toast.Error("刷新审计", ex.Message);
             }

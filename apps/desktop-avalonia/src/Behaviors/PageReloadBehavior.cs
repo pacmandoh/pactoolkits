@@ -15,6 +15,8 @@ public sealed class PageReloadBehavior : IDisposable
 
     private static readonly TimeSpan BusyDelay = TimeSpan.FromMilliseconds(300);
 
+    public bool IsActive => Volatile.Read(ref _cts) is not null;
+
     public async Task RunAsync(
         Action<bool> setBusy,
         Func<CancellationToken, Task> action,

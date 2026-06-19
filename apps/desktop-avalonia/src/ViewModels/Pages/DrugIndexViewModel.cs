@@ -1155,10 +1155,12 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("drug_index.reload.fail", "Failed to reload drug index", ex);
-            if (!MarkDbDisconnectedOnTransportError(ex))
+            if (!ShouldShowOperationErrorToast(ex))
             {
-                await Task.Delay(180, ct).ConfigureAwait(false);
+                return;
             }
+
+            await Task.Delay(180, ct).ConfigureAwait(false);
 
             if (ct.IsCancellationRequested)
             {
@@ -1166,11 +1168,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             }
 
             if (Volatile.Read(ref _lastSuccessfulReloadEpoch) > epoch)
-            {
-                return;
-            }
-
-            if (!IsDbConnected)
             {
                 return;
             }
