@@ -655,38 +655,6 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         }, ct);
     }
 
-    public Task<MsfxMappingBacklogDiagnostic> GetMappingBacklogDiagnosticAsync(CancellationToken ct)
-    {
-        const string sql = """
-            select
-              sum(case when s.map_status = 'PENDING' then 1 else 0 end)::int as pending_count,
-              sum(case when s.map_status = 'PENDING' and coalesce(nullif(s.source_drug_name_raw, ''), '') <> '' then 1 else 0 end)::int as pending_with_drug_raw_count,
-              sum(case when s.map_status = 'PENDING' and coalesce(nullif(s.source_spec_raw, ''), '') <> '' then 1 else 0 end)::int as pending_with_spec_raw_count,
-              sum(case when s.map_status = 'PENDING' and s.source_relation_id is not null then 1 else 0 end)::int as pending_with_relation_count,
-              sum(case when s.map_status = 'PENDING' and coalesce(nullif(s.source_name_norm, ''), '') <> '' then 1 else 0 end)::int as pending_with_name_norm_count,
-              sum(case when s.map_status = 'PENDING' and coalesce(nullif(s.source_spec_norm, ''), '') <> '' then 1 else 0 end)::int as pending_with_spec_norm_count
-            from msfx_code_staging s
-            """;
-
-        return _db.WithConnection(async (conn, token) =>
-        {
-            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
-            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
-            if (!await reader.ReadAsync(token).ConfigureAwait(false))
-            {
-                return new MsfxMappingBacklogDiagnostic(0, 0, 0, 0, 0, 0);
-            }
-
-            return new MsfxMappingBacklogDiagnostic(
-                PendingCount: reader.GetInt32(0),
-                PendingWithDrugRawCount: reader.GetInt32(1),
-                PendingWithSpecRawCount: reader.GetInt32(2),
-                PendingWithRelationCount: reader.GetInt32(3),
-                PendingWithNameNormCount: reader.GetInt32(4),
-                PendingWithSpecNormCount: reader.GetInt32(5));
-        }, ct);
-    }
-
     public Task<MsfxBuildTaskResult> BuildInjectTasksAsync(int maxGroups, CancellationToken ct)
     {
         const string cleanupSql = """

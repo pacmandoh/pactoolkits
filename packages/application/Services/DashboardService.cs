@@ -12,7 +12,7 @@ public sealed class DashboardService : IDashboardService
         _repo = repo ?? throw new ArgumentNullException(nameof(repo));
     }
 
-    public DashboardQuery BuildQuery(DashboardFilter filter, int topN)
+    private static DashboardQuery BuildQuery(DashboardFilter filter, int topN)
     {
         var client = InputNormalizer.Normalize(filter.ClientRaw);
         var drug = InputNormalizer.Normalize(filter.DrugId);
@@ -26,9 +26,6 @@ public sealed class DashboardService : IDashboardService
             TopN: topN,
             TrendMetric: filter.TrendMetric);
     }
-
-    public Task<IReadOnlyList<string>> GetClientNamesAsync(CancellationToken ct)
-        => _repo.GetClientNamesAsync(ct);
 
     public async Task<DashboardSnapshot> LoadSnapshotAsync(DashboardLoadRequest request, CancellationToken ct)
     {

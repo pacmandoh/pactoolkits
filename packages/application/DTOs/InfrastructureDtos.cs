@@ -46,8 +46,6 @@ public sealed record ReleaseVersionInfo(
     string AgentInjectorAhkMaxDbSchema,
     string DatabaseMigrationPolicy = DatabaseMigrationPolicies.StableOnly)
 {
-    public string SuiteVersion => ProductVersion;
-    public string UiVersion => DesktopVersion;
     public string AgentVersion => AgentInjectorAhkVersion;
     public string DbSchemaVersion => DatabasePostgresVersion;
     public string UiMinDbSchema => DesktopMinDbSchema;

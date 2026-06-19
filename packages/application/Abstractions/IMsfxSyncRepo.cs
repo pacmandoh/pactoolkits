@@ -106,8 +106,6 @@ public interface IMsfxSyncRepo
 
     Task<MsfxMappingStatusSnapshot> GetMappingStatusSnapshotAsync(CancellationToken ct);
 
-    Task<MsfxMappingBacklogDiagnostic> GetMappingBacklogDiagnosticAsync(CancellationToken ct);
-
     Task<MsfxBuildTaskResult> BuildInjectTasksAsync(int maxGroups, CancellationToken ct);
 
     Task<MsfxAutoBoardSnapshot> GetAutoBoardSnapshotAsync(CancellationToken ct);
