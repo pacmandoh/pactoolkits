@@ -1,28 +1,33 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-      x:Class="PacToolkits.Desktop.Avalonia.Controls.StatusPill"
-      x:Name="Root"
-      HorizontalAlignment="Left"
-      VerticalAlignment="Center">
-  <Border Background="{Binding BackgroundBrush, ElementName=Root}"
-      BorderBrush="{Binding PillBorderBrush, ElementName=Root}"
-      BorderThickness="1"
-      CornerRadius="999"
-      Padding="{Binding PillPadding, ElementName=Root}">
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.StatusPill"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  x:Name="Root"
+  HorizontalAlignment="Left"
+  VerticalAlignment="Center">
+  <Border
+    Padding="{Binding PillPadding, ElementName=Root}"
+    Background="{Binding BackgroundBrush, ElementName=Root}"
+    BorderBrush="{Binding PillBorderBrush, ElementName=Root}"
+    BorderThickness="1"
+    CornerRadius="999">
     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-      <icons:AppIcon Kind="{Binding Icon, ElementName=Root}"
-                Width="{Binding IconSize, ElementName=Root}"
-                Height="{Binding IconSize, ElementName=Root}"
-                VerticalAlignment="Center"
-                Foreground="{Binding ForegroundBrush, ElementName=Root}" />
-      <TextBlock Text="{Binding Text, ElementName=Root}"
-           FontSize="{Binding TextSize, ElementName=Root}"
-           VerticalAlignment="Center"
-           Foreground="{Binding ForegroundBrush, ElementName=Root}" />
-      <ContentPresenter Content="{Binding SuffixContent, ElementName=Root}"
-               VerticalAlignment="Center"
-               IsVisible="{Binding HasSuffixContent, ElementName=Root}" />
+      <icons:AppIcon
+        Width="{Binding IconSize, ElementName=Root}"
+        Height="{Binding IconSize, ElementName=Root}"
+        VerticalAlignment="Center"
+        Foreground="{Binding ForegroundBrush, ElementName=Root}"
+        Kind="{Binding Icon, ElementName=Root}" />
+      <TextBlock
+        VerticalAlignment="Center"
+        FontSize="{Binding TextSize, ElementName=Root}"
+        Foreground="{Binding ForegroundBrush, ElementName=Root}"
+        Text="{Binding Text, ElementName=Root}" />
+      <ContentPresenter
+        VerticalAlignment="Center"
+        Content="{Binding SuffixContent, ElementName=Root}"
+        IsVisible="{Binding HasSuffixContent, ElementName=Root}" />
     </StackPanel>
   </Border>
 </UserControl>

@@ -1,26 +1,29 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-      x:Class="PacToolkits.Desktop.Avalonia.Controls.PlainAutoCompleteBox"
-      x:Name="Root"
-      Background="Transparent"
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.PlainAutoCompleteBox"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+  x:Name="Root"
+  HorizontalAlignment="Stretch"
+  VerticalAlignment="Stretch"
+  Background="Transparent">
+  <suki:GlassCard
+    HorizontalAlignment="Stretch"
+    VerticalAlignment="Stretch"
+    Classes="AutoCompleteInputHost">
+    <AutoCompleteBox
+      x:Name="InnerBox"
       HorizontalAlignment="Stretch"
-      VerticalAlignment="Stretch">
-  <suki:GlassCard Classes="AutoCompleteInputHost"
-                  HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch">
-    <AutoCompleteBox x:Name="InnerBox"
-                     Classes="FilterFieldInnerInput"
-                     HorizontalAlignment="Stretch"
-                     VerticalAlignment="Stretch"
-                     FilterMode="{Binding FilterMode, ElementName=Root}"
-                     MinimumPrefixLength="{Binding MinimumPrefixLength, ElementName=Root}"
-                     IsTextCompletionEnabled="{Binding IsTextCompletionEnabled, ElementName=Root}"
-                     Text="{Binding Text, ElementName=Root, Mode=TwoWay, TargetNullValue='', FallbackValue=''}"
-                     ItemsSource="{Binding ItemsSource, ElementName=Root}"
-                     PlaceholderText="{Binding PlaceholderText, ElementName=Root}"
-                     IsDropDownOpen="{Binding IsDropDownOpen, ElementName=Root, Mode=TwoWay}"
-                     ItemTemplate="{Binding ItemTemplate, ElementName=Root}"
-                     IsEnabled="{Binding IsEnabled, ElementName=Root}" />
+      VerticalAlignment="Stretch"
+      Classes="FilterFieldInnerInput"
+      FilterMode="{Binding FilterMode, ElementName=Root}"
+      IsDropDownOpen="{Binding IsDropDownOpen, ElementName=Root, Mode=TwoWay}"
+      IsEnabled="{Binding IsEnabled, ElementName=Root}"
+      IsTextCompletionEnabled="{Binding IsTextCompletionEnabled, ElementName=Root}"
+      ItemTemplate="{Binding ItemTemplate, ElementName=Root}"
+      ItemsSource="{Binding ItemsSource, ElementName=Root}"
+      MinimumPrefixLength="{Binding MinimumPrefixLength, ElementName=Root}"
+      PlaceholderText="{Binding PlaceholderText, ElementName=Root}"
+      Text="{Binding Text, ElementName=Root, Mode=TwoWay, TargetNullValue='', FallbackValue=''}" />
   </suki:GlassCard>
 </UserControl>

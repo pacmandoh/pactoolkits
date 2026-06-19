@@ -1,29 +1,43 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-      xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
-      xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-      xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-      mc:Ignorable="d"
-      d:DesignWidth="1200" d:DesignHeight="820"
-      x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardView"
-      x:Name="Root"
-      x:DataType="vm:DashboardViewModel">
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardView"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:Name="Root"
+  d:DesignHeight="820"
+  d:DesignWidth="1200"
+  x:DataType="vm:DashboardViewModel"
+  mc:Ignorable="d">
   <UserControl.Styles>
     <Style Selector="DataGrid.CopySelectMenuGrid DataGridRow">
       <Setter Property="ContextMenu">
         <Setter.Value>
           <ContextMenu>
-            <MenuItem Header="复制" Click="OnGridRowCopy" CommandParameter="{Binding}">
+            <MenuItem
+              Click="OnGridRowCopy"
+              CommandParameter="{Binding}"
+              Header="复制">
               <MenuItem.Icon>
-                <icons:AppIcon Kind="Copy" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="Copy" />
               </MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="全选" Click="OnGridSelectAll" CommandParameter="{Binding}">
+            <MenuItem
+              Click="OnGridSelectAll"
+              CommandParameter="{Binding}"
+              Header="全选">
               <MenuItem.Icon>
-                <icons:AppIcon Kind="ListChecks" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="ListChecks" />
               </MenuItem.Icon>
             </MenuItem>
           </ContextMenu>
@@ -32,109 +46,143 @@
     </Style>
   </UserControl.Styles>
 
-  <controls:PageDataShell IsLoadingData="{Binding IsBusy}"
-                          ShowUnavailable="{Binding ShowPageUnavailable}"
-                          UnavailableTitle="{Binding PageUnavailableTitle}"
-                          UnavailableHint="{Binding PageUnavailableHint}"
-                          UnavailableIcon="{Binding PageUnavailableIcon}"
-                          ShowStale="{Binding IsShowingStaleData}"
-                          StaleHint="{Binding PageStaleHint}">
+  <controls:PageDataShell
+    IsLoadingData="{Binding IsBusy}"
+    ShowStale="{Binding IsShowingStaleData}"
+    ShowUnavailable="{Binding ShowPageUnavailable}"
+    StaleHint="{Binding PageStaleHint}"
+    UnavailableHint="{Binding PageUnavailableHint}"
+    UnavailableIcon="{Binding PageUnavailableIcon}"
+    UnavailableTitle="{Binding PageUnavailableTitle}">
     <Grid Classes="DashboardShell" RowDefinitions="Auto,Auto,*">
-      <suki:GlassCard Grid.Row="0"
-              Classes="SectionCard FilterSectionCard"
-              Margin="{DynamicResource DashboardFilterCardMargin}"
-              Padding="{DynamicResource DashboardFilterCardPadding}">
-        <Grid ColumnDefinitions="1.9*,1.35*,1.15*,1.35*"
-           ColumnSpacing="{DynamicResource PageColumnSpacing}"
-           VerticalAlignment="Stretch">
-          <suki:GlassCard Grid.Column="0" Classes="FilterFieldCard" VerticalAlignment="Stretch">
-            <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
-               VerticalAlignment="Stretch">
+      <suki:GlassCard
+        Grid.Row="0"
+        Margin="{DynamicResource DashboardFilterCardMargin}"
+        Padding="{DynamicResource DashboardFilterCardPadding}"
+        Classes="SectionCard FilterSectionCard">
+        <Grid
+          VerticalAlignment="Stretch"
+          ColumnDefinitions="1.9*,1.35*,1.15*,1.35*"
+          ColumnSpacing="{DynamicResource PageColumnSpacing}">
+          <suki:GlassCard
+            Grid.Column="0"
+            VerticalAlignment="Stretch"
+            Classes="FilterFieldCard">
+            <Grid
+              VerticalAlignment="Stretch"
+              RowDefinitions="Auto,*"
+              RowSpacing="{DynamicResource FilterFieldRowSpacing}">
               <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <StackPanel Grid.Column="0" Classes="SectionHeaderStack" Spacing="{DynamicResource SpacingInlineSm}"
-                      VerticalAlignment="Center">
-                  <icons:AppIcon Kind="CalendarRange"
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}"
-                            Opacity="{StaticResource SectionHintOpacity}" />
-                  <TextBlock Text="起始"
-                       Opacity="{StaticResource SectionHintOpacity}"
-                       FontSize="{DynamicResource SectionHintSize}" />
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="SectionHeaderStack"
+                  Spacing="{DynamicResource SpacingInlineSm}">
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    Kind="CalendarRange"
+                    Opacity="{StaticResource SectionHintOpacity}" />
+                  <TextBlock
+                    FontSize="{DynamicResource SectionHintSize}"
+                    Opacity="{StaticResource SectionHintOpacity}"
+                    Text="起始" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}"
-                      VerticalAlignment="Center">
-                  <icons:AppIcon Kind="CalendarRange"
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}"
-                            Opacity="{StaticResource SectionHintOpacity}" />
-                  <TextBlock Text="结束"
-                       Opacity="{StaticResource SectionHintOpacity}"
-                       FontSize="{DynamicResource SectionHintSize}" />
+                <StackPanel
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Orientation="Horizontal"
+                  Spacing="{DynamicResource SpacingInlineSm}">
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    Kind="CalendarRange"
+                    Opacity="{StaticResource SectionHintOpacity}" />
+                  <TextBlock
+                    FontSize="{DynamicResource SectionHintSize}"
+                    Opacity="{StaticResource SectionHintOpacity}"
+                    Text="结束" />
                 </StackPanel>
-                <Button Grid.Column="2"
-                    Classes="Basic MicroClear"
-                    Command="{Binding ResetDateRangeCommand}"
-                                        HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    ToolTip.Tip="归位日期">
-                  <icons:AppIcon Kind="RotateCcw"
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}" />
+                <Button
+                  Grid.Column="2"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Center"
+                  Classes="Basic MicroClear"
+                  Command="{Binding ResetDateRangeCommand}"
+                  ToolTip.Tip="归位日期">
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    Kind="RotateCcw" />
                 </Button>
               </Grid>
-              <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}"
-                 VerticalAlignment="Bottom">
+              <Grid
+                Grid.Row="1"
+                VerticalAlignment="Bottom"
+                ColumnDefinitions="*,*"
+                ColumnSpacing="{DynamicResource PageColumnSpacing}">
                 <controls:FilterFieldInput Grid.Column="0">
                   <CalendarDatePicker
-                          MinWidth="126"
-                          IsTodayHighlighted="True"
-                          SelectedDate="{Binding FromDate}"
-                          DisplayDateEnd="{Binding FromMaxDate}" />
+                    MinWidth="126"
+                    DisplayDateEnd="{Binding FromMaxDate}"
+                    IsTodayHighlighted="True"
+                    SelectedDate="{Binding FromDate}" />
                 </controls:FilterFieldInput>
                 <controls:FilterFieldInput Grid.Column="1">
                   <CalendarDatePicker
-                          MinWidth="126"
-                          IsTodayHighlighted="True"
-                          SelectedDate="{Binding ToDate}"
-                          DisplayDateStart="{Binding ToMinDate}"
-                          DisplayDateEnd="{Binding ToMaxDate}"
-                          SelectedDateFormat="Short" />
+                    MinWidth="126"
+                    DisplayDateEnd="{Binding ToMaxDate}"
+                    DisplayDateStart="{Binding ToMinDate}"
+                    IsTodayHighlighted="True"
+                    SelectedDate="{Binding ToDate}"
+                    SelectedDateFormat="Short" />
                 </controls:FilterFieldInput>
               </Grid>
             </Grid>
           </suki:GlassCard>
 
-          <suki:GlassCard Grid.Column="1" Classes="FilterFieldCard" VerticalAlignment="Stretch">
-            <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
-               VerticalAlignment="Stretch">
+          <suki:GlassCard
+            Grid.Column="1"
+            VerticalAlignment="Stretch"
+            Classes="FilterFieldCard">
+            <Grid
+              VerticalAlignment="Stretch"
+              RowDefinitions="Auto,*"
+              RowSpacing="{DynamicResource FilterFieldRowSpacing}">
               <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource SpacingInlineSm}">
-                <icons:AppIcon Grid.Column="0"
-                          Kind="Pill"
-                          Width="{DynamicResource IconSizeSmall}"
-                          Height="{DynamicResource IconSizeSmall}"
-                          Opacity="{StaticResource SectionHintOpacity}"
-                          VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1"
-                     Text="药品" Classes="FilterLabel" />
-                <Button Grid.Column="2"
-                    Classes="Basic MicroClear"
-                    Command="{Binding ClearDrugSpecFilterCommand}"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    ToolTip.Tip="清空筛选">
-                  <icons:AppIcon Kind="CircleX"
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}" />
+                <icons:AppIcon
+                  Grid.Column="0"
+                  Width="{DynamicResource IconSizeSmall}"
+                  Height="{DynamicResource IconSizeSmall}"
+                  VerticalAlignment="Center"
+                  Kind="Pill"
+                  Opacity="{StaticResource SectionHintOpacity}" />
+                <TextBlock
+                  Grid.Column="1"
+                  Classes="FilterLabel"
+                  Text="药品" />
+                <Button
+                  Grid.Column="2"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Center"
+                  Classes="Basic MicroClear"
+                  Command="{Binding ClearDrugSpecFilterCommand}"
+                  ToolTip.Tip="清空筛选">
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    Kind="CircleX" />
                 </Button>
               </Grid>
-              <controls:PlainAutoCompleteBox Grid.Row="1"
-                        x:Name="DrugBox"
-                        VerticalAlignment="Bottom"
-                        ItemsSource="{Binding DrugOptions}"
-                        Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}"
-                        PlaceholderText="全部药品"
-                        IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
-                        KeyDown="DrugBox_OnKeyDown">
+              <controls:PlainAutoCompleteBox
+                x:Name="DrugBox"
+                Grid.Row="1"
+                VerticalAlignment="Bottom"
+                IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
+                ItemsSource="{Binding DrugOptions}"
+                KeyDown="DrugBox_OnKeyDown"
+                PlaceholderText="全部药品"
+                Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}">
                 <controls:PlainAutoCompleteBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:OptionItem">
                     <TextBlock Text="{Binding Display}" />
@@ -144,49 +192,67 @@
             </Grid>
           </suki:GlassCard>
 
-          <suki:GlassCard Grid.Column="2" Classes="FilterFieldCard" VerticalAlignment="Stretch">
-            <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
-               VerticalAlignment="Stretch">
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}"
-                    VerticalAlignment="Center">
-                <icons:AppIcon Kind="SlidersHorizontal"
-                          Width="{DynamicResource IconSizeSmall}"
-                          Height="{DynamicResource IconSizeSmall}"
-                          Opacity="{StaticResource SectionHintOpacity}" />
-                <TextBlock Text="规格"
-                     Opacity="{StaticResource SectionHintOpacity}"
-                     FontSize="{DynamicResource SectionHintSize}" />
+          <suki:GlassCard
+            Grid.Column="2"
+            VerticalAlignment="Stretch"
+            Classes="FilterFieldCard">
+            <Grid
+              VerticalAlignment="Stretch"
+              RowDefinitions="Auto,*"
+              RowSpacing="{DynamicResource FilterFieldRowSpacing}">
+              <StackPanel
+                VerticalAlignment="Center"
+                Orientation="Horizontal"
+                Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeSmall}"
+                  Height="{DynamicResource IconSizeSmall}"
+                  Kind="SlidersHorizontal"
+                  Opacity="{StaticResource SectionHintOpacity}" />
+                <TextBlock
+                  FontSize="{DynamicResource SectionHintSize}"
+                  Opacity="{StaticResource SectionHintOpacity}"
+                  Text="规格" />
               </StackPanel>
               <controls:FilterFieldInput Grid.Row="1">
                 <ComboBox
-                     x:Name="SpecBox"
-                     ItemsSource="{Binding SpecOptions}"
-                     SelectedItem="{Binding SelectedSpec}"
-                     DisplayMemberBinding="{Binding Display}"
-                     HorizontalContentAlignment="Stretch" />
+                  x:Name="SpecBox"
+                  HorizontalContentAlignment="Stretch"
+                  DisplayMemberBinding="{Binding Display}"
+                  ItemsSource="{Binding SpecOptions}"
+                  SelectedItem="{Binding SelectedSpec}" />
               </controls:FilterFieldInput>
             </Grid>
           </suki:GlassCard>
 
-          <suki:GlassCard Grid.Column="3" Classes="FilterFieldCard" VerticalAlignment="Stretch">
-            <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
-               VerticalAlignment="Stretch">
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}"
-                    VerticalAlignment="Center">
-                <icons:AppIcon Kind="Laptop"
-                          Width="{DynamicResource IconSizeSmall}"
-                          Height="{DynamicResource IconSizeSmall}"
-                          Opacity="{StaticResource SectionHintOpacity}" />
-                <TextBlock Text="客户端"
-                     Opacity="{StaticResource SectionHintOpacity}"
-                     FontSize="{DynamicResource SectionHintSize}" />
+          <suki:GlassCard
+            Grid.Column="3"
+            VerticalAlignment="Stretch"
+            Classes="FilterFieldCard">
+            <Grid
+              VerticalAlignment="Stretch"
+              RowDefinitions="Auto,*"
+              RowSpacing="{DynamicResource FilterFieldRowSpacing}">
+              <StackPanel
+                VerticalAlignment="Center"
+                Orientation="Horizontal"
+                Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeSmall}"
+                  Height="{DynamicResource IconSizeSmall}"
+                  Kind="Laptop"
+                  Opacity="{StaticResource SectionHintOpacity}" />
+                <TextBlock
+                  FontSize="{DynamicResource SectionHintSize}"
+                  Opacity="{StaticResource SectionHintOpacity}"
+                  Text="客户端" />
               </StackPanel>
               <controls:FilterFieldInput Grid.Row="1">
                 <ComboBox
-                     ItemsSource="{Binding Clients}"
-                     SelectedItem="{Binding SelectedClient}"
-                     DisplayMemberBinding="{Binding Display}"
-                     HorizontalContentAlignment="Stretch" />
+                  HorizontalContentAlignment="Stretch"
+                  DisplayMemberBinding="{Binding Display}"
+                  ItemsSource="{Binding Clients}"
+                  SelectedItem="{Binding SelectedClient}" />
               </controls:FilterFieldInput>
             </Grid>
           </suki:GlassCard>
@@ -195,10 +261,8 @@
       </suki:GlassCard>
 
 
-      <Border Grid.Row="1"
-          Padding="{DynamicResource DashboardToolbarPadding}">
-        <TabControl Classes="DashboardSubTabs"
-              SelectedIndex="{Binding SelectedTabIndex}">
+      <Border Grid.Row="1" Padding="{DynamicResource DashboardToolbarPadding}">
+        <TabControl Classes="DashboardSubTabs" SelectedIndex="{Binding SelectedTabIndex}">
           <TabItem>
             <TabItem.Header>
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
@@ -235,1022 +299,1340 @@
       </Border>
 
 
-      <Grid Grid.Row="2"
-         IsVisible="{Binding IsOverviewTab}"
-         Margin="{DynamicResource PagePaddingHorizontal}"
-         RowDefinitions="*">
-          <ScrollViewer Grid.Row="0"
-                 Classes="Stack"
-                 HorizontalAlignment="Stretch"
-                 VerticalAlignment="Stretch"
-                 BringIntoViewOnFocusChange="False"
-                 Padding="0"
-                 AllowAutoHide="False"
-                 VerticalScrollBarVisibility="Auto"
-                 HorizontalScrollBarVisibility="Disabled">
-            <Grid RowDefinitions="Auto,Auto,Auto"
-               RowSpacing="14"
-               Margin="{DynamicResource PageScrollExtentBottomMargin}">
+      <Grid
+        Grid.Row="2"
+        Margin="{DynamicResource PagePaddingHorizontal}"
+        IsVisible="{Binding IsOverviewTab}"
+        RowDefinitions="*">
+        <ScrollViewer
+          Grid.Row="0"
+          Padding="0"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          AllowAutoHide="False"
+          BringIntoViewOnFocusChange="False"
+          Classes="Stack"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+          <Grid
+            Margin="{DynamicResource PageScrollExtentBottomMargin}"
+            RowDefinitions="Auto,Auto,Auto"
+            RowSpacing="14">
 
 
-          <Grid Grid.Row="0"
-             ColumnDefinitions="*,*,*,*"
-             ColumnSpacing="{DynamicResource FormColumnSpacing}">
+            <Grid
+              Grid.Row="0"
+              ColumnDefinitions="*,*,*,*"
+              ColumnSpacing="{DynamicResource FormColumnSpacing}">
 
-            <suki:GlassCard Grid.Column="0"
-                    Classes="SectionCard"
-                    IsInteractive="True"
-                    Command="{Binding OpenInventoryCommand}">
-              <Grid RowDefinitions="Auto,Auto,Auto,Auto"
-                 ColumnDefinitions="Auto,*,Auto"
-                 RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+              <suki:GlassCard
+                Grid.Column="0"
+                Classes="SectionCard"
+                Command="{Binding OpenInventoryCommand}"
+                IsInteractive="True">
+                <Grid
+                  ColumnDefinitions="Auto,*,Auto"
+                  RowDefinitions="Auto,Auto,Auto,Auto"
+                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
 
-                <icons:AppIcon Kind="Database"
-                          Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSectionHeader}"
+                    Height="{DynamicResource IconSizeSectionHeader}"
+                    Kind="Database" />
 
-                <TextBlock Grid.Row="0" Grid.Column="1"
-                     Text="可用追溯码库存"
-                     FontWeight="SemiBold"
-                     Opacity="0.85"
-                     Margin="{DynamicResource MarginLeftSm}" />
+                  <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Margin="{DynamicResource MarginLeftSm}"
+                    FontWeight="SemiBold"
+                    Opacity="0.85"
+                    Text="可用追溯码库存" />
 
-                <TextBlock Grid.Row="0" Grid.Column="2"
-                     Text="{Binding Kpi.AvailableRemainPct, StringFormat={}{0:F0}%}"
-                     Classes="SectionHint"
-                     HorizontalAlignment="Right"
-                     VerticalAlignment="Center" />
+                  <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Classes="SectionHint"
+                    Text="{Binding Kpi.AvailableRemainPct, StringFormat={}{0:F0}%}" />
 
-                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
-                     Text="{Binding Kpi.AvailableRemain}"
-                     FontSize="22"
-                     FontWeight="Bold" />
+                  <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    FontSize="22"
+                    FontWeight="Bold"
+                    Text="{Binding Kpi.AvailableRemain}" />
 
-                <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Grid.Column="0"
-                     Text="{Binding Kpi.AvailableRemainHint}"
-                     Classes="SectionHint"
-                     TextWrapping="Wrap"
-                     MaxLines="2" />
+                  <TextBlock
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    Classes="SectionHint"
+                    MaxLines="2"
+                    Text="{Binding Kpi.AvailableRemainHint}"
+                    TextWrapping="Wrap" />
 
-                <ProgressBar Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
-                         Minimum="0"
-                         Maximum="100"
-                         Height="6"
-                         Margin="{DynamicResource MarginTopMd}"
-                         Foreground="{Binding Kpi.AvailableRemainPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Remain}"
-                         Value="{Binding Kpi.AvailableRemainPct}" />
-              </Grid>
-            </suki:GlassCard>
+                  <ProgressBar
+                    Grid.Row="3"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    Height="6"
+                    Margin="{DynamicResource MarginTopMd}"
+                    Foreground="{Binding Kpi.AvailableRemainPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Remain}"
+                    Maximum="100"
+                    Minimum="0"
+                    Value="{Binding Kpi.AvailableRemainPct}" />
+                </Grid>
+              </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="1"
-                    Classes="SectionCard"
-                    IsInteractive="True"
-                    Command="{Binding OpenPeriodUsageCommand}">
-              <Grid RowDefinitions="Auto,Auto,Auto,Auto"
-                 ColumnDefinitions="Auto,*,Auto"
-                 RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+              <suki:GlassCard
+                Grid.Column="1"
+                Classes="SectionCard"
+                Command="{Binding OpenPeriodUsageCommand}"
+                IsInteractive="True">
+                <Grid
+                  ColumnDefinitions="Auto,*,Auto"
+                  RowDefinitions="Auto,Auto,Auto,Auto"
+                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
 
-                <icons:AppIcon Kind="ChartLine"
-                          Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSectionHeader}"
+                    Height="{DynamicResource IconSizeSectionHeader}"
+                    Kind="ChartLine" />
 
-                <TextBlock Grid.Row="0" Grid.Column="1"
-                     Text="期间使用条数"
-                     FontWeight="SemiBold"
-                     Opacity="0.85"
-                     Margin="{DynamicResource MarginLeftSm}" />
+                  <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Margin="{DynamicResource MarginLeftSm}"
+                    FontWeight="SemiBold"
+                    Opacity="0.85"
+                    Text="期间使用条数" />
 
-                <TextBlock Grid.Row="0" Grid.Column="2"
-                     Text="{Binding Kpi.PeriodUsedPct, StringFormat={}{0:F0}%}"
-                     Classes="SectionHint"
-                     HorizontalAlignment="Right"
-                     VerticalAlignment="Center" />
+                  <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Classes="SectionHint"
+                    Text="{Binding Kpi.PeriodUsedPct, StringFormat={}{0:F0}%}" />
 
-                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
-                     Text="{Binding Kpi.PeriodUsed}"
-                     FontSize="22"
-                     FontWeight="Bold" />
+                  <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    FontSize="22"
+                    FontWeight="Bold"
+                    Text="{Binding Kpi.PeriodUsed}" />
 
-                <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Grid.Column="0"
-                     Text="{Binding Kpi.PeriodUsedHint}"
-                     Classes="SectionHint"
-                     TextWrapping="Wrap"
-                     MaxLines="2" />
+                  <TextBlock
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    Classes="SectionHint"
+                    MaxLines="2"
+                    Text="{Binding Kpi.PeriodUsedHint}"
+                    TextWrapping="Wrap" />
 
-                <ProgressBar Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
-                         Minimum="0"
-                         Maximum="100"
-                         Height="6"
-                         Margin="{DynamicResource MarginTopMd}"
-                         Foreground="{Binding Kpi.PeriodUsedPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
-                         Value="{Binding Kpi.PeriodUsedPct}" />
-              </Grid>
-            </suki:GlassCard>
+                  <ProgressBar
+                    Grid.Row="3"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    Height="6"
+                    Margin="{DynamicResource MarginTopMd}"
+                    Foreground="{Binding Kpi.PeriodUsedPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
+                    Maximum="100"
+                    Minimum="0"
+                    Value="{Binding Kpi.PeriodUsedPct}" />
+                </Grid>
+              </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="2"
-                    Classes="SectionCard"
-                    IsInteractive="True"
-                    Command="{Binding OpenAbnormalCommand}">
-              <Grid RowDefinitions="Auto,Auto,Auto,Auto"
-                 ColumnDefinitions="Auto,*,Auto"
-                 RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+              <suki:GlassCard
+                Grid.Column="2"
+                Classes="SectionCard"
+                Command="{Binding OpenAbnormalCommand}"
+                IsInteractive="True">
+                <Grid
+                  ColumnDefinitions="Auto,*,Auto"
+                  RowDefinitions="Auto,Auto,Auto,Auto"
+                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
 
-                <icons:AppIcon Kind="CircleX"
-                          Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}"
-                          Foreground="{StaticResource BrushWarning}" />
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSectionHeader}"
+                    Height="{DynamicResource IconSizeSectionHeader}"
+                    Foreground="{StaticResource BrushWarning}"
+                    Kind="CircleX" />
 
-                <TextBlock Grid.Row="0" Grid.Column="1"
-                     Text="异常 / 回滚"
-                     FontWeight="SemiBold"
-                     Opacity="0.85"
-                     Margin="{DynamicResource MarginLeftSm}" />
+                  <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Margin="{DynamicResource MarginLeftSm}"
+                    FontWeight="SemiBold"
+                    Opacity="0.85"
+                    Text="异常 / 回滚" />
 
-                <TextBlock Grid.Row="0" Grid.Column="2"
-                     Text="{Binding Kpi.AbnormalPct, StringFormat={}{0:F0}%}"
-                     Classes="SectionHint"
-                     HorizontalAlignment="Right"
-                     VerticalAlignment="Center" />
+                  <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Classes="SectionHint"
+                    Text="{Binding Kpi.AbnormalPct, StringFormat={}{0:F0}%}" />
 
-                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
-                     Text="{Binding Kpi.Abnormal}"
-                     Foreground="{StaticResource BrushWarning}"
-                     FontSize="22"
-                     FontWeight="Bold" />
+                  <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    FontSize="22"
+                    FontWeight="Bold"
+                    Foreground="{StaticResource BrushWarning}"
+                    Text="{Binding Kpi.Abnormal}" />
 
-                <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Grid.Column="0"
-                     Text="{Binding Kpi.AbnormalHint}"
-                     Classes="SectionHint"
-                     TextWrapping="Wrap"
-                     MaxLines="2" />
+                  <TextBlock
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    Classes="SectionHint"
+                    MaxLines="2"
+                    Text="{Binding Kpi.AbnormalHint}"
+                    TextWrapping="Wrap" />
 
-                <ProgressBar Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
-                         Minimum="0"
-                         Maximum="100"
-                         Height="6"
-                         Margin="{DynamicResource MarginTopMd}"
-                         Foreground="{Binding Kpi.AbnormalPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
-                         Value="{Binding Kpi.AbnormalPct}" />
-              </Grid>
-            </suki:GlassCard>
+                  <ProgressBar
+                    Grid.Row="3"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    Height="6"
+                    Margin="{DynamicResource MarginTopMd}"
+                    Foreground="{Binding Kpi.AbnormalPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
+                    Maximum="100"
+                    Minimum="0"
+                    Value="{Binding Kpi.AbnormalPct}" />
+                </Grid>
+              </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="3"
-                    Classes="SectionCard"
-                    IsInteractive="True"
-                    Command="{Binding OpenLowStockCommand}">
-              <Grid RowDefinitions="Auto,Auto,Auto,Auto"
-                 ColumnDefinitions="Auto,*,Auto"
-                 RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+              <suki:GlassCard
+                Grid.Column="3"
+                Classes="SectionCard"
+                Command="{Binding OpenLowStockCommand}"
+                IsInteractive="True">
+                <Grid
+                  ColumnDefinitions="Auto,*,Auto"
+                  RowDefinitions="Auto,Auto,Auto,Auto"
+                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
 
-                <icons:AppIcon Kind="TriangleAlert"
-                          Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}"
-                          Foreground="{StaticResource BrushDanger}"
-                          VerticalAlignment="Center" />
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSectionHeader}"
+                    Height="{DynamicResource IconSizeSectionHeader}"
+                    VerticalAlignment="Center"
+                    Foreground="{StaticResource BrushDanger}"
+                    Kind="TriangleAlert" />
 
-                <TextBlock Grid.Row="0" Grid.Column="1"
-                     Text="追溯码告紧"
-                     FontWeight="SemiBold"
-                     Opacity="0.85"
-                     Margin="{DynamicResource MarginLeftSm}" />
+                  <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Margin="{DynamicResource MarginLeftSm}"
+                    FontWeight="SemiBold"
+                    Opacity="0.85"
+                    Text="追溯码告紧" />
 
-                <TextBlock Grid.Row="0" Grid.Column="2"
-                     Text="{Binding Kpi.LowStockPct, StringFormat={}{0:F0}%}"
-                     Classes="SectionHint"
-                     HorizontalAlignment="Right"
-                     VerticalAlignment="Center" />
+                  <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Classes="SectionHint"
+                    Text="{Binding Kpi.LowStockPct, StringFormat={}{0:F0}%}" />
 
-                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0"
-                     Text="{Binding Kpi.LowStockCount}"
-                     Foreground="{StaticResource BrushDanger}"
-                     FontSize="22"
-                     FontWeight="Bold" />
+                  <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    FontSize="22"
+                    FontWeight="Bold"
+                    Foreground="{StaticResource BrushDanger}"
+                    Text="{Binding Kpi.LowStockCount}" />
 
-                <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Grid.Column="0"
-                     Text="{Binding Kpi.LowStockHint}"
-                     Classes="SectionHint"
-                     TextWrapping="Wrap"
-                     MaxLines="2" />
+                  <TextBlock
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    Classes="SectionHint"
+                    MaxLines="2"
+                    Text="{Binding Kpi.LowStockHint}"
+                    TextWrapping="Wrap" />
 
-                <ProgressBar Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
-                         Minimum="0"
-                         Maximum="100"
-                         Height="6"
-                         Margin="{DynamicResource MarginTopMd}"
-                         Foreground="{Binding Kpi.LowStockPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
-                         Value="{Binding Kpi.LowStockPct}" />
-              </Grid>
-            </suki:GlassCard>
-          </Grid>
+                  <ProgressBar
+                    Grid.Row="3"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    Height="6"
+                    Margin="{DynamicResource MarginTopMd}"
+                    Foreground="{Binding Kpi.LowStockPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
+                    Maximum="100"
+                    Minimum="0"
+                    Value="{Binding Kpi.LowStockPct}" />
+                </Grid>
+              </suki:GlassCard>
+            </Grid>
 
 
-          <Grid Grid.Row="1" ColumnDefinitions="2*,*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
+            <Grid
+              Grid.Row="1"
+              ColumnDefinitions="2*,*"
+              ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
 
-            <suki:GlassCard Grid.Column="0" Classes="SectionCard">
-              <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}" MinHeight="0">
-                  <Grid ColumnDefinitions="Auto,*,240" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
-                    <icons:AppIcon Kind="ChartSpline"
-                              Width="{DynamicResource IconSizeSectionHeader}"
-                              Height="{DynamicResource IconSizeSectionHeader}"
-                              VerticalAlignment="Center" />
-                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                      <TextBlock Text="药品使用统计"
-                           Classes="SectionTitle"
-                           VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding SectionHint}"
-                         Classes="SectionHint" />
+              <suki:GlassCard Grid.Column="0" Classes="SectionCard">
+                <Grid
+                  MinHeight="0"
+                  RowDefinitions="Auto,*,Auto"
+                  RowSpacing="{DynamicResource DialogFormRowSpacing}">
+                  <Grid
+                    VerticalAlignment="Center"
+                    ColumnDefinitions="Auto,*,240"
+                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSectionHeader}"
+                      Height="{DynamicResource IconSizeSectionHeader}"
+                      VerticalAlignment="Center"
+                      Kind="ChartSpline" />
+                    <StackPanel
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Spacing="2">
+                      <TextBlock
+                        VerticalAlignment="Center"
+                        Classes="SectionTitle"
+                        Text="药品使用统计" />
+                      <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
                     </StackPanel>
-                    <ComboBox Grid.Column="2"
-                         ItemsSource="{Binding TrendModes}"
-                         SelectedItem="{Binding TrendMode}"
-                         VerticalAlignment="Center"
-                         HorizontalAlignment="Right" />
+                    <ComboBox
+                      Grid.Column="2"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Center"
+                      ItemsSource="{Binding TrendModes}"
+                      SelectedItem="{Binding TrendMode}" />
                   </Grid>
-                  <controls:EmptyStatePanel Grid.Row="1"
-                MinHeight="0"
-                IsEmpty="{Binding IsTrendEmpty}"
-                EmptyText="{Binding TrendEmptyText}"
-                EmptyHint="{Binding TrendEmptyHint}"
-                Icon="{Binding SectionEmptyIcon}"
-                IsPending="{Binding IsSectionPending}"
-                SlotMode="Always"
-                SlotMinHeight="{DynamicResource DgH10Rows}">
-                  <suki:BusyArea MinHeight="{StaticResource DgH10Rows}" IsBusy="{Binding IsTxnBusy}">
-                    <DataGrid
-                       x:Name="TrendGridOverview"
-                       Classes="SectionGrid"
-                       ItemsSource="{Binding DrugTrend}"
-                       SelectedItem="{Binding SelectedTrendItem}"
-                       SelectionChanged="OnBrowsingGridSelectionChanged"
-                       SelectionMode="Single"
-                       HeadersVisibility="None"
-                       RowHeight="{StaticResource RowMinHeight}"
-                       VerticalAlignment="Top"
-                       HorizontalAlignment="Stretch">
+                  <controls:EmptyStatePanel
+                    Grid.Row="1"
+                    MinHeight="0"
+                    EmptyHint="{Binding TrendEmptyHint}"
+                    EmptyText="{Binding TrendEmptyText}"
+                    Icon="{Binding SectionEmptyIcon}"
+                    IsEmpty="{Binding IsTrendEmpty}"
+                    IsPending="{Binding IsSectionPending}"
+                    SlotMinHeight="{DynamicResource DgH10Rows}"
+                    SlotMode="Always">
+                    <suki:BusyArea MinHeight="{StaticResource DgH10Rows}" IsBusy="{Binding IsTxnBusy}">
+                      <DataGrid
+                        x:Name="TrendGridOverview"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Top"
+                        Classes="SectionGrid"
+                        HeadersVisibility="None"
+                        ItemsSource="{Binding DrugTrend}"
+                        RowHeight="{StaticResource RowMinHeight}"
+                        SelectedItem="{Binding SelectedTrendItem}"
+                        SelectionChanged="OnBrowsingGridSelectionChanged"
+                        SelectionMode="Single">
 
-                    <DataGrid.Columns>
-                      <DataGridTemplateColumn Width="{StaticResource DgWRank}">
-                        <DataGridTemplateColumn.CellTemplate>
-                          <DataTemplate>
-                            <Border>
-                              <Border Width="36" Height="36"
-                                  CornerRadius="10"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Rank}"
-                                     FontWeight="Bold"
-                                     HorizontalAlignment="Center"
-                                     VerticalAlignment="Center" />
-                              </Border>
-                            </Border>
-                          </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                      </DataGridTemplateColumn>
+                        <DataGrid.Columns>
+                          <DataGridTemplateColumn Width="{StaticResource DgWRank}">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <Border>
+                                  <Border
+                                    Width="36"
+                                    Height="36"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    CornerRadius="10">
+                                    <TextBlock
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      FontWeight="Bold"
+                                      Text="{Binding Rank}" />
+                                  </Border>
+                                </Border>
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
 
-                      <DataGridTemplateColumn Width="*">
-                        <DataGridTemplateColumn.CellTemplate>
-                          <DataTemplate>
-                            <StackPanel Spacing="2">
-                              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                              <TextBlock Text="{Binding Sub}" Classes="DGSub" />
-                            </StackPanel>
-                          </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                      </DataGridTemplateColumn>
+                          <DataGridTemplateColumn Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <StackPanel Spacing="2">
+                                  <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                  <TextBlock Classes="DGSub" Text="{Binding Sub}" />
+                                </StackPanel>
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
 
-                      <DataGridTemplateColumn Width="Auto">
-                        <DataGridTemplateColumn.CellTemplate>
-                          <DataTemplate>
-                            <TextBlock Text="{Binding SourceText}" Classes="SectionHint" />
-                          </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                      </DataGridTemplateColumn>
+                          <DataGridTemplateColumn Width="Auto">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <TextBlock Classes="SectionHint" Text="{Binding SourceText}" />
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
 
-                      <DataGridTemplateColumn Width="{StaticResource DgWRightValue}">
-                        <DataGridTemplateColumn.CellTemplate>
-                          <DataTemplate>
-                            <TextBlock Text="{Binding ValueText}"
-                                 Classes="DGRightCell DGNum" />
-                          </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                      </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                    </DataGrid>
-                  </suki:BusyArea>
+                          <DataGridTemplateColumn Width="{StaticResource DgWRightValue}">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <TextBlock Classes="DGRightCell DGNum" Text="{Binding ValueText}" />
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                      </DataGrid>
+                    </suki:BusyArea>
                   </controls:EmptyStatePanel>
 
-                  <Border Grid.Row="2"
-                      Padding="2,6,2,0"
-                      BorderThickness="0,1,0,0"
-                      BorderBrush="{DynamicResource SukiBorderBrush}"
-                      Opacity="0.7">
-                    <TextBlock Classes="DGSub"
-                         Text="{Binding DrugTrend.Count, StringFormat=共 {0} 条趋势项}" />
+                  <Border
+                    Grid.Row="2"
+                    Padding="2,6,2,0"
+                    BorderBrush="{DynamicResource SukiBorderBrush}"
+                    BorderThickness="0,1,0,0"
+                    Opacity="0.7">
+                    <TextBlock Classes="DGSub" Text="{Binding DrugTrend.Count, StringFormat=共 {0} 条趋势项}" />
                   </Border>
                 </Grid>
-            </suki:GlassCard>
+              </suki:GlassCard>
 
 
-            <suki:GlassCard Grid.Column="1" Classes="SectionCard">
-              <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}" MinHeight="0">
-                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
-                    <icons:AppIcon Grid.Column="0"
-                              Kind="ReceiptText"
-                              Width="{DynamicResource IconSizeSectionHeader}"
-                              Height="{DynamicResource IconSizeSectionHeader}"
-                              VerticalAlignment="Center" />
-                    <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                      <TextBlock Text="事务总览"
-                           Classes="SectionTitle"
-                           VerticalAlignment="Center" />
+              <suki:GlassCard Grid.Column="1" Classes="SectionCard">
+                <Grid
+                  MinHeight="0"
+                  RowDefinitions="Auto,*,Auto"
+                  RowSpacing="{DynamicResource DialogFormRowSpacing}">
+                  <Grid
+                    VerticalAlignment="Center"
+                    ColumnDefinitions="Auto,*,Auto"
+                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                    <icons:AppIcon
+                      Grid.Column="0"
+                      Width="{DynamicResource IconSizeSectionHeader}"
+                      Height="{DynamicResource IconSizeSectionHeader}"
+                      VerticalAlignment="Center"
+                      Kind="ReceiptText" />
+                    <StackPanel
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Spacing="1">
                       <TextBlock
-                        Text="{Binding SectionHint}"
-                        Classes="SectionHint" />
-                    </StackPanel>
-                    <Button Grid.Column="2"
-                        Classes="Ghost"
-                        Content="查看全部"
                         VerticalAlignment="Center"
-                        Command="{Binding OpenTxnListCommand}" />
+                        Classes="SectionTitle"
+                        Text="事务总览" />
+                      <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
+                    </StackPanel>
+                    <Button
+                      Grid.Column="2"
+                      VerticalAlignment="Center"
+                      Classes="Ghost"
+                      Command="{Binding OpenTxnListCommand}"
+                      Content="查看全部" />
                   </Grid>
-                  <controls:EmptyStatePanel Grid.Row="1"
-                MinHeight="0"
-                IsEmpty="{Binding IsRecentTxnsEmpty}"
-                EmptyText="{Binding RecentTxnsEmptyText}"
-                EmptyHint="{Binding RecentTxnsEmptyHint}"
-                Icon="{Binding SectionEmptyIcon}"
-                IsPending="{Binding IsSectionPending}"
-                SlotMode="Always"
-                SlotMinHeight="{DynamicResource DgH10Rows}">
-                  <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
-                    <DataGrid
-                       x:Name="RecentTxnGridOverview"
-                       Classes="SectionGrid TxnGrid StickyIndexGrid"
-                       ItemsSource="{Binding RecentTxnsOverview}"
-                       SelectedItem="{Binding SelectedTxn}"
-                       SelectionChanged="OnBrowsingGridSelectionChanged"
-                       SelectionMode="Single"
-                       HeadersVisibility="Row"
-                       RowHeight="{StaticResource RowMinHeight}"
-                       VerticalAlignment="Top"
-                       HorizontalAlignment="Stretch">
+                  <controls:EmptyStatePanel
+                    Grid.Row="1"
+                    MinHeight="0"
+                    EmptyHint="{Binding RecentTxnsEmptyHint}"
+                    EmptyText="{Binding RecentTxnsEmptyText}"
+                    Icon="{Binding SectionEmptyIcon}"
+                    IsEmpty="{Binding IsRecentTxnsEmpty}"
+                    IsPending="{Binding IsSectionPending}"
+                    SlotMinHeight="{DynamicResource DgH10Rows}"
+                    SlotMode="Always">
+                    <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
+                      <DataGrid
+                        x:Name="RecentTxnGridOverview"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Top"
+                        Classes="SectionGrid TxnGrid StickyIndexGrid"
+                        HeadersVisibility="Row"
+                        ItemsSource="{Binding RecentTxnsOverview}"
+                        RowHeight="{StaticResource RowMinHeight}"
+                        SelectedItem="{Binding SelectedTxn}"
+                        SelectionChanged="OnBrowsingGridSelectionChanged"
+                        SelectionMode="Single">
+                        <DataGrid.Columns>
+                          <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <Border
+                                  Width="{DynamicResource IconBadgeSize}"
+                                  Height="{DynamicResource IconBadgeSize}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                  CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                  <icons:AppIcon
+                                    Width="{DynamicResource IconSizeDefault}"
+                                    Height="{DynamicResource IconSizeDefault}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
+                                    Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
+                                </Border>
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
+
+                          <DataGridTemplateColumn Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
+
+                          <DataGridTemplateColumn Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <TextBlock Text="{Binding Time}" />
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
+
+                          <DataGridTemplateColumn Width="{StaticResource DgWRightSmall}">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <TextBlock Classes="DGRightCell DGNum" Text="{Binding Qty}" />
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                      </DataGrid>
+                    </suki:BusyArea>
+                  </controls:EmptyStatePanel>
+
+                  <Border
+                    Grid.Row="2"
+                    Padding="2,6,2,0"
+                    BorderBrush="{DynamicResource SukiBorderBrush}"
+                    BorderThickness="0,1,0,0"
+                    Opacity="0.7">
+                    <TextBlock Classes="DGSub" Text="{Binding RecentTxnsOverview.Count, StringFormat=共 {0} 条事务}" />
+                  </Border>
+                </Grid>
+              </suki:GlassCard>
+            </Grid>
+
+
+            <Grid
+              Grid.Row="2"
+              ColumnDefinitions="*,*"
+              ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
+
+
+              <suki:GlassCard
+                Grid.Column="0"
+                MinHeight="220"
+                VerticalAlignment="Stretch"
+                Classes="SectionCard">
+                <Grid
+                  VerticalAlignment="Stretch"
+                  RowDefinitions="Auto,*,Auto"
+                  RowSpacing="{DynamicResource DialogFormRowSpacing}">
+                  <Grid
+                    VerticalAlignment="Center"
+                    ColumnDefinitions="Auto,*,220"
+                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSectionHeader}"
+                      Height="{DynamicResource IconSizeSectionHeader}"
+                      VerticalAlignment="Center"
+                      Kind="Users" />
+                    <StackPanel
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Spacing="1">
+                      <TextBlock Classes="SectionTitle" Text="客户端" />
+                      <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
+                    </StackPanel>
+                    <ComboBox
+                      Grid.Column="2"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Center"
+                      ItemsSource="{Binding ClientMetricModes}"
+                      SelectedItem="{Binding ClientMetricMode}" />
+                  </Grid>
+
+                  <controls:EmptyStatePanel
+                    Grid.Row="1"
+                    MinHeight="0"
+                    EmptyHint="{Binding TopClientsEmptyHint}"
+                    EmptyText="{Binding TopClientsEmptyText}"
+                    Icon="{Binding SectionEmptyIcon}"
+                    IsEmpty="{Binding IsTopClientsEmpty}"
+                    IsPending="{Binding IsSectionPending}"
+                    SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                    SlotMode="PendingOnly">
+                    <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
+                      <ScrollViewer
+                        BringIntoViewOnFocusChange="False"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding TopClients}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <StackPanel Spacing="{DynamicResource SpacingInlineSm}" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <Border Classes="RowItem">
+                                <Grid
+                                  VerticalAlignment="Center"
+                                  ColumnDefinitions="44,*,84"
+                                  RowDefinitions="Auto,Auto"
+                                  RowSpacing="4">
+                                  <Border
+                                    Width="{DynamicResource IconBadgeSize}"
+                                    Height="{DynamicResource IconBadgeSize}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                    <TextBlock
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      FontWeight="Bold"
+                                      Text="{Binding Index}" />
+                                  </Border>
+                                  <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    FontWeight="SemiBold"
+                                    TextWrapping="NoWrap">
+                                    <Run Text="{Binding ClientDisplay}" />
+                                  </TextBlock>
+                                  <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="2"
+                                    HorizontalAlignment="Right"
+                                    Classes="DGRightCell DGNum"
+                                    Text="{Binding Value}" />
+                                  <TextBlock
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Grid.ColumnSpan="2"
+                                    Classes="DGSub"
+                                    IsVisible="{Binding HasMeta}"
+                                    Text="{Binding MetaText}" />
+                                </Grid>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </ScrollViewer>
+                    </suki:BusyArea>
+                  </controls:EmptyStatePanel>
+
+                  <Border
+                    Grid.Row="2"
+                    Padding="2,6,2,0"
+                    BorderBrush="{DynamicResource SukiBorderBrush}"
+                    BorderThickness="0,1,0,0"
+                    Opacity="0.7">
+                    <TextBlock Classes="DGSub" Text="{Binding TopClients.Count, StringFormat=共 {0} 个客户端}" />
+                  </Border>
+                </Grid>
+              </suki:GlassCard>
+
+
+              <suki:GlassCard
+                Grid.Column="1"
+                MinHeight="220"
+                VerticalAlignment="Stretch"
+                Classes="SectionCard">
+                <Grid
+                  VerticalAlignment="Stretch"
+                  RowDefinitions="Auto,*,Auto"
+                  RowSpacing="{DynamicResource DialogFormRowSpacing}">
+
+                  <Grid
+                    VerticalAlignment="Center"
+                    ColumnDefinitions="Auto,*,Auto,Auto"
+                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSectionHeader}"
+                      Height="{DynamicResource IconSizeSectionHeader}"
+                      VerticalAlignment="Center"
+                      Kind="FilePlus" />
+                    <StackPanel
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Spacing="2">
+                      <TextBlock
+                        VerticalAlignment="Center"
+                        Classes="SectionTitle"
+                        Text="录入追溯码情况" />
+                      <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
+                    </StackPanel>
+                    <Button
+                      Grid.Column="2"
+                      VerticalAlignment="Center"
+                      Classes="Ghost"
+                      Command="{Binding GoInputTabCommand}"
+                      Content="去录入" />
+                    <Button
+                      Grid.Column="3"
+                      VerticalAlignment="Center"
+                      Classes="Ghost"
+                      Command="{Binding OpenInputHistoryCommand}"
+                      Content="查看全部" />
+                  </Grid>
+
+                  <controls:EmptyStatePanel
+                    Grid.Row="1"
+                    MinHeight="0"
+                    EmptyHint="{Binding EntryRecentEmptyHint}"
+                    EmptyText="{Binding EntryRecentEmptyText}"
+                    Icon="{Binding SectionEmptyIcon}"
+                    IsEmpty="{Binding IsEntryRecentEmpty}"
+                    IsPending="{Binding IsSectionPending}"
+                    SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                    SlotMode="PendingOnly">
+                    <suki:BusyArea IsBusy="{Binding IsEntryBusy}">
+                      <ScrollViewer
+                        BringIntoViewOnFocusChange="False"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+
+                        <ItemsControl ItemsSource="{Binding EntryRecentOverview}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <StackPanel Spacing="{DynamicResource SpacingInlineSm}" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <Border Classes="RowItem" PointerReleased="OnEntryRecentRowPointerReleased">
+                                <Grid
+                                  VerticalAlignment="Center"
+                                  ColumnDefinitions="44,*,180,84"
+                                  RowDefinitions="Auto,Auto"
+                                  RowSpacing="4">
+                                  <Border
+                                    Width="{DynamicResource IconBadgeSize}"
+                                    Height="{DynamicResource IconBadgeSize}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                                    CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                    <icons:AppIcon
+                                      Width="{DynamicResource IconSizeDefault}"
+                                      Height="{DynamicResource IconSizeDefault}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                                      Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                      Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                                  </Border>
+
+                                  <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    FontWeight="SemiBold"
+                                    TextWrapping="NoWrap">
+                                    <Run Text="{Binding DrugId}" />
+                                    <Run Text=" " />
+                                    <Run Text="{Binding Spec}" />
+                                  </TextBlock>
+
+                                  <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="2"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Classes="SectionHint"
+                                    Text="{Binding ClientDisplay}"
+                                    TextTrimming="CharacterEllipsis" />
+
+                                  <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="3"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Classes="DGRightCell DGNum"
+                                    Text="{Binding Qty}" />
+
+                                  <TextBlock
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Grid.ColumnSpan="3"
+                                    Classes="DGSub"
+                                    Text="{Binding Message}" />
+                                </Grid>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </ScrollViewer>
+                    </suki:BusyArea>
+                  </controls:EmptyStatePanel>
+
+                  <Border
+                    Grid.Row="2"
+                    Padding="2,6,2,0"
+                    BorderBrush="{DynamicResource SukiBorderBrush}"
+                    BorderThickness="0,1,0,0"
+                    Opacity="0.7">
+                    <TextBlock Classes="DGSub" Text="{Binding EntryTotalCount, StringFormat=共 {0} 条录入}" />
+                  </Border>
+
+                </Grid>
+              </suki:GlassCard>
+            </Grid>
+          </Grid>
+        </ScrollViewer>
+      </Grid>
+
+      <Grid
+        Grid.Row="2"
+        Margin="{DynamicResource PageTabScrollMargin}"
+        IsVisible="{Binding IsInputTab}"
+        RowDefinitions="*">
+        <suki:GlassCard Grid.Row="0" Classes="SectionCard">
+          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+            <Grid
+              VerticalAlignment="Center"
+              ColumnDefinitions="Auto,*,Auto,Auto"
+              ColumnSpacing="{DynamicResource PageColumnSpacing}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSectionHeader}"
+                Height="{DynamicResource IconSizeSectionHeader}"
+                VerticalAlignment="Center"
+                Kind="NotebookText" />
+              <StackPanel
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Spacing="2">
+                <TextBlock Classes="SectionTitle" Text="录入追溯码情况" />
+                <TextBlock Classes="SectionHint" Text="受顶部药品/规格/客户端/日期筛选影响，展示录入条码明细" />
+              </StackPanel>
+              <Button
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                Classes="Ghost"
+                Command="{Binding GoInputTabCommand}"
+                Content="去录入" />
+              <Button
+                Grid.Column="3"
+                VerticalAlignment="Center"
+                Classes="Ghost"
+                Command="{Binding OpenOverviewTabCommand}"
+                Content="回总览" />
+            </Grid>
+            <TextBlock
+              Grid.Row="1"
+              Classes="SectionHint"
+              Text="{Binding SectionHint}" />
+            <controls:EmptyStatePanel
+              Grid.Row="2"
+              MinHeight="0"
+              EmptyHint="{Binding EntryRecentEmptyHint}"
+              EmptyText="{Binding EntryRecentEmptyText}"
+              Icon="{Binding SectionEmptyIcon}"
+              IsEmpty="{Binding IsEntryRecentEmpty}"
+              IsPending="{Binding IsSectionPending}"
+              SlotMinHeight="{DynamicResource DgH10Rows}">
+              <suki:BusyArea IsBusy="{Binding IsEntryBusy}">
+                <DataGrid
+                  x:Name="EntryRecentGridInputTab"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  CanUserResizeColumns="True"
+                  Classes="SectionGrid CopySelectMenuGrid TraceStateGrid StickyIndexGrid StickyIndexDisplayIndex"
+                  GridLinesVisibility="All"
+                  HeadersVisibility="All"
+                  HorizontalScrollBarVisibility="Disabled"
+                  ItemsSource="{Binding EntryRecent}"
+                  PointerPressed="OnBrowsingGridPointerPressed"
+                  RowHeight="{StaticResource RowMinHeight}"
+                  SelectedItem="{Binding SelectedEntryRecent}"
+                  SelectionChanged="OnBrowsingGridSelectionChanged"
+                  SelectionMode="Extended"
+                  VerticalScrollBarVisibility="Auto">
+                  <DataGrid.Columns>
+                    <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                          <Border
+                            Width="{DynamicResource IconBadgeSize}"
+                            Height="{DynamicResource IconBadgeSize}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                            CornerRadius="{DynamicResource TraceBadgeRadius}">
+                            <icons:AppIcon
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                              Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                          </Border>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn
+                      Width="120"
+                      Binding="{Binding EntryAtText}"
+                      Header="时间" />
+                    <DataGridTextColumn
+                      Width="1.5*"
+                      Binding="{Binding DrugId}"
+                      Header="药品" />
+                    <DataGridTextColumn
+                      Width="1.2*"
+                      Binding="{Binding Spec}"
+                      Header="规格" />
+                    <DataGridTextColumn
+                      Width="90"
+                      Binding="{Binding Qty}"
+                      Header="数量" />
+                    <DataGridTextColumn
+                      Width="110"
+                      Binding="{Binding Source}"
+                      Header="来源" />
+                    <DataGridTextColumn
+                      Width="1.4*"
+                      Binding="{Binding ClientDisplay}"
+                      Header="客户端" />
+                    <DataGridTextColumn
+                      Width="2.2*"
+                      Binding="{Binding Message}"
+                      Header="说明" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </suki:BusyArea>
+            </controls:EmptyStatePanel>
+
+            <Grid
+              Grid.Row="3"
+              VerticalAlignment="Center"
+              Classes="ToolbarPairRow"
+              ColumnDefinitions="*,Auto">
+              <StackPanel
+                Opacity="{StaticResource SectionHintOpacity}"
+                Orientation="Horizontal"
+                Spacing="10">
+                <TextBlock Text="{Binding EntryTotalCount, StringFormat=共 {0} 条}" />
+                <TextBlock Text="{Binding EntryPageIndex, StringFormat=第 {0} 页}" />
+                <TextBlock Text="{Binding EntryTotalPages, StringFormat=/ {0} 页}" />
+                <TextBlock Text="{Binding EntryPageSize, StringFormat=每页 {0} 条}" />
+              </StackPanel>
+              <StackPanel
+                Grid.Column="1"
+                Orientation="Horizontal"
+                Spacing="{DynamicResource SpacingInlineMd}">
+                <Button
+                  Classes="Action"
+                  Command="{Binding FirstEntryPageCommand}"
+                  IsEnabled="{Binding HasEntryPrevPage}">
+                  <TextBlock Text="首页" />
+                </Button>
+                <Button
+                  Classes="Action"
+                  Command="{Binding PrevEntryPageCommand}"
+                  IsEnabled="{Binding HasEntryPrevPage}">
+                  <TextBlock Text="上一页" />
+                </Button>
+                <Button
+                  Classes="Action"
+                  Command="{Binding NextEntryPageCommand}"
+                  IsEnabled="{Binding HasEntryNextPage}">
+                  <TextBlock Text="下一页" />
+                </Button>
+              </StackPanel>
+            </Grid>
+          </Grid>
+        </suki:GlassCard>
+      </Grid>
+
+
+      <Grid
+        Grid.Row="2"
+        Margin="{DynamicResource PageTabScrollMargin}"
+        IsVisible="{Binding IsTxnTab}"
+        RowDefinitions="*">
+        <suki:GlassCard Grid.Row="0" Classes="SectionCard">
+          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+            <Grid
+              VerticalAlignment="Center"
+              ColumnDefinitions="Auto,*,220,Auto"
+              ColumnSpacing="{DynamicResource PageColumnSpacing}">
+              <icons:AppIcon
+                Grid.Column="0"
+                Width="{DynamicResource IconSizeSectionHeader}"
+                Height="{DynamicResource IconSizeSectionHeader}"
+                VerticalAlignment="Center"
+                Kind="ReceiptText" />
+              <StackPanel
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Spacing="1">
+                <TextBlock
+                  VerticalAlignment="Center"
+                  Classes="SectionTitle"
+                  Text="{Binding TxnPanelMode.Title}" />
+                <TextBlock Classes="SectionHint" Text="受顶部药品/规格/客户端/日期筛选影响，展示取码事务明细" />
+              </StackPanel>
+              <ComboBox
+                Grid.Column="2"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                ItemsSource="{Binding TxnPanelModes}"
+                SelectedItem="{Binding TxnPanelMode}" />
+              <Button
+                Grid.Column="3"
+                VerticalAlignment="Center"
+                Classes="Ghost"
+                Command="{Binding OpenAbnormalCommand}"
+                Content="查看异常" />
+            </Grid>
+            <TextBlock
+              Grid.Row="1"
+              Classes="SectionHint"
+              Text="{Binding SectionHint}" />
+            <controls:EmptyStatePanel
+              Grid.Row="2"
+              MinHeight="0"
+              EmptyHint="{Binding TxnPanelEmptyHint}"
+              EmptyText="{Binding TxnPanelEmptyText}"
+              Icon="{Binding SectionEmptyIcon}"
+              IsEmpty="{Binding IsTxnPanelEmpty}"
+              IsPending="{Binding IsSectionPending}"
+              SlotMinHeight="{DynamicResource DgH10Rows}">
+              <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
+                <Grid>
+                  <DataGrid
+                    x:Name="TxnDetailGrid"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Classes="SectionGrid TxnGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
+                    GridLinesVisibility="All"
+                    HeadersVisibility="All"
+                    HorizontalScrollBarVisibility="Disabled"
+                    IsVisible="{Binding IsTxnPanelDetailMode}"
+                    ItemsSource="{Binding RecentTxns}"
+                    PointerPressed="OnBrowsingGridPointerPressed"
+                    RowHeight="{StaticResource RowMinHeight}"
+                    SelectedItem="{Binding SelectedTxn}"
+                    SelectionChanged="OnBrowsingGridSelectionChanged"
+                    SelectionMode="Extended"
+                    VerticalScrollBarVisibility="Auto">
                     <DataGrid.Columns>
                       <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
                         <DataGridTemplateColumn.CellTemplate>
                           <DataTemplate>
-                            <Border Width="{DynamicResource IconBadgeSize}"
-                                Height="{DynamicResource IconBadgeSize}"
-                                CornerRadius="{DynamicResource TraceBadgeRadius}"
-                                Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                            <Border
+                              Width="{DynamicResource IconBadgeSize}"
+                              Height="{DynamicResource IconBadgeSize}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                              CornerRadius="{DynamicResource TraceBadgeRadius}">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeDefault}"
+                                Height="{DynamicResource IconSizeDefault}"
                                 HorizontalAlignment="Center"
-                                VerticalAlignment="Center">
-                              <icons:AppIcon Width="{DynamicResource IconSizeDefault}"
-                                  Height="{DynamicResource IconSizeDefault}"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
-                                  Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}"
-                                  Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}" />
+                                VerticalAlignment="Center"
+                                Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
+                                Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
                             </Border>
                           </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                       </DataGridTemplateColumn>
-
-                      <DataGridTemplateColumn Width="*">
-                        <DataGridTemplateColumn.CellTemplate>
-                          <DataTemplate>
-                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                          </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                      </DataGridTemplateColumn>
-
-                      <DataGridTemplateColumn Width="*">
-                        <DataGridTemplateColumn.CellTemplate>
-                          <DataTemplate>
-                            <TextBlock Text="{Binding Time}" />
-                          </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                      </DataGridTemplateColumn>
-
-                      <DataGridTemplateColumn Width="{StaticResource DgWRightSmall}">
-                        <DataGridTemplateColumn.CellTemplate>
-                          <DataTemplate>
-                            <TextBlock Text="{Binding Qty}" Classes="DGRightCell DGNum" />
-                          </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                      </DataGridTemplateColumn>
+                      <DataGridTextColumn
+                        Width="1.9*"
+                        Binding="{Binding Title}"
+                        Header="标题" />
+                      <DataGridTextColumn
+                        Width="1.2*"
+                        Binding="{Binding ClientDisplay}"
+                        Header="客户端" />
+                      <DataGridTextColumn
+                        Width="1.1*"
+                        Binding="{Binding Time}"
+                        Header="时间" />
+                      <DataGridTextColumn
+                        Width="100"
+                        Binding="{Binding Qty}"
+                        Header="数量" />
                     </DataGrid.Columns>
-                    </DataGrid>
-                  </suki:BusyArea>
-                  </controls:EmptyStatePanel>
+                  </DataGrid>
 
-                  <Border Grid.Row="2"
-                      Padding="2,6,2,0"
-                      BorderThickness="0,1,0,0"
-                      BorderBrush="{DynamicResource SukiBorderBrush}"
-                      Opacity="0.7">
-                    <TextBlock Classes="DGSub"
-                         Text="{Binding RecentTxnsOverview.Count, StringFormat=共 {0} 条事务}" />
-                  </Border>
+                  <DataGrid
+                    x:Name="TxnTrendGrid"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Classes="SectionGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
+                    HeadersVisibility="All"
+                    HorizontalScrollBarVisibility="Disabled"
+                    IsVisible="{Binding IsTxnPanelTrendMode}"
+                    ItemsSource="{Binding TxnTrendRows}"
+                    PointerPressed="OnBrowsingGridPointerPressed"
+                    RowHeight="{StaticResource RowMinHeight}"
+                    SelectedItem="{Binding SelectedTrendItem}"
+                    SelectionChanged="OnBrowsingGridSelectionChanged"
+                    SelectionMode="Extended"
+                    VerticalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                      <DataGridTextColumn
+                        Width="70"
+                        Binding="{Binding Rank}"
+                        Header="#" />
+                      <DataGridTextColumn
+                        Width="1.2*"
+                        Binding="{Binding Name}"
+                        Header="药品" />
+                      <DataGridTextColumn
+                        Width="1.2*"
+                        Binding="{Binding Sub}"
+                        Header="规格" />
+                      <DataGridTextColumn
+                        Width="1.8*"
+                        Binding="{Binding SourceText}"
+                        Header="来源" />
+                      <DataGridTextColumn
+                        Width="100"
+                        Binding="{Binding ValueText}"
+                        Header="值" />
+                    </DataGrid.Columns>
+                  </DataGrid>
                 </Grid>
-            </suki:GlassCard>
+              </suki:BusyArea>
+            </controls:EmptyStatePanel>
+
+            <Grid
+              Grid.Row="3"
+              VerticalAlignment="Center"
+              Classes="ToolbarPairRow"
+              ColumnDefinitions="*,Auto"
+              IsVisible="{Binding IsTxnPanelDetailMode}">
+              <StackPanel
+                Opacity="{StaticResource SectionHintOpacity}"
+                Orientation="Horizontal"
+                Spacing="10">
+                <TextBlock Text="{Binding TxnTotalCount, StringFormat=共 {0} 条}" />
+                <TextBlock Text="{Binding TxnPageIndex, StringFormat=第 {0} 页}" />
+                <TextBlock Text="{Binding TxnTotalPages, StringFormat=/ {0} 页}" />
+                <TextBlock Text="{Binding TxnPageSize, StringFormat=每页 {0} 条}" />
+              </StackPanel>
+              <StackPanel
+                Grid.Column="1"
+                Orientation="Horizontal"
+                Spacing="{DynamicResource SpacingInlineMd}">
+                <Button
+                  Classes="Action"
+                  Command="{Binding FirstTxnPageCommand}"
+                  IsEnabled="{Binding HasTxnPrevPage}">
+                  <TextBlock Text="首页" />
+                </Button>
+                <Button
+                  Classes="Action"
+                  Command="{Binding PrevTxnPageCommand}"
+                  IsEnabled="{Binding HasTxnPrevPage}">
+                  <TextBlock Text="上一页" />
+                </Button>
+                <Button
+                  Classes="Action"
+                  Command="{Binding NextTxnPageCommand}"
+                  IsEnabled="{Binding HasTxnNextPage}">
+                  <TextBlock Text="下一页" />
+                </Button>
+              </StackPanel>
+            </Grid>
+
+            <Grid
+              Grid.Row="3"
+              VerticalAlignment="Center"
+              Classes="ToolbarPairRow"
+              ColumnDefinitions="*,Auto"
+              IsVisible="{Binding IsTxnPanelTrendMode}">
+              <StackPanel
+                Opacity="{StaticResource SectionHintOpacity}"
+                Orientation="Horizontal"
+                Spacing="10">
+                <TextBlock Text="{Binding TxnTrendTotalCount, StringFormat=共 {0} 条}" />
+                <TextBlock Text="{Binding TxnTrendPageIndex, StringFormat=第 {0} 页}" />
+                <TextBlock Text="{Binding TxnTrendTotalPages, StringFormat=/ {0} 页}" />
+                <TextBlock Text="{Binding TxnTrendPageSize, StringFormat=每页 {0} 条}" />
+              </StackPanel>
+              <StackPanel
+                Grid.Column="1"
+                Orientation="Horizontal"
+                Spacing="{DynamicResource SpacingInlineMd}">
+                <Button
+                  Classes="Action"
+                  Command="{Binding FirstTxnTrendPageCommand}"
+                  IsEnabled="{Binding HasTxnTrendPrevPage}">
+                  <TextBlock Text="首页" />
+                </Button>
+                <Button
+                  Classes="Action"
+                  Command="{Binding PrevTxnTrendPageCommand}"
+                  IsEnabled="{Binding HasTxnTrendPrevPage}">
+                  <TextBlock Text="上一页" />
+                </Button>
+                <Button
+                  Classes="Action"
+                  Command="{Binding NextTxnTrendPageCommand}"
+                  IsEnabled="{Binding HasTxnTrendNextPage}">
+                  <TextBlock Text="下一页" />
+                </Button>
+              </StackPanel>
+            </Grid>
           </Grid>
-
-
-          <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
-
-
-            <suki:GlassCard Grid.Column="0" Classes="SectionCard" MinHeight="220" VerticalAlignment="Stretch">
-              <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}" VerticalAlignment="Stretch">
-                  <Grid ColumnDefinitions="Auto,*,220" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
-                    <icons:AppIcon Kind="Users"
-                              Width="{DynamicResource IconSizeSectionHeader}"
-                              Height="{DynamicResource IconSizeSectionHeader}"
-                              VerticalAlignment="Center" />
-                    <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                      <TextBlock Text="客户端"
-                           Classes="SectionTitle" />
-                      <TextBlock Text="{Binding SectionHint}" Classes="SectionHint" />
-                    </StackPanel>
-                    <ComboBox Grid.Column="2"
-                         ItemsSource="{Binding ClientMetricModes}"
-                         SelectedItem="{Binding ClientMetricMode}"
-                         VerticalAlignment="Center"
-                         HorizontalAlignment="Right" />
-                  </Grid>
-
-                  <controls:EmptyStatePanel Grid.Row="1"
-                MinHeight="0"
-                IsEmpty="{Binding IsTopClientsEmpty}"
-                EmptyText="{Binding TopClientsEmptyText}"
-                EmptyHint="{Binding TopClientsEmptyHint}"
-                Icon="{Binding SectionEmptyIcon}"
-                IsPending="{Binding IsSectionPending}"
-                SlotMode="PendingOnly"
-                SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}">
-                  <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                           HorizontalScrollBarVisibility="Disabled"
-                           BringIntoViewOnFocusChange="False">
-                    <ItemsControl ItemsSource="{Binding TopClients}">
-                      <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                          <StackPanel Spacing="{DynamicResource SpacingInlineSm}" />
-                        </ItemsPanelTemplate>
-                      </ItemsControl.ItemsPanel>
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                          <Border Classes="RowItem">
-                            <Grid ColumnDefinitions="44,*,84" RowDefinitions="Auto,Auto"
-                               RowSpacing="4" VerticalAlignment="Center">
-                              <Border Width="{DynamicResource IconBadgeSize}" Height="{DynamicResource IconBadgeSize}" CornerRadius="{DynamicResource TraceBadgeRadius}"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Index}"
-                                     FontWeight="Bold"
-                                     HorizontalAlignment="Center"
-                                     VerticalAlignment="Center" />
-                              </Border>
-                              <TextBlock Grid.Column="1" Grid.Row="0"
-                                   FontWeight="SemiBold"
-                                   TextWrapping="NoWrap">
-                                <Run Text="{Binding ClientDisplay}" />
-                              </TextBlock>
-                              <TextBlock Grid.Column="2" Grid.Row="0"
-                                   Text="{Binding Value}"
-                                   Classes="DGRightCell DGNum"
-                                   HorizontalAlignment="Right" />
-                              <TextBlock Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2"
-                                   Text="{Binding MetaText}"
-                                   Classes="DGSub"
-                                   IsVisible="{Binding HasMeta}" />
-                            </Grid>
-                          </Border>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    </ScrollViewer>
-                  </suki:BusyArea>
-                  </controls:EmptyStatePanel>
-
-                  <Border Grid.Row="2"
-                      Padding="2,6,2,0"
-                      BorderThickness="0,1,0,0"
-                      BorderBrush="{DynamicResource SukiBorderBrush}"
-                      Opacity="0.7">
-                    <TextBlock Classes="DGSub"
-                         Text="{Binding TopClients.Count, StringFormat=共 {0} 个客户端}" />
-                  </Border>
-                </Grid>
-            </suki:GlassCard>
-
-
-            <suki:GlassCard Grid.Column="1" Classes="SectionCard" MinHeight="220" VerticalAlignment="Stretch">
-              <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}" VerticalAlignment="Stretch">
-
-                  <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}"
-                     VerticalAlignment="Center">
-                    <icons:AppIcon Kind="FilePlus"
-                              Width="{DynamicResource IconSizeSectionHeader}"
-                              Height="{DynamicResource IconSizeSectionHeader}"
-                              VerticalAlignment="Center" />
-                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                      <TextBlock Text="录入追溯码情况"
-                           Classes="SectionTitle"
-                           VerticalAlignment="Center" />
-                      <TextBlock Text="{Binding SectionHint}"
-                           Classes="SectionHint" />
-                    </StackPanel>
-                    <Button Grid.Column="2"
-                        Classes="Ghost"
-                        Content="去录入"
-                        VerticalAlignment="Center"
-                        Command="{Binding GoInputTabCommand}" />
-                    <Button Grid.Column="3"
-                        Classes="Ghost"
-                        Content="查看全部"
-                        VerticalAlignment="Center"
-                        Command="{Binding OpenInputHistoryCommand}" />
-                  </Grid>
-
-                  <controls:EmptyStatePanel Grid.Row="1"
-                MinHeight="0"
-                IsEmpty="{Binding IsEntryRecentEmpty}"
-                EmptyText="{Binding EntryRecentEmptyText}"
-                EmptyHint="{Binding EntryRecentEmptyHint}"
-                Icon="{Binding SectionEmptyIcon}"
-                IsPending="{Binding IsSectionPending}"
-                SlotMode="PendingOnly"
-                SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}">
-                  <suki:BusyArea IsBusy="{Binding IsEntryBusy}">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                           HorizontalScrollBarVisibility="Disabled"
-                           BringIntoViewOnFocusChange="False">
-
-                    <ItemsControl ItemsSource="{Binding EntryRecentOverview}">
-                      <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                          <StackPanel Spacing="{DynamicResource SpacingInlineSm}" />
-                        </ItemsPanelTemplate>
-                      </ItemsControl.ItemsPanel>
-
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                          <Border Classes="RowItem"
-                              PointerReleased="OnEntryRecentRowPointerReleased">
-                            <Grid ColumnDefinitions="44,*,180,84" RowDefinitions="Auto,Auto"
-                               RowSpacing="4" VerticalAlignment="Center">
-                              <Border Width="{DynamicResource IconBadgeSize}"
-                                  Height="{DynamicResource IconBadgeSize}"
-                                  CornerRadius="{DynamicResource TraceBadgeRadius}"
-                                  Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center">
-                                <icons:AppIcon Width="{DynamicResource IconSizeDefault}"
-                                    Height="{DynamicResource IconSizeDefault}"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
-                                    Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                    Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}" />
-                              </Border>
-
-                              <TextBlock Grid.Row="0" Grid.Column="1"
-                                   FontWeight="SemiBold"
-                                   TextWrapping="NoWrap">
-                                <Run Text="{Binding DrugId}" />
-                                <Run Text=" " />
-                                <Run Text="{Binding Spec}" />
-                              </TextBlock>
-
-                              <TextBlock Grid.Row="0" Grid.Column="2"
-                                   Text="{Binding ClientDisplay}"
-                                   Classes="SectionHint"
-                                   TextTrimming="CharacterEllipsis"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center" />
-
-                              <TextBlock Grid.Row="0" Grid.Column="3"
-                                   Text="{Binding Qty}"
-                                   Classes="DGRightCell DGNum"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center" />
-
-                              <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
-                                   Text="{Binding Message}"
-                                   Classes="DGSub" />
-                            </Grid>
-                          </Border>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    </ScrollViewer>
-                  </suki:BusyArea>
-                  </controls:EmptyStatePanel>
-
-                  <Border Grid.Row="2"
-                      Padding="2,6,2,0"
-                      BorderThickness="0,1,0,0"
-                      BorderBrush="{DynamicResource SukiBorderBrush}"
-                      Opacity="0.7">
-                    <TextBlock Classes="DGSub"
-                         Text="{Binding EntryTotalCount, StringFormat=共 {0} 条录入}" />
-                  </Border>
-
-                </Grid>
-            </suki:GlassCard>
-            </Grid>
-            </Grid>
-          </ScrollViewer>
+        </suki:GlassCard>
       </Grid>
 
-      <Grid Grid.Row="2"
-         IsVisible="{Binding IsInputTab}"
-         Margin="{DynamicResource PageTabScrollMargin}"
-         RowDefinitions="*">
+      <Grid
+        Grid.Row="2"
+        Margin="{DynamicResource PageTabScrollMargin}"
+        IsVisible="{Binding IsAbnormalTab}"
+        RowDefinitions="*">
         <suki:GlassCard Grid.Row="0" Classes="SectionCard">
-            <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
-              <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
-                <icons:AppIcon Kind="NotebookText"
-                          Width="{DynamicResource IconSizeSectionHeader}"
-                          Height="{DynamicResource IconSizeSectionHeader}"
-                          VerticalAlignment="Center" />
-                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                  <TextBlock Text="录入追溯码情况" Classes="SectionTitle" />
-                  <TextBlock Text="受顶部药品/规格/客户端/日期筛选影响，展示录入条码明细"
-                       Classes="SectionHint" />
-                </StackPanel>
-                <Button Grid.Column="2"
-                    Classes="Ghost"
-                    Content="去录入"
-                    VerticalAlignment="Center"
-                    Command="{Binding GoInputTabCommand}" />
-                <Button Grid.Column="3"
-                    Classes="Ghost"
-                    Content="回总览"
-                    VerticalAlignment="Center"
-                    Command="{Binding OpenOverviewTabCommand}" />
-              </Grid>
-              <TextBlock Grid.Row="1" Text="{Binding SectionHint}" Classes="SectionHint" />
-              <controls:EmptyStatePanel Grid.Row="2"
-            MinHeight="0"
-            IsEmpty="{Binding IsEntryRecentEmpty}"
-            EmptyText="{Binding EntryRecentEmptyText}"
-            EmptyHint="{Binding EntryRecentEmptyHint}"
-            Icon="{Binding SectionEmptyIcon}"
-            IsPending="{Binding IsSectionPending}"
-            SlotMinHeight="{DynamicResource DgH10Rows}">
-              <suki:BusyArea IsBusy="{Binding IsEntryBusy}">
-                <DataGrid x:Name="EntryRecentGridInputTab"
-                     Classes="SectionGrid CopySelectMenuGrid TraceStateGrid StickyIndexGrid StickyIndexDisplayIndex"
-                     ItemsSource="{Binding EntryRecent}"
-                     SelectedItem="{Binding SelectedEntryRecent}"
-                     SelectionChanged="OnBrowsingGridSelectionChanged"
-                     PointerPressed="OnBrowsingGridPointerPressed"
-                     HeadersVisibility="All"
-                     RowHeight="{StaticResource RowMinHeight}"
-                     SelectionMode="Extended"
-                     CanUserResizeColumns="True"
-                     VerticalAlignment="Stretch"
-                     HorizontalAlignment="Stretch"
-                     VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Disabled"
-                     GridLinesVisibility="All">
-                <DataGrid.Columns>
-                  <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
-                    <DataGridTemplateColumn.CellTemplate>
-                      <DataTemplate>
-                        <Border Width="{DynamicResource IconBadgeSize}"
+          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+            <Grid
+              VerticalAlignment="Center"
+              ColumnDefinitions="Auto,*,Auto,Auto"
+              ColumnSpacing="{DynamicResource PageColumnSpacing}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSectionHeader}"
+                Height="{DynamicResource IconSizeSectionHeader}"
+                VerticalAlignment="Center"
+                Foreground="{StaticResource BrushDanger}"
+                Kind="OctagonAlert" />
+              <StackPanel
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Spacing="2">
+                <TextBlock Classes="SectionTitle" Text="异常事务队列" />
+                <TextBlock Classes="SectionHint" Text="优先处理回滚事务，确认客户端与库存状态后再重试" />
+              </StackPanel>
+              <Button
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                Classes="Ghost"
+                Command="{Binding OpenTxnListCommand}"
+                Content="查看事务" />
+              <Button
+                Grid.Column="3"
+                VerticalAlignment="Center"
+                Classes="Ghost"
+                Command="{Binding GoInputTabCommand}"
+                Content="去录入页" />
+            </Grid>
+            <TextBlock
+              Grid.Row="1"
+              Classes="SectionHint"
+              Text="{Binding SectionHint}" />
+            <controls:EmptyStatePanel
+              Grid.Row="2"
+              MinHeight="0"
+              EmptyHint="{Binding AbnormalEmptyHint}"
+              EmptyText="{Binding AbnormalEmptyText}"
+              Icon="{Binding SectionEmptyIcon}"
+              IsEmpty="{Binding IsAbnormalEmpty}"
+              IsPending="{Binding IsSectionPending}"
+              SlotMinHeight="{DynamicResource DgH10Rows}">
+              <suki:BusyArea IsBusy="{Binding IsAbnormalBusy}">
+                <DataGrid
+                  x:Name="AbnormalGrid"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  Classes="SectionGrid TxnGrid AbnormalGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
+                  GridLinesVisibility="All"
+                  HorizontalScrollBarVisibility="Disabled"
+                  ItemsSource="{Binding AbnormalQueue}"
+                  PointerPressed="OnBrowsingGridPointerPressed"
+                  RowHeight="{StaticResource RowMinHeight}"
+                  SelectedItem="{Binding SelectedAbnormal}"
+                  SelectionChanged="OnBrowsingGridSelectionChanged"
+                  SelectionMode="Extended"
+                  VerticalScrollBarVisibility="Auto">
+                  <DataGrid.Columns>
+                    <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                          <Border
+                            Width="{DynamicResource IconBadgeSize}"
                             Height="{DynamicResource IconBadgeSize}"
-                            CornerRadius="{DynamicResource TraceBadgeRadius}"
-                            Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
                             HorizontalAlignment="Center"
-                            VerticalAlignment="Center">
-                          <icons:AppIcon Width="{DynamicResource IconSizeDefault}"
-                                    Height="{DynamicResource IconSizeDefault}"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}"
-                                    Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}" />
-                        </Border>
-                      </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                  </DataGridTemplateColumn>
-                  <DataGridTextColumn Header="时间" Binding="{Binding EntryAtText}" Width="120" />
-                  <DataGridTextColumn Header="药品" Binding="{Binding DrugId}" Width="1.5*" />
-                  <DataGridTextColumn Header="规格" Binding="{Binding Spec}" Width="1.2*" />
-                  <DataGridTextColumn Header="数量" Binding="{Binding Qty}" Width="90" />
-                  <DataGridTextColumn Header="来源" Binding="{Binding Source}" Width="110" />
-                  <DataGridTextColumn Header="客户端" Binding="{Binding ClientDisplay}" Width="1.4*" />
-                  <DataGridTextColumn Header="说明" Binding="{Binding Message}" Width="2.2*" />
-                </DataGrid.Columns>
+                            VerticalAlignment="Center"
+                            Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                            CornerRadius="{DynamicResource TraceBadgeRadius}">
+                            <icons:AppIcon
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
+                              Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
+                          </Border>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn
+                      Width="180"
+                      Binding="{Binding Title}"
+                      Header="类型" />
+                    <DataGridTextColumn
+                      Width="1.1*"
+                      Binding="{Binding ClientDisplay}"
+                      Header="客户端" />
+                    <DataGridTextColumn
+                      Width="2*"
+                      Binding="{Binding Detail}"
+                      Header="详情" />
+                  </DataGrid.Columns>
                 </DataGrid>
               </suki:BusyArea>
-              </controls:EmptyStatePanel>
+            </controls:EmptyStatePanel>
 
-              <Grid Grid.Row="3"
-                 Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
-                 VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
-                  <TextBlock Text="{Binding EntryTotalCount, StringFormat=共 {0} 条}" />
-                  <TextBlock Text="{Binding EntryPageIndex, StringFormat=第 {0} 页}" />
-                  <TextBlock Text="{Binding EntryTotalPages, StringFormat=/ {0} 页}" />
-                  <TextBlock Text="{Binding EntryPageSize, StringFormat=每页 {0} 条}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasEntryPrevPage}"
-                      Command="{Binding FirstEntryPageCommand}">
-                    <TextBlock Text="首页" />
-                  </Button>
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasEntryPrevPage}"
-                      Command="{Binding PrevEntryPageCommand}">
-                    <TextBlock Text="上一页" />
-                  </Button>
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasEntryNextPage}"
-                      Command="{Binding NextEntryPageCommand}">
-                    <TextBlock Text="下一页" />
-                  </Button>
-                </StackPanel>
-              </Grid>
+            <Grid
+              Grid.Row="3"
+              VerticalAlignment="Center"
+              Classes="ToolbarPairRow"
+              ColumnDefinitions="*,Auto">
+              <StackPanel
+                Opacity="{StaticResource SectionHintOpacity}"
+                Orientation="Horizontal"
+                Spacing="10">
+                <TextBlock Text="{Binding AbnormalTotalCount, StringFormat=共 {0} 条}" />
+                <TextBlock Text="{Binding AbnormalPageIndex, StringFormat=第 {0} 页}" />
+                <TextBlock Text="{Binding AbnormalTotalPages, StringFormat=/ {0} 页}" />
+                <TextBlock Text="{Binding AbnormalPageSize, StringFormat=每页 {0} 条}" />
+              </StackPanel>
+              <StackPanel
+                Grid.Column="1"
+                Orientation="Horizontal"
+                Spacing="{DynamicResource SpacingInlineMd}">
+                <Button
+                  Classes="Action"
+                  Command="{Binding FirstAbnormalPageCommand}"
+                  IsEnabled="{Binding HasAbnormalPrevPage}">
+                  <TextBlock Text="首页" />
+                </Button>
+                <Button
+                  Classes="Action"
+                  Command="{Binding PrevAbnormalPageCommand}"
+                  IsEnabled="{Binding HasAbnormalPrevPage}">
+                  <TextBlock Text="上一页" />
+                </Button>
+                <Button
+                  Classes="Action"
+                  Command="{Binding NextAbnormalPageCommand}"
+                  IsEnabled="{Binding HasAbnormalNextPage}">
+                  <TextBlock Text="下一页" />
+                </Button>
+              </StackPanel>
             </Grid>
-        </suki:GlassCard>
-      </Grid>
-
-
-      <Grid Grid.Row="2"
-         IsVisible="{Binding IsTxnTab}"
-         Margin="{DynamicResource PageTabScrollMargin}"
-         RowDefinitions="*">
-        <suki:GlassCard Grid.Row="0" Classes="SectionCard">
-            <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-              <Grid ColumnDefinitions="Auto,*,220,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
-                <icons:AppIcon Grid.Column="0"
-                          Kind="ReceiptText"
-                          Width="{DynamicResource IconSizeSectionHeader}"
-                          Height="{DynamicResource IconSizeSectionHeader}"
-                          VerticalAlignment="Center" />
-                <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                  <TextBlock Text="{Binding TxnPanelMode.Title}" Classes="SectionTitle"
-                       VerticalAlignment="Center" />
-                  <TextBlock Text="受顶部药品/规格/客户端/日期筛选影响，展示取码事务明细" Classes="SectionHint" />
-                </StackPanel>
-                <ComboBox Grid.Column="2"
-                     ItemsSource="{Binding TxnPanelModes}"
-                     SelectedItem="{Binding TxnPanelMode}"
-                     HorizontalAlignment="Right"
-                     VerticalAlignment="Center" />
-                <Button Grid.Column="3"
-                    Classes="Ghost"
-                    Content="查看异常"
-                    VerticalAlignment="Center"
-                    Command="{Binding OpenAbnormalCommand}" />
-              </Grid>
-              <TextBlock Grid.Row="1" Classes="SectionHint" Text="{Binding SectionHint}" />
-              <controls:EmptyStatePanel Grid.Row="2"
-            MinHeight="0"
-            IsEmpty="{Binding IsTxnPanelEmpty}"
-            EmptyText="{Binding TxnPanelEmptyText}"
-            EmptyHint="{Binding TxnPanelEmptyHint}"
-            Icon="{Binding SectionEmptyIcon}"
-            IsPending="{Binding IsSectionPending}"
-            SlotMinHeight="{DynamicResource DgH10Rows}">
-              <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
-                <Grid>
-                  <DataGrid x:Name="TxnDetailGrid"
-                     IsVisible="{Binding IsTxnPanelDetailMode}"
-                     Classes="SectionGrid TxnGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
-                     ItemsSource="{Binding RecentTxns}"
-                     SelectedItem="{Binding SelectedTxn}"
-                     SelectionChanged="OnBrowsingGridSelectionChanged"
-                     PointerPressed="OnBrowsingGridPointerPressed"
-                     SelectionMode="Extended"
-                     HeadersVisibility="All"
-                     RowHeight="{StaticResource RowMinHeight}"
-                     VerticalAlignment="Stretch"
-                     HorizontalAlignment="Stretch"
-                     VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Disabled"
-                     GridLinesVisibility="All">
-                <DataGrid.Columns>
-                  <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
-                    <DataGridTemplateColumn.CellTemplate>
-                      <DataTemplate>
-                        <Border Width="{DynamicResource IconBadgeSize}"
-                            Height="{DynamicResource IconBadgeSize}"
-                            CornerRadius="{DynamicResource TraceBadgeRadius}"
-                            Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center">
-                          <icons:AppIcon Width="{DynamicResource IconSizeDefault}"
-                                    Height="{DynamicResource IconSizeDefault}"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}"
-                                    Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}" />
-                        </Border>
-                      </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                  </DataGridTemplateColumn>
-                  <DataGridTextColumn Header="标题" Binding="{Binding Title}" Width="1.9*" />
-                  <DataGridTextColumn Header="客户端" Binding="{Binding ClientDisplay}" Width="1.2*" />
-                  <DataGridTextColumn Header="时间" Binding="{Binding Time}" Width="1.1*" />
-                  <DataGridTextColumn Header="数量" Binding="{Binding Qty}" Width="100" />
-                </DataGrid.Columns>
-                  </DataGrid>
-
-                  <DataGrid x:Name="TxnTrendGrid"
-                     IsVisible="{Binding IsTxnPanelTrendMode}"
-                     Classes="SectionGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
-                     ItemsSource="{Binding TxnTrendRows}"
-                     SelectedItem="{Binding SelectedTrendItem}"
-                     SelectionChanged="OnBrowsingGridSelectionChanged"
-                     PointerPressed="OnBrowsingGridPointerPressed"
-                     SelectionMode="Extended"
-                     HeadersVisibility="All"
-                     RowHeight="{StaticResource RowMinHeight}"
-                     VerticalAlignment="Stretch"
-                     HorizontalAlignment="Stretch"
-                     VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Disabled">
-                <DataGrid.Columns>
-                  <DataGridTextColumn Header="#" Binding="{Binding Rank}" Width="70" />
-                  <DataGridTextColumn Header="药品" Binding="{Binding Name}" Width="1.2*" />
-                  <DataGridTextColumn Header="规格" Binding="{Binding Sub}" Width="1.2*" />
-                  <DataGridTextColumn Header="来源" Binding="{Binding SourceText}" Width="1.8*" />
-                  <DataGridTextColumn Header="值" Binding="{Binding ValueText}" Width="100" />
-                </DataGrid.Columns>
-                  </DataGrid>
-                </Grid>
-              </suki:BusyArea>
-              </controls:EmptyStatePanel>
-
-              <Grid Grid.Row="3"
-                 IsVisible="{Binding IsTxnPanelDetailMode}"
-                 Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
-                 VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
-                  <TextBlock Text="{Binding TxnTotalCount, StringFormat=共 {0} 条}" />
-                  <TextBlock Text="{Binding TxnPageIndex, StringFormat=第 {0} 页}" />
-                  <TextBlock Text="{Binding TxnTotalPages, StringFormat=/ {0} 页}" />
-                  <TextBlock Text="{Binding TxnPageSize, StringFormat=每页 {0} 条}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasTxnPrevPage}"
-                      Command="{Binding FirstTxnPageCommand}">
-                    <TextBlock Text="首页" />
-                  </Button>
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasTxnPrevPage}"
-                      Command="{Binding PrevTxnPageCommand}">
-                    <TextBlock Text="上一页" />
-                  </Button>
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasTxnNextPage}"
-                      Command="{Binding NextTxnPageCommand}">
-                    <TextBlock Text="下一页" />
-                  </Button>
-                </StackPanel>
-              </Grid>
-
-              <Grid Grid.Row="3"
-                 IsVisible="{Binding IsTxnPanelTrendMode}"
-                 Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
-                 VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
-                  <TextBlock Text="{Binding TxnTrendTotalCount, StringFormat=共 {0} 条}" />
-                  <TextBlock Text="{Binding TxnTrendPageIndex, StringFormat=第 {0} 页}" />
-                  <TextBlock Text="{Binding TxnTrendTotalPages, StringFormat=/ {0} 页}" />
-                  <TextBlock Text="{Binding TxnTrendPageSize, StringFormat=每页 {0} 条}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasTxnTrendPrevPage}"
-                      Command="{Binding FirstTxnTrendPageCommand}">
-                    <TextBlock Text="首页" />
-                  </Button>
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasTxnTrendPrevPage}"
-                      Command="{Binding PrevTxnTrendPageCommand}">
-                    <TextBlock Text="上一页" />
-                  </Button>
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasTxnTrendNextPage}"
-                      Command="{Binding NextTxnTrendPageCommand}">
-                    <TextBlock Text="下一页" />
-                  </Button>
-                </StackPanel>
-              </Grid>
-            </Grid>
-        </suki:GlassCard>
-      </Grid>
-
-      <Grid Grid.Row="2"
-         IsVisible="{Binding IsAbnormalTab}"
-         Margin="{DynamicResource PageTabScrollMargin}"
-         RowDefinitions="*">
-        <suki:GlassCard Grid.Row="0" Classes="SectionCard">
-            <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
-              <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}" VerticalAlignment="Center">
-                <icons:AppIcon Kind="OctagonAlert"
-                          Width="{DynamicResource IconSizeSectionHeader}"
-                          Height="{DynamicResource IconSizeSectionHeader}"
-                          Foreground="{StaticResource BrushDanger}"
-                          VerticalAlignment="Center" />
-                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                  <TextBlock Text="异常事务队列" Classes="SectionTitle" />
-                    <TextBlock Text="优先处理回滚事务，确认客户端与库存状态后再重试"
-                         Classes="SectionHint" />
-                </StackPanel>
-                <Button Grid.Column="2"
-                    Classes="Ghost"
-                    Content="查看事务"
-                    VerticalAlignment="Center"
-                    Command="{Binding OpenTxnListCommand}" />
-                <Button Grid.Column="3"
-                    Classes="Ghost"
-                    Content="去录入页"
-                    VerticalAlignment="Center"
-                    Command="{Binding GoInputTabCommand}" />
-              </Grid>
-              <TextBlock Grid.Row="1" Text="{Binding SectionHint}" Classes="SectionHint" />
-              <controls:EmptyStatePanel Grid.Row="2"
-            MinHeight="0"
-            IsEmpty="{Binding IsAbnormalEmpty}"
-            EmptyText="{Binding AbnormalEmptyText}"
-            EmptyHint="{Binding AbnormalEmptyHint}"
-            Icon="{Binding SectionEmptyIcon}"
-            IsPending="{Binding IsSectionPending}"
-            SlotMinHeight="{DynamicResource DgH10Rows}">
-                <suki:BusyArea IsBusy="{Binding IsAbnormalBusy}">
-                  <DataGrid x:Name="AbnormalGrid"
-                       Classes="SectionGrid TxnGrid AbnormalGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
-                       ItemsSource="{Binding AbnormalQueue}"
-                       SelectedItem="{Binding SelectedAbnormal}"
-                       SelectionChanged="OnBrowsingGridSelectionChanged"
-                       PointerPressed="OnBrowsingGridPointerPressed"
-                       SelectionMode="Extended"
-                       RowHeight="{StaticResource RowMinHeight}"
-                       VerticalAlignment="Stretch"
-                       HorizontalAlignment="Stretch"
-                       VerticalScrollBarVisibility="Auto"
-                       HorizontalScrollBarVisibility="Disabled"
-                       GridLinesVisibility="All">
-                <DataGrid.Columns>
-                  <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
-                    <DataGridTemplateColumn.CellTemplate>
-                      <DataTemplate>
-                        <Border Width="{DynamicResource IconBadgeSize}"
-                            Height="{DynamicResource IconBadgeSize}"
-                            CornerRadius="{DynamicResource TraceBadgeRadius}"
-                            Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center">
-                          <icons:AppIcon Width="{DynamicResource IconSizeDefault}"
-                                    Height="{DynamicResource IconSizeDefault}"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}"
-                                    Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}" />
-                        </Border>
-                      </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                  </DataGridTemplateColumn>
-                  <DataGridTextColumn Header="类型" Binding="{Binding Title}" Width="180" />
-                  <DataGridTextColumn Header="客户端" Binding="{Binding ClientDisplay}" Width="1.1*" />
-                  <DataGridTextColumn Header="详情" Binding="{Binding Detail}" Width="2*" />
-                </DataGrid.Columns>
-                  </DataGrid>
-                </suki:BusyArea>
-              </controls:EmptyStatePanel>
-
-              <Grid Grid.Row="3"
-                 Classes="ToolbarPairRow" ColumnDefinitions="*,Auto"
-                 VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="10" Opacity="{StaticResource SectionHintOpacity}">
-                  <TextBlock Text="{Binding AbnormalTotalCount, StringFormat=共 {0} 条}" />
-                  <TextBlock Text="{Binding AbnormalPageIndex, StringFormat=第 {0} 页}" />
-                  <TextBlock Text="{Binding AbnormalTotalPages, StringFormat=/ {0} 页}" />
-                  <TextBlock Text="{Binding AbnormalPageSize, StringFormat=每页 {0} 条}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasAbnormalPrevPage}"
-                      Command="{Binding FirstAbnormalPageCommand}">
-                    <TextBlock Text="首页" />
-                  </Button>
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasAbnormalPrevPage}"
-                      Command="{Binding PrevAbnormalPageCommand}">
-                    <TextBlock Text="上一页" />
-                  </Button>
-                  <Button Classes="Action"
-                      IsEnabled="{Binding HasAbnormalNextPage}"
-                      Command="{Binding NextAbnormalPageCommand}">
-                    <TextBlock Text="下一页" />
-                  </Button>
-                </StackPanel>
-              </Grid>
-            </Grid>
+          </Grid>
         </suki:GlassCard>
       </Grid>
 

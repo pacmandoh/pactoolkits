@@ -1,6 +1,7 @@
-<Styles xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:con="https://github.com/kikipoulet/SukiUI">
+﻿<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:con="https://github.com/kikipoulet/SukiUI">
 
   <Style Selector="con|GlassCard.AboutHero">
     <Setter Property="Padding" Value="22,20" />

@@ -1,5 +1,4 @@
-<Styles xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Typography.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Buttons.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Cards.axaml" />

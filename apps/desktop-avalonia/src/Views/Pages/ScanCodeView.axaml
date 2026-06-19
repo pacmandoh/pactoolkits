@@ -1,79 +1,101 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-      xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
-      xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-      xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
-      xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-      mc:Ignorable="d"
-      d:DesignWidth="1200"
-      d:DesignHeight="800"
-      x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ScanCodeView"
-      x:DataType="vm:ScanCodeViewModel"
-      x:Name="Root"
-      Focusable="True">
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ScanCodeView"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:Name="Root"
+  d:DesignHeight="800"
+  d:DesignWidth="1200"
+  x:DataType="vm:ScanCodeViewModel"
+  Focusable="True"
+  mc:Ignorable="d">
   <UserControl.Resources>
     <conv:ContextStatusToBrushConverter x:Key="ContextStatusToBrush" />
   </UserControl.Resources>
 
-  <controls:PageDataShell IsLoadingData="{Binding IsBusy}"
-                          ShowUnavailable="{Binding ShowPageUnavailable}"
-                          UnavailableTitle="{Binding PageUnavailableTitle}"
-                          UnavailableHint="{Binding PageUnavailableHint}"
-                          UnavailableIcon="{Binding PageUnavailableIcon}"
-                          ShowStale="{Binding IsShowingStaleData}"
-                          StaleHint="{Binding PageStaleHint}">
-  <Grid Classes="PageRootLayout" RowDefinitions="Auto,*">
+  <controls:PageDataShell
+    IsLoadingData="{Binding IsBusy}"
+    ShowStale="{Binding IsShowingStaleData}"
+    ShowUnavailable="{Binding ShowPageUnavailable}"
+    StaleHint="{Binding PageStaleHint}"
+    UnavailableHint="{Binding PageUnavailableHint}"
+    UnavailableIcon="{Binding PageUnavailableIcon}"
+    UnavailableTitle="{Binding PageUnavailableTitle}">
+    <Grid Classes="PageRootLayout" RowDefinitions="Auto,*">
       <suki:GlassCard Grid.Row="0" Classes="SectionCard ScanCodeHeroCard">
         <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
-          <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
+          <Grid
+            Grid.Row="0"
+            VerticalAlignment="Center"
+            ColumnDefinitions="Auto,*"
+            ColumnSpacing="{DynamicResource SpacingInlineMd}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-              <icons:AppIcon Kind="ScanBarcode" Width="{DynamicResource IconSizeSectionHeader}" Height="{DynamicResource IconSizeSectionHeader}" />
-              <TextBlock Text="录入药品选择" Classes="SectionTitle" />
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSectionHeader}"
+                Height="{DynamicResource IconSizeSectionHeader}"
+                Kind="ScanBarcode" />
+              <TextBlock Classes="SectionTitle" Text="录入药品选择" />
             </StackPanel>
-            <TextBlock Grid.Column="1"
-                 Text="先选药品与规格，再在下方选择录入方式"
-                 Classes="SectionHint"
-                 VerticalAlignment="Center" />
+            <TextBlock
+              Grid.Column="1"
+              VerticalAlignment="Center"
+              Classes="SectionHint"
+              Text="先选药品与规格，再在下方选择录入方式" />
           </Grid>
 
-          <Grid Grid.Row="1"
-             ColumnDefinitions="320,260,150,*"
-             ColumnSpacing="{DynamicResource FormColumnSpacing}"
-             VerticalAlignment="Stretch">
-            <suki:GlassCard Grid.Column="0" Classes="FilterFieldCard" VerticalAlignment="Stretch">
-              <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
-                 VerticalAlignment="Stretch">
+          <Grid
+            Grid.Row="1"
+            VerticalAlignment="Stretch"
+            ColumnDefinitions="320,260,150,*"
+            ColumnSpacing="{DynamicResource FormColumnSpacing}">
+            <suki:GlassCard
+              Grid.Column="0"
+              VerticalAlignment="Stretch"
+              Classes="FilterFieldCard">
+              <Grid
+                VerticalAlignment="Stretch"
+                RowDefinitions="Auto,*"
+                RowSpacing="{DynamicResource FilterFieldRowSpacing}">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon Grid.Column="0"
-                            Kind="Pill"
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}"
-                            Opacity="{StaticResource SectionHintOpacity}"
-                            VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1"
-                       Text="药品" Classes="FilterLabel" />
-                  <Button Grid.Column="2"
-                      Classes="Basic MicroClear"
-                      Command="{Binding ClearDrugSpecFilterCommand}"
-                      HorizontalAlignment="Right"
-                      VerticalAlignment="Center"
-                      ToolTip.Tip="清空药品和规格">
-                    <icons:AppIcon Kind="CircleX"
-                              Width="{DynamicResource IconSizeSmall}"
-                              Height="{DynamicResource IconSizeSmall}" />
+                  <icons:AppIcon
+                    Grid.Column="0"
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    VerticalAlignment="Center"
+                    Kind="Pill"
+                    Opacity="{StaticResource SectionHintOpacity}" />
+                  <TextBlock
+                    Grid.Column="1"
+                    Classes="FilterLabel"
+                    Text="药品" />
+                  <Button
+                    Grid.Column="2"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Classes="Basic MicroClear"
+                    Command="{Binding ClearDrugSpecFilterCommand}"
+                    ToolTip.Tip="清空药品和规格">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="CircleX" />
                   </Button>
                 </Grid>
-                <controls:PlainAutoCompleteBox Grid.Row="1"
-                        x:Name="DrugBox"
-                        VerticalAlignment="Bottom"
-                        ItemsSource="{Binding DrugOptions}"
-                        Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}"
-                        PlaceholderText="输入药品名并回车"
-                        IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
-                        KeyDown="DrugBox_OnKeyDown">
+                <controls:PlainAutoCompleteBox
+                  x:Name="DrugBox"
+                  Grid.Row="1"
+                  VerticalAlignment="Bottom"
+                  IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
+                  ItemsSource="{Binding DrugOptions}"
+                  KeyDown="DrugBox_OnKeyDown"
+                  PlaceholderText="输入药品名并回车"
+                  Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}">
                   <controls:PlainAutoCompleteBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:OptionItem">
                       <TextBlock Text="{Binding Display}" />
@@ -83,78 +105,99 @@
               </Grid>
             </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="1" Classes="FilterFieldCard" VerticalAlignment="Stretch">
-              <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
-                 VerticalAlignment="Stretch">
+            <suki:GlassCard
+              Grid.Column="1"
+              VerticalAlignment="Stretch"
+              Classes="FilterFieldCard">
+              <Grid
+                VerticalAlignment="Stretch"
+                RowDefinitions="Auto,*"
+                RowSpacing="{DynamicResource FilterFieldRowSpacing}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon Kind="SlidersHorizontal" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
-                  <TextBlock Text="规格" Classes="FilterLabel" />
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    Kind="SlidersHorizontal" />
+                  <TextBlock Classes="FilterLabel" Text="规格" />
                 </StackPanel>
                 <Grid Grid.Row="1" VerticalAlignment="Bottom">
                   <controls:FilterFieldInput>
                     <Grid>
-                      <ComboBox x:Name="SpecBox"
-                           ItemsSource="{Binding SpecOptions}"
-                           SelectedItem="{Binding SelectedSpec}"
-                           DisplayMemberBinding="{Binding Display}" />
-                      <TextBlock IsHitTestVisible="False"
-                           IsVisible="{Binding !IsSpecSelected}"
-                           Margin="{DynamicResource MarginLeftMd}"
-                           VerticalAlignment="Center"
-                           Opacity="0.55"
-                           Text="请选择规格" />
+                      <ComboBox
+                        x:Name="SpecBox"
+                        DisplayMemberBinding="{Binding Display}"
+                        ItemsSource="{Binding SpecOptions}"
+                        SelectedItem="{Binding SelectedSpec}" />
+                      <TextBlock
+                        Margin="{DynamicResource MarginLeftMd}"
+                        VerticalAlignment="Center"
+                        IsHitTestVisible="False"
+                        IsVisible="{Binding !IsSpecSelected}"
+                        Opacity="0.55"
+                        Text="请选择规格" />
                     </Grid>
                   </controls:FilterFieldInput>
                 </Grid>
               </Grid>
             </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="2" Classes="FilterFieldCard" VerticalAlignment="Stretch">
-              <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FilterFieldRowSpacing}"
-                 VerticalAlignment="Stretch">
+            <suki:GlassCard
+              Grid.Column="2"
+              VerticalAlignment="Stretch"
+              Classes="FilterFieldCard">
+              <Grid
+                VerticalAlignment="Stretch"
+                RowDefinitions="Auto,*"
+                RowSpacing="{DynamicResource FilterFieldRowSpacing}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon Kind="PillBottle" Width="{DynamicResource IconSizeSmall}" Height="{DynamicResource IconSizeSmall}" />
-                  <TextBlock Text="单条数量" Classes="FilterLabel" />
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    Kind="PillBottle" />
+                  <TextBlock Classes="FilterLabel" Text="单条数量" />
                 </StackPanel>
                 <Grid Grid.Row="1" VerticalAlignment="Bottom">
                   <controls:FilterFieldInput>
                     <Grid>
-                      <TextBox
-                           IsEnabled="False"
-                           Text="{Binding SelectedQtyText, Mode=OneWay}" />
-                      <TextBlock IsHitTestVisible="False"
-                           IsVisible="{Binding !IsSpecSelected}"
-                           Margin="{DynamicResource MarginLeftMd}"
-                           VerticalAlignment="Center"
-                           Opacity="0.55"
-                           Text="自动" />
+                      <TextBox IsEnabled="False" Text="{Binding SelectedQtyText, Mode=OneWay}" />
+                      <TextBlock
+                        Margin="{DynamicResource MarginLeftMd}"
+                        VerticalAlignment="Center"
+                        IsHitTestVisible="False"
+                        IsVisible="{Binding !IsSpecSelected}"
+                        Opacity="0.55"
+                        Text="自动" />
                     </Grid>
                   </controls:FilterFieldInput>
                 </Grid>
               </Grid>
             </suki:GlassCard>
 
-            <suki:GlassCard Grid.Column="3"
-                    Padding="{StaticResource CompactPadding}"
-                    Opacity="0.92"
-                    MinHeight="56"
-                    HorizontalContentAlignment="Center">
-              <Grid ColumnDefinitions="Auto,*"
-                 ColumnSpacing="{DynamicResource SpacingInlineMd}"
-                 HorizontalAlignment="Center"
-                 VerticalAlignment="Center">
-                <icons:AppIcon Kind="Info"
-                          Width="{DynamicResource IconSizeDefault}"
-                          Height="{DynamicResource IconSizeDefault}"
-                          Foreground="{Binding ContextStatusLevel, Converter={StaticResource ContextStatusToBrush}}"
-                          VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1"
-                     Text="{Binding Status}"
-                     Classes="SectionHint"
-                     TextWrapping="Wrap"
-                     TextTrimming="None"
-                     TextAlignment="Center"
-                     VerticalAlignment="Center" />
+            <suki:GlassCard
+              Grid.Column="3"
+              MinHeight="56"
+              Padding="{StaticResource CompactPadding}"
+              HorizontalContentAlignment="Center"
+              Opacity="0.92">
+              <Grid
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                ColumnDefinitions="Auto,*"
+                ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  VerticalAlignment="Center"
+                  Foreground="{Binding ContextStatusLevel, Converter={StaticResource ContextStatusToBrush}}"
+                  Kind="Info" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="SectionHint"
+                  Text="{Binding Status}"
+                  TextAlignment="Center"
+                  TextTrimming="None"
+                  TextWrapping="Wrap" />
               </Grid>
             </suki:GlassCard>
           </Grid>
@@ -166,94 +209,151 @@
           <TabItem>
             <TabItem.Header>
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                <icons:AppIcon Kind="Keyboard" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="Keyboard" />
                 <TextBlock Text="手动录入" />
               </StackPanel>
             </TabItem.Header>
 
-            <Grid Margin="{DynamicResource MarginTopMd}" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
-              <suki:GlassCard Grid.Row="0" Padding="{StaticResource CompactPadding}" Opacity="0.95">
+            <Grid
+              Margin="{DynamicResource MarginTopMd}"
+              RowDefinitions="Auto,*,Auto,Auto"
+              RowSpacing="{DynamicResource FormRowSpacing}">
+              <suki:GlassCard
+                Grid.Row="0"
+                Padding="{StaticResource CompactPadding}"
+                Opacity="0.95">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                  <icons:AppIcon Kind="Clipboard" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
-                  <TextBlock Text="每行一个追溯码，会根据相应规则筛除不合条件条码"
-                       Classes="SectionHint" />
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeDefault}"
+                    Height="{DynamicResource IconSizeDefault}"
+                    Kind="Clipboard" />
+                  <TextBlock Classes="SectionHint" Text="每行一个追溯码，会根据相应规则筛除不合条件条码" />
                 </StackPanel>
               </suki:GlassCard>
 
               <Border Grid.Row="1" Classes="RowItem">
-                <TextBox AcceptsReturn="True"
-                    TextWrapping="NoWrap"
-                    VerticalAlignment="Stretch"
-                    VerticalContentAlignment="Top"
-                    Padding="12,10"
-                    MinHeight="0"
-                    GotFocus="CodeEditor_OnGotFocus"
-                    Text="{Binding TraceCodesText, Mode=TwoWay}"
-                    PlaceholderText="示例：&#10;89012345678901234567&#10;89012345678901234568&#10;89012345678901234569" />
+                <TextBox
+                  MinHeight="0"
+                  Padding="12,10"
+                  VerticalAlignment="Stretch"
+                  VerticalContentAlignment="Top"
+                  AcceptsReturn="True"
+                  GotFocus="CodeEditor_OnGotFocus"
+                  PlaceholderText="示例：&#10;89012345678901234567&#10;89012345678901234568&#10;89012345678901234569"
+                  Text="{Binding TraceCodesText, Mode=TwoWay}"
+                  TextWrapping="NoWrap" />
               </Border>
 
-              <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+              <Grid
+                Grid.Row="2"
+                ColumnDefinitions="*,*,*,*"
+                ColumnSpacing="{DynamicResource PageColumnSpacing}">
                 <suki:GlassCard Grid.Column="0" Classes="CounterPillCard">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
-                    <icons:AppIcon Kind="CircleCheck" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}"
-                              Foreground="{StaticResource BrushDone}" />
-                    <TextBlock Text="有效条码数" Opacity="0.8" />
-                    <TextBlock Text="{Binding ValidCodeCount}" FontWeight="Bold"
-                         Foreground="{StaticResource BrushDone}" />
+                  <StackPanel
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource SpacingInlineMd}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Foreground="{StaticResource BrushDone}"
+                      Kind="CircleCheck" />
+                    <TextBlock Opacity="0.8" Text="有效条码数" />
+                    <TextBlock
+                      FontWeight="Bold"
+                      Foreground="{StaticResource BrushDone}"
+                      Text="{Binding ValidCodeCount}" />
                   </StackPanel>
                 </suki:GlassCard>
 
                 <suki:GlassCard Grid.Column="1" Classes="CounterPillCard">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
-                    <icons:AppIcon Kind="CopyPlus" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}"
-                              Foreground="{StaticResource BrushWarning}" />
-                    <TextBlock Text="重复数" Opacity="0.8" />
-                    <TextBlock Text="{Binding DuplicateCodeCount}" FontWeight="Bold"
-                         Foreground="{StaticResource BrushWarning}" />
+                  <StackPanel
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource SpacingInlineMd}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Foreground="{StaticResource BrushWarning}"
+                      Kind="CopyPlus" />
+                    <TextBlock Opacity="0.8" Text="重复数" />
+                    <TextBlock
+                      FontWeight="Bold"
+                      Foreground="{StaticResource BrushWarning}"
+                      Text="{Binding DuplicateCodeCount}" />
                   </StackPanel>
                 </suki:GlassCard>
 
                 <suki:GlassCard Grid.Column="2" Classes="CounterPillCard">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
-                    <icons:AppIcon Kind="CircleAlert" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}"
-                              Foreground="{StaticResource BrushDanger}" />
-                    <TextBlock Text="无效数" Opacity="0.8" />
-                    <TextBlock Text="{Binding InvalidCodeCount}" FontWeight="Bold"
-                         Foreground="{StaticResource BrushDanger}" />
+                  <StackPanel
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource SpacingInlineMd}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Foreground="{StaticResource BrushDanger}"
+                      Kind="CircleAlert" />
+                    <TextBlock Opacity="0.8" Text="无效数" />
+                    <TextBlock
+                      FontWeight="Bold"
+                      Foreground="{StaticResource BrushDanger}"
+                      Text="{Binding InvalidCodeCount}" />
                   </StackPanel>
                 </suki:GlassCard>
 
                 <suki:GlassCard Grid.Column="3" Classes="CounterPillCard">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}" VerticalAlignment="Center">
-                    <icons:AppIcon Kind="ListOrdered" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
-                    <TextBlock Text="总数" Opacity="0.8" />
-                    <TextBlock Text="{Binding TotalCodeCount}" FontWeight="Bold" />
+                  <StackPanel
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource SpacingInlineMd}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Kind="ListOrdered" />
+                    <TextBlock Opacity="0.8" Text="总数" />
+                    <TextBlock FontWeight="Bold" Text="{Binding TotalCodeCount}" />
                   </StackPanel>
                 </suki:GlassCard>
               </Grid>
 
-              <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <Button Grid.Column="0"
-                    Classes="Action"
-                    Command="{Binding SubmitCommand}">
+              <Grid
+                Grid.Row="3"
+                ColumnDefinitions="Auto,Auto,Auto,*"
+                ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                <Button
+                  Grid.Column="0"
+                  Classes="Action"
+                  Command="{Binding SubmitCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon Kind="Save" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Kind="Save" />
                     <TextBlock Text="保存录入" />
                   </StackPanel>
                 </Button>
 
-                <Button Grid.Column="1"
-                    Classes="Action"
-                    Command="{Binding ClearCodesCommand}">
+                <Button
+                  Grid.Column="1"
+                  Classes="Action"
+                  Command="{Binding ClearCodesCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon Kind="Delete" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Kind="Delete" />
                     <TextBlock Text="清空输入" />
                   </StackPanel>
                 </Button>
 
-                <suki:InfoBadge Grid.Column="2"
-                        VerticalAlignment="Center"
-                        Content="{Binding InputLineCount, StringFormat=行数 {0}}" />
+                <suki:InfoBadge
+                  Grid.Column="2"
+                  VerticalAlignment="Center"
+                  Content="{Binding InputLineCount, StringFormat=行数 {0}}" />
               </Grid>
             </Grid>
           </TabItem>
@@ -261,234 +361,310 @@
           <TabItem>
             <TabItem.Header>
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                <icons:AppIcon Kind="Cloud" Width="{DynamicResource IconSizeCompact}" Height="{DynamicResource IconSizeCompact}" />
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="Cloud" />
                 <TextBlock Text="自动拉取" />
               </StackPanel>
             </TabItem.Header>
 
-            <Grid Margin="{DynamicResource MarginTopMd}" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
-              <suki:GlassCard Classes="CompactCard" Grid.Row="0">
+            <Grid
+              Margin="{DynamicResource MarginTopMd}"
+              RowDefinitions="Auto,Auto,*,Auto"
+              RowSpacing="{DynamicResource FormRowSpacing}">
+              <suki:GlassCard Grid.Row="0" Classes="CompactCard">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                  <icons:AppIcon Kind="Lightbulb" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
-                  <TextBlock Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路"
-                       Classes="SectionHint" />
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeDefault}"
+                    Height="{DynamicResource IconSizeDefault}"
+                    Kind="Lightbulb" />
+                  <TextBlock Classes="SectionHint" Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路" />
                 </StackPanel>
               </suki:GlassCard>
 
-              <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}"
-                 VerticalAlignment="Center">
-                <suki:GlassCard Classes="CompactCard" HorizontalContentAlignment="Center">
-                  <Grid ColumnDefinitions="Auto,Auto,Auto"
-                     ColumnSpacing="{DynamicResource PageColumnSpacing}"
-                     HorizontalAlignment="Center"
-                     VerticalAlignment="Center">
-                    <icons:AppIcon Kind="Power"
-                              Width="{DynamicResource IconSizeDefault}"
-                              Height="{DynamicResource IconSizeDefault}"
-                              Foreground="{Binding IsAutoFetchEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
-                              VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1"
-                         Text="自动拉取开关"
-                         Opacity="0.82"
-                         VerticalAlignment="Center" />
-                    <ToggleSwitch Grid.Column="2"
-                           IsChecked="{Binding IsAutoFetchEnabled}"
-                           VerticalAlignment="Center" />
+              <Grid
+                Grid.Row="1"
+                VerticalAlignment="Center"
+                ColumnDefinitions="Auto,Auto,Auto,Auto,*"
+                ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                <suki:GlassCard HorizontalContentAlignment="Center" Classes="CompactCard">
+                  <Grid
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    ColumnDefinitions="Auto,Auto,Auto"
+                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      VerticalAlignment="Center"
+                      Foreground="{Binding IsAutoFetchEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
+                      Kind="Power" />
+                    <TextBlock
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Opacity="0.82"
+                      Text="自动拉取开关" />
+                    <ToggleSwitch
+                      Grid.Column="2"
+                      VerticalAlignment="Center"
+                      IsChecked="{Binding IsAutoFetchEnabled}" />
                   </Grid>
                 </suki:GlassCard>
 
-                <suki:GlassCard Classes="CompactCard" Grid.Column="1">
-                  <Button Classes="Action"
-                      Command="{Binding StartAutoFetchCommand}">
+                <suki:GlassCard Grid.Column="1" Classes="CompactCard">
+                  <Button Classes="Action" Command="{Binding StartAutoFetchCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                      <icons:AppIcon Kind="CirclePlay" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
+                        Kind="CirclePlay" />
                       <TextBlock Text="开始任务" />
                     </StackPanel>
                   </Button>
                 </suki:GlassCard>
 
-                <suki:GlassCard Classes="CompactCard" Grid.Column="2">
-                  <Button Classes="Action"
-                      Command="{Binding StopAutoFetchCommand}">
+                <suki:GlassCard Grid.Column="2" Classes="CompactCard">
+                  <Button Classes="Action" Command="{Binding StopAutoFetchCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                      <icons:AppIcon Kind="CircleStop" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
+                        Kind="CircleStop" />
                       <TextBlock Text="停止任务" />
                     </StackPanel>
                   </Button>
                 </suki:GlassCard>
 
-                <suki:GlassCard Classes="CompactCard" Grid.Column="3">
-                  <Button Classes="Action"
-                      Command="{Binding RetryFailedCommand}">
+                <suki:GlassCard Grid.Column="3" Classes="CompactCard">
+                  <Button Classes="Action" Command="{Binding RetryFailedCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                      <icons:AppIcon Kind="RotateCcw" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
+                        Kind="RotateCcw" />
                       <TextBlock Text="重试失败" />
                     </StackPanel>
                   </Button>
                 </suki:GlassCard>
 
-                <suki:GlassCard Grid.Column="4"
-                        Padding="{StaticResource CompactPadding}"
-                        Opacity="0.9"
-                        MinHeight="56"
-                        HorizontalAlignment="Stretch"
-                        HorizontalContentAlignment="Center">
-                  <Grid ColumnDefinitions="Auto,*"
-                     ColumnSpacing="{DynamicResource SpacingInlineMd}"
-                     HorizontalAlignment="Center"
-                     VerticalAlignment="Center"
-                     MaxWidth="420">
-                    <icons:AppIcon Kind="Info"
-                              Width="{DynamicResource IconSizeDefault}"
-                              Height="{DynamicResource IconSizeDefault}"
-                              Foreground="{StaticResource BrushDone}"
-                              VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1"
-                         Text="{Binding AutoFetchStatus}"
-                         Classes="SectionHint"
-                         TextWrapping="Wrap"
-                         TextTrimming="None"
-                         TextAlignment="Center"
-                         VerticalAlignment="Center" />
+                <suki:GlassCard
+                  Grid.Column="4"
+                  MinHeight="56"
+                  Padding="{StaticResource CompactPadding}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center"
+                  Opacity="0.9">
+                  <Grid
+                    MaxWidth="420"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    ColumnDefinitions="Auto,*"
+                    ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      VerticalAlignment="Center"
+                      Foreground="{StaticResource BrushDone}"
+                      Kind="Info" />
+                    <TextBlock
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Classes="SectionHint"
+                      Text="{Binding AutoFetchStatus}"
+                      TextAlignment="Center"
+                      TextTrimming="None"
+                      TextWrapping="Wrap" />
                   </Grid>
                 </suki:GlassCard>
               </Grid>
 
-              <Grid Grid.Row="2" ColumnDefinitions="1.3*,1.4*,1.1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <suki:GlassCard Classes="CompactCard" Grid.Column="0">
+              <Grid
+                Grid.Row="2"
+                ColumnDefinitions="1.3*,1.4*,1.1*"
+                ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                <suki:GlassCard Grid.Column="0" Classes="CompactCard">
                   <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                      <icons:AppIcon Kind="List" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
-                      <TextBlock Text="任务列表" Classes="SectionTitle" />
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
+                        Kind="List" />
+                      <TextBlock Classes="SectionTitle" Text="任务列表" />
                       <suki:InfoBadge Content="{Binding AutoTasks.Count, StringFormat=共 {0} 项}" />
                     </StackPanel>
 
-                    <controls:EmptyStatePanel Grid.Row="1"
-                                 IsEmpty="{Binding IsAutoTasksEmpty}"
-                                 EmptyText="{Binding AutoTasksEmptyText}"
-                                 EmptyHint="{Binding AutoTasksEmptyHint}"
-                                 Icon="{Binding SectionEmptyIcon}"
-                                 IsPending="{Binding IsSectionPending}"
-                                 SlotMinHeight="{DynamicResource DgH10Rows}">
-                    <suki:BusyArea IsBusy="{Binding IsBusy}">
-                      <DataGrid x:Name="AutoTaskGrid"
-                           Classes="SectionGrid"
-                           ItemsSource="{Binding AutoTasks}"
-                           SelectionChanged="OnBrowsingGridSelectionChanged"
-                           HeadersVisibility="All"
-                           GridLinesVisibility="All"
-                           CanUserResizeColumns="True">
-                        <DataGrid.Columns>
-                          <DataGridTextColumn Header="任务" Binding="{Binding Name}"
-                                    Width="1.3*" />
-                          <DataGridTextColumn Header="计划" Binding="{Binding Schedule}"
-                                    Width="1*" />
-                          <DataGridTextColumn Header="状态" Binding="{Binding State}"
-                                    Width="0.8*" />
-                        </DataGrid.Columns>
-                      </DataGrid>
-                    </suki:BusyArea>
+                    <controls:EmptyStatePanel
+                      Grid.Row="1"
+                      EmptyHint="{Binding AutoTasksEmptyHint}"
+                      EmptyText="{Binding AutoTasksEmptyText}"
+                      Icon="{Binding SectionEmptyIcon}"
+                      IsEmpty="{Binding IsAutoTasksEmpty}"
+                      IsPending="{Binding IsSectionPending}"
+                      SlotMinHeight="{DynamicResource DgH10Rows}">
+                      <suki:BusyArea IsBusy="{Binding IsBusy}">
+                        <DataGrid
+                          x:Name="AutoTaskGrid"
+                          CanUserResizeColumns="True"
+                          Classes="SectionGrid"
+                          GridLinesVisibility="All"
+                          HeadersVisibility="All"
+                          ItemsSource="{Binding AutoTasks}"
+                          SelectionChanged="OnBrowsingGridSelectionChanged">
+                          <DataGrid.Columns>
+                            <DataGridTextColumn
+                              Width="1.3*"
+                              Binding="{Binding Name}"
+                              Header="任务" />
+                            <DataGridTextColumn
+                              Width="1*"
+                              Binding="{Binding Schedule}"
+                              Header="计划" />
+                            <DataGridTextColumn
+                              Width="0.8*"
+                              Binding="{Binding State}"
+                              Header="状态" />
+                          </DataGrid.Columns>
+                        </DataGrid>
+                      </suki:BusyArea>
                     </controls:EmptyStatePanel>
                   </Grid>
                 </suki:GlassCard>
 
-                <suki:GlassCard Classes="CompactCard" Grid.Column="1">
+                <suki:GlassCard Grid.Column="1" Classes="CompactCard">
                   <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                      <icons:AppIcon Kind="History" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
-                      <TextBlock Text="最近执行记录" Classes="SectionTitle" />
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
+                        Kind="History" />
+                      <TextBlock Classes="SectionTitle" Text="最近执行记录" />
                       <suki:InfoBadge Content="{Binding RecentRuns.Count, StringFormat=近 {0} 条}" />
                     </StackPanel>
 
-                    <controls:EmptyStatePanel Grid.Row="1"
-                                 IsEmpty="{Binding IsRecentRunsEmpty}"
-                                 EmptyText="{Binding RecentRunsEmptyText}"
-                                 EmptyHint="{Binding RecentRunsEmptyHint}"
-                                 Icon="{Binding SectionEmptyIcon}"
-                                 IsPending="{Binding IsSectionPending}"
-                                 SlotMinHeight="{DynamicResource DgH10Rows}">
-                    <suki:BusyArea IsBusy="{Binding IsBusy}">
-                      <DataGrid x:Name="RecentRunGrid"
-                           Classes="SectionGrid"
-                           ItemsSource="{Binding RecentRuns}"
-                           SelectionChanged="OnBrowsingGridSelectionChanged"
-                           HeadersVisibility="All"
-                           GridLinesVisibility="All"
-                           CanUserResizeColumns="True">
-                        <DataGrid.Columns>
-                          <DataGridTextColumn Header="任务" Binding="{Binding Name}"
-                                    Width="1.1*" />
-                          <DataGridTextColumn Header="开始时间" Binding="{Binding StartedAtText}"
-                                    Width="1.2*" />
-                          <DataGridTextColumn Header="结果" Binding="{Binding Result}"
-                                    Width="0.8*" />
-                        </DataGrid.Columns>
-                      </DataGrid>
-                    </suki:BusyArea>
+                    <controls:EmptyStatePanel
+                      Grid.Row="1"
+                      EmptyHint="{Binding RecentRunsEmptyHint}"
+                      EmptyText="{Binding RecentRunsEmptyText}"
+                      Icon="{Binding SectionEmptyIcon}"
+                      IsEmpty="{Binding IsRecentRunsEmpty}"
+                      IsPending="{Binding IsSectionPending}"
+                      SlotMinHeight="{DynamicResource DgH10Rows}">
+                      <suki:BusyArea IsBusy="{Binding IsBusy}">
+                        <DataGrid
+                          x:Name="RecentRunGrid"
+                          CanUserResizeColumns="True"
+                          Classes="SectionGrid"
+                          GridLinesVisibility="All"
+                          HeadersVisibility="All"
+                          ItemsSource="{Binding RecentRuns}"
+                          SelectionChanged="OnBrowsingGridSelectionChanged">
+                          <DataGrid.Columns>
+                            <DataGridTextColumn
+                              Width="1.1*"
+                              Binding="{Binding Name}"
+                              Header="任务" />
+                            <DataGridTextColumn
+                              Width="1.2*"
+                              Binding="{Binding StartedAtText}"
+                              Header="开始时间" />
+                            <DataGridTextColumn
+                              Width="0.8*"
+                              Binding="{Binding Result}"
+                              Header="结果" />
+                          </DataGrid.Columns>
+                        </DataGrid>
+                      </suki:BusyArea>
                     </controls:EmptyStatePanel>
                   </Grid>
                 </suki:GlassCard>
 
-                <suki:GlassCard Classes="CompactCard" Grid.Column="2">
+                <suki:GlassCard Grid.Column="2" Classes="CompactCard">
                   <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                      <icons:AppIcon Kind="CircleAlert" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
-                      <TextBlock Text="失败重试队列" Classes="SectionTitle" />
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
+                        Kind="CircleAlert" />
+                      <TextBlock Classes="SectionTitle" Text="失败重试队列" />
                       <suki:InfoBadge Content="{Binding RetryQueue.Count, StringFormat=待重试 {0}}" />
                     </StackPanel>
 
-                    <controls:EmptyStatePanel Grid.Row="1"
-                                 IsEmpty="{Binding IsRetryQueueEmpty}"
-                                 EmptyText="{Binding RetryQueueEmptyText}"
-                                 EmptyHint="{Binding RetryQueueEmptyHint}"
-                                 Icon="{Binding SectionEmptyIcon}"
-                                 IsPending="{Binding IsSectionPending}"
-                                 SlotMinHeight="{DynamicResource DgH10Rows}">
-                    <suki:BusyArea IsBusy="{Binding IsBusy}">
-                      <DataGrid x:Name="RetryQueueGrid"
-                           Classes="SectionGrid"
-                           ItemsSource="{Binding RetryQueue}"
-                           SelectionChanged="OnBrowsingGridSelectionChanged"
-                           HeadersVisibility="All"
-                           GridLinesVisibility="All"
-                           CanUserResizeColumns="True">
-                        <DataGrid.Columns>
-                          <DataGridTextColumn Header="任务" Binding="{Binding Name}"
-                                    Width="1.1*" />
-                          <DataGridTextColumn Header="原因" Binding="{Binding Reason}"
-                                    Width="1.2*" />
-                          <DataGridTextColumn Header="重试" Binding="{Binding RetryCountText}"
-                                    Width="0.8*" />
-                        </DataGrid.Columns>
-                      </DataGrid>
-                    </suki:BusyArea>
+                    <controls:EmptyStatePanel
+                      Grid.Row="1"
+                      EmptyHint="{Binding RetryQueueEmptyHint}"
+                      EmptyText="{Binding RetryQueueEmptyText}"
+                      Icon="{Binding SectionEmptyIcon}"
+                      IsEmpty="{Binding IsRetryQueueEmpty}"
+                      IsPending="{Binding IsSectionPending}"
+                      SlotMinHeight="{DynamicResource DgH10Rows}">
+                      <suki:BusyArea IsBusy="{Binding IsBusy}">
+                        <DataGrid
+                          x:Name="RetryQueueGrid"
+                          CanUserResizeColumns="True"
+                          Classes="SectionGrid"
+                          GridLinesVisibility="All"
+                          HeadersVisibility="All"
+                          ItemsSource="{Binding RetryQueue}"
+                          SelectionChanged="OnBrowsingGridSelectionChanged">
+                          <DataGrid.Columns>
+                            <DataGridTextColumn
+                              Width="1.1*"
+                              Binding="{Binding Name}"
+                              Header="任务" />
+                            <DataGridTextColumn
+                              Width="1.2*"
+                              Binding="{Binding Reason}"
+                              Header="原因" />
+                            <DataGridTextColumn
+                              Width="0.8*"
+                              Binding="{Binding RetryCountText}"
+                              Header="重试" />
+                          </DataGrid.Columns>
+                        </DataGrid>
+                      </suki:BusyArea>
                     </controls:EmptyStatePanel>
                   </Grid>
                 </suki:GlassCard>
               </Grid>
 
-              <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <Button Grid.Column="0"
-                    Classes="Action"
-                    Command="{Binding OpenAutoFetchSettingsCommand}">
+              <Grid
+                Grid.Row="3"
+                ColumnDefinitions="Auto,Auto,*"
+                ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                <Button
+                  Grid.Column="0"
+                  Classes="Action"
+                  Command="{Binding OpenAutoFetchSettingsCommand}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon Kind="SlidersHorizontal" Width="{DynamicResource IconSizeDefault}" Height="{DynamicResource IconSizeDefault}" />
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Kind="SlidersHorizontal" />
                     <TextBlock Text="参数设置" />
                   </StackPanel>
                 </Button>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}"
-                      VerticalAlignment="Center">
-                  <Border Width="{DynamicResource LegendDotSize}"
-                      Height="{DynamicResource LegendDotSize}"
-                      CornerRadius="999"
-                      VerticalAlignment="Center"
-                      Background="{Binding IsAutoFetchRunning, Converter={StaticResource BoolToDoneDangerBrush}}" />
-                  <TextBlock Text="运行状态：" Opacity="{StaticResource SectionHintOpacity}" />
-                  <TextBlock Text="运行中" FontWeight="SemiBold"
-                       IsVisible="{Binding IsAutoFetchRunning}" />
-                  <TextBlock Text="已停止" FontWeight="SemiBold"
-                       IsVisible="{Binding !IsAutoFetchRunning}" />
+                <StackPanel
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Orientation="Horizontal"
+                  Spacing="{DynamicResource SpacingInlineSm}">
+                  <Border
+                    Width="{DynamicResource LegendDotSize}"
+                    Height="{DynamicResource LegendDotSize}"
+                    VerticalAlignment="Center"
+                    Background="{Binding IsAutoFetchRunning, Converter={StaticResource BoolToDoneDangerBrush}}"
+                    CornerRadius="999" />
+                  <TextBlock Opacity="{StaticResource SectionHintOpacity}" Text="运行状态：" />
+                  <TextBlock
+                    FontWeight="SemiBold"
+                    IsVisible="{Binding IsAutoFetchRunning}"
+                    Text="运行中" />
+                  <TextBlock
+                    FontWeight="SemiBold"
+                    IsVisible="{Binding !IsAutoFetchRunning}"
+                    Text="已停止" />
                 </StackPanel>
               </Grid>
             </Grid>

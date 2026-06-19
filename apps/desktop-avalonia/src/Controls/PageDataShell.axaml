@@ -1,45 +1,52 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-             xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-             x:Class="PacToolkits.Desktop.Avalonia.Controls.PageDataShell"
-             x:Name="Root">
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.PageDataShell"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+  x:Name="Root">
   <Grid RowDefinitions="Auto,*">
-    <Border Grid.Row="0"
-            Classes="PageStaleBanner"
-            IsVisible="{Binding ShowStale, ElementName=Root}"
-            BorderBrush="{DynamicResource SukiControlBorderBrush}"
-            BorderThickness="0,0,0,1"
-            Padding="10,6">
+    <Border
+      Grid.Row="0"
+      Padding="10,6"
+      BorderBrush="{DynamicResource SukiControlBorderBrush}"
+      BorderThickness="0,0,0,1"
+      Classes="PageStaleBanner"
+      IsVisible="{Binding ShowStale, ElementName=Root}">
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-        <controls:AppIcon Kind="Clock"
-                          Width="{DynamicResource IconSizeSmall}"
-                          Height="{DynamicResource IconSizeSmall}"
-                          VerticalAlignment="Center"
-                          Foreground="{DynamicResource BrushWarning}" />
-        <TextBlock Text="{Binding StaleHint, ElementName=Root}"
-                   Classes="SectionHint"
-                   TextWrapping="Wrap"
-                   VerticalAlignment="Center" />
+        <controls:AppIcon
+          Width="{DynamicResource IconSizeSmall}"
+          Height="{DynamicResource IconSizeSmall}"
+          VerticalAlignment="Center"
+          Foreground="{DynamicResource BrushWarning}"
+          Kind="Clock" />
+        <TextBlock
+          VerticalAlignment="Center"
+          Classes="SectionHint"
+          Text="{Binding StaleHint, ElementName=Root}"
+          TextWrapping="Wrap" />
       </StackPanel>
     </Border>
 
-    <controls:EmptyStatePanel Grid.Row="1"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch"
-                              IsEmpty="{Binding ShowUnavailable, ElementName=Root}"
-                              EmptyText="{Binding UnavailableTitle, ElementName=Root}"
-                              EmptyHint="{Binding UnavailableHint, ElementName=Root}"
-                              Icon="{Binding UnavailableIcon, ElementName=Root}">
-      <suki:BusyArea BusyText="加载中..."
-                     HorizontalAlignment="Stretch"
-                     VerticalAlignment="Stretch"
-                     IsBusy="{Binding ShowLoadingOverlay, ElementName=Root}">
-        <ContentPresenter Content="{Binding Content, ElementName=Root}"
-                          HorizontalAlignment="Stretch"
-                          VerticalAlignment="Stretch"
-                          HorizontalContentAlignment="Stretch"
-                          VerticalContentAlignment="Stretch" />
+    <controls:EmptyStatePanel
+      Grid.Row="1"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"
+      EmptyHint="{Binding UnavailableHint, ElementName=Root}"
+      EmptyText="{Binding UnavailableTitle, ElementName=Root}"
+      Icon="{Binding UnavailableIcon, ElementName=Root}"
+      IsEmpty="{Binding ShowUnavailable, ElementName=Root}">
+      <suki:BusyArea
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Stretch"
+        BusyText="加载中..."
+        IsBusy="{Binding ShowLoadingOverlay, ElementName=Root}">
+        <ContentPresenter
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          HorizontalContentAlignment="Stretch"
+          VerticalContentAlignment="Stretch"
+          Content="{Binding Content, ElementName=Root}" />
       </suki:BusyArea>
     </controls:EmptyStatePanel>
   </Grid>

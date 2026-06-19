@@ -68,6 +68,11 @@ artifacts/desktop/**/*
 database/postgres/scripts/config.json
 
 # ------------------------------
+# Local dotnet tool installs (prefer dotnet-tools.json + tool restore)
+# ------------------------------
+.tools/
+
+# ------------------------------
 # Node / Electron (desktop-electron preview shell)
 # ------------------------------
 **/node_modules/

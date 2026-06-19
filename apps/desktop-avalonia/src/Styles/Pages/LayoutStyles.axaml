@@ -1,5 +1,4 @@
-<Styles xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Style Selector="Grid.PageRoot">
     <Setter Property="Margin" Value="{DynamicResource PageRootMargin}" />
   </Style>
@@ -23,7 +22,7 @@
     <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacing}" />
   </Style>
 
-  <!-- Pair a left field/summary with right actions; ColumnDefinitions="*,Auto" must be set inline on the Grid. -->
+  <!--  Pair a left field/summary with right actions; ColumnDefinitions="*,Auto" must be set inline on the Grid.  -->
   <Style Selector="Grid.ToolbarPairRow">
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacing}" />
