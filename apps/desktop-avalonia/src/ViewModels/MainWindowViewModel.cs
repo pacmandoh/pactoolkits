@@ -14,6 +14,7 @@ using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
+using PacToolkits.Application.TextSearch;
 using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Contracts;
@@ -77,12 +78,19 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _pageLifecycleCts;
     private readonly object _dirtyPagesGate = new();
     private readonly HashSet<AppPageBase> _dirtyPages = new();
+    private readonly SearchInputDebouncer _sidebarSearchDebouncer = new(250);
 
     private readonly SukiTheme _theme = SukiTheme.GetInstance();
     private IAvaloniaReadOnlyList<SukiColorTheme> Themes => _theme.ColorThemes;
 
     private IReadOnlyList<AppPageBase> Pages { get; }
     public IReadOnlyList<AppPageBase> SidebarPages { get; }
+
+    [ObservableProperty]
+    private string _sidebarSearchText = string.Empty;
+
+    public IReadOnlyList<AppPageBase> FilteredSidebarPages
+        => FilterSidebarPages(SidebarSearchText);
     private readonly Dictionary<Type, AppPageBase> _pageByType;
     private readonly AppPageBase? _settingsPage;
     private readonly AppPageBase? _aboutPage;
@@ -709,6 +717,32 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(CanTopExport));
     }
 
+
+    partial void OnSidebarSearchTextChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _sidebarSearchDebouncer.Cancel();
+            OnPropertyChanged(nameof(FilteredSidebarPages));
+            return;
+        }
+
+        _sidebarSearchDebouncer.Schedule(() =>
+            Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(FilteredSidebarPages))));
+    }
+
+    private IReadOnlyList<AppPageBase> FilterSidebarPages(string? search)
+    {
+        var keyword = (search ?? string.Empty).Trim();
+        if (keyword.Length == 0)
+        {
+            return SidebarPages;
+        }
+
+        return SidebarPages
+            .Where(page => TextSearchHelper.Matches(keyword, page.DisplayName))
+            .ToList();
+    }
 
     partial void OnActivePageChanged(AppPageBase? value)
     {
@@ -1476,6 +1510,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _pageLifecycleCts?.Cancel();
             _pageLifecycleCts?.Dispose();
             _pageLifecycleCts = null;
+            _sidebarSearchDebouncer.Dispose();
         });
     }
 

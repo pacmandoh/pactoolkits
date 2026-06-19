@@ -18,7 +18,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
     }
 
     public Task<PagedResult<TracePoolStockRowDto>> GetStockPageAsync(
-        string? keyword,
+        KeywordSearchContext keyword,
         int page,
         int pageSize,
         CancellationToken ct)
@@ -26,17 +26,14 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         {
             var (_, safePageSize, offset) = NormalizePaging(page, pageSize, maxPageSize: 3000);
 
-            const string countSql = """
+            var countSql = $"""
                 select count(*)::int
                 from trace_pool t
                 where
-                  @kw = ''
-                  or t.drug_id    ilike ('%' || @kw || '%')
-                  or t.spec       ilike ('%' || @kw || '%')
-                  or t.trace_code ilike ('%' || @kw || '%')
+                  {TracePoolKeywordSql.TracePoolWhereClause}
             """;
 
-            const string sql = """
+            var sql = $"""
                 with deprecated_map as (
                   select distinct d.drug_id, d.spec
                   from drug_index d
@@ -56,24 +53,19 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                   on dm.drug_id = t.drug_id
                  and dm.spec = t.spec
                 where
-                  @kw = ''
-                  or t.drug_id    ilike ('%' || @kw || '%')
-                  or t.spec       ilike ('%' || @kw || '%')
-                  or t.trace_code ilike ('%' || @kw || '%')
+                  {TracePoolKeywordSql.TracePoolWhereClause}
                 order by t.id desc
                 offset @offset
                 limit @n
             """;
 
-            var kw = (keyword ?? "").Trim();
-
             await using var count = conn.CreateCommand(countSql, _opt.CommandTimeoutSeconds);
-            count.AddParam("kw", kw);
+            TracePoolKeywordSql.AddKeywordParams(count, keyword);
             var totalCountObj = await count.ExecuteScalarAsync(token);
             var totalCount = totalCountObj is int i ? i : Convert.ToInt32(totalCountObj ?? 0);
 
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
-            cmd.AddParam("kw", kw);
+            TracePoolKeywordSql.AddKeywordParams(cmd, keyword);
             cmd.AddParam("offset", offset);
             cmd.AddParam("n", safePageSize);
 
@@ -96,28 +88,27 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         }, ct);
 
     public Task<PagedResult<TracePoolDrugSpecAggDto>> GetDrugSpecAggPageAsync(
-        string? keyword,
+        KeywordSearchContext keyword,
         int page,
         int pageSize,
         CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {
             var (_, safePageSize, offset) = NormalizePaging(page, pageSize, maxPageSize: 2000);
+            var groupedWhere = TracePoolKeywordSql.TracePoolGroupedWhereClause;
 
-            const string countSql = """
+            var countSql = $"""
                 select count(*)::int
                 from (
                   select 1
                   from trace_pool
                   where
-                    @kw = ''
-                    or drug_id ilike ('%' || @kw || '%')
-                    or spec    ilike ('%' || @kw || '%')
+                    {groupedWhere}
                   group by drug_id, spec
                 ) x
             """;
 
-            const string sql = """
+            var sql = $"""
                 with deprecated_map as (
                    select distinct d.drug_id, d.spec
                    from drug_index d
@@ -132,9 +123,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                      coalesce(sum(remain),0)::bigint as remain_sum
                    from trace_pool
                    where
-                     @kw = ''
-                     or drug_id ilike ('%' || @kw || '%')
-                     or spec    ilike ('%' || @kw || '%')
+                     {groupedWhere}
                    group by drug_id, spec
                 ),
                 wk_range as (
@@ -175,15 +164,13 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 limit @n
             """;
 
-            var kw = (keyword ?? "").Trim();
-
             await using var count = conn.CreateCommand(countSql, _opt.CommandTimeoutSeconds);
-            count.AddParam("kw", kw);
+            TracePoolKeywordSql.AddKeywordParams(count, keyword);
             var totalCountObj = await count.ExecuteScalarAsync(token);
             var totalCount = totalCountObj is int i ? i : Convert.ToInt32(totalCountObj ?? 0);
 
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
-            cmd.AddParam("kw", kw);
+            TracePoolKeywordSql.AddKeywordParams(cmd, keyword);
             cmd.AddParam("offset", offset);
             cmd.AddParam("n", safePageSize);
 
@@ -207,15 +194,16 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         }, ct);
 
     public Task<PagedResult<LowStockRowDto>> GetLowStockPageAsync(
-        string? keyword,
+        KeywordSearchContext keyword,
         int page,
         int pageSize,
         CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {
             var (_, safePageSize, offset) = NormalizePaging(page, pageSize, maxPageSize: 2000);
+            var groupedWhere = TracePoolKeywordSql.TracePoolGroupedWhereClause;
 
-            const string countSql = """
+            var countSql = $"""
                 with active_drug as (
                    select distinct d.drug_id, d.spec
                    from drug_index d
@@ -233,9 +221,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                        and a.spec = trace_pool.spec
                    )
                      and (
-                       @kw = ''
-                       or drug_id ilike ('%' || @kw || '%')
-                       or spec    ilike ('%' || @kw || '%')
+                       {groupedWhere}
                      )
                    group by drug_id, spec
                 ),
@@ -263,7 +249,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 where p.remain_sum <= coalesce(wk.wk_used::numeric, (p.qty_sum::numeric / 2))
             """;
 
-            const string sql = """
+            var sql = $"""
                 with active_drug as (
                    select distinct d.drug_id, d.spec
                    from drug_index d
@@ -281,9 +267,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                        and a.spec = trace_pool.spec
                    )
                      and (
-                       @kw = ''
-                       or drug_id ilike ('%' || @kw || '%')
-                       or spec    ilike ('%' || @kw || '%')
+                       {groupedWhere}
                      )
                    group by drug_id, spec
                 ),
@@ -318,15 +302,13 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 limit @n
             """;
 
-            var kw = (keyword ?? "").Trim();
-
             await using var count = conn.CreateCommand(countSql, _opt.CommandTimeoutSeconds);
-            count.AddParam("kw", kw);
+            TracePoolKeywordSql.AddKeywordParams(count, keyword);
             var totalCountObj = await count.ExecuteScalarAsync(token);
             var totalCount = totalCountObj is int i ? i : Convert.ToInt32(totalCountObj ?? 0);
 
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
-            cmd.AddParam("kw", kw);
+            TracePoolKeywordSql.AddKeywordParams(cmd, keyword);
             cmd.AddParam("offset", offset);
             cmd.AddParam("n", safePageSize);
             var list = new List<LowStockRowDto>();
@@ -759,7 +741,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         }, IsolationLevel.ReadCommitted, ct);
 
     public Task<StockReassignPreviewDto> PreviewStockReassignByKeywordAsync(
-        string keyword,
+        KeywordSearchContext keyword,
         string targetDrugId,
         string targetSpec,
         int targetQty,
@@ -767,7 +749,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {
-            var kw = (keyword ?? string.Empty).Trim();
+            var kw = keyword.Keyword;
             var targetDrug = (targetDrugId ?? string.Empty).Trim();
             var targetSpecSafe = (targetSpec ?? string.Empty).Trim();
             var qty = targetQty;
@@ -804,35 +786,31 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 targetExists = scalar is bool b && b;
             }
 
-            const string countSql = """
+            var countSql = $"""
                 select count(*)::int
                 from trace_pool t
                 where
-                  t.drug_id    ilike ('%' || @kw || '%')
-                  or t.spec       ilike ('%' || @kw || '%')
-                  or t.trace_code ilike ('%' || @kw || '%')
+                  {TracePoolKeywordSql.TracePoolRequiredMatchClause}
             """;
             int matchCount;
             await using (var countCmd = conn.CreateCommand(countSql, _opt.CommandTimeoutSeconds))
             {
-                countCmd.AddParam("kw", kw);
+                TracePoolKeywordSql.AddKeywordParams(countCmd, keyword);
                 var scalar = await countCmd.ExecuteScalarAsync(token);
                 matchCount = scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
             }
 
-            const string willChangeSql = """
+            var willChangeSql = $"""
                 select count(*)::int
                 from trace_pool t
                 where
-                  (t.drug_id    ilike ('%' || @kw || '%')
-                   or t.spec       ilike ('%' || @kw || '%')
-                   or t.trace_code ilike ('%' || @kw || '%'))
+                  ({TracePoolKeywordSql.TracePoolRequiredMatchClause})
                   and (t.drug_id <> @drug_id or t.spec <> @spec or t.qty <> @qty)
             """;
             int willChangeCount;
             await using (var willCmd = conn.CreateCommand(willChangeSql, _opt.CommandTimeoutSeconds))
             {
-                willCmd.AddParam("kw", kw);
+                TracePoolKeywordSql.AddKeywordParams(willCmd, keyword);
                 willCmd.AddParam("drug_id", targetDrug);
                 willCmd.AddParam("spec", targetSpecSafe);
                 willCmd.AddParam("qty", qty);
@@ -840,13 +818,11 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 willChangeCount = scalar is int i ? i : Convert.ToInt32(scalar ?? 0);
             }
 
-            const string sampleSql = """
+            var sampleSql = $"""
                 select t.trace_code, t.drug_id, t.spec, t.qty, t.remain
                 from trace_pool t
                 where
-                  (t.drug_id    ilike ('%' || @kw || '%')
-                   or t.spec       ilike ('%' || @kw || '%')
-                   or t.trace_code ilike ('%' || @kw || '%'))
+                  ({TracePoolKeywordSql.TracePoolRequiredMatchClause})
                   and (t.drug_id <> @drug_id or t.spec <> @spec or t.qty <> @qty)
                 order by t.id desc
                 limit @n
@@ -854,7 +830,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             var samples = new List<StockReassignPreviewItemDto>();
             await using (var sampleCmd = conn.CreateCommand(sampleSql, _opt.CommandTimeoutSeconds))
             {
-                sampleCmd.AddParam("kw", kw);
+                TracePoolKeywordSql.AddKeywordParams(sampleCmd, keyword);
                 sampleCmd.AddParam("drug_id", targetDrug);
                 sampleCmd.AddParam("spec", targetSpecSafe);
                 sampleCmd.AddParam("qty", qty);
@@ -882,7 +858,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         }, ct);
 
     public Task<StockReassignApplyResultDto> ReassignStockByKeywordAsync(
-        string keyword,
+        KeywordSearchContext keyword,
         string targetDrugId,
         string targetSpec,
         int targetQty,
@@ -892,7 +868,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         CancellationToken ct)
         => _db.WithTransaction(async (conn, tx, token) =>
         {
-            var kw = (keyword ?? string.Empty).Trim();
+            var kw = keyword.Keyword;
             var targetDrug = (targetDrugId ?? string.Empty).Trim();
             var targetSpecSafe = (targetSpec ?? string.Empty).Trim();
             var qty = targetQty;
@@ -950,16 +926,14 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 throw new InvalidOperationException("目标药品规格不存在，无法迁移");
             }
 
-            const string updateSql = """
+            var updateSql = $"""
                 update trace_pool t
                 set drug_id = @new_drug_id,
                     spec = @new_spec,
                     qty = @new_qty,
                     remain = least(remain, @new_qty)
                 where
-                  (t.drug_id    ilike ('%' || @kw || '%')
-                   or t.spec       ilike ('%' || @kw || '%')
-                   or t.trace_code ilike ('%' || @kw || '%'))
+                  ({TracePoolKeywordSql.TracePoolRequiredMatchClause})
                   and (t.drug_id <> @new_drug_id or t.spec <> @new_spec or t.qty <> @new_qty)
             """;
             int affected;
@@ -968,7 +942,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 updateCmd.AddParam("new_drug_id", targetDrug);
                 updateCmd.AddParam("new_spec", targetSpecSafe);
                 updateCmd.AddParam("new_qty", qty);
-                updateCmd.AddParam("kw", kw);
+                TracePoolKeywordSql.AddKeywordParams(updateCmd, keyword);
                 affected = await updateCmd.ExecuteNonQueryAsync(token);
             }
 
@@ -1028,22 +1002,20 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         }, IsolationLevel.ReadCommitted, ct);
 
     public Task<PagedResult<MissingInventoryRowDto>> GetMissingInventoryPageAsync(
-        string? keyword,
+        KeywordSearchContext keyword,
         int page,
         int pageSize,
         CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {
             var (_, safePageSize, offset) = NormalizePaging(page, pageSize, maxPageSize: 2000);
+            var drugWhere = TracePoolKeywordSql.DrugIndexAliasedWhereClause;
 
-            const string countSql = """
+            var countSql = $"""
                 select count(*)::int
                 from drug_index d
                 where
-                  (@kw = ''
-                   or d.drug_id ilike ('%' || @kw || '%')
-                   or d.spec    ilike ('%' || @kw || '%')
-                   or coalesce(d.note,'') ilike ('%' || @kw || '%'))
+                  ({drugWhere})
                   and coalesce(d.note,'') not ilike '%弃用%'
                   and not exists (
                       select 1
@@ -1053,14 +1025,11 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                   )
             """;
 
-            const string sql = """
+            var sql = $"""
                 select d.drug_id, d.spec, d.note
                 from drug_index d
                 where
-                  (@kw = ''
-                   or d.drug_id ilike ('%' || @kw || '%')
-                   or d.spec    ilike ('%' || @kw || '%')
-                   or coalesce(d.note,'') ilike ('%' || @kw || '%'))
+                  ({drugWhere})
                   and coalesce(d.note,'') not ilike '%弃用%'
                   and not exists (
                       select 1
@@ -1073,15 +1042,13 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 limit @n
             """;
 
-            var kw = (keyword ?? "").Trim();
-
             await using var count = conn.CreateCommand(countSql, _opt.CommandTimeoutSeconds);
-            count.AddParam("kw", kw);
+            TracePoolKeywordSql.AddKeywordParams(count, keyword);
             var totalCountObj = await count.ExecuteScalarAsync(token);
             var totalCount = totalCountObj is int i ? i : Convert.ToInt32(totalCountObj ?? 0);
 
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
-            cmd.AddParam("kw", kw);
+            TracePoolKeywordSql.AddKeywordParams(cmd, keyword);
             cmd.AddParam("offset", offset);
             cmd.AddParam("n", safePageSize);
 

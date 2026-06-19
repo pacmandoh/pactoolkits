@@ -5,25 +5,25 @@ namespace PacToolkits.Application.Abstractions;
 public interface IInventoryOverviewRepo
 {
     Task<PagedResult<TracePoolStockRowDto>> GetStockPageAsync(
-        string? keyword,
+        KeywordSearchContext keyword,
         int page,
         int pageSize,
         CancellationToken ct);
 
     Task<PagedResult<TracePoolDrugSpecAggDto>> GetDrugSpecAggPageAsync(
-        string? keyword,
+        KeywordSearchContext keyword,
         int page,
         int pageSize,
         CancellationToken ct);
 
     Task<PagedResult<LowStockRowDto>> GetLowStockPageAsync(
-        string? keyword,
+        KeywordSearchContext keyword,
         int page,
         int pageSize,
         CancellationToken ct);
 
     Task<PagedResult<MissingInventoryRowDto>> GetMissingInventoryPageAsync(
-        string? keyword,
+        KeywordSearchContext keyword,
         int page,
         int pageSize,
         CancellationToken ct);
@@ -55,7 +55,7 @@ public interface IInventoryOverviewRepo
         CancellationToken ct);
 
     Task<StockReassignPreviewDto> PreviewStockReassignByKeywordAsync(
-        string keyword,
+        KeywordSearchContext keyword,
         string targetDrugId,
         string targetSpec,
         int targetQty,
@@ -63,7 +63,7 @@ public interface IInventoryOverviewRepo
         CancellationToken ct);
 
     Task<StockReassignApplyResultDto> ReassignStockByKeywordAsync(
-        string keyword,
+        KeywordSearchContext keyword,
         string targetDrugId,
         string targetSpec,
         int targetQty,

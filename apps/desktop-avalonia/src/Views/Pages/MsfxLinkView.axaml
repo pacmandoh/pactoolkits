@@ -1797,7 +1797,7 @@
                     Grid.Column="3"
                     Classes="MsfxInput"
                     PlaceholderText="可选：按 bill_code 过滤"
-                    Text="{Binding UpoutBillCodeKeyword}" />
+                    Text="{Binding UpoutBillCodeKeyword, Mode=TwoWay}" />
 
                   <Button
                     Grid.Column="5"
@@ -1838,7 +1838,7 @@
                     Grid.Column="1"
                     Classes="MsfxInput"
                     PlaceholderText="可选：药品关键字"
-                    Text="{Binding UpoutDrugKeyword}" />
+                    Text="{Binding UpoutDrugKeyword, Mode=TwoWay}" />
 
                   <TextBlock
                     Grid.Column="2"
@@ -1848,7 +1848,7 @@
                     Grid.Column="3"
                     Classes="MsfxInput"
                     PlaceholderText="可选：发货单位关键字"
-                    Text="{Binding UpoutFromEntKeyword}" />
+                    Text="{Binding UpoutFromEntKeyword, Mode=TwoWay}" />
 
                   <WrapPanel
                     Grid.Column="4"

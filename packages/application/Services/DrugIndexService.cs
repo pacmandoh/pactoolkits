@@ -1,5 +1,6 @@
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.TextSearch;
 
 namespace PacToolkits.Application.Services;
 
@@ -26,14 +27,46 @@ public interface IDrugIndexService
 public sealed class DrugIndexService : IDrugIndexService
 {
     private readonly IDrugIndexRepo _repo;
+    private readonly IPinyinSearchCatalogCache _catalogCache;
 
-    public DrugIndexService(IDrugIndexRepo repo)
+    public DrugIndexService(IDrugIndexRepo repo, IPinyinSearchCatalogCache catalogCache)
     {
         _repo = repo ?? throw new ArgumentNullException(nameof(repo));
+        _catalogCache = catalogCache ?? throw new ArgumentNullException(nameof(catalogCache));
     }
 
-    public Task<IReadOnlyList<DrugIndexDto>> SearchAsync(string? keyword, int limit, CancellationToken ct)
-        => _repo.SearchAsync(keyword, limit, ct);
+    public async Task<IReadOnlyList<DrugIndexDto>> SearchAsync(string? keyword, int limit, CancellationToken ct)
+    {
+        var kw = (keyword ?? string.Empty).Trim();
+        var cap = Math.Clamp(limit, 1, 2000);
+        if (kw.Length == 0)
+        {
+            return await _repo.SearchAsync(null, cap, ct).ConfigureAwait(false);
+        }
+
+        var sqlMatches = await _repo.SearchAsync(kw, cap, ct).ConfigureAwait(false);
+        if (sqlMatches.Count >= cap || !TextSearchHelper.LooksLikePinyinQuery(kw))
+        {
+            return sqlMatches;
+        }
+
+        var catalog = await _catalogCache.GetCatalogRowsAsync(ct).ConfigureAwait(false);
+        var seen = new HashSet<(string DrugId, string Spec)>(
+            sqlMatches.Select(static row => (row.DrugId, row.Spec)));
+
+        var pinyinMatches = catalog
+            .Where(row => !seen.Contains((row.DrugId, row.Spec))
+                        && TextSearchHelper.MatchesAny(
+                            kw,
+                            row.DrugId,
+                            row.Spec,
+                            row.RuleKey,
+                            row.PreTc,
+                            row.Note))
+            .Take(cap - sqlMatches.Count);
+
+        return sqlMatches.Concat(pinyinMatches).Take(cap).ToArray();
+    }
 
     public Task<DrugIndexDto?> GetByKeyAsync(string drugId, string spec, CancellationToken ct)
         => _repo.GetByKeyAsync(drugId, spec, ct);
@@ -76,6 +109,7 @@ public sealed class DrugIndexService : IDrugIndexService
         try
         {
             var saved = await _repo.UpsertAsync(request.Dto, request.ExpectedVersion, ct).ConfigureAwait(false);
+            _catalogCache.Invalidate();
             return new DrugIndexSaveResult(DrugSaveOutcome.Saved, saved, null);
         }
         catch (DrugIndexConcurrencyException cx)
@@ -84,8 +118,11 @@ public sealed class DrugIndexService : IDrugIndexService
         }
     }
 
-    public Task DeleteAsync(string drugId, string spec, CancellationToken ct)
-        => _repo.DeleteAsync(drugId, spec, ct);
+    public async Task DeleteAsync(string drugId, string spec, CancellationToken ct)
+    {
+        await _repo.DeleteAsync(drugId, spec, ct).ConfigureAwait(false);
+        _catalogCache.Invalidate();
+    }
 
     public Task<DrugKeyFixPreviewDto> PreviewKeyFixAsync(
         string sourceDrugId,
