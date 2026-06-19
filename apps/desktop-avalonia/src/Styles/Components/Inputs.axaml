@@ -35,6 +35,20 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
+  <Style Selector="TextBox.TraceCodeInput">
+    <Setter Property="MinHeight" Value="120" />
+    <Setter Property="Padding" Value="{DynamicResource TraceCodeInputPadding}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RowRadius}" />
+    <Setter Property="FontFamily" Value="{DynamicResource TraceCodeInputFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource TraceCodeInputFontSize}" />
+    <Setter Property="LineHeight" Value="{DynamicResource TraceCodeLineHeight}" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+    <Setter Property="AcceptsReturn" Value="True" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+
   <Style Selector="controls|FilterFieldInput">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="ClipToBounds" Value="False" />
@@ -139,6 +153,38 @@
     <Setter Property="MinHeight" Value="{DynamicResource RowMinHeight}" />
   </Style>
 
+  <Style Selector="TextBlock.TraceCodeText">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+  </Style>
+
+  <Style Selector="TextBlock.TraceCodeText.Valid">
+    <Setter Property="Foreground" Value="{StaticResource BrushDone}" />
+  </Style>
+
+  <Style Selector="TextBlock.TraceCodeText.Duplicate">
+    <Setter Property="Foreground" Value="{StaticResource BrushWarning}" />
+  </Style>
+
+  <Style Selector="TextBlock.TraceCodeText.Invalid">
+    <Setter Property="Foreground" Value="{StaticResource BrushDanger}" />
+  </Style>
+
+  <Style Selector="TextBlock.TraceCodeStatusHint">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="{DynamicResource SectionHintSize}" />
+    <Setter Property="Opacity" Value="0.88" />
+    <Setter Property="Margin" Value="8,0,0,0" />
+  </Style>
+
+  <Style Selector="TextBlock.TraceCodeStatusHint.Duplicate">
+    <Setter Property="Foreground" Value="{StaticResource BrushWarning}" />
+  </Style>
+
+  <Style Selector="TextBlock.TraceCodeStatusHint.Invalid">
+    <Setter Property="Foreground" Value="{StaticResource BrushDanger}" />
+  </Style>
+
   <Style Selector="controls|EmptyStatePanel">
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
@@ -147,19 +193,20 @@
       <ControlTemplate>
         <Grid
           MinHeight="{Binding EffectiveSlotMinHeight, RelativeSource={RelativeSource TemplatedParent}}"
+          ClipToBounds="False"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch">
           <ContentPresenter
+            ClipToBounds="False"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
             HorizontalContentAlignment="Stretch"
             VerticalContentAlignment="Stretch"
             Content="{TemplateBinding Content}"
-            IsEnabled="{Binding ShowContent, RelativeSource={RelativeSource TemplatedParent}}"
-            IsHitTestVisible="{Binding ShowContent, RelativeSource={RelativeSource TemplatedParent}}"
             Opacity="{Binding ContentOpacity, RelativeSource={RelativeSource TemplatedParent}}" />
 
           <Border
+            ZIndex="1"
             Padding="{DynamicResource EmptyStatePadding}"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
@@ -190,6 +237,7 @@
           </Border>
 
           <sukiControls:BusyArea
+            ZIndex="2"
             MinHeight="0"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
