@@ -817,17 +817,20 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
         DateTimeOffset? cursorUpdatedAt,
         long? cursorId,
         bool newer,
+        bool seekLastPage,
         CancellationToken ct)
     {
         var scope = NormalizeSearchScope(searchScope);
         var tokens = SplitKeywords(keyword);
         var keywordClause = BuildKeywordClause(scope, tokens);
-        var orderDir = newer ? "asc" : "desc";
-        var cursorClause = cursorUpdatedAt.HasValue && cursorId.HasValue
-            ? newer
-                ? "and (s.updated_at, s.id) > (@cursor_updated_at, @cursor_id)"
-                : "and (s.updated_at, s.id) < (@cursor_updated_at, @cursor_id)"
-            : string.Empty;
+        var orderDir = seekLastPage ? "asc" : newer ? "asc" : "desc";
+        var cursorClause = seekLastPage
+            ? string.Empty
+            : cursorUpdatedAt.HasValue && cursorId.HasValue
+                ? newer
+                    ? "and (s.updated_at, s.id) > (@cursor_updated_at, @cursor_id)"
+                    : "and (s.updated_at, s.id) < (@cursor_updated_at, @cursor_id)"
+                : string.Empty;
         var listSql = $"""
             select
               s.id,
@@ -931,7 +934,7 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
             }
 
             var pageRows = scanned.Take(size).ToList();
-            if (newer)
+            if (newer || seekLastPage)
             {
                 pageRows.Reverse();
             }
@@ -963,7 +966,9 @@ public sealed class MsfxSyncRepo : IMsfxSyncRepo
                 AddKeywordParams(olderCmd, tokens);
                 olderCmd.AddParam("last_updated_at", last.UpdatedAt.ToUniversalTime());
                 olderCmd.AddParam("last_id", last.StagingId);
-                hasOlder = Convert.ToBoolean((await olderCmd.ExecuteScalarAsync(token).ConfigureAwait(false)) ?? false, CultureInfo.InvariantCulture);
+                hasOlder = seekLastPage
+                    ? false
+                    : Convert.ToBoolean((await olderCmd.ExecuteScalarAsync(token).ConfigureAwait(false)) ?? false, CultureInfo.InvariantCulture);
             }
 
             return new MsfxMappingQueuePage(pageRows, totalCount, hasNewer, hasOlder);

@@ -123,6 +123,7 @@ public interface IMsfxSyncRepo
         DateTimeOffset? cursorUpdatedAt,
         long? cursorId,
         bool newer,
+        bool seekLastPage,
         CancellationToken ct);
 
     Task<IReadOnlyList<MsfxInjectTaskQueueRow>> GetInjectTaskQueueAsync(int limit, CancellationToken ct);
