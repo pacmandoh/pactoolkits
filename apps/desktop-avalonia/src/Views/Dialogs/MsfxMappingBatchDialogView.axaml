@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxMappingBatchDialogView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -6,6 +6,7 @@
   xmlns:con="https://github.com/kikipoulet/SukiUI"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
+  xmlns:dto="clr-namespace:PacToolkits.Application.DTOs;assembly=PacToolkits.Application"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
@@ -21,7 +22,7 @@
     behaviors:FocusClearBehavior.SuppressGridClear="True"
     Classes="SectionCard">
     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
-      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
         <Border
           Width="40"
           Height="40"
@@ -37,23 +38,124 @@
           <TextBlock Classes="DialogTitle" Text="批量映射处理" />
           <TextBlock Opacity="0.75" Text="先选分组，再映射或直接弃用任务" />
         </StackPanel>
+        <Button
+          x:Name="ToggleSearchPanelButton"
+          Grid.Column="2"
+          Width="40"
+          Height="{StaticResource ControlHeightCompact}"
+          MinWidth="40"
+          Padding="0"
+          HorizontalContentAlignment="Center"
+          VerticalContentAlignment="Center"
+          Classes="Action"
+          Click="ToggleSearchPanel_OnClick">
+          <Panel
+            Width="{DynamicResource IconSizeDefault}"
+            Height="{DynamicResource IconSizeDefault}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+            <icons:AppIcon
+              x:Name="SearchPanelClosedIcon"
+              Width="{DynamicResource IconSizeSmall}"
+              Height="{DynamicResource IconSizeSmall}"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Kind="Search" />
+            <icons:AppIcon
+              x:Name="SearchPanelOpenIcon"
+              Width="{DynamicResource IconSizeSmall}"
+              Height="{DynamicResource IconSizeSmall}"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              IsVisible="False"
+              Kind="SearchX" />
+          </Panel>
+        </Button>
       </Grid>
 
       <Grid
         Grid.Row="1"
         RowDefinitions="Auto,*"
-        RowSpacing="{DynamicResource DialogFormRowSpacing}">
-        <TextBlock Opacity="0.8" Text="待处理分组（按 原始药名/规格 + 归一化药名/规格）" />
+        RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+        <con:GlassCard
+          x:Name="SearchPanel"
+          IsVisible="False"
+          Classes="FilterHintCard">
+          <Grid
+            VerticalAlignment="Center"
+            ColumnDefinitions="160,Auto,180,Auto,130,*,Auto,Auto"
+            ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <ComboBox
+              x:Name="SearchScopeBox"
+              MinWidth="160"
+              HorizontalAlignment="Stretch" />
+            <TextBlock
+              Grid.Column="1"
+              Margin="8,0,0,0"
+              VerticalAlignment="Center"
+              Classes="SectionHint"
+              Text="映射状态" />
+            <ComboBox
+              x:Name="MapStatusBox"
+              Grid.Column="2"
+              MinWidth="180"
+              HorizontalAlignment="Stretch" />
+            <TextBlock
+              Grid.Column="3"
+              Margin="8,0,0,0"
+              VerticalAlignment="Center"
+              Classes="SectionHint"
+              Text="码状态" />
+            <ComboBox
+              x:Name="CodeStatusBox"
+              Grid.Column="4"
+              HorizontalAlignment="Stretch" />
+            <TextBox
+              x:Name="KeywordBox"
+              Grid.Column="5"
+              VerticalContentAlignment="Center"
+              AcceptsReturn="False"
+              Classes="FilterSearchTextBox"
+              KeyDown="KeywordBox_OnKeyDown"
+              PlaceholderText="搜索分组..."
+              TextWrapping="NoWrap" />
+            <Button
+              Grid.Column="6"
+              Classes="Action"
+              Click="SearchButton_OnClick">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="Search" />
+                <TextBlock Text="搜索" />
+              </StackPanel>
+            </Button>
+            <Button
+              Grid.Column="7"
+              Classes="Action"
+              Click="ResetFiltersButton_OnClick">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="Eraser" />
+                <TextBlock Text="重置" />
+              </StackPanel>
+            </Button>
+          </Grid>
+        </con:GlassCard>
+
         <DataGrid
           x:Name="GroupGrid"
           Grid.Row="1"
           Height="280"
+          x:DataType="dto:MsfxMappingBatchGroupRow"
           Classes="SectionGrid InventoryGrid LowToneGrid MsfxIndexedGrid"
           GridLinesVisibility="All"
           HeadersVisibility="All"
           HorizontalScrollBarVisibility="Auto"
           IsReadOnly="True"
-          ItemsSource="{Binding Groups}"
           PointerPressed="GroupGrid_OnPointerPressed"
           SelectionMode="Single">
           <DataGrid.Styles>
@@ -93,7 +195,7 @@
               Header="总数" />
             <DataGridTemplateColumn Width="520" Header="状态构成">
               <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate>
+                <DataTemplate x:DataType="dto:MsfxMappingBatchGroupRow">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                     <controls:StatusPill
                       Classes="ToneWarning25"
