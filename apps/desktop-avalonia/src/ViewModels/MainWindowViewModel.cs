@@ -47,7 +47,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IAppStartupStateService _startupState;
     private readonly IAppUpdateService _updates;
     private readonly IUpdateSettingsService _updateSettings;
-    private readonly IUpdateUiFlowService _updateUiFlow;
+    private readonly IUpdateDesktopFlowService _updateDesktopFlow;
     private readonly IAppLogger _logger;
     private readonly PageNavigationService _nav;
     private readonly string _configPath;
@@ -492,7 +492,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IAppStartupStateService startupState,
         IAppUpdateService updates,
         IUpdateSettingsService updateSettings,
-        IUpdateUiFlowService updateUiFlow,
+        IUpdateDesktopFlowService updateDesktopFlow,
         IAppLogger logger)
     {
         _toasts = toasts;
@@ -509,7 +509,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _startupState = startupState ?? throw new ArgumentNullException(nameof(startupState));
         _updates = updates ?? throw new ArgumentNullException(nameof(updates));
         _updateSettings = updateSettings ?? throw new ArgumentNullException(nameof(updateSettings));
-        _updateUiFlow = updateUiFlow ?? throw new ArgumentNullException(nameof(updateUiFlow));
+        _updateDesktopFlow = updateDesktopFlow ?? throw new ArgumentNullException(nameof(updateDesktopFlow));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _nav = nav ?? throw new ArgumentNullException(nameof(nav));
 
@@ -1223,7 +1223,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        await _updateUiFlow.CheckAndHandleAsync(
+        await _updateDesktopFlow.CheckAndHandleAsync(
             showNoUpdateToast: showNoUpdateToast,
             startupMode: startupMode,
             applyNowAction: ApplyUpdateFlowAsync,
@@ -1241,7 +1241,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IsUpdateApplying = true;
         try
         {
-            await _updateUiFlow.ApplyUpdateFlowAsync().ConfigureAwait(false);
+            await _updateDesktopFlow.ApplyUpdateFlowAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1255,7 +1255,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     private Task IgnoreCurrentUpdateAsync()
-        => _updateUiFlow.IgnoreVersionAsync(LatestProductVersion);
+        => _updateDesktopFlow.IgnoreVersionAsync(LatestProductVersion);
 
     private void ShowDbConnectionFailed(string reason)
     {

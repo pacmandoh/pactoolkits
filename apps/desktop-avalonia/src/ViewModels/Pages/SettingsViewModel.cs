@@ -42,7 +42,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private readonly IUpdateSettingsService _updateSettings;
     private readonly IAppUpdateService _updates;
     private readonly IReleaseChannelSwitchService _releaseChannelSwitch;
-    private readonly IUpdateUiFlowService _updateUiFlow;
+    private readonly IUpdateDesktopFlowService _updateDesktopFlow;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IDialogService _dialog;
     private readonly ILoggingSettingsService _loggingSettings;
@@ -172,7 +172,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IUpdateSettingsService updateSettings,
         IAppUpdateService updates,
         IReleaseChannelSwitchService releaseChannelSwitch,
-        IUpdateUiFlowService updateUiFlow,
+        IUpdateDesktopFlowService updateDesktopFlow,
         IReleaseVersionService releaseVersion,
         IDialogService dialog,
         ILoggingSettingsService loggingSettings,
@@ -189,7 +189,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         _updateSettings = updateSettings;
         _updates = updates;
         _releaseChannelSwitch = releaseChannelSwitch;
-        _updateUiFlow = updateUiFlow;
+        _updateDesktopFlow = updateDesktopFlow;
         _releaseVersion = releaseVersion;
         _dialog = dialog;
         _loggingSettings = loggingSettings;
@@ -376,7 +376,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
         catch (Exception ex)
         {
-            _logger.Error("SettingsVM", eventName, "Settings UI continuation failed", ex);
+            _logger.Error("SettingsVM", eventName, "Settings desktop continuation failed", ex);
         }
     }
 
@@ -420,7 +420,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             _syncingUiBehavior = true;
             MinimizeToTrayOnClose = ui.MinimizeToTrayOnClose;
             _syncingUiBehavior = false;
-        }, "ui_behavior.changed.ui_fail");
+        }, "desktop_behavior.changed.fail");
     }
 
     private void OnUpdateSettingsChanged()
@@ -474,7 +474,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         if (_syncingUiBehavior)
             return;
 
-        SafeFireAndForget(ct => SaveUiBehaviorImmediateAsync(value, ct), "ui_behavior.save.fire_and_forget_fail");
+        SafeFireAndForget(ct => SaveUiBehaviorImmediateAsync(value, ct), "desktop_behavior.save.fire_and_forget_fail");
     }
 
     partial void OnUpdateChannelChanged(string value)
@@ -1113,7 +1113,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
         catch (Exception ex)
         {
-            _logger.Error("SettingsVM", "ui_behavior.save.fail", "Failed to save UI behavior", ex);
+            _logger.Error("SettingsVM", "desktop_behavior.save.fail", "Failed to save desktop behavior", ex);
             await RunOnUiAsync(() =>
             {
                 _syncingUiBehavior = true;
@@ -1397,7 +1397,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
         }
 
-        await _updateUiFlow.CheckAndHandleAsync(
+        await _updateDesktopFlow.CheckAndHandleAsync(
             showNoUpdateToast: true,
             startupMode: false,
             applyNowAction: ApplyUpdateNowAsync,
@@ -1416,7 +1416,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IsUpdateApplying = true;
         try
         {
-            await _updateUiFlow.ApplyUpdateFlowAsync();
+            await _updateDesktopFlow.ApplyUpdateFlowAsync();
         }
         catch (Exception ex)
         {
@@ -1454,7 +1454,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     {
         try
         {
-            await _updateUiFlow.IgnoreVersionAsync(LatestProductVersion);
+            await _updateDesktopFlow.IgnoreVersionAsync(LatestProductVersion);
             IgnoredProductVersion = LatestProductVersion;
         }
         catch (Exception ex)
@@ -1927,7 +1927,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         try { _uiBehavior.Changed -= OnUiBehaviorChanged; }
         catch (System.Exception ex)
         {
-            _logger.Warn("SettingsVM", "dispose.ui_behavior_unsub_fail", "Failed to unsubscribe UiBehavior", ex);
+            _logger.Warn("SettingsVM", "dispose.desktop_behavior_unsub_fail", "Failed to unsubscribe UiBehavior", ex);
         }
         try { _updateSettings.Changed -= OnUpdateSettingsChanged; }
         catch (System.Exception ex)

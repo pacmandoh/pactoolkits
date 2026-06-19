@@ -1143,7 +1143,7 @@
                   Grid.Column="0"
                   Grid.ColumnSpan="3"
                   Classes="SectionHint"
-                  Text="默认目录：ApplicationData/PacToolkits/logs/ui；建议保持默认，便于部署和故障回溯"
+                  Text="默认目录：ApplicationData/PacToolkits/logs/desktop；建议保持默认，便于部署和故障回溯"
                   TextWrapping="Wrap" />
               </Grid>
             </suki:GroupBox>

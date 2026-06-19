@@ -2020,7 +2020,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 SensitiveOperationKind.MsfxReopen,
                 "任务重开",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
-                "manual reopen from ui").ConfigureAwait(false))
+                "manual reopen from desktop").ConfigureAwait(false))
         {
             return;
         }
@@ -2039,7 +2039,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     var result = await _syncService.ReopenMsfxTaskAsync(
                         taskRow.TaskId,
                         opName,
-                        "manual reopen from ui",
+                        "manual reopen from desktop",
                         CancellationToken.None).ConfigureAwait(false);
                     successCount += 1;
                     AddAutoLog("任务重开", $"任务 #{result.TaskId} 已重开，状态={result.Status}，总码数={result.TotalCodes}", TraceEntryState.Warning);
@@ -2115,7 +2115,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 SensitiveOperationKind.MsfxDiscard,
                 "任务弃用",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
-                "manual discard from ui").ConfigureAwait(false))
+                "manual discard from desktop").ConfigureAwait(false))
         {
             return;
         }
@@ -2134,7 +2134,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     var result = await _syncService.DiscardMsfxTaskAsync(
                         taskRow.TaskId,
                         opName,
-                        "manual discard from ui",
+                        "manual discard from desktop",
                         CancellationToken.None).ConfigureAwait(false);
                     successCount += 1;
                     AddAutoLog("任务弃用", $"任务 #{result.TaskId} 已弃用，状态={result.Status}，总码数={result.TotalCodes}", TraceEntryState.Info);
