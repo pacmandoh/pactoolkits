@@ -13,8 +13,6 @@ public interface ISettingsService
         DbSchemaVersionContext schemaContext,
         CancellationToken ct);
 
-    Task<(bool Ok, string? Summary)> TestConnectionAsync(PgOptions options, CancellationToken ct);
-
     Task<(bool Ok, string Summary)> EnsureSchemaUpToDateAsync(
         DbSchemaVersionContext schemaContext,
         DatabaseMigrationTrigger trigger,
@@ -34,10 +32,6 @@ public interface ISettingsService
         DbSchemaVersionContext schemaContext,
         PgOptions? connectionOptions = null,
         CancellationToken ct = default);
-
-    Task<(bool Compatible, string? IncompatibleMessage)> CheckSchemaCompatibilityAsync(
-        DbSchemaVersionContext schemaContext,
-        CancellationToken ct);
 
     Task<(bool Compatible, string? IncompatibleMessage)> CheckSchemaCompatibilityAsync(
         DbSchemaVersionContext schemaContext,
@@ -103,7 +97,7 @@ public sealed class SettingsService : ISettingsService
     public Task SaveDatabaseConfigAsync(PgOptions options, CancellationToken ct)
         => _dbConfig.SaveAndApplyAsync(options, ct);
 
-    public async Task<(bool Ok, string? Summary)> TestConnectionAsync(PgOptions options, CancellationToken ct)
+    private async Task<(bool Ok, string? Summary)> TestConnectionAsync(PgOptions options, CancellationToken ct)
     {
         var result = await _tester.TestAsync(options, ct).ConfigureAwait(false);
         return (result.Ok, result.Summary);
@@ -273,12 +267,13 @@ public sealed class SettingsService : ISettingsService
         return (true, summary);
     }
 
-    public Task<(bool Compatible, string? IncompatibleMessage)> CheckSchemaCompatibilityAsync(
-        DbSchemaVersionContext schemaContext,
-        CancellationToken ct)
-        => CheckSchemaCompatibilityAsync(schemaContext, connectionOptions: null, ct);
-
     public async Task<(bool Compatible, string? IncompatibleMessage)> CheckSchemaCompatibilityAsync(
+        DbSchemaVersionContext schemaContext,
+        PgOptions connectionOptions,
+        CancellationToken ct)
+        => await CheckSchemaCompatibilityCoreAsync(schemaContext, connectionOptions, ct).ConfigureAwait(false);
+
+    private async Task<(bool Compatible, string? IncompatibleMessage)> CheckSchemaCompatibilityCoreAsync(
         DbSchemaVersionContext schemaContext,
         PgOptions? connectionOptions,
         CancellationToken ct)
