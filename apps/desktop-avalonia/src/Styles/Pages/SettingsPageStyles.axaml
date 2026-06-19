@@ -1,6 +1,7 @@
-<Styles xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+﻿<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
   <Style Selector="UserControl.SettingsPage TextBox">
     <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -15,7 +16,7 @@
     <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
   </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost > Button.SettingsNavItem">
+  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem">
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -26,68 +27,63 @@
     <Setter Property="CornerRadius" Value="0" />
     <Setter Property="Template">
       <ControlTemplate>
-        <Border Background="{TemplateBinding Background}"
-            BorderBrush="{TemplateBinding BorderBrush}"
-            BorderThickness="{TemplateBinding BorderThickness}"
-            CornerRadius="{TemplateBinding CornerRadius}">
-          <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                   VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                   Content="{TemplateBinding Content}"
-                   ContentTemplate="{TemplateBinding ContentTemplate}" />
+        <Border
+          Background="{TemplateBinding Background}"
+          BorderBrush="{TemplateBinding BorderBrush}"
+          BorderThickness="{TemplateBinding BorderThickness}"
+          CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter
+            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+            Content="{TemplateBinding Content}"
+            ContentTemplate="{TemplateBinding ContentTemplate}" />
         </Border>
       </ControlTemplate>
     </Setter>
   </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost > Button.SettingsNavItem > StackPanel">
+  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem &gt; StackPanel">
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="HorizontalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost > Button.SettingsNavItem icons|AppIcon">
+  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem icons|AppIcon">
     <Setter Property="Width" Value="{DynamicResource SidebarMenuIconSize}" />
     <Setter Property="Height" Value="{DynamicResource SidebarMenuIconSize}" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
   </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost > Button.SettingsNavItem TextBlock">
+  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem TextBlock">
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
   </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost > Button.SettingsNavItem:not(.Active):pointerover,
-                     StackPanel.SettingsNavHost > Button.SettingsNavItem:not(.Active):pressed">
+  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pointerover,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pressed">
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost > Button.SettingsNavItem:not(.Active):pointerover /template/ Border,
-                     StackPanel.SettingsNavHost > Button.SettingsNavItem:not(.Active):pressed /template/ Border">
+  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pointerover /template/ Border,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pressed /template/ Border">
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost > Button.SettingsNavItem:not(.Active):pointerover icons|AppIcon,
-                     StackPanel.SettingsNavHost > Button.SettingsNavItem:not(.Active):pressed icons|AppIcon">
+  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pointerover icons|AppIcon,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pressed icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost > Button.SettingsNavItem:not(.Active):pointerover TextBlock,
-                     StackPanel.SettingsNavHost > Button.SettingsNavItem:not(.Active):pressed TextBlock">
+  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pointerover TextBlock,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pressed TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost > Button.SettingsNavItem.Active,
-                     StackPanel.SettingsNavHost > Button.SettingsNavItem.Active:pointerover">
+  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active:pointerover">
     <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushExpanded}" />
   </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost > Button.SettingsNavItem.Active icons|AppIcon,
-                     StackPanel.SettingsNavHost > Button.SettingsNavItem.Active:pointerover icons|AppIcon">
+  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active icons|AppIcon,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active:pointerover icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
   </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost > Button.SettingsNavItem.Active TextBlock,
-                     StackPanel.SettingsNavHost > Button.SettingsNavItem.Active:pointerover TextBlock">
+  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active TextBlock,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active:pointerover TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>

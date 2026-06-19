@@ -1,7 +1,8 @@
-<Styles xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:con="https://github.com/kikipoulet/SukiUI"
-    xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+﻿<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:con="https://github.com/kikipoulet/SukiUI"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
   <Style Selector="con|GlassCard.SectionCard">
     <Setter Property="CornerRadius" Value="{DynamicResource SectionCardRadius}" />
     <Setter Property="Padding" Value="{DynamicResource SectionCardPadding}" />
@@ -31,13 +32,12 @@
     <Setter Property="ClipToBounds" Value="False" />
   </Style>
 
-  <Style Selector="con|GlassCard.FilterFieldCard > Grid">
+  <Style Selector="con|GlassCard.FilterFieldCard &gt; Grid">
     <Setter Property="VerticalAlignment" Value="Stretch" />
     <Setter Property="ClipToBounds" Value="False" />
   </Style>
 
-  <Style Selector="con|GlassCard.FilterSectionCard,
-                     con|GlassCard.ScanCodeHeroCard">
+  <Style Selector="con|GlassCard.FilterSectionCard,                      con|GlassCard.ScanCodeHeroCard">
     <Setter Property="ClipToBounds" Value="False" />
   </Style>
 
@@ -58,7 +58,7 @@
     <Setter Property="BorderThickness" Value="0" />
   </Style>
 
-  <Style Selector="Border.HeroIconBadge > icons|AppIcon">
+  <Style Selector="Border.HeroIconBadge &gt; icons|AppIcon">
     <Setter Property="Width" Value="{DynamicResource HeroIconBadgeInnerSize}" />
     <Setter Property="Height" Value="{DynamicResource HeroIconBadgeInnerSize}" />
     <Setter Property="HorizontalAlignment" Value="Center" />
