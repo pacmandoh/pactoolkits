@@ -9,7 +9,7 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
-public interface IUpdateDesktopFlowService
+public interface IUpdateFlowService
 {
     Task<AppUpdateCheckResult?> CheckAndHandleAsync(
         bool showNoUpdateToast,
@@ -30,7 +30,7 @@ public interface IUpdateDesktopFlowService
     Task ApplyUpdateFlowAsync();
 }
 
-public sealed class UpdateDesktopFlowService : IUpdateDesktopFlowService
+public sealed class UpdateFlowService : IUpdateFlowService
 {
     private static readonly TimeSpan UpdateCheckTimeout = TimeSpan.FromSeconds(10);
     private readonly object _toastGate = new();
@@ -44,7 +44,7 @@ public sealed class UpdateDesktopFlowService : IUpdateDesktopFlowService
     private bool _activeUpdateToastVisible;
     private string _activeUpdateToastKey = string.Empty;
 
-    public UpdateDesktopFlowService(
+    public UpdateFlowService(
         IAppUpdateService updates,
         IUpdateSettingsService updateSettings,
         IToastService toasts,

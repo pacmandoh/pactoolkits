@@ -98,19 +98,19 @@
     <Setter Property="Background" Value="{DynamicResource BorderColor}" />
   </Style>
 
-  <Style Selector="Border.ShellConnectivityBanner">
+  <Style Selector="Border.ConnectivityBanner">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
   </Style>
 
-  <Style Selector="Border.ShellConnectivityBanner.error">
+  <Style Selector="Border.ConnectivityBanner.error">
     <Setter Property="Background" Value="{DynamicResource BrushDangerBg15}" />
   </Style>
 
-  <Style Selector="Border.ShellConnectivityBanner.warning">
+  <Style Selector="Border.ConnectivityBanner.warning">
     <Setter Property="Background" Value="{DynamicResource BrushWarningBg15}" />
   </Style>
 
-  <Style Selector="Border.ShellConnectivityBanner.info">
+  <Style Selector="Border.ConnectivityBanner.info">
     <Setter Property="Background" Value="{DynamicResource BrushWarningBg10}" />
   </Style>
 

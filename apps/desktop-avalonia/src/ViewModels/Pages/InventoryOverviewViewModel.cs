@@ -109,7 +109,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private readonly IInventoryOverviewService _inventory;
     private readonly ILookupCatalogService _lookup;
     private readonly IDbConfigService _dbConfig;
-    private readonly ISensitiveOperationUnlockService _unlockService;
+    private readonly ISensitiveUnlockService _unlockService;
     private readonly IToastService _toast;
     private readonly IDialogService _dialog;
     private readonly PageNavigationService _nav;
@@ -338,7 +338,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         IInventoryOverviewService inventory,
         ILookupCatalogService lookup,
         IDbConfigService dbConfig,
-        ISensitiveOperationUnlockService unlockService,
+        ISensitiveUnlockService unlockService,
         IToastService toast,
         IDialogService dialog,
         PageNavigationService nav,

@@ -45,7 +45,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IAppStartupStateService _startupState;
     private readonly IAppUpdateService _updates;
     private readonly IUpdateSettingsService _updateSettings;
-    private readonly IUpdateDesktopFlowService _updateDesktopFlow;
+    private readonly IUpdateFlowService _updateFlow;
     private readonly IAppLogger _logger;
     private readonly PageNavigationService _nav;
     private readonly string _configPath;
@@ -175,23 +175,23 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public string DbStatusText
         => IsDbConnected ? "已连接" : "已断开";
 
-    public string ShellDbItemText
+    public string DbItemText
         => IsDbProbeRunning ? "数据库：检测中…"
         : IsDbConnected ? "数据库：已连接"
         : "数据库：未连接";
 
-    public string ShellAgentItemText => $"Agent：{AhkStatusText}";
+    public string AgentItemText => $"Agent：{AhkStatusText}";
 
-    public string ShellActivePageText => ActivePage?.DisplayName ?? "就绪";
+    public string ActivePageText => ActivePage?.DisplayName ?? "就绪";
 
-    public bool ShowShellAccessGuardItem => _accessGuard.IsBlocked;
+    public bool ShowAccessGuardItem => _accessGuard.IsBlocked;
 
-    public string ShellAccessGuardItemText
+    public string AccessGuardItemText
         => string.IsNullOrWhiteSpace(_accessGuard.BlockReason)
             ? "配置未完成"
             : _accessGuard.BlockReason!;
 
-    public string ShellVersionText
+    public string VersionText
     {
         get
         {
@@ -209,16 +209,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public string ShellVersionBarText
-        => IsUpdateChecking ? "检查更新…" : ShellVersionText;
+    public string VersionBarText
+        => IsUpdateChecking ? "检查更新…" : VersionText;
 
-    public bool ShowShellConnectivityBanner { get; private set; }
-    public string ShellConnectivityBannerTitle { get; private set; } = string.Empty;
-    public string ShellConnectivityBannerMessage { get; private set; } = string.Empty;
-    public bool ShowShellConnectivityBannerAction { get; private set; }
-    public bool ShellConnectivityBannerIsError { get; private set; }
-    public bool ShellConnectivityBannerIsWarning { get; private set; }
-    public bool ShellConnectivityBannerIsInfo { get; private set; }
+    public bool ShowConnectivityBanner { get; private set; }
+    public string ConnectivityBannerTitle { get; private set; } = string.Empty;
+    public string ConnectivityBannerMessage { get; private set; } = string.Empty;
+    public bool ShowConnectivityBannerAction { get; private set; }
+    public bool ConnectivityBannerIsError { get; private set; }
+    public bool ConnectivityBannerIsWarning { get; private set; }
+    public bool ConnectivityBannerIsInfo { get; private set; }
 
     public bool IsSettingsPageActive => ActivePage is ISettingsPage;
     public bool IsAboutPageActive => ActivePage is IAboutPage;
@@ -242,13 +242,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     partial void OnCurrentProductVersionChanged(string value)
     {
-        OnPropertyChanged(nameof(ShellVersionText));
-        OnPropertyChanged(nameof(ShellVersionBarText));
+        OnPropertyChanged(nameof(VersionText));
+        OnPropertyChanged(nameof(VersionBarText));
     }
 
     partial void OnIsUpdateCheckingChanged(bool value)
     {
-        OnPropertyChanged(nameof(ShellVersionBarText));
+        OnPropertyChanged(nameof(VersionBarText));
     }
 
     private void MarkDbConnectivityKnown()
@@ -265,22 +265,22 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(IsDbConnected));
         OnPropertyChanged(nameof(DbStatusText));
-        OnPropertyChanged(nameof(ShellDbItemText));
-        RaiseShellConnectivityChanged();
+        OnPropertyChanged(nameof(DbItemText));
+        RaiseConnectivityChanged();
     }
 
-    private void RaiseShellStatusItemsChanged()
+    private void RaiseStatusItemsChanged()
     {
-        OnPropertyChanged(nameof(ShellDbItemText));
-        OnPropertyChanged(nameof(ShellAgentItemText));
-        OnPropertyChanged(nameof(ShellActivePageText));
-        OnPropertyChanged(nameof(ShowShellAccessGuardItem));
-        OnPropertyChanged(nameof(ShellAccessGuardItemText));
-        OnPropertyChanged(nameof(ShellVersionText));
-        OnPropertyChanged(nameof(ShellVersionBarText));
+        OnPropertyChanged(nameof(DbItemText));
+        OnPropertyChanged(nameof(AgentItemText));
+        OnPropertyChanged(nameof(ActivePageText));
+        OnPropertyChanged(nameof(ShowAccessGuardItem));
+        OnPropertyChanged(nameof(AccessGuardItemText));
+        OnPropertyChanged(nameof(VersionText));
+        OnPropertyChanged(nameof(VersionBarText));
     }
 
-    private void RaiseShellConnectivityChanged()
+    private void RaiseConnectivityChanged()
     {
         var wasBlocked = _wasAccessGuardBlocked;
         var banner = ConnectivityBannerFactory.Create(
@@ -295,21 +295,21 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _lookup.InvalidateDrugCatalog();
         }
 
-        ShowShellConnectivityBanner = banner.IsVisible;
-        ShellConnectivityBannerTitle = banner.Title;
-        ShellConnectivityBannerMessage = banner.Message;
-        ShowShellConnectivityBannerAction = banner.ShowOpenSettings;
-        ShellConnectivityBannerIsError = banner.Severity == ShellConnectivitySeverity.Error;
-        ShellConnectivityBannerIsWarning = banner.Severity == ShellConnectivitySeverity.Warning;
-        ShellConnectivityBannerIsInfo = banner.Severity == ShellConnectivitySeverity.Info;
+        ShowConnectivityBanner = banner.IsVisible;
+        ConnectivityBannerTitle = banner.Title;
+        ConnectivityBannerMessage = banner.Message;
+        ShowConnectivityBannerAction = banner.ShowOpenSettings;
+        ConnectivityBannerIsError = banner.Severity == ConnectivitySeverity.Error;
+        ConnectivityBannerIsWarning = banner.Severity == ConnectivitySeverity.Warning;
+        ConnectivityBannerIsInfo = banner.Severity == ConnectivitySeverity.Info;
 
-        OnPropertyChanged(nameof(ShowShellConnectivityBanner));
-        OnPropertyChanged(nameof(ShellConnectivityBannerTitle));
-        OnPropertyChanged(nameof(ShellConnectivityBannerMessage));
-        OnPropertyChanged(nameof(ShowShellConnectivityBannerAction));
-        OnPropertyChanged(nameof(ShellConnectivityBannerIsError));
-        OnPropertyChanged(nameof(ShellConnectivityBannerIsWarning));
-        OnPropertyChanged(nameof(ShellConnectivityBannerIsInfo));
+        OnPropertyChanged(nameof(ShowConnectivityBanner));
+        OnPropertyChanged(nameof(ConnectivityBannerTitle));
+        OnPropertyChanged(nameof(ConnectivityBannerMessage));
+        OnPropertyChanged(nameof(ShowConnectivityBannerAction));
+        OnPropertyChanged(nameof(ConnectivityBannerIsError));
+        OnPropertyChanged(nameof(ConnectivityBannerIsWarning));
+        OnPropertyChanged(nameof(ConnectivityBannerIsInfo));
         SyncAllPagesAvailability();
 
         if (wasBlocked && !isBlocked)
@@ -318,7 +318,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         ManageSchemaRecoveryPolling(isBlocked && IsDbConnected && !IsDbProbeRunning);
-        RaiseShellStatusItemsChanged();
+        RaiseStatusItemsChanged();
     }
 
     private void ManageSchemaRecoveryPolling(bool shouldPoll)
@@ -376,7 +376,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     partial void OnIsDbProbeRunningChanged(bool value)
     {
         TryReconnectDbCommand.NotifyCanExecuteChanged();
-        OnPropertyChanged(nameof(ShellDbItemText));
+        OnPropertyChanged(nameof(DbItemText));
     }
 
     partial void OnIsAhkActionRunningChanged(bool value)
@@ -388,7 +388,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(IsAhkRunning));
         OnPropertyChanged(nameof(AhkStatusText));
-        OnPropertyChanged(nameof(ShellAgentItemText));
+        OnPropertyChanged(nameof(AgentItemText));
     }
 
     private static Task RunOnUiAsync(Action action)
@@ -500,7 +500,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IAppStartupStateService startupState,
         IAppUpdateService updates,
         IUpdateSettingsService updateSettings,
-        IUpdateDesktopFlowService updateDesktopFlow,
+        IUpdateFlowService updateFlow,
         IAppLogger logger)
     {
         _toasts = toasts;
@@ -517,7 +517,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _startupState = startupState ?? throw new ArgumentNullException(nameof(startupState));
         _updates = updates ?? throw new ArgumentNullException(nameof(updates));
         _updateSettings = updateSettings ?? throw new ArgumentNullException(nameof(updateSettings));
-        _updateDesktopFlow = updateDesktopFlow ?? throw new ArgumentNullException(nameof(updateDesktopFlow));
+        _updateFlow = updateFlow ?? throw new ArgumentNullException(nameof(updateFlow));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _nav = nav ?? throw new ArgumentNullException(nameof(nav));
 
@@ -572,7 +572,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         StartConfigWatcher();
         RaiseAhkStateChanged();
         _wasAccessGuardBlocked = _accessGuard.IsBlocked;
-        RaiseShellConnectivityChanged();
+        RaiseConnectivityChanged();
         _ = InitializeAfterStartupChecksAsync();
         _logger.Info("MainWindowVM", "main.init", "Main window initialized");
     }
@@ -873,7 +873,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsDashboardPageActive));
         OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
         RaiseTopBarVisibilityBindings();
-        RaiseShellStatusItemsChanged();
+        RaiseStatusItemsChanged();
 
         TryRefreshDirtyActivePage();
     }
@@ -1352,7 +1352,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        await _updateDesktopFlow.CheckAndHandleAsync(
+        await _updateFlow.CheckAndHandleAsync(
             showNoUpdateToast: showNoUpdateToast,
             startupMode: startupMode,
             applyNowAction: ApplyUpdateFlowAsync,
@@ -1370,7 +1370,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IsUpdateApplying = true;
         try
         {
-            await _updateDesktopFlow.ApplyUpdateFlowAsync().ConfigureAwait(false);
+            await _updateFlow.ApplyUpdateFlowAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1384,7 +1384,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     private Task IgnoreCurrentUpdateAsync()
-        => _updateDesktopFlow.IgnoreVersionAsync(LatestProductVersion);
+        => _updateFlow.IgnoreVersionAsync(LatestProductVersion);
 
     private void ShowDbConnectionFailed(string reason)
     {
@@ -1526,7 +1526,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
         finally
         {
-            PostOnUi(RaiseShellConnectivityChanged);
+            PostOnUi(RaiseConnectivityChanged);
         }
     }
 

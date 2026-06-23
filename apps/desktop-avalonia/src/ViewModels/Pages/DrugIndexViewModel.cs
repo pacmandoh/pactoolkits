@@ -227,7 +227,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private readonly IDrugIndexService _drugIndex;
     private readonly IToastService _toast;
     private readonly IDialogService _dialog;
-    private readonly ISensitiveOperationUnlockService _unlockService;
+    private readonly ISensitiveUnlockService _unlockService;
     private readonly IClipboardService _clipboard;
     private readonly InventoryOverviewViewModel _inventoryOverview;
     private readonly ScanCodeViewModel _scanCode;
@@ -348,7 +348,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         IDrugIndexService drugIndex,
         IToastService toast,
         IDialogService dialog,
-        ISensitiveOperationUnlockService unlockService,
+        ISensitiveUnlockService unlockService,
         IClipboardService clipboard,
         InventoryOverviewViewModel inventoryOverview,
         ScanCodeViewModel scanCode)

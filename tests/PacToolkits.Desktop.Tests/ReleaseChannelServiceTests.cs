@@ -6,7 +6,7 @@ using PacToolkits.Desktop.Avalonia.Services.Application;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class ReleaseChannelSwitchServiceTests
+public sealed class ReleaseChannelServiceTests
 {
     [Fact]
     public async Task Probe_allows_compatible_beta_feed()
@@ -96,7 +96,7 @@ public sealed class ReleaseChannelSwitchServiceTests
     [InlineData("beta", "https://updates.example/feed/pactoolkits/beta/release-manifest.json")]
     public void ResolveChannelManifestUrl_accepts_supported_channels(string channel, string expected)
     {
-        var url = ReleaseChannelSwitchService.ResolveChannelManifestUrl(
+        var url = ReleaseChannelService.ResolveChannelManifestUrl(
             "https://updates.example/feed/pactoolkits/stable",
             channel);
 
@@ -106,7 +106,7 @@ public sealed class ReleaseChannelSwitchServiceTests
     [Fact]
     public void ResolveChannelManifestUrl_returns_empty_for_unsupported_channel()
     {
-        var url = ReleaseChannelSwitchService.ResolveChannelManifestUrl(
+        var url = ReleaseChannelService.ResolveChannelManifestUrl(
             "https://updates.example/feed/pactoolkits",
             "preview");
 
@@ -128,15 +128,15 @@ public sealed class ReleaseChannelSwitchServiceTests
         Assert.Contains("通道不匹配", result.Message, StringComparison.Ordinal);
     }
 
-    private static ReleaseChannelSwitchService CreateService(string dbVersion, string manifest)
+    private static ReleaseChannelService CreateService(string dbVersion, string manifest)
         => CreateService(new FakeDbSchemaVersionService(dbVersion), manifest);
 
-    private static ReleaseChannelSwitchService CreateService(
+    private static ReleaseChannelService CreateService(
         FakeDbSchemaVersionService schema,
         string manifest)
     {
         var http = new HttpClient(new StaticResponseHandler(manifest));
-        return new ReleaseChannelSwitchService(
+        return new ReleaseChannelService(
             schema,
             new NullLogger(),
             http);

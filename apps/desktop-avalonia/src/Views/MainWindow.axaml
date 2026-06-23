@@ -337,7 +337,7 @@
                     <TextBlock Classes="Small" Text="PacToolkits" />
                     <TextBlock
                       Classes="Caption Muted"
-                      Text="{Binding ShellVersionText}"
+                      Text="{Binding VersionText}"
                       TextWrapping="Wrap" />
                   </StackPanel>
                   <Viewbox
@@ -359,7 +359,7 @@
                   <TextBlock
                     Classes="Caption Muted"
                     LineHeight="16"
-                    Text="{Binding ShellVersionText}"
+                    Text="{Binding VersionText}"
                     TextWrapping="Wrap" />
                 </StackPanel>
               </Grid>
@@ -434,7 +434,7 @@
           <TextBlock
             Grid.Column="2"
             Classes="SectionTitle"
-            Text="{Binding ShellActivePageText}"
+            Text="{Binding ActivePageText}"
             VerticalAlignment="Center" />
           <Menu
             Grid.Column="4"
@@ -502,12 +502,12 @@
         Padding="12,8"
         BorderBrush="{DynamicResource BorderColor}"
         BorderThickness="0,0,0,1"
-        Classes="ShellConnectivityBanner"
-        Classes.error="{Binding ShellConnectivityBannerIsError}"
-        Classes.info="{Binding ShellConnectivityBannerIsInfo}"
-        Classes.warning="{Binding ShellConnectivityBannerIsWarning}"
+        Classes="ConnectivityBanner"
+        Classes.error="{Binding ConnectivityBannerIsError}"
+        Classes.info="{Binding ConnectivityBannerIsInfo}"
+        Classes.warning="{Binding ConnectivityBannerIsWarning}"
         DockPanel.Dock="Top"
-        IsVisible="{Binding ShowShellConnectivityBanner}">
+        IsVisible="{Binding ShowConnectivityBanner}">
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
           <icons:AppIcon
             Grid.Column="0"
@@ -519,10 +519,10 @@
             Grid.Column="1"
             VerticalAlignment="Center"
             Spacing="2">
-            <TextBlock Classes="Small" Text="{Binding ShellConnectivityBannerTitle}" />
+            <TextBlock Classes="Small" Text="{Binding ConnectivityBannerTitle}" />
             <TextBlock
               Classes="Caption Muted"
-              Text="{Binding ShellConnectivityBannerMessage}"
+              Text="{Binding ConnectivityBannerMessage}"
               TextWrapping="Wrap" />
           </StackPanel>
           <Button
@@ -531,7 +531,7 @@
             Classes="Secondary"
             Command="{Binding OpenSettingsCommand}"
             Content="前往设置"
-            IsVisible="{Binding ShowShellConnectivityBannerAction}" />
+            IsVisible="{Binding ShowConnectivityBannerAction}" />
         </Grid>
       </Border>
 
@@ -577,7 +577,7 @@
                     Kind="Database" />
                 </Panel>
               </shad:ButtonAssist.Icon>
-              <TextBlock Classes="Caption Muted" Text="{Binding ShellDbItemText}" />
+              <TextBlock Classes="Caption Muted" Text="{Binding DbItemText}" />
             </Button>
 
             <Border Classes="ShellStatusDivider" />
@@ -589,27 +589,27 @@
               <shad:ButtonAssist.Icon>
                 <icons:AppIcon Foreground="{Binding IsAhkRunning, Converter={StaticResource BoolToDoneDangerBrush}}" Kind="Syringe" />
               </shad:ButtonAssist.Icon>
-              <TextBlock Classes="Caption Muted" Text="{Binding ShellAgentItemText}" />
+              <TextBlock Classes="Caption Muted" Text="{Binding AgentItemText}" />
             </Button>
 
             <Border Classes="ShellStatusDivider" />
 
             <Button Classes="ShellStatusItem" IsEnabled="False">
-              <TextBlock Classes="Caption Muted" Text="{Binding ShellActivePageText}" />
+              <TextBlock Classes="Caption Muted" Text="{Binding ActivePageText}" />
             </Button>
 
-            <Border Classes="ShellStatusDivider" IsVisible="{Binding ShowShellAccessGuardItem}" />
+            <Border Classes="ShellStatusDivider" IsVisible="{Binding ShowAccessGuardItem}" />
 
             <Button
               Classes="ShellStatusItem"
               Command="{Binding OpenSettingsCommand}"
-              IsVisible="{Binding ShowShellAccessGuardItem}">
+              IsVisible="{Binding ShowAccessGuardItem}">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon Kind="ShieldAlert" />
                 <TextBlock
                   MaxWidth="220"
                   Classes="Caption Muted"
-                  Text="{Binding ShellAccessGuardItemText}"
+                  Text="{Binding AccessGuardItemText}"
                   TextTrimming="CharacterEllipsis" />
               </StackPanel>
             </Button>
@@ -640,7 +640,7 @@
                 Height="{DynamicResource IconSizeMini}"
                 IsVisible="{Binding !IsUpdateChecking}"
                 Kind="Tag" />
-              <TextBlock Classes="Caption Muted" Text="{Binding ShellVersionBarText}" />
+              <TextBlock Classes="Caption Muted" Text="{Binding VersionBarText}" />
             </StackPanel>
           </Button>
 
