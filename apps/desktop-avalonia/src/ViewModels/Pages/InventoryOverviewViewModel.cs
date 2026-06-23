@@ -373,7 +373,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
         else
         {
-            _ = EnsureReassignDrugOptionsAsync();
+            _ = LoadReassignDrugsAsync();
         }
 
         OnPropertyChanged(nameof(SuppressGridClearInReassignDialog));

@@ -51,7 +51,7 @@ public sealed class AgentManagerTests
         };
         var manager = new AgentManager([runtime]);
 
-        var results = await manager.SynchronizeConfigurationAsync();
+        var results = await manager.SyncConfigAsync();
 
         Assert.Equal(1, runtime.ReloadCount);
         Assert.Equal(1, runtime.StopCount);
@@ -68,7 +68,7 @@ public sealed class AgentManagerTests
         };
         var manager = new AgentManager([runtime]);
 
-        await manager.SynchronizeConfigurationAsync();
+        await manager.SyncConfigAsync();
 
         Assert.Equal(1, runtime.ReloadCount);
         Assert.Equal(0, runtime.StopCount);

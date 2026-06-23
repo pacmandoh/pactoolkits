@@ -292,7 +292,7 @@ public partial class InventoryOverviewView : UserControl
 
     private void ReassignDrugBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        _ = AutoCompleteCommit.HandleEnterCommitAndApply(
+        _ = AutoCompleteCommit.CommitOnEnter(
             this,
             sender,
             e,
@@ -492,10 +492,10 @@ public partial class InventoryOverviewView : UserControl
             return;
         }
 
-        Dispatcher.UIThread.Post(() => EnsureGridSelectionAndScroll(selected), DispatcherPriority.Background);
+        Dispatcher.UIThread.Post(() => SelectAndScrollRow(selected), DispatcherPriority.Background);
     }
 
-    private void EnsureGridSelectionAndScroll(StockRowItem selected)
+    private void SelectAndScrollRow(StockRowItem selected)
     {
         var grid = FindStockDetailGrid();
         if (grid is null)

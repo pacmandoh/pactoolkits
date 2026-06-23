@@ -36,7 +36,7 @@ public static class AutoCompleteCommit
     private static AutoCompleteBox? ResolveBox(object? sender) =>
         sender as AutoCompleteBox;
 
-    public static bool HandleEnterCommitAndApply(
+    public static bool CommitOnEnter(
         UserControl owner,
         object? sender,
         KeyEventArgs e,
@@ -53,7 +53,7 @@ public static class AutoCompleteCommit
         return true;
     }
 
-    public static bool HandleEnterCommitAndApplyAsync(
+    public static bool CommitOnEnterAsync(
         UserControl owner,
         object? sender,
         KeyEventArgs e,

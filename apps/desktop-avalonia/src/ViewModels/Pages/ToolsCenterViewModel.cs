@@ -169,7 +169,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     partial void OnAgentWarehouseTaskIdentifierChanged(string value) => RefreshPendingChanges();
     partial void OnAgentCodePickPolicyChanged(string value)
     {
-        var normalized = NormalizeCodePickPolicyValue(value);
+        var normalized = NormCodePickPolicy(value);
         if (!string.Equals(normalized, value, StringComparison.Ordinal))
         {
             AgentCodePickPolicy = normalized;
@@ -185,7 +185,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
 
     partial void OnSelectedAgentCodePickPolicyOptionChanged(CodePickPolicyOption? value)
     {
-        var selectedValue = NormalizeCodePickPolicyValue(value?.Value ?? "MAX_LEVEL");
+        var selectedValue = NormCodePickPolicy(value?.Value ?? "MAX_LEVEL");
         if (!string.Equals(AgentCodePickPolicy, selectedValue, StringComparison.Ordinal))
             AgentCodePickPolicy = selectedValue;
         else
@@ -642,7 +642,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             AgentWarehouseTaskIdentifier = warehouseTaskIdentifier;
             AgentCodePickPolicy = codePickPolicy;
             SelectedAgentCodePickPolicyOption = AgentCodePickPolicyOptions
-                .FirstOrDefault(x => string.Equals(x.Value, NormalizeCodePickPolicyValue(codePickPolicy), StringComparison.Ordinal));
+                .FirstOrDefault(x => string.Equals(x.Value, NormCodePickPolicy(codePickPolicy), StringComparison.Ordinal));
             ResetLineItems(AgentAppWinItems, appWin);
             ResetLineItems(AgentColSpecsItems, colSpecs);
             ResetLineItems(AgentIntColsItems, intCols);
@@ -654,13 +654,13 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         }
     }
 
-    private static string NormalizeCodePickPolicyValue(string? value)
+    private static string NormCodePickPolicy(string? value)
     {
         var policy = (value ?? string.Empty).Trim().ToUpperInvariant();
         return policy is "MAX_LEVEL" or "MIN_LEVEL" ? policy : "MAX_LEVEL";
     }
 
-    private static string NormalizeWarehouseTaskIdentifierValue(string? value)
+    private static string NormTaskId(string? value)
         => string.IsNullOrWhiteSpace(value) ? "单据号||当前编号" : value.Trim();
 
     private void WireLineCollection(ObservableCollection<AgentLineItem> collection)
@@ -771,7 +771,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             }
 
             var warehouseAnchors = ParseLineItems(AgentWarehouseAnchorItems);
-            var warehouseTaskIdentifier = NormalizeWarehouseTaskIdentifierValue(AgentWarehouseTaskIdentifier);
+            var warehouseTaskIdentifier = NormTaskId(AgentWarehouseTaskIdentifier);
 
             return new AutomationAgentOptionsDto
             {
@@ -907,7 +907,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
                 AgentOptInputClassNN.Trim(),
                 AgentIptInputClassNN.Trim(),
                 AgentWarehouseEnabled,
-                NormalizeWarehouseTaskIdentifierValue(AgentWarehouseTaskIdentifier),
+                NormTaskId(AgentWarehouseTaskIdentifier),
                 AgentCodePickPolicy.Trim().ToUpperInvariant(),
                 SnapshotLineItems(AgentAppWinItems),
                 SnapshotLineItems(AgentColSpecsItems),

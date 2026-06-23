@@ -781,7 +781,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         RequestReload();
     }
 
-    public async Task HandleTrendRowSelectedAsync(TrendDrugItem? item)
+    public async Task OpenTrendDrugAsync(TrendDrugItem? item)
     {
         if (_suppressRowSelectionAction || item is null)
         {
@@ -791,7 +791,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         await ApplyDrugSpecFilterAndReloadAsync(item.Name, item.Sub);
     }
 
-    public async Task HandleRecentTxnRowSelectedAsync(TxnItem? item)
+    public async Task OpenTxnAsync(TxnItem? item)
     {
         if (_suppressRowSelectionAction || item is null)
         {
@@ -818,7 +818,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         }, DispatcherPriority.Background);
     }
 
-    public async Task HandleEntryRecentRowSelectedAsync(EntryRecentItem? item)
+    public async Task OpenEntryAsync(EntryRecentItem? item)
     {
         if (_suppressRowSelectionAction || item is null)
         {
@@ -831,7 +831,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         SelectedTabIndex = 1;
     }
 
-    public async Task HandleTopClientRowSelectedAsync(TopClientItem? item)
+    public async Task OpenClientAsync(TopClientItem? item)
     {
         if (item is null)
         {
@@ -853,7 +853,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         await ReloadNow();
     }
 
-    public async Task HandleAbnormalRowSelectedAsync(AbnormalItem? item)
+    public async Task OpenAbnormalAsync(AbnormalItem? item)
     {
         if (_suppressRowSelectionAction || item is null)
         {

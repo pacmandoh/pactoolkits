@@ -238,7 +238,7 @@ public partial class ScanCodeView : UserControl
 
     private void DrugBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        _ = AutoCompleteCommit.HandleEnterCommitAndApply(
+        _ = AutoCompleteCommit.CommitOnEnter(
             this,
             sender,
             e,

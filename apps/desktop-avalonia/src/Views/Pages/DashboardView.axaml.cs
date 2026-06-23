@@ -204,7 +204,7 @@ public partial class DashboardView : UserControl
 
     private void DrugBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        _ = AutoCompleteCommit.HandleEnterCommitAndApply(
+        _ = AutoCompleteCommit.CommitOnEnter(
             this,
             sender,
             e,
@@ -250,13 +250,13 @@ public partial class DashboardView : UserControl
             switch (activeGrid.Name)
             {
                 case "TrendGridOverview":
-                    await vm.HandleTrendRowSelectedAsync(selected as TrendDrugItem);
+                    await vm.OpenTrendDrugAsync(selected as TrendDrugItem);
                     break;
                 case "RecentTxnGridOverview":
-                    await vm.HandleRecentTxnRowSelectedAsync(selected as TxnItem);
+                    await vm.OpenTxnAsync(selected as TxnItem);
                     break;
                 case "TopClientsGridOverview":
-                    await vm.HandleTopClientRowSelectedAsync(selected as TopClientItem);
+                    await vm.OpenClientAsync(selected as TopClientItem);
                     break;
             }
         }
@@ -306,7 +306,7 @@ public partial class DashboardView : UserControl
             }
 
             ClearBrowsingSelectionInUi(vm);
-            await vm.HandleEntryRecentRowSelectedAsync(item);
+            await vm.OpenEntryAsync(item);
         }
         catch (Exception ex)
         {
