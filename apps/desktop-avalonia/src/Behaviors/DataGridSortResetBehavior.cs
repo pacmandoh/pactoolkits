@@ -38,6 +38,16 @@ public class DataGridSortResetBehavior
 
     public static void SetEnabled(DataGrid grid, bool value) => grid.SetValue(EnabledProperty, value);
 
+    internal static void NotifyIndexHeaderChanged(DataGrid grid)
+    {
+        if (!States.TryGetValue(grid, out var state))
+        {
+            return;
+        }
+
+        state.RequestHeaderButtonInstall();
+    }
+
     private static void Attach(DataGrid grid)
     {
         if (States.ContainsKey(grid))
@@ -120,7 +130,7 @@ public class DataGridSortResetBehavior
 
             var btn = new Button
             {
-                Classes = { "DataGridSortResetButton" },
+                Classes = { "DataGridSortResetButton", "Outline", "Icon" },
                 Content = icon,
                 IsVisible = false
             };
@@ -142,7 +152,6 @@ public class DataGridSortResetBehavior
 
         private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
         {
-            // Keep state; just hide while detached.
             _button.IsVisible = false;
         }
 
@@ -213,16 +222,24 @@ public class DataGridSortResetBehavior
             }
         }
 
+        public void RequestHeaderButtonInstall() => EnsureHeaderButtonInstalled();
+
         private void EnsureHeaderButtonInstalled()
         {
             void TryInstall()
             {
+                if (InstallOnIndexColumnHeader())
+                {
+                    return;
+                }
+
                 var topLeft = FindTopLeftHeader();
                 if (topLeft is null)
                 {
                     return;
                 }
 
+                DetachButtonFromParent();
                 if (!ReferenceEquals(topLeft.Content, _button))
                 {
                     topLeft.Content = _button;
@@ -232,6 +249,37 @@ public class DataGridSortResetBehavior
             TryInstall();
             Dispatcher.UIThread.Post(TryInstall, DispatcherPriority.Loaded);
             Dispatcher.UIThread.Post(TryInstall, DispatcherPriority.ContextIdle);
+        }
+
+        private bool InstallOnIndexColumnHeader()
+        {
+            if (!DataGridIndexColumnBehavior.TryGetSortResetHeaderHost(_grid, out var host) || host is null)
+            {
+                return false;
+            }
+
+            DetachButtonFromParent();
+            if (!host.Children.Contains(_button))
+            {
+                host.Children.Add(_button);
+            }
+
+            _button.HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Right;
+            _button.VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center;
+            _button.Margin = new Thickness(0, 0, 2, 0);
+            return true;
+        }
+
+        private void DetachButtonFromParent()
+        {
+            if (_button.Parent is Panel panel)
+            {
+                panel.Children.Remove(_button);
+            }
+            else if (_button.Parent is ContentControl contentControl && ReferenceEquals(contentControl.Content, _button))
+            {
+                contentControl.Content = null;
+            }
         }
 
         private DataGridColumnHeader? FindTopLeftHeader()
