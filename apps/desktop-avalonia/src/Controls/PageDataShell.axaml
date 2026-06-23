@@ -18,7 +18,7 @@
           Width="{DynamicResource IconSizeSmall}"
           Height="{DynamicResource IconSizeSmall}"
           VerticalAlignment="Center"
-          Foreground="{DynamicResource BrushWarning}"
+          Foreground="{DynamicResource WarningColor}"
           Kind="Clock" />
         <TextBlock
           VerticalAlignment="Center"

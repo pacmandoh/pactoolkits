@@ -148,7 +148,7 @@
           Grid.Row="1"
           Height="280"
           x:DataType="dto:MsfxMappingBatchGroupRow"
-          Classes="SectionGrid InventoryGrid LowToneGrid MsfxIndexedGrid"
+          Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid"
           HorizontalScrollBarVisibility="Auto"
           IsReadOnly="True"
           PointerPressed="GroupGrid_OnPointerPressed"

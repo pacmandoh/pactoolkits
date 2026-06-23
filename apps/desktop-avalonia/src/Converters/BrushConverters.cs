@@ -53,18 +53,58 @@ internal static class ConverterHelpers
         }
 
         var variant = app.ActualThemeVariant;
-        if (app.TryFindResource(key, variant, out var v) && v is IBrush b)
+        if (TryResolveBrush(app, key, variant, out var brush))
         {
-            return b;
+            return brush;
         }
 
-        if (variant != ThemeVariant.Default && app.TryFindResource(key, ThemeVariant.Default, out var v2) && v2 is IBrush b2)
+        if (variant != ThemeVariant.Default && TryResolveBrush(app, key, ThemeVariant.Default, out brush))
         {
-            return b2;
+            return brush;
         }
 
         return fallback;
     }
+
+    private static bool TryResolveBrush(global::Avalonia.Application app, string key, ThemeVariant variant, out IBrush brush)
+    {
+        if (app.TryFindResource(key, variant, out var value))
+        {
+            switch (value)
+            {
+                case IBrush existing:
+                    brush = existing;
+                    return true;
+                case Color color:
+                    brush = new SolidColorBrush(color);
+                    return true;
+            }
+        }
+
+        brush = Brushes.Transparent;
+        return false;
+    }
+
+    public static int MapPacTintLevel(int level)
+        => level switch
+        {
+            <= 10 => 10,
+            <= 35 => 20,
+            _ => 60,
+        };
+
+    public static string NotificationFamily(StatusTone tone)
+        => tone switch
+        {
+            StatusTone.Done => "Success",
+            StatusTone.Warning => "Warning",
+            StatusTone.Danger => "Error",
+            StatusTone.Purple => "Purple",
+            _ => "Info",
+        };
+
+    public static string NotificationTintKey(StatusTone tone, int pacLevel)
+        => $"{NotificationFamily(tone)}Color{MapPacTintLevel(pacLevel)}";
 
     public static Color FindAppColor(string key, Color fallback)
     {
@@ -125,22 +165,15 @@ internal static class ConverterHelpers
     public static string ForegroundBrushKey(StatusTone tone)
         => tone switch
         {
-            StatusTone.Done => "BrushDone",
-            StatusTone.Warning => "BrushWarning",
-            StatusTone.Danger => "BrushDanger",
-            StatusTone.Purple => "BrushPurple",
-            _ => "BrushInfo",
+            StatusTone.Done => "SuccessColor",
+            StatusTone.Warning => "WarningColor",
+            StatusTone.Danger => "ErrorColor",
+            StatusTone.Purple => "PurpleColor",
+            _ => "InfoColor",
         };
 
     public static string BackgroundBrushKey(StatusTone tone, int level)
-        => tone switch
-        {
-            StatusTone.Done => $"BrushDoneBg{level}",
-            StatusTone.Warning => $"BrushWarningBg{level}",
-            StatusTone.Danger => $"BrushDangerBg{level}",
-            StatusTone.Purple => $"BrushPurpleBg{level}",
-            _ => $"BrushInfoBg{level}",
-        };
+        => NotificationTintKey(tone, level);
 
     public static string IconKindFromTxnBadge(TxnBadge badge)
         => badge switch
@@ -231,7 +264,7 @@ public sealed class BadgeToFgBrushConverter : IValueConverter
     {
         var badge = ConverterHelpers.NormalizeTxnBadge(value);
         var key = badge == TxnBadge.Unknown
-            ? "BrushWarning"
+            ? "WarningColor"
             : ConverterHelpers.ForegroundBrushKey(ConverterHelpers.BackgroundToneFromTxnBadge(badge));
 
         return ConverterHelpers.FindAppBrush(key, Brushes.White);
@@ -266,9 +299,9 @@ public sealed class RowStateToBgBrushConverter : IValueConverter
 
         var key = state switch
         {
-            "deprecated" => $"BrushDangerBg{level}",
-            "nosplit" => $"BrushWarningBg{level}",
-            "both" => $"BrushPurpleBg{level}",
+            "deprecated" => ConverterHelpers.NotificationTintKey(StatusTone.Danger, level),
+            "nosplit" => ConverterHelpers.NotificationTintKey(StatusTone.Warning, level),
+            "both" => ConverterHelpers.NotificationTintKey(StatusTone.Purple, level),
             _ => null,
         };
 
@@ -338,7 +371,9 @@ public sealed class LowStockToBgBrushConverter : IValueConverter
 
         if (isDeprecated)
         {
-            return ConverterHelpers.FindAppBrush($"BrushPurpleBg{level}", Brushes.Transparent);
+            return ConverterHelpers.FindAppBrush(
+                ConverterHelpers.NotificationTintKey(StatusTone.Purple, level),
+                Brushes.Transparent);
         }
 
         var isLow = value switch
@@ -354,7 +389,9 @@ public sealed class LowStockToBgBrushConverter : IValueConverter
 
         if (isLow)
         {
-            return ConverterHelpers.FindAppBrush($"BrushDangerBg{level}", Brushes.Transparent);
+            return ConverterHelpers.FindAppBrush(
+                ConverterHelpers.NotificationTintKey(StatusTone.Danger, level),
+                Brushes.Transparent);
         }
 
         return ConverterHelpers.GetPrimaryTintBrush(level);
@@ -377,9 +414,9 @@ public sealed class ContextStatusToBrushConverter : IValueConverter
 
         var key = level switch
         {
-            1 => "BrushDone",
-            2 => "BrushDanger",
-            _ => "BrushWarning",
+            1 => "SuccessColor",
+            2 => "ErrorColor",
+            _ => "WarningColor",
         };
 
         return ConverterHelpers.FindAppBrush(key, Brushes.White);
@@ -423,14 +460,8 @@ public sealed class KpiPctToBrushConverter : IValueConverter
         pct <= 25 ? StatusTone.Warning :
         StatusTone.Danger;
 
-    private static string ToneToBrushKey(StatusTone tone) =>
-        tone switch
-        {
-            StatusTone.Done => "BrushDone",
-            StatusTone.Warning => "BrushWarning",
-            StatusTone.Danger => "BrushDanger",
-            _ => "BrushInfo",
-        };
+    private static string ToneToBrushKey(StatusTone tone)
+        => ConverterHelpers.ForegroundBrushKey(tone);
 }
 
 public sealed class BoolToDoneDangerBrushConverter : IValueConverter
@@ -438,7 +469,7 @@ public sealed class BoolToDoneDangerBrushConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var isOn = value is true;
-        var key = isOn ? "BrushDone" : "BrushDanger";
+        var key = isOn ? "SuccessColor" : "ErrorColor";
         return ConverterHelpers.FindAppBrush(key, Brushes.White);
     }
 

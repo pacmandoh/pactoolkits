@@ -80,7 +80,7 @@
             EmptyText="暂无子码结果"
             IsEmpty="{Binding IsSubCodeEmpty}">
             <DataGrid
-              Classes="SectionGrid InventoryGrid LowToneGrid MsfxIndexedGrid CellTemplateHighlightGrid"
+              Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid CellTemplateHighlightGrid"
               HorizontalScrollBarVisibility="Auto"
               ItemsSource="{Binding SubCodeRows}">
               <DataGrid.Columns>

@@ -72,10 +72,6 @@
     </Setter>
   </Style>
 
-  <Style Selector="DataGrid.SectionGrid /template/ Border#PART_HeaderBackground:pointerover">
-    <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
-  </Style>
-
   <Style Selector="DataGrid.SectionGrid /template/ ScrollBar#PART_HorizontalScrollbar">
     <Setter Property="Height" Value="0" />
     <Setter Property="IsVisible" Value="False" />
@@ -97,34 +93,23 @@
   </Style>
 
   <!-- First column # index (Shad BasicDataTable look). -->
-  <Style Selector="DataGrid.StickyIndexGrid">
+  <Style Selector="DataGrid.IndexedGrid">
     <Setter Property="behaviors:DataGridIndexColumnBehavior.Enabled" Value="True" />
     <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="DisplayOrder" />
     <Setter Property="behaviors:DataGridIndexColumnBehavior.IsVisible" Value="True" />
     <Setter Property="behaviors:DataGridSortResetBehavior.Enabled" Value="True" />
   </Style>
 
-  <Style Selector="DataGrid.MsfxIndexedGrid">
-    <Setter Property="behaviors:DataGridIndexColumnBehavior.Enabled" Value="True" />
-    <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="DisplayOrder" />
-    <Setter Property="behaviors:DataGridIndexColumnBehavior.IsVisible" Value="True" />
-    <Setter Property="behaviors:DataGridSortResetBehavior.Enabled" Value="True" />
-  </Style>
-
-  <Style Selector="DataGrid.StickyIndexGrid.StickyIndexDisplayIndex">
+  <Style Selector="DataGrid.IndexedGrid.StickyIndexDisplayIndex">
     <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="DisplayIndex" />
   </Style>
 
-  <Style Selector="DataGrid.StickyIndexGrid.StickyIndexRowNo">
+  <Style Selector="DataGrid.IndexedGrid.StickyIndexRowNo">
     <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="RowNo" />
   </Style>
 
-  <Style Selector="DataGrid.MsfxIndexedGrid.MapIndexedGrid">
+  <Style Selector="DataGrid.IndexedGrid.MapIndexedGrid">
     <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="DisplayIndex" />
-  </Style>
-
-  <Style Selector="DataGrid.DrugGrid">
-    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
   </Style>
 
   <Style Selector="DataGrid.NonInteractive">

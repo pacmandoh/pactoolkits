@@ -196,7 +196,7 @@
                   <icons:AppIcon
                     Width="{DynamicResource IconSizeDefault}"
                     Height="{DynamicResource IconSizeDefault}"
-                    Foreground="{StaticResource BrushWarning}"
+                    Foreground="{DynamicResource WarningColor}"
                     Kind="LockKeyhole" />
                   <TextBlock Text="解锁" />
                 </StackPanel>
@@ -210,7 +210,7 @@
                   <icons:AppIcon
                     Width="{DynamicResource IconSizeDefault}"
                     Height="{DynamicResource IconSizeDefault}"
-                    Foreground="{StaticResource BrushDanger}"
+                    Foreground="{DynamicResource ErrorColor}"
                     Kind="LockKeyholeOpen" />
                   <TextBlock Text="锁定" />
                 </StackPanel>
@@ -488,7 +488,7 @@
                       <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
                         <DataGrid
                           MinHeight="0"
-                          Classes="SectionGrid InventoryGrid LowToneGrid EditableGrid StickyIndexGrid StickyIndexRowNo"
+                          Classes="SectionGrid InventoryGrid LowToneGrid EditableGrid IndexedGrid StickyIndexRowNo"
                           Classes.CellTemplateHighlightGrid="{Binding IsStockEditEnabled}"
                           HorizontalScrollBarVisibility="Disabled"
                           IsReadOnly="{Binding !IsStockEditEnabled}"
@@ -533,7 +533,7 @@
                       <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
                         <DataGrid
                           MinHeight="0"
-                          Classes="SectionGrid InventoryGrid LowToneGrid StickyIndexGrid StickyIndexRowNo"
+                          Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid StickyIndexRowNo"
                           HorizontalScrollBarVisibility="Disabled"
                           ItemsSource="{Binding DrugSpecRows}">
                           <DataGrid.Columns>
@@ -602,7 +602,7 @@
                       <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
                         <DataGrid
                           MinHeight="0"
-                          Classes="SectionGrid InventoryGrid LowToneGrid StickyIndexGrid StickyIndexRowNo"
+                          Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid StickyIndexRowNo"
                           HorizontalScrollBarVisibility="Disabled"
                           ItemsSource="{Binding LowStockRows}">
                           <DataGrid.Columns>
@@ -657,7 +657,7 @@
                       <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
                         <DataGrid
                           MinHeight="0"
-                          Classes="SectionGrid InventoryGrid MissingGrid StickyIndexGrid StickyIndexRowNo"
+                          Classes="SectionGrid InventoryGrid MissingGrid IndexedGrid StickyIndexRowNo"
                           HorizontalScrollBarVisibility="Disabled"
                           ItemsSource="{Binding MissingStockRows}">
                           <DataGrid.Columns>

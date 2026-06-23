@@ -17,14 +17,14 @@
         <Border
           Width="40"
           Height="40"
-          Background="{DynamicResource BrushInfoBg15}"
+          Background="{DynamicResource InfoColor10}"
           CornerRadius="20">
           <icons:AppIcon
             Width="20"
             Height="20"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
-            Foreground="{DynamicResource BrushInfo}"
+            Foreground="{DynamicResource InfoColor}"
             Kind="GitBranchPlus" />
         </Border>
         <StackPanel Grid.Column="1" Spacing="2">
@@ -82,7 +82,7 @@
         x:Name="SplitUnitGrid"
         Grid.Row="3"
         Height="320"
-        Classes="SectionGrid InventoryGrid LowToneGrid MsfxIndexedGrid"
+        Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid"
         GridLinesVisibility="All"
         HeadersVisibility="All"
         HorizontalScrollBarVisibility="Auto"

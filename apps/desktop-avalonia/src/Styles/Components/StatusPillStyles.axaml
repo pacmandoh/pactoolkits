@@ -3,56 +3,62 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
   <Style Selector="controls|StatusPill.ToneInfo15">
-    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushInfoBg15}" />
-    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushInfoBg35}" />
-    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushInfo}" />
+    <Setter Property="BackgroundBrush" Value="{DynamicResource InfoColor10}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource InfoColor20}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource InfoColor}" />
   </Style>
 
   <Style Selector="controls|StatusPill.ToneInfo25">
-    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushInfoBg25}" />
-    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushInfoBg50}" />
-    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushInfo}" />
+    <Setter Property="BackgroundBrush" Value="{DynamicResource InfoColor20}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource InfoColor60}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource InfoColor}" />
   </Style>
 
   <Style Selector="controls|StatusPill.ToneDone15">
-    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushDoneBg15}" />
-    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushDoneBg35}" />
-    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushDone}" />
+    <Setter Property="BackgroundBrush" Value="{DynamicResource SuccessColor10}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource SuccessColor20}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource SuccessColor}" />
   </Style>
 
   <Style Selector="controls|StatusPill.ToneDone25">
-    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushDoneBg25}" />
-    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushDoneBg50}" />
-    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushDone}" />
+    <Setter Property="BackgroundBrush" Value="{DynamicResource SuccessColor20}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource SuccessColor60}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource SuccessColor}" />
   </Style>
 
   <Style Selector="controls|StatusPill.ToneWarning15">
-    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushWarningBg15}" />
-    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushWarningBg35}" />
-    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushWarning}" />
+    <Setter Property="BackgroundBrush" Value="{DynamicResource WarningColor10}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource WarningColor20}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource WarningColor}" />
   </Style>
 
   <Style Selector="controls|StatusPill.ToneWarning25">
-    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushWarningBg25}" />
-    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushWarningBg50}" />
-    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushWarning}" />
+    <Setter Property="BackgroundBrush" Value="{DynamicResource WarningColor20}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource WarningColor60}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource WarningColor}" />
   </Style>
 
   <Style Selector="controls|StatusPill.ToneDanger15">
-    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushDangerBg15}" />
-    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushDangerBg35}" />
-    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushDanger}" />
+    <Setter Property="BackgroundBrush" Value="{DynamicResource ErrorColor10}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource ErrorColor20}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource ErrorColor}" />
   </Style>
 
   <Style Selector="controls|StatusPill.ToneDanger25">
-    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushDangerBg25}" />
-    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushDangerBg50}" />
-    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushDanger}" />
+    <Setter Property="BackgroundBrush" Value="{DynamicResource ErrorColor20}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource ErrorColor60}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource ErrorColor}" />
   </Style>
 
   <Style Selector="controls|StatusPill.TonePurple15">
-    <Setter Property="BackgroundBrush" Value="{DynamicResource BrushPurpleBg15}" />
-    <Setter Property="PillBorderBrush" Value="{DynamicResource BrushPurpleBg35}" />
-    <Setter Property="ForegroundBrush" Value="{DynamicResource BrushPurple}" />
+    <Setter Property="BackgroundBrush" Value="{DynamicResource PurpleColor10}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource PurpleColor20}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource PurpleColor}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.TonePurple25">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource PurpleColor20}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource PurpleColor60}" />
+    <Setter Property="ForegroundBrush" Value="{DynamicResource PurpleColor}" />
   </Style>
 </Styles>

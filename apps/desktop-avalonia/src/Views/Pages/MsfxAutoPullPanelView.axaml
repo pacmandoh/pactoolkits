@@ -120,7 +120,7 @@
           IsEmpty="{Binding IsAutoPullBatchEmpty}">
           <DataGrid
             x:Name="AutoPullBatchGrid"
-            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid"
+            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
             HorizontalScrollBarVisibility="Auto"

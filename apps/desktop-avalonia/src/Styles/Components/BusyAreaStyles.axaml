@@ -8,8 +8,6 @@
     No AreaBackground — avoids gray-on-black clash with SectionPanel Inner (WindowBackgroundColor).
   -->
   <Style Selector="shad|BusyArea">
-    <Setter Property="LoadingSize" Value="32" />
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
     <Setter Property="Template">
       <ControlTemplate>
         <Panel>

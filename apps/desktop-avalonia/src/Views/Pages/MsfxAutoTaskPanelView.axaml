@@ -421,7 +421,7 @@
           IsEmpty="{Binding IsAutoTaskQueueEmpty}">
           <DataGrid
             x:Name="AutoTaskQueueGrid"
-            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid CellTemplateHighlightGrid"
+            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid CellTemplateHighlightGrid"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
             HorizontalScrollBarVisibility="Auto"
