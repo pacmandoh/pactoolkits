@@ -3,7 +3,7 @@ using PacToolkits.Desktop.Avalonia.Services.Application;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class SectionEmptyVisibilityPolicyTests
+public sealed class SectionEmptyPolicyTests
 {
     [Theory]
     [InlineData(PageDataAvailability.Ready)]
@@ -12,7 +12,7 @@ public sealed class SectionEmptyVisibilityPolicyTests
     [InlineData(PageDataAvailability.AccessBlocked)]
     public void ShouldShow_returns_true_when_content_empty_and_page_has_settled(PageDataAvailability availability)
     {
-        Assert.True(SectionEmptyVisibilityPolicy.ShouldShow(
+        Assert.True(SectionEmptyPolicy.Show(
             isContentEmpty: true,
             availability,
             hasLoadedOnce: true));
@@ -24,7 +24,7 @@ public sealed class SectionEmptyVisibilityPolicyTests
     [InlineData(PageDataAvailability.AwaitingDatabase)]
     public void ShouldShow_hides_empty_state_during_first_fetch(PageDataAvailability availability)
     {
-        Assert.False(SectionEmptyVisibilityPolicy.ShouldShow(
+        Assert.False(SectionEmptyPolicy.Show(
             isContentEmpty: true,
             availability,
             hasLoadedOnce: false));
@@ -33,7 +33,7 @@ public sealed class SectionEmptyVisibilityPolicyTests
     [Fact]
     public void ShouldShow_returns_true_during_reload_when_content_still_empty()
     {
-        Assert.True(SectionEmptyVisibilityPolicy.ShouldShow(
+        Assert.True(SectionEmptyPolicy.Show(
             isContentEmpty: true,
             PageDataAvailability.Loading,
             hasLoadedOnce: true));
@@ -42,7 +42,7 @@ public sealed class SectionEmptyVisibilityPolicyTests
     [Fact]
     public void ShouldShow_returns_false_when_content_not_empty()
     {
-        Assert.False(SectionEmptyVisibilityPolicy.ShouldShow(
+        Assert.False(SectionEmptyPolicy.Show(
             isContentEmpty: false,
             PageDataAvailability.Ready,
             hasLoadedOnce: true));

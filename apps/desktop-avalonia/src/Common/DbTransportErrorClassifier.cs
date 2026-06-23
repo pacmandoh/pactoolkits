@@ -34,7 +34,7 @@ public static class DbTransportErrorClassifier
 
     private static bool IsTransportErrorCore(Exception ex)
     {
-        if (IsPostgresProviderException(ex))
+        if (IsPgProviderException(ex))
         {
             return true;
         }
@@ -75,7 +75,7 @@ public static class DbTransportErrorClassifier
                || text.Contains("broken pipe", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsPostgresProviderException(Exception ex)
+    private static bool IsPgProviderException(Exception ex)
         => ex.GetType().FullName?.StartsWith("Npgsql.", StringComparison.Ordinal) == true;
 
     private static string CollectMessages(Exception ex)

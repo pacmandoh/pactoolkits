@@ -10,7 +10,7 @@ namespace PacToolkits.Desktop.Avalonia.Common.Diagnostics;
 /// Lightweight UI perf counters for navigation, first layout, and realized DataGrid rows.
 /// Enable with debugger attached or PACTOOLKITS_UI_PERF=1 (stderr when env var is set).
 /// </summary>
-public static class NavigationPerformanceDiagnostics
+public static class NavPerfDiagnostics
 {
     private static readonly ConcurrentDictionary<string, long> Active = new(StringComparer.Ordinal);
 

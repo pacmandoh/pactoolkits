@@ -78,7 +78,7 @@ public class PageNavigationHost : Grid
             return;
         }
 
-        var token = NavigationPerformanceDiagnostics.Begin($"nav:{page.GetType().Name}");
+        var token = NavPerfDiagnostics.Begin($"nav:{page.GetType().Name}");
 
         var view = BuildPageView(page);
         view.IsVisible = false;
@@ -105,7 +105,7 @@ public class PageNavigationHost : Grid
         }
 
         view.LayoutUpdated -= OnPageViewLayoutUpdated;
-        NavigationPerformanceDiagnostics.End(pending.Token, view, pending.PageName);
+        NavPerfDiagnostics.End(pending.Token, view, pending.PageName);
     }
 
     private void UpdateActiveVisibility()

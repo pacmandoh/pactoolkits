@@ -46,7 +46,7 @@ public sealed class PageStaleWhileReconnectPolicyTests
         bool reloadFromDbSignal,
         bool expected)
     {
-        var actual = PageStaleWhileReconnectPolicy.ShouldSuppressReloadBusy(
+        var actual = PageStaleWhileReconnectPolicy.SuppressReloadBusy(
             hasLoadedOnce,
             supportsStaleWhileReconnect,
             reloadFromDbSignal);
