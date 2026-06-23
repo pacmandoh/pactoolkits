@@ -376,7 +376,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             BuildSchemaContext(),
             options,
             _pageWorkCts.Token);
-        await RefreshDbSchemaStatusAsync(
+        await UpdateSchemaStatusAsync(
             "compat_check",
             manualProbe: false,
             connectionOptions: options,
@@ -443,7 +443,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 _toast.Warn("数据库结构更新", migration.Summary);
             }
 
-            await RefreshDbSchemaStatusAsync(
+            await UpdateSchemaStatusAsync(
                 "migrate_done",
                 manualProbe: false,
                 connectionOptions: connectionOptions,
@@ -460,7 +460,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
     }
 
-    private async Task RefreshDbSchemaStatusAsync(
+    private async Task UpdateSchemaStatusAsync(
         string source,
         bool manualProbe,
         PgOptions? connectionOptions = null,
@@ -564,11 +564,11 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
     }
 
-    private async Task RefreshDbSchemaStatusOnStartupAsync(CancellationToken ct)
+    private async Task RefreshSchemaStatusOnStartupAsync(CancellationToken ct)
     {
         try
         {
-            await RefreshDbSchemaStatusAsync("startup", manualProbe: false, operationCt: ct);
+            await UpdateSchemaStatusAsync("startup", manualProbe: false, operationCt: ct);
         }
         catch (Exception ex)
         {

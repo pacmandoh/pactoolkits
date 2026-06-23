@@ -1695,10 +1695,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         ApplyTaskQueuePage();
 
-        OnPropertyChanged(nameof(CanEnterTaskMergeMode));
-        OnPropertyChanged(nameof(CanEnterTaskRemapMode));
-        OnPropertyChanged(nameof(CanEnterTaskDiscardMode));
-        OnPropertyChanged(nameof(CanEnterTaskReopenMode));
+        OnPropertyChanged(nameof(CanMergeTasks));
+        OnPropertyChanged(nameof(CanRemapTasks));
+        OnPropertyChanged(nameof(CanDiscardTasks));
+        OnPropertyChanged(nameof(CanReopenTasks));
         OnPropertyChanged(nameof(TaskQueueTotalPages));
         OnPropertyChanged(nameof(TaskQueueFilteredCount));
     }

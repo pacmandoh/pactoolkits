@@ -211,7 +211,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         LoadUpdateOptions();
         LoadLoggingOptions();
         DbSchemaPolicyText = _releaseVersion.Current.DbMigrationPolicy;
-        RunDetached(RefreshDbSchemaStatusOnStartupAsync, "db.schema.startup_refresh.fire_and_forget_fail");
+        RunDetached(RefreshSchemaStatusOnStartupAsync, "db.schema.startup_refresh.fire_and_forget_fail");
         _uiBehavior.Changed += OnUiBehaviorChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
         _updates.Changed += OnUpdatesChanged;
@@ -234,7 +234,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     }
 
     public Task RefreshSchemaStatusAsync(string source = "startup_postcheck")
-        => RefreshDbSchemaStatusAsync(source, manualProbe: false);
+        => UpdateSchemaStatusAsync(source, manualProbe: false);
 
     public void ResetDraftFromCurrent()
     {

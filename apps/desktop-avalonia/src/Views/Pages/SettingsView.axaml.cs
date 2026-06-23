@@ -200,7 +200,7 @@ public partial class SettingsView : UserControl
         var sectionIndex = 0;
         foreach (var anchor in anchors)
         {
-            if (!TryCreateNavButtonForAnchor(anchor, sectionIndex, out var navButton))
+            if (!CreateNavButtonForAnchor(anchor, sectionIndex, out var navButton))
             {
                 continue;
             }
@@ -219,7 +219,7 @@ public partial class SettingsView : UserControl
                && name.EndsWith("Anchor", StringComparison.Ordinal);
     }
 
-    private bool TryCreateNavButtonForAnchor(Grid anchor, int sectionIndex, out Button navButton)
+    private bool CreateNavButtonForAnchor(Grid anchor, int sectionIndex, out Button navButton)
     {
         navButton = null!;
 
