@@ -11,7 +11,7 @@ public sealed class TriggerDebounceGate
     private readonly object _lock = new();
     private readonly Dictionary<string, DateTimeOffset> _lastByKey = new(StringComparer.Ordinal);
 
-    public bool ShouldSkip(string key, TimeSpan interval)
+    public bool Skip(string key, TimeSpan interval)
     {
         var now = DateTimeOffset.UtcNow;
         lock (_lock)

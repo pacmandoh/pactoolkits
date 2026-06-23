@@ -127,14 +127,14 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         ProgramVersionText = ResolveProgramVersionText(Injector.ToolVersion, _releaseVersion.Current.AgentInjectorAhkVersion);
         ApplyRuntimeSnapshot();
         LoadAgentConfigSnapshot();
-        NotifyPendingChangesState();
+        RefreshPendingChanges();
 
         Injector.StatusChanged += OnAhkRuntimeChanged;
     }
 
-    partial void OnAhkExecutablePathChanged(string value) => NotifyPendingChangesState();
-    partial void OnAhkProcessNameChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentPgDriverChanged(string value) => NotifyPendingChangesState();
+    partial void OnAhkExecutablePathChanged(string value) => RefreshPendingChanges();
+    partial void OnAhkProcessNameChanged(string value) => RefreshPendingChanges();
+    partial void OnAgentPgDriverChanged(string value) => RefreshPendingChanges();
     public bool AgentPgSslEnabled
     {
         get => !string.Equals(AgentPgSsl, "disable", StringComparison.OrdinalIgnoreCase);
@@ -154,19 +154,19 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     partial void OnAgentPgSslChanged(string value)
     {
         OnPropertyChanged(nameof(AgentPgSslEnabled));
-        NotifyPendingChangesState();
+        RefreshPendingChanges();
     }
-    partial void OnAgentOptWindowClassChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentIptWindowClassChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentConfirmTimeoutMsChanged(int value) => NotifyPendingChangesState();
-    partial void OnAgentOptParseGridClassNNChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentOptVerifyGridClassNNChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentIptParseGridClassNNChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentIptVerifyGridClassNNChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentOptInputClassNNChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentIptInputClassNNChanged(string value) => NotifyPendingChangesState();
-    partial void OnAgentWarehouseEnabledChanged(bool value) => NotifyPendingChangesState();
-    partial void OnAgentWarehouseTaskIdentifierChanged(string value) => NotifyPendingChangesState();
+    partial void OnAgentOptWindowClassChanged(string value) => RefreshPendingChanges();
+    partial void OnAgentIptWindowClassChanged(string value) => RefreshPendingChanges();
+    partial void OnAgentConfirmTimeoutMsChanged(int value) => RefreshPendingChanges();
+    partial void OnAgentOptParseGridClassNNChanged(string value) => RefreshPendingChanges();
+    partial void OnAgentOptVerifyGridClassNNChanged(string value) => RefreshPendingChanges();
+    partial void OnAgentIptParseGridClassNNChanged(string value) => RefreshPendingChanges();
+    partial void OnAgentIptVerifyGridClassNNChanged(string value) => RefreshPendingChanges();
+    partial void OnAgentOptInputClassNNChanged(string value) => RefreshPendingChanges();
+    partial void OnAgentIptInputClassNNChanged(string value) => RefreshPendingChanges();
+    partial void OnAgentWarehouseEnabledChanged(bool value) => RefreshPendingChanges();
+    partial void OnAgentWarehouseTaskIdentifierChanged(string value) => RefreshPendingChanges();
     partial void OnAgentCodePickPolicyChanged(string value)
     {
         var normalized = NormalizeCodePickPolicyValue(value);
@@ -180,7 +180,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         if (!ReferenceEquals(selected, SelectedAgentCodePickPolicyOption))
             SelectedAgentCodePickPolicyOption = selected;
 
-        NotifyPendingChangesState();
+        RefreshPendingChanges();
     }
 
     partial void OnSelectedAgentCodePickPolicyOptionChanged(CodePickPolicyOption? value)
@@ -189,7 +189,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         if (!string.Equals(AgentCodePickPolicy, selectedValue, StringComparison.Ordinal))
             AgentCodePickPolicy = selectedValue;
         else
-            NotifyPendingChangesState();
+            RefreshPendingChanges();
     }
 
     public bool HasPendingChanges
@@ -219,7 +219,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     partial void OnIsAhkEnabledChanged(bool value)
     {
         RestartAhkCommand.NotifyCanExecuteChanged();
-        NotifyPendingChangesState();
+        RefreshPendingChanges();
 
         if (_syncingFromRuntime)
             return;
@@ -237,7 +237,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     [RelayCommand]
     private async Task SaveAhkSettingsAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -291,7 +291,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             return;
         }
 
-        if (ShouldSkipTrigger("tools.ahk.restart"))
+        if (SkipTrigger("tools.ahk.restart"))
         {
             return;
         }
@@ -347,7 +347,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             return;
         }
 
-        if (ShouldSkipTrigger(enabled ? "tools.ahk.enable" : "tools.ahk.disable"))
+        if (SkipTrigger(enabled ? "tools.ahk.enable" : "tools.ahk.disable"))
         {
             return;
         }
@@ -435,7 +435,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             {
                 _savedSnapshot = BuildCurrentSnapshot();
                 _baselineReady = _savedSnapshot is not null;
-                NotifyPendingChangesState();
+                RefreshPendingChanges();
                 return new SaveOptionsResult(true, false);
             }
 
@@ -446,7 +446,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             }, CancellationToken.None).ConfigureAwait(false);
             _savedSnapshot = BuildCurrentSnapshot();
             _baselineReady = _savedSnapshot is not null;
-            NotifyPendingChangesState();
+            RefreshPendingChanges();
             return new SaveOptionsResult(true, true);
         }
         catch (Exception ex)
@@ -650,7 +650,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             _savedSnapshot = BuildCurrentSnapshot();
             _baselineReady = _savedSnapshot is not null;
             _suppressPendingRecalc = false;
-            NotifyPendingChangesState();
+            RefreshPendingChanges();
         }
     }
 
@@ -696,18 +696,18 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
             }
         }
 
-        NotifyPendingChangesState();
+        RefreshPendingChanges();
     }
 
     private void OnAgentLineItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(AgentLineItem.Value) or null or "")
         {
-            NotifyPendingChangesState();
+            RefreshPendingChanges();
         }
     }
 
-    private void NotifyPendingChangesState()
+    private void RefreshPendingChanges()
     {
         if (_suppressPendingRecalc)
         {

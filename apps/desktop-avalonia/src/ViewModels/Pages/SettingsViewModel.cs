@@ -207,7 +207,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IsClientAliasReadOnly = true;
 
         LoadAliasesOnly();
-        UpdateClientAliasUiState();
+        RefreshClientAlias();
 
         SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.startup_fail");
 
@@ -258,7 +258,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IsClientAliasReadOnly = true;
 
         LoadAliasesOnly();
-        UpdateClientAliasUiState();
+        RefreshClientAlias();
         LoadTraceCodeRule();
         LoadMsfxApiOptions();
         LoadUiBehavior();
@@ -302,7 +302,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     public override Task OnPageActivatedAsync(CancellationToken ct = default)
     {
-        SyncPageAvailabilityFromEnvironment();
+        SyncPageAvailability();
         _pageWorkCancelled = false;
         return Task.CompletedTask;
     }
@@ -407,7 +407,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IgnoredProductVersion = options.IgnoredVersion;
         RefreshUpdatePollIntervalHint();
 
-        SyncUpdateStateFromService();
+        SyncUpdateState();
 
         _syncingUpdateOptions = false;
     }
@@ -430,7 +430,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void OnUpdatesChanged()
     {
-        PostUiSafe(SyncUpdateStateFromService, "updates.changed.ui_fail");
+        PostUiSafe(SyncUpdateState, "updates.changed.ui_fail");
     }
 
     private void LoadLoggingOptions()
@@ -456,7 +456,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     partial void OnProductUpdateAvailableChanged(bool? value)
         => OnPropertyChanged(nameof(ProductUpdateAvailabilityLabel));
 
-    private void SyncUpdateStateFromService()
+    private void SyncUpdateState()
     {
         CurrentProductVersion = _updates.CurrentVersion;
         LatestProductVersion = _updates.LatestVersion;
@@ -521,21 +521,21 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private void StartEditClientAliases()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
 
         IsClientAliasEditMode = true;
         IsClientAliasReadOnly = false;
-        UpdateClientAliasUiState();
+        RefreshClientAlias();
         SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.edit_start_fail");
     }
 
     [RelayCommand]
     private async Task TestAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -557,7 +557,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             {
                 Status = validation.ConnectionSummary;
                 IsDbConnected = false;
-                UpdateClientAliasUiState();
+                RefreshClientAlias();
                 _toast.Error("数据库连接失败", validation.ConnectionSummary ?? "连接失败");
                 return;
             }
@@ -567,7 +567,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 var reason = validation.MigrationSummary ?? "数据库结构更新失败";
                 Status = reason;
                 IsDbConnected = false;
-                UpdateClientAliasUiState();
+                RefreshClientAlias();
                 _toast.Warn("数据库迁移策略", reason);
                 return;
             }
@@ -576,7 +576,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             {
                 Status = "数据库版本不兼容";
                 IsDbConnected = false;
-                UpdateClientAliasUiState();
+                RefreshClientAlias();
                 await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), validation.IncompatibleMessage ?? "数据库版本不兼容");
                 return;
             }
@@ -596,7 +596,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             _logger.Warn("SettingsVM", "db.test.timeout", "DB connection test timed out");
             Status = "连接超时";
             IsDbConnected = false;
-            UpdateClientAliasUiState();
+            RefreshClientAlias();
             _toast.Error("数据库连接失败", "连接超时：请检查网络/主机/端口");
         }
         finally
@@ -608,7 +608,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task SaveAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -622,7 +622,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             {
                 Status = "配置已保存，但迁移失败，当前不可用";
                 IsDbConnected = false;
-                UpdateClientAliasUiState();
+                RefreshClientAlias();
                 _toast.Warn("数据库配置", "配置已保存，但迁移失败，当前不可用");
                 return;
             }
@@ -630,7 +630,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             {
                 Status = "配置已保存，但数据库版本不兼容，当前不可用";
                 IsDbConnected = false;
-                UpdateClientAliasUiState();
+                RefreshClientAlias();
                 _toast.Warn("数据库配置", "配置已保存，但数据库版本不兼容，当前不可用");
                 return;
             }
@@ -650,7 +650,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             _logger.Error("SettingsVM", "db.save.fail", "Failed to save DB settings", ex);
             IsDbConnected = false;
-            UpdateClientAliasUiState();
+            RefreshClientAlias();
             _toast.Error("保存失败", ex.Message);
         }
         finally
@@ -662,7 +662,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task CheckDbSchemaStatusAsync()
     {
-        if (ShouldSkipTrigger() || IsDbSchemaChecking)
+        if (SkipTrigger() || IsDbSchemaChecking)
         {
             return;
         }
@@ -677,7 +677,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task ViewDbSchemaMigrationPlanAsync()
     {
-        if (ShouldSkipTrigger() || IsDbSchemaChecking)
+        if (SkipTrigger() || IsDbSchemaChecking)
         {
             return;
         }
@@ -709,7 +709,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task ApplyDbSchemaUpdateAsync()
     {
-        if (ShouldSkipTrigger() || IsDbSchemaChecking)
+        if (SkipTrigger() || IsDbSchemaChecking)
         {
             return;
         }
@@ -739,7 +739,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task CopyDbSchemaDiagnosticsAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -767,7 +767,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task ReloadClientAliasesAsync(CancellationToken pageCt)
     {
-        if (IsClientAliasRefreshing || ShouldSkipTrigger())
+        if (IsClientAliasRefreshing || SkipTrigger())
         {
             return;
         }
@@ -810,7 +810,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                     TrackAliasRow(row);
                 }
 
-                UpdateClientAliasUiState();
+                RefreshClientAlias();
             });
         }
         finally
@@ -819,7 +819,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
     }
 
-    private void UpdateClientAliasUiState()
+    private void RefreshClientAlias()
     {
         if (!IsClientAliasEditMode)
         {
@@ -864,13 +864,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         ClientAliases.Remove(row);
         UntrackAliasRow(row);
-        UpdateClientAliasUiState();
+        RefreshClientAlias();
     }
 
     [RelayCommand]
     private async Task SaveClientAliasesAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -881,7 +881,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
         }
 
-        UpdateClientAliasUiState();
+        RefreshClientAlias();
 
         IsBusy = true;
         try
@@ -900,7 +900,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             Status = null;
 
             SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.after_alias_save_fail");
-            UpdateClientAliasUiState();
+            RefreshClientAlias();
         }
         catch (Exception ex)
         {
@@ -916,7 +916,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task SaveTraceCodeRuleAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -977,7 +977,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task SaveMsfxApiConfigAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -1127,7 +1127,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task SaveUpdateOptionsAsync()
     {
-        if (_syncingUpdateOptions || ShouldSkipTrigger())
+        if (_syncingUpdateOptions || SkipTrigger())
         {
             return;
         }
@@ -1168,7 +1168,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
         finally
         {
-            SyncUpdateStateFromService();
+            SyncUpdateState();
             IsBusy = false;
         }
     }
@@ -1231,7 +1231,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task SaveLoggingOptionsAsync()
     {
-        if (_syncingLoggingOptions || IsLoggingBusy || ShouldSkipTrigger())
+        if (_syncingLoggingOptions || IsLoggingBusy || SkipTrigger())
         {
             return;
         }
@@ -1275,7 +1275,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private Task OpenLogDirectoryAsync()
     {
-        if (IsLoggingBusy || ShouldSkipTrigger())
+        if (IsLoggingBusy || SkipTrigger())
         {
             return Task.CompletedTask;
         }
@@ -1337,7 +1337,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task CopyCurrentLogPathAsync()
     {
-        if (IsLoggingBusy || ShouldSkipTrigger())
+        if (IsLoggingBusy || SkipTrigger())
         {
             return;
         }
@@ -1364,7 +1364,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task ExportRecentLogsAsync()
     {
-        if (IsLoggingBusy || ShouldSkipTrigger())
+        if (IsLoggingBusy || SkipTrigger())
         {
             return;
         }
@@ -1392,7 +1392,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task CheckUpdatesAsync()
     {
-        if (_updates.IsChecking || IsUpdateApplying || ShouldSkipTrigger())
+        if (_updates.IsChecking || IsUpdateApplying || SkipTrigger())
         {
             return;
         }
@@ -1408,7 +1408,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task ApplyUpdateNowAsync()
     {
-        if (IsUpdateChecking || IsUpdateApplying || ShouldSkipTrigger())
+        if (IsUpdateChecking || IsUpdateApplying || SkipTrigger())
         {
             return;
         }
@@ -1432,7 +1432,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [RelayCommand]
     private async Task ClearIgnoredVersionAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -1873,7 +1873,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     {
         if (e.PropertyName == nameof(ClientAliasRow.Alias))
         {
-            UpdateClientAliasUiState();
+            RefreshClientAlias();
         }
     }
 

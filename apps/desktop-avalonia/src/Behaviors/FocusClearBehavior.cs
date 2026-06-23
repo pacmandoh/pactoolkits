@@ -68,12 +68,12 @@ public class FocusClearBehavior
             return;
         }
 
-        if (topLevel is not null && !PopupDismissHelper.ShouldSkipPopupDismiss(e.Source))
+        if (topLevel is not null && !PopupDismissHelper.SkipPopupDismiss(e.Source))
         {
             PopupDismissHelper.DismissOpenPopups(topLevel);
         }
 
-        if (PopupDismissHelper.ShouldSkipPopupDismiss(e.Source))
+        if (PopupDismissHelper.SkipPopupDismiss(e.Source))
         {
             return;
         }

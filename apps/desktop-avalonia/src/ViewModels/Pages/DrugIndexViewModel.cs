@@ -42,7 +42,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanIo))]
     private async Task ImportDataAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -126,7 +126,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanIo))]
     private async Task ExportDataAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -247,7 +247,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         OnPropertyChanged(nameof(ItemsEmptyHint));
     }
 
-    public bool IsItemsEmpty => ShouldShowSectionEmpty(Items.Count == 0);
+    public bool IsItemsEmpty => ShowSectionEmpty(Items.Count == 0);
 
     public string ItemsEmptyText => GetSectionEmptyTitle("暂无药品数据");
     public string ItemsEmptyHint => GetSectionEmptyHint("当前筛选条件下没有药品信息");
@@ -295,12 +295,12 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     }
     partial void OnHasEditorChanged(bool value)
     {
-        NotifyEditorUnlockUiStateChanged();
+        RefreshEditorUnlockUi();
     }
 
     partial void OnIsEditorUnlockedChanged(bool value)
     {
-        NotifyEditorUnlockUiStateChanged();
+        RefreshEditorUnlockUi();
     }
 
     [ObservableProperty] private string _editDrugId = "";
@@ -778,7 +778,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         }
     }
 
-    private void NotifyEditorUnlockUiStateChanged()
+    private void RefreshEditorUnlockUi()
     {
         NotifyAllCommands();
         OnPropertyChanged(nameof(CanRequestEditorUnlock));
@@ -824,7 +824,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
-        if (ShouldSkipTrigger(milliseconds: 800))
+        if (SkipTrigger(milliseconds: 800))
         {
             return;
         }
@@ -922,8 +922,8 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                     }
                 }, DispatcherPriority.Normal);
 
-                _inventoryOverview.NotifyDrugIndexChanged();
-                _scanCode.NotifyDrugIndexChanged();
+                _inventoryOverview.ReloadAfterDrugIndexChange();
+                _scanCode.ReloadAfterDrugIndexChange();
                 return true;
             }
 
@@ -936,8 +936,8 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                 await ReloadAsync();
             }
 
-            _inventoryOverview.NotifyDrugIndexChanged();
-            _scanCode.NotifyDrugIndexChanged();
+            _inventoryOverview.ReloadAfterDrugIndexChange();
+            _scanCode.ReloadAfterDrugIndexChange();
 
             return true;
         }
@@ -960,7 +960,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanFixDrugKey))]
     private async Task FixDrugKeyAsync()
     {
-        if (ShouldSkipTrigger("drug.fix_key", 800))
+        if (SkipTrigger("drug.fix_key", 800))
         {
             return;
         }
@@ -1090,8 +1090,8 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                 _toast.Success("药品纠错迁移",
                     $"已迁移到 {dbTargetAfter.DrugId}/{dbTargetAfter.Spec}，单条数量 {dbTargetAfter.Qty}，trace_pool {result.TracePoolAffected} 条，trace_txn {result.TraceTxnAffected} 条"));
 
-            _inventoryOverview.NotifyDrugIndexChanged();
-            _scanCode.NotifyDrugIndexChanged();
+            _inventoryOverview.ReloadAfterDrugIndexChange();
+            _scanCode.ReloadAfterDrugIndexChange();
         }
         catch (DrugIndexConcurrencyException cx)
         {
@@ -1182,7 +1182,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("drug_index.reload.fail", "Failed to reload drug index", ex);
-            if (!ShouldShowOperationErrorToast(ex))
+            if (!CanToastError(ex))
             {
                 return;
             }
@@ -1210,7 +1210,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [RelayCommand]
     private Task SearchAsync()
     {
-        if (ShouldSkipTrigger(milliseconds: 300))
+        if (SkipTrigger(milliseconds: 300))
         {
             return Task.CompletedTask;
         }
@@ -1222,7 +1222,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [RelayCommand]
     private Task ClearSearchAsync()
     {
-        if (ShouldSkipTrigger(milliseconds: 300))
+        if (SkipTrigger(milliseconds: 300))
         {
             return Task.CompletedTask;
         }
@@ -1235,7 +1235,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanNewItem))]
     private void NewItem()
     {
-        if (ShouldSkipTrigger(milliseconds: 250))
+        if (SkipTrigger(milliseconds: 250))
         {
             return;
         }
@@ -1264,7 +1264,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanDelete))]
     private async Task DeleteAsync()
     {
-        if (ShouldSkipTrigger(milliseconds: 800))
+        if (SkipTrigger(milliseconds: 800))
         {
             return;
         }
@@ -1293,8 +1293,8 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             Selected = null;
             ClearEditor(keepEditorVisible: false);
             await ReloadAsync();
-            _inventoryOverview.NotifyDrugIndexChanged();
-            _scanCode.NotifyDrugIndexChanged();
+            _inventoryOverview.ReloadAfterDrugIndexChange();
+            _scanCode.ReloadAfterDrugIndexChange();
         }
         catch (Exception ex)
         {
@@ -1311,7 +1311,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [RelayCommand]
     private async Task CopyNameAsync(DrugRow? row)
     {
-        if (ShouldSkipTrigger("drug.copy.name", 350))
+        if (SkipTrigger("drug.copy.name", 350))
         {
             return;
         }
@@ -1329,7 +1329,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [RelayCommand]
     private async Task CopyCodeAsync(DrugRow? row)
     {
-        if (ShouldSkipTrigger("drug.copy.code", 350))
+        if (SkipTrigger("drug.copy.code", 350))
         {
             return;
         }
@@ -1577,9 +1577,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     }
 
     private void OnUnlockStatusTimerTick(object? sender, EventArgs e)
-        => RefreshEditorUnlockState();
-
-    public void SyncEditorUnlockStateForUi()
         => RefreshEditorUnlockState();
 
     public override void Dispose()
