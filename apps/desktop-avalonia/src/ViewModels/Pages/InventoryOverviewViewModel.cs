@@ -278,6 +278,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
     }
     public bool ShowUnlockStatus => IsDetailMode;
+
+    public bool ShowInventoryStatus => !string.IsNullOrWhiteSpace(Status);
     public bool ShowEditSessionState => IsDetailMode && IsStockEditEnabled;
     protected override void OnLookupCatalogSuspended()
     {
@@ -879,7 +881,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     ? parsedQty
                     : 0;
 
-                ReassignPreviewRows.Clear();
+                var singleScopePreviewRows = new List<StockReassignPreviewRowItem>(selectedRows.Count);
                 var willChangeCount = 0;
                 foreach (var row in selectedRows)
                 {
@@ -891,7 +893,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                         willChangeCount++;
                     }
 
-                    ReassignPreviewRows.Add(new StockReassignPreviewRowItem(
+                    singleScopePreviewRows.Add(new StockReassignPreviewRowItem(
                         CurrentDrugId: row.DrugId,
                         CurrentSpec: row.Spec,
                         CurrentQty: row.Qty,
@@ -901,6 +903,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                         TargetQty: targetQtyResolved,
                         TraceCode: row.TraceCode));
                 }
+
+                ReassignPreviewRows.ReplaceAll(singleScopePreviewRows);
                 OnPropertyChanged(nameof(IsReassignPreviewEmpty));
 
                 if (willChangeCount <= 0)
@@ -933,10 +937,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 default);
             var scopeText = $"筛选批量（关键字：{kw}）";
 
-            ReassignPreviewRows.Clear();
+            var previewRows = new List<StockReassignPreviewRowItem>(preview.Samples.Count);
             foreach (var row in preview.Samples)
             {
-                ReassignPreviewRows.Add(new StockReassignPreviewRowItem(
+                previewRows.Add(new StockReassignPreviewRowItem(
                     CurrentDrugId: row.DrugId,
                     CurrentSpec: row.Spec,
                     CurrentQty: row.Qty,
@@ -946,6 +950,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     TargetQty: targetQtyResolvedForFilter,
                     TraceCode: row.TraceCode));
             }
+
+            ReassignPreviewRows.ReplaceAll(previewRows);
             OnPropertyChanged(nameof(IsReassignPreviewEmpty));
 
             if (preview.MatchCount <= 0)
@@ -1540,6 +1546,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
     }
 
+    partial void OnStatusChanged(string? value)
+        => OnPropertyChanged(nameof(ShowInventoryStatus));
+
     partial void OnModeIndexChanged(int value)
     {
         if (value != _lastModeIndex && IsStockEditEnabled && HasPendingStockChanges())
@@ -1799,6 +1808,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeoutCts.CancelAfter(LookupTimeout);
             var pageResult = await _inventory.GetStockPageAsync(keyword, page, PageSize, timeoutCts.Token).ConfigureAwait(false);
+            var rebuiltRows = BuildStockRowItems(pageResult.Rows, ((page - 1) * PageSize) + 1);
 
             await RunOnUiAsync(() =>
             {
@@ -1821,21 +1831,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 // If count changed, rebuild the page rows to avoid stale tail rows.
                 if (StockRows.Count != pageResult.Rows.Count)
                 {
-                    StockRows.Clear();
-                    var rowNo = ((PageIndex - 1) * PageSize) + 1;
-                    foreach (var row in pageResult.Rows)
-                    {
-                        StockRows.Add(new StockRowItem(
-                            rowNo: rowNo++,
-                            drugId: row.DrugId,
-                            spec: row.Spec,
-                            traceCode: row.TraceCode,
-                            qty: row.Qty,
-                            remain: row.Remain,
-                            status: row.Status,
-                            isLow: row.IsLow,
-                            isDeprecated: row.IsDeprecated));
-                    }
+                    StockRows.ReplaceAll(rebuiltRows);
                     OnPropertyChanged(nameof(IsStockEmpty));
                 }
                 else
@@ -1870,6 +1866,19 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     protected override Task ReloadCoreAsync(CancellationToken ct)
         => ReloadBodyAsync(ct);
+
+    public override Task OnPageDeactivatedAsync(CancellationToken ct = default)
+    {
+        CancelSilentReconcile();
+        return base.OnPageDeactivatedAsync(ct);
+    }
+
+    private void CancelSilentReconcile()
+    {
+        _silentReconcileCts?.Cancel();
+        _silentReconcileCts?.Dispose();
+        _silentReconcileCts = null;
+    }
 
     protected override void OnReloadFinished()
         => NotifyAllCommands();
@@ -1916,26 +1925,11 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             .ConfigureAwait(false);
 
         var start = ((PageIndex - 1) * PageSize) + 1;
+        var items = BuildStockRowItems(page.Rows, start);
 
         await RunOnUiAsync(() =>
         {
-            StockRows.Clear();
-
-            var rowNo = start;
-            foreach (var row in page.Rows)
-            {
-                StockRows.Add(new StockRowItem(
-                    rowNo: rowNo++,
-                    drugId: row.DrugId,
-                    spec: row.Spec,
-                    traceCode: row.TraceCode,
-                    qty: row.Qty,
-                    remain: row.Remain,
-                    status: row.Status,
-                    isLow: row.IsLow,
-                    isDeprecated: row.IsDeprecated));
-            }
-
+            StockRows.ReplaceAll(items);
             TotalCount = page.TotalCount;
             Status = $"库存明细：{TotalCount} 行（第 {PageIndex}/{TotalPages} 页）";
             OnPropertyChanged(nameof(IsStockEmpty));
@@ -1949,27 +1943,11 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             .ConfigureAwait(false);
 
         var start = ((PageIndex - 1) * PageSize) + 1;
+        var items = BuildDrugSpecAggRowItems(page.Rows, start);
 
         await RunOnUiAsync(() =>
         {
-            DrugSpecRows.Clear();
-
-            var rowNo = start;
-            foreach (var row in page.Rows)
-            {
-                DrugSpecRows.Add(new DrugSpecAggRowItem(
-                    RowNo: rowNo++,
-                    DrugId: row.DrugId,
-                    Spec: row.Spec,
-                    CodeCount: row.CodeCount,
-                    QtySum: row.QtySum,
-                    RemainSum: row.RemainSum,
-                    WeekUsed: row.WeekUsed,
-                    Threshold: row.Threshold,
-                    IsLow: row.IsLow,
-                    IsDeprecated: row.IsDeprecated));
-            }
-
+            DrugSpecRows.ReplaceAll(items);
             TotalCount = page.TotalCount;
             Status = $"按药品+规格汇总：{TotalCount} 行（第 {PageIndex}/{TotalPages} 页）";
             OnPropertyChanged(nameof(IsAggEmpty));
@@ -1985,22 +1963,11 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             .ConfigureAwait(false);
 
         var start = ((PageIndex - 1) * PageSize) + 1;
+        var items = BuildLowStockRowItems(page.Rows, start);
 
         await RunOnUiAsync(() =>
         {
-            LowStockRows.Clear();
-            var rowNo = start;
-            foreach (var row in page.Rows)
-            {
-                LowStockRows.Add(new LowStockRowItem(
-                    RowNo: rowNo++,
-                    DrugId: row.DrugId,
-                    Spec: row.Spec,
-                    RemainSum: row.RemainSum,
-                    Threshold: row.Threshold,
-                    IsLow: row.IsLow));
-            }
-
+            LowStockRows.ReplaceAll(items);
             TotalCount = page.TotalCount;
             Status = $"低库存：{TotalCount} 项（第 {PageIndex}/{TotalPages} 页）";
             OnPropertyChanged(nameof(IsLowEmpty));
@@ -2016,25 +1983,100 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             .ConfigureAwait(false);
 
         var start = ((PageIndex - 1) * PageSize) + 1;
+        var items = BuildMissingStockRowItems(page.Rows, start);
 
         await RunOnUiAsync(() =>
         {
-            MissingStockRows.Clear();
-
-            var rowNo = start;
-            foreach (var row in page.Rows)
-            {
-                MissingStockRows.Add(new MissingStockRowItem(
-                    RowNo: rowNo++,
-                    DrugId: row.DrugId,
-                    Spec: row.Spec,
-                    Note: row.Note));
-            }
-
+            MissingStockRows.ReplaceAll(items);
             TotalCount = page.TotalCount;
             Status = $"缺失：{TotalCount} 项（第 {PageIndex}/{TotalPages} 页）";
             OnPropertyChanged(nameof(IsMissingEmpty));
         });
+    }
+
+    private static List<StockRowItem> BuildStockRowItems(
+        IReadOnlyList<TracePoolStockRowDto> rows,
+        int startRowNo)
+    {
+        var items = new List<StockRowItem>(rows.Count);
+        var rowNo = startRowNo;
+        foreach (var row in rows)
+        {
+            items.Add(new StockRowItem(
+                rowNo: rowNo++,
+                drugId: row.DrugId,
+                spec: row.Spec,
+                traceCode: row.TraceCode,
+                qty: row.Qty,
+                remain: row.Remain,
+                status: row.Status,
+                isLow: row.IsLow,
+                isDeprecated: row.IsDeprecated));
+        }
+
+        return items;
+    }
+
+    private static List<DrugSpecAggRowItem> BuildDrugSpecAggRowItems(
+        IReadOnlyList<TracePoolDrugSpecAggDto> rows,
+        int startRowNo)
+    {
+        var items = new List<DrugSpecAggRowItem>(rows.Count);
+        var rowNo = startRowNo;
+        foreach (var row in rows)
+        {
+            items.Add(new DrugSpecAggRowItem(
+                RowNo: rowNo++,
+                DrugId: row.DrugId,
+                Spec: row.Spec,
+                CodeCount: row.CodeCount,
+                QtySum: row.QtySum,
+                RemainSum: row.RemainSum,
+                WeekUsed: row.WeekUsed,
+                Threshold: row.Threshold,
+                IsLow: row.IsLow,
+                IsDeprecated: row.IsDeprecated));
+        }
+
+        return items;
+    }
+
+    private static List<LowStockRowItem> BuildLowStockRowItems(
+        IReadOnlyList<LowStockRowDto> rows,
+        int startRowNo)
+    {
+        var items = new List<LowStockRowItem>(rows.Count);
+        var rowNo = startRowNo;
+        foreach (var row in rows)
+        {
+            items.Add(new LowStockRowItem(
+                RowNo: rowNo++,
+                DrugId: row.DrugId,
+                Spec: row.Spec,
+                RemainSum: row.RemainSum,
+                Threshold: row.Threshold,
+                IsLow: row.IsLow));
+        }
+
+        return items;
+    }
+
+    private static List<MissingStockRowItem> BuildMissingStockRowItems(
+        IReadOnlyList<MissingInventoryRowDto> rows,
+        int startRowNo)
+    {
+        var items = new List<MissingStockRowItem>(rows.Count);
+        var rowNo = startRowNo;
+        foreach (var row in rows)
+        {
+            items.Add(new MissingStockRowItem(
+                RowNo: rowNo++,
+                DrugId: row.DrugId,
+                Spec: row.Spec,
+                Note: row.Note));
+        }
+
+        return items;
     }
 
     private void SetModeBusy(int mode, bool busy)

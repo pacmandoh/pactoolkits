@@ -43,6 +43,8 @@ public sealed partial class DashboardViewModel : AppPageBase
     private readonly RollingDateRangeController _dateRangeController;
 
     [ObservableProperty] private int _selectedTabIndex;
+    [ObservableProperty] private bool _isFilterBarVisible = true;
+
     public bool IsOverviewTab => SelectedTabIndex == 0;
     public bool IsInputTab => SelectedTabIndex == 1;
     public bool IsTxnTab => SelectedTabIndex == 2;
@@ -117,11 +119,18 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     partial void OnDrugTextChanged(string? value)
     {
+        ClearDrugSpecFilterCommand.NotifyCanExecuteChanged();
+
         var drug = NormalizeInput(value);
         if (string.IsNullOrWhiteSpace(drug))
         {
             IsDrugSuggestOpen = false;
             EnsureAllSpecOnly();
+            if (!IsReloadSuppressed)
+            {
+                RequestReloadWithPagingReset();
+            }
+
             return;
         }
 
@@ -681,6 +690,31 @@ public sealed partial class DashboardViewModel : AppPageBase
         RequestReloadWithPagingReset();
     }
 
+    [RelayCommand(CanExecute = nameof(CanClearDrugSpecFilter))]
+    private async Task ClearDrugSpecFilterAsync()
+    {
+        if (ShouldSkipTrigger("dashboard.filter.clear", 350))
+        {
+            return;
+        }
+
+        IsDrugSuggestOpen = false;
+        ResetPagedIndexes();
+
+        await RunOnUiAsync(() =>
+        {
+            using var _ = SuppressReload();
+            DrugText = null;
+            EnsureAllSpecOnly();
+            SelectedClient = AllClients;
+        }, DispatcherPriority.Background);
+
+        await ReloadNow();
+    }
+
+    private bool CanClearDrugSpecFilter()
+        => DrugAutoCompleteFilterPolicy.HasDrugText(DrugText);
+
     private void HandleDateRangeDayChanged()
     {
         var defaults = RollingDateRangeController.Normalize(
@@ -925,19 +959,28 @@ public sealed partial class DashboardViewModel : AppPageBase
 
                 var loaded = await _dashboard.LoadSnapshotAsync(request, ct).ConfigureAwait(false);
 
+                var trendItems = BuildTrendItems(loaded.Trend);
+                var recentOverviewItems = BuildRecentTxnsOverviewItems(loaded.TxnsOverview.Rows);
+                var recentTxnPageItems = BuildRecentTxnsPageItems(loaded.TxnsPage.Rows, TxnPageIndex, TxnPageSize);
+                var txnTrendPageItems = BuildTxnTrendPageItems(loaded.TxnTrendPage.Rows, TxnTrendPageIndex, TxnTrendPageSize);
+                var entryOverviewItems = BuildEntryLogsOverviewItems(loaded.EntriesOverview.Rows);
+                var entryPageItems = BuildEntryLogsPageItems(loaded.EntriesPage.Rows, EntryPageIndex, EntryPageSize);
+                var topClientItems = BuildTopClientItems(loaded.TopClients);
+                var abnormalItems = BuildAbnormalQueueItems(loaded.Abnormal.Rows, AbnormalPageIndex, AbnormalPageSize);
+
                 await RunOnUiAsync(() =>
                 {
                     ApplyClients(loaded.ClientNames);
 
                     ApplyKpi(loaded.Kpi);
-                    ApplyTrend(loaded.Trend);
-                    ApplyRecentTxnsOverview(loaded.TxnsOverview.Rows);
-                    ApplyRecentTxnsPage(loaded.TxnsPage.Rows, loaded.TxnsPage.TotalCount);
-                    ApplyTxnTrendPage(loaded.TxnTrendPage.Rows, loaded.TxnTrendPage.TotalCount);
-                    ApplyEntryLogsOverview(loaded.EntriesOverview.Rows);
-                    ApplyEntryLogsPage(loaded.EntriesPage.Rows, loaded.EntriesPage.TotalCount);
-                    ApplyTopClients(loaded.TopClients);
-                    ApplyAbnormalQueue(loaded.Abnormal.Rows, loaded.Abnormal.TotalCount);
+                    ApplyTrend(trendItems);
+                    ApplyRecentTxnsOverview(recentOverviewItems);
+                    ApplyRecentTxnsPage(recentTxnPageItems, loaded.TxnsPage.TotalCount);
+                    ApplyTxnTrendPage(txnTrendPageItems, loaded.TxnTrendPage.TotalCount);
+                    ApplyEntryLogsOverview(entryOverviewItems);
+                    ApplyEntryLogsPage(entryPageItems, loaded.EntriesPage.TotalCount);
+                    ApplyTopClients(topClientItems);
+                    ApplyAbnormalQueue(abnormalItems, loaded.Abnormal.TotalCount);
 
                     OnPropertyChanged(nameof(IsTrendEmpty));
                     OnPropertyChanged(nameof(IsTopClientsEmpty));
@@ -1019,28 +1062,6 @@ public sealed partial class DashboardViewModel : AppPageBase
         await ReloadNow();
     }
 
-    [RelayCommand]
-    private async Task ClearDrugSpecFilterAsync()
-    {
-        if (ShouldSkipTrigger("dashboard.filter.clear", 350))
-        {
-            return;
-        }
-
-        IsDrugSuggestOpen = false;
-        ResetPagedIndexes();
-
-        await RunOnUiAsync(() =>
-        {
-            using var _ = SuppressReload();
-            DrugText = null;
-            EnsureAllSpecOnly();
-            SelectedClient = AllClients;
-        }, DispatcherPriority.Background);
-
-        await ReloadNow();
-    }
-
     private void ApplyKpi(DashboardKpiDto dto)
     {
         Kpi.AvailableRemain = dto.AvailableRemain.ToString("N0", CultureInfo.CurrentCulture);
@@ -1108,12 +1129,12 @@ public sealed partial class DashboardViewModel : AppPageBase
         }
     }
 
-    private void ApplyTrend(IReadOnlyList<TrendRowDto> rows)
+    private List<TrendDrugItem> BuildTrendItems(IReadOnlyList<TrendRowDto> rows)
     {
-        DrugTrend.Clear();
+        var items = new List<TrendDrugItem>(rows.Count);
         foreach (var r in rows)
         {
-            DrugTrend.Add(new TrendDrugItem
+            items.Add(new TrendDrugItem
             {
                 Rank = r.Rank.ToString(CultureInfo.CurrentCulture),
                 Name = r.Name,
@@ -1123,18 +1144,26 @@ public sealed partial class DashboardViewModel : AppPageBase
             });
         }
 
+        return items;
+    }
+
+    private void ApplyTrend(IReadOnlyList<TrendDrugItem> items)
+    {
+        DrugTrend.ReplaceAll(items);
         OnPropertyChanged(nameof(IsTrendEmpty));
     }
 
-    private void ApplyTxnTrendPage(IReadOnlyList<TrendRowDto> rows, int totalCount)
+    private List<TrendDrugItem> BuildTxnTrendPageItems(
+        IReadOnlyList<TrendRowDto> rows,
+        int pageIndex,
+        int pageSize)
     {
-        TxnTrendRows.Clear();
-        TxnTrendTotalCount = totalCount;
-        var start = ((TxnTrendPageIndex - 1) * TxnTrendPageSize) + 1;
+        var items = new List<TrendDrugItem>(rows.Count);
+        var start = ((pageIndex - 1) * pageSize) + 1;
         var idx = 0;
         foreach (var r in rows)
         {
-            TxnTrendRows.Add(new TrendDrugItem
+            items.Add(new TrendDrugItem
             {
                 DisplayIndex = start + idx++,
                 Rank = r.Rank.ToString(CultureInfo.CurrentCulture),
@@ -1145,35 +1174,47 @@ public sealed partial class DashboardViewModel : AppPageBase
             });
         }
 
+        return items;
+    }
+
+    private void ApplyTxnTrendPage(IReadOnlyList<TrendDrugItem> items, int totalCount)
+    {
+        TxnTrendRows.ReplaceAll(items);
+        TxnTrendTotalCount = totalCount;
         OnPropertyChanged(nameof(IsTxnTrendEmpty));
         OnPropertyChanged(nameof(IsTxnPanelEmpty));
     }
 
-    private void ApplyTopClients(IReadOnlyList<(string Client, long Value)> rows)
+    private List<TopClientItem> BuildTopClientItems(IReadOnlyList<(string Client, long Value)> rows)
     {
-        TopClients.Clear();
-
+        var items = new List<TopClientItem>(rows.Count);
         var idx = 1;
         foreach (var r in rows)
         {
             var client = ResolveClient(r.Client);
-            TopClients.Add(new TopClientItem(
+            items.Add(new TopClientItem(
                 Index: idx++,
                 Client: client,
                 Value: r.Value.ToString("N0", CultureInfo.CurrentCulture)
             ));
         }
 
+        return items;
+    }
+
+    private void ApplyTopClients(IReadOnlyList<TopClientItem> items)
+    {
+        TopClients.ReplaceAll(items);
         OnPropertyChanged(nameof(IsTopClientsEmpty));
     }
 
-    private void ApplyRecentTxnsOverview(IReadOnlyList<TraceTxnDto> rows)
+    private List<TxnItem> BuildRecentTxnsOverviewItems(IReadOnlyList<TraceTxnDto> rows)
     {
-        RecentTxnsOverview.Clear();
+        var items = new List<TxnItem>(rows.Count);
         var idx = 1;
         foreach (var t in rows)
         {
-            var item = new TxnItem(
+            items.Add(new TxnItem(
                 DisplayIndex: idx++,
                 Id: t.Id,
                 Badge: t.Badge,
@@ -1181,20 +1222,26 @@ public sealed partial class DashboardViewModel : AppPageBase
                 Qty: t.Qty.ToString("N0", CultureInfo.CurrentCulture),
                 Time: t.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm:ss", CultureInfo.CurrentCulture),
                 ClientDisplay: string.IsNullOrWhiteSpace(t.ClientName) ? "-" : t.ClientName
-            );
-            RecentTxnsOverview.Add(item);
+            ));
         }
+
+        return items;
     }
 
-    private void ApplyRecentTxnsPage(IReadOnlyList<TraceTxnDto> rows, int totalCount)
+    private void ApplyRecentTxnsOverview(IReadOnlyList<TxnItem> items)
+        => RecentTxnsOverview.ReplaceAll(items);
+
+    private List<TxnItem> BuildRecentTxnsPageItems(
+        IReadOnlyList<TraceTxnDto> rows,
+        int pageIndex,
+        int pageSize)
     {
-        RecentTxns.Clear();
-        TxnTotalCount = totalCount;
-        var start = ((TxnPageIndex - 1) * TxnPageSize) + 1;
+        var items = new List<TxnItem>(rows.Count);
+        var start = ((pageIndex - 1) * pageSize) + 1;
         var idx = 0;
         foreach (var t in rows)
         {
-            var item = new TxnItem(
+            items.Add(new TxnItem(
                 DisplayIndex: start + idx++,
                 Id: t.Id,
                 Badge: t.Badge,
@@ -1202,50 +1249,71 @@ public sealed partial class DashboardViewModel : AppPageBase
                 Qty: t.Qty.ToString("N0", CultureInfo.CurrentCulture),
                 Time: t.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm:ss", CultureInfo.CurrentCulture),
                 ClientDisplay: string.IsNullOrWhiteSpace(t.ClientName) ? "-" : t.ClientName
-            );
-
-            RecentTxns.Add(item);
+            ));
         }
 
+        return items;
+    }
+
+    private void ApplyRecentTxnsPage(IReadOnlyList<TxnItem> items, int totalCount)
+    {
+        RecentTxns.ReplaceAll(items);
+        TxnTotalCount = totalCount;
         OnPropertyChanged(nameof(IsRecentTxnsEmpty));
         OnPropertyChanged(nameof(IsTxnPanelEmpty));
     }
 
-    private void ApplyEntryLogsOverview(IReadOnlyList<TraceEntryLogDto> rows)
+    private List<EntryRecentItem> BuildEntryLogsOverviewItems(IReadOnlyList<TraceEntryLogDto> rows)
     {
-        EntryRecentOverview.Clear();
+        var items = new List<EntryRecentItem>(rows.Count);
         var idx = 1;
         foreach (var e in rows.OrderByDescending(x => x.EntryAt))
         {
             var client = ResolveClient(e.Client);
-            EntryRecentOverview.Add(EntryRecentItem.From(e, client, idx++));
+            items.Add(EntryRecentItem.From(e, client, idx++));
         }
+
+        return items;
     }
 
-    private void ApplyEntryLogsPage(IReadOnlyList<TraceEntryLogDto> rows, int totalCount)
+    private void ApplyEntryLogsOverview(IReadOnlyList<EntryRecentItem> items)
+        => EntryRecentOverview.ReplaceAll(items);
+
+    private List<EntryRecentItem> BuildEntryLogsPageItems(
+        IReadOnlyList<TraceEntryLogDto> rows,
+        int pageIndex,
+        int pageSize)
     {
-        EntryRecent.Clear();
-        EntryTotalCount = totalCount;
-        var start = ((EntryPageIndex - 1) * EntryPageSize) + 1;
+        var items = new List<EntryRecentItem>(rows.Count);
+        var start = ((pageIndex - 1) * pageSize) + 1;
         var idx = 0;
         foreach (var e in rows.OrderByDescending(x => x.EntryAt))
         {
             var client = ResolveClient(e.Client);
-            EntryRecent.Add(EntryRecentItem.From(e, client, start + idx++));
+            items.Add(EntryRecentItem.From(e, client, start + idx++));
         }
 
+        return items;
+    }
+
+    private void ApplyEntryLogsPage(IReadOnlyList<EntryRecentItem> items, int totalCount)
+    {
+        EntryRecent.ReplaceAll(items);
+        EntryTotalCount = totalCount;
         OnPropertyChanged(nameof(IsEntryRecentEmpty));
     }
 
-    private void ApplyAbnormalQueue(IReadOnlyList<AbnormalRowDto> rows, int totalCount)
+    private List<AbnormalItem> BuildAbnormalQueueItems(
+        IReadOnlyList<AbnormalRowDto> rows,
+        int pageIndex,
+        int pageSize)
     {
-        AbnormalQueue.Clear();
-        AbnormalTotalCount = totalCount;
-        var start = ((AbnormalPageIndex - 1) * AbnormalPageSize) + 1;
+        var items = new List<AbnormalItem>(rows.Count);
+        var start = ((pageIndex - 1) * pageSize) + 1;
         var idx = 0;
         foreach (var row in rows)
         {
-            AbnormalQueue.Add(new AbnormalItem(
+            items.Add(new AbnormalItem(
                 DisplayIndex: start + idx++,
                 Title: row.Title,
                 Detail: row.Detail,
@@ -1254,6 +1322,13 @@ public sealed partial class DashboardViewModel : AppPageBase
             ));
         }
 
+        return items;
+    }
+
+    private void ApplyAbnormalQueue(IReadOnlyList<AbnormalItem> items, int totalCount)
+    {
+        AbnormalQueue.ReplaceAll(items);
+        AbnormalTotalCount = totalCount;
         OnPropertyChanged(nameof(IsAbnormalEmpty));
     }
 
@@ -1634,9 +1709,10 @@ public sealed partial class DashboardViewModel : AppPageBase
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
                 var page = await _dashboard.LoadTxnPageAsync(CurrentFilter, TxnPageIndex, TxnPageSize, cts.Token).ConfigureAwait(false);
+                var items = BuildRecentTxnsPageItems(page.Rows, TxnPageIndex, TxnPageSize);
                 await RunOnUiAsync(() =>
                 {
-                    ApplyRecentTxnsPage(page.Rows, page.TotalCount);
+                    ApplyRecentTxnsPage(items, page.TotalCount);
                     OnPropertyChanged(nameof(IsTxnPanelEmpty));
                 }, DispatcherPriority.Background);
             });
@@ -1663,9 +1739,10 @@ public sealed partial class DashboardViewModel : AppPageBase
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
                 var page = await _dashboard.LoadTxnTrendPageAsync(CurrentFilter, TxnTrendPageIndex, TxnTrendPageSize, cts.Token).ConfigureAwait(false);
+                var items = BuildTxnTrendPageItems(page.Rows, TxnTrendPageIndex, TxnTrendPageSize);
                 await RunOnUiAsync(() =>
                 {
-                    ApplyTxnTrendPage(page.Rows, page.TotalCount);
+                    ApplyTxnTrendPage(items, page.TotalCount);
                     OnPropertyChanged(nameof(IsTxnPanelEmpty));
                 }, DispatcherPriority.Background);
             });
@@ -1692,9 +1769,10 @@ public sealed partial class DashboardViewModel : AppPageBase
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
                 var page = await _dashboard.LoadEntryPageAsync(CurrentFilter, EntryPageIndex, EntryPageSize, cts.Token).ConfigureAwait(false);
+                var items = BuildEntryLogsPageItems(page.Rows, EntryPageIndex, EntryPageSize);
                 await RunOnUiAsync(() =>
                 {
-                    ApplyEntryLogsPage(page.Rows, page.TotalCount);
+                    ApplyEntryLogsPage(items, page.TotalCount);
                 }, DispatcherPriority.Background);
             });
         }
@@ -1720,9 +1798,10 @@ public sealed partial class DashboardViewModel : AppPageBase
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
                 var page = await _dashboard.LoadAbnormalPageAsync(CurrentFilter, AbnormalPageIndex, AbnormalPageSize, cts.Token).ConfigureAwait(false);
+                var items = BuildAbnormalQueueItems(page.Rows, AbnormalPageIndex, AbnormalPageSize);
                 await RunOnUiAsync(() =>
                 {
-                    ApplyAbnormalQueue(page.Rows, page.TotalCount);
+                    ApplyAbnormalQueue(items, page.TotalCount);
                 }, DispatcherPriority.Background);
             });
         }
