@@ -30,6 +30,9 @@ public partial class StatusPill : UserControl
     public static readonly StyledProperty<Thickness> PillPaddingProperty =
         AvaloniaProperty.Register<StatusPill, Thickness>(nameof(PillPadding), new Thickness(10, 4));
 
+    public static readonly StyledProperty<bool> ShowBorderProperty =
+        AvaloniaProperty.Register<StatusPill, bool>(nameof(ShowBorder), true);
+
     public static readonly StyledProperty<object?> SuffixContentProperty =
         AvaloniaProperty.Register<StatusPill, object?>(nameof(SuffixContent));
 
@@ -86,6 +89,12 @@ public partial class StatusPill : UserControl
         set => SetValue(PillPaddingProperty, value);
     }
 
+    public bool ShowBorder
+    {
+        get => GetValue(ShowBorderProperty);
+        set => SetValue(ShowBorderProperty, value);
+    }
+
     public object? SuffixContent
     {
         get => GetValue(SuffixContentProperty);
@@ -98,6 +107,7 @@ public partial class StatusPill : UserControl
     {
         InitializeComponent();
         RefreshState();
+        UpdateBorderThickness();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -107,6 +117,26 @@ public partial class StatusPill : UserControl
         {
             RefreshState();
         }
+        else if (change.Property == ShowBorderProperty)
+        {
+            UpdateBorderThickness();
+        }
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        UpdateBorderThickness();
+    }
+
+    private void UpdateBorderThickness()
+    {
+        if (PillChrome is null)
+        {
+            return;
+        }
+
+        PillChrome.BorderThickness = ShowBorder ? new Thickness(1) : new Thickness(0);
     }
 
     private void RefreshState()

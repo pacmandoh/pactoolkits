@@ -2,15 +2,16 @@
   x:Class="PacToolkits.Desktop.Avalonia.Controls.StatusPill"
   xmlns="https://github.com/avaloniaui"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Name="Root"
   HorizontalAlignment="Left"
   VerticalAlignment="Center">
-  <shad:Badge
+  <Border
+    x:Name="PillChrome"
+    Padding="{Binding PillPadding, ElementName=Root}"
     Background="{Binding BackgroundBrush, ElementName=Root}"
     BorderBrush="{Binding PillBorderBrush, ElementName=Root}"
-    Classes="Outline">
+    CornerRadius="999">
     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
       <icons:AppIcon
         Width="{Binding IconSize, ElementName=Root}"
@@ -20,13 +21,16 @@
         Kind="{Binding Icon, ElementName=Root}" />
       <TextBlock
         VerticalAlignment="Center"
+        FontFamily="{DynamicResource StatusPillFontFamily}"
         FontSize="{Binding TextSize, ElementName=Root}"
+        FontWeight="Normal"
         Foreground="{Binding ForegroundBrush, ElementName=Root}"
+        IsVisible="{Binding !HasSuffixContent, ElementName=Root}"
         Text="{Binding Text, ElementName=Root}" />
       <ContentPresenter
         VerticalAlignment="Center"
         Content="{Binding SuffixContent, ElementName=Root}"
         IsVisible="{Binding HasSuffixContent, ElementName=Root}" />
     </StackPanel>
-  </shad:Badge>
+  </Border>
 </UserControl>
