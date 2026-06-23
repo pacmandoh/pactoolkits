@@ -18,31 +18,74 @@ public static class PinyinInitialMatcher
         => GetProfile(candidate).Options;
 
     public static bool IsMatch(string? searchText, string? candidate)
+        => Score(searchText, candidate) >= 0;
+
+    /// <summary>
+    /// Pinyin tier scores: exact 490, prefix 480, continuous contain 470, subsequence 460.
+    /// Text tiers are handled separately in <see cref="DrugAutoCompleteRanker"/>.
+    /// </summary>
+    public static int ScorePinyin(string? searchText, string? candidate)
     {
         var query = NormalizeSearch(searchText);
-        if (query.Length == 0)
+        if (query.Length == 0 || string.IsNullOrWhiteSpace(candidate))
         {
-            return true;
-        }
-
-        if (string.IsNullOrWhiteSpace(candidate))
-        {
-            return false;
-        }
-
-        if (candidate.Contains(query, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
+            return -1;
         }
 
         var profile = GetProfile(candidate);
         if (profile.Primary.Length == 0)
         {
-            return false;
+            return -1;
         }
 
-        return profile.Primary.Contains(query, StringComparison.OrdinalIgnoreCase)
-               || IsSubsequenceMatch(query, profile.Options);
+        var initials = profile.Primary;
+        if (string.Equals(initials, query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 490;
+        }
+
+        if (initials.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 480;
+        }
+
+        if (initials.Contains(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 470;
+        }
+
+        return IsSubsequenceMatch(query, profile.Options) ? 460 : -1;
+    }
+
+    public static int Score(string? searchText, string? candidate)
+    {
+        var query = NormalizeSearch(searchText);
+        if (query.Length == 0)
+        {
+            return 0;
+        }
+
+        if (string.IsNullOrWhiteSpace(candidate))
+        {
+            return -1;
+        }
+
+        if (string.Equals(candidate, query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 1000;
+        }
+
+        if (candidate.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 800;
+        }
+
+        if (candidate.Contains(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 600;
+        }
+
+        return ScorePinyin(searchText, candidate);
     }
 
     private static InitialProfile GetProfile(string candidate)
