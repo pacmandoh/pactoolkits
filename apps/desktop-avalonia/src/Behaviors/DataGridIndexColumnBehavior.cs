@@ -361,6 +361,8 @@ public class DataGridIndexColumnBehavior
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             };
+            text.Classes.Add("Caption");
+            text.Classes.Add("Muted");
             text.Classes.Add("DgIndexCell");
             return text;
         }

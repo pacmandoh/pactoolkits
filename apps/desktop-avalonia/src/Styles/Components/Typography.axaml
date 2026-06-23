@@ -1,19 +1,45 @@
-<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    Pac typography — only where ShadUI has no 1:1 class:
+    - SectionTitle (16 semi) — page/card headers; Shad Small=14, Large=18
+    - SubsectionTitle (14 semi) — in-card group headers
+    - DialogTitle* — dialog chrome
+    - AboutHeroVersion, AboutSubtitle — About hero only
+    - ShellTitle — shell chrome
+    Secondary copy: use Shad Caption Muted. Body values: use Shad Small.
+  -->
+
+  <!-- Match the ShadUI demo typography roots, including detached popup trees. -->
+  <Style Selector="shad|Window">
+    <Setter Property="FontFamily" Value="{DynamicResource ShadBodyFontFamily}" />
+  </Style>
+
+  <Style Selector="MenuFlyoutPresenter">
+    <Setter Property="FontFamily" Value="{DynamicResource ShadBodyFontFamily}" />
+  </Style>
+
+  <Style Selector="ToolTip">
+    <Setter Property="FontFamily" Value="{DynamicResource ShadBodyFontFamily}" />
+  </Style>
+
   <Style Selector="TextBlock.SectionTitle">
     <Setter Property="FontSize" Value="{DynamicResource SectionTitleSize}" />
-    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="TextBlock.SectionHint">
-    <Setter Property="Opacity" Value="{DynamicResource SectionHintOpacity}" />
-    <Setter Property="FontSize" Value="{DynamicResource SectionHintSize}" />
-    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  <Style Selector="TextBlock.SectionTitle.Strong">
+    <Setter Property="FontWeight" Value="Bold" />
   </Style>
 
-  <Style Selector="TextBlock.FilterLabel">
-    <Setter Property="Opacity" Value="{DynamicResource SectionHintOpacity}" />
-    <Setter Property="FontSize" Value="{DynamicResource SectionHintSize}" />
+  <Style Selector="TextBlock.SubsectionTitle">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
@@ -24,37 +50,31 @@
   <Style Selector="TextBlock.DialogTitle">
     <Setter Property="FontSize" Value="{DynamicResource DialogTitleSize}" />
     <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
   <Style Selector="TextBlock.DialogTitleLg">
     <Setter Property="FontSize" Value="{DynamicResource DialogTitleSizeLg}" />
     <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
-  <Style Selector="TextBlock.AboutAuthor">
-    <Setter Property="FontSize" Value="{DynamicResource AboutAuthorSize}" />
-    <Setter Property="FontWeight" Value="Bold" />
+  <Style Selector="TextBlock.AboutSubtitle">
+    <Setter Property="FontSize" Value="{DynamicResource AboutSubtitleSize}" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundLeadColor}" />
   </Style>
 
-  <Style Selector="TextBlock.AboutTechTitle">
-    <Setter Property="FontSize" Value="{DynamicResource AboutTechTitleSize}" />
+  <Style Selector="TextBlock.AboutHeroVersion">
+    <Setter Property="FontSize" Value="28" />
     <Setter Property="FontWeight" Value="Bold" />
-  </Style>
-
-  <Style Selector="TextBlock.AboutStat">
-    <Setter Property="FontSize" Value="{DynamicResource AboutStatSize}" />
-    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+    <Setter Property="LineHeight" Value="32" />
   </Style>
 
   <Style Selector="TextBlock.ShellTitle">
     <Setter Property="FontSize" Value="{DynamicResource ShellTitleSize}" />
     <Setter Property="FontWeight" Value="Bold" />
-  </Style>
-
-  <Style Selector="TextBlock.ShellStatusLabel">
-    <Setter Property="FontSize" Value="{DynamicResource ShellStatusLabelSize}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Opacity" Value="0.88" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
   <!-- ShadUI sets Small/Caption to Medium; CJK system fonts render Latin glyphs heavy at Medium. -->
@@ -65,4 +85,5 @@
   <Style Selector="TextBlock.Caption">
     <Setter Property="FontWeight" Value="Normal" />
   </Style>
+
 </Styles>

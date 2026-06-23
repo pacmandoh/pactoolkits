@@ -22,7 +22,7 @@
           Kind="Clock" />
         <TextBlock
           VerticalAlignment="Center"
-          Classes="SectionHint"
+          Classes="Caption Muted"
           Text="{Binding StaleHint, ElementName=Root}"
           TextWrapping="Wrap" />
       </StackPanel>

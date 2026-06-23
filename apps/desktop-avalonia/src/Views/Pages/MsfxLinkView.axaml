@@ -39,7 +39,7 @@
             VerticalAlignment="Center"
             Spacing="2">
             <TextBlock Classes="SectionTitle" Text="码上放心联调" />
-            <TextBlock Classes="SectionHint" Text="上游出库单与子码链路联调" />
+            <TextBlock Classes="Caption Muted" Text="上游出库单与子码链路联调" />
           </StackPanel>
 
           <StackPanel
@@ -101,8 +101,7 @@
                       Kind="Power" />
                     <TextBlock
                       Grid.Column="1"
-                      VerticalAlignment="Center"
-                      Opacity="0.82"
+                      VerticalAlignment="Center" Classes="Caption Muted"
                       Text="自动监控" />
                     <ToggleSwitch
                       Grid.Column="2"

@@ -34,7 +34,7 @@
         </Border>
         <StackPanel Grid.Column="1" Spacing="2">
           <TextBlock Classes="DialogTitle" Text="批量映射处理" />
-          <TextBlock Opacity="0.75" Text="先选分组，再映射或直接弃用任务" />
+          <TextBlock Classes="Caption Muted" Text="先选分组，再映射或直接弃用任务" />
         </StackPanel>
         <Button
           x:Name="ToggleSearchPanelButton"
@@ -90,7 +90,7 @@
               Grid.Column="1"
               Margin="8,0,0,0"
               VerticalAlignment="Center"
-              Classes="SectionHint"
+              Classes="Caption Muted"
               Text="映射状态" />
             <ComboBox
               x:Name="MapStatusBox"
@@ -101,7 +101,7 @@
               Grid.Column="3"
               Margin="8,0,0,0"
               VerticalAlignment="Center"
-              Classes="SectionHint"
+              Classes="Caption Muted"
               Text="码状态" />
             <ComboBox
               x:Name="CodeStatusBox"
@@ -229,7 +229,7 @@
                   Width="{DynamicResource IconSizeSmall}"
                   Height="{DynamicResource IconSizeSmall}"
                   Kind="Pill" />
-                <TextBlock Opacity="0.82" Text="药品名称" />
+                <TextBlock Classes="Caption Muted" Text="药品名称" />
               </StackPanel>
               <AutoCompleteBox
                 x:Name="DrugIdBox"
@@ -257,7 +257,7 @@
                   Width="{DynamicResource IconSizeSmall}"
                   Height="{DynamicResource IconSizeSmall}"
                   Kind="Scale" />
-                <TextBlock Opacity="0.82" Text="规格" />
+                <TextBlock Classes="Caption Muted" Text="规格" />
               </StackPanel>
               <Grid Grid.Row="1">
                 <ComboBox

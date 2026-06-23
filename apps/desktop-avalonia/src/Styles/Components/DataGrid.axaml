@@ -132,9 +132,6 @@
   </Style>
 
   <Style Selector="TextBlock.DgIndexCell">
-    <Setter Property="FontSize" Value="{DynamicResource DgIndexFontSize}" />
-    <Setter Property="FontWeight" Value="Normal" />
-    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
     <Setter Property="TextTrimming" Value="None" />
     <Setter Property="TextAlignment" Value="Center" />
   </Style>

@@ -50,11 +50,8 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="StackPanel.SidebarFunctionAreaText > TextBlock.SidebarFunctionAreaSubtitle">
-    <Setter Property="FontSize" Value="12" />
-    <Setter Property="FontWeight" Value="Normal" />
-    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
-    <Setter Property="LineHeight" Value="16" />
+  <Style Selector="StackPanel.SidebarFunctionAreaText > TextBlock.Small,                      Border.ShellConnectivityBanner TextBlock.Small,                      Border.ShellContentHeader TextBlock.Small">
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
   <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFunctionAreaMenuItem">
@@ -183,7 +180,7 @@
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 
-  <!-- TabItem header rows: transparent background so Spacing gaps stay clickable. -->
+  <!-- Tab strip chrome: align with SectionPanel via ShadUI SwitchBackgroundColor. -->
   <Style Selector="StackPanel.TabItemHeader">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Orientation" Value="Horizontal" />

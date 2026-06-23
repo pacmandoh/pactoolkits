@@ -191,8 +191,7 @@
             <WrapPanel
               Grid.Column="1"
               VerticalAlignment="Center"
-              ItemSpacing="{DynamicResource PageSectionSpacing}"
-              Opacity="{StaticResource SectionHintOpacity}">
+              ItemSpacing="{DynamicResource PageSectionSpacing}">
               <StackPanel
                 IsVisible="{Binding IsDetailMode}"
                 Orientation="Horizontal"
@@ -366,13 +365,11 @@
                   </ComboBox>
                   <TextBlock
                     VerticalAlignment="Center"
-                    IsVisible="{Binding IsSingleReassignScope}"
-                    Opacity="{StaticResource SectionHintOpacity}"
+                    IsVisible="{Binding IsSingleReassignScope}" Classes="Caption Muted"
                     Text="按当前选中库存行纠错" />
                   <TextBlock
                     VerticalAlignment="Center"
-                    IsVisible="{Binding IsFilterReassignScope}"
-                    Opacity="{StaticResource SectionHintOpacity}"
+                    IsVisible="{Binding IsFilterReassignScope}" Classes="Caption Muted"
                     Text="按顶部搜索关键字命中记录批量纠错" />
                 </StackPanel>
 
@@ -403,8 +400,7 @@
                     Width="{DynamicResource IconSizeCompact}"
                     Height="{DynamicResource IconSizeCompact}"
                     VerticalAlignment="Center"
-                    Kind="Pill"
-                    Opacity="{StaticResource SectionHintOpacity}" />
+                    Kind="Pill" Foreground="{DynamicResource MutedColor}" />
                   <AutoCompleteBox
                     x:Name="ReassignDrugBox"
                     Grid.Column="1"
@@ -432,8 +428,7 @@
                     Width="{DynamicResource IconSizeCompact}"
                     Height="{DynamicResource IconSizeCompact}"
                     VerticalAlignment="Center"
-                    Kind="SlidersHorizontal"
-                    Opacity="{StaticResource SectionHintOpacity}" />
+                    Kind="SlidersHorizontal" Foreground="{DynamicResource MutedColor}" />
                   <Grid Grid.Column="1">
                     <ComboBox
                       x:Name="ReassignSpecBox"
@@ -461,8 +456,7 @@
                     Width="{DynamicResource IconSizeCompact}"
                     Height="{DynamicResource IconSizeCompact}"
                     VerticalAlignment="Center"
-                    Kind="Hash"
-                    Opacity="{StaticResource SectionHintOpacity}" />
+                    Kind="Hash" Foreground="{DynamicResource MutedColor}" />
                   <TextBox
                     Grid.Column="1"
                     AcceptsReturn="False"
@@ -482,8 +476,7 @@
                     Width="{DynamicResource IconSizeCompact}"
                     Height="{DynamicResource IconSizeCompact}"
                     VerticalAlignment="Center"
-                    Kind="FilePenLine"
-                    Opacity="{StaticResource SectionHintOpacity}" />
+                    Kind="FilePenLine" Foreground="{DynamicResource MutedColor}" />
                   <TextBox
                     Grid.Column="1"
                     VerticalContentAlignment="Center"
@@ -497,8 +490,7 @@
 
               <TextBlock
                 Grid.Row="2"
-                IsVisible="{Binding HasReassignPreviewText}"
-                Opacity="{StaticResource SectionHintOpacity}"
+                IsVisible="{Binding HasReassignPreviewText}" Classes="Caption Muted"
                 Text="{Binding ReassignPreviewText}" />
 
               <controls:DeferredGridSlot

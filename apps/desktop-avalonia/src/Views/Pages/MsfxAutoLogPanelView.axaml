@@ -30,10 +30,7 @@
             Height="{DynamicResource IconSizeDefault}"
             Kind="TextSearch" />
           <TextBlock
-            VerticalAlignment="Center"
-            FontWeight="SemiBold"
-            Opacity="0.9"
-            Text="自动化运行审计日志" />
+            VerticalAlignment="Center" Classes="SectionTitle" Text="自动化运行审计日志" />
         </StackPanel>
         <StackPanel
           Grid.Column="2"
@@ -69,10 +66,7 @@
             Height="{DynamicResource IconSizeDefault}"
             Kind="{Binding AutoExpandedPanelIcon}" />
           <TextBlock
-            VerticalAlignment="Center"
-            FontWeight="SemiBold"
-            Opacity="0.9"
-            Text="{Binding AutoExpandedPanelTitle}" />
+            VerticalAlignment="Center" Classes="SectionTitle" Text="{Binding AutoExpandedPanelTitle}" />
         </StackPanel>
         <StackPanel
           Grid.Column="2"
