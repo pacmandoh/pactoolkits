@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
@@ -17,20 +19,62 @@ public partial class DrugIndexView : UserControl
     private static readonly string[] CopyFields = { "DrugId", "Spec" };
     private static readonly string[] ContextGridNames = { "DrugGrid" };
 
+    private readonly IClipboardService _clipboard;
+    private readonly PageGridMountScheduler _gridMount;
+    private DrugIndexViewModel? _vm;
+
     public DrugIndexView()
         : this(((global::Avalonia.Application.Current as App)?.Services.GetRequiredService<IClipboardService>())
                ?? throw new InvalidOperationException("IClipboardService not available. Ensure it is registered in App.Services."))
     {
     }
 
-    private readonly IClipboardService _clipboard;
-
     public DrugIndexView(IClipboardService clipboard)
     {
         _clipboard = clipboard;
+        _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
         AddHandler(KeyDownEvent, OnEditorAreaKeyDown, RoutingStrategies.Tunnel);
+        _gridMount.StartAfterFirstLayout();
+        DataContextChanged += OnDrugIndexDataContextChanged;
     }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        _gridMount.Cancel();
+        _vm?.PropertyChanged -= OnVmPropertyChanged;
+
+        _vm = null;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void OnDrugIndexDataContextChanged(object? sender, EventArgs e)
+    {
+        _vm?.PropertyChanged -= OnVmPropertyChanged;
+
+        _vm = DataContext as DrugIndexViewModel;
+        _vm?.PropertyChanged += OnVmPropertyChanged;
+        QueueDrugGridMount();
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DrugIndexViewModel.IsItemsEmpty))
+        {
+            QueueDrugGridMount();
+        }
+    }
+
+    private void QueueDrugGridMount()
+    {
+        if (_vm?.IsItemsEmpty == false && !DrugGridSlot.IsMounted)
+        {
+            _gridMount.RequestMount(DrugGridSlot, 0);
+        }
+    }
+
+    private DataGrid? FindDrugGrid()
+        => DataGridInteractionHelper.FindDeferredGrid(this, "DrugGrid");
 
     private void DrugIndexSearchBox_OnKeyUp(object? sender, KeyEventArgs e)
     {
@@ -49,8 +93,7 @@ public partial class DrugIndexView : UserControl
             return;
         }
 
-        var editorCard = this.FindControl<Control>("EditorCard");
-        if (editorCard is null)
+        if (this.FindControl<Control>("EditorCard") is not { } editorCard)
         {
             return;
         }
@@ -140,7 +183,7 @@ public partial class DrugIndexView : UserControl
             return;
         }
 
-        var grid = this.FindControl<DataGrid>("DrugGrid");
+        var grid = FindDrugGrid();
         grid?.SelectedItem = rowItem;
 
         if (DataContext is DrugIndexViewModel vm
@@ -163,7 +206,7 @@ public partial class DrugIndexView : UserControl
             return;
         }
 
-        var grid = this.FindControl<DataGrid>("DrugGrid");
+        var grid = FindDrugGrid();
         grid?.SelectedItem = rowItem;
 
         if (DataContext is DrugIndexViewModel vm
@@ -172,5 +215,4 @@ public partial class DrugIndexView : UserControl
             vm.ToggleNoSplitCommand.Execute(rowItem);
         }
     }
-
 }

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
@@ -7,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
@@ -44,7 +47,9 @@ public partial class DashboardView : UserControl
     };
 
     private bool _syncingSelection;
+    private bool _vmHooked;
     private readonly IClipboardService _clipboard;
+    private readonly PageGridMountScheduler _gridMount;
     private readonly Dictionary<string, List<object>> _selectionSnapshot = new(StringComparer.Ordinal);
     private string? _lastRightPressedGridName;
 
@@ -57,8 +62,156 @@ public partial class DashboardView : UserControl
     public DashboardView(IClipboardService clipboard)
     {
         _clipboard = clipboard;
+        _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
         AttachDrugFilter();
+        WireDeferredGridSlots();
+        _gridMount.StartAfterFirstLayout();
+        DataContextChanged += OnDashboardDataContextChanged;
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        _gridMount.Cancel();
+        if (DataContext is DashboardViewModel vm)
+        {
+            vm.PropertyChanged -= OnDashboardVmPropertyChanged;
+        }
+
+        _vmHooked = false;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void WireDeferredGridSlots()
+    {
+        WireOverviewSlot(TrendGridSlot);
+        WireOverviewSlot(RecentTxnGridSlot);
+        WireTargetSlot(EntryGridSlot);
+        WireTargetSlot(TxnDetailGridSlot);
+        WireTargetSlot(TxnTrendGridSlot);
+        WireTargetSlot(AbnormalGridSlot);
+    }
+
+    private void WireOverviewSlot(DeferredGridSlot slot)
+    {
+        slot.GridMounted += (_, grid) => grid.SelectionChanged += OnBrowsingGridSelectionChanged;
+    }
+
+    private void WireTargetSlot(DeferredGridSlot slot)
+    {
+        slot.GridMounted += (_, grid) =>
+        {
+            grid.SelectionChanged += OnBrowsingGridSelectionChanged;
+            grid.PointerPressed += OnBrowsingGridPointerPressed;
+        };
+    }
+
+    private void OnDashboardDataContextChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is DashboardViewModel vm)
+        {
+            if (!_vmHooked)
+            {
+                vm.PropertyChanged += OnDashboardVmPropertyChanged;
+                _vmHooked = true;
+            }
+
+            QueueTabGrids(vm);
+            TryQueueOverviewGrids(vm);
+        }
+    }
+
+    private void OnDashboardVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not DashboardViewModel vm)
+        {
+            return;
+        }
+
+        switch (e.PropertyName)
+        {
+            case nameof(DashboardViewModel.SelectedTabIndex):
+                QueueTabGrids(vm);
+                break;
+            case nameof(DashboardViewModel.IsTrendEmpty):
+                TryQueueOverviewGrids(vm);
+                break;
+            case nameof(DashboardViewModel.IsRecentTxnsEmpty):
+                TryQueueOverviewGrids(vm);
+                if (vm.IsTxnTab)
+                {
+                    QueueTabGrids(vm);
+                }
+
+                break;
+            case nameof(DashboardViewModel.IsEntryRecentEmpty):
+                if (vm.IsInputTab)
+                {
+                    QueueTabGrids(vm);
+                }
+
+                break;
+            case nameof(DashboardViewModel.IsTxnTrendEmpty):
+                if (vm.IsTxnTab)
+                {
+                    QueueTabGrids(vm);
+                }
+
+                break;
+            case nameof(DashboardViewModel.IsAbnormalEmpty):
+                if (vm.IsAbnormalTab)
+                {
+                    QueueTabGrids(vm);
+                }
+
+                break;
+        }
+    }
+
+    private void TryQueueOverviewGrids(DashboardViewModel vm)
+    {
+        if (!vm.IsTrendEmpty && !TrendGridSlot.IsMounted)
+        {
+            _gridMount.RequestMount(TrendGridSlot, 0);
+        }
+
+        if (vm.RecentTxnsOverview.Count > 0 && !RecentTxnGridSlot.IsMounted)
+        {
+            _gridMount.RequestMount(RecentTxnGridSlot, 1);
+        }
+    }
+
+    private void QueueTabGrids(DashboardViewModel vm)
+    {
+        switch (vm.SelectedTabIndex)
+        {
+            case 1:
+                if (!vm.IsEntryRecentEmpty && !EntryGridSlot.IsMounted)
+                {
+                    _gridMount.RequestMount(EntryGridSlot, 10);
+                }
+
+                break;
+            case 2:
+                if (!vm.IsRecentTxnsEmpty && !TxnDetailGridSlot.IsMounted)
+                {
+                    _gridMount.RequestMount(TxnDetailGridSlot, 10);
+                }
+
+                if (!vm.IsTxnTrendEmpty && !TxnTrendGridSlot.IsMounted)
+                {
+                    _gridMount.RequestMount(TxnTrendGridSlot, 11);
+                }
+
+                break;
+            case 3:
+                if (!vm.IsAbnormalEmpty && !AbnormalGridSlot.IsMounted)
+                {
+                    _gridMount.RequestMount(AbnormalGridSlot, 10);
+                }
+
+                break;
+        }
     }
 
     private void DrugBox_OnKeyDown(object? sender, KeyEventArgs e)
@@ -85,7 +238,7 @@ public partial class DashboardView : UserControl
                 return;
             }
 
-            if (DataContext is not PacToolkits.Desktop.Avalonia.ViewModels.Pages.DashboardViewModel vm)
+            if (DataContext is not DashboardViewModel vm)
             {
                 return;
             }
@@ -106,10 +259,10 @@ public partial class DashboardView : UserControl
             switch (activeGrid.Name)
             {
                 case "TrendGridOverview":
-                    await vm.HandleTrendRowSelectedAsync(selected as PacToolkits.Desktop.Avalonia.ViewModels.Pages.TrendDrugItem);
+                    await vm.HandleTrendRowSelectedAsync(selected as TrendDrugItem);
                     break;
                 case "RecentTxnGridOverview":
-                    await vm.HandleRecentTxnRowSelectedAsync(selected as PacToolkits.Desktop.Avalonia.ViewModels.Pages.TxnItem);
+                    await vm.HandleRecentTxnRowSelectedAsync(selected as TxnItem);
                     break;
             }
         }
@@ -121,7 +274,7 @@ public partial class DashboardView : UserControl
 
     private void AttachDrugFilter()
     {
-        if (this.FindControl<PlainAutoCompleteBox>("DrugBox") is not { } box)
+        if (this.FindControl<AutoCompleteBox>("DrugBox") is not { } box)
         {
             return;
         }
@@ -132,7 +285,7 @@ public partial class DashboardView : UserControl
 
     private void ApplyDrugFilterFromBox()
     {
-        if (DataContext is not PacToolkits.Desktop.Avalonia.ViewModels.Pages.DashboardViewModel vm)
+        if (DataContext is not DashboardViewModel vm)
         {
             return;
         }
@@ -234,12 +387,12 @@ public partial class DashboardView : UserControl
     {
         try
         {
-            if (DataContext is not PacToolkits.Desktop.Avalonia.ViewModels.Pages.DashboardViewModel vm)
+            if (DataContext is not DashboardViewModel vm)
             {
                 return;
             }
 
-            if (sender is not Border { DataContext: PacToolkits.Desktop.Avalonia.ViewModels.Pages.EntryRecentItem item })
+            if (sender is not Border { DataContext: EntryRecentItem item })
             {
                 return;
             }
@@ -253,7 +406,7 @@ public partial class DashboardView : UserControl
         }
     }
 
-    private void ClearBrowsingSelectionInUi(PacToolkits.Desktop.Avalonia.ViewModels.Pages.DashboardViewModel vm)
+    private void ClearBrowsingSelectionInUi(DashboardViewModel vm)
     {
         _syncingSelection = true;
         vm.SuppressRowSelectionActionScope(true);
@@ -277,7 +430,7 @@ public partial class DashboardView : UserControl
     {
         foreach (var name in BrowsingGridNames)
         {
-            if (this.FindControl<DataGrid>(name) is { } grid)
+            if (DataGridInteractionHelper.FindDeferredGrid(this, name) is { } grid)
             {
                 yield return grid;
             }
@@ -291,7 +444,7 @@ public partial class DashboardView : UserControl
         {
             HardClearGridSelection(grid);
 
-            if (DataContext is PacToolkits.Desktop.Avalonia.ViewModels.Pages.DashboardViewModel vm)
+            if (DataContext is DashboardViewModel vm)
             {
                 vm.SuppressRowSelectionActionScope(true);
                 try
@@ -331,13 +484,13 @@ public partial class DashboardView : UserControl
         {
             foreach (var name in TargetTabGridNames)
             {
-                if (this.FindControl<DataGrid>(name) is { } grid)
+                if (DataGridInteractionHelper.FindDeferredGrid(this, name) is { } grid)
                 {
                     HardClearGridSelection(grid);
                 }
             }
 
-            if (DataContext is PacToolkits.Desktop.Avalonia.ViewModels.Pages.DashboardViewModel vm)
+            if (DataContext is DashboardViewModel vm)
             {
                 vm.SuppressRowSelectionActionScope(true);
                 try

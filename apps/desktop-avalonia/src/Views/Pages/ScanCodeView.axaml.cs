@@ -1,35 +1,160 @@
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
-using global::Avalonia;
+using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using global::Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Controls;
+using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
 public partial class ScanCodeView : UserControl
 {
     private static readonly string[] BrowsingGridNames = { "AutoTaskGrid", "RecentRunGrid", "RetryQueueGrid" };
-    private bool _syncingSelection;
-    private bool _syncingScroll;
-    private ScrollViewer? _traceCodeInputScroll;
-    private ScrollViewer? _traceCodePreviewScroll;
+
+    private readonly PageGridMountScheduler _gridMount;
+    private ScanCodeViewModel? _vm;
+    private bool _autoFetchGridsWired;
 
     public ScanCodeView()
     {
+        _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
         AttachDrugFilter();
+        AutoFetchTabHost.ContentLoaded += OnAutoFetchTabContentLoaded;
+        _gridMount.StartAfterFirstLayout();
+        DataContextChanged += OnScanCodeDataContextChanged;
         AttachedToVisualTree += OnAttachedToVisualTree;
         DetachedFromVisualTree += OnDetachedFromVisualTree;
+    }
+
+    private void OnScanCodeDataContextChanged(object? sender, EventArgs e)
+    {
+        _vm?.PropertyChanged -= OnVmPropertyChanged;
+
+        _vm = DataContext as ScanCodeViewModel;
+        _vm?.PropertyChanged += OnVmPropertyChanged;
+        TryQueueAutoFetchGrids();
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(ScanCodeViewModel.IsAutoFetchTab):
+                TryQueueAutoFetchGrids();
+                break;
+            case nameof(ScanCodeViewModel.IsAutoTasksEmpty):
+                TryQueueAutoFetchGrid("AutoTaskGridSlot", 0);
+                break;
+            case nameof(ScanCodeViewModel.IsRecentRunsEmpty):
+                TryQueueAutoFetchGrid("RecentRunGridSlot", 1);
+                break;
+            case nameof(ScanCodeViewModel.IsRetryQueueEmpty):
+                TryQueueAutoFetchGrid("RetryQueueGridSlot", 2);
+                break;
+        }
+    }
+
+    private void OnAutoFetchTabContentLoaded(object? sender, Control root)
+    {
+        WireAutoFetchGridSlots(root);
+        TryQueueAutoFetchGrids();
+    }
+
+    private void WireAutoFetchGridSlots(Control root)
+    {
+        if (_autoFetchGridsWired)
+        {
+            return;
+        }
+
+        _autoFetchGridsWired = true;
+        WireBrowsingSlot(root, "AutoTaskGridSlot");
+        WireBrowsingSlot(root, "RecentRunGridSlot");
+        WireBrowsingSlot(root, "RetryQueueGridSlot");
+    }
+
+    private void WireBrowsingSlot(Control root, string slotName)
+    {
+        if (root.FindControl<DeferredGridSlot>(slotName) is not { } slot)
+        {
+            return;
+        }
+
+        slot.GridMounted += (_, grid) => grid.SelectionChanged += OnBrowsingGridSelectionChanged;
+    }
+
+    private void TryQueueAutoFetchGrids()
+    {
+        if (_vm?.IsAutoFetchTab != true || AutoFetchTabHost.Content is not Control root)
+        {
+            return;
+        }
+
+        WireAutoFetchGridSlots(root);
+        TryQueueAutoFetchGrid("AutoTaskGridSlot", 0);
+        TryQueueAutoFetchGrid("RecentRunGridSlot", 1);
+        TryQueueAutoFetchGrid("RetryQueueGridSlot", 2);
+    }
+
+    private void TryQueueAutoFetchGrid(string slotName, int priority)
+    {
+        if (_vm?.IsAutoFetchTab != true || AutoFetchTabHost.Content is not Control root)
+        {
+            return;
+        }
+
+        if (root.FindControl<DeferredGridSlot>(slotName) is not { } slot || slot.IsMounted)
+        {
+            return;
+        }
+
+        if (!ShouldMountAutoFetchGrid(slotName))
+        {
+            return;
+        }
+
+        _gridMount.RequestMount(slot, priority);
+    }
+
+    private bool ShouldMountAutoFetchGrid(string slotName)
+    {
+        if (_vm is null)
+        {
+            return false;
+        }
+
+        return slotName switch
+        {
+            "AutoTaskGridSlot" => !_vm.IsAutoTasksEmpty,
+            "RecentRunGridSlot" => !_vm.IsRecentRunsEmpty,
+            "RetryQueueGridSlot" => !_vm.IsRetryQueueEmpty,
+            _ => false
+        };
     }
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
         => AttachTraceCodeScrollSync();
 
     private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
-        => DetachTraceCodeScrollSync();
+    {
+        _gridMount.Cancel();
+        _vm?.PropertyChanged -= OnVmPropertyChanged;
+
+        _vm = null;
+        _autoFetchGridsWired = false;
+        DetachTraceCodeScrollSync();
+    }
+
+    private bool _syncingSelection;
+    private bool _syncingScroll;
+    private ScrollViewer? _traceCodeInputScroll;
+    private ScrollViewer? _traceCodePreviewScroll;
 
     private void AttachTraceCodeScrollSync()
     {
@@ -123,7 +248,7 @@ public partial class ScanCodeView : UserControl
 
     private void ApplyDrugFilterFromBox()
     {
-        if (DataContext is not PacToolkits.Desktop.Avalonia.ViewModels.Pages.ScanCodeViewModel vm)
+        if (DataContext is not ScanCodeViewModel vm)
         {
             return;
         }
@@ -137,7 +262,7 @@ public partial class ScanCodeView : UserControl
 
     private void CodeEditor_OnGotFocus(object? sender, FocusChangedEventArgs e)
     {
-        if (DataContext is not PacToolkits.Desktop.Avalonia.ViewModels.Pages.ScanCodeViewModel vm)
+        if (DataContext is not ScanCodeViewModel vm)
         {
             return;
         }
@@ -151,7 +276,7 @@ public partial class ScanCodeView : UserControl
 
     private void TraceCodeInputBlocked_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (DataContext is not PacToolkits.Desktop.Avalonia.ViewModels.Pages.ScanCodeViewModel vm)
+        if (DataContext is not ScanCodeViewModel vm)
         {
             return;
         }
@@ -193,7 +318,7 @@ public partial class ScanCodeView : UserControl
     {
         foreach (var name in BrowsingGridNames)
         {
-            if (this.FindControl<DataGrid>(name) is { } grid)
+            if (DataGridInteractionHelper.FindDeferredGrid(this, name) is { } grid)
             {
                 yield return grid;
             }
@@ -202,7 +327,7 @@ public partial class ScanCodeView : UserControl
 
     private void AttachDrugFilter()
     {
-        if (this.FindControl<PlainAutoCompleteBox>("DrugBox") is not { } box)
+        if (this.FindControl<AutoCompleteBox>("DrugBox") is not { } box)
         {
             return;
         }
