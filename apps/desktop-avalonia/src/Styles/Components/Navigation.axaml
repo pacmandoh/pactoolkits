@@ -119,7 +119,6 @@
 
   <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked)">
     <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
-    <Setter Property="FontWeight" Value="Normal" />
   </Style>
 
   <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked) icons|AppIcon">

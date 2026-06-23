@@ -11,10 +11,12 @@
     Title="{Binding Title, ElementName=Root}">
     <StackPanel Spacing="{DynamicResource KpiTileInnerSpacing}">
       <StackPanel
+        VerticalAlignment="Center"
         Orientation="Horizontal"
         Spacing="{DynamicResource KpiTileValueBadgeGap}">
         <TextBlock
           x:Name="ValueText"
+          VerticalAlignment="Center"
           Classes="h3"
           Text="{Binding Value, ElementName=Root}" />
         <controls:StatusPill
@@ -23,7 +25,8 @@
           PillPadding="6,4"
           ShowBorder="False"
           Text="{Binding Pct, ElementName=Root, StringFormat={}{0:F0}%}"
-          TextSize="12" />
+          TextSize="12"
+          TextWeight="Medium" />
       </StackPanel>
       <TextBlock
         Classes="Caption Muted"

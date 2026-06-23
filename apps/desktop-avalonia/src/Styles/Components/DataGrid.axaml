@@ -15,7 +15,7 @@
     <Setter Property="CanUserResizeColumns" Value="True" />
     <Setter Property="GridLinesVisibility" Value="Horizontal" />
     <Setter Property="HeadersVisibility" Value="Column" />
-    <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
     <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
@@ -40,7 +40,7 @@
               </Border>
               <Grid
                 Grid.Row="1"
-                Margin="0,0,0,-2"
+                Margin="0"
                 ColumnDefinitions="*,Auto"
                 RowDefinitions="*,Auto">
                 <DataGridRowsPresenter
@@ -74,6 +74,16 @@
 
   <Style Selector="DataGrid.SectionGrid /template/ Border#PART_HeaderBackground:pointerover">
     <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+  </Style>
+
+  <Style Selector="DataGrid.SectionGrid /template/ ScrollBar#PART_HorizontalScrollbar">
+    <Setter Property="Height" Value="0" />
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+
+  <Style Selector="DataGrid.SectionGrid /template/ Rectangle#PART_FrozenColumnScrollBarSpacer">
+    <Setter Property="Height" Value="0" />
+    <Setter Property="IsVisible" Value="False" />
   </Style>
 
   <Style Selector="DataGrid.SectionGrid.Headerless">

@@ -4,31 +4,14 @@ using System.ComponentModel;
 using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
-using global::Avalonia.Interactivity;
-using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Controls;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
 public partial class DashboardView : UserControl
 {
-    private static readonly string[] CopyFields =
-    {
-        "Title", "Detail", "DrugId", "Spec", "Time", "Qty", "ValueText", "SourceText", "Rank", "Message"
-    };
-
-    private static readonly string[] ContextGridNames =
-    {
-        "TrendGridOverview",
-        "RecentTxnGridOverview",
-        "EntryRecentGridInputTab",
-        "TxnDetailGrid",
-        "TxnTrendGrid",
-        "AbnormalGrid"
-    };
     private static readonly string[] BrowsingGridNames =
     {
         "TrendGridOverview",
@@ -38,30 +21,13 @@ public partial class DashboardView : UserControl
         "TxnTrendGrid",
         "AbnormalGrid"
     };
-    private static readonly string[] TargetTabGridNames =
-    {
-        "EntryRecentGridInputTab",
-        "TxnDetailGrid",
-        "TxnTrendGrid",
-        "AbnormalGrid"
-    };
 
     private bool _syncingSelection;
     private bool _vmHooked;
-    private readonly IClipboardService _clipboard;
     private readonly PageGridMountScheduler _gridMount;
-    private readonly Dictionary<string, List<object>> _selectionSnapshot = new(StringComparer.Ordinal);
-    private string? _lastRightPressedGridName;
 
     public DashboardView()
-        : this(((global::Avalonia.Application.Current as App)?.Services.GetRequiredService<IClipboardService>())
-               ?? throw new InvalidOperationException("IClipboardService not available. Ensure it is registered in App.Services."))
     {
-    }
-
-    public DashboardView(IClipboardService clipboard)
-    {
-        _clipboard = clipboard;
         _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
         AttachDrugFilter();
@@ -86,6 +52,7 @@ public partial class DashboardView : UserControl
     {
         WireOverviewSlot(TrendGridSlot);
         WireOverviewSlot(RecentTxnGridSlot);
+        WireOverviewSlot(TopClientsGridSlot);
         WireTargetSlot(EntryGridSlot);
         WireTargetSlot(TxnDetailGridSlot);
         WireTargetSlot(TxnTrendGridSlot);
@@ -99,11 +66,7 @@ public partial class DashboardView : UserControl
 
     private void WireTargetSlot(DeferredGridSlot slot)
     {
-        slot.GridMounted += (_, grid) =>
-        {
-            grid.SelectionChanged += OnBrowsingGridSelectionChanged;
-            grid.PointerPressed += OnBrowsingGridPointerPressed;
-        };
+        slot.GridMounted += (_, grid) => grid.SelectionChanged += OnBrowsingGridSelectionChanged;
     }
 
     private void OnDashboardDataContextChanged(object? sender, EventArgs e)
@@ -118,6 +81,7 @@ public partial class DashboardView : UserControl
 
             QueueTabGrids(vm);
             TryQueueOverviewGrids(vm);
+            EnsureTrendChart(vm);
         }
     }
 
@@ -136,6 +100,9 @@ public partial class DashboardView : UserControl
             case nameof(DashboardViewModel.IsTrendEmpty):
                 TryQueueOverviewGrids(vm);
                 break;
+            case nameof(DashboardViewModel.IsTrendChartVisible):
+                EnsureTrendChart(vm);
+                break;
             case nameof(DashboardViewModel.IsRecentTxnsEmpty):
                 TryQueueOverviewGrids(vm);
                 if (vm.IsTxnTab)
@@ -143,6 +110,9 @@ public partial class DashboardView : UserControl
                     QueueTabGrids(vm);
                 }
 
+                break;
+            case nameof(DashboardViewModel.IsTopClientsEmpty):
+                TryQueueOverviewGrids(vm);
                 break;
             case nameof(DashboardViewModel.IsEntryRecentEmpty):
                 if (vm.IsInputTab)
@@ -179,6 +149,24 @@ public partial class DashboardView : UserControl
         {
             _gridMount.RequestMount(RecentTxnGridSlot, 1);
         }
+
+        if (!vm.IsTopClientsEmpty && !TopClientsGridSlot.IsMounted)
+        {
+            _gridMount.RequestMount(TopClientsGridSlot, 2);
+        }
+    }
+
+    private void EnsureTrendChart(DashboardViewModel vm)
+    {
+        if (!vm.IsTrendChartVisible || TrendChartHost.Content is DrugTrendChart)
+        {
+            return;
+        }
+
+        TrendChartHost.Content = new DrugTrendChart
+        {
+            ItemsSource = vm.DrugTrend
+        };
     }
 
     private void QueueTabGrids(DashboardViewModel vm)
@@ -243,8 +231,6 @@ public partial class DashboardView : UserControl
                 return;
             }
 
-            CaptureSelectionSnapshot(activeGrid);
-
             if (!vm.IsOverviewTab)
             {
                 return;
@@ -256,6 +242,11 @@ public partial class DashboardView : UserControl
                 return;
             }
 
+            // Consume the click before the handler reloads this grid. Otherwise DataGrid
+            // carries the old current-row index into the new collection and invokes the
+            // action again for the replacement row at that index.
+            ClearBrowsingSelectionInUi(vm);
+
             switch (activeGrid.Name)
             {
                 case "TrendGridOverview":
@@ -263,6 +254,9 @@ public partial class DashboardView : UserControl
                     break;
                 case "RecentTxnGridOverview":
                     await vm.HandleRecentTxnRowSelectedAsync(selected as TxnItem);
+                    break;
+                case "TopClientsGridOverview":
+                    await vm.HandleTopClientRowSelectedAsync(selected as TopClientItem);
                     break;
             }
         }
@@ -297,92 +291,6 @@ public partial class DashboardView : UserControl
         }
     }
 
-    public async void OnGridRowCopy(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not MenuItem mi)
-        {
-            return;
-        }
-
-        await GridContextMenuActions.CopySafeAsync(
-            _clipboard,
-            this,
-            mi,
-            mi.CommandParameter,
-            ContextGridNames,
-            CopyFields,
-            "DashboardView",
-            "dashboard.context_copy.fail",
-            "Failed copying dashboard rows",
-            (grid, selected) =>
-            {
-                if (selected.Count <= 1 &&
-                    grid.Name is { Length: > 0 } key &&
-                    _selectionSnapshot.TryGetValue(key, out var snap) &&
-                    snap.Count > 1)
-                {
-                    return snap;
-                }
-
-                return selected;
-            });
-    }
-
-    public void OnGridSelectAll(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not MenuItem mi)
-        {
-            return;
-        }
-
-        GridContextMenuActions.SelectAllSafe(
-            this,
-            mi,
-            mi.CommandParameter,
-            ContextGridNames,
-            "DashboardView",
-            "dashboard.context_select_all.fail",
-            "Failed selecting all rows",
-            CaptureSelectionSnapshot);
-    }
-
-    private void OnBrowsingGridPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (sender is not DataGrid grid || string.IsNullOrWhiteSpace(grid.Name))
-        {
-            return;
-        }
-
-        if (DataGridInteractionHelper.IsRightClick(e, grid))
-        {
-            _lastRightPressedGridName = grid.Name;
-        }
-    }
-
-    private void CaptureSelectionSnapshot(DataGrid grid)
-    {
-        if (string.IsNullOrWhiteSpace(grid.Name))
-        {
-            return;
-        }
-
-        var name = grid.Name!;
-        var selected = DataGridInteractionHelper.ReadSelectedItems(grid);
-
-        if (selected.Count == 0)
-        {
-            _selectionSnapshot.Remove(name);
-            return;
-        }
-
-        if (selected.Count == 1 && string.Equals(_lastRightPressedGridName, name, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        _selectionSnapshot[name] = selected;
-    }
-
     private async void OnEntryRecentRowPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         try
@@ -414,7 +322,7 @@ public partial class DashboardView : UserControl
         {
             foreach (var grid in GetBrowsingGrids())
             {
-                grid.SelectedItem = null;
+                HardClearGridSelection(grid);
             }
 
             vm.ClearBrowsingSelections();
@@ -434,81 +342,6 @@ public partial class DashboardView : UserControl
             {
                 yield return grid;
             }
-        }
-    }
-
-    private void ClearGridSelection(DataGrid grid)
-    {
-        _syncingSelection = true;
-        try
-        {
-            HardClearGridSelection(grid);
-
-            if (DataContext is DashboardViewModel vm)
-            {
-                vm.SuppressRowSelectionActionScope(true);
-                try
-                {
-                    switch (grid.Name)
-                    {
-                        case "EntryRecentGridInputTab":
-                            vm.SelectedEntryRecent = null;
-                            break;
-                        case "TxnDetailGrid":
-                            vm.SelectedTxn = null;
-                            break;
-                        case "TxnTrendGrid":
-                            vm.SelectedTrendItem = null;
-                            break;
-                        case "AbnormalGrid":
-                            vm.SelectedAbnormal = null;
-                            break;
-                    }
-                }
-                finally
-                {
-                    vm.SuppressRowSelectionActionScope(false);
-                }
-            }
-        }
-        finally
-        {
-            _syncingSelection = false;
-        }
-    }
-
-    private void ClearAllTargetTabGridSelections()
-    {
-        _syncingSelection = true;
-        try
-        {
-            foreach (var name in TargetTabGridNames)
-            {
-                if (DataGridInteractionHelper.FindDeferredGrid(this, name) is { } grid)
-                {
-                    HardClearGridSelection(grid);
-                }
-            }
-
-            if (DataContext is DashboardViewModel vm)
-            {
-                vm.SuppressRowSelectionActionScope(true);
-                try
-                {
-                    vm.SelectedEntryRecent = null;
-                    vm.SelectedTxn = null;
-                    vm.SelectedTrendItem = null;
-                    vm.SelectedAbnormal = null;
-                }
-                finally
-                {
-                    vm.SuppressRowSelectionActionScope(false);
-                }
-            }
-        }
-        finally
-        {
-            _syncingSelection = false;
         }
     }
 

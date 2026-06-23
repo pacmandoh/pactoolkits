@@ -1,6 +1,8 @@
 using System;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
@@ -41,9 +43,16 @@ public partial class KpiTile : UserControl
     public static readonly StyledProperty<IBrush?> ValueForegroundProperty =
         AvaloniaProperty.Register<KpiTile, IBrush?>(nameof(ValueForeground));
 
+    public static readonly StyledProperty<ICommand?> CommandProperty =
+        AvaloniaProperty.Register<KpiTile, ICommand?>(nameof(Command));
+
+    public static readonly StyledProperty<object?> CommandParameterProperty =
+        AvaloniaProperty.Register<KpiTile, object?>(nameof(CommandParameter));
+
     public KpiTile()
     {
         InitializeComponent();
+        Focusable = true;
     }
 
     static KpiTile()
@@ -105,6 +114,57 @@ public partial class KpiTile : UserControl
     {
         get => GetValue(ValueForegroundProperty);
         set => SetValue(ValueForegroundProperty, value);
+    }
+
+    public ICommand? Command
+    {
+        get => GetValue(CommandProperty);
+        set => SetValue(CommandProperty, value);
+    }
+
+    public object? CommandParameter
+    {
+        get => GetValue(CommandParameterProperty);
+        set => SetValue(CommandParameterProperty, value);
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        if (e.Handled || e.InitialPressMouseButton != MouseButton.Left)
+        {
+            return;
+        }
+
+        var point = e.GetPosition(this);
+        if (point.X < 0 || point.Y < 0 || point.X > Bounds.Width || point.Y > Bounds.Height)
+        {
+            return;
+        }
+
+        ExecuteCommand();
+        e.Handled = true;
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Handled || e.Key is not (Key.Enter or Key.Space))
+        {
+            return;
+        }
+
+        ExecuteCommand();
+        e.Handled = true;
+    }
+
+    private void ExecuteCommand()
+    {
+        var command = Command;
+        if (command?.CanExecute(CommandParameter) == true)
+        {
+            command.Execute(CommandParameter);
+        }
     }
 
     private void UpdatePctPill()

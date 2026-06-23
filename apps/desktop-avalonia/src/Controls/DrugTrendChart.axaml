@@ -1,0 +1,13 @@
+<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.DrugTrendChart"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.Avalonia;assembly=LiveChartsCore.SkiaSharpView.Avalonia"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <lvc:CartesianChart
+    x:Name="Chart"
+    MinHeight="320"
+    HorizontalAlignment="Stretch"
+    VerticalAlignment="Stretch"
+    Margin="12,8,12,12"
+    TooltipTextSize="14" />
+</UserControl>

@@ -50,6 +50,9 @@ public partial class DataGridPager : UserControl
     public static readonly StyledProperty<Thickness> PagerPaddingProperty =
         AvaloniaProperty.Register<DataGridPager, Thickness>(nameof(PagerPadding), new Thickness(0, 4, 0, 0));
 
+    public static readonly StyledProperty<double> HorizontalInsetProperty =
+        AvaloniaProperty.Register<DataGridPager, double>(nameof(HorizontalInset));
+
     public static readonly StyledProperty<ICommand?> FirstPageCommandProperty =
         AvaloniaProperty.Register<DataGridPager, ICommand?>(nameof(FirstPageCommand));
 
@@ -186,6 +189,12 @@ public partial class DataGridPager : UserControl
         set => SetValue(PagerPaddingProperty, value);
     }
 
+    public double HorizontalInset
+    {
+        get => GetValue(HorizontalInsetProperty);
+        set => SetValue(HorizontalInsetProperty, value);
+    }
+
     public ICommand? FirstPageCommand
     {
         get => GetValue(FirstPageCommandProperty);
@@ -277,7 +286,8 @@ public partial class DataGridPager : UserControl
             RefreshDerivedState();
         }
 
-        if (change.Property == PlacementProperty)
+        if (change.Property == PlacementProperty
+            || change.Property == HorizontalInsetProperty)
         {
             ApplyPlacementVisuals();
         }
@@ -304,9 +314,12 @@ public partial class DataGridPager : UserControl
     private void ApplyPlacementVisuals()
     {
         var edge = GetPagerEdgeSpacing();
+        var inset = HorizontalInset;
         var isTop = Placement == DataGridPagerPlacement.Top;
-        PagerPadding = isTop ? new Thickness(0, 0, 0, edge * 2) : new Thickness(0, edge, 0, 0);
-        PagerChrome.BorderThickness = isTop ? new Thickness(0, 0, 0, 1) : new Thickness(0, 1, 0, 0);
+        PagerPadding = isTop
+            ? new Thickness(inset, 0, inset, edge * 2)
+            : new Thickness(inset, edge, inset, edge);
+        PagerChrome.BorderThickness = isTop ? new Thickness(0, 0, 0, 1) : new Thickness(0);
         Classes.Set("Top", isTop);
         Classes.Set("Bottom", !isTop);
     }

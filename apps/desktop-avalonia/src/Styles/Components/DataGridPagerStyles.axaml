@@ -22,4 +22,9 @@
     <Setter Property="MinHeight" Value="{DynamicResource PagerNavButtonSize}" />
     <Setter Property="Padding" Value="0" />
   </Style>
+
+  <!-- Align pager chrome with SectionPanel body padding when inner content is flush (FlushBody). -->
+  <Style Selector="controls|DataGridPager.SectionPanelBodyInset">
+    <Setter Property="HorizontalInset" Value="{DynamicResource SectionPanelBodyHorizontalInset}" />
+  </Style>
 </Styles>

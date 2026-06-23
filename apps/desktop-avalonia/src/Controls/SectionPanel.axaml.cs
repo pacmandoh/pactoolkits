@@ -6,6 +6,9 @@ namespace PacToolkits.Desktop.Avalonia.Controls;
 
 public class SectionPanel : ContentControl
 {
+    private bool _hasHeaderIcon;
+    private bool _showAccentDot = true;
+
     public static readonly StyledProperty<string?> TitleProperty =
         AvaloniaProperty.Register<SectionPanel, string?>(nameof(Title));
 
@@ -15,34 +18,39 @@ public class SectionPanel : ContentControl
     public static readonly StyledProperty<IBrush?> AccentBrushProperty =
         AvaloniaProperty.Register<SectionPanel, IBrush?>(nameof(AccentBrush));
 
+    public static readonly StyledProperty<string?> HeaderIconProperty =
+        AvaloniaProperty.Register<SectionPanel, string?>(nameof(HeaderIcon));
+
     public static readonly StyledProperty<object?> HeaderContentProperty =
         AvaloniaProperty.Register<SectionPanel, object?>(nameof(HeaderContent));
 
     public static readonly StyledProperty<bool> ShowMenuIconProperty =
         AvaloniaProperty.Register<SectionPanel, bool>(nameof(ShowMenuIcon));
 
-    public static readonly StyledProperty<string?> FooterTextProperty =
-        AvaloniaProperty.Register<SectionPanel, string?>(nameof(FooterText));
-
     public static readonly DirectProperty<SectionPanel, bool> HasHeaderHintProperty =
         AvaloniaProperty.RegisterDirect<SectionPanel, bool>(
             nameof(HasHeaderHint),
             panel => panel.HasHeaderHint);
-
-    public static readonly DirectProperty<SectionPanel, bool> HasFooterProperty =
-        AvaloniaProperty.RegisterDirect<SectionPanel, bool>(
-            nameof(HasFooter),
-            panel => panel.HasFooter);
 
     public static readonly DirectProperty<SectionPanel, bool> ShowDefaultMenuIconProperty =
         AvaloniaProperty.RegisterDirect<SectionPanel, bool>(
             nameof(ShowDefaultMenuIcon),
             panel => panel.ShowDefaultMenuIcon);
 
+    public static readonly DirectProperty<SectionPanel, bool> HasHeaderIconProperty =
+        AvaloniaProperty.RegisterDirect<SectionPanel, bool>(
+            nameof(HasHeaderIcon),
+            panel => panel.HasHeaderIcon);
+
+    public static readonly DirectProperty<SectionPanel, bool> ShowAccentDotProperty =
+        AvaloniaProperty.RegisterDirect<SectionPanel, bool>(
+            nameof(ShowAccentDot),
+            panel => panel.ShowAccentDot);
+
     static SectionPanel()
     {
         HeaderHintProperty.Changed.AddClassHandler<SectionPanel>((panel, _) => panel.UpdateHeaderHintState());
-        FooterTextProperty.Changed.AddClassHandler<SectionPanel>((panel, _) => panel.UpdateFooterState());
+        HeaderIconProperty.Changed.AddClassHandler<SectionPanel>((panel, _) => panel.UpdateHeaderMarkerState());
         ShowMenuIconProperty.Changed.AddClassHandler<SectionPanel>((panel, _) => panel.UpdateMenuIconState());
         HeaderContentProperty.Changed.AddClassHandler<SectionPanel>((panel, _) => panel.UpdateMenuIconState());
     }
@@ -65,6 +73,12 @@ public class SectionPanel : ContentControl
         set => SetValue(AccentBrushProperty, value);
     }
 
+    public string? HeaderIcon
+    {
+        get => GetValue(HeaderIconProperty);
+        set => SetValue(HeaderIconProperty, value);
+    }
+
     public object? HeaderContent
     {
         get => GetValue(HeaderContentProperty);
@@ -77,24 +91,24 @@ public class SectionPanel : ContentControl
         set => SetValue(ShowMenuIconProperty, value);
     }
 
-    public string? FooterText
-    {
-        get => GetValue(FooterTextProperty);
-        set => SetValue(FooterTextProperty, value);
-    }
-
     public bool HasHeaderHint => !string.IsNullOrWhiteSpace(HeaderHint);
 
-    public bool HasFooter => !string.IsNullOrWhiteSpace(FooterText);
-
     public bool ShowDefaultMenuIcon => ShowMenuIcon && HeaderContent is null;
+
+    public bool HasHeaderIcon => _hasHeaderIcon;
+
+    public bool ShowAccentDot => _showAccentDot;
 
     private void UpdateHeaderHintState()
         => RaisePropertyChanged(HasHeaderHintProperty, false, HasHeaderHint);
 
-    private void UpdateFooterState()
-        => RaisePropertyChanged(HasFooterProperty, false, HasFooter);
-
     private void UpdateMenuIconState()
         => RaisePropertyChanged(ShowDefaultMenuIconProperty, false, ShowDefaultMenuIcon);
+
+    private void UpdateHeaderMarkerState()
+    {
+        var hasHeaderIcon = !string.IsNullOrWhiteSpace(HeaderIcon);
+        SetAndRaise(HasHeaderIconProperty, ref _hasHeaderIcon, hasHeaderIcon);
+        SetAndRaise(ShowAccentDotProperty, ref _showAccentDot, !hasHeaderIcon);
+    }
 }

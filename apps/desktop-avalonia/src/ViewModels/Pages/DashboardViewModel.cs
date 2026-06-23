@@ -40,6 +40,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     private readonly PageNavigationService _nav;
     private readonly InventoryOverviewViewModel _inventoryOverview;
     private bool _suppressRowSelectionAction;
+    private int _specLoadGeneration;
     private readonly RollingDateRangeController _dateRangeController;
 
     [ObservableProperty] private int _selectedTabIndex;
@@ -107,6 +108,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     public ObservableCollection<OptionItem> DrugOptions { get; } = new();
     public ObservableCollection<OptionItem> SpecOptions { get; } = new();
+    private IReadOnlyList<OptionItem> _drugCatalog = [];
 
     private static readonly OptionItem AllSpec = new("", "全部规格");
 
@@ -120,6 +122,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     partial void OnDrugTextChanged(string? value)
     {
         ClearDrugSpecFilterCommand.NotifyCanExecuteChanged();
+        RefreshDrugOptionsOrder(value);
 
         var drug = NormalizeInput(value);
         if (string.IsNullOrWhiteSpace(drug))
@@ -136,6 +139,19 @@ public sealed partial class DashboardViewModel : AppPageBase
 
         IsDrugSuggestOpen = true;
 
+    }
+
+    private void RefreshDrugOptionsOrder(string? searchText)
+    {
+        if (_drugCatalog.Count == 0)
+        {
+            return;
+        }
+
+        using (SuppressReload())
+        {
+            DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, searchText);
+        }
     }
 
     partial void OnSelectedSpecChanged(OptionItem value)
@@ -165,6 +181,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                 using (SuppressReload())
                 {
                     DrugOptions.Clear();
+                    _drugCatalog = [];
                     IsDrugSuggestOpen = false;
                     EnsureAllSpecOnly();
                 }
@@ -178,7 +195,8 @@ public sealed partial class DashboardViewModel : AppPageBase
         {
             using (SuppressReload())
             {
-                OptionCollectionHelper.Replace(DrugOptions, list, StringComparison.Ordinal);
+                _drugCatalog = list;
+                DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
 
                 if (SpecOptions.Count == 0)
                 {
@@ -190,6 +208,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     private async Task ReloadSpecsAsync(string drug)
     {
+        var generation = Interlocked.Increment(ref _specLoadGeneration);
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
@@ -204,6 +223,11 @@ public sealed partial class DashboardViewModel : AppPageBase
 
             await RunOnUiAsync(() =>
             {
+                if (generation != _specLoadGeneration)
+                {
+                    return;
+                }
+
                 using (SuppressReload())
                 {
                     var prevRaw = SelectedSpec.Raw;
@@ -239,6 +263,15 @@ public sealed partial class DashboardViewModel : AppPageBase
     public ObservableCollection<TrendDrugItem> DrugTrend { get; } = new();
     public ObservableCollection<TrendDrugItem> TxnTrendRows { get; } = new();
     [ObservableProperty] private TrendDrugItem? _selectedTrendItem;
+    [ObservableProperty] private bool _isTrendChartVisible;
+    public string TrendViewToggleText => IsTrendChartVisible ? "数据框" : "图表";
+    public string TrendViewToggleIcon => IsTrendChartVisible ? "Table2" : "ChartNoAxesCombined";
+
+    partial void OnIsTrendChartVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(TrendViewToggleText));
+        OnPropertyChanged(nameof(TrendViewToggleIcon));
+    }
     [ObservableProperty] private TxnItem? _selectedTxn;
     [ObservableProperty] private EntryRecentItem? _selectedEntryRecent;
     [ObservableProperty] private AbnormalItem? _selectedAbnormal;
@@ -384,6 +417,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         using (SuppressReload())
         {
             DrugOptions.Clear();
+            _drugCatalog = [];
             IsDrugSuggestOpen = false;
             DrugText = null;
             EnsureAllSpecOnly();
@@ -461,6 +495,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         Clients.Add(AllClients);
 
         DrugOptions.Clear();
+        _drugCatalog = [];
 
         SpecOptions.Clear();
         SpecOptions.Add(AllSpec);
@@ -768,11 +803,7 @@ public sealed partial class DashboardViewModel : AppPageBase
             return;
         }
 
-        var parsed = DashboardDrugSpecParser.TryParseFromTxnTitle(item.Title);
-        if (parsed is not null)
-        {
-            await ApplyDrugSpecFilterAndReloadAsync(parsed.Value.DrugId, parsed.Value.Spec);
-        }
+        await ApplyDrugSpecFilterAndReloadAsync(item.DrugId, item.Spec);
 
         using (SuppressReload())
         {
@@ -1057,6 +1088,11 @@ public sealed partial class DashboardViewModel : AppPageBase
         else
         {
             await ReloadSpecsAsync(drug);
+            await RunOnUiAsync(() =>
+            {
+                using var _ = SuppressReload();
+                SelectedSpec = AllSpec;
+            }, DispatcherPriority.Background);
         }
 
         await ReloadNow();
@@ -1218,7 +1254,8 @@ public sealed partial class DashboardViewModel : AppPageBase
                 DisplayIndex: idx++,
                 Id: t.Id,
                 Badge: t.Badge,
-                Title: t.Title,
+                DrugId: t.DrugId,
+                Spec: t.Spec,
                 Qty: t.Qty.ToString("N0", CultureInfo.CurrentCulture),
                 Time: t.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm:ss", CultureInfo.CurrentCulture),
                 ClientDisplay: string.IsNullOrWhiteSpace(t.ClientName) ? "-" : t.ClientName
@@ -1245,7 +1282,8 @@ public sealed partial class DashboardViewModel : AppPageBase
                 DisplayIndex: start + idx++,
                 Id: t.Id,
                 Badge: t.Badge,
-                Title: t.Title,
+                DrugId: t.DrugId,
+                Spec: t.Spec,
                 Qty: t.Qty.ToString("N0", CultureInfo.CurrentCulture),
                 Time: t.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm:ss", CultureInfo.CurrentCulture),
                 ClientDisplay: string.IsNullOrWhiteSpace(t.ClientName) ? "-" : t.ClientName
@@ -1386,17 +1424,27 @@ public sealed partial class DashboardViewModel : AppPageBase
                 await RunOnUiAsync(() =>
                 {
                     using var _ = SuppressReload();
-                    var match = SpecOptions.FirstOrDefault(x =>
-                        string.Equals(x.Raw, specText, StringComparison.OrdinalIgnoreCase));
-                    if (match is not null)
-                    {
-                        SelectedSpec = match;
-                    }
+                    SelectedSpec = ResolveOrAddSpecOption(specText);
                 });
             }
         }
 
+        ClearBrowsingSelections();
         await ReloadNow();
+    }
+
+    private OptionItem ResolveOrAddSpecOption(string specText)
+    {
+        var match = SpecOptions.FirstOrDefault(x =>
+            string.Equals(x.Raw, specText, StringComparison.OrdinalIgnoreCase));
+        if (match is not null)
+        {
+            return match;
+        }
+
+        var forced = new OptionItem(specText, specText);
+        SpecOptions.Add(forced);
+        return forced;
     }
 
     private ClientInfo? FindClientOption(ClientInfo selected)
@@ -1834,7 +1882,10 @@ public sealed partial class DashboardViewModel : AppPageBase
             return;
         }
 
-        _inventoryOverview.OpenMode(0);
+        // Match sidebar navigation: reveal the cached page immediately. The inventory page
+        // already owns refresh/dirty-state handling, so a dashboard jump must not force a
+        // database reload on the UI navigation path.
+        _inventoryOverview.OpenMode(0, forceReload: false);
         _nav.Navigate<InventoryOverviewViewModel>();
     }
 
@@ -2010,8 +2061,8 @@ public sealed partial class DashboardKpiModel : ObservableObject
     [ObservableProperty] private string _abnormal = "0";
 
     [ObservableProperty] private string _availableRemainHint = "当前库存中可用的追溯码数量";
-    [ObservableProperty] private string _periodUsedHint = "统计区间内已使用的追溯码数量";
-    [ObservableProperty] private string _abnormalHint = "统计区间内发生回滚/异常的事务数量";
+    [ObservableProperty] private string _periodUsedHint = "区间内已使用的追溯码数量";
+    [ObservableProperty] private string _abnormalHint = "区间内发生回滚/异常的事务数量";
     [ObservableProperty] private string _lowStockHint = "库存剩余量低于阈值的药品数量";
 
     [ObservableProperty] private double _availableRemainPct;
@@ -2028,9 +2079,26 @@ public sealed partial class TrendDrugItem : ObservableObject
     [ObservableProperty] private string _sub = "";
     [ObservableProperty] private string _sourceText = "";
     [ObservableProperty] private string _valueText = "";
+
+    public string SpecDisplay => DrugSpecDisplayHelper.NormalizeSpecLine(Name, Sub);
+
+    partial void OnNameChanged(string value) => OnPropertyChanged(nameof(SpecDisplay));
+
+    partial void OnSubChanged(string value) => OnPropertyChanged(nameof(SpecDisplay));
 }
 
-public sealed record TxnItem(int DisplayIndex, long Id, TxnBadge Badge, string Title, string Qty, string Time, string ClientDisplay);
+public sealed record TxnItem(
+    int DisplayIndex,
+    long Id,
+    TxnBadge Badge,
+    string DrugId,
+    string Spec,
+    string Qty,
+    string Time,
+    string ClientDisplay)
+{
+    public string Title => string.IsNullOrWhiteSpace(Spec) ? DrugId : $"{DrugId} {Spec}";
+}
 public sealed record AbnormalItem(int DisplayIndex, string Title, string Detail, string ClientDisplay, TxnBadge Badge);
 
 public sealed record TopClientItem(int Index, ClientInfo Client, string Value)

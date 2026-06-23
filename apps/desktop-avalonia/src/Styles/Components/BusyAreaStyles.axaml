@@ -3,9 +3,9 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
   <!--
-    ShadUI demo uses BusyArea as a sibling overlay (no child content). Pac wraps page
-    sections and DataGrids as content hosts. Override the theme so
-    content stays visible when IsBusy=False and only the overlay/spinner appear when busy.
+    ShadUI default uses BusyAreaOverlayColor (third-tone gray mask). Pac uses Suki-style dim:
+    content stays on the host background; busy dims ContentPresenter and shows a centered spinner.
+    No AreaBackground — avoids gray-on-black clash with SectionPanel Inner (WindowBackgroundColor).
   -->
   <Style Selector="shad|BusyArea">
     <Setter Property="LoadingSize" Value="32" />
@@ -20,20 +20,14 @@
             HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
             VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
             Content="{TemplateBinding Content}"
-            ContentTemplate="{TemplateBinding ContentTemplate}" />
-
-          <Border
-            Name="AreaBackground"
-            Background="{DynamicResource BusyAreaOverlayColor}"
-            CornerRadius="{TemplateBinding CornerRadius}"
-            IsHitTestVisible="False"
-            Opacity="0">
-            <Border.Transitions>
+            ContentTemplate="{TemplateBinding ContentTemplate}"
+            Opacity="1">
+            <ContentPresenter.Transitions>
               <Transitions>
-                <DoubleTransition Duration="0:0:0.25" Easing="{StaticResource EaseOut}" Property="Opacity" />
+                <DoubleTransition Duration="0:0:0.3" Easing="{StaticResource EaseOut}" Property="Opacity" />
               </Transitions>
-            </Border.Transitions>
-          </Border>
+            </ContentPresenter.Transitions>
+          </ContentPresenter>
 
           <Viewbox
             Name="LoadingIndicator"
@@ -47,13 +41,11 @@
           </Viewbox>
 
           <Panel.Styles>
-            <Style Selector="shad|BusyArea[IsBusy=True] /template/ Border#AreaBackground">
-              <Setter Property="Opacity" Value="0.80" />
-              <Setter Property="IsHitTestVisible" Value="True" />
+            <Style Selector="shad|BusyArea[IsBusy=True] /template/ ContentPresenter#PART_ContentPresenter">
+              <Setter Property="Opacity" Value="0.1" />
             </Style>
-            <Style Selector="shad|BusyArea[IsBusy=False] /template/ Border#AreaBackground">
-              <Setter Property="Opacity" Value="0" />
-              <Setter Property="IsHitTestVisible" Value="False" />
+            <Style Selector="shad|BusyArea[IsBusy=False] /template/ ContentPresenter#PART_ContentPresenter">
+              <Setter Property="Opacity" Value="1" />
             </Style>
             <Style Selector="shad|BusyArea[IsBusy=True] /template/ Viewbox#LoadingIndicator">
               <Setter Property="IsVisible" Value="True" />
