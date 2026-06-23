@@ -72,7 +72,7 @@ public partial class MainWindowViewModel
 
         try
         {
-            await _agentManager.SynchronizeConfigurationAsync().ConfigureAwait(false);
+            await _agentManager.SyncConfigAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {

@@ -59,7 +59,7 @@ public sealed class AgentManager : IAgentManager
         return found;
     }
 
-    public async Task<IReadOnlyDictionary<string, ToolCommandResult>> SynchronizeConfigurationAsync(
+    public async Task<IReadOnlyDictionary<string, ToolCommandResult>> SyncConfigAsync(
         CancellationToken ct = default)
     {
         var results = new Dictionary<string, ToolCommandResult>(StringComparer.Ordinal);

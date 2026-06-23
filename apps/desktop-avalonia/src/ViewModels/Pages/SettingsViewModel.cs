@@ -203,7 +203,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         LoadAliasesOnly();
         RefreshClientAlias();
 
-        SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.startup_fail");
+        RunDetached(ReloadClientAliasesAsync, "client_alias.reload.startup_fail");
 
         LoadTraceCodeRule();
         LoadMsfxApiOptions();
@@ -211,7 +211,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         LoadUpdateOptions();
         LoadLoggingOptions();
         DbSchemaPolicyText = _releaseVersion.Current.DbMigrationPolicy;
-        SafeFireAndForget(RefreshDbSchemaStatusOnStartupAsync, "db.schema.startup_refresh.fire_and_forget_fail");
+        RunDetached(RefreshDbSchemaStatusOnStartupAsync, "db.schema.startup_refresh.fire_and_forget_fail");
         _uiBehavior.Changed += OnUiBehaviorChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
         _updates.Changed += OnUpdatesChanged;
@@ -307,13 +307,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         return Task.CompletedTask;
     }
 
-    private void SafeFireAndForget(Func<CancellationToken, Task> work, string eventName)
+    private void RunDetached(Func<CancellationToken, Task> work, string eventName)
     {
         var token = _pageWorkCts.Token;
-        _ = RunSafeFireAndForgetAsync(work, eventName, token);
+        _ = RunDetachedAsync(work, eventName, token);
     }
 
-    private async Task RunSafeFireAndForgetAsync(Func<CancellationToken, Task> work, string eventName, CancellationToken ct)
+    private async Task RunDetachedAsync(Func<CancellationToken, Task> work, string eventName, CancellationToken ct)
     {
         try
         {
@@ -351,18 +351,18 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private Task SetBusyOnUiAsync(bool value)
         => RunOnUiAsync(() => IsBusy = value);
 
-    private Task SetClientAliasRefreshingOnUiAsync(bool value)
+    private Task SetAliasRefreshingAsync(bool value)
         => RunOnUiAsync(() => IsClientAliasRefreshing = value);
 
-    private Task ReportErrorOnUiAsync(string title, string message)
+    private Task ShowErrorAsync(string title, string message)
         => RunOnUiAsync(() => _toast.Error(title, message));
 
-    private void PostUiSafe(Action action, string eventName)
+    private void PostUi(Action action, string eventName)
     {
-        _ = RunUiSafeAsync(action, eventName);
+        _ = PostUiAsync(action, eventName);
     }
 
-    private async Task RunUiSafeAsync(Action action, string eventName)
+    private async Task PostUiAsync(Action action, string eventName)
     {
         try
         {
@@ -408,7 +408,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void OnUiBehaviorChanged()
     {
-        PostUiSafe(() =>
+        PostUi(() =>
         {
             var ui = _uiBehavior.Current;
             _syncingUiBehavior = true;
@@ -419,12 +419,12 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void OnUpdateSettingsChanged()
     {
-        PostUiSafe(LoadUpdateOptions, "update_settings.changed.ui_fail");
+        PostUi(LoadUpdateOptions, "update_settings.changed.ui_fail");
     }
 
     private void OnUpdatesChanged()
     {
-        PostUiSafe(SyncUpdateState, "updates.changed.ui_fail");
+        PostUi(SyncUpdateState, "updates.changed.ui_fail");
     }
 
     private void LoadLoggingOptions()
@@ -444,7 +444,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void OnLoggingSettingsChanged()
     {
-        PostUiSafe(LoadLoggingOptions, "logging_settings.changed.fail");
+        PostUi(LoadLoggingOptions, "logging_settings.changed.fail");
     }
 
     partial void OnProductUpdateAvailableChanged(bool? value)
@@ -468,7 +468,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         if (_syncingUiBehavior)
             return;
 
-        SafeFireAndForget(ct => SaveUiBehaviorImmediateAsync(value, ct), "desktop_behavior.save.fire_and_forget_fail");
+        RunDetached(ct => SaveUiBehaviorImmediateAsync(value, ct), "desktop_behavior.save.fire_and_forget_fail");
     }
 
     partial void OnUpdateChannelChanged(string value)

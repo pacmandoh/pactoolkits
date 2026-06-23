@@ -105,7 +105,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         _configDir = Path.Combine(baseDir, "PacToolkits");
         Directory.CreateDirectory(_configDir);
         ConfigPath = Path.Combine(_configDir, UnifiedConfigFileName);
-        MigrateLegacyConfigIfNeeded(_configDir);
+        MigrateLegacyConfig(_configDir);
 
         EnsureConfigInitialized();
     }
@@ -127,7 +127,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
                 migratedLogDirectoryTo = normalized.Logging.LogDirectory;
             }
 
-            PersistNormalizedIfNeeded(normalized);
+            PersistIfChanged(normalized);
         }
 
         if (migratedLogDirectoryFrom is not null)
@@ -833,7 +833,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             : string.Empty;
     }
 
-    private void PersistNormalizedIfNeeded(AppConfigRoot normalized)
+    private void PersistIfChanged(AppConfigRoot normalized)
     {
         var json = JsonSerializer.Serialize(normalized, _writeOptions);
         if (!File.Exists(ConfigPath))
@@ -925,7 +925,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         }
     }
 
-    private static void MigrateLegacyConfigIfNeeded(string configDir)
+    private static void MigrateLegacyConfig(string configDir)
     {
         var newPath = Path.Combine(configDir, UnifiedConfigFileName);
         var legacyPath = Path.Combine(configDir, LegacyConfigFileName);

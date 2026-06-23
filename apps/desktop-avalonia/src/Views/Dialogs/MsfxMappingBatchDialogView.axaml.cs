@@ -154,8 +154,8 @@ public partial class MsfxMappingBatchDialogView : UserControl
         string? keyword = null;
         await RunOnUiAsync(() =>
         {
-            mapStatus = NormalizeFilterValue(MapStatusBox.SelectedItem?.ToString());
-            codeStatus = NormalizeFilterValue(CodeStatusBox.SelectedItem?.ToString());
+            mapStatus = FilterInput.Norm(MapStatusBox.SelectedItem?.ToString());
+            codeStatus = FilterInput.Norm(CodeStatusBox.SelectedItem?.ToString());
             searchScope = ResolveSearchScope(SearchScopeBox.SelectedItem?.ToString());
             keyword = NormalizeText(KeywordBox.Text);
         }).ConfigureAwait(false);
@@ -300,7 +300,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
 
     private async void DrugIdBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        _ = AutoCompleteCommit.HandleEnterCommitAndApplyAsync(
+        _ = AutoCompleteCommit.CommitOnEnterAsync(
             this,
             sender,
             e,
@@ -449,8 +449,8 @@ public partial class MsfxMappingBatchDialogView : UserControl
         await RunOnUiAsync(() =>
         {
             group = SelectedGroup;
-            mapStatus = NormalizeFilterValue(MapStatusBox.SelectedItem?.ToString());
-            codeStatus = NormalizeFilterValue(CodeStatusBox.SelectedItem?.ToString());
+            mapStatus = FilterInput.Norm(MapStatusBox.SelectedItem?.ToString());
+            codeStatus = FilterInput.Norm(CodeStatusBox.SelectedItem?.ToString());
             searchScope = ResolveSearchScope(SearchScopeBox.SelectedItem?.ToString());
             keyword = NormalizeText(KeywordBox.Text);
             drug = NormalizeInput(_drugIdDraft);
@@ -548,14 +548,6 @@ public partial class MsfxMappingBatchDialogView : UserControl
     {
         var text = (value ?? string.Empty).Trim();
         return text.Length == 0 ? null : text;
-    }
-
-    private static string? NormalizeFilterValue(string? value)
-    {
-        var text = (value ?? string.Empty).Trim();
-        return text.Length == 0 || string.Equals(text, "ALL", StringComparison.OrdinalIgnoreCase)
-            ? null
-            : text;
     }
 
     private static string ResolveSearchScope(string? value)

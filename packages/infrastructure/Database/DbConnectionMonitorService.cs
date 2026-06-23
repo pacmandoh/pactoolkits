@@ -98,7 +98,7 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
         }
     }
 
-    private void ScheduleRetryIfNeeded(TimeSpan delay, CancellationToken ct)
+    private void ScheduleRetry(TimeSpan delay, CancellationToken ct)
     {
         if (delay <= TimeSpan.Zero)
         {
@@ -195,7 +195,7 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
                     Reconnected?.Invoke();
                 }
 
-                await CompleteProbeIfNeededAsync(_logger, req, conn, opt, ct).ConfigureAwait(false);
+                await CompleteProbeAsync(_logger, req, conn, opt, ct).ConfigureAwait(false);
 
                 var dropped = new TaskCompletionSource<object?>(
                     TaskCreationOptions.RunContinuationsAsynchronously);
@@ -245,7 +245,7 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
                             ConnectionFailed?.Invoke("连接已断开：数据库连接被关闭或网络中断");
                         }
 
-                        ScheduleRetryIfNeeded(TimeSpan.FromSeconds(Math.Max(0, opt.ReconnectIntervalSeconds)), ct);
+                        ScheduleRetry(TimeSpan.FromSeconds(Math.Max(0, opt.ReconnectIntervalSeconds)), ct);
                     }
                     else
                     {
@@ -295,7 +295,7 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
                 }
 
                 var delay = TimeSpan.FromSeconds(Math.Max(0, _dbConfig.Current.ReconnectIntervalSeconds));
-                ScheduleRetryIfNeeded(delay, ct);
+                ScheduleRetry(delay, ct);
             }
             finally
             {
@@ -313,7 +313,7 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
         }
     }
 
-    private static async Task CompleteProbeIfNeededAsync(
+    private static async Task CompleteProbeAsync(
         IAppLogger logger,
         ProbeRequest req,
         NpgsqlConnection conn,
@@ -352,13 +352,13 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
         }
     }
 
-    private static Task CompleteProbeIfNeededAsync(
+    private static Task CompleteProbeAsync(
         IAppLogger logger,
         ProbeRequest req,
         NpgsqlConnection conn,
         PgOptions opt,
         CancellationToken ct)
-        => CompleteProbeIfNeededAsync(logger, req, conn, opt, dropped: null, ct);
+        => CompleteProbeAsync(logger, req, conn, opt, dropped: null, ct);
 
     private static void StartPingLoop(NpgsqlConnection conn, PgOptions opt,
         TaskCompletionSource<object?> dropped, CancellationToken ct)

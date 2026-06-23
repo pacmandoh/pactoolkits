@@ -33,7 +33,7 @@ public sealed class AutomationConfigService : IAutomationConfigService
             cfg.AutomationTools = contract;
             AppConfigStore.SyncInjectorFromTools(cfg, contract);
         }, ct).ConfigureAwait(false);
-        var synchronization = await _agentManager.SynchronizeConfigurationAsync(ct).ConfigureAwait(false);
+        var synchronization = await _agentManager.SyncConfigAsync(ct).ConfigureAwait(false);
         foreach (var (agentId, result) in synchronization)
         {
             if (!result.Ok)
@@ -59,7 +59,7 @@ public sealed class AutomationConfigService : IAutomationConfigService
             agent.Enabled = enabled;
         }, ct).ConfigureAwait(false);
 
-        var synchronization = await _agentManager.SynchronizeConfigurationAsync(ct).ConfigureAwait(false);
+        var synchronization = await _agentManager.SyncConfigAsync(ct).ConfigureAwait(false);
         if (synchronization.TryGetValue(agentId, out var result) && !result.Ok)
         {
             throw new InvalidOperationException($"Agent 配置同步失败（{agentId}）：{result.Message}");

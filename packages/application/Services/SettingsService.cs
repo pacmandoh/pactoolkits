@@ -336,7 +336,7 @@ public sealed class SettingsService : ISettingsService
             : await _schemaVersion.TryReadSchemaVersionAsync(connectionOptions, ct).ConfigureAwait(false);
         var compatibility = BuildCompatibility(schema, requiredMin, requiredMax);
 
-        if (ShouldApplyDbGuard(connectionOptions))
+        if (MatchesLocalDb(connectionOptions))
         {
             ApplyDbGuard(compatibility);
         }
@@ -479,7 +479,7 @@ public sealed class SettingsService : ISettingsService
         }
     }
 
-    private bool ShouldApplyDbGuard(PgOptions? connectionOptions)
+    private bool MatchesLocalDb(PgOptions? connectionOptions)
     {
         if (connectionOptions is null)
         {

@@ -95,8 +95,8 @@ public sealed class UpdateFlowService : IUpdateFlowService
                 _toastManager.CreateToast(title)
                     .WithContent(content)
                     .WithAction("稍后", () => { })
-                    .WithAction("忽略此版本", () => FireAndForget(ignoreVersionAction, "update.toast.ignore"))
-                    .WithAction("立即更新", () => FireAndForget(applyNowAction, "update.toast.apply"))
+                    .WithAction("忽略此版本", () => RunDetached(ignoreVersionAction, "update.toast.ignore"))
+                    .WithAction("立即更新", () => RunDetached(applyNowAction, "update.toast.apply"))
                     .ShowInfo();
 
                 _activeUpdateToastVisible = true;
@@ -284,7 +284,7 @@ public sealed class UpdateFlowService : IUpdateFlowService
     private static void PostOnUi(Action action)
         => UiThreadHelper.PostOnUi(action);
 
-    private void FireAndForget(Func<Task> action, string eventName)
+    private void RunDetached(Func<Task> action, string eventName)
     {
         _ = Task.Run(async () =>
         {
