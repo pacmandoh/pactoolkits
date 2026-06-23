@@ -75,7 +75,7 @@
                   <Button
                     Grid.Column="2"
                     HorizontalAlignment="Right"
-                    Classes="Basic MicroClear DrugAutoCompleteClear"
+                    Classes="MicroClear DrugAutoCompleteClear"
                     Command="{Binding ClearDrugSpecFilterCommand}">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeSmall}"
@@ -338,12 +338,12 @@
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeDefault}"
                       Height="{DynamicResource IconSizeDefault}"
-                      Foreground="{StaticResource BrushDone}"
+                      Foreground="{DynamicResource SuccessColor}"
                       Kind="CircleCheck" />
                     <TextBlock Classes="Caption Muted" Text="有效条码数" />
                     <TextBlock
                       FontWeight="Bold"
-                      Foreground="{StaticResource BrushDone}"
+                      Foreground="{DynamicResource SuccessColor}"
                       Text="{Binding ValidCodeCount}" />
                   </StackPanel>
                 </shad:Card>
@@ -356,12 +356,12 @@
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeDefault}"
                       Height="{DynamicResource IconSizeDefault}"
-                      Foreground="{StaticResource BrushWarning}"
+                      Foreground="{DynamicResource WarningColor}"
                       Kind="CopyPlus" />
                     <TextBlock Classes="Caption Muted" Text="重复数" />
                     <TextBlock
                       FontWeight="Bold"
-                      Foreground="{StaticResource BrushWarning}"
+                      Foreground="{DynamicResource WarningColor}"
                       Text="{Binding DuplicateCodeCount}" />
                   </StackPanel>
                 </shad:Card>
@@ -374,12 +374,12 @@
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeDefault}"
                       Height="{DynamicResource IconSizeDefault}"
-                      Foreground="{StaticResource BrushWarning}"
+                      Foreground="{DynamicResource WarningColor}"
                       Kind="Ban" />
                     <TextBlock Classes="Caption Muted" Text="跳过入库" />
                     <TextBlock
                       FontWeight="Bold"
-                      Foreground="{StaticResource BrushWarning}"
+                      Foreground="{DynamicResource WarningColor}"
                       Text="{Binding PoolSkipCount}" />
                   </StackPanel>
                 </shad:Card>
@@ -392,12 +392,12 @@
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeDefault}"
                       Height="{DynamicResource IconSizeDefault}"
-                      Foreground="{StaticResource BrushDanger}"
+                      Foreground="{DynamicResource ErrorColor}"
                       Kind="CircleAlert" />
                     <TextBlock Classes="Caption Muted" Text="无效数" />
                     <TextBlock
                       FontWeight="Bold"
-                      Foreground="{StaticResource BrushDanger}"
+                      Foreground="{DynamicResource ErrorColor}"
                       Text="{Binding InvalidCodeCount}" />
                   </StackPanel>
                 </shad:Card>
@@ -567,7 +567,7 @@
                       Width="{DynamicResource IconSizeDefault}"
                       Height="{DynamicResource IconSizeDefault}"
                       VerticalAlignment="Center"
-                      Foreground="{StaticResource BrushDone}"
+                      Foreground="{DynamicResource SuccessColor}"
                       Kind="Info" />
                     <TextBlock
                       Grid.Column="1"

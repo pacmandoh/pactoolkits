@@ -113,7 +113,7 @@
         IsEmpty="{Binding IsAutoLogsEmpty}">
         <DataGrid
           x:Name="AutoLogGrid"
-          Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid"
+          Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid"
           ColumnWidth="*"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"

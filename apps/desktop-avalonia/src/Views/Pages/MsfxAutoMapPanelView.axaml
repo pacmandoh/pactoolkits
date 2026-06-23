@@ -240,7 +240,7 @@
             IsEmpty="{Binding IsAutoMapQueueEmpty}">
             <DataGrid
               x:Name="AutoMapQueueGrid"
-              Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid CellTemplateHighlightGrid MapIndexedGrid"
+              Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid CellTemplateHighlightGrid MapIndexedGrid"
               HorizontalAlignment="Stretch"
               VerticalAlignment="Stretch"
               HorizontalScrollBarVisibility="Auto"

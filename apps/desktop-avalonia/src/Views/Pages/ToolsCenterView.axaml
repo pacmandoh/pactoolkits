@@ -166,13 +166,13 @@
               <icons:AppIcon
                 Width="{DynamicResource IconSizeDefault}"
                 Height="{DynamicResource IconSizeDefault}"
-                Foreground="{DynamicResource BrushDone}"
+                Foreground="{DynamicResource SuccessColor}"
                 IsVisible="{Binding IsAhkEnabled}"
                 Kind="CircleCheck" />
               <icons:AppIcon
                 Width="{DynamicResource IconSizeDefault}"
                 Height="{DynamicResource IconSizeDefault}"
-                Foreground="{DynamicResource BrushDanger}"
+                Foreground="{DynamicResource ErrorColor}"
                 IsVisible="{Binding !IsAhkEnabled}"
                 Kind="CircleAlert" />
             </Panel>

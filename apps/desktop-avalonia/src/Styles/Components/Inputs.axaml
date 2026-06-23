@@ -196,15 +196,15 @@
   </Style>
 
   <Style Selector="TextBlock.TraceCodeText.Valid">
-    <Setter Property="Foreground" Value="{StaticResource BrushDone}" />
+    <Setter Property="Foreground" Value="{DynamicResource SuccessColor}" />
   </Style>
 
   <Style Selector="TextBlock.TraceCodeText.Duplicate">
-    <Setter Property="Foreground" Value="{StaticResource BrushWarning}" />
+    <Setter Property="Foreground" Value="{DynamicResource WarningColor}" />
   </Style>
 
   <Style Selector="TextBlock.TraceCodeText.Invalid">
-    <Setter Property="Foreground" Value="{StaticResource BrushDanger}" />
+    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}" />
   </Style>
 
   <Style Selector="TextBlock.TraceCodeStatusHint">
@@ -213,11 +213,11 @@
   </Style>
 
   <Style Selector="TextBlock.TraceCodeStatusHint.Duplicate">
-    <Setter Property="Foreground" Value="{StaticResource BrushWarning}" />
+    <Setter Property="Foreground" Value="{DynamicResource WarningColor}" />
   </Style>
 
   <Style Selector="TextBlock.TraceCodeStatusHint.Invalid">
-    <Setter Property="Foreground" Value="{StaticResource BrushDanger}" />
+    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}" />
   </Style>
 
   <Style Selector="controls|EmptyStatePanel">
@@ -254,7 +254,7 @@
               <icons:AppIcon
                 Width="{DynamicResource EmptyStateIconSize}"
                 Height="{DynamicResource EmptyStateIconSize}"
-                Foreground="{StaticResource BrushWarning}"
+                Foreground="{DynamicResource WarningColor}"
                 Kind="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}" />
 
               <TextBlock
