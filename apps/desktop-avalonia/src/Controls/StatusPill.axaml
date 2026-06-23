@@ -23,7 +23,7 @@
         VerticalAlignment="Center"
         FontFamily="{DynamicResource StatusPillFontFamily}"
         FontSize="{Binding TextSize, ElementName=Root}"
-        FontWeight="Normal"
+        FontWeight="{Binding TextWeight, ElementName=Root}"
         Foreground="{Binding ForegroundBrush, ElementName=Root}"
         IsVisible="{Binding !HasSuffixContent, ElementName=Root}"
         Text="{Binding Text, ElementName=Root}" />

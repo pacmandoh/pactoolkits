@@ -70,6 +70,17 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
+  <Style Selector="Border.DashboardTabContext">
+    <Setter Property="Margin" Value="0,0,18,0" />
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+    <Setter Property="CornerRadius" Value="999" />
+  </Style>
+
+  <Style Selector="Border.DashboardTabContext icons|AppIcon">
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
+  </Style>
+
   <Style Selector="Grid.DashboardFilterColumn">
     <Setter Property="Margin" Value="{DynamicResource DashboardFilterColumnPadding}" />
     <Setter Property="VerticalAlignment" Value="Center" />

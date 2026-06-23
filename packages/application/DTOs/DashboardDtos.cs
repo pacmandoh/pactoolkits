@@ -43,6 +43,8 @@ public sealed record TraceTxnDto(
     TxnStatus Status,
     TxnBadge Badge,
     string Title,
+    string DrugId,
+    string Spec,
     int Qty,
     DateTimeOffset CreatedAt,
     string? ClientName

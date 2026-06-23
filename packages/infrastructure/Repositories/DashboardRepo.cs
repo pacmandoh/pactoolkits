@@ -417,6 +417,8 @@ public sealed class DashboardRepo : IDashboardRepo
                                      row_number() over(order by t.created_at desc)::bigint as id,
                                      t.status,
                                      (t.drug_id || ' ' || coalesce(t.spec,'')) as title,
+                                     t.drug_id,
+                                     coalesce(t.spec,'') as spec,
                                      t.req_qty::int as qty,
                                      t.created_at,
                                      {ClientMachineExpr("t")} as client_machine
@@ -465,9 +467,11 @@ public sealed class DashboardRepo : IDashboardRepo
                     Status: status,
                     Badge: StatusToBadge(status),
                     Title: reader.GetString(2),
-                    Qty: reader.GetInt32(3),
-                    CreatedAt: ReadDateTimeOffset(reader.GetValue(4)),
-                    ClientName: reader.IsDBNull(5) ? null : FormatClient(reader.GetString(5))
+                    DrugId: reader.GetString(3),
+                    Spec: reader.GetString(4),
+                    Qty: reader.GetInt32(5),
+                    CreatedAt: ReadDateTimeOffset(reader.GetValue(6)),
+                    ClientName: reader.IsDBNull(7) ? null : FormatClient(reader.GetString(7))
                 ));
             }
 
