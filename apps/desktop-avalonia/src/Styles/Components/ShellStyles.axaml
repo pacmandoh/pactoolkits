@@ -47,7 +47,7 @@
     <Setter Property="Padding" Value="{DynamicResource ShellTitleBarCapsuleButtonPadding}" />
   </Style>
 
-  <Style Selector="Border.ShellTitleBarCapsule Button.WindowControlsButton icons|AppIcon, Border.ShellTitleBarCapsule Button.WindowControlsButton controls|BusyCircle">
+  <Style Selector="Border.ShellTitleBarCapsule Button.WindowControlsButton icons|AppIcon">
     <Setter Property="Width" Value="{DynamicResource ShellTitleBarCapsuleIconSize}" />
     <Setter Property="Height" Value="{DynamicResource ShellTitleBarCapsuleIconSize}" />
   </Style>
@@ -87,7 +87,6 @@
 
   <Style Selector="TextBlock.ShellTitleBarPathText">
     <Setter Property="FontSize" Value="{DynamicResource ShellTitleBarPathBarFontSize}" />
-    <Setter Property="FontWeight" Value="Normal" />
     <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
@@ -126,11 +125,37 @@
           BorderBrush="{TemplateBinding BorderBrush}"
           BorderThickness="{TemplateBinding BorderThickness}"
           CornerRadius="{TemplateBinding CornerRadius}">
-          <ContentPresenter
+          <StackPanel
             HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-            Content="{TemplateBinding Content}"
-            ContentTemplate="{TemplateBinding ContentTemplate}" />
+            Orientation="Horizontal"
+            Spacing="{DynamicResource SpacingInlineSm}"
+            VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+            <Viewbox
+              Height="{DynamicResource IconSizeSmall}"
+              VerticalAlignment="Center"
+              Width="{TemplateBinding shad:ButtonAssist.ShowProgress,
+                                      Converter={x:Static shad:BooleanConverters.ToZeroOrDouble},
+                                      ConverterParameter=16}">
+              <ContentPresenter Content="{TemplateBinding shad:ButtonAssist.ShowProgress,
+                                                           Converter={x:Static shad:BooleanConverters.ToLoading}}" />
+            </Viewbox>
+            <Viewbox
+              Height="{DynamicResource IconSizeSmall}"
+              IsVisible="{TemplateBinding shad:ButtonAssist.Icon,
+                                           Converter={x:Static ObjectConverters.IsNotNull}}"
+              Opacity="{TemplateBinding shad:ButtonAssist.ShowProgress,
+                                        Converter={x:Static shad:BooleanConverters.ToInverseOpacity}}"
+              VerticalAlignment="Center"
+              Width="{TemplateBinding shad:ButtonAssist.ShowProgress,
+                                      Converter={x:Static shad:BooleanConverters.ToDoubleOrZero},
+                                      ConverterParameter=16}">
+              <ContentPresenter Content="{TemplateBinding shad:ButtonAssist.Icon}" />
+            </Viewbox>
+            <ContentPresenter
+              VerticalAlignment="Center"
+              Content="{TemplateBinding Content}"
+              ContentTemplate="{TemplateBinding ContentTemplate}" />
+          </StackPanel>
         </Border>
       </ControlTemplate>
     </Setter>
@@ -224,11 +249,25 @@
           BorderBrush="{TemplateBinding BorderBrush}"
           BorderThickness="{TemplateBinding BorderThickness}"
           CornerRadius="{TemplateBinding CornerRadius}">
-          <ContentPresenter
-            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-            Content="{TemplateBinding Content}"
-            ContentTemplate="{TemplateBinding ContentTemplate}" />
+          <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Viewbox
+              Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Width="{TemplateBinding shad:ButtonAssist.ShowProgress,
+                                      Converter={x:Static shad:BooleanConverters.ToZeroOrDouble},
+                                      ConverterParameter=16}">
+              <ContentPresenter Content="{TemplateBinding shad:ButtonAssist.ShowProgress,
+                                                           Converter={x:Static shad:BooleanConverters.ToLoading}}" />
+            </Viewbox>
+            <ContentPresenter
+              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+              Content="{TemplateBinding Content}"
+              ContentTemplate="{TemplateBinding ContentTemplate}"
+              Opacity="{TemplateBinding shad:ButtonAssist.ShowProgress,
+                                        Converter={x:Static shad:BooleanConverters.ToInverseOpacity}}" />
+          </Panel>
         </Border>
       </ControlTemplate>
     </Setter>
