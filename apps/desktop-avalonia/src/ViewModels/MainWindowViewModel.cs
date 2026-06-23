@@ -353,7 +353,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                     return;
                 }
 
-                await RefreshSettingsSchemaStatusAsync("guard_recovery_poll").ConfigureAwait(false);
+                await RefreshSchemaStatusAsync("guard_recovery_poll").ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -554,7 +554,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dbMonitor.Disconnected += ShowDbDisconnected;
         _dbMonitor.Reconnected += ShowDbReconnectedInfo;
         _dbMonitor.Reconnected += OnDbReconnectedRefreshSettingsSchema;
-        _dbMonitor.Reconnected += OnDbReconnectedEnsureSchemaUpToDate;
+        _dbMonitor.Reconnected += OnDbReconnectedMigrateSchema;
         _changeWatermark.TopicChanged += OnWatermarkTopicChanged;
 
         _dbMonitor.Reconnected += ScheduleAutoRefresh;
@@ -587,7 +587,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             }
 
             await CheckDbOnStartupAsync().ConfigureAwait(false);
-            await RefreshSettingsSchemaStatusAsync("startup_postcheck").ConfigureAwait(false);
+            await RefreshSchemaStatusAsync("startup_postcheck").ConfigureAwait(false);
             MarkDirtyByType<MsfxLinkViewModel>();
 
             if (File.Exists(_configPath))
@@ -598,7 +598,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             _startupState.MarkDbInitCompleted();
 
-            await EnsureAhkStartedOnStartupAsync().ConfigureAwait(false);
+            await StartAhkOnStartupAsync().ConfigureAwait(false);
             await CheckUpdatesOnStartupAsync().ConfigureAwait(false);
             RestartUpdatePolling();
         }
@@ -608,7 +608,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private async Task EnsureAhkStartedOnStartupAsync()
+    private async Task StartAhkOnStartupAsync()
     {
         if (!Injector.IsEnabled || Injector.IsRunning)
         {
@@ -855,7 +855,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         if (value is SettingsViewModel settingsPage)
         {
             settingsPage.ResetDraftFromCurrent();
-            _ = settingsPage.RefreshDbSchemaStatusFromHostAsync("open_settings");
+            _ = settingsPage.RefreshSchemaStatusAsync("open_settings");
         }
 
         if (value is not null
@@ -1119,7 +1119,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
                 var (migrationOk, summary) = await _settings
-                    .EnsureSchemaUpToDateAsync(
+                    .MigrateSchemaAsync(
                         BuildSchemaContext(),
                         DbMigrationTrigger.Startup,
                         ct: cts.Token)
@@ -1451,12 +1451,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     private void OnDbReconnectedRefreshSettingsSchema()
-        => _ = RefreshSettingsSchemaStatusAsync("db_reconnected");
+        => _ = RefreshSchemaStatusAsync("db_reconnected");
 
-    private void OnDbReconnectedEnsureSchemaUpToDate()
-        => _ = EnsureSchemaUpToDateOnReconnectAsync();
+    private void OnDbReconnectedMigrateSchema()
+        => _ = MigrateSchemaOnReconnectAsync();
 
-    private async Task EnsureSchemaUpToDateOnReconnectAsync()
+    private async Task MigrateSchemaOnReconnectAsync()
     {
         if (Interlocked.Exchange(ref _dbReconnectMigrationRunning, 1) == 1)
         {
@@ -1468,13 +1468,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             var state = await GetDbSchemaStartupStateAsync(DbMigrationTrigger.Reconnect).ConfigureAwait(false);
             if (!state.RunMigration)
             {
-                await RefreshSettingsSchemaStatusAsync("db_reconnected").ConfigureAwait(false);
+                await RefreshSchemaStatusAsync("db_reconnected").ConfigureAwait(false);
                 return;
             }
 
             using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
             var (migrationOk, summary) = await _settings
-                .EnsureSchemaUpToDateAsync(
+                .MigrateSchemaAsync(
                     BuildSchemaContext(),
                     DbMigrationTrigger.Reconnect,
                     ct: cts.Token)
@@ -1494,7 +1494,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             var currentAppVersion = NormalizeVersionForStamp(_releaseVersion.Current.ProductVersion);
             await SaveDbMigrationStampAsync(currentAppVersion).ConfigureAwait(false);
-            await RefreshSettingsSchemaStatusAsync("db_reconnected_migrate").ConfigureAwait(false);
+            await RefreshSchemaStatusAsync("db_reconnected_migrate").ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1506,7 +1506,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private async Task RefreshSettingsSchemaStatusAsync(string source)
+    private async Task RefreshSchemaStatusAsync(string source)
     {
         if (_settingsPage is not SettingsViewModel settingsPage)
         {
@@ -1515,7 +1515,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         try
         {
-            await settingsPage.RefreshDbSchemaStatusFromHostAsync(source).ConfigureAwait(false);
+            await settingsPage.RefreshSchemaStatusAsync(source).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1567,7 +1567,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _dbMonitor.Disconnected -= ShowDbDisconnected);
         SafeExecute(() => _dbMonitor.Reconnected -= ShowDbReconnectedInfo);
         SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedRefreshSettingsSchema);
-        SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedEnsureSchemaUpToDate);
+        SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedMigrateSchema);
         SafeExecute(() => _dbMonitor.Reconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _dbMonitor.Disconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _changeWatermark.TopicChanged -= OnWatermarkTopicChanged);

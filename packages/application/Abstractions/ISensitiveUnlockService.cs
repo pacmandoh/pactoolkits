@@ -37,7 +37,7 @@ public interface ISensitiveUnlockService
 
     Task<bool> RequestUnlockAsync(SensitiveOpRequest request, CancellationToken ct = default);
 
-    Task<bool> EnsureUnlockedAsync(
+    Task<bool> RequireUnlockAsync(
         string scopeKey,
         string scene,
         string promptTitle,

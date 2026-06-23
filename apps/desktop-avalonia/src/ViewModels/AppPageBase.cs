@@ -296,7 +296,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             SetPageAvailability(GetDisconnectedAvailability());
         }
 
-        if (!await EnsureStartupReadyAsync(ct).ConfigureAwait(false))
+        if (!await WaitStartupReadyAsync(ct).ConfigureAwait(false))
         {
             return;
         }
@@ -429,7 +429,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             SupportsStaleWhileReconnect,
             _reloadFromDbSignal);
 
-    private async Task<bool> EnsureStartupReadyAsync(CancellationToken ct)
+    private async Task<bool> WaitStartupReadyAsync(CancellationToken ct)
     {
         var startup = GetStartupState();
         if (startup is null || startup.IsDbInitCompleted)
@@ -731,7 +731,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     {
         if (_cachedDbMonitor is not null)
         {
-            EnsureDbMonitorEventsHooked(_cachedDbMonitor);
+            HookDbMonitor(_cachedDbMonitor);
             return _cachedDbMonitor;
         }
 
@@ -742,7 +742,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
                 _cachedDbMonitor = app.Services.GetService(typeof(IDbConnectionMonitorService)) as IDbConnectionMonitorService;
                 if (_cachedDbMonitor is not null)
                 {
-                    EnsureDbMonitorEventsHooked(_cachedDbMonitor);
+                    HookDbMonitor(_cachedDbMonitor);
                 }
             }
         }
@@ -776,7 +776,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         return _cachedStartupState;
     }
 
-    private void EnsureDbMonitorEventsHooked(IDbConnectionMonitorService monitor)
+    private void HookDbMonitor(IDbConnectionMonitorService monitor)
     {
         if (_dbMonitorEventsHooked)
         {
@@ -839,10 +839,10 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             return;
         }
 
-        PostOnUi(() => _ = ExecuteAutoRefreshFromDbSignalAsync(), DispatcherPriority.Background);
+        PostOnUi(() => _ = AutoRefreshOnDbSignalAsync(), DispatcherPriority.Background);
     }
 
-    private async Task ExecuteAutoRefreshFromDbSignalAsync()
+    private async Task AutoRefreshOnDbSignalAsync()
     {
         _reloadFromDbSignal = true;
         try

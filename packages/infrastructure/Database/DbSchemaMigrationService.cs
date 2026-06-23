@@ -24,8 +24,8 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public Task<DbSchemaMigrationResult> EnsureUpToDateAsync(CancellationToken ct, string? targetVersion = null)
-        => EnsureUpToDateAsync(_dbConfig.Current, ct, targetVersion);
+    public Task<DbSchemaMigrationResult> MigrateUpToDateAsync(CancellationToken ct, string? targetVersion = null)
+        => MigrateUpToDateAsync(_dbConfig.Current, ct, targetVersion);
 
     public Task<DbSchemaMigrationPlan> GetPlanAsync(CancellationToken ct, string? targetVersion = null)
         => GetPlanAsync(_dbConfig.Current, ct, targetVersion);
@@ -60,13 +60,13 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
             items);
     }
 
-    public Task<DbSchemaMigrationResult> EnsureUpToDateAsync(
+    public Task<DbSchemaMigrationResult> MigrateUpToDateAsync(
         PgOptions options,
         CancellationToken ct,
         string? targetVersion = null)
-        => EnsureUpToDateInternalAsync(options, ct, targetVersion);
+        => MigrateUpToDateWorkAsync(options, ct, targetVersion);
 
-    private async Task<DbSchemaMigrationResult> EnsureUpToDateInternalAsync(
+    private async Task<DbSchemaMigrationResult> MigrateUpToDateWorkAsync(
         PgOptions opt,
         CancellationToken ct,
         string? targetVersion)

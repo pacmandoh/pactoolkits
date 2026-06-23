@@ -111,7 +111,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         _syncingUpdateOptions = true;
         UpdateChannel = channel;
         _syncingUpdateOptions = false;
-        RefreshUpdatePollIntervalHint();
+        SyncPollHint();
     }
 
     private static string NormalizeUpdateChannel(string? channel)
@@ -369,7 +369,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             version.DbMigrationPolicy);
     }
 
-    private async Task<bool> EnsureDbSchemaCompatibleAsync(PgOptions? connectionOptions = null)
+    private async Task<bool> CheckDbSchemaAsync(PgOptions? connectionOptions = null)
     {
         var options = connectionOptions ?? ToOptions();
         var compat = await _settings.CheckSchemaCompatibilityAsync(
@@ -390,10 +390,10 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         return false;
     }
 
-    private Task<bool> EnsureDbSchemaUpToDateAsync(bool userConfirmed = false)
-        => EnsureDbSchemaUpToDateAsync(ToOptions(), userConfirmed);
+    private Task<bool> MigrateDbSchemaAsync(bool userConfirmed = false)
+        => MigrateDbSchemaAsync(ToOptions(), userConfirmed);
 
-    private async Task<bool> EnsureDbSchemaUpToDateAsync(
+    private async Task<bool> MigrateDbSchemaAsync(
         PgOptions connectionOptions,
         bool userConfirmed = false)
     {
@@ -418,7 +418,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 return false;
             }
 
-            var migration = await _settings.EnsureSchemaUpToDateAsync(
+            var migration = await _settings.MigrateSchemaAsync(
                 BuildSchemaContext(),
                 DbMigrationTrigger.SettingsManual,
                 connectionOptions,

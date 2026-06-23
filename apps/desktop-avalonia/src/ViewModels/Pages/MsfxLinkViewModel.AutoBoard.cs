@@ -27,18 +27,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanRunAutoOnce))]
     private async Task RunAutoOnceAsync()
     {
-        await RunAutoOnceInternalAsync(showProgressPanel: true).ConfigureAwait(false);
+        await QueueAutoOnceAsync(showProgressPanel: true).ConfigureAwait(false);
     }
 
-    private async Task RunAutoOnceInternalAsync(bool showProgressPanel)
+    private async Task QueueAutoOnceAsync(bool showProgressPanel)
     {
         ShowAutoProgressPanel = showProgressPanel;
         await RunLocalReloadAsync(
             setBusy: v => IsAutoBusy = v,
-            action: RunAutoOnceCoreAsync);
+            action: RunAutoOnceWorkAsync);
     }
 
-    private async Task RunAutoOnceCoreAsync(CancellationToken ct)
+    private async Task RunAutoOnceWorkAsync(CancellationToken ct)
     {
         long batchId = 0;
         var batchFinalized = false;
@@ -73,7 +73,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 window.EndAt
             });
             SetAutoProgress(8, $"批次 #{batchId} 已创建");
-            await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
+            await RefreshPullPanelAsync(ct).ConfigureAwait(false);
 
             var begin = window.BeginAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var end = window.EndAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -259,7 +259,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                         fromWatch: false,
                         watchStatus: null).ConfigureAwait(false);
                 }
-                await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
+                await RefreshPullPanelAsync(ct).ConfigureAwait(false);
             }
 
             while (true)
@@ -354,7 +354,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                         watchStatus: null).ConfigureAwait(false);
                 }
 
-                await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
+                await RefreshPullPanelAsync(ct).ConfigureAwait(false);
 
                 var loaded = page * pageSize;
                 if (list.Items.Count == 0 || loaded >= list.Total)
@@ -397,7 +397,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                         watchStatus: watch.LastSeenStatus).ConfigureAwait(false);
                 }
 
-                await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
+                await RefreshPullPanelAsync(ct).ConfigureAwait(false);
             }
 
             var swMap = Stopwatch.StartNew();
@@ -413,7 +413,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 AddAutoLog("自动巡检", "手动敏感操作进行中，跳过映射与建任务", TraceEntryState.Info);
                 SetAutoProgress(96, "跳过映射与建任务");
             }
-            else if (!await EnsureSensitiveOpUnlockedAsync(
+            else if (!await RequireUnlockAsync(
                     SensitiveOpKind.MsfxMappingApply,
                     "自动映射",
                     batchId > 0 ? $"batch:{batchId}" : "auto-run",
@@ -442,7 +442,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     "映射自检",
                     $"执行后 PENDING {mapAfter.PendingCount}，MAPPED {mapAfter.MappedCount}，NEED_REVIEW {mapAfter.NeedReviewCount}，FAILED {mapAfter.FailedCount}，TOTAL {mapAfter.TotalCount}",
                     map.ProcessedCount == 0 ? TraceEntryState.Warning : TraceEntryState.Success);
-                await RefreshAutoMapPanelCoreAsync(ct).ConfigureAwait(false);
+                await RefreshMapPanelAsync(ct).ConfigureAwait(false);
 
                 var swTask = Stopwatch.StartNew();
                 taskResult = await _syncService.BuildMsfxInjectTasksAsync(500, ct).ConfigureAwait(false);
@@ -455,7 +455,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     taskResult.CreatedTasks,
                     taskResult.TaskedCodes
                 });
-                await RefreshAutoTaskPanelCoreAsync(ct).ConfigureAwait(false);
+                await RefreshTaskPanelAsync(ct).ConfigureAwait(false);
             }
 
             var batchStatus = failCount > 0 ? "FAILED" : "SUCCESS";
@@ -464,7 +464,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             await _syncService.AdvanceMsfxPullCursorAsync("listupout", window.BeginAt, window.EndAt, batchId, batchStatus, CancellationToken.None)
                 .ConfigureAwait(false);
             batchFinalized = true;
-            await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false);
+            await RefreshPullPanelAsync(ct).ConfigureAwait(false);
 
             SetAutoProgress(100, "巡检完成");
             AutoStatus = $"自动化拉取完成：API {totalApiRows}，已入库 {totalInboundRows}，单据 {totalBills}，码 {detailSubCodes}，重试成功 {retrySucceededCount}，重试失败 {retryFailedCount}，重试入队 {retryQueuedCount}，待确认入池 {watchQueuedCount}，补偿成功 {watchResolvedCount}，补偿延后 {watchDeferredCount}，新增任务 {taskResult.CreatedTasks}";
@@ -707,7 +707,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         await RefreshMapQueueLatestAsync().ConfigureAwait(false);
     }
 
-    private async Task<bool> EnsureSensitiveOpUnlockedAsync(
+    private async Task<bool> RequireUnlockAsync(
         SensitiveOpKind kind,
         string scene,
         string targetId,
@@ -788,7 +788,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
-        if (!await EnsureSensitiveOpUnlockedAsync(
+        if (!await RequireUnlockAsync(
                 SensitiveOpKind.MsfxReopen,
                 "任务重开",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
@@ -844,7 +844,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 _toast.Warn("任务重开", $"成功 {successCount} 条，失败 {failedCount} 条");
             }
 
-            await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
+            await RefreshTaskPanelAsync(CancellationToken.None).ConfigureAwait(false);
         }
         finally
         {
@@ -882,7 +882,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
-        if (!await EnsureSensitiveOpUnlockedAsync(
+        if (!await RequireUnlockAsync(
                 SensitiveOpKind.MsfxDiscard,
                 "任务弃用",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
@@ -938,7 +938,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 _toast.Warn("任务弃用", $"成功 {successCount} 条，失败 {failedCount} 条");
             }
 
-            await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
+            await RefreshTaskPanelAsync(CancellationToken.None).ConfigureAwait(false);
         }
         finally
         {
@@ -975,7 +975,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
-        if (!await EnsureSensitiveOpUnlockedAsync(
+        if (!await RequireUnlockAsync(
                 SensitiveOpKind.MsfxRemap,
                 "重新映射",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
@@ -1036,7 +1036,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
             ResetMapQueueCursor();
             await RefreshMapQueueLatestAsync().ConfigureAwait(false);
-            await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
+            await RefreshTaskPanelAsync(CancellationToken.None).ConfigureAwait(false);
         }
         finally
         {
@@ -1087,7 +1087,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
-        if (!await EnsureSensitiveOpUnlockedAsync(
+        if (!await RequireUnlockAsync(
                 SensitiveOpKind.MsfxMerge,
                 "合并任务",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
@@ -1116,7 +1116,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 operatorName = opName
             });
             _toast.Success("合并任务", $"已合并 {result.MergedTaskCount} 条任务，生成新任务 #{result.TaskId}");
-            await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
+            await RefreshTaskPanelAsync(CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1170,7 +1170,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var splitReason = choice.Action == MsfxTaskSplitDialogAction.CustomQuantity
             ? $"manual custom split from task queue: {choice.CustomQuantities}"
             : "manual split from task queue";
-        if (!await EnsureSensitiveOpUnlockedAsync(
+        if (!await RequireUnlockAsync(
                 SensitiveOpKind.MsfxSplit,
                 "拆分任务",
                 taskRow.TaskId.ToString(CultureInfo.InvariantCulture),
@@ -1237,7 +1237,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 _toast.Success("拆分任务", $"已生成 {result.CreatedTasks} 条任务");
             }
 
-            await RefreshAutoTaskPanelCoreAsync(CancellationToken.None).ConfigureAwait(false);
+            await RefreshTaskPanelAsync(CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1345,7 +1345,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             var mappingReason = res.Action == MsfxMappingBatchDialogAction.DiscardTask
                 ? "manual batch discard from mapping dialog"
                 : "manual batch mapping apply from mapping dialog";
-            if (!await EnsureSensitiveOpUnlockedAsync(
+            if (!await RequireUnlockAsync(
                     mappingKind,
                     "批量映射",
                     $"{group.SourceDrugNameRaw}/{group.SourceSpecRaw}",
@@ -1505,9 +1505,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     [RelayCommand(CanExecute = nameof(CanRefreshAutoBoard))]
     private Task RefreshAutoBoardAsync()
-        => RunLocalReloadAsync(_ => { }, RefreshAutoBoardCoreAsync);
+        => RunLocalReloadAsync(_ => { }, RefreshAutoBoardAsync);
 
-    private async Task RefreshAutoBoardCoreAsync(CancellationToken ct)
+    private async Task RefreshAutoBoardAsync(CancellationToken ct)
     {
         try
         {
@@ -1515,17 +1515,17 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             await RunLocalBusyAsync(
                 ct,
                 v => IsPullPanelBusy = v,
-                async () => snap = await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false),
+                async () => snap = await RefreshPullPanelAsync(ct).ConfigureAwait(false),
                 ShowPullPanelBusy()).ConfigureAwait(false);
             await RunLocalBusyAsync(
                 ct,
                 v => IsMapPanelBusy = v,
-                () => RefreshAutoMapPanelCoreAsync(ct),
+                () => RefreshMapPanelAsync(ct),
                 ShowMapPanelBusy()).ConfigureAwait(false);
             await RunLocalBusyAsync(
                 ct,
                 v => IsTaskPanelBusy = v,
-                () => RefreshAutoTaskPanelCoreAsync(ct),
+                () => RefreshTaskPanelAsync(ct),
                 ShowTaskPanelBusy()).ConfigureAwait(false);
             await RunOnUiAsync(ClearAllDetailSelectionsSilent);
 
@@ -1556,7 +1556,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
     }
 
-    private async Task<MsfxAutoBoardSnapshot> RefreshAutoSummaryCoreAsync(CancellationToken ct)
+    private async Task<MsfxAutoBoardSnapshot> RefreshAutoSummaryAsync(CancellationToken ct)
     {
         var snap = await _syncService.LoadMsfxDashboardAsync(ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
@@ -1591,9 +1591,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         return snap;
     }
 
-    private async Task<MsfxAutoBoardSnapshot> RefreshAutoPullPanelCoreAsync(CancellationToken ct)
+    private async Task<MsfxAutoBoardSnapshot> RefreshPullPanelAsync(CancellationToken ct)
     {
-        var snap = await RefreshAutoSummaryCoreAsync(ct).ConfigureAwait(false);
+        var snap = await RefreshAutoSummaryAsync(ct).ConfigureAwait(false);
         var pullRows = await _syncService.LoadRecentPullBatchesAsync(500, ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
         {
@@ -1619,17 +1619,17 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         return snap;
     }
 
-    private async Task<MsfxAutoBoardSnapshot> RefreshAutoMapPanelCoreAsync(CancellationToken ct)
+    private async Task<MsfxAutoBoardSnapshot> RefreshMapPanelAsync(CancellationToken ct)
     {
-        var snap = await RefreshAutoSummaryCoreAsync(ct).ConfigureAwait(false);
+        var snap = await RefreshAutoSummaryAsync(ct).ConfigureAwait(false);
         ResetMapQueueCursor();
         await RefreshMapQueueAsync(ct, olderPage: null).ConfigureAwait(false);
         return snap;
     }
 
-    private async Task<MsfxAutoBoardSnapshot> RefreshAutoTaskPanelCoreAsync(CancellationToken ct)
+    private async Task<MsfxAutoBoardSnapshot> RefreshTaskPanelAsync(CancellationToken ct)
     {
-        var snap = await RefreshAutoSummaryCoreAsync(ct).ConfigureAwait(false);
+        var snap = await RefreshAutoSummaryAsync(ct).ConfigureAwait(false);
         var taskRows = await _syncService.LoadInjectTaskQueueAsync(0, ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
         {
@@ -2118,7 +2118,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
-        await RunAutoOnceInternalAsync(showProgressPanel: false);
+        await QueueAutoOnceAsync(showProgressPanel: false);
     }
 
     private static MsfxUpoutGridRow MapUpoutRow(MsfxListUpoutItem x)
