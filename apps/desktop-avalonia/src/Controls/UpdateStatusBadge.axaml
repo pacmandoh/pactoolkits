@@ -1,35 +1,53 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Controls.UpdateStatusBadge"
   xmlns="https://github.com/avaloniaui"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Name="Root">
   <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
-    <controls:StatusPill
-      BackgroundBrush="{DynamicResource BrushInfoBg15}"
-      ForegroundBrush="{DynamicResource BrushInfo}"
-      Icon="BadgeQuestionMark"
-      IsVisible="{Binding IsUnknown, ElementName=Root}"
-      PillBorderBrush="{DynamicResource BrushInfoBg35}"
-      Text="{Binding Label, ElementName=Root}" />
+    <shad:Badge
+      Background="{DynamicResource BrushInfoBg15}"
+      BorderBrush="{DynamicResource BrushInfoBg35}"
+      Classes="Outline"
+      IsVisible="{Binding IsUnknown, ElementName=Root}">
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+        <icons:AppIcon
+          Width="{DynamicResource IconSizeSmall}"
+          Height="{DynamicResource IconSizeSmall}"
+          Foreground="{DynamicResource BrushInfo}"
+          Kind="BadgeQuestionMark" />
+        <TextBlock Foreground="{DynamicResource BrushInfo}" Text="{Binding Label, ElementName=Root}" />
+      </StackPanel>
+    </shad:Badge>
 
-    <controls:StatusPill
-      BackgroundBrush="{DynamicResource BrushDoneBg25}"
-      ForegroundBrush="{DynamicResource BrushDone}"
-      Icon="CircleCheck"
-      IsVisible="{Binding IsUpToDate, ElementName=Root}"
-      PillBorderBrush="{DynamicResource BrushDoneBg50}"
-      Text="{Binding Label, ElementName=Root}" />
+    <shad:Badge
+      Background="{DynamicResource BrushDoneBg25}"
+      BorderBrush="{DynamicResource BrushDoneBg50}"
+      Classes="Outline"
+      IsVisible="{Binding IsUpToDate, ElementName=Root}">
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+        <icons:AppIcon
+          Width="{DynamicResource IconSizeSmall}"
+          Height="{DynamicResource IconSizeSmall}"
+          Foreground="{DynamicResource BrushDone}"
+          Kind="CircleCheck" />
+        <TextBlock Foreground="{DynamicResource BrushDone}" Text="{Binding Label, ElementName=Root}" />
+      </StackPanel>
+    </shad:Badge>
 
-    <controls:StatusPill
-      BackgroundBrush="{DynamicResource BrushWarningBg25}"
-      ForegroundBrush="{DynamicResource BrushWarning}"
-      Icon="CloudDownload"
-      IsVisible="{Binding IsUpdateAvailable, ElementName=Root}"
-      PillBorderBrush="{DynamicResource BrushWarningBg50}"
-      Text="{Binding Label, ElementName=Root}">
-      <controls:StatusPill.SuffixContent>
+    <shad:Badge
+      Background="{DynamicResource BrushWarningBg25}"
+      BorderBrush="{DynamicResource BrushWarningBg50}"
+      Classes="Outline"
+      IsVisible="{Binding IsUpdateAvailable, ElementName=Root}">
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+        <icons:AppIcon
+          Width="{DynamicResource IconSizeSmall}"
+          Height="{DynamicResource IconSizeSmall}"
+          Foreground="{DynamicResource BrushWarning}"
+          Kind="CloudDownload" />
+        <TextBlock Foreground="{DynamicResource BrushWarning}" Text="{Binding Label, ElementName=Root}" />
         <StackPanel
           IsVisible="{Binding ShowLatestVersion, ElementName=Root}"
           Orientation="Horizontal"
@@ -41,7 +59,7 @@
             Kind="ArrowRight" />
           <TextBlock Foreground="{DynamicResource BrushWarning}" Text="{Binding LatestVersion, ElementName=Root}" />
         </StackPanel>
-      </controls:StatusPill.SuffixContent>
-    </controls:StatusPill>
+      </StackPanel>
+    </shad:Badge>
   </Grid>
 </UserControl>

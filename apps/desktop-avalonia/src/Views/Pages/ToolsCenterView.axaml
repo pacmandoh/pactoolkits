@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ToolsCenterView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -6,7 +6,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:suki="https://github.com/kikipoulet/SukiUI"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
   d:DesignHeight="800"
@@ -19,7 +19,7 @@
       Classes="PageRootLayout"
       KeyboardNavigation.TabNavigation="Cycle"
       RowDefinitions="Auto,Auto,*">
-      <suki:GlassCard Grid.Row="0" Classes="SectionCard PageHero">
+      <shad:Card Grid.Row="0" Classes="SectionCard PageHero">
         <Grid
           VerticalAlignment="Center"
           ColumnDefinitions="Auto,*,Auto"
@@ -61,14 +61,14 @@
               Text="{Binding AhkStatusText}" />
           </StackPanel>
         </Grid>
-      </suki:GlassCard>
+      </shad:Card>
 
       <Grid
         Grid.Row="1"
         VerticalAlignment="Stretch"
         ColumnDefinitions="Auto,Auto,Auto,Auto,*"
         ColumnSpacing="{DynamicResource PageColumnSpacing}">
-        <suki:GlassCard
+        <shad:Card
           Grid.Column="0"
           VerticalAlignment="Stretch"
           HorizontalContentAlignment="Center"
@@ -95,9 +95,9 @@
               IsChecked="{Binding IsAhkEnabled, Mode=TwoWay}"
               IsEnabled="{Binding !IsAhkToggling}" />
           </Grid>
-        </suki:GlassCard>
+        </shad:Card>
 
-        <suki:GlassCard
+        <shad:Card
           Grid.Column="1"
           VerticalAlignment="Stretch"
           Classes="ActionTile">
@@ -113,9 +113,9 @@
               <TextBlock Text="重启" />
             </StackPanel>
           </Button>
-        </suki:GlassCard>
+        </shad:Card>
 
-        <suki:GlassCard
+        <shad:Card
           Grid.Column="2"
           VerticalAlignment="Stretch"
           Classes="ActionTile">
@@ -137,9 +137,9 @@
               <TextBlock Text="保存配置" />
             </StackPanel>
           </Button>
-        </suki:GlassCard>
+        </shad:Card>
 
-        <suki:GlassCard
+        <shad:Card
           Grid.Column="3"
           VerticalAlignment="Stretch"
           Classes="ActionTile">
@@ -149,9 +149,9 @@
               Height="25"
               Kind="Keyboard" />
           </Grid>
-        </suki:GlassCard>
+        </shad:Card>
 
-        <suki:GlassCard
+        <shad:Card
           Grid.Column="4"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
@@ -186,17 +186,17 @@
               TextTrimming="None"
               TextWrapping="Wrap" />
           </Grid>
-        </suki:GlassCard>
+        </shad:Card>
       </Grid>
 
       <Grid
         Grid.Row="2"
         ColumnDefinitions="1.55*,1*"
         ColumnSpacing="{DynamicResource PageColumnSpacing}">
-        <suki:GlassCard
+        <shad:Card
           x:Name="ToolEditorCard"
           Grid.Column="0"
-          Classes="SectionCard PageHero">
+          Classes="SectionCard PageHero ScrollHostCard">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
               <icons:AppIcon
@@ -206,14 +206,13 @@
               <TextBlock Classes="SectionTitle" Text="运行参数" />
             </StackPanel>
 
-            <ScrollViewer
-              x:Name="ToolEditorScrollViewer"
+            <StackPanel
               Grid.Row="1"
-              Classes="Stack"
-              HorizontalScrollBarVisibility="Disabled"
-              VerticalScrollBarVisibility="Auto">
-              <StackPanel Spacing="{DynamicResource PageSectionSpacing}">
-                <suki:GroupBox HorizontalContentAlignment="Stretch" Header="基础配置">
+              Spacing="{DynamicResource PageSectionSpacing}">
+                <shad:Card>
+                  <shad:Card.Header>
+                    <TextBlock Classes="SectionTitle" Text="基础配置" />
+                  </shad:Card.Header>
                   <Grid
                     Classes="FormLabelLayout"
                     ColumnDefinitions="140,*"
@@ -370,9 +369,12 @@
                       </ItemsControl>
                     </StackPanel>
                   </Grid>
-                </suki:GroupBox>
+                </shad:Card>
 
-                <suki:GroupBox HorizontalContentAlignment="Stretch" Header="门诊配置">
+                <shad:Card>
+                  <shad:Card.Header>
+                    <TextBlock Classes="SectionTitle" Text="门诊配置" />
+                  </shad:Card.Header>
                   <Grid
                     Classes="FormLabelLayout"
                     ColumnDefinitions="140,*"
@@ -429,9 +431,12 @@
                       Text="{Binding AgentOptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                       UseFloatingPlaceholder="False" />
                   </Grid>
-                </suki:GroupBox>
+                </shad:Card>
 
-                <suki:GroupBox HorizontalContentAlignment="Stretch" Header="住院配置">
+                <shad:Card>
+                  <shad:Card.Header>
+                    <TextBlock Classes="SectionTitle" Text="住院配置" />
+                  </shad:Card.Header>
                   <Grid
                     Classes="FormLabelLayout"
                     ColumnDefinitions="140,*"
@@ -488,9 +493,12 @@
                       Text="{Binding AgentIptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                       UseFloatingPlaceholder="False" />
                   </Grid>
-                </suki:GroupBox>
+                </shad:Card>
 
-                <suki:GroupBox HorizontalContentAlignment="Stretch" Header="仓库配置">
+                <shad:Card>
+                  <shad:Card.Header>
+                    <TextBlock Classes="SectionTitle" Text="仓库配置" />
+                  </shad:Card.Header>
                   <Grid
                     Classes="FormLabelLayout"
                     ColumnDefinitions="140,*"
@@ -629,9 +637,12 @@
                       </ItemsControl>
                     </StackPanel>
                   </Grid>
-                </suki:GroupBox>
+                </shad:Card>
 
-                <suki:GroupBox HorizontalContentAlignment="Stretch" Header="解析规则">
+                <shad:Card>
+                  <shad:Card.Header>
+                    <TextBlock Classes="SectionTitle" Text="解析规则" />
+                  </shad:Card.Header>
                   <Grid
                     Classes="FormLabelLayout"
                     ColumnDefinitions="140,*"
@@ -758,13 +769,12 @@
                       </ItemsControl>
                     </StackPanel>
                   </Grid>
-                </suki:GroupBox>
-              </StackPanel>
-            </ScrollViewer>
+                </shad:Card>
+            </StackPanel>
           </Grid>
-        </suki:GlassCard>
+        </shad:Card>
 
-        <suki:GlassCard Grid.Column="1" Classes="SectionCard PageHero">
+        <shad:Card Grid.Column="1" Classes="SectionCard PageHero">
           <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
               <icons:AppIcon
@@ -813,7 +823,7 @@
                 TextWrapping="Wrap" />
             </Grid>
           </Grid>
-        </suki:GlassCard>
+        </shad:Card>
       </Grid>
     </Grid>
   </Grid>

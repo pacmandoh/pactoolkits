@@ -1,13 +1,11 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using global::Avalonia.Controls;
-using global::Avalonia.Controls.Notifications;
+using Avalonia.Controls;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using SukiUI.Enums;
-using SukiUI.Toasts;
+using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
@@ -41,9 +39,9 @@ public sealed class UpdateDesktopFlowService : IUpdateDesktopFlowService
     private readonly IUpdateSettingsService _updateSettings;
     private readonly IToastService _toasts;
     private readonly IDialogService _dialogs;
-    private readonly ISukiToastManager _toastManager;
+    private readonly ToastManager _toastManager;
     private readonly IAppLogger _logger;
-    private ISukiToast? _activeUpdateToast;
+    private bool _activeUpdateToastVisible;
     private string _activeUpdateToastKey = string.Empty;
 
     public UpdateDesktopFlowService(
@@ -51,7 +49,7 @@ public sealed class UpdateDesktopFlowService : IUpdateDesktopFlowService
         IUpdateSettingsService updateSettings,
         IToastService toasts,
         IDialogService dialogs,
-        ISukiToastManager toastManager,
+        ToastManager toastManager,
         IAppLogger logger)
     {
         _updates = updates ?? throw new ArgumentNullException(nameof(updates));
@@ -83,25 +81,25 @@ public sealed class UpdateDesktopFlowService : IUpdateDesktopFlowService
         {
             lock (_toastGate)
             {
-                if (_activeUpdateToast is not null
+                if (_activeUpdateToastVisible
                     && string.Equals(_activeUpdateToastKey, toastKey, StringComparison.Ordinal))
                 {
                     return;
                 }
 
-                if (_activeUpdateToast is not null)
+                if (_activeUpdateToastVisible)
                 {
-                    _toastManager.Dismiss(_activeUpdateToast);
+                    _toastManager.DismissAll();
                 }
 
-                _activeUpdateToast = _toastManager.CreateToast()
-                .OfType(NotificationType.Information)
-                .WithTitle(title)
-                .WithContent(content)
-                .WithActionButton("稍后", _ => { }, true, SukiButtonStyles.Basic)
-                .WithActionButton("忽略此版本", _toast => FireAndForget(ignoreVersionAction, "update.toast.ignore"), true, SukiButtonStyles.Flat)
-                .WithActionButton("立即更新", _toast => FireAndForget(applyNowAction, "update.toast.apply"), true, SukiButtonStyles.Accent)
-                .Queue();
+                _toastManager.CreateToast(title)
+                    .WithContent(content)
+                    .WithAction("稍后", () => { })
+                    .WithAction("忽略此版本", () => FireAndForget(ignoreVersionAction, "update.toast.ignore"))
+                    .WithAction("立即更新", () => FireAndForget(applyNowAction, "update.toast.apply"))
+                    .ShowInfo();
+
+                _activeUpdateToastVisible = true;
                 _activeUpdateToastKey = toastKey;
             }
         });
@@ -199,7 +197,7 @@ public sealed class UpdateDesktopFlowService : IUpdateDesktopFlowService
     public async Task ApplyUpdateFlowAsync()
     {
         ProgressBar? progressBar = null;
-        ISukiToast? progressToast = null;
+        var progressToastActive = false;
 
         try
         {
@@ -215,11 +213,11 @@ public sealed class UpdateDesktopFlowService : IUpdateDesktopFlowService
                     ShowProgressText = true
                 };
 
-                progressToast = _toastManager.CreateToast()
-                    .OfType(NotificationType.Information)
-                    .WithTitle("正在下载更新...")
+                _toastManager.CreateToast("正在下载更新...")
                     .WithContent(progressBar)
-                    .Queue();
+                    .ShowInfo();
+
+                progressToastActive = true;
             });
 
             var progress = new Progress<int>(value =>
@@ -234,12 +232,11 @@ public sealed class UpdateDesktopFlowService : IUpdateDesktopFlowService
 
             await RunOnUiAsync(() =>
             {
-                if (progressToast is not null)
+                if (progressToastActive)
                 {
-                    _toastManager.Dismiss(progressToast);
+                    _toastManager.DismissAll();
+                    progressToastActive = false;
                 }
-
-                progressToast = null;
             });
 
             if (!result.Success)
@@ -270,9 +267,9 @@ public sealed class UpdateDesktopFlowService : IUpdateDesktopFlowService
         {
             await RunOnUiAsync(() =>
             {
-                if (progressToast is not null)
+                if (progressToastActive)
                 {
-                    _toastManager.Dismiss(progressToast);
+                    _toastManager.DismissAll();
                 }
             });
 
@@ -307,12 +304,12 @@ public sealed class UpdateDesktopFlowService : IUpdateDesktopFlowService
         {
             lock (_toastGate)
             {
-                if (_activeUpdateToast is not null)
+                if (_activeUpdateToastVisible)
                 {
-                    _toastManager.Dismiss(_activeUpdateToast);
+                    _toastManager.DismissAll();
                 }
 
-                _activeUpdateToast = null;
+                _activeUpdateToastVisible = false;
                 _activeUpdateToastKey = string.Empty;
             }
         });

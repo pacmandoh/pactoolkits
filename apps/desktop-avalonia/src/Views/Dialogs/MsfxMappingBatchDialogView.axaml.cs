@@ -13,7 +13,6 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -62,7 +61,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
         AutoCompleteHelper.AttachDrugOptionFilter(DrugIdBox);
         AutoCompleteHelper.AttachCandidateCommitApplyAsync(DrugIdBox, this, "SpecBox", ApplyDrugBoxCommitAsync);
 
-        DrugIdBox.BoxPropertyChanged += OnDrugBoxPropertyChanged;
+        DrugIdBox.PropertyChanged += OnDrugBoxPropertyChanged;
         SpecBox.SelectionChanged += OnSpecSelectionChanged;
         GroupGrid.SelectionChanged += OnGroupSelectionChanged;
         SearchScopeBox.SelectionChanged += OnFilterSelectionChanged;
@@ -309,7 +308,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
             ApplyDrugBoxCommitAsync);
     }
 
-    private Task ApplyDrugBoxCommitAsync(PlainAutoCompleteBox box)
+    private Task ApplyDrugBoxCommitAsync(AutoCompleteBox box)
         => RunInputCommitAsync(async () =>
         {
             var input = NormalizeInput(box.Text);
@@ -514,7 +513,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
 
     private async void OnDrugBoxPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
-        if (e.Property != PlainAutoCompleteBox.TextProperty && e.Property != TextBox.TextProperty)
+        if (e.Property != AutoCompleteBox.TextProperty && e.Property != TextBox.TextProperty)
         {
             return;
         }

@@ -1,4 +1,4 @@
-﻿<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Style Selector="TextBlock.SectionTitle">
     <Setter Property="FontSize" Value="{DynamicResource SectionTitleSize}" />
     <Setter Property="FontWeight" Value="Bold" />
@@ -14,23 +14,6 @@
   <Style Selector="TextBlock.FilterLabel">
     <Setter Property="Opacity" Value="{DynamicResource SectionHintOpacity}" />
     <Setter Property="FontSize" Value="{DynamicResource SectionHintSize}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
-
-  <Style Selector="TextBlock.DGSub">
-    <Setter Property="Opacity" Value="{DynamicResource SectionHintOpacity}" />
-    <Setter Property="FontSize" Value="{DynamicResource SectionHintSize}" />
-    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-  </Style>
-
-  <Style Selector="TextBlock.DGNum">
-    <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="HorizontalAlignment" Value="Right" />
-  </Style>
-
-  <Style Selector="TextBlock.DGRightCell">
-    <Setter Property="Padding" Value="{DynamicResource DgCellPadRight}" />
-    <Setter Property="HorizontalAlignment" Value="Right" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
@@ -68,19 +51,18 @@
     <Setter Property="FontWeight" Value="Bold" />
   </Style>
 
-  <Style Selector="TextBlock.ShellCaption">
-    <Setter Property="FontSize" Value="{DynamicResource ShellCaptionSize}" />
-    <Setter Property="Opacity" Value="{DynamicResource SectionHintOpacity}" />
-  </Style>
-
-  <Style Selector="TextBlock.ShellMeta">
-    <Setter Property="FontSize" Value="{DynamicResource ShellMetaSize}" />
-    <Setter Property="Opacity" Value="{DynamicResource ShellMetaOpacity}" />
-  </Style>
-
   <Style Selector="TextBlock.ShellStatusLabel">
     <Setter Property="FontSize" Value="{DynamicResource ShellStatusLabelSize}" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Opacity" Value="0.88" />
+  </Style>
+
+  <!-- ShadUI sets Small/Caption to Medium; CJK system fonts render Latin glyphs heavy at Medium. -->
+  <Style Selector="TextBlock.Small">
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+
+  <Style Selector="TextBlock.Caption">
+    <Setter Property="FontWeight" Value="Normal" />
   </Style>
 </Styles>

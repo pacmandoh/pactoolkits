@@ -177,7 +177,7 @@ internal static class ConverterHelpers
             _ => 0.35,
         };
 
-        var color = FindAppColor("SukiPrimaryColor", Colors.Transparent);
+        var color = FindAppColor("PrimaryColor", Colors.Transparent);
         if (color.A == 0 && color.R == 0 && color.G == 0 && color.B == 0)
         {
             return Brushes.Transparent;
@@ -455,7 +455,7 @@ public sealed class CellCurrentBorderBrushConverter : IValueConverter
             var c = solid.Color;
             if (c.A == 0)
             {
-                return ConverterHelpers.FindAppBrush("SukiPrimaryColor", Brushes.White);
+                return ConverterHelpers.FindAppBrush("PrimaryColor", Brushes.White);
             }
 
             static byte Mix(byte baseCh, byte to, double factor)
@@ -471,7 +471,7 @@ public sealed class CellCurrentBorderBrushConverter : IValueConverter
             return new SolidColorBrush(mixed);
         }
 
-        return ConverterHelpers.FindAppBrush("SukiPrimaryColor", Brushes.White);
+        return ConverterHelpers.FindAppBrush("PrimaryColor", Brushes.White);
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

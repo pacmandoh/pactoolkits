@@ -1,0 +1,71 @@
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
+  <!--
+    ShadUI demo uses BusyArea as a sibling overlay (no child content). Pac wraps page
+    sections and DataGrids as content hosts. Override the theme so
+    content stays visible when IsBusy=False and only the overlay/spinner appear when busy.
+  -->
+  <Style Selector="shad|BusyArea">
+    <Setter Property="LoadingSize" Value="32" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Panel>
+          <ContentPresenter
+            Name="PART_ContentPresenter"
+            HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
+            VerticalAlignment="{TemplateBinding VerticalAlignment}"
+            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+            Content="{TemplateBinding Content}"
+            ContentTemplate="{TemplateBinding ContentTemplate}" />
+
+          <Border
+            Name="AreaBackground"
+            Background="{DynamicResource BusyAreaOverlayColor}"
+            CornerRadius="{TemplateBinding CornerRadius}"
+            IsHitTestVisible="False"
+            Opacity="0">
+            <Border.Transitions>
+              <Transitions>
+                <DoubleTransition Duration="0:0:0.25" Easing="{StaticResource EaseOut}" Property="Opacity" />
+              </Transitions>
+            </Border.Transitions>
+          </Border>
+
+          <Viewbox
+            Name="LoadingIndicator"
+            Height="{TemplateBinding LoadingSize}"
+            HorizontalAlignment="Center"
+            IsHitTestVisible="False"
+            IsVisible="False"
+            VerticalAlignment="Center"
+            Width="{TemplateBinding LoadingSize}">
+            <ContentPresenter Content="{TemplateBinding IsBusy, Converter={x:Static shad:BooleanConverters.ToLoading}}" />
+          </Viewbox>
+
+          <Panel.Styles>
+            <Style Selector="shad|BusyArea[IsBusy=True] /template/ Border#AreaBackground">
+              <Setter Property="Opacity" Value="0.80" />
+              <Setter Property="IsHitTestVisible" Value="True" />
+            </Style>
+            <Style Selector="shad|BusyArea[IsBusy=False] /template/ Border#AreaBackground">
+              <Setter Property="Opacity" Value="0" />
+              <Setter Property="IsHitTestVisible" Value="False" />
+            </Style>
+            <Style Selector="shad|BusyArea[IsBusy=True] /template/ Viewbox#LoadingIndicator">
+              <Setter Property="IsVisible" Value="True" />
+              <Setter Property="IsHitTestVisible" Value="True" />
+            </Style>
+            <Style Selector="shad|BusyArea[IsBusy=False] /template/ Viewbox#LoadingIndicator">
+              <Setter Property="IsVisible" Value="False" />
+              <Setter Property="IsHitTestVisible" Value="False" />
+            </Style>
+          </Panel.Styles>
+        </Panel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+</Styles>

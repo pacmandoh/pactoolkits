@@ -1,12 +1,12 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.AboutView"
   xmlns="https://github.com/avaloniaui"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:suki="https://github.com/kikipoulet/SukiUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   d:DesignHeight="820"
   d:DesignWidth="1200"
@@ -20,7 +20,7 @@
     <Grid Classes="PageRootLayout" RowDefinitions="Auto,Auto,Auto,Auto">
 
       <!--  Hero  -->
-      <suki:GlassCard Grid.Row="0" Classes="SectionCard AboutHero">
+      <shad:Card Grid.Row="0">
         <StackPanel Spacing="0">
           <Border Classes="AboutHeroAccent" />
           <Grid
@@ -72,7 +72,7 @@
               VerticalAlignment="Center"
               Classes="AboutHeroVersion"
               Text="{Binding ProductVersion}" />
-            <suki:InfoBadge
+            <shad:Badge Variant="Secondary"
               Grid.Row="2"
               Grid.Column="2"
               HorizontalAlignment="Right"
@@ -81,14 +81,14 @@
               Foreground="{DynamicResource BrushInfo}" />
           </Grid>
         </StackPanel>
-      </suki:GlassCard>
+      </shad:Card>
 
       <!--  Maintainer + Version  -->
       <Grid
         Grid.Row="1"
         ColumnDefinitions="1.05*,0.95*"
         ColumnSpacing="{DynamicResource PageColumnSpacing}">
-        <suki:GlassCard Classes="SectionCard CompactCard">
+        <shad:Card>
           <StackPanel Spacing="{DynamicResource FormRowSpacing}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
               <icons:AppIcon
@@ -104,10 +104,9 @@
             <Border Classes="AboutPanelDivider" />
 
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
-              <suki:GlassCard
+              <shad:Card
                 Width="52"
                 Height="52"
-                Classes="CompactCard"
                 CornerRadius="14"
                 Opacity="0.94">
                 <icons:AppIcon
@@ -116,7 +115,7 @@
                   HorizontalAlignment="Center"
                   VerticalAlignment="Center"
                   Kind="UserRound" />
-              </suki:GlassCard>
+              </shad:Card>
               <StackPanel
                 Grid.Column="1"
                 VerticalAlignment="Center"
@@ -145,7 +144,7 @@
                 Text="2026" />
             </WrapPanel>
 
-            <suki:GlassCard Classes="CompactCard AboutMetricTile">
+            <shad:Card>
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                 <icons:AppIcon
                   Width="{DynamicResource IconSizeDefault}"
@@ -160,11 +159,11 @@
                   <TextBlock Classes="AboutMetaValue" Text="井研县中医医院 · 药剂科" />
                 </StackPanel>
               </Grid>
-            </suki:GlassCard>
+            </shad:Card>
           </StackPanel>
-        </suki:GlassCard>
+        </shad:Card>
 
-        <suki:GlassCard Grid.Column="1" Classes="SectionCard CompactCard">
+        <shad:Card Grid.Column="1">
           <StackPanel Spacing="{DynamicResource FormRowSpacing}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
               <icons:AppIcon
@@ -215,7 +214,7 @@
             </Grid>
 
             <Grid ColumnDefinitions="1*,1*,1*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
-              <suki:GlassCard Grid.Column="0" Classes="CompactCard AboutMetricTile">
+              <shad:Card Grid.Column="0">
                 <StackPanel Spacing="6">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon
@@ -227,8 +226,8 @@
                   <TextBlock Classes="AboutMetricValue" Text="{Binding DatabasePostgresVersion}" />
                   <TextBlock Classes="SectionHint" Text="结构兼容性校验" />
                 </StackPanel>
-              </suki:GlassCard>
-              <suki:GlassCard Grid.Column="1" Classes="CompactCard AboutMetricTile">
+              </shad:Card>
+              <shad:Card Grid.Column="1">
                 <StackPanel Spacing="6">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon
@@ -240,8 +239,8 @@
                   <TextBlock Classes="AboutMetricValue" Text="{Binding AgentInjectorAhkVersion}" />
                   <TextBlock Classes="SectionHint" Text="自动化执行层" />
                 </StackPanel>
-              </suki:GlassCard>
-              <suki:GlassCard Grid.Column="2" Classes="CompactCard AboutMetricTile">
+              </shad:Card>
+              <shad:Card Grid.Column="2">
                 <StackPanel Spacing="6">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon
@@ -253,7 +252,7 @@
                   <TextBlock Classes="AboutMetricValue" Text="{Binding DesktopVersion}" />
                   <TextBlock Classes="SectionHint" Text="components.desktop" />
                 </StackPanel>
-              </suki:GlassCard>
+              </shad:Card>
             </Grid>
 
             <ItemsControl ItemsSource="{Binding VersionBadges}">
@@ -264,16 +263,16 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:VersionBadgeItem">
-                  <suki:InfoBadge Content="{Binding Display}" Foreground="{DynamicResource SukiLowText}" />
+                  <shad:Badge Variant="Secondary" Content="{Binding Display}" Foreground="{DynamicResource MutedColor}" />
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
           </StackPanel>
-        </suki:GlassCard>
+        </shad:Card>
       </Grid>
 
       <!--  Architecture  -->
-      <suki:GlassCard Grid.Row="2" Classes="SectionCard CompactCard">
+      <shad:Card Grid.Row="2">
         <StackPanel Spacing="{DynamicResource FormRowSpacing}">
           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
             <icons:AppIcon
@@ -289,7 +288,7 @@
           <Border Classes="AboutPanelDivider" />
 
           <Grid ColumnDefinitions="1*,Auto,1*,Auto,1*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
-            <suki:GlassCard Grid.Column="0" Classes="CompactCard AboutPipelineNode">
+            <shad:Card Grid.Column="0">
               <StackPanel Spacing="8">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon
@@ -304,7 +303,7 @@
                   Text="业务配置、任务调度与 UI 交互"
                   TextWrapping="Wrap" />
               </StackPanel>
-            </suki:GlassCard>
+            </shad:Card>
 
             <icons:AppIcon
               Grid.Column="1"
@@ -314,7 +313,7 @@
               Kind="ChevronRight"
               Opacity="0.45" />
 
-            <suki:GlassCard Grid.Column="2" Classes="CompactCard AboutPipelineNode">
+            <shad:Card Grid.Column="2">
               <StackPanel Spacing="8">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon
@@ -329,7 +328,7 @@
                   Text="追溯码注入、自动拉取与桥接流程"
                   TextWrapping="Wrap" />
               </StackPanel>
-            </suki:GlassCard>
+            </shad:Card>
 
             <icons:AppIcon
               Grid.Column="3"
@@ -339,7 +338,7 @@
               Kind="ChevronRight"
               Opacity="0.45" />
 
-            <suki:GlassCard Grid.Column="4" Classes="CompactCard AboutPipelineNode">
+            <shad:Card Grid.Column="4">
               <StackPanel Spacing="8">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon
@@ -354,11 +353,11 @@
                   Text="追溯码、库存与配置的统一数据源"
                   TextWrapping="Wrap" />
               </StackPanel>
-            </suki:GlassCard>
+            </shad:Card>
           </Grid>
 
           <Grid ColumnDefinitions="1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-            <suki:GlassCard Grid.Column="0" Classes="CompactCard AboutTechGroup">
+            <shad:Card Grid.Column="0">
               <StackPanel Spacing="{DynamicResource DialogInnerRowSpacing}">
                 <TextBlock Classes="AboutSectionKicker" Text="界面与运行时" />
                 <Grid ColumnDefinitions="1*,1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
@@ -406,9 +405,9 @@
                   </Grid>
                 </Grid>
               </StackPanel>
-            </suki:GlassCard>
+            </shad:Card>
 
-            <suki:GlassCard Grid.Column="1" Classes="CompactCard AboutTechGroup">
+            <shad:Card Grid.Column="1">
               <StackPanel Spacing="{DynamicResource DialogInnerRowSpacing}">
                 <TextBlock Classes="AboutSectionKicker" Text="数据与自动化" />
                 <Grid ColumnDefinitions="1*,1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
@@ -456,13 +455,13 @@
                   </Grid>
                 </Grid>
               </StackPanel>
-            </suki:GlassCard>
+            </shad:Card>
           </Grid>
 
           <Border Classes="AboutPanelDivider" />
 
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-            <suki:GlassCard Classes="CompactCard AboutTechGroup">
+            <shad:Card>
               <StackPanel Spacing="{DynamicResource DialogInnerRowSpacing}">
                 <TextBlock Classes="AboutSectionKicker" Text="开发与工具链" />
                 <Grid ColumnDefinitions="1*,1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
@@ -510,14 +509,14 @@
                   </Grid>
                 </Grid>
               </StackPanel>
-            </suki:GlassCard>
+            </shad:Card>
 
             <StackPanel
               Grid.Column="1"
               MinWidth="220"
               VerticalAlignment="Bottom"
               Spacing="{DynamicResource DialogInnerRowSpacing}">
-              <suki:GlassCard Classes="CompactCard AboutMetricTile">
+              <shad:Card>
                 <StackPanel Spacing="4">
                   <TextBlock Classes="AboutMetaLabel" Text="当前阶段" />
                   <TextBlock Classes="AboutMetaValue" Text="M3 · 自动化能力稳定化" />
@@ -526,7 +525,7 @@
                     Text="重点：追溯码注入成功率、并发一致性与配置可维护性"
                     TextWrapping="Wrap" />
                 </StackPanel>
-              </suki:GlassCard>
+              </shad:Card>
               <WrapPanel ItemSpacing="{DynamicResource SpacingInlineSm}" LineSpacing="{DynamicResource SpacingInlineSm}">
                 <controls:StatusPill
                   Classes="ToneInfo15"
@@ -544,12 +543,11 @@
             </StackPanel>
           </Grid>
         </StackPanel>
-      </suki:GlassCard>
+      </shad:Card>
 
       <!--  Dev lab (DEBUG only)  -->
-      <suki:GlassCard
+      <shad:Card
         Grid.Row="3"
-        Classes="SectionCard CompactCard"
         IsVisible="{Binding IsDevLabVisible}">
         <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
@@ -568,7 +566,7 @@
             Grid.Row="1"
             ColumnDefinitions="1.2*,1.2*,1.2*"
             ColumnSpacing="{DynamicResource PageColumnSpacing}">
-            <suki:GlassCard
+            <shad:Card
               Grid.Column="0"
               Padding="{StaticResource CompactPadding}"
               Opacity="0.95">
@@ -591,9 +589,9 @@
                   Minimum="0"
                   Value="96" />
               </Grid>
-            </suki:GlassCard>
+            </shad:Card>
 
-            <suki:GlassCard
+            <shad:Card
               Grid.Column="1"
               Padding="{StaticResource CompactPadding}"
               Opacity="0.95">
@@ -616,9 +614,9 @@
                   Minimum="0"
                   Value="89" />
               </Grid>
-            </suki:GlassCard>
+            </shad:Card>
 
-            <suki:GlassCard
+            <shad:Card
               Grid.Column="2"
               Padding="{StaticResource CompactPadding}"
               Opacity="0.95">
@@ -641,14 +639,15 @@
                   Minimum="0"
                   Value="92" />
               </Grid>
-            </suki:GlassCard>
+            </shad:Card>
           </Grid>
 
           <Grid
             Grid.Row="2"
             ColumnDefinitions="1.1*,1.1*,1.1*"
             ColumnSpacing="{DynamicResource PageColumnSpacing}">
-            <suki:GroupBox Header="视觉标记样例">
+            <StackPanel Spacing="{DynamicResource FormRowSpacing}">
+              <TextBlock Classes="Small" FontWeight="SemiBold" Text="视觉标记样例" />
               <WrapPanel
                 Margin="{DynamicResource AboutSectionInset}"
                 ItemSpacing="{DynamicResource SpacingInlineMd}"
@@ -670,9 +669,10 @@
                   Icon="Undo"
                   Text="Rollback" />
               </WrapPanel>
-            </suki:GroupBox>
+            </StackPanel>
 
-            <suki:GroupBox Grid.Column="1" Header="Settings Layout（演示）">
+            <StackPanel Grid.Column="1" Spacing="{DynamicResource FormRowSpacing}">
+              <TextBlock Classes="Small" FontWeight="SemiBold" Text="Settings Layout（演示）" />
               <Grid
                 Margin="{DynamicResource AboutSectionInset}"
                 ColumnDefinitions="Auto,*"
@@ -723,9 +723,10 @@
                   Minimum="1"
                   Value="10" />
               </Grid>
-            </suki:GroupBox>
+            </StackPanel>
 
-            <suki:GroupBox Grid.Column="2" Header="Button 样式（实验）">
+            <StackPanel Grid.Column="2" Spacing="{DynamicResource FormRowSpacing}">
+              <TextBlock Classes="Small" FontWeight="SemiBold" Text="Button 样式（实验）" />
               <WrapPanel
                 Margin="{DynamicResource AboutSectionInset}"
                 ItemSpacing="{DynamicResource SpacingInlineMd}"
@@ -738,10 +739,11 @@
                 <Button Classes="Flat Accent" Content="Flat Accent" />
                 <Button Classes="Large" Content="Large" />
               </WrapPanel>
-            </suki:GroupBox>
+            </StackPanel>
           </Grid>
 
-          <suki:GroupBox Grid.Row="3" Header="WaveProgress（可调演示）">
+          <StackPanel Grid.Row="3" Spacing="{DynamicResource FormRowSpacing}">
+              <TextBlock Classes="Small" FontWeight="SemiBold" Text="WaveProgress（可调演示）" />
             <Grid
               MinHeight="250"
               Margin="{DynamicResource AboutSectionInset}"
@@ -749,11 +751,11 @@
               ColumnDefinitions="280,*"
               ColumnSpacing="18">
               <Grid VerticalAlignment="Center" RowDefinitions="*,Auto">
-                <suki:WaveProgress
+                <ProgressBar
                   Grid.Row="0"
                   Width="220"
-                  Height="220"
                   HorizontalAlignment="Center"
+                  Maximum="100"
                   VerticalAlignment="Center"
                   Value="{Binding WaveDemoValue}" />
                 <TextBlock
@@ -781,9 +783,10 @@
                   Text="样式参考 WaveProgress 演示：WaveProgress + 拖动调节 + 实时数值" />
               </Grid>
             </Grid>
-          </suki:GroupBox>
+          </StackPanel>
 
-          <suki:GroupBox Grid.Row="4" Header="交互组件预览">
+          <StackPanel Grid.Row="4" Spacing="{DynamicResource FormRowSpacing}">
+              <TextBlock Classes="Small" FontWeight="SemiBold" Text="交互组件预览" />
             <TabControl Margin="{DynamicResource AboutSectionInset}" SelectedIndex="0">
               <TabItem Header="布局">
                 <Grid
@@ -807,9 +810,9 @@
                 </Expander>
               </TabItem>
             </TabControl>
-          </suki:GroupBox>
+          </StackPanel>
         </Grid>
-      </suki:GlassCard>
+      </shad:Card>
     </Grid>
   </ScrollViewer>
 </UserControl>
