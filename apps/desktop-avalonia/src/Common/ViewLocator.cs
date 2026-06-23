@@ -1,6 +1,4 @@
-using System.Collections.Generic;
-using CommunityToolkit.Mvvm.ComponentModel;
-using global::Avalonia.Controls;
+using Avalonia.Controls;
 using global::Avalonia.Controls.Templates;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 
@@ -8,8 +6,6 @@ namespace PacToolkits.Desktop.Avalonia.Common;
 
 public class ViewLocator(AppViews views) : IDataTemplate
 {
-    private readonly Dictionary<object, Control> _controlCache = [];
-
     public Control Build(object? param)
     {
         if (param is Control c)
@@ -22,48 +18,22 @@ public class ViewLocator(AppViews views) : IDataTemplate
             return CreateText("Data is null.");
         }
 
-        if (param is AppPageBase)
+        if (param is AppPageBase page && views.TryCreateView(page, out var pageView))
         {
-            if (_controlCache.TryGetValue(param, out var control))
-            {
-                AppLog.Info("ViewLocator", "view.cache.hit", "Reused cached view", new
-                {
-                    cacheCount = _controlCache.Count,
-                    vm = param.GetType().Name
-                });
-                return control;
-            }
-
-            if (views.TryCreateView(param, out var view))
-            {
-                view.DataContext = param;
-                _controlCache.Add(param, view);
-                AppLog.Info("ViewLocator", "view.cache.add", "Cached new view", new
-                {
-                    cacheCount = _controlCache.Count,
-                    vm = param.GetType().Name
-                });
-                return view;
-            }
+            pageView.DataContext = page;
+            return pageView;
         }
-        else
+
+        if (views.TryCreateView(param, out var view))
         {
-            if (views.TryCreateView(param, out var view))
-            {
-                view.DataContext = param;
-                AppLog.Info("ViewLocator", "view.create.new", "Created non-page view", new
-                {
-                    cacheCount = _controlCache.Count,
-                    vm = param.GetType().Name
-                });
-                return view;
-            }
+            view.DataContext = param;
+            return view;
         }
 
         return CreateText($"No View For {param.GetType().Name}.");
     }
 
-    public bool Match(object? data) => data is ObservableObject;
+    public bool Match(object? data) => data is CommunityToolkit.Mvvm.ComponentModel.ObservableObject;
 
     private static TextBlock CreateText(string text) => new TextBlock { Text = text };
 }

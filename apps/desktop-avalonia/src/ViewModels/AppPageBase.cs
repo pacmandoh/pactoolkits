@@ -26,6 +26,13 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     public virtual bool IsEnabled => true;
     public virtual bool ShowInSidebar => true;
 
+    public virtual string FunctionAreaId => ShellFunctionAreas.TraceabilityId;
+
+    public virtual string SidebarRoute =>
+        GetType().Name.EndsWith("ViewModel", StringComparison.Ordinal)
+            ? GetType().Name[..^"ViewModel".Length]
+            : GetType().Name;
+
     private readonly IAsyncRelayCommand _refreshCommand;
 
     public virtual ICommand? RefreshCommand => _refreshCommand;
@@ -161,7 +168,14 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         return Task.CompletedTask;
     }
 
-    public virtual Task OnPageDeactivatedAsync(CancellationToken ct = default) => Task.CompletedTask;
+    public virtual Task OnPageDeactivatedAsync(CancellationToken ct = default)
+    {
+        CancelPendingReload();
+        return Task.CompletedTask;
+    }
+
+    protected void CancelPendingReload()
+        => _reload.CancelActiveRun();
 
     public virtual ValueTask DisposePageAsync()
     {

@@ -65,6 +65,17 @@ public sealed class PageReloadBehavior : IDisposable
         }
     }
 
+    public void CancelActiveRun()
+    {
+        var cts = Interlocked.Exchange(ref _cts, null);
+        if (cts is null)
+        {
+            return;
+        }
+
+        CancelCts(cts);
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -78,17 +89,6 @@ public sealed class PageReloadBehavior : IDisposable
 
     private bool IsCurrentRun(int runId, CancellationTokenSource cts)
         => Volatile.Read(ref _runId) == runId && ReferenceEquals(Volatile.Read(ref _cts), cts);
-
-    private void CancelActiveRun()
-    {
-        var cts = Interlocked.Exchange(ref _cts, null);
-        if (cts is null)
-        {
-            return;
-        }
-
-        CancelCts(cts);
-    }
 
     private static void CancelCts(CancellationTokenSource? cts)
     {
