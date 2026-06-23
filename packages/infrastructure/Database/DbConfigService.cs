@@ -6,23 +6,23 @@ namespace PacToolkits.Infrastructure.Database;
 public sealed class DbConfigService : IDbConfigService
 {
     private readonly IPgDataSourceFactory _factory;
-    private readonly IPostgresConfigStore _configStore;
+    private readonly IDbOptionsStore _optionsStore;
 
     public PgOptions Current { get; }
-    public string ConfigPath => _configStore.ConfigPath;
+    public string ConfigPath => _optionsStore.ConfigPath;
     public event EventHandler? Applied;
 
     public DbConfigService(
         IOptions<PgOptions> opt,
         IPgDataSourceFactory factory,
-        IPostgresConfigStore configStore)
+        IDbOptionsStore optionsStore)
     {
         _factory = factory;
-        _configStore = configStore;
+        _optionsStore = optionsStore;
 
         Current = opt.Value;
 
-        var postgres = _configStore.LoadPostgresOptions();
+        var postgres = _optionsStore.LoadPgOptions();
         CopyOptions(postgres, Current);
 
         _factory.Rebuild(Current);
@@ -46,7 +46,7 @@ public sealed class DbConfigService : IDbConfigService
 
     public async Task SaveAndApplyAsync(PgOptions opt, CancellationToken ct = default)
     {
-        await _configStore.SavePostgresOptionsAsync(CloneOptions(opt), ct).ConfigureAwait(false);
+        await _optionsStore.SavePgOptionsAsync(CloneOptions(opt), ct).ConfigureAwait(false);
 
         _factory.Rebuild(opt);
 

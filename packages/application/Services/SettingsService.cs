@@ -6,23 +6,23 @@ namespace PacToolkits.Application.Services;
 
 public interface ISettingsService
 {
-    Task SaveDatabaseConfigAsync(PgOptions options, CancellationToken ct);
+    Task SaveDbConfigAsync(PgOptions options, CancellationToken ct);
 
-    Task<DbConnectionValidationResult> ValidateDatabaseConnectionAsync(
+    Task<DbConnectionValidationResult> ValidateDbConnectionAsync(
         PgOptions options,
         DbSchemaVersionContext schemaContext,
         CancellationToken ct);
 
     Task<(bool Ok, string Summary)> EnsureSchemaUpToDateAsync(
         DbSchemaVersionContext schemaContext,
-        DatabaseMigrationTrigger trigger,
+        DbMigrationTrigger trigger,
         bool userConfirmed = false,
         bool ciMigrationAuthorized = false,
         CancellationToken ct = default);
 
     Task<(bool Ok, string Summary)> EnsureSchemaUpToDateAsync(
         DbSchemaVersionContext schemaContext,
-        DatabaseMigrationTrigger trigger,
+        DbMigrationTrigger trigger,
         PgOptions connectionOptions,
         bool userConfirmed = false,
         bool ciMigrationAuthorized = false,
@@ -44,7 +44,7 @@ public interface ISettingsService
 
     Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
-        DatabaseMigrationTrigger trigger,
+        DbMigrationTrigger trigger,
         CancellationToken ct);
 
     Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
@@ -54,7 +54,7 @@ public interface ISettingsService
 
     Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
-        DatabaseMigrationTrigger trigger,
+        DbMigrationTrigger trigger,
         PgOptions connectionOptions,
         CancellationToken ct);
 
@@ -70,9 +70,9 @@ public sealed class SettingsService : ISettingsService
     private readonly IDbSchemaVersionService _schemaVersion;
     private readonly IDbSchemaMigrationService _schemaMigration;
     private readonly IClientIdReadRepo _clientRepo;
-    private readonly IDatabaseAccessGuard _databaseAccessGuard;
-    private readonly IDatabaseMigrationPolicyService _migrationPolicy;
-    private readonly IDatabaseEnvironmentSettingsService _environmentSettings;
+    private readonly IDbAccessGuard _databaseAccessGuard;
+    private readonly IDbMigrationPolicyService _migrationPolicy;
+    private readonly IDbEnvSettingsService _environmentSettings;
 
     public SettingsService(
         IDbConfigService dbConfig,
@@ -80,9 +80,9 @@ public sealed class SettingsService : ISettingsService
         IDbSchemaVersionService schemaVersion,
         IDbSchemaMigrationService schemaMigration,
         IClientIdReadRepo clientRepo,
-        IDatabaseAccessGuard databaseAccessGuard,
-        IDatabaseMigrationPolicyService migrationPolicy,
-        IDatabaseEnvironmentSettingsService environmentSettings)
+        IDbAccessGuard databaseAccessGuard,
+        IDbMigrationPolicyService migrationPolicy,
+        IDbEnvSettingsService environmentSettings)
     {
         _dbConfig = dbConfig ?? throw new ArgumentNullException(nameof(dbConfig));
         _tester = tester ?? throw new ArgumentNullException(nameof(tester));
@@ -94,7 +94,7 @@ public sealed class SettingsService : ISettingsService
         _environmentSettings = environmentSettings ?? throw new ArgumentNullException(nameof(environmentSettings));
     }
 
-    public Task SaveDatabaseConfigAsync(PgOptions options, CancellationToken ct)
+    public Task SaveDbConfigAsync(PgOptions options, CancellationToken ct)
         => _dbConfig.SaveAndApplyAsync(options, ct);
 
     private async Task<(bool Ok, string? Summary)> TestConnectionAsync(PgOptions options, CancellationToken ct)
@@ -103,7 +103,7 @@ public sealed class SettingsService : ISettingsService
         return (result.Ok, result.Summary);
     }
 
-    public async Task<DbConnectionValidationResult> ValidateDatabaseConnectionAsync(
+    public async Task<DbConnectionValidationResult> ValidateDbConnectionAsync(
         PgOptions options,
         DbSchemaVersionContext schemaContext,
         CancellationToken ct)
@@ -136,7 +136,7 @@ public sealed class SettingsService : ISettingsService
             or DbSchemaCompatibility.MetadataMissing)
         {
             var policy = await EvaluatePolicyAsync(
-                DatabaseMigrationTrigger.SettingsManual,
+                DbMigrationTrigger.SettingsManual,
                 statusBeforeMigration.Compatibility,
                 schemaContext,
                 userConfirmed: false,
@@ -158,7 +158,7 @@ public sealed class SettingsService : ISettingsService
 
         var migration = await EnsureSchemaUpToDateCoreAsync(
             schemaContext,
-            DatabaseMigrationTrigger.SettingsManual,
+            DbMigrationTrigger.SettingsManual,
             userConfirmed: false,
             ciMigrationAuthorized: false,
             connectionOptions: options,
@@ -186,7 +186,7 @@ public sealed class SettingsService : ISettingsService
 
     public Task<(bool Ok, string Summary)> EnsureSchemaUpToDateAsync(
         DbSchemaVersionContext schemaContext,
-        DatabaseMigrationTrigger trigger,
+        DbMigrationTrigger trigger,
         bool userConfirmed = false,
         bool ciMigrationAuthorized = false,
         CancellationToken ct = default)
@@ -200,7 +200,7 @@ public sealed class SettingsService : ISettingsService
 
     public Task<(bool Ok, string Summary)> EnsureSchemaUpToDateAsync(
         DbSchemaVersionContext schemaContext,
-        DatabaseMigrationTrigger trigger,
+        DbMigrationTrigger trigger,
         PgOptions connectionOptions,
         bool userConfirmed = false,
         bool ciMigrationAuthorized = false,
@@ -223,7 +223,7 @@ public sealed class SettingsService : ISettingsService
 
     private async Task<(bool Ok, string Summary)> EnsureSchemaUpToDateCoreAsync(
         DbSchemaVersionContext schemaContext,
-        DatabaseMigrationTrigger trigger,
+        DbMigrationTrigger trigger,
         bool userConfirmed,
         bool ciMigrationAuthorized,
         PgOptions? connectionOptions,
@@ -244,12 +244,12 @@ public sealed class SettingsService : ISettingsService
             connectionOptions,
             ct).ConfigureAwait(false);
 
-        if (policy.Decision == DatabaseMigrationDecision.RequiresConfirmation)
+        if (policy.Decision == DbMigrationDecision.RequiresConfirmation)
         {
             return (false, policy.Reason);
         }
 
-        if (policy.Decision == DatabaseMigrationDecision.ReadOnlyRequired)
+        if (policy.Decision == DbMigrationDecision.ReadOnlyRequired)
         {
             return (false, policy.Reason);
         }
@@ -280,7 +280,7 @@ public sealed class SettingsService : ISettingsService
     {
         var snapshot = await ReadSchemaStatusAsync(
             schemaContext,
-            DatabaseMigrationTrigger.SettingsManual,
+            DbMigrationTrigger.SettingsManual,
             connectionOptions,
             ct).ConfigureAwait(false);
         if (snapshot.Satisfied)
@@ -296,13 +296,13 @@ public sealed class SettingsService : ISettingsService
         CancellationToken ct)
         => ReadSchemaStatusAsync(
             schemaContext,
-            DatabaseMigrationTrigger.SettingsManual,
+            DbMigrationTrigger.SettingsManual,
             connectionOptions: null,
             ct);
 
     public Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
-        DatabaseMigrationTrigger trigger,
+        DbMigrationTrigger trigger,
         CancellationToken ct)
         => ReadSchemaStatusAsync(schemaContext, trigger, connectionOptions: null, ct);
 
@@ -312,13 +312,13 @@ public sealed class SettingsService : ISettingsService
         CancellationToken ct)
         => ReadSchemaStatusAsync(
             schemaContext,
-            DatabaseMigrationTrigger.SettingsManual,
+            DbMigrationTrigger.SettingsManual,
             connectionOptions,
             ct);
 
     public async Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
-        DatabaseMigrationTrigger trigger,
+        DbMigrationTrigger trigger,
         PgOptions? connectionOptions,
         CancellationToken ct)
     {
@@ -336,9 +336,9 @@ public sealed class SettingsService : ISettingsService
             : await _schemaVersion.TryReadSchemaVersionAsync(connectionOptions, ct).ConfigureAwait(false);
         var compatibility = BuildCompatibility(schema, requiredMin, requiredMax);
 
-        if (ShouldApplyDatabaseGuard(connectionOptions))
+        if (ShouldApplyDbGuard(connectionOptions))
         {
-            ApplyDatabaseGuard(compatibility);
+            ApplyDbGuard(compatibility);
         }
 
         var migrationPolicy = await EvaluatePolicyAsync(
@@ -354,7 +354,7 @@ public sealed class SettingsService : ISettingsService
         var updatable = (compatibility.IsTooLow || compatibility.IsMetadataMissing)
                         && (compatibility.IsMetadataMissing || IsSchemaUpdatable(current, localTarget))
                         && (migrationPolicy.ShouldExecuteMigration
-                            || migrationPolicy.Decision == DatabaseMigrationDecision.RequiresConfirmation);
+                            || migrationPolicy.Decision == DbMigrationDecision.RequiresConfirmation);
         var snapshot = new DbSchemaStatusSnapshot(
             SchemaOk: schema.Ok,
             CurrentVersion: current,
@@ -375,8 +375,8 @@ public sealed class SettingsService : ISettingsService
         };
     }
 
-    private async Task<DatabaseMigrationPolicyResult> EvaluatePolicyAsync(
-        DatabaseMigrationTrigger trigger,
+    private async Task<DbMigrationPolicyResult> EvaluatePolicyAsync(
+        DbMigrationTrigger trigger,
         DbSchemaCompatibility compatibility,
         DbSchemaVersionContext schemaContext,
         bool userConfirmed,
@@ -387,7 +387,7 @@ public sealed class SettingsService : ISettingsService
         var environment = connectionOptions is null
             ? await _environmentSettings.TryReadAsync(ct).ConfigureAwait(false)
             : await _environmentSettings.TryReadAsync(connectionOptions, ct).ConfigureAwait(false);
-        return _migrationPolicy.Evaluate(new DatabaseMigrationEvaluationContext(
+        return _migrationPolicy.Evaluate(new DbMigrationEvaluationContext(
             trigger,
             compatibility,
             schemaContext.ReleaseChannel,
@@ -467,7 +467,7 @@ public sealed class SettingsService : ISettingsService
         return DbSchemaCompat.CompareSemVer(current, target) < 0;
     }
 
-    private void ApplyDatabaseGuard(DbSchemaCompatibilityResult compatibility)
+    private void ApplyDbGuard(DbSchemaCompatibilityResult compatibility)
     {
         if (compatibility.IsCompatible)
         {
@@ -479,7 +479,7 @@ public sealed class SettingsService : ISettingsService
         }
     }
 
-    private bool ShouldApplyDatabaseGuard(PgOptions? connectionOptions)
+    private bool ShouldApplyDbGuard(PgOptions? connectionOptions)
     {
         if (connectionOptions is null)
         {

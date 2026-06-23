@@ -11,7 +11,7 @@ public sealed class LookupCatalogService : ILookupCatalogService
 
     private readonly IDashboardRepo _dashboardRepo;
     private readonly IDrugIndexRepo _drugIndexRepo;
-    private readonly IDatabaseAccessGuard _accessGuard;
+    private readonly IDbAccessGuard _accessGuard;
     private readonly object _gate = new();
 
     private CacheItem<IReadOnlyList<string>>? _drugIdsCache;
@@ -23,7 +23,7 @@ public sealed class LookupCatalogService : ILookupCatalogService
     public LookupCatalogService(
         IDashboardRepo dashboardRepo,
         IDrugIndexRepo drugIndexRepo,
-        IDatabaseAccessGuard accessGuard)
+        IDbAccessGuard accessGuard)
     {
         _dashboardRepo = dashboardRepo ?? throw new ArgumentNullException(nameof(dashboardRepo));
         _drugIndexRepo = drugIndexRepo ?? throw new ArgumentNullException(nameof(drugIndexRepo));

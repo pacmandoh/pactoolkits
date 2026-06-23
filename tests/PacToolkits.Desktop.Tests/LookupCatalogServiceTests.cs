@@ -9,7 +9,7 @@ public sealed class LookupCatalogServiceTests
     [Fact]
     public async Task GetDrugIdsAsync_returns_empty_without_hitting_repo_when_access_blocked()
     {
-        var guard = new DatabaseAccessGuard();
+        var guard = new DbAccessGuard();
         guard.Block("数据库版本不兼容");
         var repo = new TrackingDashboardRepo();
         var service = new LookupCatalogService(repo, new EmptyDrugIndexRepo(), guard);
@@ -25,7 +25,7 @@ public sealed class LookupCatalogServiceTests
     [Fact]
     public async Task GetDrugIdsAsync_uses_repo_when_access_unblocked()
     {
-        var guard = new DatabaseAccessGuard();
+        var guard = new DbAccessGuard();
         var repo = new TrackingDashboardRepo();
         var service = new LookupCatalogService(repo, new EmptyDrugIndexRepo(), guard);
 
@@ -38,7 +38,7 @@ public sealed class LookupCatalogServiceTests
     [Fact]
     public async Task GetDrugIdsAsync_does_not_return_cached_values_after_access_becomes_blocked()
     {
-        var guard = new DatabaseAccessGuard();
+        var guard = new DbAccessGuard();
         var repo = new TrackingDashboardRepo();
         var service = new LookupCatalogService(repo, new EmptyDrugIndexRepo(), guard);
 

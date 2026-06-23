@@ -37,17 +37,16 @@ public sealed record ReleaseVersionInfo(
     string ProductVersion,
     string DesktopVersion,
     string AgentInjectorAhkVersion,
-    string DatabasePostgresVersion,
+    string DbSchemaVersion,
     string BuildChannel,
     string BuildDate,
     string DesktopMinDbSchema,
     string DesktopMaxDbSchema,
     string AgentInjectorAhkMinDbSchema,
     string AgentInjectorAhkMaxDbSchema,
-    string DatabaseMigrationPolicy = DatabaseMigrationPolicies.StableOnly)
+    string DbMigrationPolicy = DbMigrationPolicies.StableOnly)
 {
     public string AgentVersion => AgentInjectorAhkVersion;
-    public string DbSchemaVersion => DatabasePostgresVersion;
     public string UiMinDbSchema => DesktopMinDbSchema;
     public string UiMaxDbSchema => DesktopMaxDbSchema;
     public string AgentMinDbSchema => AgentInjectorAhkMinDbSchema;
@@ -57,12 +56,12 @@ public sealed record ReleaseVersionInfo(
         ProductVersion: "unknown",
         DesktopVersion: "unknown",
         AgentInjectorAhkVersion: "unknown",
-        DatabasePostgresVersion: "unknown",
+        DbSchemaVersion: "unknown",
         BuildChannel: "unknown",
         BuildDate: "unknown",
         DesktopMinDbSchema: "unknown",
         DesktopMaxDbSchema: "unknown",
         AgentInjectorAhkMinDbSchema: "unknown",
         AgentInjectorAhkMaxDbSchema: "unknown",
-        DatabaseMigrationPolicy: DatabaseMigrationPolicies.StableOnly);
+        DbMigrationPolicy: DbMigrationPolicies.StableOnly);
 }

@@ -9,7 +9,7 @@ public sealed record DbSchemaVersionContext(
     string AgentMaxDbSchema,
     string TargetDbSchemaVersion,
     string ReleaseChannel = "stable",
-    string MigrationPolicy = DatabaseMigrationPolicies.StableOnly);
+    string MigrationPolicy = DbMigrationPolicies.StableOnly);
 
 public sealed record DbConnectionValidationResult(
     bool ConnectionOk,
@@ -29,7 +29,7 @@ public sealed record DbSchemaStatusSnapshot(
     DbSchemaCompatibility Compatibility,
     bool Satisfied,
     bool Updatable,
-    DatabaseMigrationPolicyResult ManualMigrationPolicy,
+    DbMigrationPolicyResult ManualMigrationPolicy,
     string? IncompatibleMessage);
 
 public sealed record ClientAliasSourceLoadResult(

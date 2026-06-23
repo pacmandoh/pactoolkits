@@ -577,7 +577,7 @@
                     Kind="Database" />
                 </Panel>
               </shad:ButtonAssist.Icon>
-              <TextBlock Classes="Caption Muted" Text="{Binding ShellDatabaseItemText}" />
+              <TextBlock Classes="Caption Muted" Text="{Binding ShellDbItemText}" />
             </Button>
 
             <Border Classes="ShellStatusDivider" />

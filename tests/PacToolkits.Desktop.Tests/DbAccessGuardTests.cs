@@ -2,12 +2,12 @@ using PacToolkits.Application.Services;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class DatabaseAccessGuardTests
+public sealed class DbAccessGuardTests
 {
     [Fact]
     public void Block_prevents_access_until_cleared()
     {
-        var guard = new DatabaseAccessGuard();
+        var guard = new DbAccessGuard();
 
         guard.Block("数据库版本过高");
 

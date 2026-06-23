@@ -3,12 +3,12 @@ using PacToolkits.Core;
 
 namespace PacToolkits.Application.Abstractions;
 
-public interface IDatabaseMigrationPolicyService
+public interface IDbMigrationPolicyService
 {
-    DatabaseMigrationPolicyResult Evaluate(DatabaseMigrationEvaluationContext context);
+    DbMigrationPolicyResult Evaluate(DbMigrationEvaluationContext context);
 
-    Task<DatabaseMigrationPolicyResult> EvaluateAsync(
-        DatabaseMigrationTrigger trigger,
+    Task<DbMigrationPolicyResult> EvaluateAsync(
+        DbMigrationTrigger trigger,
         DbSchemaCompatibility compatibility,
         string releaseChannel,
         string migrationPolicy,

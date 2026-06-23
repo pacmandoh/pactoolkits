@@ -19,7 +19,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             new FakeAppConfigStore(),
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService(),
-            new DatabaseMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new DbMigrationPolicyService(new FakeEnvironmentSettingsService()),
             new NullAppLogger(),
             new NullAgentEventSink());
 
@@ -50,7 +50,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             config,
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService(),
-            new DatabaseMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new DbMigrationPolicyService(new FakeEnvironmentSettingsService()),
             new NullAppLogger(),
             new NullAgentEventSink());
 
@@ -68,7 +68,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             config,
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService("1.2.20"),
-            new DatabaseMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new DbMigrationPolicyService(new FakeEnvironmentSettingsService()),
             new NullAppLogger(),
             new NullAgentEventSink());
 
@@ -86,7 +86,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             config,
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService("1.2.23"),
-            new DatabaseMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new DbMigrationPolicyService(new FakeEnvironmentSettingsService()),
             new NullAppLogger(),
             new NullAgentEventSink());
 
@@ -147,14 +147,14 @@ public sealed class AhkInjectorAgentRuntimeTests
             ProductVersion: "0.17.1",
             DesktopVersion: "0.16.1",
             AgentInjectorAhkVersion: "0.6.1",
-            DatabasePostgresVersion: "1.2.22",
+            DbSchemaVersion: "1.2.22",
             BuildChannel: "stable",
             BuildDate: "2026-06-13",
             DesktopMinDbSchema: "1.2.22",
             DesktopMaxDbSchema: "1.2.22",
             AgentInjectorAhkMinDbSchema: "1.2.22",
             AgentInjectorAhkMaxDbSchema: "1.2.22",
-            DatabaseMigrationPolicy: DatabaseMigrationPolicies.StableOnly);
+            DbMigrationPolicy: DbMigrationPolicies.StableOnly);
     }
 
     private sealed class FakeDbSchemaVersionService(string version = "1.2.22") : IDbSchemaVersionService
@@ -166,13 +166,13 @@ public sealed class AhkInjectorAgentRuntimeTests
             => Task.FromResult(new DbSchemaVersionReadResult(true, version, null));
     }
 
-    private sealed class FakeEnvironmentSettingsService : IDatabaseEnvironmentSettingsService
+    private sealed class FakeEnvironmentSettingsService : IDbEnvSettingsService
     {
-        public Task<DatabaseEnvironmentSettings> TryReadAsync(CancellationToken ct)
-            => Task.FromResult(DatabaseEnvironmentSettings.ProductionDefaults);
+        public Task<DbEnvSettings> TryReadAsync(CancellationToken ct)
+            => Task.FromResult(DbEnvSettings.ProductionDefaults);
 
-        public Task<DatabaseEnvironmentSettings> TryReadAsync(PgOptions options, CancellationToken ct)
-            => Task.FromResult(DatabaseEnvironmentSettings.ProductionDefaults);
+        public Task<DbEnvSettings> TryReadAsync(PgOptions options, CancellationToken ct)
+            => Task.FromResult(DbEnvSettings.ProductionDefaults);
     }
 
     private sealed class NullAppLogger : IAppLogger

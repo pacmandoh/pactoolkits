@@ -81,7 +81,7 @@ public interface IAppConfigStore
     Task UpdateAsync(Action<AppConfigRoot> mutator, CancellationToken ct = default);
 }
 
-public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
+public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
 {
     private const string UnifiedConfigFileName = "PacToolkits.Desktop.Avalonia.config.json";
     private const string LegacyConfigFileName = "pactoolkits-ui.config.json";
@@ -946,11 +946,11 @@ public sealed class AppConfigStore : IAppConfigStore, IPostgresConfigStore
         }
     }
 
-    PgOptions IPostgresConfigStore.LoadPostgresOptions() => Load().Postgres;
+    public PgOptions LoadPgOptions() => Load().Postgres;
 
-    async Task IPostgresConfigStore.SavePostgresOptionsAsync(PgOptions postgres, CancellationToken ct)
+    public async Task SavePgOptionsAsync(PgOptions options, CancellationToken ct)
     {
-        var cloned = ClonePostgres(postgres);
+        var cloned = ClonePostgres(options);
         await UpdateAsync(cfg => cfg.Postgres = cloned, ct).ConfigureAwait(false);
     }
 

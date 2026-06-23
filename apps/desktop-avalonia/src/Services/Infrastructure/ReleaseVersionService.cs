@@ -66,14 +66,14 @@ public sealed class ReleaseVersionService : IReleaseVersionService
                 ProductVersion: ReadString(product, "version"),
                 DesktopVersion: ReadString(desktop, "version"),
                 AgentInjectorAhkVersion: ReadString(agent, "version"),
-                DatabasePostgresVersion: ReadString(database, "version"),
+                DbSchemaVersion: ReadString(database, "version"),
                 BuildChannel: ReadString(release, "channel"),
                 BuildDate: ReadString(release, "date"),
                 DesktopMinDbSchema: ReadString(desktop, "minDbSchema"),
                 DesktopMaxDbSchema: ReadString(desktop, "maxDbSchema"),
                 AgentInjectorAhkMinDbSchema: ReadString(agent, "minDbSchema"),
                 AgentInjectorAhkMaxDbSchema: ReadString(agent, "maxDbSchema"),
-                DatabaseMigrationPolicy: ReadString(database, "migrationPolicy"));
+                DbMigrationPolicy: ReadString(database, "migrationPolicy"));
         }
 
         var compat = root.TryGetProperty("compat", out var compatElem) ? compatElem : default;
@@ -83,14 +83,14 @@ public sealed class ReleaseVersionService : IReleaseVersionService
             ProductVersion: ReadString(root, "suiteVersion"),
             DesktopVersion: ReadString(root, "uiVersion"),
             AgentInjectorAhkVersion: ReadString(root, "agentVersion"),
-            DatabasePostgresVersion: ReadString(root, "dbSchemaVersion"),
+            DbSchemaVersion: ReadString(root, "dbSchemaVersion"),
             BuildChannel: ReadString(build, "channel"),
             BuildDate: ReadString(build, "date"),
             DesktopMinDbSchema: ReadString(compat, "uiMinDbSchema"),
             DesktopMaxDbSchema: ReadString(compat, "uiMaxDbSchema"),
             AgentInjectorAhkMinDbSchema: ReadString(compat, "agentMinDbSchema"),
             AgentInjectorAhkMaxDbSchema: ReadString(compat, "agentMaxDbSchema"),
-            DatabaseMigrationPolicy: DatabaseMigrationPolicies.StableOnly);
+            DbMigrationPolicy: DbMigrationPolicies.StableOnly);
     }
 
     private static string ReadString(JsonElement elem, string name)

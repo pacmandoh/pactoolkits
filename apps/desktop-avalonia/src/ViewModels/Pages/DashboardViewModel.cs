@@ -545,7 +545,7 @@ public sealed partial class DashboardViewModel : AppPageBase
             {
                 _filtersLoaded = true;
 
-                if (!IsDatabaseAccessBlocked(out _))
+                if (!IsDbAccessBlocked(out _))
                 {
                     using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
                     await ReloadDrugOptionsAsync(cts.Token);

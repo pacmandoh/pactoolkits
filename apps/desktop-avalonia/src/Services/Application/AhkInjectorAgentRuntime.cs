@@ -24,7 +24,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
     private readonly IAppConfigStore _configStore;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IDbSchemaVersionService _dbSchemaVersion;
-    private readonly IDatabaseMigrationPolicyService _migrationPolicy;
+    private readonly IDbMigrationPolicyService _migrationPolicy;
     private readonly IAppLogger _logger;
     private readonly IAgentEventSink _eventSink;
     private readonly object _gate = new();
@@ -157,7 +157,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         IAppConfigStore configStore,
         IReleaseVersionService releaseVersion,
         IDbSchemaVersionService dbSchemaVersion,
-        IDatabaseMigrationPolicyService migrationPolicy,
+        IDbMigrationPolicyService migrationPolicy,
         IAppLogger logger,
         IAgentEventSink eventSink)
     {
@@ -264,7 +264,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
                 return new ToolCommandResult(false, "Agent 已在配置中禁用", SuppressToast: false);
             }
 
-            var schemaValidation = await ValidateDatabaseCompatibilityAsync(ct).ConfigureAwait(false);
+            var schemaValidation = await ValidateDbCompatibilityAsync(ct).ConfigureAwait(false);
             if (!schemaValidation.Ok)
             {
                 PublishEvent(AgentCommandKind.Start, null, schemaValidation.Message);
@@ -834,7 +834,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             cfg.AutomationTools));
     }
 
-    private async Task<ToolCommandResult> ValidateDatabaseCompatibilityAsync(CancellationToken ct)
+    private async Task<ToolCommandResult> ValidateDbCompatibilityAsync(CancellationToken ct)
     {
         var version = _releaseVersion.Current;
         var minimum = MinDbSchema;
@@ -862,13 +862,13 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         }
 
         var policy = await _migrationPolicy.EvaluateAsync(
-            DatabaseMigrationTrigger.Startup,
+            DbMigrationTrigger.Startup,
             compatibility.Status,
             version.BuildChannel,
-            version.DatabaseMigrationPolicy,
+            version.DbMigrationPolicy,
             ct: ct).ConfigureAwait(false);
 
-        return policy.Decision == DatabaseMigrationDecision.Allowed
+        return policy.Decision == DbMigrationDecision.Allowed
             ? new ToolCommandResult(true, policy.Reason)
             : new ToolCommandResult(false, policy.Reason);
     }

@@ -37,7 +37,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
     private readonly ILookupCatalogService? _lookup;
     private readonly IMsfxSyncService? _syncService;
-    private readonly IDatabaseAccessGuard? _accessGuard;
+    private readonly IDbAccessGuard? _accessGuard;
     private readonly SearchInputDebouncer _searchDebouncer = new(450);
     private readonly ObservableCollection<MsfxMappingBatchGroupRow> _groups = new();
     private IReadOnlyList<OptionItem> _allDrugIds = Array.Empty<OptionItem>();
@@ -54,7 +54,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
         InitializeComponent();
         _lookup = (global::Avalonia.Application.Current as App)?.Services.GetService<ILookupCatalogService>();
         _syncService = (global::Avalonia.Application.Current as App)?.Services.GetService<IMsfxSyncService>();
-        _accessGuard = (global::Avalonia.Application.Current as App)?.Services.GetService<IDatabaseAccessGuard>();
+        _accessGuard = (global::Avalonia.Application.Current as App)?.Services.GetService<IDbAccessGuard>();
         GroupGrid.ItemsSource = _groups;
         UpdateSearchPanelVisibility();
         AttachedToVisualTree += OnAttachedToVisualTree;

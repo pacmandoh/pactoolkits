@@ -2,7 +2,7 @@ using PacToolkits.Desktop.Avalonia.Services.Application;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class ReleaseChannelSwitchAuthorizationTests
+public sealed class ReleaseChannelAuthTests
 {
     [Theory]
     [InlineData("stable", "stable", "")]
@@ -10,7 +10,7 @@ public sealed class ReleaseChannelSwitchAuthorizationTests
     [InlineData("stable", "stable", "beta")]
     public void Same_channel_is_always_authorized(string target, string installed, string validated)
     {
-        Assert.True(ReleaseChannelSwitchAuthorization.IsAuthorized(target, installed, validated));
+        Assert.True(ReleaseChannelAuth.IsAuthorized(target, installed, validated));
     }
 
     [Theory]
@@ -21,7 +21,7 @@ public sealed class ReleaseChannelSwitchAuthorizationTests
         string installed,
         string validated)
     {
-        Assert.True(ReleaseChannelSwitchAuthorization.IsAuthorized(target, installed, validated));
+        Assert.True(ReleaseChannelAuth.IsAuthorized(target, installed, validated));
     }
 
     [Theory]
@@ -34,19 +34,19 @@ public sealed class ReleaseChannelSwitchAuthorizationTests
         string installed,
         string validated)
     {
-        Assert.False(ReleaseChannelSwitchAuthorization.IsAuthorized(target, installed, validated));
+        Assert.False(ReleaseChannelAuth.IsAuthorized(target, installed, validated));
     }
 
     [Fact]
     public void Unknown_installed_channel_is_authorized_for_dev_runs()
     {
-        Assert.True(ReleaseChannelSwitchAuthorization.IsAuthorized("beta", "", ""));
+        Assert.True(ReleaseChannelAuth.IsAuthorized("beta", "", ""));
     }
 
     [Fact]
     public void BuildBlockedMessage_mentions_channel_switch_validation()
     {
-        var message = ReleaseChannelSwitchAuthorization.BuildBlockedMessage("stable", "beta");
+        var message = ReleaseChannelAuth.BuildBlockedMessage("stable", "beta");
 
         Assert.Contains("stable", message, StringComparison.Ordinal);
         Assert.Contains("beta", message, StringComparison.Ordinal);

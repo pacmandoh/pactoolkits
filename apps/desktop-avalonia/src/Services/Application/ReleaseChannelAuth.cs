@@ -2,7 +2,7 @@ using System;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
-public static class ReleaseChannelSwitchAuthorization
+public static class ReleaseChannelAuth
 {
     public static bool IsAuthorized(string targetChannel, string installedChannel, string? validatedChannel)
     {

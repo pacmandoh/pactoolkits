@@ -31,7 +31,7 @@ public sealed class PostgresIntegrationTests
         Assert.True(read.Ok, read.Reason);
         Assert.False(string.IsNullOrWhiteSpace(read.Value));
 
-        var guard = new DatabaseAccessGuard();
+        var guard = new DbAccessGuard();
         var clients = new ClientIdReadRepo(logger, guard);
         var machines = await clients.GetDistinctClientIdsAsync(options, CancellationToken.None);
         Assert.NotNull(machines);
@@ -44,7 +44,7 @@ public sealed class PostgresIntegrationTests
 
         var options = LoadPgOptions();
         var logger = new NullInfraLogger();
-        var env = new DatabaseEnvironmentSettingsService(new FixedDbConfig(options), logger);
+        var env = new DbEnvSettingsService(new FixedDbConfig(options), logger);
         var settings = await env.TryReadAsync(options, CancellationToken.None);
 
         Assert.Equal("production", settings.Environment, ignoreCase: true);
@@ -67,7 +67,7 @@ public sealed class PostgresIntegrationTests
                 AgentMaxDbSchema: "1.2.23",
                 TargetDbSchemaVersion: "1.2.23",
                 ReleaseChannel: "stable",
-                MigrationPolicy: DatabaseMigrationPolicies.StableOnly),
+                MigrationPolicy: DbMigrationPolicies.StableOnly),
             options,
             CancellationToken.None);
 
@@ -92,11 +92,11 @@ public sealed class PostgresIntegrationTests
                 AgentMaxDbSchema: "1.2.25",
                 TargetDbSchemaVersion: "1.2.25",
                 ReleaseChannel: "beta",
-                MigrationPolicy: DatabaseMigrationPolicies.StableOnly),
+                MigrationPolicy: DbMigrationPolicies.StableOnly),
             options,
             CancellationToken.None);
 
-        Assert.Equal(DatabaseMigrationDecision.ReadOnlyRequired, snapshot.ManualMigrationPolicy.Decision);
+        Assert.Equal(DbMigrationDecision.ReadOnlyRequired, snapshot.ManualMigrationPolicy.Decision);
         Assert.Contains("Beta 应用禁止迁移", snapshot.ManualMigrationPolicy.Reason, StringComparison.Ordinal);
     }
 
@@ -118,13 +118,13 @@ public sealed class PostgresIntegrationTests
                 AgentMaxDbSchema: "1.2.23",
                 TargetDbSchemaVersion: "1.2.23",
                 ReleaseChannel: "beta",
-                MigrationPolicy: DatabaseMigrationPolicies.IsolatedBeta),
+                MigrationPolicy: DbMigrationPolicies.IsolatedBeta),
             options,
             CancellationToken.None);
 
         Assert.True(snapshot.ManualMigrationPolicy.Decision is
-            DatabaseMigrationDecision.RequiresConfirmation
-            or DatabaseMigrationDecision.Allowed);
+            DbMigrationDecision.RequiresConfirmation
+            or DbMigrationDecision.Allowed);
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public sealed class PostgresIntegrationTests
     {
         var config = new FixedDbConfig(options);
         var logger = new NullInfraLogger();
-        var guard = new DatabaseAccessGuard();
+        var guard = new DbAccessGuard();
         return new SettingsService(
             config,
             new DbConnectionTester(logger),
@@ -165,8 +165,8 @@ public sealed class PostgresIntegrationTests
             new DbSchemaMigrationService(config, logger),
             new ClientIdReadRepo(logger, guard),
             guard,
-            new DatabaseMigrationPolicyService(new DatabaseEnvironmentSettingsService(config, logger)),
-            new DatabaseEnvironmentSettingsService(config, logger));
+            new DbMigrationPolicyService(new DbEnvSettingsService(config, logger)),
+            new DbEnvSettingsService(config, logger));
     }
 
     private static PgOptions LoadPgOptions(string? database = null)
