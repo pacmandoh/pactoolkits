@@ -19,7 +19,7 @@ using PacToolkits.Desktop.Avalonia.Views;
 
 namespace PacToolkits.Desktop.Avalonia;
 
-public class App : global::Avalonia.Application
+public partial class App : global::Avalonia.Application
 {
     public IServiceProvider Services { get; private set; } = default!;
     private MainWindow? _mainWindow;

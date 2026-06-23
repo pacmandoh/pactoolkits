@@ -1,193 +1,197 @@
-﻿<Styles
+<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:con="https://github.com/kikipoulet/SukiUI"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:sukiControls="clr-namespace:SukiUI.Controls;assembly=SukiUI">
-  <Style Selector="con|SukiWindow MenuItem:disabled">
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
+  <Style Selector="shad|Window MenuItem:disabled">
     <Setter Property="Opacity" Value="0.4" />
   </Style>
 
-  <Style Selector="sukiControls|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] /template/ ContentControl">
-    <Setter Property="IsVisible" Value="True" />
+  <Style Selector="shad|Sidebar#MainSidebar">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+    <Setter Property="Padding" Value="{DynamicResource SidebarChromePadding}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem icons|AppIcon">
-    <Setter Property="Width" Value="{DynamicResource SidebarMenuIconSize}" />
-    <Setter Property="Height" Value="{DynamicResource SidebarMenuIconSize}" />
-    <Setter Property="StrokeWidth" Value="{DynamicResource SidebarMenuIconStroke}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenuItem /template/ TextBlock#PART_Header">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenuItem /template/ ContentControl#PART_Icon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenuItem /template/ Border#PART_Border">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Transitions" Value="{x:Null}" />
-  </Style>
-
-  <!--  Expanded: Suki PART_Border is rounded — clip makes full-height bar look like a pill.  -->
-  <Style Selector="con|SukiSideMenu[IsMenuExpanded=True] con|SukiSideMenuItem /template/ Border#PART_Border">
-    <Setter Property="CornerRadius" Value="0" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ Border#PART_Border,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ Border#PART_Border">
-    <Setter Property="Background" Value="Transparent" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed">
-    <Setter Property="Background" Value="Transparent" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False] icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ TextBlock#PART_Header,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ TextBlock#PART_Header">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover /template/ ContentControl#PART_Icon,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed /template/ ContentControl#PART_Icon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=True] icons|AppIcon,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=True]:pointerover icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pointerover icons|AppIcon,                      con|SukiSideMenu#MainSideMenu con|SukiSideMenuItem[IsSelected=False]:pressed icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu[IsMenuExpanded=True] con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border,                      con|SukiSideMenu[IsMenuExpanded=True] con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ Border#PART_Border">
-    <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushExpanded}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu[IsMenuExpanded=False] con|SukiSideMenuItem[IsSelected=True] /template/ Border#PART_Border,                      con|SukiSideMenu[IsMenuExpanded=False] con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ Border#PART_Border">
-    <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushCollapsed}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenuItem[IsSelected=True] /template/ TextBlock#PART_Header">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenuItem[IsSelected=True] /template/ ContentControl#PART_Icon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ TextBlock#PART_Header">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenuItem[IsSelected=True]:pointerover /template/ ContentControl#PART_Icon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
-  </Style>
-
-  <Style Selector="Button.SidebarFooterAction">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="0" />
+  <Style Selector="shad|Sidebar#MainSidebar /template/ ScrollViewer">
+    <Setter Property="Margin" Value="0,4" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFunctionAreaMenuItem">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFunctionAreaMenuItem /template/ Border#BaseBackground">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFunctionAreaMenuItem:pointerover /template/ Border#HoverBackground">
+    <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFunctionAreaMenuItem:pointerover /template/ Border#BaseBackground">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+
+  <Style Selector="Border.SidebarFunctionAreaBadge">
+    <Setter Property="Background" Value="{DynamicResource SidebarFunctionAreaBadgeBrush}" />
+  </Style>
+
+  <Style Selector="Border.SidebarFunctionAreaBadge icons|AppIcon">
+    <Setter Property="Foreground" Value="{DynamicResource SidebarFunctionAreaBadgeForegroundBrush}" />
+  </Style>
+
+  <Style Selector="StackPanel.SidebarFunctionAreaText">
+    <Setter Property="Spacing" Value="2" />
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Cursor" Value="Hand" />
-    <Setter Property="Template">
-      <ControlTemplate>
-        <Border
-          x:Name="PART_Border"
-          Padding="{TemplateBinding Padding}"
-          Background="{TemplateBinding Background}"
-          BorderBrush="{TemplateBinding BorderBrush}"
-          BorderThickness="{TemplateBinding BorderThickness}"
-          CornerRadius="{TemplateBinding CornerRadius}">
-          <ContentPresenter
-            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-            Content="{TemplateBinding Content}"
-            ContentTemplate="{TemplateBinding ContentTemplate}" />
-        </Border>
-      </ControlTemplate>
-    </Setter>
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction">
-    <Setter Property="Width" Value="{DynamicResource SidebarCompactActionWidth}" />
-    <Setter Property="Height" Value="{DynamicResource SidebarFooterActionHeight}" />
-    <Setter Property="HorizontalAlignment" Value="Center" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
+  <Style Selector="StackPanel.SidebarFunctionAreaText > TextBlock.SidebarFunctionAreaSubtitle">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
+    <Setter Property="LineHeight" Value="16" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction">
-    <Setter Property="Height" Value="{DynamicResource SidebarFooterActionHeight}" />
-    <Setter Property="Padding" Value="{DynamicResource SidebarFooterExpandedPadding}" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFunctionAreaMenuItem">
+    <Setter Property="Margin" Value="{DynamicResource SidebarFunctionAreaExpandedMargin}" />
+    <Setter Property="MinHeight" Value="{DynamicResource ContentChromeHeight}" />
+    <Setter Property="Padding" Value="12,4" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction icons|AppIcon">
-    <Setter Property="Width" Value="{DynamicResource SidebarCompactIconSize}" />
-    <Setter Property="Height" Value="{DynamicResource SidebarCompactIconSize}" />
-    <Setter Property="StrokeWidth" Value="{DynamicResource SidebarCompactIconStroke}" />
-    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem">
+    <Setter Property="Margin" Value="0,0,0,4" />
+    <Setter Property="MinHeight" Value="{DynamicResource ContentChromeHeight}" />
+    <Setter Property="MaxHeight" Value="{DynamicResource ContentChromeHeight}" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction icons|AppIcon">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] StackPanel.SidebarNavHost">
+    <Setter Property="Spacing" Value="{DynamicResource SidebarNavItemSpacing}" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItemLabel.SidebarNavSectionLabel">
+    <Setter Property="Margin" Value="8,0,8,8" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItemLabel.SidebarNavSectionLabel">
+    <Setter Property="Margin" Value="{DynamicResource SidebarNavSeparatorMargin}" />
+  </Style>
+
+  <Style Selector="Image.SidebarBrandIcon">
+    <Setter Property="Width" Value="36" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Stretch" Value="Uniform" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem Viewbox">
     <Setter Property="Width" Value="{DynamicResource SidebarMenuIconSize}" />
     <Setter Property="Height" Value="{DynamicResource SidebarMenuIconSize}" />
-    <Setter Property="StrokeWidth" Value="{DynamicResource SidebarMenuIconStroke}" />
-    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
   </Style>
 
-  <Style Selector="Button.SidebarFooterAction TextBlock.SidebarFooterLabel">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
+  <Style Selector="shad|Sidebar#MainSidebar MenuItem Viewbox">
+    <Setter Property="Width" Value="18" />
+    <Setter Property="Height" Value="18" />
+  </Style>
+
+  <Style Selector="StackPanel.SidebarAccountText">
+    <Setter Property="Spacing" Value="2" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pointerover,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pressed">
-    <Setter Property="Background" Value="Transparent" />
+  <!-- Sidebar nav: left indicator bar on selection; hover tints text/icon only. -->
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItem">
+    <Setter Property="CornerRadius" Value="0" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pointerover icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction:pressed icons|AppIcon">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItem">
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="4,10" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFooterMenuItem">
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked)">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked) icons|AppIcon">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked) TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover /template/ Border#HoverBackground,                      shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pressed /template/ Border#HoverBackground">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover /template/ Border#BaseBackground">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover,                      shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pressed">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pointerover,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pressed">
-    <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushCollapsed}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pointerover icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=False] Button.SidebarFooterAction.active:pressed icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pointerover,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pressed">
-    <Setter Property="Background" Value="Transparent" />
-  </Style>
-
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pointerover icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pressed icons|AppIcon">
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover icons|AppIcon,                      shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pressed icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pointerover TextBlock.SidebarFooterLabel,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction:pressed TextBlock.SidebarFooterLabel">
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover TextBlock,                      shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pressed TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pointerover,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pressed">
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked /template/ Border#SelectedBackground,                      shad|Sidebar#MainSidebar shad|SidebarItem:checked /template/ Border#HoverBackground">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItem:checked /template/ Border#BaseBackground,                      shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItem:checked:pointerover /template/ Border#BaseBackground">
     <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushExpanded}" />
+    <Setter Property="Opacity" Value="1" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pointerover icons|AppIcon,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pressed icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItem:checked /template/ Border#BaseBackground,                      shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItem:checked:pointerover /template/ Border#BaseBackground">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NavIndicatorBarBrush}" />
+    <Setter Property="BorderThickness" Value="4,0,0,0" />
+    <Setter Property="Opacity" Value="1" />
   </Style>
 
-  <Style Selector="con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active TextBlock.SidebarFooterLabel,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pointerover TextBlock.SidebarFooterLabel,                      con|SukiSideMenu#MainSideMenu[IsMenuExpanded=True] Button.SidebarFooterAction.active:pressed TextBlock.SidebarFooterLabel">
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked,                      shad|Sidebar#MainSidebar shad|SidebarItem:checked:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
     <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked icons|AppIcon,                      shad|Sidebar#MainSidebar shad|SidebarItem:checked:pointerover icons|AppIcon">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked TextBlock,                      shad|Sidebar#MainSidebar shad|SidebarItem:checked:pointerover TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <!-- TabItem header rows: transparent background so Spacing gaps stay clickable. -->
+  <Style Selector="StackPanel.TabItemHeader">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="{DynamicResource SpacingInlineSm}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="StackPanel.TabItemHeader > TextBlock">
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 </Styles>

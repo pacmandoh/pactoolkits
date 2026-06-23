@@ -8,7 +8,7 @@
   <Border
     x:Name="PagerChrome"
     Padding="{Binding PagerPadding, ElementName=Root}"
-    BorderBrush="{DynamicResource SukiControlBorderBrush}">
+    BorderBrush="{DynamicResource BorderColor}">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
       <StackPanel
         VerticalAlignment="Center"
@@ -61,7 +61,7 @@
           Orientation="Horizontal"
           Spacing="{DynamicResource SpacingInlineSm}">
           <Button
-            Classes="Action PagerIconOnly"
+            Classes="Outline PagerIconOnly"
             Command="{Binding FirstPageCommand, ElementName=Root}"
             IsEnabled="{Binding CanGoFirstPage, ElementName=Root}"
             IsVisible="{Binding HasFirstPageCommand, ElementName=Root}">
@@ -71,7 +71,7 @@
               Kind="ChevronsLeft" />
           </Button>
           <Button
-            Classes="Action PagerIconOnly"
+            Classes="Outline PagerIconOnly"
             Command="{Binding PrevPageCommand, ElementName=Root}"
             IsEnabled="{Binding CanGoPrevPage, ElementName=Root}"
             IsVisible="{Binding HasPrevPageCommand, ElementName=Root}">
@@ -81,7 +81,7 @@
               Kind="ChevronLeft" />
           </Button>
           <Button
-            Classes="Action PagerIconOnly"
+            Classes="Outline PagerIconOnly"
             Command="{Binding NextPageCommand, ElementName=Root}"
             IsEnabled="{Binding CanGoNextPage, ElementName=Root}"
             IsVisible="{Binding HasNextPageCommand, ElementName=Root}">
@@ -91,7 +91,7 @@
               Kind="ChevronRight" />
           </Button>
           <Button
-            Classes="Action PagerIconOnly"
+            Classes="Outline PagerIconOnly"
             Command="{Binding LastPageCommand, ElementName=Root}"
             IsEnabled="{Binding CanGoLastPage, ElementName=Root}"
             IsVisible="{Binding HasLastPageCommand, ElementName=Root}">

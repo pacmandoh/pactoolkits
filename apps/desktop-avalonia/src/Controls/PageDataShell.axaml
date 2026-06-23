@@ -1,15 +1,15 @@
 ﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Controls.PageDataShell"
   xmlns="https://github.com/avaloniaui"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
   x:Name="Root">
   <Grid RowDefinitions="Auto,*">
     <Border
       Grid.Row="0"
       Padding="10,6"
-      BorderBrush="{DynamicResource SukiControlBorderBrush}"
+      BorderBrush="{DynamicResource BorderColor}"
       BorderThickness="0,0,0,1"
       Classes="PageStaleBanner"
       IsVisible="{Binding ShowStale, ElementName=Root}">
@@ -36,10 +36,10 @@
       EmptyText="{Binding UnavailableTitle, ElementName=Root}"
       Icon="{Binding UnavailableIcon, ElementName=Root}"
       IsEmpty="{Binding ShowUnavailable, ElementName=Root}">
-      <suki:BusyArea
+      <shad:BusyArea
         HorizontalAlignment="Stretch"
         VerticalAlignment="Stretch"
-        BusyText="加载中..."
+
         IsBusy="{Binding ShowLoadingOverlay, ElementName=Root}">
         <ContentPresenter
           HorizontalAlignment="Stretch"
@@ -47,7 +47,7 @@
           HorizontalContentAlignment="Stretch"
           VerticalContentAlignment="Stretch"
           Content="{Binding Content, ElementName=Root}" />
-      </suki:BusyArea>
+      </shad:BusyArea>
     </controls:EmptyStatePanel>
   </Grid>
 </UserControl>

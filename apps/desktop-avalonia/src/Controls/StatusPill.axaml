@@ -1,17 +1,16 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Controls.StatusPill"
   xmlns="https://github.com/avaloniaui"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Name="Root"
   HorizontalAlignment="Left"
   VerticalAlignment="Center">
-  <Border
-    Padding="{Binding PillPadding, ElementName=Root}"
+  <shad:Badge
     Background="{Binding BackgroundBrush, ElementName=Root}"
     BorderBrush="{Binding PillBorderBrush, ElementName=Root}"
-    BorderThickness="1"
-    CornerRadius="999">
+    Classes="Outline">
     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
       <icons:AppIcon
         Width="{Binding IconSize, ElementName=Root}"
@@ -29,5 +28,5 @@
         Content="{Binding SuffixContent, ElementName=Root}"
         IsVisible="{Binding HasSuffixContent, ElementName=Root}" />
     </StackPanel>
-  </Border>
+  </shad:Badge>
 </UserControl>

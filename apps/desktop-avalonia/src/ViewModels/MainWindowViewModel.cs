@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -14,24 +15,20 @@ using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
-using PacToolkits.Application.TextSearch;
 using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
-using SukiUI;
-using SukiUI.Dialogs;
-using SukiUI.Models;
-using SukiUI.Toasts;
+using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
-    public ISukiToastManager ToastManager { get; }
-    public ISukiDialogManager DialogManager { get; }
+    public ToastManager ToastManager { get; }
+    public DialogManager DialogManager { get; }
 
     private readonly IDialogService _dialogs;
     private readonly IToastService _toasts;
@@ -76,21 +73,23 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _dbBootstrapCts;
     private CancellationTokenSource? _updatePollCts;
     private CancellationTokenSource? _pageLifecycleCts;
+    private int _pageLifecycleGeneration;
     private readonly object _dirtyPagesGate = new();
     private readonly HashSet<AppPageBase> _dirtyPages = new();
-    private readonly SearchInputDebouncer _sidebarSearchDebouncer = new(250);
 
-    private readonly SukiTheme _theme = SukiTheme.GetInstance();
-    private IAvaloniaReadOnlyList<SukiColorTheme> Themes => _theme.ColorThemes;
+    private readonly ThemeWatcher _themeWatcher;
 
-    private IReadOnlyList<AppPageBase> Pages { get; }
+    public IReadOnlyList<AppPageBase> WorkspacePages { get; }
     public IReadOnlyList<AppPageBase> SidebarPages { get; }
 
-    [ObservableProperty]
-    private string _sidebarSearchText = string.Empty;
+    public IReadOnlyList<ShellFunctionArea> FunctionAreas => ShellFunctionAreas.All;
 
-    public IReadOnlyList<AppPageBase> FilteredSidebarPages
-        => FilterSidebarPages(SidebarSearchText);
+    [ObservableProperty]
+    private ShellFunctionArea _selectedFunctionArea = ShellFunctionAreas.Traceability;
+
+    private IReadOnlyList<AppPageBase> _filteredSidebarPages = Array.Empty<AppPageBase>();
+
+    public IReadOnlyList<AppPageBase> FilteredSidebarPages => _filteredSidebarPages;
     private readonly Dictionary<Type, AppPageBase> _pageByType;
     private readonly AppPageBase? _settingsPage;
     private readonly AppPageBase? _aboutPage;
@@ -100,6 +99,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private System.Windows.Input.ICommand? _lastRefreshCommand;
     private System.Windows.Input.ICommand? _lastImportCommand;
     private System.Windows.Input.ICommand? _lastExportCommand;
+    private INotifyPropertyChanged? _topBarPageNotifier;
 
 
     [RelayCommand]
@@ -134,8 +134,32 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    [RelayCommand]
+    private void SelectFunctionArea(ShellFunctionArea? area)
+    {
+        if (area is null)
+        {
+            return;
+        }
+
+        SelectedFunctionArea = area;
+    }
+
+    [RelayCommand]
+    private void NavigateSidebarPage(AppPageBase? page)
+    {
+        if (page is null || !page.IsEnabled)
+        {
+            return;
+        }
+
+        ActivePage = page;
+    }
+
     [ObservableProperty] private AppPageBase? _activePage;
-    [ObservableProperty] private bool _isNightMode;
+    [ObservableProperty] private ThemeMode _currentTheme = ThemeMode.Dark;
+    [ObservableProperty] private bool _isSidebarExpanded = true;
+    [ObservableProperty] private string? _activePageRoute;
     [ObservableProperty] private bool _isDbProbeRunning;
     [ObservableProperty] private bool _isAhkActionRunning;
     [ObservableProperty] private bool _isUpdateChecking;
@@ -338,7 +362,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void SyncAllPagesAvailability()
     {
-        foreach (var page in Pages)
+        foreach (var page in WorkspacePages)
         {
             page.SyncPageAvailabilityFromEnvironment();
         }
@@ -373,10 +397,29 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         => UiThreadHelper.PostOnUi(action, priority);
 
     private ITopBarActions? ActiveTopBar => ActivePage;
+    private DashboardViewModel? _dashboardFilterBarSource;
+
+    public bool IsDashboardPageActive => ActivePage is DashboardViewModel;
+
+    public bool IsDashboardFilterBarVisible
+    {
+        get => ActivePage is DashboardViewModel dashboard && dashboard.IsFilterBarVisible;
+        set
+        {
+            if (ActivePage is DashboardViewModel dashboard && dashboard.IsFilterBarVisible != value)
+            {
+                dashboard.IsFilterBarVisible = value;
+            }
+        }
+    }
 
     public System.Windows.Input.ICommand? TopRefreshCommand => ActiveTopBar?.RefreshCommand;
     public System.Windows.Input.ICommand? TopImportCommand => ActiveTopBar?.ImportCommand;
     public System.Windows.Input.ICommand? TopExportCommand => ActiveTopBar?.ExportCommand;
+
+    public bool ShowTopRefresh => TopRefreshCommand is not null;
+    public bool ShowTopImport => TopImportCommand is not null;
+    public bool ShowTopExport => TopExportCommand is not null;
 
     public bool CanTopRefresh => TopRefreshCommand?.CanExecute(null) == true;
     public bool CanTopImport => TopImportCommand?.CanExecute(null) == true;
@@ -438,8 +481,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IDialogService dialogs,
         IAppConfigStore appConfigStore,
         IDbConfigService dbConfig,
-        ISukiToastManager toastManager,
-        ISukiDialogManager dialogManager,
+        ToastManager toastManager,
+        DialogManager dialogManager,
         IDbConnectionMonitorService dbMonitor,
         IDatabaseAccessGuard accessGuard,
         ILookupCatalogService lookup,
@@ -477,13 +520,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         ToastManager = toastManager;
         DialogManager = dialogManager;
 
+        _themeWatcher = new ThemeWatcher(global::Avalonia.Application.Current!);
+        _themeWatcher.Initialize();
+
         _configPath = _dbConfig.ConfigPath;
         _configDir = Path.GetDirectoryName(_configPath) ?? string.Empty;
         _configFile = Path.GetFileName(_configPath);
 
         var ordered = pages.OrderBy(p => p.Index).ToList();
 
-        Pages = new AvaloniaList<AppPageBase>(ordered);
+        WorkspacePages = new AvaloniaList<AppPageBase>(ordered);
         SidebarPages = ordered.Where(p => p.ShowInSidebar).ToList();
         _pageByType = ordered.ToDictionary(p => p.GetType(), p => p);
         _settingsPage = ordered.FirstOrDefault(p => p is ISettingsPage);
@@ -492,7 +538,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _nav.NavigationRequested += OnNavigationRequested;
 
         ActivePage = SidebarPages.FirstOrDefault() ?? ordered.FirstOrDefault();
-        SyncThemeState();
+        ActivePageRoute = ActivePage?.SidebarRoute;
+        SelectedFunctionArea = ShellFunctionAreas.Resolve(ActivePage?.FunctionAreaId);
+        RebuildFilteredSidebarPages();
+        CurrentTheme = ResolveThemeMode(global::Avalonia.Application.Current?.RequestedThemeVariant);
 
         _dbMonitor.ConnectionFailed += ShowDbConnectionFailed;
         _dbMonitor.Disconnected += ShowDbDisconnected;
@@ -582,16 +631,32 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void SyncThemeState()
+    private static ThemeMode ResolveThemeMode(ThemeVariant? variant)
     {
-        var variant = _theme.ActiveBaseTheme;
-
-        if (variant == ThemeVariant.Default)
+        if (variant == ThemeVariant.Dark)
         {
-            variant = global::Avalonia.Application.Current?.ActualThemeVariant ?? ThemeVariant.Light;
+            return ThemeMode.Dark;
         }
 
-        IsNightMode = variant == ThemeVariant.Dark;
+        if (variant == ThemeVariant.Light)
+        {
+            return ThemeMode.Light;
+        }
+
+        return ThemeMode.System;
+    }
+
+    [RelayCommand]
+    private void SwitchTheme()
+    {
+        CurrentTheme = CurrentTheme switch
+        {
+            ThemeMode.System => ThemeMode.Light,
+            ThemeMode.Light => ThemeMode.Dark,
+            _ => ThemeMode.System,
+        };
+
+        _themeWatcher.SwitchTheme(CurrentTheme);
     }
 
     private void StartDbStateBootstrap()
@@ -625,11 +690,31 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private void WireDashboardFilterBar(AppPageBase? page)
+    {
+        _dashboardFilterBarSource?.PropertyChanged -= OnDashboardFilterBarPropertyChanged;
+
+        _dashboardFilterBarSource = page as DashboardViewModel;
+
+        _dashboardFilterBarSource?.PropertyChanged += OnDashboardFilterBarPropertyChanged;
+    }
+
+    private void OnDashboardFilterBarPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DashboardViewModel.IsFilterBarVisible))
+        {
+            OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
+        }
+    }
+
     private void WireTopBarCommands(AppPageBase? newPage)
     {
         Detach(_lastRefreshCommand);
         Detach(_lastImportCommand);
         Detach(_lastExportCommand);
+
+        _topBarPageNotifier?.PropertyChanged -= OnActivePageTopBarPropertyChanged;
+        _topBarPageNotifier = null;
 
         _lastRefreshCommand = (newPage as ITopBarActions)?.RefreshCommand;
         _lastImportCommand = (newPage as ITopBarActions)?.ImportCommand;
@@ -638,6 +723,14 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         Attach(_lastRefreshCommand);
         Attach(_lastImportCommand);
         Attach(_lastExportCommand);
+
+        if (newPage is INotifyPropertyChanged notifier)
+        {
+            _topBarPageNotifier = notifier;
+            _topBarPageNotifier.PropertyChanged += OnActivePageTopBarPropertyChanged;
+        }
+
+        RaiseTopBarBindings();
 
         void Attach(System.Windows.Input.ICommand? cmd)
         {
@@ -660,7 +753,38 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private void OnActivePageTopBarPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is not (nameof(ITopBarActions.RefreshCommand)
+            or nameof(ITopBarActions.ImportCommand)
+            or nameof(ITopBarActions.ExportCommand)))
+        {
+            return;
+        }
+
+        WireTopBarCommands(ActivePage);
+    }
+
     private void OnTopBarCanExecuteChanged(object? sender, EventArgs e)
+        => RaiseTopBarCanExecuteBindings();
+
+    private void RaiseTopBarBindings()
+    {
+        OnPropertyChanged(nameof(TopRefreshCommand));
+        OnPropertyChanged(nameof(TopImportCommand));
+        OnPropertyChanged(nameof(TopExportCommand));
+        RaiseTopBarVisibilityBindings();
+        RaiseTopBarCanExecuteBindings();
+    }
+
+    private void RaiseTopBarVisibilityBindings()
+    {
+        OnPropertyChanged(nameof(ShowTopRefresh));
+        OnPropertyChanged(nameof(ShowTopImport));
+        OnPropertyChanged(nameof(ShowTopExport));
+    }
+
+    private void RaiseTopBarCanExecuteBindings()
     {
         OnPropertyChanged(nameof(CanTopRefresh));
         OnPropertyChanged(nameof(CanTopImport));
@@ -668,34 +792,46 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
 
-    partial void OnSidebarSearchTextChanged(string value)
+    partial void OnSelectedFunctionAreaChanged(ShellFunctionArea value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        RebuildFilteredSidebarPages();
+
+        if (ActivePage is not null
+            && string.Equals(ActivePage.FunctionAreaId, value.Id, StringComparison.Ordinal))
         {
-            _sidebarSearchDebouncer.Cancel();
-            OnPropertyChanged(nameof(FilteredSidebarPages));
             return;
         }
 
-        _sidebarSearchDebouncer.Schedule(() =>
-            Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(FilteredSidebarPages))));
+        var firstInArea = SidebarPages.FirstOrDefault(page =>
+            string.Equals(page.FunctionAreaId, value.Id, StringComparison.Ordinal));
+
+        if (firstInArea is not null)
+        {
+            ActivePage = firstInArea;
+        }
     }
 
-    private IReadOnlyList<AppPageBase> FilterSidebarPages(string? search)
+    private void RebuildFilteredSidebarPages()
     {
-        var keyword = (search ?? string.Empty).Trim();
-        if (keyword.Length == 0)
-        {
-            return SidebarPages;
-        }
+        _filteredSidebarPages = FilterSidebarPages(SelectedFunctionArea);
+        OnPropertyChanged(nameof(FilteredSidebarPages));
+    }
 
+    private IReadOnlyList<AppPageBase> FilterSidebarPages(ShellFunctionArea? area)
+    {
+        var areaId = area?.Id ?? ShellFunctionAreas.TraceabilityId;
         return SidebarPages
-            .Where(page => TextSearchHelper.Matches(keyword, page.DisplayName))
+            .Where(page => string.Equals(page.FunctionAreaId, areaId, StringComparison.Ordinal))
             .ToList();
     }
 
     partial void OnActivePageChanged(AppPageBase? value)
     {
+        if (!string.Equals(ActivePageRoute, value?.SidebarRoute, StringComparison.Ordinal))
+        {
+            ActivePageRoute = value?.SidebarRoute;
+        }
+
         var previous = _activeLifecyclePage;
         if (!ReferenceEquals(previous, value))
         {
@@ -703,8 +839,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _pageLifecycleCts?.Cancel();
             _pageLifecycleCts?.Dispose();
             _pageLifecycleCts = new CancellationTokenSource();
-            _ = RunPageLifecycleTransitionAsync(previous, value, _pageLifecycleCts.Token);
+            var generation = ++_pageLifecycleGeneration;
+            _ = RunPageLifecycleTransitionAsync(previous, value, generation, _pageLifecycleCts.Token);
         }
+
+        value?.SyncPageAvailabilityFromEnvironment();
 
         if (value is SettingsViewModel settingsPage)
         {
@@ -712,24 +851,47 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _ = settingsPage.RefreshDbSchemaStatusFromHostAsync("open_settings");
         }
 
+        if (value is not null
+            && value.ShowInSidebar
+            && !string.Equals(SelectedFunctionArea.Id, value.FunctionAreaId, StringComparison.Ordinal))
+        {
+            SelectedFunctionArea = ShellFunctionAreas.Resolve(value.FunctionAreaId);
+        }
+
         WireTopBarCommands(value);
-
-        OnPropertyChanged(nameof(TopRefreshCommand));
-        OnPropertyChanged(nameof(TopImportCommand));
-        OnPropertyChanged(nameof(TopExportCommand));
-
-        OnPropertyChanged(nameof(CanTopRefresh));
-        OnPropertyChanged(nameof(CanTopImport));
-        OnPropertyChanged(nameof(CanTopExport));
+        WireDashboardFilterBar(value);
 
         OnPropertyChanged(nameof(IsSettingsPageActive));
         OnPropertyChanged(nameof(IsAboutPageActive));
+        OnPropertyChanged(nameof(IsDashboardPageActive));
+        OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
+        RaiseTopBarVisibilityBindings();
         RaiseShellStatusItemsChanged();
 
         TryRefreshDirtyActivePage();
     }
 
-    private async Task RunPageLifecycleTransitionAsync(AppPageBase? previous, AppPageBase? current, CancellationToken ct)
+    partial void OnActivePageRouteChanged(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        var page = SidebarPages.FirstOrDefault(p =>
+            string.Equals(p.SidebarRoute, value, StringComparison.Ordinal));
+
+        if (page is not null && !ReferenceEquals(ActivePage, page) && page.IsEnabled)
+        {
+            ActivePage = page;
+        }
+    }
+
+    private async Task RunPageLifecycleTransitionAsync(
+        AppPageBase? previous,
+        AppPageBase? current,
+        int generation,
+        CancellationToken ct)
     {
         try
         {
@@ -738,7 +900,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 await oldPage.OnPageDeactivatedAsync(ct).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             return;
         }
@@ -750,6 +912,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             });
         }
 
+        if (ct.IsCancellationRequested || generation != _pageLifecycleGeneration)
+        {
+            return;
+        }
+
         try
         {
             if (current is IPageLifecycleAware newPage)
@@ -757,7 +924,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 await newPage.OnPageActivatedAsync(ct).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
         }
         catch (Exception ex)
@@ -767,6 +934,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 page = current?.GetType().Name
             });
         }
+
+        if (generation != _pageLifecycleGeneration || current is null)
+        {
+            return;
+        }
+
+        await RunOnUiAsync(() => current.SyncPageAvailabilityFromEnvironment(), DispatcherPriority.Loaded);
     }
 
     private void OnNavigationRequested(Type pageType)
@@ -775,58 +949,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             ActivePage = page;
         }
-    }
-
-    [RelayCommand]
-    private void ToggleBaseTheme()
-    {
-        if (ShouldSkipTrigger("main.theme.base", 220))
-        {
-            return;
-        }
-
-        var keepName = _theme.ActiveColorTheme?.DisplayName;
-
-        _theme.SwitchBaseTheme();
-
-        SyncThemeState();
-
-        if (keepName is null)
-        {
-            return;
-        }
-
-        var match = Themes.FirstOrDefault(t => t.DisplayName == keepName);
-        if (match is not null)
-        {
-            _theme.ChangeColorTheme(match);
-        }
-    }
-
-    [RelayCommand]
-    private void CycleThemeColor()
-    {
-        if (ShouldSkipTrigger("main.theme.color", 220))
-        {
-            return;
-        }
-
-        var themes = Themes;
-        if (themes.Count == 0)
-        {
-            return;
-        }
-
-        var currentName = _theme.ActiveColorTheme?.DisplayName;
-        var idx = -1;
-
-        if (currentName is not null)
-        {
-            idx = themes.ToList().FindIndex(t => t.DisplayName == currentName);
-        }
-
-        var next = themes[(idx + 1) % themes.Count];
-        _theme.ChangeColorTheme(next);
     }
 
     [RelayCommand(CanExecute = nameof(CanProbeDb))]
@@ -1447,6 +1569,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _updateSettings.Changed -= OnUpdateSettingsChanged);
 
         WireTopBarCommands(null);
+        WireDashboardFilterBar(null);
 
         if (_configWatcher is not null)
         {
@@ -1476,7 +1599,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _pageLifecycleCts?.Cancel();
             _pageLifecycleCts?.Dispose();
             _pageLifecycleCts = null;
-            _sidebarSearchDebouncer.Dispose();
         });
     }
 

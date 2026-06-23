@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using global::Avalonia.Controls.Notifications;
-using global::Avalonia.Threading;
+using Avalonia.Threading;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.Views.Dialogs;
-using SukiUI.Dialogs;
+using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -67,6 +67,7 @@ public sealed record MsfxTaskSplitDialogResult(
     MsfxTaskSplitDialogAction Action,
     string? CustomQuantities = null);
 
+
 public sealed record InfoDetailItem(string Label, string Value);
 
 public sealed record InfoDetailDialogModel(
@@ -91,29 +92,25 @@ public sealed record MsfxStateDetailDialogModel(
 
 public sealed class DialogService : IDialogService
 {
-    private static readonly string[] GhostButtonClasses = { "Ghost" };
-    private static readonly string[] FlatButtonClasses = { "Flat" };
-    private static readonly string[] FlatAccentButtonClasses = { "Flat", "Accent" };
+    private readonly DialogManager _dialogManager;
 
-    private readonly ISukiDialogManager _dialogManager;
-
-    public DialogService(ISukiDialogManager dialogManager)
+    public DialogService(DialogManager dialogManager)
         => _dialogManager = dialogManager ?? throw new ArgumentNullException(nameof(dialogManager));
 
     public Task Info(string title, string message)
-        => Ok(title, message, NotificationType.Information);
+        => Ok(title, message);
 
     public Task Success(string title, string message)
-        => Ok(title, message, NotificationType.Success);
+        => Ok(title, message);
 
     public Task Warn(string title, string message)
-        => Ok(title, message, NotificationType.Warning);
+        => Ok(title, message);
 
     public Task Error(string title, string message)
-        => Ok(title, message, NotificationType.Error);
+        => Ok(title, message, DialogButtonStyle.Destructive);
 
     public Task Ok(string title, string message)
-        => Ok(title, message, NotificationType.Information);
+        => Ok(title, message, DialogButtonStyle.Primary);
 
     public Task<bool> Confirm(string title, string message)
         => Confirm(title, message, okText: "确认", cancelText: "取消");
@@ -121,23 +118,14 @@ public sealed class DialogService : IDialogService
     public Task Ok(
         string title,
         string message,
-        NotificationType type,
-        string okText = "确认",
-        params string[] okButtonClasses)
+        DialogButtonStyle primaryStyle,
+        string okText = "确认")
         => ShowDialogAsync<object?>(tcs =>
         {
-            var classes = (okButtonClasses is { Length: > 0 })
-                ? okButtonClasses
-                : FlatAccentButtonClasses;
-
-            _dialogManager.CreateDialog()
-                .OfType(type)
-                .WithTitle(title)
-                .WithContent(message)
-                .WithActionButton(okText, _ => tcs.TrySetResult(null), dismissOnClick: true, classes: classes)
-                .Dismiss().ByClickingBackground()
-                .OnDismissed(_ => tcs.TrySetResult(null))
-                .TryShow();
+            _dialogManager.CreateDialog(title, message)
+                .WithPrimaryButton(okText, () => tcs.TrySetResult(null), primaryStyle)
+                .Dismissible()
+                .Show();
         });
 
     public Task<bool> Confirm(
@@ -145,23 +133,14 @@ public sealed class DialogService : IDialogService
         string message,
         string okText,
         string cancelText,
-        NotificationType type = NotificationType.Warning,
-        string[]? okButtonClasses = null,
-        string[]? cancelButtonClasses = null)
+        DialogButtonStyle primaryStyle = DialogButtonStyle.Primary)
         => ShowDialogAsync<bool>(tcs =>
         {
-            okButtonClasses ??= FlatAccentButtonClasses;
-            cancelButtonClasses ??= GhostButtonClasses;
-
-            _dialogManager.CreateDialog()
-                .OfType(type)
-                .WithTitle(title)
-                .WithContent(message)
-                .WithActionButton(cancelText, _ => tcs.TrySetResult(false), dismissOnClick: true, classes: cancelButtonClasses)
-                .WithActionButton(okText, _ => tcs.TrySetResult(true), dismissOnClick: true, classes: okButtonClasses)
-                .Dismiss().ByClickingBackground()
-                .OnDismissed(_ => tcs.TrySetResult(false))
-                .TryShow();
+            _dialogManager.CreateDialog(title, message)
+                .WithCancelButton(cancelText, () => tcs.TrySetResult(false))
+                .WithPrimaryButton(okText, () => tcs.TrySetResult(true), primaryStyle)
+                .Dismissible()
+                .Show();
         });
 
     public Task<int> Confirm3(
@@ -172,16 +151,12 @@ public sealed class DialogService : IDialogService
         string cancelText)
         => ShowDialogAsync<int>(tcs =>
         {
-            _dialogManager.CreateDialog()
-                .OfType(NotificationType.Warning)
-                .WithTitle(title)
-                .WithContent(message)
-                .WithActionButton(cancelText, _ => tcs.TrySetResult(0), dismissOnClick: true, classes: GhostButtonClasses)
-                .WithActionButton(secondaryText, _ => tcs.TrySetResult(2), dismissOnClick: true, classes: FlatAccentButtonClasses)
-                .WithActionButton(primaryText, _ => tcs.TrySetResult(1), dismissOnClick: true, classes: FlatButtonClasses)
-                .Dismiss().ByClickingBackground()
-                .OnDismissed(_ => tcs.TrySetResult(0))
-                .TryShow();
+            _dialogManager.CreateDialog(title, message)
+                .WithCancelButton(cancelText, () => tcs.TrySetResult(0))
+                .WithTertiaryButton(secondaryText, () => tcs.TrySetResult(2))
+                .WithPrimaryButton(primaryText, () => tcs.TrySetResult(1))
+                .Dismissible()
+                .Show();
         });
 
     public Task<bool> ConfirmDrugKeyFixPreview(
@@ -206,15 +181,28 @@ public sealed class DialogService : IDialogService
                         : "目标药品键不存在，迁移时将创建新记录")
             };
 
-            _dialogManager.CreateDialog()
-                .OfType(NotificationType.Warning)
-                .WithTitle("纠错迁移预览详情")
-                .WithContent(content)
-                .WithActionButton("取消", _ => tcs.TrySetResult(false), dismissOnClick: true, classes: GhostButtonClasses)
-                .WithActionButton("继续迁移", _ => tcs.TrySetResult(true), dismissOnClick: true, classes: FlatAccentButtonClasses)
-                .Dismiss().ByClickingBackground()
-                .OnDismissed(_ => tcs.TrySetResult(false))
-                .TryShow();
+            ShowHosted(
+                new PacHostedDialogContext
+                {
+                    Title = "纠错迁移预览详情",
+                    Body = content,
+                    Actions =
+                    [
+                        new PacHostedDialogAction
+                        {
+                            Text = "取消",
+                            Style = DialogButtonStyle.Secondary,
+                            Click = () => tcs.TrySetResult(false)
+                        },
+                        new PacHostedDialogAction
+                        {
+                            Text = "继续迁移",
+                            Style = DialogButtonStyle.Primary,
+                            Click = () => tcs.TrySetResult(true)
+                        }
+                    ]
+                },
+                () => tcs.TrySetResult(false));
         });
 
     public Task<string?> PromptInventoryUnlockPassword(string title, string hintMessage)
@@ -227,16 +215,31 @@ public sealed class DialogService : IDialogService
             content.SubmitRequested += () =>
             {
                 tcs.TrySetResult(content.Password);
-                _dialogManager.DismissDialog();
+                _dialogManager.Close(content);
             };
 
-            _dialogManager.CreateDialog()
-                .OfType(NotificationType.Information)
-                .WithTitle(title)
-                .WithContent(content)
-                .WithActionButton("取消", _ => tcs.TrySetResult(null), dismissOnClick: true, classes: GhostButtonClasses)
-                .WithActionButton("验证并解锁", _ => tcs.TrySetResult(content.Password), dismissOnClick: true, classes: FlatAccentButtonClasses)
-                .TryShow();
+            ShowHosted(
+                new PacHostedDialogContext
+                {
+                    Title = title,
+                    Body = content,
+                    Actions =
+                    [
+                        new PacHostedDialogAction
+                        {
+                            Text = "取消",
+                            Style = DialogButtonStyle.Secondary,
+                            Click = () => tcs.TrySetResult(null)
+                        },
+                        new PacHostedDialogAction
+                        {
+                            Text = "验证并解锁",
+                            Style = DialogButtonStyle.Primary,
+                            Click = () => tcs.TrySetResult(content.Password)
+                        }
+                    ]
+                },
+                () => tcs.TrySetResult(null));
         });
 
     public Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items)
@@ -250,14 +253,22 @@ public sealed class DialogService : IDialogService
                     Items: items)
             };
 
-            _dialogManager.CreateDialog()
-                .OfType(NotificationType.Information)
-                .WithTitle(title)
-                .WithContent(content)
-                .WithActionButton("关闭", _ => tcs.TrySetResult(null), dismissOnClick: true, classes: FlatAccentButtonClasses)
-                .Dismiss().ByClickingBackground()
-                .OnDismissed(_ => tcs.TrySetResult(null))
-                .TryShow();
+            ShowHosted(
+                new PacHostedDialogContext
+                {
+                    Title = title,
+                    Body = content,
+                    Actions =
+                    [
+                        new PacHostedDialogAction
+                        {
+                            Text = "关闭",
+                            Style = DialogButtonStyle.Primary,
+                            Click = () => tcs.TrySetResult(null)
+                        }
+                    ]
+                },
+                () => tcs.TrySetResult(null));
         });
 
     public Task ShowMsfxStateDetailDialog(MsfxStateDetailDialogModel model)
@@ -268,14 +279,22 @@ public sealed class DialogService : IDialogService
                 DataContext = model
             };
 
-            _dialogManager.CreateDialog()
-                .OfType(ToNotificationType(model.State))
-                .WithTitle(model.Header)
-                .WithContent(content)
-                .WithActionButton("关闭", _ => tcs.TrySetResult(null), dismissOnClick: true, classes: FlatAccentButtonClasses)
-                .Dismiss().ByClickingBackground()
-                .OnDismissed(_ => tcs.TrySetResult(null))
-                .TryShow();
+            ShowHosted(
+                new PacHostedDialogContext
+                {
+                    Title = model.Header,
+                    Body = content,
+                    Actions =
+                    [
+                        new PacHostedDialogAction
+                        {
+                            Text = "关闭",
+                            Style = DialogButtonStyle.Primary,
+                            Click = () => tcs.TrySetResult(null)
+                        }
+                    ]
+                },
+                () => tcs.TrySetResult(null));
         });
 
     public Task<MsfxMappingBatchDialogResult> ShowMsfxMappingBatchDialog(MsfxMappingBatchDialogModel model)
@@ -286,25 +305,50 @@ public sealed class DialogService : IDialogService
                 DataContext = model
             };
 
-            _dialogManager.CreateDialog()
-                .OfType(NotificationType.Information)
-                .WithTitle("批量映射")
-                .WithContent(content)
-                .WithActionButton("关闭", _ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.Cancel, null, "", "")), dismissOnClick: true, classes: GhostButtonClasses)
-                .WithActionButton("弃用任务", _ => QueueMsfxMappingBatchDialogAction(content, tcs, MsfxMappingBatchDialogAction.DiscardTask), dismissOnClick: false, classes: FlatButtonClasses)
-                .WithActionButton("批量映射", _ => QueueMsfxMappingBatchDialogAction(content, tcs, MsfxMappingBatchDialogAction.ApplyMap), dismissOnClick: false, classes: FlatAccentButtonClasses)
-                .Dismiss().ByClickingBackground()
-                .OnDismissed(_ => tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.Cancel, null, "", "")))
-                .TryShow();
+            PacHostedDialogContext? context = null;
+            context = new PacHostedDialogContext
+            {
+                Title = "批量映射",
+                Body = content,
+                Actions =
+                [
+                    new PacHostedDialogAction
+                    {
+                        Text = "关闭",
+                        Style = DialogButtonStyle.Secondary,
+                        Click = () => tcs.TrySetResult(new MsfxMappingBatchDialogResult(
+                            MsfxMappingBatchDialogAction.Cancel, null, "", ""))
+                    },
+                    new PacHostedDialogAction
+                    {
+                        Text = "弃用任务",
+                        Style = DialogButtonStyle.Secondary,
+                        DismissOnClick = false,
+                        Click = () => QueueMsfxMappingBatchDialogAction(context!, content, tcs, MsfxMappingBatchDialogAction.DiscardTask)
+                    },
+                    new PacHostedDialogAction
+                    {
+                        Text = "批量映射",
+                        Style = DialogButtonStyle.Primary,
+                        DismissOnClick = false,
+                        Click = () => QueueMsfxMappingBatchDialogAction(context!, content, tcs, MsfxMappingBatchDialogAction.ApplyMap)
+                    }
+                ]
+            };
+
+            ShowHosted(context, () => tcs.TrySetResult(new MsfxMappingBatchDialogResult(
+                MsfxMappingBatchDialogAction.Cancel, null, "", "")));
         });
 
     private void QueueMsfxMappingBatchDialogAction(
+        PacHostedDialogContext context,
         MsfxMappingBatchDialogView content,
         TaskCompletionSource<MsfxMappingBatchDialogResult> tcs,
         MsfxMappingBatchDialogAction action)
-        => _ = CompleteMsfxMappingBatchDialogAsync(content, tcs, action);
+        => _ = CompleteMsfxMappingBatchDialogAsync(context, content, tcs, action);
 
     private async Task CompleteMsfxMappingBatchDialogAsync(
+        PacHostedDialogContext context,
         MsfxMappingBatchDialogView content,
         TaskCompletionSource<MsfxMappingBatchDialogResult> tcs,
         MsfxMappingBatchDialogAction action)
@@ -325,7 +369,7 @@ public sealed class DialogService : IDialogService
         }
         finally
         {
-            _dialogManager.DismissDialog();
+            _dialogManager.Close(context);
         }
     }
 
@@ -337,18 +381,54 @@ public sealed class DialogService : IDialogService
                 DataContext = model
             };
 
-            _dialogManager.CreateDialog()
-                .OfType(NotificationType.Information)
-                .WithTitle("拆分任务")
-                .WithContent(content)
-                .WithActionButton("关闭", _ => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Cancel)), dismissOnClick: true, classes: GhostButtonClasses)
-                .WithActionButton("按批号拆分", _ => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Batch)), dismissOnClick: true, classes: FlatButtonClasses)
-                .WithActionButton("自定义数量拆分", _ => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.CustomQuantity, content.CustomQuantities)), dismissOnClick: true, classes: FlatButtonClasses)
-                .WithActionButton("按父码簇拆分", _ => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.ParentCluster)), dismissOnClick: true, classes: FlatAccentButtonClasses)
-                .Dismiss().ByClickingBackground()
-                .OnDismissed(_ => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Cancel)))
-                .TryShow();
+            ShowHosted(
+                new PacHostedDialogContext
+                {
+                    Title = "拆分任务",
+                    Body = content,
+                    Actions =
+                    [
+                        new PacHostedDialogAction
+                        {
+                            Text = "关闭",
+                            Style = DialogButtonStyle.Secondary,
+                            Click = () => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Cancel))
+                        },
+                        new PacHostedDialogAction
+                        {
+                            Text = "按批号拆分",
+                            Style = DialogButtonStyle.Secondary,
+                            Click = () => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Batch))
+                        },
+                        new PacHostedDialogAction
+                        {
+                            Text = "自定义数量拆分",
+                            Style = DialogButtonStyle.Secondary,
+                            Click = () => tcs.TrySetResult(new MsfxTaskSplitDialogResult(
+                                MsfxTaskSplitDialogAction.CustomQuantity,
+                                content.CustomQuantities))
+                        },
+                        new PacHostedDialogAction
+                        {
+                            Text = "按父码簇拆分",
+                            Style = DialogButtonStyle.Primary,
+                            Click = () => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.ParentCluster))
+                        }
+                    ]
+                },
+                () => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Cancel)));
         });
+
+    private void ShowHosted(PacHostedDialogContext context, Action onDismissed)
+    {
+        context.Manager = _dialogManager;
+        context.RequestClose = () => _dialogManager.Close(context);
+
+        _dialogManager.CreateDialog(context)
+            .Dismissible()
+            .WithCancelCallback(onDismissed)
+            .Show();
+    }
 
     private static Task<T> ShowDialogAsync<T>(Action<TaskCompletionSource<T>> show)
     {
@@ -356,14 +436,4 @@ public sealed class DialogService : IDialogService
         Dispatcher.UIThread.Post(() => show(tcs));
         return tcs.Task;
     }
-
-    private static NotificationType ToNotificationType(TraceEntryState state)
-        => state switch
-        {
-            TraceEntryState.Success => NotificationType.Success,
-            TraceEntryState.Warning => NotificationType.Warning,
-            TraceEntryState.Failed => NotificationType.Error,
-            TraceEntryState.Discarded => NotificationType.Information,
-            _ => NotificationType.Information
-        };
 }

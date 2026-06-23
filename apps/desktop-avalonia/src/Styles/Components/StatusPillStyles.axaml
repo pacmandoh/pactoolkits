@@ -55,10 +55,4 @@
     <Setter Property="PillBorderBrush" Value="{DynamicResource BrushPurpleBg35}" />
     <Setter Property="ForegroundBrush" Value="{DynamicResource BrushPurple}" />
   </Style>
-
-  <Style Selector="controls|StatusPill.TonePrimary">
-    <Setter Property="BackgroundBrush" Value="{DynamicResource SukiPrimaryColor10}" />
-    <Setter Property="PillBorderBrush" Value="{DynamicResource SukiPrimaryColor25}" />
-    <Setter Property="ForegroundBrush" Value="{DynamicResource SukiPrimaryColor120}" />
-  </Style>
 </Styles>

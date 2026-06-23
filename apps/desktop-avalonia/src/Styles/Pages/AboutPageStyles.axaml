@@ -1,90 +1,53 @@
 ﻿<Styles
   xmlns="https://github.com/avaloniaui"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:con="https://github.com/kikipoulet/SukiUI">
-
-  <Style Selector="con|GlassCard.AboutHero">
-    <Setter Property="Padding" Value="22,20" />
-    <Setter Property="CornerRadius" Value="16" />
-  </Style>
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
   <Style Selector="Border.AboutHeroAccent">
     <Setter Property="Height" Value="3" />
     <Setter Property="CornerRadius" Value="999" />
     <Setter Property="Margin" Value="0,0,0,18" />
-    <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor}" />
+    <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
   </Style>
 
   <Style Selector="TextBlock.AboutHeroKicker">
-    <Setter Property="FontSize" Value="11" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="LetterSpacing" Value="1.2" />
-    <Setter Property="Opacity" Value="0.62" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
   </Style>
 
   <Style Selector="TextBlock.AboutHeroVersion">
-    <Setter Property="FontSize" Value="34" />
+    <Setter Property="FontSize" Value="28" />
     <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="LineHeight" Value="38" />
+    <Setter Property="LineHeight" Value="32" />
   </Style>
 
   <Style Selector="TextBlock.AboutSectionKicker">
-    <Setter Property="FontSize" Value="11" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="LetterSpacing" Value="0.8" />
-    <Setter Property="Opacity" Value="0.58" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
   </Style>
 
   <Style Selector="TextBlock.AboutMetricValue">
     <Setter Property="FontSize" Value="20" />
-    <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="LineHeight" Value="24" />
+    <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 
   <Style Selector="TextBlock.AboutMetricLabel">
-    <Setter Property="FontSize" Value="12" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Opacity" Value="0.88" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
   </Style>
 
   <Style Selector="TextBlock.AboutMetaLabel">
-    <Setter Property="FontSize" Value="11" />
-    <Setter Property="Opacity" Value="0.55" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
   </Style>
 
   <Style Selector="TextBlock.AboutMetaValue">
-    <Setter Property="FontSize" Value="13" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-  </Style>
-
-  <Style Selector="con|GlassCard.AboutMetricTile">
-    <Setter Property="CornerRadius" Value="12" />
-    <Setter Property="Padding" Value="14,12" />
-    <Setter Property="Opacity" Value="0.94" />
-  </Style>
-
-  <Style Selector="con|GlassCard.AboutPipelineNode">
-    <Setter Property="CornerRadius" Value="14" />
-    <Setter Property="Padding" Value="16,14" />
-    <Setter Property="Opacity" Value="0.94" />
-  </Style>
-
-  <Style Selector="con|GlassCard.AboutTechGroup">
-    <Setter Property="CornerRadius" Value="12" />
-    <Setter Property="Padding" Value="14,12" />
-    <Setter Property="Opacity" Value="0.94" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="Medium" />
   </Style>
 
   <Style Selector="Border.AboutTechAccent">
     <Setter Property="Width" Value="3" />
     <Setter Property="CornerRadius" Value="999" />
-    <Setter Property="Margin" Value="0,2,12,2" />
+    <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
   </Style>
-
-  <Style Selector="Border.AboutPanelDivider">
-    <Setter Property="Height" Value="1" />
-    <Setter Property="Opacity" Value="0.35" />
-    <Setter Property="Background" Value="{DynamicResource SukiControlBorderBrush}" />
-  </Style>
-
 </Styles>
