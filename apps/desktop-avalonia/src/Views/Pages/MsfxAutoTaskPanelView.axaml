@@ -1,0 +1,541 @@
+<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxAutoTaskPanelView"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:Name="Root"
+  HorizontalAlignment="Stretch"
+  VerticalAlignment="Stretch"
+  MinHeight="0"
+  x:DataType="vm:MsfxLinkViewModel">
+  <shad:Card
+    HorizontalAlignment="Stretch"
+    VerticalAlignment="Stretch"
+    HorizontalContentAlignment="Stretch"
+    VerticalContentAlignment="Stretch">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+      <Grid
+        RowDefinitions="Auto,Auto,Auto"
+        RowSpacing="{DynamicResource DialogInnerRowSpacing}"
+        IsVisible="{Binding !IsTaskPanelExpanded}">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+          <StackPanel
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="{DynamicResource SpacingInlineMd}">
+            <icons:AppIcon
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              Foreground="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
+              Kind="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToIconKind}}" />
+            <TextBlock
+              VerticalAlignment="Center"
+              FontWeight="SemiBold"
+              Opacity="0.9"
+              Text="Agent 执行队列" />
+          </StackPanel>
+          <StackPanel
+            Grid.Column="2"
+            VerticalAlignment="Center"
+            IsVisible="{Binding !IsTaskQueueBatchModeActive}"
+            Orientation="Horizontal"
+            Spacing="{DynamicResource SpacingInlineSm}">
+            <Button
+              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              Classes="Ghost MsfxMiniIconBtn"
+              Command="{Binding BeginMergeTaskSelectionCommand}"
+              IsEnabled="{Binding CanEnterTaskMergeMode}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="GitMerge" />
+            </Button>
+            <Button
+              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              Classes="Ghost MsfxMiniIconBtn"
+              Command="{Binding SplitSelectedTaskCommand}"
+              IsEnabled="{Binding CanSplitSelectedTasks}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="GitBranch" />
+            </Button>
+            <Button
+              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              Classes="Ghost MsfxMiniIconBtn"
+              Command="{Binding BeginRemapTaskSelectionCommand}"
+              IsEnabled="{Binding CanEnterTaskRemapMode}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="Undo2" />
+            </Button>
+            <Button
+              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              Classes="Ghost MsfxMiniIconBtn"
+              Command="{Binding BeginDiscardTaskSelectionCommand}"
+              IsEnabled="{Binding CanEnterTaskDiscardMode}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="Ban" />
+            </Button>
+            <Button
+              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              Classes="Ghost MsfxMiniIconBtn"
+              Command="{Binding BeginReopenTaskSelectionCommand}"
+              IsEnabled="{Binding CanEnterTaskReopenMode}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="RotateCcw" />
+            </Button>
+            <Button
+              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              Classes="Ghost MsfxMiniIconBtn"
+              Command="{Binding ToggleAutoPanelExpandCommand}"
+              CommandParameter="TASK">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="Fullscreen" />
+            </Button>
+          </StackPanel>
+          <Grid
+            Grid.Column="2"
+            VerticalAlignment="Center"
+            ColumnDefinitions="Auto,Auto,Auto"
+            ColumnSpacing="{DynamicResource SpacingInlineMd}"
+            IsVisible="{Binding IsTaskQueueBatchModeActive}">
+            <TextBlock
+              VerticalAlignment="Center"
+              Opacity="0.82"
+              Text="{Binding TaskQueueBatchModeTitle}" />
+            <Button
+              Grid.Column="1"
+              Classes="Action"
+              Command="{Binding ConfirmTaskQueueBatchActionCommand}"
+              IsEnabled="{Binding CanConfirmTaskQueueBatchAction}">
+              <TextBlock Text="{Binding TaskQueueBatchConfirmText}" />
+            </Button>
+            <Button
+              Grid.Column="2"
+              Classes="Ghost"
+              Command="{Binding CancelTaskQueueBatchSelectionCommand}">
+              <TextBlock Text="取消" />
+            </Button>
+          </Grid>
+        </Grid>
+        <TextBlock
+          Grid.Row="1"
+          Margin="{DynamicResource MarginBottomMd}"
+          Classes="SectionHint"
+          IsVisible="{Binding IsTaskQueueBatchModeActive}"
+          Text="{Binding TaskQueueBatchModeHint}" />
+        <WrapPanel
+          Grid.Row="2"
+          ItemSpacing="{DynamicResource SpacingInlineMd}"
+          LineSpacing="{DynamicResource SpacingInlineSm}">
+          <controls:StatusPill
+            Classes="ToneWarning15"
+            Icon="CircleDot"
+            IconSize="12"
+            PillPadding="8,3"
+            Text="{Binding AutoTaskNewCount, StringFormat=待执行 {0}}"
+            TextSize="11" />
+          <controls:StatusPill
+            Classes="ToneInfo15"
+            Icon="LoaderCircle"
+            IconSize="12"
+            PillPadding="8,3"
+            Text="{Binding AutoTaskRunningCount, StringFormat=运行中 {0}}"
+            TextSize="11" />
+          <controls:StatusPill
+            Classes="ToneDone15"
+            Icon="CircleCheck"
+            IconSize="12"
+            PillPadding="8,3"
+            Text="{Binding AutoTaskSuccessCount, StringFormat=成功 {0}}"
+            TextSize="11" />
+          <controls:StatusPill
+            Classes="ToneDanger15"
+            Icon="TriangleAlert"
+            IconSize="12"
+            PillPadding="8,3"
+            Text="{Binding AutoTaskFailedCount, StringFormat=失败 {0}}"
+            TextSize="11" />
+          <controls:StatusPill
+            Classes="TonePurple15"
+            Icon="Ban"
+            IconSize="12"
+            PillPadding="8,3"
+            Text="{Binding AutoTaskDiscardedCount, StringFormat=弃用 {0}}"
+            TextSize="11" />
+        </WrapPanel>
+      </Grid>
+
+      <Grid
+        ColumnDefinitions="Auto,*,Auto"
+        ColumnSpacing="{DynamicResource PageColumnSpacing}"
+        IsVisible="{Binding IsTaskPanelExpanded}">
+        <StackPanel
+          VerticalAlignment="Center"
+          Orientation="Horizontal"
+          Spacing="{DynamicResource SpacingInlineMd}">
+          <icons:AppIcon
+            Width="{DynamicResource IconSizeDefault}"
+            Height="{DynamicResource IconSizeDefault}"
+            Kind="{Binding AutoExpandedPanelIcon}" />
+          <TextBlock
+            VerticalAlignment="Center"
+            FontWeight="SemiBold"
+            Opacity="0.9"
+            Text="{Binding AutoExpandedPanelTitle}" />
+        </StackPanel>
+        <StackPanel
+          Grid.Column="2"
+          VerticalAlignment="Center"
+          Orientation="Horizontal"
+          Spacing="{DynamicResource SpacingInlineSm}">
+          <Button
+            Height="{StaticResource ControlHeightCompact}"
+            MinWidth="110"
+            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            Classes="Action"
+            Command="{Binding BeginMergeTaskSelectionCommand}"
+            IsEnabled="{Binding CanEnterTaskMergeMode}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="GitMerge" />
+              <TextBlock Text="合并任务" />
+            </StackPanel>
+          </Button>
+          <Button
+            Height="{StaticResource ControlHeightCompact}"
+            MinWidth="110"
+            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            Classes="Action"
+            Command="{Binding SplitSelectedTaskCommand}"
+            IsEnabled="{Binding CanSplitSelectedTasks}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="GitBranch" />
+              <TextBlock Text="拆分任务" />
+            </StackPanel>
+          </Button>
+          <Button
+            Height="{StaticResource ControlHeightCompact}"
+            MinWidth="110"
+            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            Classes="Action"
+            Command="{Binding BeginRemapTaskSelectionCommand}"
+            IsEnabled="{Binding CanEnterTaskRemapMode}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="Undo2" />
+              <TextBlock Text="重新映射" />
+            </StackPanel>
+          </Button>
+          <Button
+            Height="{StaticResource ControlHeightCompact}"
+            MinWidth="110"
+            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            Classes="Action"
+            Command="{Binding BeginDiscardTaskSelectionCommand}"
+            IsEnabled="{Binding CanEnterTaskDiscardMode}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="Ban" />
+              <TextBlock Text="弃用" />
+            </StackPanel>
+          </Button>
+          <Button
+            Height="{StaticResource ControlHeightCompact}"
+            MinWidth="110"
+            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            Classes="Action"
+            Command="{Binding BeginReopenTaskSelectionCommand}"
+            IsEnabled="{Binding CanEnterTaskReopenMode}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="RotateCcw" />
+              <TextBlock Text="重启任务" />
+            </StackPanel>
+          </Button>
+          <Button
+            Width="40"
+            Height="{StaticResource ControlHeightCompact}"
+            MinWidth="40"
+            Padding="0"
+            HorizontalContentAlignment="Center"
+            VerticalContentAlignment="Center"
+            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            Classes="Action"
+            Command="{Binding ToggleTaskQueueSearchPanelCommand}">
+            <Panel
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSmall}"
+                Height="{DynamicResource IconSizeSmall}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsVisible="{Binding !IsTaskQueueSearchPanelVisible}"
+                Kind="Search" />
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSmall}"
+                Height="{DynamicResource IconSizeSmall}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsVisible="{Binding IsTaskQueueSearchPanelVisible}"
+                Kind="SearchX" />
+            </Panel>
+          </Button>
+          <Button
+            Width="{StaticResource ControlHeightCompact}"
+            Height="{StaticResource ControlHeightCompact}"
+            MinWidth="{StaticResource ControlHeightCompact}"
+            Padding="0"
+            HorizontalContentAlignment="Center"
+            VerticalContentAlignment="Center"
+            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            Classes="Ghost"
+            Command="{Binding ToggleAutoPanelExpandCommand}"
+            CommandParameter="{Binding AutoExpandedPanel}">
+            <icons:AppIcon
+              Width="{DynamicResource IconSizeCompact}"
+              Height="{DynamicResource IconSizeCompact}"
+              Kind="Minimize" />
+          </Button>
+        </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="1" IsVisible="{Binding IsTaskPanelExpanded}">
+        <shad:Card IsVisible="{Binding IsTaskQueueBatchModeActive}">
+          <Grid
+            VerticalAlignment="Center"
+            ColumnDefinitions="Auto,*,Auto,Auto"
+            ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <icons:AppIcon
+              Width="{DynamicResource IconSizeSmall}"
+              Height="{DynamicResource IconSizeSmall}"
+              VerticalAlignment="Center"
+              Kind="ListChecks" />
+            <StackPanel
+              Grid.Column="1"
+              VerticalAlignment="Center"
+              Spacing="2">
+              <TextBlock FontWeight="SemiBold" Text="{Binding TaskQueueBatchModeTitle}" />
+              <TextBlock Classes="SectionHint" Text="{Binding TaskQueueBatchModeHint}" />
+            </StackPanel>
+            <Button
+              Grid.Column="2"
+              Classes="Action"
+              Command="{Binding ConfirmTaskQueueBatchActionCommand}"
+              IsEnabled="{Binding CanConfirmTaskQueueBatchAction}">
+              <TextBlock Text="{Binding TaskQueueBatchConfirmText}" />
+            </Button>
+            <Button
+              Grid.Column="3"
+              Classes="Ghost"
+              Command="{Binding CancelTaskQueueBatchSelectionCommand}">
+              <TextBlock Text="取消" />
+            </Button>
+          </Grid>
+        </shad:Card>
+      </Grid>
+
+      <Grid Grid.Row="2" IsVisible="{Binding IsTaskPanelExpanded}">
+        <shad:Card IsVisible="{Binding IsTaskQueueSearchPanelVisible}">
+          <Grid
+            VerticalAlignment="Center"
+            ColumnDefinitions="160,180,*,Auto,Auto"
+            ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <ComboBox
+              MinWidth="160"
+              HorizontalAlignment="Stretch"
+              ItemsSource="{Binding TaskQueueStatusFilterOptions}"
+              SelectedItem="{Binding TaskQueueStatusFilter, Mode=TwoWay}" />
+            <ComboBox
+              Grid.Column="1"
+              MinWidth="180"
+              HorizontalAlignment="Stretch"
+              ItemsSource="{Binding TaskQueueSearchScopeOptions}"
+              SelectedItem="{Binding TaskQueueSearchScope, Mode=TwoWay}" />
+            <TextBox
+              Grid.Column="2"
+              VerticalContentAlignment="Center"
+              AcceptsReturn="False"
+              Classes="SearchBox"
+              PlaceholderText="搜索：单据编号 / 药品 / 规格"
+              Text="{Binding TaskQueueKeyword, Mode=TwoWay}"
+              TextWrapping="NoWrap">
+              <TextBox.KeyBindings>
+                <KeyBinding Command="{Binding SearchTaskQueueCommand}" Gesture="Enter" />
+              </TextBox.KeyBindings>
+            </TextBox>
+            <Button
+              Grid.Column="3"
+              Classes="Action"
+              Command="{Binding SearchTaskQueueCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="Search" />
+                <TextBlock Text="搜索" />
+              </StackPanel>
+            </Button>
+            <Button
+              Grid.Column="4"
+              Classes="Action"
+              Command="{Binding ClearTaskQueueSearchCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="Delete" />
+                <TextBlock Text="清空" />
+              </StackPanel>
+            </Button>
+          </Grid>
+        </shad:Card>
+      </Grid>
+
+      <shad:BusyArea
+        Grid.Row="3"
+        MinHeight="120"
+        IsBusy="{Binding IsTaskPanelBusy}">
+        <controls:EmptyStatePanel
+          EmptyHint="仅 MAPPED + NEW 的码会创建任务"
+          EmptyText="暂无 Agent 任务队列"
+          IsEmpty="{Binding IsAutoTaskQueueEmpty}">
+          <DataGrid
+            x:Name="AutoTaskQueueGrid"
+            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid MsfxIndexedGrid CellTemplateHighlightGrid"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            HorizontalScrollBarVisibility="Auto"
+            ItemsSource="{Binding AutoTaskQueueRows}"
+            SelectedItem="{Binding SelectedAutoTaskQueueRow, Mode=TwoWay}"
+            SelectionChanged="OnTaskQueueSelectionChanged"
+            SelectionMode="Single">
+            <DataGrid.Columns>
+              <DataGridTemplateColumn Width="40" Tag="BatchCheck">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                      <CheckBox
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                        IsCheckedChanged="OnTaskQueueCheckChanged" />
+                    </Grid>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Width="44">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <Border
+                      Width="24"
+                      Height="24"
+                      Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                      CornerRadius="12">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeSmall}"
+                        Height="{DynamicResource IconSizeSmall}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                        Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                    </Border>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn
+                Width="110"
+                Binding="{Binding TaskId}"
+                Header="任务ID" />
+              <DataGridTextColumn
+                Width="220"
+                Binding="{Binding SourceBillCode}"
+                Header="单据编码" />
+              <DataGridTextColumn
+                Width="180"
+                Binding="{Binding BatchNos}"
+                Header="批号" />
+              <DataGridTextColumn
+                Width="260"
+                Binding="{Binding Target}"
+                Header="目标药品/规格" />
+              <DataGridTextColumn
+                Width="100"
+                MinWidth="88"
+                Binding="{Binding Status}"
+                Header="状态" />
+              <DataGridTextColumn
+                Width="170"
+                MinWidth="120"
+                Binding="{Binding Progress}"
+                Header="进度" />
+              <DataGridTextColumn
+                Width="88"
+                MinWidth="72"
+                Binding="{Binding RetryCount}"
+                Header="重试" />
+              <DataGridTextColumn
+                Width="160"
+                MinWidth="128"
+                Binding="{Binding CreatedAt}"
+                Header="创建时间" />
+              <DataGridTextColumn
+                Width="160"
+                MinWidth="128"
+                Binding="{Binding PickedAt}"
+                Header="抢占时间" />
+              <DataGridTextColumn
+                Width="165"
+                Binding="{Binding FinishedAt}"
+                Header="完成时间" />
+              <DataGridTextColumn
+                Width="260"
+                Binding="{Binding ErrMsg}"
+                Header="错误信息" />
+            </DataGrid.Columns>
+          </DataGrid>
+        </controls:EmptyStatePanel>
+      </shad:BusyArea>
+
+      <controls:DataGridPager
+        Grid.Row="4"
+        FirstPageCommand="{Binding FirstTaskQueuePageCommand}"
+        IsContentEmpty="{Binding IsAutoTaskQueueEmpty}"
+        IsVisible="{Binding IsTaskPanelExpanded}"
+        LastPageCommand="{Binding LastTaskQueuePageCommand}"
+        NextPageCommand="{Binding NextTaskQueuePageCommand}"
+        PageIndex="{Binding TaskQueuePage}"
+        PageSizeOptions="{Binding TaskQueuePageSizeOptions}"
+        PrevPageCommand="{Binding PrevTaskQueuePageCommand}"
+        SelectedPageSize="{Binding TaskQueuePageSize, Mode=TwoWay}"
+        TotalCount="{Binding TaskQueueFilteredCount}"
+        TotalPages="{Binding TaskQueueTotalPages}" />
+    </Grid>
+  </shad:Card>
+</UserControl>
