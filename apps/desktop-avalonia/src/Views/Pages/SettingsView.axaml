@@ -146,8 +146,7 @@
                     Height="{StaticResource ControlHeightCompact}"
                     VerticalContentAlignment="Center"
                     PlaceholderText="例如：127.0.0.1"
-                    Text="{Binding Host}"
-                    UseFloatingPlaceholder="False" />
+                    Text="{Binding Host}" />
 
                   <TextBlock
                     Grid.Row="1"
@@ -178,8 +177,7 @@
                     Height="{StaticResource ControlHeightCompact}"
                     VerticalContentAlignment="Center"
                     PlaceholderText="例如：pactoolkits"
-                    Text="{Binding Database}"
-                    UseFloatingPlaceholder="False" />
+                    Text="{Binding Database}" />
 
                   <TextBlock
                     Grid.Row="3"
@@ -193,8 +191,7 @@
                     Height="{StaticResource ControlHeightCompact}"
                     VerticalContentAlignment="Center"
                     PlaceholderText="例如：postgres"
-                    Text="{Binding Username}"
-                    UseFloatingPlaceholder="False" />
+                    Text="{Binding Username}" />
 
                   <TextBlock
                     Grid.Row="4"
@@ -209,8 +206,7 @@
                     VerticalContentAlignment="Center"
                     PasswordChar="●"
                     PlaceholderText="请输入数据库密码"
-                    Text="{Binding Password}"
-                    UseFloatingPlaceholder="False" />
+                    Text="{Binding Password}" />
                 </Grid>
 
 
@@ -696,8 +692,7 @@
                   Height="{StaticResource ControlHeightCompact}"
                   VerticalContentAlignment="Center"
                   PlaceholderText="例如：^8\\d+$"
-                  Text="{Binding TraceCodePattern}"
-                  UseFloatingPlaceholder="False" />
+                  Text="{Binding TraceCodePattern}" />
                 <TextBlock
                   Grid.Row="1"
                   Grid.Column="2"
@@ -820,7 +815,7 @@
                     Width="8"
                     Height="8"
                     VerticalAlignment="Center"
-                    Background="{DynamicResource BrushWarning}"
+                    Background="{DynamicResource WarningColor}"
                     CornerRadius="999"
                     IsVisible="{Binding HasUpdateAvailable}" />
                   <icons:AppIcon
@@ -860,8 +855,7 @@
                   VerticalContentAlignment="Center"
                   IsEnabled="False"
                   PlaceholderText="当前已安装版本"
-                  Text="{Binding CurrentProductVersion}"
-                  UseFloatingPlaceholder="False" />
+                  Text="{Binding CurrentProductVersion}" />
                 <controls:UpdateStatusBadge
                   Grid.Row="0"
                   Grid.Column="2"
@@ -909,8 +903,7 @@
                   Height="{StaticResource ControlHeightCompact}"
                   VerticalContentAlignment="Center"
                   PlaceholderText="留空使用默认更新源"
-                  Text="{Binding UpdateFeedUrl}"
-                  UseFloatingPlaceholder="False" />
+                  Text="{Binding UpdateFeedUrl}" />
 
                 <TextBlock
                   Grid.Row="4"
@@ -951,8 +944,7 @@
                     Height="{StaticResource ControlHeightCompact}"
                     VerticalContentAlignment="Center"
                     PlaceholderText="留空表示不忽略任何版本"
-                    Text="{Binding IgnoredProductVersion}"
-                    UseFloatingPlaceholder="False" />
+                    Text="{Binding IgnoredProductVersion}" />
                   <Button
                     Grid.Column="1"
                     Classes="Ghost"
@@ -1116,8 +1108,7 @@
                   Height="{StaticResource ControlHeightCompact}"
                   VerticalContentAlignment="Center"
                   PlaceholderText="留空使用默认日志目录"
-                  Text="{Binding LoggingDirectory}"
-                  UseFloatingPlaceholder="False" />
+                  Text="{Binding LoggingDirectory}" />
 
                 <TextBlock
                   Grid.Row="5"
@@ -1201,8 +1192,7 @@
                   Height="{StaticResource ControlHeightCompact}"
                   VerticalContentAlignment="Center"
                   PlaceholderText="https://eco.taobao.com/router/rest"
-                  Text="{Binding MsfxGatewayUrl}"
-                  UseFloatingPlaceholder="False" />
+                  Text="{Binding MsfxGatewayUrl}" />
 
                 <TextBlock
                   Grid.Row="1"
@@ -1215,8 +1205,7 @@
                   Height="{StaticResource ControlHeightCompact}"
                   VerticalContentAlignment="Center"
                   PlaceholderText="请输入 AppKey"
-                  Text="{Binding MsfxAppKey}"
-                  UseFloatingPlaceholder="False" />
+                  Text="{Binding MsfxAppKey}" />
 
                 <TextBlock
                   Grid.Row="2"
@@ -1233,8 +1222,7 @@
                     VerticalContentAlignment="Center"
                     PasswordChar="{Binding MsfxAppSecretPasswordChar}"
                     PlaceholderText="请输入 AppSecret"
-                    Text="{Binding MsfxAppSecret}"
-                    UseFloatingPlaceholder="False" />
+                    Text="{Binding MsfxAppSecret}" />
                   <Button
                     Grid.Column="1"
                     Width="40"
@@ -1278,8 +1266,7 @@
                   Height="{StaticResource ControlHeightCompact}"
                   VerticalContentAlignment="Center"
                   PlaceholderText="非必填，可留空"
-                  Text="{Binding MsfxSessionToken}"
-                  UseFloatingPlaceholder="False" />
+                  Text="{Binding MsfxSessionToken}" />
 
                 <TextBlock
                   Grid.Row="4"
@@ -1292,8 +1279,7 @@
                   Height="{StaticResource ControlHeightCompact}"
                   VerticalContentAlignment="Center"
                   PlaceholderText="用于 ref_ent_id / 默认 to_ref_user_id"
-                  Text="{Binding MsfxRefEntId}"
-                  UseFloatingPlaceholder="False" />
+                  Text="{Binding MsfxRefEntId}" />
 
                 <TextBlock
                   Grid.Row="5"

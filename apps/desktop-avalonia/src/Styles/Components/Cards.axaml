@@ -53,14 +53,6 @@
     </Setter>
   </Style>
 
-  <Style Selector="shad|Card[HasShadow=True] /template/ Border#Container">
-    <Setter Property="BoxShadow" Value="{DynamicResource Shadow}" />
-  </Style>
-
-  <Style Selector="shad|Card[HasShadow=True] /template/ Border#OuterBorder">
-    <Setter Property="Padding" Value="2,0,2,4" />
-  </Style>
-
   <Style Selector="shad|Card.ScrollHostCard">
     <Setter Property="Template">
       <ControlTemplate TargetType="shad:Card">

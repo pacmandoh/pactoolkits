@@ -58,7 +58,7 @@
             <Button
               Grid.Column="4"
               VerticalAlignment="Center"
-              Classes="Basic MicroClear"
+              Classes="MicroClear"
               Command="{Binding ResetDateRangeCommand}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeSmall}"
@@ -94,7 +94,7 @@
             </AutoCompleteBox>
             <Button
               Grid.Column="2"
-              Classes="Basic MicroClear DrugAutoCompleteClear"
+                    Classes="MicroClear DrugAutoCompleteClear"
               Command="{Binding ClearDrugSpecFilterCommand}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeSmall}"
@@ -235,7 +235,7 @@
                 ColumnSpacing="{DynamicResource KpiTileColumnSpacing}">
               <controls:KpiTile
                 Grid.Column="0"
-                AccentBrush="{DynamicResource BrushInfo}"
+                AccentBrush="{DynamicResource InfoColor}"
                 Command="{Binding OpenInventoryCommand}"
                 Hint="{Binding Kpi.AvailableRemainHint}"
                 Pct="{Binding Kpi.AvailableRemainPct}"
@@ -244,7 +244,7 @@
                 Value="{Binding Kpi.AvailableRemain}" />
               <controls:KpiTile
                 Grid.Column="1"
-                AccentBrush="{DynamicResource BrushDone}"
+                AccentBrush="{DynamicResource SuccessColor}"
                 Command="{Binding OpenPeriodUsageCommand}"
                 Hint="{Binding Kpi.PeriodUsedHint}"
                 Pct="{Binding Kpi.PeriodUsedPct}"
@@ -253,24 +253,24 @@
                 Value="{Binding Kpi.PeriodUsed}" />
               <controls:KpiTile
                 Grid.Column="2"
-                AccentBrush="{DynamicResource BrushWarning}"
+                AccentBrush="{DynamicResource WarningColor}"
                 Command="{Binding OpenAbnormalCommand}"
                 Hint="{Binding Kpi.AbnormalHint}"
                 Pct="{Binding Kpi.AbnormalPct}"
                 PctMetric="AbnormalShare"
                 Title="异常 / 回滚"
                 Value="{Binding Kpi.Abnormal}"
-                ValueForeground="{DynamicResource BrushWarning}" />
+                ValueForeground="{DynamicResource WarningColor}" />
               <controls:KpiTile
                 Grid.Column="3"
-                AccentBrush="{DynamicResource BrushDanger}"
+                AccentBrush="{DynamicResource ErrorColor}"
                 Command="{Binding OpenLowStockCommand}"
                 Hint="{Binding Kpi.LowStockHint}"
                 Pct="{Binding Kpi.LowStockPct}"
                 PctMetric="LowStockShare"
                 Title="追溯码告紧"
                 Value="{Binding Kpi.LowStockCount}"
-                ValueForeground="{DynamicResource BrushDanger}" />
+                ValueForeground="{DynamicResource ErrorColor}" />
               </Grid>
             </Border>
 
@@ -285,7 +285,7 @@
                 Grid.Column="0"
                 Classes="FlushBody"
                 Title="药品使用统计"
-                AccentBrush="{DynamicResource BrushInfo}">
+                AccentBrush="{DynamicResource InfoColor}">
                 <controls:SectionPanel.HeaderContent>
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <ToggleButton
@@ -329,7 +329,7 @@
                           <DataGrid
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch"
-                            Classes="SectionGrid StickyIndexGrid"
+                            Classes="SectionGrid IndexedGrid"
                             ItemsSource="{Binding DrugTrend}"
                             RowHeight="{StaticResource RowMinHeight}"
                             SelectedItem="{Binding SelectedTrendItem}"
@@ -384,7 +384,7 @@
                 Grid.Column="1"
                 Classes="FlushBody"
                 Title="事务总览"
-                AccentBrush="{DynamicResource BrushInfo}">
+                AccentBrush="{DynamicResource InfoColor}">
                 <controls:SectionPanel.HeaderContent>
                   <Button
                     VerticalAlignment="Center"
@@ -411,7 +411,7 @@
                           <DataGrid
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch"
-                            Classes="SectionGrid StickyIndexGrid"
+                            Classes="SectionGrid IndexedGrid"
                             ItemsSource="{Binding RecentTxnsOverview}"
                             RowHeight="{StaticResource RowMinHeight}"
                             SelectedItem="{Binding SelectedTxn}"
@@ -489,7 +489,7 @@
                 MinHeight="220"
                 VerticalAlignment="Stretch"
                 Title="客户端"
-                AccentBrush="{DynamicResource BrushInfo}">
+                AccentBrush="{DynamicResource InfoColor}">
                 <controls:SectionPanel.HeaderContent>
                   <ComboBox
                     Width="120"
@@ -518,7 +518,7 @@
                           <DataGrid
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch"
-                            Classes="SectionGrid StickyIndexGrid"
+                            Classes="SectionGrid IndexedGrid"
                             HorizontalScrollBarVisibility="Disabled"
                             ItemsSource="{Binding TopClients}"
                             RowHeight="{StaticResource RowMinHeight}"
@@ -563,7 +563,7 @@
                 MinHeight="220"
                 VerticalAlignment="Stretch"
                 Title="录入追溯码情况"
-                AccentBrush="{DynamicResource BrushInfo}">
+                AccentBrush="{DynamicResource InfoColor}">
                 <controls:SectionPanel.HeaderContent>
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <Button
@@ -683,7 +683,7 @@
           Grid.Row="0"
           Classes="FlushBody TabSection"
           Title="录入追溯码情况"
-          AccentBrush="{DynamicResource BrushInfo}">
+          AccentBrush="{DynamicResource InfoColor}">
           <controls:SectionPanel.HeaderContent>
             <Button
               VerticalAlignment="Center"
@@ -713,7 +713,7 @@
                         MinHeight="0"
                         HorizontalAlignment="Stretch"
                         CanUserResizeColumns="True"
-                        Classes="SectionGrid TraceStateGrid StickyIndexGrid StickyIndexDisplayIndex"
+                        Classes="SectionGrid TraceStateGrid IndexedGrid StickyIndexDisplayIndex"
                         HorizontalScrollBarVisibility="Disabled"
                         ItemsSource="{Binding EntryRecent}"
                         RowHeight="{StaticResource RowMinHeight}"
@@ -784,7 +784,7 @@
           Grid.Row="0"
           Classes="FlushBody TabSection"
           Title="{Binding TxnPanelMode.Title}"
-          AccentBrush="{DynamicResource BrushDone}">
+          AccentBrush="{DynamicResource SuccessColor}">
           <controls:SectionPanel.HeaderContent>
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <ComboBox
@@ -821,7 +821,7 @@
                         <DataGrid
                           MinHeight="0"
                           HorizontalAlignment="Stretch"
-                          Classes="SectionGrid TxnGrid StickyIndexGrid StickyIndexDisplayIndex"
+                          Classes="SectionGrid TxnGrid IndexedGrid StickyIndexDisplayIndex"
                           HorizontalScrollBarVisibility="Disabled"
                           IsVisible="{Binding IsTxnPanelDetailMode}"
                           ItemsSource="{Binding RecentTxns}"
@@ -870,7 +870,7 @@
                         <DataGrid
                           MinHeight="0"
                           HorizontalAlignment="Stretch"
-                          Classes="SectionGrid StickyIndexGrid StickyIndexDisplayIndex"
+                          Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
                           HorizontalScrollBarVisibility="Disabled"
                           IsVisible="{Binding IsTxnPanelTrendMode}"
                           ItemsSource="{Binding TxnTrendRows}"
@@ -935,7 +935,7 @@
           Grid.Row="0"
           Classes="FlushBody TabSection"
           Title="异常事务队列"
-          AccentBrush="{DynamicResource BrushWarning}">
+          AccentBrush="{DynamicResource WarningColor}">
           <controls:SectionPanel.HeaderContent>
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <Button
@@ -978,7 +978,7 @@
                       <DataGrid
                         MinHeight="0"
                         HorizontalAlignment="Stretch"
-                        Classes="SectionGrid TxnGrid AbnormalGrid StickyIndexGrid StickyIndexDisplayIndex"
+                        Classes="SectionGrid TxnGrid AbnormalGrid IndexedGrid StickyIndexDisplayIndex"
                         HorizontalScrollBarVisibility="Disabled"
                         ItemsSource="{Binding AbnormalQueue}"
                         RowHeight="{StaticResource RowMinHeight}"

@@ -7,47 +7,47 @@
   x:Name="Root">
   <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
     <shad:Badge
-      Background="{DynamicResource BrushInfoBg15}"
-      BorderBrush="{DynamicResource BrushInfoBg35}"
+      Background="{DynamicResource InfoColor10}"
+      BorderBrush="{DynamicResource InfoColor20}"
       Classes="Outline"
       IsVisible="{Binding IsUnknown, ElementName=Root}">
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
         <icons:AppIcon
           Width="{DynamicResource IconSizeSmall}"
           Height="{DynamicResource IconSizeSmall}"
-          Foreground="{DynamicResource BrushInfo}"
+          Foreground="{DynamicResource InfoColor}"
           Kind="BadgeQuestionMark" />
-        <TextBlock Foreground="{DynamicResource BrushInfo}" Text="{Binding Label, ElementName=Root}" />
+        <TextBlock Foreground="{DynamicResource InfoColor}" Text="{Binding Label, ElementName=Root}" />
       </StackPanel>
     </shad:Badge>
 
     <shad:Badge
-      Background="{DynamicResource BrushDoneBg25}"
-      BorderBrush="{DynamicResource BrushDoneBg50}"
+      Background="{DynamicResource SuccessColor20}"
+      BorderBrush="{DynamicResource SuccessColor60}"
       Classes="Outline"
       IsVisible="{Binding IsUpToDate, ElementName=Root}">
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
         <icons:AppIcon
           Width="{DynamicResource IconSizeSmall}"
           Height="{DynamicResource IconSizeSmall}"
-          Foreground="{DynamicResource BrushDone}"
+          Foreground="{DynamicResource SuccessColor}"
           Kind="CircleCheck" />
-        <TextBlock Foreground="{DynamicResource BrushDone}" Text="{Binding Label, ElementName=Root}" />
+        <TextBlock Foreground="{DynamicResource SuccessColor}" Text="{Binding Label, ElementName=Root}" />
       </StackPanel>
     </shad:Badge>
 
     <shad:Badge
-      Background="{DynamicResource BrushWarningBg25}"
-      BorderBrush="{DynamicResource BrushWarningBg50}"
+      Background="{DynamicResource WarningColor20}"
+      BorderBrush="{DynamicResource WarningColor60}"
       Classes="Outline"
       IsVisible="{Binding IsUpdateAvailable, ElementName=Root}">
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
         <icons:AppIcon
           Width="{DynamicResource IconSizeSmall}"
           Height="{DynamicResource IconSizeSmall}"
-          Foreground="{DynamicResource BrushWarning}"
+          Foreground="{DynamicResource WarningColor}"
           Kind="CloudDownload" />
-        <TextBlock Foreground="{DynamicResource BrushWarning}" Text="{Binding Label, ElementName=Root}" />
+        <TextBlock Foreground="{DynamicResource WarningColor}" Text="{Binding Label, ElementName=Root}" />
         <StackPanel
           IsVisible="{Binding ShowLatestVersion, ElementName=Root}"
           Orientation="Horizontal"
@@ -55,9 +55,9 @@
           <icons:AppIcon
             Width="{DynamicResource IconSizeSmall}"
             Height="{DynamicResource IconSizeSmall}"
-            Foreground="{DynamicResource BrushWarning}"
+            Foreground="{DynamicResource WarningColor}"
             Kind="ArrowRight" />
-          <TextBlock Foreground="{DynamicResource BrushWarning}" Text="{Binding LatestVersion, ElementName=Root}" />
+          <TextBlock Foreground="{DynamicResource WarningColor}" Text="{Binding LatestVersion, ElementName=Root}" />
         </StackPanel>
       </StackPanel>
     </shad:Badge>

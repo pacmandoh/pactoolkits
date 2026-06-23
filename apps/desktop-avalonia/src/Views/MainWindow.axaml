@@ -37,7 +37,7 @@
         <icons:AppIcon
           Width="{DynamicResource ShellNavIconSize}"
           Height="{DynamicResource ShellNavIconSize}"
-          Foreground="{DynamicResource BrushWarning}"
+          Foreground="{DynamicResource WarningColor}"
           Kind="Upload" />
       </Button>
 
@@ -95,13 +95,13 @@
               <icons:AppIcon
                 Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
                 Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                Foreground="{DynamicResource BrushDone}"
+                Foreground="{DynamicResource SuccessColor}"
                 IsVisible="{Binding IsDbConnected}"
                 Kind="Link" />
               <icons:AppIcon
                 Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
                 Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                Foreground="{DynamicResource BrushDanger}"
+                Foreground="{DynamicResource ErrorColor}"
                 IsVisible="{Binding !IsDbConnected}"
                 Kind="Unlink" />
             </Panel>
@@ -115,13 +115,13 @@
               <icons:AppIcon
                 Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
                 Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                Foreground="{DynamicResource BrushDone}"
+                Foreground="{DynamicResource SuccessColor}"
                 IsVisible="{Binding IsAhkRunning}"
                 Kind="Syringe" />
               <icons:AppIcon
                 Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
                 Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                Foreground="{DynamicResource BrushDanger}"
+                Foreground="{DynamicResource ErrorColor}"
                 IsVisible="{Binding !IsAhkRunning}"
                 Kind="Syringe" />
             </Panel>
@@ -568,11 +568,11 @@
                   Height="{DynamicResource IconSizeSmall}"
                   VerticalAlignment="Center">
                   <icons:AppIcon
-                    Foreground="{DynamicResource BrushDone}"
+                    Foreground="{DynamicResource SuccessColor}"
                     IsVisible="{Binding IsDbConnected}"
                     Kind="Database" />
                   <icons:AppIcon
-                    Foreground="{DynamicResource BrushDanger}"
+                    Foreground="{DynamicResource ErrorColor}"
                     IsVisible="{Binding !IsDbConnected}"
                     Kind="Database" />
                 </Panel>
@@ -658,7 +658,7 @@
                 Margin="0,-2,-2,0"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Top"
-                Background="{DynamicResource BrushWarning}"
+                Background="{DynamicResource WarningColor}"
                 CornerRadius="999"
                 IsVisible="{Binding HasUpdateAvailable}" />
             </Panel>

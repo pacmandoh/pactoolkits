@@ -203,7 +203,7 @@
                     <DataTemplate x:DataType="vm:DrugIndexViewModel">
                       <DataGrid
                         MinHeight="{StaticResource DgH10Rows}"
-                        Classes="SectionGrid DrugGrid StickyIndexGrid"
+                        Classes="SectionGrid IndexedGrid"
                         ItemsSource="{Binding Items}"
                         SelectedItem="{Binding Selected, Mode=TwoWay}"
                         SelectionMode="Extended">
@@ -304,7 +304,7 @@
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeDefault}"
                       Height="{DynamicResource IconSizeDefault}"
-                      Foreground="{StaticResource BrushWarning}"
+                      Foreground="{DynamicResource WarningColor}"
                       Kind="LockKeyhole" />
                     <TextBlock Text="解锁" />
                   </StackPanel>
@@ -318,7 +318,7 @@
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeDefault}"
                       Height="{DynamicResource IconSizeDefault}"
-                      Foreground="{StaticResource BrushDanger}"
+                      Foreground="{DynamicResource ErrorColor}"
                       Kind="LockKeyholeOpen" />
                     <TextBlock Text="锁定" />
                   </StackPanel>
@@ -352,7 +352,7 @@
                 <icons:AppIcon
                   Width="22"
                   Height="22"
-                  Foreground="{StaticResource BrushWarning}"
+                  Foreground="{DynamicResource WarningColor}"
                   Kind="Info" />
                 <TextBlock Classes="Caption Muted" Text="请选择左侧药品，或点击“新建”开始编辑" />
               </StackPanel>

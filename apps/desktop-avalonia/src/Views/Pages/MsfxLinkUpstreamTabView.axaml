@@ -139,7 +139,7 @@
             EmptyText="暂无上游出库单"
             IsEmpty="{Binding IsUpoutEmpty}">
             <DataGrid
-              Classes="SectionGrid InventoryGrid LowToneGrid MsfxIndexedGrid CellTemplateHighlightGrid"
+              Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid CellTemplateHighlightGrid"
               HorizontalScrollBarVisibility="Auto"
               ItemsSource="{Binding UpoutRows}">
               <DataGrid.Columns>
