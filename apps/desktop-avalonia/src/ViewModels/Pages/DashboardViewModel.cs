@@ -150,7 +150,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
         using (SuppressReload())
         {
-            DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, searchText);
+            AutoCompleteHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, searchText);
         }
     }
 
@@ -196,7 +196,7 @@ public sealed partial class DashboardViewModel : AppPageBase
             using (SuppressReload())
             {
                 _drugCatalog = list;
-                DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
+                AutoCompleteHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
 
                 if (SpecOptions.Count == 0)
                 {
@@ -464,12 +464,12 @@ public sealed partial class DashboardViewModel : AppPageBase
     public string AbnormalEmptyText => GetSectionEmptyTitle("暂无异常队列");
     public string AbnormalEmptyHint => GetSectionEmptyHint("当前筛选条件下没有回滚/异常事务");
 
-    public bool IsTrendEmpty => ShouldShowSectionEmpty(DrugTrend.Count == 0);
-    public bool IsTxnTrendEmpty => ShouldShowSectionEmpty(TxnTrendTotalCount == 0);
-    public bool IsTopClientsEmpty => ShouldShowSectionEmpty(TopClients.Count == 0);
-    public bool IsRecentTxnsEmpty => ShouldShowSectionEmpty(TxnTotalCount == 0);
-    public bool IsEntryRecentEmpty => ShouldShowSectionEmpty(EntryTotalCount == 0);
-    public bool IsAbnormalEmpty => ShouldShowSectionEmpty(AbnormalTotalCount == 0);
+    public bool IsTrendEmpty => ShowSectionEmpty(DrugTrend.Count == 0);
+    public bool IsTxnTrendEmpty => ShowSectionEmpty(TxnTrendTotalCount == 0);
+    public bool IsTopClientsEmpty => ShowSectionEmpty(TopClients.Count == 0);
+    public bool IsRecentTxnsEmpty => ShowSectionEmpty(TxnTotalCount == 0);
+    public bool IsEntryRecentEmpty => ShowSectionEmpty(EntryTotalCount == 0);
+    public bool IsAbnormalEmpty => ShowSectionEmpty(AbnormalTotalCount == 0);
 
     private DispatcherTimer? _debounce;
     private bool _debounceHooked;
@@ -728,7 +728,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanClearDrugSpecFilter))]
     private async Task ClearDrugSpecFilterAsync()
     {
-        if (ShouldSkipTrigger("dashboard.filter.clear", 350))
+        if (SkipTrigger("dashboard.filter.clear", 350))
         {
             return;
         }
@@ -748,7 +748,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     }
 
     private bool CanClearDrugSpecFilter()
-        => DrugAutoCompleteFilterPolicy.HasDrugText(DrugText);
+        => AutoCompleteHelper.HasDrugText(DrugText);
 
     private void HandleDateRangeDayChanged()
     {
@@ -930,9 +930,9 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     private async Task RefreshAllAsync(CancellationToken ct)
     {
-        var showTxnBusy = ShouldShowTxnBusy();
-        var showEntryBusy = ShouldShowEntryBusy();
-        var showAbnormalBusy = ShouldShowAbnormalBusy();
+        var showTxnBusy = ShowTxnBusy();
+        var showEntryBusy = ShowEntryBusy();
+        var showAbnormalBusy = ShowAbnormalBusy();
         var showAnyBusy = showTxnBusy || showEntryBusy || showAbnormalBusy;
 
         try
@@ -1029,7 +1029,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.reload.fail", "Failed to reload dashboard", ex);
-            if (ct.IsCancellationRequested || !ShouldShowOperationErrorToast(ex))
+            if (ct.IsCancellationRequested || !CanToastError(ex))
             {
                 return;
             }
@@ -1038,13 +1038,13 @@ public sealed partial class DashboardViewModel : AppPageBase
         }
     }
 
-    private bool ShouldShowTxnBusy()
+    private bool ShowTxnBusy()
         => RecentTxns.Count == 0 && RecentTxnsOverview.Count == 0 && DrugTrend.Count == 0 && TopClients.Count == 0;
 
-    private bool ShouldShowEntryBusy()
+    private bool ShowEntryBusy()
         => EntryRecent.Count == 0 && EntryRecentOverview.Count == 0;
 
-    private bool ShouldShowAbnormalBusy()
+    private bool ShowAbnormalBusy()
         => AbnormalQueue.Count == 0;
 
     private void ApplyClients(IReadOnlyList<string> list)
@@ -1071,7 +1071,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task ApplyDrugFilterAsync()
     {
-        if (ShouldSkipTrigger("dashboard.filter.apply", 350))
+        if (SkipTrigger("dashboard.filter.apply", 350))
         {
             return;
         }
@@ -1476,7 +1476,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task FirstEntryPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.entry.first", 180))
+        if (SkipTrigger("dashboard.entry.first", 180))
         {
             return;
         }
@@ -1493,7 +1493,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task PrevEntryPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.entry.prev", 180))
+        if (SkipTrigger("dashboard.entry.prev", 180))
         {
             return;
         }
@@ -1510,7 +1510,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task NextEntryPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.entry.next", 180))
+        if (SkipTrigger("dashboard.entry.next", 180))
         {
             return;
         }
@@ -1527,7 +1527,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task LastEntryPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.entry.last", 180))
+        if (SkipTrigger("dashboard.entry.last", 180))
         {
             return;
         }
@@ -1544,7 +1544,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task FirstTxnPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.txn.first", 180))
+        if (SkipTrigger("dashboard.txn.first", 180))
         {
             return;
         }
@@ -1561,7 +1561,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task PrevTxnPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.txn.prev", 180))
+        if (SkipTrigger("dashboard.txn.prev", 180))
         {
             return;
         }
@@ -1578,7 +1578,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task NextTxnPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.txn.next", 180))
+        if (SkipTrigger("dashboard.txn.next", 180))
         {
             return;
         }
@@ -1595,7 +1595,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task LastTxnPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.txn.last", 180))
+        if (SkipTrigger("dashboard.txn.last", 180))
         {
             return;
         }
@@ -1612,7 +1612,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task FirstTxnTrendPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.txntrend.first", 180))
+        if (SkipTrigger("dashboard.txntrend.first", 180))
         {
             return;
         }
@@ -1629,7 +1629,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task PrevTxnTrendPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.txntrend.prev", 180))
+        if (SkipTrigger("dashboard.txntrend.prev", 180))
         {
             return;
         }
@@ -1646,7 +1646,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task NextTxnTrendPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.txntrend.next", 180))
+        if (SkipTrigger("dashboard.txntrend.next", 180))
         {
             return;
         }
@@ -1663,7 +1663,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task LastTxnTrendPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.txntrend.last", 180))
+        if (SkipTrigger("dashboard.txntrend.last", 180))
         {
             return;
         }
@@ -1680,7 +1680,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task FirstAbnormalPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.abnormal.first", 180))
+        if (SkipTrigger("dashboard.abnormal.first", 180))
         {
             return;
         }
@@ -1697,7 +1697,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task PrevAbnormalPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.abnormal.prev", 180))
+        if (SkipTrigger("dashboard.abnormal.prev", 180))
         {
             return;
         }
@@ -1714,7 +1714,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task NextAbnormalPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.abnormal.next", 180))
+        if (SkipTrigger("dashboard.abnormal.next", 180))
         {
             return;
         }
@@ -1731,7 +1731,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private async Task LastAbnormalPageAsync()
     {
-        if (ShouldSkipTrigger("dashboard.abnormal.last", 180))
+        if (SkipTrigger("dashboard.abnormal.last", 180))
         {
             return;
         }
@@ -1768,7 +1768,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.txn_page.reload_fail", "Failed to reload transaction page", ex);
-            if (ShouldShowOperationErrorToast(ex))
+            if (CanToastError(ex))
             {
                 PostOnUi(() => _toast.Error("事务列表加载失败", ex.Message));
             }
@@ -1798,7 +1798,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.txn_trend.reload_fail", "Failed to reload transaction trend page", ex);
-            if (ShouldShowOperationErrorToast(ex))
+            if (CanToastError(ex))
             {
                 PostOnUi(() => _toast.Error("事务趋势加载失败", ex.Message));
             }
@@ -1827,7 +1827,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.entry_page.reload_fail", "Failed to reload entry page", ex);
-            if (ShouldShowOperationErrorToast(ex))
+            if (CanToastError(ex))
             {
                 PostOnUi(() => _toast.Error("录入列表加载失败", ex.Message));
             }
@@ -1856,7 +1856,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.abnormal_page.reload_fail", "Failed to reload abnormal page", ex);
-            if (ShouldShowOperationErrorToast(ex))
+            if (CanToastError(ex))
             {
                 PostOnUi(() => _toast.Error("异常列表加载失败", ex.Message));
             }
@@ -1866,7 +1866,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private void OpenTxnList()
     {
-        if (ShouldSkipTrigger("dashboard.nav.txn", 250))
+        if (SkipTrigger("dashboard.nav.txn", 250))
         {
             return;
         }
@@ -1877,7 +1877,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private void OpenInventory()
     {
-        if (ShouldSkipTrigger("dashboard.nav.inventory", 300))
+        if (SkipTrigger("dashboard.nav.inventory", 300))
         {
             return;
         }
@@ -1892,7 +1892,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private void OpenAbnormal()
     {
-        if (ShouldSkipTrigger("dashboard.nav.abnormal", 250))
+        if (SkipTrigger("dashboard.nav.abnormal", 250))
         {
             return;
         }
@@ -1903,7 +1903,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private void GoInputTab()
     {
-        if (ShouldSkipTrigger("dashboard.nav.input", 300))
+        if (SkipTrigger("dashboard.nav.input", 300))
         {
             return;
         }
@@ -1914,7 +1914,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private void OpenPeriodUsage()
     {
-        if (ShouldSkipTrigger("dashboard.nav.period", 250))
+        if (SkipTrigger("dashboard.nav.period", 250))
         {
             return;
         }
@@ -1925,7 +1925,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private void OpenLowStock()
     {
-        if (ShouldSkipTrigger("dashboard.nav.lowstock", 300))
+        if (SkipTrigger("dashboard.nav.lowstock", 300))
         {
             return;
         }
@@ -1938,7 +1938,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private void OpenInputHistory()
     {
-        if (ShouldSkipTrigger("dashboard.nav.inputhistory", 250))
+        if (SkipTrigger("dashboard.nav.inputhistory", 250))
         {
             return;
         }
@@ -1949,7 +1949,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     [RelayCommand]
     private void OpenOverviewTab()
     {
-        if (ShouldSkipTrigger("dashboard.nav.overview", 250))
+        if (SkipTrigger("dashboard.nav.overview", 250))
         {
             return;
         }
@@ -2080,7 +2080,7 @@ public sealed partial class TrendDrugItem : ObservableObject
     [ObservableProperty] private string _sourceText = "";
     [ObservableProperty] private string _valueText = "";
 
-    public string SpecDisplay => DrugSpecDisplayHelper.NormalizeSpecLine(Name, Sub);
+    public string SpecDisplay => SpecDisplayHelper.NormalizeSpecLine(Name, Sub);
 
     partial void OnNameChanged(string value) => OnPropertyChanged(nameof(SpecDisplay));
 

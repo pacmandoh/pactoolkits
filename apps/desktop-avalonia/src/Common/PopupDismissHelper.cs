@@ -19,7 +19,7 @@ internal static class PopupDismissHelper
             handledEventsToo: true);
     }
 
-    public static bool ShouldSkipPopupDismiss(object? source)
+    public static bool SkipPopupDismiss(object? source)
     {
         if (source is not Visual visual)
         {
@@ -116,7 +116,7 @@ internal static class PopupDismissHelper
 
     private static void OnTopLevelPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (ShouldSkipPopupDismiss(e.Source))
+        if (SkipPopupDismiss(e.Source))
         {
             return;
         }

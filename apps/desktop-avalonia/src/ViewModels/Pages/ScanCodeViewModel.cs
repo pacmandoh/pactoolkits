@@ -83,9 +83,9 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     public string RetryQueueEmptyText => GetSectionEmptyTitle("暂无重试项");
     public string RetryQueueEmptyHint => GetSectionEmptyHint("当前没有失败重试任务");
 
-    public bool IsAutoTasksEmpty => ShouldShowSectionEmpty(AutoTasks.Count == 0);
-    public bool IsRecentRunsEmpty => ShouldShowSectionEmpty(RecentRuns.Count == 0);
-    public bool IsRetryQueueEmpty => ShouldShowSectionEmpty(RetryQueue.Count == 0);
+    public bool IsAutoTasksEmpty => ShowSectionEmpty(AutoTasks.Count == 0);
+    public bool IsRecentRunsEmpty => ShowSectionEmpty(RecentRuns.Count == 0);
+    public bool IsRetryQueueEmpty => ShowSectionEmpty(RetryQueue.Count == 0);
 
     public bool IsTraceCodeInputEnabled =>
         CanOperateUi()
@@ -149,7 +149,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
     private bool CanOperateUi() => !IsBusy;
 
-    public void NotifyDrugIndexChanged()
+    public void ReloadAfterDrugIndexChange()
     {
         PostOnUi(async () =>
         {
@@ -171,7 +171,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                 {
                     var currentDrug = NormalizeInput(DrugText);
                     _drugCatalog = drugs;
-                    DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
+                    AutoCompleteHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
 
                     if (string.IsNullOrWhiteSpace(currentDrug))
                     {
@@ -275,7 +275,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             return;
         }
 
-        DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, searchText);
+        AutoCompleteHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, searchText);
     }
 
     partial void OnSelectedQtyTextChanged(string? value)
@@ -297,7 +297,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     [RelayCommand]
     private async Task ApplyDrugFilterAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -343,7 +343,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             await RunOnUiAsync(() =>
             {
                 UpdateStatus($"加载规格失败：{ex.Message}", 2);
-                if (ShouldShowOperationErrorToast(ex))
+                if (CanToastError(ex))
                 {
                     _toast.Error("规格加载失败", ex.Message);
                 }
@@ -359,12 +359,12 @@ public sealed partial class ScanCodeViewModel : AppPageBase
            && ValidCodeCount > 0;
 
     private bool CanClearDrugSpecFilter()
-        => CanOperateUi() && DrugAutoCompleteFilterPolicy.HasDrugText(DrugText);
+        => CanOperateUi() && AutoCompleteHelper.HasDrugText(DrugText);
 
     [RelayCommand(CanExecute = nameof(CanClearDrugSpecFilter))]
     private void ClearDrugSpecFilter()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -384,7 +384,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanSubmit))]
     private async Task SubmitAsync()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -478,7 +478,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             await RunOnUiAsync(() =>
             {
                 Status = $"录入失败：{ex.Message}";
-                if (ShouldShowOperationErrorToast(ex))
+                if (CanToastError(ex))
                 {
                     _toast.Error("追溯码录入失败", ex.Message);
                 }
@@ -492,7 +492,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanClearCodes))]
     private void ClearCodes()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -507,7 +507,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     [RelayCommand]
     private void EnsureEditorContext()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -525,7 +525,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanStartAutoFetch))]
     private void StartAutoFetch()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -556,7 +556,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     [RelayCommand]
     private void OpenAutoFetchSettings()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -580,7 +580,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanStopAutoFetch))]
     private void StopAutoFetch()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -605,7 +605,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanRetryFailed))]
     private void RetryFailed()
     {
-        if (ShouldSkipTrigger())
+        if (SkipTrigger())
         {
             return;
         }
@@ -650,7 +650,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         await RunOnUiAsync(() =>
         {
             _drugCatalog = drugs;
-            DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
+            AutoCompleteHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
 
             var currentDrug = NormalizeInput(DrugText);
             if (!string.IsNullOrWhiteSpace(currentDrug))

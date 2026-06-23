@@ -24,7 +24,7 @@ flowchart TB
 
   subgraph L3["Layer 3 — 区块空态"]
     Empty["EmptyStatePanel"]
-    Policy["SectionEmptyVisibilityPolicy"]
+    Policy["SectionEmptyPolicy"]
     Policy --> Empty
   end
 
@@ -42,7 +42,7 @@ flowchart TB
 
 - 连接/断开/恢复 toast **仅**在 `MainWindowViewModel` 发出。
 - `ConnectivityBannerFactory`：**不**在 DB 探测中显示 info banner；仅在 AccessGuard 阻断或**已知断开**时显示 warning。
-- 各数据页**不得**再 toast 传输层断连或 guard 阻断类错误（见 `ShouldShowOperationErrorToast`）。
+- 各数据页**不得**再 toast 传输层断连或 guard 阻断类错误（见 `CanToastError`）。
 
 ## Layer 2 — 页面可用性
 
@@ -73,8 +73,8 @@ flowchart TB
 ## Layer 3 — 区块空态
 
 - 唯一空态控件：`EmptyStatePanel`（不要并行第二套 empty 系统）。
-- `ShouldShowSectionEmpty(isContentEmpty)` 决定是否显示区块空态；文案经 `SectionEmptyCopy`。
-- `AccessBlocked` 时：shell banner 说明全局原因，`PageDataShell` 显示不可用空态；列表区仍由 `ShouldShowSectionEmpty` 门闸。
+- `ShowSectionEmpty(isContentEmpty)` 决定是否显示区块空态；文案经 `SectionEmptyCopy`。
+- `AccessBlocked` 时：shell banner 说明全局原因，`PageDataShell` 显示不可用空态；列表区仍由 `ShowSectionEmpty` 门闸。
 - 视觉栈：`BusyArea（区块）→ EmptyStatePanel → DataGrid/内容`。
 
 ## 重载流水线

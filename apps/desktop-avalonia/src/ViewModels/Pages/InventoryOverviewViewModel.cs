@@ -322,10 +322,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public string MissingEmptyText => GetSectionEmptyTitle("暂无缺失药品");
     public string MissingEmptyHint => GetSectionEmptyHint("当前筛选条件下没有缺失药品");
 
-    public bool IsStockEmpty => ShouldShowSectionEmpty(StockRows.Count == 0);
-    public bool IsAggEmpty => ShouldShowSectionEmpty(DrugSpecRows.Count == 0);
-    public bool IsLowEmpty => ShouldShowSectionEmpty(LowStockRows.Count == 0);
-    public bool IsMissingEmpty => ShouldShowSectionEmpty(MissingStockRows.Count == 0);
+    public bool IsStockEmpty => ShowSectionEmpty(StockRows.Count == 0);
+    public bool IsAggEmpty => ShowSectionEmpty(DrugSpecRows.Count == 0);
+    public bool IsLowEmpty => ShowSectionEmpty(LowStockRows.Count == 0);
+    public bool IsMissingEmpty => ShowSectionEmpty(MissingStockRows.Count == 0);
     public bool IsUiBusy => IsBusy || IsDetailBusy || IsAggBusy || IsLowBusy || IsMissingBusy || IsReassignBusy;
     public bool IsPagedMode => ModeIndex is 0 or 1 or 2 or 3;
     public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
@@ -482,7 +482,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(
+        AutoCompleteHelper.RefreshVisibleOptions(
             ReassignDrugOptions,
             _reassignDrugCatalog,
             searchText);
@@ -634,7 +634,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             await RunOnUiAsync(() =>
             {
                 _reassignDrugCatalog = drugs;
-                DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(
+                AutoCompleteHelper.RefreshVisibleOptions(
                     ReassignDrugOptions,
                     _reassignDrugCatalog,
                     ReassignDrugText);
@@ -796,7 +796,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanToggleStockEditMode))]
     private async Task ToggleStockEditMode()
     {
-        if (ShouldSkipTrigger("inventory.stock.edit", 250))
+        if (SkipTrigger("inventory.stock.edit", 250))
         {
             return;
         }
@@ -866,7 +866,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanToggleReassignPanel))]
     private Task ToggleReassignPanelAsync()
     {
-        if (ShouldSkipTrigger("inventory.reassign.panel", 250))
+        if (SkipTrigger("inventory.reassign.panel", 250))
         {
             return Task.CompletedTask;
         }
@@ -1222,19 +1222,19 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         Status = _pendingStockEdits.Count > 0
             ? $"库存明细：已暂存变更 {_pendingStockEdits.Count} 项"
             : "库存明细：未检测到变更";
-        NotifyPendingChangesState();
+        RefreshPendingChanges();
 
         return Task.CompletedTask;
     }
 
-    public void NotifyReadonlyStockColumnEditAttempt(string? header)
+    public void WarnReadonlyStockEdit(string? header)
     {
         if (!IsStockEditEnabled || !IsDetailMode)
         {
             return;
         }
 
-        if (ShouldSkipTrigger("inventory.stock.readonly_column_edit", 1200))
+        if (SkipTrigger("inventory.stock.readonly_column_edit", 1200))
         {
             return;
         }
@@ -1464,9 +1464,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private void OnUnlockStatusTimerTick(object? sender, EventArgs e)
         => RefreshUnlockState();
 
-    public void SyncUnlockStateForUi()
-        => RefreshUnlockState();
-
     private static async Task SetReassignBusyAsync(bool value, InventoryOverviewViewModel vm)
     {
         await RunOnUiAsync(() => vm.IsReassignBusy = value);
@@ -1590,7 +1587,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         IsStockEditEnabled = false;
         _pendingStockEdits.Clear();
         Status = "库存明细：检测到操作切换，未保存编辑已丢弃";
-        NotifyPendingChangesState();
+        RefreshPendingChanges();
     }
 
     private void RevertStockRowsFromSnapshot()
@@ -1717,7 +1714,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [RelayCommand]
     private async Task SearchAsync()
     {
-        if (ShouldSkipTrigger(milliseconds: 350))
+        if (SkipTrigger(milliseconds: 350))
         {
             return;
         }
@@ -1732,7 +1729,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [RelayCommand]
     private Task ClearSearchAsync()
     {
-        if (ShouldSkipTrigger(milliseconds: 350))
+        if (SkipTrigger(milliseconds: 350))
         {
             return Task.CompletedTask;
         }
@@ -1746,7 +1743,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanGoFirstPage))]
     private async Task FirstPageAsync()
     {
-        if (ShouldSkipTrigger("inventory.page.first", 180))
+        if (SkipTrigger("inventory.page.first", 180))
         {
             return;
         }
@@ -1765,7 +1762,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanGoPrevPage))]
     private async Task PrevPageAsync()
     {
-        if (ShouldSkipTrigger("inventory.page.prev", 180))
+        if (SkipTrigger("inventory.page.prev", 180))
         {
             return;
         }
@@ -1784,7 +1781,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanGoNextPage))]
     private async Task NextPageAsync()
     {
-        if (ShouldSkipTrigger("inventory.page.next", 180))
+        if (SkipTrigger("inventory.page.next", 180))
         {
             return;
         }
@@ -1808,7 +1805,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanGoLastPage))]
     private async Task LastPageAsync()
     {
-        if (ShouldSkipTrigger("inventory.page.last", 180))
+        if (SkipTrigger("inventory.page.last", 180))
         {
             return;
         }
@@ -1835,7 +1832,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         NotifyAllCommands();
     }
 
-    public bool ShouldDeferExternalRefreshForTopic(string? topic)
+    public bool DeferExternalRefreshForTopic(string? topic)
     {
         if (DateTimeOffset.UtcNow >= _suppressAutoRefreshUntilUtc)
         {
@@ -2175,7 +2172,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         NotifyCommandsCoalesced("inventory.notify_commands", () =>
         {
             NotifyCommands(GetNotifiableCommands());
-            NotifyPendingChangesState();
+            RefreshPendingChanges();
         });
     }
 
@@ -2198,7 +2195,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             ApplyReassignCommand
         ];
 
-    private void NotifyPendingChangesState()
+    private void RefreshPendingChanges()
     {
         OnPropertyChanged(nameof(HasPendingChanges));
         OnPropertyChanged(nameof(EditSessionStateText));
@@ -2248,7 +2245,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         base.Dispose();
     }
 
-    public void NotifyDrugIndexChanged()
+    public void ReloadAfterDrugIndexChange()
     {
         PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
     }

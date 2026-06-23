@@ -182,7 +182,7 @@ public partial class MsfxAutoBoardHost : Grid
         _revealCts?.Dispose();
         _revealCts = new CancellationTokenSource();
         var token = _revealCts.Token;
-        var perfToken = NavigationPerformanceDiagnostics.Begin("MsfxAutoBoard.Reveal");
+        var perfToken = NavPerfDiagnostics.Begin("MsfxAutoBoard.Reveal");
 
         try
         {
@@ -203,7 +203,7 @@ public partial class MsfxAutoBoardHost : Grid
                     continue;
                 }
 
-                if (_vm is not null && !ShouldMountPanel(panel.Key, _vm))
+                if (_vm is not null && !MountPanel(panel.Key, _vm))
                 {
                     _skippedPanelKeys.Add(panel.Key);
                     continue;
@@ -227,8 +227,8 @@ public partial class MsfxAutoBoardHost : Grid
             }
 
             UpdateSkeletonVisibility();
-            NavigationPerformanceDiagnostics.RecordLayout(this, "MsfxAutoBoard");
-            NavigationPerformanceDiagnostics.End(perfToken, this, "MsfxAutoBoard.Reveal");
+            NavPerfDiagnostics.RecordLayout(this, "MsfxAutoBoard");
+            NavPerfDiagnostics.End(perfToken, this, "MsfxAutoBoard.Reveal");
         }
         catch (OperationCanceledException)
         {
@@ -257,7 +257,7 @@ public partial class MsfxAutoBoardHost : Grid
         foreach (var key in _skippedPanelKeys.ToArray())
         {
             token.ThrowIfCancellationRequested();
-            if (_vm is null || !ShouldMountPanel(key, _vm))
+            if (_vm is null || !MountPanel(key, _vm))
             {
                 continue;
             }
@@ -336,7 +336,7 @@ public partial class MsfxAutoBoardHost : Grid
     private void UpdateSkeletonVisibility()
         => SkeletonOverlay.IsVisible = _mountedPanelKeys.Count == 0;
 
-    private static bool ShouldMountPanel(string key, MsfxLinkViewModel vm)
+    private static bool MountPanel(string key, MsfxLinkViewModel vm)
     {
         if (string.Equals(vm.AutoExpandedPanel, key, StringComparison.OrdinalIgnoreCase))
         {

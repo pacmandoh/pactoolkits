@@ -105,7 +105,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void OpenSettings()
     {
-        if (ShouldSkipTrigger("main.nav.settings", 250))
+        if (SkipTrigger("main.nav.settings", 250))
         {
             return;
         }
@@ -121,7 +121,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void OpenAbout()
     {
-        if (ShouldSkipTrigger("main.nav.about", 250))
+        if (SkipTrigger("main.nav.about", 250))
         {
             return;
         }
@@ -369,7 +369,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         foreach (var page in WorkspacePages)
         {
-            page.SyncPageAvailabilityFromEnvironment();
+            page.SyncPageAvailability();
         }
     }
 
@@ -435,7 +435,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void RefreshActivePage()
     {
-        if (ShouldSkipTrigger("main.top.refresh", 300))
+        if (SkipTrigger("main.top.refresh", 300))
         {
             return;
         }
@@ -456,7 +456,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private async Task CheckAppUpdateAsync()
     {
-        if (ShouldSkipTrigger("main.top.update.check", 450))
+        if (SkipTrigger("main.top.update.check", 450))
         {
             return;
         }
@@ -467,7 +467,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private async Task OpenUpdateCenterAsync()
     {
-        if (ShouldSkipTrigger("main.top.update.open", 450))
+        if (SkipTrigger("main.top.update.open", 450))
         {
             return;
         }
@@ -850,7 +850,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _ = RunPageLifecycleTransitionAsync(previous, value, generation, _pageLifecycleCts.Token);
         }
 
-        value?.SyncPageAvailabilityFromEnvironment();
+        value?.SyncPageAvailability();
 
         if (value is SettingsViewModel settingsPage)
         {
@@ -947,7 +947,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        await RunOnUiAsync(() => current.SyncPageAvailabilityFromEnvironment(), DispatcherPriority.Loaded);
+        await RunOnUiAsync(() => current.SyncPageAvailability(), DispatcherPriority.Loaded);
     }
 
     private void OnNavigationRequested(Type pageType)
@@ -961,7 +961,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanProbeDb))]
     private async Task TryReconnectDb()
     {
-        if (ShouldSkipTrigger("top.db.probe", (int)TopActionDebounce.TotalMilliseconds))
+        if (SkipTrigger("top.db.probe", (int)TopActionDebounce.TotalMilliseconds))
         {
             return;
         }
@@ -1026,7 +1026,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanControlAhk))]
     private async Task StartOrRestartAhk()
     {
-        if (ShouldSkipTrigger("top.ahk.action", (int)TopActionDebounce.TotalMilliseconds))
+        if (SkipTrigger("top.ahk.action", (int)TopActionDebounce.TotalMilliseconds))
         {
             return;
         }
@@ -1115,7 +1115,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             await RunOnUiAsync(() => IsDbProbeRunning = true);
             var currentAppVersion = NormalizeVersionForStamp(_releaseVersion.Current.ProductVersion);
             var state = await GetDbSchemaStartupStateAsync().ConfigureAwait(false);
-            if (state.ShouldMigrate)
+            if (state.RunMigration)
             {
                 using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
                 var (migrationOk, summary) = await _settings
@@ -1307,7 +1307,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         return new DbSchemaStartupState(
             Compatible: snapshot.Satisfied,
-            ShouldMigrate: snapshot.ManualMigrationPolicy.ShouldExecuteMigration,
+            RunMigration: snapshot.ManualMigrationPolicy.RunMigration,
             Message: snapshot.IncompatibleMessage ?? "数据库版本不兼容",
             Target: snapshot.TargetVersion,
             DesktopMin: uiMin,
@@ -1322,7 +1322,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private sealed record DbSchemaStartupState(
         bool Compatible,
-        bool ShouldMigrate,
+        bool RunMigration,
         string Message,
         string Target,
         string DesktopMin,
@@ -1466,7 +1466,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         try
         {
             var state = await GetDbSchemaStartupStateAsync(DbMigrationTrigger.Reconnect).ConfigureAwait(false);
-            if (!state.ShouldMigrate)
+            if (!state.RunMigration)
             {
                 await RefreshSettingsSchemaStatusAsync("db_reconnected").ConfigureAwait(false);
                 return;

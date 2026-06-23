@@ -114,7 +114,7 @@ public partial class ScanCodeView : UserControl
             return;
         }
 
-        if (!ShouldMountAutoFetchGrid(slotName))
+        if (!MountAutoFetchGrid(slotName))
         {
             return;
         }
@@ -122,7 +122,7 @@ public partial class ScanCodeView : UserControl
         _gridMount.RequestMount(slot, priority);
     }
 
-    private bool ShouldMountAutoFetchGrid(string slotName)
+    private bool MountAutoFetchGrid(string slotName)
     {
         if (_vm is null)
         {

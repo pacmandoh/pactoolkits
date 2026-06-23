@@ -9,13 +9,13 @@ public abstract class ViewModelBase : ObservableObject
 {
     private readonly TriggerDebounceGate _triggerDebounce = new();
 
-    protected bool ShouldSkipTrigger(
+    protected bool SkipTrigger(
         int milliseconds = 1200,
         [CallerMemberName] string key = "")
-        => _triggerDebounce.ShouldSkip(key, TimeSpan.FromMilliseconds(milliseconds));
+        => _triggerDebounce.Skip(key, TimeSpan.FromMilliseconds(milliseconds));
 
-    protected bool ShouldSkipTrigger(
+    protected bool SkipTrigger(
         string key,
         int milliseconds = 1200)
-        => _triggerDebounce.ShouldSkip(key, TimeSpan.FromMilliseconds(milliseconds));
+        => _triggerDebounce.Skip(key, TimeSpan.FromMilliseconds(milliseconds));
 }

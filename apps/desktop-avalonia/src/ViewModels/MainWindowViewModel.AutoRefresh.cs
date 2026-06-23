@@ -145,10 +145,10 @@ public partial class MainWindowViewModel
         PostOnUi(() =>
         {
             var skipInventoryRefresh = ActivePage is InventoryOverviewViewModel inv
-                                       && inv.ShouldDeferExternalRefreshForTopic(topic);
+                                       && inv.DeferExternalRefreshForTopic(topic);
 
             MarkPagesDirtyByTopic(topic, skipInventoryRefresh);
-            if (ShouldRefreshActiveImmediatelyForTopic(topic)
+            if (RefreshActiveImmediatelyForTopic(topic)
                 && !(skipInventoryRefresh && ActivePage is InventoryOverviewViewModel))
             {
                 TryRefreshDirtyActivePage();
@@ -156,7 +156,7 @@ public partial class MainWindowViewModel
         });
     }
 
-    private bool ShouldRefreshActiveImmediatelyForTopic(string? topic)
+    private bool RefreshActiveImmediatelyForTopic(string? topic)
     {
         var key = (topic ?? string.Empty).Trim().ToLowerInvariant();
         if (ActivePage is DrugIndexViewModel)
