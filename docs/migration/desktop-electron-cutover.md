@@ -19,21 +19,18 @@
 
 ### 步骤 7 — Electron Preview 功能对齐
 
-**目标：** `apps/desktop-electron` 在 preview 通道可演示核心流程，**不进入正式 Feed**。
+**目标：** `apps/desktop-electron` 可演示核心流程，**不进入正式 Feed**（无独立 preview CI / artifact）。
 
 | 项       | 说明                                                                          |
 | -------- | ----------------------------------------------------------------------------- |
-| CI       | `build-desktop-electron-preview.yml`（当前为占位）                            |
-| Artifact | `pactoolkits-desktop-electron-preview-win-x64-<version>`                      |
-| Manifest | `components.desktop.implementation` 仍为 `avalonia`；Electron 仅 preview 构建 |
+| Manifest | `components.desktop.implementation` 仍为 `avalonia`；Electron 仅本地/实验构建 |
 | 范围     | 壳层 + 导航 + 与 .NET 宿主或 API 的集成方案（待定）                           |
 | 禁止     | 复制 Postgres 访问；不得发布到 `/feed/pactoolkits/{channel}/`                 |
 
 **验收：**
 
-- Preview workflow 绿
 - 产物命名符合 kebab-case 规范
-- 正式 `release.yml` 不依赖 Electron job
+- 正式 `release.yml` 不依赖 Electron preview job
 
 ### 步骤 8 — Avalonia → Electron 升级与配置迁移验证
 

@@ -520,13 +520,6 @@ if validate_manifest_v2 "$invalid_bundle_version_manifest" >/dev/null 2>&1; then
   exit 1
 fi
 
-run ./scripts/build-electron-preview.sh
-preview_zip="$ROOT_DIR/artifacts/desktop/electron-preview/win-x64/pactoolkits-desktop-electron-preview-win-x64-$(manifest_product_version "$ROOT_DIR/release-manifest.json").zip"
-[[ -f "$preview_zip" ]] || {
-  echo "ERROR: electron preview zip missing: $preview_zip" >&2
-  exit 1
-}
-
 current_agent="$(manifest_agent_injector_ahk_version "$ROOT_DIR/release-manifest.json")"
 IFS='.' read -r agent_major agent_minor agent_patch <<< "$current_agent"
 next_agent="${agent_major}.${agent_minor}.$((agent_patch + 1))"
