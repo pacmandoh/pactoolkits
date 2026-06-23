@@ -1,9 +1,12 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Avalonia;
-using global::Avalonia.Controls;
-using global::Avalonia.Controls.Primitives;
-using global::Avalonia.Input;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.VisualTree;
+using PacToolkits.Desktop.Avalonia.Behaviors;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
@@ -130,6 +133,11 @@ public static class DataGridInteractionHelper
                 hitRowHeader = true;
             }
 
+            if (current is DataGridCell cell && IsIndexColumnCell(cell))
+            {
+                hitRowHeader = true;
+            }
+
             if (current is DataGridRow row)
             {
                 return row;
@@ -139,6 +147,36 @@ public static class DataGridInteractionHelper
         }
 
         return null;
+    }
+
+    public static bool IsIndexColumnCell(DataGridCell cell)
+    {
+        var grid = cell.FindAncestorOfType<DataGrid>();
+        if (grid is null || !DataGridIndexColumnBehavior.GetEnabled(grid) || !DataGridIndexColumnBehavior.GetIsVisible(grid))
+        {
+            return false;
+        }
+
+        if (grid.Columns.Count == 0 || !DataGridIndexColumnBehavior.IsIndexColumn(grid.Columns[0]))
+        {
+            return false;
+        }
+
+        var row = cell.FindAncestorOfType<DataGridRow>();
+        if (row is null)
+        {
+            return false;
+        }
+
+        foreach (var child in row.GetVisualDescendants())
+        {
+            if (child is DataGridCell firstCell)
+            {
+                return ReferenceEquals(firstCell, cell);
+            }
+        }
+
+        return false;
     }
 
     public static bool TrySelectRowFromPointer(
@@ -190,5 +228,24 @@ public static class DataGridInteractionHelper
         }
 
         return false;
+    }
+
+    public static DataGrid? FindDeferredGrid(Control root, string name)
+    {
+        if (root.FindControl<DataGrid>(name) is { } direct)
+        {
+            return direct;
+        }
+
+        foreach (var descendant in root.GetVisualDescendants())
+        {
+            if (descendant is DataGrid grid &&
+                string.Equals(grid.Name, name, StringComparison.Ordinal))
+            {
+                return grid;
+            }
+        }
+
+        return null;
     }
 }
