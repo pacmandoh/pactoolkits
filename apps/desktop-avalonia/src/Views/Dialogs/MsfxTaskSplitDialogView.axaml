@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxTaskSplitDialogView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -53,7 +53,8 @@
           Text="{Binding SourceBillCode}" />
         <TextBlock
           Grid.Column="3"
-          VerticalAlignment="Center" Classes="Caption Muted"
+          VerticalAlignment="Center"
+          Classes="Caption Muted"
           Text="{Binding Target}"
           TextTrimming="CharacterEllipsis" />
       </Grid>

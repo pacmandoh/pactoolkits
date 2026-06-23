@@ -1,8 +1,8 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
   <Style Selector="controls|SectionPanel">
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
@@ -50,7 +50,8 @@
                 Grid.Column="2"
                 VerticalAlignment="Center"
                 Content="{TemplateBinding HeaderContent}"
-                IsVisible="{TemplateBinding HeaderContent, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                IsVisible="{TemplateBinding HeaderContent,
+                                            Converter={x:Static ObjectConverters.IsNotNull}}" />
               <icons:AppIcon
                 Grid.Column="2"
                 Width="{DynamicResource IconSizeCompact}"
@@ -67,9 +68,7 @@
               MinHeight="0"
               VerticalAlignment="Stretch"
               Classes="SectionPanelInner">
-              <Border
-                MinHeight="0"
-                Classes="SectionPanelBody">
+              <Border MinHeight="0" Classes="SectionPanelBody">
                 <ContentPresenter
                   MinHeight="0"
                   HorizontalAlignment="Stretch"

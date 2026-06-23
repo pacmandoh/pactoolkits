@@ -1,12 +1,12 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.AboutView"
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   d:DesignHeight="820"
   d:DesignWidth="1200"
@@ -71,13 +71,14 @@
               VerticalAlignment="Center"
               Classes="AboutHeroVersion"
               Text="{Binding ProductVersion}" />
-            <shad:Badge Variant="Secondary"
+            <shad:Badge
               Grid.Row="2"
               Grid.Column="2"
               HorizontalAlignment="Right"
               VerticalAlignment="Center"
               Content="{Binding VersionStatus}"
-              Foreground="{DynamicResource InfoColor}" />
+              Foreground="{DynamicResource InfoColor}"
+              Variant="Secondary" />
           </Grid>
         </StackPanel>
       </shad:Card>
@@ -262,7 +263,10 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:VersionBadgeItem">
-                  <shad:Badge Variant="Secondary" Content="{Binding Display}" Foreground="{DynamicResource MutedColor}" />
+                  <shad:Badge
+                    Content="{Binding Display}"
+                    Foreground="{DynamicResource MutedColor}"
+                    Variant="Secondary" />
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -545,9 +549,7 @@
       </shad:Card>
 
       <!--  Dev lab (DEBUG only)  -->
-      <shad:Card
-        Grid.Row="3"
-        IsVisible="{Binding IsDevLabVisible}">
+      <shad:Card Grid.Row="3" IsVisible="{Binding IsDevLabVisible}">
         <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
             <icons:AppIcon
@@ -741,7 +743,7 @@
           </Grid>
 
           <StackPanel Grid.Row="3" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="WaveProgress（可调演示）" />
+            <TextBlock Classes="SubsectionTitle" Text="WaveProgress（可调演示）" />
             <Grid
               MinHeight="250"
               Margin="{DynamicResource AboutSectionInset}"
@@ -753,8 +755,8 @@
                   Grid.Row="0"
                   Width="220"
                   HorizontalAlignment="Center"
-                  Maximum="100"
                   VerticalAlignment="Center"
+                  Maximum="100"
                   Value="{Binding WaveDemoValue}" />
                 <TextBlock
                   Grid.Row="1"
@@ -784,7 +786,7 @@
           </StackPanel>
 
           <StackPanel Grid.Row="4" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="交互组件预览" />
+            <TextBlock Classes="SubsectionTitle" Text="交互组件预览" />
             <TabControl Margin="{DynamicResource AboutSectionInset}" SelectedIndex="0">
               <TabItem Header="布局">
                 <Grid

@@ -1,9 +1,9 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Controls.UpdateStatusBadge"
   xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   x:Name="Root">
   <Grid HorizontalAlignment="Left" VerticalAlignment="Center">
     <shad:Badge

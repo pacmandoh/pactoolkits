@@ -1,15 +1,15 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxAutoMapPanelView"
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
+  MinHeight="0"
   HorizontalAlignment="Stretch"
   VerticalAlignment="Stretch"
-  MinHeight="0"
   x:DataType="vm:MsfxLinkViewModel">
   <shad:Card
     HorizontalAlignment="Stretch"
@@ -31,7 +31,9 @@
             Foreground="{Binding AutoMapState, Converter={StaticResource TraceEntryStateToFgBrush}}"
             Kind="{Binding AutoMapState, Converter={StaticResource TraceEntryStateToIconKind}}" />
           <TextBlock
-            VerticalAlignment="Center" Classes="SectionTitle" Text="映射结果队列" />
+            VerticalAlignment="Center"
+            Classes="SectionTitle"
+            Text="映射结果队列" />
           <TextBlock
             VerticalAlignment="Center"
             Classes="Caption Muted"
@@ -73,7 +75,9 @@
             Height="{DynamicResource IconSizeDefault}"
             Kind="{Binding AutoExpandedPanelIcon}" />
           <TextBlock
-            VerticalAlignment="Center" Classes="SectionTitle" Text="{Binding AutoExpandedPanelTitle}" />
+            VerticalAlignment="Center"
+            Classes="SectionTitle"
+            Text="{Binding AutoExpandedPanelTitle}" />
         </StackPanel>
         <StackPanel
           Grid.Column="2"
@@ -143,75 +147,75 @@
 
       <Grid Grid.Row="1" IsVisible="{Binding IsMapPanelExpanded}">
         <shad:Card IsVisible="{Binding IsMapQueueSearchPanelVisible}">
-        <Grid
-          VerticalAlignment="Center"
-          ColumnDefinitions="180,Auto,220,Auto,150,*,Auto,Auto"
-          ColumnSpacing="{DynamicResource PageColumnSpacing}">
-          <ComboBox
-            MinWidth="180"
-            HorizontalAlignment="Stretch"
-            ItemsSource="{Binding MapQueueSearchScopeOptions}"
-            SelectedItem="{Binding MapQueueSearchScope, Mode=TwoWay}" />
-          <TextBlock
-            Grid.Column="1"
-            Margin="8,0,0,0"
+          <Grid
             VerticalAlignment="Center"
-            Classes="Caption Muted"
-            Text="映射状态" />
-          <ComboBox
-            Grid.Column="2"
-            MinWidth="220"
-            HorizontalAlignment="Stretch"
-            ItemsSource="{Binding MapStatusFilterOptions}"
-            SelectedItem="{Binding MapQueueMapStatusFilter, Mode=TwoWay}" />
-          <TextBlock
-            Grid.Column="3"
-            Margin="8,0,0,0"
-            VerticalAlignment="Center"
-            Classes="Caption Muted"
-            Text="码状态" />
-          <ComboBox
-            Grid.Column="4"
-            HorizontalAlignment="Stretch"
-            ItemsSource="{Binding CodeStatusFilterOptions}"
-            SelectedItem="{Binding MapQueueCodeStatusFilter, Mode=TwoWay}" />
-          <TextBox
-            Grid.Column="5"
-            VerticalContentAlignment="Center"
-            AcceptsReturn="False"
-            Classes="SearchBox"
-            PlaceholderText="搜索映射队列..."
-            Text="{Binding MapQueueKeyword, Mode=TwoWay}"
-            TextWrapping="NoWrap">
-            <TextBox.KeyBindings>
-              <KeyBinding Command="{Binding SearchMapQueueCommand}" Gesture="Enter" />
-            </TextBox.KeyBindings>
-          </TextBox>
-          <Button
-            Grid.Column="6"
-            Classes="Action"
-            Command="{Binding SearchMapQueueCommand}">
-            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-              <icons:AppIcon
-                Width="{DynamicResource IconSizeDefault}"
-                Height="{DynamicResource IconSizeDefault}"
-                Kind="Search" />
-              <TextBlock Text="搜索" />
-            </StackPanel>
-          </Button>
-          <Button
-            Grid.Column="7"
-            Classes="Action"
-            Command="{Binding ResetMapQueueFiltersCommand}">
-            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-              <icons:AppIcon
-                Width="{DynamicResource IconSizeDefault}"
-                Height="{DynamicResource IconSizeDefault}"
-                Kind="Eraser" />
-              <TextBlock Text="重置筛选" />
-            </StackPanel>
-          </Button>
-        </Grid>
+            ColumnDefinitions="180,Auto,220,Auto,150,*,Auto,Auto"
+            ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <ComboBox
+              MinWidth="180"
+              HorizontalAlignment="Stretch"
+              ItemsSource="{Binding MapQueueSearchScopeOptions}"
+              SelectedItem="{Binding MapQueueSearchScope, Mode=TwoWay}" />
+            <TextBlock
+              Grid.Column="1"
+              Margin="8,0,0,0"
+              VerticalAlignment="Center"
+              Classes="Caption Muted"
+              Text="映射状态" />
+            <ComboBox
+              Grid.Column="2"
+              MinWidth="220"
+              HorizontalAlignment="Stretch"
+              ItemsSource="{Binding MapStatusFilterOptions}"
+              SelectedItem="{Binding MapQueueMapStatusFilter, Mode=TwoWay}" />
+            <TextBlock
+              Grid.Column="3"
+              Margin="8,0,0,0"
+              VerticalAlignment="Center"
+              Classes="Caption Muted"
+              Text="码状态" />
+            <ComboBox
+              Grid.Column="4"
+              HorizontalAlignment="Stretch"
+              ItemsSource="{Binding CodeStatusFilterOptions}"
+              SelectedItem="{Binding MapQueueCodeStatusFilter, Mode=TwoWay}" />
+            <TextBox
+              Grid.Column="5"
+              VerticalContentAlignment="Center"
+              AcceptsReturn="False"
+              Classes="SearchBox"
+              PlaceholderText="搜索映射队列..."
+              Text="{Binding MapQueueKeyword, Mode=TwoWay}"
+              TextWrapping="NoWrap">
+              <TextBox.KeyBindings>
+                <KeyBinding Command="{Binding SearchMapQueueCommand}" Gesture="Enter" />
+              </TextBox.KeyBindings>
+            </TextBox>
+            <Button
+              Grid.Column="6"
+              Classes="Action"
+              Command="{Binding SearchMapQueueCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="Search" />
+                <TextBlock Text="搜索" />
+              </StackPanel>
+            </Button>
+            <Button
+              Grid.Column="7"
+              Classes="Action"
+              Command="{Binding ResetMapQueueFiltersCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="Eraser" />
+                <TextBlock Text="重置筛选" />
+              </StackPanel>
+            </Button>
+          </Grid>
         </shad:Card>
       </Grid>
 
@@ -222,29 +226,29 @@
         IsVisible="{Binding IsMapPanelExpanded}"
         LastPageCommand="{Binding LastMapQueuePageCommand}"
         NextPageCommand="{Binding NextMapQueuePageCommand}"
-        PageIndex="{Binding MapQueuePage}"
         PageSizeOptions="{Binding MapQueuePageSizeOptions}"
         Placement="Top"
         PrevPageCommand="{Binding PrevMapQueuePageCommand}"
         SelectedPageSize="{Binding MapQueuePageSize, Mode=TwoWay}"
         StatusText="{Binding MapQueuePagerStatusText}"
-        TotalPages="{Binding MapQueueTotalPages}" />
+        TotalPages="{Binding MapQueueTotalPages}"
+        PageIndex="{Binding MapQueuePage}" />
 
-        <shad:BusyArea
-          Grid.Row="3"
-          MinHeight="120"
-          IsBusy="{Binding IsMapPanelBusy}">
-          <controls:EmptyStatePanel
-            EmptyHint="待映射、需人工、失败和待下发记录将显示在这里"
-            EmptyText="暂无映射队列数据"
-            IsEmpty="{Binding IsAutoMapQueueEmpty}">
-            <DataGrid
-              x:Name="AutoMapQueueGrid"
-              Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid CellTemplateHighlightGrid MapIndexedGrid"
-              HorizontalAlignment="Stretch"
-              VerticalAlignment="Stretch"
-              HorizontalScrollBarVisibility="Auto"
-              ItemsSource="{Binding AutoMapQueueRows}">
+      <shad:BusyArea
+        Grid.Row="3"
+        MinHeight="120"
+        IsBusy="{Binding IsMapPanelBusy}">
+        <controls:EmptyStatePanel
+          EmptyHint="待映射、需人工、失败和待下发记录将显示在这里"
+          EmptyText="暂无映射队列数据"
+          IsEmpty="{Binding IsAutoMapQueueEmpty}">
+          <DataGrid
+            x:Name="AutoMapQueueGrid"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid CellTemplateHighlightGrid MapIndexedGrid"
+            HorizontalScrollBarVisibility="Auto"
+            ItemsSource="{Binding AutoMapQueueRows}">
             <DataGrid.Columns>
               <DataGridTemplateColumn Width="44">
                 <DataGridTemplateColumn.CellTemplate>
@@ -346,7 +350,7 @@
                 Binding="{Binding UpdatedAt}"
                 Header="更新时间" />
             </DataGrid.Columns>
-            </DataGrid>
+          </DataGrid>
         </controls:EmptyStatePanel>
       </shad:BusyArea>
     </Grid>

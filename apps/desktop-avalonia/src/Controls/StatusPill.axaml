@@ -1,8 +1,8 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Controls.StatusPill"
   xmlns="https://github.com/avaloniaui"
-  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   x:Name="Root"
   HorizontalAlignment="Left"
   VerticalAlignment="Center">

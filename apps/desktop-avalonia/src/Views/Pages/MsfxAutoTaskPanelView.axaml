@@ -1,16 +1,16 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxAutoTaskPanelView"
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
+  MinHeight="0"
   HorizontalAlignment="Stretch"
   VerticalAlignment="Stretch"
-  MinHeight="0"
   x:DataType="vm:MsfxLinkViewModel">
   <shad:Card
     HorizontalAlignment="Stretch"
@@ -19,9 +19,9 @@
     VerticalContentAlignment="Stretch">
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
       <Grid
+        IsVisible="{Binding !IsTaskPanelExpanded}"
         RowDefinitions="Auto,Auto,Auto"
-        RowSpacing="{DynamicResource DialogInnerRowSpacing}"
-        IsVisible="{Binding !IsTaskPanelExpanded}">
+        RowSpacing="{DynamicResource DialogInnerRowSpacing}">
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
           <StackPanel
             VerticalAlignment="Center"
@@ -33,7 +33,9 @@
               Foreground="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
               Kind="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToIconKind}}" />
             <TextBlock
-              VerticalAlignment="Center" Classes="SectionTitle" Text="Agent 执行队列" />
+              VerticalAlignment="Center"
+              Classes="SectionTitle"
+              Text="Agent 执行队列" />
           </StackPanel>
           <StackPanel
             Grid.Column="2"
@@ -109,7 +111,8 @@
             ColumnSpacing="{DynamicResource SpacingInlineMd}"
             IsVisible="{Binding IsTaskQueueBatchModeActive}">
             <TextBlock
-              VerticalAlignment="Center" Classes="Caption Muted"
+              VerticalAlignment="Center"
+              Classes="Caption Muted"
               Text="{Binding TaskQueueBatchModeTitle}" />
             <Button
               Grid.Column="1"
@@ -187,7 +190,9 @@
             Height="{DynamicResource IconSizeDefault}"
             Kind="{Binding AutoExpandedPanelIcon}" />
           <TextBlock
-            VerticalAlignment="Center" Classes="SectionTitle" Text="{Binding AutoExpandedPanelTitle}" />
+            VerticalAlignment="Center"
+            Classes="SectionTitle"
+            Text="{Binding AutoExpandedPanelTitle}" />
         </StackPanel>
         <StackPanel
           Grid.Column="2"
@@ -421,9 +426,9 @@
           IsEmpty="{Binding IsAutoTaskQueueEmpty}">
           <DataGrid
             x:Name="AutoTaskQueueGrid"
-            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid CellTemplateHighlightGrid"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
+            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid CellTemplateHighlightGrid"
             HorizontalScrollBarVisibility="Auto"
             ItemsSource="{Binding AutoTaskQueueRows}"
             SelectedItem="{Binding SelectedAutoTaskQueueRow, Mode=TwoWay}"
@@ -523,12 +528,12 @@
         IsVisible="{Binding IsTaskPanelExpanded}"
         LastPageCommand="{Binding LastTaskQueuePageCommand}"
         NextPageCommand="{Binding NextTaskQueuePageCommand}"
-        PageIndex="{Binding TaskQueuePage}"
         PageSizeOptions="{Binding TaskQueuePageSizeOptions}"
         PrevPageCommand="{Binding PrevTaskQueuePageCommand}"
         SelectedPageSize="{Binding TaskQueuePageSize, Mode=TwoWay}"
         TotalCount="{Binding TaskQueueFilteredCount}"
-        TotalPages="{Binding TaskQueueTotalPages}" />
+        TotalPages="{Binding TaskQueueTotalPages}"
+        PageIndex="{Binding TaskQueuePage}" />
     </Grid>
   </shad:Card>
 </UserControl>

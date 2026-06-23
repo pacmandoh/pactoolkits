@@ -1,15 +1,15 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxAutoPullPanelView"
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
+  MinHeight="0"
   HorizontalAlignment="Stretch"
   VerticalAlignment="Stretch"
-  MinHeight="0"
   x:DataType="vm:MsfxLinkViewModel">
   <shad:Card
     HorizontalAlignment="Stretch"
@@ -31,7 +31,9 @@
             Foreground="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToFgBrush}}"
             Kind="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToIconKind}}" />
           <TextBlock
-            VerticalAlignment="Center" Classes="SectionTitle" Text="拉取批次明细" />
+            VerticalAlignment="Center"
+            Classes="SectionTitle"
+            Text="拉取批次明细" />
           <TextBlock
             VerticalAlignment="Center"
             Classes="Caption Muted"
@@ -44,8 +46,8 @@
           Spacing="{DynamicResource SpacingInlineSm}">
           <shad:Badge
             VerticalAlignment="Center"
-            Variant="Secondary"
-            Content="{Binding AutoPullBatchRows.Count, StringFormat=共 {0} 条}" />
+            Content="{Binding AutoPullBatchRows.Count, StringFormat=共 {0} 条}"
+            Variant="Secondary" />
           <Button
             Classes="Ghost MsfxMiniIconBtn"
             Command="{Binding ToggleAutoPanelExpandCommand}"
@@ -71,7 +73,9 @@
             Height="{DynamicResource IconSizeDefault}"
             Kind="{Binding AutoExpandedPanelIcon}" />
           <TextBlock
-            VerticalAlignment="Center" Classes="SectionTitle" Text="{Binding AutoExpandedPanelTitle}" />
+            VerticalAlignment="Center"
+            Classes="SectionTitle"
+            Text="{Binding AutoExpandedPanelTitle}" />
         </StackPanel>
         <StackPanel
           Grid.Column="2"
@@ -103,12 +107,12 @@
         IsVisible="{Binding IsPullPanelExpanded}"
         LastPageCommand="{Binding LastPullBatchPageCommand}"
         NextPageCommand="{Binding NextPullBatchPageCommand}"
-        PageIndex="{Binding PullBatchPage}"
         PageSizeOptions="{Binding PullBatchPageSizeOptions}"
         Placement="Top"
         PrevPageCommand="{Binding PrevPullBatchPageCommand}"
         SelectedPageSize="{Binding PullBatchPageSize, Mode=TwoWay}"
-        TotalPages="{Binding PullBatchTotalPages}" />
+        TotalPages="{Binding PullBatchTotalPages}"
+        PageIndex="{Binding PullBatchPage}" />
 
       <shad:BusyArea
         Grid.Row="2"
@@ -120,9 +124,9 @@
           IsEmpty="{Binding IsAutoPullBatchEmpty}">
           <DataGrid
             x:Name="AutoPullBatchGrid"
-            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
+            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid"
             HorizontalScrollBarVisibility="Auto"
             ItemsSource="{Binding AutoPullBatchRows}"
             SelectedItem="{Binding SelectedAutoPullBatchRow, Mode=TwoWay}">

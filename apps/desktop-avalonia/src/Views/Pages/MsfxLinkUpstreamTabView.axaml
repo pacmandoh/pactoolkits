@@ -1,10 +1,10 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxLinkUpstreamTabView"
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:DataType="vm:MsfxLinkViewModel"
   Focusable="True">
@@ -108,7 +108,10 @@
             VerticalAlignment="Center"
             ItemSpacing="10"
             Orientation="Horizontal">
-            <shad:Badge Variant="Secondary" VerticalAlignment="Center" Content="默认显示最近 7 天" />
+            <shad:Badge
+              VerticalAlignment="Center"
+              Content="默认显示最近 7 天"
+              Variant="Secondary" />
           </WrapPanel>
         </Grid>
       </Grid>

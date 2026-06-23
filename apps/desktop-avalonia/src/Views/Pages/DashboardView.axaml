@@ -1,12 +1,12 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardView"
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
   d:DesignHeight="820"
@@ -94,7 +94,7 @@
             </AutoCompleteBox>
             <Button
               Grid.Column="2"
-                    Classes="MicroClear DrugAutoCompleteClear"
+              Classes="MicroClear DrugAutoCompleteClear"
               Command="{Binding ClearDrugSpecFilterCommand}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeSmall}"
@@ -140,8 +140,8 @@
 
       <Grid Grid.Row="1">
         <TabControl
-          Classes="DashboardTabHeaders"
           Margin="{DynamicResource DashboardTabsPadding}"
+          Classes="DashboardTabHeaders"
           SelectedIndex="{Binding SelectedTabIndex}">
           <TabItem>
             <TabItem.Header>
@@ -224,53 +224,49 @@
           Classes="Stack"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
-          <Grid
-            RowDefinitions="Auto,Auto,Auto"
-            RowSpacing="14">
+          <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="14">
 
 
             <Border Grid.Row="0" Classes="KpiTileStrip">
-              <Grid
-                ColumnDefinitions="*,*,*,*"
-                ColumnSpacing="{DynamicResource KpiTileColumnSpacing}">
-              <controls:KpiTile
-                Grid.Column="0"
-                AccentBrush="{DynamicResource InfoColor}"
-                Command="{Binding OpenInventoryCommand}"
-                Hint="{Binding Kpi.AvailableRemainHint}"
-                Pct="{Binding Kpi.AvailableRemainPct}"
-                PctMetric="RemainHealth"
-                Title="可用追溯码库存"
-                Value="{Binding Kpi.AvailableRemain}" />
-              <controls:KpiTile
-                Grid.Column="1"
-                AccentBrush="{DynamicResource SuccessColor}"
-                Command="{Binding OpenPeriodUsageCommand}"
-                Hint="{Binding Kpi.PeriodUsedHint}"
-                Pct="{Binding Kpi.PeriodUsedPct}"
-                PctMetric="UsageIntensity"
-                Title="期间使用条数"
-                Value="{Binding Kpi.PeriodUsed}" />
-              <controls:KpiTile
-                Grid.Column="2"
-                AccentBrush="{DynamicResource WarningColor}"
-                Command="{Binding OpenAbnormalCommand}"
-                Hint="{Binding Kpi.AbnormalHint}"
-                Pct="{Binding Kpi.AbnormalPct}"
-                PctMetric="AbnormalShare"
-                Title="异常 / 回滚"
-                Value="{Binding Kpi.Abnormal}"
-                ValueForeground="{DynamicResource WarningColor}" />
-              <controls:KpiTile
-                Grid.Column="3"
-                AccentBrush="{DynamicResource ErrorColor}"
-                Command="{Binding OpenLowStockCommand}"
-                Hint="{Binding Kpi.LowStockHint}"
-                Pct="{Binding Kpi.LowStockPct}"
-                PctMetric="LowStockShare"
-                Title="追溯码告紧"
-                Value="{Binding Kpi.LowStockCount}"
-                ValueForeground="{DynamicResource ErrorColor}" />
+              <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="{DynamicResource KpiTileColumnSpacing}">
+                <controls:KpiTile
+                  Title="可用追溯码库存"
+                  Grid.Column="0"
+                  AccentBrush="{DynamicResource InfoColor}"
+                  Command="{Binding OpenInventoryCommand}"
+                  Hint="{Binding Kpi.AvailableRemainHint}"
+                  Pct="{Binding Kpi.AvailableRemainPct}"
+                  PctMetric="RemainHealth"
+                  Value="{Binding Kpi.AvailableRemain}" />
+                <controls:KpiTile
+                  Title="期间使用条数"
+                  Grid.Column="1"
+                  AccentBrush="{DynamicResource SuccessColor}"
+                  Command="{Binding OpenPeriodUsageCommand}"
+                  Hint="{Binding Kpi.PeriodUsedHint}"
+                  Pct="{Binding Kpi.PeriodUsedPct}"
+                  PctMetric="UsageIntensity"
+                  Value="{Binding Kpi.PeriodUsed}" />
+                <controls:KpiTile
+                  Title="异常 / 回滚"
+                  Grid.Column="2"
+                  AccentBrush="{DynamicResource WarningColor}"
+                  Command="{Binding OpenAbnormalCommand}"
+                  Hint="{Binding Kpi.AbnormalHint}"
+                  Pct="{Binding Kpi.AbnormalPct}"
+                  PctMetric="AbnormalShare"
+                  ValueForeground="{DynamicResource WarningColor}"
+                  Value="{Binding Kpi.Abnormal}" />
+                <controls:KpiTile
+                  Title="追溯码告紧"
+                  Grid.Column="3"
+                  AccentBrush="{DynamicResource ErrorColor}"
+                  Command="{Binding OpenLowStockCommand}"
+                  Hint="{Binding Kpi.LowStockHint}"
+                  Pct="{Binding Kpi.LowStockPct}"
+                  PctMetric="LowStockShare"
+                  ValueForeground="{DynamicResource ErrorColor}"
+                  Value="{Binding Kpi.LowStockCount}" />
               </Grid>
             </Border>
 
@@ -282,10 +278,10 @@
 
 
               <controls:SectionPanel
-                Grid.Column="0"
-                Classes="FlushBody"
                 Title="药品使用统计"
-                AccentBrush="{DynamicResource InfoColor}">
+                Grid.Column="0"
+                AccentBrush="{DynamicResource InfoColor}"
+                Classes="FlushBody">
                 <controls:SectionPanel.HeaderContent>
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <ToggleButton
@@ -324,49 +320,49 @@
                         IsVisible="{Binding !IsTrendChartVisible}"
                         SlotMinHeight="{DynamicResource DgH10Rows}"
                         SlotName="TrendGridOverview">
-                      <controls:DeferredGridSlot.GridTemplate>
-                        <DataTemplate x:DataType="vm:DashboardViewModel">
-                          <DataGrid
-                            HorizontalAlignment="Stretch"
-                            VerticalAlignment="Stretch"
-                            Classes="SectionGrid IndexedGrid"
-                            ItemsSource="{Binding DrugTrend}"
-                            RowHeight="{StaticResource RowMinHeight}"
-                            SelectedItem="{Binding SelectedTrendItem}"
-                            SelectionMode="Single">
-                            <DataGrid.Columns>
-                              <DataGridTemplateColumn Width="0.90*" Header="药品">
-                                <DataGridTemplateColumn.CellTemplate>
-                                  <DataTemplate>
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                                  </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                              </DataGridTemplateColumn>
-                              <DataGridTemplateColumn Width="0.55*" Header="规格">
-                                <DataGridTemplateColumn.CellTemplate>
-                                  <DataTemplate>
-                                    <TextBlock Classes="Caption Muted" Text="{Binding SpecDisplay}" />
-                                  </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                              </DataGridTemplateColumn>
-                              <DataGridTemplateColumn Width="1.80*" Header="主要客户端">
-                                <DataGridTemplateColumn.CellTemplate>
-                                  <DataTemplate>
-                                    <TextBlock Classes="Caption Muted" Text="{Binding SourceText}" />
-                                  </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                              </DataGridTemplateColumn>
-                              <DataGridTemplateColumn Width="{StaticResource DgWUsage}" Header="用量">
-                                <DataGridTemplateColumn.CellTemplate>
-                                  <DataTemplate>
-                                    <TextBlock Classes="DGRightCell DGNum" Text="{Binding ValueText}" />
-                                  </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                              </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                          </DataGrid>
-                        </DataTemplate>
-                      </controls:DeferredGridSlot.GridTemplate>
+                        <controls:DeferredGridSlot.GridTemplate>
+                          <DataTemplate x:DataType="vm:DashboardViewModel">
+                            <DataGrid
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Classes="SectionGrid IndexedGrid"
+                              ItemsSource="{Binding DrugTrend}"
+                              RowHeight="{StaticResource RowMinHeight}"
+                              SelectedItem="{Binding SelectedTrendItem}"
+                              SelectionMode="Single">
+                              <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="0.90*" Header="药品">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="0.55*" Header="规格">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <TextBlock Classes="Caption Muted" Text="{Binding SpecDisplay}" />
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="1.80*" Header="主要客户端">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <TextBlock Classes="Caption Muted" Text="{Binding SourceText}" />
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="{StaticResource DgWUsage}" Header="用量">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <TextBlock Classes="DGRightCell DGNum" Text="{Binding ValueText}" />
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                              </DataGrid.Columns>
+                            </DataGrid>
+                          </DataTemplate>
+                        </controls:DeferredGridSlot.GridTemplate>
                       </controls:DeferredGridSlot>
                       <ContentControl
                         x:Name="TrendChartHost"
@@ -381,10 +377,10 @@
 
 
               <controls:SectionPanel
-                Grid.Column="1"
-                Classes="FlushBody"
                 Title="事务总览"
-                AccentBrush="{DynamicResource InfoColor}">
+                Grid.Column="1"
+                AccentBrush="{DynamicResource InfoColor}"
+                Classes="FlushBody">
                 <controls:SectionPanel.HeaderContent>
                   <Button
                     VerticalAlignment="Center"
@@ -484,12 +480,12 @@
 
 
               <controls:SectionPanel
+                Title="客户端"
                 Grid.Column="0"
-                Classes="FlushBody"
                 MinHeight="220"
                 VerticalAlignment="Stretch"
-                Title="客户端"
-                AccentBrush="{DynamicResource InfoColor}">
+                AccentBrush="{DynamicResource InfoColor}"
+                Classes="FlushBody">
                 <controls:SectionPanel.HeaderContent>
                   <ComboBox
                     Width="120"
@@ -529,10 +525,10 @@
                                   <DataTemplate>
                                     <StackPanel VerticalAlignment="Center" Spacing="0">
                                       <TextBlock
-                                        FontWeight="SemiBold"
                                         MaxHeight="18"
-                                        TextTrimming="CharacterEllipsis"
-                                        Text="{Binding ClientDisplay}" />
+                                        FontWeight="SemiBold"
+                                        Text="{Binding ClientDisplay}"
+                                        TextTrimming="CharacterEllipsis" />
                                       <TextBlock
                                         Classes="Caption Muted ClientMetaSubline"
                                         IsVisible="{Binding HasMeta}"
@@ -559,10 +555,10 @@
 
 
               <controls:SectionPanel
+                Title="录入追溯码情况"
                 Grid.Column="1"
                 MinHeight="220"
                 VerticalAlignment="Stretch"
-                Title="录入追溯码情况"
                 AccentBrush="{DynamicResource InfoColor}">
                 <controls:SectionPanel.HeaderContent>
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -680,10 +676,10 @@
         IsVisible="{Binding IsInputTab}"
         RowDefinitions="*">
         <controls:SectionPanel
-          Grid.Row="0"
-          Classes="FlushBody TabSection"
           Title="录入追溯码情况"
-          AccentBrush="{DynamicResource InfoColor}">
+          Grid.Row="0"
+          AccentBrush="{DynamicResource InfoColor}"
+          Classes="FlushBody TabSection">
           <controls:SectionPanel.HeaderContent>
             <Button
               VerticalAlignment="Center"
@@ -742,13 +738,34 @@
                               </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                           </DataGridTemplateColumn>
-                          <DataGridTextColumn Width="120" Binding="{Binding EntryAtText}" Header="时间" />
-                          <DataGridTextColumn Width="1.5*" Binding="{Binding DrugId}" Header="药品" />
-                          <DataGridTextColumn Width="1.2*" Binding="{Binding Spec}" Header="规格" />
-                          <DataGridTextColumn Width="90" Binding="{Binding Qty}" Header="数量" />
-                          <DataGridTextColumn Width="110" Binding="{Binding Source}" Header="来源" />
-                          <DataGridTextColumn Width="1.4*" Binding="{Binding ClientDisplay}" Header="客户端" />
-                          <DataGridTextColumn Width="2.2*" Binding="{Binding Message}" Header="说明" />
+                          <DataGridTextColumn
+                            Width="120"
+                            Binding="{Binding EntryAtText}"
+                            Header="时间" />
+                          <DataGridTextColumn
+                            Width="1.5*"
+                            Binding="{Binding DrugId}"
+                            Header="药品" />
+                          <DataGridTextColumn
+                            Width="1.2*"
+                            Binding="{Binding Spec}"
+                            Header="规格" />
+                          <DataGridTextColumn
+                            Width="90"
+                            Binding="{Binding Qty}"
+                            Header="数量" />
+                          <DataGridTextColumn
+                            Width="110"
+                            Binding="{Binding Source}"
+                            Header="来源" />
+                          <DataGridTextColumn
+                            Width="1.4*"
+                            Binding="{Binding ClientDisplay}"
+                            Header="客户端" />
+                          <DataGridTextColumn
+                            Width="2.2*"
+                            Binding="{Binding Message}"
+                            Header="说明" />
                         </DataGrid.Columns>
                       </DataGrid>
                     </DataTemplate>
@@ -781,10 +798,10 @@
         IsVisible="{Binding IsTxnTab}"
         RowDefinitions="*">
         <controls:SectionPanel
-          Grid.Row="0"
-          Classes="FlushBody TabSection"
           Title="{Binding TxnPanelMode.Title}"
-          AccentBrush="{DynamicResource SuccessColor}">
+          Grid.Row="0"
+          AccentBrush="{DynamicResource SuccessColor}"
+          Classes="FlushBody TabSection">
           <controls:SectionPanel.HeaderContent>
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <ComboBox
@@ -851,10 +868,22 @@
                                 </DataTemplate>
                               </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Width="1.9*" Binding="{Binding Title}" Header="标题" />
-                            <DataGridTextColumn Width="1.2*" Binding="{Binding ClientDisplay}" Header="客户端" />
-                            <DataGridTextColumn Width="1.1*" Binding="{Binding Time}" Header="时间" />
-                            <DataGridTextColumn Width="100" Binding="{Binding Qty}" Header="数量" />
+                            <DataGridTextColumn
+                              Width="1.9*"
+                              Binding="{Binding Title}"
+                              Header="标题" />
+                            <DataGridTextColumn
+                              Width="1.2*"
+                              Binding="{Binding ClientDisplay}"
+                              Header="客户端" />
+                            <DataGridTextColumn
+                              Width="1.1*"
+                              Binding="{Binding Time}"
+                              Header="时间" />
+                            <DataGridTextColumn
+                              Width="100"
+                              Binding="{Binding Qty}"
+                              Header="数量" />
                           </DataGrid.Columns>
                         </DataGrid>
                       </DataTemplate>
@@ -879,11 +908,26 @@
                           SelectionMode="Extended"
                           VerticalScrollBarVisibility="Auto">
                           <DataGrid.Columns>
-                            <DataGridTextColumn Width="70" Binding="{Binding Rank}" Header="#" />
-                            <DataGridTextColumn Width="1.2*" Binding="{Binding Name}" Header="药品" />
-                            <DataGridTextColumn Width="1.2*" Binding="{Binding Sub}" Header="规格" />
-                            <DataGridTextColumn Width="1.8*" Binding="{Binding SourceText}" Header="来源" />
-                            <DataGridTextColumn Width="100" Binding="{Binding ValueText}" Header="值" />
+                            <DataGridTextColumn
+                              Width="70"
+                              Binding="{Binding Rank}"
+                              Header="#" />
+                            <DataGridTextColumn
+                              Width="1.2*"
+                              Binding="{Binding Name}"
+                              Header="药品" />
+                            <DataGridTextColumn
+                              Width="1.2*"
+                              Binding="{Binding Sub}"
+                              Header="规格" />
+                            <DataGridTextColumn
+                              Width="1.8*"
+                              Binding="{Binding SourceText}"
+                              Header="来源" />
+                            <DataGridTextColumn
+                              Width="100"
+                              Binding="{Binding ValueText}"
+                              Header="值" />
                           </DataGrid.Columns>
                         </DataGrid>
                       </DataTemplate>
@@ -932,10 +976,10 @@
         IsVisible="{Binding IsAbnormalTab}"
         RowDefinitions="*">
         <controls:SectionPanel
-          Grid.Row="0"
-          Classes="FlushBody TabSection"
           Title="异常事务队列"
-          AccentBrush="{DynamicResource WarningColor}">
+          Grid.Row="0"
+          AccentBrush="{DynamicResource WarningColor}"
+          Classes="FlushBody TabSection">
           <controls:SectionPanel.HeaderContent>
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <Button
@@ -1007,9 +1051,18 @@
                               </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                           </DataGridTemplateColumn>
-                          <DataGridTextColumn Width="180" Binding="{Binding Title}" Header="类型" />
-                          <DataGridTextColumn Width="1.1*" Binding="{Binding ClientDisplay}" Header="客户端" />
-                          <DataGridTextColumn Width="2*" Binding="{Binding Detail}" Header="详情" />
+                          <DataGridTextColumn
+                            Width="180"
+                            Binding="{Binding Title}"
+                            Header="类型" />
+                          <DataGridTextColumn
+                            Width="1.1*"
+                            Binding="{Binding ClientDisplay}"
+                            Header="客户端" />
+                          <DataGridTextColumn
+                            Width="2*"
+                            Binding="{Binding Detail}"
+                            Header="详情" />
                         </DataGrid.Columns>
                       </DataGrid>
                     </DataTemplate>

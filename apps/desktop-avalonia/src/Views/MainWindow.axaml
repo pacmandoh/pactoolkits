@@ -1,10 +1,10 @@
-<shad:Window
+﻿<shad:Window
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
-  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels"
@@ -41,9 +41,7 @@
           Kind="Upload" />
       </Button>
 
-      <Border
-        Classes="ShellTitleBarCapsule"
-        VerticalAlignment="Center">
+      <Border VerticalAlignment="Center" Classes="ShellTitleBarCapsule">
         <StackPanel Orientation="Horizontal" Spacing="0">
           <Button
             Classes="WindowControlsButton"
@@ -63,9 +61,9 @@
             Background="{DynamicResource BorderColor}" />
 
           <Button
+            x:Name="FullscreenButton"
             Classes="WindowControlsButton"
-            ToolTip.Tip="全屏"
-            x:Name="FullscreenButton">
+            ToolTip.Tip="全屏">
             <Panel>
               <icons:AppIcon
                 Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
@@ -88,9 +86,9 @@
             Background="{DynamicResource BorderColor}" />
 
           <Button
+            shad:ButtonAssist.ShowProgress="{Binding IsDbProbeRunning}"
             Classes="WindowControlsButton"
-            Command="{Binding TryReconnectDbCommand}"
-            shad:ButtonAssist.ShowProgress="{Binding IsDbProbeRunning}">
+            Command="{Binding TryReconnectDbCommand}">
             <Panel>
               <icons:AppIcon
                 Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
@@ -108,9 +106,9 @@
           </Button>
 
           <Button
+            shad:ButtonAssist.ShowProgress="{Binding IsAhkActionRunning}"
             Classes="WindowControlsButton"
-            Command="{Binding StartOrRestartAhkCommand}"
-            shad:ButtonAssist.ShowProgress="{Binding IsAhkActionRunning}">
+            Command="{Binding StartOrRestartAhkCommand}">
             <Panel>
               <icons:AppIcon
                 Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
@@ -147,11 +145,11 @@
             Text="pactoolkits" />
           <StackPanel
             Grid.Column="1"
+            Margin="0,0,10,0"
+            VerticalAlignment="Center"
             Classes="ShellTitleBarPathTrailing"
             Orientation="Horizontal"
-            Spacing="8"
-            Margin="0,0,10,0"
-            VerticalAlignment="Center">
+            Spacing="8">
             <Border Classes="ShellTitleBarPathDot" />
             <TextBlock Classes="ShellTitleBarPathText" Text="3" />
             <icons:AppIcon Kind="MessageSquarePlus" />
@@ -164,383 +162,379 @@
 
   <Grid RowDefinitions="*,Auto">
     <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
-    <shad:Sidebar
-      x:Name="MainSidebar"
-      BorderThickness="0,0,1,0"
-      CurrentRoute="{Binding ActivePageRoute}"
-      Expanded="{Binding IsSidebarExpanded, Mode=TwoWay}"
-      ItemIconContentSpacing="12"
-      MinWidth="56"
-      Width="255">
-      <shad:Sidebar.Header>
-        <Menu Classes="Single">
-          <MenuItem
-            Classes="NoPressedAnimation SidebarFunctionAreaMenuItem"
-            CornerRadius="{DynamicResource LgCornerRadius}"
-            HorizontalAlignment="Stretch"
-            shad:MenuItemAssist.PopupHorizontalOffset="4"
-            shad:MenuItemAssist.PopupPlacement="RightEdgeAlignedTop"
-            shad:MenuItemAssist.PopupVerticalOffset="0">
-            <MenuItem.Header>
-              <Panel>
-                <Border
-                  Classes="SidebarFunctionAreaBadge"
-                  CornerRadius="{DynamicResource LgCornerRadius}"
-                  Height="36"
-                  HorizontalAlignment="Center"
-                  IsVisible="{Binding !$parent[shad:Sidebar].Expanded}"
-                  VerticalAlignment="Center"
-                  Width="38">
-                  <Viewbox Height="16" Width="16">
-                    <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />
-                  </Viewbox>
-                </Border>
-                <Grid
-                  ColumnDefinitions="Auto,*,Auto"
-                  HorizontalAlignment="Stretch"
-                  IsVisible="{Binding $parent[shad:Sidebar].Expanded}"
-                  Margin="0">
+      <shad:Sidebar
+        x:Name="MainSidebar"
+        Width="255"
+        MinWidth="56"
+        BorderThickness="0,0,1,0"
+        CurrentRoute="{Binding ActivePageRoute}"
+        Expanded="{Binding IsSidebarExpanded, Mode=TwoWay}"
+        ItemIconContentSpacing="12">
+        <shad:Sidebar.Header>
+          <Menu Classes="Single">
+            <MenuItem
+              HorizontalAlignment="Stretch"
+              shad:MenuItemAssist.PopupHorizontalOffset="4"
+              shad:MenuItemAssist.PopupPlacement="RightEdgeAlignedTop"
+              shad:MenuItemAssist.PopupVerticalOffset="0"
+              Classes="NoPressedAnimation SidebarFunctionAreaMenuItem"
+              CornerRadius="{DynamicResource LgCornerRadius}">
+              <MenuItem.Header>
+                <Panel>
                   <Border
-                    Classes="SidebarFunctionAreaBadge"
-                    CornerRadius="{DynamicResource XlCornerRadius}"
+                    Width="38"
                     Height="36"
-                    Margin="0,0,8,0"
-                    Width="36">
-                    <Viewbox Height="16" Width="16">
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Classes="SidebarFunctionAreaBadge"
+                    CornerRadius="{DynamicResource LgCornerRadius}"
+                    IsVisible="{Binding !$parent[shad:Sidebar].Expanded}">
+                    <Viewbox Width="16" Height="16">
                       <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />
                     </Viewbox>
                   </Border>
-                  <StackPanel Grid.Column="1" Classes="SidebarFunctionAreaText">
-                    <TextBlock Classes="Small" Text="{Binding SelectedFunctionArea.Name}" />
-                    <TextBlock
-                      Classes="Caption Muted"
-                      Text="{Binding SelectedFunctionArea.Subtitle}"
-                      TextTrimming="CharacterEllipsis" />
-                  </StackPanel>
-                  <Viewbox
-                    Grid.Column="2"
-                    Height="16"
-                    Width="16">
-                    <icons:AppIcon Foreground="{DynamicResource ForegroundColor}" Kind="ChevronsUpDown" />
-                  </Viewbox>
-                </Grid>
-              </Panel>
-            </MenuItem.Header>
-            <shad:MenuItemAssist.Label>
-              <TextBlock
-                Classes="Caption Muted"
-                Text="功能区"
-                Width="220" />
-            </shad:MenuItemAssist.Label>
-            <MenuItem
-              Command="{Binding SelectFunctionAreaCommand}"
-              CommandParameter="{x:Static vm:ShellFunctionAreas.Traceability}"
-              Header="{x:Static vm:ShellFunctionAreas.TraceabilityName}">
-              <MenuItem.Icon>
-                <Border
-                  BorderBrush="{DynamicResource BorderColor}"
-                  BorderThickness="1"
-                  CornerRadius="{DynamicResource LgCornerRadius}"
-                  Height="24"
-                  Padding="4"
-                  Width="24">
-                  <Viewbox>
-                    <icons:AppIcon
-                      Foreground="{DynamicResource MutedColor}"
-                      Kind="{x:Static vm:ShellFunctionAreas.TraceabilityIcon}" />
-                  </Viewbox>
-                </Border>
-              </MenuItem.Icon>
+                  <Grid
+                    Margin="0"
+                    HorizontalAlignment="Stretch"
+                    ColumnDefinitions="Auto,*,Auto"
+                    IsVisible="{Binding $parent[shad:Sidebar].Expanded}">
+                    <Border
+                      Width="36"
+                      Height="36"
+                      Margin="0,0,8,0"
+                      Classes="SidebarFunctionAreaBadge"
+                      CornerRadius="{DynamicResource XlCornerRadius}">
+                      <Viewbox Width="16" Height="16">
+                        <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />
+                      </Viewbox>
+                    </Border>
+                    <StackPanel Grid.Column="1" Classes="SidebarFunctionAreaText">
+                      <TextBlock Classes="Small" Text="{Binding SelectedFunctionArea.Name}" />
+                      <TextBlock
+                        Classes="Caption Muted"
+                        Text="{Binding SelectedFunctionArea.Subtitle}"
+                        TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Viewbox
+                      Grid.Column="2"
+                      Width="16"
+                      Height="16">
+                      <icons:AppIcon Foreground="{DynamicResource ForegroundColor}" Kind="ChevronsUpDown" />
+                    </Viewbox>
+                  </Grid>
+                </Panel>
+              </MenuItem.Header>
+              <shad:MenuItemAssist.Label>
+                <TextBlock
+                  Width="220"
+                  Classes="Caption Muted"
+                  Text="功能区" />
+              </shad:MenuItemAssist.Label>
+              <MenuItem
+                Command="{Binding SelectFunctionAreaCommand}"
+                CommandParameter="{x:Static vm:ShellFunctionAreas.Traceability}"
+                Header="{x:Static vm:ShellFunctionAreas.TraceabilityName}">
+                <MenuItem.Icon>
+                  <Border
+                    Width="24"
+                    Height="24"
+                    Padding="4"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource LgCornerRadius}">
+                    <Viewbox>
+                      <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="{x:Static vm:ShellFunctionAreas.TraceabilityIcon}" />
+                    </Viewbox>
+                  </Border>
+                </MenuItem.Icon>
+              </MenuItem>
+              <MenuItem
+                Command="{Binding SelectFunctionAreaCommand}"
+                CommandParameter="{x:Static vm:ShellFunctionAreas.Automation}"
+                Header="{x:Static vm:ShellFunctionAreas.AutomationName}">
+                <MenuItem.Icon>
+                  <Border
+                    Width="24"
+                    Height="24"
+                    Padding="4"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource LgCornerRadius}">
+                    <Viewbox>
+                      <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="{x:Static vm:ShellFunctionAreas.AutomationIcon}" />
+                    </Viewbox>
+                  </Border>
+                </MenuItem.Icon>
+              </MenuItem>
             </MenuItem>
+          </Menu>
+        </shad:Sidebar.Header>
+
+        <StackPanel Classes="SidebarNavHost" Spacing="4">
+          <shad:SidebarItemLabel
+            AsSeparator="True"
+            Classes="SidebarNavSectionLabel"
+            Text="页面" />
+
+          <ItemsControl ItemsSource="{Binding FilteredSidebarPages}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="{DynamicResource SidebarNavItemSpacing}" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AppPageBase">
+                <shad:SidebarItem
+                  Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).NavigateSidebarPageCommand}"
+                  CommandParameter="{Binding}"
+                  Content="{Binding DisplayName}"
+                  IsEnabled="{Binding IsEnabled}"
+                  Route="{Binding SidebarRoute}"
+                  ToolTip.Tip="{Binding DisplayName}">
+                  <shad:SidebarItem.Icon>
+                    <Viewbox>
+                      <icons:AppIcon Kind="{Binding Icon}" />
+                    </Viewbox>
+                  </shad:SidebarItem.Icon>
+                </shad:SidebarItem>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <shad:Sidebar.Footer>
+          <Menu Classes="Single">
             <MenuItem
-              Command="{Binding SelectFunctionAreaCommand}"
-              CommandParameter="{x:Static vm:ShellFunctionAreas.Automation}"
-              Header="{x:Static vm:ShellFunctionAreas.AutomationName}">
-              <MenuItem.Icon>
-                <Border
-                  BorderBrush="{DynamicResource BorderColor}"
-                  BorderThickness="1"
-                  CornerRadius="{DynamicResource LgCornerRadius}"
-                  Height="24"
-                  Padding="4"
-                  Width="24">
-                  <Viewbox>
-                    <icons:AppIcon
-                      Foreground="{DynamicResource MutedColor}"
-                      Kind="{x:Static vm:ShellFunctionAreas.AutomationIcon}" />
-                  </Viewbox>
-                </Border>
-              </MenuItem.Icon>
-            </MenuItem>
-          </MenuItem>
-        </Menu>
-      </shad:Sidebar.Header>
-
-      <StackPanel Classes="SidebarNavHost" Spacing="4">
-        <shad:SidebarItemLabel
-          AsSeparator="True"
-          Classes="SidebarNavSectionLabel"
-          Text="页面" />
-
-        <ItemsControl ItemsSource="{Binding FilteredSidebarPages}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Spacing="{DynamicResource SidebarNavItemSpacing}" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:AppPageBase">
-              <shad:SidebarItem
-                Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).NavigateSidebarPageCommand}"
-                CommandParameter="{Binding}"
-                Content="{Binding DisplayName}"
-                IsEnabled="{Binding IsEnabled}"
-                Route="{Binding SidebarRoute}"
-                ToolTip.Tip="{Binding DisplayName}">
-                <shad:SidebarItem.Icon>
-                  <Viewbox>
-                    <icons:AppIcon Kind="{Binding Icon}" />
-                  </Viewbox>
-                </shad:SidebarItem.Icon>
-              </shad:SidebarItem>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </StackPanel>
-
-      <shad:Sidebar.Footer>
-        <Menu Classes="Single">
-          <MenuItem
-            Classes="NoPressedAnimation SidebarFooterMenuItem"
-            CornerRadius="{DynamicResource LgCornerRadius}"
-            HorizontalAlignment="Stretch"
-            Padding="8,0"
-            shad:MenuItemAssist.PopupHorizontalOffset="4"
-            shad:MenuItemAssist.PopupPlacement="RightEdgeAlignedBottom"
-            shad:MenuItemAssist.PopupVerticalOffset="4">
-            <MenuItem.Header>
-              <Panel>
-                <Image
-                  Classes="SidebarBrandIcon"
-                  HorizontalAlignment="Center"
-                  IsVisible="{Binding !$parent[shad:Sidebar].Expanded}"
-                  Source="avares://pactoolkits-desktop/Assets/app.ico" />
-                <Grid
-                  ColumnDefinitions="Auto,*,Auto"
-                  ColumnSpacing="8"
-                  IsVisible="{Binding $parent[shad:Sidebar].Expanded}"
-                  Margin="0,4">
+              Padding="8,0"
+              HorizontalAlignment="Stretch"
+              shad:MenuItemAssist.PopupHorizontalOffset="4"
+              shad:MenuItemAssist.PopupPlacement="RightEdgeAlignedBottom"
+              shad:MenuItemAssist.PopupVerticalOffset="4"
+              Classes="NoPressedAnimation SidebarFooterMenuItem"
+              CornerRadius="{DynamicResource LgCornerRadius}">
+              <MenuItem.Header>
+                <Panel>
                   <Image
+                    HorizontalAlignment="Center"
                     Classes="SidebarBrandIcon"
+                    IsVisible="{Binding !$parent[shad:Sidebar].Expanded}"
                     Source="avares://pactoolkits-desktop/Assets/app.ico" />
+                  <Grid
+                    Margin="0,4"
+                    ColumnDefinitions="Auto,*,Auto"
+                    ColumnSpacing="8"
+                    IsVisible="{Binding $parent[shad:Sidebar].Expanded}">
+                    <Image Classes="SidebarBrandIcon" Source="avares://pactoolkits-desktop/Assets/app.ico" />
+                    <StackPanel Grid.Column="1" Classes="SidebarAccountText">
+                      <TextBlock Classes="Small" Text="PacToolkits" />
+                      <TextBlock
+                        Classes="Caption Muted"
+                        Text="{Binding VersionText}"
+                        TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Viewbox
+                      Grid.Column="2"
+                      Width="18"
+                      Height="18">
+                      <icons:AppIcon Foreground="{DynamicResource ForegroundColor}" Kind="ChevronsUpDown" />
+                    </Viewbox>
+                  </Grid>
+                </Panel>
+              </MenuItem.Header>
+              <shad:MenuItemAssist.Label>
+                <Grid
+                  Width="220"
+                  ColumnDefinitions="Auto,*"
+                  ColumnSpacing="12">
+                  <Image Classes="SidebarBrandIcon" Source="avares://pactoolkits-desktop/Assets/app.ico" />
                   <StackPanel Grid.Column="1" Classes="SidebarAccountText">
                     <TextBlock Classes="Small" Text="PacToolkits" />
                     <TextBlock
                       Classes="Caption Muted"
+                      LineHeight="16"
                       Text="{Binding VersionText}"
                       TextWrapping="Wrap" />
                   </StackPanel>
-                  <Viewbox
-                    Grid.Column="2"
-                    Height="18"
-                    Width="18">
-                    <icons:AppIcon Foreground="{DynamicResource ForegroundColor}" Kind="ChevronsUpDown" />
-                  </Viewbox>
                 </Grid>
-              </Panel>
-            </MenuItem.Header>
-            <shad:MenuItemAssist.Label>
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Width="220">
-                <Image
-                  Classes="SidebarBrandIcon"
-                  Source="avares://pactoolkits-desktop/Assets/app.ico" />
-                <StackPanel Grid.Column="1" Classes="SidebarAccountText">
-                  <TextBlock Classes="Small" Text="PacToolkits" />
-                  <TextBlock
-                    Classes="Caption Muted"
-                    LineHeight="16"
-                    Text="{Binding VersionText}"
-                    TextWrapping="Wrap" />
-                </StackPanel>
-              </Grid>
-            </shad:MenuItemAssist.Label>
-            <MenuItem Command="{Binding OpenSettingsCommand}" Header="设置">
-              <MenuItem.Icon>
-                <Viewbox Height="16" Width="16">
-                  <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="Settings" />
-                </Viewbox>
-              </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem Command="{Binding OpenAboutCommand}" Header="关于">
-              <MenuItem.Icon>
-                <Viewbox Height="16" Width="16">
-                  <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="Info" />
-                </Viewbox>
-              </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem
-              Command="{Binding CheckAppUpdateCommand}"
-              Header="检查更新"
-              IsEnabled="{Binding !IsUpdateChecking}">
-              <MenuItem.Icon>
-                <Viewbox Height="16" Width="16">
-                  <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="Download" />
-                </Viewbox>
-              </MenuItem.Icon>
-            </MenuItem>
-          </MenuItem>
-        </Menu>
-      </shad:Sidebar.Footer>
-    </shad:Sidebar>
-
-    <DockPanel Grid.Column="1" Background="{DynamicResource CardBackgroundColor}" LastChildFill="True">
-      <Border
-        Classes="ShellContentHeader"
-        BorderBrush="{DynamicResource BorderColor}"
-        BorderThickness="0,0,0,1"
-        DockPanel.Dock="Top">
-        <Grid
-          Margin="{DynamicResource ShellContentHeaderPadding}"
-          MinHeight="{DynamicResource ContentChromeHeight}"
-          VerticalAlignment="Center"
-          ColumnDefinitions="Auto, Auto, Auto, *, Auto">
-          <StackPanel
-            Grid.Column="0"
-            Orientation="Horizontal"
-            Spacing="4">
-            <ToggleButton
-              Classes="ShellChromeToggle"
-              Height="28"
-              IsChecked="{Binding IsSidebarExpanded, Mode=TwoWay}"
-              ToolTip.Tip="展开或折叠侧边栏"
-              Width="28">
-              <Viewbox Height="18" Width="18">
-                <icons:AppIcon Kind="PanelLeft" />
-              </Viewbox>
-            </ToggleButton>
-            <ToggleButton
-              Classes="ShellChromeToggle"
-              Height="28"
-              IsChecked="{Binding IsDashboardFilterBarVisible, Mode=TwoWay}"
-              IsVisible="{Binding IsDashboardPageActive}"
-              ToolTip.Tip="显示或隐藏筛选栏"
-              Width="28">
-              <Viewbox Height="18" Width="18">
-                <icons:AppIcon Kind="ListFilter" />
-              </Viewbox>
-            </ToggleButton>
-          </StackPanel>
-          <Rectangle Grid.Column="1" Classes="ShellContentHeaderDivider" />
-          <TextBlock
-            Grid.Column="2"
-            Classes="SectionTitle"
-            Text="{Binding ActivePageText}"
-            VerticalAlignment="Center" />
-          <Menu
-            Grid.Column="4"
-            Classes="ShellContentHeaderMenu"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center">
-            <MenuItem
-              Command="{Binding RefreshActivePageCommand}"
-              IsEnabled="{Binding CanTopRefresh}"
-              IsVisible="{Binding ShowTopRefresh}">
-              <MenuItem.Header>
-                <StackPanel Classes="ShellContentHeaderMenuItemHeader">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeCompact}"
-                    Height="{DynamicResource IconSizeCompact}"
-                    Kind="RotateCcw" />
-                  <TextBlock Text="刷新" />
-                </StackPanel>
-              </MenuItem.Header>
-            </MenuItem>
-            <MenuItem IsEnabled="False">
-              <MenuItem.Header>
-                <StackPanel Classes="ShellContentHeaderMenuItemHeader">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeCompact}"
-                    Height="{DynamicResource IconSizeCompact}"
-                    Kind="Eye" />
-                  <TextBlock Text="视图" />
-                </StackPanel>
-              </MenuItem.Header>
-            </MenuItem>
-            <MenuItem
-              Command="{Binding TopImportCommand}"
-              IsEnabled="{Binding CanTopImport}"
-              IsVisible="{Binding ShowTopImport}">
-              <MenuItem.Header>
-                <StackPanel Classes="ShellContentHeaderMenuItemHeader">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeCompact}"
-                    Height="{DynamicResource IconSizeCompact}"
-                    Kind="Upload" />
-                  <TextBlock Text="导入" />
-                </StackPanel>
-              </MenuItem.Header>
-            </MenuItem>
-            <MenuItem
-              Command="{Binding TopExportCommand}"
-              IsEnabled="{Binding CanTopExport}"
-              IsVisible="{Binding ShowTopExport}">
-              <MenuItem.Header>
-                <StackPanel Classes="ShellContentHeaderMenuItemHeader">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeCompact}"
-                    Height="{DynamicResource IconSizeCompact}"
-                    Kind="Download" />
-                  <TextBlock Text="导出" />
-                </StackPanel>
-              </MenuItem.Header>
+              </shad:MenuItemAssist.Label>
+              <MenuItem Command="{Binding OpenSettingsCommand}" Header="设置">
+                <MenuItem.Icon>
+                  <Viewbox Width="16" Height="16">
+                    <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="Settings" />
+                  </Viewbox>
+                </MenuItem.Icon>
+              </MenuItem>
+              <MenuItem Command="{Binding OpenAboutCommand}" Header="关于">
+                <MenuItem.Icon>
+                  <Viewbox Width="16" Height="16">
+                    <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="Info" />
+                  </Viewbox>
+                </MenuItem.Icon>
+              </MenuItem>
+              <MenuItem
+                Command="{Binding CheckAppUpdateCommand}"
+                Header="检查更新"
+                IsEnabled="{Binding !IsUpdateChecking}">
+                <MenuItem.Icon>
+                  <Viewbox Width="16" Height="16">
+                    <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="Download" />
+                  </Viewbox>
+                </MenuItem.Icon>
+              </MenuItem>
             </MenuItem>
           </Menu>
-        </Grid>
-      </Border>
+        </shad:Sidebar.Footer>
+      </shad:Sidebar>
 
-      <Border
-        Padding="12,8"
-        BorderBrush="{DynamicResource BorderColor}"
-        BorderThickness="0,0,0,1"
-        Classes="ConnectivityBanner"
-        Classes.error="{Binding ConnectivityBannerIsError}"
-        Classes.info="{Binding ConnectivityBannerIsInfo}"
-        Classes.warning="{Binding ConnectivityBannerIsWarning}"
-        DockPanel.Dock="Top"
-        IsVisible="{Binding ShowConnectivityBanner}">
-        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-          <icons:AppIcon
-            Grid.Column="0"
-            Width="16"
-            Height="16"
+      <DockPanel
+        Grid.Column="1"
+        Background="{DynamicResource CardBackgroundColor}"
+        LastChildFill="True">
+        <Border
+          BorderBrush="{DynamicResource BorderColor}"
+          BorderThickness="0,0,0,1"
+          Classes="ShellContentHeader"
+          DockPanel.Dock="Top">
+          <Grid
+            MinHeight="{DynamicResource ContentChromeHeight}"
+            Margin="{DynamicResource ShellContentHeaderPadding}"
             VerticalAlignment="Center"
-            Kind="AlertTriangle" />
-          <StackPanel
-            Grid.Column="1"
-            VerticalAlignment="Center"
-            Spacing="2">
-            <TextBlock Classes="Small" Text="{Binding ConnectivityBannerTitle}" />
+            ColumnDefinitions="Auto, Auto, Auto, *, Auto">
+            <StackPanel
+              Grid.Column="0"
+              Orientation="Horizontal"
+              Spacing="4">
+              <ToggleButton
+                Width="28"
+                Height="28"
+                Classes="ShellChromeToggle"
+                IsChecked="{Binding IsSidebarExpanded, Mode=TwoWay}"
+                ToolTip.Tip="展开或折叠侧边栏">
+                <Viewbox Width="18" Height="18">
+                  <icons:AppIcon Kind="PanelLeft" />
+                </Viewbox>
+              </ToggleButton>
+              <ToggleButton
+                Width="28"
+                Height="28"
+                Classes="ShellChromeToggle"
+                IsChecked="{Binding IsDashboardFilterBarVisible, Mode=TwoWay}"
+                IsVisible="{Binding IsDashboardPageActive}"
+                ToolTip.Tip="显示或隐藏筛选栏">
+                <Viewbox Width="18" Height="18">
+                  <icons:AppIcon Kind="ListFilter" />
+                </Viewbox>
+              </ToggleButton>
+            </StackPanel>
+            <Rectangle Grid.Column="1" Classes="ShellContentHeaderDivider" />
             <TextBlock
-              Classes="Caption Muted"
-              Text="{Binding ConnectivityBannerMessage}"
-              TextWrapping="Wrap" />
-          </StackPanel>
-          <Button
-            Grid.Column="2"
-            VerticalAlignment="Center"
-            Classes="Secondary"
-            Command="{Binding OpenSettingsCommand}"
-            Content="前往设置"
-            IsVisible="{Binding ShowConnectivityBannerAction}" />
-        </Grid>
-      </Border>
+              Grid.Column="2"
+              VerticalAlignment="Center"
+              Classes="SectionTitle"
+              Text="{Binding ActivePageText}" />
+            <Menu
+              Grid.Column="4"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              Classes="ShellContentHeaderMenu">
+              <MenuItem
+                Command="{Binding RefreshActivePageCommand}"
+                IsEnabled="{Binding CanTopRefresh}"
+                IsVisible="{Binding ShowTopRefresh}">
+                <MenuItem.Header>
+                  <StackPanel Classes="ShellContentHeaderMenuItemHeader">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeCompact}"
+                      Height="{DynamicResource IconSizeCompact}"
+                      Kind="RotateCcw" />
+                    <TextBlock Text="刷新" />
+                  </StackPanel>
+                </MenuItem.Header>
+              </MenuItem>
+              <MenuItem IsEnabled="False">
+                <MenuItem.Header>
+                  <StackPanel Classes="ShellContentHeaderMenuItemHeader">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeCompact}"
+                      Height="{DynamicResource IconSizeCompact}"
+                      Kind="Eye" />
+                    <TextBlock Text="视图" />
+                  </StackPanel>
+                </MenuItem.Header>
+              </MenuItem>
+              <MenuItem
+                Command="{Binding TopImportCommand}"
+                IsEnabled="{Binding CanTopImport}"
+                IsVisible="{Binding ShowTopImport}">
+                <MenuItem.Header>
+                  <StackPanel Classes="ShellContentHeaderMenuItemHeader">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeCompact}"
+                      Height="{DynamicResource IconSizeCompact}"
+                      Kind="Upload" />
+                    <TextBlock Text="导入" />
+                  </StackPanel>
+                </MenuItem.Header>
+              </MenuItem>
+              <MenuItem
+                Command="{Binding TopExportCommand}"
+                IsEnabled="{Binding CanTopExport}"
+                IsVisible="{Binding ShowTopExport}">
+                <MenuItem.Header>
+                  <StackPanel Classes="ShellContentHeaderMenuItemHeader">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeCompact}"
+                      Height="{DynamicResource IconSizeCompact}"
+                      Kind="Download" />
+                    <TextBlock Text="导出" />
+                  </StackPanel>
+                </MenuItem.Header>
+              </MenuItem>
+            </Menu>
+          </Grid>
+        </Border>
 
-      <Border Classes="ShellWorkspace">
-        <controls:PageNavigationHost
-          Page="{Binding ActivePage}"
-          Pages="{Binding WorkspacePages}" />
-      </Border>
-    </DockPanel>
+        <Border
+          Padding="12,8"
+          BorderBrush="{DynamicResource BorderColor}"
+          BorderThickness="0,0,0,1"
+          Classes="ConnectivityBanner"
+          Classes.error="{Binding ConnectivityBannerIsError}"
+          Classes.info="{Binding ConnectivityBannerIsInfo}"
+          Classes.warning="{Binding ConnectivityBannerIsWarning}"
+          DockPanel.Dock="Top"
+          IsVisible="{Binding ShowConnectivityBanner}">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+            <icons:AppIcon
+              Grid.Column="0"
+              Width="16"
+              Height="16"
+              VerticalAlignment="Center"
+              Kind="AlertTriangle" />
+            <StackPanel
+              Grid.Column="1"
+              VerticalAlignment="Center"
+              Spacing="2">
+              <TextBlock Classes="Small" Text="{Binding ConnectivityBannerTitle}" />
+              <TextBlock
+                Classes="Caption Muted"
+                Text="{Binding ConnectivityBannerMessage}"
+                TextWrapping="Wrap" />
+            </StackPanel>
+            <Button
+              Grid.Column="2"
+              VerticalAlignment="Center"
+              Classes="Secondary"
+              Command="{Binding OpenSettingsCommand}"
+              Content="前往设置"
+              IsVisible="{Binding ShowConnectivityBannerAction}" />
+          </Grid>
+        </Border>
+
+        <Border Classes="ShellWorkspace">
+          <controls:PageNavigationHost Page="{Binding ActivePage}" Pages="{Binding WorkspacePages}" />
+        </Border>
+      </DockPanel>
     </Grid>
 
     <Border
@@ -559,9 +553,9 @@
           VerticalScrollBarVisibility="Disabled">
           <StackPanel Orientation="Horizontal" Spacing="0">
             <Button
+              shad:ButtonAssist.ShowProgress="{Binding IsDbProbeRunning}"
               Classes="ShellStatusItem ShellStatusDbItem"
-              Command="{Binding TryReconnectDbCommand}"
-              shad:ButtonAssist.ShowProgress="{Binding IsDbProbeRunning}">
+              Command="{Binding TryReconnectDbCommand}">
               <shad:ButtonAssist.Icon>
                 <Panel
                   Width="{DynamicResource IconSizeSmall}"
@@ -583,9 +577,9 @@
             <Border Classes="ShellStatusDivider" />
 
             <Button
+              shad:ButtonAssist.ShowProgress="{Binding IsAhkActionRunning}"
               Classes="ShellStatusItem ShellStatusAgentItem"
-              Command="{Binding StartOrRestartAhkCommand}"
-              shad:ButtonAssist.ShowProgress="{Binding IsAhkActionRunning}">
+              Command="{Binding StartOrRestartAhkCommand}">
               <shad:ButtonAssist.Icon>
                 <icons:AppIcon Foreground="{Binding IsAhkRunning, Converter={StaticResource BoolToDoneDangerBrush}}" Kind="Syringe" />
               </shad:ButtonAssist.Icon>

@@ -1,13 +1,13 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ScanCodeView"
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
   d:DesignHeight="800"
@@ -54,9 +54,7 @@
             VerticalAlignment="Stretch"
             ColumnDefinitions="320,260,150,*"
             ColumnSpacing="{DynamicResource FormColumnSpacing}">
-            <shad:Card
-              Grid.Column="0"
-              VerticalAlignment="Stretch">
+            <shad:Card Grid.Column="0" VerticalAlignment="Stretch">
               <Grid
                 VerticalAlignment="Stretch"
                 RowDefinitions="Auto,*"
@@ -67,7 +65,8 @@
                     Width="{DynamicResource IconSizeSmall}"
                     Height="{DynamicResource IconSizeSmall}"
                     VerticalAlignment="Center"
-                    Kind="Pill" Foreground="{DynamicResource MutedColor}" />
+                    Foreground="{DynamicResource MutedColor}"
+                    Kind="Pill" />
                   <TextBlock
                     Grid.Column="1"
                     Classes="Caption Muted"
@@ -101,9 +100,7 @@
               </Grid>
             </shad:Card>
 
-            <shad:Card
-              Grid.Column="1"
-              VerticalAlignment="Stretch">
+            <shad:Card Grid.Column="1" VerticalAlignment="Stretch">
               <Grid
                 VerticalAlignment="Stretch"
                 RowDefinitions="Auto,*"
@@ -136,9 +133,7 @@
               </Grid>
             </shad:Card>
 
-            <shad:Card
-              Grid.Column="2"
-              VerticalAlignment="Stretch">
+            <shad:Card Grid.Column="2" VerticalAlignment="Stretch">
               <Grid
                 VerticalAlignment="Stretch"
                 RowDefinitions="Auto,*"
@@ -240,7 +235,8 @@
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeSmall}"
                       Height="{DynamicResource IconSizeSmall}"
-                      Kind="Keyboard" Foreground="{DynamicResource MutedColor}" />
+                      Foreground="{DynamicResource MutedColor}"
+                      Kind="Keyboard" />
                     <TextBlock Classes="Caption Muted" Text="录入追溯码区域" />
                   </StackPanel>
                   <Grid Grid.Row="1">
@@ -267,7 +263,8 @@
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeSmall}"
                       Height="{DynamicResource IconSizeSmall}"
-                      Kind="ListChecks" Foreground="{DynamicResource MutedColor}" />
+                      Foreground="{DynamicResource MutedColor}"
+                      Kind="ListChecks" />
                     <TextBlock Classes="Caption Muted" Text="预览区域" />
                   </StackPanel>
                   <shad:Card
@@ -447,10 +444,11 @@
                   </StackPanel>
                 </Button>
 
-                <shad:Badge Variant="Secondary"
+                <shad:Badge
                   Grid.Column="2"
                   VerticalAlignment="Center"
-                  Content="{Binding InputLineCount, StringFormat=行数 {0}}" />
+                  Content="{Binding InputLineCount, StringFormat=行数 {0}}"
+                  Variant="Secondary" />
               </Grid>
             </Grid>
           </TabItem>
@@ -472,319 +470,320 @@
               IsVisible="{Binding IsAutoFetchTab}">
               <controls:DeferredContentHost.ContentTemplate>
                 <DataTemplate x:DataType="vm:ScanCodeViewModel">
-            <Grid
-              Margin="{DynamicResource MarginTopMd}"
-              RowDefinitions="Auto,Auto,*,Auto"
-              RowSpacing="{DynamicResource FormRowSpacing}">
-              <shad:Card Grid.Row="0">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Kind="Lightbulb" />
-                  <TextBlock Classes="Caption Muted" Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路" />
-                </StackPanel>
-              </shad:Card>
-
-              <Grid
-                Grid.Row="1"
-                VerticalAlignment="Center"
-                ColumnDefinitions="Auto,Auto,Auto,Auto,*"
-                ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <shad:Card>
                   <Grid
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    ColumnDefinitions="Auto,Auto,Auto"
-                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      VerticalAlignment="Center"
-                      Foreground="{Binding IsAutoFetchEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
-                      Kind="Power" />
-                    <TextBlock
-                      Grid.Column="1"
-                      VerticalAlignment="Center" Classes="Caption Muted"
-                      Text="自动拉取开关" />
-                    <ToggleSwitch
-                      Grid.Column="2"
-                      VerticalAlignment="Center"
-                      IsChecked="{Binding IsAutoFetchEnabled}" />
-                  </Grid>
-                </shad:Card>
+                    Margin="{DynamicResource MarginTopMd}"
+                    RowDefinitions="Auto,Auto,*,Auto"
+                    RowSpacing="{DynamicResource FormRowSpacing}">
+                    <shad:Card Grid.Row="0">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                        <icons:AppIcon
+                          Width="{DynamicResource IconSizeDefault}"
+                          Height="{DynamicResource IconSizeDefault}"
+                          Kind="Lightbulb" />
+                        <TextBlock Classes="Caption Muted" Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路" />
+                      </StackPanel>
+                    </shad:Card>
 
-                <shad:Card Grid.Column="1">
-                  <Button Classes="Action" Command="{Binding StartAutoFetchCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeDefault}"
-                        Height="{DynamicResource IconSizeDefault}"
-                        Kind="CirclePlay" />
-                      <TextBlock Text="开始任务" />
-                    </StackPanel>
-                  </Button>
-                </shad:Card>
-
-                <shad:Card Grid.Column="2">
-                  <Button Classes="Action" Command="{Binding StopAutoFetchCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeDefault}"
-                        Height="{DynamicResource IconSizeDefault}"
-                        Kind="CircleStop" />
-                      <TextBlock Text="停止任务" />
-                    </StackPanel>
-                  </Button>
-                </shad:Card>
-
-                <shad:Card Grid.Column="3">
-                  <Button Classes="Action" Command="{Binding RetryFailedCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeDefault}"
-                        Height="{DynamicResource IconSizeDefault}"
-                        Kind="RotateCcw" />
-                      <TextBlock Text="重试失败" />
-                    </StackPanel>
-                  </Button>
-                </shad:Card>
-
-                <shad:Card
-                  Grid.Column="4"
-                  MinHeight="56"
-                  Padding="{StaticResource CompactPadding}"
-                  HorizontalAlignment="Stretch"
-                  HorizontalContentAlignment="Center"
-                  Opacity="0.9">
-                  <Grid
-                    MaxWidth="420"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    ColumnDefinitions="Auto,*"
-                    ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      VerticalAlignment="Center"
-                      Foreground="{DynamicResource SuccessColor}"
-                      Kind="Info" />
-                    <TextBlock
-                      Grid.Column="1"
-                      VerticalAlignment="Center"
-                      Classes="Caption Muted"
-                      Text="{Binding AutoFetchStatus}"
-                      TextAlignment="Center"
-                      TextTrimming="None"
-                      TextWrapping="Wrap" />
-                  </Grid>
-                </shad:Card>
-              </Grid>
-
-              <Grid
-                Grid.Row="2"
-                ColumnDefinitions="1.3*,1.4*,1.1*"
-                ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <shad:Card Grid.Column="0">
-                  <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeDefault}"
-                        Height="{DynamicResource IconSizeDefault}"
-                        Kind="List" />
-                      <TextBlock Classes="SectionTitle" Text="任务列表" />
-                      <shad:Badge Variant="Secondary" Content="{Binding AutoTasks.Count, StringFormat=共 {0} 项}" />
-                    </StackPanel>
-
-                    <controls:EmptyStatePanel
+                    <Grid
                       Grid.Row="1"
-                      EmptyHint="{Binding AutoTasksEmptyHint}"
-                      EmptyText="{Binding AutoTasksEmptyText}"
-                      Icon="{Binding SectionEmptyIcon}"
-                      IsEmpty="{Binding IsAutoTasksEmpty}"
-                      IsPending="{Binding IsSectionPending}"
-                      SlotMinHeight="{DynamicResource DgH10Rows}">
-                      <shad:BusyArea IsBusy="{Binding IsBusy}">
-                        <controls:DeferredGridSlot
-                          x:Name="AutoTaskGridSlot"
-                          SlotMinHeight="{DynamicResource DgH10Rows}"
-                          SlotName="AutoTaskGrid">
-                          <controls:DeferredGridSlot.GridTemplate>
-                            <DataTemplate x:DataType="vm:ScanCodeViewModel">
-                              <DataGrid
-                                CanUserResizeColumns="True"
-                                Classes="SectionGrid"
-                                ItemsSource="{Binding AutoTasks}">
-                                <DataGrid.Columns>
-                                  <DataGridTextColumn
-                                    Width="1.3*"
-                                    Binding="{Binding Name}"
-                                    Header="任务" />
-                                  <DataGridTextColumn
-                                    Width="1*"
-                                    Binding="{Binding Schedule}"
-                                    Header="计划" />
-                                  <DataGridTextColumn
-                                    Width="0.8*"
-                                    Binding="{Binding State}"
-                                    Header="状态" />
-                                </DataGrid.Columns>
-                              </DataGrid>
-                            </DataTemplate>
-                          </controls:DeferredGridSlot.GridTemplate>
-                        </controls:DeferredGridSlot>
-                      </shad:BusyArea>
-                    </controls:EmptyStatePanel>
+                      VerticalAlignment="Center"
+                      ColumnDefinitions="Auto,Auto,Auto,Auto,*"
+                      ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                      <shad:Card>
+                        <Grid
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          ColumnDefinitions="Auto,Auto,Auto"
+                          ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeDefault}"
+                            Height="{DynamicResource IconSizeDefault}"
+                            VerticalAlignment="Center"
+                            Foreground="{Binding IsAutoFetchEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
+                            Kind="Power" />
+                          <TextBlock
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Classes="Caption Muted"
+                            Text="自动拉取开关" />
+                          <ToggleSwitch
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            IsChecked="{Binding IsAutoFetchEnabled}" />
+                        </Grid>
+                      </shad:Card>
+
+                      <shad:Card Grid.Column="1">
+                        <Button Classes="Action" Command="{Binding StartAutoFetchCommand}">
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                            <icons:AppIcon
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}"
+                              Kind="CirclePlay" />
+                            <TextBlock Text="开始任务" />
+                          </StackPanel>
+                        </Button>
+                      </shad:Card>
+
+                      <shad:Card Grid.Column="2">
+                        <Button Classes="Action" Command="{Binding StopAutoFetchCommand}">
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                            <icons:AppIcon
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}"
+                              Kind="CircleStop" />
+                            <TextBlock Text="停止任务" />
+                          </StackPanel>
+                        </Button>
+                      </shad:Card>
+
+                      <shad:Card Grid.Column="3">
+                        <Button Classes="Action" Command="{Binding RetryFailedCommand}">
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                            <icons:AppIcon
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}"
+                              Kind="RotateCcw" />
+                            <TextBlock Text="重试失败" />
+                          </StackPanel>
+                        </Button>
+                      </shad:Card>
+
+                      <shad:Card
+                        Grid.Column="4"
+                        MinHeight="56"
+                        Padding="{StaticResource CompactPadding}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Opacity="0.9">
+                        <Grid
+                          MaxWidth="420"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          ColumnDefinitions="Auto,*"
+                          ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeDefault}"
+                            Height="{DynamicResource IconSizeDefault}"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource SuccessColor}"
+                            Kind="Info" />
+                          <TextBlock
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Classes="Caption Muted"
+                            Text="{Binding AutoFetchStatus}"
+                            TextAlignment="Center"
+                            TextTrimming="None"
+                            TextWrapping="Wrap" />
+                        </Grid>
+                      </shad:Card>
+                    </Grid>
+
+                    <Grid
+                      Grid.Row="2"
+                      ColumnDefinitions="1.3*,1.4*,1.1*"
+                      ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                      <shad:Card Grid.Column="0">
+                        <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                            <icons:AppIcon
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}"
+                              Kind="List" />
+                            <TextBlock Classes="SectionTitle" Text="任务列表" />
+                            <shad:Badge Content="{Binding AutoTasks.Count, StringFormat=共 {0} 项}" Variant="Secondary" />
+                          </StackPanel>
+
+                          <controls:EmptyStatePanel
+                            Grid.Row="1"
+                            EmptyHint="{Binding AutoTasksEmptyHint}"
+                            EmptyText="{Binding AutoTasksEmptyText}"
+                            Icon="{Binding SectionEmptyIcon}"
+                            IsEmpty="{Binding IsAutoTasksEmpty}"
+                            IsPending="{Binding IsSectionPending}"
+                            SlotMinHeight="{DynamicResource DgH10Rows}">
+                            <shad:BusyArea IsBusy="{Binding IsBusy}">
+                              <controls:DeferredGridSlot
+                                x:Name="AutoTaskGridSlot"
+                                SlotMinHeight="{DynamicResource DgH10Rows}"
+                                SlotName="AutoTaskGrid">
+                                <controls:DeferredGridSlot.GridTemplate>
+                                  <DataTemplate x:DataType="vm:ScanCodeViewModel">
+                                    <DataGrid
+                                      CanUserResizeColumns="True"
+                                      Classes="SectionGrid"
+                                      ItemsSource="{Binding AutoTasks}">
+                                      <DataGrid.Columns>
+                                        <DataGridTextColumn
+                                          Width="1.3*"
+                                          Binding="{Binding Name}"
+                                          Header="任务" />
+                                        <DataGridTextColumn
+                                          Width="1*"
+                                          Binding="{Binding Schedule}"
+                                          Header="计划" />
+                                        <DataGridTextColumn
+                                          Width="0.8*"
+                                          Binding="{Binding State}"
+                                          Header="状态" />
+                                      </DataGrid.Columns>
+                                    </DataGrid>
+                                  </DataTemplate>
+                                </controls:DeferredGridSlot.GridTemplate>
+                              </controls:DeferredGridSlot>
+                            </shad:BusyArea>
+                          </controls:EmptyStatePanel>
+                        </Grid>
+                      </shad:Card>
+
+                      <shad:Card Grid.Column="1">
+                        <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                            <icons:AppIcon
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}"
+                              Kind="History" />
+                            <TextBlock Classes="SectionTitle" Text="最近执行记录" />
+                            <shad:Badge Content="{Binding RecentRuns.Count, StringFormat=近 {0} 条}" Variant="Secondary" />
+                          </StackPanel>
+
+                          <controls:EmptyStatePanel
+                            Grid.Row="1"
+                            EmptyHint="{Binding RecentRunsEmptyHint}"
+                            EmptyText="{Binding RecentRunsEmptyText}"
+                            Icon="{Binding SectionEmptyIcon}"
+                            IsEmpty="{Binding IsRecentRunsEmpty}"
+                            IsPending="{Binding IsSectionPending}"
+                            SlotMinHeight="{DynamicResource DgH10Rows}">
+                            <shad:BusyArea IsBusy="{Binding IsBusy}">
+                              <controls:DeferredGridSlot
+                                x:Name="RecentRunGridSlot"
+                                SlotMinHeight="{DynamicResource DgH10Rows}"
+                                SlotName="RecentRunGrid">
+                                <controls:DeferredGridSlot.GridTemplate>
+                                  <DataTemplate x:DataType="vm:ScanCodeViewModel">
+                                    <DataGrid
+                                      CanUserResizeColumns="True"
+                                      Classes="SectionGrid"
+                                      ItemsSource="{Binding RecentRuns}">
+                                      <DataGrid.Columns>
+                                        <DataGridTextColumn
+                                          Width="1.1*"
+                                          Binding="{Binding Name}"
+                                          Header="任务" />
+                                        <DataGridTextColumn
+                                          Width="1.2*"
+                                          Binding="{Binding StartedAtText}"
+                                          Header="开始时间" />
+                                        <DataGridTextColumn
+                                          Width="0.8*"
+                                          Binding="{Binding Result}"
+                                          Header="结果" />
+                                      </DataGrid.Columns>
+                                    </DataGrid>
+                                  </DataTemplate>
+                                </controls:DeferredGridSlot.GridTemplate>
+                              </controls:DeferredGridSlot>
+                            </shad:BusyArea>
+                          </controls:EmptyStatePanel>
+                        </Grid>
+                      </shad:Card>
+
+                      <shad:Card Grid.Column="2">
+                        <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                            <icons:AppIcon
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}"
+                              Kind="CircleAlert" />
+                            <TextBlock Classes="SectionTitle" Text="失败重试队列" />
+                            <shad:Badge Content="{Binding RetryQueue.Count, StringFormat=待重试 {0}}" Variant="Secondary" />
+                          </StackPanel>
+
+                          <controls:EmptyStatePanel
+                            Grid.Row="1"
+                            EmptyHint="{Binding RetryQueueEmptyHint}"
+                            EmptyText="{Binding RetryQueueEmptyText}"
+                            Icon="{Binding SectionEmptyIcon}"
+                            IsEmpty="{Binding IsRetryQueueEmpty}"
+                            IsPending="{Binding IsSectionPending}"
+                            SlotMinHeight="{DynamicResource DgH10Rows}">
+                            <shad:BusyArea IsBusy="{Binding IsBusy}">
+                              <controls:DeferredGridSlot
+                                x:Name="RetryQueueGridSlot"
+                                SlotMinHeight="{DynamicResource DgH10Rows}"
+                                SlotName="RetryQueueGrid">
+                                <controls:DeferredGridSlot.GridTemplate>
+                                  <DataTemplate x:DataType="vm:ScanCodeViewModel">
+                                    <DataGrid
+                                      CanUserResizeColumns="True"
+                                      Classes="SectionGrid"
+                                      ItemsSource="{Binding RetryQueue}">
+                                      <DataGrid.Columns>
+                                        <DataGridTextColumn
+                                          Width="1.1*"
+                                          Binding="{Binding Name}"
+                                          Header="任务" />
+                                        <DataGridTextColumn
+                                          Width="1.2*"
+                                          Binding="{Binding Reason}"
+                                          Header="原因" />
+                                        <DataGridTextColumn
+                                          Width="0.8*"
+                                          Binding="{Binding RetryCountText}"
+                                          Header="重试" />
+                                      </DataGrid.Columns>
+                                    </DataGrid>
+                                  </DataTemplate>
+                                </controls:DeferredGridSlot.GridTemplate>
+                              </controls:DeferredGridSlot>
+                            </shad:BusyArea>
+                          </controls:EmptyStatePanel>
+                        </Grid>
+                      </shad:Card>
+                    </Grid>
+
+                    <Grid
+                      Grid.Row="3"
+                      ColumnDefinitions="Auto,Auto,*"
+                      ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                      <Button
+                        Grid.Column="0"
+                        Classes="Action"
+                        Command="{Binding OpenAutoFetchSettingsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeDefault}"
+                            Height="{DynamicResource IconSizeDefault}"
+                            Kind="SlidersHorizontal" />
+                          <TextBlock Text="参数设置" />
+                        </StackPanel>
+                      </Button>
+
+                      <StackPanel
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="{DynamicResource SpacingInlineSm}">
+                        <Border
+                          Width="{DynamicResource LegendDotSize}"
+                          Height="{DynamicResource LegendDotSize}"
+                          VerticalAlignment="Center"
+                          Background="{Binding IsAutoFetchRunning, Converter={StaticResource BoolToDoneDangerBrush}}"
+                          CornerRadius="999" />
+                        <TextBlock Classes="Caption Muted" Text="运行状态：" />
+                        <TextBlock
+                          FontWeight="SemiBold"
+                          IsVisible="{Binding IsAutoFetchRunning}"
+                          Text="运行中" />
+                        <TextBlock
+                          FontWeight="SemiBold"
+                          IsVisible="{Binding !IsAutoFetchRunning}"
+                          Text="已停止" />
+                      </StackPanel>
+                    </Grid>
                   </Grid>
-                </shad:Card>
-
-                <shad:Card Grid.Column="1">
-                  <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeDefault}"
-                        Height="{DynamicResource IconSizeDefault}"
-                        Kind="History" />
-                      <TextBlock Classes="SectionTitle" Text="最近执行记录" />
-                      <shad:Badge Variant="Secondary" Content="{Binding RecentRuns.Count, StringFormat=近 {0} 条}" />
-                    </StackPanel>
-
-                    <controls:EmptyStatePanel
-                      Grid.Row="1"
-                      EmptyHint="{Binding RecentRunsEmptyHint}"
-                      EmptyText="{Binding RecentRunsEmptyText}"
-                      Icon="{Binding SectionEmptyIcon}"
-                      IsEmpty="{Binding IsRecentRunsEmpty}"
-                      IsPending="{Binding IsSectionPending}"
-                      SlotMinHeight="{DynamicResource DgH10Rows}">
-                      <shad:BusyArea IsBusy="{Binding IsBusy}">
-                        <controls:DeferredGridSlot
-                          x:Name="RecentRunGridSlot"
-                          SlotMinHeight="{DynamicResource DgH10Rows}"
-                          SlotName="RecentRunGrid">
-                          <controls:DeferredGridSlot.GridTemplate>
-                            <DataTemplate x:DataType="vm:ScanCodeViewModel">
-                              <DataGrid
-                                CanUserResizeColumns="True"
-                                Classes="SectionGrid"
-                                ItemsSource="{Binding RecentRuns}">
-                                <DataGrid.Columns>
-                                  <DataGridTextColumn
-                                    Width="1.1*"
-                                    Binding="{Binding Name}"
-                                    Header="任务" />
-                                  <DataGridTextColumn
-                                    Width="1.2*"
-                                    Binding="{Binding StartedAtText}"
-                                    Header="开始时间" />
-                                  <DataGridTextColumn
-                                    Width="0.8*"
-                                    Binding="{Binding Result}"
-                                    Header="结果" />
-                                </DataGrid.Columns>
-                              </DataGrid>
-                            </DataTemplate>
-                          </controls:DeferredGridSlot.GridTemplate>
-                        </controls:DeferredGridSlot>
-                      </shad:BusyArea>
-                    </controls:EmptyStatePanel>
-                  </Grid>
-                </shad:Card>
-
-                <shad:Card Grid.Column="2">
-                  <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeDefault}"
-                        Height="{DynamicResource IconSizeDefault}"
-                        Kind="CircleAlert" />
-                      <TextBlock Classes="SectionTitle" Text="失败重试队列" />
-                      <shad:Badge Variant="Secondary" Content="{Binding RetryQueue.Count, StringFormat=待重试 {0}}" />
-                    </StackPanel>
-
-                    <controls:EmptyStatePanel
-                      Grid.Row="1"
-                      EmptyHint="{Binding RetryQueueEmptyHint}"
-                      EmptyText="{Binding RetryQueueEmptyText}"
-                      Icon="{Binding SectionEmptyIcon}"
-                      IsEmpty="{Binding IsRetryQueueEmpty}"
-                      IsPending="{Binding IsSectionPending}"
-                      SlotMinHeight="{DynamicResource DgH10Rows}">
-                      <shad:BusyArea IsBusy="{Binding IsBusy}">
-                        <controls:DeferredGridSlot
-                          x:Name="RetryQueueGridSlot"
-                          SlotMinHeight="{DynamicResource DgH10Rows}"
-                          SlotName="RetryQueueGrid">
-                          <controls:DeferredGridSlot.GridTemplate>
-                            <DataTemplate x:DataType="vm:ScanCodeViewModel">
-                              <DataGrid
-                                CanUserResizeColumns="True"
-                                Classes="SectionGrid"
-                                ItemsSource="{Binding RetryQueue}">
-                                <DataGrid.Columns>
-                                  <DataGridTextColumn
-                                    Width="1.1*"
-                                    Binding="{Binding Name}"
-                                    Header="任务" />
-                                  <DataGridTextColumn
-                                    Width="1.2*"
-                                    Binding="{Binding Reason}"
-                                    Header="原因" />
-                                  <DataGridTextColumn
-                                    Width="0.8*"
-                                    Binding="{Binding RetryCountText}"
-                                    Header="重试" />
-                                </DataGrid.Columns>
-                              </DataGrid>
-                            </DataTemplate>
-                          </controls:DeferredGridSlot.GridTemplate>
-                        </controls:DeferredGridSlot>
-                      </shad:BusyArea>
-                    </controls:EmptyStatePanel>
-                  </Grid>
-                </shad:Card>
-              </Grid>
-
-              <Grid
-                Grid.Row="3"
-                ColumnDefinitions="Auto,Auto,*"
-                ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <Button
-                  Grid.Column="0"
-                  Classes="Action"
-                  Command="{Binding OpenAutoFetchSettingsCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="SlidersHorizontal" />
-                    <TextBlock Text="参数设置" />
-                  </StackPanel>
-                </Button>
-
-                <StackPanel
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Orientation="Horizontal"
-                  Spacing="{DynamicResource SpacingInlineSm}">
-                  <Border
-                    Width="{DynamicResource LegendDotSize}"
-                    Height="{DynamicResource LegendDotSize}"
-                    VerticalAlignment="Center"
-                    Background="{Binding IsAutoFetchRunning, Converter={StaticResource BoolToDoneDangerBrush}}"
-                    CornerRadius="999" />
-                  <TextBlock Classes="Caption Muted" Text="运行状态：" />
-                  <TextBlock
-                    FontWeight="SemiBold"
-                    IsVisible="{Binding IsAutoFetchRunning}"
-                    Text="运行中" />
-                  <TextBlock
-                    FontWeight="SemiBold"
-                    IsVisible="{Binding !IsAutoFetchRunning}"
-                    Text="已停止" />
-                </StackPanel>
-              </Grid>
-            </Grid>
                 </DataTemplate>
               </controls:DeferredContentHost.ContentTemplate>
             </controls:DeferredContentHost>

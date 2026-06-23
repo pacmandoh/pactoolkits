@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ToolsCenterView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -86,7 +86,8 @@
               Kind="Power" />
             <TextBlock
               Grid.Column="1"
-              VerticalAlignment="Center" Classes="Caption Muted"
+              VerticalAlignment="Center"
+              Classes="Caption Muted"
               Text="工具开关" />
             <ToggleSwitch
               Grid.Column="2"
@@ -205,570 +206,568 @@
               <TextBlock Classes="SectionTitle" Text="运行参数" />
             </StackPanel>
 
-            <StackPanel
-              Grid.Row="1"
-              Spacing="{DynamicResource PageSectionSpacing}">
-                <shad:Card>
-                  <shad:Card.Header>
-                    <TextBlock Classes="SectionTitle" Text="基础配置" />
-                  </shad:Card.Header>
-                  <Grid
-                    Classes="FormLabelLayout"
-                    ColumnDefinitions="140,*"
-                    RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
-                    <TextBlock VerticalAlignment="Center" Text="可执行路径" />
-                    <TextBox
-                      Grid.Row="0"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
-                      HorizontalAlignment="Stretch"
-                      VerticalContentAlignment="Center"
-                      PlaceholderText="例如：.\Agents\injector\pactoolkits-injector.exe"
-                      Text="{Binding AhkExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                      UseFloatingPlaceholder="False" />
+            <StackPanel Grid.Row="1" Spacing="{DynamicResource PageSectionSpacing}">
+              <shad:Card>
+                <shad:Card.Header>
+                  <TextBlock Classes="SectionTitle" Text="基础配置" />
+                </shad:Card.Header>
+                <Grid
+                  Classes="FormLabelLayout"
+                  ColumnDefinitions="140,*"
+                  RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+                  <TextBlock VerticalAlignment="Center" Text="可执行路径" />
+                  <TextBox
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
+                    PlaceholderText="例如：.\Agents\injector\pactoolkits-injector.exe"
+                    Text="{Binding AhkExecutablePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    UseFloatingPlaceholder="False" />
 
-                    <TextBlock
-                      Grid.Row="1"
-                      Grid.Column="0"
-                      VerticalAlignment="Center"
-                      Text="进程名（可选）" />
-                    <TextBox
-                      Grid.Row="1"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
-                      HorizontalAlignment="Stretch"
-                      VerticalContentAlignment="Center"
-                      PlaceholderText="例如：pactoolkits-injector（不带 .exe）"
-                      Text="{Binding AhkProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                      UseFloatingPlaceholder="False" />
+                  <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Text="进程名（可选）" />
+                  <TextBox
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
+                    PlaceholderText="例如：pactoolkits-injector（不带 .exe）"
+                    Text="{Binding AhkProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    UseFloatingPlaceholder="False" />
 
-                    <TextBlock
-                      Grid.Row="2"
-                      Grid.Column="0"
-                      VerticalAlignment="Center"
-                      Text="PG 驱动" />
-                    <TextBox
-                      Grid.Row="2"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
-                      HorizontalAlignment="Stretch"
-                      VerticalContentAlignment="Center"
-                      Text="{Binding AgentPgDriver, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                      UseFloatingPlaceholder="False" />
+                  <TextBlock
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Text="PG 驱动" />
+                  <TextBox
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
+                    Text="{Binding AgentPgDriver, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    UseFloatingPlaceholder="False" />
 
+                  <TextBlock
+                    Grid.Row="3"
+                    Grid.Column="0"
+                    VerticalAlignment="Top"
+                    Text="PG SSL" />
+                  <StackPanel
+                    Grid.Row="3"
+                    Grid.Column="1"
+                    Spacing="{DynamicResource SpacingInlineSm}">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                      <ToggleSwitch VerticalAlignment="Center" IsChecked="{Binding AgentPgSslEnabled, Mode=TwoWay}" />
+                      <controls:StatusPill
+                        VerticalAlignment="Center"
+                        Classes="ToneDone25"
+                        Icon="ShieldCheck"
+                        IconSize="12"
+                        IsVisible="{Binding AgentPgSslEnabled}"
+                        PillPadding="8,3"
+                        Text="已开启"
+                        TextSize="11" />
+                      <controls:StatusPill
+                        VerticalAlignment="Center"
+                        Classes="ToneInfo15"
+                        Icon="ShieldHalf"
+                        IconSize="12"
+                        IsVisible="{Binding !AgentPgSslEnabled}"
+                        PillPadding="8,3"
+                        Text="已关闭"
+                        TextSize="11" />
+                    </StackPanel>
                     <TextBlock
-                      Grid.Row="3"
-                      Grid.Column="0"
-                      VerticalAlignment="Top"
-                      Text="PG SSL" />
-                    <StackPanel
-                      Grid.Row="3"
-                      Grid.Column="1"
-                      Spacing="{DynamicResource SpacingInlineSm}">
-                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                        <ToggleSwitch VerticalAlignment="Center" IsChecked="{Binding AgentPgSslEnabled, Mode=TwoWay}" />
-                        <controls:StatusPill
-                          VerticalAlignment="Center"
-                          Classes="ToneDone25"
-                          Icon="ShieldCheck"
-                          IconSize="12"
-                          IsVisible="{Binding AgentPgSslEnabled}"
-                          PillPadding="8,3"
-                          Text="已开启"
-                          TextSize="11" />
-                        <controls:StatusPill
-                          VerticalAlignment="Center"
-                          Classes="ToneInfo15"
-                          Icon="ShieldHalf"
-                          IconSize="12"
-                          IsVisible="{Binding !AgentPgSslEnabled}"
-                          PillPadding="8,3"
-                          Text="已关闭"
-                          TextSize="11" />
-                      </StackPanel>
+                      Classes="Caption Muted"
+                      Text="控制 Agent 连接 PostgreSQL 时是否启用 SSL"
+                      TextWrapping="Wrap" />
+                  </StackPanel>
+
+                  <TextBlock
+                    Grid.Row="4"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Text="确认超时(ms)" />
+                  <NumericUpDown
+                    Grid.Row="4"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    FormatString="0"
+                    Increment="100"
+                    Maximum="10000"
+                    Minimum="100"
+                    Value="{Binding AgentConfirmTimeoutMs, Mode=TwoWay}" />
+
+                  <TextBlock
+                    Grid.Row="5"
+                    Grid.Column="0"
+                    Margin="{DynamicResource MarginTopSm}"
+                    VerticalAlignment="Top"
+                    Text="目标进程" />
+                  <StackPanel
+                    Grid.Row="5"
+                    Grid.Column="1"
+                    HorizontalAlignment="Stretch"
+                    Spacing="{DynamicResource SpacingInlineMd}">
+                    <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto">
                       <TextBlock
+                        VerticalAlignment="Center"
                         Classes="Caption Muted"
-                        Text="控制 Agent 连接 PostgreSQL 时是否启用 SSL"
-                        TextWrapping="Wrap" />
+                        Text="每个进程一行" />
+                      <Button
+                        Grid.Column="1"
+                        Classes="Ghost"
+                        Click="OnAddLineClicked"
+                        Command="{Binding AddAgentAppWinItemCommand}"
+                        Tag="AgentAppWinItemsControl">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
+                            Kind="Plus" />
+                          <TextBlock Text="新增" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                    <ItemsControl x:Name="AgentAppWinItemsControl" ItemsSource="{Binding AgentAppWinItems}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AgentLineItem">
+                          <Grid
+                            Margin="{DynamicResource MarginBottomSm}"
+                            Classes="ToolbarPairRow"
+                            ColumnDefinitions="*,Auto">
+                            <TextBox
+                              Height="{StaticResource ControlHeightCompact}"
+                              HorizontalAlignment="Stretch"
+                              VerticalContentAlignment="Center"
+                              Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              UseFloatingPlaceholder="False" />
+                            <Button
+                              Grid.Column="1"
+                              Classes="Ghost"
+                              Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentAppWinItemCommand}"
+                              CommandParameter="{Binding .}">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeSmall}"
+                                Height="{DynamicResource IconSizeSmall}"
+                                Kind="X" />
+                            </Button>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Grid>
+              </shad:Card>
+
+              <shad:Card>
+                <shad:Card.Header>
+                  <TextBlock Classes="SectionTitle" Text="门诊配置" />
+                </shad:Card.Header>
+                <Grid
+                  Classes="FormLabelLayout"
+                  ColumnDefinitions="140,*"
+                  RowDefinitions="Auto,Auto,Auto,Auto">
+                  <TextBlock VerticalAlignment="Center" Text="窗口类" />
+                  <TextBox
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
+                    Text="{Binding AgentOptWindowClass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    UseFloatingPlaceholder="False" />
+
+                  <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Text="解析区 ClassNN" />
+                  <TextBox
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
+                    Text="{Binding AgentOptParseGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    UseFloatingPlaceholder="False" />
+
+                  <TextBlock
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Text="验证区 ClassNN" />
+                  <TextBox
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
+                    Text="{Binding AgentOptVerifyGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    UseFloatingPlaceholder="False" />
+
+                  <TextBlock
+                    Grid.Row="3"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Text="输入控件 ClassNN" />
+                  <TextBox
+                    Grid.Row="3"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
+                    Text="{Binding AgentOptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    UseFloatingPlaceholder="False" />
+                </Grid>
+              </shad:Card>
+
+              <shad:Card>
+                <shad:Card.Header>
+                  <TextBlock Classes="SectionTitle" Text="住院配置" />
+                </shad:Card.Header>
+                <Grid
+                  Classes="FormLabelLayout"
+                  ColumnDefinitions="140,*"
+                  RowDefinitions="Auto,Auto,Auto,Auto">
+                  <TextBlock VerticalAlignment="Center" Text="窗口类" />
+                  <TextBox
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
+                    Text="{Binding AgentIptWindowClass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    UseFloatingPlaceholder="False" />
+
+                  <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Text="解析区 ClassNN" />
+                  <TextBox
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
+                    Text="{Binding AgentIptParseGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    UseFloatingPlaceholder="False" />
+
+                  <TextBlock
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Text="验证区 ClassNN" />
+                  <TextBox
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
+                    Text="{Binding AgentIptVerifyGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    UseFloatingPlaceholder="False" />
+
+                  <TextBlock
+                    Grid.Row="3"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Text="输入控件 ClassNN" />
+                  <TextBox
+                    Grid.Row="3"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    HorizontalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
+                    Text="{Binding AgentIptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    UseFloatingPlaceholder="False" />
+                </Grid>
+              </shad:Card>
+
+              <shad:Card>
+                <shad:Card.Header>
+                  <TextBlock Classes="SectionTitle" Text="仓库配置" />
+                </shad:Card.Header>
+                <Grid
+                  Classes="FormLabelLayout"
+                  ColumnDefinitions="140,*"
+                  RowDefinitions="Auto,Auto,Auto,Auto">
+                  <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    VerticalAlignment="Top"
+                    Text="仓库模式" />
+                  <StackPanel
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Spacing="{DynamicResource SpacingInlineSm}">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                      <ToggleSwitch VerticalAlignment="Center" IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}" />
+                      <controls:StatusPill
+                        VerticalAlignment="Center"
+                        Classes="ToneDone25"
+                        Icon="PackageCheck"
+                        IconSize="12"
+                        IsVisible="{Binding AgentWarehouseEnabled}"
+                        PillPadding="8,3"
+                        Text="已开启"
+                        TextSize="11" />
+                      <controls:StatusPill
+                        VerticalAlignment="Center"
+                        Classes="ToneInfo15"
+                        Icon="Package"
+                        IconSize="12"
+                        IsVisible="{Binding !AgentWarehouseEnabled}"
+                        PillPadding="8,3"
+                        Text="已关闭"
+                        TextSize="11" />
                     </StackPanel>
-
                     <TextBlock
-                      Grid.Row="4"
-                      Grid.Column="0"
-                      VerticalAlignment="Center"
-                      Text="确认超时(ms)" />
-                    <NumericUpDown
-                      Grid.Row="4"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
-                      HorizontalAlignment="Stretch"
-                      FormatString="0"
-                      Increment="100"
-                      Maximum="10000"
-                      Minimum="100"
-                      Value="{Binding AgentConfirmTimeoutMs, Mode=TwoWay}" />
+                      Classes="Caption Muted"
+                      Text="开启后 Agent 从数据库任务队列取单注入，关闭则走普通住院/门诊流程"
+                      TextWrapping="Wrap" />
+                  </StackPanel>
 
-                    <TextBlock
-                      Grid.Row="5"
-                      Grid.Column="0"
-                      Margin="{DynamicResource MarginTopSm}"
-                      VerticalAlignment="Top"
-                      Text="目标进程" />
-                    <StackPanel
-                      Grid.Row="5"
-                      Grid.Column="1"
-                      HorizontalAlignment="Stretch"
-                      Spacing="{DynamicResource SpacingInlineMd}">
-                      <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto">
-                        <TextBlock
-                          VerticalAlignment="Center"
-                          Classes="Caption Muted"
-                          Text="每个进程一行" />
-                        <Button
-                          Grid.Column="1"
-                          Classes="Ghost"
-                          Click="OnAddLineClicked"
-                          Command="{Binding AddAgentAppWinItemCommand}"
-                          Tag="AgentAppWinItemsControl">
-                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                            <icons:AppIcon
-                              Width="{DynamicResource IconSizeSmall}"
-                              Height="{DynamicResource IconSizeSmall}"
-                              Kind="Plus" />
-                            <TextBlock Text="新增" />
-                          </StackPanel>
-                        </Button>
-                      </Grid>
-                      <ItemsControl x:Name="AgentAppWinItemsControl" ItemsSource="{Binding AgentAppWinItems}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="vm:AgentLineItem">
-                            <Grid
-                              Margin="{DynamicResource MarginBottomSm}"
-                              Classes="ToolbarPairRow"
-                              ColumnDefinitions="*,Auto">
-                              <TextBox
-                                Height="{StaticResource ControlHeightCompact}"
-                                HorizontalAlignment="Stretch"
-                                VerticalContentAlignment="Center"
-                                Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                UseFloatingPlaceholder="False" />
-                              <Button
-                                Grid.Column="1"
-                                Classes="Ghost"
-                                Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentAppWinItemCommand}"
-                                CommandParameter="{Binding .}">
-                                <icons:AppIcon
-                                  Width="{DynamicResource IconSizeSmall}"
-                                  Height="{DynamicResource IconSizeSmall}"
-                                  Kind="X" />
-                              </Button>
-                            </Grid>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </StackPanel>
-                  </Grid>
-                </shad:Card>
-
-                <shad:Card>
-                  <shad:Card.Header>
-                    <TextBlock Classes="SectionTitle" Text="门诊配置" />
-                  </shad:Card.Header>
-                  <Grid
-                    Classes="FormLabelLayout"
-                    ColumnDefinitions="140,*"
-                    RowDefinitions="Auto,Auto,Auto,Auto">
-                    <TextBlock VerticalAlignment="Center" Text="窗口类" />
+                  <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Margin="{DynamicResource MarginTopSm}"
+                    VerticalAlignment="Top"
+                    Text="任务标识" />
+                  <StackPanel
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Spacing="{DynamicResource SpacingInlineSm}">
                     <TextBox
-                      Grid.Row="0"
-                      Grid.Column="1"
                       Height="{StaticResource ControlHeightCompact}"
                       HorizontalAlignment="Stretch"
                       VerticalContentAlignment="Center"
-                      Text="{Binding AgentOptWindowClass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                      Text="{Binding AgentWarehouseTaskIdentifier, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                       UseFloatingPlaceholder="False" />
-
                     <TextBlock
-                      Grid.Row="1"
-                      Grid.Column="0"
-                      VerticalAlignment="Center"
-                      Text="解析区 ClassNN" />
-                    <TextBox
-                      Grid.Row="1"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
                       HorizontalAlignment="Stretch"
-                      VerticalContentAlignment="Center"
-                      Text="{Binding AgentOptParseGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                      UseFloatingPlaceholder="False" />
+                      Classes="Caption Muted"
+                      Text="用于识别单据，按 agent 别名表达式填写，默认：单据号||当前编号"
+                      TextWrapping="Wrap" />
+                  </StackPanel>
 
-                    <TextBlock
-                      Grid.Row="2"
-                      Grid.Column="0"
-                      VerticalAlignment="Center"
-                      Text="验证区 ClassNN" />
-                    <TextBox
-                      Grid.Row="2"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
+                  <TextBlock
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Text="取码策略" />
+                  <ComboBox
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Height="{StaticResource ControlHeightCompact}"
+                    ItemsSource="{Binding AgentCodePickPolicyOptions}"
+                    SelectedItem="{Binding SelectedAgentCodePickPolicyOption, Mode=TwoWay}" />
+
+                  <TextBlock
+                    Grid.Row="3"
+                    Grid.Column="0"
+                    Margin="{DynamicResource MarginTopSm}"
+                    VerticalAlignment="Top"
+                    Text="仓库列特征" />
+                  <StackPanel
+                    Grid.Row="3"
+                    Grid.Column="1"
+                    Spacing="{DynamicResource SpacingInlineMd}">
+                    <Grid
                       HorizontalAlignment="Stretch"
-                      VerticalContentAlignment="Center"
-                      Text="{Binding AgentOptVerifyGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                      UseFloatingPlaceholder="False" />
-
-                    <TextBlock
-                      Grid.Row="3"
-                      Grid.Column="0"
-                      VerticalAlignment="Center"
-                      Text="输入控件 ClassNN" />
-                    <TextBox
-                      Grid.Row="3"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
-                      HorizontalAlignment="Stretch"
-                      VerticalContentAlignment="Center"
-                      Text="{Binding AgentOptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                      UseFloatingPlaceholder="False" />
-                  </Grid>
-                </shad:Card>
-
-                <shad:Card>
-                  <shad:Card.Header>
-                    <TextBlock Classes="SectionTitle" Text="住院配置" />
-                  </shad:Card.Header>
-                  <Grid
-                    Classes="FormLabelLayout"
-                    ColumnDefinitions="140,*"
-                    RowDefinitions="Auto,Auto,Auto,Auto">
-                    <TextBlock VerticalAlignment="Center" Text="窗口类" />
-                    <TextBox
-                      Grid.Row="0"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
-                      HorizontalAlignment="Stretch"
-                      VerticalContentAlignment="Center"
-                      Text="{Binding AgentIptWindowClass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                      UseFloatingPlaceholder="False" />
-
-                    <TextBlock
-                      Grid.Row="1"
-                      Grid.Column="0"
-                      VerticalAlignment="Center"
-                      Text="解析区 ClassNN" />
-                    <TextBox
-                      Grid.Row="1"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
-                      HorizontalAlignment="Stretch"
-                      VerticalContentAlignment="Center"
-                      Text="{Binding AgentIptParseGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                      UseFloatingPlaceholder="False" />
-
-                    <TextBlock
-                      Grid.Row="2"
-                      Grid.Column="0"
-                      VerticalAlignment="Center"
-                      Text="验证区 ClassNN" />
-                    <TextBox
-                      Grid.Row="2"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
-                      HorizontalAlignment="Stretch"
-                      VerticalContentAlignment="Center"
-                      Text="{Binding AgentIptVerifyGridClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                      UseFloatingPlaceholder="False" />
-
-                    <TextBlock
-                      Grid.Row="3"
-                      Grid.Column="0"
-                      VerticalAlignment="Center"
-                      Text="输入控件 ClassNN" />
-                    <TextBox
-                      Grid.Row="3"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
-                      HorizontalAlignment="Stretch"
-                      VerticalContentAlignment="Center"
-                      Text="{Binding AgentIptInputClassNN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                      UseFloatingPlaceholder="False" />
-                  </Grid>
-                </shad:Card>
-
-                <shad:Card>
-                  <shad:Card.Header>
-                    <TextBlock Classes="SectionTitle" Text="仓库配置" />
-                  </shad:Card.Header>
-                  <Grid
-                    Classes="FormLabelLayout"
-                    ColumnDefinitions="140,*"
-                    RowDefinitions="Auto,Auto,Auto,Auto">
-                    <TextBlock
-                      Grid.Row="0"
-                      Grid.Column="0"
-                      VerticalAlignment="Top"
-                      Text="仓库模式" />
-                    <StackPanel
-                      Grid.Row="0"
-                      Grid.Column="1"
-                      Spacing="{DynamicResource SpacingInlineSm}">
-                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                        <ToggleSwitch VerticalAlignment="Center" IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}" />
-                        <controls:StatusPill
-                          VerticalAlignment="Center"
-                          Classes="ToneDone25"
-                          Icon="PackageCheck"
-                          IconSize="12"
-                          IsVisible="{Binding AgentWarehouseEnabled}"
-                          PillPadding="8,3"
-                          Text="已开启"
-                          TextSize="11" />
-                        <controls:StatusPill
-                          VerticalAlignment="Center"
-                          Classes="ToneInfo15"
-                          Icon="Package"
-                          IconSize="12"
-                          IsVisible="{Binding !AgentWarehouseEnabled}"
-                          PillPadding="8,3"
-                          Text="已关闭"
-                          TextSize="11" />
-                      </StackPanel>
+                      Classes="ToolbarPairRow"
+                      ColumnDefinitions="*,Auto">
                       <TextBlock
+                        VerticalAlignment="Center"
                         Classes="Caption Muted"
-                        Text="开启后 Agent 从数据库任务队列取单注入，关闭则走普通住院/门诊流程"
+                        Text="若表头命中任一列名，则判定为住院；均未命中则判定为仓库（默认：患者姓名、应扫次数）"
                         TextWrapping="Wrap" />
-                    </StackPanel>
+                      <Button
+                        Grid.Column="1"
+                        Classes="Ghost"
+                        Click="OnAddLineClicked"
+                        Command="{Binding AddAgentWarehouseAnchorItemCommand}"
+                        Tag="AgentWarehouseAnchorItemsControl">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
+                            Kind="Plus" />
+                          <TextBlock Text="新增" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                    <ItemsControl x:Name="AgentWarehouseAnchorItemsControl" ItemsSource="{Binding AgentWarehouseAnchorItems}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AgentLineItem">
+                          <Grid
+                            Margin="{DynamicResource MarginBottomSm}"
+                            Classes="ToolbarPairRow"
+                            ColumnDefinitions="*,Auto">
+                            <TextBox
+                              Height="{StaticResource ControlHeightCompact}"
+                              HorizontalAlignment="Stretch"
+                              VerticalContentAlignment="Center"
+                              Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              UseFloatingPlaceholder="False" />
+                            <Button
+                              Grid.Column="1"
+                              Classes="Ghost"
+                              Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentWarehouseAnchorItemCommand}"
+                              CommandParameter="{Binding .}">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeSmall}"
+                                Height="{DynamicResource IconSizeSmall}"
+                                Kind="X" />
+                            </Button>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Grid>
+              </shad:Card>
 
-                    <TextBlock
-                      Grid.Row="1"
-                      Grid.Column="0"
-                      Margin="{DynamicResource MarginTopSm}"
-                      VerticalAlignment="Top"
-                      Text="任务标识" />
-                    <StackPanel
-                      Grid.Row="1"
-                      Grid.Column="1"
-                      Spacing="{DynamicResource SpacingInlineSm}">
-                      <TextBox
-                        Height="{StaticResource ControlHeightCompact}"
-                        HorizontalAlignment="Stretch"
-                        VerticalContentAlignment="Center"
-                        Text="{Binding AgentWarehouseTaskIdentifier, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                        UseFloatingPlaceholder="False" />
+              <shad:Card>
+                <shad:Card.Header>
+                  <TextBlock Classes="SectionTitle" Text="解析规则" />
+                </shad:Card.Header>
+                <Grid
+                  Classes="FormLabelLayout"
+                  ColumnDefinitions="140,*"
+                  RowDefinitions="Auto,Auto">
+                  <TextBlock
+                    Margin="{DynamicResource MarginTopSm}"
+                    VerticalAlignment="Top"
+                    Text="列规则" />
+                  <StackPanel
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Spacing="{DynamicResource SpacingInlineMd}">
+                    <Grid
+                      HorizontalAlignment="Stretch"
+                      Classes="ToolbarPairRow"
+                      ColumnDefinitions="*,Auto">
                       <TextBlock
-                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Center"
                         Classes="Caption Muted"
-                        Text="用于识别单据，按 agent 别名表达式填写，默认：单据号||当前编号"
-                        TextWrapping="Wrap" />
-                    </StackPanel>
+                        Text="每条规则一行" />
+                      <Button
+                        Grid.Column="1"
+                        Classes="Ghost"
+                        Click="OnAddLineClicked"
+                        Command="{Binding AddAgentColSpecsItemCommand}"
+                        Tag="AgentColSpecsItemsControl">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
+                            Kind="Plus" />
+                          <TextBlock Text="新增" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                    <ItemsControl x:Name="AgentColSpecsItemsControl" ItemsSource="{Binding AgentColSpecsItems}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AgentLineItem">
+                          <Grid
+                            Margin="{DynamicResource MarginBottomSm}"
+                            Classes="ToolbarPairRow"
+                            ColumnDefinitions="*,Auto">
+                            <TextBox
+                              Height="{StaticResource ControlHeightCompact}"
+                              HorizontalAlignment="Stretch"
+                              VerticalContentAlignment="Center"
+                              Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              UseFloatingPlaceholder="False" />
+                            <Button
+                              Grid.Column="1"
+                              Classes="Ghost"
+                              Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentColSpecsItemCommand}"
+                              CommandParameter="{Binding .}">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeSmall}"
+                                Height="{DynamicResource IconSizeSmall}"
+                                Kind="X" />
+                            </Button>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
 
-                    <TextBlock
-                      Grid.Row="2"
-                      Grid.Column="0"
-                      VerticalAlignment="Center"
-                      Text="取码策略" />
-                    <ComboBox
-                      Grid.Row="2"
-                      Grid.Column="1"
-                      Height="{StaticResource ControlHeightCompact}"
-                      ItemsSource="{Binding AgentCodePickPolicyOptions}"
-                      SelectedItem="{Binding SelectedAgentCodePickPolicyOption, Mode=TwoWay}" />
-
-                    <TextBlock
-                      Grid.Row="3"
-                      Grid.Column="0"
-                      Margin="{DynamicResource MarginTopSm}"
-                      VerticalAlignment="Top"
-                      Text="仓库列特征" />
-                    <StackPanel
-                      Grid.Row="3"
-                      Grid.Column="1"
-                      Spacing="{DynamicResource SpacingInlineMd}">
-                      <Grid
-                        HorizontalAlignment="Stretch"
-                        Classes="ToolbarPairRow"
-                        ColumnDefinitions="*,Auto">
-                        <TextBlock
-                          VerticalAlignment="Center"
-                          Classes="Caption Muted"
-                          Text="若表头命中任一列名，则判定为住院；均未命中则判定为仓库（默认：患者姓名、应扫次数）"
-                          TextWrapping="Wrap" />
-                        <Button
-                          Grid.Column="1"
-                          Classes="Ghost"
-                          Click="OnAddLineClicked"
-                          Command="{Binding AddAgentWarehouseAnchorItemCommand}"
-                          Tag="AgentWarehouseAnchorItemsControl">
-                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                            <icons:AppIcon
-                              Width="{DynamicResource IconSizeSmall}"
-                              Height="{DynamicResource IconSizeSmall}"
-                              Kind="Plus" />
-                            <TextBlock Text="新增" />
-                          </StackPanel>
-                        </Button>
-                      </Grid>
-                      <ItemsControl x:Name="AgentWarehouseAnchorItemsControl" ItemsSource="{Binding AgentWarehouseAnchorItems}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="vm:AgentLineItem">
-                            <Grid
-                              Margin="{DynamicResource MarginBottomSm}"
-                              Classes="ToolbarPairRow"
-                              ColumnDefinitions="*,Auto">
-                              <TextBox
-                                Height="{StaticResource ControlHeightCompact}"
-                                HorizontalAlignment="Stretch"
-                                VerticalContentAlignment="Center"
-                                Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                UseFloatingPlaceholder="False" />
-                              <Button
-                                Grid.Column="1"
-                                Classes="Ghost"
-                                Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentWarehouseAnchorItemCommand}"
-                                CommandParameter="{Binding .}">
-                                <icons:AppIcon
-                                  Width="{DynamicResource IconSizeSmall}"
-                                  Height="{DynamicResource IconSizeSmall}"
-                                  Kind="X" />
-                              </Button>
-                            </Grid>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </StackPanel>
-                  </Grid>
-                </shad:Card>
-
-                <shad:Card>
-                  <shad:Card.Header>
-                    <TextBlock Classes="SectionTitle" Text="解析规则" />
-                  </shad:Card.Header>
-                  <Grid
-                    Classes="FormLabelLayout"
-                    ColumnDefinitions="140,*"
-                    RowDefinitions="Auto,Auto">
-                    <TextBlock
-                      Margin="{DynamicResource MarginTopSm}"
-                      VerticalAlignment="Top"
-                      Text="列规则" />
-                    <StackPanel
-                      Grid.Row="0"
-                      Grid.Column="1"
-                      Spacing="{DynamicResource SpacingInlineMd}">
-                      <Grid
-                        HorizontalAlignment="Stretch"
-                        Classes="ToolbarPairRow"
-                        ColumnDefinitions="*,Auto">
-                        <TextBlock
-                          VerticalAlignment="Center"
-                          Classes="Caption Muted"
-                          Text="每条规则一行" />
-                        <Button
-                          Grid.Column="1"
-                          Classes="Ghost"
-                          Click="OnAddLineClicked"
-                          Command="{Binding AddAgentColSpecsItemCommand}"
-                          Tag="AgentColSpecsItemsControl">
-                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                            <icons:AppIcon
-                              Width="{DynamicResource IconSizeSmall}"
-                              Height="{DynamicResource IconSizeSmall}"
-                              Kind="Plus" />
-                            <TextBlock Text="新增" />
-                          </StackPanel>
-                        </Button>
-                      </Grid>
-                      <ItemsControl x:Name="AgentColSpecsItemsControl" ItemsSource="{Binding AgentColSpecsItems}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="vm:AgentLineItem">
-                            <Grid
-                              Margin="{DynamicResource MarginBottomSm}"
-                              Classes="ToolbarPairRow"
-                              ColumnDefinitions="*,Auto">
-                              <TextBox
-                                Height="{StaticResource ControlHeightCompact}"
-                                HorizontalAlignment="Stretch"
-                                VerticalContentAlignment="Center"
-                                Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                UseFloatingPlaceholder="False" />
-                              <Button
-                                Grid.Column="1"
-                                Classes="Ghost"
-                                Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentColSpecsItemCommand}"
-                                CommandParameter="{Binding .}">
-                                <icons:AppIcon
-                                  Width="{DynamicResource IconSizeSmall}"
-                                  Height="{DynamicResource IconSizeSmall}"
-                                  Kind="X" />
-                              </Button>
-                            </Grid>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </StackPanel>
-
-                    <TextBlock
-                      Grid.Row="1"
-                      Grid.Column="0"
-                      Margin="{DynamicResource MarginTopSm}"
-                      VerticalAlignment="Top"
-                      Text="整数列" />
-                    <StackPanel
-                      Grid.Row="1"
-                      Grid.Column="1"
-                      Spacing="{DynamicResource SpacingInlineMd}">
-                      <Grid
-                        HorizontalAlignment="Stretch"
-                        Classes="ToolbarPairRow"
-                        ColumnDefinitions="*,Auto">
-                        <TextBlock
-                          VerticalAlignment="Center"
-                          Classes="Caption Muted"
-                          Text="每个字段一行" />
-                        <Button
-                          Grid.Column="1"
-                          Classes="Ghost"
-                          Click="OnAddLineClicked"
-                          Command="{Binding AddAgentIntColsItemCommand}"
-                          Tag="AgentIntColsItemsControl">
-                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                            <icons:AppIcon
-                              Width="{DynamicResource IconSizeSmall}"
-                              Height="{DynamicResource IconSizeSmall}"
-                              Kind="Plus" />
-                            <TextBlock Text="新增" />
-                          </StackPanel>
-                        </Button>
-                      </Grid>
-                      <ItemsControl x:Name="AgentIntColsItemsControl" ItemsSource="{Binding AgentIntColsItems}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="vm:AgentLineItem">
-                            <Grid
-                              Margin="{DynamicResource MarginBottomSm}"
-                              Classes="ToolbarPairRow"
-                              ColumnDefinitions="*,Auto">
-                              <TextBox
-                                Height="{StaticResource ControlHeightCompact}"
-                                HorizontalAlignment="Stretch"
-                                VerticalContentAlignment="Center"
-                                Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                UseFloatingPlaceholder="False" />
-                              <Button
-                                Grid.Column="1"
-                                Classes="Ghost"
-                                Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentIntColsItemCommand}"
-                                CommandParameter="{Binding .}">
-                                <icons:AppIcon
-                                  Width="{DynamicResource IconSizeSmall}"
-                                  Height="{DynamicResource IconSizeSmall}"
-                                  Kind="X" />
-                              </Button>
-                            </Grid>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </StackPanel>
-                  </Grid>
-                </shad:Card>
+                  <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Margin="{DynamicResource MarginTopSm}"
+                    VerticalAlignment="Top"
+                    Text="整数列" />
+                  <StackPanel
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Spacing="{DynamicResource SpacingInlineMd}">
+                    <Grid
+                      HorizontalAlignment="Stretch"
+                      Classes="ToolbarPairRow"
+                      ColumnDefinitions="*,Auto">
+                      <TextBlock
+                        VerticalAlignment="Center"
+                        Classes="Caption Muted"
+                        Text="每个字段一行" />
+                      <Button
+                        Grid.Column="1"
+                        Classes="Ghost"
+                        Click="OnAddLineClicked"
+                        Command="{Binding AddAgentIntColsItemCommand}"
+                        Tag="AgentIntColsItemsControl">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
+                            Kind="Plus" />
+                          <TextBlock Text="新增" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                    <ItemsControl x:Name="AgentIntColsItemsControl" ItemsSource="{Binding AgentIntColsItems}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AgentLineItem">
+                          <Grid
+                            Margin="{DynamicResource MarginBottomSm}"
+                            Classes="ToolbarPairRow"
+                            ColumnDefinitions="*,Auto">
+                            <TextBox
+                              Height="{StaticResource ControlHeightCompact}"
+                              HorizontalAlignment="Stretch"
+                              VerticalContentAlignment="Center"
+                              Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              UseFloatingPlaceholder="False" />
+                            <Button
+                              Grid.Column="1"
+                              Classes="Ghost"
+                              Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentIntColsItemCommand}"
+                              CommandParameter="{Binding .}">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeSmall}"
+                                Height="{DynamicResource IconSizeSmall}"
+                                Kind="X" />
+                            </Button>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Grid>
+              </shad:Card>
             </StackPanel>
           </Grid>
         </shad:Card>

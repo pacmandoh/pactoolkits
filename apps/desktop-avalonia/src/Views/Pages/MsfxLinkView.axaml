@@ -1,13 +1,13 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxLinkView"
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   xmlns:pages="clr-namespace:PacToolkits.Desktop.Avalonia.Views.Pages"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
   x:DataType="vm:MsfxLinkViewModel"
   ClipToBounds="True"
@@ -61,9 +61,7 @@
         </Grid>
       </shad:Card>
 
-      <TabControl
-        Grid.Row="1"
-        SelectedIndex="{Binding SelectedTabIndex}">
+      <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTabIndex}">
         <TabItem>
           <TabItem.Header>
             <StackPanel Classes="TabItemHeader" Spacing="{DynamicResource SpacingInlineMd}">
@@ -101,7 +99,8 @@
                       Kind="Power" />
                     <TextBlock
                       Grid.Column="1"
-                      VerticalAlignment="Center" Classes="Caption Muted"
+                      VerticalAlignment="Center"
+                      Classes="Caption Muted"
                       Text="自动监控" />
                     <ToggleSwitch
                       Grid.Column="2"
@@ -183,15 +182,17 @@
                       VerticalAlignment="Center"
                       Orientation="Horizontal"
                       Spacing="{DynamicResource SpacingInlineMd}">
-                      <shad:Badge Variant="Secondary"
+                      <shad:Badge
                         VerticalAlignment="Center"
                         Classes="MsfxMetaBadge"
-                        Content="{Binding AutoLogs.Count, StringFormat=日志 {0}}" />
-                      <shad:Badge Variant="Secondary"
+                        Content="{Binding AutoLogs.Count, StringFormat=日志 {0}}"
+                        Variant="Secondary" />
+                      <shad:Badge
                         VerticalAlignment="Center"
                         Classes="MsfxMetaBadge"
                         Content="{Binding AutoLastRunAtText, StringFormat=最近 {0}}"
-                        ToolTip.Tip="{Binding AutoLastRunAtTip}" />
+                        ToolTip.Tip="{Binding AutoLastRunAtTip}"
+                        Variant="Secondary" />
                     </StackPanel>
                     <Button
                       Grid.Column="2"
@@ -247,14 +248,16 @@
                     MinWidth="108"
                     VerticalAlignment="Center"
                     Spacing="{DynamicResource SpacingInlineSm}">
-                    <shad:Badge Variant="Secondary"
+                    <shad:Badge
                       VerticalAlignment="Center"
                       Classes="MsfxMetaBadge"
-                      Content="{Binding AutoIntervalMinutes, StringFormat=轮询 {0} 分}" />
-                    <shad:Badge Variant="Secondary"
+                      Content="{Binding AutoIntervalMinutes, StringFormat=轮询 {0} 分}"
+                      Variant="Secondary" />
+                    <shad:Badge
                       VerticalAlignment="Center"
                       Classes="MsfxMetaBadge"
-                      Content="{Binding AutoRunProgressValue, StringFormat=进度 {0:F0}%}" />
+                      Content="{Binding AutoRunProgressValue, StringFormat=进度 {0:F0}%}"
+                      Variant="Secondary" />
                   </StackPanel>
 
                   <ProgressBar
