@@ -213,7 +213,7 @@
                   <StackPanel Grid.Column="1" Classes="SidebarFunctionAreaText">
                     <TextBlock Classes="Small" Text="{Binding SelectedFunctionArea.Name}" />
                     <TextBlock
-                      Classes="SidebarFunctionAreaSubtitle"
+                      Classes="Caption Muted"
                       Text="{Binding SelectedFunctionArea.Subtitle}"
                       TextTrimming="CharacterEllipsis" />
                   </StackPanel>
@@ -433,7 +433,7 @@
           <Rectangle Grid.Column="1" Classes="ShellContentHeaderDivider" />
           <TextBlock
             Grid.Column="2"
-            Classes="ShellContentTitle"
+            Classes="SectionTitle"
             Text="{Binding ShellActivePageText}"
             VerticalAlignment="Center" />
           <Menu
@@ -578,7 +578,7 @@
                     IsVisible="{Binding ShowDbDisconnectedIcon}"
                     Kind="Database" />
                 </Panel>
-                <TextBlock Classes="ShellStatusLabel" Text="{Binding ShellDatabaseItemText}" />
+                <TextBlock Classes="Caption Muted" Text="{Binding ShellDatabaseItemText}" />
               </StackPanel>
             </Button>
 
@@ -587,14 +587,14 @@
             <Button Classes="ShellStatusItem ShellStatusAgentItem" Command="{Binding StartOrRestartAhkCommand}">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon Foreground="{Binding IsAhkRunning, Converter={StaticResource BoolToDoneDangerBrush}}" Kind="Syringe" />
-                <TextBlock Classes="ShellStatusLabel" Text="{Binding ShellAgentItemText}" />
+                <TextBlock Classes="Caption Muted" Text="{Binding ShellAgentItemText}" />
               </StackPanel>
             </Button>
 
             <Border Classes="ShellStatusDivider" />
 
             <Button Classes="ShellStatusItem" IsEnabled="False">
-              <TextBlock Classes="ShellStatusLabel" Text="{Binding ShellActivePageText}" />
+              <TextBlock Classes="Caption Muted" Text="{Binding ShellActivePageText}" />
             </Button>
 
             <Border Classes="ShellStatusDivider" IsVisible="{Binding ShowShellAccessGuardItem}" />
@@ -607,7 +607,7 @@
                 <icons:AppIcon Kind="ShieldAlert" />
                 <TextBlock
                   MaxWidth="220"
-                  Classes="ShellStatusLabel"
+                  Classes="Caption Muted"
                   Text="{Binding ShellAccessGuardItemText}"
                   TextTrimming="CharacterEllipsis" />
               </StackPanel>
@@ -626,7 +626,7 @@
             IsVisible="{Binding HasUpdateAvailable}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <icons:AppIcon Kind="Upload" />
-              <TextBlock Classes="ShellStatusLabel" Text="{Binding LatestProductVersion, StringFormat=更新 {0}}" />
+              <TextBlock Classes="Caption Muted" Text="{Binding LatestProductVersion, StringFormat=更新 {0}}" />
             </StackPanel>
           </Button>
 
@@ -642,7 +642,7 @@
                   Width="{DynamicResource IconSizeMini}"
                   Height="{DynamicResource IconSizeMini}"
                   Kind="Tag" />
-                <TextBlock Classes="ShellStatusLabel" Text="{Binding ShellVersionText}" />
+                <TextBlock Classes="Caption Muted" Text="{Binding ShellVersionText}" />
               </StackPanel>
               <StackPanel
                 IsVisible="{Binding IsUpdateChecking}"
@@ -652,7 +652,7 @@
                   Width="{DynamicResource IconSizeSmall}"
                   Height="{DynamicResource IconSizeSmall}"
                   DotBrush="{DynamicResource ForegroundColor}" />
-                <TextBlock Classes="ShellStatusLabel" Text="检查更新…" />
+                <TextBlock Classes="Caption Muted" Text="检查更新…" />
               </StackPanel>
             </Panel>
           </Button>

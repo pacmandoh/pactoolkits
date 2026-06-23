@@ -9,40 +9,10 @@
     <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
   </Style>
 
-  <Style Selector="TextBlock.AboutHeroKicker">
-    <Setter Property="FontSize" Value="12" />
-    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.AboutHeroVersion">
-    <Setter Property="FontSize" Value="28" />
-    <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="LineHeight" Value="32" />
-  </Style>
-
-  <Style Selector="TextBlock.AboutSectionKicker">
-    <Setter Property="FontSize" Value="12" />
-    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.AboutMetricValue">
-    <Setter Property="FontSize" Value="20" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-  </Style>
-
-  <Style Selector="TextBlock.AboutMetricLabel">
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.AboutMetaLabel">
-    <Setter Property="FontSize" Value="12" />
-    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.AboutMetaValue">
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="FontWeight" Value="Medium" />
+  <Style Selector="Border.AboutPanelDivider">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Margin" Value="0,12" />
+    <Setter Property="Background" Value="{DynamicResource BorderColor}" />
   </Style>
 
   <Style Selector="Border.AboutTechAccent">

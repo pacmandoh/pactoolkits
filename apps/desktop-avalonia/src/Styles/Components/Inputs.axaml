@@ -189,8 +189,6 @@
 
   <Style Selector="TextBlock.TraceCodeStatusHint">
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="FontSize" Value="{DynamicResource SectionHintSize}" />
-    <Setter Property="Opacity" Value="0.88" />
     <Setter Property="Margin" Value="8,0,0,0" />
   </Style>
 
@@ -241,13 +239,11 @@
 
               <TextBlock
                 HorizontalAlignment="Center"
-                FontSize="{DynamicResource EmptyStateTitleSize}"
-                FontWeight="SemiBold"
-                Foreground="{DynamicResource ForegroundColor}"
+                Classes="SubsectionTitle"
                 Text="{Binding EmptyText, RelativeSource={RelativeSource TemplatedParent}}" />
 
               <TextBlock
-                Classes="SectionHint"
+                Classes="Caption Muted"
                 IsVisible="{Binding HasHint, RelativeSource={RelativeSource TemplatedParent}}"
                 Text="{Binding EmptyHint, RelativeSource={RelativeSource TemplatedParent}}" />
             </StackPanel>

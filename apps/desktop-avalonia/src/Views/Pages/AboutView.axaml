@@ -41,7 +41,7 @@
               Grid.Row="0"
               Grid.Column="1"
               VerticalAlignment="Center"
-              Classes="AboutHeroKicker"
+              Classes="Caption Muted"
               Text="ABOUT · PACTOOLKITS" />
             <TextBlock
               Grid.Row="1"
@@ -54,8 +54,7 @@
               Grid.Row="2"
               Grid.Column="1"
               VerticalAlignment="Center"
-              FontSize="{DynamicResource AboutSubtitleSize}"
-              Opacity="0.84"
+              Classes="AboutSubtitle"
               Text="自动化套件" />
 
             <TextBlock
@@ -63,7 +62,7 @@
               Grid.Column="2"
               HorizontalAlignment="Right"
               VerticalAlignment="Center"
-              Classes="AboutMetaLabel"
+              Classes="Caption Muted"
               Text="当前版本" />
             <TextBlock
               Grid.Row="1"
@@ -120,10 +119,10 @@
                 Grid.Column="1"
                 VerticalAlignment="Center"
                 Spacing="4">
-                <TextBlock Classes="AboutAuthor" Text="窦皓 · PacmanDoh" />
-                <TextBlock Opacity="0.86" Text="产品设计 / 自动化开发 / 业务落地" />
+                <TextBlock Classes="SectionTitle Strong" Text="窦皓 · PacmanDoh" />
+                <TextBlock Classes="Caption Muted" Text="产品设计 / 自动化开发 / 业务落地" />
                 <TextBlock
-                  Classes="SectionHint"
+                  Classes="Caption Muted"
                   Text="井研县中医医院药剂科项目维护者，聚焦追溯码录入效率、库存一致性与流程稳定性"
                   TextWrapping="Wrap" />
               </StackPanel>
@@ -155,8 +154,8 @@
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="AboutMetaLabel" Text="服务单位" />
-                  <TextBlock Classes="AboutMetaValue" Text="井研县中医医院 · 药剂科" />
+                  <TextBlock Classes="Caption Muted" Text="服务单位" />
+                  <TextBlock Classes="Small" Text="井研县中医医院 · 药剂科" />
                 </StackPanel>
               </Grid>
             </shad:Card>
@@ -179,7 +178,7 @@
             <Border Classes="AboutPanelDivider" />
 
             <TextBlock
-              Classes="SectionHint"
+              Classes="Caption Muted"
               Text="{Binding VersionHint}"
               TextWrapping="Wrap" />
 
@@ -188,28 +187,28 @@
               ColumnSpacing="{DynamicResource PageColumnSpacing}"
               RowDefinitions="Auto,Auto,Auto"
               RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-              <TextBlock Classes="AboutMetaLabel" Text="发布通道" />
+              <TextBlock Classes="Caption Muted" Text="发布通道" />
               <TextBlock
                 Grid.Column="1"
-                Classes="AboutMetaValue"
+                Classes="Small"
                 Text="{Binding BuildChannel}" />
               <TextBlock
                 Grid.Row="1"
-                Classes="AboutMetaLabel"
+                Classes="Caption Muted"
                 Text="构建日期" />
               <TextBlock
                 Grid.Row="1"
                 Grid.Column="1"
-                Classes="AboutMetaValue"
+                Classes="Small"
                 Text="{Binding BuildDate}" />
               <TextBlock
                 Grid.Row="2"
-                Classes="AboutMetaLabel"
+                Classes="Caption Muted"
                 Text="Desktop DB" />
               <TextBlock
                 Grid.Row="2"
                 Grid.Column="1"
-                Classes="SectionHint"
+                Classes="Caption Muted"
                 Text="{Binding CompatDesktopDbRangeText}" />
             </Grid>
 
@@ -221,10 +220,10 @@
                       Width="{DynamicResource IconSizeSmall}"
                       Height="{DynamicResource IconSizeSmall}"
                       Kind="Database" />
-                    <TextBlock Classes="AboutMetricLabel" Text="DB Schema" />
+                    <TextBlock Classes="Small Muted" Text="DB Schema" />
                   </StackPanel>
-                  <TextBlock Classes="AboutMetricValue" Text="{Binding DatabasePostgresVersion}" />
-                  <TextBlock Classes="SectionHint" Text="结构兼容性校验" />
+                  <TextBlock Classes="h4" Text="{Binding DatabasePostgresVersion}" />
+                  <TextBlock Classes="Caption Muted" Text="结构兼容性校验" />
                 </StackPanel>
               </shad:Card>
               <shad:Card Grid.Column="1">
@@ -234,10 +233,10 @@
                       Width="{DynamicResource IconSizeSmall}"
                       Height="{DynamicResource IconSizeSmall}"
                       Kind="Keyboard" />
-                    <TextBlock Classes="AboutMetricLabel" Text="Agent AHK" />
+                    <TextBlock Classes="Small Muted" Text="Agent AHK" />
                   </StackPanel>
-                  <TextBlock Classes="AboutMetricValue" Text="{Binding AgentInjectorAhkVersion}" />
-                  <TextBlock Classes="SectionHint" Text="自动化执行层" />
+                  <TextBlock Classes="h4" Text="{Binding AgentInjectorAhkVersion}" />
+                  <TextBlock Classes="Caption Muted" Text="自动化执行层" />
                 </StackPanel>
               </shad:Card>
               <shad:Card Grid.Column="2">
@@ -247,10 +246,10 @@
                       Width="{DynamicResource IconSizeSmall}"
                       Height="{DynamicResource IconSizeSmall}"
                       Kind="AppWindow" />
-                    <TextBlock Classes="AboutMetricLabel" Text="Desktop" />
+                    <TextBlock Classes="Small Muted" Text="Desktop" />
                   </StackPanel>
-                  <TextBlock Classes="AboutMetricValue" Text="{Binding DesktopVersion}" />
-                  <TextBlock Classes="SectionHint" Text="components.desktop" />
+                  <TextBlock Classes="h4" Text="{Binding DesktopVersion}" />
+                  <TextBlock Classes="Caption Muted" Text="components.desktop" />
                 </StackPanel>
               </shad:Card>
             </Grid>
@@ -295,11 +294,11 @@
                     Width="{DynamicResource IconSizeDefault}"
                     Height="{DynamicResource IconSizeDefault}"
                     Kind="MonitorCog" />
-                  <TextBlock Classes="AboutMetricLabel" Text="桌面编排" />
+                  <TextBlock Classes="Small Muted" Text="桌面编排" />
                 </StackPanel>
-                <TextBlock Classes="AboutTechTitle" Text="Avalonia + .NET" />
+                <TextBlock Classes="SectionTitle Strong" Text="Avalonia + .NET" />
                 <TextBlock
-                  Classes="SectionHint"
+                  Classes="Caption Muted"
                   Text="业务配置、任务调度与 UI 交互"
                   TextWrapping="Wrap" />
               </StackPanel>
@@ -320,11 +319,11 @@
                     Width="{DynamicResource IconSizeDefault}"
                     Height="{DynamicResource IconSizeDefault}"
                     Kind="Bot" />
-                  <TextBlock Classes="AboutMetricLabel" Text="自动化执行" />
+                  <TextBlock Classes="Small Muted" Text="自动化执行" />
                 </StackPanel>
-                <TextBlock Classes="AboutTechTitle" Text="AHK + Python" />
+                <TextBlock Classes="SectionTitle Strong" Text="AHK + Python" />
                 <TextBlock
-                  Classes="SectionHint"
+                  Classes="Caption Muted"
                   Text="追溯码注入、自动拉取与桥接流程"
                   TextWrapping="Wrap" />
               </StackPanel>
@@ -345,11 +344,11 @@
                     Width="{DynamicResource IconSizeDefault}"
                     Height="{DynamicResource IconSizeDefault}"
                     Kind="Database" />
-                  <TextBlock Classes="AboutMetricLabel" Text="数据落库" />
+                  <TextBlock Classes="Small Muted" Text="数据落库" />
                 </StackPanel>
-                <TextBlock Classes="AboutTechTitle" Text="PostgreSQL" />
+                <TextBlock Classes="SectionTitle Strong" Text="PostgreSQL" />
                 <TextBlock
-                  Classes="SectionHint"
+                  Classes="Caption Muted"
                   Text="追溯码、库存与配置的统一数据源"
                   TextWrapping="Wrap" />
               </StackPanel>
@@ -359,7 +358,7 @@
           <Grid ColumnDefinitions="1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
             <shad:Card Grid.Column="0">
               <StackPanel Spacing="{DynamicResource DialogInnerRowSpacing}">
-                <TextBlock Classes="AboutSectionKicker" Text="界面与运行时" />
+                <TextBlock Classes="Caption Muted" Text="界面与运行时" />
                 <Grid ColumnDefinitions="1*,1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
                   <Grid ColumnDefinitions="Auto,Auto,*">
                     <Border Background="{DynamicResource TechBrandAvalonia}" Classes="AboutTechAccent" />
@@ -371,8 +370,8 @@
                       VerticalAlignment="Center"
                       Kind="AppWindow" />
                     <StackPanel Grid.Column="2" Spacing="1">
-                      <TextBlock Classes="AboutTechTitle" Text="Avalonia UI" />
-                      <TextBlock Classes="SectionHint" Text="跨平台桌面 UI 主框架" />
+                      <TextBlock Classes="SectionTitle Strong" Text="Avalonia UI" />
+                      <TextBlock Classes="Caption Muted" Text="跨平台桌面 UI 主框架" />
                     </StackPanel>
                   </Grid>
                   <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,*">
@@ -385,8 +384,8 @@
                       VerticalAlignment="Center"
                       Kind="Braces" />
                     <StackPanel Grid.Column="2" Spacing="1">
-                      <TextBlock Classes="AboutTechTitle" Text="C# / .NET" />
-                      <TextBlock Classes="SectionHint" Text="业务编排与应用生命周期" />
+                      <TextBlock Classes="SectionTitle Strong" Text="C# / .NET" />
+                      <TextBlock Classes="Caption Muted" Text="业务编排与应用生命周期" />
                     </StackPanel>
                   </Grid>
                   <Grid Grid.Column="2" ColumnDefinitions="Auto,Auto,*">
@@ -399,8 +398,8 @@
                       VerticalAlignment="Center"
                       Kind="Laptop" />
                     <StackPanel Grid.Column="2" Spacing="1">
-                      <TextBlock Classes="AboutTechTitle" Text="macOS" />
-                      <TextBlock Classes="SectionHint" Text="主要开发与测试平台" />
+                      <TextBlock Classes="SectionTitle Strong" Text="macOS" />
+                      <TextBlock Classes="Caption Muted" Text="主要开发与测试平台" />
                     </StackPanel>
                   </Grid>
                 </Grid>
@@ -409,7 +408,7 @@
 
             <shad:Card Grid.Column="1">
               <StackPanel Spacing="{DynamicResource DialogInnerRowSpacing}">
-                <TextBlock Classes="AboutSectionKicker" Text="数据与自动化" />
+                <TextBlock Classes="Caption Muted" Text="数据与自动化" />
                 <Grid ColumnDefinitions="1*,1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
                   <Grid ColumnDefinitions="Auto,Auto,*">
                     <Border Background="{DynamicResource TechBrandPostgre}" Classes="AboutTechAccent" />
@@ -421,8 +420,8 @@
                       VerticalAlignment="Center"
                       Kind="Database" />
                     <StackPanel Grid.Column="2" Spacing="1">
-                      <TextBlock Classes="AboutTechTitle" Text="PostgreSQL" />
-                      <TextBlock Classes="SectionHint" Text="追溯码与库存核心数据库" />
+                      <TextBlock Classes="SectionTitle Strong" Text="PostgreSQL" />
+                      <TextBlock Classes="Caption Muted" Text="追溯码与库存核心数据库" />
                     </StackPanel>
                   </Grid>
                   <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,*">
@@ -435,8 +434,8 @@
                       VerticalAlignment="Center"
                       Kind="Terminal" />
                     <StackPanel Grid.Column="2" Spacing="1">
-                      <TextBlock Classes="AboutTechTitle" Text="Python" />
-                      <TextBlock Classes="SectionHint" Text="自动拉取与数据桥接流程" />
+                      <TextBlock Classes="SectionTitle Strong" Text="Python" />
+                      <TextBlock Classes="Caption Muted" Text="自动拉取与数据桥接流程" />
                     </StackPanel>
                   </Grid>
                   <Grid Grid.Column="2" ColumnDefinitions="Auto,Auto,*">
@@ -449,8 +448,8 @@
                       VerticalAlignment="Center"
                       Kind="Keyboard" />
                     <StackPanel Grid.Column="2" Spacing="1">
-                      <TextBlock Classes="AboutTechTitle" Text="AutoHotkey" />
-                      <TextBlock Classes="SectionHint" Text="追溯码自动注入执行层" />
+                      <TextBlock Classes="SectionTitle Strong" Text="AutoHotkey" />
+                      <TextBlock Classes="Caption Muted" Text="追溯码自动注入执行层" />
                     </StackPanel>
                   </Grid>
                 </Grid>
@@ -463,7 +462,7 @@
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
             <shad:Card>
               <StackPanel Spacing="{DynamicResource DialogInnerRowSpacing}">
-                <TextBlock Classes="AboutSectionKicker" Text="开发与工具链" />
+                <TextBlock Classes="Caption Muted" Text="开发与工具链" />
                 <Grid ColumnDefinitions="1*,1*,1*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
                   <Grid ColumnDefinitions="Auto,Auto,*">
                     <Border Background="{DynamicResource TechBrandRider}" Classes="AboutTechAccent" />
@@ -475,8 +474,8 @@
                       VerticalAlignment="Center"
                       Kind="SquareCode" />
                     <StackPanel Grid.Column="2" Spacing="1">
-                      <TextBlock Classes="AboutTechTitle" Text="JetBrains Rider" />
-                      <TextBlock Classes="SectionHint" Text="C#/.NET 主力 IDE" />
+                      <TextBlock Classes="SectionTitle Strong" Text="JetBrains Rider" />
+                      <TextBlock Classes="Caption Muted" Text="C#/.NET 主力 IDE" />
                     </StackPanel>
                   </Grid>
                   <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,*">
@@ -489,8 +488,8 @@
                       VerticalAlignment="Center"
                       Kind="TableProperties" />
                     <StackPanel Grid.Column="2" Spacing="1">
-                      <TextBlock Classes="AboutTechTitle" Text="JetBrains DataGrip" />
-                      <TextBlock Classes="SectionHint" Text="SQL 调试与数据校验" />
+                      <TextBlock Classes="SectionTitle Strong" Text="JetBrains DataGrip" />
+                      <TextBlock Classes="Caption Muted" Text="SQL 调试与数据校验" />
                     </StackPanel>
                   </Grid>
                   <Grid Grid.Column="2" ColumnDefinitions="Auto,Auto,*">
@@ -503,8 +502,8 @@
                       VerticalAlignment="Center"
                       Kind="Code" />
                     <StackPanel Grid.Column="2" Spacing="1">
-                      <TextBlock Classes="AboutTechTitle" Text="Visual Studio Code" />
-                      <TextBlock Classes="SectionHint" Text="脚本与轻量编辑工具" />
+                      <TextBlock Classes="SectionTitle Strong" Text="Visual Studio Code" />
+                      <TextBlock Classes="Caption Muted" Text="脚本与轻量编辑工具" />
                     </StackPanel>
                   </Grid>
                 </Grid>
@@ -518,10 +517,10 @@
               Spacing="{DynamicResource DialogInnerRowSpacing}">
               <shad:Card>
                 <StackPanel Spacing="4">
-                  <TextBlock Classes="AboutMetaLabel" Text="当前阶段" />
-                  <TextBlock Classes="AboutMetaValue" Text="M3 · 自动化能力稳定化" />
+                  <TextBlock Classes="Caption Muted" Text="当前阶段" />
+                  <TextBlock Classes="Small" Text="M3 · 自动化能力稳定化" />
                   <TextBlock
-                    Classes="SectionHint"
+                    Classes="Caption Muted"
                     Text="重点：追溯码注入成功率、并发一致性与配置可维护性"
                     TextWrapping="Wrap" />
                 </StackPanel>
@@ -576,11 +575,11 @@
                     Width="{DynamicResource IconSizeSmall}"
                     Height="{DynamicResource IconSizeSmall}"
                     Kind="ShieldCheck" />
-                  <TextBlock Opacity="0.8" Text="稳定性指数" />
+                  <TextBlock Classes="Caption Muted" Text="稳定性指数" />
                 </StackPanel>
                 <TextBlock
                   Grid.Row="1"
-                  Classes="AboutStat"
+                  Classes="Large"
                   Text="96%" />
                 <ProgressBar
                   Grid.Row="2"
@@ -601,11 +600,11 @@
                     Width="{DynamicResource IconSizeSmall}"
                     Height="{DynamicResource IconSizeSmall}"
                     Kind="Zap" />
-                  <TextBlock Opacity="0.8" Text="响应效率" />
+                  <TextBlock Classes="Caption Muted" Text="响应效率" />
                 </StackPanel>
                 <TextBlock
                   Grid.Row="1"
-                  Classes="AboutStat"
+                  Classes="Large"
                   Text="89%" />
                 <ProgressBar
                   Grid.Row="2"
@@ -626,11 +625,11 @@
                     Width="{DynamicResource IconSizeSmall}"
                     Height="{DynamicResource IconSizeSmall}"
                     Kind="DatabaseBackup" />
-                  <TextBlock Opacity="0.8" Text="数据一致性" />
+                  <TextBlock Classes="Caption Muted" Text="数据一致性" />
                 </StackPanel>
                 <TextBlock
                   Grid.Row="1"
-                  Classes="AboutStat"
+                  Classes="Large"
                   Text="92%" />
                 <ProgressBar
                   Grid.Row="2"
@@ -647,7 +646,7 @@
             ColumnDefinitions="1.1*,1.1*,1.1*"
             ColumnSpacing="{DynamicResource PageColumnSpacing}">
             <StackPanel Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="视觉标记样例" />
+              <TextBlock Classes="SubsectionTitle" Text="视觉标记样例" />
               <WrapPanel
                 Margin="{DynamicResource AboutSectionInset}"
                 ItemSpacing="{DynamicResource SpacingInlineMd}"
@@ -672,7 +671,7 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="Settings Layout（演示）" />
+              <TextBlock Classes="SubsectionTitle" Text="Settings Layout（演示）" />
               <Grid
                 Margin="{DynamicResource AboutSectionInset}"
                 ColumnDefinitions="Auto,*"
@@ -726,7 +725,7 @@
             </StackPanel>
 
             <StackPanel Grid.Column="2" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="Button 样式（实验）" />
+              <TextBlock Classes="SubsectionTitle" Text="Button 样式（实验）" />
               <WrapPanel
                 Margin="{DynamicResource AboutSectionInset}"
                 ItemSpacing="{DynamicResource SpacingInlineMd}"
@@ -743,7 +742,7 @@
           </Grid>
 
           <StackPanel Grid.Row="3" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="WaveProgress（可调演示）" />
+              <TextBlock Classes="SubsectionTitle" Text="WaveProgress（可调演示）" />
             <Grid
               MinHeight="250"
               Margin="{DynamicResource AboutSectionInset}"
@@ -762,7 +761,7 @@
                   Grid.Row="1"
                   Margin="{DynamicResource AboutSectionInsetTop}"
                   HorizontalAlignment="Center"
-                  Classes="AboutStat"
+                  Classes="Large"
                   Text="{Binding WaveDemoValue, StringFormat={}{0:0}%}" />
               </Grid>
 
@@ -779,14 +778,14 @@
                   Value="{Binding WaveDemoValue, Mode=TwoWay}" />
                 <TextBlock
                   Grid.Row="2"
-                  Classes="SectionHint"
+                  Classes="Caption Muted"
                   Text="样式参考 WaveProgress 演示：WaveProgress + 拖动调节 + 实时数值" />
               </Grid>
             </Grid>
           </StackPanel>
 
           <StackPanel Grid.Row="4" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="交互组件预览" />
+              <TextBlock Classes="SubsectionTitle" Text="交互组件预览" />
             <TabControl Margin="{DynamicResource AboutSectionInset}" SelectedIndex="0">
               <TabItem Header="布局">
                 <Grid
@@ -804,7 +803,7 @@
                   IsExpanded="True">
                   <TextBlock
                     Margin="{DynamicResource AboutExpanderContentMargin}"
-                    Classes="SectionHint"
+                    Classes="Caption Muted"
                     Text="这里可放置系统能力说明、版本策略或排障建议，作为可折叠信息块"
                     TextWrapping="Wrap" />
                 </Expander>

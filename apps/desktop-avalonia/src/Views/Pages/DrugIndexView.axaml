@@ -159,8 +159,7 @@
               <WrapPanel
                 Grid.Column="1"
                 VerticalAlignment="Center"
-                ItemSpacing="{DynamicResource NavItemsSpacing}"
-                Opacity="{StaticResource SectionHintOpacity}">
+                ItemSpacing="{DynamicResource NavItemsSpacing}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <Border
                     Width="{DynamicResource LegendDotSize}"
@@ -351,8 +350,7 @@
                     Kind="LockKeyhole" />
                   <TextBlock
                     MaxWidth="300"
-                    Foreground="{Binding IsEditorUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}"
-                    Opacity="0.78"
+                    Foreground="{Binding IsEditorUnlocked, Converter={StaticResource BoolToDoneDangerBrush}}" Classes="Caption Muted"
                     Text="{Binding EditorUnlockStatusText}"
                     TextTrimming="CharacterEllipsis" />
                 </StackPanel>
@@ -421,7 +419,7 @@
                   Height="22"
                   Foreground="{StaticResource BrushWarning}"
                   Kind="Info" />
-                <TextBlock Opacity="0.82" Text="请选择左侧药品，或点击“新建”开始编辑" />
+                <TextBlock Classes="Caption Muted" Text="请选择左侧药品，或点击“新建”开始编辑" />
               </StackPanel>
             </shad:Card>
 
@@ -474,13 +472,12 @@
             <StackPanel
               Grid.Row="2"
               IsVisible="{Binding HasSelection}"
-              Opacity="0.78"
               Spacing="4">
-              <TextBlock>
+              <TextBlock Classes="Caption Muted">
                 <Run Text="创建：" />
                 <Run Text="{Binding CreatedAtLocalText}" />
               </TextBlock>
-              <TextBlock>
+              <TextBlock Classes="Caption Muted">
                 <Run Text="更新：" />
                 <Run Text="{Binding UpdatedAtLocalText}" />
               </TextBlock>

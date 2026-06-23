@@ -31,13 +31,10 @@
             Foreground="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToFgBrush}}"
             Kind="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToIconKind}}" />
           <TextBlock
-            VerticalAlignment="Center"
-            FontWeight="SemiBold"
-            Opacity="0.9"
-            Text="拉取批次明细" />
+            VerticalAlignment="Center" Classes="SectionTitle" Text="拉取批次明细" />
           <TextBlock
             VerticalAlignment="Center"
-            Classes="SectionHint"
+            Classes="Caption Muted"
             Text="{Binding AutoPullSummary}" />
         </StackPanel>
         <StackPanel
@@ -74,10 +71,7 @@
             Height="{DynamicResource IconSizeDefault}"
             Kind="{Binding AutoExpandedPanelIcon}" />
           <TextBlock
-            VerticalAlignment="Center"
-            FontWeight="SemiBold"
-            Opacity="0.9"
-            Text="{Binding AutoExpandedPanelTitle}" />
+            VerticalAlignment="Center" Classes="SectionTitle" Text="{Binding AutoExpandedPanelTitle}" />
         </StackPanel>
         <StackPanel
           Grid.Column="2"

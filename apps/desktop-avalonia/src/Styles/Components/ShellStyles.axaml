@@ -97,7 +97,6 @@
     <Setter Property="Height" Value="6" />
     <Setter Property="CornerRadius" Value="999" />
     <Setter Property="Background" Value="{DynamicResource MutedColor}" />
-    <Setter Property="Opacity" Value="0.7" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
@@ -166,7 +165,12 @@
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem TextBlock.ShellStatusLabel,                      Button.ShellStatusItem:pointerover TextBlock.ShellStatusLabel,                      Button.ShellStatusItem:pressed TextBlock.ShellStatusLabel,                      Button.ShellStatusItem.active TextBlock.ShellStatusLabel,                      Button.ShellStatusItem.active:pointerover TextBlock.ShellStatusLabel,                      Button.ShellStatusItem.active:pressed TextBlock.ShellStatusLabel">
+  <Style Selector="Border.ShellStatusBar TextBlock.Caption.Muted">
+    <Setter Property="FontSize" Value="{DynamicResource ShellStatusLabelSize}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.ShellStatusItem TextBlock.Caption.Muted,                      Button.ShellStatusItem:pointerover TextBlock.Caption.Muted,                      Button.ShellStatusItem:pressed TextBlock.Caption.Muted,                      Button.ShellStatusItem.active TextBlock.Caption.Muted,                      Button.ShellStatusItem.active:pointerover TextBlock.Caption.Muted,                      Button.ShellStatusItem.active:pressed TextBlock.Caption.Muted">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 

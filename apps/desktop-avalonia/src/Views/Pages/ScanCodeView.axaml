@@ -45,7 +45,7 @@
             <TextBlock
               Grid.Column="1"
               VerticalAlignment="Center"
-              Classes="SectionHint"
+              Classes="Caption Muted"
               Text="先选药品与规格，再在下方选择录入方式" />
           </Grid>
 
@@ -67,11 +67,10 @@
                     Width="{DynamicResource IconSizeSmall}"
                     Height="{DynamicResource IconSizeSmall}"
                     VerticalAlignment="Center"
-                    Kind="Pill"
-                    Opacity="{StaticResource SectionHintOpacity}" />
+                    Kind="Pill" Foreground="{DynamicResource MutedColor}" />
                   <TextBlock
                     Grid.Column="1"
-                    Classes="FilterLabel"
+                    Classes="Caption Muted"
                     Text="药品" />
                   <Button
                     Grid.Column="2"
@@ -116,7 +115,7 @@
                     Width="{DynamicResource IconSizeSmall}"
                     Height="{DynamicResource IconSizeSmall}"
                     Kind="SlidersHorizontal" />
-                  <TextBlock Classes="FilterLabel" Text="规格" />
+                  <TextBlock Classes="Caption Muted" Text="规格" />
                 </StackPanel>
                 <Grid Grid.Row="1" VerticalAlignment="Bottom">
                   <controls:FilterFieldInput>
@@ -151,7 +150,7 @@
                     Width="{DynamicResource IconSizeSmall}"
                     Height="{DynamicResource IconSizeSmall}"
                     Kind="PillBottle" />
-                  <TextBlock Classes="FilterLabel" Text="单条数量" />
+                  <TextBlock Classes="Caption Muted" Text="单条数量" />
                 </StackPanel>
                 <Grid Grid.Row="1" VerticalAlignment="Bottom">
                   <controls:FilterFieldInput>
@@ -190,7 +189,7 @@
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Classes="SectionHint"
+                  Classes="Caption Muted"
                   Text="{Binding Status}"
                   TextAlignment="Center"
                   TextTrimming="None"
@@ -227,7 +226,7 @@
                     Width="{DynamicResource IconSizeDefault}"
                     Height="{DynamicResource IconSizeDefault}"
                     Kind="Clipboard" />
-                  <TextBlock Classes="SectionHint" Text="左侧录入追溯码，右侧实时预览；有效条码为绿色，其余标注具体原因" />
+                  <TextBlock Classes="Caption Muted" Text="左侧录入追溯码，右侧实时预览；有效条码为绿色，其余标注具体原因" />
                 </StackPanel>
               </shad:Card>
 
@@ -243,9 +242,8 @@
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeSmall}"
                       Height="{DynamicResource IconSizeSmall}"
-                      Kind="Keyboard"
-                      Opacity="{StaticResource SectionHintOpacity}" />
-                    <TextBlock Classes="FilterLabel" Text="录入追溯码区域" />
+                      Kind="Keyboard" Foreground="{DynamicResource MutedColor}" />
+                    <TextBlock Classes="Caption Muted" Text="录入追溯码区域" />
                   </StackPanel>
                   <Grid Grid.Row="1">
                     <TextBox
@@ -271,9 +269,8 @@
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeSmall}"
                       Height="{DynamicResource IconSizeSmall}"
-                      Kind="ListChecks"
-                      Opacity="{StaticResource SectionHintOpacity}" />
-                    <TextBlock Classes="FilterLabel" Text="预览区域" />
+                      Kind="ListChecks" Foreground="{DynamicResource MutedColor}" />
+                    <TextBlock Classes="Caption Muted" Text="预览区域" />
                   </StackPanel>
                   <shad:Card
                     Grid.Row="1"
@@ -315,7 +312,7 @@
                                   Grid.Column="1"
                                   Height="{DynamicResource TraceCodeLineHeight}"
                                   VerticalAlignment="Top"
-                                  Classes="TraceCodeStatusHint"
+                                  Classes="Caption Muted TraceCodeStatusHint"
                                   Classes.Duplicate="{Binding IsDuplicate}"
                                   Classes.Invalid="{Binding IsInvalid}"
                                   IsVisible="{Binding ShowStatusHint}"
@@ -345,7 +342,7 @@
                       Height="{DynamicResource IconSizeDefault}"
                       Foreground="{StaticResource BrushDone}"
                       Kind="CircleCheck" />
-                    <TextBlock Opacity="0.8" Text="有效条码数" />
+                    <TextBlock Classes="Caption Muted" Text="有效条码数" />
                     <TextBlock
                       FontWeight="Bold"
                       Foreground="{StaticResource BrushDone}"
@@ -363,7 +360,7 @@
                       Height="{DynamicResource IconSizeDefault}"
                       Foreground="{StaticResource BrushWarning}"
                       Kind="CopyPlus" />
-                    <TextBlock Opacity="0.8" Text="重复数" />
+                    <TextBlock Classes="Caption Muted" Text="重复数" />
                     <TextBlock
                       FontWeight="Bold"
                       Foreground="{StaticResource BrushWarning}"
@@ -381,7 +378,7 @@
                       Height="{DynamicResource IconSizeDefault}"
                       Foreground="{StaticResource BrushWarning}"
                       Kind="Ban" />
-                    <TextBlock Opacity="0.8" Text="跳过入库" />
+                    <TextBlock Classes="Caption Muted" Text="跳过入库" />
                     <TextBlock
                       FontWeight="Bold"
                       Foreground="{StaticResource BrushWarning}"
@@ -399,7 +396,7 @@
                       Height="{DynamicResource IconSizeDefault}"
                       Foreground="{StaticResource BrushDanger}"
                       Kind="CircleAlert" />
-                    <TextBlock Opacity="0.8" Text="无效数" />
+                    <TextBlock Classes="Caption Muted" Text="无效数" />
                     <TextBlock
                       FontWeight="Bold"
                       Foreground="{StaticResource BrushDanger}"
@@ -416,7 +413,7 @@
                       Width="{DynamicResource IconSizeDefault}"
                       Height="{DynamicResource IconSizeDefault}"
                       Kind="ListOrdered" />
-                    <TextBlock Opacity="0.8" Text="总数" />
+                    <TextBlock Classes="Caption Muted" Text="总数" />
                     <TextBlock FontWeight="Bold" Text="{Binding TotalCodeCount}" />
                   </StackPanel>
                 </shad:Card>
@@ -487,7 +484,7 @@
                     Width="{DynamicResource IconSizeDefault}"
                     Height="{DynamicResource IconSizeDefault}"
                     Kind="Lightbulb" />
-                  <TextBlock Classes="SectionHint" Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路" />
+                  <TextBlock Classes="Caption Muted" Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路" />
                 </StackPanel>
               </shad:Card>
 
@@ -510,8 +507,7 @@
                       Kind="Power" />
                     <TextBlock
                       Grid.Column="1"
-                      VerticalAlignment="Center"
-                      Opacity="0.82"
+                      VerticalAlignment="Center" Classes="Caption Muted"
                       Text="自动拉取开关" />
                     <ToggleSwitch
                       Grid.Column="2"
@@ -578,7 +574,7 @@
                     <TextBlock
                       Grid.Column="1"
                       VerticalAlignment="Center"
-                      Classes="SectionHint"
+                      Classes="Caption Muted"
                       Text="{Binding AutoFetchStatus}"
                       TextAlignment="Center"
                       TextTrimming="None"
@@ -779,7 +775,7 @@
                     VerticalAlignment="Center"
                     Background="{Binding IsAutoFetchRunning, Converter={StaticResource BoolToDoneDangerBrush}}"
                     CornerRadius="999" />
-                  <TextBlock Opacity="{StaticResource SectionHintOpacity}" Text="运行状态：" />
+                  <TextBlock Classes="Caption Muted" Text="运行状态：" />
                   <TextBlock
                     FontWeight="SemiBold"
                     IsVisible="{Binding IsAutoFetchRunning}"

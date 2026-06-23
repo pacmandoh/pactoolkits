@@ -33,7 +33,7 @@
             VerticalAlignment="Center"
             Spacing="2">
             <TextBlock Classes="SectionTitle" Text="自动化套件" />
-            <TextBlock Classes="SectionHint" Text="pactoolkits-injector 与自动化运行参数配置" />
+            <TextBlock Classes="Caption Muted" Text="pactoolkits-injector 与自动化运行参数配置" />
           </StackPanel>
 
           <StackPanel
@@ -86,8 +86,7 @@
               Kind="Power" />
             <TextBlock
               Grid.Column="1"
-              VerticalAlignment="Center"
-              Opacity="0.82"
+              VerticalAlignment="Center" Classes="Caption Muted"
               Text="工具开关" />
             <ToggleSwitch
               Grid.Column="2"
@@ -180,7 +179,7 @@
             <TextBlock
               Grid.Column="1"
               VerticalAlignment="Center"
-              Classes="SectionHint"
+              Classes="Caption Muted"
               Text="{Binding AhkStatusDetail}"
               TextAlignment="Center"
               TextTrimming="None"
@@ -288,7 +287,7 @@
                           TextSize="11" />
                       </StackPanel>
                       <TextBlock
-                        Classes="SectionHint"
+                        Classes="Caption Muted"
                         Text="控制 Agent 连接 PostgreSQL 时是否启用 SSL"
                         TextWrapping="Wrap" />
                     </StackPanel>
@@ -323,7 +322,7 @@
                       <Grid Classes="ToolbarPairRow" ColumnDefinitions="*,Auto">
                         <TextBlock
                           VerticalAlignment="Center"
-                          Classes="SectionHint"
+                          Classes="Caption Muted"
                           Text="每个进程一行" />
                         <Button
                           Grid.Column="1"
@@ -534,7 +533,7 @@
                           TextSize="11" />
                       </StackPanel>
                       <TextBlock
-                        Classes="SectionHint"
+                        Classes="Caption Muted"
                         Text="开启后 Agent 从数据库任务队列取单注入，关闭则走普通住院/门诊流程"
                         TextWrapping="Wrap" />
                     </StackPanel>
@@ -557,7 +556,7 @@
                         UseFloatingPlaceholder="False" />
                       <TextBlock
                         HorizontalAlignment="Stretch"
-                        Classes="SectionHint"
+                        Classes="Caption Muted"
                         Text="用于识别单据，按 agent 别名表达式填写，默认：单据号||当前编号"
                         TextWrapping="Wrap" />
                     </StackPanel>
@@ -590,7 +589,7 @@
                         ColumnDefinitions="*,Auto">
                         <TextBlock
                           VerticalAlignment="Center"
-                          Classes="SectionHint"
+                          Classes="Caption Muted"
                           Text="若表头命中任一列名，则判定为住院；均未命中则判定为仓库（默认：患者姓名、应扫次数）"
                           TextWrapping="Wrap" />
                         <Button
@@ -661,7 +660,7 @@
                         ColumnDefinitions="*,Auto">
                         <TextBlock
                           VerticalAlignment="Center"
-                          Classes="SectionHint"
+                          Classes="Caption Muted"
                           Text="每条规则一行" />
                         <Button
                           Grid.Column="1"
@@ -723,7 +722,7 @@
                         ColumnDefinitions="*,Auto">
                         <TextBlock
                           VerticalAlignment="Center"
-                          Classes="SectionHint"
+                          Classes="Caption Muted"
                           Text="每个字段一行" />
                         <Button
                           Grid.Column="1"
@@ -789,7 +788,7 @@
               Classes="FormLabelReadonlyRow"
               ColumnDefinitions="130,*">
 
-              <TextBlock Opacity="{StaticResource SectionHintOpacity}" Text="程序版本" />
+              <TextBlock Classes="Caption Muted" Text="程序版本" />
               <TextBlock Grid.Column="1" Text="{Binding ProgramVersionText}" />
             </Grid>
 
@@ -798,7 +797,7 @@
               Classes="FormLabelReadonlyRow"
               ColumnDefinitions="130,*">
 
-              <TextBlock Opacity="{StaticResource SectionHintOpacity}" Text="工具版本" />
+              <TextBlock Classes="Caption Muted" Text="工具版本" />
               <TextBlock Grid.Column="1" Text="{Binding AhkVersionText}" />
             </Grid>
 
@@ -807,7 +806,7 @@
               Classes="FormLabelReadonlyRow"
               ColumnDefinitions="130,*">
 
-              <TextBlock Opacity="{StaticResource SectionHintOpacity}" Text="最近拉起" />
+              <TextBlock Classes="Caption Muted" Text="最近拉起" />
               <TextBlock Grid.Column="1" Text="{Binding LastLaunchText}" />
             </Grid>
 
@@ -816,7 +815,7 @@
               Classes="FormLabelReadonlyRow"
               ColumnDefinitions="130,*">
 
-              <TextBlock Opacity="{StaticResource SectionHintOpacity}" Text="最近错误" />
+              <TextBlock Classes="Caption Muted" Text="最近错误" />
               <TextBlock
                 Grid.Column="1"
                 Text="{Binding LastErrorText}"
