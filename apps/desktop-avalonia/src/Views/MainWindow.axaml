@@ -87,29 +87,30 @@
             VerticalAlignment="Center"
             Background="{DynamicResource BorderColor}" />
 
-          <Button Classes="WindowControlsButton" Command="{Binding TryReconnectDbCommand}">
+          <Button
+            Classes="WindowControlsButton"
+            Command="{Binding TryReconnectDbCommand}"
+            shad:ButtonAssist.ShowProgress="{Binding IsDbProbeRunning}">
             <Panel>
-              <controls:BusyCircle
-                Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                DotBrush="{DynamicResource ForegroundColor}"
-                IsVisible="{Binding ShowDbBusyIcon}" />
               <icons:AppIcon
                 Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
                 Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
                 Foreground="{DynamicResource BrushDone}"
-                IsVisible="{Binding ShowDbConnectedIcon}"
+                IsVisible="{Binding IsDbConnected}"
                 Kind="Link" />
               <icons:AppIcon
                 Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
                 Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
                 Foreground="{DynamicResource BrushDanger}"
-                IsVisible="{Binding ShowDbDisconnectedIcon}"
+                IsVisible="{Binding !IsDbConnected}"
                 Kind="Unlink" />
             </Panel>
           </Button>
 
-          <Button Classes="WindowControlsButton" Command="{Binding StartOrRestartAhkCommand}">
+          <Button
+            Classes="WindowControlsButton"
+            Command="{Binding StartOrRestartAhkCommand}"
+            shad:ButtonAssist.ShowProgress="{Binding IsAhkActionRunning}">
             <Panel>
               <icons:AppIcon
                 Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
@@ -168,7 +169,6 @@
       BorderThickness="0,0,1,0"
       CurrentRoute="{Binding ActivePageRoute}"
       Expanded="{Binding IsSidebarExpanded, Mode=TwoWay}"
-      IsEnabled="{Binding !IsDbProbeRunning}"
       ItemIconContentSpacing="12"
       MinWidth="56"
       Width="255">
@@ -558,37 +558,38 @@
           HorizontalScrollBarVisibility="Auto"
           VerticalScrollBarVisibility="Disabled">
           <StackPanel Orientation="Horizontal" Spacing="0">
-            <Button Classes="ShellStatusItem ShellStatusDbItem" Command="{Binding TryReconnectDbCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+            <Button
+              Classes="ShellStatusItem ShellStatusDbItem"
+              Command="{Binding TryReconnectDbCommand}"
+              shad:ButtonAssist.ShowProgress="{Binding IsDbProbeRunning}">
+              <shad:ButtonAssist.Icon>
                 <Panel
                   Width="{DynamicResource IconSizeSmall}"
                   Height="{DynamicResource IconSizeSmall}"
                   VerticalAlignment="Center">
-                  <controls:BusyCircle
-                    Width="{DynamicResource IconSizeSmall}"
-                    Height="{DynamicResource IconSizeSmall}"
-                    DotBrush="{DynamicResource ForegroundColor}"
-                    IsVisible="{Binding ShowDbBusyIcon}" />
                   <icons:AppIcon
                     Foreground="{DynamicResource BrushDone}"
-                    IsVisible="{Binding ShowDbConnectedIcon}"
+                    IsVisible="{Binding IsDbConnected}"
                     Kind="Database" />
                   <icons:AppIcon
                     Foreground="{DynamicResource BrushDanger}"
-                    IsVisible="{Binding ShowDbDisconnectedIcon}"
+                    IsVisible="{Binding !IsDbConnected}"
                     Kind="Database" />
                 </Panel>
-                <TextBlock Classes="Caption Muted" Text="{Binding ShellDatabaseItemText}" />
-              </StackPanel>
+              </shad:ButtonAssist.Icon>
+              <TextBlock Classes="Caption Muted" Text="{Binding ShellDatabaseItemText}" />
             </Button>
 
             <Border Classes="ShellStatusDivider" />
 
-            <Button Classes="ShellStatusItem ShellStatusAgentItem" Command="{Binding StartOrRestartAhkCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+            <Button
+              Classes="ShellStatusItem ShellStatusAgentItem"
+              Command="{Binding StartOrRestartAhkCommand}"
+              shad:ButtonAssist.ShowProgress="{Binding IsAhkActionRunning}">
+              <shad:ButtonAssist.Icon>
                 <icons:AppIcon Foreground="{Binding IsAhkRunning, Converter={StaticResource BoolToDoneDangerBrush}}" Kind="Syringe" />
-                <TextBlock Classes="Caption Muted" Text="{Binding ShellAgentItemText}" />
-              </StackPanel>
+              </shad:ButtonAssist.Icon>
+              <TextBlock Classes="Caption Muted" Text="{Binding ShellAgentItemText}" />
             </Button>
 
             <Border Classes="ShellStatusDivider" />
@@ -633,28 +634,14 @@
           <Border Classes="ShellStatusDivider" IsVisible="{Binding HasUpdateAvailable}" />
 
           <Button Classes="ShellStatusItem" IsEnabled="False">
-            <Panel>
-              <StackPanel
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeMini}"
+                Height="{DynamicResource IconSizeMini}"
                 IsVisible="{Binding !IsUpdateChecking}"
-                Orientation="Horizontal"
-                Spacing="{DynamicResource SpacingInlineSm}">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeMini}"
-                  Height="{DynamicResource IconSizeMini}"
-                  Kind="Tag" />
-                <TextBlock Classes="Caption Muted" Text="{Binding ShellVersionText}" />
-              </StackPanel>
-              <StackPanel
-                IsVisible="{Binding IsUpdateChecking}"
-                Orientation="Horizontal"
-                Spacing="{DynamicResource SpacingInlineSm}">
-                <controls:BusyCircle
-                  Width="{DynamicResource IconSizeSmall}"
-                  Height="{DynamicResource IconSizeSmall}"
-                  DotBrush="{DynamicResource ForegroundColor}" />
-                <TextBlock Classes="Caption Muted" Text="检查更新…" />
-              </StackPanel>
-            </Panel>
+                Kind="Tag" />
+              <TextBlock Classes="Caption Muted" Text="{Binding ShellVersionBarText}" />
+            </StackPanel>
           </Button>
 
           <Border Classes="ShellStatusDivider" />

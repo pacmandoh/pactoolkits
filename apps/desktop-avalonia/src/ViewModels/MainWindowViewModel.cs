@@ -209,6 +209,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    public string ShellVersionBarText
+        => IsUpdateChecking ? "检查更新…" : ShellVersionText;
+
     public bool ShowShellConnectivityBanner { get; private set; }
     public string ShellConnectivityBannerTitle { get; private set; } = string.Empty;
     public string ShellConnectivityBannerMessage { get; private set; } = string.Empty;
@@ -217,9 +220,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool ShellConnectivityBannerIsWarning { get; private set; }
     public bool ShellConnectivityBannerIsInfo { get; private set; }
 
-    public bool ShowDbBusyIcon => IsDbProbeRunning;
-    public bool ShowDbConnectedIcon => IsDbConnected && !IsDbProbeRunning;
-    public bool ShowDbDisconnectedIcon => !IsDbConnected && !IsDbProbeRunning;
     public bool IsSettingsPageActive => ActivePage is ISettingsPage;
     public bool IsAboutPageActive => ActivePage is IAboutPage;
 
@@ -243,6 +243,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     partial void OnCurrentProductVersionChanged(string value)
     {
         OnPropertyChanged(nameof(ShellVersionText));
+        OnPropertyChanged(nameof(ShellVersionBarText));
+    }
+
+    partial void OnIsUpdateCheckingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShellVersionBarText));
     }
 
     private void MarkDbConnectivityKnown()
@@ -260,8 +266,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsDbConnected));
         OnPropertyChanged(nameof(DbStatusText));
         OnPropertyChanged(nameof(ShellDatabaseItemText));
-        OnPropertyChanged(nameof(ShowDbConnectedIcon));
-        OnPropertyChanged(nameof(ShowDbDisconnectedIcon));
         RaiseShellConnectivityChanged();
     }
 
@@ -273,6 +277,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShowShellAccessGuardItem));
         OnPropertyChanged(nameof(ShellAccessGuardItemText));
         OnPropertyChanged(nameof(ShellVersionText));
+        OnPropertyChanged(nameof(ShellVersionBarText));
     }
 
     private void RaiseShellConnectivityChanged()
@@ -371,10 +376,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     partial void OnIsDbProbeRunningChanged(bool value)
     {
         TryReconnectDbCommand.NotifyCanExecuteChanged();
-        OnPropertyChanged(nameof(ShowDbBusyIcon));
-        OnPropertyChanged(nameof(ShowDbConnectedIcon));
-        OnPropertyChanged(nameof(ShowDbDisconnectedIcon));
         OnPropertyChanged(nameof(ShellDatabaseItemText));
+    }
+
+    partial void OnIsAhkActionRunningChanged(bool value)
+    {
+        StartOrRestartAhkCommand.NotifyCanExecuteChanged();
     }
 
     private void RaiseAhkStateChanged()
