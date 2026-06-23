@@ -1,16 +1,10 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <FontFamily x:Key="StatusPillFontFamily">avares://pactoolkits-desktop/Assets/Fonts#Quicksand</FontFamily>
+  <FontFamily x:Key="ShadBodyFontFamily">avares://pactoolkits-desktop/Assets/Fonts#Manrope</FontFamily>
+
   <x:Double x:Key="SectionTitleSize">16</x:Double>
-  <x:Double x:Key="SectionHintSize">12</x:Double>
-  <x:Double x:Key="SectionHintOpacity">0.75</x:Double>
-
-  <x:Double x:Key="EmptyStateTitleSize">14</x:Double>
-  <x:Double x:Key="DgIndexFontSize">10</x:Double>
-
   <x:Double x:Key="DialogTitleSize">17</x:Double>
   <x:Double x:Key="DialogTitleSizeLg">18</x:Double>
-  <x:Double x:Key="AboutAuthorSize">16</x:Double>
-  <x:Double x:Key="AboutTechTitleSize">16</x:Double>
-  <x:Double x:Key="AboutStatSize">18</x:Double>
   <x:Double x:Key="AboutSubtitleSize">15</x:Double>
   <x:Double x:Key="ShellTitleSize">14</x:Double>
 </ResourceDictionary>
