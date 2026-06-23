@@ -235,7 +235,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [RelayCommand(CanExecute = nameof(CanRequestUnlockCore))]
     private async Task RequestUnlockAsync()
     {
-        await EnsureUnlockedAsync("库存编辑与药品纠错");
+        await RequireUnlockAsync("库存编辑与药品纠错");
     }
 
     private bool CanLockOperationsCore()
@@ -303,7 +303,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        if (!await EnsureUnlockedAsync("库存明细编辑"))
+        if (!await RequireUnlockAsync("库存明细编辑"))
         {
             return;
         }
@@ -351,7 +351,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     private async Task ToggleReassignPanelInnerAsync()
     {
-        if (!IsReassignPanelVisible && !await EnsureUnlockedAsync("药品纠错"))
+        if (!IsReassignPanelVisible && !await RequireUnlockAsync("药品纠错"))
         {
             return;
         }
@@ -546,7 +546,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        if (!await EnsureUnlockedAsync("药品纠错提交"))
+        if (!await RequireUnlockAsync("药品纠错提交"))
         {
             return;
         }
@@ -726,7 +726,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        if (!await EnsureUnlockedAsync("库存明细删除"))
+        if (!await RequireUnlockAsync("库存明细删除"))
         {
             return;
         }
@@ -866,10 +866,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private int StockEditCount
         => _pendingStockEdits.Count;
 
-    private async Task<bool> EnsureUnlockedAsync(string scene)
+    private async Task<bool> RequireUnlockAsync(string scene)
     {
         var hint = "敏感操作提示：验证仅在本地进行，不会上传密码\n请输入数据库密码以解锁库存敏感操作";
-        var ok = await _unlockService.EnsureUnlockedAsync(
+        var ok = await _unlockService.RequireUnlockAsync(
             UnlockScopeKey,
             scene,
             "身份验证",

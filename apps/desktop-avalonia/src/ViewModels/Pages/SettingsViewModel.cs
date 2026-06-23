@@ -233,7 +233,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         RefreshMsfxApiHint(options);
     }
 
-    public Task RefreshDbSchemaStatusFromHostAsync(string source = "startup_postcheck")
+    public Task RefreshSchemaStatusAsync(string source = "startup_postcheck")
         => RefreshDbSchemaStatusAsync(source, manualProbe: false);
 
     public void ResetDraftFromCurrent()
@@ -399,7 +399,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         UpdateFeedUrl = options.FeedUrl;
         UpdatePollIntervalMinutes = options.AutoCheckIntervalMinutes;
         IgnoredProductVersion = options.IgnoredVersion;
-        RefreshUpdatePollIntervalHint();
+        SyncPollHint();
 
         SyncUpdateState();
 
@@ -472,12 +472,12 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     }
 
     partial void OnUpdateChannelChanged(string value)
-        => RefreshUpdatePollIntervalHint();
+        => SyncPollHint();
 
     partial void OnUpdatePollIntervalMinutesChanged(int value)
-        => RefreshUpdatePollIntervalHint();
+        => SyncPollHint();
 
-    private void RefreshUpdatePollIntervalHint()
+    private void SyncPollHint()
     {
         var channel = (UpdateChannel ?? string.Empty).Trim();
         var defaultMinutes = string.Equals(channel, "stable", StringComparison.OrdinalIgnoreCase) ? 30 : 10;

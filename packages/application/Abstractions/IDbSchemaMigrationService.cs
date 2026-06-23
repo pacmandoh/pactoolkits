@@ -11,9 +11,9 @@ public interface IDbSchemaMigrationService
         CancellationToken ct,
         string? targetVersion = null);
 
-    Task<DbSchemaMigrationResult> EnsureUpToDateAsync(CancellationToken ct, string? targetVersion = null);
+    Task<DbSchemaMigrationResult> MigrateUpToDateAsync(CancellationToken ct, string? targetVersion = null);
 
-    Task<DbSchemaMigrationResult> EnsureUpToDateAsync(
+    Task<DbSchemaMigrationResult> MigrateUpToDateAsync(
         PgOptions options,
         CancellationToken ct,
         string? targetVersion = null);

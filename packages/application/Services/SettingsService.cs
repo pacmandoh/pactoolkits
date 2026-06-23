@@ -13,14 +13,14 @@ public interface ISettingsService
         DbSchemaVersionContext schemaContext,
         CancellationToken ct);
 
-    Task<(bool Ok, string Summary)> EnsureSchemaUpToDateAsync(
+    Task<(bool Ok, string Summary)> MigrateSchemaAsync(
         DbSchemaVersionContext schemaContext,
         DbMigrationTrigger trigger,
         bool userConfirmed = false,
         bool ciMigrationAuthorized = false,
         CancellationToken ct = default);
 
-    Task<(bool Ok, string Summary)> EnsureSchemaUpToDateAsync(
+    Task<(bool Ok, string Summary)> MigrateSchemaAsync(
         DbSchemaVersionContext schemaContext,
         DbMigrationTrigger trigger,
         PgOptions connectionOptions,
@@ -156,7 +156,7 @@ public sealed class SettingsService : ISettingsService
             }
         }
 
-        var migration = await EnsureSchemaUpToDateCoreAsync(
+        var migration = await MigrateSchemaCoreAsync(
             schemaContext,
             DbMigrationTrigger.SettingsManual,
             userConfirmed: false,
@@ -184,13 +184,13 @@ public sealed class SettingsService : ISettingsService
             IncompatibleMessage: compat.IncompatibleMessage);
     }
 
-    public Task<(bool Ok, string Summary)> EnsureSchemaUpToDateAsync(
+    public Task<(bool Ok, string Summary)> MigrateSchemaAsync(
         DbSchemaVersionContext schemaContext,
         DbMigrationTrigger trigger,
         bool userConfirmed = false,
         bool ciMigrationAuthorized = false,
         CancellationToken ct = default)
-        => EnsureSchemaUpToDateCoreAsync(
+        => MigrateSchemaCoreAsync(
             schemaContext,
             trigger,
             userConfirmed,
@@ -198,14 +198,14 @@ public sealed class SettingsService : ISettingsService
             connectionOptions: null,
             ct);
 
-    public Task<(bool Ok, string Summary)> EnsureSchemaUpToDateAsync(
+    public Task<(bool Ok, string Summary)> MigrateSchemaAsync(
         DbSchemaVersionContext schemaContext,
         DbMigrationTrigger trigger,
         PgOptions connectionOptions,
         bool userConfirmed = false,
         bool ciMigrationAuthorized = false,
         CancellationToken ct = default)
-        => EnsureSchemaUpToDateCoreAsync(
+        => MigrateSchemaCoreAsync(
             schemaContext,
             trigger,
             userConfirmed,
@@ -221,7 +221,7 @@ public sealed class SettingsService : ISettingsService
             ? _schemaMigration.GetPlanAsync(ct, schemaContext.TargetDbSchemaVersion)
             : _schemaMigration.GetPlanAsync(connectionOptions, ct, schemaContext.TargetDbSchemaVersion);
 
-    private async Task<(bool Ok, string Summary)> EnsureSchemaUpToDateCoreAsync(
+    private async Task<(bool Ok, string Summary)> MigrateSchemaCoreAsync(
         DbSchemaVersionContext schemaContext,
         DbMigrationTrigger trigger,
         bool userConfirmed,
@@ -260,8 +260,8 @@ public sealed class SettingsService : ISettingsService
         }
 
         var migration = connectionOptions is null
-            ? await _schemaMigration.EnsureUpToDateAsync(ct, schemaContext.TargetDbSchemaVersion).ConfigureAwait(false)
-            : await _schemaMigration.EnsureUpToDateAsync(connectionOptions, ct, schemaContext.TargetDbSchemaVersion).ConfigureAwait(false);
+            ? await _schemaMigration.MigrateUpToDateAsync(ct, schemaContext.TargetDbSchemaVersion).ConfigureAwait(false)
+            : await _schemaMigration.MigrateUpToDateAsync(connectionOptions, ct, schemaContext.TargetDbSchemaVersion).ConfigureAwait(false);
         var summary =
             $"before={migration.BeforeVersion ?? "unknown"} -> after={migration.AfterVersion ?? "unknown"}（applied={migration.AppliedCount}, skipped={migration.SkippedCount}）";
         return (true, summary);
@@ -271,9 +271,9 @@ public sealed class SettingsService : ISettingsService
         DbSchemaVersionContext schemaContext,
         PgOptions connectionOptions,
         CancellationToken ct)
-        => await CheckSchemaCompatibilityCoreAsync(schemaContext, connectionOptions, ct).ConfigureAwait(false);
+        => await CheckSchemaCompatAsync(schemaContext, connectionOptions, ct).ConfigureAwait(false);
 
-    private async Task<(bool Compatible, string? IncompatibleMessage)> CheckSchemaCompatibilityCoreAsync(
+    private async Task<(bool Compatible, string? IncompatibleMessage)> CheckSchemaCompatAsync(
         DbSchemaVersionContext schemaContext,
         PgOptions? connectionOptions,
         CancellationToken ct)

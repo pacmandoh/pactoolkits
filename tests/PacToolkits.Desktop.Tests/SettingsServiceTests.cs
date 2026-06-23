@@ -86,7 +86,7 @@ public sealed class SettingsServiceTests
         var migration = new FakeMigrationService();
         var service = CreateService(migration, new DbAccessGuard(), schemaVersion: "1.2.20");
 
-        var result = await service.EnsureSchemaUpToDateAsync(
+        var result = await service.MigrateSchemaAsync(
             new DbSchemaVersionContext(
                 UiMinDbSchema: "1.2.21",
                 UiMaxDbSchema: "1.2.22",
@@ -184,7 +184,7 @@ public sealed class SettingsServiceTests
                 "schema_version 表不存在",
                 IsMetadataMissing: true));
 
-        var result = await service.EnsureSchemaUpToDateAsync(
+        var result = await service.MigrateSchemaAsync(
             new DbSchemaVersionContext(
                 UiMinDbSchema: "1.2.20",
                 UiMaxDbSchema: "1.2.22",
@@ -334,7 +334,7 @@ public sealed class SettingsServiceTests
             return Task.FromResult(CreatePlan(targetVersion));
         }
 
-        public Task<DbSchemaMigrationResult> EnsureUpToDateAsync(
+        public Task<DbSchemaMigrationResult> MigrateUpToDateAsync(
             CancellationToken ct,
             string? targetVersion = null)
         {
@@ -346,7 +346,7 @@ public sealed class SettingsServiceTests
                 SkippedCount: 0));
         }
 
-        public Task<DbSchemaMigrationResult> EnsureUpToDateAsync(
+        public Task<DbSchemaMigrationResult> MigrateUpToDateAsync(
             PgOptions options,
             CancellationToken ct,
             string? targetVersion = null)

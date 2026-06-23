@@ -114,7 +114,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         try
         {
             await _settings.SaveDbConfigAsync(ToOptions(), _pageWorkCts.Token);
-            if (!await EnsureDbSchemaUpToDateAsync())
+            if (!await MigrateDbSchemaAsync())
             {
                 Status = "配置已保存，但迁移失败，当前不可用";
                 IsDbConnected = false;
@@ -122,7 +122,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 _toast.Warn("数据库配置", "配置已保存，但迁移失败，当前不可用");
                 return;
             }
-            if (!await EnsureDbSchemaCompatibleAsync())
+            if (!await CheckDbSchemaAsync())
             {
                 Status = "配置已保存，但数据库版本不兼容，当前不可用";
                 IsDbConnected = false;
@@ -225,11 +225,11 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 return;
             }
 
-            await EnsureDbSchemaUpToDateAsync(options, userConfirmed: true);
+            await MigrateDbSchemaAsync(options, userConfirmed: true);
             return;
         }
 
-        await EnsureDbSchemaUpToDateAsync(options);
+        await MigrateDbSchemaAsync(options);
     }
 
     [RelayCommand]
