@@ -50,7 +50,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         if (!IsEditorUnlocked)
         {
             var hint = "敏感操作提示：验证仅在本地进行，不会上传密码\n请输入数据库密码以解锁药品信息编辑";
-            var unlocked = await _unlockService.EnsureUnlockedAsync(
+            var unlocked = await _unlockService.RequireUnlockAsync(
                 UnlockScopeKey,
                 "药品信息维护",
                 "身份验证",
@@ -476,7 +476,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             {
                 case 1:
                     {
-                        var ok = await SaveInternalAsync(reselectSavedRow: false, refreshAfterSave: false);
+                        var ok = await SaveRowAsync(reselectSavedRow: false, refreshAfterSave: false);
                         if (!ok)
                         {
                             RevertSelection(prev);
@@ -738,7 +738,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private async Task RequestEditorUnlockAsync()
     {
         var hint = "敏感操作提示：验证仅在本地进行，不会上传密码\n请输入数据库密码以解锁药品信息编辑";
-        await _unlockService.EnsureUnlockedAsync(
+        await _unlockService.RequireUnlockAsync(
             UnlockScopeKey,
             "药品信息维护",
             "身份验证",
@@ -829,10 +829,10 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             return;
         }
 
-        await SaveInternalAsync(reselectSavedRow: true, refreshAfterSave: false);
+        await SaveRowAsync(reselectSavedRow: true, refreshAfterSave: false);
     }
 
-    private async Task<bool> SaveInternalAsync(bool reselectSavedRow = true, bool refreshAfterSave = true)
+    private async Task<bool> SaveRowAsync(bool reselectSavedRow = true, bool refreshAfterSave = true)
     {
         IsBusy = true;
 

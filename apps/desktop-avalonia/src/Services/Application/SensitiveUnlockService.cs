@@ -96,7 +96,7 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
         }
     }
 
-    public async Task<bool> EnsureUnlockedAsync(
+    public async Task<bool> RequireUnlockAsync(
         string scopeKey,
         string scene,
         string promptTitle,
@@ -249,7 +249,7 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
     public Task<bool> RequestUnlockAsync(SensitiveOpRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return EnsureUnlockedAsync(
+        return RequireUnlockAsync(
             request.ScopeKey,
             request.Scene,
             request.PromptTitle,

@@ -14,10 +14,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task QueryUpoutAsync()
     {
         _upoutFilterDebouncer.Cancel();
-        await QueryUpoutCoreAsync(resetPage: true).ConfigureAwait(false);
+        await QueryUpoutAsync(resetPage: true).ConfigureAwait(false);
     }
 
-    private async Task QueryUpoutCoreAsync(bool resetPage)
+    private async Task QueryUpoutAsync(bool resetPage)
     {
         if (IsUpoutBusy)
         {
@@ -100,7 +100,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         UpoutPage = 1;
-        await QueryUpoutCoreAsync(resetPage: false);
+        await QueryUpoutAsync(resetPage: false);
     }
 
     [RelayCommand]
@@ -112,7 +112,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         UpoutPage -= 1;
-        await QueryUpoutCoreAsync(resetPage: false);
+        await QueryUpoutAsync(resetPage: false);
     }
 
     [RelayCommand]
@@ -124,7 +124,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         UpoutPage += 1;
-        await QueryUpoutCoreAsync(resetPage: false);
+        await QueryUpoutAsync(resetPage: false);
     }
 
     [RelayCommand]
@@ -136,7 +136,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         UpoutPage = UpoutTotalPages;
-        await QueryUpoutCoreAsync(resetPage: false);
+        await QueryUpoutAsync(resetPage: false);
     }
 
     [RelayCommand]

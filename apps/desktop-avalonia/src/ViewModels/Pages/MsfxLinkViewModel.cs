@@ -359,7 +359,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         return SelectedTabIndex switch
         {
             0 => RefreshAutoBoardAsync(),
-            1 => QueryUpoutCoreAsync(resetPage: false),
+            1 => QueryUpoutAsync(resetPage: false),
             2 => QuerySubCodesAsync(),
             _ => Task.CompletedTask
         };
