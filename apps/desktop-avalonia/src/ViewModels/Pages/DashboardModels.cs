@@ -38,7 +38,6 @@ public sealed partial class DashboardKpiModel : ObservableObject
 public sealed partial class TrendDrugItem : ObservableObject
 {
     [ObservableProperty] private int _displayIndex;
-    [ObservableProperty] private string _rank = "";
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private string _sub = "";
     [ObservableProperty] private string _sourceText = "";

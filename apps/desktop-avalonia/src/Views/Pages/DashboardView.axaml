@@ -909,10 +909,6 @@
                           VerticalScrollBarVisibility="Auto">
                           <DataGrid.Columns>
                             <DataGridTextColumn
-                              Width="70"
-                              Binding="{Binding Rank}"
-                              Header="#" />
-                            <DataGridTextColumn
                               Width="1.2*"
                               Binding="{Binding Name}"
                               Header="药品" />
@@ -927,7 +923,7 @@
                             <DataGridTextColumn
                               Width="100"
                               Binding="{Binding ValueText}"
-                              Header="值" />
+                              Header="用量" />
                           </DataGrid.Columns>
                         </DataGrid>
                       </DataTemplate>
