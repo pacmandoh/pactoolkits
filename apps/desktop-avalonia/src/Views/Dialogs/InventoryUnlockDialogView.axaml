@@ -35,14 +35,13 @@
         Text="库存操作身份验证" />
 
       <TextBlock
-        HorizontalAlignment="Center"
-        Opacity="0.8"
+        HorizontalAlignment="Center" Classes="Caption Muted"
         Text="{Binding HintMessage, ElementName=Root}"
         TextAlignment="Center"
         TextWrapping="Wrap" />
 
       <StackPanel Spacing="{DynamicResource SpacingInlineSm}">
-        <TextBlock Opacity="0.85" Text="账户名" />
+        <TextBlock Classes="Caption Muted" Text="账户名" />
         <TextBox
           Height="{StaticResource ControlHeightCompact}"
           IsEnabled="False"
@@ -50,7 +49,7 @@
       </StackPanel>
 
       <StackPanel Spacing="{DynamicResource SpacingInlineSm}">
-        <TextBlock Opacity="0.85" Text="数据库密码" />
+        <TextBlock Classes="Caption Muted" Text="数据库密码" />
         <TextBox
           x:Name="PasswordBox"
           Height="{StaticResource ControlHeightCompact}"

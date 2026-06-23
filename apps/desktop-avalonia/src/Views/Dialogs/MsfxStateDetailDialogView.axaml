@@ -30,7 +30,7 @@
           VerticalAlignment="Center"
           Spacing="2">
           <TextBlock Classes="DialogTitleLg" Text="{Binding Header}" />
-          <TextBlock Opacity="0.78" Text="{Binding SubHeader}" />
+          <TextBlock Classes="Caption Muted" Text="{Binding SubHeader}" />
         </StackPanel>
       </Grid>
 
@@ -79,7 +79,7 @@
             <DataTemplate x:DataType="dialogs:InfoDetailItem">
               <Border Padding="10,8" CornerRadius="10">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
-                  <TextBlock Opacity="0.72" Text="{Binding Label}" />
+                  <TextBlock Classes="Caption Muted" Text="{Binding Label}" />
                   <TextBlock
                     Grid.Row="1"
                     Text="{Binding Value}"

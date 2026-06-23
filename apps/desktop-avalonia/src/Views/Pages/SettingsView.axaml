@@ -76,8 +76,7 @@
           <TextBlock
             Grid.Column="1"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Opacity="0.8"
+            VerticalAlignment="Center" Classes="Caption Muted"
             Text="{Binding Status}" />
         </Grid>
 
@@ -128,7 +127,7 @@
             </Grid>
 
             <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="参数" />
+              <TextBlock Classes="SubsectionTitle" Text="参数" />
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
 
 
@@ -300,11 +299,11 @@
                       Margin="0,8,0,0"
                       Spacing="4">
                       <TextBlock
-                        Classes="SectionHint"
+                        Classes="Caption Muted"
                         Text="{Binding DbSchemaBetaConceptText}"
                         TextWrapping="Wrap" />
                       <TextBlock
-                        Classes="SectionHint"
+                        Classes="Caption Muted"
                         Text="{Binding DbSchemaPolicyText}"
                         TextWrapping="Wrap" />
                     </StackPanel>
@@ -314,13 +313,12 @@
                       ColumnDefinitions="250,*"
                       ColumnSpacing="{DynamicResource PageColumnSpacing}">
                       <StackPanel VerticalAlignment="Stretch" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="结构信息" />
+              <TextBlock Classes="SubsectionTitle" Text="结构信息" />
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                           <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                             <Grid ColumnDefinitions="90,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center"
-                                Opacity="0.85"
+                                VerticalAlignment="Center" Classes="Caption Muted"
                                 Text="最新版本" />
                               <TextBlock
                                 Grid.Column="1"
@@ -333,8 +331,7 @@
                               ColumnDefinitions="90,*"
                               ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center"
-                                Opacity="0.85"
+                                VerticalAlignment="Center" Classes="Caption Muted"
                                 Text="数据库版本" />
                               <TextBlock
                                 Grid.Column="1"
@@ -347,13 +344,12 @@
                               ColumnDefinitions="90,*"
                               ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center"
-                                Opacity="0.85"
+                                VerticalAlignment="Center" Classes="Caption Muted"
                                 Text="最低要求" />
                               <TextBlock
                                 Grid.Column="1"
                                 VerticalAlignment="Center"
-                                Classes="SectionHint"
+                                Classes="Caption Muted"
                                 Text="{Binding DbSchemaRequiredMinVersion}" />
                             </Grid>
 
@@ -362,13 +358,12 @@
                               ColumnDefinitions="90,*"
                               ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center"
-                                Opacity="0.85"
+                                VerticalAlignment="Center" Classes="Caption Muted"
                                 Text="最高支持" />
                               <TextBlock
                                 Grid.Column="1"
                                 VerticalAlignment="Center"
-                                Classes="SectionHint"
+                                Classes="Caption Muted"
                                 Text="{Binding DbSchemaRequiredMaxVersion}" />
                             </Grid>
                           </Grid>
@@ -377,13 +372,12 @@
 
                       <StackPanel Grid.Column="1"
                         VerticalAlignment="Stretch" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="运行信息" />
+              <TextBlock Classes="SubsectionTitle" Text="运行信息" />
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                           <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                             <Grid ColumnDefinitions="88,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center"
-                                Opacity="0.85"
+                                VerticalAlignment="Center" Classes="Caption Muted"
                                 Text="最近检查" />
                               <TextBlock
                                 Grid.Column="1"
@@ -395,8 +389,7 @@
                               ColumnDefinitions="88,*"
                               ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center"
-                                Opacity="0.85"
+                                VerticalAlignment="Center" Classes="Caption Muted"
                                 Text="触发来源" />
                               <TextBlock
                                 Grid.Column="1"
@@ -408,8 +401,7 @@
                               ColumnDefinitions="88,*"
                               ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center"
-                                Opacity="0.85"
+                                VerticalAlignment="Center" Classes="Caption Muted"
                                 Text="最近迁移" />
                               <TextBlock
                                 Grid.Column="1"
@@ -448,8 +440,7 @@
           <TextBlock
             Grid.Column="1"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Opacity="0.8"
+            VerticalAlignment="Center" Classes="Caption Muted"
             Text="{Binding ClientAliasHint}" />
         </Grid>
 
@@ -519,7 +510,7 @@
 
 
             <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="参数" />
+              <TextBlock Classes="SubsectionTitle" Text="参数" />
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
 
 
@@ -528,13 +519,11 @@
 
                   <Grid ColumnDefinitions="260,280,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
                     <TextBlock
-                      VerticalAlignment="Center"
-                      Opacity="0.8"
+                      VerticalAlignment="Center" Classes="Caption Muted"
                       Text="机器标识" />
                     <TextBlock
                       Grid.Column="1"
-                      VerticalAlignment="Center"
-                      Opacity="0.8"
+                      VerticalAlignment="Center" Classes="Caption Muted"
                       Text="别名" />
                   </Grid>
 
@@ -614,7 +603,7 @@
                       RowDefinitions="Auto,*">
                       <TextBlock
                         Margin="{DynamicResource MarginBottomLg}"
-                        Classes="SectionHint"
+                        Classes="Caption Muted"
                         Text="（此区域暂留模版）" />
 
 
@@ -646,8 +635,7 @@
           <TextBlock
             Grid.Column="1"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Opacity="0.8"
+            VerticalAlignment="Center" Classes="Caption Muted"
             Text="{Binding TraceCodeRuleHint}" />
         </Grid>
 
@@ -681,7 +669,7 @@
             </Grid>
 
             <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="参数" />
+              <TextBlock Classes="SubsectionTitle" Text="参数" />
               <Grid
                 ColumnDefinitions="140,1.15*,1.85*"
                 ColumnSpacing="{DynamicResource FormColumnSpacing}"
@@ -714,7 +702,7 @@
                   Grid.Row="1"
                   Grid.Column="2"
                   VerticalAlignment="Center"
-                  Classes="SectionHint"
+                  Classes="Caption Muted"
                   Text="示例：^8\\d+$ （以 8 开头的全数字）" />
               </Grid>
             </StackPanel>
@@ -751,7 +739,7 @@
             </Grid>
 
             <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="参数" />
+              <TextBlock Classes="SubsectionTitle" Text="参数" />
               <Grid
                 ColumnDefinitions="220,*"
                 ColumnSpacing="{DynamicResource FormColumnSpacing}"
@@ -784,8 +772,7 @@
           <TextBlock
             Grid.Column="1"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Opacity="0.8"
+            VerticalAlignment="Center" Classes="Caption Muted"
             Text="{Binding UpdateStatusHint}" />
         </Grid>
 
@@ -859,7 +846,7 @@
             </Grid>
 
             <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="参数" />
+              <TextBlock Classes="SubsectionTitle" Text="参数" />
               <Grid
                 ColumnDefinitions="170,1.1*,1.9*"
                 ColumnSpacing="{DynamicResource FormColumnSpacing}"
@@ -907,7 +894,7 @@
                   Grid.Row="2"
                   Grid.Column="2"
                   VerticalAlignment="Center"
-                  Classes="SectionHint"
+                  Classes="Caption Muted"
                   Text="{Binding UpdateChannelSwitchHint}"
                   TextWrapping="Wrap" />
 
@@ -945,8 +932,7 @@
                     Value="{Binding UpdatePollIntervalMinutes}" />
                   <TextBlock
                     Grid.Column="1"
-                    VerticalAlignment="Center"
-                    Opacity="0.8"
+                    VerticalAlignment="Center" Classes="Caption Muted"
                     Text="{Binding UpdatePollIntervalHint}"
                     TextWrapping="NoWrap" />
                 </Grid>
@@ -996,8 +982,7 @@
           <TextBlock
             Grid.Column="1"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Opacity="0.8"
+            VerticalAlignment="Center" Classes="Caption Muted"
             Text="{Binding LoggingStatusHint}" />
         </Grid>
 
@@ -1051,7 +1036,7 @@
             </Grid>
 
             <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="参数" />
+              <TextBlock Classes="SubsectionTitle" Text="参数" />
               <Grid
                 ColumnDefinitions="170,1.1*,1.9*"
                 ColumnSpacing="{DynamicResource FormColumnSpacing}"
@@ -1087,7 +1072,7 @@
                     Kind="ShieldHalf" />
                   <TextBlock
                     VerticalAlignment="Center"
-                    Classes="SectionHint"
+                    Classes="Caption Muted"
                     Text="{Binding LoggingMinimumLevelHint}"
                     TextWrapping="Wrap" />
                 </StackPanel>
@@ -1138,7 +1123,7 @@
                   Grid.Row="5"
                   Grid.Column="0"
                   Grid.ColumnSpan="3"
-                  Classes="SectionHint"
+                  Classes="Caption Muted"
                   Text="默认目录：ApplicationData/PacToolkits/logs/desktop；建议保持默认，便于部署和故障回溯"
                   TextWrapping="Wrap" />
               </Grid>
@@ -1203,7 +1188,7 @@
             </Grid>
 
             <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="Small" FontWeight="SemiBold" Text="参数" />
+              <TextBlock Classes="SubsectionTitle" Text="参数" />
               <Grid
                 ColumnDefinitions="170,1.15*,1.85*"
                 ColumnSpacing="{DynamicResource FormColumnSpacing}"
@@ -1328,7 +1313,7 @@
                   Grid.Row="5"
                   Grid.Column="2"
                   VerticalAlignment="Center"
-                  Classes="SectionHint"
+                  Classes="Caption Muted"
                   Text="建议 15-30 秒；网络较慢可适当调大" />
               </Grid>
             </StackPanel>

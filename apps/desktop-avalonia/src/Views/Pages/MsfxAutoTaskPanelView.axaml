@@ -33,10 +33,7 @@
               Foreground="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
               Kind="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToIconKind}}" />
             <TextBlock
-              VerticalAlignment="Center"
-              FontWeight="SemiBold"
-              Opacity="0.9"
-              Text="Agent 执行队列" />
+              VerticalAlignment="Center" Classes="SectionTitle" Text="Agent 执行队列" />
           </StackPanel>
           <StackPanel
             Grid.Column="2"
@@ -112,8 +109,7 @@
             ColumnSpacing="{DynamicResource SpacingInlineMd}"
             IsVisible="{Binding IsTaskQueueBatchModeActive}">
             <TextBlock
-              VerticalAlignment="Center"
-              Opacity="0.82"
+              VerticalAlignment="Center" Classes="Caption Muted"
               Text="{Binding TaskQueueBatchModeTitle}" />
             <Button
               Grid.Column="1"
@@ -133,7 +129,7 @@
         <TextBlock
           Grid.Row="1"
           Margin="{DynamicResource MarginBottomMd}"
-          Classes="SectionHint"
+          Classes="Caption Muted"
           IsVisible="{Binding IsTaskQueueBatchModeActive}"
           Text="{Binding TaskQueueBatchModeHint}" />
         <WrapPanel
@@ -191,10 +187,7 @@
             Height="{DynamicResource IconSizeDefault}"
             Kind="{Binding AutoExpandedPanelIcon}" />
           <TextBlock
-            VerticalAlignment="Center"
-            FontWeight="SemiBold"
-            Opacity="0.9"
-            Text="{Binding AutoExpandedPanelTitle}" />
+            VerticalAlignment="Center" Classes="SectionTitle" Text="{Binding AutoExpandedPanelTitle}" />
         </StackPanel>
         <StackPanel
           Grid.Column="2"
@@ -342,7 +335,7 @@
               VerticalAlignment="Center"
               Spacing="2">
               <TextBlock FontWeight="SemiBold" Text="{Binding TaskQueueBatchModeTitle}" />
-              <TextBlock Classes="SectionHint" Text="{Binding TaskQueueBatchModeHint}" />
+              <TextBlock Classes="Caption Muted" Text="{Binding TaskQueueBatchModeHint}" />
             </StackPanel>
             <Button
               Grid.Column="2"

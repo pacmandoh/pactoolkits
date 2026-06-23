@@ -28,8 +28,7 @@
           VerticalAlignment="Center"
           Spacing="2">
           <TextBlock Classes="DialogTitle" Text="{Binding Header}" />
-          <TextBlock
-            Opacity="0.78"
+          <TextBlock Classes="Caption Muted"
             Text="{Binding SubHeader}"
             TextWrapping="Wrap" />
         </StackPanel>
@@ -59,8 +58,7 @@
               <Border Padding="10,8" CornerRadius="10">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
                   <TextBlock
-                    VerticalAlignment="Center"
-                    Opacity="0.75"
+                    VerticalAlignment="Center" Classes="Caption Muted"
                     Text="{Binding Label}" />
                   <TextBlock
                     Grid.Row="1"
