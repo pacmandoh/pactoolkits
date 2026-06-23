@@ -41,8 +41,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     private readonly IUiBehaviorService _uiBehavior;
     private readonly IUpdateSettingsService _updateSettings;
     private readonly IAppUpdateService _updates;
-    private readonly IReleaseChannelSwitchService _releaseChannelSwitch;
-    private readonly IUpdateDesktopFlowService _updateDesktopFlow;
+    private readonly IReleaseChannelService _releaseChannelService;
+    private readonly IUpdateFlowService _updateFlow;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IDialogService _dialog;
     private readonly ILoggingSettingsService _loggingSettings;
@@ -171,8 +171,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IUiBehaviorService uiBehavior,
         IUpdateSettingsService updateSettings,
         IAppUpdateService updates,
-        IReleaseChannelSwitchService releaseChannelSwitch,
-        IUpdateDesktopFlowService updateDesktopFlow,
+        IReleaseChannelService releaseChannelService,
+        IUpdateFlowService updateFlow,
         IReleaseVersionService releaseVersion,
         IDialogService dialog,
         ILoggingSettingsService loggingSettings,
@@ -188,8 +188,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         _uiBehavior = uiBehavior;
         _updateSettings = updateSettings;
         _updates = updates;
-        _releaseChannelSwitch = releaseChannelSwitch;
-        _updateDesktopFlow = updateDesktopFlow;
+        _releaseChannelService = releaseChannelService;
+        _updateFlow = updateFlow;
         _releaseVersion = releaseVersion;
         _dialog = dialog;
         _loggingSettings = loggingSettings;
@@ -1188,7 +1188,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
 
         using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(20));
-        var probe = await _releaseChannelSwitch.ProbeAsync(
+        var probe = await _releaseChannelService.ProbeAsync(
             UpdateFeedUrl,
             targetChannel,
             ToOptions(),
@@ -1397,7 +1397,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
         }
 
-        await _updateDesktopFlow.CheckAndHandleAsync(
+        await _updateFlow.CheckAndHandleAsync(
             showNoUpdateToast: true,
             startupMode: false,
             applyNowAction: ApplyUpdateNowAsync,
@@ -1416,7 +1416,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IsUpdateApplying = true;
         try
         {
-            await _updateDesktopFlow.ApplyUpdateFlowAsync();
+            await _updateFlow.ApplyUpdateFlowAsync();
         }
         catch (Exception ex)
         {
@@ -1454,7 +1454,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     {
         try
         {
-            await _updateDesktopFlow.IgnoreVersionAsync(LatestProductVersion);
+            await _updateFlow.IgnoreVersionAsync(LatestProductVersion);
             IgnoredProductVersion = LatestProductVersion;
         }
         catch (Exception ex)

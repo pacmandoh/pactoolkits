@@ -16,7 +16,7 @@ public sealed class ConnectivityBannerFactoryTests
             accessGuard: guard);
 
         Assert.False(banner.IsVisible);
-        Assert.Equal(ShellConnectivitySeverity.None, banner.Severity);
+        Assert.Equal(ConnectivitySeverity.None, banner.Severity);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public sealed class ConnectivityBannerFactoryTests
             accessGuard: guard);
 
         Assert.False(banner.IsVisible);
-        Assert.Equal(ShellConnectivitySeverity.None, banner.Severity);
+        Assert.Equal(ConnectivitySeverity.None, banner.Severity);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public sealed class ConnectivityBannerFactoryTests
             accessGuard: guard);
 
         Assert.True(banner.IsVisible);
-        Assert.Equal(ShellConnectivitySeverity.Error, banner.Severity);
+        Assert.Equal(ConnectivitySeverity.Error, banner.Severity);
         Assert.True(banner.ShowOpenSettings);
         Assert.Contains("1.2.22", banner.Message, StringComparison.Ordinal);
     }
@@ -60,7 +60,7 @@ public sealed class ConnectivityBannerFactoryTests
             accessGuard: guard);
 
         Assert.True(banner.IsVisible);
-        Assert.Equal(ShellConnectivitySeverity.Warning, banner.Severity);
+        Assert.Equal(ConnectivitySeverity.Warning, banner.Severity);
         Assert.True(banner.ShowOpenSettings);
     }
 
@@ -74,7 +74,7 @@ public sealed class ConnectivityBannerFactoryTests
             isConnectivityKnown: true,
             accessGuard: guard);
 
-        Assert.Equal(ShellConnectivitySeverity.Error, banner.Severity);
+        Assert.Equal(ConnectivitySeverity.Error, banner.Severity);
         Assert.Equal("数据库不可用", banner.Title);
     }
 

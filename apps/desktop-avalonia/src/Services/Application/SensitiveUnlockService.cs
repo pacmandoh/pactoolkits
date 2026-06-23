@@ -8,7 +8,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
-public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockService
+public sealed class SensitiveUnlockService : ISensitiveUnlockService
 {
     private static readonly TimeSpan UnlockSessionDuration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan UnlockCooldownDuration = TimeSpan.FromMinutes(1);
@@ -30,7 +30,7 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
     private readonly IToastService _toast;
     public event Action<string>? StateChanged;
 
-    public SensitiveOperationUnlockService(
+    public SensitiveUnlockService(
         IDbConfigService dbConfig,
         IDialogService dialog,
         IToastService toast)
@@ -246,7 +246,7 @@ public sealed class SensitiveOperationUnlockService : ISensitiveOperationUnlockS
         return true;
     }
 
-    public Task<bool> RequestUnlockAsync(SensitiveOperationRequest request, CancellationToken ct = default)
+    public Task<bool> RequestUnlockAsync(SensitiveOpRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         return EnsureUnlockedAsync(

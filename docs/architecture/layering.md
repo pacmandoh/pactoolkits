@@ -95,7 +95,7 @@ ToolsCenterViewModel / MainWindowViewModel
 
 ## 敏感操作与解锁
 
-`ISensitiveOperationUnlockService` 定义在 Application 层；实现在桌面 `SensitiveOperationUnlockService`（依赖 Dialog / Toast 等桌面交互能力）。
+`ISensitiveUnlockService` 定义在 Application 层；实现在桌面 `SensitiveUnlockService`（依赖 Dialog / Toast 等桌面交互能力）。
 
 ## 演进约束
 

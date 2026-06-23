@@ -2,7 +2,7 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
-public enum ShellConnectivitySeverity
+public enum ConnectivitySeverity
 {
     None,
     Info,
@@ -10,27 +10,27 @@ public enum ShellConnectivitySeverity
     Error
 }
 
-public sealed record ShellConnectivityBanner(
+public sealed record ConnectivityBanner(
     bool IsVisible,
     string Title,
     string Message,
-    ShellConnectivitySeverity Severity,
+    ConnectivitySeverity Severity,
     bool ShowOpenSettings);
 
 public static class ConnectivityBannerFactory
 {
-    public static ShellConnectivityBanner Create(
+    public static ConnectivityBanner Create(
         bool isDbConnected,
         bool isConnectivityKnown,
         IDbAccessGuard accessGuard)
     {
         if (accessGuard.IsBlocked)
         {
-            return new ShellConnectivityBanner(
+            return new ConnectivityBanner(
                 IsVisible: true,
                 Title: "数据库不可用",
                 Message: accessGuard.BlockReason ?? "数据库版本不兼容，业务操作已阻断",
-                Severity: ShellConnectivitySeverity.Error,
+                Severity: ConnectivitySeverity.Error,
                 ShowOpenSettings: true);
         }
 
@@ -41,21 +41,21 @@ public static class ConnectivityBannerFactory
                 return HiddenBanner;
             }
 
-            return new ShellConnectivityBanner(
+            return new ConnectivityBanner(
                 IsVisible: true,
                 Title: "数据库未连接",
                 Message: "正在等待重连，恢复后页面将自动刷新",
-                Severity: ShellConnectivitySeverity.Warning,
+                Severity: ConnectivitySeverity.Warning,
                 ShowOpenSettings: true);
         }
 
         return HiddenBanner;
     }
 
-    private static readonly ShellConnectivityBanner HiddenBanner = new(
+    private static readonly ConnectivityBanner HiddenBanner = new(
         IsVisible: false,
         Title: string.Empty,
         Message: string.Empty,
-        Severity: ShellConnectivitySeverity.None,
+        Severity: ConnectivitySeverity.None,
         ShowOpenSettings: false);
 }

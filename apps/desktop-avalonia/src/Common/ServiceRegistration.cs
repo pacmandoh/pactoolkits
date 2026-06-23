@@ -65,7 +65,7 @@ public static class ServiceRegistration
     {
         services.AddSingleton<IToastService, ToastService>();
         services.AddSingleton<IDialogService, DialogService>();
-        services.AddSingleton<ISensitiveOperationUnlockService, SensitiveOperationUnlockService>();
+        services.AddSingleton<ISensitiveUnlockService, SensitiveUnlockService>();
         services.AddSingleton<IAgentEventSink, NullAgentEventSink>();
         services.AddSingleton<IAgentConfigWriter, AgentConfigWriter>();
         services.AddSingleton<IAgentTaskService, AgentTaskService>();
@@ -74,8 +74,8 @@ public static class ServiceRegistration
         services.AddSingleton<IAgentRuntime>(sp => sp.GetRequiredService<AhkInjectorAgentRuntime>());
         services.AddSingleton<IAgentManager, AgentManager>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
-        services.AddSingleton<IReleaseChannelSwitchService, ReleaseChannelSwitchService>();
-        services.AddSingleton<IUpdateDesktopFlowService, UpdateDesktopFlowService>();
+        services.AddSingleton<IReleaseChannelService, ReleaseChannelService>();
+        services.AddSingleton<IUpdateFlowService, UpdateFlowService>();
         services.AddSingleton<IMsfxApiClient, MsfxApiClient>();
         services.AddSingleton<ClientAliasStore>();
         services.AddSingleton<IClientAliasService, ClientAliasService>();

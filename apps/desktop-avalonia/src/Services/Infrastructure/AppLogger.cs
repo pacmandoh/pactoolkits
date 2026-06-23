@@ -305,7 +305,7 @@ public sealed class AppLogger : IAppLogger, IDisposable
     }
 
     private static string ResolveLogDirectory(LoggingOptions options)
-        => DesktopLogDirectoryResolver.Resolve(options.LogDirectory).RuntimeDirectory;
+        => LogDirectoryResolver.Resolve(options.LogDirectory).RuntimeDirectory;
 
     private sealed class AppLogRecord
     {
