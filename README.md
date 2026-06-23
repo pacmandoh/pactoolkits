@@ -366,7 +366,6 @@ CI/CD workflows provide release automation for packaging, release-note generatio
 - `release.yml` — orchestrates tag / manual release
 - `build-agent-injector-ahk.yml` — compile AHK agent
 - `build-desktop-avalonia.yml` — publish Avalonia desktop (no bundled agents)
-- `build-desktop-electron-preview.yml` — Electron preview marker (not published to feed)
 - `package-desktop.yml` — bundle agents per `desktop.bundles`, Velopack pack
 - `generate-release-notes.yml` — release notes (tag only)
 - `publish-release.yml` — GitHub Release + update feed (tag only)
@@ -399,7 +398,6 @@ The current release and update chain supports only `stable` and `beta`. Versioni
   - `.../stable/`
   - `.../beta/`
 - Different channels are not mixed in one shared feed directory
-- Electron preview artifacts are **not** included in the formal feed
 
 4. Client update checks
 - `AppUpdateService` resolves the feed to:

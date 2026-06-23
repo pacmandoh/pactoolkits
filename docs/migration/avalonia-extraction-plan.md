@@ -54,7 +54,6 @@
 `apps/desktop-electron` 为 Nuxt + Electron 预留，当前：
 
 - 不参与正式 Feed / release
-- `build-desktop-electron-preview.yml` 为占位
 - 不连接数据库
 
 详见 [desktop-electron-cutover.md](./desktop-electron-cutover.md)。

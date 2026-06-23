@@ -6,7 +6,6 @@
   "license": "GPL-3.0-or-later",
   "main": "electron/main/index.js",
   "scripts": {
-    "build:preview": "bash ../../scripts/build-electron-preview.sh",
     "start": "node -e \"console.error('Electron preview is not wired yet. See README.md.'); process.exit(1)\""
   },
   "engines": {
