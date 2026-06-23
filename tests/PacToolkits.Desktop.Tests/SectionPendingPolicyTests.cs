@@ -9,19 +9,19 @@ public sealed class SectionPendingPolicyTests
     [InlineData(PageDataAvailability.Loading)]
     [InlineData(PageDataAvailability.NotLoaded)]
     [InlineData(PageDataAvailability.AwaitingDatabase)]
-    public void ShouldShow_returns_true_during_first_fetch(PageDataAvailability availability)
+    public void Show_returns_true_during_first_fetch(PageDataAvailability availability)
     {
         Assert.True(SectionPendingPolicy.Show(availability, hasLoadedOnce: false));
     }
 
     [Fact]
-    public void ShouldShow_returns_false_after_first_successful_load()
+    public void Show_returns_false_after_first_successful_load()
     {
         Assert.False(SectionPendingPolicy.Show(PageDataAvailability.Loading, hasLoadedOnce: true));
     }
 
     [Fact]
-    public void ShouldShow_returns_false_when_page_is_ready()
+    public void Show_returns_false_when_page_is_ready()
     {
         Assert.False(SectionPendingPolicy.Show(PageDataAvailability.Ready, hasLoadedOnce: false));
     }

@@ -4,11 +4,8 @@ namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
 public static class SectionEmptyCopy
 {
-    public static string GetTitle(PageDataAvailability availability, string? readyTitle)
-        => availability switch
-        {
-            _ => readyTitle ?? "暂无数据",
-        };
+    public static string GetTitle(string? readyTitle)
+        => readyTitle ?? "暂无数据";
 
     public static string GetHint(
         PageDataAvailability availability,

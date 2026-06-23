@@ -839,7 +839,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
 
         _pendingStockEdits.Clear();
-        CaptureStockEditSnapshotFromCurrentRows();
+        SnapshotStockRows();
         IsStockEditEnabled = true;
         Status = "库存明细：已进入编辑模式";
         _lastModeIndex = ModeIndex;
@@ -1301,7 +1301,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 {
                     IsStockEditEnabled = true;
                     _pendingStockEdits.Clear();
-                    CaptureStockEditSnapshotFromCurrentRows();
+                    SnapshotStockRows();
                 }
 
                 _toast.Success("库存明细删除", $"删除成功 {affected.ToString(CultureInfo.InvariantCulture)} 条");
@@ -1379,7 +1379,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
     }
 
-    private void CaptureStockEditSnapshotFromCurrentRows()
+    private void SnapshotStockRows()
     {
         _stockEditSnapshotByRow.Clear();
         foreach (var row in StockRows)

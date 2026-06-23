@@ -111,7 +111,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     public bool IsSectionPending => SectionPendingPolicy.Show(_pageDataAvailability, _hasLoadedOnce);
 
     protected string GetSectionEmptyTitle(string? readyTitle)
-        => SectionEmptyCopy.GetTitle(_pageDataAvailability, readyTitle);
+        => SectionEmptyCopy.GetTitle(readyTitle);
 
     protected string GetSectionEmptyHint(string? readyHint)
         => SectionEmptyCopy.GetHint(
@@ -788,7 +788,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
         monitor.Disconnected += OnDbMonitorDisconnected;
         monitor.Reconnected += OnDbMonitorReconnected;
-        monitor.Reconnected += OnDbMonitorReconnectedForToastSuppress;
+        monitor.Reconnected += StartReconnectToastCooldown;
         _dbMonitorEventsHooked = true;
 
         // If page initializes while DB is already disconnected, show unavailable and queue refresh.
@@ -814,7 +814,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         ScheduleAutoRefreshFromDbSignal();
     }
 
-    private void OnDbMonitorReconnectedForToastSuppress()
+    private void StartReconnectToastCooldown()
         => _reconnectToastSuppressUntil = DateTimeOffset.UtcNow + ReconnectToastSuppressWindow;
 
     private void OnDbMonitorReconnected()
@@ -963,7 +963,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             {
                 _cachedDbMonitor.Disconnected -= OnDbMonitorDisconnected;
                 _cachedDbMonitor.Reconnected -= OnDbMonitorReconnected;
-                _cachedDbMonitor.Reconnected -= OnDbMonitorReconnectedForToastSuppress;
+                _cachedDbMonitor.Reconnected -= StartReconnectToastCooldown;
             }
             catch (System.Exception ex)
             {

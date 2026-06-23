@@ -6,11 +6,10 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class SectionEmptyCopyTests
 {
     [Fact]
-    public void GetTitle_returns_ready_title_for_all_non_gate_states()
+    public void GetTitle_returns_ready_title_or_default()
     {
-        Assert.Equal("期间无使用情况", SectionEmptyCopy.GetTitle(PageDataAvailability.Loading, readyTitle: "期间无使用情况"));
-        Assert.Equal("期间无使用情况", SectionEmptyCopy.GetTitle(PageDataAvailability.NotLoaded, readyTitle: "期间无使用情况"));
-        Assert.Equal("期间无使用情况", SectionEmptyCopy.GetTitle(PageDataAvailability.Ready, readyTitle: "期间无使用情况"));
+        Assert.Equal("期间无使用情况", SectionEmptyCopy.GetTitle(readyTitle: "期间无使用情况"));
+        Assert.Equal("暂无数据", SectionEmptyCopy.GetTitle(readyTitle: null));
     }
 
     [Fact]

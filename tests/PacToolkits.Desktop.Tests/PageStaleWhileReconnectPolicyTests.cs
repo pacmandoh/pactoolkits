@@ -40,7 +40,7 @@ public sealed class PageStaleWhileReconnectPolicyTests
     [InlineData(true, true, false, false)]
     [InlineData(true, false, true, false)]
     [InlineData(false, true, true, false)]
-    public void ShouldSuppressReloadBusy_only_for_auto_refresh_on_stale_read_only_pages(
+    public void SuppressReloadBusy_only_for_auto_refresh_on_stale_read_only_pages(
         bool hasLoadedOnce,
         bool supportsStaleWhileReconnect,
         bool reloadFromDbSignal,
