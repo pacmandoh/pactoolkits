@@ -3,41 +3,118 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors">
 
+  <!--
+    SectionGrid keeps ShadUI ControlTheme chrome (cell/header/row/hover/sort icons)
+    but replaces the root template scroll area: no nested ScrollViewer around rows.
+  -->
   <Style Selector="DataGrid.SectionGrid">
     <Setter Property="AutoGenerateColumns" Value="False" />
     <Setter Property="IsReadOnly" Value="True" />
-    <Setter Property="HeadersVisibility" Value="All" />
-    <Setter Property="GridLinesVisibility" Value="None" />
-    <Setter Property="CanUserResizeColumns" Value="True" />
+    <Setter Property="CanUserReorderColumns" Value="False" />
     <Setter Property="CanUserSortColumns" Value="True" />
-    <Setter Property="RowHeight" Value="{DynamicResource RowMinHeight}" />
+    <Setter Property="CanUserResizeColumns" Value="True" />
+    <Setter Property="GridLinesVisibility" Value="Horizontal" />
+    <Setter Property="HeadersVisibility" Value="Column" />
     <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
     <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="MinHeight" Value="0" />
     <Setter Property="behaviors:DataGridSortSupportBehavior.Enabled" Value="True" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="DataGrid">
+        <Border
+          Name="DataGridBorder"
+          Background="{TemplateBinding Background}"
+          BorderBrush="{TemplateBinding BorderBrush}"
+          BorderThickness="{TemplateBinding BorderThickness}"
+          ClipToBounds="True"
+          CornerRadius="{TemplateBinding CornerRadius}">
+          <Border ClipToBounds="True" CornerRadius="{TemplateBinding CornerRadius}">
+            <Grid Name="Grid" ClipToBounds="True" RowDefinitions="Auto,*">
+              <Border
+                Name="PART_HeaderBackground"
+                BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="0,0,0,1">
+                <DataGridColumnHeadersPresenter Name="PART_ColumnHeadersPresenter" />
+              </Border>
+              <Grid
+                Grid.Row="1"
+                Margin="0,0,0,-2"
+                ColumnDefinitions="*,Auto"
+                RowDefinitions="*,Auto">
+                <DataGridRowsPresenter
+                  Name="PART_RowsPresenter"
+                  Grid.Row="0"
+                  Grid.Column="0"
+                  ClipToBounds="True">
+                  <DataGridRowsPresenter.GestureRecognizers>
+                    <ScrollGestureRecognizer CanHorizontallyScroll="True" CanVerticallyScroll="True" />
+                  </DataGridRowsPresenter.GestureRecognizers>
+                </DataGridRowsPresenter>
+                <ScrollBar
+                  Name="PART_VerticalScrollbar"
+                  Grid.Row="0"
+                  Grid.Column="1"
+                  HorizontalAlignment="Right"
+                  Orientation="Vertical" />
+                <Rectangle Name="PART_FrozenColumnScrollBarSpacer" Grid.Row="1" Grid.Column="0" />
+                <ScrollBar
+                  Name="PART_HorizontalScrollbar"
+                  Grid.Row="1"
+                  Grid.Column="0"
+                  Orientation="Horizontal" />
+              </Grid>
+            </Grid>
+          </Border>
+        </Border>
+      </ControlTemplate>
+    </Setter>
   </Style>
 
+  <Style Selector="DataGrid.SectionGrid /template/ Border#PART_HeaderBackground:pointerover">
+    <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+  </Style>
+
+  <Style Selector="DataGrid.SectionGrid.Headerless">
+    <Setter Property="HeadersVisibility" Value="None" />
+    <Setter Property="GridLinesVisibility" Value="None" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="RowBackground" Value="Transparent" />
+    <Setter Property="behaviors:DataGridIndexColumnBehavior.Enabled" Value="False" />
+  </Style>
+
+  <!-- First column # index (Shad BasicDataTable look). -->
   <Style Selector="DataGrid.StickyIndexGrid">
-    <Setter Property="RowHeaderWidth" Value="{DynamicResource DgRowHeaderWidth}" />
+    <Setter Property="behaviors:DataGridIndexColumnBehavior.Enabled" Value="True" />
+    <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="DisplayOrder" />
+    <Setter Property="behaviors:DataGridIndexColumnBehavior.IsVisible" Value="True" />
     <Setter Property="behaviors:DataGridSortResetBehavior.Enabled" Value="True" />
+  </Style>
+
+  <Style Selector="DataGrid.MsfxIndexedGrid">
+    <Setter Property="behaviors:DataGridIndexColumnBehavior.Enabled" Value="True" />
+    <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="DisplayOrder" />
+    <Setter Property="behaviors:DataGridIndexColumnBehavior.IsVisible" Value="True" />
+    <Setter Property="behaviors:DataGridSortResetBehavior.Enabled" Value="True" />
+  </Style>
+
+  <Style Selector="DataGrid.StickyIndexGrid.StickyIndexDisplayIndex">
+    <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="DisplayIndex" />
+  </Style>
+
+  <Style Selector="DataGrid.StickyIndexGrid.StickyIndexRowNo">
+    <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="RowNo" />
+  </Style>
+
+  <Style Selector="DataGrid.MsfxIndexedGrid.MapIndexedGrid">
+    <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="DisplayIndex" />
   </Style>
 
   <Style Selector="DataGrid.DrugGrid">
     <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
-  </Style>
-
-  <Style Selector="DataGrid.MsfxIndexedGrid">
-    <Setter Property="RowHeaderWidth" Value="{DynamicResource DgRowHeaderWidth}" />
-    <Setter Property="behaviors:DataGridSortResetBehavior.Enabled" Value="True" />
-  </Style>
-
-  <Style Selector="DataGrid.StickyIndexGrid /template/ DataGridColumnHeader#PART_TopLeftCornerHeader">
-    <Setter Property="Width" Value="{DynamicResource DgRowHeaderWidth}" />
-    <Setter Property="MinWidth" Value="{DynamicResource DgRowHeaderWidth}" />
-  </Style>
-
-  <Style Selector="DataGrid.MsfxIndexedGrid /template/ DataGridColumnHeader#PART_TopLeftCornerHeader">
-    <Setter Property="Width" Value="{DynamicResource DgRowHeaderWidth}" />
-    <Setter Property="MinWidth" Value="{DynamicResource DgRowHeaderWidth}" />
   </Style>
 
   <Style Selector="DataGrid.NonInteractive">
@@ -46,119 +123,20 @@
     <Setter Property="IsTabStop" Value="False" />
   </Style>
 
-  <Style Selector="DataGridRow">
-    <Setter Property="MinHeight" Value="{DynamicResource RowMinHeight}" />
-  </Style>
-
-  <Style Selector="DataGrid.StickyIndexGrid DataGridRowHeader">
-    <Setter Property="Width" Value="{DynamicResource DgRowHeaderWidth}" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Opacity" Value="0.72" />
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Content">
-      <Setter.Value>
-        <Binding
-          Converter="{StaticResource RowIndexPlusOne}"
-          Path="Index"
-          RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
-      </Setter.Value>
-    </Setter>
-  </Style>
-
-  <Style Selector="DataGrid.MsfxIndexedGrid DataGridRowHeader">
-    <Setter Property="Width" Value="{DynamicResource DgRowHeaderWidth}" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Opacity" Value="0.72" />
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Content">
-      <Setter.Value>
-        <Binding
-          Converter="{StaticResource RowIndexPlusOne}"
-          Path="Index"
-          RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
-      </Setter.Value>
-    </Setter>
-  </Style>
-
-  <Style Selector="DataGrid.StickyIndexGrid.StickyIndexDisplayIndex DataGridRowHeader">
-    <Setter Property="Content">
-      <Setter.Value>
-        <ReflectionBinding Path="DataContext.DisplayIndex" RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
-      </Setter.Value>
-    </Setter>
-  </Style>
-
-  <Style Selector="DataGrid.StickyIndexGrid.StickyIndexRowNo DataGridRowHeader">
-    <Setter Property="Content">
-      <Setter.Value>
-        <ReflectionBinding Path="DataContext.RowNo" RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
-      </Setter.Value>
-    </Setter>
-  </Style>
-
-  <Style Selector="DataGrid.MsfxIndexedGrid.MapIndexedGrid DataGridRowHeader">
-    <Setter Property="Content">
-      <Setter.Value>
-        <ReflectionBinding Path="DataContext.DisplayIndex" RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
-      </Setter.Value>
-    </Setter>
-  </Style>
-
-  <Style Selector="DataGrid.StickyIndexGrid DataGridRowHeader ContentPresenter">
-    <Setter Property="HorizontalAlignment" Value="Center" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="FontSize" Value="{DynamicResource DgRowHeaderFontSize}" />
-  </Style>
-
-  <Style Selector="DataGrid.MsfxIndexedGrid DataGridRowHeader ContentPresenter">
-    <Setter Property="HorizontalAlignment" Value="Center" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="FontSize" Value="{DynamicResource DgRowHeaderFontSize}" />
-  </Style>
-
-  <Style Selector="DataGrid.StickyIndexGrid DataGridRowHeader TextBlock">
-    <Setter Property="FontSize" Value="{DynamicResource DgRowHeaderFontSize}" />
-    <Setter Property="TextAlignment" Value="Center" />
-  </Style>
-
-  <Style Selector="DataGrid.MsfxIndexedGrid DataGridRowHeader TextBlock">
-    <Setter Property="FontSize" Value="{DynamicResource DgRowHeaderFontSize}" />
-    <Setter Property="TextAlignment" Value="Center" />
-  </Style>
-
-  <Style Selector="DataGridCell">
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Padding" Value="{DynamicResource DgCellPadCell}" />
-  </Style>
-
-  <Style Selector="DataGridCell TextBlock">
-    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
-
   <Style Selector="Button.DataGridSortResetButton">
     <Setter Property="Width" Value="{DynamicResource DgSortResetButtonSize}" />
     <Setter Property="Height" Value="{DynamicResource DgSortResetButtonSize}" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="CornerRadius" Value="{DynamicResource ButtonCornerRadius}" />
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Background" Value="{DynamicResource BrushGridSortResetBackground}" />
-    <Setter Property="Foreground" Value="{DynamicResource BrushGridSortResetForeground}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource BrushGridSortResetBorder}" />
-    <Setter Property="BorderThickness" Value="1" />
   </Style>
 
-  <Style Selector="Button.DataGridSortResetButton:pointerover">
-    <Setter Property="Background" Value="{DynamicResource BrushGridSortResetBackgroundHover}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource BrushGridSortResetBorderHover}" />
-    <Setter Property="Foreground" Value="White" />
+  <Style Selector="TextBlock.DgIndexCell">
+    <Setter Property="FontSize" Value="{DynamicResource DgIndexFontSize}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
+    <Setter Property="TextTrimming" Value="None" />
+    <Setter Property="TextAlignment" Value="Center" />
   </Style>
 
 </Styles>
