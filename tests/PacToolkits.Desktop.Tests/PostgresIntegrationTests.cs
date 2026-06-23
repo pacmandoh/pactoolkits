@@ -74,7 +74,7 @@ public sealed class PostgresIntegrationTests
         Assert.True(snapshot.SchemaOk, snapshot.Reason);
         Assert.Equal(DbSchemaCompatibility.Compatible, snapshot.Compatibility);
         Assert.True(snapshot.Satisfied);
-        Assert.False(snapshot.ManualMigrationPolicy.ShouldExecuteMigration);
+        Assert.False(snapshot.ManualMigrationPolicy.RunMigration);
     }
 
     [Fact]

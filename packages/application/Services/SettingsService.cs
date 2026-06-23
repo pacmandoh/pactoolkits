@@ -144,7 +144,7 @@ public sealed class SettingsService : ISettingsService
                 connectionOptions: options,
                 ct).ConfigureAwait(false);
 
-            if (!policy.ShouldExecuteMigration)
+            if (!policy.RunMigration)
             {
                 return new DbConnectionValidationResult(
                     ConnectionOk: true,
@@ -254,7 +254,7 @@ public sealed class SettingsService : ISettingsService
             return (false, policy.Reason);
         }
 
-        if (!policy.ShouldExecuteMigration)
+        if (!policy.RunMigration)
         {
             return (true, policy.Reason);
         }
@@ -353,7 +353,7 @@ public sealed class SettingsService : ISettingsService
         var current = schema.Value ?? string.Empty;
         var updatable = (compatibility.IsTooLow || compatibility.IsMetadataMissing)
                         && (compatibility.IsMetadataMissing || IsSchemaUpdatable(current, localTarget))
-                        && (migrationPolicy.ShouldExecuteMigration
+                        && (migrationPolicy.RunMigration
                             || migrationPolicy.Decision == DbMigrationDecision.RequiresConfirmation);
         var snapshot = new DbSchemaStatusSnapshot(
             SchemaOk: schema.Ok,
