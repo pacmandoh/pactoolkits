@@ -2,7 +2,7 @@ using System;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-public static class DrugSpecDisplayHelper
+public static class SpecDisplayHelper
 {
     public static string NormalizeSpecLine(string? drugName, string? spec)
     {

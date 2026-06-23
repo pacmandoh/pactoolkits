@@ -1,6 +1,7 @@
 using System;
+using PacToolkits.Desktop.Avalonia.ViewModels;
 
-namespace PacToolkits.Desktop.Avalonia.ViewModels;
+namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 public sealed class PageNavigationService
 {

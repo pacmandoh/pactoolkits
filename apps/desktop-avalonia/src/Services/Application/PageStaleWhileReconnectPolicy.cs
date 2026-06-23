@@ -9,7 +9,7 @@ public static class PageStaleWhileReconnectPolicy
             ? PageDataAvailability.Stale
             : PageDataAvailability.AwaitingDatabase;
 
-    public static bool ShouldSuppressReloadBusy(
+    public static bool SuppressReloadBusy(
         bool hasLoadedOnce,
         bool supportsStaleWhileReconnect,
         bool reloadFromDbSignal)
