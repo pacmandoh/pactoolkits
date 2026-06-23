@@ -3,53 +3,53 @@ using System.IO;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-public enum DesktopLogDirectoryResolutionSource
+public enum LogDirectoryResolutionSource
 {
     Default,
     Configured,
     Migrated,
 }
 
-public sealed record DesktopLogDirectoryResolution(
+public sealed record LogDirectoryResolution(
     string StoredDirectory,
     string RuntimeDirectory,
-    DesktopLogDirectoryResolutionSource Source,
+    LogDirectoryResolutionSource Source,
     bool RequiresMigration);
 
-public static class DesktopLogDirectoryResolver
+public static class LogDirectoryResolver
 {
     public const string LogsSegment = "logs";
     public const string LegacySubdirectory = "ui";
     public const string CurrentSubdirectory = "desktop";
 
-    public static DesktopLogDirectoryResolution Resolve(string? configuredDirectory)
+    public static LogDirectoryResolution Resolve(string? configuredDirectory)
     {
         var stored = NormalizeStoredPath(configuredDirectory);
         if (string.IsNullOrWhiteSpace(stored))
         {
             var runtime = GetDefaultDirectory();
-            return new DesktopLogDirectoryResolution(
+            return new LogDirectoryResolution(
                 string.Empty,
                 runtime,
-                DesktopLogDirectoryResolutionSource.Default,
+                LogDirectoryResolutionSource.Default,
                 RequiresMigration: false);
         }
 
         if (IsLegacyLogsDirectory(stored))
         {
             var migrated = MigrateLegacyLogsDirectory(stored);
-            return new DesktopLogDirectoryResolution(
+            return new LogDirectoryResolution(
                 migrated,
                 migrated,
-                DesktopLogDirectoryResolutionSource.Migrated,
+                LogDirectoryResolutionSource.Migrated,
                 RequiresMigration: true);
         }
 
         var configuredRuntime = ResolveRuntimePath(stored);
-        return new DesktopLogDirectoryResolution(
+        return new LogDirectoryResolution(
             stored,
             configuredRuntime,
-            DesktopLogDirectoryResolutionSource.Configured,
+            LogDirectoryResolutionSource.Configured,
             RequiresMigration: false);
     }
 

@@ -1,6 +1,6 @@
 namespace PacToolkits.Application.Abstractions;
 
-public enum SensitiveOperationKind
+public enum SensitiveOpKind
 {
     MsfxDiscard,
     MsfxMerge,
@@ -10,8 +10,8 @@ public enum SensitiveOperationKind
     MsfxRemap
 }
 
-public sealed record SensitiveOperationRequest(
-    SensitiveOperationKind Kind,
+public sealed record SensitiveOpRequest(
+    SensitiveOpKind Kind,
     string ScopeKey,
     string Scene,
     string PromptTitle,
@@ -27,7 +27,7 @@ public sealed record UnlockScopeSnapshot(
     int FailedAttempts,
     DateTimeOffset CooldownUntilUtc);
 
-public interface ISensitiveOperationUnlockService
+public interface ISensitiveUnlockService
 {
     event Action<string>? StateChanged;
 
@@ -35,7 +35,7 @@ public interface ISensitiveOperationUnlockService
     void Refresh(string scopeKey);
     void Lock(string scopeKey);
 
-    Task<bool> RequestUnlockAsync(SensitiveOperationRequest request, CancellationToken ct = default);
+    Task<bool> RequestUnlockAsync(SensitiveOpRequest request, CancellationToken ct = default);
 
     Task<bool> EnsureUnlockedAsync(
         string scopeKey,

@@ -214,7 +214,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private readonly IMsfxApiClient _msfxApi;
     private readonly IMsfxSyncService _syncService;
     private readonly IAppConfigStore _configStore;
-    private readonly ISensitiveOperationUnlockService _unlockService;
+    private readonly ISensitiveUnlockService _unlockService;
     private readonly IToastService _toast;
     private readonly IDialogService _dialog;
     private readonly DispatcherTimer _autoTimer;
@@ -467,7 +467,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         IMsfxApiClient msfxApi,
         IMsfxSyncService syncService,
         IAppConfigStore configStore,
-        ISensitiveOperationUnlockService unlockService,
+        ISensitiveUnlockService unlockService,
         IToastService toast,
         IDialogService dialog)
     {
@@ -1928,8 +1928,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 AddAutoLog("自动巡检", "手动敏感操作进行中，跳过映射与建任务", TraceEntryState.Info);
                 SetAutoProgress(96, "跳过映射与建任务");
             }
-            else if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
-                    SensitiveOperationKind.MsfxMappingApply,
+            else if (!await EnsureSensitiveOpUnlockedAsync(
+                    SensitiveOpKind.MsfxMappingApply,
                     "自动映射",
                     batchId > 0 ? $"batch:{batchId}" : "auto-run",
                     "auto mapping apply before task build",
@@ -2222,15 +2222,15 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         await RefreshMapQueueLatestAsync().ConfigureAwait(false);
     }
 
-    private async Task<bool> EnsureMsfxSensitiveOperationUnlockedAsync(
-        SensitiveOperationKind kind,
+    private async Task<bool> EnsureSensitiveOpUnlockedAsync(
+        SensitiveOpKind kind,
         string scene,
         string targetId,
         string reason,
         CancellationToken ct = default)
     {
         var operatorName = Environment.UserName;
-        var ok = await _unlockService.RequestUnlockAsync(new SensitiveOperationRequest(
+        var ok = await _unlockService.RequestUnlockAsync(new SensitiveOpRequest(
             Kind: kind,
             ScopeKey: UnlockScopes.SharedSensitiveOps,
             Scene: scene,
@@ -2303,8 +2303,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
-        if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
-                SensitiveOperationKind.MsfxReopen,
+        if (!await EnsureSensitiveOpUnlockedAsync(
+                SensitiveOpKind.MsfxReopen,
                 "任务重开",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
                 "manual reopen from desktop").ConfigureAwait(false))
@@ -2397,8 +2397,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
-        if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
-                SensitiveOperationKind.MsfxDiscard,
+        if (!await EnsureSensitiveOpUnlockedAsync(
+                SensitiveOpKind.MsfxDiscard,
                 "任务弃用",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
                 "manual discard from desktop").ConfigureAwait(false))
@@ -2490,8 +2490,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
-        if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
-                SensitiveOperationKind.MsfxRemap,
+        if (!await EnsureSensitiveOpUnlockedAsync(
+                SensitiveOpKind.MsfxRemap,
                 "重新映射",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
                 "manual remap from task queue").ConfigureAwait(false))
@@ -2602,8 +2602,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
-        if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
-                SensitiveOperationKind.MsfxMerge,
+        if (!await EnsureSensitiveOpUnlockedAsync(
+                SensitiveOpKind.MsfxMerge,
                 "合并任务",
                 string.Join(",", selectedRows.Select(x => x.TaskId)),
                 "manual merge from task queue").ConfigureAwait(false))
@@ -2685,8 +2685,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var splitReason = choice.Action == MsfxTaskSplitDialogAction.CustomQuantity
             ? $"manual custom split from task queue: {choice.CustomQuantities}"
             : "manual split from task queue";
-        if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
-                SensitiveOperationKind.MsfxSplit,
+        if (!await EnsureSensitiveOpUnlockedAsync(
+                SensitiveOpKind.MsfxSplit,
                 "拆分任务",
                 taskRow.TaskId.ToString(CultureInfo.InvariantCulture),
                 splitReason).ConfigureAwait(false))
@@ -2855,12 +2855,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
 
             var mappingKind = res.Action == MsfxMappingBatchDialogAction.DiscardTask
-                ? SensitiveOperationKind.MsfxDiscard
-                : SensitiveOperationKind.MsfxMappingApply;
+                ? SensitiveOpKind.MsfxDiscard
+                : SensitiveOpKind.MsfxMappingApply;
             var mappingReason = res.Action == MsfxMappingBatchDialogAction.DiscardTask
                 ? "manual batch discard from mapping dialog"
                 : "manual batch mapping apply from mapping dialog";
-            if (!await EnsureMsfxSensitiveOperationUnlockedAsync(
+            if (!await EnsureSensitiveOpUnlockedAsync(
                     mappingKind,
                     "批量映射",
                     $"{group.SourceDrugNameRaw}/{group.SourceSpecRaw}",

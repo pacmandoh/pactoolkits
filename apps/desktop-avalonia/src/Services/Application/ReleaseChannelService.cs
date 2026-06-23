@@ -9,7 +9,7 @@ using PacToolkits.Core;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
-public sealed record ReleaseChannelSwitchProbe(
+public sealed record ReleaseChannelProbe(
     bool Success,
     string TargetChannel,
     string FeedManifestUrl,
@@ -18,16 +18,16 @@ public sealed record ReleaseChannelSwitchProbe(
     string RequiredMaxDbSchema,
     string Message);
 
-public interface IReleaseChannelSwitchService
+public interface IReleaseChannelService
 {
-    Task<ReleaseChannelSwitchProbe> ProbeAsync(
+    Task<ReleaseChannelProbe> ProbeAsync(
         string? baseFeedUrl,
         string targetChannel,
         PgOptions pgOptions,
         CancellationToken ct = default);
 }
 
-public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
+public sealed class ReleaseChannelService : IReleaseChannelService
 {
     private static readonly HttpClient SharedHttp = new()
     {
@@ -38,14 +38,14 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
     private readonly IAppLogger _logger;
     private readonly HttpClient _http;
 
-    public ReleaseChannelSwitchService(
+    public ReleaseChannelService(
         IDbSchemaVersionService dbSchemaVersion,
         IAppLogger logger)
         : this(dbSchemaVersion, logger, SharedHttp)
     {
     }
 
-    internal ReleaseChannelSwitchService(
+    internal ReleaseChannelService(
         IDbSchemaVersionService dbSchemaVersion,
         IAppLogger logger,
         HttpClient http)
@@ -55,7 +55,7 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
         _http = http;
     }
 
-    public async Task<ReleaseChannelSwitchProbe> ProbeAsync(
+    public async Task<ReleaseChannelProbe> ProbeAsync(
         string? baseFeedUrl,
         string targetChannel,
         PgOptions pgOptions,
@@ -113,7 +113,7 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
             manifest.RequiredMaxDbSchema);
         if (!compatibility.IsCompatible)
         {
-            return new ReleaseChannelSwitchProbe(
+            return new ReleaseChannelProbe(
                 false,
                 channel,
                 manifestUrl,
@@ -123,7 +123,7 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
                 compatibility.Message);
         }
 
-        return new ReleaseChannelSwitchProbe(
+        return new ReleaseChannelProbe(
             true,
             channel,
             manifestUrl,
@@ -232,7 +232,7 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
         return false;
     }
 
-    private static ReleaseChannelSwitchProbe Failed(string channel, string url, string message)
+    private static ReleaseChannelProbe Failed(string channel, string url, string message)
         => new(false, channel, url, null, "unknown", "unknown", message);
 
     private sealed record ChannelManifest(
