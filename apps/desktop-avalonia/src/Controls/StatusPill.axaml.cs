@@ -27,6 +27,9 @@ public partial class StatusPill : UserControl
     public static readonly StyledProperty<double> TextSizeProperty =
         AvaloniaProperty.Register<StatusPill, double>(nameof(TextSize), 12);
 
+    public static readonly StyledProperty<FontWeight> TextWeightProperty =
+        AvaloniaProperty.Register<StatusPill, FontWeight>(nameof(TextWeight), FontWeight.Normal);
+
     public static readonly StyledProperty<Thickness> PillPaddingProperty =
         AvaloniaProperty.Register<StatusPill, Thickness>(nameof(PillPadding), new Thickness(10, 4));
 
@@ -81,6 +84,12 @@ public partial class StatusPill : UserControl
     {
         get => GetValue(TextSizeProperty);
         set => SetValue(TextSizeProperty, value);
+    }
+
+    public FontWeight TextWeight
+    {
+        get => GetValue(TextWeightProperty);
+        set => SetValue(TextWeightProperty, value);
     }
 
     public Thickness PillPadding

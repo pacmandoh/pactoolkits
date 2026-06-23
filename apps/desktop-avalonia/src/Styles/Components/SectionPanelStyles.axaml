@@ -22,7 +22,15 @@
                 Width="{DynamicResource SectionPanelAccentDotSize}"
                 Height="{DynamicResource SectionPanelAccentDotSize}"
                 VerticalAlignment="Center"
-                Fill="{TemplateBinding AccentBrush}" />
+                Fill="{TemplateBinding AccentBrush}"
+                IsVisible="{TemplateBinding ShowAccentDot}" />
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                VerticalAlignment="Center"
+                Foreground="{DynamicResource ForegroundColor}"
+                IsVisible="{TemplateBinding HasHeaderIcon}"
+                Kind="{TemplateBinding HeaderIcon}" />
               <StackPanel
                 Grid.Column="1"
                 Margin="{DynamicResource SectionPanelTitleMargin}"
@@ -30,7 +38,7 @@
                 Spacing="2">
                 <TextBlock
                   VerticalAlignment="Center"
-                  Classes="Small"
+                  Classes="SectionTitle"
                   Text="{TemplateBinding Title}" />
                 <TextBlock
                   Classes="Caption Muted"
@@ -59,39 +67,22 @@
               MinHeight="0"
               VerticalAlignment="Stretch"
               Classes="SectionPanelInner">
-              <Grid MinHeight="0" RowDefinitions="*,Auto">
-                <Border
-                  Grid.Row="0"
+              <Border
+                MinHeight="0"
+                Classes="SectionPanelBody">
+                <ContentPresenter
                   MinHeight="0"
-                  Classes="SectionPanelBody">
-                  <ContentPresenter
-                    MinHeight="0"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch"
-                    HorizontalContentAlignment="Stretch"
-                    VerticalContentAlignment="Stretch"
-                    Content="{TemplateBinding Content}" />
-                </Border>
-                <Border
-                  Grid.Row="1"
-                  Classes="SectionPanelFooter"
-                  IsVisible="{TemplateBinding HasFooter}">
-                  <StackPanel Spacing="{DynamicResource SectionPanelFooterRuleGap}">
-                    <Border Classes="SectionPanelFooterRule" />
-                    <TextBlock Classes="Caption Muted" Text="{TemplateBinding FooterText}" />
-                  </StackPanel>
-                </Border>
-              </Grid>
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch"
+                  VerticalContentAlignment="Stretch"
+                  Content="{TemplateBinding Content}" />
+              </Border>
             </Border>
           </Grid>
         </Border>
       </ControlTemplate>
     </Setter>
-  </Style>
-
-  <Style Selector="controls|SectionPanel TextBlock.Small">
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
   <Style Selector="Border.SectionPanel">
@@ -105,6 +96,14 @@
 
   <Style Selector="controls|SectionPanel.Kpi">
     <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <Style Selector="controls|SectionPanel.Kpi TextBlock.SectionTitle">
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+
+  <Style Selector="controls|SectionPanel.TabSection TextBlock.SectionTitle">
+    <Setter Property="FontSize" Value="{DynamicResource SectionPanelTabTitleSize}" />
   </Style>
 
   <Style Selector="Border.SectionPanelInner">
@@ -121,16 +120,6 @@
     <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
 
-  <Style Selector="Border.SectionPanelFooter">
-    <Setter Property="Padding" Value="{DynamicResource SectionPanelFooterPadding}" />
-  </Style>
-
-  <Style Selector="Border.SectionPanelFooterRule">
-    <Setter Property="BorderBrush" Value="{DynamicResource OutlineColor}" />
-    <Setter Property="BorderThickness" Value="0,1,0,0" />
-    <Setter Property="Opacity" Value="0.7" />
-  </Style>
-
   <Style Selector="controls|SectionPanel.Kpi Border.SectionPanelInner">
     <Setter Property="Padding" Value="{DynamicResource KpiTileInnerPadding}" />
   </Style>
@@ -139,8 +128,11 @@
     <Setter Property="Padding" Value="0" />
   </Style>
 
+  <Style Selector="controls|SectionPanel.FlushBody Border.SectionPanelBody">
+    <Setter Property="Padding" Value="{DynamicResource SectionPanelFlushBodyPadding}" />
+  </Style>
+
   <Style Selector="controls|KpiTile TextBlock.h3">
-    <Setter Property="LineHeight" Value="24" />
     <Setter Property="Margin" Value="0" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />

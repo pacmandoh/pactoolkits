@@ -77,13 +77,4 @@
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
-  <!-- ShadUI sets Small/Caption to Medium; CJK system fonts render Latin glyphs heavy at Medium. -->
-  <Style Selector="TextBlock.Small">
-    <Setter Property="FontWeight" Value="Normal" />
-  </Style>
-
-  <Style Selector="TextBlock.Caption">
-    <Setter Property="FontWeight" Value="Normal" />
-  </Style>
-
 </Styles>
