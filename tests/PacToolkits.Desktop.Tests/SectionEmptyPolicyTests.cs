@@ -10,7 +10,7 @@ public sealed class SectionEmptyPolicyTests
     [InlineData(PageDataAvailability.Stale)]
     [InlineData(PageDataAvailability.LoadFailed)]
     [InlineData(PageDataAvailability.AccessBlocked)]
-    public void ShouldShow_returns_true_when_content_empty_and_page_has_settled(PageDataAvailability availability)
+    public void Show_returns_true_when_content_empty_and_page_has_settled(PageDataAvailability availability)
     {
         Assert.True(SectionEmptyPolicy.Show(
             isContentEmpty: true,
@@ -22,7 +22,7 @@ public sealed class SectionEmptyPolicyTests
     [InlineData(PageDataAvailability.Loading)]
     [InlineData(PageDataAvailability.NotLoaded)]
     [InlineData(PageDataAvailability.AwaitingDatabase)]
-    public void ShouldShow_hides_empty_state_during_first_fetch(PageDataAvailability availability)
+    public void Show_hides_empty_state_during_first_fetch(PageDataAvailability availability)
     {
         Assert.False(SectionEmptyPolicy.Show(
             isContentEmpty: true,
@@ -31,7 +31,7 @@ public sealed class SectionEmptyPolicyTests
     }
 
     [Fact]
-    public void ShouldShow_returns_true_during_reload_when_content_still_empty()
+    public void Show_returns_true_during_reload_when_content_still_empty()
     {
         Assert.True(SectionEmptyPolicy.Show(
             isContentEmpty: true,
@@ -40,7 +40,7 @@ public sealed class SectionEmptyPolicyTests
     }
 
     [Fact]
-    public void ShouldShow_returns_false_when_content_not_empty()
+    public void Show_returns_false_when_content_not_empty()
     {
         Assert.False(SectionEmptyPolicy.Show(
             isContentEmpty: false,
