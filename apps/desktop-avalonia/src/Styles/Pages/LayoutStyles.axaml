@@ -44,7 +44,7 @@
 
   <!-- Dashboard tabs: headers only; body lives in Grid row below. -->
   <Style Selector="TabControl.DashboardTabHeaders /template/ LayoutTransformControl > Border">
-    <Setter Property="Background" Value="{DynamicResource SwitchBackgroundColor}" />
+    <Setter Property="Background" Value="{DynamicResource SectionPanelChromeBackground}" />
   </Style>
 
   <Style Selector="TabControl.DashboardTabHeaders /template/ StackPanel">
