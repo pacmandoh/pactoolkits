@@ -55,7 +55,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
         ClearBrowsingSelections();
 
-        EnsureCurrentTabDataLoaded();
+        QueueTabPageReload();
     }
 
     partial void OnTabPageSizeChanged(int value)
@@ -77,7 +77,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         OnPropertyChanged(nameof(TxnTotalPages));
         OnPropertyChanged(nameof(TxnTrendTotalPages));
         OnPropertyChanged(nameof(AbnormalTotalPages));
-        EnsureCurrentTabDataLoaded();
+        QueueTabPageReload(force: true);
     }
 
     [ObservableProperty] private DateTime? _fromDate = DateTime.Today.AddDays(-6);
@@ -608,27 +608,33 @@ public sealed partial class DashboardViewModel : AppPageBase
         _ = ReloadNow();
     }
 
-    private void EnsureCurrentTabDataLoaded()
+    private void QueueTabPageReload(bool force = false)
     {
         switch (SelectedTabIndex)
         {
-            case 1 when EntryRecent.Count == 0 && !IsEntryBusy:
+            case 1 when force || (EntryRecent.Count == 0 && !IsEntryBusy):
                 _ = ReloadEntryPageOnlyAsync();
                 break;
-            case 2 when !IsTxnBusy:
+            case 2:
+                if (!force && IsTxnBusy)
+                {
+                    break;
+                }
+
                 if (IsTxnPanelTrendMode)
                 {
-                    if (TxnTrendRows.Count == 0)
+                    if (force || TxnTrendRows.Count == 0)
                     {
                         _ = ReloadTxnTrendPageOnlyAsync();
                     }
                 }
-                else if (RecentTxns.Count == 0)
+                else if (force || RecentTxns.Count == 0)
                 {
                     _ = ReloadTxnPageOnlyAsync();
                 }
+
                 break;
-            case 3 when AbnormalQueue.Count == 0 && !IsAbnormalBusy:
+            case 3 when force || (AbnormalQueue.Count == 0 && !IsAbnormalBusy):
                 _ = ReloadAbnormalPageOnlyAsync();
                 break;
         }
@@ -988,7 +994,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                 var trendItems = BuildTrendItems(loaded.Trend);
                 var recentOverviewItems = BuildRecentTxnsOverviewItems(loaded.TxnsOverview.Rows);
                 var recentTxnPageItems = BuildRecentTxnsPageItems(loaded.TxnsPage.Rows, TxnPageIndex, TxnPageSize);
-                var txnTrendPageItems = BuildTxnTrendPageItems(loaded.TxnTrendPage.Rows, TxnTrendPageIndex, TxnTrendPageSize);
+                var txnTrendPageItems = BuildTxnTrendPageItems(loaded.TxnTrendPage.Rows);
                 var entryOverviewItems = BuildEntryLogsOverviewItems(loaded.EntriesOverview.Rows);
                 var entryPageItems = BuildEntryLogsPageItems(loaded.EntriesPage.Rows, EntryPageIndex, EntryPageSize);
                 var topClientItems = BuildTopClientItems(loaded.TopClients);
@@ -1167,7 +1173,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         {
             items.Add(new TrendDrugItem
             {
-                Rank = r.Rank.ToString(CultureInfo.CurrentCulture),
+                DisplayIndex = r.Rank,
                 Name = r.Name,
                 Sub = r.Sub,
                 SourceText = BuildTrendSourceText(r.TopClientRaw, r.TopClientPct),
@@ -1184,20 +1190,14 @@ public sealed partial class DashboardViewModel : AppPageBase
         OnPropertyChanged(nameof(IsTrendEmpty));
     }
 
-    private List<TrendDrugItem> BuildTxnTrendPageItems(
-        IReadOnlyList<TrendRowDto> rows,
-        int pageIndex,
-        int pageSize)
+    private static List<TrendDrugItem> BuildTxnTrendPageItems(IReadOnlyList<TrendRowDto> rows)
     {
         var items = new List<TrendDrugItem>(rows.Count);
-        var start = ((pageIndex - 1) * pageSize) + 1;
-        var idx = 0;
         foreach (var r in rows)
         {
             items.Add(new TrendDrugItem
             {
-                DisplayIndex = start + idx++,
-                Rank = r.Rank.ToString(CultureInfo.CurrentCulture),
+                DisplayIndex = r.Rank,
                 Name = r.Name,
                 Sub = r.Sub,
                 SourceText = BuildTrendSourceText(r.TopClientRaw, r.TopClientPct),
