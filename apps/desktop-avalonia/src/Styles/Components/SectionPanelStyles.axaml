@@ -1,0 +1,159 @@
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="controls|SectionPanel">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="controls:SectionPanel">
+        <Border Classes="SectionPanel">
+          <Grid
+            MinHeight="0"
+            RowDefinitions="Auto,*"
+            RowSpacing="{DynamicResource SectionPanelHeaderInnerGap}">
+            <Grid
+              Grid.Row="0"
+              Margin="{DynamicResource SectionPanelHeaderPadding}"
+              ColumnDefinitions="Auto,*,Auto">
+              <Ellipse
+                Width="{DynamicResource SectionPanelAccentDotSize}"
+                Height="{DynamicResource SectionPanelAccentDotSize}"
+                VerticalAlignment="Center"
+                Fill="{TemplateBinding AccentBrush}" />
+              <StackPanel
+                Grid.Column="1"
+                Margin="{DynamicResource SectionPanelTitleMargin}"
+                VerticalAlignment="Center"
+                Spacing="2">
+                <TextBlock
+                  VerticalAlignment="Center"
+                  Classes="Small"
+                  Text="{TemplateBinding Title}" />
+                <TextBlock
+                  Classes="Caption Muted"
+                  IsVisible="{TemplateBinding HasHeaderHint}"
+                  Text="{TemplateBinding HeaderHint}"
+                  TextWrapping="Wrap" />
+              </StackPanel>
+              <ContentPresenter
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                Content="{TemplateBinding HeaderContent}"
+                IsVisible="{TemplateBinding HeaderContent, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <icons:AppIcon
+                Grid.Column="2"
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                VerticalAlignment="Center"
+                Classes="SectionPanelMenuIcon"
+                IsHitTestVisible="False"
+                IsVisible="{TemplateBinding ShowDefaultMenuIcon}"
+                Kind="Ellipsis" />
+            </Grid>
+
+            <Border
+              Grid.Row="1"
+              MinHeight="0"
+              VerticalAlignment="Stretch"
+              Classes="SectionPanelInner">
+              <Grid MinHeight="0" RowDefinitions="*,Auto">
+                <Border
+                  Grid.Row="0"
+                  MinHeight="0"
+                  Classes="SectionPanelBody">
+                  <ContentPresenter
+                    MinHeight="0"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"
+                    Content="{TemplateBinding Content}" />
+                </Border>
+                <Border
+                  Grid.Row="1"
+                  Classes="SectionPanelFooter"
+                  IsVisible="{TemplateBinding HasFooter}">
+                  <StackPanel Spacing="{DynamicResource SectionPanelFooterRuleGap}">
+                    <Border Classes="SectionPanelFooterRule" />
+                    <TextBlock Classes="Caption Muted" Text="{TemplateBinding FooterText}" />
+                  </StackPanel>
+                </Border>
+              </Grid>
+            </Border>
+          </Grid>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="controls|SectionPanel TextBlock.Small">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+  </Style>
+
+  <Style Selector="Border.SectionPanel">
+    <Setter Property="Background" Value="{DynamicResource SwitchBackgroundColor}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource SectionPanelOuterRadius}" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="controls|SectionPanel.Kpi">
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <Style Selector="Border.SectionPanelInner">
+    <Setter Property="Background" Value="{DynamicResource WindowBackgroundColor}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource SectionPanelInnerRadius}" />
+    <Setter Property="Margin" Value="{DynamicResource SectionPanelInnerMargin}" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="Border.SectionPanelBody">
+    <Setter Property="Padding" Value="{DynamicResource SectionPanelBodyPadding}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="Border.SectionPanelFooter">
+    <Setter Property="Padding" Value="{DynamicResource SectionPanelFooterPadding}" />
+  </Style>
+
+  <Style Selector="Border.SectionPanelFooterRule">
+    <Setter Property="BorderBrush" Value="{DynamicResource OutlineColor}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="Opacity" Value="0.7" />
+  </Style>
+
+  <Style Selector="controls|SectionPanel.Kpi Border.SectionPanelInner">
+    <Setter Property="Padding" Value="{DynamicResource KpiTileInnerPadding}" />
+  </Style>
+
+  <Style Selector="controls|SectionPanel.Kpi Border.SectionPanelBody">
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="controls|KpiTile TextBlock.h3">
+    <Setter Property="LineHeight" Value="24" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+  </Style>
+
+  <Style Selector="icons|AppIcon.SectionPanelMenuIcon">
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
+  </Style>
+
+  <Style Selector="Border.KpiTileStrip">
+    <Setter Property="Background" Value="{DynamicResource WindowBackgroundColor}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="{DynamicResource KpiTileStripPadding}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource SectionPanelOuterRadius}" />
+  </Style>
+</Styles>
