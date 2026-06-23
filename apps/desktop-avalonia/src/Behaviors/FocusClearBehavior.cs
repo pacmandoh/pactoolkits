@@ -179,11 +179,6 @@ public class FocusClearBehavior
                 case NumericUpDown:
                     return true;
             }
-
-            if (current.GetType().Name is "PlainAutoCompleteBox")
-            {
-                return true;
-            }
         }
 
         return false;
