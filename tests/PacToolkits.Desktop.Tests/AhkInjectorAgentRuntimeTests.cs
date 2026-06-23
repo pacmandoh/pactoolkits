@@ -19,7 +19,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             new FakeAppConfigStore(),
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService(),
-            new DbMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
             new NullAppLogger(),
             new NullAgentEventSink());
 
@@ -50,7 +50,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             config,
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService(),
-            new DbMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
             new NullAppLogger(),
             new NullAgentEventSink());
 
@@ -68,7 +68,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             config,
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService("1.2.20"),
-            new DbMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
             new NullAppLogger(),
             new NullAgentEventSink());
 
@@ -86,7 +86,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             config,
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService("1.2.23"),
-            new DbMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
             new NullAppLogger(),
             new NullAgentEventSink());
 
@@ -166,7 +166,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             => Task.FromResult(new DbSchemaVersionReadResult(true, version, null));
     }
 
-    private sealed class FakeEnvironmentSettingsService : IDbEnvSettingsService
+    private sealed class FakeDbEnvSettingsService : IDbEnvSettingsService
     {
         public Task<DbEnvSettings> TryReadAsync(CancellationToken ct)
             => Task.FromResult(DbEnvSettings.ProductionDefaults);

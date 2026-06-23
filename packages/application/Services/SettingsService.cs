@@ -70,9 +70,9 @@ public sealed class SettingsService : ISettingsService
     private readonly IDbSchemaVersionService _schemaVersion;
     private readonly IDbSchemaMigrationService _schemaMigration;
     private readonly IClientIdReadRepo _clientRepo;
-    private readonly IDbAccessGuard _databaseAccessGuard;
+    private readonly IDbAccessGuard _accessGuard;
     private readonly IDbMigrationPolicyService _migrationPolicy;
-    private readonly IDbEnvSettingsService _environmentSettings;
+    private readonly IDbEnvSettingsService _envSettings;
 
     public SettingsService(
         IDbConfigService dbConfig,
@@ -80,18 +80,18 @@ public sealed class SettingsService : ISettingsService
         IDbSchemaVersionService schemaVersion,
         IDbSchemaMigrationService schemaMigration,
         IClientIdReadRepo clientRepo,
-        IDbAccessGuard databaseAccessGuard,
+        IDbAccessGuard accessGuard,
         IDbMigrationPolicyService migrationPolicy,
-        IDbEnvSettingsService environmentSettings)
+        IDbEnvSettingsService envSettings)
     {
         _dbConfig = dbConfig ?? throw new ArgumentNullException(nameof(dbConfig));
         _tester = tester ?? throw new ArgumentNullException(nameof(tester));
         _schemaVersion = schemaVersion ?? throw new ArgumentNullException(nameof(schemaVersion));
         _schemaMigration = schemaMigration ?? throw new ArgumentNullException(nameof(schemaMigration));
         _clientRepo = clientRepo ?? throw new ArgumentNullException(nameof(clientRepo));
-        _databaseAccessGuard = databaseAccessGuard ?? throw new ArgumentNullException(nameof(databaseAccessGuard));
+        _accessGuard = accessGuard ?? throw new ArgumentNullException(nameof(accessGuard));
         _migrationPolicy = migrationPolicy ?? throw new ArgumentNullException(nameof(migrationPolicy));
-        _environmentSettings = environmentSettings ?? throw new ArgumentNullException(nameof(environmentSettings));
+        _envSettings = envSettings ?? throw new ArgumentNullException(nameof(envSettings));
     }
 
     public Task SaveDbConfigAsync(PgOptions options, CancellationToken ct)
@@ -385,8 +385,8 @@ public sealed class SettingsService : ISettingsService
         CancellationToken ct)
     {
         var environment = connectionOptions is null
-            ? await _environmentSettings.TryReadAsync(ct).ConfigureAwait(false)
-            : await _environmentSettings.TryReadAsync(connectionOptions, ct).ConfigureAwait(false);
+            ? await _envSettings.TryReadAsync(ct).ConfigureAwait(false)
+            : await _envSettings.TryReadAsync(connectionOptions, ct).ConfigureAwait(false);
         return _migrationPolicy.Evaluate(new DbMigrationEvaluationContext(
             trigger,
             compatibility,
@@ -471,11 +471,11 @@ public sealed class SettingsService : ISettingsService
     {
         if (compatibility.IsCompatible)
         {
-            _databaseAccessGuard.Clear();
+            _accessGuard.Clear();
         }
         else
         {
-            _databaseAccessGuard.Block(compatibility.Message);
+            _accessGuard.Block(compatibility.Message);
         }
     }
 

@@ -7,7 +7,7 @@ namespace PacToolkits.Desktop.Tests;
 
 public sealed class DbMigrationPolicyServiceTests
 {
-    private readonly DbMigrationPolicyService _service = new(new FixedEnvironmentSettingsService());
+    private readonly DbMigrationPolicyService _service = new(new FixedDbEnvSettingsService());
 
     [Fact]
     public void Stable_channel_with_stable_only_allows_in_app_migration_when_below_minimum()
@@ -278,7 +278,7 @@ public sealed class DbMigrationPolicyServiceTests
             userConfirmed,
             ciMigrationAuthorized));
 
-    private sealed class FixedEnvironmentSettingsService : Application.Abstractions.IDbEnvSettingsService
+    private sealed class FixedDbEnvSettingsService : Application.Abstractions.IDbEnvSettingsService
     {
         public Task<DbEnvSettings> TryReadAsync(CancellationToken ct)
             => Task.FromResult(DbEnvSettings.ProductionDefaults);
