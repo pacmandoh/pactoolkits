@@ -45,7 +45,7 @@
               behaviors:FocusClearBehavior.SuppressGridClear="True"
               Classes="Ghost MsfxMiniIconBtn"
               Command="{Binding BeginMergeTaskSelectionCommand}"
-              IsEnabled="{Binding CanEnterTaskMergeMode}">
+              IsEnabled="{Binding CanMergeTasks}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeCompact}"
                 Height="{DynamicResource IconSizeCompact}"
@@ -65,7 +65,7 @@
               behaviors:FocusClearBehavior.SuppressGridClear="True"
               Classes="Ghost MsfxMiniIconBtn"
               Command="{Binding BeginRemapTaskSelectionCommand}"
-              IsEnabled="{Binding CanEnterTaskRemapMode}">
+              IsEnabled="{Binding CanRemapTasks}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeCompact}"
                 Height="{DynamicResource IconSizeCompact}"
@@ -75,7 +75,7 @@
               behaviors:FocusClearBehavior.SuppressGridClear="True"
               Classes="Ghost MsfxMiniIconBtn"
               Command="{Binding BeginDiscardTaskSelectionCommand}"
-              IsEnabled="{Binding CanEnterTaskDiscardMode}">
+              IsEnabled="{Binding CanDiscardTasks}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeCompact}"
                 Height="{DynamicResource IconSizeCompact}"
@@ -85,7 +85,7 @@
               behaviors:FocusClearBehavior.SuppressGridClear="True"
               Classes="Ghost MsfxMiniIconBtn"
               Command="{Binding BeginReopenTaskSelectionCommand}"
-              IsEnabled="{Binding CanEnterTaskReopenMode}">
+              IsEnabled="{Binding CanReopenTasks}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeCompact}"
                 Height="{DynamicResource IconSizeCompact}"
@@ -200,7 +200,7 @@
             behaviors:FocusClearBehavior.SuppressGridClear="True"
             Classes="Action"
             Command="{Binding BeginMergeTaskSelectionCommand}"
-            IsEnabled="{Binding CanEnterTaskMergeMode}">
+            IsEnabled="{Binding CanMergeTasks}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeCompact}"
@@ -230,7 +230,7 @@
             behaviors:FocusClearBehavior.SuppressGridClear="True"
             Classes="Action"
             Command="{Binding BeginRemapTaskSelectionCommand}"
-            IsEnabled="{Binding CanEnterTaskRemapMode}">
+            IsEnabled="{Binding CanRemapTasks}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeCompact}"
@@ -245,7 +245,7 @@
             behaviors:FocusClearBehavior.SuppressGridClear="True"
             Classes="Action"
             Command="{Binding BeginDiscardTaskSelectionCommand}"
-            IsEnabled="{Binding CanEnterTaskDiscardMode}">
+            IsEnabled="{Binding CanDiscardTasks}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeCompact}"
@@ -260,7 +260,7 @@
             behaviors:FocusClearBehavior.SuppressGridClear="True"
             Classes="Action"
             Command="{Binding BeginReopenTaskSelectionCommand}"
-            IsEnabled="{Binding CanEnterTaskReopenMode}">
+            IsEnabled="{Binding CanReopenTasks}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeCompact}"

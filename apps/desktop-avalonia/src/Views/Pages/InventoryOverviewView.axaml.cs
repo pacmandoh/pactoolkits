@@ -90,19 +90,19 @@ public partial class InventoryOverviewView : UserControl
 
         if (_vm.IsAggMode)
         {
-            TryQueueModeGridFromHost(AggModeHost, "AggGridSlot", 2);
+            QueueModeGridFromHost(AggModeHost, "AggGridSlot", 2);
         }
         else if (_vm.IsLowMode)
         {
-            TryQueueModeGridFromHost(LowModeHost, "LowStockGridSlot", 3, wirePointer: true);
+            QueueModeGridFromHost(LowModeHost, "LowStockGridSlot", 3, wirePointer: true);
         }
         else if (_vm.IsMissingMode)
         {
-            TryQueueModeGridFromHost(MissingModeHost, "MissingGridSlot", 4, wirePointer: true);
+            QueueModeGridFromHost(MissingModeHost, "MissingGridSlot", 4, wirePointer: true);
         }
     }
 
-    private void TryQueueModeGridFromHost(
+    private void QueueModeGridFromHost(
         DeferredContentHost host,
         string slotName,
         int priority,

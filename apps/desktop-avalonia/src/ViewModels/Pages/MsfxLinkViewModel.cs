@@ -213,10 +213,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         TaskQueueBatchActionMode.Reopen => CanBatchReopenSelectedTasks,
         _ => false
     };
-    public bool CanEnterTaskMergeMode => !IsAutoBoardBusy && AutoTaskQueueRows.Count(x => x.CurrentCodeCount > 0) >= 2;
-    public bool CanEnterTaskRemapMode => !IsAutoBoardBusy && AutoTaskQueueRows.Any(x => !string.Equals(x.Status, "RUNNING", StringComparison.OrdinalIgnoreCase) && x.CurrentCodeCount > 0);
-    public bool CanEnterTaskDiscardMode => !IsAutoBoardBusy && AutoTaskQueueRows.Any(x => x.CurrentCodeCount > 0 && (string.Equals(x.Status, "NEW", StringComparison.OrdinalIgnoreCase) || string.Equals(x.Status, "FAILED", StringComparison.OrdinalIgnoreCase)));
-    public bool CanEnterTaskReopenMode => !IsAutoBoardBusy && AutoTaskQueueRows.Any(x => string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase) || string.Equals(x.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase));
+    public bool CanMergeTasks => !IsAutoBoardBusy && AutoTaskQueueRows.Count(x => x.CurrentCodeCount > 0) >= 2;
+    public bool CanRemapTasks => !IsAutoBoardBusy && AutoTaskQueueRows.Any(x => !string.Equals(x.Status, "RUNNING", StringComparison.OrdinalIgnoreCase) && x.CurrentCodeCount > 0);
+    public bool CanDiscardTasks => !IsAutoBoardBusy && AutoTaskQueueRows.Any(x => x.CurrentCodeCount > 0 && (string.Equals(x.Status, "NEW", StringComparison.OrdinalIgnoreCase) || string.Equals(x.Status, "FAILED", StringComparison.OrdinalIgnoreCase)));
+    public bool CanReopenTasks => !IsAutoBoardBusy && AutoTaskQueueRows.Any(x => string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase) || string.Equals(x.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase));
     public bool CanBatchReopenSelectedTasks => !IsAutoBoardBusy
                                                && SelectedAutoTaskQueueRowsSnapshot.Any(x =>
                                                    string.Equals(x.Status, "SUCCESS", StringComparison.OrdinalIgnoreCase)
@@ -758,10 +758,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     partial void OnSelectedAutoTaskQueueRowChanged(MsfxAutoTaskQueueGridRow? value)
     {
-        OnPropertyChanged(nameof(CanEnterTaskMergeMode));
-        OnPropertyChanged(nameof(CanEnterTaskRemapMode));
-        OnPropertyChanged(nameof(CanEnterTaskDiscardMode));
-        OnPropertyChanged(nameof(CanEnterTaskReopenMode));
+        OnPropertyChanged(nameof(CanMergeTasks));
+        OnPropertyChanged(nameof(CanRemapTasks));
+        OnPropertyChanged(nameof(CanDiscardTasks));
+        OnPropertyChanged(nameof(CanReopenTasks));
         OnPropertyChanged(nameof(CanBatchReopenSelectedTasks));
         OnPropertyChanged(nameof(CanBatchDiscardSelectedTasks));
         OnPropertyChanged(nameof(CanBatchRemapSelectedTasks));
@@ -789,10 +789,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             .Distinct()
             .ToList();
         OnPropertyChanged(nameof(SelectedAutoTaskQueueRowsSnapshot));
-        OnPropertyChanged(nameof(CanEnterTaskMergeMode));
-        OnPropertyChanged(nameof(CanEnterTaskRemapMode));
-        OnPropertyChanged(nameof(CanEnterTaskDiscardMode));
-        OnPropertyChanged(nameof(CanEnterTaskReopenMode));
+        OnPropertyChanged(nameof(CanMergeTasks));
+        OnPropertyChanged(nameof(CanRemapTasks));
+        OnPropertyChanged(nameof(CanDiscardTasks));
+        OnPropertyChanged(nameof(CanReopenTasks));
         OnPropertyChanged(nameof(CanBatchReopenSelectedTasks));
         OnPropertyChanged(nameof(CanBatchDiscardSelectedTasks));
         OnPropertyChanged(nameof(CanBatchRemapSelectedTasks));
