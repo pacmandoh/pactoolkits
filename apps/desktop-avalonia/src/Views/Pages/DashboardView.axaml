@@ -1,12 +1,12 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardView"
   xmlns="https://github.com/avaloniaui"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
   d:DesignHeight="820"
@@ -55,246 +55,173 @@
     UnavailableIcon="{Binding PageUnavailableIcon}"
     UnavailableTitle="{Binding PageUnavailableTitle}">
     <Grid Classes="DashboardShell" RowDefinitions="Auto,Auto,*">
-      <suki:GlassCard
+      <Border
         Grid.Row="0"
-        Margin="{DynamicResource DashboardFilterCardMargin}"
-        Padding="{DynamicResource DashboardFilterCardPadding}"
-        Classes="SectionCard FilterSectionCard">
-        <Grid
-          VerticalAlignment="Stretch"
-          ColumnDefinitions="1.9*,1.35*,1.15*,1.35*"
-          ColumnSpacing="{DynamicResource PageColumnSpacing}">
-          <suki:GlassCard
+        Classes="DashboardFilterChrome"
+        IsVisible="{Binding IsFilterBarVisible}">
+        <Grid Classes="DashboardFilterColumns" ColumnDefinitions="*,Auto,*,Auto,*">
+          <Grid
             Grid.Column="0"
-            VerticalAlignment="Stretch"
-            Classes="FilterFieldCard">
-            <Grid
-              VerticalAlignment="Stretch"
-              RowDefinitions="Auto,*"
-              RowSpacing="{DynamicResource FilterFieldRowSpacing}">
-              <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Classes="SectionHeaderStack"
-                  Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeSmall}"
-                    Height="{DynamicResource IconSizeSmall}"
-                    Kind="CalendarRange"
-                    Opacity="{StaticResource SectionHintOpacity}" />
-                  <TextBlock
-                    FontSize="{DynamicResource SectionHintSize}"
-                    Opacity="{StaticResource SectionHintOpacity}"
-                    Text="起始" />
-                </StackPanel>
-                <StackPanel
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Orientation="Horizontal"
-                  Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeSmall}"
-                    Height="{DynamicResource IconSizeSmall}"
-                    Kind="CalendarRange"
-                    Opacity="{StaticResource SectionHintOpacity}" />
-                  <TextBlock
-                    FontSize="{DynamicResource SectionHintSize}"
-                    Opacity="{StaticResource SectionHintOpacity}"
-                    Text="结束" />
-                </StackPanel>
-                <Button
-                  Grid.Column="2"
-                  HorizontalAlignment="Right"
-                  VerticalAlignment="Center"
-                  Classes="Basic MicroClear"
-                  Command="{Binding ResetDateRangeCommand}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeSmall}"
-                    Height="{DynamicResource IconSizeSmall}"
-                    Kind="RotateCcw" />
-                </Button>
-              </Grid>
-              <Grid
-                Grid.Row="1"
-                VerticalAlignment="Bottom"
-                ColumnDefinitions="*,*"
-                ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <controls:FilterFieldInput Grid.Column="0">
-                  <CalendarDatePicker
-                    MinWidth="126"
-                    DisplayDateEnd="{Binding FromMaxDate}"
-                    IsTodayHighlighted="True"
-                    SelectedDate="{Binding FromDate}" />
-                </controls:FilterFieldInput>
-                <controls:FilterFieldInput Grid.Column="1">
-                  <CalendarDatePicker
-                    MinWidth="126"
-                    DisplayDateEnd="{Binding ToMaxDate}"
-                    DisplayDateStart="{Binding ToMinDate}"
-                    IsTodayHighlighted="True"
-                    SelectedDate="{Binding ToDate}"
-                    SelectedDateFormat="Short" />
-                </controls:FilterFieldInput>
-              </Grid>
-            </Grid>
-          </suki:GlassCard>
+            Classes="DashboardFilterColumn"
+            ColumnDefinitions="Auto,*,Auto,*,Auto">
+            <TextBlock
+              Grid.Column="0"
+              Classes="FilterLabel"
+              Text="起始" />
+            <controls:FilterFieldInput Grid.Column="1">
+              <CalendarDatePicker
+                HorizontalAlignment="Stretch"
+                DisplayDateEnd="{Binding FromMaxDate}"
+                IsTodayHighlighted="True"
+                SelectedDate="{Binding FromDate}" />
+            </controls:FilterFieldInput>
+            <TextBlock
+              Grid.Column="2"
+              Classes="FilterLabel"
+              Text="结束" />
+            <controls:FilterFieldInput Grid.Column="3">
+              <CalendarDatePicker
+                HorizontalAlignment="Stretch"
+                DisplayDateEnd="{Binding ToMaxDate}"
+                DisplayDateStart="{Binding ToMinDate}"
+                IsTodayHighlighted="True"
+                SelectedDate="{Binding ToDate}"
+                SelectedDateFormat="Short" />
+            </controls:FilterFieldInput>
+            <Button
+              Grid.Column="4"
+              VerticalAlignment="Center"
+              Classes="Basic MicroClear"
+              Command="{Binding ResetDateRangeCommand}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSmall}"
+                Height="{DynamicResource IconSizeSmall}"
+                Kind="RotateCcw" />
+            </Button>
+          </Grid>
 
-          <suki:GlassCard
-            Grid.Column="1"
-            VerticalAlignment="Stretch"
-            Classes="FilterFieldCard">
-            <Grid
-              VerticalAlignment="Stretch"
-              RowDefinitions="Auto,*"
-              RowSpacing="{DynamicResource FilterFieldRowSpacing}">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource SpacingInlineSm}">
-                <icons:AppIcon
-                  Grid.Column="0"
-                  Width="{DynamicResource IconSizeSmall}"
-                  Height="{DynamicResource IconSizeSmall}"
-                  VerticalAlignment="Center"
-                  Kind="Pill"
-                  Opacity="{StaticResource SectionHintOpacity}" />
-                <TextBlock
-                  Grid.Column="1"
-                  Classes="FilterLabel"
-                  Text="药品" />
-                <Button
-                  Grid.Column="2"
-                  HorizontalAlignment="Right"
-                  VerticalAlignment="Center"
-                  Classes="Basic MicroClear"
-                  Command="{Binding ClearDrugSpecFilterCommand}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeSmall}"
-                    Height="{DynamicResource IconSizeSmall}"
-                    Kind="CircleX" />
-                </Button>
-              </Grid>
-              <controls:PlainAutoCompleteBox
-                x:Name="DrugBox"
-                Grid.Row="1"
-                VerticalAlignment="Bottom"
-                IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
-                ItemsSource="{Binding DrugOptions}"
-                KeyDown="DrugBox_OnKeyDown"
-                PlaceholderText="全部药品"
-                Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}">
-                <controls:PlainAutoCompleteBox.ItemTemplate>
-                  <DataTemplate x:DataType="vm:OptionItem">
-                    <TextBlock Text="{Binding Display}" />
-                  </DataTemplate>
-                </controls:PlainAutoCompleteBox.ItemTemplate>
-              </controls:PlainAutoCompleteBox>
-            </Grid>
-          </suki:GlassCard>
+          <Border Grid.Column="1" Classes="DashboardFilterColumnDivider" />
 
-          <suki:GlassCard
+          <Grid
             Grid.Column="2"
-            VerticalAlignment="Stretch"
-            Classes="FilterFieldCard">
-            <Grid
-              VerticalAlignment="Stretch"
-              RowDefinitions="Auto,*"
-              RowSpacing="{DynamicResource FilterFieldRowSpacing}">
-              <StackPanel
-                VerticalAlignment="Center"
-                Orientation="Horizontal"
-                Spacing="{DynamicResource SpacingInlineSm}">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeSmall}"
-                  Height="{DynamicResource IconSizeSmall}"
-                  Kind="SlidersHorizontal"
-                  Opacity="{StaticResource SectionHintOpacity}" />
-                <TextBlock
-                  FontSize="{DynamicResource SectionHintSize}"
-                  Opacity="{StaticResource SectionHintOpacity}"
-                  Text="规格" />
-              </StackPanel>
-              <controls:FilterFieldInput Grid.Row="1">
-                <ComboBox
-                  x:Name="SpecBox"
-                  HorizontalContentAlignment="Stretch"
-                  DisplayMemberBinding="{Binding Display}"
-                  ItemsSource="{Binding SpecOptions}"
-                  SelectedItem="{Binding SelectedSpec}" />
-              </controls:FilterFieldInput>
-            </Grid>
-          </suki:GlassCard>
+            Classes="DashboardFilterColumn"
+            ColumnDefinitions="Auto,*,Auto">
+            <TextBlock
+              Grid.Column="0"
+              Classes="FilterLabel"
+              Text="药品" />
+            <AutoCompleteBox
+              x:Name="DrugBox"
+              Grid.Column="1"
+              HorizontalAlignment="Stretch"
+              FilterMode="Contains"
+              IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
+              IsTextCompletionEnabled="True"
+              ItemsSource="{Binding DrugOptions}"
+              KeyDown="DrugBox_OnKeyDown"
+              PlaceholderText="全部药品"
+              Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}">
+              <AutoCompleteBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:OptionItem">
+                  <TextBlock Text="{Binding Display}" />
+                </DataTemplate>
+              </AutoCompleteBox.ItemTemplate>
+            </AutoCompleteBox>
+            <Button
+              Grid.Column="2"
+              Classes="Basic MicroClear DrugAutoCompleteClear"
+              Command="{Binding ClearDrugSpecFilterCommand}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSmall}"
+                Height="{DynamicResource IconSizeSmall}"
+                Kind="CircleX" />
+            </Button>
+          </Grid>
 
-          <suki:GlassCard
-            Grid.Column="3"
-            VerticalAlignment="Stretch"
-            Classes="FilterFieldCard">
-            <Grid
-              VerticalAlignment="Stretch"
-              RowDefinitions="Auto,*"
-              RowSpacing="{DynamicResource FilterFieldRowSpacing}">
-              <StackPanel
-                VerticalAlignment="Center"
-                Orientation="Horizontal"
-                Spacing="{DynamicResource SpacingInlineSm}">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeSmall}"
-                  Height="{DynamicResource IconSizeSmall}"
-                  Kind="Laptop"
-                  Opacity="{StaticResource SectionHintOpacity}" />
-                <TextBlock
-                  FontSize="{DynamicResource SectionHintSize}"
-                  Opacity="{StaticResource SectionHintOpacity}"
-                  Text="客户端" />
-              </StackPanel>
-              <controls:FilterFieldInput Grid.Row="1">
-                <ComboBox
-                  HorizontalContentAlignment="Stretch"
-                  DisplayMemberBinding="{Binding Display}"
-                  ItemsSource="{Binding Clients}"
-                  SelectedItem="{Binding SelectedClient}" />
-              </controls:FilterFieldInput>
-            </Grid>
-          </suki:GlassCard>
+          <Border Grid.Column="3" Classes="DashboardFilterColumnDivider" />
 
+          <Grid
+            Grid.Column="4"
+            Classes="DashboardFilterColumn"
+            ColumnDefinitions="Auto,*,Auto,*">
+            <TextBlock
+              Grid.Column="0"
+              Classes="FilterLabel"
+              Text="规格" />
+            <controls:FilterFieldInput Grid.Column="1">
+              <ComboBox
+                x:Name="SpecBox"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                DisplayMemberBinding="{Binding Display}"
+                ItemsSource="{Binding SpecOptions}"
+                SelectedItem="{Binding SelectedSpec}" />
+            </controls:FilterFieldInput>
+            <TextBlock
+              Grid.Column="2"
+              Classes="FilterLabel"
+              Text="客户端" />
+            <controls:FilterFieldInput Grid.Column="3">
+              <ComboBox
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                DisplayMemberBinding="{Binding Display}"
+                ItemsSource="{Binding Clients}"
+                SelectedItem="{Binding SelectedClient}" />
+            </controls:FilterFieldInput>
+          </Grid>
         </Grid>
-      </suki:GlassCard>
+      </Border>
 
-
-      <Border Grid.Row="1" Padding="{DynamicResource DashboardToolbarPadding}">
-        <TabControl Classes="DashboardSubTabs" SelectedIndex="{Binding SelectedTabIndex}">
+      <TabControl
+        Grid.Row="1"
+        Margin="{DynamicResource DashboardTabsPadding}"
+        SelectedIndex="{Binding SelectedTabIndex}">
           <TabItem>
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                <icons:AppIcon Kind="ChartLine" />
+              <StackPanel Classes="TabItemHeader">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="ChartLine" />
                 <TextBlock Text="总览" />
               </StackPanel>
             </TabItem.Header>
           </TabItem>
           <TabItem>
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                <icons:AppIcon Kind="Clipboard" />
+              <StackPanel Classes="TabItemHeader">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="Clipboard" />
                 <TextBlock Text="录入" />
               </StackPanel>
             </TabItem.Header>
           </TabItem>
           <TabItem>
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                <icons:AppIcon Kind="ArrowRightLeft" />
+              <StackPanel Classes="TabItemHeader">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="ArrowRightLeft" />
                 <TextBlock Text="事务" />
               </StackPanel>
             </TabItem.Header>
           </TabItem>
-          <TabItem Classes="NoDivider">
+          <TabItem>
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                <icons:AppIcon Kind="OctagonAlert" />
+              <StackPanel Classes="TabItemHeader">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="OctagonAlert" />
                 <TextBlock Text="异常" />
               </StackPanel>
             </TabItem.Header>
           </TabItem>
-        </TabControl>
-      </Border>
+      </TabControl>
 
 
       <Grid
@@ -323,11 +250,8 @@
               ColumnDefinitions="*,*,*,*"
               ColumnSpacing="{DynamicResource FormColumnSpacing}">
 
-              <suki:GlassCard
-                Grid.Column="0"
-                Classes="SectionCard"
-                Command="{Binding OpenInventoryCommand}"
-                IsInteractive="True">
+              <Button
+                Grid.Column="0" Classes="KpiNavCard" Command="{Binding OpenInventoryCommand}">
                 <Grid
                   ColumnDefinitions="Auto,*,Auto"
                   RowDefinitions="Auto,Auto,Auto,Auto"
@@ -382,13 +306,10 @@
                     Minimum="0"
                     Value="{Binding Kpi.AvailableRemainPct}" />
                 </Grid>
-              </suki:GlassCard>
+              </Button>
 
-              <suki:GlassCard
-                Grid.Column="1"
-                Classes="SectionCard"
-                Command="{Binding OpenPeriodUsageCommand}"
-                IsInteractive="True">
+              <Button
+                Grid.Column="1" Classes="KpiNavCard" Command="{Binding OpenPeriodUsageCommand}">
                 <Grid
                   ColumnDefinitions="Auto,*,Auto"
                   RowDefinitions="Auto,Auto,Auto,Auto"
@@ -443,13 +364,10 @@
                     Minimum="0"
                     Value="{Binding Kpi.PeriodUsedPct}" />
                 </Grid>
-              </suki:GlassCard>
+              </Button>
 
-              <suki:GlassCard
-                Grid.Column="2"
-                Classes="SectionCard"
-                Command="{Binding OpenAbnormalCommand}"
-                IsInteractive="True">
+              <Button
+                Grid.Column="2" Classes="KpiNavCard" Command="{Binding OpenAbnormalCommand}">
                 <Grid
                   ColumnDefinitions="Auto,*,Auto"
                   RowDefinitions="Auto,Auto,Auto,Auto"
@@ -506,13 +424,10 @@
                     Minimum="0"
                     Value="{Binding Kpi.AbnormalPct}" />
                 </Grid>
-              </suki:GlassCard>
+              </Button>
 
-              <suki:GlassCard
-                Grid.Column="3"
-                Classes="SectionCard"
-                Command="{Binding OpenLowStockCommand}"
-                IsInteractive="True">
+              <Button
+                Grid.Column="3" Classes="KpiNavCard" Command="{Binding OpenLowStockCommand}">
                 <Grid
                   ColumnDefinitions="Auto,*,Auto"
                   RowDefinitions="Auto,Auto,Auto,Auto"
@@ -570,7 +485,7 @@
                     Minimum="0"
                     Value="{Binding Kpi.LowStockPct}" />
                 </Grid>
-              </suki:GlassCard>
+              </Button>
             </Grid>
 
 
@@ -580,7 +495,7 @@
               ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
 
-              <suki:GlassCard Grid.Column="0" Classes="SectionCard">
+              <shad:Card Grid.Column="0">
                 <Grid
                   MinHeight="0"
                   RowDefinitions="Auto,*,Auto"
@@ -621,85 +536,86 @@
                     IsPending="{Binding IsSectionPending}"
                     SlotMinHeight="{DynamicResource DgH10Rows}"
                     SlotMode="Always">
-                    <suki:BusyArea MinHeight="{StaticResource DgH10Rows}" IsBusy="{Binding IsTxnBusy}">
-                      <DataGrid
-                        x:Name="TrendGridOverview"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Top"
-                        Classes="SectionGrid"
-                        HeadersVisibility="None"
-                        ItemsSource="{Binding DrugTrend}"
-                        RowHeight="{StaticResource RowMinHeight}"
-                        SelectedItem="{Binding SelectedTrendItem}"
-                        SelectionChanged="OnBrowsingGridSelectionChanged"
-                        SelectionMode="Single">
-
-                        <DataGrid.Columns>
-                          <DataGridTemplateColumn Width="{StaticResource DgWRank}">
-                            <DataGridTemplateColumn.CellTemplate>
-                              <DataTemplate>
-                                <Border>
-                                  <Border
-                                    Width="36"
-                                    Height="36"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    CornerRadius="10">
-                                    <TextBlock
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"
-                                      FontWeight="Bold"
-                                      Text="{Binding Rank}" />
-                                  </Border>
-                                </Border>
-                              </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                          </DataGridTemplateColumn>
-
-                          <DataGridTemplateColumn Width="*">
-                            <DataGridTemplateColumn.CellTemplate>
-                              <DataTemplate>
-                                <StackPanel Spacing="2">
-                                  <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                                  <TextBlock Classes="DGSub" Text="{Binding Sub}" />
-                                </StackPanel>
-                              </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                          </DataGridTemplateColumn>
-
-                          <DataGridTemplateColumn Width="Auto">
-                            <DataGridTemplateColumn.CellTemplate>
-                              <DataTemplate>
-                                <TextBlock Classes="SectionHint" Text="{Binding SourceText}" />
-                              </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                          </DataGridTemplateColumn>
-
-                          <DataGridTemplateColumn Width="{StaticResource DgWRightValue}">
-                            <DataGridTemplateColumn.CellTemplate>
-                              <DataTemplate>
-                                <TextBlock Classes="DGRightCell DGNum" Text="{Binding ValueText}" />
-                              </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                          </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                      </DataGrid>
-                    </suki:BusyArea>
+                    <shad:BusyArea MinHeight="{StaticResource DgH10Rows}" IsBusy="{Binding IsTxnBusy}">
+                      <controls:DeferredGridSlot
+                        x:Name="TrendGridSlot"
+                        SlotMinHeight="{DynamicResource DgH10Rows}"
+                        SlotName="TrendGridOverview">
+                        <controls:DeferredGridSlot.GridTemplate>
+                          <DataTemplate x:DataType="vm:DashboardViewModel">
+                            <DataGrid
+                              HorizontalAlignment="Stretch"
+                              Classes="SectionGrid Headerless"
+                              ItemsSource="{Binding DrugTrend}"
+                              RowHeight="{StaticResource RowMinHeight}"
+                              SelectedItem="{Binding SelectedTrendItem}"
+                              SelectionMode="Single">
+                              <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="{StaticResource DgWRank}">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <Border>
+                                        <Border
+                                          Width="36"
+                                          Height="36"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          CornerRadius="10">
+                                          <TextBlock
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            FontWeight="Bold"
+                                            Text="{Binding Rank}" />
+                                        </Border>
+                                      </Border>
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="*">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <StackPanel Spacing="2">
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                        <TextBlock Classes="DGSub" Text="{Binding Sub}" />
+                                      </StackPanel>
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="Auto">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <TextBlock Classes="SectionHint" Text="{Binding SourceText}" />
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="{StaticResource DgWRightValue}">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <TextBlock Classes="DGRightCell DGNum" Text="{Binding ValueText}" />
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                              </DataGrid.Columns>
+                            </DataGrid>
+                          </DataTemplate>
+                        </controls:DeferredGridSlot.GridTemplate>
+                      </controls:DeferredGridSlot>
+                    </shad:BusyArea>
                   </controls:EmptyStatePanel>
 
                   <Border
                     Grid.Row="2"
                     Padding="2,6,2,0"
-                    BorderBrush="{DynamicResource SukiBorderBrush}"
+                    BorderBrush="{DynamicResource OutlineColor}"
                     BorderThickness="0,1,0,0"
                     Opacity="0.7">
                     <TextBlock Classes="DGSub" Text="{Binding DrugTrend.Count, StringFormat=共 {0} 条趋势项}" />
                   </Border>
                 </Grid>
-              </suki:GlassCard>
+              </shad:Card>
 
 
-              <suki:GlassCard Grid.Column="1" Classes="SectionCard">
+              <shad:Card Grid.Column="1">
                 <Grid
                   MinHeight="0"
                   RowDefinitions="Auto,*,Auto"
@@ -741,79 +657,81 @@
                     IsPending="{Binding IsSectionPending}"
                     SlotMinHeight="{DynamicResource DgH10Rows}"
                     SlotMode="Always">
-                    <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
-                      <DataGrid
-                        x:Name="RecentTxnGridOverview"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Top"
-                        Classes="SectionGrid TxnGrid StickyIndexGrid"
-                        HeadersVisibility="Row"
-                        ItemsSource="{Binding RecentTxnsOverview}"
-                        RowHeight="{StaticResource RowMinHeight}"
-                        SelectedItem="{Binding SelectedTxn}"
-                        SelectionChanged="OnBrowsingGridSelectionChanged"
-                        SelectionMode="Single">
-                        <DataGrid.Columns>
-                          <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
-                            <DataGridTemplateColumn.CellTemplate>
-                              <DataTemplate>
-                                <Border
-                                  Width="{DynamicResource IconBadgeSize}"
-                                  Height="{DynamicResource IconBadgeSize}"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
-                                  Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
-                                  CornerRadius="{DynamicResource TraceBadgeRadius}">
-                                  <icons:AppIcon
-                                    Width="{DynamicResource IconSizeDefault}"
-                                    Height="{DynamicResource IconSizeDefault}"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
-                                    Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
-                                </Border>
-                              </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                          </DataGridTemplateColumn>
-
-                          <DataGridTemplateColumn Width="*">
-                            <DataGridTemplateColumn.CellTemplate>
-                              <DataTemplate>
-                                <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
-                              </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                          </DataGridTemplateColumn>
-
-                          <DataGridTemplateColumn Width="*">
-                            <DataGridTemplateColumn.CellTemplate>
-                              <DataTemplate>
-                                <TextBlock Text="{Binding Time}" />
-                              </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                          </DataGridTemplateColumn>
-
-                          <DataGridTemplateColumn Width="{StaticResource DgWRightSmall}">
-                            <DataGridTemplateColumn.CellTemplate>
-                              <DataTemplate>
-                                <TextBlock Classes="DGRightCell DGNum" Text="{Binding Qty}" />
-                              </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                          </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                      </DataGrid>
-                    </suki:BusyArea>
+                    <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
+                      <controls:DeferredGridSlot
+                        x:Name="RecentTxnGridSlot"
+                        SlotMinHeight="{DynamicResource DgH10Rows}"
+                        SlotName="RecentTxnGridOverview">
+                        <controls:DeferredGridSlot.GridTemplate>
+                          <DataTemplate x:DataType="vm:DashboardViewModel">
+                            <DataGrid
+                              HorizontalAlignment="Stretch"
+                              Classes="SectionGrid TxnGrid StickyIndexGrid"
+                              ItemsSource="{Binding RecentTxnsOverview}"
+                              RowHeight="{StaticResource RowMinHeight}"
+                              SelectedItem="{Binding SelectedTxn}"
+                              SelectionMode="Single">
+                              <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <Border
+                                        Width="{DynamicResource IconBadgeSize}"
+                                        Height="{DynamicResource IconBadgeSize}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                        CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                        <icons:AppIcon
+                                          Width="{DynamicResource IconSizeDefault}"
+                                          Height="{DynamicResource IconSizeDefault}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
+                                          Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
+                                      </Border>
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="*">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="*">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <TextBlock Text="{Binding Time}" />
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="{StaticResource DgWRightSmall}">
+                                  <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                      <TextBlock Classes="DGRightCell DGNum" Text="{Binding Qty}" />
+                                    </DataTemplate>
+                                  </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                              </DataGrid.Columns>
+                            </DataGrid>
+                          </DataTemplate>
+                        </controls:DeferredGridSlot.GridTemplate>
+                      </controls:DeferredGridSlot>
+                    </shad:BusyArea>
                   </controls:EmptyStatePanel>
 
                   <Border
                     Grid.Row="2"
                     Padding="2,6,2,0"
-                    BorderBrush="{DynamicResource SukiBorderBrush}"
+                    BorderBrush="{DynamicResource OutlineColor}"
                     BorderThickness="0,1,0,0"
                     Opacity="0.7">
                     <TextBlock Classes="DGSub" Text="{Binding RecentTxnsOverview.Count, StringFormat=共 {0} 条事务}" />
                   </Border>
                 </Grid>
-              </suki:GlassCard>
+              </shad:Card>
             </Grid>
 
 
@@ -823,11 +741,10 @@
               ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
 
-              <suki:GlassCard
+              <shad:Card
                 Grid.Column="0"
                 MinHeight="220"
-                VerticalAlignment="Stretch"
-                Classes="SectionCard">
+                VerticalAlignment="Stretch">
                 <Grid
                   VerticalAlignment="Stretch"
                   RowDefinitions="Auto,*,Auto"
@@ -866,7 +783,7 @@
                     IsPending="{Binding IsSectionPending}"
                     SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
                     SlotMode="PendingOnly">
-                    <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
+                    <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
                       <ScrollViewer
                         BringIntoViewOnFocusChange="False"
                         HorizontalScrollBarVisibility="Disabled"
@@ -923,26 +840,25 @@
                           </ItemsControl.ItemTemplate>
                         </ItemsControl>
                       </ScrollViewer>
-                    </suki:BusyArea>
+                    </shad:BusyArea>
                   </controls:EmptyStatePanel>
 
                   <Border
                     Grid.Row="2"
                     Padding="2,6,2,0"
-                    BorderBrush="{DynamicResource SukiBorderBrush}"
+                    BorderBrush="{DynamicResource OutlineColor}"
                     BorderThickness="0,1,0,0"
                     Opacity="0.7">
                     <TextBlock Classes="DGSub" Text="{Binding TopClients.Count, StringFormat=共 {0} 个客户端}" />
                   </Border>
                 </Grid>
-              </suki:GlassCard>
+              </shad:Card>
 
 
-              <suki:GlassCard
+              <shad:Card
                 Grid.Column="1"
                 MinHeight="220"
-                VerticalAlignment="Stretch"
-                Classes="SectionCard">
+                VerticalAlignment="Stretch">
                 <Grid
                   VerticalAlignment="Stretch"
                   RowDefinitions="Auto,*,Auto"
@@ -991,7 +907,7 @@
                     IsPending="{Binding IsSectionPending}"
                     SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
                     SlotMode="PendingOnly">
-                    <suki:BusyArea IsBusy="{Binding IsEntryBusy}">
+                    <shad:BusyArea IsBusy="{Binding IsEntryBusy}">
                       <ScrollViewer
                         BringIntoViewOnFocusChange="False"
                         HorizontalScrollBarVisibility="Disabled"
@@ -1068,20 +984,20 @@
                           </ItemsControl.ItemTemplate>
                         </ItemsControl>
                       </ScrollViewer>
-                    </suki:BusyArea>
+                    </shad:BusyArea>
                   </controls:EmptyStatePanel>
 
                   <Border
                     Grid.Row="2"
                     Padding="2,6,2,0"
-                    BorderBrush="{DynamicResource SukiBorderBrush}"
+                    BorderBrush="{DynamicResource OutlineColor}"
                     BorderThickness="0,1,0,0"
                     Opacity="0.7">
                     <TextBlock Classes="DGSub" Text="{Binding EntryTotalCount, StringFormat=共 {0} 条录入}" />
                   </Border>
 
                 </Grid>
-              </suki:GlassCard>
+              </shad:Card>
             </Grid>
           </Grid>
         </ScrollViewer>
@@ -1092,7 +1008,7 @@
         Margin="{DynamicResource PageTabScrollMargin}"
         IsVisible="{Binding IsInputTab}"
         RowDefinitions="*">
-        <suki:GlassCard Grid.Row="0" Classes="SectionCard">
+        <shad:Card Grid.Row="0">
           <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
             <Grid
               VerticalAlignment="Center"
@@ -1134,76 +1050,59 @@
               IsPending="{Binding IsSectionPending}"
               SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
               SlotMode="PendingOnly">
-              <suki:BusyArea IsBusy="{Binding IsEntryBusy}">
-                <DataGrid
-                  x:Name="EntryRecentGridInputTab"
-                  MinHeight="0"
-                  HorizontalAlignment="Stretch"
-                  CanUserResizeColumns="True"
-                  Classes="SectionGrid CopySelectMenuGrid TraceStateGrid StickyIndexGrid StickyIndexDisplayIndex"
-                  GridLinesVisibility="All"
-                  HeadersVisibility="All"
-                  HorizontalScrollBarVisibility="Disabled"
-                  ItemsSource="{Binding EntryRecent}"
-                  PointerPressed="OnBrowsingGridPointerPressed"
-                  RowHeight="{StaticResource RowMinHeight}"
-                  SelectedItem="{Binding SelectedEntryRecent}"
-                  SelectionChanged="OnBrowsingGridSelectionChanged"
-                  SelectionMode="Extended"
-                  VerticalScrollBarVisibility="Auto">
-                  <DataGrid.Columns>
-                    <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
-                      <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                          <Border
-                            Width="{DynamicResource IconBadgeSize}"
-                            Height="{DynamicResource IconBadgeSize}"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
-                            CornerRadius="{DynamicResource TraceBadgeRadius}">
-                            <icons:AppIcon
-                              Width="{DynamicResource IconSizeDefault}"
-                              Height="{DynamicResource IconSizeDefault}"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                              Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
-                          </Border>
-                        </DataTemplate>
-                      </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTextColumn
-                      Width="120"
-                      Binding="{Binding EntryAtText}"
-                      Header="时间" />
-                    <DataGridTextColumn
-                      Width="1.5*"
-                      Binding="{Binding DrugId}"
-                      Header="药品" />
-                    <DataGridTextColumn
-                      Width="1.2*"
-                      Binding="{Binding Spec}"
-                      Header="规格" />
-                    <DataGridTextColumn
-                      Width="90"
-                      Binding="{Binding Qty}"
-                      Header="数量" />
-                    <DataGridTextColumn
-                      Width="110"
-                      Binding="{Binding Source}"
-                      Header="来源" />
-                    <DataGridTextColumn
-                      Width="1.4*"
-                      Binding="{Binding ClientDisplay}"
-                      Header="客户端" />
-                    <DataGridTextColumn
-                      Width="2.2*"
-                      Binding="{Binding Message}"
-                      Header="说明" />
-                  </DataGrid.Columns>
-                </DataGrid>
-              </suki:BusyArea>
+              <shad:BusyArea IsBusy="{Binding IsEntryBusy}">
+                <controls:DeferredGridSlot
+                  x:Name="EntryGridSlot"
+                  SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                  SlotName="EntryRecentGridInputTab">
+                  <controls:DeferredGridSlot.GridTemplate>
+                    <DataTemplate x:DataType="vm:DashboardViewModel">
+                      <DataGrid
+                        MinHeight="0"
+                        HorizontalAlignment="Stretch"
+                        CanUserResizeColumns="True"
+                        Classes="SectionGrid CopySelectMenuGrid TraceStateGrid StickyIndexGrid StickyIndexDisplayIndex"
+                        HorizontalScrollBarVisibility="Disabled"
+                        ItemsSource="{Binding EntryRecent}"
+                        RowHeight="{StaticResource RowMinHeight}"
+                        SelectedItem="{Binding SelectedEntryRecent}"
+                        SelectionMode="Extended"
+                        VerticalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                          <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <Border
+                                  Width="{DynamicResource IconBadgeSize}"
+                                  Height="{DynamicResource IconBadgeSize}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                                  CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                  <icons:AppIcon
+                                    Width="{DynamicResource IconSizeDefault}"
+                                    Height="{DynamicResource IconSizeDefault}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                    Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                                </Border>
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
+                          <DataGridTextColumn Width="120" Binding="{Binding EntryAtText}" Header="时间" />
+                          <DataGridTextColumn Width="1.5*" Binding="{Binding DrugId}" Header="药品" />
+                          <DataGridTextColumn Width="1.2*" Binding="{Binding Spec}" Header="规格" />
+                          <DataGridTextColumn Width="90" Binding="{Binding Qty}" Header="数量" />
+                          <DataGridTextColumn Width="110" Binding="{Binding Source}" Header="来源" />
+                          <DataGridTextColumn Width="1.4*" Binding="{Binding ClientDisplay}" Header="客户端" />
+                          <DataGridTextColumn Width="2.2*" Binding="{Binding Message}" Header="说明" />
+                        </DataGrid.Columns>
+                      </DataGrid>
+                    </DataTemplate>
+                  </controls:DeferredGridSlot.GridTemplate>
+                </controls:DeferredGridSlot>
+              </shad:BusyArea>
             </controls:EmptyStatePanel>
 
             <controls:DataGridPager
@@ -1219,7 +1118,7 @@
               TotalPages="{Binding EntryTotalPages}"
               PageIndex="{Binding EntryPageIndex}" />
           </Grid>
-        </suki:GlassCard>
+        </shad:Card>
       </Grid>
 
 
@@ -1228,7 +1127,7 @@
         Margin="{DynamicResource PageTabScrollMargin}"
         IsVisible="{Binding IsTxnTab}"
         RowDefinitions="*">
-        <suki:GlassCard Grid.Row="0" Classes="SectionCard">
+        <shad:Card Grid.Row="0">
           <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
             <Grid
               VerticalAlignment="Center"
@@ -1274,105 +1173,87 @@
               IsPending="{Binding IsSectionPending}"
               SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
               SlotMode="PendingOnly">
-              <suki:BusyArea IsBusy="{Binding IsTxnBusy}">
+              <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
                 <Grid MinHeight="0">
-                  <DataGrid
-                    x:Name="TxnDetailGrid"
-                    MinHeight="0"
-                    HorizontalAlignment="Stretch"
-                    Classes="SectionGrid TxnGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
-                    GridLinesVisibility="All"
-                    HeadersVisibility="All"
-                    HorizontalScrollBarVisibility="Disabled"
-                    IsVisible="{Binding IsTxnPanelDetailMode}"
-                    ItemsSource="{Binding RecentTxns}"
-                    PointerPressed="OnBrowsingGridPointerPressed"
-                    RowHeight="{StaticResource RowMinHeight}"
-                    SelectedItem="{Binding SelectedTxn}"
-                    SelectionChanged="OnBrowsingGridSelectionChanged"
-                    SelectionMode="Extended"
-                    VerticalScrollBarVisibility="Auto">
-                    <DataGrid.Columns>
-                      <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
-                        <DataGridTemplateColumn.CellTemplate>
-                          <DataTemplate>
-                            <Border
-                              Width="{DynamicResource IconBadgeSize}"
-                              Height="{DynamicResource IconBadgeSize}"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
-                              CornerRadius="{DynamicResource TraceBadgeRadius}">
-                              <icons:AppIcon
-                                Width="{DynamicResource IconSizeDefault}"
-                                Height="{DynamicResource IconSizeDefault}"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
-                                Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
-                            </Border>
-                          </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                      </DataGridTemplateColumn>
-                      <DataGridTextColumn
-                        Width="1.9*"
-                        Binding="{Binding Title}"
-                        Header="标题" />
-                      <DataGridTextColumn
-                        Width="1.2*"
-                        Binding="{Binding ClientDisplay}"
-                        Header="客户端" />
-                      <DataGridTextColumn
-                        Width="1.1*"
-                        Binding="{Binding Time}"
-                        Header="时间" />
-                      <DataGridTextColumn
-                        Width="100"
-                        Binding="{Binding Qty}"
-                        Header="数量" />
-                    </DataGrid.Columns>
-                  </DataGrid>
+                  <controls:DeferredGridSlot
+                    x:Name="TxnDetailGridSlot"
+                    SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                    SlotName="TxnDetailGrid">
+                    <controls:DeferredGridSlot.GridTemplate>
+                      <DataTemplate x:DataType="vm:DashboardViewModel">
+                        <DataGrid
+                          MinHeight="0"
+                          HorizontalAlignment="Stretch"
+                          Classes="SectionGrid TxnGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
+                          HorizontalScrollBarVisibility="Disabled"
+                          IsVisible="{Binding IsTxnPanelDetailMode}"
+                          ItemsSource="{Binding RecentTxns}"
+                          RowHeight="{StaticResource RowMinHeight}"
+                          SelectedItem="{Binding SelectedTxn}"
+                          SelectionMode="Extended"
+                          VerticalScrollBarVisibility="Auto">
+                          <DataGrid.Columns>
+                            <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <Border
+                                    Width="{DynamicResource IconBadgeSize}"
+                                    Height="{DynamicResource IconBadgeSize}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                    CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                    <icons:AppIcon
+                                      Width="{DynamicResource IconSizeDefault}"
+                                      Height="{DynamicResource IconSizeDefault}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
+                                      Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
+                                  </Border>
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Width="1.9*" Binding="{Binding Title}" Header="标题" />
+                            <DataGridTextColumn Width="1.2*" Binding="{Binding ClientDisplay}" Header="客户端" />
+                            <DataGridTextColumn Width="1.1*" Binding="{Binding Time}" Header="时间" />
+                            <DataGridTextColumn Width="100" Binding="{Binding Qty}" Header="数量" />
+                          </DataGrid.Columns>
+                        </DataGrid>
+                      </DataTemplate>
+                    </controls:DeferredGridSlot.GridTemplate>
+                  </controls:DeferredGridSlot>
 
-                  <DataGrid
-                    x:Name="TxnTrendGrid"
-                    MinHeight="0"
-                    HorizontalAlignment="Stretch"
-                    Classes="SectionGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
-                    HeadersVisibility="All"
-                    HorizontalScrollBarVisibility="Disabled"
-                    IsVisible="{Binding IsTxnPanelTrendMode}"
-                    ItemsSource="{Binding TxnTrendRows}"
-                    PointerPressed="OnBrowsingGridPointerPressed"
-                    RowHeight="{StaticResource RowMinHeight}"
-                    SelectedItem="{Binding SelectedTrendItem}"
-                    SelectionChanged="OnBrowsingGridSelectionChanged"
-                    SelectionMode="Extended"
-                    VerticalScrollBarVisibility="Auto">
-                    <DataGrid.Columns>
-                      <DataGridTextColumn
-                        Width="70"
-                        Binding="{Binding Rank}"
-                        Header="#" />
-                      <DataGridTextColumn
-                        Width="1.2*"
-                        Binding="{Binding Name}"
-                        Header="药品" />
-                      <DataGridTextColumn
-                        Width="1.2*"
-                        Binding="{Binding Sub}"
-                        Header="规格" />
-                      <DataGridTextColumn
-                        Width="1.8*"
-                        Binding="{Binding SourceText}"
-                        Header="来源" />
-                      <DataGridTextColumn
-                        Width="100"
-                        Binding="{Binding ValueText}"
-                        Header="值" />
-                    </DataGrid.Columns>
-                  </DataGrid>
+                  <controls:DeferredGridSlot
+                    x:Name="TxnTrendGridSlot"
+                    SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                    SlotName="TxnTrendGrid">
+                    <controls:DeferredGridSlot.GridTemplate>
+                      <DataTemplate x:DataType="vm:DashboardViewModel">
+                        <DataGrid
+                          MinHeight="0"
+                          HorizontalAlignment="Stretch"
+                          Classes="SectionGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
+                          HorizontalScrollBarVisibility="Disabled"
+                          IsVisible="{Binding IsTxnPanelTrendMode}"
+                          ItemsSource="{Binding TxnTrendRows}"
+                          RowHeight="{StaticResource RowMinHeight}"
+                          SelectedItem="{Binding SelectedTrendItem}"
+                          SelectionMode="Extended"
+                          VerticalScrollBarVisibility="Auto">
+                          <DataGrid.Columns>
+                            <DataGridTextColumn Width="70" Binding="{Binding Rank}" Header="#" />
+                            <DataGridTextColumn Width="1.2*" Binding="{Binding Name}" Header="药品" />
+                            <DataGridTextColumn Width="1.2*" Binding="{Binding Sub}" Header="规格" />
+                            <DataGridTextColumn Width="1.8*" Binding="{Binding SourceText}" Header="来源" />
+                            <DataGridTextColumn Width="100" Binding="{Binding ValueText}" Header="值" />
+                          </DataGrid.Columns>
+                        </DataGrid>
+                      </DataTemplate>
+                    </controls:DeferredGridSlot.GridTemplate>
+                  </controls:DeferredGridSlot>
                 </Grid>
-              </suki:BusyArea>
+              </shad:BusyArea>
             </controls:EmptyStatePanel>
 
             <controls:DataGridPager
@@ -1403,7 +1284,7 @@
               TotalPages="{Binding TxnTrendTotalPages}"
               PageIndex="{Binding TxnTrendPageIndex}" />
           </Grid>
-        </suki:GlassCard>
+        </shad:Card>
       </Grid>
 
       <Grid
@@ -1411,7 +1292,7 @@
         Margin="{DynamicResource PageTabScrollMargin}"
         IsVisible="{Binding IsAbnormalTab}"
         RowDefinitions="*">
-        <suki:GlassCard Grid.Row="0" Classes="SectionCard">
+        <shad:Card Grid.Row="0">
           <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
             <Grid
               VerticalAlignment="Center"
@@ -1454,58 +1335,54 @@
               IsPending="{Binding IsSectionPending}"
               SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
               SlotMode="PendingOnly">
-              <suki:BusyArea IsBusy="{Binding IsAbnormalBusy}">
-                <DataGrid
-                  x:Name="AbnormalGrid"
-                  MinHeight="0"
-                  HorizontalAlignment="Stretch"
-                  Classes="SectionGrid TxnGrid AbnormalGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
-                  GridLinesVisibility="All"
-                  HorizontalScrollBarVisibility="Disabled"
-                  ItemsSource="{Binding AbnormalQueue}"
-                  PointerPressed="OnBrowsingGridPointerPressed"
-                  RowHeight="{StaticResource RowMinHeight}"
-                  SelectedItem="{Binding SelectedAbnormal}"
-                  SelectionChanged="OnBrowsingGridSelectionChanged"
-                  SelectionMode="Extended"
-                  VerticalScrollBarVisibility="Auto">
-                  <DataGrid.Columns>
-                    <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
-                      <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                          <Border
-                            Width="{DynamicResource IconBadgeSize}"
-                            Height="{DynamicResource IconBadgeSize}"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
-                            CornerRadius="{DynamicResource TraceBadgeRadius}">
-                            <icons:AppIcon
-                              Width="{DynamicResource IconSizeDefault}"
-                              Height="{DynamicResource IconSizeDefault}"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
-                              Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
-                          </Border>
-                        </DataTemplate>
-                      </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTextColumn
-                      Width="180"
-                      Binding="{Binding Title}"
-                      Header="类型" />
-                    <DataGridTextColumn
-                      Width="1.1*"
-                      Binding="{Binding ClientDisplay}"
-                      Header="客户端" />
-                    <DataGridTextColumn
-                      Width="2*"
-                      Binding="{Binding Detail}"
-                      Header="详情" />
-                  </DataGrid.Columns>
-                </DataGrid>
-              </suki:BusyArea>
+              <shad:BusyArea IsBusy="{Binding IsAbnormalBusy}">
+                <controls:DeferredGridSlot
+                  x:Name="AbnormalGridSlot"
+                  SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                  SlotName="AbnormalGrid">
+                  <controls:DeferredGridSlot.GridTemplate>
+                    <DataTemplate x:DataType="vm:DashboardViewModel">
+                      <DataGrid
+                        MinHeight="0"
+                        HorizontalAlignment="Stretch"
+                        Classes="SectionGrid TxnGrid AbnormalGrid CopySelectMenuGrid StickyIndexGrid StickyIndexDisplayIndex"
+                        HorizontalScrollBarVisibility="Disabled"
+                        ItemsSource="{Binding AbnormalQueue}"
+                        RowHeight="{StaticResource RowMinHeight}"
+                        SelectedItem="{Binding SelectedAbnormal}"
+                        SelectionMode="Extended"
+                        VerticalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                          <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <Border
+                                  Width="{DynamicResource IconBadgeSize}"
+                                  Height="{DynamicResource IconBadgeSize}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                  CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                  <icons:AppIcon
+                                    Width="{DynamicResource IconSizeDefault}"
+                                    Height="{DynamicResource IconSizeDefault}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
+                                    Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
+                                </Border>
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
+                          <DataGridTextColumn Width="180" Binding="{Binding Title}" Header="类型" />
+                          <DataGridTextColumn Width="1.1*" Binding="{Binding ClientDisplay}" Header="客户端" />
+                          <DataGridTextColumn Width="2*" Binding="{Binding Detail}" Header="详情" />
+                        </DataGrid.Columns>
+                      </DataGrid>
+                    </DataTemplate>
+                  </controls:DeferredGridSlot.GridTemplate>
+                </controls:DeferredGridSlot>
+              </shad:BusyArea>
             </controls:EmptyStatePanel>
 
             <controls:DataGridPager
@@ -1521,7 +1398,7 @@
               TotalPages="{Binding AbnormalTotalPages}"
               PageIndex="{Binding AbnormalPageIndex}" />
           </Grid>
-        </suki:GlassCard>
+        </shad:Card>
       </Grid>
 
 

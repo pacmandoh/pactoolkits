@@ -28,7 +28,9 @@ public partial class InventoryOverviewView : UserControl
     };
 
     private readonly IClipboardService _clipboard;
+    private readonly PageGridMountScheduler _gridMount;
     private InventoryOverviewViewModel? _vm;
+    private DeferredGridSlot? _reassignPreviewSlot;
     private bool _isSyncingSelectionFromVm;
     private bool _isSyncingSelectionToVm;
     private DataGridColumn? _stockContextColumn;
@@ -43,9 +45,129 @@ public partial class InventoryOverviewView : UserControl
     public InventoryOverviewView(IClipboardService clipboard)
     {
         _clipboard = clipboard;
+        _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
-        AttachReassignDrugFilter();
+        WireDeferredSectionHosts();
+        WireStockDetailGridSlot();
+        _gridMount.StartAfterFirstLayout();
         DataContextChanged += OnDataContextChanged;
+    }
+
+    private void WireDeferredSectionHosts()
+    {
+        ReassignPanelHost.ContentLoaded += OnReassignPanelContentLoaded;
+        AggModeHost.ContentLoaded += (_, root) => QueueModeGridMount(root, "AggGridSlot", 2);
+        LowModeHost.ContentLoaded += (_, root) => QueueModeGridMount(root, "LowStockGridSlot", 3, wirePointer: true);
+        MissingModeHost.ContentLoaded += (_, root) => QueueModeGridMount(root, "MissingGridSlot", 4, wirePointer: true);
+    }
+
+    private void OnReassignPanelContentLoaded(object? sender, Control root)
+    {
+        _reassignPreviewSlot ??= root.FindControl<DeferredGridSlot>("ReassignPreviewGridSlot");
+        AttachReassignDrugFilter();
+        QueueReassignPreviewGridMount();
+    }
+
+    private void QueueModeGridMount(Control root, string slotName, int priority, bool wirePointer = false)
+    {
+        if (root.FindControl<DeferredGridSlot>(slotName) is not { } slot)
+        {
+            return;
+        }
+
+        if (wirePointer)
+        {
+            slot.GridMounted += (_, grid) => grid.PointerReleased += OnLowOrMissingGridPointerReleased;
+        }
+
+        if (!ShouldMountModeGrid(slotName) || slot.IsMounted)
+        {
+            return;
+        }
+
+        _gridMount.RequestMount(slot, priority);
+    }
+
+    private bool ShouldMountModeGrid(string slotName)
+    {
+        if (_vm is null)
+        {
+            return false;
+        }
+
+        return slotName switch
+        {
+            "AggGridSlot" => !_vm.IsAggEmpty,
+            "LowStockGridSlot" => !_vm.IsLowEmpty,
+            "MissingGridSlot" => !_vm.IsMissingEmpty,
+            _ => false
+        };
+    }
+
+    private void TryQueueActiveModeGrid()
+    {
+        if (_vm is null)
+        {
+            return;
+        }
+
+        if (_vm.IsAggMode)
+        {
+            TryQueueModeGridFromHost(AggModeHost, "AggGridSlot", 2);
+        }
+        else if (_vm.IsLowMode)
+        {
+            TryQueueModeGridFromHost(LowModeHost, "LowStockGridSlot", 3, wirePointer: true);
+        }
+        else if (_vm.IsMissingMode)
+        {
+            TryQueueModeGridFromHost(MissingModeHost, "MissingGridSlot", 4, wirePointer: true);
+        }
+    }
+
+    private void TryQueueModeGridFromHost(
+        DeferredContentHost host,
+        string slotName,
+        int priority,
+        bool wirePointer = false)
+    {
+        if (host.Content is Control root)
+        {
+            QueueModeGridMount(root, slotName, priority, wirePointer);
+        }
+    }
+
+    private void WireStockDetailGridSlot()
+    {
+        StockDetailGridSlot.GridMounted += (_, grid) =>
+        {
+            grid.BeginningEdit += OnStockBeginningEdit;
+            grid.CellEditEnding += OnStockCellEditEnding;
+            grid.CellPointerPressed += OnStockCellPointerPressed;
+            grid.SelectionChanged += OnStockSelectionChanged;
+            SyncStockEditClass();
+        };
+    }
+
+    private void QueueStockDetailGridMount()
+    {
+        if (_vm?.IsDetailMode == true && !_vm.IsStockEmpty && !StockDetailGridSlot.IsMounted)
+        {
+            _gridMount.RequestMount(StockDetailGridSlot, 0);
+        }
+    }
+
+    private void QueueReassignPreviewGridMount()
+    {
+        if (_reassignPreviewSlot is null
+            || _vm?.IsReassignPanelVisible != true
+            || _vm.IsReassignPreviewEmpty
+            || _reassignPreviewSlot.IsMounted)
+        {
+            return;
+        }
+
+        _gridMount.RequestMount(_reassignPreviewSlot, 5);
     }
 
     private async void OnLowOrMissingGridPointerReleased(object? sender, PointerReleasedEventArgs e)
@@ -321,7 +443,7 @@ public partial class InventoryOverviewView : UserControl
                 return;
             }
 
-            var grid = this.FindControl<DataGrid>("StockDetailGrid");
+            var grid = FindStockDetailGrid();
             if (grid is null)
             {
                 return;
@@ -368,11 +490,13 @@ public partial class InventoryOverviewView : UserControl
         _vm?.PropertyChanged += OnVmPropertyChanged;
 
         SyncStockEditClass();
+        QueueStockDetailGridMount();
+        QueueReassignPreviewGridMount();
     }
 
     private void AttachReassignDrugFilter()
     {
-        if (this.FindControl<PlainAutoCompleteBox>("ReassignDrugBox") is not { } box)
+        if (this.FindControl<AutoCompleteBox>("ReassignDrugBox") is not { } box)
         {
             return;
         }
@@ -389,10 +513,11 @@ public partial class InventoryOverviewView : UserControl
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        base.OnDetachedFromVisualTree(e);
+        _gridMount.Cancel();
         _vm?.PropertyChanged -= OnVmPropertyChanged;
 
         _vm = null;
+        base.OnDetachedFromVisualTree(e);
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -400,6 +525,30 @@ public partial class InventoryOverviewView : UserControl
         if (e.PropertyName == nameof(InventoryOverviewViewModel.IsStockEditEnabled))
         {
             SyncStockEditClass();
+        }
+
+        if (e.PropertyName == nameof(InventoryOverviewViewModel.ModeIndex))
+        {
+            QueueStockDetailGridMount();
+            TryQueueActiveModeGrid();
+        }
+
+        if (e.PropertyName == nameof(InventoryOverviewViewModel.IsStockEmpty))
+        {
+            QueueStockDetailGridMount();
+        }
+
+        if (e.PropertyName is nameof(InventoryOverviewViewModel.IsAggEmpty)
+            or nameof(InventoryOverviewViewModel.IsLowEmpty)
+            or nameof(InventoryOverviewViewModel.IsMissingEmpty))
+        {
+            TryQueueActiveModeGrid();
+        }
+
+        if (e.PropertyName is nameof(InventoryOverviewViewModel.IsReassignPanelVisible)
+            or nameof(InventoryOverviewViewModel.IsReassignPreviewEmpty))
+        {
+            QueueReassignPreviewGridMount();
         }
 
         if (e.PropertyName == nameof(InventoryOverviewViewModel.SelectedStockRow))
@@ -413,9 +562,12 @@ public partial class InventoryOverviewView : UserControl
         }
     }
 
+    private DataGrid? FindStockDetailGrid()
+        => DataGridInteractionHelper.FindDeferredGrid(this, "StockDetailGrid");
+
     private void SyncStockEditClass()
     {
-        var grid = this.FindControl<DataGrid>("StockDetailGrid");
+        var grid = FindStockDetailGrid();
         if (grid is null)
         {
             return;
@@ -468,7 +620,7 @@ public partial class InventoryOverviewView : UserControl
 
     private void EnsureGridSelectionAndScroll(StockRowItem selected)
     {
-        var grid = this.FindControl<DataGrid>("StockDetailGrid");
+        var grid = FindStockDetailGrid();
         if (grid is null)
         {
             return;
@@ -479,7 +631,7 @@ public partial class InventoryOverviewView : UserControl
 
     private void SyncSelectionFromVm()
     {
-        var grid = this.FindControl<DataGrid>("StockDetailGrid");
+        var grid = FindStockDetailGrid();
         if (grid is null || _vm is null)
         {
             return;

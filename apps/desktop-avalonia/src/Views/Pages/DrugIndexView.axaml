@@ -1,13 +1,13 @@
 <UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DrugIndexView"
   xmlns="https://github.com/avaloniaui"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
   d:DesignHeight="800"
@@ -15,6 +15,64 @@
   x:DataType="vm:DrugIndexViewModel"
   Focusable="True"
   mc:Ignorable="d">
+  <UserControl.Styles>
+    <Style Selector="DataGrid.DrugGrid DataGridRow">
+      <Setter Property="ContextMenu">
+        <Setter.Value>
+          <ContextMenu Opened="OnDrugGridContextMenuOpened">
+            <MenuItem
+              Click="OnGridRowCopy"
+              CommandParameter="{Binding}"
+              Header="复制">
+              <MenuItem.Icon>
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="Copy" />
+              </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem
+              Click="OnGridSelectAll"
+              CommandParameter="{Binding}"
+              Header="全选">
+              <MenuItem.Icon>
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="ListChecks" />
+              </MenuItem.Icon>
+            </MenuItem>
+            <Separator Classes="DrugIndexSensitiveMenuSeparator" />
+            <MenuItem
+              Classes="DrugIndexSensitiveMenuItem"
+              Click="OnGridToggleDeprecated"
+              CommandParameter="{Binding}"
+              Header="弃用 / 启用">
+              <MenuItem.Icon>
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="CircleX" />
+              </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem
+              Classes="DrugIndexSensitiveMenuItem"
+              Click="OnGridToggleNoSplit"
+              CommandParameter="{Binding}"
+              Header="未拆零 / 可拆零">
+              <MenuItem.Icon>
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  Kind="Scissors" />
+              </MenuItem.Icon>
+            </MenuItem>
+          </ContextMenu>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Styles>
+
   <controls:PageDataShell
     IsLoadingData="{Binding IsBusy}"
     ShowStale="{Binding IsShowingStaleData}"
@@ -27,63 +85,68 @@
       <Grid ColumnDefinitions="2.2*,1*" ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
 
-        <suki:GlassCard Grid.Column="0" Classes="SectionCard">
+        <shad:Card Grid.Column="0">
           <Grid RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
 
 
-            <suki:GlassCard
+            <controls:DeferredContentHost
               Grid.Row="0"
-              Classes="FilterHintCard"
+              IsActive="{Binding IsSearchPanelVisible}"
               IsVisible="{Binding IsSearchPanelVisible}">
-              <Grid
-                VerticalAlignment="Center"
-                ColumnDefinitions="*,Auto,Auto"
-                ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <TextBox
-                  x:Name="DrugIndexSearchBox"
-                  AcceptsReturn="False"
-                  Classes="FilterSearchTextBox"
-                  IsEnabled="{Binding !IsUiBusy}"
-                  KeyUp="DrugIndexSearchBox_OnKeyUp"
-                  PlaceholderText="搜索：药品名 / 规格 / 简称 / 前缀 / 备注..."
-                  Text="{Binding Keyword, Mode=TwoWay}"
-                  TextWrapping="NoWrap">
-                  <TextBox.KeyBindings>
-                    <KeyBinding Command="{Binding SearchCommand}" Gesture="Enter" />
-                  </TextBox.KeyBindings>
-                </TextBox>
+              <controls:DeferredContentHost.ContentTemplate>
+                <DataTemplate x:DataType="vm:DrugIndexViewModel">
+                  <shad:Card>
+                    <Grid
+                      VerticalAlignment="Center"
+                      ColumnDefinitions="*,Auto,Auto"
+                      ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                      <TextBox
+                        x:Name="DrugIndexSearchBox"
+                        AcceptsReturn="False"
+                        Classes="SearchBox"
+                        IsEnabled="{Binding !IsUiBusy}"
+                        KeyUp="DrugIndexSearchBox_OnKeyUp"
+                        PlaceholderText="搜索：药品名 / 规格 / 简称 / 前缀 / 备注..."
+                        Text="{Binding Keyword, Mode=TwoWay}"
+                        TextWrapping="NoWrap">
+                        <TextBox.KeyBindings>
+                          <KeyBinding Command="{Binding SearchCommand}" Gesture="Enter" />
+                        </TextBox.KeyBindings>
+                      </TextBox>
 
-                <Button
-                  x:Name="DrugIndexSearchButton"
-                  Grid.Column="1"
-                  Classes="Action"
-                  Command="{Binding SearchCommand}"
-                  IsEnabled="{Binding !IsUiBusy}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="Search" />
-                    <TextBlock Text="搜索" />
-                  </StackPanel>
-                </Button>
+                      <Button
+                        x:Name="DrugIndexSearchButton"
+                        Grid.Column="1"
+                        Classes="Action"
+                        Command="{Binding SearchCommand}"
+                        IsEnabled="{Binding !IsUiBusy}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeDefault}"
+                            Height="{DynamicResource IconSizeDefault}"
+                            Kind="Search" />
+                          <TextBlock Text="搜索" />
+                        </StackPanel>
+                      </Button>
 
-                <Button
-                  Grid.Column="2"
-                  Classes="Action"
-                  Command="{Binding ClearSearchCommand}"
-                  IsEnabled="{Binding !IsUiBusy}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="Delete" />
-                    <TextBlock Text="清空" />
-                  </StackPanel>
-                </Button>
-
-              </Grid>
-            </suki:GlassCard>
+                      <Button
+                        Grid.Column="2"
+                        Classes="Action"
+                        Command="{Binding ClearSearchCommand}"
+                        IsEnabled="{Binding !IsUiBusy}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeDefault}"
+                            Height="{DynamicResource IconSizeDefault}"
+                            Kind="Delete" />
+                          <TextBlock Text="清空" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                  </shad:Card>
+                </DataTemplate>
+              </controls:DeferredContentHost.ContentTemplate>
+            </controls:DeferredContentHost>
 
 
             <Grid
@@ -190,7 +253,7 @@
             </Grid>
 
 
-            <suki:BusyArea Grid.Row="2" IsBusy="{Binding IsListBusy}">
+            <shad:BusyArea Grid.Row="2" IsBusy="{Binding IsListBusy}">
               <controls:EmptyStatePanel
                 EmptyHint="{Binding ItemsEmptyHint}"
                 EmptyText="{Binding ItemsEmptyText}"
@@ -198,126 +261,69 @@
                 IsEmpty="{Binding IsItemsEmpty}"
                 IsPending="{Binding IsSectionPending}"
                 SlotMinHeight="{DynamicResource DgH10Rows}">
-                <DataGrid
-                  x:Name="DrugGrid"
-                  MinHeight="{StaticResource DgH10Rows}"
-                  Classes="SectionGrid DrugGrid StickyIndexGrid"
-                  GridLinesVisibility="All"
-                  HeadersVisibility="All"
-                  ItemsSource="{Binding Items}"
-                  SelectedItem="{Binding Selected, Mode=TwoWay}"
-                  SelectionMode="Extended">
-                  <DataGrid.Styles>
-                    <Style Selector="DataGrid.DrugGrid DataGridRow">
-                      <Setter Property="ContextMenu">
-                        <Setter.Value>
-                          <ContextMenu Opened="OnDrugGridContextMenuOpened">
-                            <MenuItem
-                              Click="OnGridRowCopy"
-                              CommandParameter="{Binding}"
-                              Header="复制">
-                              <MenuItem.Icon>
-                                <icons:AppIcon
-                                  Width="{DynamicResource IconSizeDefault}"
-                                  Height="{DynamicResource IconSizeDefault}"
-                                  Kind="Copy" />
-                              </MenuItem.Icon>
-                            </MenuItem>
-
-                            <MenuItem
-                              Click="OnGridSelectAll"
-                              CommandParameter="{Binding}"
-                              Header="全选">
-                              <MenuItem.Icon>
-                                <icons:AppIcon
-                                  Width="{DynamicResource IconSizeDefault}"
-                                  Height="{DynamicResource IconSizeDefault}"
-                                  Kind="ListChecks" />
-                              </MenuItem.Icon>
-                            </MenuItem>
-
-                            <Separator Classes="DrugIndexSensitiveMenuSeparator" />
-
-                            <MenuItem
-                              Classes="DrugIndexSensitiveMenuItem"
-                              Click="OnGridToggleDeprecated"
-                              CommandParameter="{Binding}"
-                              Header="弃用 / 启用">
-                              <MenuItem.Icon>
-                                <icons:AppIcon
-                                  Width="{DynamicResource IconSizeDefault}"
-                                  Height="{DynamicResource IconSizeDefault}"
-                                  Kind="CircleX" />
-                              </MenuItem.Icon>
-                            </MenuItem>
-
-                            <MenuItem
-                              Classes="DrugIndexSensitiveMenuItem"
-                              Click="OnGridToggleNoSplit"
-                              CommandParameter="{Binding}"
-                              Header="未拆零 / 可拆零">
-                              <MenuItem.Icon>
-                                <icons:AppIcon
-                                  Width="{DynamicResource IconSizeDefault}"
-                                  Height="{DynamicResource IconSizeDefault}"
-                                  Kind="Scissors" />
-                              </MenuItem.Icon>
-                            </MenuItem>
-                          </ContextMenu>
-                        </Setter.Value>
-                      </Setter>
-                    </Style>
-                  </DataGrid.Styles>
-
-                  <DataGrid.Columns>
-                    <DataGridTextColumn
-                      Width="2*"
-                      Binding="{ReflectionBinding DrugId}"
-                      Header="药品名"
-                      SortMemberPath="DrugId" />
-                    <DataGridTextColumn
-                      Width="1.2*"
-                      Binding="{ReflectionBinding Spec}"
-                      Header="规格"
-                      SortMemberPath="Spec" />
-                    <DataGridTemplateColumn
-                      Width="{StaticResource DgWRightSmall}"
-                      Header="单盒数量"
-                      SortMemberPath="Qty">
-                      <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                          <TextBlock Classes="DGRightCell DGNum" Text="{Binding Qty}" />
-                        </DataTemplate>
-                      </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTextColumn
-                      Width="1.2*"
-                      Binding="{ReflectionBinding RuleKey}"
-                      Header="简称"
-                      SortMemberPath="RuleKey" />
-                    <DataGridTextColumn
-                      Width="1.2*"
-                      Binding="{ReflectionBinding PreTc}"
-                      Header="前缀"
-                      SortMemberPath="PreTc" />
-                    <DataGridTextColumn
-                      Width="1.4*"
-                      Binding="{ReflectionBinding EffectiveNote}"
-                      Header="备注"
-                      SortMemberPath="EffectiveNote" />
-                  </DataGrid.Columns>
-                </DataGrid>
+                <controls:DeferredGridSlot
+                  x:Name="DrugGridSlot"
+                  SlotMinHeight="{DynamicResource DgH10Rows}"
+                  SlotName="DrugGrid">
+                  <controls:DeferredGridSlot.GridTemplate>
+                    <DataTemplate x:DataType="vm:DrugIndexViewModel">
+                      <DataGrid
+                        MinHeight="{StaticResource DgH10Rows}"
+                        Classes="SectionGrid DrugGrid StickyIndexGrid"
+                        ItemsSource="{Binding Items}"
+                        SelectedItem="{Binding Selected, Mode=TwoWay}"
+                        SelectionMode="Extended">
+                        <DataGrid.Columns>
+                          <DataGridTextColumn
+                            Width="2*"
+                            Binding="{ReflectionBinding DrugId}"
+                            Header="药品名"
+                            SortMemberPath="DrugId" />
+                          <DataGridTextColumn
+                            Width="1.2*"
+                            Binding="{ReflectionBinding Spec}"
+                            Header="规格"
+                            SortMemberPath="Spec" />
+                          <DataGridTemplateColumn
+                            Width="{StaticResource DgWRightSmall}"
+                            Header="单盒数量"
+                            SortMemberPath="Qty">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <TextBlock Classes="DGRightCell DGNum" Text="{Binding Qty}" />
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
+                          <DataGridTextColumn
+                            Width="1.2*"
+                            Binding="{ReflectionBinding RuleKey}"
+                            Header="简称"
+                            SortMemberPath="RuleKey" />
+                          <DataGridTextColumn
+                            Width="1.2*"
+                            Binding="{ReflectionBinding PreTc}"
+                            Header="前缀"
+                            SortMemberPath="PreTc" />
+                          <DataGridTextColumn
+                            Width="1.4*"
+                            Binding="{ReflectionBinding EffectiveNote}"
+                            Header="备注"
+                            SortMemberPath="EffectiveNote" />
+                        </DataGrid.Columns>
+                      </DataGrid>
+                    </DataTemplate>
+                  </controls:DeferredGridSlot.GridTemplate>
+                </controls:DeferredGridSlot>
               </controls:EmptyStatePanel>
-            </suki:BusyArea>
+            </shad:BusyArea>
           </Grid>
-        </suki:GlassCard>
+        </shad:Card>
 
 
-        <suki:GlassCard
+        <shad:Card
           x:Name="EditorCard"
           Grid.Column="1"
-          behaviors:FocusClearBehavior.SuppressGridClear="True"
-          Classes="SectionCard">
+          behaviors:FocusClearBehavior.SuppressGridClear="True">
           <Grid
             KeyboardNavigation.TabNavigation="Cycle"
             RowDefinitions="Auto,Auto,Auto,*,Auto"
@@ -401,7 +407,7 @@
             </Grid>
 
 
-            <suki:GlassCard
+            <shad:Card
               Grid.Row="1"
               Padding="14"
               IsVisible="{Binding !HasEditor}"
@@ -417,10 +423,10 @@
                   Kind="Info" />
                 <TextBlock Opacity="0.82" Text="请选择左侧药品，或点击“新建”开始编辑" />
               </StackPanel>
-            </suki:GlassCard>
+            </shad:Card>
 
 
-            <suki:GlassCard
+            <shad:Card
               Grid.Row="1"
               Padding="12"
               IsEnabled="{Binding IsEditorInputEnabled}"
@@ -462,7 +468,7 @@
                 </ToggleButton>
 
               </Grid>
-            </suki:GlassCard>
+            </shad:Card>
 
 
             <StackPanel
@@ -490,7 +496,7 @@
                 <TextBox
                   VerticalContentAlignment="Center"
                   AcceptsReturn="False"
-                  Classes="FilterSearchTextBox"
+                  Classes="CompactField"
                   PlaceholderText="药品名（必填）"
                   Text="{Binding EditDrugId, Mode=TwoWay}"
                   TextWrapping="NoWrap" />
@@ -498,7 +504,7 @@
                 <TextBox
                   VerticalContentAlignment="Center"
                   AcceptsReturn="False"
-                  Classes="FilterSearchTextBox"
+                  Classes="CompactField"
                   PlaceholderText="规格（必填）"
                   Text="{Binding EditSpec, Mode=TwoWay}"
                   TextWrapping="NoWrap" />
@@ -513,7 +519,7 @@
                 <TextBox
                   VerticalContentAlignment="Center"
                   AcceptsReturn="False"
-                  Classes="FilterSearchTextBox"
+                  Classes="CompactField"
                   PlaceholderText="简称（可选）"
                   Text="{Binding EditRuleKey, Mode=TwoWay}"
                   TextWrapping="NoWrap" />
@@ -521,7 +527,7 @@
                 <TextBox
                   VerticalContentAlignment="Center"
                   AcceptsReturn="False"
-                  Classes="FilterSearchTextBox"
+                  Classes="CompactField"
                   PlaceholderText="追溯码前缀（可选）"
                   Text="{Binding EditPreTc, Mode=TwoWay}"
                   TextWrapping="NoWrap" />
@@ -573,7 +579,7 @@
             </Grid>
 
           </Grid>
-        </suki:GlassCard>
+        </shad:Card>
 
       </Grid>
     </Grid>
