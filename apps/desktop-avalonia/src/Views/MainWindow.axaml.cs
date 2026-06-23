@@ -10,7 +10,7 @@ public partial class MainWindow : ShadWindow
     public MainWindow()
     {
         InitializeComponent();
-        ContextMenuDismissTracker.AttachTopLevel(this);
+        PopupDismissHelper.AttachTopLevel(this);
 
         ToolTip.SetTip(FullscreenButton, "全屏");
         FullscreenButton.Click += OnFullScreen;

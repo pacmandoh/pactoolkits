@@ -2,12 +2,23 @@ using System.Linq;
 using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Controls.Primitives;
+using global::Avalonia.Input;
+using global::Avalonia.Interactivity;
 using global::Avalonia.VisualTree;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
 internal static class PopupDismissHelper
 {
+    public static void AttachTopLevel(TopLevel topLevel)
+    {
+        topLevel.AddHandler(
+            InputElement.PointerPressedEvent,
+            OnTopLevelPointerPressed,
+            RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
+            handledEventsToo: true);
+    }
+
     public static bool ShouldSkipPopupDismiss(object? source)
     {
         if (source is not Visual visual)
@@ -30,8 +41,6 @@ internal static class PopupDismissHelper
 
     public static void DismissOpenPopups(TopLevel topLevel)
     {
-        ContextMenuDismissTracker.CloseAllOpen();
-
         foreach (var control in topLevel.GetVisualDescendants().OfType<Control>())
         {
             switch (control)
@@ -103,5 +112,18 @@ internal static class PopupDismissHelper
         }
 
         return false;
+    }
+
+    private static void OnTopLevelPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (ShouldSkipPopupDismiss(e.Source))
+        {
+            return;
+        }
+
+        if (sender is TopLevel topLevel)
+        {
+            DismissOpenPopups(topLevel);
+        }
     }
 }

@@ -15,89 +15,6 @@
   x:DataType="vm:InventoryOverviewViewModel"
   Focusable="True"
   mc:Ignorable="d">
-  <UserControl.Styles>
-    <Style Selector="DataGrid.InventoryContextMenuGrid DataGridRow">
-      <Setter Property="ContextMenu">
-        <Setter.Value>
-          <ContextMenu>
-            <MenuItem
-              Click="OnGridRowCopy"
-              CommandParameter="{Binding}"
-              Header="复制">
-              <MenuItem.Icon>
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="Copy" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem
-              Click="OnGridSelectAll"
-              CommandParameter="{Binding}"
-              Header="全选">
-              <MenuItem.Icon>
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="ListChecks" />
-              </MenuItem.Icon>
-            </MenuItem>
-          </ContextMenu>
-        </Setter.Value>
-      </Setter>
-    </Style>
-
-    <Style Selector="DataGrid.StockDetailContextMenuGrid DataGridRow">
-      <Setter Property="ContextMenu">
-        <Setter.Value>
-          <ContextMenu Opened="OnStockDetailContextMenuOpened">
-            <MenuItem Click="OnStockEditCell" Header="编辑">
-              <MenuItem.Icon>
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="Pencil" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem
-              Click="OnGridRowCopy"
-              CommandParameter="{Binding}"
-              Header="复制">
-              <MenuItem.Icon>
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="Copy" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem
-              Click="OnGridSelectAll"
-              CommandParameter="{Binding}"
-              Header="全选">
-              <MenuItem.Icon>
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="ListChecks" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem
-              Click="OnGridRowDelete"
-              CommandParameter="{Binding}"
-              Header="删除">
-              <MenuItem.Icon>
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="Trash2" />
-              </MenuItem.Icon>
-            </MenuItem>
-          </ContextMenu>
-        </Setter.Value>
-      </Setter>
-    </Style>
-  </UserControl.Styles>
-
   <controls:PageDataShell
     IsLoadingData="{Binding IsBusy}"
     ShowStale="{Binding IsShowingStaleData}"
@@ -404,9 +321,7 @@
                   <AutoCompleteBox
                     x:Name="ReassignDrugBox"
                     Grid.Column="1"
-                    FilterMode="Contains"
                     IsDropDownOpen="{Binding IsReassignDrugSuggestOpen, Mode=TwoWay}"
-                    IsTextCompletionEnabled="True"
                     ItemsSource="{Binding ReassignDrugOptions}"
                     KeyDown="ReassignDrugBox_OnKeyDown"
                     PlaceholderText="目标药品名（必填）"
@@ -573,7 +488,7 @@
                       <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
                         <DataGrid
                           MinHeight="0"
-                          Classes="SectionGrid InventoryGrid LowToneGrid EditableGrid StockDetailContextMenuGrid StickyIndexGrid StickyIndexRowNo"
+                          Classes="SectionGrid InventoryGrid LowToneGrid EditableGrid StickyIndexGrid StickyIndexRowNo"
                           Classes.CellTemplateHighlightGrid="{Binding IsStockEditEnabled}"
                           HorizontalScrollBarVisibility="Disabled"
                           IsReadOnly="{Binding !IsStockEditEnabled}"
@@ -618,7 +533,7 @@
                       <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
                         <DataGrid
                           MinHeight="0"
-                          Classes="SectionGrid InventoryGrid LowToneGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
+                          Classes="SectionGrid InventoryGrid LowToneGrid StickyIndexGrid StickyIndexRowNo"
                           HorizontalScrollBarVisibility="Disabled"
                           ItemsSource="{Binding DrugSpecRows}">
                           <DataGrid.Columns>
@@ -687,7 +602,7 @@
                       <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
                         <DataGrid
                           MinHeight="0"
-                          Classes="SectionGrid InventoryGrid LowToneGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
+                          Classes="SectionGrid InventoryGrid LowToneGrid StickyIndexGrid StickyIndexRowNo"
                           HorizontalScrollBarVisibility="Disabled"
                           ItemsSource="{Binding LowStockRows}">
                           <DataGrid.Columns>
@@ -742,7 +657,7 @@
                       <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
                         <DataGrid
                           MinHeight="0"
-                          Classes="SectionGrid InventoryGrid MissingGrid InventoryContextMenuGrid StickyIndexGrid StickyIndexRowNo"
+                          Classes="SectionGrid InventoryGrid MissingGrid StickyIndexGrid StickyIndexRowNo"
                           HorizontalScrollBarVisibility="Disabled"
                           ItemsSource="{Binding MissingStockRows}">
                           <DataGrid.Columns>
