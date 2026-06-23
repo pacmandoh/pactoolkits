@@ -32,6 +32,7 @@
       <conv:TraceEntryStateToFgBrushConverter x:Key="TraceEntryStateToFgBrush" />
       <conv:TraceEntryStateToBgBrushConverter x:Key="TraceEntryStateToBgBrush" />
       <conv:CellCurrentBorderBrushConverter x:Key="CellCurrentBorderBrush" />
+      <conv:SidebarNavToolTipConverter x:Key="SidebarNavToolTip" />
     </ResourceDictionary>
   </Application.Resources>
 
