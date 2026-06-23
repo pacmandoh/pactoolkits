@@ -6,12 +6,12 @@ namespace PacToolkits.Application.Services;
 
 public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
 {
-    private readonly IDbEnvSettingsService _environmentSettings;
+    private readonly IDbEnvSettingsService _envSettings;
 
-    public DbMigrationPolicyService(IDbEnvSettingsService environmentSettings)
+    public DbMigrationPolicyService(IDbEnvSettingsService envSettings)
     {
-        _environmentSettings = environmentSettings
-            ?? throw new ArgumentNullException(nameof(environmentSettings));
+        _envSettings = envSettings
+            ?? throw new ArgumentNullException(nameof(envSettings));
     }
 
     public async Task<DbMigrationPolicyResult> EvaluateAsync(
@@ -23,7 +23,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
         bool ciMigrationAuthorized = false,
         CancellationToken ct = default)
     {
-        var environment = await _environmentSettings.TryReadAsync(ct).ConfigureAwait(false);
+        var environment = await _envSettings.TryReadAsync(ct).ConfigureAwait(false);
         return Evaluate(new DbMigrationEvaluationContext(
             trigger,
             compatibility,
