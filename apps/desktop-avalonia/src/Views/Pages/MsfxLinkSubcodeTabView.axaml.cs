@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
-public partial class MsfxLinkView : UserControl
+public partial class MsfxLinkSubcodeTabView : UserControl
 {
-    public MsfxLinkView()
+    public MsfxLinkSubcodeTabView()
     {
         InitializeComponent();
     }

@@ -176,6 +176,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private static readonly string[] SubcodePageSizes = ["100", "200", "500", "1000"];
     private static readonly string[] MapQueuePageSizes = ["120", "240", "500"];
     private static readonly string[] TaskQueuePageSizes = ["20", "50", "100"];
+    private const int MapQueuePreviewPageSize = 20;
+    private const int TaskQueuePreviewPageSize = 15;
+    private const int AutoLogPreviewPageSize = 15;
+    private const int PullBatchPreviewPageSize = 10;
     private static readonly string[] AutoLogPageSizes = ["20", "50", "100"];
     private static readonly string[] MapStatusFilters = ["ALL", "PENDING", "MAPPED", "NEED_REVIEW", "FAILED"];
     private static readonly string[] CodeStatusFilters = ["ALL", "NEW", "TASKED", "FAILED"];
@@ -221,6 +225,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public override string DisplayName => "码上放心联调";
     public override string Icon => "CloudCog";
     public override int Index => 5;
+    public override string FunctionAreaId => ShellFunctionAreas.AutomationId;
     public override ICommand? RefreshCommand => SelectedTabIndex == 0 ? RefreshAutoBoardCommand : null;
     protected override bool AutoRefreshOnDbDisconnected => true;
     protected override bool AutoRefreshOnDbReconnected => true;
@@ -404,7 +409,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public bool IsAutoTaskQueueEmpty => AutoTaskQueueRows.Count == 0;
     public string MapQueueDisplayText => $"显示 {AutoMapQueueRows.Count} / 总 {MapQueueTotalCount}";
     public int PullBatchTotalPages => Math.Max(1, (int)Math.Ceiling(PullBatchTotalCount / (double)GetPullBatchPageSize()));
-    public int MapQueueEffectivePageSize => GetMapQueuePageSize();
+    public int MapQueueEffectivePageSize => GetMapQueueQueryPageSize();
     public int MapQueueTotalPages => Math.Max(1, (int)Math.Ceiling(MapQueueTotalCount / (double)Math.Max(1, MapQueueEffectivePageSize)));
     public string MapQueuePagerStatusText => $"{MapQueueDisplayText} · {MapQueueRangeText}";
     public int TaskQueueFilteredCount => _filteredTaskQueueRows.Count;
@@ -424,6 +429,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public bool IsMapPanelExpanded => string.Equals(AutoExpandedPanel, "MAP", StringComparison.OrdinalIgnoreCase);
     public bool IsTaskPanelExpanded => string.Equals(AutoExpandedPanel, "TASK", StringComparison.OrdinalIgnoreCase);
     public bool IsLogPanelExpanded => string.Equals(AutoExpandedPanel, "LOG", StringComparison.OrdinalIgnoreCase);
+    public bool IsUpstreamTab => SelectedTabIndex == 1;
+    public bool IsSubcodeTab => SelectedTabIndex == 2;
     public string AutoExpandedPanelTitle => AutoExpandedPanel switch
     {
         "PULL" => "拉取批次明细",
@@ -736,15 +743,21 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         OnPropertyChanged(nameof(AutoExpandedPanelIcon));
         OnPropertyChanged(nameof(MapQueueEffectivePageSize));
         OnPropertyChanged(nameof(MapQueueTotalPages));
-        if (string.Equals(value, "MAP", StringComparison.OrdinalIgnoreCase) && AutoMapQueueRows.Count == 0)
-            _ = RefreshMapQueueLatestAsync();
+        ApplyPullBatchPage();
+        ApplyTaskQueuePage();
+        ApplyAutoLogPage();
+        _ = RefreshMapQueueLatestAsync();
     }
 
     partial void OnSelectedTabIndexChanged(int value)
     {
         OnPropertyChanged(nameof(RefreshCommand));
+        OnPropertyChanged(nameof(IsUpstreamTab));
+        OnPropertyChanged(nameof(IsSubcodeTab));
         if (value == 0)
+        {
             ClearAllDetailSelectionsSilent();
+        }
     }
 
     partial void OnMapQueuePageSizeChanged(string value)
@@ -946,6 +959,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             SetSelectedAutoTaskQueueRows(Array.Empty<MsfxAutoTaskQueueGridRow>());
             return;
         }
+
         SetSelectedAutoTaskQueueRows(AutoTaskQueueRows.Where(x => x.IsChecked).ToArray());
     }
 
@@ -3206,7 +3220,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     private void ApplyTaskQueuePage()
     {
-        var pageSize = GetTaskQueuePageSize();
+        var pageSize = GetTaskQueueEffectivePageSize();
         var totalPages = TaskQueueTotalPages;
         if (TaskQueuePage > totalPages)
         {
@@ -3226,7 +3240,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     private void ApplyAutoLogPage()
     {
-        var pageSize = GetAutoLogPageSize();
+        var pageSize = GetAutoLogEffectivePageSize();
         var totalPages = AutoLogTotalPages;
         if (AutoLogPage > totalPages)
         {
@@ -3255,6 +3269,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         return Math.Clamp(pageSize, 10, 500);
     }
 
+    private int GetTaskQueueEffectivePageSize()
+        => IsTaskPanelExpanded ? GetTaskQueuePageSize() : TaskQueuePreviewPageSize;
+
     private int GetAutoLogPageSize()
     {
         if (!int.TryParse(AutoLogPageSize, out var pageSize))
@@ -3264,6 +3281,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         return Math.Clamp(pageSize, 10, 500);
     }
+
+    private int GetAutoLogEffectivePageSize()
+        => IsLogPanelExpanded ? GetAutoLogPageSize() : AutoLogPreviewPageSize;
 
     private static bool ContainsTaskQueueIgnoreCase(string? text, string keyword)
         => TextSearchHelper.Matches(keyword, text);
@@ -3475,7 +3495,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             seekLastPage = false;
         }
 
-        var pageSize = GetMapQueuePageSize();
+        var pageSize = GetMapQueueQueryPageSize();
         var page = await _syncService.LoadMappingQueuePageAsync(
             pageSize: pageSize,
             mapStatus: NormalizeFilterValue(MapQueueMapStatusFilter),
@@ -3728,9 +3748,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         return Math.Clamp(pageSize, 10, 500);
     }
 
+    private int GetPullBatchEffectivePageSize()
+        => IsPullPanelExpanded ? GetPullBatchPageSize() : PullBatchPreviewPageSize;
+
     private void ApplyPullBatchPage()
     {
-        var pageSize = GetPullBatchPageSize();
+        var pageSize = GetPullBatchEffectivePageSize();
         var totalPages = Math.Max(1, (int)Math.Ceiling(PullBatchTotalCount / (double)pageSize));
         if (PullBatchPage > totalPages)
         {
@@ -3756,6 +3779,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         return Math.Clamp(pageSize, 1, 500);
     }
+
+    private int GetMapQueueQueryPageSize()
+        => IsMapPanelExpanded ? GetMapQueuePageSize() : MapQueuePreviewPageSize;
 
     private void ApplySubCodePage()
     {
