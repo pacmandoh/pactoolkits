@@ -4,7 +4,7 @@ namespace PacToolkits.Application.Services;
 
 // Shared database compatibility gate. PgDb enforces this for all IDb access;
 // infrastructure helpers that open explicit connections must call ThrowIfBlocked() too.
-public sealed class DatabaseAccessGuard : IDatabaseAccessGuard
+public sealed class DbAccessGuard : IDbAccessGuard
 {
     private readonly object _gate = new();
     private string? _blockReason;

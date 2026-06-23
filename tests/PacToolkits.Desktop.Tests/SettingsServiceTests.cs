@@ -11,9 +11,9 @@ public sealed class SettingsServiceTests
     public async Task Validate_connection_reports_schema_incompatibility_for_beta_below_minimum()
     {
         var migration = new FakeMigrationService();
-        var service = CreateService(migration, new DatabaseAccessGuard(), schemaVersion: "1.2.20");
+        var service = CreateService(migration, new DbAccessGuard(), schemaVersion: "1.2.20");
 
-        var result = await service.ValidateDatabaseConnectionAsync(
+        var result = await service.ValidateDbConnectionAsync(
             new PgOptions(),
             new DbSchemaVersionContext(
                 UiMinDbSchema: "1.2.21",
@@ -22,7 +22,7 @@ public sealed class SettingsServiceTests
                 AgentMaxDbSchema: "1.2.22",
                 TargetDbSchemaVersion: "1.2.22",
                 ReleaseChannel: "beta",
-                MigrationPolicy: DatabaseMigrationPolicies.StableOnly),
+                MigrationPolicy: DbMigrationPolicies.StableOnly),
             CancellationToken.None);
 
         Assert.True(result.ConnectionOk);
@@ -37,10 +37,10 @@ public sealed class SettingsServiceTests
     public async Task Validate_candidate_connection_skips_migration_without_blocking_current_database()
     {
         var migration = new FakeMigrationService();
-        var guard = new DatabaseAccessGuard();
+        var guard = new DbAccessGuard();
         var service = CreateService(migration, guard, schemaVersion: "1.2.23");
 
-        var result = await service.ValidateDatabaseConnectionAsync(
+        var result = await service.ValidateDbConnectionAsync(
             new PgOptions(),
             new DbSchemaVersionContext(
                 UiMinDbSchema: "1.2.20",
@@ -64,7 +64,7 @@ public sealed class SettingsServiceTests
     public async Task Read_current_connection_status_blocks_database_when_schema_is_above_maximum()
     {
         var migration = new FakeMigrationService();
-        var guard = new DatabaseAccessGuard();
+        var guard = new DbAccessGuard();
         var service = CreateService(migration, guard, schemaVersion: "1.2.23");
 
         var snapshot = await service.ReadSchemaStatusAsync(
@@ -84,7 +84,7 @@ public sealed class SettingsServiceTests
     public async Task Ensure_schema_up_to_date_blocks_beta_channel_migration()
     {
         var migration = new FakeMigrationService();
-        var service = CreateService(migration, new DatabaseAccessGuard(), schemaVersion: "1.2.20");
+        var service = CreateService(migration, new DbAccessGuard(), schemaVersion: "1.2.20");
 
         var result = await service.EnsureSchemaUpToDateAsync(
             new DbSchemaVersionContext(
@@ -94,8 +94,8 @@ public sealed class SettingsServiceTests
                 AgentMaxDbSchema: "1.2.22",
                 TargetDbSchemaVersion: "1.2.22",
                 ReleaseChannel: "beta",
-                MigrationPolicy: DatabaseMigrationPolicies.StableOnly),
-            DatabaseMigrationTrigger.SettingsManual,
+                MigrationPolicy: DbMigrationPolicies.StableOnly),
+            DbMigrationTrigger.SettingsManual,
             userConfirmed: false,
             ciMigrationAuthorized: false,
             ct: CancellationToken.None);
@@ -119,11 +119,11 @@ public sealed class SettingsServiceTests
             schemaService,
             migration,
             new FakeClientIdReadRepo(),
-            new DatabaseAccessGuard(),
-            new DatabaseMigrationPolicyService(environmentService),
+            new DbAccessGuard(),
+            new DbMigrationPolicyService(environmentService),
             environmentService);
 
-        await service.ValidateDatabaseConnectionAsync(
+        await service.ValidateDbConnectionAsync(
             explicitOptions,
             new DbSchemaVersionContext(
                 UiMinDbSchema: "1.2.20",
@@ -146,7 +146,7 @@ public sealed class SettingsServiceTests
     public async Task Migration_plan_uses_explicit_options_without_executing_migration()
     {
         var migration = new FakeMigrationService();
-        var service = CreateService(migration, new DatabaseAccessGuard());
+        var service = CreateService(migration, new DbAccessGuard());
         var explicitOptions = new PgOptions
         {
             Host = "beta-db",
@@ -161,7 +161,7 @@ public sealed class SettingsServiceTests
                 AgentMaxDbSchema: "1.2.22",
                 TargetDbSchemaVersion: "1.2.22",
                 ReleaseChannel: "beta",
-                MigrationPolicy: DatabaseMigrationPolicies.StableOnly),
+                MigrationPolicy: DbMigrationPolicies.StableOnly),
             explicitOptions,
             CancellationToken.None);
 
@@ -177,7 +177,7 @@ public sealed class SettingsServiceTests
         var migration = new FakeMigrationService();
         var service = CreateService(
             migration,
-            new DatabaseAccessGuard(),
+            new DbAccessGuard(),
             schemaReadResult: new DbSchemaVersionReadResult(
                 false,
                 null,
@@ -192,8 +192,8 @@ public sealed class SettingsServiceTests
                 AgentMaxDbSchema: "1.2.22",
                 TargetDbSchemaVersion: "1.2.22",
                 ReleaseChannel: "stable",
-                MigrationPolicy: DatabaseMigrationPolicies.StableOnly),
-            DatabaseMigrationTrigger.Startup,
+                MigrationPolicy: DbMigrationPolicies.StableOnly),
+            DbMigrationTrigger.Startup,
             userConfirmed: false,
             ciMigrationAuthorized: false,
             ct: CancellationToken.None);
@@ -207,7 +207,7 @@ public sealed class SettingsServiceTests
     {
         var service = CreateService(
             new FakeMigrationService(),
-            new DatabaseAccessGuard(),
+            new DbAccessGuard(),
             schemaReadResult: new DbSchemaVersionReadResult(
                 false,
                 null,
@@ -222,19 +222,19 @@ public sealed class SettingsServiceTests
                 AgentMaxDbSchema: "1.2.22",
                 TargetDbSchemaVersion: "1.2.22",
                 ReleaseChannel: "stable",
-                MigrationPolicy: DatabaseMigrationPolicies.StableOnly),
+                MigrationPolicy: DbMigrationPolicies.StableOnly),
             new PgOptions(),
             CancellationToken.None);
 
         Assert.Equal(DbSchemaCompatibility.MetadataMissing, snapshot.Compatibility);
         Assert.True(snapshot.Updatable);
-        Assert.Equal(DatabaseMigrationDecision.Allowed, snapshot.ManualMigrationPolicy.Decision);
+        Assert.Equal(DbMigrationDecision.Allowed, snapshot.ManualMigrationPolicy.Decision);
         Assert.True(snapshot.ManualMigrationPolicy.ShouldExecuteMigration);
     }
 
     private static SettingsService CreateService(
         FakeMigrationService migration,
-        DatabaseAccessGuard guard,
+        DbAccessGuard guard,
         string schemaVersion = "1.2.20",
         DbSchemaVersionReadResult? schemaReadResult = null)
         => new(
@@ -244,29 +244,29 @@ public sealed class SettingsServiceTests
             migration,
             new FakeClientIdReadRepo(),
             guard,
-            new DatabaseMigrationPolicyService(new FakeEnvironmentSettingsService()),
+            new DbMigrationPolicyService(new FakeEnvironmentSettingsService()),
             new FakeEnvironmentSettingsService());
 
-    private sealed class FakeEnvironmentSettingsService : IDatabaseEnvironmentSettingsService
+    private sealed class FakeEnvironmentSettingsService : IDbEnvSettingsService
     {
-        public Task<DatabaseEnvironmentSettings> TryReadAsync(CancellationToken ct)
-            => Task.FromResult(DatabaseEnvironmentSettings.ProductionDefaults);
+        public Task<DbEnvSettings> TryReadAsync(CancellationToken ct)
+            => Task.FromResult(DbEnvSettings.ProductionDefaults);
 
-        public Task<DatabaseEnvironmentSettings> TryReadAsync(PgOptions options, CancellationToken ct)
-            => Task.FromResult(DatabaseEnvironmentSettings.ProductionDefaults);
+        public Task<DbEnvSettings> TryReadAsync(PgOptions options, CancellationToken ct)
+            => Task.FromResult(DbEnvSettings.ProductionDefaults);
     }
 
-    private sealed class TrackingEnvironmentSettingsService : IDatabaseEnvironmentSettingsService
+    private sealed class TrackingEnvironmentSettingsService : IDbEnvSettingsService
     {
         public PgOptions? LastOptions { get; private set; }
 
-        public Task<DatabaseEnvironmentSettings> TryReadAsync(CancellationToken ct)
-            => Task.FromResult(DatabaseEnvironmentSettings.ProductionDefaults);
+        public Task<DbEnvSettings> TryReadAsync(CancellationToken ct)
+            => Task.FromResult(DbEnvSettings.ProductionDefaults);
 
-        public Task<DatabaseEnvironmentSettings> TryReadAsync(PgOptions options, CancellationToken ct)
+        public Task<DbEnvSettings> TryReadAsync(PgOptions options, CancellationToken ct)
         {
             LastOptions = options;
-            return Task.FromResult(DatabaseEnvironmentSettings.ProductionDefaults);
+            return Task.FromResult(DbEnvSettings.ProductionDefaults);
         }
     }
 

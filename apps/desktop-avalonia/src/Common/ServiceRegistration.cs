@@ -15,7 +15,7 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-public static class ServiceCollectionRegistrationExtensions
+public static class ServiceRegistration
 {
     public static IServiceCollection AddPacToolkitsUiServices(this IServiceCollection services, IConfiguration config)
     {
@@ -31,8 +31,9 @@ public static class ServiceCollectionRegistrationExtensions
     private static IServiceCollection AddCoreInfrastructure(this IServiceCollection services, IConfiguration config)
     {
         services.AddSingleton<IConfiguration>(config);
-        services.AddSingleton<IAppConfigStore, AppConfigStore>();
-        services.AddSingleton<IPostgresConfigStore>(sp => (IPostgresConfigStore)sp.GetRequiredService<IAppConfigStore>());
+        services.AddSingleton<AppConfigStore>();
+        services.AddSingleton<IAppConfigStore>(sp => sp.GetRequiredService<AppConfigStore>());
+        services.AddSingleton<IDbOptionsStore>(sp => sp.GetRequiredService<AppConfigStore>());
         services.AddSingleton<IUiBehaviorService, UiBehaviorService>();
         services.AddSingleton<ILoggingSettingsService, LoggingSettingsService>();
         services.AddSingleton<IUpdateSettingsService, UpdateSettingsService>();

@@ -222,7 +222,7 @@
                       Kind="Database" />
                     <TextBlock Classes="Small Muted" Text="DB Schema" />
                   </StackPanel>
-                  <TextBlock Classes="h4" Text="{Binding DatabasePostgresVersion}" />
+                  <TextBlock Classes="h4" Text="{Binding DbSchemaVersion}" />
                   <TextBlock Classes="Caption Muted" Text="结构兼容性校验" />
                 </StackPanel>
               </shad:Card>

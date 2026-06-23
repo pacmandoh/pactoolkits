@@ -6,9 +6,9 @@ namespace PacToolkits.Infrastructure.Database;
 public sealed class ClientIdReadRepo : IClientIdReadRepo
 {
     private readonly IAppLogger _logger;
-    private readonly IDatabaseAccessGuard _accessGuard;
+    private readonly IDbAccessGuard _accessGuard;
 
-    public ClientIdReadRepo(IAppLogger logger, IDatabaseAccessGuard accessGuard)
+    public ClientIdReadRepo(IAppLogger logger, IDbAccessGuard accessGuard)
     {
         _logger = logger;
         _accessGuard = accessGuard ?? throw new ArgumentNullException(nameof(accessGuard));

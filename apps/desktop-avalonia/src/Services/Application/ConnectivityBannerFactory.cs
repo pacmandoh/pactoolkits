@@ -17,12 +17,12 @@ public sealed record ShellConnectivityBanner(
     ShellConnectivitySeverity Severity,
     bool ShowOpenSettings);
 
-public static class ShellConnectivityBannerFactory
+public static class ConnectivityBannerFactory
 {
     public static ShellConnectivityBanner Create(
         bool isDbConnected,
         bool isConnectivityKnown,
-        IDatabaseAccessGuard accessGuard)
+        IDbAccessGuard accessGuard)
     {
         if (accessGuard.IsBlocked)
         {

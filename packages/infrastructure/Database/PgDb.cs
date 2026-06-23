@@ -7,17 +7,17 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Infrastructure.Database;
 
 // All business database access should go through IDb. Compatibility blocking is enforced
-// here via IDatabaseAccessGuard so Application services do not need per-call checks.
+// here via IDbAccessGuard so Application services do not need per-call checks.
 public sealed class PgDb : IDb
 {
     private readonly IPgDataSourceFactory _factory;
     private readonly IAppLogger _logger;
-    private readonly IDatabaseAccessGuard _accessGuard;
+    private readonly IDbAccessGuard _accessGuard;
 
     public PgDb(
         IPgDataSourceFactory factory,
         IAppLogger logger,
-        IDatabaseAccessGuard accessGuard)
+        IDbAccessGuard accessGuard)
     {
         _factory = factory;
         _logger = logger;

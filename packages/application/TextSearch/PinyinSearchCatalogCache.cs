@@ -9,11 +9,11 @@ public sealed class PinyinSearchCatalogCache : IPinyinSearchCatalogCache
     private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(2);
 
     private readonly IDrugIndexRepo _drugIndexRepo;
-    private readonly IDatabaseAccessGuard _accessGuard;
+    private readonly IDbAccessGuard _accessGuard;
     private readonly object _gate = new();
     private CacheEntry? _cache;
 
-    public PinyinSearchCatalogCache(IDrugIndexRepo drugIndexRepo, IDatabaseAccessGuard accessGuard)
+    public PinyinSearchCatalogCache(IDrugIndexRepo drugIndexRepo, IDbAccessGuard accessGuard)
     {
         _drugIndexRepo = drugIndexRepo ?? throw new ArgumentNullException(nameof(drugIndexRepo));
         _accessGuard = accessGuard ?? throw new ArgumentNullException(nameof(accessGuard));

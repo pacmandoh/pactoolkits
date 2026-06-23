@@ -167,12 +167,12 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 return pendingResult;
             }
 
-            if (!ReleaseChannelSwitchAuthorization.IsAuthorized(
+            if (!ReleaseChannelAuth.IsAuthorized(
                     targetChannel,
                     currentChannel,
                     options.ValidatedChannel))
             {
-                var blockedMessage = ReleaseChannelSwitchAuthorization.BuildBlockedMessage(
+                var blockedMessage = ReleaseChannelAuth.BuildBlockedMessage(
                     currentChannel,
                     targetChannel);
                 var blocked = CreateCheckResult(
@@ -327,12 +327,12 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 return new AppUpdateApplyResult(true, true, $"更新已下载：{pendingVersion}，可直接重启应用", pendingVersion);
             }
 
-            if (!ReleaseChannelSwitchAuthorization.IsAuthorized(
+            if (!ReleaseChannelAuth.IsAuthorized(
                     targetChannel,
                     currentChannel,
                     options.ValidatedChannel))
             {
-                var blockedMessage = ReleaseChannelSwitchAuthorization.BuildBlockedMessage(
+                var blockedMessage = ReleaseChannelAuth.BuildBlockedMessage(
                     currentChannel,
                     targetChannel);
                 _logger.Warn("AppUpdateService", "update.apply.channel_unauthorized",

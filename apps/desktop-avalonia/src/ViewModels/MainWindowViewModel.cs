@@ -35,7 +35,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IAppConfigStore _appConfigStore;
     private readonly IDbConfigService _dbConfig;
     private readonly IDbConnectionMonitorService _dbMonitor;
-    private readonly IDatabaseAccessGuard _accessGuard;
+    private readonly IDbAccessGuard _accessGuard;
     private readonly ILookupCatalogService _lookup;
     private readonly ISettingsService _settings;
     private readonly IChangeWatermarkService _changeWatermark;
@@ -175,7 +175,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public string DbStatusText
         => IsDbConnected ? "已连接" : "已断开";
 
-    public string ShellDatabaseItemText
+    public string ShellDbItemText
         => IsDbProbeRunning ? "数据库：检测中…"
         : IsDbConnected ? "数据库：已连接"
         : "数据库：未连接";
@@ -265,13 +265,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(IsDbConnected));
         OnPropertyChanged(nameof(DbStatusText));
-        OnPropertyChanged(nameof(ShellDatabaseItemText));
+        OnPropertyChanged(nameof(ShellDbItemText));
         RaiseShellConnectivityChanged();
     }
 
     private void RaiseShellStatusItemsChanged()
     {
-        OnPropertyChanged(nameof(ShellDatabaseItemText));
+        OnPropertyChanged(nameof(ShellDbItemText));
         OnPropertyChanged(nameof(ShellAgentItemText));
         OnPropertyChanged(nameof(ShellActivePageText));
         OnPropertyChanged(nameof(ShowShellAccessGuardItem));
@@ -283,7 +283,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void RaiseShellConnectivityChanged()
     {
         var wasBlocked = _wasAccessGuardBlocked;
-        var banner = ShellConnectivityBannerFactory.Create(
+        var banner = ConnectivityBannerFactory.Create(
             IsDbConnected,
             _isDbConnectivityKnown,
             _accessGuard);
@@ -376,7 +376,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     partial void OnIsDbProbeRunningChanged(bool value)
     {
         TryReconnectDbCommand.NotifyCanExecuteChanged();
-        OnPropertyChanged(nameof(ShellDatabaseItemText));
+        OnPropertyChanged(nameof(ShellDbItemText));
     }
 
     partial void OnIsAhkActionRunningChanged(bool value)
@@ -491,7 +491,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         ToastManager toastManager,
         DialogManager dialogManager,
         IDbConnectionMonitorService dbMonitor,
-        IDatabaseAccessGuard accessGuard,
+        IDbAccessGuard accessGuard,
         ILookupCatalogService lookup,
         ISettingsService settings,
         IChangeWatermarkService changeWatermark,
@@ -586,7 +586,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 _dbMonitor.Start();
             }
 
-            await CheckDatabaseOnStartupAsync().ConfigureAwait(false);
+            await CheckDbOnStartupAsync().ConfigureAwait(false);
             await RefreshSettingsSchemaStatusAsync("startup_postcheck").ConfigureAwait(false);
             MarkDirtyByType<MsfxLinkViewModel>();
 
@@ -1095,7 +1095,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         show();
     }
 
-    private async Task<bool> CheckDatabaseOnStartupAsync()
+    private async Task<bool> CheckDbOnStartupAsync()
     {
         if (!File.Exists(_configPath))
         {
@@ -1121,7 +1121,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 var (migrationOk, summary) = await _settings
                     .EnsureSchemaUpToDateAsync(
                         BuildSchemaContext(),
-                        DatabaseMigrationTrigger.Startup,
+                        DbMigrationTrigger.Startup,
                         ct: cts.Token)
                     .ConfigureAwait(false);
                 if (!migrationOk)
@@ -1239,7 +1239,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             version.AgentMaxDbSchema,
             version.DbSchemaVersion,
             version.BuildChannel,
-            version.DatabaseMigrationPolicy);
+            version.DbMigrationPolicy);
     }
 
     private static bool TryParseAppliedCount(string summary, out int applied)
@@ -1263,7 +1263,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     private async Task<DbSchemaStartupState> GetDbSchemaStartupStateAsync(
-        DatabaseMigrationTrigger trigger = DatabaseMigrationTrigger.Startup)
+        DbMigrationTrigger trigger = DbMigrationTrigger.Startup)
     {
         var version = _releaseVersion.Current;
         var context = BuildSchemaContext();
@@ -1465,7 +1465,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         try
         {
-            var state = await GetDbSchemaStartupStateAsync(DatabaseMigrationTrigger.Reconnect).ConfigureAwait(false);
+            var state = await GetDbSchemaStartupStateAsync(DbMigrationTrigger.Reconnect).ConfigureAwait(false);
             if (!state.ShouldMigrate)
             {
                 await RefreshSettingsSchemaStatusAsync("db_reconnected").ConfigureAwait(false);
@@ -1476,7 +1476,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             var (migrationOk, summary) = await _settings
                 .EnsureSchemaUpToDateAsync(
                     BuildSchemaContext(),
-                    DatabaseMigrationTrigger.Reconnect,
+                    DbMigrationTrigger.Reconnect,
                     ct: cts.Token)
                 .ConfigureAwait(false);
             if (!migrationOk)

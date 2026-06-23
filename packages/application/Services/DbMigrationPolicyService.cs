@@ -4,18 +4,18 @@ using PacToolkits.Core;
 
 namespace PacToolkits.Application.Services;
 
-public sealed class DatabaseMigrationPolicyService : IDatabaseMigrationPolicyService
+public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
 {
-    private readonly IDatabaseEnvironmentSettingsService _environmentSettings;
+    private readonly IDbEnvSettingsService _environmentSettings;
 
-    public DatabaseMigrationPolicyService(IDatabaseEnvironmentSettingsService environmentSettings)
+    public DbMigrationPolicyService(IDbEnvSettingsService environmentSettings)
     {
         _environmentSettings = environmentSettings
             ?? throw new ArgumentNullException(nameof(environmentSettings));
     }
 
-    public async Task<DatabaseMigrationPolicyResult> EvaluateAsync(
-        DatabaseMigrationTrigger trigger,
+    public async Task<DbMigrationPolicyResult> EvaluateAsync(
+        DbMigrationTrigger trigger,
         DbSchemaCompatibility compatibility,
         string releaseChannel,
         string migrationPolicy,
@@ -24,7 +24,7 @@ public sealed class DatabaseMigrationPolicyService : IDatabaseMigrationPolicySer
         CancellationToken ct = default)
     {
         var environment = await _environmentSettings.TryReadAsync(ct).ConfigureAwait(false);
-        return Evaluate(new DatabaseMigrationEvaluationContext(
+        return Evaluate(new DbMigrationEvaluationContext(
             trigger,
             compatibility,
             releaseChannel,
@@ -34,7 +34,7 @@ public sealed class DatabaseMigrationPolicyService : IDatabaseMigrationPolicySer
             ciMigrationAuthorized));
     }
 
-    public DatabaseMigrationPolicyResult Evaluate(DatabaseMigrationEvaluationContext context)
+    public DbMigrationPolicyResult Evaluate(DbMigrationEvaluationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -51,8 +51,8 @@ public sealed class DatabaseMigrationPolicyService : IDatabaseMigrationPolicySer
 
         if (context.Compatibility == DbSchemaCompatibility.Compatible)
         {
-            return new DatabaseMigrationPolicyResult(
-                DatabaseMigrationDecision.Allowed,
+            return new DbMigrationPolicyResult(
+                DbMigrationDecision.Allowed,
                 "数据库版本已在支持范围内",
                 ShouldExecuteMigration: false);
         }
@@ -71,25 +71,25 @@ public sealed class DatabaseMigrationPolicyService : IDatabaseMigrationPolicySer
 
         return policy switch
         {
-            DatabaseMigrationPolicies.StableOnly when !isBeta
+            DbMigrationPolicies.StableOnly when !isBeta
                 => AllowInAppMigration(context.Trigger, "Stable 通道允许应用内迁移"),
 
-            DatabaseMigrationPolicies.StableOnly when isBeta
+            DbMigrationPolicies.StableOnly when isBeta
                 => Block("Beta 应用禁止迁移共享生产数据库。请使用隔离测试库或等待 Stable 发布。"),
 
-            DatabaseMigrationPolicies.Manual when context.Trigger == DatabaseMigrationTrigger.ExternalDeploy
-                => new DatabaseMigrationPolicyResult(
-                    DatabaseMigrationDecision.Allowed,
+            DbMigrationPolicies.Manual when context.Trigger == DbMigrationTrigger.ExternalDeploy
+                => new DbMigrationPolicyResult(
+                    DbMigrationDecision.Allowed,
                     "manual 策略仅允许外部手动部署迁移",
                     ShouldExecuteMigration: true),
 
-            DatabaseMigrationPolicies.Manual
+            DbMigrationPolicies.Manual
                 => Block("当前迁移策略为 manual，仅允许外部手动部署"),
 
-            DatabaseMigrationPolicies.IsolatedBeta when !isBeta
+            DbMigrationPolicies.IsolatedBeta when !isBeta
                 => Block("isolated-beta 策略仅适用于 Beta 发布通道"),
 
-            DatabaseMigrationPolicies.IsolatedBeta
+            DbMigrationPolicies.IsolatedBeta
                 => EvaluateIsolatedBeta(context),
 
             _
@@ -97,7 +97,7 @@ public sealed class DatabaseMigrationPolicyService : IDatabaseMigrationPolicySer
         };
     }
 
-    private static DatabaseMigrationPolicyResult EvaluateIsolatedBeta(DatabaseMigrationEvaluationContext context)
+    private static DbMigrationPolicyResult EvaluateIsolatedBeta(DbMigrationEvaluationContext context)
     {
         if (!context.EnvironmentSettings.IsIsolated)
         {
@@ -109,11 +109,11 @@ public sealed class DatabaseMigrationPolicyService : IDatabaseMigrationPolicySer
             return Block("Beta 数据库迁移未授权（Database.AllowBetaMigrations=false）");
         }
 
-        if (context.Trigger == DatabaseMigrationTrigger.ExternalDeploy)
+        if (context.Trigger == DbMigrationTrigger.ExternalDeploy)
         {
             return context.CiMigrationAuthorized
-                ? new DatabaseMigrationPolicyResult(
-                    DatabaseMigrationDecision.Allowed,
+                ? new DbMigrationPolicyResult(
+                    DbMigrationDecision.Allowed,
                     "CI 已授权 Beta 隔离库迁移",
                     ShouldExecuteMigration: true)
                 : Block("Beta 数据库迁移需要 CI 显式授权");
@@ -121,40 +121,40 @@ public sealed class DatabaseMigrationPolicyService : IDatabaseMigrationPolicySer
 
         if (!context.UserConfirmed)
         {
-            return new DatabaseMigrationPolicyResult(
-                DatabaseMigrationDecision.RequiresConfirmation,
+            return new DbMigrationPolicyResult(
+                DbMigrationDecision.RequiresConfirmation,
                 "Beta 隔离库迁移需要二次确认",
                 ShouldExecuteMigration: false);
         }
 
-        return new DatabaseMigrationPolicyResult(
-            DatabaseMigrationDecision.Allowed,
+        return new DbMigrationPolicyResult(
+            DbMigrationDecision.Allowed,
             "已满足 isolated-beta 迁移授权",
             ShouldExecuteMigration: true);
     }
 
-    private static DatabaseMigrationPolicyResult AllowInAppMigration(
-        DatabaseMigrationTrigger trigger,
+    private static DbMigrationPolicyResult AllowInAppMigration(
+        DbMigrationTrigger trigger,
         string reason)
     {
         _ = trigger;
-        return new DatabaseMigrationPolicyResult(
-            DatabaseMigrationDecision.Allowed,
+        return new DbMigrationPolicyResult(
+            DbMigrationDecision.Allowed,
             reason,
             ShouldExecuteMigration: true);
     }
 
-    private static DatabaseMigrationPolicyResult Block(string reason)
-        => new(DatabaseMigrationDecision.ReadOnlyRequired, reason, ShouldExecuteMigration: false);
+    private static DbMigrationPolicyResult Block(string reason)
+        => new(DbMigrationDecision.ReadOnlyRequired, reason, ShouldExecuteMigration: false);
 
     private static bool TryNormalizePolicy(string? migrationPolicy, out string policy)
     {
         var normalized = (migrationPolicy ?? string.Empty).Trim().ToLowerInvariant();
         switch (normalized)
         {
-            case DatabaseMigrationPolicies.StableOnly:
-            case DatabaseMigrationPolicies.Manual:
-            case DatabaseMigrationPolicies.IsolatedBeta:
+            case DbMigrationPolicies.StableOnly:
+            case DbMigrationPolicies.Manual:
+            case DbMigrationPolicies.IsolatedBeta:
                 policy = normalized;
                 return true;
             default:

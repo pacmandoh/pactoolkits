@@ -52,7 +52,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     private IDbConnectionMonitorService? _cachedDbMonitor;
     private IAppStartupStateService? _cachedStartupState;
-    private IDatabaseAccessGuard? _cachedAccessGuard;
+    private IDbAccessGuard? _cachedAccessGuard;
     private bool _dbMonitorEventsHooked;
     private int _dbSignalRefreshQueued;
 
@@ -286,9 +286,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         Func<CancellationToken, Task> fetch)
     {
         _ = GetDbMonitor();
-        _ = GetDatabaseAccessGuard();
+        _ = GetDbAccessGuard();
 
-        if (IsDatabaseAccessBlocked(out var blockReason))
+        if (IsDbAccessBlocked(out var blockReason))
         {
             SetPageAvailability(PageDataAvailability.AccessBlocked, blockReason);
             return;
@@ -318,7 +318,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             resumedFromWait = true;
         }
 
-        if (IsDatabaseAccessBlocked(out blockReason))
+        if (IsDbAccessBlocked(out blockReason))
         {
             SetPageAvailability(PageDataAvailability.AccessBlocked, blockReason);
             return;
@@ -363,16 +363,16 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         {
             RestoreAvailabilityAfterCancelledReload();
         }
-        catch (Exception ex) when (IsDatabaseAccessBlockedException(ex))
+        catch (Exception ex) when (IsDbAccessBlockedException(ex))
         {
             LogWarn("reload.access_blocked.fail", "Reload stopped because database access is blocked", ex);
-            SetPageAvailability(PageDataAvailability.AccessBlocked, GetDatabaseAccessGuard()?.BlockReason);
+            SetPageAvailability(PageDataAvailability.AccessBlocked, GetDbAccessGuard()?.BlockReason);
         }
         catch (Exception ex)
         {
             HandleReloadException(ex);
 
-            if (IsDbTransportError(ex) || IsDatabaseAccessBlockedException(ex))
+            if (IsDbTransportError(ex) || IsDbAccessBlockedException(ex))
             {
                 RestoreAvailabilityAfterFailedReload();
                 return;
@@ -391,7 +391,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     private void RestoreAvailabilityAfterCancelledReload()
     {
-        if (IsDatabaseAccessBlocked(out var reason))
+        if (IsDbAccessBlocked(out var reason))
         {
             SetPageAvailability(PageDataAvailability.AccessBlocked, reason);
             return;
@@ -408,7 +408,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     private void RestoreAvailabilityAfterFailedReload()
     {
-        if (IsDatabaseAccessBlocked(out var reason))
+        if (IsDbAccessBlocked(out var reason))
         {
             SetPageAvailability(PageDataAvailability.AccessBlocked, reason);
             return;
@@ -526,7 +526,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     }
 
     protected bool IsLookupCatalogSuspended()
-        => IsDatabaseAccessBlocked(out _);
+        => IsDbAccessBlocked(out _);
 
     protected virtual void OnLookupCatalogSuspended()
     {
@@ -556,7 +556,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     /// </summary>
     public void SyncPageAvailabilityFromEnvironment()
     {
-        if (IsDatabaseAccessBlocked(out var reason))
+        if (IsDbAccessBlocked(out var reason))
         {
             SetPageAvailability(PageDataAvailability.AccessBlocked, reason);
             return;
@@ -633,7 +633,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     private void HandleReloadException(Exception ex)
     {
-        if (IsDatabaseAccessBlockedException(ex))
+        if (IsDbAccessBlockedException(ex))
         {
             LogWarn("reload.access_blocked.fail", "Reload stopped because database access is blocked", ex);
             return;
@@ -647,16 +647,16 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     }
 
-    protected bool IsDatabaseAccessBlocked(out string? reason)
+    protected bool IsDbAccessBlocked(out string? reason)
     {
-        var guard = GetDatabaseAccessGuard();
+        var guard = GetDbAccessGuard();
         reason = guard?.BlockReason;
         return guard?.IsBlocked == true;
     }
 
-    protected bool IsDatabaseAccessBlockedException(Exception ex)
+    protected bool IsDbAccessBlockedException(Exception ex)
     {
-        if (!IsDatabaseAccessBlocked(out var reason) || string.IsNullOrWhiteSpace(reason))
+        if (!IsDbAccessBlocked(out var reason) || string.IsNullOrWhiteSpace(reason))
         {
             return false;
         }
@@ -672,7 +672,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         return false;
     }
 
-    private IDatabaseAccessGuard? GetDatabaseAccessGuard()
+    private IDbAccessGuard? GetDbAccessGuard()
     {
         if (_cachedAccessGuard is not null)
         {
@@ -683,7 +683,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         {
             if (global::Avalonia.Application.Current is App app)
             {
-                _cachedAccessGuard = app.Services.GetService(typeof(IDatabaseAccessGuard)) as IDatabaseAccessGuard;
+                _cachedAccessGuard = app.Services.GetService(typeof(IDbAccessGuard)) as IDbAccessGuard;
             }
         }
         catch (System.Exception ex)
@@ -719,7 +719,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     /// </summary>
     protected bool ShouldShowOperationErrorToast(Exception ex)
     {
-        if (IsDatabaseAccessBlockedException(ex))
+        if (IsDbAccessBlockedException(ex))
         {
             return false;
         }

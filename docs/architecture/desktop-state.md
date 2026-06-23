@@ -2,7 +2,7 @@
 
 Avalonia Desktop（`apps/desktop-avalonia`）将**全局连接**、**页面数据可用性**、**区块空态**拆成三层，避免单一 `IsBusy` 或重复 toast/banner 表达同一事件。
 
-相关实现：`apps/desktop-avalonia/src/ViewModels/AppPageBase.cs`、`Controls/PageDataShell.axaml`、`Services/Application/ShellConnectivityBannerFactory.cs`。
+相关实现：`apps/desktop-avalonia/src/ViewModels/AppPageBase.cs`、`Controls/PageDataShell.axaml`、`Services/Application/ConnectivityBannerFactory.cs`。
 
 ## 三层职责
 
@@ -34,14 +34,14 @@ flowchart TB
 
 | 层         | 所有者                                                                       | 呈现                                                                    | 典型状态                                                                                    |
 | ---------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Shell 连接 | `MainWindowViewModel`、`IDbConnectionMonitorService`、`IDatabaseAccessGuard` | 顶栏 DB 图标、侧栏 DB 卡片、`ShellConnectivityBanner`、`ShellStatusBar` | 探测中（无 banner）、已知断开、AccessGuard 阻断                                             |
+| Shell 连接 | `MainWindowViewModel`、`IDbConnectionMonitorService`、`IDbAccessGuard` | 顶栏 DB 图标、侧栏 DB 卡片、`ShellConnectivityBanner`、`ShellStatusBar` | 探测中（无 banner）、已知断开、AccessGuard 阻断                                             |
 | 页面可用性 | `AppPageBase`、`PageDataAvailability`                                        | `PageDataShell`（不可用空态、stale 条、加载 busy）                      | `NotLoaded`、`AwaitingDatabase`、`AccessBlocked`、`Loading`、`LoadFailed`、`Stale`、`Ready` |
 | 区块空态   | 各页 ViewModel + `SectionEmptyCopy`                                          | `EmptyStatePanel`                                                       | 列表/图表无数据时的标题与提示                                                               |
 
 ## Layer 1 — Shell 连接
 
 - 连接/断开/恢复 toast **仅**在 `MainWindowViewModel` 发出。
-- `ShellConnectivityBannerFactory`：**不**在 DB 探测中显示 info banner；仅在 AccessGuard 阻断或**已知断开**时显示 warning。
+- `ConnectivityBannerFactory`：**不**在 DB 探测中显示 info banner；仅在 AccessGuard 阻断或**已知断开**时显示 warning。
 - 各数据页**不得**再 toast 传输层断连或 guard 阻断类错误（见 `ShouldShowOperationErrorToast`）。
 
 ## Layer 2 — 页面可用性
