@@ -1,4 +1,4 @@
-﻿<Styles
+<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
@@ -50,7 +50,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="StackPanel.SidebarFunctionAreaText &gt; TextBlock.Small,                      Border.ConnectivityBanner TextBlock.Small,                      Border.ShellContentHeader TextBlock.Small">
+  <Style Selector="StackPanel.SidebarFunctionAreaText &gt; TextBlock.Small,Border.ConnectivityBanner TextBlock.Small,Border.ShellContentHeader TextBlock.Small">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
@@ -117,19 +117,15 @@
     <Setter Property="Padding" Value="0" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked)">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
-  </Style>
-
   <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked) icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked) TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked) /template/ Border#PART_BorderContainer">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NavTextRest}" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover /template/ Border#HoverBackground,                      shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pressed /template/ Border#HoverBackground">
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover /template/ Border#HoverBackground,shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pressed /template/ Border#HoverBackground">
     <Setter Property="Opacity" Value="0" />
   </Style>
 
@@ -137,45 +133,39 @@
     <Setter Property="Opacity" Value="1" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover,                      shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pressed">
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover icons|AppIcon,shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pressed icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover icons|AppIcon,                      shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pressed icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover /template/ Border#PART_BorderContainer,shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pressed /template/ Border#PART_BorderContainer">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NavTextHover}" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pointerover TextBlock,                      shad|Sidebar#MainSidebar shad|SidebarItem:not(:checked):pressed TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
-  </Style>
-
-  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked /template/ Border#SelectedBackground,                      shad|Sidebar#MainSidebar shad|SidebarItem:checked /template/ Border#HoverBackground">
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked /template/ Border#SelectedBackground,shad|Sidebar#MainSidebar shad|SidebarItem:checked /template/ Border#HoverBackground">
     <Setter Property="Opacity" Value="0" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItem:checked /template/ Border#BaseBackground,                      shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItem:checked:pointerover /template/ Border#BaseBackground">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItem:checked /template/ Border#BaseBackground,shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItem:checked:pointerover /template/ Border#BaseBackground">
     <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushExpanded}" />
     <Setter Property="Opacity" Value="1" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItem:checked /template/ Border#BaseBackground,                      shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItem:checked:pointerover /template/ Border#BaseBackground">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItem:checked /template/ Border#BaseBackground,shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItem:checked:pointerover /template/ Border#BaseBackground">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="{DynamicResource NavIndicatorBarBrush}" />
     <Setter Property="BorderThickness" Value="4,0,0,0" />
     <Setter Property="Opacity" Value="1" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked,                      shad|Sidebar#MainSidebar shad|SidebarItem:checked:pointerover">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-  </Style>
-
-  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked icons|AppIcon,                      shad|Sidebar#MainSidebar shad|SidebarItem:checked:pointerover icons|AppIcon">
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked icons|AppIcon,shad|Sidebar#MainSidebar shad|SidebarItem:checked:pointerover icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked TextBlock,                      shad|Sidebar#MainSidebar shad|SidebarItem:checked:pointerover TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked /template/ Border#PART_BorderContainer,shad|Sidebar#MainSidebar shad|SidebarItem:checked:pointerover /template/ Border#PART_BorderContainer">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NavTextSelected}" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem:checked /template/ TextBlock,shad|Sidebar#MainSidebar shad|SidebarItem:checked:pointerover /template/ TextBlock">
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 

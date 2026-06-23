@@ -1,4 +1,4 @@
-﻿<Styles
+<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
@@ -121,14 +121,6 @@
   <Style Selector="Border.ShellContentHeader">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
     <Setter Property="MinHeight" Value="{DynamicResource ContentChromeHeight}" />
-  </Style>
-
-  <Style Selector="ToggleButton.ShellChromeToggle">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="{DynamicResource MdCornerRadius}" />
-    <Setter Property="Padding" Value="6" />
-    <Setter Property="Theme" Value="{DynamicResource SideTogglerTheme}" />
   </Style>
 
   <Style Selector="StackPanel.ShellContentHeaderMenuItemHeader">

@@ -1,4 +1,4 @@
-﻿<shad:Window
+<shad:Window
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -289,8 +289,13 @@
                   CommandParameter="{Binding}"
                   Content="{Binding DisplayName}"
                   IsEnabled="{Binding IsEnabled}"
-                  Route="{Binding SidebarRoute}"
-                  ToolTip.Tip="{Binding DisplayName}">
+                  Route="{Binding SidebarRoute}">
+                  <ToolTip.Tip>
+                    <MultiBinding Converter="{StaticResource SidebarNavToolTip}">
+                      <Binding Path="$parent[shad:Sidebar].Expanded" />
+                      <Binding Path="DisplayName" />
+                    </MultiBinding>
+                  </ToolTip.Tip>
                   <shad:SidebarItem.Icon>
                     <Viewbox>
                       <icons:AppIcon Kind="{Binding Icon}" />
@@ -404,27 +409,20 @@
               Grid.Column="0"
               Orientation="Horizontal"
               Spacing="4">
-              <ToggleButton
-                Width="28"
-                Height="28"
-                Classes="ShellChromeToggle"
-                IsChecked="{Binding IsSidebarExpanded, Mode=TwoWay}"
-                ToolTip.Tip="展开或折叠侧边栏">
-                <Viewbox Width="18" Height="18">
-                  <icons:AppIcon Kind="PanelLeft" />
-                </Viewbox>
-              </ToggleButton>
-              <ToggleButton
-                Width="28"
-                Height="28"
-                Classes="ShellChromeToggle"
-                IsChecked="{Binding IsDashboardFilterBarVisible, Mode=TwoWay}"
+              <Button
+                Classes="Icon ghost-states"
+                Command="{Binding ToggleSidebarCommand}"
+                ToolTip.Tip="{Binding SidebarToggleToolTip}">
+                <icons:AppIcon Kind="{Binding SidebarToggleIconKind}" />
+              </Button>
+              <Button
+                Classes="Icon ghost-states"
+                Classes.active="{Binding IsDashboardFilterBarVisible}"
+                Command="{Binding ToggleDashboardFilterBarCommand}"
                 IsVisible="{Binding IsDashboardPageActive}"
-                ToolTip.Tip="显示或隐藏筛选栏">
-                <Viewbox Width="18" Height="18">
-                  <icons:AppIcon Kind="ListFilter" />
-                </Viewbox>
-              </ToggleButton>
+                ToolTip.Tip="{Binding FilterbarToggleToolTip}">
+                <icons:AppIcon Kind="{Binding FilterbarToggleIconKind}" />
+              </Button>
             </StackPanel>
             <Rectangle Grid.Column="1" Classes="ShellContentHeaderDivider" />
             <TextBlock
