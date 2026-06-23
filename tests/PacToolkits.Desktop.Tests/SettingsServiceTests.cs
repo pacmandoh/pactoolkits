@@ -110,7 +110,7 @@ public sealed class SettingsServiceTests
     {
         var migration = new FakeMigrationService();
         var schemaService = new TrackingSchemaVersionService();
-        var environmentService = new TrackingEnvironmentSettingsService();
+        var environmentService = new TrackingDbEnvSettingsService();
         var currentConfig = new FakeDbConfigService();
         var explicitOptions = new PgOptions { Host = "explicit-host", Database = "explicit-db" };
         var service = new SettingsService(
@@ -244,10 +244,10 @@ public sealed class SettingsServiceTests
             migration,
             new FakeClientIdReadRepo(),
             guard,
-            new DbMigrationPolicyService(new FakeEnvironmentSettingsService()),
-            new FakeEnvironmentSettingsService());
+            new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
+            new FakeDbEnvSettingsService());
 
-    private sealed class FakeEnvironmentSettingsService : IDbEnvSettingsService
+    private sealed class FakeDbEnvSettingsService : IDbEnvSettingsService
     {
         public Task<DbEnvSettings> TryReadAsync(CancellationToken ct)
             => Task.FromResult(DbEnvSettings.ProductionDefaults);
@@ -256,7 +256,7 @@ public sealed class SettingsServiceTests
             => Task.FromResult(DbEnvSettings.ProductionDefaults);
     }
 
-    private sealed class TrackingEnvironmentSettingsService : IDbEnvSettingsService
+    private sealed class TrackingDbEnvSettingsService : IDbEnvSettingsService
     {
         public PgOptions? LastOptions { get; private set; }
 

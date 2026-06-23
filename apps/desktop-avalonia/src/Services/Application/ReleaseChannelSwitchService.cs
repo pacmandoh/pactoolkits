@@ -23,7 +23,7 @@ public interface IReleaseChannelSwitchService
     Task<ReleaseChannelSwitchProbe> ProbeAsync(
         string? baseFeedUrl,
         string targetChannel,
-        PgOptions databaseOptions,
+        PgOptions pgOptions,
         CancellationToken ct = default);
 }
 
@@ -58,7 +58,7 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
     public async Task<ReleaseChannelSwitchProbe> ProbeAsync(
         string? baseFeedUrl,
         string targetChannel,
-        PgOptions databaseOptions,
+        PgOptions pgOptions,
         CancellationToken ct = default)
     {
         if (!TryNormalizeChannel(targetChannel, out var channel))
@@ -101,7 +101,7 @@ public sealed class ReleaseChannelSwitchService : IReleaseChannelSwitchService
                 $"更新源通道不匹配：请求 {channel}，清单为 {manifest.Channel}");
         }
 
-        var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(databaseOptions, ct).ConfigureAwait(false);
+        var schema = await _dbSchemaVersion.TryReadSchemaVersionAsync(pgOptions, ct).ConfigureAwait(false);
         if (!schema.Ok)
         {
             return Failed(channel, manifestUrl, schema.Reason ?? "无法读取当前数据库版本");
