@@ -9,7 +9,7 @@ public sealed class ClientIdReadRepoTests
     [Fact]
     public async Task GetDistinctClientIds_throws_when_guard_is_blocked()
     {
-        var guard = new DatabaseAccessGuard();
+        var guard = new DbAccessGuard();
         guard.Block("数据库版本不兼容");
         var repo = new ClientIdReadRepo(new NullLogger(), guard);
 

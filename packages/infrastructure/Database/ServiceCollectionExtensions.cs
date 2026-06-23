@@ -18,7 +18,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDbConnectionTester, DbConnectionTester>();
         services.AddSingleton<IDbConnectionMonitorService, DbConnectionMonitorService>();
         services.AddSingleton<IDbSchemaVersionService, DbSchemaVersionService>();
-        services.AddSingleton<IDatabaseEnvironmentSettingsService, DatabaseEnvironmentSettingsService>();
+        services.AddSingleton<IDbEnvSettingsService, DbEnvSettingsService>();
         services.AddSingleton<IDbSchemaMigrationService, DbSchemaMigrationService>();
         services.AddSingleton<IChangeWatermarkService, ChangeWatermarkService>();
         services.AddSingleton<ITraceEntryLogService, TraceEntryLogService>();

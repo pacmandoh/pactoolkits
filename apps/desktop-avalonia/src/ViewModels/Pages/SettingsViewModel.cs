@@ -109,7 +109,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _dbSchemaLastCheckSourceText = "--";
     [ObservableProperty] private string _dbSchemaLastMigrationText = "尚无迁移记录";
     [ObservableProperty] private string _dbSchemaMigrationPlanText = "尚未查看迁移计划";
-    [ObservableProperty] private string _dbSchemaPolicyText = DatabaseMigrationPolicies.StableOnly;
+    [ObservableProperty] private string _dbSchemaPolicyText = DbMigrationPolicies.StableOnly;
     public string DbSchemaBetaConceptText
         => string.Equals(_releaseVersion.Current.BuildChannel, "beta", StringComparison.OrdinalIgnoreCase)
             ? "当前是 Beta 应用。Beta 应用与 Beta 数据库是两个独立概念；默认不会升级共享生产数据库。"
@@ -216,7 +216,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         LoadUiBehavior();
         LoadUpdateOptions();
         LoadLoggingOptions();
-        DbSchemaPolicyText = _releaseVersion.Current.DatabaseMigrationPolicy;
+        DbSchemaPolicyText = _releaseVersion.Current.DbMigrationPolicy;
         SafeFireAndForget(RefreshDbSchemaStatusOnStartupAsync, "db.schema.startup_refresh.fire_and_forget_fail");
         _uiBehavior.Changed += OnUiBehaviorChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
@@ -548,7 +548,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             var opt = ToOptions();
             using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(6));
 
-            var validation = await _settings.ValidateDatabaseConnectionAsync(
+            var validation = await _settings.ValidateDbConnectionAsync(
                 opt,
                 BuildSchemaContext(),
                 cts.Token);
@@ -617,7 +617,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         try
         {
-            await _settings.SaveDatabaseConfigAsync(ToOptions(), _pageWorkCts.Token);
+            await _settings.SaveDbConfigAsync(ToOptions(), _pageWorkCts.Token);
             if (!await EnsureDbSchemaUpToDateAsync())
             {
                 Status = "配置已保存，但迁移失败，当前不可用";
@@ -719,7 +719,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             BuildSchemaContext(),
             options,
             _pageWorkCts.Token);
-        if (snapshot.ManualMigrationPolicy.Decision == DatabaseMigrationDecision.RequiresConfirmation)
+        if (snapshot.ManualMigrationPolicy.Decision == DbMigrationDecision.RequiresConfirmation)
         {
             var confirmed = await _dialog.Confirm(
                 "确认更新数据库",
@@ -1474,7 +1474,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             version.AgentMaxDbSchema,
             version.DbSchemaVersion,
             version.BuildChannel,
-            version.DatabaseMigrationPolicy);
+            version.DbMigrationPolicy);
     }
 
     private async Task<bool> EnsureDbSchemaCompatibleAsync(PgOptions? connectionOptions = null)
@@ -1528,7 +1528,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             var migration = await _settings.EnsureSchemaUpToDateAsync(
                 BuildSchemaContext(),
-                DatabaseMigrationTrigger.SettingsManual,
+                DbMigrationTrigger.SettingsManual,
                 connectionOptions,
                 userConfirmed: userConfirmed,
                 ciMigrationAuthorized: false,
@@ -1546,7 +1546,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             {
                 _toast.Success("数据库结构更新", "数据库结构已更新");
             }
-            else if (status.ManualMigrationPolicy.Decision == DatabaseMigrationDecision.ReadOnlyRequired)
+            else if (status.ManualMigrationPolicy.Decision == DbMigrationDecision.ReadOnlyRequired)
             {
                 _toast.Warn("数据库结构更新", migration.Summary);
             }
@@ -1739,12 +1739,12 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         OnPropertyChanged(nameof(CanApplyDbSchemaUpdate));
     }
 
-    private void UpdateManualMigrationPolicyState(DatabaseMigrationPolicyResult policy)
+    private void UpdateManualMigrationPolicyState(DbMigrationPolicyResult policy)
     {
         CanApplyDbSchemaUpdateByPolicy =
-            policy.Decision is DatabaseMigrationDecision.Allowed
-                or DatabaseMigrationDecision.RequiresConfirmation;
-        DbSchemaPolicyText = $"{_releaseVersion.Current.DatabaseMigrationPolicy}: {policy.Reason}";
+            policy.Decision is DbMigrationDecision.Allowed
+                or DbMigrationDecision.RequiresConfirmation;
+        DbSchemaPolicyText = $"{_releaseVersion.Current.DbMigrationPolicy}: {policy.Reason}";
         OnPropertyChanged(nameof(CanApplyDbSchemaUpdate));
     }
 

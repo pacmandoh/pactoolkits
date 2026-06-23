@@ -16,7 +16,7 @@ static PgOptions LoadOptions(string? database = null)
         Password = Environment.GetEnvironmentVariable("PGPASSWORD") ?? string.Empty,
     };
 
-static SettingsService CreateService(PgOptions options, DatabaseAccessGuard guard)
+static SettingsService CreateService(PgOptions options, DbAccessGuard guard)
 {
     var config = new FixedDbConfig(options);
     var logger = new NullLogger();
@@ -27,11 +27,11 @@ static SettingsService CreateService(PgOptions options, DatabaseAccessGuard guar
         new DbSchemaMigrationService(config, logger),
         new ClientIdReadRepo(logger, guard),
         guard,
-        new DatabaseMigrationPolicyService(new DatabaseEnvironmentSettingsService(config, logger)),
-        new DatabaseEnvironmentSettingsService(config, logger));
+        new DbMigrationPolicyService(new DbEnvSettingsService(config, logger)),
+        new DbEnvSettingsService(config, logger));
 }
 
-static PgDb CreatePgDb(PgOptions options, DatabaseAccessGuard guard, NullLogger logger)
+static PgDb CreatePgDb(PgOptions options, DbAccessGuard guard, NullLogger logger)
 {
     var factory = new PgDataSourceFactory();
     factory.Rebuild(options);
@@ -59,21 +59,21 @@ try
     else
         Pass($"schema_version_read={read.Value}");
 
-    var env = new DatabaseEnvironmentSettingsService(new FixedDbConfig(options), logger);
+    var env = new DbEnvSettingsService(new FixedDbConfig(options), logger);
     var productionEnv = await env.TryReadAsync(options, CancellationToken.None);
     if (!string.Equals(productionEnv.Environment, "production", StringComparison.OrdinalIgnoreCase) || productionEnv.AllowBetaMigrations)
         Fail("production_env_defaults", $"{productionEnv.Environment}/{productionEnv.AllowBetaMigrations}");
     else
         Pass("production_env_defaults=production/false");
 
-    var guard = new DatabaseAccessGuard();
+    var guard = new DbAccessGuard();
     var clients = new ClientIdReadRepo(logger, guard);
     var machines = await clients.GetDistinctClientIdsAsync(options, CancellationToken.None);
     Pass($"client_alias_read count={machines.Count}");
 
     var service = CreateService(options, guard);
     var stableContext = new DbSchemaVersionContext(
-        "1.2.20", "1.2.23", "1.2.20", "1.2.23", "1.2.23", "stable", DatabaseMigrationPolicies.StableOnly);
+        "1.2.20", "1.2.23", "1.2.20", "1.2.23", "1.2.23", "stable", DbMigrationPolicies.StableOnly);
     var snapshot = await service.ReadSchemaStatusAsync(stableContext, options, CancellationToken.None);
     if (!snapshot.SchemaOk || snapshot.Compatibility != DbSchemaCompatibility.Compatible)
         Fail("stable_schema_status", $"{snapshot.Compatibility} {snapshot.Reason}");
@@ -82,9 +82,9 @@ try
 
     var belowMinContext = new DbSchemaVersionContext(
         "1.2.24", "1.2.25", "1.2.24", "1.2.25", "1.2.25",
-        "beta", DatabaseMigrationPolicies.StableOnly);
+        "beta", DbMigrationPolicies.StableOnly);
     var belowSnapshot = await service.ReadSchemaStatusAsync(belowMinContext, options, CancellationToken.None);
-    if (belowSnapshot.ManualMigrationPolicy.Decision != DatabaseMigrationDecision.ReadOnlyRequired
+    if (belowSnapshot.ManualMigrationPolicy.Decision != DbMigrationDecision.ReadOnlyRequired
         || !belowSnapshot.ManualMigrationPolicy.Reason.Contains("Beta 应用禁止迁移", StringComparison.Ordinal))
         Fail("beta_policy_block", belowSnapshot.ManualMigrationPolicy.Reason);
     else
@@ -149,22 +149,22 @@ try
     if (!string.IsNullOrWhiteSpace(betaDatabase))
     {
         var betaOptions = LoadOptions(betaDatabase);
-        var betaEnv = await new DatabaseEnvironmentSettingsService(new FixedDbConfig(betaOptions), logger)
+        var betaEnv = await new DbEnvSettingsService(new FixedDbConfig(betaOptions), logger)
             .TryReadAsync(betaOptions, CancellationToken.None);
         if (!betaEnv.IsIsolated || !betaEnv.AllowBetaMigrations)
             Fail("beta_env_markers", $"{betaEnv.Environment}/{betaEnv.AllowBetaMigrations}");
         else
             Pass("beta_env_markers=isolated/true");
 
-        var betaService = CreateService(betaOptions, new DatabaseAccessGuard());
+        var betaService = CreateService(betaOptions, new DbAccessGuard());
         var betaSnapshot = await betaService.ReadSchemaStatusAsync(
             new DbSchemaVersionContext(
                 "1.2.20", "1.2.23", "1.2.20", "1.2.23", "1.2.23",
-                "beta", DatabaseMigrationPolicies.IsolatedBeta),
+                "beta", DbMigrationPolicies.IsolatedBeta),
             betaOptions,
             CancellationToken.None);
-        if (betaSnapshot.ManualMigrationPolicy.Decision != DatabaseMigrationDecision.RequiresConfirmation
-            && betaSnapshot.ManualMigrationPolicy.Decision != DatabaseMigrationDecision.Allowed)
+        if (betaSnapshot.ManualMigrationPolicy.Decision != DbMigrationDecision.RequiresConfirmation
+            && betaSnapshot.ManualMigrationPolicy.Decision != DbMigrationDecision.Allowed)
             Fail("isolated_beta_policy", betaSnapshot.ManualMigrationPolicy.Reason);
         else
             Pass($"isolated_beta_policy={betaSnapshot.ManualMigrationPolicy.Decision}");

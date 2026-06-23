@@ -9,8 +9,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddPacToolkitsApplication(this IServiceCollection services)
     {
         services.AddSingleton<IPinyinSearchCatalogCache, PinyinSearchCatalogCache>();
-        services.AddSingleton<IDatabaseAccessGuard, DatabaseAccessGuard>();
-        services.AddSingleton<IDatabaseMigrationPolicyService, DatabaseMigrationPolicyService>();
+        services.AddSingleton<IDbAccessGuard, DbAccessGuard>();
+        services.AddSingleton<IDbMigrationPolicyService, DbMigrationPolicyService>();
         services.AddSingleton<IDashboardService, DashboardService>();
         services.AddSingleton<IInventoryOverviewService, InventoryOverviewService>();
         services.AddSingleton<IScanCodeService, ScanCodeService>();

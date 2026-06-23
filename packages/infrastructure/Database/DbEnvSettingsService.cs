@@ -5,21 +5,21 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Infrastructure.Database;
 
-public sealed class DatabaseEnvironmentSettingsService : IDatabaseEnvironmentSettingsService
+public sealed class DbEnvSettingsService : IDbEnvSettingsService
 {
     private readonly IDbConfigService _dbConfig;
     private readonly IAppLogger _logger;
 
-    public DatabaseEnvironmentSettingsService(IDbConfigService dbConfig, IAppLogger logger)
+    public DbEnvSettingsService(IDbConfigService dbConfig, IAppLogger logger)
     {
         _dbConfig = dbConfig ?? throw new ArgumentNullException(nameof(dbConfig));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public Task<DatabaseEnvironmentSettings> TryReadAsync(CancellationToken ct)
+    public Task<DbEnvSettings> TryReadAsync(CancellationToken ct)
         => TryReadAsync(_dbConfig.Current, ct);
 
-    public async Task<DatabaseEnvironmentSettings> TryReadAsync(PgOptions options, CancellationToken ct)
+    public async Task<DbEnvSettings> TryReadAsync(PgOptions options, CancellationToken ct)
     {
         try
         {
@@ -53,7 +53,7 @@ public sealed class DatabaseEnvironmentSettingsService : IDatabaseEnvironmentSet
                 }
             }
 
-            return new DatabaseEnvironmentSettings(environment, allowBetaMigrations);
+            return new DbEnvSettings(environment, allowBetaMigrations);
         }
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UndefinedTable)
         {
@@ -61,7 +61,7 @@ public sealed class DatabaseEnvironmentSettingsService : IDatabaseEnvironmentSet
                 "DatabaseEnvironment",
                 "environment_settings.missing",
                 "app_environment_settings table not found; using production defaults");
-            return DatabaseEnvironmentSettings.ProductionDefaults;
+            return DbEnvSettings.ProductionDefaults;
         }
         catch (Exception ex)
         {
@@ -70,7 +70,7 @@ public sealed class DatabaseEnvironmentSettingsService : IDatabaseEnvironmentSet
                 "environment_settings.read_fail",
                 "Failed reading app_environment_settings; using production defaults",
                 ex);
-            return DatabaseEnvironmentSettings.ProductionDefaults;
+            return DbEnvSettings.ProductionDefaults;
         }
     }
 
