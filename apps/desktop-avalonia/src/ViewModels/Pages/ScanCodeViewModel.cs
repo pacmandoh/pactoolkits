@@ -41,6 +41,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
     public ObservableCollection<OptionItem> DrugOptions { get; } = new();
     public ObservableCollection<OptionItem> SpecOptions { get; } = new();
+    private IReadOnlyList<OptionItem> _drugCatalog = [];
     public ObservableCollection<AutoFetchTaskItem> AutoTasks { get; } = new();
     public ObservableCollection<AutoFetchRunItem> RecentRuns { get; } = new();
     public ObservableCollection<AutoFetchRetryItem> RetryQueue { get; } = new();
@@ -53,6 +54,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     protected override void OnLookupCatalogSuspended()
     {
         DrugOptions.Clear();
+        _drugCatalog = [];
         SpecOptions.Clear();
         IsDrugSuggestOpen = false;
         DrugText = null;
@@ -168,14 +170,15 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                 await RunOnUiAsync(() =>
                 {
                     var currentDrug = NormalizeInput(DrugText);
-                    OptionCollectionHelper.Replace(DrugOptions, drugs, StringComparison.Ordinal);
+                    _drugCatalog = drugs;
+                    DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
 
                     if (string.IsNullOrWhiteSpace(currentDrug))
                     {
                         return;
                     }
 
-                    var stillExists = DrugOptions.Any(x =>
+                    var stillExists = _drugCatalog.Any(x =>
                         string.Equals(x.Raw, currentDrug, StringComparison.OrdinalIgnoreCase));
                     if (!stillExists)
                     {
@@ -246,6 +249,8 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
     partial void OnDrugTextChanged(string? value)
     {
+        RefreshDrugOptionsOrder(value);
+
         var drug = NormalizeInput(value);
         IsDrugSuggestOpen = !string.IsNullOrWhiteSpace(drug);
 
@@ -255,12 +260,22 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             SelectedSpec = null;
             SelectedQtyText = null;
             IsSpecSelected = false;
-            UpdateStatus(DrugOptions.Count == 0
+            UpdateStatus(_drugCatalog.Count == 0
                 ? "drug_index 为空，请先维护药品信息"
                 : "请选择药品与规格", 0);
         }
 
         NotifyActionCommands();
+    }
+
+    private void RefreshDrugOptionsOrder(string? searchText)
+    {
+        if (_drugCatalog.Count == 0)
+        {
+            return;
+        }
+
+        DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, searchText);
     }
 
     partial void OnSelectedQtyTextChanged(string? value)
@@ -634,12 +649,13 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
         await RunOnUiAsync(() =>
         {
-            OptionCollectionHelper.Replace(DrugOptions, drugs, StringComparison.Ordinal);
+            _drugCatalog = drugs;
+            DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
 
             var currentDrug = NormalizeInput(DrugText);
             if (!string.IsNullOrWhiteSpace(currentDrug))
             {
-                var stillExists = DrugOptions.Any(x =>
+                var stillExists = _drugCatalog.Any(x =>
                     string.Equals(x.Raw, currentDrug, StringComparison.OrdinalIgnoreCase));
                 if (stillExists)
                 {
@@ -652,7 +668,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             SelectedSpec = null;
             SelectedQtyText = null;
             IsSpecSelected = false;
-            UpdateStatus(DrugOptions.Count == 0
+            UpdateStatus(_drugCatalog.Count == 0
                 ? "药品信息为空，请先维护药品信息"
                 : "请选择药品与规格", 0);
         }, DispatcherPriority.Background);

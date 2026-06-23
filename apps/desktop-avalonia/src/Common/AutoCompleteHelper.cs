@@ -1,11 +1,14 @@
 using System;
+using System.Collections;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using global::Avalonia;
+using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Controls.Primitives;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
+using global::Avalonia.LogicalTree;
 using global::Avalonia.Threading;
 using global::Avalonia.VisualTree;
 using PacToolkits.Application.TextSearch;
@@ -18,7 +21,24 @@ public static class AutoCompleteHelper
     private static readonly ConditionalWeakTable<AutoCompleteBox, CommitState> CommitStates = new();
 
     public static void AttachDrugOptionFilter(AutoCompleteBox box)
-        => AttachPinyinFilter(box);
+    {
+        AttachPinyinFilter(box);
+        ConfigureDrugAutoComplete(box);
+    }
+
+    private static void ConfigureDrugAutoComplete(AutoCompleteBox box)
+    {
+        var state = GetState(box);
+        if (state.DrugAutoCompleteConfigured)
+        {
+            return;
+        }
+
+        state.DrugAutoCompleteConfigured = true;
+        state.Box = box;
+        box.IsTextCompletionEnabled = false;
+        box.Populated += state.OnPopulated;
+    }
 
     public static void AttachPinyinFilter(AutoCompleteBox box)
     {
@@ -166,8 +186,56 @@ public static class AutoCompleteHelper
 
     private static void CommitSuggestInput(AutoCompleteBox box)
     {
+        TryApplyActiveOrFirstMatch(box);
         box.IsDropDownOpen = false;
         InputFocusHelper.CommitAutoCompleteInput(box);
+    }
+
+    private static void TryApplyActiveOrFirstMatch(AutoCompleteBox box)
+    {
+        if (string.IsNullOrWhiteSpace(box.Text))
+        {
+            return;
+        }
+
+        var match = ResolveActiveOrFirstMatch(box);
+        if (match is null)
+        {
+            return;
+        }
+
+        box.SelectedItem = match;
+        box.Text = match.Raw;
+    }
+
+    private static OptionItem? ResolveActiveOrFirstMatch(AutoCompleteBox box)
+    {
+        if (FindPopupListBox(box) is { SelectedItem: OptionItem highlighted })
+        {
+            return highlighted;
+        }
+
+        if (box.SelectedItem is OptionItem selected
+            && string.Equals(selected.Raw?.Trim(), box.Text?.Trim(), StringComparison.Ordinal))
+        {
+            return selected;
+        }
+
+        if (box.ItemsSource is not IEnumerable items)
+        {
+            return null;
+        }
+
+        foreach (var item in items)
+        {
+            if (item is OptionItem option
+                && (box.ItemFilter is null || box.ItemFilter(box.Text, option)))
+            {
+                return option;
+            }
+        }
+
+        return null;
     }
 
     private static CommitState GetState(AutoCompleteBox box)
@@ -201,7 +269,7 @@ public static class AutoCompleteHelper
 
             state.PendingCandidateCommit = false;
             Dispatcher.UIThread.Post(
-                () => state.CandidateCommitted?.Invoke(),
+                state.InvokeCandidateCommitted,
                 DispatcherPriority.Loaded);
         };
 
@@ -210,18 +278,88 @@ public static class AutoCompleteHelper
         box.DropDownClosed += state.OnDropDownClosed;
     }
 
+    private static ListBox? FindPopupListBox(AutoCompleteBox box)
+    {
+        var popup = box.GetLogicalDescendants()
+                        .OfType<Popup>()
+                        .FirstOrDefault(static candidate => candidate.Name == "PART_Popup")
+                    ?? box.GetVisualDescendants()
+                        .OfType<Popup>()
+                        .FirstOrDefault(static candidate => candidate.Name == "PART_Popup");
+        if (popup?.Child is not Control popupContent)
+        {
+            return null;
+        }
+
+        return popupContent as ListBox
+               ?? popupContent.GetVisualDescendants()
+                   .OfType<ListBox>()
+                   .FirstOrDefault(static listBox => listBox.Name == "PART_SelectingItemsControl");
+    }
+
+    private static void ResetSuggestionScrollToTop(AutoCompleteBox box)
+    {
+        if (!box.IsDropDownOpen || FindPopupListBox(box) is not { } listBox)
+        {
+            return;
+        }
+
+        var scrollViewer = listBox.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+        scrollViewer?.SetCurrentValue(ScrollViewer.OffsetProperty, new Vector(0, 0));
+        Dispatcher.UIThread.Post(
+            () => scrollViewer?.SetCurrentValue(ScrollViewer.OffsetProperty, new Vector(0, 0)),
+            DispatcherPriority.Render);
+    }
+
     private sealed class CommitState
     {
         internal AutoCompleteBox? Box;
         internal bool PipelineAttached;
+        internal bool DrugAutoCompleteConfigured;
         internal bool PendingCandidateCommit;
         internal Action? CandidateCommitted;
         internal EventHandler<KeyEventArgs>? OnPreviewKeyDown;
         internal EventHandler? OnDropDownOpened;
         internal EventHandler? OnDropDownClosed;
+        internal EventHandler<PopulatedEventArgs>? OnPopulated;
         internal TopLevel? DropDownPointerTopLevel;
         internal EventHandler<PointerPressedEventArgs>? DropDownPointerPressedHandler;
         internal EventHandler<PointerReleasedEventArgs>? DropDownPointerReleasedHandler;
+        internal string? LastCommittedText;
+        internal DateTimeOffset LastCommittedAt;
+
+        internal CommitState()
+        {
+            OnPopulated = (_, _) =>
+            {
+                if (Box is { } box)
+                {
+                    Dispatcher.UIThread.Post(
+                        () => ResetSuggestionScrollToTop(box),
+                        DispatcherPriority.Loaded);
+                }
+            };
+        }
+
+        internal void InvokeCandidateCommitted()
+        {
+            var text = Box?.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            if (string.Equals(text, LastCommittedText, StringComparison.Ordinal)
+                && now - LastCommittedAt < TimeSpan.FromMilliseconds(500))
+            {
+                return;
+            }
+
+            LastCommittedText = text;
+            LastCommittedAt = now;
+            CandidateCommitted?.Invoke();
+        }
 
         internal void HookDropDownPointerHandlers()
         {
