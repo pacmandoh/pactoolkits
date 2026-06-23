@@ -1,7 +1,7 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
   <!--
     Pac typography — only where ShadUI has no 1:1 class:
     - SectionTitle (16 semi) — page/card headers; Shad Small=14, Large=18
@@ -12,7 +12,7 @@
     Secondary copy: use Shad Caption Muted. Body values: use Shad Small.
   -->
 
-  <!-- Match the ShadUI demo typography roots, including detached popup trees. -->
+  <!--  Match the ShadUI demo typography roots, including detached popup trees.  -->
   <Style Selector="shad|Window">
     <Setter Property="FontFamily" Value="{DynamicResource ShadBodyFontFamily}" />
   </Style>

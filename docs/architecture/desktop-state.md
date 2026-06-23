@@ -32,11 +32,11 @@ flowchart TB
   L2 -.->|ShowPageUnavailable / Stale| L3
 ```
 
-| 层         | 所有者                                                                       | 呈现                                                                    | 典型状态                                                                                    |
-| ---------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 层         | 所有者                                                                 | 呈现                                                               | 典型状态                                                                                    |
+| ---------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
 | Shell 连接 | `MainWindowViewModel`、`IDbConnectionMonitorService`、`IDbAccessGuard` | 顶栏 DB 图标、侧栏 DB 卡片、`ConnectivityBanner`、`ShellStatusBar` | 探测中（无 banner）、已知断开、AccessGuard 阻断                                             |
-| 页面可用性 | `AppPageBase`、`PageDataAvailability`                                        | `PageDataShell`（不可用空态、stale 条、加载 busy）                      | `NotLoaded`、`AwaitingDatabase`、`AccessBlocked`、`Loading`、`LoadFailed`、`Stale`、`Ready` |
-| 区块空态   | 各页 ViewModel + `SectionEmptyCopy`                                          | `EmptyStatePanel`                                                       | 列表/图表无数据时的标题与提示                                                               |
+| 页面可用性 | `AppPageBase`、`PageDataAvailability`                                  | `PageDataShell`（不可用空态、stale 条、加载 busy）                 | `NotLoaded`、`AwaitingDatabase`、`AccessBlocked`、`Loading`、`LoadFailed`、`Stale`、`Ready` |
+| 区块空态   | 各页 ViewModel + `SectionEmptyCopy`                                    | `EmptyStatePanel`                                                  | 列表/图表无数据时的标题与提示                                                               |
 
 ## Layer 1 — Shell 连接
 

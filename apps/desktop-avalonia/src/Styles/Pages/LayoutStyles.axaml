@@ -1,9 +1,9 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
   <Style Selector="Grid.PageRoot">
     <Setter Property="Margin" Value="{DynamicResource PageRootMargin}" />
   </Style>
@@ -42,8 +42,8 @@
     <Setter Property="RowSpacing" Value="{DynamicResource PageRowSpacing}" />
   </Style>
 
-  <!-- Dashboard tabs: headers only; body lives in Grid row below. -->
-  <Style Selector="TabControl.DashboardTabHeaders /template/ LayoutTransformControl > Border">
+  <!--  Dashboard tabs: headers only; body lives in Grid row below.  -->
+  <Style Selector="TabControl.DashboardTabHeaders /template/ LayoutTransformControl &gt; Border">
     <Setter Property="Background" Value="{DynamicResource SectionPanelChromeBackground}" />
   </Style>
 
@@ -87,7 +87,7 @@
     <Setter Property="ColumnSpacing" Value="{DynamicResource DashboardFilterGroupSpacing}" />
   </Style>
 
-  <Style Selector="Grid.DashboardFilterColumn > TextBlock.Caption">
+  <Style Selector="Grid.DashboardFilterColumn &gt; TextBlock.Caption">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
@@ -137,7 +137,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="StackPanel.ShellContentHeaderMenuItemHeader > TextBlock">
+  <Style Selector="StackPanel.ShellContentHeaderMenuItemHeader &gt; TextBlock">
     <Setter Property="FontSize" Value="{DynamicResource ShellTitleSize}" />
     <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />

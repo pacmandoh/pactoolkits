@@ -1,12 +1,12 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.SettingsView"
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
   d:DesignHeight="450"
@@ -76,14 +76,13 @@
           <TextBlock
             Grid.Column="1"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center" Classes="Caption Muted"
+            VerticalAlignment="Center"
+            Classes="Caption Muted"
             Text="{Binding Status}" />
         </Grid>
 
 
-        <shad:Card
-          Grid.Row="1"
-          HorizontalAlignment="Stretch">
+        <shad:Card Grid.Row="1" HorizontalAlignment="Stretch">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
 
 
@@ -309,12 +308,13 @@
                       ColumnDefinitions="250,*"
                       ColumnSpacing="{DynamicResource PageColumnSpacing}">
                       <StackPanel VerticalAlignment="Stretch" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="结构信息" />
+                        <TextBlock Classes="SubsectionTitle" Text="结构信息" />
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                           <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                             <Grid ColumnDefinitions="90,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center" Classes="Caption Muted"
+                                VerticalAlignment="Center"
+                                Classes="Caption Muted"
                                 Text="最新版本" />
                               <TextBlock
                                 Grid.Column="1"
@@ -327,7 +327,8 @@
                               ColumnDefinitions="90,*"
                               ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center" Classes="Caption Muted"
+                                VerticalAlignment="Center"
+                                Classes="Caption Muted"
                                 Text="数据库版本" />
                               <TextBlock
                                 Grid.Column="1"
@@ -340,7 +341,8 @@
                               ColumnDefinitions="90,*"
                               ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center" Classes="Caption Muted"
+                                VerticalAlignment="Center"
+                                Classes="Caption Muted"
                                 Text="最低要求" />
                               <TextBlock
                                 Grid.Column="1"
@@ -354,7 +356,8 @@
                               ColumnDefinitions="90,*"
                               ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center" Classes="Caption Muted"
+                                VerticalAlignment="Center"
+                                Classes="Caption Muted"
                                 Text="最高支持" />
                               <TextBlock
                                 Grid.Column="1"
@@ -366,14 +369,17 @@
                         </ScrollViewer>
                       </StackPanel>
 
-                      <StackPanel Grid.Column="1"
-                        VerticalAlignment="Stretch" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="运行信息" />
+                      <StackPanel
+                        Grid.Column="1"
+                        VerticalAlignment="Stretch"
+                        Spacing="{DynamicResource FormRowSpacing}">
+                        <TextBlock Classes="SubsectionTitle" Text="运行信息" />
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                           <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
                             <Grid ColumnDefinitions="88,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center" Classes="Caption Muted"
+                                VerticalAlignment="Center"
+                                Classes="Caption Muted"
                                 Text="最近检查" />
                               <TextBlock
                                 Grid.Column="1"
@@ -385,7 +391,8 @@
                               ColumnDefinitions="88,*"
                               ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center" Classes="Caption Muted"
+                                VerticalAlignment="Center"
+                                Classes="Caption Muted"
                                 Text="触发来源" />
                               <TextBlock
                                 Grid.Column="1"
@@ -397,7 +404,8 @@
                               ColumnDefinitions="88,*"
                               ColumnSpacing="{DynamicResource SpacingInlineMd}">
                               <TextBlock
-                                VerticalAlignment="Center" Classes="Caption Muted"
+                                VerticalAlignment="Center"
+                                Classes="Caption Muted"
                                 Text="最近迁移" />
                               <TextBlock
                                 Grid.Column="1"
@@ -436,7 +444,8 @@
           <TextBlock
             Grid.Column="1"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center" Classes="Caption Muted"
+            VerticalAlignment="Center"
+            Classes="Caption Muted"
             Text="{Binding ClientAliasHint}" />
         </Grid>
 
@@ -515,11 +524,13 @@
 
                   <Grid ColumnDefinitions="260,280,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
                     <TextBlock
-                      VerticalAlignment="Center" Classes="Caption Muted"
+                      VerticalAlignment="Center"
+                      Classes="Caption Muted"
                       Text="机器标识" />
                     <TextBlock
                       Grid.Column="1"
-                      VerticalAlignment="Center" Classes="Caption Muted"
+                      VerticalAlignment="Center"
+                      Classes="Caption Muted"
                       Text="别名" />
                   </Grid>
 
@@ -631,13 +642,12 @@
           <TextBlock
             Grid.Column="1"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center" Classes="Caption Muted"
+            VerticalAlignment="Center"
+            Classes="Caption Muted"
             Text="{Binding TraceCodeRuleHint}" />
         </Grid>
 
-        <shad:Card
-          Grid.Row="5"
-          HorizontalAlignment="Stretch">
+        <shad:Card Grid.Row="5" HorizontalAlignment="Stretch">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
             <Grid
               VerticalAlignment="Center"
@@ -719,9 +729,7 @@
           </StackPanel>
         </Grid>
 
-        <shad:Card
-          Grid.Row="7"
-          HorizontalAlignment="Stretch">
+        <shad:Card Grid.Row="7" HorizontalAlignment="Stretch">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
             <Grid VerticalAlignment="Center" ColumnDefinitions="*">
               <StackPanel Classes="SectionHeaderStack">
@@ -767,13 +775,12 @@
           <TextBlock
             Grid.Column="1"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center" Classes="Caption Muted"
+            VerticalAlignment="Center"
+            Classes="Caption Muted"
             Text="{Binding UpdateStatusHint}" />
         </Grid>
 
-        <shad:Card
-          Grid.Row="9"
-          HorizontalAlignment="Stretch">
+        <shad:Card Grid.Row="9" HorizontalAlignment="Stretch">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
             <Grid
               VerticalAlignment="Center"
@@ -925,7 +932,8 @@
                     Value="{Binding UpdatePollIntervalMinutes}" />
                   <TextBlock
                     Grid.Column="1"
-                    VerticalAlignment="Center" Classes="Caption Muted"
+                    VerticalAlignment="Center"
+                    Classes="Caption Muted"
                     Text="{Binding UpdatePollIntervalHint}"
                     TextWrapping="NoWrap" />
                 </Grid>
@@ -974,13 +982,12 @@
           <TextBlock
             Grid.Column="1"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center" Classes="Caption Muted"
+            VerticalAlignment="Center"
+            Classes="Caption Muted"
             Text="{Binding LoggingStatusHint}" />
         </Grid>
 
-        <shad:Card
-          Grid.Row="11"
-          HorizontalAlignment="Stretch">
+        <shad:Card Grid.Row="11" HorizontalAlignment="Stretch">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
             <Grid
               VerticalAlignment="Center"
@@ -1136,9 +1143,7 @@
           </StackPanel>
         </Grid>
 
-        <shad:Card
-          Grid.Row="13"
-          HorizontalAlignment="Stretch">
+        <shad:Card Grid.Row="13" HorizontalAlignment="Stretch">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
             <Grid
               VerticalAlignment="Center"

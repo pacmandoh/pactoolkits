@@ -1,11 +1,11 @@
-<controls:MsfxAutoBoardHost
+﻿<controls:MsfxAutoBoardHost
   x:Class="PacToolkits.Desktop.Avalonia.Controls.MsfxAutoBoardHost"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   ColumnDefinitions="*,*"
-  RowDefinitions="*,*"
   ColumnSpacing="{DynamicResource PageColumnSpacing}"
+  RowDefinitions="*,*"
   RowSpacing="{DynamicResource FormRowSpacing}">
   <Border
     x:Name="SkeletonOverlay"
@@ -18,10 +18,22 @@
       ColumnSpacing="{DynamicResource PageColumnSpacing}"
       RowDefinitions="*,*"
       RowSpacing="{DynamicResource FormRowSpacing}">
-      <Border Grid.Row="0" Grid.Column="0" Classes="MsfxBoardSkeletonTile" />
-      <Border Grid.Row="0" Grid.Column="1" Classes="MsfxBoardSkeletonTile" />
-      <Border Grid.Row="1" Grid.Column="0" Classes="MsfxBoardSkeletonTile" />
-      <Border Grid.Row="1" Grid.Column="1" Classes="MsfxBoardSkeletonTile" />
+      <Border
+        Grid.Row="0"
+        Grid.Column="0"
+        Classes="MsfxBoardSkeletonTile" />
+      <Border
+        Grid.Row="0"
+        Grid.Column="1"
+        Classes="MsfxBoardSkeletonTile" />
+      <Border
+        Grid.Row="1"
+        Grid.Column="0"
+        Classes="MsfxBoardSkeletonTile" />
+      <Border
+        Grid.Row="1"
+        Grid.Column="1"
+        Classes="MsfxBoardSkeletonTile" />
     </Grid>
   </Border>
 </controls:MsfxAutoBoardHost>
