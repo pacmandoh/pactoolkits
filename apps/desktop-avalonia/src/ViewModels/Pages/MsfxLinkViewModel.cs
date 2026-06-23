@@ -608,13 +608,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             NotifyCommands(RunAutoOnceCommand, ClearAutoLogsCommand, RefreshAutoBoardCommand));
     }
 
-    partial void OnIsPullPanelBusyChanged(bool value) => NotifyAutoBoardBusyStateChanged();
+    partial void OnIsPullPanelBusyChanged(bool value) => RefreshAutoBoardBusy();
 
-    partial void OnIsMapPanelBusyChanged(bool value) => NotifyAutoBoardBusyStateChanged();
+    partial void OnIsMapPanelBusyChanged(bool value) => RefreshAutoBoardBusy();
 
-    partial void OnIsTaskPanelBusyChanged(bool value) => NotifyAutoBoardBusyStateChanged();
+    partial void OnIsTaskPanelBusyChanged(bool value) => RefreshAutoBoardBusy();
 
-    private void NotifyAutoBoardBusyStateChanged()
+    private void RefreshAutoBoardBusy()
     {
         OnPropertyChanged(nameof(IsAutoBoardBusy));
         NotifyCommandsCoalesced("msfx.auto.board.commands", () =>
@@ -626,11 +626,11 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         PostOnUi(() => OnPropertyChanged(nameof(CanSplitSelectedTasks)), DispatcherPriority.Background);
     }
 
-    private bool ShouldShowPullPanelBusy() => AutoPullBatchRows.Count == 0;
+    private bool ShowPullPanelBusy() => AutoPullBatchRows.Count == 0;
 
-    private bool ShouldShowMapPanelBusy() => AutoMapQueueRows.Count == 0;
+    private bool ShowMapPanelBusy() => AutoMapQueueRows.Count == 0;
 
-    private bool ShouldShowTaskPanelBusy() => AutoTaskQueueRows.Count == 0;
+    private bool ShowTaskPanelBusy() => AutoTaskQueueRows.Count == 0;
 
     private Task RunMapPanelQueryAsync(Func<CancellationToken, Task> query)
         => RunLocalReloadAsync(
@@ -641,7 +641,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     ct,
                     v => IsMapPanelBusy = v,
                     () => query(ct),
-                    ShouldShowMapPanelBusy()).ConfigureAwait(false);
+                    ShowMapPanelBusy()).ConfigureAwait(false);
             });
 
     partial void OnUpoutPageChanged(int value)
@@ -2026,7 +2026,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 failCount
             });
             AutoStatus = $"自动化拉取异常：{ex.Message}";
-            if (ShouldShowOperationErrorToast(ex))
+            if (CanToastError(ex))
             {
                 _toast.Error("自动化监控", ex.Message);
             }
@@ -3031,17 +3031,17 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 ct,
                 v => IsPullPanelBusy = v,
                 async () => snap = await RefreshAutoPullPanelCoreAsync(ct).ConfigureAwait(false),
-                ShouldShowPullPanelBusy()).ConfigureAwait(false);
+                ShowPullPanelBusy()).ConfigureAwait(false);
             await RunLocalBusyAsync(
                 ct,
                 v => IsMapPanelBusy = v,
                 () => RefreshAutoMapPanelCoreAsync(ct),
-                ShouldShowMapPanelBusy()).ConfigureAwait(false);
+                ShowMapPanelBusy()).ConfigureAwait(false);
             await RunLocalBusyAsync(
                 ct,
                 v => IsTaskPanelBusy = v,
                 () => RefreshAutoTaskPanelCoreAsync(ct),
-                ShouldShowTaskPanelBusy()).ConfigureAwait(false);
+                ShowTaskPanelBusy()).ConfigureAwait(false);
             await RunOnUiAsync(ClearAllDetailSelectionsSilent);
 
             if (snap.MapPendingCount > 0 && snap.MapMappedCount == 0 && snap.TaskNewCount == 0 && snap.TaskRunningCount == 0)
@@ -3064,7 +3064,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             AddAutoLog("审计", $"刷新数据库概览失败：{ex.Message}", TraceEntryState.Warning);
             LogWarn("msfx.audit.snapshot.refresh_fail", "MSFX snapshot refresh failed", ex);
-            if (ShouldShowOperationErrorToast(ex))
+            if (CanToastError(ex))
             {
                 _toast.Error("刷新审计", ex.Message);
             }

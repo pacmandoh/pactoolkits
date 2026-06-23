@@ -57,7 +57,7 @@ public partial class InventoryOverviewView : UserControl
             slot.GridMounted += (_, grid) => grid.PointerReleased += OnLowOrMissingGridPointerReleased;
         }
 
-        if (!ShouldMountModeGrid(slotName) || slot.IsMounted)
+        if (!MountModeGrid(slotName) || slot.IsMounted)
         {
             return;
         }
@@ -65,7 +65,7 @@ public partial class InventoryOverviewView : UserControl
         _gridMount.RequestMount(slot, priority);
     }
 
-    private bool ShouldMountModeGrid(string slotName)
+    private bool MountModeGrid(string slotName)
     {
         if (_vm is null)
         {
@@ -229,7 +229,7 @@ public partial class InventoryOverviewView : UserControl
             var clickCount = e.PointerPressedEventArgs.ClickCount;
             if (clickCount >= 2 && e.Column.IsReadOnly)
             {
-                vm.NotifyReadonlyStockColumnEditAttempt(e.Column.Header?.ToString());
+                vm.WarnReadonlyStockEdit(e.Column.Header?.ToString());
             }
         }
         catch (Exception ex)
@@ -258,7 +258,7 @@ public partial class InventoryOverviewView : UserControl
             }
 
             e.Cancel = true;
-            vm.NotifyReadonlyStockColumnEditAttempt(e.Column?.Header?.ToString());
+            vm.WarnReadonlyStockEdit(e.Column?.Header?.ToString());
         }
         catch (Exception ex)
         {

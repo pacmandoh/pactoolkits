@@ -108,7 +108,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     public string SectionEmptyIcon => SectionEmptyCopy.GetIcon(_pageDataAvailability);
 
-    public bool IsSectionPending => SectionPendingPolicy.ShouldShow(_pageDataAvailability, _hasLoadedOnce);
+    public bool IsSectionPending => SectionPendingPolicy.Show(_pageDataAvailability, _hasLoadedOnce);
 
     protected string GetSectionEmptyTitle(string? readyTitle)
         => SectionEmptyCopy.GetTitle(_pageDataAvailability, readyTitle);
@@ -140,8 +140,8 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     protected bool IsDbConnected => _cachedDbMonitor?.IsConnected == true;
 
-    protected bool ShouldShowSectionEmpty(bool isContentEmpty)
-        => SectionEmptyVisibilityPolicy.ShouldShow(isContentEmpty, _pageDataAvailability, _hasLoadedOnce);
+    protected bool ShowSectionEmpty(bool isContentEmpty)
+        => SectionEmptyPolicy.Show(isContentEmpty, _pageDataAvailability, _hasLoadedOnce);
 
     protected AppPageBase()
     {
@@ -164,7 +164,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     public virtual Task OnPageActivatedAsync(CancellationToken ct = default)
     {
-        SyncPageAvailabilityFromEnvironment();
+        SyncPageAvailability();
         return Task.CompletedTask;
     }
 
@@ -336,7 +336,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             }
         }
 
-        var suppressReloadBusy = ShouldSuppressReloadBusy();
+        var suppressReloadBusy = SuppressReloadBusy();
         if (!suppressReloadBusy)
         {
             SetPageAvailability(PageDataAvailability.Loading);
@@ -426,8 +426,8 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     private PageDataAvailability GetDisconnectedAvailability()
         => PageStaleWhileReconnectPolicy.DisconnectedAvailability(_hasLoadedOnce, SupportsStaleWhileReconnect);
 
-    private bool ShouldSuppressReloadBusy()
-        => PageStaleWhileReconnectPolicy.ShouldSuppressReloadBusy(
+    private bool SuppressReloadBusy()
+        => PageStaleWhileReconnectPolicy.SuppressReloadBusy(
             _hasLoadedOnce,
             SupportsStaleWhileReconnect,
             _reloadFromDbSignal);
@@ -453,11 +453,6 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         _hasLoadedOnce = true;
         OnPropertyChanged(nameof(HasLoadedOnce));
         OnPropertyChanged(nameof(IsSectionPending));
-        OnSectionEmptyVisibilityMayHaveChanged();
-    }
-
-    protected virtual void OnSectionEmptyVisibilityMayHaveChanged()
-    {
         OnPageAvailabilityChanged();
     }
 
@@ -548,13 +543,10 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         OnPageAvailabilityChanged();
     }
 
-    private void SyncPageAvailabilityFromConnectivity()
-        => SyncPageAvailabilityFromEnvironment();
-
     /// <summary>
     /// Reconcile page availability with current guard and DB monitor without fetching data.
     /// </summary>
-    public void SyncPageAvailabilityFromEnvironment()
+    public void SyncPageAvailability()
     {
         if (IsDbAccessBlocked(out var reason))
         {
@@ -717,7 +709,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     /// Page-level operation errors should not toast when DB transport failed or DB is disconnected;
     /// MainWindowViewModel owns the consolidated connection failure/recovery toasts.
     /// </summary>
-    protected bool ShouldShowOperationErrorToast(Exception ex)
+    protected bool CanToastError(Exception ex)
     {
         if (IsDbAccessBlockedException(ex))
         {
@@ -802,7 +794,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         // If page initializes while DB is already disconnected, show unavailable and queue refresh.
         if (!monitor.IsConnected)
         {
-            PostOnUi(SyncPageAvailabilityFromConnectivity);
+            PostOnUi(SyncPageAvailability);
             if (AutoRefreshOnDbDisconnected)
             {
                 ScheduleAutoRefreshFromDbSignal();
@@ -812,7 +804,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     private void OnDbMonitorDisconnected()
     {
-        PostOnUi(SyncPageAvailabilityFromConnectivity);
+        PostOnUi(SyncPageAvailability);
 
         if (!AutoRefreshOnDbDisconnected)
         {
@@ -827,7 +819,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     private void OnDbMonitorReconnected()
     {
-        PostOnUi(SyncPageAvailabilityFromConnectivity);
+        PostOnUi(SyncPageAvailability);
 
         if (!AutoRefreshOnDbReconnected)
         {
