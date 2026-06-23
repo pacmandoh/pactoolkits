@@ -120,15 +120,6 @@ jobs:
     uses: ./.github/workflows/build-desktop-electron.yml
     secrets: inherit
 
-  build_desktop_electron_preview:
-    needs:
-      - release_gate
-      - resolve_release_plan
-    # Preview is validated locally via run-tooling-tests.sh; skip release CI for now.
-    if: false
-    uses: ./.github/workflows/build-desktop-electron-preview.yml
-    secrets: inherit
-
   package_desktop:
     needs:
       - release_gate

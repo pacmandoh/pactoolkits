@@ -1,6 +1,6 @@
 # 发布流程
 
-PacToolkits 的 Desktop、Agent、DB Schema 版本由 **`release-manifest.json`（schema v2）** 统一驱动。Electron preview **不参与**正式 Feed。
+PacToolkits 的 Desktop、Agent、DB Schema 版本由 **`release-manifest.json`（schema v2）** 统一驱动。
 
 ## 版本源（Manifest V2）
 
@@ -40,7 +40,6 @@ release.yml
   ├─ build-agent-injector-ahk.yml      所有 agent 组件（按 bundles）
   ├─ build-desktop-avalonia.yml        仅当 implementation=avalonia
   ├─ build-desktop-electron.yml        仅当 implementation=electron（需 npm run build:desktop）
-  ├─ build-desktop-electron-preview.yml 非 electron 正式实现时的占位 CI
   ├─ package-desktop.yml               接收 resolve 参数，动态打包
   ├─ generate-release-notes.yml
   └─ publish-release.yml
@@ -67,19 +66,18 @@ release.yml
 - 正式 Desktop：`pactoolkits-desktop-win-x64-<product.version>`
 - Avalonia 内部构建：`pactoolkits-desktop-avalonia-win-x64-<desktop.version>`
 - Agent：`pactoolkits-injector-win-x64-<agent.version>`
-- Electron preview（仅 CI 标记，不发布）：`pactoolkits-desktop-electron-preview-win-x64-<product.version>`
 
 **命名分层（原则）：**
 
-| 层级               | 规则                                              | 当前示例                                                  |
-| ------------------ | ------------------------------------------------- | --------------------------------------------------------- |
-| 用户主程序         | 短名；**不带** Avalonia / Electron / AHK 等技术栈 | `pactoolkits-desktop.exe`                                 |
-| 安装包             | 通道 + Setup，长度适中                            | `pactoolkits-stable-Setup.exe`                            |
-| CI Artifact        | 结构化、可较长；implementation 仅用于 CI/内部区分 | `pactoolkits-desktop-electron-preview-win-x64-0.17.1.zip` |
-| 代码项目 / 程序集  | 保持完整语义                                      | `PacToolkits.Desktop.Avalonia`                            |
-| Manifest 组件 ID   | 内部标识，可含实现细节                            | `agent-injector-ahk`                                      |
-| Agent 用户可见 exe | 短名、无技术栈                                    | `pactoolkits-injector.exe`                                |
-| 安装目录           | 目录与 exe 不重复堆叠                             | `Agents/injector/pactoolkits-injector.exe`                |
+| 层级               | 规则                                              | 当前示例                                          |
+| ------------------ | ------------------------------------------------- | ------------------------------------------------- |
+| 用户主程序         | 短名；**不带** Avalonia / Electron / AHK 等技术栈 | `pactoolkits-desktop.exe`                         |
+| 安装包             | 通道 + Setup，长度适中                            | `pactoolkits-stable-Setup.exe`                    |
+| CI Artifact        | 结构化、可较长；implementation 仅用于 CI/内部区分 | `pactoolkits-desktop-avalonia-win-x64-0.17.1.zip` |
+| 代码项目 / 程序集  | 保持完整语义                                      | `PacToolkits.Desktop.Avalonia`                    |
+| Manifest 组件 ID   | 内部标识，可含实现细节                            | `agent-injector-ahk`                              |
+| Agent 用户可见 exe | 短名、无技术栈                                    | `pactoolkits-injector.exe`                        |
+| 安装目录           | 目录与 exe 不重复堆叠                             | `Agents/injector/pactoolkits-injector.exe`        |
 
 同一发布中，除非需要用户主动区分两种实现（例如并存 Avalonia 与 Electron），否则不要把实现技术名写进最终用户程序名。CI Artifact 与 manifest 组件 ID 可以继续保留 implementation 信息。
 

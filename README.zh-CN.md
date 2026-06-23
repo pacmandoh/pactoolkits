@@ -365,7 +365,6 @@ database/postgres/
 - `release.yml` — 编排 tag / 手动发布
 - `build-agent-injector-ahk.yml` — 编译 AHK Agent
 - `build-desktop-avalonia.yml` — 发布 Avalonia Desktop（不含 Agent）
-- `build-desktop-electron-preview.yml` — Electron 预览占位（**不进正式 Feed**）
 - `package-desktop.yml` — 按 `desktop.bundles` 聚合 Agent 并 Velopack 打包
 - `generate-release-notes.yml` — 生成 Release Notes（仅 tag）
 - `publish-release.yml` — 上传 GitHub Release + 更新 Feed（仅 tag）
@@ -397,7 +396,6 @@ database/postgres/
   - `.../stable/`
   - `.../beta/`
 - 不同通道不再混放到同一个 feed 目录
-- Electron preview 产物**不**进入正式 Feed
 
 4. 客户端检查更新
 - `AppUpdateService` 会把更新地址解析成：
