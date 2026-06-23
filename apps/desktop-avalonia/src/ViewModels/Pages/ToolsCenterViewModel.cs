@@ -47,6 +47,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
 
     public override string DisplayName => "自动化套件";
     public override string Icon => "Syringe";
+    public override string FunctionAreaId => ShellFunctionAreas.AutomationId;
     public override int Index => 4;
     public override ICommand? RefreshCommand => _refreshRuntimeCommand;
 
