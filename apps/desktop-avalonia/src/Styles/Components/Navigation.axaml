@@ -179,7 +179,7 @@
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 
-  <!-- Tab strip chrome: align with SectionPanel via ShadUI SwitchBackgroundColor. -->
+  <!-- Tab strip chrome: align with SectionPanel outer via SectionPanelChromeBackground. -->
   <Style Selector="StackPanel.TabItemHeader">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Orientation" Value="Horizontal" />

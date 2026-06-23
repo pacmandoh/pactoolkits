@@ -2,9 +2,11 @@
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
       <Color x:Key="TitleBarBackgroundColor">#FFFFFF</Color>
+      <SolidColorBrush x:Key="SectionPanelChromeBackground" Color="{DynamicResource DialogBackgroundColor}" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
       <Color x:Key="TitleBarBackgroundColor">#171717</Color>
+      <SolidColorBrush x:Key="SectionPanelChromeBackground" Color="{DynamicResource SwitchBackgroundColor}" />
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 
