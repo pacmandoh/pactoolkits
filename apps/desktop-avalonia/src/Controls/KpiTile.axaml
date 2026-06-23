@@ -1,0 +1,35 @@
+<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.KpiTile"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  x:Name="Root">
+  <controls:SectionPanel
+    Classes="Kpi"
+    AccentBrush="{Binding AccentBrush, ElementName=Root}"
+    ShowMenuIcon="True"
+    Title="{Binding Title, ElementName=Root}">
+    <StackPanel Spacing="{DynamicResource KpiTileInnerSpacing}">
+      <StackPanel
+        Orientation="Horizontal"
+        Spacing="{DynamicResource KpiTileValueBadgeGap}">
+        <TextBlock
+          x:Name="ValueText"
+          Classes="h3"
+          Text="{Binding Value, ElementName=Root}" />
+        <controls:StatusPill
+          x:Name="PctPill"
+          IconSize="12"
+          PillPadding="6,4"
+          ShowBorder="False"
+          Text="{Binding Pct, ElementName=Root, StringFormat={}{0:F0}%}"
+          TextSize="12" />
+      </StackPanel>
+      <TextBlock
+        Classes="Caption Muted"
+        MaxLines="2"
+        Text="{Binding Hint, ElementName=Root}"
+        TextWrapping="Wrap" />
+    </StackPanel>
+  </controls:SectionPanel>
+</UserControl>

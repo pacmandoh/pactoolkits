@@ -66,7 +66,7 @@
             ColumnDefinitions="Auto,*,Auto,*,Auto">
             <TextBlock
               Grid.Column="0"
-              Classes="FilterLabel"
+              Classes="Caption Muted"
               Text="起始" />
             <controls:FilterFieldInput Grid.Column="1">
               <CalendarDatePicker
@@ -77,7 +77,7 @@
             </controls:FilterFieldInput>
             <TextBlock
               Grid.Column="2"
-              Classes="FilterLabel"
+              Classes="Caption Muted"
               Text="结束" />
             <controls:FilterFieldInput Grid.Column="3">
               <CalendarDatePicker
@@ -108,7 +108,7 @@
             ColumnDefinitions="Auto,*,Auto">
             <TextBlock
               Grid.Column="0"
-              Classes="FilterLabel"
+              Classes="Caption Muted"
               Text="药品" />
             <AutoCompleteBox
               x:Name="DrugBox"
@@ -146,7 +146,7 @@
             ColumnDefinitions="Auto,*,Auto,*">
             <TextBlock
               Grid.Column="0"
-              Classes="FilterLabel"
+              Classes="Caption Muted"
               Text="规格" />
             <controls:FilterFieldInput Grid.Column="1">
               <ComboBox
@@ -159,7 +159,7 @@
             </controls:FilterFieldInput>
             <TextBlock
               Grid.Column="2"
-              Classes="FilterLabel"
+              Classes="Caption Muted"
               Text="客户端" />
             <controls:FilterFieldInput Grid.Column="3">
               <ComboBox
@@ -175,6 +175,7 @@
 
       <TabControl
         Grid.Row="1"
+        Classes="DashboardTabHeaders"
         Margin="{DynamicResource DashboardTabsPadding}"
         SelectedIndex="{Binding SelectedTabIndex}">
           <TabItem>
@@ -226,7 +227,7 @@
 
       <Grid
         Grid.Row="2"
-        Margin="{DynamicResource PagePaddingHorizontal}"
+        Margin="{DynamicResource DashboardTabContentMargin}"
         IsVisible="{Binding IsOverviewTab}"
         RowDefinitions="*">
         <ScrollViewer
@@ -240,253 +241,50 @@
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
           <Grid
-            Margin="{DynamicResource PageScrollExtentBottomMargin}"
             RowDefinitions="Auto,Auto,Auto"
             RowSpacing="14">
 
 
-            <Grid
-              Grid.Row="0"
-              ColumnDefinitions="*,*,*,*"
-              ColumnSpacing="{DynamicResource FormColumnSpacing}">
-
-              <Button
-                Grid.Column="0" Classes="KpiNavCard" Command="{Binding OpenInventoryCommand}">
-                <Grid
-                  ColumnDefinitions="Auto,*,Auto"
-                  RowDefinitions="Auto,Auto,Auto,Auto"
-                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeSectionHeader}"
-                    Height="{DynamicResource IconSizeSectionHeader}"
-                    Kind="Database" />
-
-                  <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Margin="{DynamicResource MarginLeftSm}"
-                    FontWeight="SemiBold"
-                    Opacity="0.85"
-                    Text="可用追溯码库存" />
-
-                  <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="2"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Classes="SectionHint"
-                    Text="{Binding Kpi.AvailableRemainPct, StringFormat={}{0:F0}%}" />
-
-                  <TextBlock
-                    Grid.Row="1"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    FontSize="22"
-                    FontWeight="Bold"
-                    Text="{Binding Kpi.AvailableRemain}" />
-
-                  <TextBlock
-                    Grid.Row="2"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    Classes="SectionHint"
-                    MaxLines="2"
-                    Text="{Binding Kpi.AvailableRemainHint}"
-                    TextWrapping="Wrap" />
-
-                  <ProgressBar
-                    Grid.Row="3"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    Height="6"
-                    Margin="{DynamicResource MarginTopMd}"
-                    Foreground="{Binding Kpi.AvailableRemainPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Remain}"
-                    Maximum="100"
-                    Minimum="0"
-                    Value="{Binding Kpi.AvailableRemainPct}" />
-                </Grid>
-              </Button>
-
-              <Button
-                Grid.Column="1" Classes="KpiNavCard" Command="{Binding OpenPeriodUsageCommand}">
-                <Grid
-                  ColumnDefinitions="Auto,*,Auto"
-                  RowDefinitions="Auto,Auto,Auto,Auto"
-                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeSectionHeader}"
-                    Height="{DynamicResource IconSizeSectionHeader}"
-                    Kind="ChartLine" />
-
-                  <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Margin="{DynamicResource MarginLeftSm}"
-                    FontWeight="SemiBold"
-                    Opacity="0.85"
-                    Text="期间使用条数" />
-
-                  <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="2"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Classes="SectionHint"
-                    Text="{Binding Kpi.PeriodUsedPct, StringFormat={}{0:F0}%}" />
-
-                  <TextBlock
-                    Grid.Row="1"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    FontSize="22"
-                    FontWeight="Bold"
-                    Text="{Binding Kpi.PeriodUsed}" />
-
-                  <TextBlock
-                    Grid.Row="2"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    Classes="SectionHint"
-                    MaxLines="2"
-                    Text="{Binding Kpi.PeriodUsedHint}"
-                    TextWrapping="Wrap" />
-
-                  <ProgressBar
-                    Grid.Row="3"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    Height="6"
-                    Margin="{DynamicResource MarginTopMd}"
-                    Foreground="{Binding Kpi.PeriodUsedPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
-                    Maximum="100"
-                    Minimum="0"
-                    Value="{Binding Kpi.PeriodUsedPct}" />
-                </Grid>
-              </Button>
-
-              <Button
-                Grid.Column="2" Classes="KpiNavCard" Command="{Binding OpenAbnormalCommand}">
-                <Grid
-                  ColumnDefinitions="Auto,*,Auto"
-                  RowDefinitions="Auto,Auto,Auto,Auto"
-                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeSectionHeader}"
-                    Height="{DynamicResource IconSizeSectionHeader}"
-                    Foreground="{StaticResource BrushWarning}"
-                    Kind="CircleX" />
-
-                  <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Margin="{DynamicResource MarginLeftSm}"
-                    FontWeight="SemiBold"
-                    Opacity="0.85"
-                    Text="异常 / 回滚" />
-
-                  <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="2"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Classes="SectionHint"
-                    Text="{Binding Kpi.AbnormalPct, StringFormat={}{0:F0}%}" />
-
-                  <TextBlock
-                    Grid.Row="1"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    FontSize="22"
-                    FontWeight="Bold"
-                    Foreground="{StaticResource BrushWarning}"
-                    Text="{Binding Kpi.Abnormal}" />
-
-                  <TextBlock
-                    Grid.Row="2"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    Classes="SectionHint"
-                    MaxLines="2"
-                    Text="{Binding Kpi.AbnormalHint}"
-                    TextWrapping="Wrap" />
-
-                  <ProgressBar
-                    Grid.Row="3"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    Height="6"
-                    Margin="{DynamicResource MarginTopMd}"
-                    Foreground="{Binding Kpi.AbnormalPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
-                    Maximum="100"
-                    Minimum="0"
-                    Value="{Binding Kpi.AbnormalPct}" />
-                </Grid>
-              </Button>
-
-              <Button
-                Grid.Column="3" Classes="KpiNavCard" Command="{Binding OpenLowStockCommand}">
-                <Grid
-                  ColumnDefinitions="Auto,*,Auto"
-                  RowDefinitions="Auto,Auto,Auto,Auto"
-                  RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeSectionHeader}"
-                    Height="{DynamicResource IconSizeSectionHeader}"
-                    VerticalAlignment="Center"
-                    Foreground="{StaticResource BrushDanger}"
-                    Kind="TriangleAlert" />
-
-                  <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Margin="{DynamicResource MarginLeftSm}"
-                    FontWeight="SemiBold"
-                    Opacity="0.85"
-                    Text="追溯码告紧" />
-
-                  <TextBlock
-                    Grid.Row="0"
-                    Grid.Column="2"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Classes="SectionHint"
-                    Text="{Binding Kpi.LowStockPct, StringFormat={}{0:F0}%}" />
-
-                  <TextBlock
-                    Grid.Row="1"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    FontSize="22"
-                    FontWeight="Bold"
-                    Foreground="{StaticResource BrushDanger}"
-                    Text="{Binding Kpi.LowStockCount}" />
-
-                  <TextBlock
-                    Grid.Row="2"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    Classes="SectionHint"
-                    MaxLines="2"
-                    Text="{Binding Kpi.LowStockHint}"
-                    TextWrapping="Wrap" />
-
-                  <ProgressBar
-                    Grid.Row="3"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="3"
-                    Height="6"
-                    Margin="{DynamicResource MarginTopMd}"
-                    Foreground="{Binding Kpi.LowStockPct, Converter={StaticResource KpiPctToBrush}, ConverterParameter=Alert}"
-                    Maximum="100"
-                    Minimum="0"
-                    Value="{Binding Kpi.LowStockPct}" />
-                </Grid>
-              </Button>
-            </Grid>
+            <Border Grid.Row="0" Classes="KpiTileStrip">
+              <Grid
+                ColumnDefinitions="*,*,*,*"
+                ColumnSpacing="{DynamicResource KpiTileColumnSpacing}">
+              <controls:KpiTile
+                Grid.Column="0"
+                AccentBrush="{DynamicResource BrushInfo}"
+                Hint="{Binding Kpi.AvailableRemainHint}"
+                Pct="{Binding Kpi.AvailableRemainPct}"
+                PctMetric="RemainHealth"
+                Title="可用追溯码库存"
+                Value="{Binding Kpi.AvailableRemain}" />
+              <controls:KpiTile
+                Grid.Column="1"
+                AccentBrush="{DynamicResource BrushDone}"
+                Hint="{Binding Kpi.PeriodUsedHint}"
+                Pct="{Binding Kpi.PeriodUsedPct}"
+                PctMetric="UsageIntensity"
+                Title="期间使用条数"
+                Value="{Binding Kpi.PeriodUsed}" />
+              <controls:KpiTile
+                Grid.Column="2"
+                AccentBrush="{DynamicResource BrushWarning}"
+                Hint="{Binding Kpi.AbnormalHint}"
+                Pct="{Binding Kpi.AbnormalPct}"
+                PctMetric="AbnormalShare"
+                Title="异常 / 回滚"
+                Value="{Binding Kpi.Abnormal}"
+                ValueForeground="{DynamicResource BrushWarning}" />
+              <controls:KpiTile
+                Grid.Column="3"
+                AccentBrush="{DynamicResource BrushDanger}"
+                Hint="{Binding Kpi.LowStockHint}"
+                Pct="{Binding Kpi.LowStockPct}"
+                PctMetric="LowStockShare"
+                Title="追溯码告紧"
+                Value="{Binding Kpi.LowStockCount}"
+                ValueForeground="{DynamicResource BrushDanger}" />
+              </Grid>
+            </Border>
 
 
             <Grid
@@ -495,243 +293,185 @@
               ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
 
-              <shad:Card Grid.Column="0">
-                <Grid
-                  MinHeight="0"
-                  RowDefinitions="Auto,*,Auto"
-                  RowSpacing="{DynamicResource DialogFormRowSpacing}">
-                  <Grid
+              <controls:SectionPanel
+                Grid.Column="0"
+                Title="药品使用统计"
+                HeaderHint="{Binding SectionHint}"
+                AccentBrush="{DynamicResource BrushInfo}"
+                FooterText="{Binding DrugTrend.Count, StringFormat=共 {0} 条趋势项}">
+                <controls:SectionPanel.HeaderContent>
+                  <ComboBox
+                    MinWidth="240"
+                    HorizontalAlignment="Right"
                     VerticalAlignment="Center"
-                    ColumnDefinitions="Auto,*,240"
-                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeSectionHeader}"
-                      Height="{DynamicResource IconSizeSectionHeader}"
-                      VerticalAlignment="Center"
-                      Kind="ChartSpline" />
-                    <StackPanel
-                      Grid.Column="1"
-                      VerticalAlignment="Center"
-                      Spacing="2">
-                      <TextBlock
-                        VerticalAlignment="Center"
-                        Classes="SectionTitle"
-                        Text="药品使用统计" />
-                      <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
-                    </StackPanel>
-                    <ComboBox
-                      Grid.Column="2"
-                      HorizontalAlignment="Right"
-                      VerticalAlignment="Center"
-                      ItemsSource="{Binding TrendModes}"
-                      SelectedItem="{Binding TrendMode}" />
-                  </Grid>
-                  <controls:EmptyStatePanel
-                    Grid.Row="1"
-                    MinHeight="0"
-                    EmptyHint="{Binding TrendEmptyHint}"
-                    EmptyText="{Binding TrendEmptyText}"
-                    Icon="{Binding SectionEmptyIcon}"
-                    IsEmpty="{Binding IsTrendEmpty}"
-                    IsPending="{Binding IsSectionPending}"
-                    SlotMinHeight="{DynamicResource DgH10Rows}"
-                    SlotMode="Always">
-                    <shad:BusyArea MinHeight="{StaticResource DgH10Rows}" IsBusy="{Binding IsTxnBusy}">
-                      <controls:DeferredGridSlot
-                        x:Name="TrendGridSlot"
-                        SlotMinHeight="{DynamicResource DgH10Rows}"
-                        SlotName="TrendGridOverview">
-                        <controls:DeferredGridSlot.GridTemplate>
-                          <DataTemplate x:DataType="vm:DashboardViewModel">
-                            <DataGrid
-                              HorizontalAlignment="Stretch"
-                              Classes="SectionGrid Headerless"
-                              ItemsSource="{Binding DrugTrend}"
-                              RowHeight="{StaticResource RowMinHeight}"
-                              SelectedItem="{Binding SelectedTrendItem}"
-                              SelectionMode="Single">
-                              <DataGrid.Columns>
-                                <DataGridTemplateColumn Width="{StaticResource DgWRank}">
-                                  <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                      <Border>
-                                        <Border
-                                          Width="36"
-                                          Height="36"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          CornerRadius="10">
-                                          <TextBlock
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            FontWeight="Bold"
-                                            Text="{Binding Rank}" />
-                                        </Border>
-                                      </Border>
-                                    </DataTemplate>
-                                  </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Width="*">
-                                  <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                      <StackPanel Spacing="2">
-                                        <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                                        <TextBlock Classes="DGSub" Text="{Binding Sub}" />
-                                      </StackPanel>
-                                    </DataTemplate>
-                                  </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Width="Auto">
-                                  <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                      <TextBlock Classes="SectionHint" Text="{Binding SourceText}" />
-                                    </DataTemplate>
-                                  </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Width="{StaticResource DgWRightValue}">
-                                  <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                      <TextBlock Classes="DGRightCell DGNum" Text="{Binding ValueText}" />
-                                    </DataTemplate>
-                                  </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                              </DataGrid.Columns>
-                            </DataGrid>
-                          </DataTemplate>
-                        </controls:DeferredGridSlot.GridTemplate>
-                      </controls:DeferredGridSlot>
-                    </shad:BusyArea>
-                  </controls:EmptyStatePanel>
-
-                  <Border
-                    Grid.Row="2"
-                    Padding="2,6,2,0"
-                    BorderBrush="{DynamicResource OutlineColor}"
-                    BorderThickness="0,1,0,0"
-                    Opacity="0.7">
-                    <TextBlock Classes="DGSub" Text="{Binding DrugTrend.Count, StringFormat=共 {0} 条趋势项}" />
-                  </Border>
-                </Grid>
-              </shad:Card>
-
-
-              <shad:Card Grid.Column="1">
-                <Grid
+                    ItemsSource="{Binding TrendModes}"
+                    SelectedItem="{Binding TrendMode}" />
+                </controls:SectionPanel.HeaderContent>
+                <controls:EmptyStatePanel
                   MinHeight="0"
-                  RowDefinitions="Auto,*,Auto"
-                  RowSpacing="{DynamicResource DialogFormRowSpacing}">
-                  <Grid
-                    VerticalAlignment="Center"
-                    ColumnDefinitions="Auto,*,Auto"
-                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                    <icons:AppIcon
-                      Grid.Column="0"
-                      Width="{DynamicResource IconSizeSectionHeader}"
-                      Height="{DynamicResource IconSizeSectionHeader}"
-                      VerticalAlignment="Center"
-                      Kind="ReceiptText" />
-                    <StackPanel
-                      Grid.Column="1"
-                      VerticalAlignment="Center"
-                      Spacing="1">
-                      <TextBlock
-                        VerticalAlignment="Center"
-                        Classes="SectionTitle"
-                        Text="事务总览" />
-                      <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
-                    </StackPanel>
-                    <Button
-                      Grid.Column="2"
-                      VerticalAlignment="Center"
-                      Classes="Ghost"
-                      Command="{Binding OpenTxnListCommand}"
-                      Content="查看全部" />
-                  </Grid>
-                  <controls:EmptyStatePanel
-                    Grid.Row="1"
-                    MinHeight="0"
-                    EmptyHint="{Binding RecentTxnsEmptyHint}"
-                    EmptyText="{Binding RecentTxnsEmptyText}"
-                    Icon="{Binding SectionEmptyIcon}"
-                    IsEmpty="{Binding IsRecentTxnsEmpty}"
-                    IsPending="{Binding IsSectionPending}"
-                    SlotMinHeight="{DynamicResource DgH10Rows}"
-                    SlotMode="Always">
-                    <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
-                      <controls:DeferredGridSlot
-                        x:Name="RecentTxnGridSlot"
-                        SlotMinHeight="{DynamicResource DgH10Rows}"
-                        SlotName="RecentTxnGridOverview">
-                        <controls:DeferredGridSlot.GridTemplate>
-                          <DataTemplate x:DataType="vm:DashboardViewModel">
-                            <DataGrid
-                              HorizontalAlignment="Stretch"
-                              Classes="SectionGrid TxnGrid StickyIndexGrid"
-                              ItemsSource="{Binding RecentTxnsOverview}"
-                              RowHeight="{StaticResource RowMinHeight}"
-                              SelectedItem="{Binding SelectedTxn}"
-                              SelectionMode="Single">
-                              <DataGrid.Columns>
-                                <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
-                                  <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
+                  EmptyHint="{Binding TrendEmptyHint}"
+                  EmptyText="{Binding TrendEmptyText}"
+                  Icon="{Binding SectionEmptyIcon}"
+                  IsEmpty="{Binding IsTrendEmpty}"
+                  IsPending="{Binding IsSectionPending}"
+                  SlotMinHeight="{DynamicResource DgH10Rows}"
+                  SlotMode="Always">
+                  <shad:BusyArea MinHeight="{StaticResource DgH10Rows}" IsBusy="{Binding IsTxnBusy}">
+                    <controls:DeferredGridSlot
+                      x:Name="TrendGridSlot"
+                      SlotMinHeight="{DynamicResource DgH10Rows}"
+                      SlotName="TrendGridOverview">
+                      <controls:DeferredGridSlot.GridTemplate>
+                        <DataTemplate x:DataType="vm:DashboardViewModel">
+                          <DataGrid
+                            HorizontalAlignment="Stretch"
+                            Classes="SectionGrid Headerless"
+                            ItemsSource="{Binding DrugTrend}"
+                            RowHeight="{StaticResource RowMinHeight}"
+                            SelectedItem="{Binding SelectedTrendItem}"
+                            SelectionMode="Single">
+                            <DataGrid.Columns>
+                              <DataGridTemplateColumn Width="{StaticResource DgWRank}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                  <DataTemplate>
+                                    <Border>
                                       <Border
-                                        Width="{DynamicResource IconBadgeSize}"
-                                        Height="{DynamicResource IconBadgeSize}"
+                                        Width="36"
+                                        Height="36"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
-                                        Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
-                                        CornerRadius="{DynamicResource TraceBadgeRadius}">
-                                        <icons:AppIcon
-                                          Width="{DynamicResource IconSizeDefault}"
-                                          Height="{DynamicResource IconSizeDefault}"
+                                        CornerRadius="10">
+                                        <TextBlock
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center"
-                                          Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
-                                          Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
+                                          FontWeight="Bold"
+                                          Text="{Binding Rank}" />
                                       </Border>
-                                    </DataTemplate>
-                                  </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Width="*">
-                                  <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                      <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
-                                    </DataTemplate>
-                                  </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Width="*">
-                                  <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                      <TextBlock Text="{Binding Time}" />
-                                    </DataTemplate>
-                                  </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Width="{StaticResource DgWRightSmall}">
-                                  <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                      <TextBlock Classes="DGRightCell DGNum" Text="{Binding Qty}" />
-                                    </DataTemplate>
-                                  </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                              </DataGrid.Columns>
-                            </DataGrid>
-                          </DataTemplate>
-                        </controls:DeferredGridSlot.GridTemplate>
-                      </controls:DeferredGridSlot>
-                    </shad:BusyArea>
-                  </controls:EmptyStatePanel>
+                                    </Border>
+                                  </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                              </DataGridTemplateColumn>
+                              <DataGridTemplateColumn Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                  <DataTemplate>
+                                    <StackPanel Spacing="2">
+                                      <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                      <TextBlock Classes="Caption Muted" Text="{Binding Sub}" />
+                                    </StackPanel>
+                                  </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                              </DataGridTemplateColumn>
+                              <DataGridTemplateColumn Width="Auto">
+                                <DataGridTemplateColumn.CellTemplate>
+                                  <DataTemplate>
+                                    <TextBlock Classes="Caption Muted" Text="{Binding SourceText}" />
+                                  </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                              </DataGridTemplateColumn>
+                              <DataGridTemplateColumn Width="{StaticResource DgWRightValue}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                  <DataTemplate>
+                                    <TextBlock Classes="DGRightCell DGNum" Text="{Binding ValueText}" />
+                                  </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                              </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                          </DataGrid>
+                        </DataTemplate>
+                      </controls:DeferredGridSlot.GridTemplate>
+                    </controls:DeferredGridSlot>
+                  </shad:BusyArea>
+                </controls:EmptyStatePanel>
+              </controls:SectionPanel>
 
-                  <Border
-                    Grid.Row="2"
-                    Padding="2,6,2,0"
-                    BorderBrush="{DynamicResource OutlineColor}"
-                    BorderThickness="0,1,0,0"
-                    Opacity="0.7">
-                    <TextBlock Classes="DGSub" Text="{Binding RecentTxnsOverview.Count, StringFormat=共 {0} 条事务}" />
-                  </Border>
-                </Grid>
-              </shad:Card>
+
+              <controls:SectionPanel
+                Grid.Column="1"
+                Title="事务总览"
+                HeaderHint="{Binding SectionHint}"
+                AccentBrush="{DynamicResource BrushWarning}"
+                FooterText="{Binding RecentTxnsOverview.Count, StringFormat=共 {0} 条事务}">
+                <controls:SectionPanel.HeaderContent>
+                  <Button
+                    VerticalAlignment="Center"
+                    Classes="Ghost"
+                    Command="{Binding OpenTxnListCommand}"
+                    Content="查看全部" />
+                </controls:SectionPanel.HeaderContent>
+                <controls:EmptyStatePanel
+                  MinHeight="0"
+                  EmptyHint="{Binding RecentTxnsEmptyHint}"
+                  EmptyText="{Binding RecentTxnsEmptyText}"
+                  Icon="{Binding SectionEmptyIcon}"
+                  IsEmpty="{Binding IsRecentTxnsEmpty}"
+                  IsPending="{Binding IsSectionPending}"
+                  SlotMinHeight="{DynamicResource DgH10Rows}"
+                  SlotMode="Always">
+                  <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
+                    <controls:DeferredGridSlot
+                      x:Name="RecentTxnGridSlot"
+                      SlotMinHeight="{DynamicResource DgH10Rows}"
+                      SlotName="RecentTxnGridOverview">
+                      <controls:DeferredGridSlot.GridTemplate>
+                        <DataTemplate x:DataType="vm:DashboardViewModel">
+                          <DataGrid
+                            HorizontalAlignment="Stretch"
+                            Classes="SectionGrid TxnGrid StickyIndexGrid"
+                            ItemsSource="{Binding RecentTxnsOverview}"
+                            RowHeight="{StaticResource RowMinHeight}"
+                            SelectedItem="{Binding SelectedTxn}"
+                            SelectionMode="Single">
+                            <DataGrid.Columns>
+                              <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                  <DataTemplate>
+                                    <Border
+                                      Width="{DynamicResource IconBadgeSize}"
+                                      Height="{DynamicResource IconBadgeSize}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                      CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                      <icons:AppIcon
+                                        Width="{DynamicResource IconSizeDefault}"
+                                        Height="{DynamicResource IconSizeDefault}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
+                                        Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
+                                    </Border>
+                                  </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                              </DataGridTemplateColumn>
+                              <DataGridTemplateColumn Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                  <DataTemplate>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                                  </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                              </DataGridTemplateColumn>
+                              <DataGridTemplateColumn Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                  <DataTemplate>
+                                    <TextBlock Text="{Binding Time}" />
+                                  </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                              </DataGridTemplateColumn>
+                              <DataGridTemplateColumn Width="{StaticResource DgWRightSmall}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                  <DataTemplate>
+                                    <TextBlock Classes="DGRightCell DGNum" Text="{Binding Qty}" />
+                                  </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                              </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                          </DataGrid>
+                        </DataTemplate>
+                      </controls:DeferredGridSlot.GridTemplate>
+                    </controls:DeferredGridSlot>
+                  </shad:BusyArea>
+                </controls:EmptyStatePanel>
+              </controls:SectionPanel>
             </Grid>
 
 
@@ -741,263 +481,200 @@
               ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
 
-              <shad:Card
+              <controls:SectionPanel
                 Grid.Column="0"
                 MinHeight="220"
-                VerticalAlignment="Stretch">
-                <Grid
-                  VerticalAlignment="Stretch"
-                  RowDefinitions="Auto,*,Auto"
-                  RowSpacing="{DynamicResource DialogFormRowSpacing}">
-                  <Grid
+                VerticalAlignment="Stretch"
+                Title="客户端"
+                HeaderHint="{Binding SectionHint}"
+                AccentBrush="{DynamicResource BrushDone}"
+                FooterText="{Binding TopClients.Count, StringFormat=共 {0} 个客户端}">
+                <controls:SectionPanel.HeaderContent>
+                  <ComboBox
+                    MinWidth="220"
+                    HorizontalAlignment="Right"
                     VerticalAlignment="Center"
-                    ColumnDefinitions="Auto,*,220"
-                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeSectionHeader}"
-                      Height="{DynamicResource IconSizeSectionHeader}"
-                      VerticalAlignment="Center"
-                      Kind="Users" />
-                    <StackPanel
-                      Grid.Column="1"
-                      VerticalAlignment="Center"
-                      Spacing="1">
-                      <TextBlock Classes="SectionTitle" Text="客户端" />
-                      <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
-                    </StackPanel>
-                    <ComboBox
-                      Grid.Column="2"
-                      HorizontalAlignment="Right"
-                      VerticalAlignment="Center"
-                      ItemsSource="{Binding ClientMetricModes}"
-                      SelectedItem="{Binding ClientMetricMode}" />
-                  </Grid>
-
-                  <controls:EmptyStatePanel
-                    Grid.Row="1"
-                    MinHeight="0"
-                    EmptyHint="{Binding TopClientsEmptyHint}"
-                    EmptyText="{Binding TopClientsEmptyText}"
-                    Icon="{Binding SectionEmptyIcon}"
-                    IsEmpty="{Binding IsTopClientsEmpty}"
-                    IsPending="{Binding IsSectionPending}"
-                    SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
-                    SlotMode="PendingOnly">
-                    <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
-                      <ScrollViewer
-                        BringIntoViewOnFocusChange="False"
-                        HorizontalScrollBarVisibility="Disabled"
-                        VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding TopClients}">
-                          <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                              <StackPanel Spacing="{DynamicResource SpacingInlineSm}" />
-                            </ItemsPanelTemplate>
-                          </ItemsControl.ItemsPanel>
-                          <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                              <Border Classes="RowItem">
-                                <Grid
+                    ItemsSource="{Binding ClientMetricModes}"
+                    SelectedItem="{Binding ClientMetricMode}" />
+                </controls:SectionPanel.HeaderContent>
+                <controls:EmptyStatePanel
+                  MinHeight="0"
+                  VerticalAlignment="Stretch"
+                  EmptyHint="{Binding TopClientsEmptyHint}"
+                  EmptyText="{Binding TopClientsEmptyText}"
+                  Icon="{Binding SectionEmptyIcon}"
+                  IsEmpty="{Binding IsTopClientsEmpty}"
+                  IsPending="{Binding IsSectionPending}"
+                  SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                  SlotMode="PendingOnly">
+                  <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
+                    <ScrollViewer
+                      BringIntoViewOnFocusChange="False"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+                      <ItemsControl ItemsSource="{Binding TopClients}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <StackPanel Spacing="{DynamicResource SpacingInlineSm}" />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Border Classes="RowItem">
+                              <Grid
+                                VerticalAlignment="Center"
+                                ColumnDefinitions="44,*,84"
+                                RowDefinitions="Auto,Auto"
+                                RowSpacing="4">
+                                <Border
+                                  Width="{DynamicResource IconBadgeSize}"
+                                  Height="{DynamicResource IconBadgeSize}"
+                                  HorizontalAlignment="Center"
                                   VerticalAlignment="Center"
-                                  ColumnDefinitions="44,*,84"
-                                  RowDefinitions="Auto,Auto"
-                                  RowSpacing="4">
-                                  <Border
-                                    Width="{DynamicResource IconBadgeSize}"
-                                    Height="{DynamicResource IconBadgeSize}"
+                                  CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                  <TextBlock
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    CornerRadius="{DynamicResource TraceBadgeRadius}">
-                                    <TextBlock
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"
-                                      FontWeight="Bold"
-                                      Text="{Binding Index}" />
-                                  </Border>
-                                  <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="1"
-                                    FontWeight="SemiBold"
-                                    TextWrapping="NoWrap">
-                                    <Run Text="{Binding ClientDisplay}" />
-                                  </TextBlock>
-                                  <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="2"
-                                    HorizontalAlignment="Right"
-                                    Classes="DGRightCell DGNum"
-                                    Text="{Binding Value}" />
-                                  <TextBlock
-                                    Grid.Row="1"
-                                    Grid.Column="1"
-                                    Grid.ColumnSpan="2"
-                                    Classes="DGSub"
-                                    IsVisible="{Binding HasMeta}"
-                                    Text="{Binding MetaText}" />
-                                </Grid>
-                              </Border>
-                            </DataTemplate>
-                          </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                      </ScrollViewer>
-                    </shad:BusyArea>
-                  </controls:EmptyStatePanel>
-
-                  <Border
-                    Grid.Row="2"
-                    Padding="2,6,2,0"
-                    BorderBrush="{DynamicResource OutlineColor}"
-                    BorderThickness="0,1,0,0"
-                    Opacity="0.7">
-                    <TextBlock Classes="DGSub" Text="{Binding TopClients.Count, StringFormat=共 {0} 个客户端}" />
-                  </Border>
-                </Grid>
-              </shad:Card>
+                                    FontWeight="Bold"
+                                    Text="{Binding Index}" />
+                                </Border>
+                                <TextBlock
+                                  Grid.Row="0"
+                                  Grid.Column="1"
+                                  FontWeight="SemiBold"
+                                  TextWrapping="NoWrap">
+                                  <Run Text="{Binding ClientDisplay}" />
+                                </TextBlock>
+                                <TextBlock
+                                  Grid.Row="0"
+                                  Grid.Column="2"
+                                  HorizontalAlignment="Right"
+                                  Classes="DGRightCell DGNum"
+                                  Text="{Binding Value}" />
+                                <TextBlock
+                                  Grid.Row="1"
+                                  Grid.Column="1"
+                                  Grid.ColumnSpan="2"
+                                  Classes="Caption Muted"
+                                  IsVisible="{Binding HasMeta}"
+                                  Text="{Binding MetaText}" />
+                              </Grid>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </ScrollViewer>
+                  </shad:BusyArea>
+                </controls:EmptyStatePanel>
+              </controls:SectionPanel>
 
 
-              <shad:Card
+              <controls:SectionPanel
                 Grid.Column="1"
                 MinHeight="220"
-                VerticalAlignment="Stretch">
-                <Grid
-                  VerticalAlignment="Stretch"
-                  RowDefinitions="Auto,*,Auto"
-                  RowSpacing="{DynamicResource DialogFormRowSpacing}">
-
-                  <Grid
-                    VerticalAlignment="Center"
-                    ColumnDefinitions="Auto,*,Auto,Auto"
-                    ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeSectionHeader}"
-                      Height="{DynamicResource IconSizeSectionHeader}"
-                      VerticalAlignment="Center"
-                      Kind="FilePlus" />
-                    <StackPanel
-                      Grid.Column="1"
-                      VerticalAlignment="Center"
-                      Spacing="2">
-                      <TextBlock
-                        VerticalAlignment="Center"
-                        Classes="SectionTitle"
-                        Text="录入追溯码情况" />
-                      <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
-                    </StackPanel>
+                VerticalAlignment="Stretch"
+                Title="录入追溯码情况"
+                HeaderHint="{Binding SectionHint}"
+                AccentBrush="{DynamicResource BrushPurple}"
+                FooterText="{Binding EntryTotalCount, StringFormat=共 {0} 条录入}">
+                <controls:SectionPanel.HeaderContent>
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <Button
-                      Grid.Column="2"
                       VerticalAlignment="Center"
                       Classes="Ghost"
                       Command="{Binding GoInputTabCommand}"
                       Content="去录入" />
                     <Button
-                      Grid.Column="3"
                       VerticalAlignment="Center"
                       Classes="Ghost"
                       Command="{Binding OpenInputHistoryCommand}"
                       Content="查看全部" />
-                  </Grid>
-
-                  <controls:EmptyStatePanel
-                    Grid.Row="1"
-                    MinHeight="0"
-                    EmptyHint="{Binding EntryRecentEmptyHint}"
-                    EmptyText="{Binding EntryRecentEmptyText}"
-                    Icon="{Binding SectionEmptyIcon}"
-                    IsEmpty="{Binding IsEntryRecentEmpty}"
-                    IsPending="{Binding IsSectionPending}"
-                    SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
-                    SlotMode="PendingOnly">
-                    <shad:BusyArea IsBusy="{Binding IsEntryBusy}">
-                      <ScrollViewer
-                        BringIntoViewOnFocusChange="False"
-                        HorizontalScrollBarVisibility="Disabled"
-                        VerticalScrollBarVisibility="Auto">
-
-                        <ItemsControl ItemsSource="{Binding EntryRecentOverview}">
-                          <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                              <StackPanel Spacing="{DynamicResource SpacingInlineSm}" />
-                            </ItemsPanelTemplate>
-                          </ItemsControl.ItemsPanel>
-
-                          <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                              <Border Classes="RowItem" PointerReleased="OnEntryRecentRowPointerReleased">
-                                <Grid
+                  </StackPanel>
+                </controls:SectionPanel.HeaderContent>
+                <controls:EmptyStatePanel
+                  MinHeight="0"
+                  VerticalAlignment="Stretch"
+                  EmptyHint="{Binding EntryRecentEmptyHint}"
+                  EmptyText="{Binding EntryRecentEmptyText}"
+                  Icon="{Binding SectionEmptyIcon}"
+                  IsEmpty="{Binding IsEntryRecentEmpty}"
+                  IsPending="{Binding IsSectionPending}"
+                  SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                  SlotMode="PendingOnly">
+                  <shad:BusyArea IsBusy="{Binding IsEntryBusy}">
+                    <ScrollViewer
+                      BringIntoViewOnFocusChange="False"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+                      <ItemsControl ItemsSource="{Binding EntryRecentOverview}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <StackPanel Spacing="{DynamicResource SpacingInlineSm}" />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Border Classes="RowItem" PointerReleased="OnEntryRecentRowPointerReleased">
+                              <Grid
+                                VerticalAlignment="Center"
+                                ColumnDefinitions="44,*,180,84"
+                                RowDefinitions="Auto,Auto"
+                                RowSpacing="4">
+                                <Border
+                                  Width="{DynamicResource IconBadgeSize}"
+                                  Height="{DynamicResource IconBadgeSize}"
+                                  HorizontalAlignment="Center"
                                   VerticalAlignment="Center"
-                                  ColumnDefinitions="44,*,180,84"
-                                  RowDefinitions="Auto,Auto"
-                                  RowSpacing="4">
-                                  <Border
-                                    Width="{DynamicResource IconBadgeSize}"
-                                    Height="{DynamicResource IconBadgeSize}"
+                                  Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                                  CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                  <icons:AppIcon
+                                    Width="{DynamicResource IconSizeDefault}"
+                                    Height="{DynamicResource IconSizeDefault}"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
-                                    CornerRadius="{DynamicResource TraceBadgeRadius}">
-                                    <icons:AppIcon
-                                      Width="{DynamicResource IconSizeDefault}"
-                                      Height="{DynamicResource IconSizeDefault}"
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"
-                                      Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
-                                      Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
-                                      Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
-                                  </Border>
-
-                                  <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="1"
-                                    FontWeight="SemiBold"
-                                    TextWrapping="NoWrap">
-                                    <Run Text="{Binding DrugId}" />
-                                    <Run Text=" " />
-                                    <Run Text="{Binding Spec}" />
-                                  </TextBlock>
-
-                                  <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="2"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Center"
-                                    Classes="SectionHint"
-                                    Text="{Binding ClientDisplay}"
-                                    TextTrimming="CharacterEllipsis" />
-
-                                  <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="3"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Center"
-                                    Classes="DGRightCell DGNum"
-                                    Text="{Binding Qty}" />
-
-                                  <TextBlock
-                                    Grid.Row="1"
-                                    Grid.Column="1"
-                                    Grid.ColumnSpan="3"
-                                    Classes="DGSub"
-                                    Text="{Binding Message}" />
-                                </Grid>
-                              </Border>
-                            </DataTemplate>
-                          </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                      </ScrollViewer>
-                    </shad:BusyArea>
-                  </controls:EmptyStatePanel>
-
-                  <Border
-                    Grid.Row="2"
-                    Padding="2,6,2,0"
-                    BorderBrush="{DynamicResource OutlineColor}"
-                    BorderThickness="0,1,0,0"
-                    Opacity="0.7">
-                    <TextBlock Classes="DGSub" Text="{Binding EntryTotalCount, StringFormat=共 {0} 条录入}" />
-                  </Border>
-
-                </Grid>
-              </shad:Card>
+                                    Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                    Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                                </Border>
+                                <TextBlock
+                                  Grid.Row="0"
+                                  Grid.Column="1"
+                                  FontWeight="SemiBold"
+                                  TextWrapping="NoWrap">
+                                  <Run Text="{Binding DrugId}" />
+                                  <Run Text=" " />
+                                  <Run Text="{Binding Spec}" />
+                                </TextBlock>
+                                <TextBlock
+                                  Grid.Row="0"
+                                  Grid.Column="2"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  Classes="Caption Muted"
+                                  Text="{Binding ClientDisplay}"
+                                  TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                  Grid.Row="0"
+                                  Grid.Column="3"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  Classes="DGRightCell DGNum"
+                                  Text="{Binding Qty}" />
+                                <TextBlock
+                                  Grid.Row="1"
+                                  Grid.Column="1"
+                                  Grid.ColumnSpan="3"
+                                  Classes="Caption Muted"
+                                  Text="{Binding Message}" />
+                              </Grid>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </ScrollViewer>
+                  </shad:BusyArea>
+                </controls:EmptyStatePanel>
+              </controls:SectionPanel>
             </Grid>
           </Grid>
         </ScrollViewer>
@@ -1005,7 +682,7 @@
 
       <Grid
         Grid.Row="2"
-        Margin="{DynamicResource PageTabScrollMargin}"
+        Margin="{DynamicResource DashboardTabContentMargin}"
         IsVisible="{Binding IsInputTab}"
         RowDefinitions="*">
         <shad:Card Grid.Row="0">
@@ -1024,8 +701,8 @@
                 VerticalAlignment="Center"
                 Spacing="2">
                 <TextBlock Classes="SectionTitle" Text="录入追溯码情况" />
-                <TextBlock Classes="SectionHint" Text="受顶部药品/规格/客户端/日期筛选影响，展示录入条码明细" />
-                <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
+                <TextBlock Classes="Caption Muted" Text="受顶部药品/规格/客户端/日期筛选影响，展示录入条码明细" />
+                <TextBlock Classes="Caption Muted" Text="{Binding SectionHint}" />
               </StackPanel>
               <Button
                 Grid.Column="2"
@@ -1124,7 +801,7 @@
 
       <Grid
         Grid.Row="2"
-        Margin="{DynamicResource PageTabScrollMargin}"
+        Margin="{DynamicResource DashboardTabContentMargin}"
         IsVisible="{Binding IsTxnTab}"
         RowDefinitions="*">
         <shad:Card Grid.Row="0">
@@ -1147,8 +824,8 @@
                   VerticalAlignment="Center"
                   Classes="SectionTitle"
                   Text="{Binding TxnPanelMode.Title}" />
-                <TextBlock Classes="SectionHint" Text="受顶部药品/规格/客户端/日期筛选影响，展示取码事务明细" />
-                <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
+                <TextBlock Classes="Caption Muted" Text="受顶部药品/规格/客户端/日期筛选影响，展示取码事务明细" />
+                <TextBlock Classes="Caption Muted" Text="{Binding SectionHint}" />
               </StackPanel>
               <ComboBox
                 Grid.Column="2"
@@ -1289,7 +966,7 @@
 
       <Grid
         Grid.Row="2"
-        Margin="{DynamicResource PageTabScrollMargin}"
+        Margin="{DynamicResource DashboardTabContentMargin}"
         IsVisible="{Binding IsAbnormalTab}"
         RowDefinitions="*">
         <shad:Card Grid.Row="0">
@@ -1309,8 +986,8 @@
                 VerticalAlignment="Center"
                 Spacing="2">
                 <TextBlock Classes="SectionTitle" Text="异常事务队列" />
-                <TextBlock Classes="SectionHint" Text="优先处理回滚事务，确认客户端与库存状态后再重试" />
-                <TextBlock Classes="SectionHint" Text="{Binding SectionHint}" />
+                <TextBlock Classes="Caption Muted" Text="优先处理回滚事务，确认客户端与库存状态后再重试" />
+                <TextBlock Classes="Caption Muted" Text="{Binding SectionHint}" />
               </StackPanel>
               <Button
                 Grid.Column="2"

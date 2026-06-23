@@ -118,18 +118,6 @@
     <Setter Property="MinHeight" Value="{DynamicResource ActionTileMinHeight}" />
   </Style>
 
-  <!-- Dashboard KPI tiles: Card-like buttons -->
-  <Style Selector="Button.KpiNavCard">
-    <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
-    <Setter Property="Padding" Value="16" />
-    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    <Setter Property="VerticalContentAlignment" Value="Stretch" />
-    <Setter Property="Cursor" Value="Hand" />
-  </Style>
-
   <Style Selector="shad|Card.TraceCodePreviewCard">
     <Setter Property="Padding" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
