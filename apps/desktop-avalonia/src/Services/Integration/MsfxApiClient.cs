@@ -407,7 +407,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
             {
                 ct.ThrowIfCancellationRequested();
                 var batch = frontier.Skip(i).Take(10).ToList();
-                var rel = await QueryRelationChildrenBatchCompatAsync(
+                var rel = await QueryRelationChildrenBatchAsync(
                     options,
                     refEntId,
                     toRefUserId,
@@ -567,7 +567,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
         return (l1, l2, l3, l4, l5);
     }
 
-    private async Task<RelationBatchResult> QueryRelationChildrenBatchCompatAsync(
+    private async Task<RelationBatchResult> QueryRelationChildrenBatchAsync(
         MsfxApiOptions options,
         string refEntId,
         string? toRefUserId,

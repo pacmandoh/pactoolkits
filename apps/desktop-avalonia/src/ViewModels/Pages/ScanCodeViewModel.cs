@@ -924,7 +924,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                 {
                     _existingPoolCodes.Clear();
                     _lastPoolCheckKey = string.Empty;
-                    RecalcCodeStatsWithoutPoolReschedule(TraceCodesText);
+                    ApplyCodeStats(TraceCodesText);
                 }).ConfigureAwait(false);
                 return;
             }
@@ -938,7 +938,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                     _existingPoolCodes.Add(code);
                 }
 
-                RecalcCodeStatsWithoutPoolReschedule(TraceCodesText);
+                ApplyCodeStats(TraceCodesText);
                 _lastPoolCheckKey = string.Join(
                     '\n',
                     candidateCodes.OrderBy(static x => x, StringComparer.Ordinal));
@@ -953,7 +953,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         }
     }
 
-    private void RecalcCodeStatsWithoutPoolReschedule(string? text)
+    private void ApplyCodeStats(string? text)
     {
         var detailed = AnalyzeCodesDetailed(text);
         ReplaceTraceCodeLines(detailed.Lines);
