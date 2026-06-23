@@ -61,6 +61,12 @@ public sealed class PageGridMountScheduler
 
     public void RequestMount(DeferredGridSlot slot, int priority)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => RequestMount(slot, priority));
+            return;
+        }
+
         Register(slot, priority);
         TryStartQueueRunner();
     }
