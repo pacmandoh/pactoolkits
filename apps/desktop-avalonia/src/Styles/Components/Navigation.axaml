@@ -1,4 +1,4 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
@@ -50,7 +50,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="StackPanel.SidebarFunctionAreaText > TextBlock.Small,                      Border.ConnectivityBanner TextBlock.Small,                      Border.ShellContentHeader TextBlock.Small">
+  <Style Selector="StackPanel.SidebarFunctionAreaText &gt; TextBlock.Small,                      Border.ConnectivityBanner TextBlock.Small,                      Border.ShellContentHeader TextBlock.Small">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
@@ -102,7 +102,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <!-- Sidebar nav: left indicator bar on selection; hover tints text/icon only. -->
+  <!--  Sidebar nav: left indicator bar on selection; hover tints text/icon only.  -->
   <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItem">
     <Setter Property="CornerRadius" Value="0" />
   </Style>
@@ -179,7 +179,7 @@
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 
-  <!-- Tab strip chrome: align with SectionPanel outer via SectionPanelChromeBackground. -->
+  <!--  Tab strip chrome: align with SectionPanel outer via SectionPanelChromeBackground.  -->
   <Style Selector="StackPanel.TabItemHeader">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Orientation" Value="Horizontal" />
@@ -187,7 +187,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="StackPanel.TabItemHeader > TextBlock">
+  <Style Selector="StackPanel.TabItemHeader &gt; TextBlock">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 </Styles>

@@ -1,4 +1,4 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
@@ -22,19 +22,22 @@
             Opacity="1">
             <ContentPresenter.Transitions>
               <Transitions>
-                <DoubleTransition Duration="0:0:0.3" Easing="{StaticResource EaseOut}" Property="Opacity" />
+                <DoubleTransition
+                  Easing="{StaticResource EaseOut}"
+                  Property="Opacity"
+                  Duration="0:0:0.3" />
               </Transitions>
             </ContentPresenter.Transitions>
           </ContentPresenter>
 
           <Viewbox
             Name="LoadingIndicator"
+            Width="{TemplateBinding LoadingSize}"
             Height="{TemplateBinding LoadingSize}"
             HorizontalAlignment="Center"
-            IsHitTestVisible="False"
-            IsVisible="False"
             VerticalAlignment="Center"
-            Width="{TemplateBinding LoadingSize}">
+            IsHitTestVisible="False"
+            IsVisible="False">
             <ContentPresenter Content="{TemplateBinding IsBusy, Converter={x:Static shad:BooleanConverters.ToLoading}}" />
           </Viewbox>
 

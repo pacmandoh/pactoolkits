@@ -1,8 +1,8 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
-  <!-- Demo DataTable footer: status text + Outline nav buttons -->
+  <!--  Demo DataTable footer: status text + Outline nav buttons  -->
   <Style Selector="controls|DataGridPager">
     <Setter Property="HorizontalAlignment" Value="Stretch" />
   </Style>
@@ -23,7 +23,7 @@
     <Setter Property="Padding" Value="0" />
   </Style>
 
-  <!-- Align pager chrome with SectionPanel body padding when inner content is flush (FlushBody). -->
+  <!--  Align pager chrome with SectionPanel body padding when inner content is flush (FlushBody).  -->
   <Style Selector="controls|DataGridPager.SectionPanelBodyInset">
     <Setter Property="HorizontalInset" Value="{DynamicResource SectionPanelBodyHorizontalInset}" />
   </Style>

@@ -35,7 +35,8 @@
         Text="库存操作身份验证" />
 
       <TextBlock
-        HorizontalAlignment="Center" Classes="Caption Muted"
+        HorizontalAlignment="Center"
+        Classes="Caption Muted"
         Text="{Binding HintMessage, ElementName=Root}"
         TextAlignment="Center"
         TextWrapping="Wrap" />

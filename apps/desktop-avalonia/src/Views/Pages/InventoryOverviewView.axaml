@@ -1,13 +1,13 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.InventoryOverviewView"
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
   d:DesignHeight="800"
@@ -263,205 +263,212 @@
                     ClipToBounds="True"
                     RowDefinitions="Auto,Auto,Auto,Auto"
                     RowSpacing="{DynamicResource FormRowSpacing}">
-              <Grid
-                Grid.Row="0"
-                ColumnDefinitions="*,Auto,Auto"
-                ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Orientation="Horizontal"
-                  Spacing="{DynamicResource NavItemsSpacing}">
-                  <ComboBox
-                    Width="160"
-                    Height="{StaticResource ControlHeightCompact}"
-                    IsEnabled="{Binding !IsUiBusy}"
-                    SelectedIndex="{Binding ReassignScopeIndex}">
-                    <ComboBoxItem Content="选中行" />
-                    <ComboBoxItem Content="筛选批量" />
-                  </ComboBox>
-                  <TextBlock
-                    VerticalAlignment="Center"
-                    IsVisible="{Binding IsSingleReassignScope}" Classes="Caption Muted"
-                    Text="按当前选中库存行纠错" />
-                  <TextBlock
-                    VerticalAlignment="Center"
-                    IsVisible="{Binding IsFilterReassignScope}" Classes="Caption Muted"
-                    Text="按顶部搜索关键字命中记录批量纠错" />
-                </StackPanel>
+                    <Grid
+                      Grid.Row="0"
+                      ColumnDefinitions="*,Auto,Auto"
+                      ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                      <StackPanel
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="{DynamicResource NavItemsSpacing}">
+                        <ComboBox
+                          Width="160"
+                          Height="{StaticResource ControlHeightCompact}"
+                          IsEnabled="{Binding !IsUiBusy}"
+                          SelectedIndex="{Binding ReassignScopeIndex}">
+                          <ComboBoxItem Content="选中行" />
+                          <ComboBoxItem Content="筛选批量" />
+                        </ComboBox>
+                        <TextBlock
+                          VerticalAlignment="Center"
+                          Classes="Caption Muted"
+                          IsVisible="{Binding IsSingleReassignScope}"
+                          Text="按当前选中库存行纠错" />
+                        <TextBlock
+                          VerticalAlignment="Center"
+                          Classes="Caption Muted"
+                          IsVisible="{Binding IsFilterReassignScope}"
+                          Text="按顶部搜索关键字命中记录批量纠错" />
+                      </StackPanel>
 
-                <Button
-                  Grid.Column="1"
-                  Classes="Action"
-                  Command="{Binding PreviewReassignCommand}">
-                  <TextBlock Text="预览影响" />
-                </Button>
-                <Button
-                  Grid.Column="2"
-                  Classes="Action"
-                  Command="{Binding ApplyReassignCommand}">
-                  <TextBlock Text="确认纠错" />
-                </Button>
-              </Grid>
+                      <Button
+                        Grid.Column="1"
+                        Classes="Action"
+                        Command="{Binding PreviewReassignCommand}">
+                        <TextBlock Text="预览影响" />
+                      </Button>
+                      <Button
+                        Grid.Column="2"
+                        Classes="Action"
+                        Command="{Binding ApplyReassignCommand}">
+                        <TextBlock Text="确认纠错" />
+                      </Button>
+                    </Grid>
 
-              <Grid
-                Grid.Row="1"
-                ColumnDefinitions="2.3*,1.5*,160,2*"
-                ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                <Grid
-                  Grid.Column="0"
-                  ColumnDefinitions="Auto,*"
-                  ColumnSpacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Grid.Column="0"
-                    Width="{DynamicResource IconSizeCompact}"
-                    Height="{DynamicResource IconSizeCompact}"
-                    VerticalAlignment="Center"
-                    Kind="Pill" Foreground="{DynamicResource MutedColor}" />
-                  <AutoCompleteBox
-                    x:Name="ReassignDrugBox"
-                    Grid.Column="1"
-                    IsDropDownOpen="{Binding IsReassignDrugSuggestOpen, Mode=TwoWay}"
-                    ItemsSource="{Binding ReassignDrugOptions}"
-                    KeyDown="ReassignDrugBox_OnKeyDown"
-                    PlaceholderText="目标药品名（必填）"
-                    Text="{Binding ReassignDrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}">
-                    <AutoCompleteBox.ItemTemplate>
-                      <DataTemplate x:DataType="vm:OptionItem">
-                        <TextBlock Text="{Binding Display}" />
-                      </DataTemplate>
-                    </AutoCompleteBox.ItemTemplate>
-                  </AutoCompleteBox>
-                </Grid>
+                    <Grid
+                      Grid.Row="1"
+                      ColumnDefinitions="2.3*,1.5*,160,2*"
+                      ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                      <Grid
+                        Grid.Column="0"
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon
+                          Grid.Column="0"
+                          Width="{DynamicResource IconSizeCompact}"
+                          Height="{DynamicResource IconSizeCompact}"
+                          VerticalAlignment="Center"
+                          Foreground="{DynamicResource MutedColor}"
+                          Kind="Pill" />
+                        <AutoCompleteBox
+                          x:Name="ReassignDrugBox"
+                          Grid.Column="1"
+                          IsDropDownOpen="{Binding IsReassignDrugSuggestOpen, Mode=TwoWay}"
+                          ItemsSource="{Binding ReassignDrugOptions}"
+                          KeyDown="ReassignDrugBox_OnKeyDown"
+                          PlaceholderText="目标药品名（必填）"
+                          Text="{Binding ReassignDrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}">
+                          <AutoCompleteBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:OptionItem">
+                              <TextBlock Text="{Binding Display}" />
+                            </DataTemplate>
+                          </AutoCompleteBox.ItemTemplate>
+                        </AutoCompleteBox>
+                      </Grid>
 
-                <Grid
-                  Grid.Column="1"
-                  ColumnDefinitions="Auto,*"
-                  ColumnSpacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Grid.Column="0"
-                    Width="{DynamicResource IconSizeCompact}"
-                    Height="{DynamicResource IconSizeCompact}"
-                    VerticalAlignment="Center"
-                    Kind="SlidersHorizontal" Foreground="{DynamicResource MutedColor}" />
-                  <Grid Grid.Column="1">
-                    <ComboBox
-                      x:Name="ReassignSpecBox"
-                      Height="{StaticResource ControlHeightCompact}"
-                      DisplayMemberBinding="{Binding Display}"
-                      IsEnabled="{Binding !IsUiBusy}"
-                      ItemsSource="{Binding ReassignSpecOptions}"
-                      SelectedItem="{Binding ReassignSelectedSpec}" />
+                      <Grid
+                        Grid.Column="1"
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon
+                          Grid.Column="0"
+                          Width="{DynamicResource IconSizeCompact}"
+                          Height="{DynamicResource IconSizeCompact}"
+                          VerticalAlignment="Center"
+                          Foreground="{DynamicResource MutedColor}"
+                          Kind="SlidersHorizontal" />
+                        <Grid Grid.Column="1">
+                          <ComboBox
+                            x:Name="ReassignSpecBox"
+                            Height="{StaticResource ControlHeightCompact}"
+                            DisplayMemberBinding="{Binding Display}"
+                            IsEnabled="{Binding !IsUiBusy}"
+                            ItemsSource="{Binding ReassignSpecOptions}"
+                            SelectedItem="{Binding ReassignSelectedSpec}" />
+                          <TextBlock
+                            Margin="{DynamicResource MarginLeftMd}"
+                            VerticalAlignment="Center"
+                            IsHitTestVisible="False"
+                            IsVisible="{Binding !IsReassignSpecSelected}"
+                            Opacity="0.55"
+                            Text="目标规格（必填）" />
+                        </Grid>
+                      </Grid>
+
+                      <Grid
+                        Grid.Column="2"
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon
+                          Grid.Column="0"
+                          Width="{DynamicResource IconSizeCompact}"
+                          Height="{DynamicResource IconSizeCompact}"
+                          VerticalAlignment="Center"
+                          Foreground="{DynamicResource MutedColor}"
+                          Kind="Hash" />
+                        <TextBox
+                          Grid.Column="1"
+                          AcceptsReturn="False"
+                          Classes="CompactField"
+                          IsEnabled="False"
+                          PlaceholderText="纠错数量"
+                          Text="{Binding ReassignQtyText, Mode=OneWay}"
+                          TextWrapping="NoWrap" />
+                      </Grid>
+
+                      <Grid
+                        Grid.Column="3"
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon
+                          Grid.Column="0"
+                          Width="{DynamicResource IconSizeCompact}"
+                          Height="{DynamicResource IconSizeCompact}"
+                          VerticalAlignment="Center"
+                          Foreground="{DynamicResource MutedColor}"
+                          Kind="FilePenLine" />
+                        <TextBox
+                          Grid.Column="1"
+                          VerticalContentAlignment="Center"
+                          AcceptsReturn="False"
+                          Classes="CompactField"
+                          PlaceholderText="纠错原因（必填）"
+                          Text="{Binding ReassignReason, Mode=TwoWay}"
+                          TextWrapping="NoWrap" />
+                      </Grid>
+                    </Grid>
+
                     <TextBlock
-                      Margin="{DynamicResource MarginLeftMd}"
-                      VerticalAlignment="Center"
-                      IsHitTestVisible="False"
-                      IsVisible="{Binding !IsReassignSpecSelected}"
-                      Opacity="0.55"
-                      Text="目标规格（必填）" />
-                  </Grid>
-                </Grid>
+                      Grid.Row="2"
+                      Classes="Caption Muted"
+                      IsVisible="{Binding HasReassignPreviewText}"
+                      Text="{Binding ReassignPreviewText}" />
 
-                <Grid
-                  Grid.Column="2"
-                  ColumnDefinitions="Auto,*"
-                  ColumnSpacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Grid.Column="0"
-                    Width="{DynamicResource IconSizeCompact}"
-                    Height="{DynamicResource IconSizeCompact}"
-                    VerticalAlignment="Center"
-                    Kind="Hash" Foreground="{DynamicResource MutedColor}" />
-                  <TextBox
-                    Grid.Column="1"
-                    AcceptsReturn="False"
-                    Classes="CompactField"
-                    IsEnabled="False"
-                    PlaceholderText="纠错数量"
-                    Text="{Binding ReassignQtyText, Mode=OneWay}"
-                    TextWrapping="NoWrap" />
-                </Grid>
-
-                <Grid
-                  Grid.Column="3"
-                  ColumnDefinitions="Auto,*"
-                  ColumnSpacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Grid.Column="0"
-                    Width="{DynamicResource IconSizeCompact}"
-                    Height="{DynamicResource IconSizeCompact}"
-                    VerticalAlignment="Center"
-                    Kind="FilePenLine" Foreground="{DynamicResource MutedColor}" />
-                  <TextBox
-                    Grid.Column="1"
-                    VerticalContentAlignment="Center"
-                    AcceptsReturn="False"
-                    Classes="CompactField"
-                    PlaceholderText="纠错原因（必填）"
-                    Text="{Binding ReassignReason, Mode=TwoWay}"
-                    TextWrapping="NoWrap" />
-                </Grid>
-              </Grid>
-
-              <TextBlock
-                Grid.Row="2"
-                IsVisible="{Binding HasReassignPreviewText}" Classes="Caption Muted"
-                Text="{Binding ReassignPreviewText}" />
-
-              <controls:DeferredGridSlot
-                x:Name="ReassignPreviewGridSlot"
-                Grid.Row="3"
-                SlotMinHeight="148"
-                SlotName="ReassignPreviewGrid"
-                IsVisible="{Binding !IsReassignPreviewEmpty}">
-                <controls:DeferredGridSlot.GridTemplate>
-                  <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
-                    <DataGrid
-                      MinHeight="148"
-                      MaxHeight="228"
-                      Classes="SectionGrid InventoryGrid NonInteractive"
-                      ItemsSource="{Binding ReassignPreviewRows}">
-                      <DataGrid.Columns>
-                        <DataGridTextColumn
-                          Width="1.2*"
-                          Binding="{Binding CurrentDrugId}"
-                          Header="当前药品名"
-                          IsReadOnly="True" />
-                        <DataGridTextColumn
-                          Width="1.2*"
-                          Binding="{Binding CurrentSpec}"
-                          Header="当前规格"
-                          IsReadOnly="True" />
-                        <DataGridTextColumn
-                          Width="{StaticResource DgWRightSmall}"
-                          Binding="{Binding CurrentQty}"
-                          Header="当前数量"
-                          IsReadOnly="True" />
-                        <DataGridTextColumn
-                          Width="1.2*"
-                          Binding="{Binding TargetDrugId}"
-                          Header="目标药品名"
-                          IsReadOnly="True" />
-                        <DataGridTextColumn
-                          Width="1.2*"
-                          Binding="{Binding TargetSpec}"
-                          Header="目标规格"
-                          IsReadOnly="True" />
-                        <DataGridTextColumn
-                          Width="{StaticResource DgWRightSmall}"
-                          Binding="{Binding TargetQty}"
-                          Header="目标数量"
-                          IsReadOnly="True" />
-                        <DataGridTextColumn
-                          Width="1.35*"
-                          Binding="{Binding TraceCode}"
-                          Header="追溯码"
-                          IsReadOnly="True" />
-                      </DataGrid.Columns>
-                    </DataGrid>
-                  </DataTemplate>
-                  </controls:DeferredGridSlot.GridTemplate>
-                </controls:DeferredGridSlot>
+                    <controls:DeferredGridSlot
+                      x:Name="ReassignPreviewGridSlot"
+                      Grid.Row="3"
+                      IsVisible="{Binding !IsReassignPreviewEmpty}"
+                      SlotMinHeight="148"
+                      SlotName="ReassignPreviewGrid">
+                      <controls:DeferredGridSlot.GridTemplate>
+                        <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
+                          <DataGrid
+                            MinHeight="148"
+                            MaxHeight="228"
+                            Classes="SectionGrid InventoryGrid NonInteractive"
+                            ItemsSource="{Binding ReassignPreviewRows}">
+                            <DataGrid.Columns>
+                              <DataGridTextColumn
+                                Width="1.2*"
+                                Binding="{Binding CurrentDrugId}"
+                                Header="当前药品名"
+                                IsReadOnly="True" />
+                              <DataGridTextColumn
+                                Width="1.2*"
+                                Binding="{Binding CurrentSpec}"
+                                Header="当前规格"
+                                IsReadOnly="True" />
+                              <DataGridTextColumn
+                                Width="{StaticResource DgWRightSmall}"
+                                Binding="{Binding CurrentQty}"
+                                Header="当前数量"
+                                IsReadOnly="True" />
+                              <DataGridTextColumn
+                                Width="1.2*"
+                                Binding="{Binding TargetDrugId}"
+                                Header="目标药品名"
+                                IsReadOnly="True" />
+                              <DataGridTextColumn
+                                Width="1.2*"
+                                Binding="{Binding TargetSpec}"
+                                Header="目标规格"
+                                IsReadOnly="True" />
+                              <DataGridTextColumn
+                                Width="{StaticResource DgWRightSmall}"
+                                Binding="{Binding TargetQty}"
+                                Header="目标数量"
+                                IsReadOnly="True" />
+                              <DataGridTextColumn
+                                Width="1.35*"
+                                Binding="{Binding TraceCode}"
+                                Header="追溯码"
+                                IsReadOnly="True" />
+                            </DataGrid.Columns>
+                          </DataGrid>
+                        </DataTemplate>
+                      </controls:DeferredGridSlot.GridTemplate>
+                    </controls:DeferredGridSlot>
                   </Grid>
                 </shad:Card>
               </DataTemplate>
@@ -495,11 +502,29 @@
                           ItemsSource="{Binding StockRows}"
                           SelectedItem="{Binding SelectedStockRow, Mode=TwoWay}">
                           <DataGrid.Columns>
-                            <DataGridTextColumn Width="1.4*" Binding="{Binding DrugId}" Header="药品名" IsReadOnly="True" />
-                            <DataGridTextColumn Width="1.4*" Binding="{Binding Spec}" Header="规格" IsReadOnly="True" />
-                            <DataGridTextColumn Width="1.4*" Binding="{Binding TraceCode}" Header="追溯码" />
-                            <DataGridTextColumn Width="{StaticResource DgWRightSmall}" Binding="{Binding Qty}" Header="数量" IsReadOnly="True" />
-                            <DataGridTextColumn Width="{StaticResource DgWRightSmall}" Binding="{Binding Remain}" Header="剩余" />
+                            <DataGridTextColumn
+                              Width="1.4*"
+                              Binding="{Binding DrugId}"
+                              Header="药品名"
+                              IsReadOnly="True" />
+                            <DataGridTextColumn
+                              Width="1.4*"
+                              Binding="{Binding Spec}"
+                              Header="规格"
+                              IsReadOnly="True" />
+                            <DataGridTextColumn
+                              Width="1.4*"
+                              Binding="{Binding TraceCode}"
+                              Header="追溯码" />
+                            <DataGridTextColumn
+                              Width="{StaticResource DgWRightSmall}"
+                              Binding="{Binding Qty}"
+                              Header="数量"
+                              IsReadOnly="True" />
+                            <DataGridTextColumn
+                              Width="{StaticResource DgWRightSmall}"
+                              Binding="{Binding Remain}"
+                              Header="剩余" />
                           </DataGrid.Columns>
                         </DataGrid>
                       </DataTemplate>
@@ -516,64 +541,64 @@
               IsVisible="{Binding IsAggMode}">
               <controls:DeferredContentHost.ContentTemplate>
                 <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
-            <Grid>
-              <shad:BusyArea IsBusy="{Binding IsAggBusy}">
-                <controls:EmptyStatePanel
-                  EmptyHint="{Binding AggEmptyHint}"
-                  EmptyText="{Binding AggEmptyText}"
-                  Icon="{Binding SectionEmptyIcon}"
-                  IsEmpty="{Binding IsAggEmpty}"
-                  IsPending="{Binding IsSectionPending}"
-                  SlotMinHeight="{DynamicResource DgH10Rows}">
-                  <controls:DeferredGridSlot
-                    x:Name="AggGridSlot"
-                    SlotMinHeight="{DynamicResource DgH10Rows}"
-                    SlotName="AggGrid">
-                    <controls:DeferredGridSlot.GridTemplate>
-                      <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
-                        <DataGrid
-                          MinHeight="0"
-                          Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid StickyIndexRowNo"
-                          HorizontalScrollBarVisibility="Disabled"
-                          ItemsSource="{Binding DrugSpecRows}">
-                          <DataGrid.Columns>
-                            <DataGridTextColumn
-                              Width="1.6*"
-                              Binding="{Binding DrugId}"
-                              Header="药品名" />
-                            <DataGridTextColumn
-                              Width="2*"
-                              Binding="{Binding Spec}"
-                              Header="规格" />
-                            <DataGridTextColumn
-                              Width="{StaticResource DgWRightSmall}"
-                              Binding="{Binding CodeCount}"
-                              Header="追溯码数" />
-                            <DataGridTextColumn
-                              Width="{StaticResource DgWRightSmall}"
-                              Binding="{Binding QtySum}"
-                              Header="总数量" />
-                            <DataGridTextColumn
-                              Width="{StaticResource DgWRightSmall}"
-                              Binding="{Binding RemainSum}"
-                              Header="剩余" />
-                            <DataGridTextColumn
-                              Width="{StaticResource DgWRightSmall}"
-                              Binding="{Binding WeekUsed}"
-                              Header="周用量" />
-                            <DataGridTextColumn
-                              Width="{StaticResource DgWRightSmall}"
-                              Binding="{Binding Threshold, StringFormat={}{0:0}}"
-                              Header="阈值"
-                              IsVisible="False" />
-                          </DataGrid.Columns>
-                        </DataGrid>
-                      </DataTemplate>
-                    </controls:DeferredGridSlot.GridTemplate>
-                  </controls:DeferredGridSlot>
-                </controls:EmptyStatePanel>
-              </shad:BusyArea>
-            </Grid>
+                  <Grid>
+                    <shad:BusyArea IsBusy="{Binding IsAggBusy}">
+                      <controls:EmptyStatePanel
+                        EmptyHint="{Binding AggEmptyHint}"
+                        EmptyText="{Binding AggEmptyText}"
+                        Icon="{Binding SectionEmptyIcon}"
+                        IsEmpty="{Binding IsAggEmpty}"
+                        IsPending="{Binding IsSectionPending}"
+                        SlotMinHeight="{DynamicResource DgH10Rows}">
+                        <controls:DeferredGridSlot
+                          x:Name="AggGridSlot"
+                          SlotMinHeight="{DynamicResource DgH10Rows}"
+                          SlotName="AggGrid">
+                          <controls:DeferredGridSlot.GridTemplate>
+                            <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
+                              <DataGrid
+                                MinHeight="0"
+                                Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid StickyIndexRowNo"
+                                HorizontalScrollBarVisibility="Disabled"
+                                ItemsSource="{Binding DrugSpecRows}">
+                                <DataGrid.Columns>
+                                  <DataGridTextColumn
+                                    Width="1.6*"
+                                    Binding="{Binding DrugId}"
+                                    Header="药品名" />
+                                  <DataGridTextColumn
+                                    Width="2*"
+                                    Binding="{Binding Spec}"
+                                    Header="规格" />
+                                  <DataGridTextColumn
+                                    Width="{StaticResource DgWRightSmall}"
+                                    Binding="{Binding CodeCount}"
+                                    Header="追溯码数" />
+                                  <DataGridTextColumn
+                                    Width="{StaticResource DgWRightSmall}"
+                                    Binding="{Binding QtySum}"
+                                    Header="总数量" />
+                                  <DataGridTextColumn
+                                    Width="{StaticResource DgWRightSmall}"
+                                    Binding="{Binding RemainSum}"
+                                    Header="剩余" />
+                                  <DataGridTextColumn
+                                    Width="{StaticResource DgWRightSmall}"
+                                    Binding="{Binding WeekUsed}"
+                                    Header="周用量" />
+                                  <DataGridTextColumn
+                                    Width="{StaticResource DgWRightSmall}"
+                                    Binding="{Binding Threshold, StringFormat={}{0:0}}"
+                                    Header="阈值"
+                                    IsVisible="False" />
+                                </DataGrid.Columns>
+                              </DataGrid>
+                            </DataTemplate>
+                          </controls:DeferredGridSlot.GridTemplate>
+                        </controls:DeferredGridSlot>
+                      </controls:EmptyStatePanel>
+                    </shad:BusyArea>
+                  </Grid>
                 </DataTemplate>
               </controls:DeferredContentHost.ContentTemplate>
             </controls:DeferredContentHost>
@@ -585,51 +610,51 @@
               IsVisible="{Binding IsLowMode}">
               <controls:DeferredContentHost.ContentTemplate>
                 <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
-            <Grid>
-              <shad:BusyArea IsBusy="{Binding IsLowBusy}">
-                <controls:EmptyStatePanel
-                  EmptyHint="{Binding LowEmptyHint}"
-                  EmptyText="{Binding LowEmptyText}"
-                  Icon="{Binding SectionEmptyIcon}"
-                  IsEmpty="{Binding IsLowEmpty}"
-                  IsPending="{Binding IsSectionPending}"
-                  SlotMinHeight="{DynamicResource DgH10Rows}">
-                  <controls:DeferredGridSlot
-                    x:Name="LowStockGridSlot"
-                    SlotMinHeight="{DynamicResource DgH10Rows}"
-                    SlotName="LowStockGrid">
-                    <controls:DeferredGridSlot.GridTemplate>
-                      <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
-                        <DataGrid
-                          MinHeight="0"
-                          Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid StickyIndexRowNo"
-                          HorizontalScrollBarVisibility="Disabled"
-                          ItemsSource="{Binding LowStockRows}">
-                          <DataGrid.Columns>
-                            <DataGridTextColumn
-                              Width="1.2*"
-                              Binding="{Binding DrugId}"
-                              Header="药品名" />
-                            <DataGridTextColumn
-                              Width="1.4*"
-                              Binding="{Binding Spec}"
-                              Header="规格" />
-                            <DataGridTextColumn
-                              Width="{StaticResource DgWRightSmall}"
-                              Binding="{Binding RemainSum}"
-                              Header="剩余" />
-                            <DataGridTextColumn
-                              Width="{StaticResource DgWRightSmall}"
-                              Binding="{Binding Threshold, StringFormat={}{0:0}}"
-                              Header="阈值" />
-                          </DataGrid.Columns>
-                        </DataGrid>
-                      </DataTemplate>
-                    </controls:DeferredGridSlot.GridTemplate>
-                  </controls:DeferredGridSlot>
-                </controls:EmptyStatePanel>
-              </shad:BusyArea>
-            </Grid>
+                  <Grid>
+                    <shad:BusyArea IsBusy="{Binding IsLowBusy}">
+                      <controls:EmptyStatePanel
+                        EmptyHint="{Binding LowEmptyHint}"
+                        EmptyText="{Binding LowEmptyText}"
+                        Icon="{Binding SectionEmptyIcon}"
+                        IsEmpty="{Binding IsLowEmpty}"
+                        IsPending="{Binding IsSectionPending}"
+                        SlotMinHeight="{DynamicResource DgH10Rows}">
+                        <controls:DeferredGridSlot
+                          x:Name="LowStockGridSlot"
+                          SlotMinHeight="{DynamicResource DgH10Rows}"
+                          SlotName="LowStockGrid">
+                          <controls:DeferredGridSlot.GridTemplate>
+                            <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
+                              <DataGrid
+                                MinHeight="0"
+                                Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid StickyIndexRowNo"
+                                HorizontalScrollBarVisibility="Disabled"
+                                ItemsSource="{Binding LowStockRows}">
+                                <DataGrid.Columns>
+                                  <DataGridTextColumn
+                                    Width="1.2*"
+                                    Binding="{Binding DrugId}"
+                                    Header="药品名" />
+                                  <DataGridTextColumn
+                                    Width="1.4*"
+                                    Binding="{Binding Spec}"
+                                    Header="规格" />
+                                  <DataGridTextColumn
+                                    Width="{StaticResource DgWRightSmall}"
+                                    Binding="{Binding RemainSum}"
+                                    Header="剩余" />
+                                  <DataGridTextColumn
+                                    Width="{StaticResource DgWRightSmall}"
+                                    Binding="{Binding Threshold, StringFormat={}{0:0}}"
+                                    Header="阈值" />
+                                </DataGrid.Columns>
+                              </DataGrid>
+                            </DataTemplate>
+                          </controls:DeferredGridSlot.GridTemplate>
+                        </controls:DeferredGridSlot>
+                      </controls:EmptyStatePanel>
+                    </shad:BusyArea>
+                  </Grid>
                 </DataTemplate>
               </controls:DeferredContentHost.ContentTemplate>
             </controls:DeferredContentHost>
@@ -640,43 +665,43 @@
               IsVisible="{Binding IsMissingMode}">
               <controls:DeferredContentHost.ContentTemplate>
                 <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
-            <Grid>
-              <shad:BusyArea IsBusy="{Binding IsMissingBusy}">
-                <controls:EmptyStatePanel
-                  EmptyHint="{Binding MissingEmptyHint}"
-                  EmptyText="{Binding MissingEmptyText}"
-                  Icon="{Binding SectionEmptyIcon}"
-                  IsEmpty="{Binding IsMissingEmpty}"
-                  IsPending="{Binding IsSectionPending}"
-                  SlotMinHeight="{DynamicResource DgH10Rows}">
-                  <controls:DeferredGridSlot
-                    x:Name="MissingGridSlot"
-                    SlotMinHeight="{DynamicResource DgH10Rows}"
-                    SlotName="MissingGrid">
-                    <controls:DeferredGridSlot.GridTemplate>
-                      <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
-                        <DataGrid
-                          MinHeight="0"
-                          Classes="SectionGrid InventoryGrid MissingGrid IndexedGrid StickyIndexRowNo"
-                          HorizontalScrollBarVisibility="Disabled"
-                          ItemsSource="{Binding MissingStockRows}">
-                          <DataGrid.Columns>
-                            <DataGridTextColumn
-                              Width="1.3*"
-                              Binding="{Binding DrugId}"
-                              Header="药品名" />
-                            <DataGridTextColumn
-                              Width="1.4*"
-                              Binding="{Binding Spec}"
-                              Header="规格" />
-                          </DataGrid.Columns>
-                        </DataGrid>
-                      </DataTemplate>
-                    </controls:DeferredGridSlot.GridTemplate>
-                  </controls:DeferredGridSlot>
-                </controls:EmptyStatePanel>
-              </shad:BusyArea>
-            </Grid>
+                  <Grid>
+                    <shad:BusyArea IsBusy="{Binding IsMissingBusy}">
+                      <controls:EmptyStatePanel
+                        EmptyHint="{Binding MissingEmptyHint}"
+                        EmptyText="{Binding MissingEmptyText}"
+                        Icon="{Binding SectionEmptyIcon}"
+                        IsEmpty="{Binding IsMissingEmpty}"
+                        IsPending="{Binding IsSectionPending}"
+                        SlotMinHeight="{DynamicResource DgH10Rows}">
+                        <controls:DeferredGridSlot
+                          x:Name="MissingGridSlot"
+                          SlotMinHeight="{DynamicResource DgH10Rows}"
+                          SlotName="MissingGrid">
+                          <controls:DeferredGridSlot.GridTemplate>
+                            <DataTemplate x:DataType="vm:InventoryOverviewViewModel">
+                              <DataGrid
+                                MinHeight="0"
+                                Classes="SectionGrid InventoryGrid MissingGrid IndexedGrid StickyIndexRowNo"
+                                HorizontalScrollBarVisibility="Disabled"
+                                ItemsSource="{Binding MissingStockRows}">
+                                <DataGrid.Columns>
+                                  <DataGridTextColumn
+                                    Width="1.3*"
+                                    Binding="{Binding DrugId}"
+                                    Header="药品名" />
+                                  <DataGridTextColumn
+                                    Width="1.4*"
+                                    Binding="{Binding Spec}"
+                                    Header="规格" />
+                                </DataGrid.Columns>
+                              </DataGrid>
+                            </DataTemplate>
+                          </controls:DeferredGridSlot.GridTemplate>
+                        </controls:DeferredGridSlot>
+                      </controls:EmptyStatePanel>
+                    </shad:BusyArea>
+                  </Grid>
                 </DataTemplate>
               </controls:DeferredContentHost.ContentTemplate>
             </controls:DeferredContentHost>

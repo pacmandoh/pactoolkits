@@ -42,7 +42,8 @@
         RowSpacing="{DynamicResource DialogInnerRowSpacing}">
         <TextBlock
           Grid.Row="0"
-          Grid.Column="0" Classes="Caption Muted"
+          Grid.Column="0"
+          Classes="Caption Muted"
           Text="源药品键" />
         <TextBlock
           Grid.Row="0"
@@ -52,7 +53,8 @@
 
         <TextBlock
           Grid.Row="1"
-          Grid.Column="0" Classes="Caption Muted"
+          Grid.Column="0"
+          Classes="Caption Muted"
           Text="目标药品键" />
         <TextBlock
           Grid.Row="1"
@@ -69,7 +71,8 @@
           RowSpacing="{DynamicResource DialogFormRowSpacing}">
           <TextBlock
             Grid.Row="0"
-            Grid.Column="0" Classes="Caption Muted"
+            Grid.Column="0"
+            Classes="Caption Muted"
             Text="trace_pool 影响" />
           <TextBlock
             Grid.Row="0"
@@ -80,7 +83,8 @@
 
           <TextBlock
             Grid.Row="1"
-            Grid.Column="0" Classes="Caption Muted"
+            Grid.Column="0"
+            Classes="Caption Muted"
             Text="trace_txn 影响" />
           <TextBlock
             Grid.Row="1"

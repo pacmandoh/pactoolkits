@@ -1,9 +1,9 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
   <Style Selector="shad|BusyArea[IsBusy=true]">
     <Setter Property="IsEnabled" Value="False" />
   </Style>
@@ -42,8 +42,8 @@
           <PathIcon
             Width="16"
             Height="16"
-            Opacity="0.75"
-            Data="{x:Static shad:Icons.Search}" />
+            Data="{x:Static shad:Icons.Search}"
+            Opacity="0.75" />
         </Template>
       </Setter.Value>
     </Setter>
@@ -56,8 +56,8 @@
           <PathIcon
             Width="16"
             Height="16"
-            Opacity="0.75"
-            Data="{x:Static shad:Icons.Search}" />
+            Data="{x:Static shad:Icons.Search}"
+            Opacity="0.75" />
         </Template>
       </Setter.Value>
     </Setter>
