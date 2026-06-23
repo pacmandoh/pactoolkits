@@ -292,7 +292,7 @@ public partial class InventoryOverviewView : UserControl
 
     private void ReassignDrugBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        _ = AutoCompleteHelper.HandleEnterCommitAndApply(
+        _ = AutoCompleteCommit.HandleEnterCommitAndApply(
             this,
             sender,
             e,
@@ -342,8 +342,8 @@ public partial class InventoryOverviewView : UserControl
             return;
         }
 
-        AutoCompleteHelper.AttachDrugOptionFilter(box);
-        AutoCompleteHelper.AttachCandidateCommitApply(box, this, "ReassignSpecBox", ApplyReassignDrugFilterFromBox);
+        AutoCompleteFilter.AttachDrugOptionFilter(box);
+        AutoCompleteCommit.AttachCandidateCommitApply(box, this, "ReassignSpecBox", ApplyReassignDrugFilterFromBox);
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

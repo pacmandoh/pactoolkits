@@ -171,7 +171,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                 {
                     var currentDrug = NormalizeInput(DrugText);
                     _drugCatalog = drugs;
-                    AutoCompleteHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
+                    AutoCompleteFilter.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
 
                     if (string.IsNullOrWhiteSpace(currentDrug))
                     {
@@ -275,7 +275,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             return;
         }
 
-        AutoCompleteHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, searchText);
+        AutoCompleteFilter.RefreshVisibleOptions(DrugOptions, _drugCatalog, searchText);
     }
 
     partial void OnSelectedQtyTextChanged(string? value)
@@ -359,7 +359,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
            && ValidCodeCount > 0;
 
     private bool CanClearDrugSpecFilter()
-        => CanOperateUi() && AutoCompleteHelper.HasDrugText(DrugText);
+        => CanOperateUi() && AutoCompleteFilter.HasDrugText(DrugText);
 
     [RelayCommand(CanExecute = nameof(CanClearDrugSpecFilter))]
     private void ClearDrugSpecFilter()
@@ -650,7 +650,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         await RunOnUiAsync(() =>
         {
             _drugCatalog = drugs;
-            AutoCompleteHelper.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
+            AutoCompleteFilter.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
 
             var currentDrug = NormalizeInput(DrugText);
             if (!string.IsNullOrWhiteSpace(currentDrug))
