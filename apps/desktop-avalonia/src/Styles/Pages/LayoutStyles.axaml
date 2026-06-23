@@ -1,5 +1,8 @@
 <Styles
   xmlns="https://github.com/avaloniaui"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Style Selector="Grid.PageRoot">
     <Setter Property="Margin" Value="{DynamicResource PageRootMargin}" />
@@ -39,6 +42,21 @@
     <Setter Property="RowSpacing" Value="{DynamicResource PageRowSpacing}" />
   </Style>
 
+  <!-- Dashboard tabs: headers only; body lives in Grid row below. -->
+  <Style Selector="TabControl.DashboardTabHeaders /template/ LayoutTransformControl > Border">
+    <Setter Property="Background" Value="{DynamicResource SwitchBackgroundColor}" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardTabHeaders /template/ StackPanel">
+    <Setter Property="Spacing" Value="0" />
+  </Style>
+
+  <Style Selector="TabControl.DashboardTabHeaders /template/ ContentPresenter#PART_SelectedContentHost">
+    <Setter Property="Height" Value="0" />
+    <Setter Property="IsVisible" Value="False" />
+    <Setter Property="Margin" Value="0" />
+  </Style>
+
   <Style Selector="Border.DashboardFilterChrome">
     <Setter Property="Margin" Value="0" />
     <Setter Property="Padding" Value="{DynamicResource DashboardFilterBarPadding}" />
@@ -56,6 +74,10 @@
     <Setter Property="Margin" Value="{DynamicResource DashboardFilterColumnPadding}" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="ColumnSpacing" Value="{DynamicResource DashboardFilterGroupSpacing}" />
+  </Style>
+
+  <Style Selector="Grid.DashboardFilterColumn > TextBlock.Caption">
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <Style Selector="Border.DashboardFilterColumnDivider">
@@ -98,12 +120,6 @@
     <Setter Property="Theme" Value="{DynamicResource SideTogglerTheme}" />
   </Style>
 
-  <Style Selector="TextBlock.ShellContentTitle">
-    <Setter Property="FontSize" Value="{DynamicResource SectionTitleSize}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-  </Style>
-
   <Style Selector="StackPanel.ShellContentHeaderMenuItemHeader">
     <Setter Property="Orientation" Value="Horizontal" />
     <Setter Property="Spacing" Value="{DynamicResource SpacingInlineSm}" />
@@ -113,6 +129,7 @@
   <Style Selector="StackPanel.ShellContentHeaderMenuItemHeader > TextBlock">
     <Setter Property="FontSize" Value="{DynamicResource ShellTitleSize}" />
     <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
