@@ -15,64 +15,6 @@
   x:DataType="vm:DrugIndexViewModel"
   Focusable="True"
   mc:Ignorable="d">
-  <UserControl.Styles>
-    <Style Selector="DataGrid.DrugGrid DataGridRow">
-      <Setter Property="ContextMenu">
-        <Setter.Value>
-          <ContextMenu Opened="OnDrugGridContextMenuOpened">
-            <MenuItem
-              Click="OnGridRowCopy"
-              CommandParameter="{Binding}"
-              Header="复制">
-              <MenuItem.Icon>
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="Copy" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem
-              Click="OnGridSelectAll"
-              CommandParameter="{Binding}"
-              Header="全选">
-              <MenuItem.Icon>
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="ListChecks" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <Separator Classes="DrugIndexSensitiveMenuSeparator" />
-            <MenuItem
-              Classes="DrugIndexSensitiveMenuItem"
-              Click="OnGridToggleDeprecated"
-              CommandParameter="{Binding}"
-              Header="弃用 / 启用">
-              <MenuItem.Icon>
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="CircleX" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem
-              Classes="DrugIndexSensitiveMenuItem"
-              Click="OnGridToggleNoSplit"
-              CommandParameter="{Binding}"
-              Header="未拆零 / 可拆零">
-              <MenuItem.Icon>
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="Scissors" />
-              </MenuItem.Icon>
-            </MenuItem>
-          </ContextMenu>
-        </Setter.Value>
-      </Setter>
-    </Style>
-  </UserControl.Styles>
-
   <controls:PageDataShell
     IsLoadingData="{Binding IsBusy}"
     ShowStale="{Binding IsShowingStaleData}"
@@ -179,13 +121,6 @@
                     Kind="Pill" />
                   <TextBlock FontWeight="SemiBold" Text="{Binding Items.Count}" />
                   <TextBlock Text="条" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Kind="Mouse" />
-                  <TextBlock Text="右键：特殊操作" />
                 </StackPanel>
               </WrapPanel>
 

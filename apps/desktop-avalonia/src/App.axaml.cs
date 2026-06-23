@@ -36,7 +36,6 @@ public partial class App : global::Avalonia.Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
-        ContextMenuDismissTracker.InstallGlobalHandlers();
     }
 
     public override void OnFrameworkInitializationCompleted()

@@ -235,7 +235,6 @@
                 x:Name="DrugIdBox"
                 Grid.Row="1"
                 FilterMode="Contains"
-                IsTextCompletionEnabled="True"
                 KeyDown="DrugIdBox_OnKeyDown"
                 MinimumPrefixLength="1"
                 PlaceholderText="输入院内药品信息">

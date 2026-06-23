@@ -5,46 +5,23 @@ using System.Linq;
 using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
-using global::Avalonia.Interactivity;
 using global::Avalonia.Threading;
-using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Controls;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
 public partial class InventoryOverviewView : UserControl
 {
-    private static readonly string[] CopyFields =
-    {
-        "DrugId", "Spec", "TraceCode", "Qty", "Remain", "CodeCount", "QtySum", "RemainSum", "Threshold"
-    };
-
-    private static readonly string[] ContextGridNames =
-    {
-        "StockDetailGrid", "AggGrid", "LowStockGrid", "MissingGrid"
-    };
-
-    private readonly IClipboardService _clipboard;
     private readonly PageGridMountScheduler _gridMount;
     private InventoryOverviewViewModel? _vm;
     private DeferredGridSlot? _reassignPreviewSlot;
     private bool _isSyncingSelectionFromVm;
     private bool _isSyncingSelectionToVm;
-    private DataGridColumn? _stockContextColumn;
-    private StockRowItem? _stockContextRow;
 
     public InventoryOverviewView()
-        : this(((global::Avalonia.Application.Current as App)?.Services.GetRequiredService<IClipboardService>())
-               ?? throw new InvalidOperationException("IClipboardService not available. Ensure it is registered in App.Services."))
     {
-    }
-
-    public InventoryOverviewView(IClipboardService clipboard)
-    {
-        _clipboard = clipboard;
         _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
         WireDeferredSectionHosts();
@@ -146,6 +123,7 @@ public partial class InventoryOverviewView : UserControl
             grid.CellPointerPressed += OnStockCellPointerPressed;
             grid.SelectionChanged += OnStockSelectionChanged;
             SyncStockEditClass();
+            ClearStockGridSelectionAfterRefresh();
         };
     }
 
@@ -229,8 +207,6 @@ public partial class InventoryOverviewView : UserControl
             }
 
             var row = e.Row?.DataContext as StockRowItem;
-            _stockContextRow = row;
-            _stockContextColumn = e.Column;
 
             if (sender is DataGrid grid && row is not null)
             {
@@ -347,141 +323,6 @@ public partial class InventoryOverviewView : UserControl
         InputFocusHelper.FocusControlByName(this, "InventorySearchButton", DispatcherPriority.Background);
     }
 
-    public async void OnGridRowCopy(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not MenuItem mi)
-        {
-            return;
-        }
-
-        await GridContextMenuActions.CopySafeAsync(
-            _clipboard,
-            this,
-            mi,
-            mi.CommandParameter,
-            ContextGridNames,
-            CopyFields,
-            "InventoryOverviewView",
-            "inventory.context_copy.fail",
-            "Failed copying selected rows");
-    }
-
-    public void OnGridSelectAll(object? sender, RoutedEventArgs e)
-    {
-        var mi = sender as MenuItem;
-        GridContextMenuActions.SelectAllSafe(
-            this,
-            mi,
-            mi?.CommandParameter,
-            ContextGridNames,
-            "InventoryOverviewView",
-            "inventory.context_select_all.fail",
-            "Failed selecting all rows");
-    }
-
-    public async void OnGridRowDelete(object? sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (DataContext is not InventoryOverviewViewModel vm)
-            {
-                return;
-            }
-
-            if (sender is not MenuItem mi)
-            {
-                return;
-            }
-
-            await vm.DeleteSelectedStockRowsAsync(mi.CommandParameter as StockRowItem);
-        }
-        catch (Exception ex)
-        {
-            AppLog.Warn("InventoryOverviewView", "inventory.context_delete.fail", "Failed deleting selected rows", ex);
-        }
-    }
-
-    public void OnStockDetailContextMenuOpened(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not ContextMenu cm)
-        {
-            return;
-        }
-
-        if (DataContext is not InventoryOverviewViewModel vm)
-        {
-            return;
-        }
-
-        vm.SyncUnlockStateForUi();
-        var canShowDelete = vm.IsStockEditEnabled && vm.IsOperationUnlocked;
-        var canShowEdit = vm.IsStockEditEnabled;
-        var canEditCurrentCell = canShowEdit
-                                 && _stockContextRow is not null
-                                 && _stockContextColumn is not null
-                                 && !_stockContextColumn.IsReadOnly;
-        foreach (var item in cm.Items.OfType<MenuItem>())
-        {
-            if (string.Equals(item.Header?.ToString(), "删除", StringComparison.Ordinal))
-            {
-                item.IsVisible = canShowDelete;
-            }
-            else if (string.Equals(item.Header?.ToString(), "编辑", StringComparison.Ordinal))
-            {
-                item.IsVisible = canShowEdit;
-                item.IsEnabled = canEditCurrentCell;
-            }
-        }
-    }
-
-    public void OnStockEditCell(object? sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (DataContext is not InventoryOverviewViewModel vm || !vm.IsStockEditEnabled || !vm.IsDetailMode)
-            {
-                return;
-            }
-
-            var grid = FindStockDetailGrid();
-            if (grid is null)
-            {
-                return;
-            }
-
-            var row = _stockContextRow ?? vm.SelectedStockRow;
-            if (row is null)
-            {
-                return;
-            }
-
-            var column = _stockContextColumn ?? grid.Columns.FirstOrDefault(c => !c.IsReadOnly);
-            if (column is null)
-            {
-                return;
-            }
-
-            if (column.IsReadOnly)
-            {
-                vm.NotifyReadonlyStockColumnEditAttempt(column.Header?.ToString());
-                return;
-            }
-
-            Dispatcher.UIThread.Post(() =>
-            {
-                grid.SelectedItem = row;
-                grid.CurrentColumn = column;
-                grid.ScrollIntoView(row, column);
-                grid.Focus();
-                _ = grid.BeginEdit(new RoutedEventArgs());
-            }, DispatcherPriority.Background);
-        }
-        catch (Exception ex)
-        {
-            AppLog.Warn("InventoryOverviewView", "inventory.stock_context_edit.fail", "Failed opening stock cell editor from context menu", ex);
-        }
-    }
-
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         _vm?.PropertyChanged -= OnVmPropertyChanged;
@@ -565,6 +406,36 @@ public partial class InventoryOverviewView : UserControl
         if (e.PropertyName == nameof(InventoryOverviewViewModel.SelectedStockRowsSnapshot) && !_isSyncingSelectionToVm)
         {
             SyncSelectionFromVm();
+        }
+
+        if (e.PropertyName == nameof(InventoryOverviewViewModel.StockRowsRevision))
+        {
+            ClearStockGridSelectionAfterRefresh();
+        }
+    }
+
+    private void ClearStockGridSelectionAfterRefresh()
+    {
+        var grid = FindStockDetailGrid();
+        if (grid is null)
+        {
+            return;
+        }
+
+        ClearStockGridSelectionCore(grid);
+        Dispatcher.UIThread.Post(() => ClearStockGridSelectionCore(grid), DispatcherPriority.Loaded);
+    }
+
+    private void ClearStockGridSelectionCore(DataGrid grid)
+    {
+        _isSyncingSelectionFromVm = true;
+        try
+        {
+            DataGridInteractionHelper.ClearSelection(grid);
+        }
+        finally
+        {
+            _isSyncingSelectionFromVm = false;
         }
     }
 
