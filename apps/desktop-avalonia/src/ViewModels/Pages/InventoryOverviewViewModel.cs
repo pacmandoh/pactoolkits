@@ -41,7 +41,7 @@ public sealed partial class StockRowItem : ObservableObject
         IsDeprecated = isDeprecated;
     }
 
-    public int RowNo { get; }
+    [ObservableProperty] private int _rowNo;
 
     [ObservableProperty] private string _drugId;
     [ObservableProperty] private string _spec;
@@ -123,6 +123,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public ObservableCollection<StockReassignPreviewRowItem> ReassignPreviewRows { get; } = new();
     public ObservableCollection<OptionItem> ReassignDrugOptions { get; } = new();
     public ObservableCollection<OptionItem> ReassignSpecOptions { get; } = new();
+    private IReadOnlyList<OptionItem> _reassignDrugCatalog = [];
     public ObservableCollection<int> PageSizeOptions { get; } = new(PageSizeOptionValues);
 
     [ObservableProperty] private int _modeIndex;
@@ -142,6 +143,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [ObservableProperty] private int _operationUnlockFailedAttempts;
     [ObservableProperty] private DateTimeOffset _operationUnlockCooldownUntilUtc;
     [ObservableProperty] private StockRowItem? _selectedStockRow;
+    [ObservableProperty] private int _stockRowsRevision;
     [ObservableProperty] private bool _isReassignPanelVisible;
     [ObservableProperty] private string? _reassignDrugText;
     [ObservableProperty] private OptionItem? _reassignSelectedSpec;
@@ -284,6 +286,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     protected override void OnLookupCatalogSuspended()
     {
         ReassignDrugOptions.Clear();
+        _reassignDrugCatalog = [];
         ReassignSpecOptions.Clear();
         IsReassignDrugSuggestOpen = false;
         ReassignDrugText = null;
@@ -400,6 +403,45 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         NotifyAllCommands();
     }
 
+    private void ClearStockSelection()
+    {
+        SelectedStockRow = null;
+        _selectedStockRows.Clear();
+        _selectedStockRowsSnapshot = Array.Empty<StockRowItem>();
+        OnPropertyChanged(nameof(SelectedStockRowsSnapshot));
+    }
+
+    private void ApplyStockRowsInPlace(IReadOnlyList<StockRowItem> items)
+    {
+        var sharedCount = Math.Min(StockRows.Count, items.Count);
+        for (var i = 0; i < sharedCount; i++)
+        {
+            var target = StockRows[i];
+            var source = items[i];
+            target.RowNo = source.RowNo;
+            target.DrugId = source.DrugId;
+            target.Spec = source.Spec;
+            target.TraceCode = source.TraceCode;
+            target.Qty = source.Qty;
+            target.Remain = source.Remain;
+            target.Status = source.Status;
+            target.IsLow = source.IsLow;
+            target.IsDeprecated = source.IsDeprecated;
+        }
+
+        while (StockRows.Count > items.Count)
+        {
+            StockRows.RemoveAt(StockRows.Count - 1);
+        }
+
+        for (var i = StockRows.Count; i < items.Count; i++)
+        {
+            StockRows.Add(items[i]);
+        }
+
+        StockRowsRevision++;
+    }
+
     partial void OnIsReassignPanelVisibleChanged(bool value)
     {
         if (!value)
@@ -418,6 +460,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     partial void OnReassignDrugTextChanged(string? value)
     {
+        RefreshReassignDrugOptionsOrder(value);
+
         var drug = NormalizeInput(value);
         IsReassignDrugSuggestOpen = !string.IsNullOrWhiteSpace(drug);
         if (string.IsNullOrWhiteSpace(drug))
@@ -429,6 +473,19 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             IsReassignSpecSelected = false;
         }
         NotifyAllCommands();
+    }
+
+    private void RefreshReassignDrugOptionsOrder(string? searchText)
+    {
+        if (_reassignDrugCatalog.Count == 0)
+        {
+            return;
+        }
+
+        DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(
+            ReassignDrugOptions,
+            _reassignDrugCatalog,
+            searchText);
     }
 
     partial void OnReassignSelectedSpecChanged(OptionItem? value)
@@ -565,7 +622,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        if (ReassignDrugOptions.Count > 0)
+        if (_reassignDrugCatalog.Count > 0)
         {
             return;
         }
@@ -576,7 +633,11 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             var drugs = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, cts.Token).ConfigureAwait(false);
             await RunOnUiAsync(() =>
             {
-                OptionCollectionHelper.Replace(ReassignDrugOptions, drugs, StringComparison.Ordinal);
+                _reassignDrugCatalog = drugs;
+                DrugAutoCompleteCatalogHelper.RefreshVisibleOptions(
+                    ReassignDrugOptions,
+                    _reassignDrugCatalog,
+                    ReassignDrugText);
             });
         }
         catch (System.Exception ex)
@@ -1831,7 +1892,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 // If count changed, rebuild the page rows to avoid stale tail rows.
                 if (StockRows.Count != pageResult.Rows.Count)
                 {
-                    StockRows.ReplaceAll(rebuiltRows);
+                    ClearStockSelection();
+                    ApplyStockRowsInPlace(rebuiltRows);
                     OnPropertyChanged(nameof(IsStockEmpty));
                 }
                 else
@@ -1929,7 +1991,11 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
         await RunOnUiAsync(() =>
         {
-            StockRows.ReplaceAll(items);
+            // DataGrid retains its selected index while ReplaceAll swaps every row instance.
+            // Clearing both selection channels prevents that stale index from selecting an
+            // unrelated row (commonly the final row on a 50-row page).
+            ClearStockSelection();
+            ApplyStockRowsInPlace(items);
             TotalCount = page.TotalCount;
             Status = $"库存明细：{TotalCount} 行（第 {PageIndex}/{TotalPages} 页）";
             OnPropertyChanged(nameof(IsStockEmpty));
@@ -2161,8 +2227,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             _ => mode
         };
 
+        var modeChanged = ModeIndex != next;
         ModeIndex = next;
-        if (forceReload)
+        if (forceReload && !modeChanged)
         {
             _ = ReloadAsync();
         }
