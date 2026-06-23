@@ -1,0 +1,16 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <Color x:Key="TitleBarBackgroundColor">#FFFFFF</Color>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <Color x:Key="TitleBarBackgroundColor">#171717</Color>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+
+  <!-- SidebarPage team badge blue — Shad PrimaryColor is neutral grey, not accent blue. -->
+  <Color x:Key="SidebarFunctionAreaBadgeColor">#1447E6</Color>
+  <Color x:Key="SidebarFunctionAreaBadgeForegroundColor">#FFFFFF</Color>
+  <SolidColorBrush x:Key="SidebarFunctionAreaBadgeBrush" Color="{StaticResource SidebarFunctionAreaBadgeColor}" />
+  <SolidColorBrush x:Key="SidebarFunctionAreaBadgeForegroundBrush" Color="{StaticResource SidebarFunctionAreaBadgeForegroundColor}" />
+</ResourceDictionary>

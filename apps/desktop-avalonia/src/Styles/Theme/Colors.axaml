@@ -38,6 +38,4 @@
   <SolidColorBrush x:Key="BrushGridSortResetBackground" Color="#1E2F4D80" />
   <SolidColorBrush x:Key="BrushGridSortResetForeground" Color="#D7E3F9" />
   <SolidColorBrush x:Key="BrushGridSortResetBorder" Color="#3A4C6D" />
-  <SolidColorBrush x:Key="BrushGridSortResetBackgroundHover" Color="#2D4E86A0" />
-  <SolidColorBrush x:Key="BrushGridSortResetBorderHover" Color="#5576B0" />
 </ResourceDictionary>

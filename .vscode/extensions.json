@@ -3,7 +3,6 @@
     "editorconfig.editorconfig",
     "ms-dotnettools.csharp",
     "esbenp.prettier-vscode",
-    "mkhl.shfmt",
-    "AvaloniaTeam.vscode-avalonia"
+    "mkhl.shfmt"
   ]
 }

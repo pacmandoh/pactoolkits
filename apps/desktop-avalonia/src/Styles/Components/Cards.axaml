@@ -1,63 +1,141 @@
-﻿<Styles
+<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:con="https://github.com/kikipoulet/SukiUI"
-  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
-  <Style Selector="con|GlassCard.SectionCard">
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
+  <!--
+    Shad Card wraps content in a ScrollViewer. Data pages host DataGrid inside Card,
+    which breaks row virtualization (nested scroll + infinite measure). Use a direct
+    ContentPresenter; opt into ScrollHostCard when scroll is needed.
+  -->
+  <Style Selector="shad|Card">
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="shad:Card">
+        <Border
+          Name="OuterBorder"
+          Width="{TemplateBinding Width}"
+          Height="{TemplateBinding Height}"
+          Margin="{TemplateBinding Margin}">
+          <Border
+            Name="Container"
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="{TemplateBinding BorderThickness}"
+            CornerRadius="{TemplateBinding CornerRadius}">
+            <Grid Margin="{TemplateBinding Padding}" RowDefinitions="Auto,*,Auto">
+              <ContentPresenter
+                Grid.Row="0"
+                Margin="0,0,0,24"
+                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                Content="{TemplateBinding Header}"
+                IsVisible="{TemplateBinding Header,
+                                            Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <ContentPresenter
+                Grid.Row="1"
+                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                Content="{TemplateBinding Content}" />
+              <ContentPresenter
+                Grid.Row="2"
+                Margin="0,24,0,0"
+                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                Content="{TemplateBinding Footer}"
+                IsVisible="{TemplateBinding Footer,
+                                            Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </Grid>
+          </Border>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="shad|Card[HasShadow=True] /template/ Border#Container">
+    <Setter Property="BoxShadow" Value="{DynamicResource Shadow}" />
+  </Style>
+
+  <Style Selector="shad|Card[HasShadow=True] /template/ Border#OuterBorder">
+    <Setter Property="Padding" Value="2,0,2,4" />
+  </Style>
+
+  <Style Selector="shad|Card.ScrollHostCard">
+    <Setter Property="Template">
+      <ControlTemplate TargetType="shad:Card">
+        <Border
+          Name="OuterBorder"
+          Width="{TemplateBinding Width}"
+          Height="{TemplateBinding Height}"
+          Margin="{TemplateBinding Margin}">
+          <Border
+            Name="Container"
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="{TemplateBinding BorderThickness}"
+            CornerRadius="{TemplateBinding CornerRadius}">
+            <Grid Margin="{TemplateBinding Padding}" RowDefinitions="Auto,*,Auto">
+              <ContentPresenter
+                Grid.Row="0"
+                Margin="0,0,0,24"
+                Content="{TemplateBinding Header}"
+                IsVisible="{TemplateBinding Header,
+                                            Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <ScrollViewer
+                Grid.Row="1"
+                HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}">
+                <ContentPresenter
+                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                  Content="{TemplateBinding Content}" />
+              </ScrollViewer>
+              <ContentPresenter
+                Grid.Row="2"
+                Margin="0,24,0,0"
+                Content="{TemplateBinding Footer}"
+                IsVisible="{TemplateBinding Footer,
+                                            Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </Grid>
+          </Border>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="shad|Card.SectionCard">
     <Setter Property="CornerRadius" Value="{DynamicResource SectionCardRadius}" />
     <Setter Property="Padding" Value="{DynamicResource SectionCardPadding}" />
   </Style>
 
-  <Style Selector="con|GlassCard.PageHero">
+  <Style Selector="shad|Card.PageHero">
     <Setter Property="Padding" Value="{DynamicResource AboutHeroCardPadding}" />
   </Style>
 
-  <Style Selector="con|GlassCard.ScanCodeHeroCard">
-    <Setter Property="Padding" Value="{DynamicResource ScanCodeHeroCardPadding}" />
-  </Style>
-
-  <Style Selector="con|GlassCard.CompactCard">
-    <Setter Property="Padding" Value="{DynamicResource FilterHintCardPadding}" />
-  </Style>
-
-  <Style Selector="con|GlassCard.ActionTile">
+  <Style Selector="shad|Card.ActionTile">
     <Setter Property="Padding" Value="{DynamicResource FilterHintCardPadding}" />
     <Setter Property="MinHeight" Value="{DynamicResource ActionTileMinHeight}" />
   </Style>
 
-  <Style Selector="con|GlassCard.FilterFieldCard">
-    <Setter Property="Padding" Value="{DynamicResource CompactPadding}" />
-    <Setter Property="Opacity" Value="0.94" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
-    <Setter Property="ClipToBounds" Value="False" />
+  <!-- Dashboard KPI tiles: Card-like buttons -->
+  <Style Selector="Button.KpiNavCard">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
+    <Setter Property="Padding" Value="16" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="Cursor" Value="Hand" />
   </Style>
 
-  <Style Selector="con|GlassCard.TraceCodePreviewCard">
+  <Style Selector="shad|Card.TraceCodePreviewCard">
     <Setter Property="Padding" Value="0" />
-    <Setter Property="Opacity" Value="0.94" />
-    <Setter Property="CornerRadius" Value="{DynamicResource RowRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
     <Setter Property="MinHeight" Value="120" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
     <Setter Property="ClipToBounds" Value="True" />
-  </Style>
-
-  <Style Selector="con|GlassCard.FilterFieldCard &gt; Grid">
-    <Setter Property="VerticalAlignment" Value="Stretch" />
-    <Setter Property="ClipToBounds" Value="False" />
-  </Style>
-
-  <Style Selector="con|GlassCard.FilterSectionCard,                      con|GlassCard.ScanCodeHeroCard">
-    <Setter Property="ClipToBounds" Value="False" />
-  </Style>
-
-  <Style Selector="con|GlassCard.FilterHintCard">
-    <Setter Property="Padding" Value="{DynamicResource FilterHintCardPadding}" />
-    <Setter Property="Opacity" Value="0.98" />
-  </Style>
-
-  <Style Selector="con|GlassCard.CounterPillCard">
-    <Setter Property="Padding" Value="{DynamicResource CompactPadding}" />
-    <Setter Property="Opacity" Value="0.96" />
   </Style>
 
   <Style Selector="Border.HeroIconBadge">
@@ -74,4 +152,25 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
+  <Style Selector="Border.MsfxBoardSkeletonOverlay">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource SectionCardRadius}" />
+    <Setter Property="Opacity" Value="0.92" />
+  </Style>
+
+  <Style Selector="Border.MsfxBoardSkeletonTile">
+    <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+    <Setter Property="MinHeight" Value="120" />
+  </Style>
+
+  <Style Selector="Border.GridSlotSkeleton">
+    <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+    <Setter Property="Opacity" Value="0.65" />
+  </Style>
 </Styles>

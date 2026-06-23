@@ -1,7 +1,6 @@
 using System;
-using global::Avalonia.Controls.Notifications;
-using global::Avalonia.Threading;
-using SukiUI.Toasts;
+using Avalonia.Threading;
+using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -15,9 +14,9 @@ public interface IToastService
 
 public sealed class ToastService : IToastService
 {
-    private readonly ISukiToastManager _toasts;
+    private readonly ToastManager _toasts;
 
-    public ToastService(ISukiToastManager toasts)
+    public ToastService(ToastManager toasts)
     {
         _toasts = toasts;
     }
@@ -36,40 +35,33 @@ public sealed class ToastService : IToastService
 
     public void Success(string title, string message)
         => RunOnUiThread(() =>
-            _toasts.CreateToast()
-                .Dismiss().After(TimeSpan.FromSeconds(3))
-                .Dismiss().ByClicking()
-                .OfType(NotificationType.Success)
-                .WithTitle(title)
+            _toasts.CreateToast(title)
                 .WithContent(message)
-                .Queue());
+                .WithDelay(3)
+                .DismissOnClick()
+                .ShowSuccess());
 
     public void Error(string title, string message)
         => RunOnUiThread(() =>
-            _toasts.CreateToast()
-                .Dismiss().After(TimeSpan.FromSeconds(3))
-                .Dismiss().ByClicking()
-                .OfType(NotificationType.Error)
-                .WithTitle(title)
+            _toasts.CreateToast(title)
                 .WithContent(message)
-                .Queue());
+                .WithDelay(3)
+                .DismissOnClick()
+                .ShowError());
 
     public void Warn(string title, string message)
         => RunOnUiThread(() =>
-            _toasts.CreateToast()
-                .Dismiss().After(TimeSpan.FromSeconds(3))
-                .Dismiss().ByClicking()
-                .OfType(NotificationType.Warning)
-                .WithTitle(title)
+            _toasts.CreateToast(title)
                 .WithContent(message)
-                .Queue());
+                .WithDelay(3)
+                .DismissOnClick()
+                .ShowWarning());
 
     public void Info(string title, string message)
         => RunOnUiThread(() =>
-            _toasts.CreateSimpleInfoToast()
-                .Dismiss().After(TimeSpan.FromSeconds(3))
-                .Dismiss().ByClicking()
-                .WithTitle(title)
+            _toasts.CreateToast(title)
                 .WithContent(message)
-                .Queue());
+                .WithDelay(3)
+                .DismissOnClick()
+                .ShowInfo());
 }

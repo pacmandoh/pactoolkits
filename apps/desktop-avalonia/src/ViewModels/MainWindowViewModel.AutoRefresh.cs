@@ -42,7 +42,7 @@ public partial class MainWindowViewModel
         {
             var active = ActivePage;
 
-            foreach (var p in Pages)
+            foreach (var p in WorkspacePages)
             {
                 if (!CanRefreshPage(p))
                 {
@@ -76,25 +76,24 @@ public partial class MainWindowViewModel
     private void TryRefreshDirtyActivePage()
     {
         var active = ActivePage;
-        if (active is null)
+        if (active is null || !CanRefreshPage(active) || !IsDirty(active))
         {
             return;
         }
 
-        if (!CanRefreshPage(active))
+        // Defer refresh until after the sidebar/content switch paints.
+        PostOnUi(() =>
         {
-            return;
-        }
+            if (!ReferenceEquals(ActivePage, active))
+            {
+                return;
+            }
 
-        if (!IsDirty(active))
-        {
-            return;
-        }
-
-        if (TryRefreshPage(active))
-        {
-            ClearDirty(active);
-        }
+            if (TryRefreshPage(active))
+            {
+                ClearDirty(active);
+            }
+        });
     }
 
     private static bool CanRefreshPage(AppPageBase page)
@@ -197,7 +196,7 @@ public partial class MainWindowViewModel
                 break;
 
             default:
-                foreach (var page in Pages)
+                foreach (var page in WorkspacePages)
                 {
                     if (CanRefreshPage(page))
                     {

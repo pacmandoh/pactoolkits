@@ -32,7 +32,8 @@ public partial class ToolsCenterView : UserControl
 
     private void OnAddLineClicked(object? sender, RoutedEventArgs e)
     {
-        var scroller = this.FindControl<ScrollViewer>("ToolEditorScrollViewer");
+        var editor = this.FindControl<Control>("ToolEditorCard");
+        var scroller = editor?.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
         var shouldAutoFollow = false;
         if (scroller is not null)
         {

@@ -1,26 +1,24 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxMappingBatchDialogView"
   xmlns="https://github.com/avaloniaui"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
-  xmlns:con="https://github.com/kikipoulet/SukiUI"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
   xmlns:dto="clr-namespace:PacToolkits.Application.DTOs;assembly=PacToolkits.Application"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
   behaviors:FocusClearBehavior.Enable="True"
   behaviors:FocusClearBehavior.SuppressGridClear="True"
   x:DataType="dialogs:MsfxMappingBatchDialogModel"
   Focusable="True">
-  <suki:GlassCard
+  <shad:Card
     MinWidth="920"
     MaxWidth="1180"
     Padding="16"
-    behaviors:FocusClearBehavior.SuppressGridClear="True"
-    Classes="SectionCard">
+    behaviors:FocusClearBehavior.SuppressGridClear="True">
     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
         <Border
@@ -77,9 +75,8 @@
         Grid.Row="1"
         RowDefinitions="Auto,*"
         RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-        <con:GlassCard
+        <shad:Card
           x:Name="SearchPanel"
-          Classes="FilterHintCard"
           IsVisible="False">
           <Grid
             VerticalAlignment="Center"
@@ -115,7 +112,7 @@
               Grid.Column="5"
               VerticalContentAlignment="Center"
               AcceptsReturn="False"
-              Classes="FilterSearchTextBox"
+              Classes="SearchBox"
               KeyDown="KeywordBox_OnKeyDown"
               PlaceholderText="搜索分组..."
               TextWrapping="NoWrap" />
@@ -144,7 +141,7 @@
               </StackPanel>
             </Button>
           </Grid>
-        </con:GlassCard>
+        </shad:Card>
 
         <DataGrid
           x:Name="GroupGrid"
@@ -152,18 +149,10 @@
           Height="280"
           x:DataType="dto:MsfxMappingBatchGroupRow"
           Classes="SectionGrid InventoryGrid LowToneGrid MsfxIndexedGrid"
-          GridLinesVisibility="All"
-          HeadersVisibility="All"
           HorizontalScrollBarVisibility="Auto"
           IsReadOnly="True"
           PointerPressed="GroupGrid_OnPointerPressed"
           SelectionMode="Single">
-          <DataGrid.Styles>
-            <Style Selector="DataGrid#GroupGrid DataGridCell TextBlock">
-              <Setter Property="TextWrapping" Value="NoWrap" />
-              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            </Style>
-          </DataGrid.Styles>
           <DataGrid.Columns>
             <DataGridTextColumn
               Width="140"
@@ -231,10 +220,9 @@
         RowDefinitions="Auto,Auto"
         RowSpacing="{DynamicResource FormRowSpacing}">
         <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-          <con:GlassCard
+          <shad:Card
             Grid.Column="0"
-            Padding="10,8"
-            Classes="FilterFieldCard">
+            Padding="10,8">
             <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon
@@ -243,25 +231,26 @@
                   Kind="Pill" />
                 <TextBlock Opacity="0.82" Text="药品名称" />
               </StackPanel>
-              <controls:PlainAutoCompleteBox
+              <AutoCompleteBox
                 x:Name="DrugIdBox"
                 Grid.Row="1"
+                FilterMode="Contains"
+                IsTextCompletionEnabled="True"
                 KeyDown="DrugIdBox_OnKeyDown"
                 MinimumPrefixLength="1"
                 PlaceholderText="输入院内药品信息">
-                <controls:PlainAutoCompleteBox.ItemTemplate>
+                <AutoCompleteBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:OptionItem">
                     <TextBlock Text="{Binding Display}" />
                   </DataTemplate>
-                </controls:PlainAutoCompleteBox.ItemTemplate>
-              </controls:PlainAutoCompleteBox>
+                </AutoCompleteBox.ItemTemplate>
+              </AutoCompleteBox>
             </Grid>
-          </con:GlassCard>
+          </shad:Card>
 
-          <con:GlassCard
+          <shad:Card
             Grid.Column="1"
-            Padding="10,8"
-            Classes="FilterFieldCard">
+            Padding="10,8">
             <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon
@@ -287,10 +276,10 @@
                   Text="请选择规格" />
               </Grid>
             </Grid>
-          </con:GlassCard>
+          </shad:Card>
         </Grid>
 
-        <con:GlassCard Grid.Row="1" Classes="FilterHintCard">
+        <shad:Card Grid.Row="1">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
             <icons:AppIcon
               Width="{DynamicResource IconSizeSmall}"
@@ -304,8 +293,8 @@
               Text="请选择分组后自动预览"
               TextWrapping="Wrap" />
           </Grid>
-        </con:GlassCard>
+        </shad:Card>
       </Grid>
     </Grid>
-  </suki:GlassCard>
+  </shad:Card>
 </UserControl>

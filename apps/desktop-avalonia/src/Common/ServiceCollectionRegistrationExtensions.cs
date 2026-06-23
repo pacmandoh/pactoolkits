@@ -4,14 +4,14 @@ using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Services;
+using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 using PacToolkits.Desktop.Avalonia.Services.Integration;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 using PacToolkits.Infrastructure.Database;
-using SukiUI.Dialogs;
-using SukiUI.Toasts;
+using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
@@ -50,10 +50,13 @@ public static class ServiceCollectionRegistrationExtensions
         services.AddSingleton<AppViews>();
         services.AddSingleton<MainWindowViewModel>();
 
-        services.AddSingleton<SukiToastManager>();
-        services.AddSingleton<ISukiToastManager>(sp => sp.GetRequiredService<SukiToastManager>());
-        services.AddSingleton<SukiDialogManager>();
-        services.AddSingleton<ISukiDialogManager>(sp => sp.GetRequiredService<SukiDialogManager>());
+        services.AddSingleton<DialogManager>(sp =>
+        {
+            var manager = new DialogManager();
+            manager.Register<PacHostedDialogView, PacHostedDialogContext>();
+            return manager;
+        });
+        services.AddSingleton<ToastManager>();
         return services;
     }
 

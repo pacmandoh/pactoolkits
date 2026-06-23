@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Dark">
       <SolidColorBrush x:Key="NavTextRest" Color="#858585" />
@@ -12,12 +12,11 @@
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 
-  <SolidColorBrush x:Key="NavIndicatorBarBrush" Color="{DynamicResource SukiPrimaryColor}" />
+  <SolidColorBrush x:Key="NavIndicatorBarBrush" Color="{DynamicResource ForegroundColor}" />
 
   <!--  Full-height indicator within item container.  -->
   <Rect x:Key="NavIndicatorFillRect">0,0,1,1</Rect>
   <Rect x:Key="NavIndicatorBarRectExpanded">0.0,0,0.018,1</Rect>
-  <Rect x:Key="NavIndicatorBarRectCollapsed">0.18,0,0.08,1</Rect>
 
   <DrawingGroup x:Key="NavIndicatorDrawingExpanded">
     <GeometryDrawing Brush="Transparent">
@@ -32,26 +31,8 @@
     </GeometryDrawing>
   </DrawingGroup>
 
-  <DrawingGroup x:Key="NavIndicatorDrawingCollapsed">
-    <GeometryDrawing Brush="Transparent">
-      <GeometryDrawing.Geometry>
-        <RectangleGeometry Rect="{StaticResource NavIndicatorFillRect}" />
-      </GeometryDrawing.Geometry>
-    </GeometryDrawing>
-    <GeometryDrawing Brush="{StaticResource NavIndicatorBarBrush}">
-      <GeometryDrawing.Geometry>
-        <RectangleGeometry Rect="{StaticResource NavIndicatorBarRectCollapsed}" />
-      </GeometryDrawing.Geometry>
-    </GeometryDrawing>
-  </DrawingGroup>
-
   <DrawingBrush
     x:Key="NavIndicatorBrushExpanded"
     Drawing="{StaticResource NavIndicatorDrawingExpanded}"
-    Stretch="Fill" />
-
-  <DrawingBrush
-    x:Key="NavIndicatorBrushCollapsed"
-    Drawing="{StaticResource NavIndicatorDrawingCollapsed}"
     Stretch="Fill" />
 </ResourceDictionary>
