@@ -25,7 +25,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IsClientAliasEditMode = true;
         IsClientAliasReadOnly = false;
         RefreshClientAlias();
-        SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.edit_start_fail");
+        RunDetached(ReloadClientAliasesAsync, "client_alias.reload.edit_start_fail");
     }
 
     [RelayCommand]
@@ -79,7 +79,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             Status = "连接成功";
             IsDbConnected = true;
-            SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.after_test_fail");
+            RunDetached(ReloadClientAliasesAsync, "client_alias.reload.after_test_fail");
             _toast.Success("数据库连接", "连接成功");
         }
         catch (OperationCanceledException)
@@ -135,7 +135,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             IsDbConnected = true;
             _toast.Success("配置已保存", "数据库配置已应用");
 
-            SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.after_save_fail");
+            RunDetached(ReloadClientAliasesAsync, "client_alias.reload.after_save_fail");
         }
         catch (Exception ex)
         {
@@ -269,7 +269,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
 
         pageCt.ThrowIfCancellationRequested();
-        await SetClientAliasRefreshingOnUiAsync(true);
+        await SetAliasRefreshingAsync(true);
         try
         {
             var opt = ToOptions();
@@ -311,7 +311,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
         finally
         {
-            await SetClientAliasRefreshingOnUiAsync(false);
+            await SetAliasRefreshingAsync(false);
         }
     }
 
@@ -395,7 +395,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             await Task.Delay(600);
             Status = null;
 
-            SafeFireAndForget(ReloadClientAliasesAsync, "client_alias.reload.after_alias_save_fail");
+            RunDetached(ReloadClientAliasesAsync, "client_alias.reload.after_alias_save_fail");
             RefreshClientAlias();
         }
         catch (Exception ex)

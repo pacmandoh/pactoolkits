@@ -514,7 +514,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
             OnLookupCatalogSuspended();
         }
 
-        NotifyPageAvailabilityChanged();
+        RefreshPageAvailability();
     }
 
     protected bool IsLookupCatalogSuspended()
@@ -528,7 +528,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     {
     }
 
-    private void NotifyPageAvailabilityChanged()
+    private void RefreshPageAvailability()
     {
         OnPropertyChanged(nameof(ShowPageUnavailable));
         OnPropertyChanged(nameof(PageUnavailableTitle));

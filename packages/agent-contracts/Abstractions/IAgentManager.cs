@@ -10,7 +10,7 @@ public interface IAgentManager : IAgentRegistry
 
     IAgentRuntime Get(AgentId agentId) => GetRequired(agentId.Value);
 
-    Task<IReadOnlyDictionary<string, ToolCommandResult>> SynchronizeConfigurationAsync(
+    Task<IReadOnlyDictionary<string, ToolCommandResult>> SyncConfigAsync(
         CancellationToken ct = default);
 
     Task<IReadOnlyDictionary<string, ToolCommandResult>> StopAllAsync(

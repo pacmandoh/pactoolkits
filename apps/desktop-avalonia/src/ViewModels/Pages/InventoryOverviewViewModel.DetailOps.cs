@@ -84,7 +84,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
     }
 
-    private async Task EnsureReassignDrugOptionsAsync()
+    private async Task LoadReassignDrugsAsync()
     {
         if (IsLookupCatalogSuspended())
         {
@@ -159,7 +159,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        await EnsureReassignDrugOptionsAsync();
+        await LoadReassignDrugsAsync();
 
         string? canonical = null;
         foreach (var opt in ReassignDrugOptions)
@@ -273,19 +273,19 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
         if (IsStockEditEnabled)
         {
-            BuildPendingEditsFromSnapshot();
+            CollectStockEdits();
             var (savedCount, failedCount, lastError) = (0, 0, (string?)null);
             if (_pendingStockEdits.Count > 0)
             {
-                (savedCount, failedCount, lastError) = await ApplyPendingStockEditsAsync();
+                (savedCount, failedCount, lastError) = await SaveStockEditsAsync();
             }
 
             if (savedCount > 0)
             {
                 // Keep current viewport/scroll stable after row-level edits:
                 // defer watermark-driven full reload, then reconcile silently.
-                SuppressExternalAutoRefresh(TimeSpan.FromSeconds(7));
-                ScheduleSilentCurrentPageReconcile(TimeSpan.FromSeconds(5));
+                PauseAutoRefresh(TimeSpan.FromSeconds(7));
+                ReconcilePageLater(TimeSpan.FromSeconds(5));
             }
 
             IsStockEditEnabled = false;
@@ -663,8 +663,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 selectedTraceCodes,
                 targetQty,
                 batchKeyword);
-            SuppressExternalAutoRefresh(TimeSpan.FromSeconds(7));
-            ScheduleSilentCurrentPageReconcile(TimeSpan.FromSeconds(5));
+            PauseAutoRefresh(TimeSpan.FromSeconds(7));
+            ReconcilePageLater(TimeSpan.FromSeconds(5));
             Status = updatedRows.Count > 0
                 ? $"库存明细：本页已同步 {updatedRows.Count} 行（未整页刷新）"
                 : "库存明细：纠错已提交（当前页无可同步行）";
@@ -688,7 +688,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return Task.CompletedTask;
         }
 
-        BuildPendingEditsFromSnapshot();
+        CollectStockEdits();
         Status = _pendingStockEdits.Count > 0
             ? $"库存明细：已暂存变更 {_pendingStockEdits.Count} 项"
             : "库存明细：未检测到变更";
@@ -760,7 +760,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         try
         {
             var wasEditing = IsStockEditEnabled;
-            SuppressExternalAutoRefresh(TimeSpan.FromSeconds(8));
+            PauseAutoRefresh(TimeSpan.FromSeconds(8));
             await RunOnUiAsync(() => IsDetailBusy = true);
             var affected = await _inventory.DeleteStockByTraceCodesAsync(traceCodes, default);
             await ReloadAsync(preserveEditSession: wasEditing);
@@ -789,7 +789,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
     }
 
-    private async Task<(int SavedCount, int FailedCount, string? LastError)> ApplyPendingStockEditsAsync()
+    private async Task<(int SavedCount, int FailedCount, string? LastError)> SaveStockEditsAsync()
     {
         var edits = new PendingStockEdit[_pendingStockEdits.Count];
         _pendingStockEdits.CopyTo(edits, 0);
@@ -811,7 +811,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         return (batchResult.SavedCount, batchResult.FailedCount, batchResult.LastError);
     }
 
-    private void BuildPendingEditsFromSnapshot()
+    private void CollectStockEdits()
     {
         _pendingStockEdits.Clear();
         foreach (var row in StockRows)
@@ -860,10 +860,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
     }
 
-    private bool HasPendingStockChanges()
+    private bool HasStockEdits
         => _pendingStockEdits.Count > 0;
 
-    private int GetPendingStockChangeCount()
+    private int StockEditCount
         => _pendingStockEdits.Count;
 
     private async Task<bool> EnsureUnlockedAsync(string scene)
@@ -1046,7 +1046,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        BuildPendingEditsFromSnapshot();
+        CollectStockEdits();
         if (_pendingStockEdits.Count <= 0)
         {
             IsStockEditEnabled = false;
@@ -1079,7 +1079,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     partial void OnModeIndexChanged(int value)
     {
-        if (value != _lastModeIndex && IsStockEditEnabled && HasPendingStockChanges())
+        if (value != _lastModeIndex && IsStockEditEnabled && HasStockEdits)
             DiscardStockEdits();
 
         if (value != 0)
@@ -1291,7 +1291,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         await ReloadAsync();
     }
 
-    private void SuppressExternalAutoRefresh(TimeSpan duration)
+    private void PauseAutoRefresh(TimeSpan duration)
     {
         var until = DateTimeOffset.UtcNow + duration;
         if (until > _suppressAutoRefreshUntilUtc)
@@ -1313,7 +1313,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         return key is "inventory" or "trace_pool" or "trace_txn" or "trace_txn_item" or "";
     }
 
-    private void ScheduleSilentCurrentPageReconcile(TimeSpan delay)
+    private void ReconcilePageLater(TimeSpan delay)
     {
         _silentReconcileCts?.Cancel();
         _silentReconcileCts?.Dispose();

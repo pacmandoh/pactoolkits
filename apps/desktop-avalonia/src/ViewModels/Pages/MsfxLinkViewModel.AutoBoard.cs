@@ -1267,8 +1267,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         try
         {
             var groups = await _syncService.LoadMappingBatchGroupsAsync(
-                mapStatus: NormalizeFilterValue(MapQueueMapStatusFilter),
-                codeStatus: NormalizeFilterValue(MapQueueCodeStatusFilter),
+                mapStatus: FilterInput.Norm(MapQueueMapStatusFilter),
+                codeStatus: FilterInput.Norm(MapQueueCodeStatusFilter),
                 searchScope: ResolveSearchScope(MapQueueSearchScope),
                 keyword: NormalizeText(MapQueueKeyword),
                 limit: 500,
@@ -1983,8 +1983,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var pageSize = GetMapQueueQueryPageSize();
         var page = await _syncService.LoadMappingQueuePageAsync(
             pageSize: pageSize,
-            mapStatus: NormalizeFilterValue(MapQueueMapStatusFilter),
-            codeStatus: NormalizeFilterValue(MapQueueCodeStatusFilter),
+            mapStatus: FilterInput.Norm(MapQueueMapStatusFilter),
+            codeStatus: FilterInput.Norm(MapQueueCodeStatusFilter),
             searchScope: ResolveSearchScope(MapQueueSearchScope),
             keyword: NormalizeText(MapQueueKeyword),
             cursorUpdatedAt: cursorAt,
@@ -2308,17 +2308,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     {
         var text = (value ?? string.Empty).Trim();
         return text.Length == 0 ? null : text;
-    }
-
-    private static string? NormalizeFilterValue(string? value)
-    {
-        var text = (value ?? string.Empty).Trim();
-        if (text.Length == 0 || string.Equals(text, "ALL", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        return text;
     }
 
     private static string ResolveSearchScope(string? value)
