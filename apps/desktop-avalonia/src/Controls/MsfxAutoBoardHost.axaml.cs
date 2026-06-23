@@ -129,7 +129,7 @@ public partial class MsfxAutoBoardHost : Grid
         _revealPaused = false;
         if (_mountedPanelKeys.Count == 0 && _skippedPanelKeys.Count > 0)
         {
-            _ = TryMountSkippedPanelsAsync();
+            _ = MountDeferredPanelsAsync();
             return;
         }
 
@@ -152,7 +152,7 @@ public partial class MsfxAutoBoardHost : Grid
             or nameof(MsfxLinkViewModel.IsAutoLogsEmpty)
             or nameof(MsfxLinkViewModel.AutoExpandedPanel))
         {
-            _ = TryMountSkippedPanelsAsync();
+            _ = MountDeferredPanelsAsync();
         }
     }
 
@@ -240,7 +240,7 @@ public partial class MsfxAutoBoardHost : Grid
         }
     }
 
-    private async Task TryMountSkippedPanelsAsync()
+    private async Task MountDeferredPanelsAsync()
     {
         if (_vm is null || _skippedPanelKeys.Count == 0 || _revealPaused || !IsVisible)
         {

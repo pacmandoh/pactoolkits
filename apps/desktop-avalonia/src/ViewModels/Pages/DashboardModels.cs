@@ -44,7 +44,7 @@ public sealed partial class TrendDrugItem : ObservableObject
     [ObservableProperty] private string _sourceText = "";
     [ObservableProperty] private string _valueText = "";
 
-    public string SpecDisplay => SpecDisplayHelper.NormalizeSpecLine(Name, Sub);
+    public string SpecDisplay => SpecLine.Format(Name, Sub);
 
     partial void OnNameChanged(string value) => OnPropertyChanged(nameof(SpecDisplay));
 

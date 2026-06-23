@@ -2,9 +2,9 @@ using System;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-public static class SpecDisplayHelper
+public static class SpecLine
 {
-    public static string NormalizeSpecLine(string? drugName, string? spec)
+    public static string Format(string? drugName, string? spec)
     {
         var normalizedSpec = (spec ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(normalizedSpec))

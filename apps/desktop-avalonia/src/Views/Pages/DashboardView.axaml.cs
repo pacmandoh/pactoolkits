@@ -80,7 +80,7 @@ public partial class DashboardView : UserControl
             }
 
             QueueTabGrids(vm);
-            TryQueueOverviewGrids(vm);
+            QueueOverviewGrids(vm);
             EnsureTrendChart(vm);
         }
     }
@@ -98,13 +98,13 @@ public partial class DashboardView : UserControl
                 QueueTabGrids(vm);
                 break;
             case nameof(DashboardViewModel.IsTrendEmpty):
-                TryQueueOverviewGrids(vm);
+                QueueOverviewGrids(vm);
                 break;
             case nameof(DashboardViewModel.IsTrendChartVisible):
                 EnsureTrendChart(vm);
                 break;
             case nameof(DashboardViewModel.IsRecentTxnsEmpty):
-                TryQueueOverviewGrids(vm);
+                QueueOverviewGrids(vm);
                 if (vm.IsTxnTab)
                 {
                     QueueTabGrids(vm);
@@ -112,7 +112,7 @@ public partial class DashboardView : UserControl
 
                 break;
             case nameof(DashboardViewModel.IsTopClientsEmpty):
-                TryQueueOverviewGrids(vm);
+                QueueOverviewGrids(vm);
                 break;
             case nameof(DashboardViewModel.IsEntryRecentEmpty):
                 if (vm.IsInputTab)
@@ -138,7 +138,7 @@ public partial class DashboardView : UserControl
         }
     }
 
-    private void TryQueueOverviewGrids(DashboardViewModel vm)
+    private void QueueOverviewGrids(DashboardViewModel vm)
     {
         if (!vm.IsTrendEmpty && !TrendGridSlot.IsMounted)
         {

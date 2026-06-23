@@ -163,7 +163,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
         }
 
-        await RefreshDbSchemaStatusAsync(
+        await UpdateSchemaStatusAsync(
             "manual_check",
             manualProbe: true,
             connectionOptions: ToOptions(),
@@ -188,7 +188,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 cts.Token);
             DbSchemaMigrationPlanText = FormatMigrationPlan(plan);
             _toast.Info("数据库迁移计划", DbSchemaMigrationPlanText);
-            await RefreshDbSchemaStatusAsync(
+            await UpdateSchemaStatusAsync(
                 "migration_plan",
                 manualProbe: false,
                 connectionOptions: ToOptions(),

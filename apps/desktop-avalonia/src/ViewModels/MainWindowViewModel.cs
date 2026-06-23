@@ -553,7 +553,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dbMonitor.ConnectionFailed += ShowDbConnectionFailed;
         _dbMonitor.Disconnected += ShowDbDisconnected;
         _dbMonitor.Reconnected += ShowDbReconnectedInfo;
-        _dbMonitor.Reconnected += OnDbReconnectedRefreshSettingsSchema;
+        _dbMonitor.Reconnected += OnDbReconnectedRefreshSchema;
         _dbMonitor.Reconnected += OnDbReconnectedMigrateSchema;
         _changeWatermark.TopicChanged += OnWatermarkTopicChanged;
 
@@ -1450,7 +1450,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         });
     }
 
-    private void OnDbReconnectedRefreshSettingsSchema()
+    private void OnDbReconnectedRefreshSchema()
         => _ = RefreshSchemaStatusAsync("db_reconnected");
 
     private void OnDbReconnectedMigrateSchema()
@@ -1566,7 +1566,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _dbMonitor.ConnectionFailed -= ShowDbConnectionFailed);
         SafeExecute(() => _dbMonitor.Disconnected -= ShowDbDisconnected);
         SafeExecute(() => _dbMonitor.Reconnected -= ShowDbReconnectedInfo);
-        SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedRefreshSettingsSchema);
+        SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedRefreshSchema);
         SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedMigrateSchema);
         SafeExecute(() => _dbMonitor.Reconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _dbMonitor.Disconnected -= ScheduleAutoRefresh);
