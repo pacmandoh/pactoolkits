@@ -57,6 +57,17 @@ public class FocusClearBehavior
         }
 
         var topLevel = TopLevel.GetTopLevel(scope);
+        if (topLevel is not null
+            && e.Source is Visual sourceVisual
+            && TopLevel.GetTopLevel(sourceVisual) is { } sourceTopLevel
+            && !ReferenceEquals(sourceTopLevel, topLevel))
+        {
+            // Native popup content lives in its own TopLevel. Let the popup's
+            // control process the pointer event before any owner-level focus or
+            // dismiss behavior runs.
+            return;
+        }
+
         if (topLevel is not null && !PopupDismissHelper.ShouldSkipPopupDismiss(e.Source))
         {
             PopupDismissHelper.DismissOpenPopups(topLevel);
