@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Agent.Contracts.Commands;
-using PacToolkits.Agent.Contracts.Events;
 using PacToolkits.Agent.Contracts.Mapping;
 using PacToolkits.Agent.Contracts.Models;
 using PacToolkits.Agent.Contracts.Validation;
@@ -26,7 +25,6 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
     private readonly IDbSchemaVersionService _dbSchemaVersion;
     private readonly IDbMigrationPolicyService _migrationPolicy;
     private readonly IAppLogger _logger;
-    private readonly IAgentEventSink _eventSink;
     private readonly object _gate = new();
     private readonly SemaphoreSlim _commandGate = new(1, 1);
     private readonly Timer _pollTimer;
@@ -158,15 +156,13 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         IReleaseVersionService releaseVersion,
         IDbSchemaVersionService dbSchemaVersion,
         IDbMigrationPolicyService migrationPolicy,
-        IAppLogger logger,
-        IAgentEventSink eventSink)
+        IAppLogger logger)
     {
         _configStore = configStore;
         _releaseVersion = releaseVersion;
         _dbSchemaVersion = dbSchemaVersion;
         _migrationPolicy = migrationPolicy;
         _logger = logger;
-        _eventSink = eventSink;
         Reload();
 
         _pollTimer = new Timer(_ => PollStatus(), null, TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(1));
@@ -267,7 +263,6 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             var schemaValidation = await ValidateDbCompatibilityAsync(ct).ConfigureAwait(false);
             if (!schemaValidation.Ok)
             {
-                PublishEvent(AgentCommandKind.Start, null, schemaValidation.Message);
                 return SetError(schemaValidation.Message);
             }
 
@@ -300,7 +295,6 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             var validate = ValidateAgentConfig();
             if (!validate.Ok)
             {
-                PublishEvent(AgentCommandKind.Start, null, validate.Message);
                 return SetError(validate.Message);
             }
 
@@ -351,13 +345,11 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             RefreshState();
             RaiseChanged();
             var successMessage = wasRunning ? "已重启" : "已启动";
-            PublishEvent(AgentCommandKind.Start, ToolRunState.Running, successMessage);
             return new ToolCommandResult(true, successMessage);
         }
         catch (Exception ex)
         {
             _logger.Error("AhkRuntime", "ahk.start_or_restart.fail", "AHK start/restart failed", ex);
-            PublishEvent(AgentCommandKind.Start, null, $"启动失败：{ex.Message}", ex.Message);
             return SetError($"启动失败：{ex.Message}");
         }
         finally
@@ -440,13 +432,11 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
 
             RefreshState();
             RaiseChanged();
-            PublishEvent(AgentCommandKind.Stop, ToolRunState.Stopped, "已停止");
             return new ToolCommandResult(true, "已停止");
         }
         catch (Exception ex)
         {
             _logger.Error("AhkRuntime", "ahk.stop.fail", "AHK stop failed", ex);
-            PublishEvent(AgentCommandKind.Stop, null, $"停止失败：{ex.Message}", ex.Message);
             return SetError($"停止失败：{ex.Message}");
         }
         finally
@@ -871,21 +861,6 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         return policy.Decision == DbMigrationDecision.Allowed
             ? new ToolCommandResult(true, policy.Reason)
             : new ToolCommandResult(false, policy.Reason);
-    }
-
-    private void PublishEvent(
-        AgentCommandKind command,
-        ToolRunState? runtimeState,
-        string message,
-        string? detail = null)
-    {
-        _eventSink.Publish(new AgentExecutionEvent(
-            DateTimeOffset.UtcNow,
-            command,
-            runtimeState,
-            null,
-            message,
-            detail));
     }
 
     private static string BuildConfigArguments(string configPath, ReleaseVersionInfo releaseVersion)

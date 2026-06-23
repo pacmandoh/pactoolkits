@@ -14,9 +14,6 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
-[StateRetained]
-[LongLived]
-[OwnsSubscriptions]
 public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycleAware, IDisposable
 {
     public abstract string DisplayName { get; }

@@ -204,7 +204,7 @@ public partial class DashboardView : UserControl
 
     private void DrugBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        _ = AutoCompleteHelper.HandleEnterCommitAndApply(
+        _ = AutoCompleteCommit.HandleEnterCommitAndApply(
             this,
             sender,
             e,
@@ -273,8 +273,8 @@ public partial class DashboardView : UserControl
             return;
         }
 
-        AutoCompleteHelper.AttachDrugOptionFilter(box);
-        AutoCompleteHelper.AttachCandidateCommitApply(box, this, "SpecBox", ApplyDrugFilterFromBox);
+        AutoCompleteFilter.AttachDrugOptionFilter(box);
+        AutoCompleteCommit.AttachCandidateCommitApply(box, this, "SpecBox", ApplyDrugFilterFromBox);
     }
 
     private void ApplyDrugFilterFromBox()
