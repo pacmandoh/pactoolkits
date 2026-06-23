@@ -463,6 +463,17 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     private void SetPageAvailability(PageDataAvailability availability, string? detail = null)
     {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            SetPageAvailabilityCore(availability, detail);
+            return;
+        }
+
+        PostOnUi(() => SetPageAvailabilityCore(availability, detail));
+    }
+
+    private void SetPageAvailabilityCore(PageDataAvailability availability, string? detail = null)
+    {
         if (availability == PageDataAvailability.AccessBlocked)
         {
             _accessBlockedReason = detail;

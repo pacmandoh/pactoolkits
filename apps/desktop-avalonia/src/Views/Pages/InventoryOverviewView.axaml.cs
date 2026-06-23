@@ -522,6 +522,12 @@ public partial class InventoryOverviewView : UserControl
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnVmPropertyChanged(sender, e));
+            return;
+        }
+
         if (e.PropertyName == nameof(InventoryOverviewViewModel.IsStockEditEnabled))
         {
             SyncStockEditClass();
