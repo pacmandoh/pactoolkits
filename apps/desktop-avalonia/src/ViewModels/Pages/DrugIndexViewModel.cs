@@ -362,7 +362,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         _scanCode = scanCode;
         _localRefreshCommand = new AsyncRelayCommand(ReloadAsync, CanRefreshLocal);
         _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        _unlockStatusTimer.Tick += OnUnlockStatusTimerTick;
+        _unlockStatusTimer.Tick += OnUnlockTimerTick;
         _unlockService.StateChanged += OnUnlockScopeChanged;
         Items.CollectionChanged += OnItemsCollectionChanged;
         RefreshEditorUnlockState();
@@ -770,11 +770,11 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
         if (IsEditorUnlocked || EditorUnlockCooldownUntilUtc > DateTimeOffset.UtcNow)
         {
-            StartUnlockStatusTimerIfNeeded();
+            StartUnlockTimer();
         }
         else
         {
-            StopUnlockStatusTimerIfNeeded();
+            StopUnlockTimer();
         }
     }
 
@@ -795,7 +795,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         OnPropertyChanged(nameof(CanLockEditor));
     }
 
-    private void StartUnlockStatusTimerIfNeeded()
+    private void StartUnlockTimer()
     {
         if (!_unlockStatusTimer.IsEnabled)
         {
@@ -803,7 +803,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         }
     }
 
-    private void StopUnlockStatusTimerIfNeeded()
+    private void StopUnlockTimer()
     {
         if (_unlockStatusTimer.IsEnabled)
         {
@@ -1576,15 +1576,15 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         return 1;
     }
 
-    private void OnUnlockStatusTimerTick(object? sender, EventArgs e)
+    private void OnUnlockTimerTick(object? sender, EventArgs e)
         => RefreshEditorUnlockState();
 
     public override void Dispose()
     {
         Items.CollectionChanged -= OnItemsCollectionChanged;
         _unlockService.StateChanged -= OnUnlockScopeChanged;
-        StopUnlockStatusTimerIfNeeded();
-        _unlockStatusTimer.Tick -= OnUnlockStatusTimerTick;
+        StopUnlockTimer();
+        _unlockStatusTimer.Tick -= OnUnlockTimerTick;
         _keywordSearchDebouncer.Dispose();
         base.Dispose();
     }

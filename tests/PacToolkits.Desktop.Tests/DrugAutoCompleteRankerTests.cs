@@ -99,7 +99,7 @@ public sealed class DrugAutoCompleteRankerTests
         var changes = 0;
         visible.CollectionChanged += (_, _) => changes++;
 
-        AutoCompleteHelper.RefreshVisibleOptions(visible, catalog, selected.Display);
+        AutoCompleteFilter.RefreshVisibleOptions(visible, catalog, selected.Display);
 
         Assert.Equal(0, changes);
         Assert.Same(selected, visible[0]);

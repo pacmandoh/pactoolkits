@@ -58,8 +58,8 @@ public partial class MsfxMappingBatchDialogView : UserControl
         GroupGrid.ItemsSource = _groups;
         UpdateSearchPanelVisibility();
         AttachedToVisualTree += OnAttachedToVisualTree;
-        AutoCompleteHelper.AttachDrugOptionFilter(DrugIdBox);
-        AutoCompleteHelper.AttachCandidateCommitApplyAsync(DrugIdBox, this, "SpecBox", ApplyDrugBoxCommitAsync);
+        AutoCompleteFilter.AttachDrugOptionFilter(DrugIdBox);
+        AutoCompleteCommit.AttachCandidateCommitApplyAsync(DrugIdBox, this, "SpecBox", ApplyDrugBoxCommitAsync);
 
         DrugIdBox.PropertyChanged += OnDrugBoxPropertyChanged;
         SpecBox.SelectionChanged += OnSpecSelectionChanged;
@@ -300,7 +300,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
 
     private async void DrugIdBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        _ = AutoCompleteHelper.HandleEnterCommitAndApplyAsync(
+        _ = AutoCompleteCommit.HandleEnterCommitAndApplyAsync(
             this,
             sender,
             e,

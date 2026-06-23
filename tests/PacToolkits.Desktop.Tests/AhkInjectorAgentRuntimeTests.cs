@@ -6,7 +6,6 @@ using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
 namespace PacToolkits.Desktop.Tests;
 
@@ -20,8 +19,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService(),
             new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
-            new NullAppLogger(),
-            new NullAgentEventSink());
+            new NullAppLogger());
 
         Assert.True(runtime.IsEnabled);
         Assert.Equal("1.2.22", runtime.MinDbSchema);
@@ -51,8 +49,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService(),
             new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
-            new NullAppLogger(),
-            new NullAgentEventSink());
+            new NullAppLogger());
 
         var result = await runtime.StartOrRestartAsync();
 
@@ -69,8 +66,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService("1.2.20"),
             new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
-            new NullAppLogger(),
-            new NullAgentEventSink());
+            new NullAppLogger());
 
         var result = await runtime.StartOrRestartAsync();
 
@@ -87,8 +83,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService("1.2.23"),
             new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
-            new NullAppLogger(),
-            new NullAgentEventSink());
+            new NullAppLogger());
 
         var result = await runtime.StartOrRestartAsync();
 

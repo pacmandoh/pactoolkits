@@ -3,8 +3,8 @@ using PacToolkits.Agent.Contracts.Models;
 namespace PacToolkits.Agent.Contracts.Abstractions;
 
 /// <summary>
-/// Reserved boundary for future agent-side task orchestration.
-/// Current AHK runtime still polls database directly.
+/// Reserved for desktop-orchestrated agent tasks (queue snapshot, status).
+/// Today AHK polls Postgres directly; register an implementation when Desktop owns task dispatch.
 /// </summary>
 public interface IAgentTaskService
 {

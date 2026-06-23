@@ -1,4 +1,3 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,12 +11,3 @@ public interface IPageLifecycleAware
 
     ValueTask DisposePageAsync();
 }
-
-[AttributeUsage(AttributeTargets.Class, Inherited = true)]
-public sealed class StateRetainedAttribute : Attribute;
-
-[AttributeUsage(AttributeTargets.Class, Inherited = true)]
-public sealed class LongLivedAttribute : Attribute;
-
-[AttributeUsage(AttributeTargets.Class, Inherited = true)]
-public sealed class OwnsSubscriptionsAttribute : Attribute;
