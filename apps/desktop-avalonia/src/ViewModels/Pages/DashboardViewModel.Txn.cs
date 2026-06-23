@@ -185,7 +185,7 @@ public sealed partial class DashboardViewModel : AppPageBase
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
                 var page = await _dashboard.LoadTxnTrendPageAsync(CurrentFilter, TxnTrendPageIndex, TxnTrendPageSize, cts.Token).ConfigureAwait(false);
-                var items = BuildTxnTrendPageItems(page.Rows, TxnTrendPageIndex, TxnTrendPageSize);
+                var items = BuildTxnTrendPageItems(page.Rows);
                 await RunOnUiAsync(() =>
                 {
                     ApplyTxnTrendPage(items, page.TotalCount);
