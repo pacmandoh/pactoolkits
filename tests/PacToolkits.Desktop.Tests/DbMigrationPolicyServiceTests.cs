@@ -19,7 +19,7 @@ public sealed class DbMigrationPolicyServiceTests
             DbMigrationPolicies.StableOnly);
 
         Assert.Equal(DbMigrationDecision.Allowed, result.Decision);
-        Assert.True(result.ShouldExecuteMigration);
+        Assert.True(result.RunMigration);
     }
 
     [Theory]
@@ -37,7 +37,7 @@ public sealed class DbMigrationPolicyServiceTests
             DbMigrationPolicies.StableOnly);
 
         Assert.Equal(DbMigrationDecision.Allowed, result.Decision);
-        Assert.True(result.ShouldExecuteMigration);
+        Assert.True(result.RunMigration);
     }
 
     [Theory]
@@ -55,7 +55,7 @@ public sealed class DbMigrationPolicyServiceTests
             DbMigrationPolicies.StableOnly);
 
         Assert.Equal(DbMigrationDecision.ReadOnlyRequired, result.Decision);
-        Assert.False(result.ShouldExecuteMigration);
+        Assert.False(result.RunMigration);
         Assert.Contains("Beta 应用禁止迁移", result.Reason, StringComparison.Ordinal);
     }
 
@@ -75,7 +75,7 @@ public sealed class DbMigrationPolicyServiceTests
 
         Assert.Equal(DbMigrationDecision.ReadOnlyRequired, inApp.Decision);
         Assert.Equal(DbMigrationDecision.Allowed, external.Decision);
-        Assert.True(external.ShouldExecuteMigration);
+        Assert.True(external.RunMigration);
     }
 
     [Theory]
@@ -92,7 +92,7 @@ public sealed class DbMigrationPolicyServiceTests
             DbMigrationPolicies.Manual);
 
         Assert.Equal(DbMigrationDecision.ReadOnlyRequired, result.Decision);
-        Assert.False(result.ShouldExecuteMigration);
+        Assert.False(result.RunMigration);
     }
 
     [Fact]
@@ -128,9 +128,9 @@ public sealed class DbMigrationPolicyServiceTests
             userConfirmed: true);
 
         Assert.Equal(DbMigrationDecision.RequiresConfirmation, pending.Decision);
-        Assert.False(pending.ShouldExecuteMigration);
+        Assert.False(pending.RunMigration);
         Assert.Equal(DbMigrationDecision.Allowed, allowed.Decision);
-        Assert.True(allowed.ShouldExecuteMigration);
+        Assert.True(allowed.RunMigration);
     }
 
     [Theory]
@@ -156,9 +156,9 @@ public sealed class DbMigrationPolicyServiceTests
             userConfirmed: true);
 
         Assert.Equal(DbMigrationDecision.RequiresConfirmation, pending.Decision);
-        Assert.False(pending.ShouldExecuteMigration);
+        Assert.False(pending.RunMigration);
         Assert.Equal(DbMigrationDecision.Allowed, allowed.Decision);
-        Assert.True(allowed.ShouldExecuteMigration);
+        Assert.True(allowed.RunMigration);
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public sealed class DbMigrationPolicyServiceTests
             DbMigrationPolicies.StableOnly);
 
         Assert.Equal(DbMigrationDecision.Allowed, result.Decision);
-        Assert.True(result.ShouldExecuteMigration);
+        Assert.True(result.RunMigration);
     }
 
     [Fact]
@@ -258,7 +258,7 @@ public sealed class DbMigrationPolicyServiceTests
             DbMigrationPolicies.StableOnly);
 
         Assert.Equal(DbMigrationDecision.ReadOnlyRequired, result.Decision);
-        Assert.False(result.ShouldExecuteMigration);
+        Assert.False(result.RunMigration);
     }
 
     private DbMigrationPolicyResult Evaluate(

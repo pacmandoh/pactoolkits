@@ -229,7 +229,7 @@ public sealed class SettingsServiceTests
         Assert.Equal(DbSchemaCompatibility.MetadataMissing, snapshot.Compatibility);
         Assert.True(snapshot.Updatable);
         Assert.Equal(DbMigrationDecision.Allowed, snapshot.ManualMigrationPolicy.Decision);
-        Assert.True(snapshot.ManualMigrationPolicy.ShouldExecuteMigration);
+        Assert.True(snapshot.ManualMigrationPolicy.RunMigration);
     }
 
     private static SettingsService CreateService(

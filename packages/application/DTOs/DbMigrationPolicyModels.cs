@@ -46,4 +46,4 @@ public sealed record DbMigrationEvaluationContext(
 public sealed record DbMigrationPolicyResult(
     DbMigrationDecision Decision,
     string Reason,
-    bool ShouldExecuteMigration);
+    bool RunMigration);

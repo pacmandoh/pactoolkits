@@ -54,7 +54,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
             return new DbMigrationPolicyResult(
                 DbMigrationDecision.Allowed,
                 "数据库版本已在支持范围内",
-                ShouldExecuteMigration: false);
+                RunMigration: false);
         }
 
         if (!TryNormalizePolicy(context.MigrationPolicy, out var policy))
@@ -81,7 +81,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
                 => new DbMigrationPolicyResult(
                     DbMigrationDecision.Allowed,
                     "manual 策略仅允许外部手动部署迁移",
-                    ShouldExecuteMigration: true),
+                    RunMigration: true),
 
             DbMigrationPolicies.Manual
                 => Block("当前迁移策略为 manual，仅允许外部手动部署"),
@@ -115,7 +115,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
                 ? new DbMigrationPolicyResult(
                     DbMigrationDecision.Allowed,
                     "CI 已授权 Beta 隔离库迁移",
-                    ShouldExecuteMigration: true)
+                    RunMigration: true)
                 : Block("Beta 数据库迁移需要 CI 显式授权");
         }
 
@@ -124,13 +124,13 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
             return new DbMigrationPolicyResult(
                 DbMigrationDecision.RequiresConfirmation,
                 "Beta 隔离库迁移需要二次确认",
-                ShouldExecuteMigration: false);
+                RunMigration: false);
         }
 
         return new DbMigrationPolicyResult(
             DbMigrationDecision.Allowed,
             "已满足 isolated-beta 迁移授权",
-            ShouldExecuteMigration: true);
+            RunMigration: true);
     }
 
     private static DbMigrationPolicyResult AllowInAppMigration(
@@ -141,11 +141,11 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
         return new DbMigrationPolicyResult(
             DbMigrationDecision.Allowed,
             reason,
-            ShouldExecuteMigration: true);
+            RunMigration: true);
     }
 
     private static DbMigrationPolicyResult Block(string reason)
-        => new(DbMigrationDecision.ReadOnlyRequired, reason, ShouldExecuteMigration: false);
+        => new(DbMigrationDecision.ReadOnlyRequired, reason, RunMigration: false);
 
     private static bool TryNormalizePolicy(string? migrationPolicy, out string policy)
     {
