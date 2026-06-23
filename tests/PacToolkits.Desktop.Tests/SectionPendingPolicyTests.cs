@@ -11,18 +11,18 @@ public sealed class SectionPendingPolicyTests
     [InlineData(PageDataAvailability.AwaitingDatabase)]
     public void ShouldShow_returns_true_during_first_fetch(PageDataAvailability availability)
     {
-        Assert.True(SectionPendingPolicy.ShouldShow(availability, hasLoadedOnce: false));
+        Assert.True(SectionPendingPolicy.Show(availability, hasLoadedOnce: false));
     }
 
     [Fact]
     public void ShouldShow_returns_false_after_first_successful_load()
     {
-        Assert.False(SectionPendingPolicy.ShouldShow(PageDataAvailability.Loading, hasLoadedOnce: true));
+        Assert.False(SectionPendingPolicy.Show(PageDataAvailability.Loading, hasLoadedOnce: true));
     }
 
     [Fact]
     public void ShouldShow_returns_false_when_page_is_ready()
     {
-        Assert.False(SectionPendingPolicy.ShouldShow(PageDataAvailability.Ready, hasLoadedOnce: false));
+        Assert.False(SectionPendingPolicy.Show(PageDataAvailability.Ready, hasLoadedOnce: false));
     }
 }
