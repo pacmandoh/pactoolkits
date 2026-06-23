@@ -1,0 +1,23 @@
+<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.DeferredGridSlot"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  x:Name="Root"
+  HorizontalAlignment="Stretch"
+  VerticalAlignment="Stretch"
+  MinHeight="0">
+
+  <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinHeight="0">
+    <Border
+      x:Name="Skeleton"
+      MinHeight="{Binding SlotMinHeight, ElementName=Root}"
+      Classes="GridSlotSkeleton"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch" />
+    <ContentPresenter
+      x:Name="GridHost"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"
+      IsVisible="False" />
+  </Grid>
+</UserControl>

@@ -31,4 +31,10 @@ public static class ObservableCollectionExtensions
             }
         }
     }
+
+    /// <summary>
+    /// Replaces the entire collection in one pass without issuing a collection Reset notification.
+    /// </summary>
+    public static void ReplaceAll<T>(this ObservableCollection<T> target, IReadOnlyList<T> items)
+        => target.ResetContents(items);
 }
