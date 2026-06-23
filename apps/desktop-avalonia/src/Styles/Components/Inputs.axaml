@@ -66,6 +66,16 @@
   <Style Selector="Border.DashboardFilterChrome AutoCompleteBox">
     <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
     <Setter Property="MaxHeight" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="TextBlock.ClientMetaSubline">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="LineHeight" Value="14" />
+    <Setter Property="MaxHeight" Value="14" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
   </Style>
 
   <Style Selector="TextBox.TraceCodeInput">
@@ -168,6 +178,16 @@
     <Setter Property="CornerRadius" Value="{DynamicResource RowRadius}" />
     <Setter Property="Padding" Value="{DynamicResource RowPadding}" />
     <Setter Property="MinHeight" Value="{DynamicResource RowMinHeight}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <Style Selector="Border.RowItem:pointerover">
+    <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+  </Style>
+
+  <Style Selector="Border.RowItem:pressed">
+    <Setter Property="Background" Value="{DynamicResource GhostColor}" />
   </Style>
 
   <Style Selector="TextBlock.TraceCodeText">
