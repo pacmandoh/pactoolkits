@@ -159,6 +159,25 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private AppPageBase? _activePage;
     [ObservableProperty] private ThemeMode _currentTheme = ThemeMode.Dark;
     [ObservableProperty] private bool _isSidebarExpanded = true;
+
+    public string SidebarToggleIconKind => IsSidebarExpanded ? "PanelLeftClose" : "PanelLeftOpen";
+    public string FilterbarToggleIconKind => IsDashboardFilterBarVisible ? "FunnelX" : "Funnel";
+
+    public string SidebarToggleToolTip => IsSidebarExpanded ? "折叠侧边栏" : "展开侧边栏";
+    public string FilterbarToggleToolTip => IsDashboardFilterBarVisible ? "隐藏筛选栏" : "显示筛选栏";
+
+    [RelayCommand]
+    private void ToggleSidebar() => IsSidebarExpanded = !IsSidebarExpanded;
+
+    [RelayCommand]
+    private void ToggleDashboardFilterBar() =>
+        IsDashboardFilterBarVisible = !IsDashboardFilterBarVisible;
+
+    partial void OnIsSidebarExpandedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(SidebarToggleIconKind));
+        OnPropertyChanged(nameof(SidebarToggleToolTip));
+    }
     [ObservableProperty] private string? _activePageRoute;
     [ObservableProperty] private bool _isDbProbeRunning;
     [ObservableProperty] private bool _isAhkActionRunning;
@@ -711,6 +730,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         if (e.PropertyName == nameof(DashboardViewModel.IsFilterBarVisible))
         {
             OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
+            OnPropertyChanged(nameof(FilterbarToggleIconKind));
+            OnPropertyChanged(nameof(FilterbarToggleToolTip));
         }
     }
 
@@ -872,6 +893,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsAboutPageActive));
         OnPropertyChanged(nameof(IsDashboardPageActive));
         OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
+        OnPropertyChanged(nameof(FilterbarToggleIconKind));
+        OnPropertyChanged(nameof(FilterbarToggleToolTip));
         RaiseTopBarVisibilityBindings();
         RaiseStatusItemsChanged();
 
