@@ -3,6 +3,7 @@
   <FontFamily x:Key="ShadBodyFontFamily">avares://pactoolkits-desktop/Assets/Fonts#Manrope</FontFamily>
 
   <x:Double x:Key="SectionTitleSize">16</x:Double>
+  <x:Double x:Key="DgIndexFontSize">10</x:Double>
   <x:Double x:Key="DialogTitleSize">17</x:Double>
   <x:Double x:Key="DialogTitleSizeLg">18</x:Double>
   <x:Double x:Key="AboutSubtitleSize">15</x:Double>

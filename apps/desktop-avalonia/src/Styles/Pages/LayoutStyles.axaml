@@ -39,7 +39,12 @@
   </Style>
 
   <Style Selector="Grid.DashboardLayout">
-    <Setter Property="RowSpacing" Value="{DynamicResource PageRowSpacing}" />
+    <Setter Property="RowSpacing" Value="0" />
+    <Setter Property="Margin" Value="{DynamicResource DashboardLayoutMargin}" />
+  </Style>
+
+  <Style Selector="Grid.DashboardTabPanel">
+    <Setter Property="Margin" Value="{DynamicResource DashboardTabPanelMargin}" />
   </Style>
 
   <!--  Dashboard tabs in content header: layout only (center in header, hide empty content host).  -->
