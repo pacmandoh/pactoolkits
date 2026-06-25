@@ -133,7 +133,8 @@
                                       Converter={x:Static shad:BooleanConverters.ToZeroOrDouble},
                                       ConverterParameter=16}"
               Height="{DynamicResource IconSizeSmall}"
-              VerticalAlignment="Center">
+              VerticalAlignment="Center"
+              IsVisible="{TemplateBinding shad:ButtonAssist.ShowProgress}">
               <ContentPresenter Content="{TemplateBinding shad:ButtonAssist.ShowProgress, Converter={x:Static shad:BooleanConverters.ToLoading}}" />
             </Viewbox>
             <Viewbox
@@ -170,7 +171,7 @@
     <Setter Property="Background" Value="{DynamicResource GhostColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem.active:pointerover /template/ Border#PART_Border,                      Button.ShellStatusItem.active:pressed /template/ Border#PART_Border">
+  <Style Selector="Button.ShellStatusItem.active:pointerover /template/ Border#PART_Border,Button.ShellStatusItem.active:pressed /template/ Border#PART_Border">
     <Setter Property="Background" Value="{DynamicResource GhostColor}" />
   </Style>
 
@@ -183,7 +184,7 @@
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem:pointerover,                      Button.ShellStatusItem:pressed,                      Button.ShellStatusItem.active,                      Button.ShellStatusItem.active:pointerover,                      Button.ShellStatusItem.active:pressed">
+  <Style Selector="Button.ShellStatusItem:pointerover,Button.ShellStatusItem:pressed,Button.ShellStatusItem.active,Button.ShellStatusItem.active:pointerover,Button.ShellStatusItem.active:pressed">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
@@ -192,7 +193,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem TextBlock.Caption.Muted,                      Button.ShellStatusItem:pointerover TextBlock.Caption.Muted,                      Button.ShellStatusItem:pressed TextBlock.Caption.Muted,                      Button.ShellStatusItem.active TextBlock.Caption.Muted,                      Button.ShellStatusItem.active:pointerover TextBlock.Caption.Muted,                      Button.ShellStatusItem.active:pressed TextBlock.Caption.Muted">
+  <Style Selector="Button.ShellStatusItem TextBlock.Caption.Muted,Button.ShellStatusItem:pointerover TextBlock.Caption.Muted,Button.ShellStatusItem:pressed TextBlock.Caption.Muted,Button.ShellStatusItem.active TextBlock.Caption.Muted,Button.ShellStatusItem.active:pointerover TextBlock.Caption.Muted,Button.ShellStatusItem.active:pressed TextBlock.Caption.Muted">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
@@ -203,11 +204,11 @@
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem):pointerover icons|AppIcon,                      Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem):pressed icons|AppIcon,                      Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active icons|AppIcon,                      Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active:pointerover icons|AppIcon,                      Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active:pressed icons|AppIcon">
+  <Style Selector="Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem):pointerover icons|AppIcon,Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem):pressed icons|AppIcon,Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active icons|AppIcon,Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active:pointerover icons|AppIcon,Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active:pressed icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusDbItem icons|AppIcon,                      Button.ShellStatusAgentItem icons|AppIcon">
+  <Style Selector="Button.ShellStatusDbItem icons|AppIcon,Button.ShellStatusAgentItem icons|AppIcon">
     <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
     <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
     <Setter Property="StrokeWidth" Value="{DynamicResource SidebarMenuIconStroke}" />
@@ -222,7 +223,6 @@
     <Setter Property="Height" Value="{DynamicResource ShellStatusDividerHeight}" />
     <Setter Property="Background" Value="{DynamicResource BorderColor}" />
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Margin" Value="1,0" />
     <Setter Property="Opacity" Value="0.65" />
   </Style>
 
@@ -277,7 +277,7 @@
     <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
   </Style>
 
-  <Style Selector="Button.WindowControlsButton:pointerover,                      Button.WindowControlsButton:pressed">
+  <Style Selector="Button.WindowControlsButton:pointerover,Button.WindowControlsButton:pressed">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 </Styles>
