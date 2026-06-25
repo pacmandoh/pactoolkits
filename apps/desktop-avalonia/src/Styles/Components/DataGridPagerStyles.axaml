@@ -1,4 +1,4 @@
-﻿<Styles
+<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
@@ -23,8 +23,8 @@
     <Setter Property="Padding" Value="0" />
   </Style>
 
-  <!--  Align pager chrome with SectionPanel body padding when inner content is flush (FlushBody).  -->
-  <Style Selector="controls|DataGridPager.SectionPanelBodyInset">
-    <Setter Property="HorizontalInset" Value="{DynamicResource SectionPanelBodyHorizontalInset}" />
+  <!--  Align pager chrome with CardPanel body padding when inner content is flush (FlushBody).  -->
+  <Style Selector="controls|DataGridPager.CardPanelBodyInset">
+    <Setter Property="HorizontalInset" Value="{DynamicResource CardPanelBodyHorizontalInset}" />
   </Style>
 </Styles>

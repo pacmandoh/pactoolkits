@@ -6,6 +6,7 @@ using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Media;
+using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.Converters;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
@@ -20,6 +21,13 @@ public enum DataGridIndexColumnMode
 
     /// <summary><c>RowNo</c> on row item.</summary>
     RowNo,
+}
+
+public enum DataGridIndexHeaderFace
+{
+    Default,
+    ClearSort,
+    ClearFilter,
 }
 
 /// <summary>
@@ -72,10 +80,18 @@ public class DataGridIndexColumnBehavior
 
     public static void SetHeader(DataGrid grid, string value) => grid.SetValue(HeaderProperty, value);
 
-    internal static bool TryGetSortResetHeaderHost(DataGrid grid, out Panel? host)
+    internal static bool TryGetHeaderButton(DataGrid grid, out Button? button)
     {
-        host = null;
-        return States.TryGetValue(grid, out var state) && state.TryGetHeaderHost(out host);
+        button = null;
+        return States.TryGetValue(grid, out var state) && state.TryGetHeaderButton(out button);
+    }
+
+    internal static void SetHeaderFace(DataGrid grid, DataGridIndexHeaderFace face)
+    {
+        if (States.TryGetValue(grid, out var state))
+        {
+            state.ApplyHeaderFace(face);
+        }
     }
 
     internal static bool IsIndexColumn(DataGridColumn? column)
@@ -136,14 +152,47 @@ public class DataGridIndexColumnBehavior
         private DataGridIndexColumnMode _appliedMode = (DataGridIndexColumnMode)(-1);
         private string? _appliedHeader;
         private bool? _appliedVisible;
-        private Panel? _headerHost;
+        private Button? _headerButton;
+        private TextBlock? _headerLabel;
+        private AppIcon? _headerIcon;
+        private DataGridIndexHeaderFace _headerFace = DataGridIndexHeaderFace.Default;
 
         public BehaviorState(DataGrid grid) => _grid = grid;
 
-        public bool TryGetHeaderHost(out Panel? host)
+        public bool TryGetHeaderButton(out Button? button)
         {
-            host = _headerHost;
-            return host is not null;
+            button = _headerButton;
+            return button is not null;
+        }
+
+        public void ApplyHeaderFace(DataGridIndexHeaderFace face)
+        {
+            if (_disposed || _headerButton is null || _headerLabel is null || _headerIcon is null)
+            {
+                return;
+            }
+
+            _headerFace = face;
+            switch (face)
+            {
+                case DataGridIndexHeaderFace.ClearSort:
+                    _headerLabel.IsVisible = false;
+                    _headerIcon.Kind = "ArrowUpDown";
+                    _headerIcon.IsVisible = true;
+                    _headerButton.IsEnabled = true;
+                    break;
+                case DataGridIndexHeaderFace.ClearFilter:
+                    _headerLabel.IsVisible = false;
+                    _headerIcon.Kind = "SearchX";
+                    _headerIcon.IsVisible = true;
+                    _headerButton.IsEnabled = true;
+                    break;
+                default:
+                    _headerLabel.IsVisible = true;
+                    _headerIcon.IsVisible = false;
+                    _headerButton.IsEnabled = false;
+                    break;
+            }
         }
 
         public void Attach()
@@ -169,7 +218,9 @@ public class DataGridIndexColumnBehavior
             _grid.Initialized -= OnInitialized;
             _grid.AttachedToVisualTree -= OnAttachedToVisualTree;
             _column = null;
-            _headerHost = null;
+            _headerButton = null;
+            _headerLabel = null;
+            _headerIcon = null;
         }
 
         private void OnInitialized(object? sender, EventArgs e)
@@ -278,6 +329,8 @@ public class DataGridIndexColumnBehavior
                 _column.CellTemplate = BuildCellTemplate(mode);
                 _appliedMode = mode;
             }
+
+            ApplyHeaderFace(_headerFace);
         }
 
         private DataGridTemplateColumn CreateColumn()
@@ -306,20 +359,42 @@ public class DataGridIndexColumnBehavior
 
         private Panel BuildHeader(string headerText)
         {
-            var root = new Grid
-            {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch,
-            };
-
-            var label = new TextBlock
+            _headerLabel = new TextBlock
             {
                 Text = headerText,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            root.Children.Add(WrapIndexCell(label));
-            _headerHost = root;
+
+            _headerIcon = new AppIcon
+            {
+                IsVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+
+            var face = new Grid();
+            face.Children.Add(WrapIndexCell(_headerLabel));
+            face.Children.Add(_headerIcon);
+
+            _headerButton = new Button
+            {
+                Classes = { "DgIndexHeaderButton", "Ghost", "Icon" },
+                Content = face,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Padding = new Thickness(0),
+                IsEnabled = false,
+            };
+
+            var root = new Grid
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            };
+            root.Children.Add(_headerButton);
             return root;
         }
 
@@ -361,8 +436,6 @@ public class DataGridIndexColumnBehavior
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            text.Classes.Add("Caption");
-            text.Classes.Add("Muted");
             text.Classes.Add("DgIndexCell");
             return text;
         }
