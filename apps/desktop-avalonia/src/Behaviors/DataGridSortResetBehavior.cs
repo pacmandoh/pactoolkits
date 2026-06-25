@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Specialized;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Collections;
 using global::Avalonia.Controls;
 using global::Avalonia.Interactivity;
 using global::Avalonia.Threading;
-using global::Avalonia.VisualTree;
-using PacToolkits.Desktop.Avalonia.Controls;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
@@ -15,6 +14,12 @@ public class DataGridSortResetBehavior
 {
     public static readonly AttachedProperty<bool> EnabledProperty =
         AvaloniaProperty.RegisterAttached<DataGridSortResetBehavior, DataGrid, bool>("Enabled");
+
+    public static readonly AttachedProperty<bool> FilterActiveProperty =
+        AvaloniaProperty.RegisterAttached<DataGridSortResetBehavior, DataGrid, bool>("FilterActive");
+
+    public static readonly AttachedProperty<ICommand?> ClearFilterCommandProperty =
+        AvaloniaProperty.RegisterAttached<DataGridSortResetBehavior, DataGrid, ICommand?>("ClearFilterCommand");
 
     private static readonly ConcurrentDictionary<DataGrid, BehaviorState> States = new();
 
@@ -32,11 +37,28 @@ public class DataGridSortResetBehavior
                 Detach(grid);
             }
         });
+
+        FilterActiveProperty.Changed.AddClassHandler<DataGrid>((grid, _) =>
+        {
+            if (States.TryGetValue(grid, out var state))
+            {
+                state.UpdateHeaderFace();
+            }
+        });
     }
 
     public static bool GetEnabled(DataGrid grid) => grid.GetValue(EnabledProperty);
 
     public static void SetEnabled(DataGrid grid, bool value) => grid.SetValue(EnabledProperty, value);
+
+    public static bool GetFilterActive(DataGrid grid) => grid.GetValue(FilterActiveProperty);
+
+    public static void SetFilterActive(DataGrid grid, bool value) => grid.SetValue(FilterActiveProperty, value);
+
+    public static ICommand? GetClearFilterCommand(DataGrid grid) => grid.GetValue(ClearFilterCommandProperty);
+
+    public static void SetClearFilterCommand(DataGrid grid, ICommand? value)
+        => grid.SetValue(ClearFilterCommandProperty, value);
 
     internal static void NotifyIndexHeaderChanged(DataGrid grid)
     {
@@ -77,27 +99,22 @@ public class DataGridSortResetBehavior
     private sealed class BehaviorState : IDisposable
     {
         private readonly DataGrid _grid;
-        private readonly Button _button;
+        private Button? _headerButton;
         private DataGridSortDescriptionCollection? _sortDescriptions;
         private bool _disposed;
 
-        public BehaviorState(DataGrid grid)
-        {
-            _grid = grid;
-            _button = BuildButton();
-        }
+        public BehaviorState(DataGrid grid) => _grid = grid;
 
         public void Attach()
         {
             _grid.AttachedToVisualTree += OnAttachedToVisualTree;
-            _grid.DetachedFromVisualTree += OnDetachedFromVisualTree;
             _grid.Sorting += OnSorting;
             _grid.PropertyChanged += OnGridPropertyChanged;
             _grid.Columns.CollectionChanged += OnColumnsChanged;
             DataGridSortSupportBehavior.Apply(_grid);
             AttachSortDescriptions(_grid.CollectionView?.SortDescriptions);
             EnsureHeaderButtonInstalled();
-            UpdateButtonVisibility();
+            UpdateHeaderFace();
         }
 
         public void Dispose()
@@ -110,49 +127,24 @@ public class DataGridSortResetBehavior
             _disposed = true;
             DetachSortDescriptions();
             _grid.AttachedToVisualTree -= OnAttachedToVisualTree;
-            _grid.DetachedFromVisualTree -= OnDetachedFromVisualTree;
             _grid.Sorting -= OnSorting;
             _grid.PropertyChanged -= OnGridPropertyChanged;
             _grid.Columns.CollectionChanged -= OnColumnsChanged;
-            _button.Click -= OnClearSortClicked;
-        }
 
-        private Button BuildButton()
-        {
-            var icon = new AppIcon
-            {
-                Kind = "ArrowUpDown",
-                Width = 12,
-                Height = 12,
-                HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Center,
-                VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center
-            };
-
-            var btn = new Button
-            {
-                Classes = { "DataGridSortResetButton", "Outline", "Icon" },
-                Content = icon,
-                IsVisible = false
-            };
-            btn.Click += OnClearSortClicked;
-            return btn;
+            _headerButton?.Click -= OnHeaderButtonClicked;
+            _headerButton = null;
         }
 
         private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
         {
             DataGridSortSupportBehavior.Apply(_grid);
             EnsureHeaderButtonInstalled();
-            UpdateButtonVisibility();
+            UpdateHeaderFace();
         }
 
         private void OnColumnsChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             DataGridSortSupportBehavior.Apply(_grid);
-        }
-
-        private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
-        {
-            _button.IsVisible = false;
         }
 
         private void OnGridPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
@@ -162,7 +154,7 @@ public class DataGridSortResetBehavior
                 DataGridSortSupportBehavior.Apply(_grid);
                 AttachSortDescriptions(_grid.CollectionView?.SortDescriptions);
                 EnsureHeaderButtonInstalled();
-                Dispatcher.UIThread.Post(UpdateButtonVisibility, DispatcherPriority.Background);
+                Dispatcher.UIThread.Post(UpdateHeaderFace, DispatcherPriority.Background);
             }
         }
 
@@ -191,30 +183,42 @@ public class DataGridSortResetBehavior
 
         private void OnSortDescriptionsChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            Dispatcher.UIThread.Post(UpdateButtonVisibility, DispatcherPriority.Background);
+            Dispatcher.UIThread.Post(UpdateHeaderFace, DispatcherPriority.Background);
         }
 
         private void OnSorting(object? sender, DataGridColumnEventArgs e)
         {
             EnsureHeaderButtonInstalled();
-            Dispatcher.UIThread.Post(UpdateButtonVisibility, DispatcherPriority.Background);
-            Dispatcher.UIThread.Post(UpdateButtonVisibility, DispatcherPriority.ContextIdle);
+            Dispatcher.UIThread.Post(UpdateHeaderFace, DispatcherPriority.Background);
         }
 
-        private void OnClearSortClicked(object? sender, RoutedEventArgs e)
+        private void OnHeaderButtonClicked(object? sender, RoutedEventArgs e)
         {
             try
             {
-                foreach (var column in _grid.Columns)
+                if (GetFilterActive(_grid))
                 {
-                    column.ClearSort();
+                    var clearFilter = GetClearFilterCommand(_grid);
+                    if (clearFilter?.CanExecute(null) == true)
+                    {
+                        clearFilter.Execute(null);
+                    }
+
+                    e.Handled = true;
+                    return;
                 }
 
-                var sortDescriptions = _grid.CollectionView?.SortDescriptions;
-                sortDescriptions?.Clear();
+                if (HasActiveSort())
+                {
+                    foreach (var column in _grid.Columns)
+                    {
+                        column.ClearSort();
+                    }
 
-                UpdateButtonVisibility();
-                e.Handled = true;
+                    _grid.CollectionView?.SortDescriptions.Clear();
+                    UpdateHeaderFace();
+                    e.Handled = true;
+                }
             }
             catch
             {
@@ -228,21 +232,17 @@ public class DataGridSortResetBehavior
         {
             void TryInstall()
             {
-                if (InstallOnIndexColumnHeader())
+                if (!DataGridIndexColumnBehavior.TryGetHeaderButton(_grid, out var button) || button is null)
                 {
                     return;
                 }
 
-                var topLeft = FindTopLeftHeader();
-                if (topLeft is null)
+                if (!ReferenceEquals(_headerButton, button))
                 {
-                    return;
-                }
+                    _headerButton?.Click -= OnHeaderButtonClicked;
 
-                DetachButtonFromParent();
-                if (!ReferenceEquals(topLeft.Content, _button))
-                {
-                    topLeft.Content = _button;
+                    _headerButton = button;
+                    _headerButton.Click += OnHeaderButtonClicked;
                 }
             }
 
@@ -251,56 +251,32 @@ public class DataGridSortResetBehavior
             Dispatcher.UIThread.Post(TryInstall, DispatcherPriority.ContextIdle);
         }
 
-        private bool InstallOnIndexColumnHeader()
+        public void UpdateHeaderFace()
         {
-            if (!DataGridIndexColumnBehavior.TryGetSortResetHeaderHost(_grid, out var host) || host is null)
+            if (_disposed)
             {
-                return false;
+                return;
             }
 
-            DetachButtonFromParent();
-            if (!host.Children.Contains(_button))
+            if (GetFilterActive(_grid))
             {
-                host.Children.Add(_button);
+                DataGridIndexColumnBehavior.SetHeaderFace(_grid, DataGridIndexHeaderFace.ClearFilter);
+                return;
             }
 
-            _button.HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Right;
-            _button.VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center;
-            _button.Margin = new Thickness(0, 0, 2, 0);
-            return true;
+            if (HasActiveSort())
+            {
+                DataGridIndexColumnBehavior.SetHeaderFace(_grid, DataGridIndexHeaderFace.ClearSort);
+                return;
+            }
+
+            DataGridIndexColumnBehavior.SetHeaderFace(_grid, DataGridIndexHeaderFace.Default);
         }
 
-        private void DetachButtonFromParent()
-        {
-            if (_button.Parent is Panel panel)
-            {
-                panel.Children.Remove(_button);
-            }
-            else if (_button.Parent is ContentControl contentControl && ReferenceEquals(contentControl.Content, _button))
-            {
-                contentControl.Content = null;
-            }
-        }
-
-        private DataGridColumnHeader? FindTopLeftHeader()
-        {
-            foreach (var c in _grid.GetVisualDescendants())
-            {
-                if (c is DataGridColumnHeader header && header.Name == "PART_TopLeftCornerHeader")
-                {
-                    return header;
-                }
-            }
-
-            return null;
-        }
-
-        private void UpdateButtonVisibility()
+        private bool HasActiveSort()
         {
             var sortDescriptions = _grid.CollectionView?.SortDescriptions;
-            var hasSortDescriptions = sortDescriptions is not null && sortDescriptions.Count > 0;
-            _button.IsVisible = hasSortDescriptions;
-            _button.IsEnabled = _button.IsVisible;
+            return sortDescriptions is not null && sortDescriptions.Count > 0;
         }
     }
 }

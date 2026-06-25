@@ -1,7 +1,8 @@
 ﻿<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors">
+  xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
 
   <!--
     SectionGrid keeps ShadUI ControlTheme chrome (cell/header/row/hover/sort icons)
@@ -90,16 +91,6 @@
     <Setter Property="IsVisible" Value="False" />
   </Style>
 
-  <Style Selector="DataGrid.SectionGrid.Headerless">
-    <Setter Property="HeadersVisibility" Value="None" />
-    <Setter Property="GridLinesVisibility" Value="None" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="0" />
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="RowBackground" Value="Transparent" />
-    <Setter Property="behaviors:DataGridIndexColumnBehavior.Enabled" Value="False" />
-  </Style>
-
   <!--  First column # index (Shad BasicDataTable look).  -->
   <Style Selector="DataGrid.IndexedGrid">
     <Setter Property="behaviors:DataGridIndexColumnBehavior.Enabled" Value="True" />
@@ -126,15 +117,35 @@
     <Setter Property="IsTabStop" Value="False" />
   </Style>
 
-  <Style Selector="Button.DataGridSortResetButton">
-    <Setter Property="Width" Value="{DynamicResource DgSortResetButtonSize}" />
-    <Setter Property="Height" Value="{DynamicResource DgSortResetButtonSize}" />
+  <Style Selector="DataGrid.InventoryGrid">
+    <Setter Property="RowHeight" Value="{DynamicResource InventoryRowHeight}" />
+  </Style>
+
+  <Style Selector="Button.DgIndexHeaderButton">
+    <Setter Property="Width" Value="{DynamicResource DgIndexHeaderActionButtonSize}" />
+    <Setter Property="Height" Value="{DynamicResource DgIndexHeaderActionButtonSize}" />
+    <Setter Property="MinWidth" Value="{DynamicResource DgIndexHeaderActionButtonSize}" />
+    <Setter Property="MinHeight" Value="{DynamicResource DgIndexHeaderActionButtonSize}" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="Button.DgIndexHeaderButton:disabled">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+
+  <Style Selector="Button.DgIndexHeaderButton icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource DgIndexHeaderActionIconSize}" />
+    <Setter Property="Height" Value="{DynamicResource DgIndexHeaderActionIconSize}" />
   </Style>
 
   <Style Selector="TextBlock.DgIndexCell">
+    <Setter Property="FontSize" Value="{DynamicResource DgIndexFontSize}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
     <Setter Property="TextTrimming" Value="None" />
     <Setter Property="TextAlignment" Value="Center" />
   </Style>
