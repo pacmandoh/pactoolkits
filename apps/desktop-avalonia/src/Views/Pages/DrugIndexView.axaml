@@ -224,7 +224,7 @@
                             SortMemberPath="Qty">
                             <DataGridTemplateColumn.CellTemplate>
                               <DataTemplate>
-                                <TextBlock Classes="DGRightCell DGNum" Text="{Binding Qty}" />
+                                <TextBlock HorizontalAlignment="Right" Text="{Binding Qty}" />
                               </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                           </DataGridTemplateColumn>

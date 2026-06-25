@@ -75,7 +75,6 @@
           x:Name="QuantitySplitBox"
           Grid.Column="1"
           HorizontalAlignment="Stretch"
-          Classes="Control"
           PlaceholderText="例如：400, 400, 400, 400" />
       </Grid>
 
@@ -83,7 +82,7 @@
         x:Name="SplitUnitGrid"
         Grid.Row="3"
         Height="320"
-        Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid"
+        Classes="SectionGrid InventoryGrid IndexedGrid"
         GridLinesVisibility="All"
         HeadersVisibility="All"
         HorizontalScrollBarVisibility="Auto"
