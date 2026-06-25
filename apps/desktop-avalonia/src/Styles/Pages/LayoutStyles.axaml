@@ -42,16 +42,13 @@
     <Setter Property="RowSpacing" Value="{DynamicResource PageRowSpacing}" />
   </Style>
 
-  <!--  Dashboard tabs: headers only; body lives in Grid row below.  -->
-  <Style Selector="TabControl.DashboardTabHeaders /template/ LayoutTransformControl &gt; Border">
-    <Setter Property="Background" Value="{DynamicResource SectionPanelChromeBackground}" />
+  <!--  Shell dashboard tabs: Shad TabControl headers only; body stays in DashboardView.  -->
+  <Style Selector="TabControl.ShellDashboardTabHeaders">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="Transparent" />
   </Style>
 
-  <Style Selector="TabControl.DashboardTabHeaders /template/ StackPanel">
-    <Setter Property="Spacing" Value="0" />
-  </Style>
-
-  <Style Selector="TabControl.DashboardTabHeaders /template/ ContentPresenter#PART_SelectedContentHost">
+  <Style Selector="TabControl.ShellDashboardTabHeaders /template/ ContentPresenter#PART_SelectedContentHost">
     <Setter Property="Height" Value="0" />
     <Setter Property="IsVisible" Value="False" />
     <Setter Property="Margin" Value="0" />
@@ -71,7 +68,6 @@
   </Style>
 
   <Style Selector="Border.DashboardTabContext">
-    <Setter Property="Margin" Value="0,0,18,0" />
     <Setter Property="Padding" Value="10,5" />
     <Setter Property="Background" Value="{DynamicResource GhostColor}" />
     <Setter Property="CornerRadius" Value="999" />
@@ -142,6 +138,17 @@
     <Setter Property="Margin" Value="{DynamicResource ShellContentHeaderDividerMargin}" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Fill" Value="{DynamicResource BorderColor}" />
+  </Style>
+
+  <Style Selector="StackPanel.ShellContentHeaderTitleRail">
+    <Setter Property="Spacing" Value="{DynamicResource SpacingInlineSm}" />
+  </Style>
+
+  <Style Selector="icons|AppIcon.ShellPageTitleChevron">
+    <Setter Property="Width" Value="14" />
+    <Setter Property="Height" Value="14" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
   </Style>
 
   <Style Selector="Menu.ShellContentHeaderMenu">

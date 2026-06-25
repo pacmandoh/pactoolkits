@@ -1,4 +1,4 @@
-<shad:Window
+﻿<shad:Window
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -404,7 +404,7 @@
             MinHeight="{DynamicResource ContentChromeHeight}"
             Margin="{DynamicResource ShellContentHeaderPadding}"
             VerticalAlignment="Center"
-            ColumnDefinitions="Auto, Auto, Auto, *, Auto">
+            ColumnDefinitions="Auto, Auto, Auto, *, Auto, Auto, Auto">
             <StackPanel
               Grid.Column="0"
               Orientation="Horizontal"
@@ -425,13 +425,90 @@
               </Button>
             </StackPanel>
             <Rectangle Grid.Column="1" Classes="ShellContentHeaderDivider" />
-            <TextBlock
+            <StackPanel
               Grid.Column="2"
               VerticalAlignment="Center"
-              Classes="SectionTitle"
-              Text="{Binding ActivePageText}" />
-            <Menu
+              Classes="ShellContentHeaderTitleRail"
+              Orientation="Horizontal">
+              <TextBlock Classes="ShellPageTitle" Text="{Binding ActivePageText}" />
+              <icons:AppIcon
+                Classes="ShellPageTitleChevron"
+                IsVisible="{Binding IsDashboardPageActive}"
+                Kind="ChevronRight" />
+              <TabControl
+                shad:TabControlBehaviors.UseSlidingPill="True"
+                Classes="ShellDashboardTabHeaders"
+                IsVisible="{Binding IsDashboardPageActive}"
+                SelectedIndex="{Binding DashboardSelectedTabIndex, Mode=TwoWay}">
+                <TabItem>
+                  <TabItem.Header>
+                    <StackPanel Classes="TabItemHeader">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeCompact}"
+                        Height="{DynamicResource IconSizeCompact}"
+                        Kind="ChartLine" />
+                      <TextBlock Text="总览" />
+                    </StackPanel>
+                  </TabItem.Header>
+                </TabItem>
+                <TabItem>
+                  <TabItem.Header>
+                    <StackPanel Classes="TabItemHeader">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeCompact}"
+                        Height="{DynamicResource IconSizeCompact}"
+                        Kind="ScanBarcode" />
+                      <TextBlock Text="录入" />
+                    </StackPanel>
+                  </TabItem.Header>
+                </TabItem>
+                <TabItem>
+                  <TabItem.Header>
+                    <StackPanel Classes="TabItemHeader">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeCompact}"
+                        Height="{DynamicResource IconSizeCompact}"
+                        Kind="ArrowRightLeft" />
+                      <TextBlock Text="事务" />
+                    </StackPanel>
+                  </TabItem.Header>
+                </TabItem>
+                <TabItem>
+                  <TabItem.Header>
+                    <StackPanel Classes="TabItemHeader">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeCompact}"
+                        Height="{DynamicResource IconSizeCompact}"
+                        Kind="OctagonAlert" />
+                      <TextBlock Text="异常" />
+                    </StackPanel>
+                  </TabItem.Header>
+                </TabItem>
+              </TabControl>
+            </StackPanel>
+            <Border
               Grid.Column="4"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              Classes="DashboardTabContext"
+              IsHitTestVisible="False"
+              IsVisible="{Binding IsDashboardPageActive}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeSmall}"
+                  Height="{DynamicResource IconSizeSmall}"
+                  Kind="CalendarRange" />
+                <TextBlock
+                  MaxWidth="360"
+                  VerticalAlignment="Center"
+                  Classes="Caption Muted"
+                  Text="{Binding DashboardSectionHint}"
+                  TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </Border>
+            <Rectangle Grid.Column="5" Classes="ShellContentHeaderDivider" />
+            <Menu
+              Grid.Column="6"
               HorizontalAlignment="Right"
               VerticalAlignment="Center"
               Classes="ShellContentHeaderMenu">

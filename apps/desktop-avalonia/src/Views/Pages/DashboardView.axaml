@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -21,7 +21,7 @@
     UnavailableHint="{Binding PageUnavailableHint}"
     UnavailableIcon="{Binding PageUnavailableIcon}"
     UnavailableTitle="{Binding PageUnavailableTitle}">
-    <Grid Classes="DashboardShell" RowDefinitions="Auto,Auto,*">
+    <Grid Classes="DashboardShell" RowDefinitions="Auto,*">
       <Border
         Grid.Row="0"
         Classes="DashboardFilterChrome"
@@ -138,79 +138,8 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Row="1">
-        <TabControl
-          Margin="{DynamicResource DashboardTabsPadding}"
-          Classes="DashboardTabHeaders"
-          SelectedIndex="{Binding SelectedTabIndex}">
-          <TabItem>
-            <TabItem.Header>
-              <StackPanel Classes="TabItemHeader">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeCompact}"
-                  Height="{DynamicResource IconSizeCompact}"
-                  Kind="ChartLine" />
-                <TextBlock Text="总览" />
-              </StackPanel>
-            </TabItem.Header>
-          </TabItem>
-          <TabItem>
-            <TabItem.Header>
-              <StackPanel Classes="TabItemHeader">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeCompact}"
-                  Height="{DynamicResource IconSizeCompact}"
-                  Kind="ScanBarcode" />
-                <TextBlock Text="录入" />
-              </StackPanel>
-            </TabItem.Header>
-          </TabItem>
-          <TabItem>
-            <TabItem.Header>
-              <StackPanel Classes="TabItemHeader">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeCompact}"
-                  Height="{DynamicResource IconSizeCompact}"
-                  Kind="ArrowRightLeft" />
-                <TextBlock Text="事务" />
-              </StackPanel>
-            </TabItem.Header>
-          </TabItem>
-          <TabItem>
-            <TabItem.Header>
-              <StackPanel Classes="TabItemHeader">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeCompact}"
-                  Height="{DynamicResource IconSizeCompact}"
-                  Kind="OctagonAlert" />
-                <TextBlock Text="异常" />
-              </StackPanel>
-            </TabItem.Header>
-          </TabItem>
-        </TabControl>
-        <Border
-          HorizontalAlignment="Right"
-          VerticalAlignment="Center"
-          Classes="DashboardTabContext"
-          IsHitTestVisible="False">
-          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeSmall}"
-              Height="{DynamicResource IconSizeSmall}"
-              Kind="CalendarRange" />
-            <TextBlock
-              MaxWidth="520"
-              VerticalAlignment="Center"
-              Classes="Caption Muted"
-              Text="{Binding SectionHint}"
-              TextTrimming="CharacterEllipsis" />
-          </StackPanel>
-        </Border>
-      </Grid>
-
-
       <Grid
-        Grid.Row="2"
+        Grid.Row="1"
         Margin="{DynamicResource DashboardTabContentMargin}"
         IsVisible="{Binding IsOverviewTab}"
         RowDefinitions="*">
@@ -671,7 +600,7 @@
       </Grid>
 
       <Grid
-        Grid.Row="2"
+        Grid.Row="1"
         Margin="{DynamicResource DashboardTabContentMargin}"
         IsVisible="{Binding IsInputTab}"
         RowDefinitions="*">
@@ -793,7 +722,7 @@
 
 
       <Grid
-        Grid.Row="2"
+        Grid.Row="1"
         Margin="{DynamicResource DashboardTabContentMargin}"
         IsVisible="{Binding IsTxnTab}"
         RowDefinitions="*">
@@ -967,7 +896,7 @@
       </Grid>
 
       <Grid
-        Grid.Row="2"
+        Grid.Row="1"
         Margin="{DynamicResource DashboardTabContentMargin}"
         IsVisible="{Binding IsAbnormalTab}"
         RowDefinitions="*">

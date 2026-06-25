@@ -62,7 +62,6 @@
   <x:Double x:Key="DashboardFilterGroupSpacing">8</x:Double>
   <Thickness x:Key="DashboardFilterColumnPadding">12,0</Thickness>
   <Thickness x:Key="DashboardFilterDividerMargin">0</Thickness>
-  <Thickness x:Key="DashboardTabsPadding">18,0,18,0</Thickness>
   <Thickness x:Key="DashboardTabContentMargin">18,0,18,18</Thickness>
   <CornerRadius x:Key="SectionPanelOuterRadius">14</CornerRadius>
   <CornerRadius x:Key="SectionPanelInnerRadius">12</CornerRadius>
