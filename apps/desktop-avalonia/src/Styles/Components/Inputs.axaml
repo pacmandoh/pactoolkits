@@ -244,8 +244,8 @@
             Padding="{DynamicResource EmptyStatePadding}"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
-            IsHitTestVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
-            IsVisible="{Binding IsEmpty, RelativeSource={RelativeSource TemplatedParent}}"
+            IsHitTestVisible="{Binding ShowEmptyOverlay, RelativeSource={RelativeSource TemplatedParent}}"
+            IsVisible="{Binding ShowEmptyOverlay, RelativeSource={RelativeSource TemplatedParent}}"
             ZIndex="1">
             <StackPanel
               HorizontalAlignment="Center"
