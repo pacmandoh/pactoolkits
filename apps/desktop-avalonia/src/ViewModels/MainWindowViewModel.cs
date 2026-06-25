@@ -423,7 +423,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         => UiThreadHelper.PostOnUi(action, priority);
 
     private ITopBarActions? ActiveTopBar => ActivePage;
-    private DashboardViewModel? _dashboardFilterBarSource;
+    private DashboardViewModel? _dashboardChromeSource;
 
     public bool IsDashboardPageActive => ActivePage is DashboardViewModel;
 
@@ -438,6 +438,20 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             }
         }
     }
+
+    public int DashboardSelectedTabIndex
+    {
+        get => _dashboardChromeSource?.SelectedTabIndex ?? 0;
+        set
+        {
+            if (_dashboardChromeSource is not null && _dashboardChromeSource.SelectedTabIndex != value)
+            {
+                _dashboardChromeSource.SelectedTabIndex = value;
+            }
+        }
+    }
+
+    public string DashboardSectionHint => _dashboardChromeSource?.SectionHint ?? string.Empty;
 
     public System.Windows.Input.ICommand? TopRefreshCommand => ActiveTopBar?.RefreshCommand;
     public System.Windows.Input.ICommand? TopImportCommand => ActiveTopBar?.ImportCommand;
@@ -716,23 +730,36 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void WireDashboardFilterBar(AppPageBase? page)
+    private void WireDashboardChrome(AppPageBase? page)
     {
-        _dashboardFilterBarSource?.PropertyChanged -= OnDashboardFilterBarPropertyChanged;
+        _dashboardChromeSource?.PropertyChanged -= OnDashboardChromePropertyChanged;
 
-        _dashboardFilterBarSource = page as DashboardViewModel;
+        _dashboardChromeSource = page as DashboardViewModel;
 
-        _dashboardFilterBarSource?.PropertyChanged += OnDashboardFilterBarPropertyChanged;
+        _dashboardChromeSource?.PropertyChanged += OnDashboardChromePropertyChanged;
     }
 
-    private void OnDashboardFilterBarPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnDashboardChromePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(DashboardViewModel.IsFilterBarVisible))
+        switch (e.PropertyName)
         {
-            OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
-            OnPropertyChanged(nameof(FilterbarToggleIconKind));
-            OnPropertyChanged(nameof(FilterbarToggleToolTip));
+            case nameof(DashboardViewModel.IsFilterBarVisible):
+                OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
+                OnPropertyChanged(nameof(FilterbarToggleIconKind));
+                OnPropertyChanged(nameof(FilterbarToggleToolTip));
+                break;
+            case nameof(DashboardViewModel.SelectedTabIndex):
+                RaiseDashboardTabBindings();
+                break;
+            case nameof(DashboardViewModel.SectionHint):
+                OnPropertyChanged(nameof(DashboardSectionHint));
+                break;
         }
+    }
+
+    private void RaiseDashboardTabBindings()
+    {
+        OnPropertyChanged(nameof(DashboardSelectedTabIndex));
     }
 
     private void WireTopBarCommands(AppPageBase? newPage)
@@ -887,7 +914,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         WireTopBarCommands(value);
-        WireDashboardFilterBar(value);
+        WireDashboardChrome(value);
 
         OnPropertyChanged(nameof(IsSettingsPageActive));
         OnPropertyChanged(nameof(IsAboutPageActive));
@@ -895,6 +922,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
         OnPropertyChanged(nameof(FilterbarToggleIconKind));
         OnPropertyChanged(nameof(FilterbarToggleToolTip));
+        RaiseDashboardTabBindings();
+        OnPropertyChanged(nameof(DashboardSectionHint));
         RaiseTopBarVisibilityBindings();
         RaiseStatusItemsChanged();
 
@@ -1599,7 +1628,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _updateSettings.Changed -= OnUpdateSettingsChanged);
 
         WireTopBarCommands(null);
-        WireDashboardFilterBar(null);
+        WireDashboardChrome(null);
 
         if (_configWatcher is not null)
         {
