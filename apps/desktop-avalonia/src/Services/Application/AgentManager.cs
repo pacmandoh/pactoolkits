@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Agent.Contracts.Abstractions;
-using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Agent.Contracts.Commands;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
@@ -39,9 +37,6 @@ public sealed class AgentManager : IAgentManager
         _runtimes = new ReadOnlyDictionary<string, IAgentRuntime>(map);
     }
 
-    public IReadOnlyCollection<AgentDescriptor> Descriptors
-        => _runtimes.Values.Select(runtime => runtime.Descriptor).ToArray();
-
     public IAgentRuntime GetRequired(string agentId)
     {
         if (_runtimes.TryGetValue(agentId, out var runtime))
@@ -50,13 +45,6 @@ public sealed class AgentManager : IAgentManager
         }
 
         throw new KeyNotFoundException($"Unknown agent id: {agentId}");
-    }
-
-    public bool TryGet(string agentId, out IAgentRuntime? runtime)
-    {
-        var found = _runtimes.TryGetValue(agentId, out var value);
-        runtime = value;
-        return found;
     }
 
     public async Task<IReadOnlyDictionary<string, ToolCommandResult>> SyncConfigAsync(
