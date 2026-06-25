@@ -1,11 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using global::Avalonia.Data.Converters;
 using global::Avalonia.Media;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Converters;
 
@@ -20,8 +18,6 @@ internal enum StatusTone
 
 internal static class ConverterHelpers
 {
-    private static readonly Dictionary<(Color color, double opacity), IBrush> PrimaryTintBrushCache = new();
-
     public static TxnBadge NormalizeTxnBadge(object? value)
     {
         if (value is TxnBadge b)
@@ -137,37 +133,6 @@ internal static class ConverterHelpers
             TraceEntryState.Info => "Info",
             _ => "Info",
         };
-
-    public static IBrush GetPrimaryTintBrush(int level)
-    {
-        if (level <= 15)
-        {
-            return Brushes.Transparent;
-        }
-
-        var opacity = level switch
-        {
-            <= 25 => 0.18,
-            <= 35 => 0.26,
-            _ => 0.35,
-        };
-
-        var color = FindAppColor("PrimaryColor", Colors.Transparent);
-        if (color.A == 0 && color.R == 0 && color.G == 0 && color.B == 0)
-        {
-            return Brushes.Transparent;
-        }
-
-        var key = (color, opacity);
-        if (PrimaryTintBrushCache.TryGetValue(key, out var cached))
-        {
-            return cached;
-        }
-
-        var brush = new SolidColorBrush(color, opacity);
-        PrimaryTintBrushCache[key] = brush;
-        return brush;
-    }
 }
 
 public sealed class BadgeToIconKindConverter : IValueConverter
@@ -203,35 +168,6 @@ public sealed class BadgeToBgBrushConverter : IValueConverter
         var level = ConverterHelpers.ParseLevel(parameter, 10);
         var key = ConverterHelpers.BackgroundBrushKey(ConverterHelpers.BackgroundToneFromTxnBadge(badge), level);
         return ConverterHelpers.FindAppBrush(key, Brushes.Transparent);
-    }
-
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => throw new NotSupportedException();
-}
-
-public sealed class RowStateToBgBrushConverter : IValueConverter
-{
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        var state = (value as string)?.Trim().ToLowerInvariant();
-
-        var level = ConverterHelpers.ParseLevel(parameter, 15);
-
-
-        var key = state switch
-        {
-            "deprecated" => ConverterHelpers.NotificationTintKey(StatusTone.Danger, level),
-            "nosplit" => ConverterHelpers.NotificationTintKey(StatusTone.Warning, level),
-            "both" => ConverterHelpers.NotificationTintKey(StatusTone.Purple, level),
-            _ => null,
-        };
-
-        if (key != null)
-        {
-            return ConverterHelpers.FindAppBrush(key, Brushes.Transparent);
-        }
-
-        return ConverterHelpers.GetPrimaryTintBrush(level);
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -277,51 +213,6 @@ public sealed class TraceEntryStateToBgBrushConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
-public sealed class LowStockToBgBrushConverter : IValueConverter
-{
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        var level = ConverterHelpers.ParseLevel(parameter, 15);
-
-        var isDeprecated = value switch
-        {
-            StockRowItem s => s.IsDeprecated,
-            DrugSpecAggRowItem a => a.IsDeprecated,
-            _ => false
-        };
-
-        if (isDeprecated)
-        {
-            return ConverterHelpers.FindAppBrush(
-                ConverterHelpers.NotificationTintKey(StatusTone.Purple, level),
-                Brushes.Transparent);
-        }
-
-        var isLow = value switch
-        {
-            // Inventory detail: highlight rows with zero remaining stock.
-            StockRowItem s => s.Remain <= 0 || s.IsLow,
-            // Drug-spec aggregate: highlight when remaining is not enough for weekly usage.
-            DrugSpecAggRowItem a => a.RemainSum <= a.WeekUsed || a.IsLow,
-            // Low-stock tab: every row in this list is low stock by definition.
-            LowStockRowItem => true,
-            _ => false
-        };
-
-        if (isLow)
-        {
-            return ConverterHelpers.FindAppBrush(
-                ConverterHelpers.NotificationTintKey(StatusTone.Danger, level),
-                Brushes.Transparent);
-        }
-
-        return ConverterHelpers.GetPrimaryTintBrush(level);
-    }
-
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => throw new NotSupportedException();
-}
-
 public sealed class ContextStatusToBrushConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -347,44 +238,6 @@ public sealed class ContextStatusToBrushConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
-public sealed class KpiPctToBrushConverter : IValueConverter
-{
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        var pct = value switch
-        {
-            double d => d,
-            float f => f,
-            int i => i,
-            _ => 0d,
-        };
-
-        var mode = parameter?.ToString() ?? "Alert";
-        var tone = mode.Equals("Remain", StringComparison.OrdinalIgnoreCase)
-            ? ToneForRemain(pct)
-            : ToneForAlert(pct);
-
-        return ConverterHelpers.FindAppBrush(ToneToBrushKey(tone), Brushes.White);
-    }
-
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => throw new NotSupportedException();
-
-    private static StatusTone ToneForRemain(double pct) =>
-        pct >= 60 ? StatusTone.Done :
-        pct >= 35 ? StatusTone.Info :
-        pct >= 15 ? StatusTone.Warning :
-        StatusTone.Danger;
-
-    private static StatusTone ToneForAlert(double pct) =>
-        pct <= 8 ? StatusTone.Done :
-        pct <= 25 ? StatusTone.Warning :
-        StatusTone.Danger;
-
-    private static string ToneToBrushKey(StatusTone tone)
-        => ConverterHelpers.ForegroundBrushKey(tone);
-}
-
 public sealed class BoolToDoneDangerBrushConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -398,34 +251,3 @@ public sealed class BoolToDoneDangerBrushConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
-public sealed class CellCurrentBorderBrushConverter : IValueConverter
-{
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        if (value is ISolidColorBrush solid)
-        {
-            var c = solid.Color;
-            if (c.A == 0)
-            {
-                return ConverterHelpers.FindAppBrush("PrimaryColor", Brushes.White);
-            }
-
-            static byte Mix(byte baseCh, byte to, double factor)
-                => (byte)Math.Clamp((int)Math.Round(baseCh + ((to - baseCh) * factor)), 0, 255);
-
-            var toward = (c.R + c.G + c.B) < 380 ? (byte)255 : (byte)32;
-            var mixed = Color.FromArgb(
-                (byte)Math.Clamp(c.A + 70, 120, 255),
-                Mix(c.R, toward, 0.38),
-                Mix(c.G, toward, 0.38),
-                Mix(c.B, toward, 0.38));
-
-            return new SolidColorBrush(mixed);
-        }
-
-        return ConverterHelpers.FindAppBrush("PrimaryColor", Brushes.White);
-    }
-
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => throw new NotSupportedException();
-}
