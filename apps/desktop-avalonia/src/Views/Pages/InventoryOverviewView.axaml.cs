@@ -24,18 +24,13 @@ public partial class InventoryOverviewView : UserControl
     {
         _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
-        WireDeferredSectionHosts();
+        ReassignPanelHost.ContentLoaded += OnReassignPanelContentLoaded;
         WireStockDetailGridSlot();
         _gridMount.StartAfterFirstLayout();
         DataContextChanged += OnDataContextChanged;
-    }
 
-    private void WireDeferredSectionHosts()
-    {
-        ReassignPanelHost.ContentLoaded += OnReassignPanelContentLoaded;
-        AggModeHost.ContentLoaded += (_, root) => QueueModeGridMount(root, "AggGridSlot", 2);
-        LowModeHost.ContentLoaded += (_, root) => QueueModeGridMount(root, "LowStockGridSlot", 3, wirePointer: true);
-        MissingModeHost.ContentLoaded += (_, root) => QueueModeGridMount(root, "MissingGridSlot", 4, wirePointer: true);
+        LowStockGridSlot.GridMounted += (_, grid) => grid.PointerReleased += OnLowOrMissingGridPointerReleased;
+        MissingGridSlot.GridMounted += (_, grid) => grid.PointerReleased += OnLowOrMissingGridPointerReleased;
     }
 
     private void OnReassignPanelContentLoaded(object? sender, Control root)
@@ -45,40 +40,28 @@ public partial class InventoryOverviewView : UserControl
         QueueReassignPreviewGridMount();
     }
 
-    private void QueueModeGridMount(Control root, string slotName, int priority, bool wirePointer = false)
+    private void QueueAggGridMount()
     {
-        if (root.FindControl<DeferredGridSlot>(slotName) is not { } slot)
+        if (_vm?.IsAggMode == true && !_vm.IsAggEmpty && !AggGridSlot.IsMounted)
         {
-            return;
+            _gridMount.RequestMount(AggGridSlot, 2);
         }
-
-        if (wirePointer)
-        {
-            slot.GridMounted += (_, grid) => grid.PointerReleased += OnLowOrMissingGridPointerReleased;
-        }
-
-        if (!MountModeGrid(slotName) || slot.IsMounted)
-        {
-            return;
-        }
-
-        _gridMount.RequestMount(slot, priority);
     }
 
-    private bool MountModeGrid(string slotName)
+    private void QueueLowGridMount()
     {
-        if (_vm is null)
+        if (_vm?.IsLowMode == true && !_vm.IsLowEmpty && !LowStockGridSlot.IsMounted)
         {
-            return false;
+            _gridMount.RequestMount(LowStockGridSlot, 3);
         }
+    }
 
-        return slotName switch
+    private void QueueMissingGridMount()
+    {
+        if (_vm?.IsMissingMode == true && !_vm.IsMissingEmpty && !MissingGridSlot.IsMounted)
         {
-            "AggGridSlot" => !_vm.IsAggEmpty,
-            "LowStockGridSlot" => !_vm.IsLowEmpty,
-            "MissingGridSlot" => !_vm.IsMissingEmpty,
-            _ => false
-        };
+            _gridMount.RequestMount(MissingGridSlot, 4);
+        }
     }
 
     private void TryQueueActiveModeGrid()
@@ -90,27 +73,15 @@ public partial class InventoryOverviewView : UserControl
 
         if (_vm.IsAggMode)
         {
-            QueueModeGridFromHost(AggModeHost, "AggGridSlot", 2);
+            QueueAggGridMount();
         }
         else if (_vm.IsLowMode)
         {
-            QueueModeGridFromHost(LowModeHost, "LowStockGridSlot", 3, wirePointer: true);
+            QueueLowGridMount();
         }
         else if (_vm.IsMissingMode)
         {
-            QueueModeGridFromHost(MissingModeHost, "MissingGridSlot", 4, wirePointer: true);
-        }
-    }
-
-    private void QueueModeGridFromHost(
-        DeferredContentHost host,
-        string slotName,
-        int priority,
-        bool wirePointer = false)
-    {
-        if (host.Content is Control root)
-        {
-            QueueModeGridMount(root, slotName, priority, wirePointer);
+            QueueMissingGridMount();
         }
     }
 
@@ -313,16 +284,6 @@ public partial class InventoryOverviewView : UserControl
         }
     }
 
-    private void InventorySearchBox_OnKeyUp(object? sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Enter)
-        {
-            return;
-        }
-
-        InputFocusHelper.FocusControlByName(this, "InventorySearchButton", DispatcherPriority.Background);
-    }
-
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         _vm?.PropertyChanged -= OnVmPropertyChanged;
@@ -333,6 +294,7 @@ public partial class InventoryOverviewView : UserControl
         SyncStockEditClass();
         QueueStockDetailGridMount();
         QueueReassignPreviewGridMount();
+        TryQueueActiveModeGrid();
     }
 
     private void AttachReassignDrugFilter()
