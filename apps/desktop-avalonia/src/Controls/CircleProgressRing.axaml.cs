@@ -148,7 +148,7 @@ public partial class CircleProgressRing : UserControl
         }
     }
 
-    public void ReplayFromZero()
+    private void ReplayFromZero()
     {
         if (IsIndeterminate)
         {
