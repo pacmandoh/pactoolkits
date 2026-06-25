@@ -146,7 +146,7 @@
           Grid.Row="1"
           Height="280"
           x:DataType="dto:MsfxMappingBatchGroupRow"
-          Classes="SectionGrid InventoryGrid LowToneGrid IndexedGrid"
+          Classes="SectionGrid InventoryGrid IndexedGrid"
           HorizontalScrollBarVisibility="Auto"
           IsReadOnly="True"
           PointerPressed="GroupGrid_OnPointerPressed"
@@ -262,10 +262,10 @@
                   MaxDropDownHeight="300" />
                 <TextBlock
                   x:Name="SpecPlaceholder"
+                  Classes="Caption Muted"
                   Margin="{DynamicResource MarginLeftMd}"
                   VerticalAlignment="Center"
                   IsHitTestVisible="False"
-                  Opacity="0.55"
                   Text="请选择规格" />
               </Grid>
             </Grid>
@@ -282,7 +282,7 @@
             <TextBlock
               x:Name="PreviewText"
               Grid.Column="1"
-              Opacity="0.9"
+              Classes="Caption Muted"
               Text="请选择分组后自动预览"
               TextWrapping="Wrap" />
           </Grid>
