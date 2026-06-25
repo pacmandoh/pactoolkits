@@ -262,9 +262,9 @@
                   MaxDropDownHeight="300" />
                 <TextBlock
                   x:Name="SpecPlaceholder"
-                  Classes="Caption Muted"
                   Margin="{DynamicResource MarginLeftMd}"
                   VerticalAlignment="Center"
+                  Classes="Caption Muted"
                   IsHitTestVisible="False"
                   Text="请选择规格" />
               </Grid>
