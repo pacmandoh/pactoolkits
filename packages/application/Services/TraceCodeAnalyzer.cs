@@ -5,16 +5,6 @@ namespace PacToolkits.Application.Services;
 
 public static class TraceCodeAnalyzer
 {
-    public static CodeAnalysis Analyze(string? text, TraceCodeValidationRule rule)
-    {
-        var detailed = AnalyzeDetailed(text, rule);
-        return new CodeAnalysis(
-            detailed.Total,
-            detailed.Invalid,
-            detailed.ScanDuplicate,
-            detailed.ValidUniqueCodes);
-    }
-
     public static TraceCodeDetailedAnalysis AnalyzeDetailed(
         string? text,
         TraceCodeValidationRule rule,
@@ -85,7 +75,7 @@ public static class TraceCodeAnalyzer
             lines);
     }
 
-    public static bool IsValid(string code, TraceCodeValidationRule rule)
+    private static bool IsValid(string code, TraceCodeValidationRule rule)
     {
         if (code.Length != rule.RequiredLength)
         {
