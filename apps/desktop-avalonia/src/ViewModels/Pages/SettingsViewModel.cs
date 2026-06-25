@@ -93,9 +93,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _dbSchemaRequiredMinVersion = "unknown";
     [ObservableProperty] private string _dbSchemaRequiredMaxVersion = "unknown";
     [ObservableProperty] private string _dbSchemaStatusText = "未检查";
-    [ObservableProperty] private bool _isDbSchemaSatisfied;
     [ObservableProperty] private bool _isDbSchemaChecking;
-    [ObservableProperty] private bool _isDbSchemaFailed;
     [ObservableProperty] private string _dbSchemaErrorText = string.Empty;
     [ObservableProperty] private bool? _dbSchemaBadgeStatus;
     [ObservableProperty] private string _dbSchemaBadgeLabel = "未检查";
@@ -115,7 +113,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _msfxSessionToken = string.Empty;
     [ObservableProperty] private string _msfxRefEntId = string.Empty;
     [ObservableProperty] private int _msfxTimeoutSeconds = 20;
-    [ObservableProperty] private string _msfxApiHint = "未保存";
     [ObservableProperty] private bool? _msfxApiBadgeStatus;
     [ObservableProperty] private string _msfxApiBadgeLabel = "未配置";
     public char MsfxAppSecretPasswordChar => ShowMsfxAppSecret ? '\0' : '•';
@@ -154,7 +151,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         "Fatal" => "仅记录致命故障，最小日志开销",
         _ => "日志级别未识别，将使用 Error"
     };
-    public string DbSchemaStatusBadgeText => DbSchemaStatusText;
     public SettingsViewModel(
         IAppConfigStore appConfigStore,
         ISettingsService settings,
@@ -347,9 +343,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private bool IsPageWorkCancellation()
         => _disposed || _pageWorkCancelled;
-
-    private Task SetBusyOnUiAsync(bool value)
-        => RunOnUiAsync(() => IsBusy = value);
 
     private Task SetAliasRefreshingAsync(bool value)
         => RunOnUiAsync(() => IsClientAliasRefreshing = value);

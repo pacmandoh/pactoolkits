@@ -36,7 +36,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
         }
 
-        IsBusy = true;
         Status = null;
 
         try
@@ -95,10 +94,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             RefreshClientAlias();
             _toast.Error("数据库连接失败", "连接超时：请检查网络/主机/端口");
         }
-        finally
-        {
-            IsBusy = false;
-        }
     }
 
     [RelayCommand]
@@ -108,8 +103,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             return;
         }
-
-        IsBusy = true;
 
         try
         {
@@ -148,10 +141,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             IsDbConnected = false;
             RefreshClientAlias();
             _toast.Error("保存失败", ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
         }
     }
 
@@ -323,7 +312,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 ? "未找到任何机器标识，点击‘开始编辑’后可编辑别名"
                 : "已加载机器标识/本地别名，点击‘开始编辑’后可编辑";
 
-            CanSaveClientAliases = false;
             IsClientAliasReadOnly = true;
             return;
         }
@@ -342,8 +330,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 ? "已连接，但暂无可用机器标识"
                 : "在右侧填写别名，留空表示使用机器标识";
         }
-
-        CanSaveClientAliases = true;
     }
 
     private void RemoveClientAlias(ClientAliasRow? row)
@@ -379,7 +365,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         RefreshClientAlias();
 
-        IsBusy = true;
         try
         {
             var items = ClientAliases
@@ -402,10 +387,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             _logger.Error("SettingsVM", "client_alias.save.fail", "Failed to save client aliases", ex);
             _toast.Error("保存失败", ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
         }
     }
 
@@ -440,7 +421,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
         }
 
-        IsBusy = true;
         try
         {
             await _traceCodeRule.SaveAsync(new TraceCodeValidationOptions
@@ -456,10 +436,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             _logger.Error("SettingsVM", "trace_rule.save.fail", "Failed to save trace code rule", ex);
             _toast.Error("追溯码规则保存失败", ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
         }
     }
 
