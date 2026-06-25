@@ -672,4 +672,6 @@ grep -Fq 'cp release-manifest.json dist/release-manifest.json' .github/workflows
   exit 1
 }
 
+run ./scripts/audit-legacy-identity.sh
+
 echo "Tooling tests passed."
