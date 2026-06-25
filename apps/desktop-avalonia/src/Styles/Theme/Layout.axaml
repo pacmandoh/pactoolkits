@@ -15,6 +15,7 @@
   <x:Double x:Key="ActionTileMinHeight">64</x:Double>
 
   <x:Double x:Key="RowMinHeight">46</x:Double>
+  <x:Double x:Key="InventoryRowHeight">52</x:Double>
   <CornerRadius x:Key="RowRadius">12</CornerRadius>
   <Thickness x:Key="RowPadding">10,8</Thickness>
   <x:Double x:Key="DgH10Rows">460</x:Double>
@@ -57,18 +58,19 @@
   <Thickness x:Key="ShellStatusIconItemPadding">8,0,8,0</Thickness>
   <Thickness x:Key="SettingsSidebarMargin">18,18,0,18</Thickness>
   <Thickness x:Key="SettingsContentMargin">18,18,18,18</Thickness>
+  <Thickness x:Key="DashboardLayoutMargin">0,0,0,18</Thickness>
+  <Thickness x:Key="DashboardTabPanelMargin">18,18,18,0</Thickness>
   <Thickness x:Key="DashboardFilterBarPadding">12,10,12,10</Thickness>
   <x:Double x:Key="DashboardFilterControlHeight">36</x:Double>
   <x:Double x:Key="DashboardFilterGroupSpacing">8</x:Double>
   <Thickness x:Key="DashboardFilterColumnPadding">12,0</Thickness>
   <Thickness x:Key="DashboardFilterDividerMargin">0</Thickness>
-  <Thickness x:Key="DashboardTabContentMargin">18,0,18,18</Thickness>
-  <CornerRadius x:Key="SectionPanelOuterRadius">14</CornerRadius>
-  <CornerRadius x:Key="SectionPanelInnerRadius">12</CornerRadius>
-  <Thickness x:Key="SectionPanelHeaderPadding">12,12,12,0</Thickness>
-  <Thickness x:Key="SectionPanelInnerMargin">4,0,4,4</Thickness>
+  <CornerRadius x:Key="CardPanelOuterRadius">14</CornerRadius>
+  <CornerRadius x:Key="CardPanelInnerRadius">12</CornerRadius>
+  <Thickness x:Key="CardPanelHeaderPadding">12,12,12,0</Thickness>
+  <Thickness x:Key="CardPanelInnerMargin">4,0,4,4</Thickness>
   <Thickness x:Key="KpiTileStripPadding">0</Thickness>
-  <x:Double x:Key="SectionPanelHeaderInnerGap">12</x:Double>
+  <x:Double x:Key="CardPanelHeaderInnerGap">12</x:Double>
   <x:Double x:Key="KpiTileInnerSpacing">10</x:Double>
   <x:Double x:Key="KpiTileValueBadgeGap">10</x:Double>
   <x:Double x:Key="KpiTileBodyColumnSpacing">12</x:Double>
@@ -80,13 +82,13 @@
   <x:TimeSpan x:Key="KpiCircleProgressAnimationDuration">0:0:0.8</x:TimeSpan>
   <x:TimeSpan x:Key="KpiCircleProgressBrushAnimationDuration">0:0:0.5</x:TimeSpan>
   <x:TimeSpan x:Key="KpiCircleProgressIndeterminateDuration">0:0:1.2</x:TimeSpan>
-  <x:Double x:Key="SectionPanelAccentDotSize">8</x:Double>
-  <Thickness x:Key="SectionPanelTitleMargin">8,0,0,0</Thickness>
+  <x:Double x:Key="CardPanelAccentDotSize">8</x:Double>
+  <x:Double x:Key="CardPanelTitleRailSpacing">10</x:Double>
   <Thickness x:Key="KpiTileInnerPadding">20,16</Thickness>
-  <Thickness x:Key="SectionPanelBodyPadding">12,12,12,12</Thickness>
-  <x:Double x:Key="SectionPanelBodyHorizontalInset">12</x:Double>
-  <x:Double x:Key="SectionPanelTabTitleSize">17</x:Double>
-  <Thickness x:Key="SectionPanelFlushBodyPadding">0,0,0,0</Thickness>
+  <Thickness x:Key="CardPanelBodyPadding">12,12,12,12</Thickness>
+  <x:Double x:Key="CardPanelBodyHorizontalInset">12</x:Double>
+  <x:Double x:Key="CardPanelTabTitleSize">17</x:Double>
+  <Thickness x:Key="CardPanelFlushBodyPadding">0,0,0,0</Thickness>
   <x:Double x:Key="KpiTileColumnSpacing">12</x:Double>
   <Thickness x:Key="ContentHeaderPadding">18,0,18,0</Thickness>
   <Thickness x:Key="ContentHeaderDividerMargin">12,0</Thickness>
@@ -159,6 +161,9 @@
   <CornerRadius x:Key="TraceBadgeRadius">8</CornerRadius>
 
   <x:Double x:Key="DgSortResetButtonSize">20</x:Double>
+  <x:Double x:Key="DgIndexHeaderActionButtonSize">18</x:Double>
+  <x:Double x:Key="DgIndexHeaderActionIconSize">14</x:Double>
+  <x:Double x:Key="InventorySearchWidth">360</x:Double>
   <x:Double x:Key="PagerNavButtonSize">32</x:Double>
   <x:Double x:Key="PagerNavIconSize">14</x:Double>
 </ResourceDictionary>
