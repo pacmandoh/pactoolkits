@@ -150,29 +150,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             RecalcFlags();
         }
 
-        public string RowState
-        {
-            get
-            {
-                if (IsDeprecated && IsNoSplit)
-                {
-                    return "both";
-                }
-
-                if (IsDeprecated)
-                {
-                    return "deprecated";
-                }
-
-                if (IsNoSplit)
-                {
-                    return "nosplit";
-                }
-
-                return "";
-            }
-        }
-
         public string DrugId { get; }
         public string Spec { get; }
         public int Qty { get; }
@@ -208,7 +185,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             var note = EffectiveNote;
             IsDeprecated = note.Contains("弃用", StringComparison.Ordinal);
             IsNoSplit = note.Contains("未拆零", StringComparison.Ordinal);
-            OnPropertyChanged(nameof(RowState));
         }
 
         public DrugIndexDto ToDto() => new(
@@ -281,9 +257,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     [ObservableProperty] private bool _hasSelection;
     [ObservableProperty] private bool _hasEditor;
     [ObservableProperty] private bool _isEditorUnlocked;
-    [ObservableProperty] private DateTimeOffset _editorUnlockExpiresAtUtc;
-    [ObservableProperty] private int _editorUnlockFailedAttempts;
-    [ObservableProperty] private DateTimeOffset _editorUnlockCooldownUntilUtc;
+    private DateTimeOffset _editorUnlockCooldownUntilUtc;
     [ObservableProperty] private bool _isListBusy;
     partial void OnIsListBusyChanged(bool value)
     {
@@ -764,11 +738,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         _unlockService.Refresh(UnlockScopeKey);
         var snap = _unlockService.GetSnapshot(UnlockScopeKey);
         IsEditorUnlocked = snap.IsUnlocked;
-        EditorUnlockExpiresAtUtc = snap.ExpiresAtUtc;
-        EditorUnlockFailedAttempts = snap.FailedAttempts;
-        EditorUnlockCooldownUntilUtc = snap.CooldownUntilUtc;
+        _editorUnlockCooldownUntilUtc = snap.CooldownUntilUtc;
 
-        if (IsEditorUnlocked || EditorUnlockCooldownUntilUtc > DateTimeOffset.UtcNow)
+        if (IsEditorUnlocked || _editorUnlockCooldownUntilUtc > DateTimeOffset.UtcNow)
         {
             StartUnlockTimer();
         }
@@ -1306,43 +1278,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             IsBusy = false;
             NotifyAllCommands();
         }
-    }
-
-    [RelayCommand]
-    private async Task CopyNameAsync(DrugRow? row)
-    {
-        if (SkipTrigger("drug.copy.name", 350))
-        {
-            return;
-        }
-
-        row ??= Selected;
-        if (row is null)
-        {
-            return;
-        }
-
-        await _clipboard.SetTextAsync(row.DrugId);
-        Dispatcher.UIThread.Post(() => _toast.Info("已复制", "名称(DrugId) 已复制到剪贴板"));
-    }
-
-    [RelayCommand]
-    private async Task CopyCodeAsync(DrugRow? row)
-    {
-        if (SkipTrigger("drug.copy.code", 350))
-        {
-            return;
-        }
-
-        row ??= Selected;
-        if (row is null)
-        {
-            return;
-        }
-
-        var code = row.RuleKey ?? row.PreTc ?? string.Empty;
-        await _clipboard.SetTextAsync(code);
-        Dispatcher.UIThread.Post(() => _toast.Info("已复制", "编码(RuleKey/PreTc) 已复制到剪贴板"));
     }
 
     [RelayCommand(CanExecute = nameof(CanToggleEditorFlags))]
