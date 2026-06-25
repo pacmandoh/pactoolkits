@@ -1,0 +1,71 @@
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shapes="using:Avalonia.Controls.Shapes">
+  <Style Selector="controls|CircleProgressRing">
+    <Setter Property="Diameter" Value="{DynamicResource KpiCircleProgressDiameter}" />
+    <Setter Property="StrokeThickness" Value="{DynamicResource KpiCircleProgressStroke}" />
+    <Setter Property="ProgressOpacity" Value="{DynamicResource KpiCircleProgressOpacity}" />
+    <Setter Property="TrackBrush">
+      <Setter.Value>
+        <SolidColorBrush
+          Color="{DynamicResource SwitchBackgroundColor}"
+          Opacity="{DynamicResource KpiCircleProgressTrackOpacity}" />
+      </Setter.Value>
+    </Setter>
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition
+          Easing="CircularEaseOut"
+          Property="DisplayValue"
+          Duration="{DynamicResource KpiCircleProgressAnimationDuration}" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="controls|CircleProgressRing shapes|Arc.ProgressArc">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition
+          Property="Stroke"
+          Duration="{DynamicResource KpiCircleProgressBrushAnimationDuration}" />
+        <DoubleTransition
+          Easing="CircularEaseOut"
+          Property="SweepAngle"
+          Duration="{DynamicResource KpiCircleProgressAnimationDuration}" />
+        <DoubleTransition
+          Easing="CircularEaseOut"
+          Property="StartAngle"
+          Duration="{DynamicResource KpiCircleProgressAnimationDuration}" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="controls|CircleProgressRing[IsIndeterminate=False] shapes|Arc.ProgressArc">
+    <Setter Property="StartAngle" Value="270" />
+  </Style>
+
+  <Style Selector="controls|CircleProgressRing[IsIndeterminate=True] shapes|Arc.ProgressArc">
+    <Setter Property="SweepAngle" Value="90" />
+    <Setter Property="StartAngle" Value="270" />
+    <Style.Animations>
+      <Animation
+        Duration="{DynamicResource KpiCircleProgressIndeterminateDuration}"
+        IterationCount="Infinite">
+        <KeyFrame Cue="0%">
+          <Setter Property="StartAngle" Value="270" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="StartAngle" Value="630" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+
+  <Style Selector="controls|CircleProgressRing TextBlock">
+    <Setter Property="FontSize" Value="{DynamicResource KpiCircleProgressLabelSize}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+  </Style>
+</Styles>

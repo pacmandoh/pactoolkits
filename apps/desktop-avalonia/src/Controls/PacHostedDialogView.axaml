@@ -7,7 +7,7 @@
   <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
     <TextBlock
       Grid.Row="0"
-      Classes="ShellTitle"
+      Classes="DialogTitle"
       Text="{Binding Title}"
       TextWrapping="Wrap" />
 

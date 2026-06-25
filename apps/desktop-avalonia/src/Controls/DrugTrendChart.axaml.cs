@@ -9,6 +9,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 using SkiaSharp;
 
@@ -189,31 +190,7 @@ public partial class DrugTrendChart : UserControl
     }
 
     private Color ResolveColor(string key, Color fallback)
-    {
-        var app = global::Avalonia.Application.Current;
-        if (app?.TryFindResource(key, ActualThemeVariant, out var value) == true)
-        {
-            return value switch
-            {
-                Color color => color,
-                ISolidColorBrush brush => brush.Color,
-                _ => fallback
-            };
-        }
-
-        if (ActualThemeVariant != ThemeVariant.Default
-            && app?.TryFindResource(key, ThemeVariant.Default, out value) == true)
-        {
-            return value switch
-            {
-                Color color => color,
-                ISolidColorBrush brush => brush.Color,
-                _ => fallback
-            };
-        }
-
-        return fallback;
-    }
+        => ThemeBrushResolver.TryGetColor(key, out var color) ? color : fallback;
 
     private static double ParseValue(string value)
     {

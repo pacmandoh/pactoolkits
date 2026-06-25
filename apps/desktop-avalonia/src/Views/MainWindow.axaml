@@ -30,13 +30,13 @@
       Orientation="Horizontal"
       Spacing="{DynamicResource SpacingInlineSm}">
       <Button
-        Margin="{DynamicResource ShellNavItemMargin}"
+        Margin="{DynamicResource TitleBarActionMargin}"
         Classes="WindowControlsButton"
         Command="{Binding OpenUpdateCenterCommand}"
         IsVisible="{Binding HasUpdateAvailable}">
         <icons:AppIcon
-          Width="{DynamicResource ShellNavIconSize}"
-          Height="{DynamicResource ShellNavIconSize}"
+          Width="{DynamicResource TitleBarActionIconSize}"
+          Height="{DynamicResource TitleBarActionIconSize}"
           Foreground="{DynamicResource WarningColor}"
           Kind="Upload" />
       </Button>
@@ -141,7 +141,7 @@
         <Grid ColumnDefinitions="*,Auto">
           <TextBlock
             Margin="12,0,8,0"
-            Classes="ShellTitleBarPathText"
+            Classes="Caption Muted"
             Text="pactoolkits" />
           <StackPanel
             Grid.Column="1"
@@ -151,7 +151,7 @@
             Orientation="Horizontal"
             Spacing="8">
             <Border Classes="ShellTitleBarPathDot" />
-            <TextBlock Classes="ShellTitleBarPathText" Text="3" />
+            <TextBlock Classes="Caption Muted" Text="3" />
             <icons:AppIcon Kind="MessageSquarePlus" />
             <icons:AppIcon Kind="ChevronDown" />
           </StackPanel>
@@ -398,11 +398,11 @@
         <Border
           BorderBrush="{DynamicResource BorderColor}"
           BorderThickness="0,0,0,1"
-          Classes="ShellContentHeader"
+          Classes="ContentHeader"
           DockPanel.Dock="Top">
           <Grid
             MinHeight="{DynamicResource ContentChromeHeight}"
-            Margin="{DynamicResource ShellContentHeaderPadding}"
+            Margin="{DynamicResource ContentHeaderPadding}"
             VerticalAlignment="Center"
             ColumnDefinitions="Auto, Auto, Auto, *, Auto, Auto, Auto">
             <StackPanel
@@ -424,20 +424,20 @@
                 <icons:AppIcon Kind="{Binding FilterbarToggleIconKind}" />
               </Button>
             </StackPanel>
-            <Rectangle Grid.Column="1" Classes="ShellContentHeaderDivider" />
+            <Rectangle Grid.Column="1" Classes="ContentHeaderDivider" />
             <StackPanel
               Grid.Column="2"
               VerticalAlignment="Center"
-              Classes="ShellContentHeaderTitleRail"
+              Classes="ContentHeaderTitleRail"
               Orientation="Horizontal">
-              <TextBlock Classes="ShellPageTitle" Text="{Binding ActivePageText}" />
+              <TextBlock Classes="Small Muted" Text="{Binding ActivePageText}" />
               <icons:AppIcon
-                Classes="ShellPageTitleChevron"
+                Classes="ContentHeaderTitleChevron"
                 IsVisible="{Binding IsDashboardPageActive}"
                 Kind="ChevronRight" />
               <TabControl
                 shad:TabControlBehaviors.UseSlidingPill="True"
-                Classes="ShellDashboardTabHeaders"
+                Classes="DashboardTabHeaders"
                 IsVisible="{Binding IsDashboardPageActive}"
                 SelectedIndex="{Binding DashboardSelectedTabIndex, Mode=TwoWay}">
                 <TabItem>
@@ -506,18 +506,18 @@
                   TextTrimming="CharacterEllipsis" />
               </StackPanel>
             </Border>
-            <Rectangle Grid.Column="5" Classes="ShellContentHeaderDivider" />
+            <Rectangle Grid.Column="5" Classes="ContentHeaderDivider" />
             <Menu
               Grid.Column="6"
               HorizontalAlignment="Right"
               VerticalAlignment="Center"
-              Classes="ShellContentHeaderMenu">
+              Classes="ContentHeaderMenu">
               <MenuItem
                 Command="{Binding RefreshActivePageCommand}"
                 IsEnabled="{Binding CanTopRefresh}"
                 IsVisible="{Binding ShowTopRefresh}">
                 <MenuItem.Header>
-                  <StackPanel Classes="ShellContentHeaderMenuItemHeader">
+                  <StackPanel Classes="ContentHeaderMenuItemHeader">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeCompact}"
                       Height="{DynamicResource IconSizeCompact}"
@@ -528,7 +528,7 @@
               </MenuItem>
               <MenuItem IsEnabled="False">
                 <MenuItem.Header>
-                  <StackPanel Classes="ShellContentHeaderMenuItemHeader">
+                  <StackPanel Classes="ContentHeaderMenuItemHeader">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeCompact}"
                       Height="{DynamicResource IconSizeCompact}"
@@ -542,7 +542,7 @@
                 IsEnabled="{Binding CanTopImport}"
                 IsVisible="{Binding ShowTopImport}">
                 <MenuItem.Header>
-                  <StackPanel Classes="ShellContentHeaderMenuItemHeader">
+                  <StackPanel Classes="ContentHeaderMenuItemHeader">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeCompact}"
                       Height="{DynamicResource IconSizeCompact}"
@@ -556,7 +556,7 @@
                 IsEnabled="{Binding CanTopExport}"
                 IsVisible="{Binding ShowTopExport}">
                 <MenuItem.Header>
-                  <StackPanel Classes="ShellContentHeaderMenuItemHeader">
+                  <StackPanel Classes="ContentHeaderMenuItemHeader">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeCompact}"
                       Height="{DynamicResource IconSizeCompact}"
@@ -606,7 +606,7 @@
           </Grid>
         </Border>
 
-        <Border Classes="ShellWorkspace">
+        <Border Classes="ContentWorkspace">
           <controls:PageNavigationHost Page="{Binding ActivePage}" Pages="{Binding WorkspacePages}" />
         </Border>
       </DockPanel>

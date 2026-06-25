@@ -3,6 +3,7 @@
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Buttons.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Cards.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/StatusPillStyles.axaml" />
+  <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/CircleProgressRingStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/Inputs.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/AppIconStyles.axaml" />
   <StyleInclude Source="avares://pactoolkits-desktop/Styles/Components/BusyAreaStyles.axaml" />

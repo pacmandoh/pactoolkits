@@ -1,4 +1,4 @@
-﻿<Styles
+<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
@@ -8,8 +8,7 @@
     - SubsectionTitle (14 semi) — in-card group headers
     - DialogTitle* — dialog chrome
     - AboutHeroVersion, AboutSubtitle — About hero only
-    - ShellTitle — shell chrome
-    - ShellPageTitle — content header page title (muted)
+    Content header page title: Small Muted (see ui-naming.mdc).
     Secondary copy: use Shad Caption Muted. Body values: use Shad Small.
   -->
 
@@ -70,19 +69,6 @@
     <Setter Property="FontWeight" Value="Bold" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
     <Setter Property="LineHeight" Value="32" />
-  </Style>
-
-  <Style Selector="TextBlock.ShellTitle">
-    <Setter Property="FontSize" Value="{DynamicResource ShellTitleSize}" />
-    <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.ShellPageTitle">
-    <Setter Property="FontSize" Value="{DynamicResource SectionTitleSize}" />
-    <Setter Property="FontWeight" Value="Normal" />
-    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
 </Styles>
