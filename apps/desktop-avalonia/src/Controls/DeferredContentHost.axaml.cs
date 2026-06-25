@@ -50,7 +50,7 @@ public class DeferredContentHost : ContentControl
             return;
         }
 
-        if (ContentTemplate.Build(null) is not Control view)
+        if (ContentTemplate.Build(DataContext) is not Control view)
         {
             return;
         }
