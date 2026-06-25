@@ -258,7 +258,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _unlockService.Lock(UnlockScopeKey);
         RefreshUnlockState();
         StopUnlockTimer();
-        Status = "库存安全会话：已手动锁定";
     }
 
     private bool CanToggleStockEditMode() => CanOperateUi() && IsDetailMode;
@@ -289,7 +288,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             }
 
             IsStockEditEnabled = false;
-            Status = "库存明细：已退出编辑模式";
             if (failedCount > 0)
             {
                 var reason = string.IsNullOrWhiteSpace(lastError) ? "请检查输入值与唯一性约束" : lastError!;
@@ -311,7 +309,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _pendingStockEdits.Clear();
         SnapshotStockRows();
         IsStockEditEnabled = true;
-        Status = "库存明细：已进入编辑模式";
         _lastModeIndex = ModeIndex;
     }
 
@@ -665,9 +662,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 batchKeyword);
             PauseAutoRefresh(TimeSpan.FromSeconds(7));
             ReconcilePageLater(TimeSpan.FromSeconds(5));
-            Status = updatedRows.Count > 0
-                ? $"库存明细：本页已同步 {updatedRows.Count} 行（未整页刷新）"
-                : "库存明细：纠错已提交（当前页无可同步行）";
         }
         catch (Exception ex)
         {
@@ -689,9 +683,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
 
         CollectStockEdits();
-        Status = _pendingStockEdits.Count > 0
-            ? $"库存明细：已暂存变更 {_pendingStockEdits.Count} 项"
-            : "库存明细：未检测到变更";
         RefreshPendingChanges();
 
         return Task.CompletedTask;
@@ -775,7 +766,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 }
 
                 _toast.Success("库存明细删除", $"删除成功 {affected.ToString(CultureInfo.InvariantCulture)} 条");
-                Status = $"库存明细：已删除 {affected.ToString(CultureInfo.InvariantCulture)} 条";
             });
         }
         catch (Exception ex)
@@ -885,9 +875,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         var snap = _unlockService.GetSnapshot(UnlockScopeKey);
 
         IsOperationUnlocked = snap.IsUnlocked;
-        OperationUnlockExpiresAtUtc = snap.ExpiresAtUtc;
-        OperationUnlockFailedAttempts = snap.FailedAttempts;
-        OperationUnlockCooldownUntilUtc = snap.CooldownUntilUtc;
+        _operationUnlockCooldownUntilUtc = snap.CooldownUntilUtc;
 
         if (wasUnlocked && !IsOperationUnlocked)
         {
@@ -899,13 +887,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             IsReassignPanelVisible = false;
             ReassignPreviewRows.Clear();
             OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-            if (IsDetailMode)
-            {
-                Status = "库存安全会话已过期，请重新验证";
-            }
         }
 
-        if (IsOperationUnlocked || OperationUnlockCooldownUntilUtc > DateTimeOffset.UtcNow)
+        if (IsOperationUnlocked || _operationUnlockCooldownUntilUtc > DateTimeOffset.UtcNow)
         {
             StartUnlockTimer();
         }
@@ -1056,7 +1040,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         RevertStockRowsFromSnapshot();
         IsStockEditEnabled = false;
         _pendingStockEdits.Clear();
-        Status = "库存明细：检测到操作切换，未保存编辑已丢弃";
         RefreshPendingChanges();
     }
 
@@ -1074,9 +1057,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
     }
 
-    partial void OnStatusChanged(string? value)
-        => OnPropertyChanged(nameof(ShowInventoryStatus));
-
     partial void OnModeIndexChanged(int value)
     {
         if (value != _lastModeIndex && IsStockEditEnabled && HasStockEdits)
@@ -1088,12 +1068,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             ReassignPreviewText = null;
             ReassignPreviewRows.Clear();
             OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-
-            if (!string.IsNullOrWhiteSpace(Status)
-                && Status.Contains("库存安全会话", StringComparison.Ordinal))
-            {
-                Status = null;
-            }
         }
 
         _lastModeIndex = value;
@@ -1104,12 +1078,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         OnPropertyChanged(nameof(IsMissingMode));
         OnPropertyChanged(nameof(CanEnableStockEdit));
         OnPropertyChanged(nameof(CanDisableStockEdit));
-        OnPropertyChanged(nameof(CanRequestUnlock));
-        OnPropertyChanged(nameof(CanLockOperations));
         OnPropertyChanged(nameof(ShowRequestUnlock));
         OnPropertyChanged(nameof(ShowLockOperations));
         OnPropertyChanged(nameof(UnlockStatusText));
-        OnPropertyChanged(nameof(ShowUnlockStatus));
         OnPropertyChanged(nameof(CanToggleReassignPanel));
         OnPropertyChanged(nameof(EditSessionStateText));
         OnPropertyChanged(nameof(ShowEditSessionState));
@@ -1119,6 +1090,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
         RefreshPagingState();
         RefreshUnlockState();
+        SetModeBusy(value, true);
         _ = ReloadAsync();
     }
 
@@ -1147,6 +1119,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     partial void OnKeywordChanged(string? value)
     {
+        OnPropertyChanged(nameof(HasActiveKeyword));
+
         if (IsFilterReassignScope)
         {
             ReassignPreviewText = null;
@@ -1204,8 +1178,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return Task.CompletedTask;
         }
 
-        _keywordSearchDebouncer.Cancel();
-        DiscardStockEdits();
         Keyword = null;
         return Task.CompletedTask;
     }
@@ -1381,7 +1353,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 }
 
                 TotalCount = pageResult.TotalCount;
-                Status = $"库存明细：{TotalCount} 行（第 {PageIndex}/{TotalPages} 页）";
             }, DispatcherPriority.Background);
         }
         catch (OperationCanceledException)
