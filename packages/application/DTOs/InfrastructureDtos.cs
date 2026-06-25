@@ -6,10 +6,7 @@ public sealed record DbSchemaMigrationResult(
     string? BeforeVersion,
     string? AfterVersion,
     int AppliedCount,
-    int SkippedCount)
-{
-    public bool HasChanges => AppliedCount > 0;
-}
+    int SkippedCount);
 
 public sealed record DbSchemaMigrationPlanItem(
     string Version,
