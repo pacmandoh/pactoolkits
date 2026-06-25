@@ -1563,9 +1563,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             AutoPullSummary = $"批次#{snap.LastBatchId} {snap.LastBatchStatus} 成功{snap.LastBatchSuccessCount}/失败{snap.LastBatchFailCount}";
             AutoMapSummary = $"待映射{snap.MapPendingCount} 已映射{snap.MapMappedCount} 待人工{snap.MapNeedReviewCount} 失败{snap.MapFailedCount}";
-            AutoTaskSummary =
-                $"NEW {snap.TaskNewCount} RUNNING {snap.TaskRunningCount} SUCCESS {snap.TaskSuccessCount} FAILED {snap.TaskFailedCount} DISCARDED {snap.TaskDiscardedCount}";
-            AutoRiskSummary = $"staging失败{snap.StagingFailedCount} 重复码{snap.StagingDuplicateCount} 任务取消{snap.TaskCancelledCount} 批次失败{snap.LastBatchFailCount}";
             AutoTaskNewCount = snap.TaskNewCount;
             AutoTaskRunningCount = snap.TaskRunningCount;
             AutoTaskSuccessCount = snap.TaskSuccessCount;
