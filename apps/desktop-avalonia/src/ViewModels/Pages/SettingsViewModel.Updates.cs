@@ -24,7 +24,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
         }
 
-        IsBusy = true;
         IsUpdateChecking = true;
         try
         {
@@ -61,7 +60,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         finally
         {
             SyncUpdateState();
-            IsBusy = false;
         }
     }
 
@@ -488,7 +486,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             DbSchemaRequiredMaxVersion = snapshot.RequiredMaxVersion;
             DbSchemaCurrentVersion = snapshot.CurrentVersion ?? "unknown";
 
-            IsDbSchemaSatisfied = snapshot.Satisfied;
             UpdateManualMigrationPolicyState(snapshot.ManualMigrationPolicy);
 
             if (snapshot.Compatibility == DbSchemaCompatibility.MetadataMissing)
@@ -606,27 +603,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         return $"当前 {plan.CurrentVersion ?? "未初始化"}，目标 {plan.TargetVersion}，待执行 {pending.Length} 项{bootstrap}：{files}";
     }
 
-    private string GetRequiredMinSchemaVersion()
-    {
-        var version = _releaseVersion.Current;
-        var uiMin = DbSchemaCompat.NormalizeBound(version.UiMinDbSchema, version.DbSchemaVersion);
-        var agentMin = DbSchemaCompat.NormalizeBound(version.AgentMinDbSchema, version.DbSchemaVersion);
-        return DbSchemaCompat.GetRequiredMin(uiMin, agentMin);
-    }
-
     private void SetDbSchemaStatus(string status, bool checking, bool failed, string? error)
     {
         DbSchemaStatusText = status;
         IsDbSchemaChecking = checking;
-        IsDbSchemaFailed = failed;
-        if (failed || status == "需要更新")
-        {
-            IsDbSchemaSatisfied = false;
-        }
 
         DbSchemaErrorText = error ?? string.Empty;
         MapDbSchemaBadge(status, checking, failed);
-        OnPropertyChanged(nameof(DbSchemaStatusBadgeText));
         OnPropertyChanged(nameof(CanCopyDbSchemaDiagnostics));
         OnPropertyChanged(nameof(CanApplyDbSchemaUpdate));
     }
