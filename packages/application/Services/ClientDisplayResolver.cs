@@ -25,29 +25,4 @@ public static class ClientDisplayResolver
             Os: ci.Os,
             Version: ci.Version);
     }
-
-    public static IReadOnlyList<ClientInfo> ResolveDistinct(
-        IEnumerable<string> rawClients,
-        IClientAliasService aliasService)
-    {
-        var list = new List<ClientInfo>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var raw in rawClients)
-        {
-            if (string.IsNullOrWhiteSpace(raw))
-            {
-                continue;
-            }
-
-            if (!seen.Add(raw))
-            {
-                continue;
-            }
-
-            list.Add(Resolve(raw, aliasService));
-        }
-
-        return list;
-    }
 }

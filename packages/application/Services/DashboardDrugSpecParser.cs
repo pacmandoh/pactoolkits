@@ -39,28 +39,4 @@ public static class DashboardDrugSpecParser
 
         return (drug, spec);
     }
-
-    public static (string DrugId, string Spec)? TryParseFromTxnTitle(string? title)
-    {
-        var s = InputNormalizer.Normalize(title);
-        if (string.IsNullOrWhiteSpace(s))
-        {
-            return null;
-        }
-
-        var idx = s.LastIndexOf(' ');
-        if (idx <= 0 || idx >= s.Length - 1)
-        {
-            return null;
-        }
-
-        var drug = InputNormalizer.Normalize(s[..idx]);
-        var spec = InputNormalizer.Normalize(s[(idx + 1)..]);
-        if (string.IsNullOrWhiteSpace(drug) || string.IsNullOrWhiteSpace(spec))
-        {
-            return null;
-        }
-
-        return (drug, spec);
-    }
 }
