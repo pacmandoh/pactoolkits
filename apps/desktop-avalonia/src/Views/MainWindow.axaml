@@ -599,7 +599,7 @@
             <Button
               Grid.Column="2"
               VerticalAlignment="Center"
-              Classes="Secondary"
+              Classes="Outline"
               Command="{Binding OpenSettingsCommand}"
               Content="前往设置"
               IsVisible="{Binding ShowConnectivityBannerAction}" />
