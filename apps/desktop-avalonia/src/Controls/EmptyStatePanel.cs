@@ -33,6 +33,11 @@ public sealed class EmptyStatePanel : ContentControl
             nameof(HasHint),
             o => o.HasHint);
 
+    public static readonly DirectProperty<EmptyStatePanel, bool> ShowEmptyOverlayProperty =
+        AvaloniaProperty.RegisterDirect<EmptyStatePanel, bool>(
+            nameof(ShowEmptyOverlay),
+            o => o.ShowEmptyOverlay);
+
     public static readonly DirectProperty<EmptyStatePanel, bool> ShowContentProperty =
         AvaloniaProperty.RegisterDirect<EmptyStatePanel, bool>(
             nameof(ShowContent),
@@ -58,6 +63,8 @@ public sealed class EmptyStatePanel : ContentControl
 
     public bool HasHint => !string.IsNullOrWhiteSpace(EmptyHint);
 
+    public bool ShowEmptyOverlay => IsEmpty && !IsPending;
+
     public bool ShowContent => !IsEmpty && !IsPending;
 
     public double ContentOpacity => ShowContent ? 1 : 0;
@@ -76,6 +83,7 @@ public sealed class EmptyStatePanel : ContentControl
 
         if (change.Property == IsEmptyProperty || change.Property == IsPendingProperty)
         {
+            RaisePropertyChanged(ShowEmptyOverlayProperty, false, ShowEmptyOverlay);
             RaisePropertyChanged(ShowContentProperty, false, ShowContent);
             RaisePropertyChanged(ContentOpacityProperty, 0, ContentOpacity);
         }

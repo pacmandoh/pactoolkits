@@ -1,10 +1,10 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Controls.KpiTile"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   x:Name="Root">
-  <controls:SectionPanel
+  <controls:CardPanel
     Title="{Binding Title, ElementName=Root}"
     AccentBrush="{Binding AccentBrush, ElementName=Root}"
     Classes="Kpi"
@@ -45,5 +45,5 @@
         ReplayTrigger="{Binding ReplayTrigger, ElementName=Root}"
         Value="{Binding Pct, ElementName=Root}" />
     </Grid>
-  </controls:SectionPanel>
+  </controls:CardPanel>
 </UserControl>
