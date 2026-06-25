@@ -66,7 +66,6 @@ public static class ServiceRegistration
         services.AddSingleton<IToastService, ToastService>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<ISensitiveUnlockService, SensitiveUnlockService>();
-        services.AddSingleton<IAgentConfigWriter, AgentConfigWriter>();
         services.AddSingleton<AhkInjectorAgentRuntime>();
         services.AddSingleton<IInjectorAgentRuntime>(sp => sp.GetRequiredService<AhkInjectorAgentRuntime>());
         services.AddSingleton<IAgentRuntime>(sp => sp.GetRequiredService<AhkInjectorAgentRuntime>());
