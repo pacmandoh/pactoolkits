@@ -1,4 +1,4 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
@@ -9,9 +9,7 @@
     <Setter Property="ProgressOpacity" Value="{DynamicResource KpiCircleProgressOpacity}" />
     <Setter Property="TrackBrush">
       <Setter.Value>
-        <SolidColorBrush
-          Color="{DynamicResource SwitchBackgroundColor}"
-          Opacity="{DynamicResource KpiCircleProgressTrackOpacity}" />
+        <SolidColorBrush Opacity="{DynamicResource KpiCircleProgressTrackOpacity}" Color="{DynamicResource SwitchBackgroundColor}" />
       </Setter.Value>
     </Setter>
     <Setter Property="Transitions">
@@ -27,9 +25,7 @@
   <Style Selector="controls|CircleProgressRing shapes|Arc.ProgressArc">
     <Setter Property="Transitions">
       <Transitions>
-        <BrushTransition
-          Property="Stroke"
-          Duration="{DynamicResource KpiCircleProgressBrushAnimationDuration}" />
+        <BrushTransition Property="Stroke" Duration="{DynamicResource KpiCircleProgressBrushAnimationDuration}" />
         <DoubleTransition
           Easing="CircularEaseOut"
           Property="SweepAngle"
@@ -50,9 +46,7 @@
     <Setter Property="SweepAngle" Value="90" />
     <Setter Property="StartAngle" Value="270" />
     <Style.Animations>
-      <Animation
-        Duration="{DynamicResource KpiCircleProgressIndeterminateDuration}"
-        IterationCount="Infinite">
+      <Animation IterationCount="Infinite" Duration="{DynamicResource KpiCircleProgressIndeterminateDuration}">
         <KeyFrame Cue="0%">
           <Setter Property="StartAngle" Value="270" />
         </KeyFrame>
