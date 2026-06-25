@@ -59,7 +59,8 @@ echo
 
 repo_path_hits="$(search '(^|[[:space:]["'\''`./]|cd )pactoolkits-(ui|agent|db)/' \
   .github scripts apps database README.md README.zh-CN.md \
-  | grep -Ev 'updates/pactoolkits-(ui|agent|db)/' || true)"
+  | grep -Ev 'updates/pactoolkits-(ui|agent|db)/' \
+  | grep -Ev 'scripts/validate-database-policy\.sh:' || true)"
 if [[ -n "$repo_path_hits" ]]; then
   echo "FAIL: repo filesystem old root dirs"
   echo "$repo_path_hits"
@@ -86,6 +87,9 @@ scan "legacy csharp namespace" 'pactoolkits_ui' \
 
 allow "legacy config compatibility constant" 'pactoolkits-ui\.config\.json' \
   apps/desktop-avalonia/src/Services/Infrastructure/AppConfigStore.cs
+
+allow "git history legacy migration dir constant" 'LEGACY_MIGRATION_DIR="pactoolkits-db/sql/migrations"' \
+  scripts/validate-database-policy.sh
 
 if [[ "$fail" -ne 0 ]]; then
   echo "Legacy identity audit failed."
