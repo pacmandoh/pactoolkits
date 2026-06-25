@@ -35,7 +35,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             return;
         }
 
-        IsBusy = true;
         try
         {
             var gateway = string.IsNullOrWhiteSpace(MsfxGatewayUrl)
@@ -82,10 +81,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             _logger.Error("SettingsVM", "msfx.settings.save.fail", "Failed to save msfx api settings", ex);
             _toast.Error("码上放心 API", $"保存失败：{ex.Message}");
         }
-        finally
-        {
-            IsBusy = false;
-        }
     }
 
     private void RefreshMsfxApiHint(MsfxApiOptions options)
@@ -98,7 +93,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         if (!hasCore)
         {
-            MsfxApiHint = "配置状态：未配置";
             MsfxApiBadgeStatus = null;
             MsfxApiBadgeLabel = "未配置";
             return;
@@ -106,7 +100,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         if (hasKey && hasSecret && hasEnt && hasToken)
         {
-            MsfxApiHint = "配置状态：已就绪（含 SessionToken）";
             MsfxApiBadgeStatus = false;
             MsfxApiBadgeLabel = "已就绪";
             return;
@@ -114,13 +107,11 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         if (hasKey && hasSecret && hasEnt)
         {
-            MsfxApiHint = "配置状态：已就绪（SessionToken 可选）";
             MsfxApiBadgeStatus = false;
             MsfxApiBadgeLabel = "已就绪";
             return;
         }
 
-        MsfxApiHint = "配置状态：待完善（需 AppKey/AppSecret/企业ID）";
         MsfxApiBadgeStatus = true;
         MsfxApiBadgeLabel = "待完善";
     }
