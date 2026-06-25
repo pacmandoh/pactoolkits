@@ -1,6 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -49,7 +47,7 @@ public static class DataGridInteractionHelper
         ClearCurrentCell(grid);
     }
 
-    public static void ClearCurrentCell(DataGrid? grid)
+    private static void ClearCurrentCell(DataGrid? grid)
     {
         if (grid is null)
         {
@@ -66,63 +64,7 @@ public static class DataGridInteractionHelper
         }
     }
 
-    public static List<object> ReadSelectedItems(DataGrid grid)
-    {
-        var capacity = 0;
-        try
-        {
-            capacity = grid.SelectedItems?.Count ?? 0;
-        }
-        catch
-        {
-            capacity = 0;
-        }
-
-        var list = capacity > 0 ? new List<object>(capacity) : new List<object>();
-        try
-        {
-            var selectedItems = grid.SelectedItems;
-            if (selectedItems is null)
-            {
-                return list;
-            }
-
-            foreach (var it in selectedItems)
-            {
-                if (it is not null)
-                {
-                    list.Add(it);
-                }
-            }
-        }
-        catch (System.Exception ex)
-        {
-            AppLog.Warn("DataGridInteraction", "grid.read_selected_items.fail", "Failed to read selected items", ex);
-        }
-
-        return list;
-    }
-
-    public static DataGrid? FindGridByRowItem(Control host, object? rowItem, params string[] gridNames)
-    {
-        if (rowItem is null || gridNames.Length == 0)
-        {
-            return null;
-        }
-
-        foreach (var name in gridNames)
-        {
-            var grid = host.FindControl<DataGrid>(name);
-            if (ContainsItemReference(grid?.ItemsSource, rowItem))
-            {
-                return grid;
-            }
-        }
-
-        return null;
-    }
-
-    public static DataGridRow? FindRowFromPointerSource(object? source, out bool hitRowHeader)
+    private static DataGridRow? FindRowFromPointerSource(object? source, out bool hitRowHeader)
     {
         hitRowHeader = false;
         var current = source as StyledElement;
@@ -149,7 +91,7 @@ public static class DataGridInteractionHelper
         return null;
     }
 
-    public static bool IsIndexColumnCell(DataGridCell cell)
+    private static bool IsIndexColumnCell(DataGridCell cell)
     {
         var grid = cell.FindAncestorOfType<DataGrid>();
         if (grid is null || !DataGridIndexColumnBehavior.GetEnabled(grid) || !DataGridIndexColumnBehavior.GetIsVisible(grid))
@@ -207,27 +149,6 @@ public static class DataGridInteractionHelper
     {
         var p = e.GetCurrentPoint(relativeTo).Properties;
         return p.IsLeftButtonPressed && !p.IsRightButtonPressed;
-    }
-
-    public static bool IsRightClick(PointerPressedEventArgs e, Control relativeTo)
-        => e.GetCurrentPoint(relativeTo).Properties.IsRightButtonPressed;
-
-    private static bool ContainsItemReference(IEnumerable? source, object rowItem)
-    {
-        if (source is null)
-        {
-            return false;
-        }
-
-        foreach (var item in source)
-        {
-            if (ReferenceEquals(item, rowItem))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public static DataGrid? FindDeferredGrid(Control root, string name)

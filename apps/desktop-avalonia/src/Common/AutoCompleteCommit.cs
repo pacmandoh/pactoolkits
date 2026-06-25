@@ -92,7 +92,7 @@ public static class AutoCompleteCommit
             _ = RunCommitAndApplyImmediateAsync(box, owner, nextControlName, applyAsync);
     }
 
-    public static void RunCommitAndApply(
+    private static void RunCommitAndApply(
         AutoCompleteBox box,
         UserControl owner,
         string nextControlName,
@@ -109,7 +109,7 @@ public static class AutoCompleteCommit
         }, DispatcherPriority.Input);
     }
 
-    public static void RunCommitAndApplyAsync(
+    private static void RunCommitAndApplyAsync(
         AutoCompleteBox box,
         UserControl owner,
         string nextControlName,

@@ -3,17 +3,9 @@ using System.IO;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-public enum LogDirectoryResolutionSource
-{
-    Default,
-    Configured,
-    Migrated,
-}
-
 public sealed record LogDirectoryResolution(
     string StoredDirectory,
     string RuntimeDirectory,
-    LogDirectoryResolutionSource Source,
     bool RequiresMigration);
 
 public static class LogDirectoryResolver
@@ -31,7 +23,6 @@ public static class LogDirectoryResolver
             return new LogDirectoryResolution(
                 string.Empty,
                 runtime,
-                LogDirectoryResolutionSource.Default,
                 RequiresMigration: false);
         }
 
@@ -41,7 +32,6 @@ public static class LogDirectoryResolver
             return new LogDirectoryResolution(
                 migrated,
                 migrated,
-                LogDirectoryResolutionSource.Migrated,
                 RequiresMigration: true);
         }
 
@@ -49,7 +39,6 @@ public static class LogDirectoryResolver
         return new LogDirectoryResolution(
             stored,
             configuredRuntime,
-            LogDirectoryResolutionSource.Configured,
             RequiresMigration: false);
     }
 
@@ -77,7 +66,7 @@ public static class LogDirectoryResolver
         }
     }
 
-    public static string MigrateLegacyLogsDirectory(string legacyPath)
+    private static string MigrateLegacyLogsDirectory(string legacyPath)
     {
         var fullPath = NormalizeFullPath(legacyPath);
         if (!EndsWithLogsSubdirectory(fullPath, LegacySubdirectory))
