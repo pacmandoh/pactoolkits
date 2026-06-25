@@ -28,7 +28,7 @@
     <Setter Property="Opacity" Value="0" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFunctionAreaMenuItem:pointerover /template/ Border#HoverBackground">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFunctionAreaMenuItem:pointerover /template/ Border#HoverBackground">
     <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
     <Setter Property="Opacity" Value="1" />
   </Style>
@@ -37,12 +37,20 @@
     <Setter Property="Opacity" Value="0" />
   </Style>
 
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:pointerover /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:pressed /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:open /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:selected /template/ Border#HoverBackground">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+
   <Style Selector="Border.SidebarFunctionAreaBadge">
-    <Setter Property="Background" Value="{DynamicResource SidebarFunctionAreaBadgeBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SidebarFunctionAreaBadgeColor}" />
+  </Style>
+
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:open Border.SidebarFunctionAreaBadge,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:selected Border.SidebarFunctionAreaBadge,shad|Sidebar#MainSidebar[Expanded=False] Border.SidebarFunctionAreaBadge:pointerover,shad|Sidebar#MainSidebar[Expanded=False] Border.SidebarFunctionAreaBadge:pressed">
+    <Setter Property="Background" Value="{DynamicResource SidebarFunctionAreaBadgeAccentColor}" />
   </Style>
 
   <Style Selector="Border.SidebarFunctionAreaBadge icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource SidebarFunctionAreaBadgeForegroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SidebarFunctionAreaBadgeForegroundColor}" />
   </Style>
 
   <Style Selector="StackPanel.SidebarFunctionAreaText">
