@@ -38,12 +38,6 @@ public interface IInventoryOverviewRepo
         IReadOnlyList<string> traceCodes,
         CancellationToken ct);
 
-    Task<StockReassignPreviewDto> PreviewStockReassignByTraceCodeAsync(
-        string traceCode,
-        string targetDrugId,
-        string targetSpec,
-        CancellationToken ct);
-
     Task<StockReassignApplyResultDto> ReassignStockByTraceCodeAsync(
         string traceCode,
         string targetDrugId,
