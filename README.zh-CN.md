@@ -332,6 +332,8 @@ database/postgres/
 
 **仓库维护脚本**
 
+- `audit-legacy-identity.sh`
+  - 在 CI/工具链中检测 pre-monorepo 路径（`pactoolkits-ui`、`pactoolkits-db` 等）是否意外回归（允许兼容 shim）
 - `audit-unused-desktop-avalonia-resources.sh`
   - 扫描 Desktop 项目中未引用的样式、资源与相关残留
 
