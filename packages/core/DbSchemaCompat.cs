@@ -19,7 +19,6 @@ public sealed record DbSchemaCompatibilityResult(
     public bool IsCompatible => Status == DbSchemaCompatibility.Compatible;
     public bool IsMetadataMissing => Status == DbSchemaCompatibility.MetadataMissing;
     public bool IsTooLow => Status == DbSchemaCompatibility.BelowMinimum;
-    public bool IsTooHigh => Status == DbSchemaCompatibility.AboveMaximum;
 }
 
 public static class DbSchemaCompat
