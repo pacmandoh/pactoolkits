@@ -2,19 +2,20 @@
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
       <Color x:Key="TitleBarBackgroundColor">#FFFFFF</Color>
+      <Color x:Key="SidebarFunctionAreaBadgeColor">#2F62F4</Color>
+      <Color x:Key="SidebarFunctionAreaBadgeAccentColor">#3D6FEF</Color>
       <SolidColorBrush x:Key="SectionPanelChromeBackground" Color="{DynamicResource DialogBackgroundColor}" />
       <SolidColorBrush x:Key="TabItemsBackgroundColor" Color="{DynamicResource SwitchBackgroundColor}" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
       <Color x:Key="TitleBarBackgroundColor">#171717</Color>
+      <Color x:Key="SidebarFunctionAreaBadgeColor">#1447E6</Color>
+      <Color x:Key="SidebarFunctionAreaBadgeAccentColor">#1140D0</Color>
       <SolidColorBrush x:Key="SectionPanelChromeBackground" Color="{DynamicResource SwitchBackgroundColor}" />
       <SolidColorBrush x:Key="TabItemsBackgroundColor" Color="{DynamicResource SwitchBackgroundColor}" />
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 
   <!--  SidebarPage team badge blue — Shad PrimaryColor is neutral grey, not accent blue.  -->
-  <Color x:Key="SidebarFunctionAreaBadgeColor">#1447E6</Color>
   <Color x:Key="SidebarFunctionAreaBadgeForegroundColor">#FFFFFF</Color>
-  <SolidColorBrush x:Key="SidebarFunctionAreaBadgeBrush" Color="{StaticResource SidebarFunctionAreaBadgeColor}" />
-  <SolidColorBrush x:Key="SidebarFunctionAreaBadgeForegroundBrush" Color="{StaticResource SidebarFunctionAreaBadgeForegroundColor}" />
 </ResourceDictionary>
