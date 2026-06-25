@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Controls.CircleProgressRing"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -6,12 +6,10 @@
   x:Name="Root"
   HorizontalAlignment="Center"
   VerticalAlignment="Center">
-  <Grid
-    Width="{Binding Diameter, ElementName=Root}"
-    Height="{Binding Diameter, ElementName=Root}">
+  <Grid Width="{Binding Diameter, ElementName=Root}" Height="{Binding Diameter, ElementName=Root}">
     <shapes:Arc
-      Stretch="None"
       StartAngle="0"
+      Stretch="None"
       Stroke="{Binding TrackBrush, ElementName=Root}"
       StrokeLineCap="Round"
       StrokeThickness="{Binding StrokeThickness, ElementName=Root}"
@@ -19,8 +17,8 @@
     <shapes:Arc
       x:Name="ProgressArc"
       Classes="ProgressArc"
-      Stretch="None"
       Opacity="{Binding ProgressOpacity, ElementName=Root}"
+      Stretch="None"
       Stroke="{Binding ProgressBrush, ElementName=Root}"
       StrokeJoin="Round"
       StrokeLineCap="Round"
