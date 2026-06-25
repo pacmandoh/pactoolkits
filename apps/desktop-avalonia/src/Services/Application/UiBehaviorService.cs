@@ -10,7 +10,6 @@ public interface IUiBehaviorService
     UiBehaviorOptions Current { get; }
     event Action? Changed;
     Task SaveAsync(UiBehaviorOptions options, CancellationToken ct = default);
-    void Reload();
 }
 
 public sealed class UiBehaviorService : IUiBehaviorService
@@ -24,7 +23,7 @@ public sealed class UiBehaviorService : IUiBehaviorService
     public UiBehaviorService(IAppConfigStore configStore)
     {
         _configStore = configStore;
-        Reload();
+        LoadFromConfig();
     }
 
     public async Task SaveAsync(UiBehaviorOptions options, CancellationToken ct = default)
@@ -36,7 +35,7 @@ public sealed class UiBehaviorService : IUiBehaviorService
         Changed?.Invoke();
     }
 
-    public void Reload()
+    private void LoadFromConfig()
     {
         var cfg = _configStore.Load();
         _current = Normalize(cfg.UiBehavior);
