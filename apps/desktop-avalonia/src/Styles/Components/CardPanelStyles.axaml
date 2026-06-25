@@ -1,0 +1,172 @@
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+  <Style Selector="controls|CardPanel">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="controls:CardPanel">
+        <Border Classes="CardPanel">
+          <Grid
+            MinHeight="0"
+            RowDefinitions="Auto,*"
+            RowSpacing="{DynamicResource CardPanelHeaderInnerGap}">
+            <Grid
+              Grid.Row="0"
+              Margin="{DynamicResource CardPanelHeaderPadding}"
+              ColumnDefinitions="*,Auto">
+              <StackPanel
+                Grid.Column="0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                IsVisible="{TemplateBinding HasTextTitle}"
+                Orientation="Horizontal"
+                Spacing="{DynamicResource CardPanelTitleRailSpacing}">
+                <Ellipse
+                  Width="{DynamicResource CardPanelAccentDotSize}"
+                  Height="{DynamicResource CardPanelAccentDotSize}"
+                  VerticalAlignment="Center"
+                  Fill="{TemplateBinding AccentBrush}"
+                  IsVisible="{TemplateBinding ShowAccentDot}" />
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  VerticalAlignment="Center"
+                  Foreground="{DynamicResource ForegroundColor}"
+                  IsVisible="{TemplateBinding HasHeaderIcon}"
+                  Kind="{TemplateBinding HeaderIcon}" />
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="SectionTitle" Text="{TemplateBinding Title}" />
+                  <TextBlock
+                    Classes="Caption Muted"
+                    IsVisible="{TemplateBinding HasHeaderHint}"
+                    Text="{TemplateBinding HeaderHint}"
+                    TextWrapping="Wrap" />
+                </StackPanel>
+              </StackPanel>
+              <ContentPresenter
+                Grid.Column="0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center"
+                Content="{TemplateBinding Title}"
+                IsVisible="{TemplateBinding HasCustomTitle}" />
+              <ContentPresenter
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Content="{TemplateBinding HeaderContent}"
+                IsVisible="{TemplateBinding HeaderContent,
+                                            Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <icons:AppIcon
+                Grid.Column="1"
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                VerticalAlignment="Center"
+                Classes="CardPanelMenuIcon"
+                IsHitTestVisible="False"
+                IsVisible="{TemplateBinding ShowDefaultMenuIcon}"
+                Kind="Ellipsis" />
+            </Grid>
+
+            <Border
+              Grid.Row="1"
+              MinHeight="0"
+              VerticalAlignment="Stretch"
+              Classes="CardPanelInner">
+              <Border MinHeight="0" Classes="CardPanelBody">
+                <ContentPresenter
+                  MinHeight="0"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch"
+                  VerticalContentAlignment="Stretch"
+                  Content="{TemplateBinding Content}" />
+              </Border>
+            </Border>
+          </Grid>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <!--  Section chrome (default): nested outer shell + inner body well.  -->
+  <Style Selector="Border.CardPanel">
+    <Setter Property="Background" Value="{DynamicResource CardPanelSectionChromeBackground}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource CardPanelOuterRadius}" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+  </Style>
+
+  <!--  Card chrome: outer Shad Card surface only — inner/header/body tokens match Section.  -->
+  <Style Selector="controls|CardPanel.CardChrome Border.CardPanel">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.Kpi">
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.Kpi TextBlock.SectionTitle">
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.TabSection TextBlock.SectionTitle">
+    <Setter Property="FontSize" Value="{DynamicResource CardPanelTabTitleSize}" />
+  </Style>
+
+  <Style Selector="Border.CardPanelInner">
+    <Setter Property="Background" Value="{DynamicResource WindowBackgroundColor}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource CardPanelInnerRadius}" />
+    <Setter Property="Margin" Value="{DynamicResource CardPanelInnerMargin}" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="Border.CardPanelBody">
+    <Setter Property="Padding" Value="{DynamicResource CardPanelBodyPadding}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.Kpi Border.CardPanelInner">
+    <Setter Property="Padding" Value="{DynamicResource KpiTileInnerPadding}" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.Kpi Border.CardPanelBody">
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.FlushBody Border.CardPanelBody">
+    <Setter Property="Padding" Value="{DynamicResource CardPanelFlushBodyPadding}" />
+  </Style>
+
+  <Style Selector="controls|KpiTile TextBlock.h3">
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+  </Style>
+
+  <Style Selector="icons|AppIcon.CardPanelMenuIcon">
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
+  </Style>
+
+  <Style Selector="controls|CardPanel TextBox.SearchBox">
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="Width" Value="{DynamicResource InventorySearchWidth}" />
+    <Setter Property="MinWidth" Value="0" />
+  </Style>
+
+  <Style Selector="Border.KpiTileStrip">
+    <Setter Property="Background" Value="{DynamicResource WindowBackgroundColor}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="{DynamicResource KpiTileStripPadding}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource CardPanelOuterRadius}" />
+  </Style>
+</Styles>
