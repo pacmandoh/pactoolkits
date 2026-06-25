@@ -140,7 +140,7 @@
 
       <Grid
         Grid.Row="1"
-        Margin="{DynamicResource DashboardTabContentMargin}"
+        Classes="DashboardTabPanel"
         IsVisible="{Binding IsOverviewTab}"
         RowDefinitions="*">
         <ScrollViewer
@@ -210,12 +210,12 @@
               ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
 
-              <controls:SectionPanel
+              <controls:CardPanel
                 Title="药品使用统计"
                 Grid.Column="0"
                 AccentBrush="{DynamicResource InfoColor}"
                 Classes="FlushBody">
-                <controls:SectionPanel.HeaderContent>
+                <controls:CardPanel.HeaderContent>
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <ToggleButton
                       VerticalAlignment="Center"
@@ -236,7 +236,7 @@
                       ItemsSource="{Binding TrendModes}"
                       SelectedItem="{Binding TrendMode}" />
                   </StackPanel>
-                </controls:SectionPanel.HeaderContent>
+                </controls:CardPanel.HeaderContent>
                 <controls:EmptyStatePanel
                   MinHeight="0"
                   EmptyHint="{Binding TrendEmptyHint}"
@@ -288,7 +288,7 @@
                                 <DataGridTemplateColumn Width="{StaticResource DgWUsage}" Header="用量">
                                   <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                      <TextBlock Classes="DGRightCell DGNum" Text="{Binding ValueText}" />
+                                      <TextBlock HorizontalAlignment="Right" Text="{Binding ValueText}" />
                                     </DataTemplate>
                                   </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -306,21 +306,21 @@
                     </Grid>
                   </shad:BusyArea>
                 </controls:EmptyStatePanel>
-              </controls:SectionPanel>
+              </controls:CardPanel>
 
 
-              <controls:SectionPanel
+              <controls:CardPanel
                 Title="事务总览"
                 Grid.Column="1"
                 AccentBrush="{DynamicResource InfoColor}"
                 Classes="FlushBody">
-                <controls:SectionPanel.HeaderContent>
+                <controls:CardPanel.HeaderContent>
                   <Button
                     VerticalAlignment="Center"
                     Classes="Outline"
                     Command="{Binding OpenTxnListCommand}"
                     Content="查看全部" />
-                </controls:SectionPanel.HeaderContent>
+                </controls:CardPanel.HeaderContent>
                 <controls:EmptyStatePanel
                   MinHeight="0"
                   EmptyHint="{Binding RecentTxnsEmptyHint}"
@@ -391,7 +391,7 @@
                               <DataGridTemplateColumn Width="{StaticResource DgWUsage}" Header="用量">
                                 <DataGridTemplateColumn.CellTemplate>
                                   <DataTemplate>
-                                    <TextBlock Classes="DGRightCell DGNum" Text="{Binding Qty}" />
+                                    <TextBlock HorizontalAlignment="Right" Text="{Binding Qty}" />
                                   </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                               </DataGridTemplateColumn>
@@ -402,7 +402,7 @@
                     </controls:DeferredGridSlot>
                   </shad:BusyArea>
                 </controls:EmptyStatePanel>
-              </controls:SectionPanel>
+              </controls:CardPanel>
             </Grid>
 
 
@@ -412,21 +412,21 @@
               ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
 
 
-              <controls:SectionPanel
+              <controls:CardPanel
                 Title="客户端"
                 Grid.Column="0"
                 MinHeight="220"
                 VerticalAlignment="Stretch"
                 AccentBrush="{DynamicResource InfoColor}"
                 Classes="FlushBody">
-                <controls:SectionPanel.HeaderContent>
+                <controls:CardPanel.HeaderContent>
                   <ComboBox
                     Width="120"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     ItemsSource="{Binding ClientMetricModes}"
                     SelectedItem="{Binding ClientMetricMode}" />
-                </controls:SectionPanel.HeaderContent>
+                </controls:CardPanel.HeaderContent>
                 <controls:EmptyStatePanel
                   MinHeight="0"
                   VerticalAlignment="Stretch"
@@ -473,7 +473,7 @@
                               <DataGridTemplateColumn Width="{StaticResource DgWUsage}" Header="用量">
                                 <DataGridTemplateColumn.CellTemplate>
                                   <DataTemplate>
-                                    <TextBlock Classes="DGRightCell DGNum" Text="{Binding Value}" />
+                                    <TextBlock HorizontalAlignment="Right" Text="{Binding Value}" />
                                   </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                               </DataGridTemplateColumn>
@@ -484,16 +484,16 @@
                     </controls:DeferredGridSlot>
                   </shad:BusyArea>
                 </controls:EmptyStatePanel>
-              </controls:SectionPanel>
+              </controls:CardPanel>
 
 
-              <controls:SectionPanel
+              <controls:CardPanel
                 Title="录入追溯码情况"
                 Grid.Column="1"
                 MinHeight="220"
                 VerticalAlignment="Stretch"
                 AccentBrush="{DynamicResource InfoColor}">
-                <controls:SectionPanel.HeaderContent>
+                <controls:CardPanel.HeaderContent>
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <Button
                       VerticalAlignment="Center"
@@ -513,7 +513,7 @@
                       </StackPanel>
                     </Button>
                   </StackPanel>
-                </controls:SectionPanel.HeaderContent>
+                </controls:CardPanel.HeaderContent>
                 <controls:EmptyStatePanel
                   MinHeight="0"
                   VerticalAlignment="Stretch"
@@ -581,7 +581,6 @@
                                   Grid.Column="3"
                                   HorizontalAlignment="Right"
                                   VerticalAlignment="Center"
-                                  Classes="DGRightCell DGNum"
                                   Text="{Binding Qty}" />
                                 <TextBlock
                                   Grid.Row="1"
@@ -597,7 +596,7 @@
                     </ScrollViewer>
                   </shad:BusyArea>
                 </controls:EmptyStatePanel>
-              </controls:SectionPanel>
+              </controls:CardPanel>
             </Grid>
           </Grid>
         </ScrollViewer>
@@ -605,21 +604,21 @@
 
       <Grid
         Grid.Row="1"
-        Margin="{DynamicResource DashboardTabContentMargin}"
+        Classes="DashboardTabPanel"
         IsVisible="{Binding IsInputTab}"
         RowDefinitions="*">
-        <controls:SectionPanel
+        <controls:CardPanel
           Title="录入追溯码情况"
           Grid.Row="0"
           AccentBrush="{DynamicResource InfoColor}"
           Classes="FlushBody TabSection">
-          <controls:SectionPanel.HeaderContent>
+          <controls:CardPanel.HeaderContent>
             <Button
               VerticalAlignment="Center"
               Classes="Outline"
               Command="{Binding OpenOverviewTabCommand}"
               Content="回总览" />
-          </controls:SectionPanel.HeaderContent>
+          </controls:CardPanel.HeaderContent>
           <Grid RowDefinitions="*,Auto">
             <controls:EmptyStatePanel
               Grid.Row="0"
@@ -642,7 +641,7 @@
                         MinHeight="0"
                         HorizontalAlignment="Stretch"
                         CanUserResizeColumns="True"
-                        Classes="SectionGrid TraceStateGrid IndexedGrid StickyIndexDisplayIndex"
+                        Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
                         HorizontalScrollBarVisibility="Disabled"
                         ItemsSource="{Binding EntryRecent}"
                         RowHeight="{StaticResource RowMinHeight}"
@@ -709,7 +708,7 @@
 
             <controls:DataGridPager
               Grid.Row="1"
-              Classes="SectionPanelBodyInset"
+              Classes="CardPanelBodyInset"
               FirstPageCommand="{Binding FirstEntryPageCommand}"
               IsContentEmpty="{Binding IsEntryRecentEmpty}"
               LastPageCommand="{Binding LastEntryPageCommand}"
@@ -721,21 +720,21 @@
               TotalPages="{Binding EntryTotalPages}"
               PageIndex="{Binding EntryPageIndex}" />
           </Grid>
-        </controls:SectionPanel>
+        </controls:CardPanel>
       </Grid>
 
 
       <Grid
         Grid.Row="1"
-        Margin="{DynamicResource DashboardTabContentMargin}"
+        Classes="DashboardTabPanel"
         IsVisible="{Binding IsTxnTab}"
         RowDefinitions="*">
-        <controls:SectionPanel
+        <controls:CardPanel
           Title="{Binding TxnPanelMode.Title}"
           Grid.Row="0"
           AccentBrush="{DynamicResource SuccessColor}"
           Classes="FlushBody TabSection">
-          <controls:SectionPanel.HeaderContent>
+          <controls:CardPanel.HeaderContent>
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <ComboBox
                 Width="120"
@@ -748,7 +747,7 @@
                 Command="{Binding OpenAbnormalCommand}"
                 Content="查看异常" />
             </StackPanel>
-          </controls:SectionPanel.HeaderContent>
+          </controls:CardPanel.HeaderContent>
           <Grid RowDefinitions="*,Auto">
             <controls:EmptyStatePanel
               Grid.Row="0"
@@ -771,7 +770,7 @@
                         <DataGrid
                           MinHeight="0"
                           HorizontalAlignment="Stretch"
-                          Classes="SectionGrid TxnGrid IndexedGrid StickyIndexDisplayIndex"
+                          Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
                           HorizontalScrollBarVisibility="Disabled"
                           IsVisible="{Binding IsTxnPanelDetailMode}"
                           ItemsSource="{Binding RecentTxns}"
@@ -868,7 +867,7 @@
 
             <controls:DataGridPager
               Grid.Row="1"
-              Classes="SectionPanelBodyInset"
+              Classes="CardPanelBodyInset"
               FirstPageCommand="{Binding FirstTxnPageCommand}"
               IsActive="{Binding IsTxnPanelDetailMode}"
               IsContentEmpty="{Binding IsRecentTxnsEmpty}"
@@ -883,7 +882,7 @@
 
             <controls:DataGridPager
               Grid.Row="1"
-              Classes="SectionPanelBodyInset"
+              Classes="CardPanelBodyInset"
               FirstPageCommand="{Binding FirstTxnTrendPageCommand}"
               IsActive="{Binding IsTxnPanelTrendMode}"
               IsContentEmpty="{Binding IsTxnTrendEmpty}"
@@ -896,20 +895,20 @@
               TotalPages="{Binding TxnTrendTotalPages}"
               PageIndex="{Binding TxnTrendPageIndex}" />
           </Grid>
-        </controls:SectionPanel>
+        </controls:CardPanel>
       </Grid>
 
       <Grid
         Grid.Row="1"
-        Margin="{DynamicResource DashboardTabContentMargin}"
+        Classes="DashboardTabPanel"
         IsVisible="{Binding IsAbnormalTab}"
         RowDefinitions="*">
-        <controls:SectionPanel
+        <controls:CardPanel
           Title="异常事务队列"
           Grid.Row="0"
           AccentBrush="{DynamicResource WarningColor}"
           Classes="FlushBody TabSection">
-          <controls:SectionPanel.HeaderContent>
+          <controls:CardPanel.HeaderContent>
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <Button
                 VerticalAlignment="Center"
@@ -929,7 +928,7 @@
                 </StackPanel>
               </Button>
             </StackPanel>
-          </controls:SectionPanel.HeaderContent>
+          </controls:CardPanel.HeaderContent>
           <Grid RowDefinitions="*,Auto">
             <controls:EmptyStatePanel
               Grid.Row="0"
@@ -951,7 +950,7 @@
                       <DataGrid
                         MinHeight="0"
                         HorizontalAlignment="Stretch"
-                        Classes="SectionGrid TxnGrid AbnormalGrid IndexedGrid StickyIndexDisplayIndex"
+                        Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
                         HorizontalScrollBarVisibility="Disabled"
                         ItemsSource="{Binding AbnormalQueue}"
                         RowHeight="{StaticResource RowMinHeight}"
@@ -1002,7 +1001,7 @@
 
             <controls:DataGridPager
               Grid.Row="1"
-              Classes="SectionPanelBodyInset"
+              Classes="CardPanelBodyInset"
               FirstPageCommand="{Binding FirstAbnormalPageCommand}"
               IsContentEmpty="{Binding IsAbnormalEmpty}"
               LastPageCommand="{Binding LastAbnormalPageCommand}"
@@ -1014,7 +1013,7 @@
               TotalPages="{Binding AbnormalTotalPages}"
               PageIndex="{Binding AbnormalPageIndex}" />
           </Grid>
-        </controls:SectionPanel>
+        </controls:CardPanel>
       </Grid>
 
 
