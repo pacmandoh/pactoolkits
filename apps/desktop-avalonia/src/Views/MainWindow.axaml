@@ -423,6 +423,22 @@
                 ToolTip.Tip="{Binding FilterbarToggleToolTip}">
                 <icons:AppIcon Kind="{Binding FilterbarToggleIconKind}" />
               </Button>
+              <Button
+                Classes="Icon ghost-states"
+                Command="{Binding InventoryRequestUnlockCommand}"
+                IsEnabled="{Binding CanInventoryRequestUnlock}"
+                IsVisible="{Binding ShowInventoryRequestUnlock}"
+                ToolTip.Tip="解锁">
+                <icons:AppIcon Foreground="{DynamicResource WarningColor}" Kind="LockKeyhole" />
+              </Button>
+              <Button
+                Classes="Icon ghost-states"
+                Command="{Binding InventoryLockOperationsCommand}"
+                IsEnabled="{Binding CanInventoryLockOperations}"
+                IsVisible="{Binding ShowInventoryLockOperations}"
+                ToolTip.Tip="锁定">
+                <icons:AppIcon Foreground="{DynamicResource ErrorColor}" Kind="LockKeyholeOpen" />
+              </Button>
             </StackPanel>
             <Rectangle Grid.Column="1" Classes="ContentHeaderDivider" />
             <StackPanel
@@ -486,6 +502,55 @@
                 </TabItem>
               </TabControl>
             </StackPanel>
+            <Menu
+              Grid.Column="4"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              Classes="ContentHeaderMenu"
+              IsVisible="{Binding IsInventoryPageActive}">
+              <MenuItem
+                Command="{Binding InventoryToggleStockEditCommand}"
+                IsEnabled="{Binding CanInventoryToggleStockEdit}"
+                IsVisible="{Binding ShowInventoryEnableEdit}">
+                <MenuItem.Header>
+                  <StackPanel Classes="ContentHeaderMenuItemHeader">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeCompact}"
+                      Height="{DynamicResource IconSizeCompact}"
+                      Kind="SquarePen" />
+                    <TextBlock Text="编辑" />
+                  </StackPanel>
+                </MenuItem.Header>
+              </MenuItem>
+              <MenuItem
+                Command="{Binding InventoryToggleStockEditCommand}"
+                IsEnabled="{Binding CanInventoryToggleStockEdit}"
+                IsVisible="{Binding ShowInventoryDisableEdit}">
+                <MenuItem.Header>
+                  <StackPanel Classes="ContentHeaderMenuItemHeader">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeCompact}"
+                      Height="{DynamicResource IconSizeCompact}"
+                      Kind="Check" />
+                    <TextBlock Text="完成编辑" />
+                  </StackPanel>
+                </MenuItem.Header>
+              </MenuItem>
+              <MenuItem
+                Command="{Binding InventoryToggleReassignCommand}"
+                IsEnabled="{Binding CanInventoryToggleReassign}"
+                IsVisible="{Binding ShowInventoryReassign}">
+                <MenuItem.Header>
+                  <StackPanel Classes="ContentHeaderMenuItemHeader">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeCompact}"
+                      Height="{DynamicResource IconSizeCompact}"
+                      Kind="FilePenLine" />
+                    <TextBlock Text="药品纠错" />
+                  </StackPanel>
+                </MenuItem.Header>
+              </MenuItem>
+            </Menu>
             <Border
               Grid.Column="4"
               HorizontalAlignment="Right"

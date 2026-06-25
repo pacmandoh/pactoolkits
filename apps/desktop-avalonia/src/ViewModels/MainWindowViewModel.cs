@@ -191,9 +191,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsDbConnected => _dbMonitor.IsConnected;
 
-    public string DbStatusText
-        => IsDbConnected ? "已连接" : "已断开";
-
     public string DbItemText
         => IsDbProbeRunning ? "数据库：检测中…"
         : IsDbConnected ? "数据库：已连接"
@@ -240,7 +237,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public bool ConnectivityBannerIsInfo { get; private set; }
 
     public bool IsSettingsPageActive => ActivePage is ISettingsPage;
-    public bool IsAboutPageActive => ActivePage is IAboutPage;
 
     public bool IsAhkRunning => Injector.IsRunning;
 
@@ -283,7 +279,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void RaiseDbStateChanged()
     {
         OnPropertyChanged(nameof(IsDbConnected));
-        OnPropertyChanged(nameof(DbStatusText));
         OnPropertyChanged(nameof(DbItemText));
         RaiseConnectivityChanged();
     }
@@ -452,6 +447,36 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     public string DashboardSectionHint => _dashboardChromeSource?.SectionHint ?? string.Empty;
+
+    private InventoryOverviewViewModel? _inventoryChromeSource;
+
+    public bool IsInventoryPageActive => ActivePage is InventoryOverviewViewModel;
+
+    public bool ShowInventoryRequestUnlock => _inventoryChromeSource?.ShowRequestUnlock == true;
+
+    public bool ShowInventoryLockOperations => _inventoryChromeSource?.ShowLockOperations == true;
+
+    public bool ShowInventoryEnableEdit => _inventoryChromeSource?.CanEnableStockEdit == true;
+
+    public bool ShowInventoryDisableEdit => _inventoryChromeSource?.CanDisableStockEdit == true;
+
+    public bool ShowInventoryReassign => _inventoryChromeSource?.IsDetailMode == true;
+
+    public System.Windows.Input.ICommand? InventoryRequestUnlockCommand => _inventoryChromeSource?.RequestUnlockCommand;
+
+    public System.Windows.Input.ICommand? InventoryLockOperationsCommand => _inventoryChromeSource?.LockOperationsCommand;
+
+    public System.Windows.Input.ICommand? InventoryToggleStockEditCommand => _inventoryChromeSource?.ToggleStockEditModeCommand;
+
+    public System.Windows.Input.ICommand? InventoryToggleReassignCommand => _inventoryChromeSource?.ToggleReassignPanelCommand;
+
+    public bool CanInventoryRequestUnlock => InventoryRequestUnlockCommand?.CanExecute(null) == true;
+
+    public bool CanInventoryLockOperations => InventoryLockOperationsCommand?.CanExecute(null) == true;
+
+    public bool CanInventoryToggleStockEdit => InventoryToggleStockEditCommand?.CanExecute(null) == true;
+
+    public bool CanInventoryToggleReassign => InventoryToggleReassignCommand?.CanExecute(null) == true;
 
     public System.Windows.Input.ICommand? TopRefreshCommand => ActiveTopBar?.RefreshCommand;
     public System.Windows.Input.ICommand? TopImportCommand => ActiveTopBar?.ImportCommand;
@@ -739,6 +764,92 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dashboardChromeSource?.PropertyChanged += OnDashboardChromePropertyChanged;
     }
 
+    private void WireInventoryChrome(AppPageBase? page)
+    {
+        DetachInventoryChromeCommands();
+        _inventoryChromeSource?.PropertyChanged -= OnInventoryChromePropertyChanged;
+
+        _inventoryChromeSource = page as InventoryOverviewViewModel;
+
+        _inventoryChromeSource?.PropertyChanged += OnInventoryChromePropertyChanged;
+        AttachInventoryChromeCommands();
+    }
+
+    private void AttachInventoryChromeCommands()
+    {
+        Attach(InventoryRequestUnlockCommand);
+        Attach(InventoryLockOperationsCommand);
+        Attach(InventoryToggleStockEditCommand);
+        Attach(InventoryToggleReassignCommand);
+
+        void Attach(System.Windows.Input.ICommand? cmd)
+        {
+            if (cmd is null)
+            {
+                return;
+            }
+
+            cmd.CanExecuteChanged += OnInventoryChromeCanExecuteChanged;
+        }
+    }
+
+    private void DetachInventoryChromeCommands()
+    {
+        Detach(InventoryRequestUnlockCommand);
+        Detach(InventoryLockOperationsCommand);
+        Detach(InventoryToggleStockEditCommand);
+        Detach(InventoryToggleReassignCommand);
+
+        void Detach(System.Windows.Input.ICommand? cmd)
+        {
+            if (cmd is null)
+            {
+                return;
+            }
+
+            cmd.CanExecuteChanged -= OnInventoryChromeCanExecuteChanged;
+        }
+    }
+
+    private void OnInventoryChromePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(InventoryOverviewViewModel.ShowRequestUnlock):
+            case nameof(InventoryOverviewViewModel.ShowLockOperations):
+            case nameof(InventoryOverviewViewModel.CanEnableStockEdit):
+            case nameof(InventoryOverviewViewModel.CanDisableStockEdit):
+            case nameof(InventoryOverviewViewModel.IsDetailMode):
+                RaiseInventoryChromeBindings();
+                break;
+        }
+    }
+
+    private void OnInventoryChromeCanExecuteChanged(object? sender, EventArgs e)
+        => RaiseInventoryChromeCanExecuteBindings();
+
+    private void RaiseInventoryChromeBindings()
+    {
+        OnPropertyChanged(nameof(ShowInventoryRequestUnlock));
+        OnPropertyChanged(nameof(ShowInventoryLockOperations));
+        OnPropertyChanged(nameof(ShowInventoryEnableEdit));
+        OnPropertyChanged(nameof(ShowInventoryDisableEdit));
+        OnPropertyChanged(nameof(ShowInventoryReassign));
+        OnPropertyChanged(nameof(InventoryRequestUnlockCommand));
+        OnPropertyChanged(nameof(InventoryLockOperationsCommand));
+        OnPropertyChanged(nameof(InventoryToggleStockEditCommand));
+        OnPropertyChanged(nameof(InventoryToggleReassignCommand));
+        RaiseInventoryChromeCanExecuteBindings();
+    }
+
+    private void RaiseInventoryChromeCanExecuteBindings()
+    {
+        OnPropertyChanged(nameof(CanInventoryRequestUnlock));
+        OnPropertyChanged(nameof(CanInventoryLockOperations));
+        OnPropertyChanged(nameof(CanInventoryToggleStockEdit));
+        OnPropertyChanged(nameof(CanInventoryToggleReassign));
+    }
+
     private void OnDashboardChromePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
@@ -915,15 +1026,17 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         WireTopBarCommands(value);
         WireDashboardChrome(value);
+        WireInventoryChrome(value);
 
         OnPropertyChanged(nameof(IsSettingsPageActive));
-        OnPropertyChanged(nameof(IsAboutPageActive));
         OnPropertyChanged(nameof(IsDashboardPageActive));
+        OnPropertyChanged(nameof(IsInventoryPageActive));
         OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
         OnPropertyChanged(nameof(FilterbarToggleIconKind));
         OnPropertyChanged(nameof(FilterbarToggleToolTip));
         RaiseDashboardTabBindings();
         OnPropertyChanged(nameof(DashboardSectionHint));
+        RaiseInventoryChromeBindings();
         RaiseTopBarVisibilityBindings();
         RaiseStatusItemsChanged();
 
