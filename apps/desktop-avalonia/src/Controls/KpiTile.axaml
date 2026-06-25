@@ -9,30 +9,41 @@
     AccentBrush="{Binding AccentBrush, ElementName=Root}"
     Classes="Kpi"
     ShowMenuIcon="True">
-    <StackPanel Spacing="{DynamicResource KpiTileInnerSpacing}">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource KpiTileBodyColumnSpacing}">
       <StackPanel
+        Grid.Column="0"
         VerticalAlignment="Center"
-        Orientation="Horizontal"
-        Spacing="{DynamicResource KpiTileValueBadgeGap}">
-        <TextBlock
-          x:Name="ValueText"
+        Spacing="{DynamicResource KpiTileInnerSpacing}">
+        <StackPanel
           VerticalAlignment="Center"
-          Classes="h3"
-          Text="{Binding Value, ElementName=Root}" />
-        <controls:StatusPill
-          x:Name="PctPill"
-          IconSize="12"
-          PillPadding="6,4"
-          ShowBorder="False"
-          Text="{Binding Pct, ElementName=Root, StringFormat={}{0:F0}%}"
-          TextSize="12"
-          TextWeight="Medium" />
+          Orientation="Horizontal"
+          Spacing="{DynamicResource KpiTileValueBadgeGap}">
+          <TextBlock
+            x:Name="ValueText"
+            VerticalAlignment="Center"
+            Classes="h3"
+            Text="{Binding Value, ElementName=Root}" />
+          <controls:StatusPill
+            x:Name="PctPill"
+            IconSize="12"
+            PillPadding="6,4"
+            ShowBorder="False"
+            Text="{Binding Pct, ElementName=Root, StringFormat={}{0:F0}%}"
+            TextSize="12"
+            TextWeight="Medium" />
+        </StackPanel>
+        <TextBlock
+          Classes="Caption Muted"
+          MaxLines="2"
+          Text="{Binding Hint, ElementName=Root}"
+          TextWrapping="Wrap" />
       </StackPanel>
-      <TextBlock
-        Classes="Caption Muted"
-        MaxLines="2"
-        Text="{Binding Hint, ElementName=Root}"
-        TextWrapping="Wrap" />
-    </StackPanel>
+      <controls:CircleProgressRing
+        x:Name="PctRing"
+        Grid.Column="1"
+        VerticalAlignment="Center"
+        ReplayTrigger="{Binding ReplayTrigger, ElementName=Root}"
+        Value="{Binding Pct, ElementName=Root}" />
+    </Grid>
   </controls:SectionPanel>
 </UserControl>

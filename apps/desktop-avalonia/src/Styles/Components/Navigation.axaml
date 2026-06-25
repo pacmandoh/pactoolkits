@@ -50,7 +50,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="StackPanel.SidebarFunctionAreaText &gt; TextBlock.Small,Border.ConnectivityBanner TextBlock.Small,Border.ShellContentHeader TextBlock.Small">
+  <Style Selector="StackPanel.SidebarFunctionAreaText &gt; TextBlock.Small,Border.ConnectivityBanner TextBlock.Small,Border.ContentHeader TextBlock.Small">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
@@ -169,7 +169,7 @@
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 
-  <!--  Tab strip chrome: align with SectionPanel outer via SectionPanelChromeBackground.  -->
+  <!--  Tab item header content layout.  -->
   <Style Selector="StackPanel.TabItemHeader">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Orientation" Value="Horizontal" />

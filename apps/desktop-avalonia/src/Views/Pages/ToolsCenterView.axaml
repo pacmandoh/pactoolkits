@@ -212,7 +212,7 @@
                   <TextBlock Classes="SectionTitle" Text="基础配置" />
                 </shad:Card.Header>
                 <Grid
-                  Classes="FormLabelLayout"
+                  Classes="FormFieldLayout"
                   ColumnDefinitions="140,*"
                   RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
                   <TextBlock VerticalAlignment="Center" Text="可执行路径" />
@@ -374,7 +374,7 @@
                   <TextBlock Classes="SectionTitle" Text="门诊配置" />
                 </shad:Card.Header>
                 <Grid
-                  Classes="FormLabelLayout"
+                  Classes="FormFieldLayout"
                   ColumnDefinitions="140,*"
                   RowDefinitions="Auto,Auto,Auto,Auto">
                   <TextBlock VerticalAlignment="Center" Text="窗口类" />
@@ -436,7 +436,7 @@
                   <TextBlock Classes="SectionTitle" Text="住院配置" />
                 </shad:Card.Header>
                 <Grid
-                  Classes="FormLabelLayout"
+                  Classes="FormFieldLayout"
                   ColumnDefinitions="140,*"
                   RowDefinitions="Auto,Auto,Auto,Auto">
                   <TextBlock VerticalAlignment="Center" Text="窗口类" />
@@ -498,7 +498,7 @@
                   <TextBlock Classes="SectionTitle" Text="仓库配置" />
                 </shad:Card.Header>
                 <Grid
-                  Classes="FormLabelLayout"
+                  Classes="FormFieldLayout"
                   ColumnDefinitions="140,*"
                   RowDefinitions="Auto,Auto,Auto,Auto">
                   <TextBlock
@@ -642,7 +642,7 @@
                   <TextBlock Classes="SectionTitle" Text="解析规则" />
                 </shad:Card.Header>
                 <Grid
-                  Classes="FormLabelLayout"
+                  Classes="FormFieldLayout"
                   ColumnDefinitions="140,*"
                   RowDefinitions="Auto,Auto">
                   <TextBlock
@@ -784,7 +784,7 @@
 
             <Grid
               Grid.Row="1"
-              Classes="FormLabelReadonlyRow"
+              Classes="FormFieldReadonlyRow"
               ColumnDefinitions="130,*">
 
               <TextBlock Classes="Caption Muted" Text="程序版本" />
@@ -793,7 +793,7 @@
 
             <Grid
               Grid.Row="2"
-              Classes="FormLabelReadonlyRow"
+              Classes="FormFieldReadonlyRow"
               ColumnDefinitions="130,*">
 
               <TextBlock Classes="Caption Muted" Text="工具版本" />
@@ -802,7 +802,7 @@
 
             <Grid
               Grid.Row="3"
-              Classes="FormLabelReadonlyRow"
+              Classes="FormFieldReadonlyRow"
               ColumnDefinitions="130,*">
 
               <TextBlock Classes="Caption Muted" Text="最近拉起" />
@@ -811,7 +811,7 @@
 
             <Grid
               Grid.Row="4"
-              Classes="FormLabelReadonlyRow"
+              Classes="FormFieldReadonlyRow"
               ColumnDefinitions="130,*">
 
               <TextBlock Classes="Caption Muted" Text="最近错误" />

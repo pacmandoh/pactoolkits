@@ -21,7 +21,7 @@
     UnavailableHint="{Binding PageUnavailableHint}"
     UnavailableIcon="{Binding PageUnavailableIcon}"
     UnavailableTitle="{Binding PageUnavailableTitle}">
-    <Grid Classes="DashboardShell" RowDefinitions="Auto,*">
+    <Grid Classes="DashboardLayout" RowDefinitions="Auto,*">
       <Border
         Grid.Row="0"
         Classes="DashboardFilterChrome"
@@ -166,6 +166,7 @@
                   Hint="{Binding Kpi.AvailableRemainHint}"
                   Pct="{Binding Kpi.AvailableRemainPct}"
                   PctMetric="RemainHealth"
+                  ReplayTrigger="{Binding KpiProgressReplayTrigger}"
                   Value="{Binding Kpi.AvailableRemain}" />
                 <controls:KpiTile
                   Title="期间使用条数"
@@ -175,6 +176,7 @@
                   Hint="{Binding Kpi.PeriodUsedHint}"
                   Pct="{Binding Kpi.PeriodUsedPct}"
                   PctMetric="UsageIntensity"
+                  ReplayTrigger="{Binding KpiProgressReplayTrigger}"
                   Value="{Binding Kpi.PeriodUsed}" />
                 <controls:KpiTile
                   Title="异常 / 回滚"
@@ -184,6 +186,7 @@
                   Hint="{Binding Kpi.AbnormalHint}"
                   Pct="{Binding Kpi.AbnormalPct}"
                   PctMetric="AbnormalShare"
+                  ReplayTrigger="{Binding KpiProgressReplayTrigger}"
                   ValueForeground="{DynamicResource WarningColor}"
                   Value="{Binding Kpi.Abnormal}" />
                 <controls:KpiTile
@@ -194,6 +197,7 @@
                   Hint="{Binding Kpi.LowStockHint}"
                   Pct="{Binding Kpi.LowStockPct}"
                   PctMetric="LowStockShare"
+                  ReplayTrigger="{Binding KpiProgressReplayTrigger}"
                   ValueForeground="{DynamicResource ErrorColor}"
                   Value="{Binding Kpi.LowStockCount}" />
               </Grid>

@@ -26,8 +26,8 @@ public sealed partial class DashboardKpiModel : ObservableObject
 
     [ObservableProperty] private string _availableRemainHint = "当前库存中可用的追溯码数量";
     [ObservableProperty] private string _periodUsedHint = "区间内已使用的追溯码数量";
-    [ObservableProperty] private string _abnormalHint = "区间内发生回滚/异常的事务数量";
-    [ObservableProperty] private string _lowStockHint = "库存剩余量低于阈值的药品数量";
+    [ObservableProperty] private string _abnormalHint = "区间内回滚/异常的事务数量";
+    [ObservableProperty] private string _lowStockHint = "库存剩余量低的药品数量";
 
     [ObservableProperty] private double _availableRemainPct;
     [ObservableProperty] private double _periodUsedPct;

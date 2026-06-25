@@ -15,7 +15,7 @@
   Classes="SettingsPage"
   Focusable="True"
   mc:Ignorable="d">
-  <Grid Classes="SettingsShell" ColumnDefinitions="228,16,*">
+  <Grid Classes="SettingsLayout" ColumnDefinitions="228,16,*">
     <shad:Card
       Grid.Column="0"
       Margin="{DynamicResource SettingsSidebarMargin}"
