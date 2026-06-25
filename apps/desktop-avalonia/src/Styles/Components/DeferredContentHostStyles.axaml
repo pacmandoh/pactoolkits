@@ -1,0 +1,24 @@
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+  <!--
+    Materialized child is assigned to Content directly; do not forward ContentTemplate
+    to the presenter or Avalonia will re-apply the template to the control instance.
+  -->
+  <Style Selector="controls|DeferredContentHost">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="controls:DeferredContentHost">
+        <ContentPresenter
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          HorizontalContentAlignment="Stretch"
+          VerticalContentAlignment="Stretch"
+          Content="{TemplateBinding Content}" />
+      </ControlTemplate>
+    </Setter>
+  </Style>
+</Styles>
