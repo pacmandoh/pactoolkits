@@ -26,7 +26,7 @@ public static class InputFocusHelper
         return null;
     }
 
-    public static T? FindDescendant<T>(Control root) where T : class
+    private static T? FindDescendant<T>(Control root) where T : class
     {
         var stack = new Stack<Control>();
         stack.Push(root);
@@ -64,7 +64,7 @@ public static class InputFocusHelper
         CommitTextInput(tb);
     }
 
-    public static void CommitTextInput(TextBox textBox)
+    private static void CommitTextInput(TextBox textBox)
     {
         var caret = textBox.CaretIndex;
         textBox.SelectionStart = caret;

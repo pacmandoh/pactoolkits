@@ -19,7 +19,7 @@ public static class NavPerfDiagnostics
         "1",
         StringComparison.Ordinal);
 
-    public static bool IsEnabled { get; } = Debugger.IsAttached || LogToConsole;
+    private static bool IsEnabled { get; } = Debugger.IsAttached || LogToConsole;
 
     public static string Begin(string operation)
     {
@@ -65,7 +65,7 @@ public static class NavPerfDiagnostics
         }
     }
 
-    public static int CountMaterializedDataGridRows(Control? root)
+    private static int CountMaterializedDataGridRows(Control? root)
     {
         if (root is null)
         {
