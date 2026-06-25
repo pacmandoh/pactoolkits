@@ -733,10 +733,9 @@
                 ItemSpacing="{DynamicResource SpacingInlineMd}"
                 LineSpacing="{DynamicResource SpacingInlineMd}">
                 <Button Content="Standard" />
-                <Button Classes="Flat" Content="Flat" />
-                <Button Classes="Rounded" Content="Rounded" />
-                <Button Classes="Outlined" Content="Outlined" />
-                <Button Classes="Flat Accent" Content="Flat Accent" />
+                <Button Classes="Outline" Content="Outline" />
+                <Button Classes="Ghost" Content="Ghost" />
+                <Button Classes="Primary" Content="Primary" />
                 <Button Classes="Large" Content="Large" />
               </WrapPanel>
             </StackPanel>
