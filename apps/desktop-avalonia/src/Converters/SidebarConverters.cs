@@ -10,8 +10,6 @@ namespace PacToolkits.Desktop.Avalonia.Converters;
 /// </summary>
 public sealed class SidebarNavToolTipConverter : IMultiValueConverter
 {
-    public static readonly SidebarNavToolTipConverter Instance = new();
-
     public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
     {
         if (values.Count < 2)
