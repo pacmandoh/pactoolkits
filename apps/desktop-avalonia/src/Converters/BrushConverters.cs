@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using global::Avalonia.Controls;
 using global::Avalonia.Data.Converters;
 using global::Avalonia.Media;
-using global::Avalonia.Styling;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Converters;
@@ -45,45 +44,7 @@ internal static class ConverterHelpers
     }
 
     public static IBrush FindAppBrush(string key, IBrush fallback)
-    {
-        var app = global::Avalonia.Application.Current;
-        if (app == null)
-        {
-            return fallback;
-        }
-
-        var variant = app.ActualThemeVariant;
-        if (TryResolveBrush(app, key, variant, out var brush))
-        {
-            return brush;
-        }
-
-        if (variant != ThemeVariant.Default && TryResolveBrush(app, key, ThemeVariant.Default, out brush))
-        {
-            return brush;
-        }
-
-        return fallback;
-    }
-
-    private static bool TryResolveBrush(global::Avalonia.Application app, string key, ThemeVariant variant, out IBrush brush)
-    {
-        if (app.TryFindResource(key, variant, out var value))
-        {
-            switch (value)
-            {
-                case IBrush existing:
-                    brush = existing;
-                    return true;
-                case Color color:
-                    brush = new SolidColorBrush(color);
-                    return true;
-            }
-        }
-
-        brush = Brushes.Transparent;
-        return false;
-    }
+        => ThemeBrushResolver.GetBrush(key, fallback);
 
     public static int MapPacTintLevel(int level)
         => level switch
@@ -107,26 +68,7 @@ internal static class ConverterHelpers
         => $"{NotificationFamily(tone)}Color{MapPacTintLevel(pacLevel)}";
 
     public static Color FindAppColor(string key, Color fallback)
-    {
-        var app = global::Avalonia.Application.Current;
-        if (app == null)
-        {
-            return fallback;
-        }
-
-        var variant = app.ActualThemeVariant;
-        if (TryReadColor(app, key, variant, out var color))
-        {
-            return color;
-        }
-
-        if (variant != ThemeVariant.Default && TryReadColor(app, key, ThemeVariant.Default, out color))
-        {
-            return color;
-        }
-
-        return fallback;
-    }
+        => ThemeBrushResolver.TryGetColor(key, out var color) ? color : fallback;
 
     public static int ParseLevel(object? parameter, int defaultLevel)
     {
@@ -225,27 +167,6 @@ internal static class ConverterHelpers
         var brush = new SolidColorBrush(color, opacity);
         PrimaryTintBrushCache[key] = brush;
         return brush;
-    }
-
-    private static bool TryReadColor(global::Avalonia.Application app, string key, ThemeVariant variant, out Color color)
-    {
-        if (app.TryFindResource(key, variant, out var value))
-        {
-            if (value is Color c)
-            {
-                color = c;
-                return true;
-            }
-
-            if (value is ISolidColorBrush brush)
-            {
-                color = brush.Color;
-                return true;
-            }
-        }
-
-        color = default;
-        return false;
     }
 }
 

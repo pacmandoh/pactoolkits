@@ -253,6 +253,10 @@ public sealed partial class DashboardViewModel : AppPageBase
     }
 
     public DashboardKpiModel Kpi { get; } = new();
+
+    /// <summary>Bump to replay KPI ring animations (page activate / manual refresh).</summary>
+    public int KpiProgressReplayTrigger { get; private set; }
+
     public string SectionHint => BuildRangeMeta(CurrentRange, SelectedClient);
 
     public ObservableCollection<TrendDrugItem> DrugTrend { get; } = new();
@@ -642,6 +646,27 @@ public sealed partial class DashboardViewModel : AppPageBase
 
     protected override Task ReloadCoreAsync(CancellationToken ct)
         => RefreshAllAsync(ct);
+
+    public override Task OnPageActivatedAsync(CancellationToken ct = default)
+    {
+        PostOnUi(BumpKpiProgressReplay);
+        return base.OnPageActivatedAsync(ct);
+    }
+
+    protected override void OnReloadFinished()
+    {
+        base.OnReloadFinished();
+        if (!IsDbSignalReload)
+        {
+            PostOnUi(BumpKpiProgressReplay);
+        }
+    }
+
+    private void BumpKpiProgressReplay()
+    {
+        KpiProgressReplayTrigger++;
+        OnPropertyChanged(nameof(KpiProgressReplayTrigger));
+    }
 
     partial void OnFromDateChanged(DateTime? value)
     {

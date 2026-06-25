@@ -4,24 +4,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
 public partial class KpiTile : UserControl
 {
-    private static readonly string[] ToneClasses =
-    [
-        "ToneDone15",
-        "ToneDone25",
-        "ToneWarning15",
-        "ToneWarning25",
-        "ToneDanger15",
-        "ToneDanger25",
-        "ToneInfo15",
-        "ToneInfo25",
-        "TonePurple15",
-    ];
-
     public static readonly StyledProperty<string?> TitleProperty =
         AvaloniaProperty.Register<KpiTile, string?>(nameof(Title));
 
@@ -49,6 +37,9 @@ public partial class KpiTile : UserControl
     public static readonly StyledProperty<object?> CommandParameterProperty =
         AvaloniaProperty.Register<KpiTile, object?>(nameof(CommandParameter));
 
+    public static readonly StyledProperty<int> ReplayTriggerProperty =
+        AvaloniaProperty.Register<KpiTile, int>(nameof(ReplayTrigger));
+
     public KpiTile()
     {
         InitializeComponent();
@@ -57,17 +48,26 @@ public partial class KpiTile : UserControl
 
     static KpiTile()
     {
-        PctProperty.Changed.AddClassHandler<KpiTile>((tile, _) => tile.UpdatePctPill());
-        PctMetricProperty.Changed.AddClassHandler<KpiTile>((tile, _) => tile.UpdatePctPill());
+        PctProperty.Changed.AddClassHandler<KpiTile>((tile, _) => tile.UpdatePctTone());
+        PctMetricProperty.Changed.AddClassHandler<KpiTile>((tile, _) => tile.UpdatePctTone());
         ValueForegroundProperty.Changed.AddClassHandler<KpiTile>((tile, _) => tile.UpdateValueForeground());
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        UpdatePctPill();
+        ActualThemeVariantChanged += OnActualThemeVariantChanged;
+        UpdatePctTone();
         UpdateValueForeground();
     }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        ActualThemeVariantChanged -= OnActualThemeVariantChanged;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void OnActualThemeVariantChanged(object? sender, EventArgs e) => UpdatePctTone();
 
     public string? Title
     {
@@ -94,7 +94,7 @@ public partial class KpiTile : UserControl
     }
 
     /// <summary>
-    /// Which KPI percentage formula drives badge tone/icon:
+    /// Which KPI percentage formula drives badge tone/icon and progress ring color:
     /// RemainHealth, UsageIntensity, AbnormalShare, LowStockShare.
     /// </summary>
     public string? PctMetric
@@ -126,6 +126,12 @@ public partial class KpiTile : UserControl
     {
         get => GetValue(CommandParameterProperty);
         set => SetValue(CommandParameterProperty, value);
+    }
+
+    public int ReplayTrigger
+    {
+        get => GetValue(ReplayTriggerProperty);
+        set => SetValue(ReplayTriggerProperty, value);
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
@@ -167,22 +173,20 @@ public partial class KpiTile : UserControl
         }
     }
 
-    private void UpdatePctPill()
+    private void UpdatePctTone()
     {
-        if (PctPill is null)
+        var metric = PctMetric ?? KpiPctToneHelper.Metrics.AbnormalShare;
+        var tone = KpiPctToneHelper.ResolveTone(Pct, metric);
+
+        if (PctPill is { } pill)
         {
-            return;
+            ApplyToneClass(pill, KpiPctToneHelper.ToneClass(tone));
+            pill.Icon = KpiPctToneHelper.IconFor(tone, metric);
         }
 
-        var metric = PctMetric ?? PctMetrics.AbnormalShare;
-        var tone = ResolveTone(Pct, metric);
-        ApplyToneClass(PctPill, tone switch
-        {
-            KpiPctTone.Done => "ToneDone25",
-            KpiPctTone.Warning => "ToneWarning25",
-            _ => "ToneDanger25",
-        });
-        PctPill.Icon = IconForTone(tone, metric);
+        PctRing.ProgressBrush = ThemeBrushResolver.GetBrush(
+            KpiPctToneHelper.ProgressBrushResourceKey(tone),
+            Brushes.Transparent);
     }
 
     private void UpdateValueForeground()
@@ -203,7 +207,7 @@ public partial class KpiTile : UserControl
 
     private static void ApplyToneClass(StatusPill pill, string toneClass)
     {
-        foreach (var tone in ToneClasses)
+        foreach (var tone in KpiPctToneHelper.ToneClasses)
         {
             pill.Classes.Remove(tone);
         }
@@ -211,81 +215,11 @@ public partial class KpiTile : UserControl
         pill.Classes.Add(toneClass);
     }
 
-    /// <summary>
-    /// remain/(remain+used): higher is healthier.
-    /// used/(remain+used), abnormal/txn, low-stock share: lower is healthier.
-    /// </summary>
-    private static KpiPctTone ResolveTone(double pct, string metric)
-    {
-        if (metric.Equals(PctMetrics.RemainHealth, StringComparison.OrdinalIgnoreCase))
-        {
-            return pct >= 35 ? KpiPctTone.Done :
-                pct >= 15 ? KpiPctTone.Warning :
-                KpiPctTone.Danger;
-        }
-
-        return pct <= 8 ? KpiPctTone.Done :
-            pct <= 25 ? KpiPctTone.Warning :
-            KpiPctTone.Danger;
-    }
-
-    private static string IconForTone(KpiPctTone tone, string metric)
-    {
-        if (metric.Equals(PctMetrics.RemainHealth, StringComparison.OrdinalIgnoreCase))
-        {
-            return tone switch
-            {
-                KpiPctTone.Done => "Package",
-                KpiPctTone.Warning => "PackageOpen",
-                _ => "PackageX",
-            };
-        }
-
-        if (metric.Equals(PctMetrics.UsageIntensity, StringComparison.OrdinalIgnoreCase))
-        {
-            return tone switch
-            {
-                KpiPctTone.Done => "CircleDot",
-                KpiPctTone.Warning => "ScanBarcode",
-                _ => "Flame",
-            };
-        }
-
-        if (metric.Equals(PctMetrics.AbnormalShare, StringComparison.OrdinalIgnoreCase))
-        {
-            return tone switch
-            {
-                KpiPctTone.Done => "ShieldCheck",
-                KpiPctTone.Warning => "AlertTriangle",
-                _ => "CircleX",
-            };
-        }
-
-        if (metric.Equals(PctMetrics.LowStockShare, StringComparison.OrdinalIgnoreCase))
-        {
-            return tone switch
-            {
-                KpiPctTone.Done => "CircleCheck",
-                KpiPctTone.Warning => "AlertTriangle",
-                _ => "TriangleAlert",
-            };
-        }
-
-        return "Percent";
-    }
-
-    private enum KpiPctTone
-    {
-        Done,
-        Warning,
-        Danger,
-    }
-
     public static class PctMetrics
     {
-        public const string RemainHealth = "RemainHealth";
-        public const string UsageIntensity = "UsageIntensity";
-        public const string AbnormalShare = "AbnormalShare";
-        public const string LowStockShare = "LowStockShare";
+        public const string RemainHealth = KpiPctToneHelper.Metrics.RemainHealth;
+        public const string UsageIntensity = KpiPctToneHelper.Metrics.UsageIntensity;
+        public const string AbnormalShare = KpiPctToneHelper.Metrics.AbnormalShare;
+        public const string LowStockShare = KpiPctToneHelper.Metrics.LowStockShare;
     }
 }

@@ -60,6 +60,9 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     private bool _isBusy;
     private bool _reloadFromDbSignal;
 
+    /// <summary>True while the active reload was scheduled from a DB connect/disconnect signal.</summary>
+    protected bool IsDbSignalReload => _reloadFromDbSignal;
+
     public bool HasLoadedOnce => _hasLoadedOnce;
 
     public bool IsShowingStaleData => _pageDataAvailability == PageDataAvailability.Stale;
