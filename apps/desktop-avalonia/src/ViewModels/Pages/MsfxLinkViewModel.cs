@@ -97,8 +97,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private string? _autoLastRunAtTip;
     [ObservableProperty] private string _autoPullSummary = "批次：暂无";
     [ObservableProperty] private string _autoMapSummary = "映射：暂无";
-    [ObservableProperty] private string _autoTaskSummary = "任务：暂无";
-    [ObservableProperty] private string _autoRiskSummary = "异常：暂无";
     [ObservableProperty] private int _autoTaskNewCount;
     [ObservableProperty] private int _autoTaskRunningCount;
     [ObservableProperty] private int _autoTaskSuccessCount;
@@ -151,7 +149,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private bool _isUpoutBusy;
 
     [ObservableProperty] private string _subcodeBillCode = string.Empty;
-    [ObservableProperty] private string _subcodeRefEntId = string.Empty;
     [ObservableProperty] private string _subcodePageSize = "200";
     [ObservableProperty] private int _subcodePage = 1;
     [ObservableProperty] private int _subcodeTotal;
@@ -342,8 +339,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         UpoutRows.CollectionChanged += OnUpoutRowsCollectionChanged;
         SubCodeRows.CollectionChanged += OnSubCodeRowsCollectionChanged;
 
-        var refEntId = (_configStore.Load().MsfxApi?.RefEntId ?? string.Empty).Trim();
-        SubcodeRefEntId = refEntId;
         var normalized = RollingDateRangeController.Normalize(UpoutFromDate, UpoutToDate);
         UpoutFromDate = normalized.From;
         UpoutToDate = normalized.To;
