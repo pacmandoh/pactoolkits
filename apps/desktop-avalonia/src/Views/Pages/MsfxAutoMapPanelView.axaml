@@ -246,7 +246,7 @@
             x:Name="AutoMapQueueGrid"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
-            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid CellTemplateHighlightGrid MapIndexedGrid"
+            Classes="SectionGrid InventoryGrid IndexedGrid MapIndexedGrid"
             HorizontalScrollBarVisibility="Auto"
             ItemsSource="{Binding AutoMapQueueRows}">
             <DataGrid.Columns>
