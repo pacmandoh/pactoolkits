@@ -62,7 +62,7 @@ public static class AutoCompleteFilter
         return false;
     }
 
-    public static void AttachPinyinFilter(AutoCompleteBox box)
+    private static void AttachPinyinFilter(AutoCompleteBox box)
     {
         box.ItemFilter = static (search, item) =>
         {
