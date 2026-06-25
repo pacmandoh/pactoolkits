@@ -25,6 +25,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public override string Icon => "Package";
     public override int Index => 1;
     public override ICommand RefreshCommand => _localRefreshCommand;
+    public override ICommand ImportCommand => ImportDataCommand;
+    public override ICommand ExportCommand => ExportDataCommand;
     protected override bool AutoRefreshOnDbDisconnected => true;
     protected override bool AutoRefreshOnDbReconnected => true;
 
@@ -50,8 +52,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     [ObservableProperty] private int _modeIndex;
     [ObservableProperty] private string? _keyword;
-    [ObservableProperty] private bool _isSearchPanelVisible = false;
-    [ObservableProperty] private string? _status;
     [ObservableProperty] private int _pageIndex = 1;
     [ObservableProperty] private int _pageSize = 50;
     [ObservableProperty] private int _totalCount;
@@ -61,9 +61,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [ObservableProperty] private bool _isMissingBusy;
     [ObservableProperty] private bool _isStockEditEnabled;
     [ObservableProperty] private bool _isOperationUnlocked;
-    [ObservableProperty] private DateTimeOffset _operationUnlockExpiresAtUtc;
-    [ObservableProperty] private int _operationUnlockFailedAttempts;
-    [ObservableProperty] private DateTimeOffset _operationUnlockCooldownUntilUtc;
+    private DateTimeOffset _operationUnlockCooldownUntilUtc;
     [ObservableProperty] private StockRowItem? _selectedStockRow;
     [ObservableProperty] private int _stockRowsRevision;
     [ObservableProperty] private bool _isReassignPanelVisible;
@@ -89,25 +87,16 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private readonly DispatcherTimer _unlockStatusTimer;
     private IRelayCommand?[]? _notifiableCommands;
     partial void OnIsDetailBusyChanged(bool value)
-    {
-        OnPropertyChanged(nameof(IsUiBusy));
-        NotifyAllCommands();
-    }
+        => OnPropertyChanged(nameof(IsDetailSectionPending));
+
     partial void OnIsAggBusyChanged(bool value)
-    {
-        OnPropertyChanged(nameof(IsUiBusy));
-        NotifyAllCommands();
-    }
+        => OnPropertyChanged(nameof(IsAggSectionPending));
+
     partial void OnIsLowBusyChanged(bool value)
-    {
-        OnPropertyChanged(nameof(IsUiBusy));
-        NotifyAllCommands();
-    }
+        => OnPropertyChanged(nameof(IsLowSectionPending));
+
     partial void OnIsMissingBusyChanged(bool value)
-    {
-        OnPropertyChanged(nameof(IsUiBusy));
-        NotifyAllCommands();
-    }
+        => OnPropertyChanged(nameof(IsMissingSectionPending));
     partial void OnIsStockEditEnabledChanged(bool value)
     {
         if (value)
@@ -119,12 +108,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
         OnPropertyChanged(nameof(CanEnableStockEdit));
         OnPropertyChanged(nameof(CanDisableStockEdit));
-        OnPropertyChanged(nameof(CanRequestUnlock));
-        OnPropertyChanged(nameof(CanLockOperations));
         OnPropertyChanged(nameof(ShowRequestUnlock));
         OnPropertyChanged(nameof(ShowLockOperations));
         OnPropertyChanged(nameof(UnlockStatusText));
-        OnPropertyChanged(nameof(ShowUnlockStatus));
         OnPropertyChanged(nameof(CanToggleReassignPanel));
         NotifyAllCommands();
     }
@@ -132,21 +118,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     partial void OnIsOperationUnlockedChanged(bool value)
     {
         OnPropertyChanged(nameof(UnlockStatusText));
-        OnPropertyChanged(nameof(CanRequestUnlock));
-        OnPropertyChanged(nameof(CanLockOperations));
         OnPropertyChanged(nameof(ShowRequestUnlock));
         OnPropertyChanged(nameof(ShowLockOperations));
         NotifyAllCommands();
-    }
-
-    partial void OnOperationUnlockFailedAttemptsChanged(int value)
-        => OnPropertyChanged(nameof(UnlockStatusText));
-
-    partial void OnOperationUnlockCooldownUntilUtcChanged(DateTimeOffset value)
-    {
-        OnPropertyChanged(nameof(UnlockStatusText));
-        OnPropertyChanged(nameof(CanRequestUnlock));
-        OnPropertyChanged(nameof(ShowRequestUnlock));
     }
 
     public bool IsDetailMode => ModeIndex == 0;
@@ -160,8 +134,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public bool HasReassignPreviewText => !string.IsNullOrWhiteSpace(ReassignPreviewText);
     public bool CanEnableStockEdit => IsDetailMode && !IsStockEditEnabled;
     public bool CanDisableStockEdit => IsDetailMode && IsStockEditEnabled;
-    public bool CanRequestUnlock => IsDetailMode && !IsOperationUnlocked;
-    public bool CanLockOperations => IsDetailMode && IsOperationUnlocked;
     public bool ShowRequestUnlock => IsDetailMode && !IsOperationUnlocked;
     public bool ShowLockOperations => IsDetailMode && IsOperationUnlocked;
     public bool CanToggleReassignPanel
@@ -189,21 +161,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             : IsStockEditEnabled
                 ? (HasPendingChanges ? "有未提交变更" : "编辑中")
                 : string.Empty;
-    public string UnlockStatusText
-    {
-        get
-        {
-            if (!IsDetailMode)
-            {
-                return string.Empty;
-            }
+    public string UnlockStatusText => IsOperationUnlocked ? "已解锁" : "未解锁";
+    public bool HasActiveKeyword => !string.IsNullOrWhiteSpace(NormalizeInput(Keyword));
 
-            return IsOperationUnlocked ? "已解锁" : "未解锁";
-        }
-    }
-    public bool ShowUnlockStatus => IsDetailMode;
-
-    public bool ShowInventoryStatus => !string.IsNullOrWhiteSpace(Status);
     public bool ShowEditSessionState => IsDetailMode && IsStockEditEnabled;
     protected override void OnLookupCatalogSuspended()
     {
@@ -221,6 +181,10 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     protected override void OnPageAvailabilityChanged()
     {
+        OnPropertyChanged(nameof(IsDetailSectionPending));
+        OnPropertyChanged(nameof(IsAggSectionPending));
+        OnPropertyChanged(nameof(IsLowSectionPending));
+        OnPropertyChanged(nameof(IsMissingSectionPending));
         OnPropertyChanged(nameof(IsStockEmpty));
         OnPropertyChanged(nameof(StockEmptyText));
         OnPropertyChanged(nameof(StockEmptyHint));
@@ -248,7 +212,11 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public bool IsAggEmpty => ShowSectionEmpty(DrugSpecRows.Count == 0);
     public bool IsLowEmpty => ShowSectionEmpty(LowStockRows.Count == 0);
     public bool IsMissingEmpty => ShowSectionEmpty(MissingStockRows.Count == 0);
-    public bool IsUiBusy => IsBusy || IsDetailBusy || IsAggBusy || IsLowBusy || IsMissingBusy || IsReassignBusy;
+    public bool IsDetailSectionPending => IsSectionPending || IsDetailBusy;
+    public bool IsAggSectionPending => IsSectionPending || IsAggBusy;
+    public bool IsLowSectionPending => IsSectionPending || IsLowBusy;
+    public bool IsMissingSectionPending => IsSectionPending || IsMissingBusy;
+    public bool IsUiBusy => IsBusy || IsReassignBusy;
     public bool IsPagedMode => ModeIndex is 0 or 1 or 2 or 3;
     public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
     public bool HasPrevPage => IsPagedMode && PageIndex > 1;
@@ -286,10 +254,26 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
     }
 
-    [RelayCommand]
-    private void ToggleSearchPanel()
+    [RelayCommand(CanExecute = nameof(CanOperateUi))]
+    private async Task ImportDataAsync()
     {
-        IsSearchPanelVisible = !IsSearchPanelVisible;
+        if (SkipTrigger())
+        {
+            return;
+        }
+
+        await _dialog.Warn("未实现", "导入功能稍后接入格式选择/打开路径");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanOperateUi))]
+    private async Task ExportDataAsync()
+    {
+        if (SkipTrigger())
+        {
+            return;
+        }
+
+        await _dialog.Warn("未实现", "导出功能稍后接入格式选择/保存路径");
     }
 
     partial void OnSelectedStockRowChanged(StockRowItem? value)
@@ -496,7 +480,11 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         return RunLocalReloadAsync(
             setBusy: v => SetModeBusy(mode, v),
             action: ct => ReloadBodyAsync(ct),
-            onFinished: NotifyAllCommands);
+            onFinished: () =>
+            {
+                SetModeBusy(ModeIndex, false);
+                NotifyAllCommands();
+            });
     }
 
     private async Task ReloadBodyAsync(CancellationToken ct)
@@ -537,7 +525,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             ClearStockSelection();
             ApplyStockRowsInPlace(items);
             TotalCount = page.TotalCount;
-            Status = $"库存明细：{TotalCount} 行（第 {PageIndex}/{TotalPages} 页）";
             OnPropertyChanged(nameof(IsStockEmpty));
         });
     }
@@ -555,7 +542,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         {
             DrugSpecRows.ReplaceAll(items);
             TotalCount = page.TotalCount;
-            Status = $"按药品+规格汇总：{TotalCount} 行（第 {PageIndex}/{TotalPages} 页）";
             OnPropertyChanged(nameof(IsAggEmpty));
         });
     }
@@ -575,7 +561,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         {
             LowStockRows.ReplaceAll(items);
             TotalCount = page.TotalCount;
-            Status = $"低库存：{TotalCount} 项（第 {PageIndex}/{TotalPages} 页）";
             OnPropertyChanged(nameof(IsLowEmpty));
         });
     }
@@ -595,7 +580,6 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         {
             MissingStockRows.ReplaceAll(items);
             TotalCount = page.TotalCount;
-            Status = $"缺失：{TotalCount} 项（第 {PageIndex}/{TotalPages} 页）";
             OnPropertyChanged(nameof(IsMissingEmpty));
         });
     }
@@ -735,7 +719,9 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             ToggleReassignPanelCommand,
             ApplyReassignDrugFilterCommand,
             PreviewReassignCommand,
-            ApplyReassignCommand
+            ApplyReassignCommand,
+            ImportDataCommand,
+            ExportDataCommand
         ];
 
     private void RefreshPendingChanges()
