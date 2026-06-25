@@ -126,7 +126,7 @@
             x:Name="AutoPullBatchGrid"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
-            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid"
+            Classes="SectionGrid InventoryGrid IndexedGrid"
             HorizontalScrollBarVisibility="Auto"
             ItemsSource="{Binding AutoPullBatchRows}"
             SelectedItem="{Binding SelectedAutoPullBatchRow, Mode=TwoWay}">

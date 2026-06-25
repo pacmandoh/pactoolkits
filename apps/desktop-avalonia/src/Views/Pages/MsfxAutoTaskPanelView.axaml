@@ -428,7 +428,7 @@
             x:Name="AutoTaskQueueGrid"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
-            Classes="SectionGrid InventoryGrid LowToneGrid TraceStateGrid IndexedGrid CellTemplateHighlightGrid"
+            Classes="SectionGrid InventoryGrid IndexedGrid"
             HorizontalScrollBarVisibility="Auto"
             ItemsSource="{Binding AutoTaskQueueRows}"
             SelectedItem="{Binding SelectedAutoTaskQueueRow, Mode=TwoWay}"
