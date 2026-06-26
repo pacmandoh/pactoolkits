@@ -720,7 +720,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             ScopeKey: UnlockScopes.SharedSensitiveOps,
             Scene: scene,
             PromptTitle: scene,
-            PromptHint: $"{scene} 属于高风险 MSFX 操作。\n目标：{targetId}\n原因：{reason}\n请输入当前数据库密码以解锁。",
+            PromptHint: $"{scene} 属于高风险 MSFX 操作\n目标：{targetId}\n原因：{reason}\n请输入当前数据库密码以解锁",
             OperatorName: operatorName,
             TargetId: targetId,
             Reason: reason,
@@ -874,7 +874,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
-        var ok = await _dialog.Confirm(
+        var ok = await _dialog.ConfirmDestructive(
             "弃用注入任务",
             $"将弃用选中的 {selectedRows.Count} 条任务。弃用后 Agent 将不再执行这些任务。确认继续？").ConfigureAwait(false);
         if (!ok)
@@ -1264,6 +1264,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         EnterManualMsfxWrite();
+        var batchScene = "批量映射";
         try
         {
             var groups = await _syncService.LoadMappingBatchGroupsAsync(
@@ -1286,9 +1287,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 return;
             }
 
+            batchScene = res.Action == MsfxMappingBatchDialogAction.DiscardTask
+                ? "批量弃用"
+                : "批量映射";
+
             if (res.Group is null)
             {
-                _toast.Warn("批量映射", "请先在分组表中选择一条记录");
+                _toast.Warn(batchScene, "请先在分组表中选择一条记录");
                 return;
             }
 
@@ -1303,7 +1308,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             if ((res.Action == MsfxMappingBatchDialogAction.ApplyMap || res.Action == MsfxMappingBatchDialogAction.DiscardTask) &&
                 (string.IsNullOrWhiteSpace(res.DrugId) || string.IsNullOrWhiteSpace(res.Spec)))
             {
-                _toast.Warn("批量映射", "需要填写需映射的药品信息和规格信息");
+                _toast.Warn(batchScene, "需要填写需映射的药品信息和规格信息");
                 return;
             }
 
@@ -1323,17 +1328,20 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
             if (preview.EligibleCount <= 0)
             {
-                _toast.Warn("批量映射", $"无可执行记录，将影响 {preview.CandidateCount} 条，阻塞 {preview.BlockedCount} 条");
+                _toast.Warn(batchScene, $"无可执行记录，将影响 {preview.CandidateCount} 条，阻塞 {preview.BlockedCount} 条");
                 return;
             }
 
+            var confirmTitle = batchScene;
             var confirmMsg = res.Action switch
             {
                 MsfxMappingBatchDialogAction.ApplyMap => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认批量映射？",
                 MsfxMappingBatchDialogAction.DiscardTask => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认弃用任务？",
                 _ => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认处理？"
             };
-            var ok = await _dialog.Confirm("批量映射", confirmMsg).ConfigureAwait(false);
+            var ok = res.Action == MsfxMappingBatchDialogAction.DiscardTask
+                ? await _dialog.ConfirmDestructive(confirmTitle, confirmMsg).ConfigureAwait(false)
+                : await _dialog.Confirm(confirmTitle, confirmMsg).ConfigureAwait(false);
             if (!ok)
             {
                 return;
@@ -1345,9 +1353,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             var mappingReason = res.Action == MsfxMappingBatchDialogAction.DiscardTask
                 ? "manual batch discard from mapping dialog"
                 : "manual batch mapping apply from mapping dialog";
+            var unlockScene = confirmTitle;
             if (!await RequireUnlockAsync(
                     mappingKind,
-                    "批量映射",
+                    unlockScene,
                     $"{group.SourceDrugNameRaw}/{group.SourceSpecRaw}",
                     mappingReason).ConfigureAwait(false))
             {
@@ -1370,14 +1379,14 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
             if (apply.AffectedCount <= 0)
             {
-                _toast.Warn("批量映射", "本次未更新任何记录，请检查筛选条件或映射目标");
+                _toast.Warn(confirmTitle, "本次未更新任何记录，请检查筛选条件或映射目标");
                 return;
             }
 
             if (res.Action == MsfxMappingBatchDialogAction.ApplyMap && apply.AffectedCount > 0)
             {
                 var built = await _syncService.BuildMsfxInjectTasksAsync(500, CancellationToken.None).ConfigureAwait(false);
-                AddAutoLog("批量映射", $"分组处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}", TraceEntryState.Success);
+                AddAutoLog(confirmTitle, $"分组处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}", TraceEntryState.Success);
                 LogInfo("msfx.map.batch.apply", "MSFX batch mapping applied", new
                 {
                     apply.AffectedCount,
@@ -1387,11 +1396,11 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     DrugId = res.DrugId,
                     Spec = res.Spec
                 });
-                _toast.Success("批量映射", $"已处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}");
+                _toast.Success(confirmTitle, $"已处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}");
             }
             else if (res.Action == MsfxMappingBatchDialogAction.DiscardTask)
             {
-                AddAutoLog("批量映射", $"分组弃用 {apply.AffectedCount} 条，已进入弃用任务队列", TraceEntryState.Discarded);
+                AddAutoLog(confirmTitle, $"分组弃用 {apply.AffectedCount} 条，已进入弃用任务队列", TraceEntryState.Discarded);
                 LogInfo("msfx.map.batch.discard", "MSFX batch mapping discarded into task queue", new
                 {
                     apply.AffectedCount,
@@ -1400,18 +1409,18 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     DrugId = res.DrugId,
                     Spec = res.Spec
                 });
-                _toast.Success("批量映射", $"已处理 {apply.AffectedCount} 条，并直接进入弃用任务队列");
+                _toast.Success(confirmTitle, $"已处理 {apply.AffectedCount} 条，并直接进入弃用任务队列");
             }
             else
             {
-                _toast.Info("批量映射", $"已处理 {apply.AffectedCount} 条");
+                _toast.Info(confirmTitle, $"已处理 {apply.AffectedCount} 条");
             }
 
             await RefreshAutoBoardAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _toast.Error("批量映射", ex.Message);
+            _toast.Error(batchScene, ex.Message);
         }
         finally
         {

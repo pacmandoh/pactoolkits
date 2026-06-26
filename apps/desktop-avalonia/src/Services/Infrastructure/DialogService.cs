@@ -1,11 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Avalonia.Threading;
-using PacToolkits.Application.DTOs;
-using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.Controls;
-using PacToolkits.Desktop.Avalonia.Views.Dialogs;
+using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Services;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
+using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -19,6 +17,7 @@ public interface IDialogService
 
     Task Ok(string title, string message);
     Task<bool> Confirm(string title, string message);
+    Task<bool> ConfirmDestructive(string title, string message);
     Task<int> Confirm3(string title, string message, string primaryText, string secondaryText, string cancelText);
     Task<bool> ConfirmDrugKeyFixPreview(
         string sourceDrugId,
@@ -35,67 +34,22 @@ public interface IDialogService
     Task<MsfxTaskSplitDialogResult> ShowMsfxTaskSplitDialog(MsfxTaskSplitDialogModel model);
 }
 
-public enum MsfxMappingBatchDialogAction
+public sealed class DialogService(
+    DialogManager dialogManager,
+    InventoryUnlockDialogViewModel unlockDialog,
+    ILookupCatalogService lookup,
+    IMsfxSyncService syncService,
+    IDbAccessGuard accessGuard) : IDialogService
 {
-    Cancel = 0,
-    DiscardTask = 1,
-    ApplyMap = 2
-}
+    private const double AlertMaxWidth = 512;
+    private const double DetailMaxWidth = 768;
+    private const double WideFormMaxWidth = 1280;
 
-public sealed record MsfxMappingBatchDialogResult(
-    MsfxMappingBatchDialogAction Action,
-    MsfxMappingBatchGroupRow? Group,
-    string DrugId,
-    string Spec);
+    private static readonly MsfxMappingBatchDialogResult MsfxMappingBatchCancelResult = new(
+        MsfxMappingBatchDialogAction.Cancel, null, string.Empty, string.Empty);
 
-public enum MsfxTaskSplitDialogAction
-{
-    Cancel = 0,
-    ParentCluster = 1,
-    Batch = 2,
-    CustomQuantity = 3
-}
-
-public sealed record MsfxTaskSplitDialogModel(
-    long TaskId,
-    string SourceBillCode,
-    string Target,
-    int TotalCodes,
-    IReadOnlyList<MsfxInjectTaskSplitCodeRow> SplitCodeRows);
-
-public sealed record MsfxTaskSplitDialogResult(
-    MsfxTaskSplitDialogAction Action,
-    string? CustomQuantities = null);
-
-
-public sealed record InfoDetailItem(string Label, string Value);
-
-public sealed record InfoDetailDialogModel(
-    string Header,
-    string SubHeader,
-    IReadOnlyList<InfoDetailItem> Items);
-
-public sealed record MsfxMappingBatchDialogModel(
-    IReadOnlyList<MsfxMappingBatchGroupRow> Groups,
-    string MapStatusFilter,
-    string CodeStatusFilter,
-    string SearchScope,
-    string Keyword);
-
-public sealed record MsfxStateDetailDialogModel(
-    string Header,
-    string SubHeader,
-    TraceEntryState State,
-    string HighlightTitle,
-    string HighlightMessage,
-    IReadOnlyList<InfoDetailItem> Items);
-
-public sealed class DialogService : IDialogService
-{
-    private readonly DialogManager _dialogManager;
-
-    public DialogService(DialogManager dialogManager)
-        => _dialogManager = dialogManager ?? throw new ArgumentNullException(nameof(dialogManager));
+    private static readonly MsfxTaskSplitDialogResult MsfxTaskSplitCancelResult =
+        new(MsfxTaskSplitDialogAction.Cancel);
 
     public Task Info(string title, string message)
         => Ok(title, message);
@@ -115,15 +69,19 @@ public sealed class DialogService : IDialogService
     public Task<bool> Confirm(string title, string message)
         => Confirm(title, message, okText: "确认", cancelText: "取消");
 
+    public Task<bool> ConfirmDestructive(string title, string message)
+        => Confirm(title, message, okText: "确认", cancelText: "取消", DialogButtonStyle.Destructive);
+
     public Task Ok(
         string title,
         string message,
         DialogButtonStyle primaryStyle,
         string okText = "确认")
-        => ShowDialogAsync<object?>(tcs =>
+        => DialogAwaiter.RunAlertAsync<object?>(dialogManager, tcs =>
         {
-            _dialogManager.CreateDialog(title, message)
+            dialogManager.CreateDialog(title, message)
                 .WithPrimaryButton(okText, () => tcs.TrySetResult(null), primaryStyle)
+                .WithMaxWidth(AlertMaxWidth)
                 .Dismissible()
                 .Show();
         });
@@ -134,11 +92,12 @@ public sealed class DialogService : IDialogService
         string okText,
         string cancelText,
         DialogButtonStyle primaryStyle = DialogButtonStyle.Primary)
-        => ShowDialogAsync<bool>(tcs =>
+        => DialogAwaiter.RunAlertAsync<bool>(dialogManager, tcs =>
         {
-            _dialogManager.CreateDialog(title, message)
+            dialogManager.CreateDialog(title, message)
                 .WithCancelButton(cancelText, () => tcs.TrySetResult(false))
                 .WithPrimaryButton(okText, () => tcs.TrySetResult(true), primaryStyle)
+                .WithMaxWidth(AlertMaxWidth)
                 .Dismissible()
                 .Show();
         });
@@ -149,12 +108,13 @@ public sealed class DialogService : IDialogService
         string primaryText,
         string secondaryText,
         string cancelText)
-        => ShowDialogAsync<int>(tcs =>
+        => DialogAwaiter.RunAlertAsync<int>(dialogManager, tcs =>
         {
-            _dialogManager.CreateDialog(title, message)
+            dialogManager.CreateDialog(title, message)
                 .WithCancelButton(cancelText, () => tcs.TrySetResult(0))
                 .WithTertiaryButton(secondaryText, () => tcs.TrySetResult(2))
                 .WithPrimaryButton(primaryText, () => tcs.TrySetResult(1))
+                .WithMaxWidth(AlertMaxWidth)
                 .Dismissible()
                 .Show();
         });
@@ -167,11 +127,11 @@ public sealed class DialogService : IDialogService
         bool targetExists,
         int tracePoolAffected,
         int traceTxnAffected)
-        => ShowDialogAsync<bool>(tcs =>
-        {
-            var content = new DrugKeyFixPreviewDialogView
+        => FormDialogSession.ShowAsync(
+            dialogManager,
+            new DrugKeyFixPreviewDialogViewModel(dialogManager)
             {
-                DataContext = new DrugKeyFixPreviewDialogModel(
+                Preview = new DrugKeyFixPreviewDialogModel(
                     SourceKeyDisplay: $"{sourceDrugId}/{sourceSpec}",
                     TargetKeyDisplay: $"{targetDrugId}/{targetSpec}",
                     TracePoolAffectedDisplay: $"{tracePoolAffected} 条",
@@ -179,261 +139,59 @@ public sealed class DialogService : IDialogService
                     TargetExistsDisplay: targetExists
                         ? "目标药品键已存在，迁移时将并入既有记录"
                         : "目标药品键不存在，迁移时将创建新记录")
-            };
-
-            ShowHosted(
-                new PacHostedDialogContext
-                {
-                    Title = "纠错迁移预览详情",
-                    Body = content,
-                    Actions =
-                    [
-                        new PacHostedDialogAction
-                        {
-                            Text = "取消",
-                            Style = DialogButtonStyle.Secondary,
-                            Click = () => tcs.TrySetResult(false)
-                        },
-                        new PacHostedDialogAction
-                        {
-                            Text = "继续迁移",
-                            Style = DialogButtonStyle.Primary,
-                            Click = () => tcs.TrySetResult(true)
-                        }
-                    ]
-                },
-                () => tcs.TrySetResult(false));
-        });
+            },
+            prepare: null,
+            onSuccess: static _ => true,
+            onCancel: static () => false);
 
     public Task<string?> PromptInventoryUnlockPassword(string title, string hintMessage)
-        => ShowDialogAsync<string?>(tcs =>
-        {
-            var content = new InventoryUnlockDialogView
+        => FormDialogSession.ShowAsync(
+            dialogManager,
+            unlockDialog,
+            vm => vm.Initialize(title, hintMessage),
+            static vm => vm.Password,
+            static () => (string?)null);
+
+    public async Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items)
+    {
+        await FormDialogSession.ShowAsync(
+            dialogManager,
+            new InfoDetailDialogViewModel(dialogManager)
             {
-                HintMessage = hintMessage
-            };
-            content.SubmitRequested += () =>
-            {
-                tcs.TrySetResult(content.Password);
-                _dialogManager.Close(content);
-            };
+                Detail = new InfoDetailDialogModel(title, subHeader, items)
+            },
+            prepare: null,
+            onSuccess: static _ => true,
+            onCancel: static () => false,
+            maxWidth: DetailMaxWidth).ConfigureAwait(true);
+    }
 
-            ShowHosted(
-                new PacHostedDialogContext
-                {
-                    Title = title,
-                    Body = content,
-                    Actions =
-                    [
-                        new PacHostedDialogAction
-                        {
-                            Text = "取消",
-                            Style = DialogButtonStyle.Secondary,
-                            Click = () => tcs.TrySetResult(null)
-                        },
-                        new PacHostedDialogAction
-                        {
-                            Text = "验证并解锁",
-                            Style = DialogButtonStyle.Primary,
-                            Click = () => tcs.TrySetResult(content.Password)
-                        }
-                    ]
-                },
-                () => tcs.TrySetResult(null));
-        });
-
-    public Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items)
-        => ShowDialogAsync<object?>(tcs =>
-        {
-            var content = new InfoDetailDialogView
-            {
-                DataContext = new InfoDetailDialogModel(
-                    Header: title,
-                    SubHeader: subHeader,
-                    Items: items)
-            };
-
-            ShowHosted(
-                new PacHostedDialogContext
-                {
-                    Title = title,
-                    Body = content,
-                    Actions =
-                    [
-                        new PacHostedDialogAction
-                        {
-                            Text = "关闭",
-                            Style = DialogButtonStyle.Primary,
-                            Click = () => tcs.TrySetResult(null)
-                        }
-                    ]
-                },
-                () => tcs.TrySetResult(null));
-        });
-
-    public Task ShowMsfxStateDetailDialog(MsfxStateDetailDialogModel model)
-        => ShowDialogAsync<object?>(tcs =>
-        {
-            var content = new MsfxStateDetailDialogView
-            {
-                DataContext = model
-            };
-
-            ShowHosted(
-                new PacHostedDialogContext
-                {
-                    Title = model.Header,
-                    Body = content,
-                    Actions =
-                    [
-                        new PacHostedDialogAction
-                        {
-                            Text = "关闭",
-                            Style = DialogButtonStyle.Primary,
-                            Click = () => tcs.TrySetResult(null)
-                        }
-                    ]
-                },
-                () => tcs.TrySetResult(null));
-        });
+    public async Task ShowMsfxStateDetailDialog(MsfxStateDetailDialogModel model)
+    {
+        await FormDialogSession.ShowAsync(
+            dialogManager,
+            new MsfxStateDetailDialogViewModel(dialogManager) { Detail = model },
+            prepare: null,
+            onSuccess: static _ => true,
+            onCancel: static () => false,
+            maxWidth: DetailMaxWidth).ConfigureAwait(true);
+    }
 
     public Task<MsfxMappingBatchDialogResult> ShowMsfxMappingBatchDialog(MsfxMappingBatchDialogModel model)
-        => ShowDialogAsync<MsfxMappingBatchDialogResult>(tcs =>
-        {
-            var content = new MsfxMappingBatchDialogView
-            {
-                DataContext = model
-            };
-
-            PacHostedDialogContext? context = null;
-            context = new PacHostedDialogContext
-            {
-                Title = "批量映射",
-                Body = content,
-                Actions =
-                [
-                    new PacHostedDialogAction
-                    {
-                        Text = "关闭",
-                        Style = DialogButtonStyle.Secondary,
-                        Click = () => tcs.TrySetResult(new MsfxMappingBatchDialogResult(
-                            MsfxMappingBatchDialogAction.Cancel, null, "", ""))
-                    },
-                    new PacHostedDialogAction
-                    {
-                        Text = "弃用任务",
-                        Style = DialogButtonStyle.Secondary,
-                        DismissOnClick = false,
-                        Click = () => QueueMsfxMappingBatchDialogAction(context!, content, tcs, MsfxMappingBatchDialogAction.DiscardTask)
-                    },
-                    new PacHostedDialogAction
-                    {
-                        Text = "批量映射",
-                        Style = DialogButtonStyle.Primary,
-                        DismissOnClick = false,
-                        Click = () => QueueMsfxMappingBatchDialogAction(context!, content, tcs, MsfxMappingBatchDialogAction.ApplyMap)
-                    }
-                ]
-            };
-
-            ShowHosted(context, () => tcs.TrySetResult(new MsfxMappingBatchDialogResult(
-                MsfxMappingBatchDialogAction.Cancel, null, "", "")));
-        });
-
-    private void QueueMsfxMappingBatchDialogAction(
-        PacHostedDialogContext context,
-        MsfxMappingBatchDialogView content,
-        TaskCompletionSource<MsfxMappingBatchDialogResult> tcs,
-        MsfxMappingBatchDialogAction action)
-        => _ = CompleteMsfxMappingBatchDialogAsync(context, content, tcs, action);
-
-    private async Task CompleteMsfxMappingBatchDialogAsync(
-        PacHostedDialogContext context,
-        MsfxMappingBatchDialogView content,
-        TaskCompletionSource<MsfxMappingBatchDialogResult> tcs,
-        MsfxMappingBatchDialogAction action)
-    {
-        try
-        {
-            await content.PrepareForActionAsync().ConfigureAwait(true);
-            tcs.TrySetResult(new MsfxMappingBatchDialogResult(
-                action,
-                content.SelectedGroup,
-                content.DrugId,
-                content.Spec));
-        }
-        catch (Exception ex)
-        {
-            AppLog.Warn("DialogService", "msfx.batch_dialog.complete.fail", "Failed to finalize MSFX batch mapping dialog action", ex);
-            tcs.TrySetResult(new MsfxMappingBatchDialogResult(MsfxMappingBatchDialogAction.Cancel, null, "", ""));
-        }
-        finally
-        {
-            _dialogManager.Close(context);
-        }
-    }
+        => FormDialogSession.ShowAsync(
+            dialogManager,
+            new MsfxMappingBatchDialogViewModel(dialogManager, lookup, syncService, accessGuard) { Model = model },
+            prepare: null,
+            onSuccess: vm => vm.Result ?? MsfxMappingBatchCancelResult,
+            onCancel: () => MsfxMappingBatchCancelResult,
+            maxWidth: WideFormMaxWidth);
 
     public Task<MsfxTaskSplitDialogResult> ShowMsfxTaskSplitDialog(MsfxTaskSplitDialogModel model)
-        => ShowDialogAsync<MsfxTaskSplitDialogResult>(tcs =>
-        {
-            var content = new MsfxTaskSplitDialogView
-            {
-                DataContext = model
-            };
-
-            ShowHosted(
-                new PacHostedDialogContext
-                {
-                    Title = "拆分任务",
-                    Body = content,
-                    Actions =
-                    [
-                        new PacHostedDialogAction
-                        {
-                            Text = "关闭",
-                            Style = DialogButtonStyle.Secondary,
-                            Click = () => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Cancel))
-                        },
-                        new PacHostedDialogAction
-                        {
-                            Text = "按批号拆分",
-                            Style = DialogButtonStyle.Secondary,
-                            Click = () => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Batch))
-                        },
-                        new PacHostedDialogAction
-                        {
-                            Text = "自定义数量拆分",
-                            Style = DialogButtonStyle.Secondary,
-                            Click = () => tcs.TrySetResult(new MsfxTaskSplitDialogResult(
-                                MsfxTaskSplitDialogAction.CustomQuantity,
-                                content.CustomQuantities))
-                        },
-                        new PacHostedDialogAction
-                        {
-                            Text = "按父码簇拆分",
-                            Style = DialogButtonStyle.Primary,
-                            Click = () => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.ParentCluster))
-                        }
-                    ]
-                },
-                () => tcs.TrySetResult(new MsfxTaskSplitDialogResult(MsfxTaskSplitDialogAction.Cancel)));
-        });
-
-    private void ShowHosted(PacHostedDialogContext context, Action onDismissed)
-    {
-        context.Manager = _dialogManager;
-        context.RequestClose = () => _dialogManager.Close(context);
-
-        _dialogManager.CreateDialog(context)
-            .Dismissible()
-            .WithCancelCallback(onDismissed)
-            .Show();
-    }
-
-    private static Task<T> ShowDialogAsync<T>(Action<TaskCompletionSource<T>> show)
-    {
-        var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
-        Dispatcher.UIThread.Post(() => show(tcs));
-        return tcs.Task;
-    }
+        => FormDialogSession.ShowAsync(
+            dialogManager,
+            new MsfxTaskSplitDialogViewModel(dialogManager) { Model = model },
+            prepare: null,
+            onSuccess: vm => vm.Result ?? MsfxTaskSplitCancelResult,
+            onCancel: () => MsfxTaskSplitCancelResult,
+            maxWidth: WideFormMaxWidth);
 }

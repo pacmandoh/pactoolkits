@@ -4,22 +4,22 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
   xmlns:dto="clr-namespace:PacToolkits.Application.DTOs;assembly=PacToolkits.Application"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  xmlns:vmDialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
   x:Name="Root"
   behaviors:FocusClearBehavior.Enable="True"
   behaviors:FocusClearBehavior.SuppressGridClear="True"
-  x:DataType="dialogs:MsfxMappingBatchDialogModel"
+  x:DataType="vmDialogs:MsfxMappingBatchDialogViewModel"
   Focusable="True">
   <shad:Card
     MinWidth="920"
     MaxWidth="1180"
     Padding="16"
     behaviors:FocusClearBehavior.SuppressGridClear="True">
-    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
         <Border
           Width="40"
@@ -37,7 +37,6 @@
           <TextBlock Classes="Caption Muted" Text="先选分组，再映射或直接弃用任务" />
         </StackPanel>
         <Button
-          x:Name="ToggleSearchPanelButton"
           Grid.Column="2"
           Width="40"
           Height="{StaticResource ControlHeightCompact}"
@@ -46,26 +45,25 @@
           HorizontalContentAlignment="Center"
           VerticalContentAlignment="Center"
           Classes="Action"
-          Click="ToggleSearchPanel_OnClick">
+          Command="{Binding ToggleSearchPanelCommand}">
           <Panel
             Width="{DynamicResource IconSizeDefault}"
             Height="{DynamicResource IconSizeDefault}"
             HorizontalAlignment="Center"
             VerticalAlignment="Center">
             <icons:AppIcon
-              x:Name="SearchPanelClosedIcon"
               Width="{DynamicResource IconSizeSmall}"
               Height="{DynamicResource IconSizeSmall}"
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
+              IsVisible="{Binding SearchPanelClosedIconVisible}"
               Kind="Search" />
             <icons:AppIcon
-              x:Name="SearchPanelOpenIcon"
               Width="{DynamicResource IconSizeSmall}"
               Height="{DynamicResource IconSizeSmall}"
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
-              IsVisible="False"
+              IsVisible="{Binding SearchPanelOpenIconVisible}"
               Kind="SearchX" />
           </Panel>
         </Button>
@@ -75,15 +73,16 @@
         Grid.Row="1"
         RowDefinitions="Auto,*"
         RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-        <shad:Card x:Name="SearchPanel" IsVisible="False">
+        <shad:Card IsVisible="{Binding IsSearchPanelVisible}">
           <Grid
             VerticalAlignment="Center"
             ColumnDefinitions="160,Auto,180,Auto,130,*,Auto,Auto"
             ColumnSpacing="{DynamicResource PageColumnSpacing}">
             <ComboBox
-              x:Name="SearchScopeBox"
               MinWidth="160"
-              HorizontalAlignment="Stretch" />
+              HorizontalAlignment="Stretch"
+              ItemsSource="{Binding SearchScopeOptions}"
+              SelectedItem="{Binding SelectedSearchScope, Mode=TwoWay}" />
             <TextBlock
               Grid.Column="1"
               Margin="8,0,0,0"
@@ -91,10 +90,11 @@
               Classes="Caption Muted"
               Text="映射状态" />
             <ComboBox
-              x:Name="MapStatusBox"
               Grid.Column="2"
               MinWidth="180"
-              HorizontalAlignment="Stretch" />
+              HorizontalAlignment="Stretch"
+              ItemsSource="{Binding MapStatusFilters}"
+              SelectedItem="{Binding SelectedMapStatus, Mode=TwoWay}" />
             <TextBlock
               Grid.Column="3"
               Margin="8,0,0,0"
@@ -102,22 +102,23 @@
               Classes="Caption Muted"
               Text="码状态" />
             <ComboBox
-              x:Name="CodeStatusBox"
               Grid.Column="4"
-              HorizontalAlignment="Stretch" />
+              HorizontalAlignment="Stretch"
+              ItemsSource="{Binding CodeStatusFilters}"
+              SelectedItem="{Binding SelectedCodeStatus, Mode=TwoWay}" />
             <TextBox
-              x:Name="KeywordBox"
               Grid.Column="5"
               VerticalContentAlignment="Center"
               AcceptsReturn="False"
               Classes="SearchBox"
               KeyDown="KeywordBox_OnKeyDown"
               PlaceholderText="搜索分组..."
+              Text="{Binding Keyword, Mode=TwoWay}"
               TextWrapping="NoWrap" />
             <Button
               Grid.Column="6"
               Classes="Action"
-              Click="SearchButton_OnClick">
+              Command="{Binding SearchCommand}">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon
                   Width="{DynamicResource IconSizeDefault}"
@@ -129,7 +130,7 @@
             <Button
               Grid.Column="7"
               Classes="Action"
-              Click="ResetFiltersButton_OnClick">
+              Command="{Binding ResetFiltersCommand}">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon
                   Width="{DynamicResource IconSizeDefault}"
@@ -145,11 +146,12 @@
           x:Name="GroupGrid"
           Grid.Row="1"
           Height="280"
-          x:DataType="dto:MsfxMappingBatchGroupRow"
           Classes="SectionGrid InventoryGrid IndexedGrid"
           HorizontalScrollBarVisibility="Auto"
           IsReadOnly="True"
+          ItemsSource="{Binding Groups}"
           PointerPressed="GroupGrid_OnPointerPressed"
+          SelectedItem="{Binding SelectedGroup, Mode=TwoWay}"
           SelectionMode="Single">
           <DataGrid.Columns>
             <DataGridTextColumn
@@ -231,9 +233,11 @@
                 x:Name="DrugIdBox"
                 Grid.Row="1"
                 FilterMode="Contains"
+                ItemsSource="{Binding DrugOptions}"
                 KeyDown="DrugIdBox_OnKeyDown"
                 MinimumPrefixLength="1"
-                PlaceholderText="输入院内药品信息">
+                PlaceholderText="输入院内药品信息"
+                Text="{Binding DrugText, Mode=TwoWay}">
                 <AutoCompleteBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:OptionItem">
                     <TextBlock Text="{Binding Display}" />
@@ -259,13 +263,15 @@
                   MinWidth="220"
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Center"
-                  MaxDropDownHeight="300" />
+                  ItemsSource="{Binding SpecOptions}"
+                  MaxDropDownHeight="300"
+                  SelectedItem="{Binding SelectedSpec, Mode=TwoWay}" />
                 <TextBlock
-                  x:Name="SpecPlaceholder"
                   Margin="{DynamicResource MarginLeftMd}"
                   VerticalAlignment="Center"
                   Classes="Caption Muted"
                   IsHitTestVisible="False"
+                  IsVisible="{Binding ShowSpecPlaceholder}"
                   Text="请选择规格" />
               </Grid>
             </Grid>
@@ -280,14 +286,23 @@
               VerticalAlignment="Center"
               Kind="ChartSpline" />
             <TextBlock
-              x:Name="PreviewText"
               Grid.Column="1"
               Classes="Caption Muted"
-              Text="请选择分组后自动预览"
+              Text="{Binding PreviewText}"
               TextWrapping="Wrap" />
           </Grid>
         </shad:Card>
       </Grid>
+
+      <StackPanel
+        Grid.Row="3"
+        HorizontalAlignment="Right"
+        Orientation="Horizontal"
+        Spacing="{DynamicResource SpacingInlineSm}">
+        <Button Classes="Outline" Command="{Binding CloseCommand}" Content="关闭" />
+        <Button Classes="Secondary" Command="{Binding DiscardTaskCommand}" Content="弃用任务" />
+        <Button Classes="Primary" Command="{Binding ApplyMapCommand}" Content="批量映射" />
+      </StackPanel>
     </Grid>
   </shad:Card>
 </UserControl>
