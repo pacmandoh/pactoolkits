@@ -1249,7 +1249,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         var deleteDrugId = _originDrugId!;
         var deleteSpec = _originSpec!;
 
-        var ok = await _dialog.Confirm("删除药品规格",
+        var ok = await _dialog.ConfirmDestructive("删除药品规格",
             $"确认删除？\n{deleteDrugId} / {deleteSpec}\n\n注意：trace_pool / trace_txn 外键会阻止删除正在引用的记录");
 
         if (!ok)

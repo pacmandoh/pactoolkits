@@ -206,7 +206,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             _pageWorkCts.Token);
         if (snapshot.ManualMigrationPolicy.Decision == DbMigrationDecision.RequiresConfirmation)
         {
-            var confirmed = await _dialog.Confirm(
+            var confirmed = await _dialog.ConfirmDestructive(
                 "确认更新数据库",
                 $"{snapshot.ManualMigrationPolicy.Reason}\n\n此操作将修改 Beta 隔离测试库结构，是否继续？");
             if (!confirmed)
