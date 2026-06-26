@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InventoryUnlockDialogView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -12,9 +12,9 @@
   x:DataType="dialogs:InventoryUnlockDialogViewModel"
   mc:Ignorable="d">
   <StackPanel
+    Width="320"
     Margin="24"
-    Spacing="16"
-    Width="320">
+    Spacing="16">
     <Border
       Width="44"
       Height="44"
@@ -41,16 +41,16 @@
       TextWrapping="Wrap" />
 
     <TextBox
-      IsEnabled="False"
       shad:ControlAssist.Label="账户名"
+      IsEnabled="False"
       Text="{Binding Username}" />
 
     <TextBox
+      shad:ControlAssist.Label="数据库密码"
+      shad:ElementAssist.FocusOnLoad="True"
       Classes="PasswordReveal"
       PasswordChar="•"
       PlaceholderText="请输入数据库密码进行验证"
-      shad:ControlAssist.Label="数据库密码"
-      shad:ElementAssist.FocusOnLoad="True"
       Text="{Binding Password, Mode=TwoWay}" />
 
     <StackPanel Margin="0,24,0,0" Spacing="16">
