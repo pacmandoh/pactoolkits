@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.DrugKeyFixPreviewDialogView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -11,9 +11,9 @@
   x:DataType="dialogs:DrugKeyFixPreviewDialogViewModel"
   mc:Ignorable="d">
   <StackPanel
+    Width="400"
     Margin="24"
-    Spacing="16"
-    Width="400">
+    Spacing="16">
     <Border
       Width="44"
       Height="44"

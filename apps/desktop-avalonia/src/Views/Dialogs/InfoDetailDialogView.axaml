@@ -1,15 +1,15 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InfoDetailDialogView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
-  xmlns:infra="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:infra="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
   x:DataType="dialogs:InfoDetailDialogViewModel">
   <StackPanel
-    Margin="24"
     MinWidth="460"
     MaxWidth="720"
+    Margin="24"
     Spacing="16">
     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
       <Border

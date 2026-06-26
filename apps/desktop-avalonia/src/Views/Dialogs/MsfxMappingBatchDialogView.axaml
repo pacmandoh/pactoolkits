@@ -299,9 +299,18 @@
         HorizontalAlignment="Right"
         Orientation="Horizontal"
         Spacing="{DynamicResource SpacingInlineSm}">
-        <Button Classes="Outline" Command="{Binding CloseCommand}" Content="关闭" />
-        <Button Classes="Secondary" Command="{Binding DiscardTaskCommand}" Content="弃用任务" />
-        <Button Classes="Primary" Command="{Binding ApplyMapCommand}" Content="批量映射" />
+        <Button
+          Classes="Outline"
+          Command="{Binding CloseCommand}"
+          Content="关闭" />
+        <Button
+          Classes="Secondary"
+          Command="{Binding DiscardTaskCommand}"
+          Content="弃用任务" />
+        <Button
+          Classes="Primary"
+          Command="{Binding ApplyMapCommand}"
+          Content="批量映射" />
       </StackPanel>
     </Grid>
   </shad:Card>
