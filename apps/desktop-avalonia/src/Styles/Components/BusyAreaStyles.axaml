@@ -3,7 +3,7 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
   <!--
-    ShadUI default uses BusyAreaOverlayColor (third-tone gray mask). Pac uses Suki-style dim:
+    ShadUI default uses BusyAreaOverlayColor (third-tone gray mask). Pac uses a stronger dim overlay:
     content stays on the host background; busy dims ContentPresenter and shows a centered spinner.
     No AreaBackground — avoids gray-on-black clash with CardPanel Inner (WindowBackgroundColor).
   -->
