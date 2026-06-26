@@ -1,4 +1,4 @@
-<shad:Window
+﻿<shad:Window
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -18,6 +18,7 @@
   x:DataType="vm:MainWindowViewModel"
   Icon="avares://pactoolkits-desktop/Assets/app.ico"
   ShowBottomBorder="False"
+  TitleBarAnimationEnabled="False"
   WindowStartupLocation="CenterScreen">
   <shad:Window.Hosts>
     <shad:ToastHost Manager="{Binding ToastManager}" />
@@ -171,103 +172,105 @@
         Expanded="{Binding IsSidebarExpanded, Mode=TwoWay}"
         ItemIconContentSpacing="12">
         <shad:Sidebar.Header>
-          <Menu Classes="Single">
-            <MenuItem
-              HorizontalAlignment="Stretch"
-              shad:MenuItemAssist.PopupHorizontalOffset="4"
-              shad:MenuItemAssist.PopupPlacement="RightEdgeAlignedTop"
-              shad:MenuItemAssist.PopupVerticalOffset="0"
-              Classes="NoPressedAnimation SidebarFunctionAreaMenuItem"
-              CornerRadius="{DynamicResource LgCornerRadius}">
-              <MenuItem.Header>
-                <Panel>
-                  <Border
-                    Width="38"
-                    Height="36"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Classes="SidebarFunctionAreaBadge"
-                    CornerRadius="{DynamicResource LgCornerRadius}"
-                    IsVisible="{Binding !$parent[shad:Sidebar].Expanded}">
-                    <Viewbox Width="16" Height="16">
-                      <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />
-                    </Viewbox>
-                  </Border>
-                  <Grid
-                    Margin="0"
-                    HorizontalAlignment="Stretch"
-                    ColumnDefinitions="Auto,*,Auto"
-                    IsVisible="{Binding $parent[shad:Sidebar].Expanded}">
+          <Border Classes="SidebarFunctionAreaHost">
+            <Menu Classes="Single">
+              <MenuItem
+                HorizontalAlignment="Stretch"
+                shad:MenuItemAssist.PopupHorizontalOffset="4"
+                shad:MenuItemAssist.PopupPlacement="RightEdgeAlignedTop"
+                shad:MenuItemAssist.PopupVerticalOffset="0"
+                Classes="NoPressedAnimation SidebarFunctionAreaMenuItem"
+                CornerRadius="{DynamicResource LgCornerRadius}">
+                <MenuItem.Header>
+                  <Panel>
                     <Border
-                      Width="36"
+                      Width="38"
                       Height="36"
-                      Margin="0,0,8,0"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
                       Classes="SidebarFunctionAreaBadge"
-                      CornerRadius="{DynamicResource XlCornerRadius}">
+                      CornerRadius="{DynamicResource LgCornerRadius}"
+                      IsVisible="{Binding !IsSidebarExpanded}">
                       <Viewbox Width="16" Height="16">
                         <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />
                       </Viewbox>
                     </Border>
-                    <StackPanel Grid.Column="1" Classes="SidebarFunctionAreaText">
-                      <TextBlock Classes="Small" Text="{Binding SelectedFunctionArea.Name}" />
-                      <TextBlock
-                        Classes="Caption Muted"
-                        Text="{Binding SelectedFunctionArea.Subtitle}"
-                        TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                    <Viewbox
-                      Grid.Column="2"
-                      Width="16"
-                      Height="16">
-                      <icons:AppIcon Foreground="{DynamicResource ForegroundColor}" Kind="ChevronsUpDown" />
-                    </Viewbox>
-                  </Grid>
-                </Panel>
-              </MenuItem.Header>
-              <shad:MenuItemAssist.Label>
-                <TextBlock
-                  Width="220"
-                  Classes="Caption Muted"
-                  Text="功能区" />
-              </shad:MenuItemAssist.Label>
-              <MenuItem
-                Command="{Binding SelectFunctionAreaCommand}"
-                CommandParameter="{x:Static vm:ShellFunctionAreas.Traceability}"
-                Header="{x:Static vm:ShellFunctionAreas.TraceabilityName}">
-                <MenuItem.Icon>
-                  <Border
-                    Width="24"
-                    Height="24"
-                    Padding="4"
-                    BorderBrush="{DynamicResource BorderColor}"
-                    BorderThickness="1"
-                    CornerRadius="{DynamicResource LgCornerRadius}">
-                    <Viewbox>
-                      <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="{x:Static vm:ShellFunctionAreas.TraceabilityIcon}" />
-                    </Viewbox>
-                  </Border>
-                </MenuItem.Icon>
+                    <Grid
+                      Margin="0"
+                      HorizontalAlignment="Stretch"
+                      ColumnDefinitions="Auto,*,Auto"
+                      IsVisible="{Binding IsSidebarExpanded}">
+                      <Border
+                        Width="36"
+                        Height="36"
+                        Margin="0,0,8,0"
+                        Classes="SidebarFunctionAreaBadge"
+                        CornerRadius="{DynamicResource XlCornerRadius}">
+                        <Viewbox Width="16" Height="16">
+                          <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />
+                        </Viewbox>
+                      </Border>
+                      <StackPanel Grid.Column="1" Classes="SidebarFunctionAreaText">
+                        <TextBlock Classes="Small" Text="{Binding SelectedFunctionArea.Name}" />
+                        <TextBlock
+                          Classes="Caption Muted"
+                          Text="{Binding SelectedFunctionArea.Subtitle}"
+                          TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <Viewbox
+                        Grid.Column="2"
+                        Width="16"
+                        Height="16">
+                        <icons:AppIcon Foreground="{DynamicResource ForegroundColor}" Kind="ChevronsUpDown" />
+                      </Viewbox>
+                    </Grid>
+                  </Panel>
+                </MenuItem.Header>
+                <shad:MenuItemAssist.Label>
+                  <TextBlock
+                    Width="220"
+                    Classes="Caption Muted"
+                    Text="功能区" />
+                </shad:MenuItemAssist.Label>
+                <MenuItem
+                  Command="{Binding SelectFunctionAreaCommand}"
+                  CommandParameter="{x:Static vm:ShellFunctionAreas.Traceability}"
+                  Header="{x:Static vm:ShellFunctionAreas.TraceabilityName}">
+                  <MenuItem.Icon>
+                    <Border
+                      Width="24"
+                      Height="24"
+                      Padding="4"
+                      BorderBrush="{DynamicResource BorderColor}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource LgCornerRadius}">
+                      <Viewbox>
+                        <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="{x:Static vm:ShellFunctionAreas.TraceabilityIcon}" />
+                      </Viewbox>
+                    </Border>
+                  </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem
+                  Command="{Binding SelectFunctionAreaCommand}"
+                  CommandParameter="{x:Static vm:ShellFunctionAreas.Automation}"
+                  Header="{x:Static vm:ShellFunctionAreas.AutomationName}">
+                  <MenuItem.Icon>
+                    <Border
+                      Width="24"
+                      Height="24"
+                      Padding="4"
+                      BorderBrush="{DynamicResource BorderColor}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource LgCornerRadius}">
+                      <Viewbox>
+                        <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="{x:Static vm:ShellFunctionAreas.AutomationIcon}" />
+                      </Viewbox>
+                    </Border>
+                  </MenuItem.Icon>
+                </MenuItem>
               </MenuItem>
-              <MenuItem
-                Command="{Binding SelectFunctionAreaCommand}"
-                CommandParameter="{x:Static vm:ShellFunctionAreas.Automation}"
-                Header="{x:Static vm:ShellFunctionAreas.AutomationName}">
-                <MenuItem.Icon>
-                  <Border
-                    Width="24"
-                    Height="24"
-                    Padding="4"
-                    BorderBrush="{DynamicResource BorderColor}"
-                    BorderThickness="1"
-                    CornerRadius="{DynamicResource LgCornerRadius}">
-                    <Viewbox>
-                      <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="{x:Static vm:ShellFunctionAreas.AutomationIcon}" />
-                    </Viewbox>
-                  </Border>
-                </MenuItem.Icon>
-              </MenuItem>
-            </MenuItem>
-          </Menu>
+            </Menu>
+          </Border>
         </shad:Sidebar.Header>
 
         <StackPanel Classes="SidebarNavHost" Spacing="4">
@@ -322,13 +325,13 @@
                   <Image
                     HorizontalAlignment="Center"
                     Classes="SidebarBrandIcon"
-                    IsVisible="{Binding !$parent[shad:Sidebar].Expanded}"
+                    IsVisible="{Binding !IsSidebarExpanded}"
                     Source="avares://pactoolkits-desktop/Assets/app.ico" />
                   <Grid
                     Margin="0,4"
                     ColumnDefinitions="Auto,*,Auto"
                     ColumnSpacing="8"
-                    IsVisible="{Binding $parent[shad:Sidebar].Expanded}">
+                    IsVisible="{Binding IsSidebarExpanded}">
                     <Image Classes="SidebarBrandIcon" Source="avares://pactoolkits-desktop/Assets/app.ico" />
                     <StackPanel Grid.Column="1" Classes="SidebarAccountText">
                       <TextBlock Classes="Small" Text="PacToolkits" />

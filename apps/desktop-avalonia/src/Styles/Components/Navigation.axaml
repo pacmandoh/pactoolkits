@@ -53,6 +53,11 @@
     <Setter Property="Foreground" Value="{DynamicResource SidebarFunctionAreaBadgeForegroundColor}" />
   </Style>
 
+  <Style Selector="Border.SidebarFunctionAreaHost">
+    <Setter Property="MinHeight" Value="{DynamicResource SidebarFunctionAreaChromeHeight}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+
   <Style Selector="StackPanel.SidebarFunctionAreaText">
     <Setter Property="Spacing" Value="2" />
     <Setter Property="VerticalAlignment" Value="Center" />

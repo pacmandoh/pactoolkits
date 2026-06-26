@@ -127,6 +127,7 @@
   <x:Double x:Key="SidebarMenuIconSize">18</x:Double>
   <x:Double x:Key="SidebarMenuIconStroke">2.0</x:Double>
   <x:Double x:Key="ContentChromeHeight">48</x:Double>
+  <x:Double x:Key="SidebarFunctionAreaChromeHeight">64</x:Double>
 
   <Thickness x:Key="AboutSectionInset">8,8,8,8</Thickness>
   <Thickness x:Key="AboutSectionInsetTop">0,6,0,0</Thickness>
@@ -152,6 +153,7 @@
   <Thickness x:Key="ShellTitleBarCapsuleButtonPadding">6,0</Thickness>
   <x:Double x:Key="ShellTitleBarCapsuleButtonMinSize">22</x:Double>
   <x:Double x:Key="ShellTitleBarCapsuleIconSize">16</x:Double>
+  <x:Double x:Key="ShellTitleBarHeight">32</x:Double>
   <x:Double x:Key="ShellTitleBarNavChromeWidth">480</x:Double>
   <x:Double x:Key="ShellTitleBarNavButtonSize">26</x:Double>
   <x:Double x:Key="ShellTitleBarNavIconSize">15</x:Double>
