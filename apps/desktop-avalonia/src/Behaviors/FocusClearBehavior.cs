@@ -94,6 +94,11 @@ public class FocusClearBehavior
                 return;
             }
 
+            if (!string.IsNullOrWhiteSpace(ownerAutoComplete.Text))
+            {
+                AutoCompleteCommit.CommitPendingInput(ownerAutoComplete);
+            }
+
             ownerAutoComplete.IsDropDownOpen = false;
         }
 
@@ -117,6 +122,13 @@ public class FocusClearBehavior
         }
 
         if (IsNaturalFocusTarget(e.Source))
+        {
+            return;
+        }
+
+        // Buttons and other click targets keep focus for Command/Click; deferring host
+        // focus here consumed the first press on dialog submit buttons.
+        if (IsInteractiveClickTarget(e.Source))
         {
             return;
         }
@@ -188,6 +200,22 @@ public class FocusClearBehavior
                 case AutoCompleteBox:
                 case CalendarDatePicker:
                 case NumericUpDown:
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsInteractiveClickTarget(object? source)
+    {
+        for (var current = source; current is not null; current = (current as StyledElement)?.Parent)
+        {
+            switch (current)
+            {
+                case Button:
+                case MenuItem:
+                case TabItem:
                     return true;
             }
         }
