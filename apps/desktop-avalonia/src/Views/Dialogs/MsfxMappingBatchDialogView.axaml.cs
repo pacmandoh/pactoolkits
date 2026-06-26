@@ -23,11 +23,27 @@ public partial class MsfxMappingBatchDialogView : UserControl
     {
         base.OnDataContextChanged(e);
         _attachedVm = null;
-        _ = TryInitializeAsync();
+        _ = TryInitializeSafeAsync();
     }
 
     private async void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
-        => await TryInitializeAsync();
+        => await TryInitializeSafeAsync();
+
+    private async Task TryInitializeSafeAsync()
+    {
+        try
+        {
+            await TryInitializeAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn(
+                "MsfxMappingBatchDialogView",
+                "msfx.map.batch.attach_init.fail",
+                "Dialog attach initialization failed",
+                ex);
+        }
+    }
 
     private async Task TryInitializeAsync()
     {

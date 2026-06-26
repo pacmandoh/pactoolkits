@@ -2117,14 +2117,32 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         SetSelectedAutoTaskQueueRows(Array.Empty<MsfxAutoTaskQueueGridRow>());
     }
 
-    private async void OnAutoTimerTick(object? sender, EventArgs e)
+    private void OnAutoTimerTick(object? sender, EventArgs e)
     {
         if (!IsAutoEnabled || IsAutoBusy || IsManualMsfxWriteActive)
         {
             return;
         }
 
-        await QueueAutoOnceAsync(showProgressPanel: false);
+        if (Interlocked.CompareExchange(ref _autoTimerTickRunning, 1, 0) != 0)
+        {
+            return;
+        }
+
+        _backgroundTasks.RunDetached(
+            async _ =>
+            {
+                try
+                {
+                    await QueueAutoOnceAsync(showProgressPanel: false).ConfigureAwait(false);
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref _autoTimerTickRunning, 0);
+                }
+            },
+            module: "MsfxLinkViewModel",
+            eventName: "msfx.auto.timer_tick.fail");
     }
 
     private static MsfxUpoutGridRow MapUpoutRow(MsfxListUpoutItem x)
