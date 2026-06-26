@@ -495,7 +495,7 @@
                             <DataGridTextColumn
                               Width="{StaticResource DgWRightSmall}"
                               Binding="{Binding Threshold, StringFormat={}{0:0}}"
-                              Header="阈值" />
+                              Header="用量" />
                           </DataGrid.Columns>
                         </DataGrid>
                       </DataTemplate>

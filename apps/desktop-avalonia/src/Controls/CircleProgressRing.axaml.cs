@@ -9,7 +9,7 @@ namespace PacToolkits.Desktop.Avalonia.Controls;
 
 public partial class CircleProgressRing : UserControl
 {
-    /// <summary>12 o'clock origin — matches SukiUI <c>CircleProgressBar</c>.</summary>
+    /// <summary>12 o'clock origin — matches legacy circle progress behavior.</summary>
     private const double ProgressOriginAngle = 270;
 
     private const double IndeterminateSweepAngle = 90;
