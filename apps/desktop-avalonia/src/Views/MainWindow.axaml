@@ -1,4 +1,4 @@
-﻿<shad:Window
+<shad:Window
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -724,12 +724,6 @@
                 <icons:AppIcon Foreground="{Binding IsAhkRunning, Converter={StaticResource BoolToDoneDangerBrush}}" Kind="Syringe" />
               </shad:ButtonAssist.Icon>
               <TextBlock Classes="Caption Muted" Text="{Binding AgentItemText}" />
-            </Button>
-
-            <Border Classes="ShellStatusDivider" />
-
-            <Button Classes="ShellStatusItem" IsEnabled="False">
-              <TextBlock Classes="Caption Muted" Text="{Binding ActivePageText}" />
             </Button>
 
             <Border Classes="ShellStatusDivider" IsVisible="{Binding ShowAccessGuardItem}" />

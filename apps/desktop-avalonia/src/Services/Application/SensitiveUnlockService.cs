@@ -145,20 +145,15 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             return false;
         }
 
+        lock (_gate)
+        {
+            state = GetOrCreateState(key);
+            state.IsPromptActive = true;
+        }
+
         string? input;
         try
         {
-            lock (_gate)
-            {
-                state = GetOrCreateState(key);
-                if (state.IsPromptActive)
-                {
-                    return false;
-                }
-
-                state.IsPromptActive = true;
-            }
-
             int failed;
             lock (_gate)
             {
@@ -167,7 +162,7 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             }
 
             var suffix = failed <= 0 ? promptHint : $"{promptHint}\n（已失败 {failed} 次）";
-            input = NormalizeInput(await _dialog.PromptInventoryUnlockPassword(promptTitle, suffix));
+            input = NormalizeInput(await _dialog.PromptInventoryUnlockPassword(promptTitle, suffix).ConfigureAwait(true));
         }
         finally
         {

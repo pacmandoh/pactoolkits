@@ -1,104 +1,113 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.DrugKeyFixPreviewDialogView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-  xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Views.Dialogs"
+  xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  d:DesignHeight="380"
-  d:DesignWidth="420"
-  x:DataType="dialogs:DrugKeyFixPreviewDialogModel"
+  d:DesignHeight="480"
+  d:DesignWidth="400"
+  x:DataType="dialogs:DrugKeyFixPreviewDialogViewModel"
   mc:Ignorable="d">
-  <Border
-    MinWidth="380"
-    MaxWidth="520"
-    Padding="{DynamicResource DialogPadding}"
-    CornerRadius="16">
-    <StackPanel Spacing="14">
-      <Border
-        Width="44"
-        Height="44"
+  <StackPanel
+    Margin="24"
+    Spacing="16"
+    Width="400">
+    <Border
+      Width="44"
+      Height="44"
+      HorizontalAlignment="Center"
+      CornerRadius="22">
+      <icons:AppIcon
+        Width="24"
+        Height="24"
         HorizontalAlignment="Center"
-        CornerRadius="22">
-        <icons:AppIcon
-          Width="24"
-          Height="24"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Center"
-          Kind="ArrowRightLeft" />
-      </Border>
+        VerticalAlignment="Center"
+        Kind="ArrowRightLeft" />
+    </Border>
+
+    <TextBlock
+      HorizontalAlignment="Center"
+      Classes="h4"
+      Text="纠错迁移预览详情" />
+
+    <Grid
+      ColumnDefinitions="Auto,*"
+      ColumnSpacing="{DynamicResource PageColumnSpacing}"
+      RowDefinitions="Auto,Auto"
+      RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+      <TextBlock
+        Grid.Row="0"
+        Grid.Column="0"
+        Classes="Caption Muted"
+        Text="源药品键" />
+      <TextBlock
+        Grid.Row="0"
+        Grid.Column="1"
+        FontFamily="Consolas"
+        Text="{Binding Preview.SourceKeyDisplay}" />
 
       <TextBlock
-        HorizontalAlignment="Center"
-        Classes="DialogTitleLg"
-        FontWeight="SemiBold"
-        Text="纠错迁移预览详情" />
+        Grid.Row="1"
+        Grid.Column="0"
+        Classes="Caption Muted"
+        Text="目标药品键" />
+      <TextBlock
+        Grid.Row="1"
+        Grid.Column="1"
+        FontFamily="Consolas"
+        Text="{Binding Preview.TargetKeyDisplay}" />
+    </Grid>
 
+    <Border Padding="12" CornerRadius="12">
       <Grid
-        ColumnDefinitions="Auto,*"
+        ColumnDefinitions="*,*"
         ColumnSpacing="{DynamicResource PageColumnSpacing}"
         RowDefinitions="Auto,Auto"
-        RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+        RowSpacing="{DynamicResource DialogFormRowSpacing}">
         <TextBlock
           Grid.Row="0"
           Grid.Column="0"
           Classes="Caption Muted"
-          Text="源药品键" />
+          Text="trace_pool 影响" />
         <TextBlock
           Grid.Row="0"
           Grid.Column="1"
-          FontFamily="Consolas"
-          Text="{Binding SourceKeyDisplay}" />
+          HorizontalAlignment="Right"
+          FontWeight="SemiBold"
+          Text="{Binding Preview.TracePoolAffectedDisplay}" />
 
         <TextBlock
           Grid.Row="1"
           Grid.Column="0"
           Classes="Caption Muted"
-          Text="目标药品键" />
+          Text="trace_txn 影响" />
         <TextBlock
           Grid.Row="1"
           Grid.Column="1"
-          FontFamily="Consolas"
-          Text="{Binding TargetKeyDisplay}" />
+          HorizontalAlignment="Right"
+          FontWeight="SemiBold"
+          Text="{Binding Preview.TraceTxnAffectedDisplay}" />
       </Grid>
+    </Border>
 
-      <Border Padding="12" CornerRadius="12">
-        <Grid
-          ColumnDefinitions="*,*"
-          ColumnSpacing="{DynamicResource PageColumnSpacing}"
-          RowDefinitions="Auto,Auto"
-          RowSpacing="{DynamicResource DialogFormRowSpacing}">
-          <TextBlock
-            Grid.Row="0"
-            Grid.Column="0"
-            Classes="Caption Muted"
-            Text="trace_pool 影响" />
-          <TextBlock
-            Grid.Row="0"
-            Grid.Column="1"
-            HorizontalAlignment="Right"
-            FontWeight="SemiBold"
-            Text="{Binding TracePoolAffectedDisplay}" />
+    <TextBlock
+      Classes="Caption Muted"
+      Text="{Binding Preview.TargetExistsDisplay}"
+      TextWrapping="Wrap" />
 
-          <TextBlock
-            Grid.Row="1"
-            Grid.Column="0"
-            Classes="Caption Muted"
-            Text="trace_txn 影响" />
-          <TextBlock
-            Grid.Row="1"
-            Grid.Column="1"
-            HorizontalAlignment="Right"
-            FontWeight="SemiBold"
-            Text="{Binding TraceTxnAffectedDisplay}" />
-        </Grid>
-      </Border>
-
-      <TextBlock
-        Opacity="0.9"
-        Text="{Binding TargetExistsDisplay}"
-        TextWrapping="Wrap" />
+    <StackPanel Margin="0,24,0,0" Spacing="16">
+      <Button
+        Classes="Destructive"
+        Command="{Binding ConfirmCommand}"
+        Content="继续迁移"
+        HotKey="Enter" />
+      <Button
+        Classes="Outline"
+        Command="{Binding CancelCommand}"
+        Content="取消"
+        HotKey="Escape" />
     </StackPanel>
-  </Border>
+  </StackPanel>
 </UserControl>

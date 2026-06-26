@@ -4,12 +4,13 @@ using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Services;
-using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 using PacToolkits.Desktop.Avalonia.Services.Integration;
 using PacToolkits.Desktop.Avalonia.ViewModels;
+using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
+using PacToolkits.Desktop.Avalonia.Views.Dialogs;
 using PacToolkits.Infrastructure.Database;
 using ShadUI;
 
@@ -51,10 +52,17 @@ public static class ServiceRegistration
         services.AddSingleton<AppViews>();
         services.AddSingleton<MainWindowViewModel>();
 
+        services.AddSingleton<InventoryUnlockDialogViewModel>();
+
         services.AddSingleton<DialogManager>(sp =>
         {
             var manager = new DialogManager();
-            manager.Register<PacHostedDialogView, PacHostedDialogContext>();
+            manager.Register<InventoryUnlockDialogView, InventoryUnlockDialogViewModel>();
+            manager.Register<DrugKeyFixPreviewDialogView, DrugKeyFixPreviewDialogViewModel>();
+            manager.Register<InfoDetailDialogView, InfoDetailDialogViewModel>();
+            manager.Register<MsfxStateDetailDialogView, MsfxStateDetailDialogViewModel>();
+            manager.Register<MsfxMappingBatchDialogView, MsfxMappingBatchDialogViewModel>();
+            manager.Register<MsfxTaskSplitDialogView, MsfxTaskSplitDialogViewModel>();
             return manager;
         });
         services.AddSingleton<ToastManager>();
