@@ -36,14 +36,18 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
 
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
 
+    private const string LogModule = "MsfxMappingBatchDialogVM";
+
     private static readonly MsfxMappingBatchDialogResult CancelResult = new(
         MsfxMappingBatchDialogAction.Cancel, null, string.Empty, string.Empty);
 
     private readonly SearchInputDebouncer _keywordDebouncer = new(450);
+    private readonly CancellationTokenSource _sessionCts = new();
     private IReadOnlyList<OptionItem> _drugCatalog = [];
     private bool _initialized;
     private bool _isResettingFilters;
     private int _drugInputVersion;
+    private int _reloadEpoch;
     private Task? _inputCommitTask;
     private bool _isCompleting;
 
@@ -105,7 +109,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
             return;
         }
 
-        _ = RefreshPreviewAsync();
+        _ = RefreshPreviewSafeAsync(_sessionCts.Token);
     }
 
     partial void OnSelectedGroupChanged(MsfxMappingBatchGroupRow? value)
@@ -115,17 +119,17 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
             return;
         }
 
-        _ = RefreshPreviewAsync();
+        _ = RefreshPreviewSafeAsync(_sessionCts.Token);
     }
 
     partial void OnSelectedSearchScopeChanged(string value)
-        => OnFilterChangedAsync();
+        => ScheduleFilterReload();
 
     partial void OnSelectedMapStatusChanged(string value)
-        => OnFilterChangedAsync();
+        => ScheduleFilterReload();
 
     partial void OnSelectedCodeStatusChanged(string value)
-        => OnFilterChangedAsync();
+        => ScheduleFilterReload();
 
     partial void OnKeywordChanged(string value)
     {
@@ -137,11 +141,11 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
         if (string.IsNullOrWhiteSpace(value))
         {
             _keywordDebouncer.Cancel();
-            _ = ReloadGroupsAsync();
+            _ = ReloadGroupsSafeAsync(_sessionCts.Token);
             return;
         }
 
-        _keywordDebouncer.Schedule(ReloadGroupsAsync);
+        _keywordDebouncer.Schedule(() => ReloadGroupsSafeAsync(_sessionCts.Token));
     }
 
     partial void OnDrugTextChanged(string value)
@@ -177,11 +181,11 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
         }
         else
         {
-            await ReloadGroupsAsync().ConfigureAwait(true);
+            await ReloadGroupsSafeAsync(_sessionCts.Token).ConfigureAwait(true);
         }
 
         await RefreshDrugCatalogAsync().ConfigureAwait(true);
-        await RefreshPreviewAsync().ConfigureAwait(true);
+        await RefreshPreviewAsync(_sessionCts.Token).ConfigureAwait(true);
         _initialized = true;
     }
 
@@ -193,7 +197,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
     private async Task SearchAsync()
     {
         _keywordDebouncer.Cancel();
-        await ReloadGroupsAsync().ConfigureAwait(true);
+        await ReloadGroupsSafeAsync(_sessionCts.Token).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -213,7 +217,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
             _isResettingFilters = false;
         }
 
-        await ReloadGroupsAsync().ConfigureAwait(true);
+        await ReloadGroupsSafeAsync(_sessionCts.Token).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -223,7 +227,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
             var input = NormalizeInput(DrugText);
             if (string.IsNullOrWhiteSpace(input))
             {
-                await RefreshPreviewAsync().ConfigureAwait(true);
+                await RefreshPreviewAsync(_sessionCts.Token).ConfigureAwait(true);
                 return;
             }
 
@@ -236,12 +240,13 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
                 SelectedSpec = first;
             }
 
-            await RefreshPreviewAsync().ConfigureAwait(true);
+            await RefreshPreviewAsync(_sessionCts.Token).ConfigureAwait(true);
         });
 
     [RelayCommand]
     private void Close()
     {
+        CancelSessionWork();
         Result = CancelResult;
         CloseDialog();
     }
@@ -275,7 +280,11 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
     }
 
     public void Dispose()
-        => _keywordDebouncer.Dispose();
+    {
+        CancelSessionWork();
+        _sessionCts.Dispose();
+        _keywordDebouncer.Dispose();
+    }
 
     private void Complete(MsfxMappingBatchDialogAction action)
     {
@@ -287,6 +296,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
         _isCompleting = true;
         try
         {
+            CancelSessionWork();
             Result = new MsfxMappingBatchDialogResult(
                 action,
                 SelectedGroup,
@@ -305,7 +315,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
         }
     }
 
-    private async void OnFilterChangedAsync()
+    private void ScheduleFilterReload()
     {
         if (!_initialized || _isResettingFilters)
         {
@@ -313,21 +323,82 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
         }
 
         _keywordDebouncer.Cancel();
-        await ReloadGroupsAsync().ConfigureAwait(true);
+        _ = ReloadGroupsSafeAsync(_sessionCts.Token);
     }
 
-    private async Task ReloadGroupsAsync()
+    private void CancelSessionWork()
     {
+        _keywordDebouncer.Cancel();
+        Interlocked.Increment(ref _reloadEpoch);
+        if (!_sessionCts.IsCancellationRequested)
+        {
+            _sessionCts.Cancel();
+        }
+    }
+
+    private async Task ReloadGroupsSafeAsync(CancellationToken ct)
+    {
+        try
+        {
+            await ReloadGroupsAsync(ct).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn(
+                LogModule,
+                "msfx.map.batch.reload_fail",
+                "Failed to reload mapping batch groups",
+                ex);
+        }
+    }
+
+    private async Task RefreshPreviewSafeAsync(CancellationToken ct)
+    {
+        try
+        {
+            await RefreshPreviewAsync(ct).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn(
+                LogModule,
+                "msfx.map.batch.preview_fail",
+                "Failed to refresh mapping batch preview",
+                ex);
+        }
+    }
+
+    private async Task ReloadGroupsAsync(CancellationToken ct)
+    {
+        var epoch = Interlocked.Increment(ref _reloadEpoch);
+
         var groups = await syncService.LoadMappingBatchGroupsAsync(
             FilterInput.Norm(SelectedMapStatus),
             FilterInput.Norm(SelectedCodeStatus),
             ResolveSearchScope(SelectedSearchScope),
             NormalizeText(Keyword),
             limit: 500,
-            ct: CancellationToken.None).ConfigureAwait(false);
+            ct: ct).ConfigureAwait(false);
+
+        if (ct.IsCancellationRequested || epoch != Volatile.Read(ref _reloadEpoch))
+        {
+            return;
+        }
 
         await UiThreadHelper.RunOnUiAsync(() => ReplaceGroups(groups)).ConfigureAwait(false);
-        await RefreshPreviewAsync().ConfigureAwait(false);
+
+        if (ct.IsCancellationRequested || epoch != Volatile.Read(ref _reloadEpoch))
+        {
+            return;
+        }
+
+        await RefreshPreviewAsync(ct).ConfigureAwait(false);
     }
 
     private void ReplaceGroups(IReadOnlyList<MsfxMappingBatchGroupRow> groups)
@@ -376,7 +447,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
             if (IsLookupCatalogSuspended())
             {
                 await RefreshDrugCatalogAsync().ConfigureAwait(true);
-                await RefreshPreviewAsync().ConfigureAwait(true);
+                await RefreshPreviewAsync(_sessionCts.Token).ConfigureAwait(true);
                 return;
             }
 
@@ -386,13 +457,13 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
 
             if (string.IsNullOrWhiteSpace(input))
             {
-                await RefreshPreviewAsync().ConfigureAwait(true);
+                await RefreshPreviewAsync(_sessionCts.Token).ConfigureAwait(true);
                 return;
             }
 
             var version = Interlocked.Increment(ref _drugInputVersion);
             await ApplyDrugAsync(input, version).ConfigureAwait(true);
-            await RefreshPreviewAsync().ConfigureAwait(true);
+            await RefreshPreviewAsync(_sessionCts.Token).ConfigureAwait(true);
         });
 
     private async Task ApplyDrugAsync(string drugInput, int? version = null)
@@ -431,8 +502,13 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
         }).ConfigureAwait(false);
     }
 
-    private async Task RefreshPreviewAsync()
+    private async Task RefreshPreviewAsync(CancellationToken ct)
     {
+        if (ct.IsCancellationRequested)
+        {
+            return;
+        }
+
         if (SelectedGroup is not { } group)
         {
             PreviewText = "请选择分组后自动预览";
@@ -451,7 +527,12 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
             action: "APPLY_MAP",
             drugId: ResolvedDrugId,
             spec: ResolvedSpec,
-            ct: CancellationToken.None).ConfigureAwait(false);
+            ct: ct).ConfigureAwait(false);
+
+        if (ct.IsCancellationRequested)
+        {
+            return;
+        }
 
         PreviewText =
             $"将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，阻塞 {preview.BlockedCount} 条";
