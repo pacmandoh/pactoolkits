@@ -8,6 +8,4 @@ public partial class MsfxTaskSplitDialogView : UserControl
     {
         InitializeComponent();
     }
-
-    public string CustomQuantities => QuantitySplitBox?.Text ?? string.Empty;
 }

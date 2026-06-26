@@ -1,63 +1,69 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InventoryUnlockDialogView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  x:Name="Root"
-  d:DesignHeight="340"
-  d:DesignWidth="360"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  d:DesignHeight="420"
+  d:DesignWidth="320"
+  x:DataType="dialogs:InventoryUnlockDialogViewModel"
   mc:Ignorable="d">
-  <Border
-    MinWidth="320"
-    MaxWidth="420"
-    Padding="{DynamicResource DialogPadding}"
-    CornerRadius="16">
-    <StackPanel Spacing="14">
-      <Border
-        Width="44"
-        Height="44"
+  <StackPanel
+    Margin="24"
+    Spacing="16"
+    Width="320">
+    <Border
+      Width="44"
+      Height="44"
+      HorizontalAlignment="Center"
+      CornerRadius="22">
+      <icons:AppIcon
+        Width="24"
+        Height="24"
         HorizontalAlignment="Center"
-        CornerRadius="22">
-        <icons:AppIcon
-          Width="24"
-          Height="24"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Center"
-          Kind="Shield" />
-      </Border>
+        VerticalAlignment="Center"
+        Kind="Shield" />
+    </Border>
 
-      <TextBlock
-        HorizontalAlignment="Center"
-        Classes="DialogTitleLg"
-        FontWeight="SemiBold"
-        Text="库存操作身份验证" />
+    <TextBlock
+      HorizontalAlignment="Center"
+      Classes="h4"
+      Text="{Binding Title}" />
 
-      <TextBlock
-        HorizontalAlignment="Center"
-        Classes="Caption Muted"
-        Text="{Binding HintMessage, ElementName=Root}"
-        TextAlignment="Center"
-        TextWrapping="Wrap" />
+    <TextBlock
+      HorizontalAlignment="Center"
+      Classes="Caption Muted"
+      Text="{Binding HintMessage}"
+      TextAlignment="Center"
+      TextWrapping="Wrap" />
 
-      <StackPanel Spacing="{DynamicResource SpacingInlineSm}">
-        <TextBlock Classes="Caption Muted" Text="账户名" />
-        <TextBox
-          Height="{StaticResource ControlHeightCompact}"
-          IsEnabled="False"
-          Text="pacmandoh" />
-      </StackPanel>
+    <TextBox
+      IsEnabled="False"
+      shad:ControlAssist.Label="账户名"
+      Text="{Binding Username}" />
 
-      <StackPanel Spacing="{DynamicResource SpacingInlineSm}">
-        <TextBlock Classes="Caption Muted" Text="数据库密码" />
-        <TextBox
-          x:Name="PasswordBox"
-          Height="{StaticResource ControlHeightCompact}"
-          KeyDown="PasswordBox_OnKeyDown"
-          PasswordChar="●"
-          PlaceholderText="请输入数据库密码进行验证" />
-      </StackPanel>
+    <TextBox
+      Classes="PasswordReveal"
+      PasswordChar="•"
+      PlaceholderText="请输入数据库密码进行验证"
+      shad:ControlAssist.Label="数据库密码"
+      shad:ElementAssist.FocusOnLoad="True"
+      Text="{Binding Password, Mode=TwoWay}" />
+
+    <StackPanel Margin="0,24,0,0" Spacing="16">
+      <Button
+        Classes="Primary"
+        Command="{Binding SubmitCommand}"
+        Content="验证并解锁"
+        HotKey="Enter" />
+      <Button
+        Classes="Outline"
+        Command="{Binding CancelCommand}"
+        Content="取消"
+        HotKey="Escape" />
     </StackPanel>
-  </Border>
+  </StackPanel>
 </UserControl>

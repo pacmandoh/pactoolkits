@@ -1,78 +1,73 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InfoDetailDialogView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
+  xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
+  xmlns:infra="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  x:DataType="dialogs:InfoDetailDialogModel">
-  <Border
+  x:DataType="dialogs:InfoDetailDialogViewModel">
+  <StackPanel
+    Margin="24"
     MinWidth="460"
     MaxWidth="720"
-    Padding="{DynamicResource DialogPadding}"
-    CornerRadius="16">
-    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource PageRowSpacing}">
-      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-        <Border
-          Width="40"
-          Height="40"
-          CornerRadius="20">
-          <icons:AppIcon
-            Width="{DynamicResource IconSizeDialog}"
-            Height="{DynamicResource IconSizeDialog}"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Kind="Info" />
-        </Border>
-        <StackPanel
-          Grid.Column="1"
-          VerticalAlignment="Center"
-          Spacing="2">
-          <TextBlock Classes="DialogTitle" Text="{Binding Header}" />
-          <TextBlock
-            Classes="Caption Muted"
-            Text="{Binding SubHeader}"
-            TextWrapping="Wrap" />
-        </StackPanel>
-      </Grid>
-
+    Spacing="16">
+    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
       <Border
-        Grid.Row="1"
-        Height="1"
-        Opacity="0.22" />
-
-      <ScrollViewer
-        Grid.Row="2"
-        MaxHeight="420"
-        HorizontalScrollBarVisibility="Disabled"
-        VerticalScrollBarVisibility="Auto">
-        <ItemsControl ItemsSource="{Binding Items}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <WrapPanel
-                ItemSpacing="{DynamicResource SpacingInlineMd}"
-                ItemWidth="320"
-                LineSpacing="{DynamicResource SpacingInlineMd}" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="dialogs:InfoDetailItem">
-              <Border Padding="10,8" CornerRadius="10">
-                <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
-                  <TextBlock
-                    VerticalAlignment="Center"
-                    Classes="Caption Muted"
-                    Text="{Binding Label}" />
-                  <TextBlock
-                    Grid.Row="1"
-                    VerticalAlignment="Center"
-                    Text="{Binding Value}"
-                    TextWrapping="Wrap" />
-                </Grid>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
+        Width="40"
+        Height="40"
+        CornerRadius="20">
+        <icons:AppIcon
+          Width="{DynamicResource IconSizeDialog}"
+          Height="{DynamicResource IconSizeDialog}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Kind="Info" />
+      </Border>
+      <StackPanel
+        Grid.Column="1"
+        VerticalAlignment="Center"
+        Spacing="2">
+        <TextBlock Classes="h4" Text="{Binding Detail.Header}" />
+        <TextBlock
+          Classes="Caption Muted"
+          Text="{Binding Detail.SubHeader}"
+          TextWrapping="Wrap" />
+      </StackPanel>
     </Grid>
-  </Border>
+
+    <ScrollViewer
+      MaxHeight="420"
+      HorizontalScrollBarVisibility="Disabled"
+      VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding Detail.Items}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel
+              ItemSpacing="{DynamicResource SpacingInlineMd}"
+              ItemWidth="320"
+              LineSpacing="{DynamicResource SpacingInlineMd}" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="infra:InfoDetailItem">
+            <Border Padding="10,8" CornerRadius="10">
+              <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+                <TextBlock Classes="Caption Muted" Text="{Binding Label}" />
+                <TextBlock
+                  Grid.Row="1"
+                  Text="{Binding Value}"
+                  TextWrapping="Wrap" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <Button
+      Classes="Primary"
+      Command="{Binding CloseCommand}"
+      Content="关闭"
+      HotKey="Escape" />
+  </StackPanel>
 </UserControl>
