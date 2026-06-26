@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxTaskSplitDialogView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -134,10 +134,22 @@
           HorizontalAlignment="Right"
           Orientation="Horizontal"
           Spacing="{DynamicResource SpacingInlineSm}">
-          <Button Classes="Outline" Command="{Binding CloseCommand}" Content="关闭" />
-          <Button Classes="Secondary" Command="{Binding SplitByBatchCommand}" Content="按批号拆分" />
-          <Button Classes="Secondary" Command="{Binding SplitCustomCommand}" Content="自定义数量拆分" />
-          <Button Classes="Primary" Command="{Binding SplitByParentClusterCommand}" Content="按父码簇拆分" />
+          <Button
+            Classes="Outline"
+            Command="{Binding CloseCommand}"
+            Content="关闭" />
+          <Button
+            Classes="Secondary"
+            Command="{Binding SplitByBatchCommand}"
+            Content="按批号拆分" />
+          <Button
+            Classes="Secondary"
+            Command="{Binding SplitCustomCommand}"
+            Content="自定义数量拆分" />
+          <Button
+            Classes="Primary"
+            Command="{Binding SplitByParentClusterCommand}"
+            Content="按父码簇拆分" />
         </StackPanel>
       </Grid>
     </shad:Card>
