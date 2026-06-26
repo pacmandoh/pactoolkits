@@ -162,6 +162,9 @@ public static class AutoCompleteCommit
         }
     }
 
+    public static void CommitPendingInput(AutoCompleteBox box)
+        => CommitSuggestInput(box);
+
     private static void CommitSuggestInput(AutoCompleteBox box)
     {
         TryApplyActiveOrFirstMatch(box);
