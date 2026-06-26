@@ -64,5 +64,9 @@ public sealed class SearchInputDebouncer : IDisposable
         catch (OperationCanceledException)
         {
         }
+        catch (Exception ex)
+        {
+            AppLog.Warn("SearchInputDebouncer", "search.debounce.fail", "Debounced search action failed", ex);
+        }
     }
 }

@@ -225,6 +225,7 @@
 - `dispose.update_settings_unsub_fail`
 - `dispose.updates_unsub_fail`
 - `dispose.logging_settings_unsub_fail`
+- `settings.nav_click.fail`
 
 ## InventoryOverviewViewModel
 
@@ -279,12 +280,30 @@
 - `msfx.task.split.success`
 - `msfx.audit.diagnose.pending_without_match`
 - `msfx.audit.snapshot.refresh_fail`
+- `msfx.auto.timer_tick.fail`
 
 说明:
 
 - `msfx.auto.*` 里的开始/汇总/完成类事件主要为 `Info`
 - 人工介入且需要保留审计可见性的事件，如 `msfx.task.reopen.success`、`msfx.map.batch.apply`、`msfx.task.merge.success`、`msfx.task.split.success`，按 `Warn` 记录
 - 失败类事件按 `Error`
+
+## MsfxMappingBatchDialogVM
+
+- `msfx.map.batch.reload_fail`
+- `msfx.map.batch.preview_fail`
+
+说明:
+
+- 批量映射对话框内分组加载/预览失败按 `Warn` 记录（模态对话框，不重复 shell 连接 toast）
+
+## MsfxMappingBatchDialogView
+
+- `msfx.map.batch.attach_init.fail`
+
+## SearchInputDebouncer
+
+- `search.debounce.fail`
 
 ## DashboardViewModel
 

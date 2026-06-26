@@ -72,6 +72,7 @@ public static class ServiceRegistration
     private static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddSingleton<IToastService, ToastService>();
+        services.AddSingleton<IBackgroundTaskRunner, BackgroundTaskRunner>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<ISensitiveUnlockService, SensitiveUnlockService>();
         services.AddSingleton<AhkInjectorAgentRuntime>();

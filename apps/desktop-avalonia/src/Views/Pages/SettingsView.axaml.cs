@@ -139,24 +139,31 @@ public partial class SettingsView : UserControl
 
     private async void OnNavButtonClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (sender is not Button navButton || navButton.Tag is null)
+        try
         {
-            return;
+            if (sender is not Button navButton || navButton.Tag is null)
+            {
+                return;
+            }
+
+            var sectionIndex = navButton.Tag switch
+            {
+                int i => i,
+                string s when int.TryParse(s, out var parsed) => parsed,
+                _ => -1
+            };
+
+            if (sectionIndex < 0)
+            {
+                return;
+            }
+
+            await SetActiveSectionAsync(sectionIndex, scrollToSection: true);
         }
-
-        var sectionIndex = navButton.Tag switch
+        catch (Exception ex)
         {
-            int i => i,
-            string s when int.TryParse(s, out var parsed) => parsed,
-            _ => -1
-        };
-
-        if (sectionIndex < 0)
-        {
-            return;
+            AppLog.Warn("SettingsView", "settings.nav_click.fail", "Navigation button handler failed", ex);
         }
-
-        await SetActiveSectionAsync(sectionIndex, scrollToSection: true);
     }
 
     private void InitializeSectionNavigation()

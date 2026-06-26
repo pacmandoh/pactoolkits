@@ -12,6 +12,7 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Integration;
 
@@ -66,7 +67,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private readonly ISensitiveUnlockService _unlockService;
     private readonly IToastService _toast;
     private readonly IDialogService _dialog;
+    private readonly IBackgroundTaskRunner _backgroundTasks;
     private readonly DispatcherTimer _autoTimer;
+    private int _autoTimerTickRunning;
     private int _manualMsfxWriteDepth;
 
     private bool IsManualMsfxWriteActive => _manualMsfxWriteDepth > 0;
@@ -315,7 +318,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         IAppConfigStore configStore,
         ISensitiveUnlockService unlockService,
         IToastService toast,
-        IDialogService dialog)
+        IDialogService dialog,
+        IBackgroundTaskRunner backgroundTasks)
     {
         _msfxApi = msfxApi;
         _syncService = syncService;
@@ -323,6 +327,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         _unlockService = unlockService;
         _toast = toast;
         _dialog = dialog;
+        _backgroundTasks = backgroundTasks;
         _upoutDateRangeController = new RollingDateRangeController(() =>
             PostOnUi(HandleUpoutDateRangeDayChanged, DispatcherPriority.Background));
 
