@@ -551,7 +551,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         var confirmMessage = IsSingleReassignScope
             ? $"将选中追溯码纠错到 {targetDrug}/{targetSpec}，是否继续？"
             : $"将“当前筛选关键字”命中的库存批量纠错到 {targetDrug}/{targetSpec}，是否继续？";
-        var ok = await _dialog.Confirm("确认纠错", confirmMessage);
+        var ok = await _dialog.ConfirmDestructive("确认纠错", confirmMessage);
         if (!ok)
         {
             return;
@@ -619,7 +619,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     default);
                 if (guardPreview.WillChangeCount > _inventory.LargeBatchReassignConfirmThreshold)
                 {
-                    var secondOk = await _dialog.Confirm(
+                    var secondOk = await _dialog.ConfirmDestructive(
                         "批量纠错二次确认",
                         $"本次可变更 {guardPreview.WillChangeCount.ToString(CultureInfo.InvariantCulture)} 条，已超过阈值 {_inventory.LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)}请再次确认是否提交");
                     if (!secondOk)
@@ -740,7 +740,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        var ok = await _dialog.Confirm(
+        var ok = await _dialog.ConfirmDestructive(
             "确认删除",
             $"将删除 {traceCodes.Length.ToString(CultureInfo.InvariantCulture)} 条库存明细记录，操作不可撤销是否继续？");
         if (!ok)
