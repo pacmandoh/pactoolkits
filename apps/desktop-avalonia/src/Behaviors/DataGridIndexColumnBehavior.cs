@@ -245,7 +245,7 @@ public class DataGridIndexColumnBehavior
                 {
                     _structureSeeded = true;
                     ApplyPresentation();
-                    DataGridSortResetBehavior.NotifyIndexHeaderChanged(_grid);
+                    DataGridSortResetBehavior.RefreshIndexHeader(_grid);
                     return;
                 }
 
@@ -254,7 +254,7 @@ public class DataGridIndexColumnBehavior
                     _column = (DataGridTemplateColumn)_grid.Columns[0];
                     _structureSeeded = true;
                     ApplyPresentation();
-                    DataGridSortResetBehavior.NotifyIndexHeaderChanged(_grid);
+                    DataGridSortResetBehavior.RefreshIndexHeader(_grid);
                     return;
                 }
 
@@ -262,7 +262,7 @@ public class DataGridIndexColumnBehavior
                 InsertIndexColumn(_column);
                 _structureSeeded = true;
                 ApplyPresentation();
-                DataGridSortResetBehavior.NotifyIndexHeaderChanged(_grid);
+                DataGridSortResetBehavior.RefreshIndexHeader(_grid);
             }
             catch
             {
@@ -321,7 +321,7 @@ public class DataGridIndexColumnBehavior
             {
                 _column.Header = BuildHeader(headerText);
                 _appliedHeader = headerText;
-                DataGridSortResetBehavior.NotifyIndexHeaderChanged(_grid);
+                DataGridSortResetBehavior.RefreshIndexHeader(_grid);
             }
 
             if (_appliedMode != mode)

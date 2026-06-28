@@ -753,13 +753,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private void EnterManualMsfxWrite()
     {
         Interlocked.Increment(ref _manualMsfxWriteDepth);
-        NotifyCommands(RunAutoOnceCommand);
+        RefreshCommands(RunAutoOnceCommand);
     }
 
     private void ExitManualMsfxWrite()
     {
         Interlocked.Decrement(ref _manualMsfxWriteDepth);
-        NotifyCommands(RunAutoOnceCommand);
+        RefreshCommands(RunAutoOnceCommand);
     }
 
     private async Task ReopenSelectedTaskAsync()
@@ -1641,22 +1641,22 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             var checkedIds = _allTaskQueueRows.Where(x => x.IsChecked).Select(x => x.TaskId).ToHashSet();
             _allTaskQueueRows = taskRows.Select(x => new MsfxAutoTaskQueueGridRow(
-                    TaskId: x.TaskId,
-                    SourceBillCode: x.SourceBillCode ?? "--",
-                    BatchNos: string.IsNullOrWhiteSpace(x.BatchNos) ? "--" : x.BatchNos!,
-                    MappedDrugId: x.MappedDrugId,
-                    MappedSpec: x.MappedSpec,
-                    TotalCodes: x.TotalCodes,
-                    CurrentCodeCount: x.CurrentCodeCount,
-                    Target: $"{x.MappedDrugId} / {x.MappedSpec}",
-                    Status: x.Status,
-                    Progress: $"{x.SuccessCodes}/{x.TotalCodes} 成功, 失败{x.FailedCodes}",
-                    RetryCount: x.RetryCount,
-                    CreatedAt: x.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
-                    PickedAt: x.PickedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--",
-                    FinishedAt: x.FinishedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--",
-                    ErrMsg: x.ErrMsg ?? string.Empty,
-                    State: ToTaskState(x.Status)))
+                    taskId: x.TaskId,
+                    sourceBillCode: x.SourceBillCode ?? "--",
+                    batchNos: string.IsNullOrWhiteSpace(x.BatchNos) ? "--" : x.BatchNos!,
+                    mappedDrugId: x.MappedDrugId,
+                    mappedSpec: x.MappedSpec,
+                    totalCodes: x.TotalCodes,
+                    currentCodeCount: x.CurrentCodeCount,
+                    target: $"{x.MappedDrugId} / {x.MappedSpec}",
+                    status: x.Status,
+                    progress: $"{x.SuccessCodes}/{x.TotalCodes} 成功, 失败{x.FailedCodes}",
+                    retryCount: x.RetryCount,
+                    createdAt: x.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
+                    pickedAt: x.PickedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--",
+                    finishedAt: x.FinishedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--",
+                    errMsg: x.ErrMsg ?? string.Empty,
+                    state: ToTaskState(x.Status)))
                 .ToList();
             foreach (var row in _allTaskQueueRows)
             {

@@ -172,7 +172,7 @@ Windows PowerShell：
 
 ## Agent 路径解析
 
-启动时 `AgentPathResolver` 按以下顺序解析（相对路径基于 Desktop 安装目录）：
+启动时 `AgentPath` 按以下顺序解析（相对路径基于 Desktop 安装目录）：
 
 1. **Legacy / 旧标准路径升级**：配置为 `Tools\pacinjector.exe` 或旧版 `Agents\agent-injector-ahk\pactoolkits-agent-injector-ahk.exe`，且 bundled 新标准 exe 存在 → 使用 `.\Agents\injector\pactoolkits-injector.exe` 并写回配置
 2. **Configured**：其它配置路径且文件存在 → 使用配置路径（含用户自定义路径）

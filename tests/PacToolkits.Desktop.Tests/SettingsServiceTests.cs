@@ -279,7 +279,7 @@ public sealed class SettingsServiceTests
         public Task<bool> TestConnectionAsync(PgOptions opt, CancellationToken ct)
             => Task.FromResult(true);
 
-        public Task SaveAndApplyAsync(PgOptions opt, CancellationToken ct = default)
+        public Task ApplyAsync(PgOptions opt, CancellationToken ct = default)
         {
             Applied?.Invoke(this, EventArgs.Empty);
             return Task.CompletedTask;

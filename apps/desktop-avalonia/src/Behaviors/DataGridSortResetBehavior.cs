@@ -60,7 +60,7 @@ public class DataGridSortResetBehavior
     public static void SetClearFilterCommand(DataGrid grid, ICommand? value)
         => grid.SetValue(ClearFilterCommandProperty, value);
 
-    internal static void NotifyIndexHeaderChanged(DataGrid grid)
+    internal static void RefreshIndexHeader(DataGrid grid)
     {
         if (!States.TryGetValue(grid, out var state))
         {
@@ -113,7 +113,7 @@ public class DataGridSortResetBehavior
             _grid.Columns.CollectionChanged += OnColumnsChanged;
             DataGridSortSupportBehavior.Apply(_grid);
             AttachSortDescriptions(_grid.CollectionView?.SortDescriptions);
-            EnsureHeaderButtonInstalled();
+            InstallHeaderButton();
             UpdateHeaderFace();
         }
 
@@ -138,7 +138,7 @@ public class DataGridSortResetBehavior
         private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
         {
             DataGridSortSupportBehavior.Apply(_grid);
-            EnsureHeaderButtonInstalled();
+            InstallHeaderButton();
             UpdateHeaderFace();
         }
 
@@ -153,7 +153,7 @@ public class DataGridSortResetBehavior
             {
                 DataGridSortSupportBehavior.Apply(_grid);
                 AttachSortDescriptions(_grid.CollectionView?.SortDescriptions);
-                EnsureHeaderButtonInstalled();
+                InstallHeaderButton();
                 Dispatcher.UIThread.Post(UpdateHeaderFace, DispatcherPriority.Background);
             }
         }
@@ -188,7 +188,7 @@ public class DataGridSortResetBehavior
 
         private void OnSorting(object? sender, DataGridColumnEventArgs e)
         {
-            EnsureHeaderButtonInstalled();
+            InstallHeaderButton();
             Dispatcher.UIThread.Post(UpdateHeaderFace, DispatcherPriority.Background);
         }
 
@@ -226,9 +226,9 @@ public class DataGridSortResetBehavior
             }
         }
 
-        public void RequestHeaderButtonInstall() => EnsureHeaderButtonInstalled();
+        public void RequestHeaderButtonInstall() => InstallHeaderButton();
 
-        private void EnsureHeaderButtonInstalled()
+        private void InstallHeaderButton()
         {
             void TryInstall()
             {

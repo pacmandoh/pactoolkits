@@ -3,12 +3,12 @@ using PacToolkits.Desktop.Avalonia.Services.Application;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class PageStaleWhileReconnectPolicyTests
+public sealed class PageReconnectPolicyTests
 {
     [Fact]
     public void DisconnectedAvailability_returns_stale_when_loaded_and_supported()
     {
-        var availability = PageStaleWhileReconnectPolicy.DisconnectedAvailability(
+        var availability = PageReconnectPolicy.DisconnectedAvailability(
             hasLoadedOnce: true,
             supportsStaleWhileReconnect: true);
 
@@ -18,7 +18,7 @@ public sealed class PageStaleWhileReconnectPolicyTests
     [Fact]
     public void DisconnectedAvailability_returns_awaiting_database_before_first_load()
     {
-        var availability = PageStaleWhileReconnectPolicy.DisconnectedAvailability(
+        var availability = PageReconnectPolicy.DisconnectedAvailability(
             hasLoadedOnce: false,
             supportsStaleWhileReconnect: true);
 
@@ -28,7 +28,7 @@ public sealed class PageStaleWhileReconnectPolicyTests
     [Fact]
     public void DisconnectedAvailability_returns_awaiting_database_when_stale_not_supported()
     {
-        var availability = PageStaleWhileReconnectPolicy.DisconnectedAvailability(
+        var availability = PageReconnectPolicy.DisconnectedAvailability(
             hasLoadedOnce: true,
             supportsStaleWhileReconnect: false);
 
@@ -46,7 +46,7 @@ public sealed class PageStaleWhileReconnectPolicyTests
         bool reloadFromDbSignal,
         bool expected)
     {
-        var actual = PageStaleWhileReconnectPolicy.SuppressReloadBusy(
+        var actual = PageReconnectPolicy.SuppressReloadBusy(
             hasLoadedOnce,
             supportsStaleWhileReconnect,
             reloadFromDbSignal);

@@ -145,7 +145,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         => ReloadLookupAsync(ct);
 
     protected override void OnReloadFinished()
-        => NotifyActionCommands();
+        => RefreshPageCommands();
 
     private bool CanOperateUi() => !IsBusy;
 
@@ -265,7 +265,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                 : "请选择药品与规格", 0);
         }
 
-        NotifyActionCommands();
+        RefreshPageCommands();
     }
 
     private void RefreshDrugOptionsOrder(string? searchText)
@@ -279,19 +279,19 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     }
 
     partial void OnSelectedQtyTextChanged(string? value)
-        => NotifyActionCommands();
+        => RefreshPageCommands();
 
     partial void OnSelectedSpecChanged(OptionItem? value)
     {
         IsSpecSelected = value is not null;
         _ = RefreshQtyAndContextStatusAsync();
-        NotifyActionCommands();
+        RefreshPageCommands();
     }
 
     partial void OnTraceCodesTextChanged(string value)
     {
         RecalcCodeStats(value);
-        NotifyActionCommands();
+        RefreshPageCommands();
     }
 
     [RelayCommand]
@@ -378,7 +378,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         UpdateStatus(DrugOptions.Count == 0
             ? "药品信息为空，请先维护药品信息"
             : "请选择药品与规格", 0);
-        NotifyActionCommands();
+        RefreshPageCommands();
     }
 
     [RelayCommand(CanExecute = nameof(CanSubmit))]
@@ -470,7 +470,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
                 {
                     await RunOnUiAsync(() => { TraceCodesText = string.Empty; }).ConfigureAwait(false);
                 }
-            }, onFinished: NotifyActionCommands);
+            }, onFinished: RefreshPageCommands);
         }
         catch (Exception ex)
         {
@@ -505,7 +505,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     }
 
     [RelayCommand]
-    private void EnsureEditorContext()
+    private void ValidateEditorContext()
     {
         if (SkipTrigger())
         {
@@ -574,7 +574,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             ? "自动拉取已启用：可开始任务调度"
             : "自动拉取已关闭：当前不会执行自动任务";
 
-        NotifyActionCommands();
+        RefreshPageCommands();
     }
 
     [RelayCommand(CanExecute = nameof(CanStopAutoFetch))]
@@ -791,11 +791,11 @@ public sealed partial class ScanCodeViewModel : AppPageBase
         ContextStatusLevel = level;
     }
 
-    private void NotifyActionCommands()
+    private void RefreshPageCommands()
     {
         OnPropertyChanged(nameof(IsTraceCodeInputEnabled));
         OnPropertyChanged(nameof(IsTraceCodeInputBlocked));
-        NotifyCommands(GetNotifiableCommands());
+        RefreshCommands(GetNotifiableCommands());
     }
 
     private IRelayCommand?[] GetNotifiableCommands()
@@ -808,7 +808,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             StopAutoFetchCommand,
             RetryFailedCommand,
             OpenAutoFetchSettingsCommand,
-            EnsureEditorContextCommand
+            ValidateEditorContextCommand
         ];
 
     private void OnAutoTasksChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -847,7 +847,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             RecentRuns.RemoveAt(RecentRuns.Count - 1);
         }
 
-        NotifyActionCommands();
+        RefreshPageCommands();
     }
 
     private static string NowText() => DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
@@ -1005,6 +1005,37 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             return "unknown";
         }
     }
+}
+
+public sealed class TraceCodeLineItemViewModel
+{
+    public TraceCodeLineItemViewModel(TraceCodeLineAnalysis line)
+    {
+        DisplayText = line.Raw;
+        Status = line.Status;
+    }
+
+    public string DisplayText { get; }
+
+    public TraceCodeLineStatus Status { get; }
+
+    public bool IsValid => Status == TraceCodeLineStatus.Valid;
+
+    public bool IsDuplicate => Status is TraceCodeLineStatus.ScanDuplicate or TraceCodeLineStatus.PoolDuplicate;
+
+    public bool IsInvalid => Status == TraceCodeLineStatus.Invalid;
+
+    public bool ShowStatusHint => Status is TraceCodeLineStatus.ScanDuplicate
+        or TraceCodeLineStatus.PoolDuplicate
+        or TraceCodeLineStatus.Invalid;
+
+    public string StatusHint => Status switch
+    {
+        TraceCodeLineStatus.ScanDuplicate => "本批重复",
+        TraceCodeLineStatus.PoolDuplicate => "已入库",
+        TraceCodeLineStatus.Invalid => "不合规则",
+        _ => string.Empty
+    };
 }
 
 public sealed record AutoFetchTaskItem(string Name, string Schedule, string State, string Detail);

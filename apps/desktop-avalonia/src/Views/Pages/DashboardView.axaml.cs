@@ -81,7 +81,7 @@ public partial class DashboardView : UserControl
 
             QueueTabGrids(vm);
             QueueOverviewGrids(vm);
-            EnsureTrendChart(vm);
+            MountTrendChart(vm);
         }
     }
 
@@ -101,7 +101,7 @@ public partial class DashboardView : UserControl
                 QueueOverviewGrids(vm);
                 break;
             case nameof(DashboardViewModel.IsTrendChartVisible):
-                EnsureTrendChart(vm);
+                MountTrendChart(vm);
                 break;
             case nameof(DashboardViewModel.IsRecentTxnsEmpty):
                 QueueOverviewGrids(vm);
@@ -156,7 +156,7 @@ public partial class DashboardView : UserControl
         }
     }
 
-    private void EnsureTrendChart(DashboardViewModel vm)
+    private void MountTrendChart(DashboardViewModel vm)
     {
         if (!vm.IsTrendChartVisible || TrendChartHost.Content is DrugTrendChart)
         {

@@ -267,7 +267,7 @@ public partial class ScanCodeView : UserControl
             return;
         }
 
-        var cmd = vm.EnsureEditorContextCommand;
+        var cmd = vm.ValidateEditorContextCommand;
         if (cmd?.CanExecute(null) == true)
         {
             cmd.Execute(null);
@@ -281,7 +281,7 @@ public partial class ScanCodeView : UserControl
             return;
         }
 
-        vm.EnsureEditorContextCommand.Execute(null);
+        vm.ValidateEditorContextCommand.Execute(null);
         e.Handled = true;
     }
 

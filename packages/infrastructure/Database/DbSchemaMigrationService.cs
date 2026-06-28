@@ -99,7 +99,7 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
 
         try
         {
-            await EnsurePublicSearchPathAsync(conn, commandTimeout, ct).ConfigureAwait(false);
+            await SetPublicSearchPathAsync(conn, commandTimeout, ct).ConfigureAwait(false);
 
             if (!await TableExistsAsync(conn, "schema_migrations", commandTimeout, ct).ConfigureAwait(false))
             {
@@ -440,7 +440,7 @@ set schema_version = excluded.schema_version,
         return string.Join('\n', filtered);
     }
 
-    private static async Task EnsurePublicSearchPathAsync(
+    private static async Task SetPublicSearchPathAsync(
         NpgsqlConnection conn,
         int timeoutSeconds,
         CancellationToken ct)

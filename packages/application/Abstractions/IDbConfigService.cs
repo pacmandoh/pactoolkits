@@ -8,5 +8,5 @@ public interface IDbConfigService
     event EventHandler? Applied;
 
     Task<bool> TestConnectionAsync(PgOptions opt, CancellationToken ct);
-    Task SaveAndApplyAsync(PgOptions opt, CancellationToken ct = default);
+    Task ApplyAsync(PgOptions opt, CancellationToken ct = default);
 }

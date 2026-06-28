@@ -2,12 +2,12 @@ using PacToolkits.Desktop.Avalonia.Services.Application;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class MsfxMappingBatchReloadGateTests
+public sealed class MsfxBatchReloadGateTests
 {
     [Fact]
     public void BeginReload_invalidates_previous_epoch()
     {
-        var gate = new MsfxMappingBatchReloadGate();
+        var gate = new MsfxBatchReloadGate();
 
         var first = gate.BeginReload();
         var second = gate.BeginReload();
@@ -19,7 +19,7 @@ public sealed class MsfxMappingBatchReloadGateTests
     [Fact]
     public void Invalidate_discards_inflight_epoch()
     {
-        var gate = new MsfxMappingBatchReloadGate();
+        var gate = new MsfxBatchReloadGate();
         var epoch = gate.BeginReload();
 
         Assert.True(gate.IsCurrent(epoch));
@@ -32,7 +32,7 @@ public sealed class MsfxMappingBatchReloadGateTests
     [Fact]
     public void Invalidate_after_newer_reload_only_affects_older_epochs()
     {
-        var gate = new MsfxMappingBatchReloadGate();
+        var gate = new MsfxBatchReloadGate();
         var stale = gate.BeginReload();
         var fresh = gate.BeginReload();
 

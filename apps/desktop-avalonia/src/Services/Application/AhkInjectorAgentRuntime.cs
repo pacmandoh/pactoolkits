@@ -171,7 +171,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
     public void Reload()
     {
         var cfg = _configStore.Load();
-        var resolution = AgentPathResolver.ResolveInjectorAhk(
+        var resolution = AgentPath.ResolveInjectorAhk(
             ResolveConfiguredPath(cfg),
             AppContext.BaseDirectory);
 
@@ -212,7 +212,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         var cloned = Clone(normalized);
         await _configStore.UpdateAsync(cfg =>
         {
-            EnsureAgentSection(cfg, cloned);
+            ApplyAgentSection(cfg, cloned);
             cfg.AutomationTools.Ahk = cloned;
         }, ct).ConfigureAwait(false);
 
@@ -260,7 +260,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
                 return new ToolCommandResult(false, "Agent 已在配置中禁用", SuppressToast: false);
             }
 
-            var schemaValidation = await ValidateDbCompatibilityAsync(ct).ConfigureAwait(false);
+            var schemaValidation = await ValidateSchemaCompatAsync(ct).ConfigureAwait(false);
             if (!schemaValidation.Ok)
             {
                 return SetError(schemaValidation.Message);
@@ -788,7 +788,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         {
             _configStore.Update(root =>
             {
-                EnsureAgentSection(root, normalized);
+                ApplyAgentSection(root, normalized);
                 root.AutomationTools.Ahk = Clone(normalized);
             });
         }
@@ -798,7 +798,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         }
     }
 
-    private static void EnsureAgentSection(AppConfigRoot cfg, AhkToolOptions options)
+    private static void ApplyAgentSection(AppConfigRoot cfg, AhkToolOptions options)
     {
         cfg.Agents ??= new Dictionary<string, AgentInstanceConfig>(StringComparer.Ordinal);
         if (!cfg.Agents.TryGetValue(AgentIds.InjectorAhk, out var agent))
@@ -824,7 +824,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
             cfg.AutomationTools));
     }
 
-    private async Task<ToolCommandResult> ValidateDbCompatibilityAsync(CancellationToken ct)
+    private async Task<ToolCommandResult> ValidateSchemaCompatAsync(CancellationToken ct)
     {
         var version = _releaseVersion.Current;
         var minimum = MinDbSchema;
@@ -912,7 +912,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
     }
 
     private static string? ResolveExecutablePath(string? value)
-        => AgentPathResolver.ResolvePath(value, AppContext.BaseDirectory);
+        => AgentPath.ResolvePath(value, AppContext.BaseDirectory);
 
     private void RaiseChanged()
     {

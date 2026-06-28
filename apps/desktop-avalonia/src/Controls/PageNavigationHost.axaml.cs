@@ -49,7 +49,7 @@ public class PageNavigationHost : Grid
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        EnsureKnownViews();
+        MountKnownViews();
         UpdateActiveVisibility();
     }
 
@@ -57,21 +57,21 @@ public class PageNavigationHost : Grid
     {
         if (Page is not null)
         {
-            EnsureView(Page);
+            MountPageView(Page);
         }
 
         UpdateActiveVisibility();
     }
 
-    private void EnsureKnownViews()
+    private void MountKnownViews()
     {
         if (Page is not null)
         {
-            EnsureView(Page);
+            MountPageView(Page);
         }
     }
 
-    private void EnsureView(AppPageBase page)
+    private void MountPageView(AppPageBase page)
     {
         if (_views.ContainsKey(page))
         {
@@ -112,7 +112,7 @@ public class PageNavigationHost : Grid
     {
         if (Page is not null && (Pages is null || !_views.ContainsKey(Page)))
         {
-            EnsureView(Page);
+            MountPageView(Page);
         }
 
         foreach (var (page, view) in _views)
