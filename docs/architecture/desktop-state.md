@@ -85,7 +85,7 @@ flowchart TB
 | `PageReloadBusyDelay`                    | 取数 busy 延迟 300ms（stale 静默刷新跳过） |
 | `AppPageBase.ExecuteReloadPipelineAsync` | 预检 → 取数 → 更新 `PageDataAvailability`  |
 
-新数据页接入步骤见 `.cursor/rules/architecture.mdc` 中 “Adding a data page”。
+新数据页接入步骤见 [layering.md](./layering.md) 与 `AppPageBase.cs` 重载流水线实现。
 
 ## 反模式
 
