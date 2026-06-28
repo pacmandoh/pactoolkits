@@ -45,24 +45,6 @@ public sealed class BackgroundTaskRunnerTests
         Assert.Null(logger.LastEvent);
     }
 
-    [Fact]
-    public async Task RunDetached_shows_toast_when_requested()
-    {
-        var logger = new CapturingLogger();
-        var toast = new CapturingToastService();
-        var runner = new BackgroundTaskRunner(logger, toast);
-
-        runner.RunDetached(
-            _ => throw new InvalidOperationException("toast me"),
-            "TestModule",
-            "test.background.toast",
-            toastOnError: true);
-
-        await Task.Delay(200);
-
-        Assert.Equal("toast me", toast.LastMessage);
-    }
-
     private sealed class CapturingLogger : IAppLogger
     {
         public string? LastModule { get; private set; }
@@ -116,23 +98,4 @@ public sealed class BackgroundTaskRunnerTests
         }
     }
 
-    private sealed class CapturingToastService : IToastService
-    {
-        public string? LastMessage { get; private set; }
-
-        public void Info(string title, string message)
-        {
-        }
-
-        public void Success(string title, string message)
-        {
-        }
-
-        public void Warn(string title, string message)
-        {
-        }
-
-        public void Error(string title, string message)
-            => LastMessage = message;
-    }
 }

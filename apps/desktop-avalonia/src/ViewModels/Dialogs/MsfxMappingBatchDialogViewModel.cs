@@ -10,6 +10,7 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 using ShadUI;
@@ -47,7 +48,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
     private bool _initialized;
     private bool _isResettingFilters;
     private int _drugInputVersion;
-    private int _reloadEpoch;
+    private readonly MsfxMappingBatchReloadGate _reloadGate = new();
     private Task? _inputCommitTask;
     private bool _isCompleting;
 
@@ -329,7 +330,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
     private void CancelSessionWork()
     {
         _keywordDebouncer.Cancel();
-        Interlocked.Increment(ref _reloadEpoch);
+        _reloadGate.Invalidate();
         if (!_sessionCts.IsCancellationRequested)
         {
             _sessionCts.Cancel();
@@ -376,7 +377,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
 
     private async Task ReloadGroupsAsync(CancellationToken ct)
     {
-        var epoch = Interlocked.Increment(ref _reloadEpoch);
+        var epoch = _reloadGate.BeginReload();
 
         var groups = await syncService.LoadMappingBatchGroupsAsync(
             FilterInput.Norm(SelectedMapStatus),
@@ -386,14 +387,14 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
             limit: 500,
             ct: ct).ConfigureAwait(false);
 
-        if (ct.IsCancellationRequested || epoch != Volatile.Read(ref _reloadEpoch))
+        if (ct.IsCancellationRequested || !_reloadGate.IsCurrent(epoch))
         {
             return;
         }
 
         await UiThreadHelper.RunOnUiAsync(() => ReplaceGroups(groups)).ConfigureAwait(false);
 
-        if (ct.IsCancellationRequested || epoch != Volatile.Read(ref _reloadEpoch))
+        if (ct.IsCancellationRequested || !_reloadGate.IsCurrent(epoch))
         {
             return;
         }
