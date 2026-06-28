@@ -1,7 +1,9 @@
 # ------------------------------
-# Cursor local agent config (rules, hooks)
+# Local agent config (rules, hooks, skills)
 # ------------------------------
 .cursor/
+.agent/
+AGENTS.md
 
 # ------------------------------
 # OS / editor noise

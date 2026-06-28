@@ -8,7 +8,7 @@
     - SubsectionTitle (14 semi) — in-card group headers
     - DialogTitle* — dialog chrome
     - AboutHeroVersion, AboutSubtitle — About hero only
-    Content header page title: Small Muted (see ui-naming.mdc).
+    Content header page title: Small Muted.
     Secondary copy: use Shad Caption Muted. Body values: use Shad Small.
   -->
 
