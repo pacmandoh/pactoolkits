@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
@@ -439,4 +440,16 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
     }
 
+}
+
+public sealed partial class ClientAliasRow : ObservableObject
+{
+    public ClientAliasRow(string machine, string alias)
+    {
+        _machine = machine;
+        _alias = alias;
+    }
+
+    [ObservableProperty] private string _machine;
+    [ObservableProperty] private string _alias;
 }

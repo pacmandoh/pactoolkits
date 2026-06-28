@@ -123,7 +123,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         if (string.IsNullOrWhiteSpace(drug))
         {
             IsDrugSuggestOpen = false;
-            EnsureAllSpecOnly();
+            ResetSpecToAll();
             if (!IsReloadSuppressed)
             {
                 RequestReloadWithPagingReset();
@@ -157,7 +157,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         RequestReloadWithPagingReset();
     }
 
-    private void EnsureAllSpecOnly()
+    private void ResetSpecToAll()
     {
         using (SuppressReload())
         {
@@ -178,7 +178,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                     DrugOptions.Clear();
                     _drugCatalog = [];
                     IsDrugSuggestOpen = false;
-                    EnsureAllSpecOnly();
+                    ResetSpecToAll();
                 }
             }, DispatcherPriority.Background);
             return;
@@ -419,7 +419,7 @@ public sealed partial class DashboardViewModel : AppPageBase
             _drugCatalog = [];
             IsDrugSuggestOpen = false;
             DrugText = null;
-            EnsureAllSpecOnly();
+            ResetSpecToAll();
         }
     }
 
@@ -555,7 +555,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                     }
                     else
                     {
-                        await RunOnUiAsync(EnsureAllSpecOnly, DispatcherPriority.Background);
+                        await RunOnUiAsync(ResetSpecToAll, DispatcherPriority.Background);
                     }
                 }
             }
@@ -766,7 +766,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         {
             using var _ = SuppressReload();
             DrugText = null;
-            EnsureAllSpecOnly();
+            ResetSpecToAll();
             SelectedClient = AllClients;
         }, DispatcherPriority.Background);
 
@@ -1109,7 +1109,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
         if (string.IsNullOrWhiteSpace(drug))
         {
-            EnsureAllSpecOnly();
+            ResetSpecToAll();
         }
         else
         {
@@ -1433,7 +1433,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
         if (string.IsNullOrWhiteSpace(drug))
         {
-            await RunOnUiAsync(EnsureAllSpecOnly);
+            await RunOnUiAsync(ResetSpecToAll);
         }
         else
         {

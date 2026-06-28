@@ -37,7 +37,7 @@ public partial class InventoryOverviewView : UserControl
     {
         _reassignPreviewSlot ??= root.FindControl<DeferredGridSlot>("ReassignPreviewGridSlot");
         AttachReassignDrugFilter();
-        QueueReassignPreviewGridMount();
+        QueueReassignGridMount();
     }
 
     private void QueueAggGridMount()
@@ -106,7 +106,7 @@ public partial class InventoryOverviewView : UserControl
         }
     }
 
-    private void QueueReassignPreviewGridMount()
+    private void QueueReassignGridMount()
     {
         if (_reassignPreviewSlot is null
             || _vm?.IsReassignPanelVisible != true
@@ -293,7 +293,7 @@ public partial class InventoryOverviewView : UserControl
 
         SyncStockEditClass();
         QueueStockDetailGridMount();
-        QueueReassignPreviewGridMount();
+        QueueReassignGridMount();
         TryQueueActiveModeGrid();
     }
 
@@ -357,7 +357,7 @@ public partial class InventoryOverviewView : UserControl
         if (e.PropertyName is nameof(InventoryOverviewViewModel.IsReassignPanelVisible)
             or nameof(InventoryOverviewViewModel.IsReassignPreviewEmpty))
         {
-            QueueReassignPreviewGridMount();
+            QueueReassignGridMount();
         }
 
         if (e.PropertyName == nameof(InventoryOverviewViewModel.SelectedStockRow))
@@ -384,11 +384,11 @@ public partial class InventoryOverviewView : UserControl
             return;
         }
 
-        ClearStockGridSelectionCore(grid);
-        Dispatcher.UIThread.Post(() => ClearStockGridSelectionCore(grid), DispatcherPriority.Loaded);
+        ClearStockGridSelection(grid);
+        Dispatcher.UIThread.Post(() => ClearStockGridSelection(grid), DispatcherPriority.Loaded);
     }
 
-    private void ClearStockGridSelectionCore(DataGrid grid)
+    private void ClearStockGridSelection(DataGrid grid)
     {
         _isSyncingSelectionFromVm = true;
         try

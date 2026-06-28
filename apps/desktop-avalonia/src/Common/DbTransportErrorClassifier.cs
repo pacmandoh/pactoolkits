@@ -13,7 +13,7 @@ public static class DbTransportErrorClassifier
             return false;
         }
 
-        if (IsTransportErrorCore(ex))
+        if (MatchesTransportError(ex))
         {
             return true;
         }
@@ -22,7 +22,7 @@ public static class DbTransportErrorClassifier
         {
             foreach (var inner in aggregate.Flatten().InnerExceptions)
             {
-                if (IsTransportError(inner))
+                if (MatchesTransportError(inner))
                 {
                     return true;
                 }
@@ -32,7 +32,7 @@ public static class DbTransportErrorClassifier
         return LooksLikeEndpointUnreachable(ex);
     }
 
-    private static bool IsTransportErrorCore(Exception ex)
+    private static bool MatchesTransportError(Exception ex)
     {
         if (IsPgProviderException(ex))
         {
@@ -47,7 +47,7 @@ public static class DbTransportErrorClassifier
         var inner = ex.InnerException;
         while (inner is not null)
         {
-            if (IsTransportErrorCore(inner))
+            if (MatchesTransportError(inner))
             {
                 return true;
             }

@@ -3,11 +3,11 @@ using Xunit;
 
 namespace PacToolkits.Agent.Contracts.Tests;
 
-public sealed class AgentPathResolverTests : IDisposable
+public sealed class AgentPathTests : IDisposable
 {
     private readonly string _baseDirectory;
 
-    public AgentPathResolverTests()
+    public AgentPathTests()
     {
         _baseDirectory = Path.Combine(Path.GetTempPath(), "pactoolkits-agent-path-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_baseDirectory);
@@ -29,7 +29,7 @@ public sealed class AgentPathResolverTests : IDisposable
         var legacyExecutable = Path.Combine(legacyDirectory, AgentPaths.LegacyInjectorFileName);
         File.WriteAllText(legacyExecutable, string.Empty);
 
-        var resolution = AgentPathResolver.ResolveInjectorAhk(null, _baseDirectory);
+        var resolution = AgentPath.ResolveInjectorAhk(null, _baseDirectory);
 
         Assert.Equal(AgentExecutableResolutionSource.Missing, resolution.Source);
         Assert.Null(resolution.ResolvedPath);
@@ -42,7 +42,7 @@ public sealed class AgentPathResolverTests : IDisposable
     {
         CreateStandardExecutable();
 
-        var resolution = AgentPathResolver.ResolveInjectorAhk(null, _baseDirectory);
+        var resolution = AgentPath.ResolveInjectorAhk(null, _baseDirectory);
 
         Assert.Equal(AgentPaths.InjectorAhkExecutable, resolution.StoredPath);
         Assert.NotNull(resolution.ResolvedPath);
@@ -57,7 +57,7 @@ public sealed class AgentPathResolverTests : IDisposable
         CreateStandardExecutable();
         CreateLegacyExecutable();
 
-        var resolution = AgentPathResolver.ResolveInjectorAhk(
+        var resolution = AgentPath.ResolveInjectorAhk(
             AgentPaths.LegacyInjectorExecutable,
             _baseDirectory);
 
@@ -73,7 +73,7 @@ public sealed class AgentPathResolverTests : IDisposable
     {
         CreateStandardExecutable();
 
-        var resolution = AgentPathResolver.ResolveInjectorAhk(
+        var resolution = AgentPath.ResolveInjectorAhk(
             AgentPaths.PreviousInjectorAhkExecutable,
             _baseDirectory);
 
@@ -87,7 +87,7 @@ public sealed class AgentPathResolverTests : IDisposable
     {
         CreateStandardExecutable();
 
-        var resolution = AgentPathResolver.ResolveInjectorAhk(
+        var resolution = AgentPath.ResolveInjectorAhk(
             AgentPaths.LegacyInjectorExecutable,
             _baseDirectory);
 
@@ -106,7 +106,7 @@ public sealed class AgentPathResolverTests : IDisposable
         File.WriteAllText(customExecutable, string.Empty);
         var configured = @".\Custom\custom-agent.exe";
 
-        var resolution = AgentPathResolver.ResolveInjectorAhk(configured, _baseDirectory);
+        var resolution = AgentPath.ResolveInjectorAhk(configured, _baseDirectory);
 
         Assert.Equal(AgentExecutableResolutionSource.Configured, resolution.Source);
         Assert.Equal(configured, resolution.StoredPath);
@@ -119,7 +119,7 @@ public sealed class AgentPathResolverTests : IDisposable
     [InlineData(@"C:\Apps\PacToolkits\Tools\pacinjector.exe")]
     public void IsLegacy_accepts(string storedPath)
     {
-        Assert.True(AgentPathResolver.IsLegacyInjectorStoredPath(storedPath));
+        Assert.True(AgentPath.IsLegacyInjectorStoredPath(storedPath));
     }
 
     [Theory]
@@ -127,7 +127,7 @@ public sealed class AgentPathResolverTests : IDisposable
     [InlineData(@"D:\Other\pacinjector.exe")]
     public void IsLegacy_rejects(string storedPath)
     {
-        Assert.False(AgentPathResolver.IsLegacyInjectorStoredPath(storedPath));
+        Assert.False(AgentPath.IsLegacyInjectorStoredPath(storedPath));
     }
 
     [Theory]
@@ -135,7 +135,7 @@ public sealed class AgentPathResolverTests : IDisposable
     [InlineData(@"Agents/agent-injector-ahk/pactoolkits-agent-injector-ahk.exe")]
     public void IsPreviousStandard_accepts(string storedPath)
     {
-        Assert.True(AgentPathResolver.IsPreviousStandardInjectorStoredPath(storedPath));
+        Assert.True(AgentPath.IsPreviousStandardInjectorStoredPath(storedPath));
     }
 
     private void CreateStandardExecutable()

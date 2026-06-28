@@ -112,7 +112,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         OnPropertyChanged(nameof(ShowLockOperations));
         OnPropertyChanged(nameof(UnlockStatusText));
         OnPropertyChanged(nameof(CanToggleReassignPanel));
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     partial void OnIsOperationUnlockedChanged(bool value)
@@ -120,7 +120,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         OnPropertyChanged(nameof(UnlockStatusText));
         OnPropertyChanged(nameof(ShowRequestUnlock));
         OnPropertyChanged(nameof(ShowLockOperations));
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     public bool IsDetailMode => ModeIndex == 0;
@@ -285,7 +285,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             OnPropertyChanged(nameof(IsReassignPreviewEmpty));
         }
 
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     public void SetSelectedStockRows(IReadOnlyList<StockRowItem> rows)
@@ -306,7 +306,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             OnPropertyChanged(nameof(IsReassignPreviewEmpty));
         }
 
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     private void ClearStockSelection()
@@ -361,7 +361,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
 
         OnPropertyChanged(nameof(SuppressGridClearInReassignDialog));
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     partial void OnReassignDrugTextChanged(string? value)
@@ -378,7 +378,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             ReassignQtyText = null;
             IsReassignSpecSelected = false;
         }
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     private void RefreshReassignDrugOptionsOrder(string? searchText)
@@ -399,7 +399,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         IsReassignSpecSelected = value is not null;
         ReassignTargetSpec = NormalizeInput(value?.Raw);
         _ = RefreshReassignQtyAsync();
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     partial void OnReassignTargetDrugIdChanged(string? value)
@@ -407,7 +407,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         ReassignPreviewText = null;
         ReassignPreviewRows.Clear();
         OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     partial void OnReassignTargetSpecChanged(string? value)
@@ -415,25 +415,25 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         ReassignPreviewText = null;
         ReassignPreviewRows.Clear();
         OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     partial void OnReassignReasonChanged(string? value)
-        => NotifyAllCommands();
+        => RefreshPageCommands();
 
     partial void OnReassignQtyTextChanged(string? value)
-        => NotifyAllCommands();
+        => RefreshPageCommands();
 
     partial void OnReassignPreviewTextChanged(string? value)
     {
         OnPropertyChanged(nameof(HasReassignPreviewText));
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     partial void OnIsReassignBusyChanged(bool value)
     {
         OnPropertyChanged(nameof(IsUiBusy));
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     protected override void OnBusyChanged(bool isBusy)
@@ -447,7 +447,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         ReassignPreviewText = null;
         ReassignPreviewRows.Clear();
         OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     protected override Task ReloadCoreAsync(CancellationToken ct)
@@ -467,7 +467,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     }
 
     protected override void OnReloadFinished()
-        => NotifyAllCommands();
+        => RefreshPageCommands();
 
     private Task ReloadAsync(bool preserveEditSession = false)
     {
@@ -483,7 +483,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             onFinished: () =>
             {
                 SetModeBusy(ModeIndex, false);
-                NotifyAllCommands();
+                RefreshPageCommands();
             });
     }
 
@@ -694,11 +694,11 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         PostOnUi(RefreshUnlockState, DispatcherPriority.Background);
     }
 
-    private void NotifyAllCommands()
+    private void RefreshPageCommands()
     {
-        NotifyCommandsCoalesced("inventory.notify_commands", () =>
+        RefreshCommandsCoalesced("inventory.refresh_commands", () =>
         {
-            NotifyCommands(GetNotifiableCommands());
+            RefreshCommands(GetNotifiableCommands());
             RefreshPendingChanges();
         });
     }

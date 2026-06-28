@@ -15,9 +15,7 @@ public sealed record ConnectivityBanner(
     string Title,
     string Message,
     ConnectivitySeverity Severity,
-    bool ShowOpenSettings);
-
-public static class ConnectivityBannerFactory
+    bool ShowOpenSettings)
 {
     public static ConnectivityBanner Create(
         bool isDbConnected,
@@ -38,7 +36,7 @@ public static class ConnectivityBannerFactory
         {
             if (!isConnectivityKnown)
             {
-                return HiddenBanner;
+                return Hidden;
             }
 
             return new ConnectivityBanner(
@@ -49,10 +47,10 @@ public static class ConnectivityBannerFactory
                 ShowOpenSettings: true);
         }
 
-        return HiddenBanner;
+        return Hidden;
     }
 
-    private static readonly ConnectivityBanner HiddenBanner = new(
+    private static readonly ConnectivityBanner Hidden = new(
         IsVisible: false,
         Title: string.Empty,
         Message: string.Empty,

@@ -33,10 +33,10 @@ public partial class MainWindowViewModel
         }
 
         // Reason: Refresh runs on the UI thread because page commands touch bindings.
-        PostOnUi(RefreshActiveAndMarkOthersDirty);
+        PostOnUi(RunWorkspaceRefresh);
     }
 
-    private void RefreshActiveAndMarkOthersDirty()
+    private void RunWorkspaceRefresh()
     {
         try
         {

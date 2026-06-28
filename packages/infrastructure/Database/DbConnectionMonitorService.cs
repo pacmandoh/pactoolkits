@@ -47,17 +47,17 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
 
     public void Start()
     {
-        EnsureLoopRunning();
+        StartMonitorLoop();
         EnqueueSignal();
     }
 
     public void Signal()
     {
-        EnsureLoopRunning();
+        StartMonitorLoop();
         EnqueueSignal();
     }
 
-    private void EnsureLoopRunning()
+    private void StartMonitorLoop()
     {
         _loop ??= Task.Run(() => RunAsync(_cts.Token));
     }

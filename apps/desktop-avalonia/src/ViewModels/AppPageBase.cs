@@ -191,7 +191,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         return trimmed.Length == 0 ? null : trimmed;
     }
 
-    protected static void NotifyCommands(params IRelayCommand?[] commands)
+    protected static void RefreshCommands(params IRelayCommand?[] commands)
     {
         PostOnUi(() =>
         {
@@ -214,11 +214,11 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     protected static void PostOnUi(Action action, DispatcherPriority priority)
         => UiThreadHelper.PostOnUi(action, priority);
 
-    protected void NotifyCommandsCoalesced(string gateKey, Action notifyAction)
+    protected void RefreshCommandsCoalesced(string gateKey, Action refreshAction)
     {
         if (Dispatcher.UIThread.CheckAccess())
         {
-            notifyAction();
+            refreshAction();
             return;
         }
 
@@ -230,7 +230,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         PostOnUi(() =>
         {
             _uiCoalesceGates.TryRemove(gateKey, out _);
-            notifyAction();
+            refreshAction();
         }, DispatcherPriority.Background);
     }
 
@@ -266,7 +266,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         Action? onFinished = null)
     {
         return _reload.RunAsync(
-            ct => ExecuteReloadPipelineAsync(ct, v => IsBusy = v, action),
+            ct => RunReloadPipelineAsync(ct, v => IsBusy = v, action),
             onFinished);
     }
 
@@ -276,11 +276,11 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         Action? onFinished = null)
     {
         return _reload.RunAsync(
-            ct => ExecuteReloadPipelineAsync(ct, setBusy, action),
+            ct => RunReloadPipelineAsync(ct, setBusy, action),
             onFinished);
     }
 
-    private async Task ExecuteReloadPipelineAsync(
+    private async Task RunReloadPipelineAsync(
         CancellationToken ct,
         Action<bool> setLoadingBusy,
         Func<CancellationToken, Task> fetch)
@@ -361,7 +361,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         }
         catch (OperationCanceledException)
         {
-            RestoreAvailabilityAfterCancelledReload();
+            RestoreAfterCancel();
         }
         catch (Exception ex) when (IsDbAccessBlockedException(ex))
         {
@@ -374,7 +374,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
             if (IsDbTransportError(ex) || IsDbAccessBlockedException(ex))
             {
-                RestoreAvailabilityAfterFailedReload();
+                RestoreAfterFail();
                 return;
             }
 
@@ -389,7 +389,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         }
     }
 
-    private void RestoreAvailabilityAfterCancelledReload()
+    private void RestoreAfterCancel()
     {
         if (IsDbAccessBlocked(out var reason))
         {
@@ -406,7 +406,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
         SetPageAvailability(_hasLoadedOnce ? PageDataAvailability.Ready : PageDataAvailability.NotLoaded);
     }
 
-    private void RestoreAvailabilityAfterFailedReload()
+    private void RestoreAfterFail()
     {
         if (IsDbAccessBlocked(out var reason))
         {
@@ -424,10 +424,10 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     }
 
     private PageDataAvailability GetDisconnectedAvailability()
-        => PageStaleWhileReconnectPolicy.DisconnectedAvailability(_hasLoadedOnce, SupportsStaleWhileReconnect);
+        => PageReconnectPolicy.DisconnectedAvailability(_hasLoadedOnce, SupportsStaleWhileReconnect);
 
     private bool SuppressReloadBusy()
-        => PageStaleWhileReconnectPolicy.SuppressReloadBusy(
+        => PageReconnectPolicy.SuppressReloadBusy(
             _hasLoadedOnce,
             SupportsStaleWhileReconnect,
             _reloadFromDbSignal);
@@ -460,14 +460,14 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     {
         if (Dispatcher.UIThread.CheckAccess())
         {
-            SetPageAvailabilityCore(availability, detail);
+            ApplyPageAvailability(availability, detail);
             return;
         }
 
-        PostOnUi(() => SetPageAvailabilityCore(availability, detail));
+        PostOnUi(() => ApplyPageAvailability(availability, detail));
     }
 
-    private void SetPageAvailabilityCore(PageDataAvailability availability, string? detail = null)
+    private void ApplyPageAvailability(PageDataAvailability availability, string? detail = null)
     {
         if (availability == PageDataAvailability.AccessBlocked)
         {

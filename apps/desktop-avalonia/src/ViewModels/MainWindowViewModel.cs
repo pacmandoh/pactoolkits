@@ -297,7 +297,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void RaiseConnectivityChanged()
     {
         var wasBlocked = _wasAccessGuardBlocked;
-        var banner = ConnectivityBannerFactory.Create(
+        var banner = ConnectivityBanner.Create(
             IsDbConnected,
             _isDbConnectivityKnown,
             _accessGuard);
@@ -519,7 +519,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        await CheckAndPromptUpdateAsync(showNoUpdateToast: true, startupMode: false).ConfigureAwait(false);
+        await PromptUpdateAsync(showNoUpdateToast: true, startupMode: false).ConfigureAwait(false);
     }
 
     [RelayCommand]
@@ -1507,10 +1507,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         _logger.Info("MainWindowVM", "update.check.startup", "Auto checking updates on startup");
-        await CheckAndPromptUpdateAsync(showNoUpdateToast: false, startupMode: true).ConfigureAwait(false);
+        await PromptUpdateAsync(showNoUpdateToast: false, startupMode: true).ConfigureAwait(false);
     }
 
-    private async Task CheckAndPromptUpdateAsync(bool showNoUpdateToast, bool startupMode)
+    private async Task PromptUpdateAsync(bool showNoUpdateToast, bool startupMode)
     {
         if (_updates.IsChecking || IsUpdateApplying)
         {

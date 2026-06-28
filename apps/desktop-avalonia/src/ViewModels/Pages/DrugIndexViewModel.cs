@@ -104,7 +104,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             EditQty = first.Qty;
 
             IsDirty = true;
-            NotifyAllCommands();
+            RefreshPageCommands();
 
             var msg = parse.Rows.Count > 1
                 ? $"已填充第 1 条（共识别 {parse.Rows.Count} 条），请审计后手动保存"
@@ -119,7 +119,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         finally
         {
             IsBusy = false;
-            NotifyAllCommands();
+            RefreshPageCommands();
         }
     }
 
@@ -265,7 +265,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         OnPropertyChanged(nameof(IsEditorInputEnabled));
         OnPropertyChanged(nameof(CanRequestEditorUnlock));
         OnPropertyChanged(nameof(CanLockEditor));
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
     partial void OnHasEditorChanged(bool value)
     {
@@ -432,10 +432,10 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         var nextDrugId = next?.DrugId;
         var nextSpec = next?.Spec;
 
-        Dispatcher.UIThread.Post(() => _ = HandleSelectionChangeAsync(prev, next, nextDrugId, nextSpec));
+        Dispatcher.UIThread.Post(() => _ = OnSelectionChangedAsync(prev, next, nextDrugId, nextSpec));
     }
 
-    private async Task HandleSelectionChangeAsync(DrugRow? prev, DrugRow? next, string? nextDrugId, string? nextSpec)
+    private async Task OnSelectionChangedAsync(DrugRow? prev, DrugRow? next, string? nextDrugId, string? nextSpec)
     {
         if (HasEditor && HasChanges())
         {
@@ -546,7 +546,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private void MarkDirty()
     {
         IsDirty = HasChanges();
-        NotifyCommands(SaveCommand, DeleteCommand, FixDrugKeyCommand);
+        RefreshCommands(SaveCommand, DeleteCommand, FixDrugKeyCommand);
     }
 
     private void LoadToEditor(DrugRow row)
@@ -572,7 +572,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         RecalcEditorFlags(EditNote);
 
         IsDirty = false;
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     private void ClearEditor(bool keepEditorVisible)
@@ -599,7 +599,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         IsNoSplit = false;
 
         IsDirty = false;
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     private bool HasChanges()
@@ -672,7 +672,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         Selected?.NotePreview = EditNote;
 
         IsDirty = false;
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     private bool CanSave()
@@ -705,10 +705,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private bool CanNewItem()
         => CanOperateUi();
 
-    private bool CanRequestEditorUnlockCore()
-        => CanRequestEditorUnlock;
-
-    [RelayCommand(CanExecute = nameof(CanRequestEditorUnlockCore))]
+    [RelayCommand(CanExecute = nameof(CanRequestEditorUnlock))]
     private async Task RequestEditorUnlockAsync()
     {
         var hint = "敏感操作提示：验证仅在本地进行，不会上传密码\n请输入数据库密码以解锁药品信息编辑";
@@ -721,10 +718,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         RefreshEditorUnlockState();
     }
 
-    private bool CanLockEditorCore()
-        => CanLockEditor;
-
-    [RelayCommand(CanExecute = nameof(CanLockEditorCore))]
+    [RelayCommand(CanExecute = nameof(CanLockEditor))]
     private Task LockEditorAsync()
     {
         _unlockService.Lock(UnlockScopeKey);
@@ -752,7 +746,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
     private void RefreshEditorUnlockUi()
     {
-        NotifyAllCommands();
+        RefreshPageCommands();
         OnPropertyChanged(nameof(CanRequestEditorUnlock));
         OnPropertyChanged(nameof(CanLockEditor));
         OnPropertyChanged(nameof(IsEditorInputEnabled));
@@ -860,7 +854,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                     await _dialog.Warn("保存冲突", "该记录已被其他终端修改，请先刷新后再编辑");
                     if (saveResult.Concurrency?.Current is not null)
                     {
-                        await ReloadAndReselectAsync(saveResult.Concurrency.Current.DrugId, saveResult.Concurrency.Current.Spec);
+                        await ReloadWithReselectAsync(saveResult.Concurrency.Current.DrugId, saveResult.Concurrency.Current.Spec);
                     }
                     else
                     {
@@ -879,7 +873,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             _loadedSnapshot = saved;
 
             IsDirty = false;
-            NotifyAllCommands();
+            RefreshPageCommands();
 
             var hasActiveKeyword = !string.IsNullOrWhiteSpace(NormalizeInput(_query.Keyword));
             if (!refreshAfterSave && !hasActiveKeyword)
@@ -901,7 +895,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
             if (reselectSavedRow)
             {
-                await ReloadAndReselectAsync(drugId, spec);
+                await ReloadWithReselectAsync(drugId, spec);
             }
             else
             {
@@ -925,7 +919,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         finally
         {
             IsBusy = false;
-            NotifyAllCommands();
+            RefreshPageCommands();
         }
     }
 
@@ -1079,7 +1073,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         finally
         {
             IsBusy = false;
-            NotifyAllCommands();
+            RefreshPageCommands();
         }
     }
 
@@ -1087,9 +1081,9 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         => RunLocalReloadAsync(
             setBusy: v => IsListBusy = v,
             action: ReloadCoreAsync,
-            onFinished: NotifyAllCommands);
+            onFinished: RefreshPageCommands);
 
-    private async Task ReloadAndReselectAsync(string drugId, string spec)
+    private async Task ReloadWithReselectAsync(string drugId, string spec)
     {
         await ReloadAsync();
         await Dispatcher.UIThread.InvokeAsync(() =>
@@ -1177,7 +1171,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     }
 
     protected override void OnReloadFinished()
-        => NotifyAllCommands();
+        => RefreshPageCommands();
 
     [RelayCommand]
     private Task SearchAsync()
@@ -1230,7 +1224,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         HasEditor = true;
 
         IsDirty = false;
-        NotifyCommands(SaveCommand);
+        RefreshCommands(SaveCommand);
     }
 
     [RelayCommand(CanExecute = nameof(CanDelete))]
@@ -1276,7 +1270,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         finally
         {
             IsBusy = false;
-            NotifyAllCommands();
+            RefreshPageCommands();
         }
     }
 
@@ -1343,10 +1337,10 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         return s + " " + token;
     }
 
-    private void NotifyAllCommands()
+    private void RefreshPageCommands()
     {
-        NotifyCommandsCoalesced("drug_index.notify_commands", () =>
-            NotifyCommands(GetNotifiableCommands()));
+        RefreshCommandsCoalesced("drug_index.refresh_commands", () =>
+            RefreshCommands(GetNotifiableCommands()));
     }
 
     private IRelayCommand?[] GetNotifiableCommands()

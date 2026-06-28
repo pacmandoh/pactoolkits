@@ -15,14 +15,14 @@ public abstract class FormDialogViewModelBase(DialogManager dialogManager) : Vie
     {
         if (Dispatcher.UIThread.CheckAccess() || global::Avalonia.Application.Current is null)
         {
-            CloseDialogCore(success);
+            CompleteClose(success);
             return;
         }
 
-        Dispatcher.UIThread.Invoke(() => CloseDialogCore(success));
+        Dispatcher.UIThread.Invoke(() => CompleteClose(success));
     }
 
-    private void CloseDialogCore(bool success)
+    private void CompleteClose(bool success)
     {
         if (success)
         {

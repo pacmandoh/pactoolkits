@@ -44,7 +44,7 @@ public sealed class DbConfigService : IDbConfigService
         }
     }
 
-    public async Task SaveAndApplyAsync(PgOptions opt, CancellationToken ct = default)
+    public async Task ApplyAsync(PgOptions opt, CancellationToken ct = default)
     {
         await _optionsStore.SavePgOptionsAsync(CloneOptions(opt), ct).ConfigureAwait(false);
 

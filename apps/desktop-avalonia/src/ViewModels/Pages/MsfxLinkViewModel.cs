@@ -443,7 +443,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             AddAutoLog("调度", "已停止自动化监控", TraceEntryState.Warning);
         }
 
-        NotifyCommands(RunAutoOnceCommand, ClearAutoLogsCommand);
+        RefreshCommands(RunAutoOnceCommand, ClearAutoLogsCommand);
     }
 
     partial void OnIsAutoBusyChanged(bool value)
@@ -453,8 +453,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             AutoRunProgressValue = 0;
             ShowAutoProgressPanel = false;
         }
-        NotifyCommandsCoalesced("msfx.auto.busy.commands", () =>
-            NotifyCommands(RunAutoOnceCommand, ClearAutoLogsCommand, RefreshAutoBoardCommand));
+        RefreshCommandsCoalesced("msfx.auto.busy.commands", () =>
+            RefreshCommands(RunAutoOnceCommand, ClearAutoLogsCommand, RefreshAutoBoardCommand));
     }
 
     partial void OnIsPullPanelBusyChanged(bool value) => RefreshAutoBoardBusy();
@@ -466,8 +466,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private void RefreshAutoBoardBusy()
     {
         OnPropertyChanged(nameof(IsAutoBoardBusy));
-        NotifyCommandsCoalesced("msfx.auto.board.commands", () =>
-            NotifyCommands(RefreshAutoBoardCommand));
+        RefreshCommandsCoalesced("msfx.auto.board.commands", () =>
+            RefreshCommands(RefreshAutoBoardCommand));
         PostOnUi(() => OnPropertyChanged(nameof(CanBatchReopenSelectedTasks)), DispatcherPriority.Background);
         PostOnUi(() => OnPropertyChanged(nameof(CanBatchDiscardSelectedTasks)), DispatcherPriority.Background);
         PostOnUi(() => OnPropertyChanged(nameof(CanBatchRemapSelectedTasks)), DispatcherPriority.Background);
