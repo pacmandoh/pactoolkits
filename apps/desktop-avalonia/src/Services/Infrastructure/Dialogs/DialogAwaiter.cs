@@ -31,7 +31,7 @@ internal static class DialogAwaiter
             }
         }
 
-        if (Dispatcher.UIThread.CheckAccess())
+        if (Dispatcher.UIThread.CheckAccess() || global::Avalonia.Application.Current is null)
         {
             Run();
         }

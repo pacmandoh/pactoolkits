@@ -1,8 +1,6 @@
 using System.Reflection;
 using Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
-using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
-using PacToolkits.Desktop.Avalonia.Views.Dialogs;
 using ShadUI;
 
 namespace PacToolkits.Desktop.Tests;
@@ -13,15 +11,19 @@ public sealed class DialogSessionStackOrphanTests
     public void PrepareShow_dismisses_registered_view_without_datacontext()
     {
         var manager = new DialogManager();
-        manager.Register<MsfxMappingBatchDialogView, MsfxMappingBatchDialogViewModel>();
+        manager.Register<StubDialogView, StubDialogViewModel>();
 
-        var orphan = new MsfxMappingBatchDialogView { DataContext = null };
+        var orphan = new StubDialogView { DataContext = null };
         GetDialogs(manager)[orphan] = new DialogOptions();
 
-        DialogSessionStack.PrepareShow(manager, typeof(MsfxMappingBatchDialogViewModel));
+        DialogSessionStack.PrepareShow(manager, typeof(StubDialogViewModel));
 
         Assert.Empty(GetDialogs(manager));
     }
+
+    private sealed class StubDialogView : Control;
+
+    private sealed class StubDialogViewModel;
 
     private static Dictionary<Control, DialogOptions> GetDialogs(DialogManager manager)
     {
