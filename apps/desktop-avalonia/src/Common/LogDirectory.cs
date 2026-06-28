@@ -8,7 +8,7 @@ public sealed record LogDirectoryResolution(
     string RuntimeDirectory,
     bool RequiresMigration);
 
-public static class LogDirectoryResolver
+public static class LogDirectory
 {
     public const string LogsSegment = "logs";
     public const string LegacySubdirectory = "ui";

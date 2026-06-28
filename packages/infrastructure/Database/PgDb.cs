@@ -28,7 +28,7 @@ public sealed class PgDb : IDb
         Func<IDbConnection, CancellationToken, Task<T>> work,
         CancellationToken ct = default)
     {
-        return await WithConnectionCore(async (conn, token) => await work(conn, token).ConfigureAwait(false), ct)
+        return await RunWithConnectionAsync(async (conn, token) => await work(conn, token).ConfigureAwait(false), ct)
             .ConfigureAwait(false);
     }
 
@@ -36,7 +36,7 @@ public sealed class PgDb : IDb
         Func<IDbConnection, CancellationToken, Task> work,
         CancellationToken ct = default)
     {
-        await WithConnectionCore(async (conn, token) => { await work(conn, token).ConfigureAwait(false); return 0; }, ct)
+        await RunWithConnectionAsync(async (conn, token) => { await work(conn, token).ConfigureAwait(false); return 0; }, ct)
             .ConfigureAwait(false);
     }
 
@@ -45,7 +45,7 @@ public sealed class PgDb : IDb
         IsolationLevel isolation = IsolationLevel.ReadCommitted,
         CancellationToken ct = default)
     {
-        return await WithTransactionCore(
+        return await RunWithTransactionAsync(
                 async (conn, tx, token) => await work(conn, tx, token).ConfigureAwait(false),
                 isolation, ct)
             .ConfigureAwait(false);
@@ -56,14 +56,14 @@ public sealed class PgDb : IDb
         IsolationLevel isolation = IsolationLevel.ReadCommitted,
         CancellationToken ct = default)
     {
-        await WithTransactionCore(
+        await RunWithTransactionAsync(
                 async (conn, tx, token) => { await work(conn, tx, token).ConfigureAwait(false); return 0; },
                 isolation, ct)
             .ConfigureAwait(false);
     }
 
 
-    private async Task<T> WithConnectionCore<T>(
+    private async Task<T> RunWithConnectionAsync<T>(
         Func<IDbConnection, CancellationToken, Task<T>> work,
         CancellationToken ct)
     {
@@ -72,7 +72,7 @@ public sealed class PgDb : IDb
         return await work(conn, ct).ConfigureAwait(false);
     }
 
-    private async Task<T> WithTransactionCore<T>(
+    private async Task<T> RunWithTransactionAsync<T>(
         Func<IDbConnection, IDbTransaction, CancellationToken, Task<T>> work,
         IsolationLevel isolation,
         CancellationToken ct)

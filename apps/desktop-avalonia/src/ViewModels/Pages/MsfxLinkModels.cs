@@ -87,39 +87,39 @@ public sealed record MsfxAutoMapQueueGridRow(
 public sealed partial class MsfxAutoTaskQueueGridRow : ObservableObject
 {
     public MsfxAutoTaskQueueGridRow(
-        long TaskId,
-        string SourceBillCode,
-        string BatchNos,
-        string MappedDrugId,
-        string MappedSpec,
-        int TotalCodes,
-        int CurrentCodeCount,
-        string Target,
-        string Status,
-        string Progress,
-        int RetryCount,
-        string CreatedAt,
-        string PickedAt,
-        string FinishedAt,
-        string ErrMsg,
-        TraceEntryState State)
+        long taskId,
+        string sourceBillCode,
+        string batchNos,
+        string mappedDrugId,
+        string mappedSpec,
+        int totalCodes,
+        int currentCodeCount,
+        string target,
+        string status,
+        string progress,
+        int retryCount,
+        string createdAt,
+        string pickedAt,
+        string finishedAt,
+        string errMsg,
+        TraceEntryState state)
     {
-        this.TaskId = TaskId;
-        this.SourceBillCode = SourceBillCode;
-        this.BatchNos = BatchNos;
-        this.MappedDrugId = MappedDrugId;
-        this.MappedSpec = MappedSpec;
-        this.TotalCodes = TotalCodes;
-        this.CurrentCodeCount = CurrentCodeCount;
-        this.Target = Target;
-        this.Status = Status;
-        this.Progress = Progress;
-        this.RetryCount = RetryCount;
-        this.CreatedAt = CreatedAt;
-        this.PickedAt = PickedAt;
-        this.FinishedAt = FinishedAt;
-        this.ErrMsg = ErrMsg;
-        this.State = State;
+        TaskId = taskId;
+        SourceBillCode = sourceBillCode;
+        BatchNos = batchNos;
+        MappedDrugId = mappedDrugId;
+        MappedSpec = mappedSpec;
+        TotalCodes = totalCodes;
+        CurrentCodeCount = currentCodeCount;
+        Target = target;
+        Status = status;
+        Progress = progress;
+        RetryCount = retryCount;
+        CreatedAt = createdAt;
+        PickedAt = pickedAt;
+        FinishedAt = finishedAt;
+        ErrMsg = errMsg;
+        State = state;
     }
 
     public long TaskId { get; }

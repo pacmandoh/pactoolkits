@@ -65,7 +65,7 @@ public sealed class LoggingSettingsService : ILoggingSettingsService
             MinimumLevel = normalizedLevel,
             RetentionDays = Math.Clamp(options.RetentionDays <= 0 ? defaults.RetentionDays : options.RetentionDays, 1, 180),
             MaxFileSizeMb = Math.Clamp(options.MaxFileSizeMb <= 0 ? defaults.MaxFileSizeMb : options.MaxFileSizeMb, 1, 200),
-            LogDirectory = LogDirectoryResolver.Resolve(options.LogDirectory).StoredDirectory
+            LogDirectory = LogDirectory.Resolve(options.LogDirectory).StoredDirectory
         };
     }
 

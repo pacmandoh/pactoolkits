@@ -2,16 +2,16 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class LogDirectoryResolverTests
+public sealed class LogDirectoryTests
 {
     [Fact]
     public void Resolve_EmptyConfigured_UsesDefaultDesktopDirectory()
     {
-        var resolution = LogDirectoryResolver.Resolve(string.Empty);
+        var resolution = LogDirectory.Resolve(string.Empty);
 
         Assert.False(resolution.RequiresMigration);
         Assert.Equal(string.Empty, resolution.StoredDirectory);
-        Assert.Equal(LogDirectoryResolver.GetDefaultDirectory(), resolution.RuntimeDirectory);
+        Assert.Equal(LogDirectory.GetDefaultDirectory(), resolution.RuntimeDirectory);
     }
 
     [Fact]
@@ -23,12 +23,12 @@ public sealed class LogDirectoryResolverTests
             "logs",
             "ui");
 
-        var resolution = LogDirectoryResolver.Resolve(legacy);
+        var resolution = LogDirectory.Resolve(legacy);
 
         Assert.True(resolution.RequiresMigration);
-        Assert.Equal(LogDirectoryResolver.GetDefaultDirectory(), resolution.RuntimeDirectory);
+        Assert.Equal(LogDirectory.GetDefaultDirectory(), resolution.RuntimeDirectory);
         Assert.Equal(resolution.RuntimeDirectory, resolution.StoredDirectory);
-        Assert.False(LogDirectoryResolver.IsLegacyLogsDirectory(resolution.StoredDirectory));
+        Assert.False(LogDirectory.IsLegacyLogsDirectory(resolution.StoredDirectory));
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class LogDirectoryResolverTests
         var root = Path.Combine(Path.GetTempPath(), "pactoolkits-log-migrate-test");
         var legacy = Path.Combine(root, "logs", "ui");
 
-        var resolution = LogDirectoryResolver.Resolve(legacy);
+        var resolution = LogDirectory.Resolve(legacy);
 
         Assert.True(resolution.RequiresMigration);
         Assert.Equal(Path.Combine(root, "logs", "desktop"), resolution.RuntimeDirectory);
@@ -53,7 +53,7 @@ public sealed class LogDirectoryResolverTests
             "logs",
             "desktop");
 
-        var resolution = LogDirectoryResolver.Resolve(configured);
+        var resolution = LogDirectory.Resolve(configured);
 
         Assert.False(resolution.RequiresMigration);
         Assert.Equal(configured, resolution.StoredDirectory);
@@ -65,7 +65,7 @@ public sealed class LogDirectoryResolverTests
     {
         var configured = Path.Combine(Path.GetTempPath(), "custom-desktop-logs");
 
-        var resolution = LogDirectoryResolver.Resolve(configured);
+        var resolution = LogDirectory.Resolve(configured);
 
         Assert.False(resolution.RequiresMigration);
         Assert.Equal(configured, resolution.StoredDirectory);

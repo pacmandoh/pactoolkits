@@ -107,7 +107,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         ConfigPath = Path.Combine(_configDir, UnifiedConfigFileName);
         MigrateLegacyConfig(_configDir);
 
-        EnsureConfigInitialized();
+        InitConfig();
     }
 
     public AppConfigRoot Load()
@@ -121,7 +121,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             var raw = ReadUnifiedOrDefault();
             var rawLogDirectory = raw.Logging?.LogDirectory ?? string.Empty;
             normalized = Normalize(raw);
-            if (LogDirectoryResolver.IsLegacyLogsDirectory(rawLogDirectory))
+            if (LogDirectory.IsLegacyLogsDirectory(rawLogDirectory))
             {
                 migratedLogDirectoryFrom = rawLogDirectory.Trim();
                 migratedLogDirectoryTo = normalized.Logging.LogDirectory;
@@ -252,7 +252,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         return primaryPath;
     }
 
-    private void EnsureConfigInitialized()
+    private void InitConfig()
     {
         lock (_gate)
         {
@@ -721,7 +721,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         options.MinimumLevel = NormalizeLevel(options.MinimumLevel);
         options.RetentionDays = Math.Clamp(options.RetentionDays <= 0 ? defaults.RetentionDays : options.RetentionDays, 1, 180);
         options.MaxFileSizeMb = Math.Clamp(options.MaxFileSizeMb <= 0 ? defaults.MaxFileSizeMb : options.MaxFileSizeMb, 1, 200);
-        options.LogDirectory = LogDirectoryResolver.Resolve(options.LogDirectory).StoredDirectory;
+        options.LogDirectory = LogDirectory.Resolve(options.LogDirectory).StoredDirectory;
         return options;
     }
 

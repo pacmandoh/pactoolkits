@@ -5,7 +5,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Application;
 /// <summary>
 /// Drops stale in-flight mapping-batch group reloads when filters change or the session closes.
 /// </summary>
-public sealed class MsfxMappingBatchReloadGate
+public sealed class MsfxBatchReloadGate
 {
     private int _epoch;
 

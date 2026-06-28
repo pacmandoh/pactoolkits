@@ -13,7 +13,7 @@ public sealed record AgentExecutableResolution(
     AgentExecutableResolutionSource Source,
     bool RequiresMigration);
 
-public static class AgentPathResolver
+public static class AgentPath
 {
     public static AgentExecutableResolution ResolveInjectorAhk(string? configuredPath, string baseDirectory)
     {
@@ -23,7 +23,7 @@ public static class AgentPathResolver
         var standardExists = resolvedStandard is not null && File.Exists(resolvedStandard);
 
         if (!string.IsNullOrWhiteSpace(configured)
-            && ShouldMigrateToStandard(configured)
+            && NeedsLegacyPathMigration(configured)
             && standardExists)
         {
             return new AgentExecutableResolution(
@@ -76,7 +76,7 @@ public static class AgentPathResolver
             AgentPaths.PreviousInjectorAhkExecutableFileName,
             "agent-injector-ahk");
 
-    private static bool ShouldMigrateToStandard(string configured)
+    private static bool NeedsLegacyPathMigration(string configured)
         => IsLegacyInjectorStoredPath(configured)
            || IsPreviousStandardInjectorStoredPath(configured);
 

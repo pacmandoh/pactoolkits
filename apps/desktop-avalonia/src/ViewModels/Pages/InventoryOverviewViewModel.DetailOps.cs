@@ -228,22 +228,22 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         => CanOperateUi()
            && DateTimeOffset.UtcNow >= _suppressAutoRefreshUntilUtc;
 
-    private bool CanRequestUnlockCore()
+    private bool CanRequestUnlock()
         => CanOperateUi()
            && IsDetailMode;
 
-    [RelayCommand(CanExecute = nameof(CanRequestUnlockCore))]
+    [RelayCommand(CanExecute = nameof(CanRequestUnlock))]
     private async Task RequestUnlockAsync()
     {
         await RequireUnlockAsync("库存编辑与药品纠错");
     }
 
-    private bool CanLockOperationsCore()
+    private bool CanLockOperations()
         => CanOperateUi()
            && IsDetailMode
            && IsOperationUnlocked;
 
-    [RelayCommand(CanExecute = nameof(CanLockOperationsCore))]
+    [RelayCommand(CanExecute = nameof(CanLockOperations))]
     private async Task LockOperationsAsync()
     {
         if (IsStockEditEnabled)
@@ -1097,7 +1097,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     partial void OnPageIndexChanged(int value)
     {
         RefreshPagingState();
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     partial void OnPageSizeChanged(int value)
@@ -1113,7 +1113,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
 
         RefreshPagingState();
-        NotifyAllCommands();
+        RefreshPageCommands();
         _ = ReloadAsync();
     }
 
@@ -1126,11 +1126,11 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             ReassignPreviewText = null;
             ReassignPreviewRows.Clear();
             OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-            NotifyAllCommands();
+            RefreshPageCommands();
             return;
         }
 
-        NotifyAllCommands();
+        RefreshPageCommands();
 
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -1271,7 +1271,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             _suppressAutoRefreshUntilUtc = until;
         }
 
-        NotifyAllCommands();
+        RefreshPageCommands();
     }
 
     public bool DeferExternalRefreshForTopic(string? topic)

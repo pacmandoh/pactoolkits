@@ -163,7 +163,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                     return ReadDrugIndexDto(reader);
                 }
 
-                var current = await GetByKeyInternalAsync(conn, dto.DrugId, dto.Spec, token);
+                var current = await GetByKeyAsync(conn, dto.DrugId, dto.Spec, token);
                 throw new DrugIndexConcurrencyException("该记录已被其他终端创建，请刷新后重试", current);
             }
 
@@ -196,7 +196,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 return ReadDrugIndexDto(updated);
             }
 
-            var latest = await GetByKeyInternalAsync(conn, dto.DrugId, dto.Spec, token);
+            var latest = await GetByKeyAsync(conn, dto.DrugId, dto.Spec, token);
             throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", latest);
         }, ct);
 
@@ -700,7 +700,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
         };
     }
 
-    private async Task<DrugIndexDto?> GetByKeyInternalAsync(
+    private async Task<DrugIndexDto?> GetByKeyAsync(
         IDbConnection conn,
         string drugId,
         string spec,

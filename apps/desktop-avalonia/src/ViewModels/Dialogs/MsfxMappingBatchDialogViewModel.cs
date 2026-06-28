@@ -48,7 +48,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
     private bool _initialized;
     private bool _isResettingFilters;
     private int _drugInputVersion;
-    private readonly MsfxMappingBatchReloadGate _reloadGate = new();
+    private readonly MsfxBatchReloadGate _reloadGate = new();
     private Task? _inputCommitTask;
     private bool _isCompleting;
 

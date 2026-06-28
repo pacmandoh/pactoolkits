@@ -57,18 +57,18 @@ public sealed class ScanCodeRepo : IScanCodeRepo
         try
         {
             return await _db.WithConnection(
-                (conn, token) => InsertCoreAsync(conn, drugId, spec, qty, traceCodes, token), ct).ConfigureAwait(false);
+                (conn, token) => InsertAsync(conn, drugId, spec, qty, traceCodes, token), ct).ConfigureAwait(false);
         }
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation &&
                                            string.Equals(ex.ConstraintName, "trace_pool_pkey", StringComparison.Ordinal))
         {
             await _db.WithConnection(SyncTracePoolIdSequenceAsync, ct).ConfigureAwait(false);
             return await _db.WithConnection(
-                (conn, token) => InsertCoreAsync(conn, drugId, spec, qty, traceCodes, token), ct).ConfigureAwait(false);
+                (conn, token) => InsertAsync(conn, drugId, spec, qty, traceCodes, token), ct).ConfigureAwait(false);
         }
     }
 
-    private async Task<ScanCodeInsertResult> InsertCoreAsync(
+    private async Task<ScanCodeInsertResult> InsertAsync(
         System.Data.IDbConnection conn,
         string drugId,
         string spec,

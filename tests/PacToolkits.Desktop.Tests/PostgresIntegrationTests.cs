@@ -187,7 +187,7 @@ public sealed class PostgresIntegrationTests
         public event EventHandler? Applied;
         #pragma warning restore CS0067
         public Task<bool> TestConnectionAsync(PgOptions opt, CancellationToken ct) => Task.FromResult(true);
-        public Task SaveAndApplyAsync(PgOptions opt, CancellationToken ct = default) => Task.CompletedTask;
+        public Task ApplyAsync(PgOptions opt, CancellationToken ct = default) => Task.CompletedTask;
     }
 
     private sealed class NullInfraLogger : IAppLogger

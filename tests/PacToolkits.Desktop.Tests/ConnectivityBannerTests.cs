@@ -3,14 +3,14 @@ using PacToolkits.Desktop.Avalonia.Services.Application;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class ConnectivityBannerFactoryTests
+public sealed class ConnectivityBannerTests
 {
     [Fact]
     public void Create_hides_banner_when_connected_and_unblocked()
     {
         var guard = new StubAccessGuard(isBlocked: false);
 
-        var banner = ConnectivityBannerFactory.Create(
+        var banner = ConnectivityBanner.Create(
             isDbConnected: true,
             isConnectivityKnown: true,
             accessGuard: guard);
@@ -24,7 +24,7 @@ public sealed class ConnectivityBannerFactoryTests
     {
         var guard = new StubAccessGuard(isBlocked: false);
 
-        var banner = ConnectivityBannerFactory.Create(
+        var banner = ConnectivityBanner.Create(
             isDbConnected: false,
             isConnectivityKnown: false,
             accessGuard: guard);
@@ -38,7 +38,7 @@ public sealed class ConnectivityBannerFactoryTests
     {
         var guard = new StubAccessGuard(isBlocked: true, blockReason: "数据库版本 1.2.22 低于最低支持版本 1.2.23");
 
-        var banner = ConnectivityBannerFactory.Create(
+        var banner = ConnectivityBanner.Create(
             isDbConnected: true,
             isConnectivityKnown: true,
             accessGuard: guard);
@@ -54,7 +54,7 @@ public sealed class ConnectivityBannerFactoryTests
     {
         var guard = new StubAccessGuard(isBlocked: false);
 
-        var banner = ConnectivityBannerFactory.Create(
+        var banner = ConnectivityBanner.Create(
             isDbConnected: false,
             isConnectivityKnown: true,
             accessGuard: guard);
@@ -69,7 +69,7 @@ public sealed class ConnectivityBannerFactoryTests
     {
         var guard = new StubAccessGuard(isBlocked: true, blockReason: "blocked");
 
-        var banner = ConnectivityBannerFactory.Create(
+        var banner = ConnectivityBanner.Create(
             isDbConnected: false,
             isConnectivityKnown: true,
             accessGuard: guard);

@@ -2,7 +2,7 @@ using PacToolkits.Desktop.Avalonia.Contracts;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
-public static class PageStaleWhileReconnectPolicy
+public static class PageReconnectPolicy
 {
     public static PageDataAvailability DisconnectedAvailability(bool hasLoadedOnce, bool supportsStaleWhileReconnect)
         => hasLoadedOnce && supportsStaleWhileReconnect

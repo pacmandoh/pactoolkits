@@ -54,13 +54,13 @@ public sealed class MsfxSyncService : IMsfxSyncService
 
     public Task<MsfxPullWindow> LoadPullWindowAsync(string sourceApi, CancellationToken ct)
     {
-        EnsureSourceApi(sourceApi);
+        RequireSourceApi(sourceApi);
         return _repo.GetPullWindowAsync(sourceApi, ct);
     }
 
     public Task<MsfxPullBatchStartResult> StartMsfxPullBatchAsync(string sourceApi, DateTimeOffset beginAt, DateTimeOffset endAt, CancellationToken ct)
     {
-        EnsureSourceApi(sourceApi);
+        RequireSourceApi(sourceApi);
         if (endAt <= beginAt)
         {
             throw new ArgumentException("MSFX pull batch end time must be later than begin time.", nameof(endAt));
@@ -71,7 +71,7 @@ public sealed class MsfxSyncService : IMsfxSyncService
 
     public Task CompleteMsfxPullBatchAsync(long batchId, string status, int successCount, int failCount, string? errMsg, CancellationToken ct)
     {
-        EnsurePositiveId(batchId, nameof(batchId));
+        RequirePositiveId(batchId, nameof(batchId));
         if (string.IsNullOrWhiteSpace(status))
         {
             throw new ArgumentException("MSFX pull batch status is required.", nameof(status));
@@ -87,14 +87,14 @@ public sealed class MsfxSyncService : IMsfxSyncService
 
     public Task UpdateMsfxPullBatchRequestIdAsync(long batchId, string? requestId, CancellationToken ct)
     {
-        EnsurePositiveId(batchId, nameof(batchId));
+        RequirePositiveId(batchId, nameof(batchId));
         return _repo.UpdatePullBatchRequestIdAsync(batchId, requestId, ct);
     }
 
     public Task AdvanceMsfxPullCursorAsync(string sourceApi, DateTimeOffset beginAt, DateTimeOffset endAt, long batchId, string batchStatus, CancellationToken ct)
     {
-        EnsureSourceApi(sourceApi);
-        EnsurePositiveId(batchId, nameof(batchId));
+        RequireSourceApi(sourceApi);
+        RequirePositiveId(batchId, nameof(batchId));
         if (endAt <= beginAt)
         {
             throw new ArgumentException("MSFX pull cursor end time must be later than begin time.", nameof(endAt));
@@ -110,63 +110,63 @@ public sealed class MsfxSyncService : IMsfxSyncService
 
     public Task<IReadOnlyList<MsfxBillRetryRow>> LoadDueBillRetriesAsync(string sourceApi, int limit, CancellationToken ct)
     {
-        EnsureSourceApi(sourceApi);
+        RequireSourceApi(sourceApi);
         return _repo.GetDueBillRetriesAsync(sourceApi, NormalizeLimit(limit), ct);
     }
 
     public Task ScheduleBillRetryAsync(string sourceApi, string billCode, string? fromRefUserId, string? toRefUserId, string? lastError, CancellationToken ct)
     {
-        EnsureSourceApi(sourceApi);
-        EnsureText(billCode, nameof(billCode));
+        RequireSourceApi(sourceApi);
+        RequireText(billCode, nameof(billCode));
         return _repo.UpsertBillRetryAsync(sourceApi, billCode.Trim(), fromRefUserId, toRefUserId, lastError, ct);
     }
 
     public Task MarkBillRetrySucceededAsync(string sourceApi, string billCode, CancellationToken ct)
     {
-        EnsureSourceApi(sourceApi);
-        EnsureText(billCode, nameof(billCode));
+        RequireSourceApi(sourceApi);
+        RequireText(billCode, nameof(billCode));
         return _repo.MarkBillRetrySucceededAsync(sourceApi, billCode.Trim(), ct);
     }
 
     public Task WatchMsfxBillAsync(string sourceApi, string billCode, string? fromRefUserId, string? toRefUserId, string? fromEntName, string? billType, string? billTime, string? billUploadTime, string? lastSeenStatus, string? rawJson, CancellationToken ct)
     {
-        EnsureSourceApi(sourceApi);
-        EnsureText(billCode, nameof(billCode));
+        RequireSourceApi(sourceApi);
+        RequireText(billCode, nameof(billCode));
         return _repo.UpsertBillWatchAsync(sourceApi, billCode.Trim(), fromRefUserId, toRefUserId, fromEntName, billType, billTime, billUploadTime, lastSeenStatus, rawJson, ct);
     }
 
     public Task<IReadOnlyList<MsfxBillWatchRow>> LoadDueBillWatchesAsync(string sourceApi, int limit, CancellationToken ct)
     {
-        EnsureSourceApi(sourceApi);
+        RequireSourceApi(sourceApi);
         return _repo.GetDueBillWatchesAsync(sourceApi, NormalizeLimit(limit), ct);
     }
 
     public Task MarkBillWatchResolvedAsync(string sourceApi, string billCode, CancellationToken ct)
     {
-        EnsureSourceApi(sourceApi);
-        EnsureText(billCode, nameof(billCode));
+        RequireSourceApi(sourceApi);
+        RequireText(billCode, nameof(billCode));
         return _repo.MarkBillWatchResolvedAsync(sourceApi, billCode.Trim(), ct);
     }
 
     public Task RescheduleBillWatchAsync(string sourceApi, string billCode, string? lastSeenStatus, string? lastError, CancellationToken ct)
     {
-        EnsureSourceApi(sourceApi);
-        EnsureText(billCode, nameof(billCode));
+        RequireSourceApi(sourceApi);
+        RequireText(billCode, nameof(billCode));
         return _repo.RescheduleBillWatchAsync(sourceApi, billCode.Trim(), lastSeenStatus, lastError, ct);
     }
 
     public Task<long> SaveInboundBillAsync(long batchId, string billCode, string billType, string billTime, string billUploadTime, string fromRefUserId, string fromEntName, string toRefUserId, string toUserId, string toUserName, string status, string rawJson, CancellationToken ct)
     {
-        EnsurePositiveId(batchId, nameof(batchId));
-        EnsureText(billCode, nameof(billCode));
-        EnsureText(status, nameof(status));
+        RequirePositiveId(batchId, nameof(batchId));
+        RequireText(billCode, nameof(billCode));
+        RequireText(status, nameof(status));
         return _repo.UpsertInboundBillAsync(batchId, billCode.Trim(), billType, billTime, billUploadTime, fromRefUserId, fromEntName, toRefUserId, toUserId, toUserName, status.Trim(), rawJson, ct);
     }
 
     public Task<MsfxIngestDetailResult> IngestMsfxBillDetailAsync(long billId, string billCode, IReadOnlyList<(string DrugName, string PackageSpec, string PrepnSpec, string BatchNo, IReadOnlyList<(string Code, string CodeLevel, string? Level1Code, string? Level2Code, string? Level3Code, string? Level4Code, string? Level5Code)> Codes)> drugs, CancellationToken ct)
     {
-        EnsurePositiveId(billId, nameof(billId));
-        EnsureText(billCode, nameof(billCode));
+        RequirePositiveId(billId, nameof(billId));
+        RequireText(billCode, nameof(billCode));
         ArgumentNullException.ThrowIfNull(drugs);
         return _repo.IngestUpoutDetailAsync(billId, billCode.Trim(), drugs, ct);
     }
@@ -205,19 +205,19 @@ public sealed class MsfxSyncService : IMsfxSyncService
 
     public Task<MsfxReopenInjectTaskResult> ReopenMsfxTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
     {
-        EnsurePositiveId(taskId, nameof(taskId));
+        RequirePositiveId(taskId, nameof(taskId));
         return _repo.ReopenInjectTaskAsync(taskId, operatorName, reason, ct);
     }
 
     public Task<MsfxDiscardInjectTaskResult> DiscardMsfxTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
     {
-        EnsurePositiveId(taskId, nameof(taskId));
+        RequirePositiveId(taskId, nameof(taskId));
         return _repo.DiscardInjectTaskAsync(taskId, operatorName, reason, ct);
     }
 
     public Task<MsfxRemapInjectTaskResult> RemapMsfxTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
     {
-        EnsurePositiveId(taskId, nameof(taskId));
+        RequirePositiveId(taskId, nameof(taskId));
         return _repo.RemapInjectTaskAsync(taskId, operatorName, reason, ct);
     }
 
@@ -239,26 +239,26 @@ public sealed class MsfxSyncService : IMsfxSyncService
 
     public Task<MsfxSplitInjectTaskResult> SplitMsfxTaskAsync(long taskId, string splitMode, string? operatorName, string? reason, CancellationToken ct)
     {
-        EnsurePositiveId(taskId, nameof(taskId));
-        EnsureText(splitMode, nameof(splitMode));
+        RequirePositiveId(taskId, nameof(taskId));
+        RequireText(splitMode, nameof(splitMode));
         return _repo.SplitInjectTaskAsync(taskId, splitMode.Trim(), operatorName, reason, ct);
     }
 
     public Task<IReadOnlyList<MsfxInjectTaskSplitUnitRow>> LoadMsfxTaskSplitUnitsAsync(long taskId, CancellationToken ct)
     {
-        EnsurePositiveId(taskId, nameof(taskId));
+        RequirePositiveId(taskId, nameof(taskId));
         return _repo.GetInjectTaskSplitUnitsAsync(taskId, ct);
     }
 
     public Task<IReadOnlyList<MsfxInjectTaskSplitCodeRow>> LoadMsfxTaskSplitCodeRowsAsync(long taskId, CancellationToken ct)
     {
-        EnsurePositiveId(taskId, nameof(taskId));
+        RequirePositiveId(taskId, nameof(taskId));
         return _repo.GetInjectTaskSplitCodeRowsAsync(taskId, ct);
     }
 
     public Task<MsfxSplitInjectTaskCustomResult> SplitMsfxTaskCustomAsync(long taskId, IReadOnlyList<string> groupKeys, IReadOnlyList<int> bucketIndexes, string? operatorName, string? reason, CancellationToken ct)
     {
-        EnsurePositiveId(taskId, nameof(taskId));
+        RequirePositiveId(taskId, nameof(taskId));
         ArgumentNullException.ThrowIfNull(groupKeys);
         ArgumentNullException.ThrowIfNull(bucketIndexes);
         if (groupKeys.Count == 0 || bucketIndexes.Count == 0 || groupKeys.Count != bucketIndexes.Count)
@@ -281,7 +281,7 @@ public sealed class MsfxSyncService : IMsfxSyncService
 
     public async Task<MsfxMappingBatchPreview> PreviewMsfxMappingBatchAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, string? groupSourceDrugNameRaw, string? groupSourceSpecRaw, string? groupSourceNameNorm, string? groupSourceSpecNorm, string action, string? drugId, string? spec, CancellationToken ct)
     {
-        EnsureText(action, nameof(action));
+        RequireText(action, nameof(action));
         return await _repo.PreviewMappingBatchByGroupAsync(
             mapStatus,
             codeStatus,
@@ -300,7 +300,7 @@ public sealed class MsfxSyncService : IMsfxSyncService
 
     public async Task<MsfxMappingBatchApplyResult> ApplyMsfxMappingBatchAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, string? groupSourceDrugNameRaw, string? groupSourceSpecRaw, string? groupSourceNameNorm, string? groupSourceSpecNorm, string action, string? drugId, string? spec, CancellationToken ct)
     {
-        EnsureText(action, nameof(action));
+        RequireText(action, nameof(action));
         return await _repo.ApplyMappingBatchByGroupAsync(
             mapStatus,
             codeStatus,
@@ -336,10 +336,10 @@ public sealed class MsfxSyncService : IMsfxSyncService
         return exactPerToken;
     }
 
-    private static void EnsureSourceApi(string sourceApi)
-        => EnsureText(sourceApi, nameof(sourceApi));
+    private static void RequireSourceApi(string sourceApi)
+        => RequireText(sourceApi, nameof(sourceApi));
 
-    private static void EnsurePositiveId(long value, string parameterName)
+    private static void RequirePositiveId(long value, string parameterName)
     {
         if (value <= 0)
         {
@@ -347,7 +347,7 @@ public sealed class MsfxSyncService : IMsfxSyncService
         }
     }
 
-    private static void EnsureText(string value, string parameterName)
+    private static void RequireText(string value, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(value))
         {

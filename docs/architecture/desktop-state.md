@@ -2,7 +2,7 @@
 
 Avalonia Desktop（`apps/desktop-avalonia`）将**全局连接**、**页面数据可用性**、**区块空态**拆成三层，避免单一 `IsBusy` 或重复 toast/banner 表达同一事件。
 
-相关实现：`apps/desktop-avalonia/src/ViewModels/AppPageBase.cs`、`Controls/PageDataShell.axaml`、`Services/Application/ConnectivityBannerFactory.cs`。
+相关实现：`apps/desktop-avalonia/src/ViewModels/AppPageBase.cs`、`Controls/PageDataShell.axaml`、`Services/Application/ConnectivityBanner.cs`。
 
 ## 三层职责
 
@@ -41,7 +41,7 @@ flowchart TB
 ## Layer 1 — Shell 连接
 
 - 连接/断开/恢复 toast **仅**在 `MainWindowViewModel` 发出。
-- `ConnectivityBannerFactory`：**不**在 DB 探测中显示 info banner；仅在 AccessGuard 阻断或**已知断开**时显示 warning。
+- `ConnectivityBanner.Create`：**不**在 DB 探测中显示 info banner；仅在 AccessGuard 阻断或**已知断开**时显示 warning。
 - 各数据页**不得**再 toast 传输层断连或 guard 阻断类错误（见 `CanToastError`）。
 
 ## Layer 2 — 页面可用性
@@ -64,7 +64,7 @@ flowchart TB
 - 断连后若页面曾加载成功 → `Stale`；DB 信号恢复时可静默后台刷新（无 busy）。
 - 手动刷新仍走常规 busy。
 - 只读页默认 `SupportsStaleWhileReconnect = true`；设置等非只读页可覆写为 `false`。
-- 策略集中在 `PageStaleWhileReconnectPolicy`，各页不要复制断连/stale 分支。
+- 策略集中在 `PageReconnectPolicy`，各页不要复制断连/stale 分支。
 
 ### Lookup 与 AccessGuard
 
@@ -83,7 +83,7 @@ flowchart TB
 | ---------------------------------------- | ------------------------------------------ |
 | `PageReloadBehavior`                     | 单飞取消门闸                               |
 | `PageReloadBusyDelay`                    | 取数 busy 延迟 300ms（stale 静默刷新跳过） |
-| `AppPageBase.ExecuteReloadPipelineAsync` | 预检 → 取数 → 更新 `PageDataAvailability`  |
+| `AppPageBase.RunReloadPipelineAsync` | 预检 → 取数 → 更新 `PageDataAvailability`  |
 
 新数据页接入步骤见 [layering.md](./layering.md) 与 `AppPageBase.cs` 重载流水线实现。
 

@@ -95,7 +95,7 @@ public sealed class SettingsService : ISettingsService
     }
 
     public Task SaveDbConfigAsync(PgOptions options, CancellationToken ct)
-        => _dbConfig.SaveAndApplyAsync(options, ct);
+        => _dbConfig.ApplyAsync(options, ct);
 
     private async Task<(bool Ok, string? Summary)> TestConnectionAsync(PgOptions options, CancellationToken ct)
     {
@@ -156,7 +156,7 @@ public sealed class SettingsService : ISettingsService
             }
         }
 
-        var migration = await MigrateSchemaCoreAsync(
+        var migration = await RunSchemaMigrationAsync(
             schemaContext,
             DbMigrationTrigger.SettingsManual,
             userConfirmed: false,
@@ -190,7 +190,7 @@ public sealed class SettingsService : ISettingsService
         bool userConfirmed = false,
         bool ciMigrationAuthorized = false,
         CancellationToken ct = default)
-        => MigrateSchemaCoreAsync(
+        => RunSchemaMigrationAsync(
             schemaContext,
             trigger,
             userConfirmed,
@@ -205,7 +205,7 @@ public sealed class SettingsService : ISettingsService
         bool userConfirmed = false,
         bool ciMigrationAuthorized = false,
         CancellationToken ct = default)
-        => MigrateSchemaCoreAsync(
+        => RunSchemaMigrationAsync(
             schemaContext,
             trigger,
             userConfirmed,
@@ -221,7 +221,7 @@ public sealed class SettingsService : ISettingsService
             ? _schemaMigration.GetPlanAsync(ct, schemaContext.TargetDbSchemaVersion)
             : _schemaMigration.GetPlanAsync(connectionOptions, ct, schemaContext.TargetDbSchemaVersion);
 
-    private async Task<(bool Ok, string Summary)> MigrateSchemaCoreAsync(
+    private async Task<(bool Ok, string Summary)> RunSchemaMigrationAsync(
         DbSchemaVersionContext schemaContext,
         DbMigrationTrigger trigger,
         bool userConfirmed,
