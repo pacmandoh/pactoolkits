@@ -11,7 +11,7 @@ public static class UiThreadHelper
 
     public static async Task RunOnUiAsync(Action action, DispatcherPriority priority)
     {
-        if (Dispatcher.UIThread.CheckAccess())
+        if (Dispatcher.UIThread.CheckAccess() || !HasUiMessageLoop)
         {
             action();
             return;
@@ -25,7 +25,7 @@ public static class UiThreadHelper
 
     public static void PostOnUi(Action action, DispatcherPriority priority)
     {
-        if (Dispatcher.UIThread.CheckAccess())
+        if (Dispatcher.UIThread.CheckAccess() || !HasUiMessageLoop)
         {
             action();
             return;
@@ -33,4 +33,6 @@ public static class UiThreadHelper
 
         Dispatcher.UIThread.Post(action, priority);
     }
+
+    private static bool HasUiMessageLoop => global::Avalonia.Application.Current is not null;
 }

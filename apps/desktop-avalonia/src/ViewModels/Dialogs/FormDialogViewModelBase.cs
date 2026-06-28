@@ -1,5 +1,5 @@
 using System;
-using Avalonia.Threading;
+using global::Avalonia.Threading;
 using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
@@ -13,7 +13,7 @@ public abstract class FormDialogViewModelBase(DialogManager dialogManager) : Vie
 
     protected void CloseDialog(bool success = false)
     {
-        if (Dispatcher.UIThread.CheckAccess())
+        if (Dispatcher.UIThread.CheckAccess() || global::Avalonia.Application.Current is null)
         {
             CloseDialogCore(success);
             return;
