@@ -9,30 +9,25 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 public partial class SettingsViewModel : AppPageBase, ISettingsPage
 {
     [RelayCommand]
-    private void ToggleMsfxAppSecretVisibility()
-        => ShowMsfxAppSecret = !ShowMsfxAppSecret;
+    private Task SaveMsfxApiConfigAsync() => ApplyMsfxApiConfigAsync();
 
-    partial void OnShowMsfxAppSecretChanged(bool value)
-        => OnPropertyChanged(nameof(MsfxAppSecretPasswordChar));
-
-    [RelayCommand]
-    private async Task SaveMsfxApiConfigAsync()
+    private async Task<bool> ApplyMsfxApiConfigAsync()
     {
         if (SkipTrigger())
         {
-            return;
+            return false;
         }
 
         if (string.IsNullOrWhiteSpace(MsfxAppKey))
         {
             _toast.Error("码上放心 API", "AppKey 不能为空");
-            return;
+            return false;
         }
 
         if (string.IsNullOrWhiteSpace(MsfxAppSecret))
         {
             _toast.Error("码上放心 API", "AppSecret 不能为空");
-            return;
+            return false;
         }
 
         try
@@ -71,27 +66,30 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 MsfxSessionToken = saved.SessionToken;
                 MsfxRefEntId = saved.RefEntId;
                 MsfxTimeoutSeconds = saved.TimeoutSeconds;
-                RefreshMsfxApiHint(saved);
+                RefreshMsfxBadge(saved);
             });
 
             _toast.Success("码上放心 API", "配置已保存");
+            RefreshUnsaved();
+            return true;
         }
         catch (Exception ex)
         {
             _logger.Error("SettingsVM", "msfx.settings.save.fail", "Failed to save msfx api settings", ex);
             _toast.Error("码上放心 API", $"保存失败：{ex.Message}");
+            return false;
         }
     }
 
-    private void RefreshMsfxApiHint(MsfxApiOptions options)
+    private void RefreshMsfxBadge(MsfxApiOptions options)
     {
         var hasKey = !string.IsNullOrWhiteSpace(options.AppKey);
         var hasSecret = !string.IsNullOrWhiteSpace(options.AppSecret);
         var hasEnt = !string.IsNullOrWhiteSpace(options.RefEntId);
         var hasToken = !string.IsNullOrWhiteSpace(options.SessionToken);
-        var hasCore = hasKey || hasSecret || hasEnt;
+        var hasRequired = hasKey || hasSecret || hasEnt;
 
-        if (!hasCore)
+        if (!hasRequired)
         {
             MsfxApiBadgeStatus = null;
             MsfxApiBadgeLabel = "未配置";

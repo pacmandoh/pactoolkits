@@ -25,6 +25,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
         IsClientAliasEditMode = true;
         IsClientAliasReadOnly = false;
+        CaptureClientAliasEditBaseline();
         RefreshClientAlias();
         RunDetached(ReloadClientAliasesAsync, "client_alias.reload.edit_start_fail");
     }
@@ -36,8 +37,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             return;
         }
-
-        Status = null;
 
         try
         {
@@ -51,7 +50,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             if (!validation.ConnectionOk)
             {
-                Status = validation.ConnectionSummary;
                 IsDbConnected = false;
                 RefreshClientAlias();
                 _toast.Error("数据库连接失败", validation.ConnectionSummary ?? "连接失败");
@@ -61,7 +59,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             if (!validation.SchemaMigrationOk)
             {
                 var reason = validation.MigrationSummary ?? "数据库结构更新失败";
-                Status = reason;
                 IsDbConnected = false;
                 RefreshClientAlias();
                 _toast.Warn("数据库迁移策略", reason);
@@ -70,14 +67,12 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             if (!validation.SchemaCompatible)
             {
-                Status = "数据库版本不兼容";
                 IsDbConnected = false;
                 RefreshClientAlias();
                 await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), validation.IncompatibleMessage ?? "数据库版本不兼容");
                 return;
             }
 
-            Status = "连接成功";
             IsDbConnected = true;
             RunDetached(ReloadClientAliasesAsync, "client_alias.reload.after_test_fail");
             _toast.Success("数据库连接", "连接成功");
@@ -90,7 +85,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             }
 
             _logger.Warn("SettingsVM", "db.test.timeout", "DB connection test timed out");
-            Status = "连接超时";
             IsDbConnected = false;
             RefreshClientAlias();
             _toast.Error("数据库连接失败", "连接超时：请检查网络/主机/端口");
@@ -98,11 +92,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     }
 
     [RelayCommand]
-    private async Task SaveAsync()
+    private Task SaveAsync() => ApplyDbConfigAsync();
+
+    private async Task<bool> ApplyDbConfigAsync()
     {
         if (SkipTrigger())
         {
-            return;
+            return false;
         }
 
         try
@@ -110,38 +106,38 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             await _settings.SaveDbConfigAsync(ToOptions(), _pageWorkCts.Token);
             if (!await MigrateDbSchemaAsync())
             {
-                Status = "配置已保存，但迁移失败，当前不可用";
                 IsDbConnected = false;
                 RefreshClientAlias();
                 _toast.Warn("数据库配置", "配置已保存，但迁移失败，当前不可用");
-                return;
+                return false;
             }
+
             if (!await CheckDbSchemaAsync())
             {
-                Status = "配置已保存，但数据库版本不兼容，当前不可用";
                 IsDbConnected = false;
                 RefreshClientAlias();
                 _toast.Warn("数据库配置", "配置已保存，但数据库版本不兼容，当前不可用");
-                return;
+                return false;
             }
 
-            Status = "连接成功";
             IsDbConnected = true;
             _toast.Success("配置已保存", "数据库配置已应用");
-
             RunDetached(ReloadClientAliasesAsync, "client_alias.reload.after_save_fail");
+            RefreshUnsaved();
+            return true;
         }
         catch (Exception ex)
         {
             if (ex is OperationCanceledException && IsPageWorkCancellation())
             {
-                return;
+                return false;
             }
 
             _logger.Error("SettingsVM", "db.save.fail", "Failed to save DB settings", ex);
             IsDbConnected = false;
             RefreshClientAlias();
             _toast.Error("保存失败", ex.Message);
+            return false;
         }
     }
 
@@ -307,61 +303,23 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void RefreshClientAlias()
     {
-        if (!IsClientAliasEditMode)
-        {
-            ClientAliasHint = ClientAliases.Count == 0
-                ? "未找到任何机器标识，点击‘开始编辑’后可编辑别名"
-                : "已加载机器标识/本地别名，点击‘开始编辑’后可编辑";
-
-            IsClientAliasReadOnly = true;
-            return;
-        }
-
-        IsClientAliasReadOnly = false;
-
-        if (!IsDbConnected)
-        {
-            ClientAliasHint = ClientAliases.Count == 0
-                ? "未连接数据库：无法读取客户端列表，仍可编辑/保存本地别名；连接后可自动补全列表"
-                : "未连接数据库：当前显示本地别名；连接后可自动补全客户端列表";
-        }
-        else
-        {
-            ClientAliasHint = ClientAliases.Count == 0
-                ? "已连接，但暂无可用机器标识"
-                : "在右侧填写别名，留空表示使用机器标识";
-        }
-    }
-
-    private void RemoveClientAlias(ClientAliasRow? row)
-    {
-        if (row is null)
-        {
-            return;
-        }
-
-        if (IsClientAliasReadOnly)
-        {
-            return;
-        }
-
-        ClientAliases.Remove(row);
-        UntrackAliasRow(row);
-        RefreshClientAlias();
+        IsClientAliasReadOnly = !IsClientAliasEditMode;
     }
 
     [RelayCommand]
-    private async Task SaveClientAliasesAsync()
+    private Task SaveClientAliasesAsync() => ApplyClientAliasesAsync();
+
+    private async Task<bool> ApplyClientAliasesAsync()
     {
         if (SkipTrigger())
         {
-            return;
+            return false;
         }
 
         if (!IsClientAliasEditMode)
         {
             _toast.Error("客户端别名", "请先点击‘开始编辑’");
-            return;
+            return false;
         }
 
         RefreshClientAlias();
@@ -373,42 +331,44 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 .Select(x => new KeyValuePair<string, string>(x.Machine, x.Alias));
             _alias.ReplaceAll(items);
 
+            _clientAliasEditBaseline = null;
             IsClientAliasEditMode = false;
             IsClientAliasReadOnly = true;
 
-            Status = "客户端别名已保存";
             _toast.Success("客户端别名", "已保存并生效");
-            await Task.Delay(600);
-            Status = null;
-
             RunDetached(ReloadClientAliasesAsync, "client_alias.reload.after_alias_save_fail");
             RefreshClientAlias();
+            RefreshUnsaved();
+            return true;
         }
         catch (Exception ex)
         {
             _logger.Error("SettingsVM", "client_alias.save.fail", "Failed to save client aliases", ex);
             _toast.Error("保存失败", ex.Message);
+            return false;
         }
     }
 
     [RelayCommand]
-    private async Task SaveTraceCodeRuleAsync()
+    private Task SaveTraceCodeRuleAsync() => ApplyTraceCodeRuleAsync();
+
+    private async Task<bool> ApplyTraceCodeRuleAsync()
     {
         if (SkipTrigger())
         {
-            return;
+            return false;
         }
 
         if (TraceCodeRequiredLength <= 0)
         {
             _toast.Error("追溯码规则", "长度必须大于 0");
-            return;
+            return false;
         }
 
         if (string.IsNullOrWhiteSpace(TraceCodePattern))
         {
             _toast.Error("追溯码规则", "正则表达式不能为空");
-            return;
+            return false;
         }
 
         try
@@ -419,7 +379,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             _logger.Warn("SettingsVM", "trace_rule.regex_invalid", "Invalid trace regex pattern", ex, new { TraceCodePattern });
             _toast.Error("追溯码规则", $"正则格式错误：{ex.Message}");
-            return;
+            return false;
         }
 
         try
@@ -430,13 +390,15 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 Pattern = TraceCodePattern
             });
 
-            TraceCodeRuleHint = $"当前：长度 {TraceCodeRequiredLength}，正则 {TraceCodePattern}";
             _toast.Success("追溯码规则", "规则已保存并生效");
+            RefreshUnsaved();
+            return true;
         }
         catch (Exception ex)
         {
             _logger.Error("SettingsVM", "trace_rule.save.fail", "Failed to save trace code rule", ex);
             _toast.Error("追溯码规则保存失败", ex.Message);
+            return false;
         }
     }
 

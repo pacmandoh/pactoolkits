@@ -17,11 +17,13 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 public partial class SettingsViewModel : AppPageBase, ISettingsPage
 {
     [RelayCommand]
-    private async Task SaveUpdateOptionsAsync()
+    private Task SaveUpdateOptionsAsync() => ApplyUpdateOptionsAsync();
+
+    private async Task<bool> ApplyUpdateOptionsAsync()
     {
         if (_syncingUpdateOptions || SkipTrigger())
         {
-            return;
+            return false;
         }
 
         IsUpdateChecking = true;
@@ -35,7 +37,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 var switched = await TrySwitchUpdateChannelAsync(previous, targetChannel);
                 if (!switched)
                 {
-                    return;
+                    return false;
                 }
             }
 
@@ -51,15 +53,19 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             await _updateSettings.SaveAsync(options);
             _toast.Success("更新设置", "更新配置已保存");
+            RefreshUnsaved();
+            return true;
         }
         catch (Exception ex)
         {
             _logger.Error("SettingsVM", "update.settings.save.fail", "Failed to save update settings", ex);
             _toast.Error("更新设置保存失败", ex.Message);
+            return false;
         }
         finally
         {
             SyncUpdateState();
+            IsUpdateChecking = false;
         }
     }
 
@@ -119,11 +125,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     }
 
     [RelayCommand]
-    private async Task SaveLoggingOptionsAsync()
+    private Task SaveLoggingOptionsAsync() => ApplyLoggingOptionsAsync();
+
+    private async Task<bool> ApplyLoggingOptionsAsync(bool silent = false)
     {
         if (_syncingLoggingOptions || IsLoggingBusy || SkipTrigger())
         {
-            return;
+            return false;
         }
 
         IsLoggingBusy = true;
@@ -140,8 +148,11 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
             await _loggingSettings.SaveAsync(options);
             LoggingDirectory = _logger.LogDirectory;
-            LoggingStatusHint = LoggingEnabled ? $"已启用（{LoggingMinimumLevel}）" : "已禁用";
-            _toast.Success("日志设置", "日志配置已保存");
+            if (!silent)
+            {
+                _toast.Success("日志设置", "日志配置已保存");
+            }
+
             _logger.Info("SettingsVM", "logging.settings.saved", "Logging settings updated", new
             {
                 options.Enabled,
@@ -150,11 +161,14 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
                 options.MaxFileSizeMb,
                 LogDirectory = _logger.LogDirectory
             });
+            RefreshUnsaved();
+            return true;
         }
         catch (Exception ex)
         {
             _logger.Error("SettingsVM", "logging.settings.save_fail", "Failed to save logging settings", ex);
             _toast.Error("日志设置保存失败", ex.Message);
+            return false;
         }
         finally
         {
@@ -176,7 +190,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             var dir = _logger.LogDirectory;
             Directory.CreateDirectory(dir);
             OpenDirectory(dir);
-            LoggingStatusHint = $"已打开：{dir}";
             _logger.Info("SettingsVM", "logging.open_dir", "Opened log directory", new { dir });
         }
         catch (Exception ex)
@@ -237,7 +250,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             var path = _logger.CurrentLogPath;
             await _clipboard.SetTextAsync(path);
-            LoggingStatusHint = $"已复制：{path}";
             _toast.Success("日志", "当前日志路径已复制到剪贴板");
         }
         catch (Exception ex)
@@ -264,7 +276,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             var path = await _logger.ExportRecentAsync(TimeSpan.FromHours(24));
             await _clipboard.SetTextAsync(path);
-            LoggingStatusHint = $"已导出：{path}";
             _toast.Success("日志导出", "最近24小时日志已导出并复制路径");
             _logger.Info("SettingsVM", "logging.export_recent", "Exported recent logs", new { path, window = "24h" });
         }
@@ -690,21 +701,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         DbSchemaBadgeLabel = string.IsNullOrWhiteSpace(status) ? "未知" : status;
     }
 
-    private static bool IsSchemaUpdatable(string? currentVersion, string? localTargetVersion)
-    {
-        if (!DbSchemaCompat.TryParseSemVer(currentVersion ?? string.Empty, out var current))
-        {
-            return false;
-        }
-
-        if (!DbSchemaCompat.TryParseSemVer(localTargetVersion ?? string.Empty, out var target))
-        {
-            return false;
-        }
-
-        return DbSchemaCompat.CompareSemVer(current, target) < 0;
-    }
-
     private void TrackAliasRow(ClientAliasRow row)
     {
         if (_trackedAliasRows.Add(row))
@@ -736,6 +732,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         if (e.PropertyName == nameof(ClientAliasRow.Alias))
         {
             RefreshClientAlias();
+            RefreshUnsaved();
         }
     }
 

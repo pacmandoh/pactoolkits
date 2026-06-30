@@ -115,7 +115,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (page is not null)
         {
-            ActivePage = page;
+            _ = SetActivePageAsync(page);
         }
     }
 
@@ -131,7 +131,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (page is not null)
         {
-            ActivePage = page;
+            _ = SetActivePageAsync(page);
         }
     }
 
@@ -154,7 +154,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        ActivePage = page;
+        _ = SetActivePageAsync(page);
     }
 
     [ObservableProperty] private AppPageBase? _activePage;
@@ -978,7 +978,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (firstInArea is not null)
         {
-            ActivePage = firstInArea;
+            _ = SetActivePageAsync(firstInArea);
         }
     }
 
@@ -1018,7 +1018,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (value is SettingsViewModel settingsPage)
         {
-            settingsPage.ResetDraftFromCurrent();
             _ = settingsPage.RefreshSchemaStatusAsync("open_settings");
         }
 
@@ -1060,7 +1059,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (page is not null && !ReferenceEquals(ActivePage, page) && page.IsEnabled)
         {
-            ActivePage = page;
+            _ = SetActivePageAsync(page);
         }
     }
 
@@ -1124,8 +1123,27 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         if (_pageByType.TryGetValue(pageType, out var page))
         {
-            ActivePage = page;
+            _ = SetActivePageAsync(page);
         }
+    }
+
+    private async Task SetActivePageAsync(AppPageBase? page)
+    {
+        if (page is null || !page.IsEnabled || ReferenceEquals(ActivePage, page))
+        {
+            return;
+        }
+
+        if (ActivePage is ISettingsPage settings && page is not SettingsViewModel)
+        {
+            var ok = await settings.TrySaveOrDiscardAllAsync();
+            if (!ok)
+            {
+                return;
+            }
+        }
+
+        ActivePage = page;
     }
 
     [RelayCommand(CanExecute = nameof(CanProbeDb))]
