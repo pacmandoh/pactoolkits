@@ -9,7 +9,7 @@
   </Style>
 
   <Style Selector="shad|Window /template/ LayoutTransformControl#LayoutTransform">
-    <Setter Property="MinHeight" Value="{DynamicResource ShellTitleBarHeight}" />
+    <Setter Property="MinHeight" Value="{DynamicResource TitleBarHeight}" />
   </Style>
 
   <Style Selector="shad|Window /template/ LayoutTransformControl#LayoutTransform &gt; Border">
@@ -32,47 +32,47 @@
 
   <Style Selector="shad|Window /template/ StackPanel#AppTitlePanel">
     <Setter Property="Margin" Value="72,0,12,0" />
-    <Setter Property="MinHeight" Value="{DynamicResource ShellTitleBarHeight}" />
+    <Setter Property="MinHeight" Value="{DynamicResource TitleBarHeight}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <Style Selector="shad|Window /template/ ContentPresenter#RightButtons">
-    <Setter Property="Margin" Value="{DynamicResource ShellTitleBarRightContentMargin}" />
+    <Setter Property="Margin" Value="{DynamicResource TitleBarRightMargin}" />
   </Style>
 
-  <Style Selector="Border.ShellTitleBarCapsule">
+  <Style Selector="Border.TitleBarCapsule">
     <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
-    <Setter Property="Margin" Value="{DynamicResource ShellTitleBarCapsuleMargin}" />
+    <Setter Property="Margin" Value="{DynamicResource TitleBarCapsuleMargin}" />
     <Setter Property="Padding" Value="0.5" />
   </Style>
 
-  <Style Selector="Border.ShellTitleBarCapsule Button.WindowControlsButton">
-    <Setter Property="MinWidth" Value="{DynamicResource ShellTitleBarCapsuleButtonMinSize}" />
-    <Setter Property="MaxWidth" Value="{DynamicResource ShellTitleBarCapsuleButtonMinSize}" />
-    <Setter Property="MinHeight" Value="{DynamicResource ShellTitleBarCapsuleButtonMinSize}" />
-    <Setter Property="MaxHeight" Value="{DynamicResource ShellTitleBarCapsuleButtonMinSize}" />
-    <Setter Property="Padding" Value="{DynamicResource ShellTitleBarCapsuleButtonPadding}" />
+  <Style Selector="Border.TitleBarCapsule Button.WindowControlsButton">
+    <Setter Property="MinWidth" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
+    <Setter Property="MaxWidth" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
+    <Setter Property="MinHeight" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
+    <Setter Property="MaxHeight" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
+    <Setter Property="Padding" Value="{DynamicResource TitleBarCapsuleBtnPadding}" />
   </Style>
 
-  <Style Selector="Border.ShellTitleBarCapsule Button.WindowControlsButton icons|AppIcon">
-    <Setter Property="Width" Value="{DynamicResource ShellTitleBarCapsuleIconSize}" />
-    <Setter Property="Height" Value="{DynamicResource ShellTitleBarCapsuleIconSize}" />
+  <Style Selector="Border.TitleBarCapsule Button.WindowControlsButton icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource TitleBarCapsuleIconSize}" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarCapsuleIconSize}" />
   </Style>
 
-  <Style Selector="Grid.ShellTitleBarNavChrome">
-    <Setter Property="Width" Value="{DynamicResource ShellTitleBarNavChromeWidth}" />
+  <Style Selector="Grid.TitleBarNav">
+    <Setter Property="Width" Value="{DynamicResource TitleBarNavWidth}" />
     <Setter Property="ColumnSpacing" Value="6" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Button.ShellTitleBarNavButton">
+  <Style Selector="Button.TitleBarNavBtn">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
-    <Setter Property="Width" Value="{DynamicResource ShellTitleBarNavButtonSize}" />
-    <Setter Property="Height" Value="{DynamicResource ShellTitleBarNavButtonSize}" />
+    <Setter Property="Width" Value="{DynamicResource TitleBarNavBtnSize}" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarNavBtnSize}" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Opacity" Value="0.45" />
     <Setter Property="IsHitTestVisible" Value="False" />
@@ -80,25 +80,25 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Button.ShellTitleBarNavButton icons|AppIcon">
-    <Setter Property="Width" Value="{DynamicResource ShellTitleBarNavIconSize}" />
-    <Setter Property="Height" Value="{DynamicResource ShellTitleBarNavIconSize}" />
+  <Style Selector="Button.TitleBarNavBtn icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource TitleBarNavIconSize}" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarNavIconSize}" />
     <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
   </Style>
 
-  <Style Selector="Border.ShellTitleBarPathBar">
+  <Style Selector="Border.TitleBarPath">
     <Setter Property="Background" Value="{DynamicResource GhostColor}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource ShellTitleBarPathBarRadius}" />
-    <Setter Property="Height" Value="{DynamicResource ShellTitleBarPathBarHeight}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource TitleBarPathRadius}" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarPathHeight}" />
   </Style>
 
-  <Style Selector="Border.ShellTitleBarPathBar TextBlock.Caption.Muted">
+  <Style Selector="Border.TitleBarPath TextBlock.Caption.Muted">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Border.ShellTitleBarPathDot">
+  <Style Selector="Border.TitleBarPathDot">
     <Setter Property="Width" Value="6" />
     <Setter Property="Height" Value="6" />
     <Setter Property="CornerRadius" Value="999" />
@@ -106,19 +106,19 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="StackPanel.ShellTitleBarPathTrailing icons|AppIcon">
+  <Style Selector="StackPanel.TitleBarPathTrail icons|AppIcon">
     <Setter Property="Width" Value="12" />
     <Setter Property="Height" Value="12" />
     <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem">
+  <Style Selector="Button.StatusBarItem">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="0" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-    <Setter Property="Padding" Value="{DynamicResource ShellStatusItemPadding}" />
-    <Setter Property="MinHeight" Value="{DynamicResource ShellStatusBarHeight}" />
+    <Setter Property="Padding" Value="{DynamicResource StatusBarItemPadding}" />
+    <Setter Property="MinHeight" Value="{DynamicResource StatusBarHeight}" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -168,68 +168,68 @@
     </Setter>
   </Style>
 
-  <Style Selector="Button.ShellStatusItem:pointerover /template/ Border#PART_Border">
+  <Style Selector="Button.StatusBarItem:pointerover /template/ Border#PART_Border">
     <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem:pressed /template/ Border#PART_Border">
+  <Style Selector="Button.StatusBarItem:pressed /template/ Border#PART_Border">
     <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem.active /template/ Border#PART_Border">
+  <Style Selector="Button.StatusBarItem.active /template/ Border#PART_Border">
     <Setter Property="Background" Value="{DynamicResource GhostColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem.active:pointerover /template/ Border#PART_Border,Button.ShellStatusItem.active:pressed /template/ Border#PART_Border">
+  <Style Selector="Button.StatusBarItem.active:pointerover /template/ Border#PART_Border,Button.StatusBarItem.active:pressed /template/ Border#PART_Border">
     <Setter Property="Background" Value="{DynamicResource GhostColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem:disabled">
+  <Style Selector="Button.StatusBarItem:disabled">
     <Setter Property="Opacity" Value="1" />
     <Setter Property="Cursor" Value="Arrow" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem:disabled:pointerover /template/ Border#PART_Border">
+  <Style Selector="Button.StatusBarItem:disabled:pointerover /template/ Border#PART_Border">
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem:pointerover,Button.ShellStatusItem:pressed,Button.ShellStatusItem.active,Button.ShellStatusItem.active:pointerover,Button.ShellStatusItem.active:pressed">
+  <Style Selector="Button.StatusBarItem:pointerover,Button.StatusBarItem:pressed,Button.StatusBarItem.active,Button.StatusBarItem.active:pointerover,Button.StatusBarItem.active:pressed">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
-  <Style Selector="Border.ShellStatusBar TextBlock.Caption.Muted">
-    <Setter Property="FontSize" Value="{DynamicResource ShellStatusCaptionSize}" />
+  <Style Selector="Border.StatusBar TextBlock.Caption.Muted">
+    <Setter Property="FontSize" Value="{DynamicResource StatusBarCaptionSize}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem TextBlock.Caption.Muted,Button.ShellStatusItem:pointerover TextBlock.Caption.Muted,Button.ShellStatusItem:pressed TextBlock.Caption.Muted,Button.ShellStatusItem.active TextBlock.Caption.Muted,Button.ShellStatusItem.active:pointerover TextBlock.Caption.Muted,Button.ShellStatusItem.active:pressed TextBlock.Caption.Muted">
+  <Style Selector="Button.StatusBarItem TextBlock.Caption.Muted,Button.StatusBarItem:pointerover TextBlock.Caption.Muted,Button.StatusBarItem:pressed TextBlock.Caption.Muted,Button.StatusBarItem.active TextBlock.Caption.Muted,Button.StatusBarItem.active:pointerover TextBlock.Caption.Muted,Button.StatusBarItem.active:pressed TextBlock.Caption.Muted">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem) icons|AppIcon">
+  <Style Selector="Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentItem) icons|AppIcon">
     <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
     <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
     <Setter Property="StrokeWidth" Value="{DynamicResource SidebarMenuIconStroke}" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem):pointerover icons|AppIcon,Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem):pressed icons|AppIcon,Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active icons|AppIcon,Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active:pointerover icons|AppIcon,Button.ShellStatusItem:not(.ShellStatusDbItem):not(.ShellStatusAgentItem).active:pressed icons|AppIcon">
+  <Style Selector="Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentItem):pointerover icons|AppIcon,Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentItem):pressed icons|AppIcon,Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentItem).active icons|AppIcon,Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentItem).active:pointerover icons|AppIcon,Button.StatusBarItem:not(.StatusBarDbItem):not(.StatusBarAgentItem).active:pressed icons|AppIcon">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusDbItem icons|AppIcon,Button.ShellStatusAgentItem icons|AppIcon">
+  <Style Selector="Button.StatusBarDbItem icons|AppIcon,Button.StatusBarAgentItem icons|AppIcon">
     <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
     <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
     <Setter Property="StrokeWidth" Value="{DynamicResource SidebarMenuIconStroke}" />
   </Style>
 
-  <Style Selector="Button.ShellStatusIconItem">
-    <Setter Property="Padding" Value="{DynamicResource ShellStatusIconItemPadding}" />
+  <Style Selector="Button.StatusBarIconItem">
+    <Setter Property="Padding" Value="{DynamicResource StatusBarIconPadding}" />
   </Style>
 
-  <Style Selector="Border.ShellStatusDivider">
+  <Style Selector="Border.StatusBarDivider">
     <Setter Property="Width" Value="1" />
-    <Setter Property="Height" Value="{DynamicResource ShellStatusDividerHeight}" />
+    <Setter Property="Height" Value="{DynamicResource StatusBarDividerHeight}" />
     <Setter Property="Background" Value="{DynamicResource BorderColor}" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Opacity" Value="0.65" />
@@ -240,9 +240,9 @@
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="999" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-    <Setter Property="Padding" Value="{DynamicResource ShellTitleBarCapsuleButtonPadding}" />
-    <Setter Property="MinWidth" Value="{DynamicResource ShellTitleBarCapsuleButtonMinSize}" />
-    <Setter Property="MinHeight" Value="{DynamicResource ShellTitleBarCapsuleButtonMinSize}" />
+    <Setter Property="Padding" Value="{DynamicResource TitleBarCapsuleBtnPadding}" />
+    <Setter Property="MinWidth" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
+    <Setter Property="MinHeight" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="Cursor" Value="Hand" />
@@ -260,7 +260,7 @@
               Width="{TemplateBinding shad:ButtonAssist.ShowProgress,
                                       Converter={x:Static shad:BooleanConverters.ToZeroOrDouble},
                                       ConverterParameter=16}"
-              Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
+              Height="{DynamicResource TitleBarCapsuleIconSize}"
               HorizontalAlignment="Center"
               VerticalAlignment="Center">
               <ContentPresenter Content="{TemplateBinding shad:ButtonAssist.ShowProgress, Converter={x:Static shad:BooleanConverters.ToLoading}}" />
