@@ -113,8 +113,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private string _pullBatchPageSize = "20";
     [ObservableProperty] private int _pullBatchPage = 1;
     [ObservableProperty] private int _pullBatchTotalCount;
-    [ObservableProperty] private bool _hasPullBatchPrevPage;
-    [ObservableProperty] private bool _hasPullBatchNextPage;
     [ObservableProperty] private string _mapQueuePageSize = "120";
     [ObservableProperty] private string _mapQueueMapStatusFilter = "ALL";
     [ObservableProperty] private string _mapQueueCodeStatusFilter = "ALL";
@@ -122,8 +120,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private string _mapQueueKeyword = string.Empty;
     [ObservableProperty] private int _mapQueueTotalCount;
     [ObservableProperty] private string _mapQueueRangeText = "序号 --";
-    [ObservableProperty] private bool _hasMapQueuePrevPage;
-    [ObservableProperty] private bool _hasMapQueueNextPage;
+    [ObservableProperty] private bool _mapQueueHasNewer;
+    [ObservableProperty] private bool _mapQueueHasOlder;
     [ObservableProperty] private int _mapQueuePage = 1;
     [ObservableProperty] private bool _isMapQueueSearchPanelVisible;
     [ObservableProperty] private bool _isTaskQueueSearchPanelVisible;
@@ -132,12 +130,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [ObservableProperty] private string _taskQueueKeyword = string.Empty;
     [ObservableProperty] private string _taskQueuePageSize = "50";
     [ObservableProperty] private int _taskQueuePage = 1;
-    [ObservableProperty] private bool _hasTaskQueuePrevPage;
-    [ObservableProperty] private bool _hasTaskQueueNextPage;
     [ObservableProperty] private string _autoLogPageSize = "50";
     [ObservableProperty] private int _autoLogPage = 1;
-    [ObservableProperty] private bool _hasAutoLogPrevPage;
-    [ObservableProperty] private bool _hasAutoLogNextPage;
     [ObservableProperty] private TaskQueueBatchActionMode _taskQueueBatchMode;
 
     [ObservableProperty] private DateTime? _upoutFromDate = DateTime.Today.AddDays(-6);
@@ -270,6 +264,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     public bool HasSubcodePrevPage => SubcodePage > 1;
     public int SubcodeTotalPages => Math.Max(1, (int)Math.Ceiling(SubcodeTotal / (double)GetSubcodePageSize()));
     public bool HasSubcodeNextPage => SubcodePage < SubcodeTotalPages;
+    public bool HasPullBatchPrevPage => PullBatchPage > 1;
+    public bool HasPullBatchNextPage => PullBatchPage < PullBatchTotalPages;
+    public bool HasTaskQueuePrevPage => TaskQueuePage > 1;
+    public bool HasTaskQueueNextPage => TaskQueuePage < TaskQueueTotalPages;
+    public bool HasAutoLogPrevPage => AutoLogPage > 1;
+    public bool HasAutoLogNextPage => AutoLogPage < AutoLogTotalPages;
     public DateTime? UpoutFromMaxDate => UpoutToDate?.Date;
     public DateTime? UpoutToMinDate => UpoutFromDate?.Date;
     public DateTime? UpoutToMaxDate => DateTime.Today;
