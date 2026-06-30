@@ -33,7 +33,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IDialogService _dialogs;
     private readonly IToastService _toasts;
     private readonly IAppConfigStore _appConfigStore;
-    private readonly IDbConfigService _dbConfig;
+    private readonly IDbConfigNotifier _dbConfigNotifier;
+    private readonly IDbConnectionTester _dbConnectionTester;
     private readonly IDbConnectionMonitorService _dbMonitor;
     private readonly IDbAccessGuard _accessGuard;
     private readonly ILookupCatalogService _lookup;
@@ -546,7 +547,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IToastService toasts,
         IDialogService dialogs,
         IAppConfigStore appConfigStore,
-        IDbConfigService dbConfig,
+        IDbConfigNotifier dbConfigNotifier,
+        IDbConnectionTester dbConnectionTester,
         ToastManager toastManager,
         DialogManager dialogManager,
         IDbConnectionMonitorService dbMonitor,
@@ -565,7 +567,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _toasts = toasts;
         _dialogs = dialogs;
         _appConfigStore = appConfigStore ?? throw new ArgumentNullException(nameof(appConfigStore));
-        _dbConfig = dbConfig ?? throw new ArgumentNullException(nameof(dbConfig));
+        _dbConfigNotifier = dbConfigNotifier ?? throw new ArgumentNullException(nameof(dbConfigNotifier));
+        _dbConnectionTester = dbConnectionTester ?? throw new ArgumentNullException(nameof(dbConnectionTester));
         _dbMonitor = dbMonitor ?? throw new ArgumentNullException(nameof(dbMonitor));
         _accessGuard = accessGuard ?? throw new ArgumentNullException(nameof(accessGuard));
         _lookup = lookup ?? throw new ArgumentNullException(nameof(lookup));
@@ -581,7 +584,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _nav = nav ?? throw new ArgumentNullException(nameof(nav));
 
 
-        _dbConfig.Applied += OnDbConfigAppliedEvent;
+        _dbConfigNotifier.Applied += OnDbConfigAppliedEvent;
 
         ToastManager = toastManager;
         DialogManager = dialogManager;
@@ -589,7 +592,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _themeWatcher = new ThemeWatcher(global::Avalonia.Application.Current!);
         _themeWatcher.Initialize();
 
-        _configPath = _dbConfig.ConfigPath;
+        _configPath = _appConfigStore.ConfigPath;
         _configDir = Path.GetDirectoryName(_configPath) ?? string.Empty;
         _configFile = Path.GetFileName(_configPath);
 
@@ -1270,7 +1273,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         _logger.Info("MainWindowVM", "db.startup_check.start", "Checking database connectivity on startup");
-        var ok = await _dbConfig.TestConnectionAsync(_dbConfig.Current, CancellationToken.None).ConfigureAwait(false);
+        var test = await _dbConnectionTester
+            .TestAsync(_settings.AppliedDb, CancellationToken.None)
+            .ConfigureAwait(false);
+        var ok = test.Ok;
         if (!ok)
         {
             _logger.Warn("MainWindowVM", "db.startup_check.fail", "Database connection test failed on startup; shell banner will show status");
@@ -1713,7 +1719,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         ManageSchemaRecoveryPolling(shouldPoll: false);
 
-        SafeExecute(() => _dbConfig.Applied -= OnDbConfigAppliedEvent);
+        SafeExecute(() => _dbConfigNotifier.Applied -= OnDbConfigAppliedEvent);
         SafeExecute(() => _nav.NavigationRequested -= OnNavigationRequested);
         SafeExecute(() => _dbMonitor.ConnectionFailed -= ShowDbConnectionFailed);
         SafeExecute(() => _dbMonitor.Disconnected -= ShowDbDisconnected);
