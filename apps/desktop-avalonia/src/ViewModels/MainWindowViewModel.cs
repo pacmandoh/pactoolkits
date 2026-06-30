@@ -182,7 +182,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isDbProbeRunning;
     [ObservableProperty] private bool _isAhkActionRunning;
     [ObservableProperty] private bool _isUpdateChecking;
-    [ObservableProperty] private bool _isUpdateApplying;
     [ObservableProperty] private bool _hasUpdateAvailable;
     [ObservableProperty] private string _currentProductVersion = "unknown";
     [ObservableProperty] private string _latestProductVersion = "unknown";
@@ -227,6 +226,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public string VersionBarText
         => IsUpdateChecking ? "检查更新…" : VersionText;
+
+    public bool IsUpdateApplying => _updateFlow.IsApplying;
 
     public bool ShowConnectivityBanner { get; private set; }
     public string ConnectivityBannerTitle { get; private set; } = string.Empty;
@@ -619,6 +620,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dbMonitor.Disconnected += ScheduleAutoRefresh;
         Injector.StatusChanged += OnAhkStatusChanged;
         _updates.Changed += OnUpdateChanged;
+        _updateFlow.StateChanged += OnUpdateFlowStateChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
 
         CurrentProductVersion = _updates.CurrentVersion;
@@ -1525,28 +1527,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             logScope: "MainWindowVM").ConfigureAwait(false);
     }
 
-    private async Task ApplyUpdateFlowAsync()
-    {
-        if (IsUpdateApplying)
-        {
-            return;
-        }
-
-        IsUpdateApplying = true;
-        try
-        {
-            await _updateFlow.ApplyUpdateFlowAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("MainWindowVM", "update.apply.error", "Update apply failed", ex);
-            _toasts.Error("应用更新", ex.Message);
-        }
-        finally
-        {
-            IsUpdateApplying = false;
-        }
-    }
+    private Task ApplyUpdateFlowAsync()
+        => _updateFlow.ApplyUpdateFlowAsync();
 
     private Task IgnoreCurrentUpdateAsync()
         => _updateFlow.IgnoreVersionAsync(LatestProductVersion);
@@ -1715,6 +1697,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         });
     }
 
+    private void OnUpdateFlowStateChanged()
+    {
+        PostOnUi(() => OnPropertyChanged(nameof(IsUpdateApplying)));
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -1738,6 +1725,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _changeWatermark.TopicChanged -= OnWatermarkTopicChanged);
         SafeExecute(() => Injector.StatusChanged -= OnAhkStatusChanged);
         SafeExecute(() => _updates.Changed -= OnUpdateChanged);
+        SafeExecute(() => _updateFlow.StateChanged -= OnUpdateFlowStateChanged);
         SafeExecute(() => _updateSettings.Changed -= OnUpdateSettingsChanged);
 
         WireTopBarCommands(null);

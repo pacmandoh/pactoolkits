@@ -78,7 +78,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _updateStatusHint = "未检查更新";
     [ObservableProperty] private string _updateChannelSwitchHint = "切换通道前会检查目标 Feed 与数据库兼容范围";
     [ObservableProperty] private bool _isUpdateChecking;
-    [ObservableProperty] private bool _isUpdateApplying;
     [ObservableProperty] private bool _hasUpdateAvailable;
     [ObservableProperty] private bool _loggingEnabled = true;
     [ObservableProperty] private string _loggingMinimumLevel = "Error";
@@ -141,6 +140,8 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     public ObservableCollection<ClientAliasRow> ClientAliases { get; } = new();
     public bool IsClientAliasesEmpty => ClientAliases.Count == 0;
     public string ProductUpdateAvailabilityLabel => GetAvailabilityLabel(ProductUpdateAvailable);
+    public bool IsUpdateApplying => _updateFlow.IsApplying;
+    public bool CanApplyProductUpdateNow => HasUpdateAvailable && !IsUpdateChecking && !IsUpdateApplying;
     public string LoggingMinimumLevelHint => LoggingMinimumLevel switch
     {
         "Debug" => "记录最详细调试信息，适合临时排障",
@@ -210,6 +211,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         _uiBehavior.Changed += OnUiBehaviorChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
         _updates.Changed += OnUpdatesChanged;
+        _updateFlow.StateChanged += OnUpdateFlowStateChanged;
         _loggingSettings.Changed += OnLoggingSettingsChanged;
 
     }
@@ -440,7 +442,23 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     }
 
     partial void OnProductUpdateAvailableChanged(bool? value)
-        => OnPropertyChanged(nameof(ProductUpdateAvailabilityLabel));
+    {
+        OnPropertyChanged(nameof(ProductUpdateAvailabilityLabel));
+        OnPropertyChanged(nameof(CanApplyProductUpdateNow));
+    }
+
+    partial void OnHasUpdateAvailableChanged(bool value)
+        => OnPropertyChanged(nameof(CanApplyProductUpdateNow));
+
+    partial void OnIsUpdateCheckingChanged(bool value)
+        => OnPropertyChanged(nameof(CanApplyProductUpdateNow));
+
+    private void OnUpdateFlowStateChanged()
+        => PostUi(() =>
+        {
+            OnPropertyChanged(nameof(IsUpdateApplying));
+            OnPropertyChanged(nameof(CanApplyProductUpdateNow));
+        }, "update_flow.state.ui_fail");
 
     private void SyncUpdateState()
     {
@@ -523,6 +541,11 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         catch (System.Exception ex)
         {
             _logger.Warn("SettingsVM", "dispose.updates_unsub_fail", "Failed to unsubscribe Updates", ex);
+        }
+        try { _updateFlow.StateChanged -= OnUpdateFlowStateChanged; }
+        catch (System.Exception ex)
+        {
+            _logger.Warn("SettingsVM", "dispose.update_flow_unsub_fail", "Failed to unsubscribe UpdateFlow", ex);
         }
         try { _loggingSettings.Changed -= OnLoggingSettingsChanged; }
         catch (System.Exception ex)

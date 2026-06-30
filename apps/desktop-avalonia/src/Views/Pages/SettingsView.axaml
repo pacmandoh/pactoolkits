@@ -813,7 +813,7 @@
                 Grid.Column="2"
                 Classes="Ghost"
                 Command="{Binding ApplyUpdateNowCommand}"
-                IsEnabled="{Binding HasUpdateAvailable}">
+                IsEnabled="{Binding CanApplyProductUpdateNow}">
                 <StackPanel
                   HorizontalAlignment="Center"
                   Orientation="Horizontal"
