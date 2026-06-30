@@ -298,24 +298,30 @@ public partial class SettingsView : UserControl
 
         for (var i = 0; i < _tabLinks.Count; i++)
         {
-            var page = _tabLinks[i].Page;
-            var visible = i == index;
-            var scrollViewer = page.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+            if (i == index)
+            {
+                continue;
+            }
 
+            var page = _tabLinks[i].Page;
+            page.IsVisible = false;
+            _tabLinks[i].NavButton.Classes.Set("Active", false);
+
+            var scrollViewer = page.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
             if (scrollViewer is not null)
             {
                 SettingsScroll.ResetSticky(scrollViewer);
             }
+        }
 
-            page.IsVisible = visible;
-            _tabLinks[i].NavButton.Classes.Set("Active", visible);
+        var active = _tabLinks[index];
+        active.Page.IsVisible = true;
+        active.NavButton.Classes.Set("Active", true);
 
-            if (visible && scrollViewer is not null)
-            {
-                Dispatcher.UIThread.Post(
-                    () => SettingsScroll.QueueRefresh(scrollViewer),
-                    DispatcherPriority.Loaded);
-            }
+        var activeScroll = active.Page.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+        if (activeScroll is not null)
+        {
+            SettingsScroll.ScheduleRefresh(activeScroll);
         }
 
         _activeTabIndex = index;

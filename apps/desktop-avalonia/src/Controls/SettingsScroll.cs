@@ -95,6 +95,32 @@ public static class SettingsScroll
         }, DispatcherPriority.Background);
     }
 
+    public static void ScheduleRefresh(ScrollViewer scrollViewer)
+    {
+        QueueRefresh(scrollViewer);
+
+        Dispatcher.UIThread.Post(() => RefreshSticky(scrollViewer), DispatcherPriority.Loaded);
+        Dispatcher.UIThread.Post(() => RefreshSticky(scrollViewer), DispatcherPriority.Render);
+
+        if (FindTabPage(scrollViewer) is not Control page)
+        {
+            return;
+        }
+
+        EventHandler? layoutHandler = null;
+        layoutHandler = (_, _) =>
+        {
+            if (scrollViewer.Content is not Control contentRoot || !IsLayoutReady(scrollViewer, contentRoot))
+            {
+                return;
+            }
+
+            page.LayoutUpdated -= layoutHandler!;
+            RefreshSticky(scrollViewer);
+        };
+        page.LayoutUpdated += layoutHandler;
+    }
+
     private static void RefreshSticky(ScrollViewer scrollViewer)
     {
         if (!IsTabPageVisible(scrollViewer))
@@ -110,7 +136,6 @@ public static class SettingsScroll
         var contentRoot = scrollViewer.Content as Control;
         if (contentRoot is null || !IsLayoutReady(scrollViewer, contentRoot))
         {
-            ApplyStickyState(scrollViewer, stickyHost, [], false);
             return;
         }
 
@@ -264,14 +289,16 @@ public static class SettingsScroll
             Child = new TextBlock()
         };
 
+    private static Control? FindTabPage(ScrollViewer scrollViewer)
+        => scrollViewer.GetVisualAncestors()
+            .OfType<Control>()
+            .FirstOrDefault(static control => control.Classes.Contains("SettingsTabPage"));
+
     private static bool IsTabPageVisible(ScrollViewer scrollViewer)
     {
-        foreach (var ancestor in scrollViewer.GetVisualAncestors().OfType<Control>())
+        if (FindTabPage(scrollViewer) is Control page)
         {
-            if (ancestor.Classes.Contains("SettingsTabPage"))
-            {
-                return ancestor.IsVisible;
-            }
+            return page.IsVisible;
         }
 
         return scrollViewer.IsVisible;
