@@ -6,6 +6,8 @@ namespace PacToolkits.Application.Services;
 
 public interface ISettingsService
 {
+    PgOptions AppliedDb { get; }
+
     Task SaveDbConfigAsync(PgOptions options, CancellationToken ct);
 
     Task<DbConnectionValidationResult> ValidateDbConnectionAsync(
@@ -93,6 +95,8 @@ public sealed class SettingsService : ISettingsService
         _migrationPolicy = migrationPolicy ?? throw new ArgumentNullException(nameof(migrationPolicy));
         _envSettings = envSettings ?? throw new ArgumentNullException(nameof(envSettings));
     }
+
+    public PgOptions AppliedDb => _dbConfig.Current;
 
     public Task SaveDbConfigAsync(PgOptions options, CancellationToken ct)
         => _dbConfig.ApplyAsync(options, ct);
