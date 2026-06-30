@@ -8,6 +8,15 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class SettingsServiceTests
 {
     [Fact]
+    public void AppliedDb_returns_config_service_current()
+    {
+        var service = CreateService(new FakeMigrationService(), new DbAccessGuard(), schemaVersion: "1.2.22");
+
+        Assert.Equal("current-host", service.AppliedDb.Host);
+        Assert.Equal("current-db", service.AppliedDb.Database);
+    }
+
+    [Fact]
     public async Task Validate_connection_reports_schema_incompatibility_for_beta_below_minimum()
     {
         var migration = new FakeMigrationService();
