@@ -32,7 +32,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     private readonly IInventoryOverviewService _inventory;
     private readonly ILookupCatalogService _lookup;
-    private readonly IDbConfigService _dbConfig;
+    private readonly IDbConfigNotifier _dbConfigNotifier;
     private readonly ISensitiveUnlockService _unlockService;
     private readonly IToastService _toast;
     private readonly IDialogService _dialog;
@@ -227,7 +227,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public InventoryOverviewViewModel(
         IInventoryOverviewService inventory,
         ILookupCatalogService lookup,
-        IDbConfigService dbConfig,
+        IDbConfigNotifier dbConfigNotifier,
         ISensitiveUnlockService unlockService,
         IToastService toast,
         IDialogService dialog,
@@ -236,7 +236,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     {
         _inventory = inventory;
         _lookup = lookup;
-        _dbConfig = dbConfig;
+        _dbConfigNotifier = dbConfigNotifier;
         _unlockService = unlockService;
         _toast = toast;
         _dialog = dialog;
@@ -248,7 +248,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _unlockService.StateChanged += OnUnlockScopeChanged;
         RefreshUnlockState();
 
-        _dbConfig.Applied += OnDbApplied;
+        _dbConfigNotifier.Applied += OnDbApplied;
         _lastModeIndex = ModeIndex;
 
         PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
@@ -763,7 +763,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     public override void Dispose()
     {
-        _dbConfig.Applied -= OnDbApplied;
+        _dbConfigNotifier.Applied -= OnDbApplied;
         _unlockService.StateChanged -= OnUnlockScopeChanged;
         StopUnlockTimer();
         _unlockStatusTimer.Tick -= OnUnlockTimerTick;
