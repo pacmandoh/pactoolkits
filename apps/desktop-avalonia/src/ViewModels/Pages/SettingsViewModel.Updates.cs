@@ -296,27 +296,14 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     }
 
     [RelayCommand]
-    private async Task ApplyUpdateNowAsync()
+    private Task ApplyUpdateNowAsync()
     {
         if (IsUpdateChecking || IsUpdateApplying || SkipTrigger())
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        IsUpdateApplying = true;
-        try
-        {
-            await _updateFlow.ApplyUpdateFlowAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("SettingsVM", "update.apply.fail", "Failed to apply update", ex);
-            _toast.Error("应用更新", ex.Message);
-        }
-        finally
-        {
-            IsUpdateApplying = false;
-        }
+        return _updateFlow.ApplyUpdateFlowAsync();
     }
 
     [RelayCommand]
