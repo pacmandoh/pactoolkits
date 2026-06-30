@@ -103,7 +103,7 @@ public partial class MainWindowViewModel
             return;
         }
 
-        if (IsSamePgOptions(_dbConfig.Current, loaded.Postgres))
+        if (IsSamePgOptions(_settings.AppliedDb, loaded.Postgres))
         {
             _lastSeenConfigJson = json;
             return;
