@@ -61,7 +61,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     [ObservableProperty] private bool _isDbConnected;
     [ObservableProperty] private bool _isClientAliasRefreshing;
-    [ObservableProperty] private bool _canSaveClientAliases;
     [ObservableProperty] private string _clientAliasHint = "加载中…";
     [ObservableProperty] private int _traceCodeRequiredLength = 20;
     [ObservableProperty] private string _traceCodePattern = "^8\\d+$";
