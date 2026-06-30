@@ -79,10 +79,10 @@ flowchart TB
 
 ## 重载流水线
 
-| 组件                                     | 职责                                       |
-| ---------------------------------------- | ------------------------------------------ |
-| `PageReloadBehavior`                     | 单飞取消门闸                               |
-| `PageReloadBusyDelay`                    | 取数 busy 延迟 300ms（stale 静默刷新跳过） |
+| 组件                                 | 职责                                       |
+| ------------------------------------ | ------------------------------------------ |
+| `PageReloadBehavior`                 | 单飞取消门闸                               |
+| `PageReloadBusyDelay`                | 取数 busy 延迟 300ms（stale 静默刷新跳过） |
 | `AppPageBase.RunReloadPipelineAsync` | 预检 → 取数 → 更新 `PageDataAvailability`  |
 
 新数据页接入步骤见 [layering.md](./layering.md) 与 `AppPageBase.cs` 重载流水线实现。
