@@ -1,15 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
-using global::Avalonia.Animation.Easings;
-using global::Avalonia.Controls;
-using global::Avalonia.Input;
-using global::Avalonia.Media;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -21,30 +20,28 @@ public partial class SettingsView : UserControl
     public static readonly StyledProperty<bool> IsClientAliasEditableProperty =
         AvaloniaProperty.Register<SettingsView, bool>(nameof(IsClientAliasEditable), false);
 
-    public static readonly StyledProperty<bool> IsClientAliasReadOnlyProperty =
-        AvaloniaProperty.Register<SettingsView, bool>(nameof(IsClientAliasReadOnly), true);
-
     public bool IsClientAliasEditable
     {
         get => GetValue(IsClientAliasEditableProperty);
-        set => SetValue(IsClientAliasEditableProperty, value);
+        private set => SetValue(IsClientAliasEditableProperty, value);
     }
 
-    public bool IsClientAliasReadOnly
-    {
-        get => GetValue(IsClientAliasReadOnlyProperty);
-        set => SetValue(IsClientAliasReadOnlyProperty, value);
-    }
+    private static readonly (string PageName, string Title, string Icon)[] TabNav =
+    [
+        ("TabDbPage", "PostgreSQL 设置", "Database"),
+        ("TabAliasPage", "客户端别名映射", "Users"),
+        ("TabTraceRulePage", "追溯码校验规则", "NotebookText"),
+        ("TabUiBehaviorPage", "界面行为", "MonitorCog"),
+        ("TabUpdatePage", "应用更新", "Download"),
+        ("TabLoggingPage", "日志与诊断", "TextCursorInput"),
+        ("TabMsfxPage", "码上放心 API", "Webhook")
+    ];
 
     private SettingsViewModel? _vm;
-    private ScrollViewer? _contentScrollViewer;
-    private Grid? _settingsSectionsGrid;
+    private Panel? _contentHost;
     private StackPanel? _navItemsHost;
-    private readonly List<SectionLink> _sectionLinks = new();
-    private int _activeSectionIndex = -1;
-    private bool _isAnimatingScroll;
-    private CancellationTokenSource? _scrollAnimationCts;
-    private static readonly CubicEaseInOut ScrollEasing = new();
+    private readonly List<TabLink> _tabLinks = new();
+    private int _activeTabIndex;
 
     public SettingsView()
     {
@@ -67,52 +64,50 @@ public partial class SettingsView : UserControl
         }
 
         _vm?.PropertyChanged -= OnVmPropertyChanged;
+        _vm?.UnsavedChanged -= OnUnsavedChanged;
 
         _vm = vm;
 
         if (_vm is not null)
         {
-            IsClientAliasReadOnly = _vm.IsClientAliasReadOnly;
             IsClientAliasEditable = !_vm.IsClientAliasReadOnly;
             _vm.PropertyChanged += OnVmPropertyChanged;
+            _vm.UnsavedChanged += OnUnsavedChanged;
         }
         else
         {
-            IsClientAliasReadOnly = true;
             IsClientAliasEditable = false;
         }
+
+        RefreshNavDots();
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(SettingsViewModel.IsClientAliasReadOnly))
         {
-            IsClientAliasReadOnly = _vm?.IsClientAliasReadOnly ?? true;
-            IsClientAliasEditable = !IsClientAliasReadOnly;
+            IsClientAliasEditable = !(_vm?.IsClientAliasReadOnly ?? true);
         }
     }
+
+    private void OnUnsavedChanged()
+        => RefreshNavDots();
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
 
-        _contentScrollViewer?.ScrollChanged -= OnContentScrollChanged;
-
-        foreach (var link in _sectionLinks)
+        foreach (var link in _tabLinks)
         {
             link.NavButton.Click -= OnNavButtonClick;
         }
 
         _vm?.PropertyChanged -= OnVmPropertyChanged;
+        _vm?.UnsavedChanged -= OnUnsavedChanged;
 
-        _sectionLinks.Clear();
-        _contentScrollViewer = null;
-        _settingsSectionsGrid = null;
+        _tabLinks.Clear();
+        _contentHost = null;
         _navItemsHost = null;
-        _activeSectionIndex = -1;
-        _scrollAnimationCts?.Cancel();
-        _scrollAnimationCts?.Dispose();
-        _scrollAnimationCts = null;
         _vm = null;
     }
 
@@ -120,7 +115,7 @@ public partial class SettingsView : UserControl
     {
         base.OnAttachedToVisualTree(e);
         TryAttach(DataContext as SettingsViewModel);
-        InitializeSectionNavigation();
+        Dispatcher.UIThread.Post(InitTabNav, DispatcherPriority.Loaded);
     }
 
     private void OnSettingsKeyDown(object? sender, KeyEventArgs e)
@@ -137,7 +132,7 @@ public partial class SettingsView : UserControl
     private IEnumerable<Control> EnumerateTabInputs() =>
         InputFocusHelper.EnumerateInputs(this, typeof(TextBox), typeof(NumericUpDown), typeof(ComboBox));
 
-    private async void OnNavButtonClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+    private void OnNavButtonClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
     {
         try
         {
@@ -146,19 +141,19 @@ public partial class SettingsView : UserControl
                 return;
             }
 
-            var sectionIndex = navButton.Tag switch
+            var tabIndex = navButton.Tag switch
             {
                 int i => i,
                 string s when int.TryParse(s, out var parsed) => parsed,
                 _ => -1
             };
 
-            if (sectionIndex < 0)
+            if (tabIndex < 0)
             {
                 return;
             }
 
-            await SetActiveSectionAsync(sectionIndex, scrollToSection: true);
+            _ = SwitchTabAsync(tabIndex);
         }
         catch (Exception ex)
         {
@@ -166,76 +161,89 @@ public partial class SettingsView : UserControl
         }
     }
 
-    private void InitializeSectionNavigation()
+    private async Task SwitchTabAsync(int tabIndex)
     {
-        if (_contentScrollViewer is not null && _settingsSectionsGrid is not null && _sectionLinks.Count > 0)
+        if (tabIndex == _activeTabIndex)
         {
             return;
         }
 
-        _contentScrollViewer = this.FindControl<ScrollViewer>("ContentScrollViewer");
-        _settingsSectionsGrid = this.FindControl<Grid>("SettingsSectionsGrid");
+        if (_vm is not null)
+        {
+            var ok = await _vm.ConfirmLeaveTabAsync(_activeTabIndex);
+            if (!ok)
+            {
+                return;
+            }
+        }
+
+        SetActiveTab(tabIndex);
+    }
+
+    private void InitTabNav()
+    {
+        if (_contentHost is not null && _tabLinks.Count > 0)
+        {
+            return;
+        }
+
+        _contentHost = this.FindControl<Panel>("SettingsContentHost");
         _navItemsHost = this.FindControl<StackPanel>("NavItemsHost");
 
-        if (_contentScrollViewer is null || _settingsSectionsGrid is null || _navItemsHost is null)
+        if (_contentHost is null || _navItemsHost is null)
         {
             return;
         }
 
         _navItemsHost.Children.Clear();
-        _sectionLinks.Clear();
-        BuildSectionsFromAnchors();
-
-        _contentScrollViewer.ScrollChanged -= OnContentScrollChanged;
-        _contentScrollViewer.ScrollChanged += OnContentScrollChanged;
-        _ = SetActiveSectionAsync(0, scrollToSection: false);
+        _tabLinks.Clear();
+        BuildTabNav();
+        SetActiveTab(0);
     }
 
-    private void BuildSectionsFromAnchors()
+    private void BuildTabNav()
     {
-        if (_settingsSectionsGrid is null || _navItemsHost is null)
+        if (_contentHost is null || _navItemsHost is null)
         {
             return;
         }
 
-        var anchors = _settingsSectionsGrid.Children
-            .OfType<Grid>()
-            .Where(IsSectionAnchor)
-            .OrderBy(Grid.GetRow)
-            .ToList();
-
-        var sectionIndex = 0;
-        foreach (var anchor in anchors)
+        var tabIndex = 0;
+        foreach (var (pageName, title, icon) in TabNav)
         {
-            if (!CreateNavButtonForAnchor(anchor, sectionIndex, out var navButton))
+            var page = _contentHost.Children
+                .OfType<Control>()
+                .FirstOrDefault(child => string.Equals(child.Name, pageName, StringComparison.Ordinal));
+
+            if (page is null)
             {
                 continue;
             }
 
+            if (!CreateNavButton(title, icon, tabIndex, out var navButton, out var unsavedDot))
+            {
+                continue;
+            }
+
+            navButton.Click += OnNavButtonClick;
+
             _navItemsHost.Children.Add(navButton);
-            _sectionLinks.Add(new SectionLink(navButton, anchor));
-            sectionIndex++;
+            _tabLinks.Add(new TabLink(navButton, page, unsavedDot));
+            tabIndex++;
         }
     }
 
-    private static bool IsSectionAnchor(Grid grid)
-    {
-        var name = grid.Name;
-        return !string.IsNullOrWhiteSpace(name)
-               && name.StartsWith("Section", StringComparison.Ordinal)
-               && name.EndsWith("Anchor", StringComparison.Ordinal);
-    }
-
-    private bool CreateNavButtonForAnchor(Grid anchor, int sectionIndex, out Button navButton)
+    private static bool CreateNavButton(
+        string title,
+        string icon,
+        int tabIndex,
+        out Button navButton,
+        out Border unsavedDot)
     {
         navButton = null!;
+        unsavedDot = null!;
 
-        var sourceHeader = anchor.Children.OfType<StackPanel>().FirstOrDefault();
-        var sourceIcon = sourceHeader?.Children.OfType<AppIcon>().FirstOrDefault();
-        var sourceTitle = sourceHeader?.Children.OfType<TextBlock>().FirstOrDefault(text =>
-            text.Classes.Contains("SectionTitle") && !string.IsNullOrWhiteSpace(text.Text));
-
-        if (sourceTitle?.Text is null)
+        if (string.IsNullOrWhiteSpace(title))
         {
             return false;
         }
@@ -247,150 +255,85 @@ public partial class SettingsView : UserControl
             VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center
         };
 
-        var icon = new AppIcon
+        content.Children.Add(new AppIcon
         {
-            Kind = sourceIcon?.Kind ?? "Settings",
+            Kind = icon,
             VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center
-        };
+        });
 
-        var text = new TextBlock
+        content.Children.Add(new TextBlock
         {
-            Text = sourceTitle.Text,
+            Text = title,
             VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextWrapping = TextWrapping.NoWrap
-        };
+        });
 
-        content.Children.Add(icon);
-        content.Children.Add(text);
+        unsavedDot = new Border { IsVisible = false };
+        unsavedDot.Classes.Add("SettingsNavUnsavedDot");
+        content.Children.Add(unsavedDot);
 
         navButton = new Button
         {
             Content = content,
-            Tag = sectionIndex,
+            Tag = tabIndex,
             HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Stretch,
             VerticalContentAlignment = global::Avalonia.Layout.VerticalAlignment.Center
         };
         navButton.Classes.Add("SettingsNavItem");
-        navButton.Click += OnNavButtonClick;
         return true;
     }
 
-    private void OnContentScrollChanged(object? sender, ScrollChangedEventArgs e)
+    private void SetActiveTab(int index)
     {
-        if (_isAnimatingScroll || _contentScrollViewer is null || _settingsSectionsGrid is null || _sectionLinks.Count == 0)
+        if (_tabLinks.Count == 0)
         {
             return;
         }
 
-        var offsetY = _contentScrollViewer.Offset.Y;
-        var extentHeight = Math.Max(0, _contentScrollViewer.Extent.Height);
-        var viewportHeight = Math.Max(0, _contentScrollViewer.Viewport.Height);
-        var maxOffset = Math.Max(0, extentHeight - viewportHeight);
-        var isAtBottom = maxOffset > 0 && offsetY >= maxOffset - 2;
-
-        var activeIndex = _sectionLinks.Count - 1;
-        if (!isAtBottom)
+        if (index < 0 || index >= _tabLinks.Count)
         {
-            var minDistance = double.MaxValue;
-            for (var i = 0; i < _sectionLinks.Count; i++)
+            return;
+        }
+
+        for (var i = 0; i < _tabLinks.Count; i++)
+        {
+            var page = _tabLinks[i].Page;
+            var visible = i == index;
+            var scrollViewer = page.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+
+            if (scrollViewer is not null)
             {
-                var distance = Math.Abs(GetAnchorTop(_sectionLinks[i].Anchor) - offsetY);
-                if (distance < minDistance)
-                {
-                    minDistance = distance;
-                    activeIndex = i;
-                }
+                SettingsScroll.ResetSticky(scrollViewer);
+            }
+
+            page.IsVisible = visible;
+            _tabLinks[i].NavButton.Classes.Set("Active", visible);
+
+            if (visible && scrollViewer is not null)
+            {
+                Dispatcher.UIThread.Post(
+                    () => SettingsScroll.QueueRefresh(scrollViewer),
+                    DispatcherPriority.Loaded);
             }
         }
 
-        _ = SetActiveSectionAsync(activeIndex, scrollToSection: false);
+        _activeTabIndex = index;
+        RefreshNavDots();
     }
 
-    private double GetAnchorTop(Control anchor)
+    private void RefreshNavDots()
     {
-        if (_settingsSectionsGrid is null)
-        {
-            return 0;
-        }
-
-        var origin = anchor.TranslatePoint(default, _settingsSectionsGrid);
-        return origin?.Y ?? 0;
-    }
-
-    private async Task SetActiveSectionAsync(int index, bool scrollToSection)
-    {
-        if (_contentScrollViewer is null || _sectionLinks.Count == 0)
+        if (_vm is null)
         {
             return;
         }
 
-        if (index < 0 || index >= _sectionLinks.Count)
+        for (var i = 0; i < _tabLinks.Count; i++)
         {
-            return;
-        }
-
-        if (_activeSectionIndex != index)
-        {
-            for (var i = 0; i < _sectionLinks.Count; i++)
-            {
-                _sectionLinks[i].NavButton.Classes.Set("Active", i == index);
-            }
-
-            _activeSectionIndex = index;
-        }
-
-        if (!scrollToSection)
-        {
-            return;
-        }
-
-        var targetTop = GetAnchorTop(_sectionLinks[index].Anchor);
-        await AnimateScroll(targetTop);
-    }
-
-    private async Task AnimateScroll(double desiredScroll)
-    {
-        if (_contentScrollViewer is null)
-        {
-            return;
-        }
-
-        _scrollAnimationCts?.Cancel();
-        _scrollAnimationCts?.Dispose();
-        _scrollAnimationCts = new CancellationTokenSource();
-        var token = _scrollAnimationCts.Token;
-        _isAnimatingScroll = true;
-
-        try
-        {
-            var startOffset = _contentScrollViewer.Offset.Y;
-            var targetOffset = Math.Max(0, desiredScroll - 30);
-            var duration = TimeSpan.FromMilliseconds(800);
-            var stopwatch = Stopwatch.StartNew();
-
-            while (stopwatch.Elapsed < duration && !token.IsCancellationRequested)
-            {
-                var progress = Math.Clamp(stopwatch.Elapsed.TotalMilliseconds / duration.TotalMilliseconds, 0d, 1d);
-                var eased = ScrollEasing.Ease(progress);
-                var y = startOffset + ((targetOffset - startOffset) * eased);
-                _contentScrollViewer.Offset = new Vector(_contentScrollViewer.Offset.X, y);
-                await Task.Delay(16, token);
-            }
-
-            if (!token.IsCancellationRequested)
-            {
-                _contentScrollViewer.Offset = new Vector(_contentScrollViewer.Offset.X, targetOffset);
-            }
-        }
-        catch (TaskCanceledException)
-        {
-        }
-        finally
-        {
-            _isAnimatingScroll = false;
+            _tabLinks[i].UnsavedDot.IsVisible = _vm.IsTabDirty(i);
         }
     }
 
-    private sealed record SectionLink(Button NavButton, Control Anchor);
+    private sealed record TabLink(Button NavButton, Control Page, Border UnsavedDot);
 }
