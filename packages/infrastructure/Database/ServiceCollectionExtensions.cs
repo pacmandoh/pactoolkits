@@ -15,6 +15,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDb, PgDb>();
 
         services.AddSingleton<IDbConfigService, DbConfigService>();
+        services.AddSingleton<IDbConfigNotifier, DbConfigNotifier>();
         services.AddSingleton<IDbConnectionTester, DbConnectionTester>();
         services.AddSingleton<IDbConnectionMonitorService, DbConnectionMonitorService>();
         services.AddSingleton<IDbSchemaVersionService, DbSchemaVersionService>();
