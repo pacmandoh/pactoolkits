@@ -11,6 +11,9 @@ namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
 public interface IUpdateFlowService
 {
+    bool IsApplying { get; }
+    event Action? StateChanged;
+
     Task<AppUpdateCheckResult?> CheckAndHandleAsync(
         bool showNoUpdateToast,
         bool startupMode,
@@ -34,6 +37,7 @@ public sealed class UpdateFlowService : IUpdateFlowService
 {
     private static readonly TimeSpan UpdateCheckTimeout = TimeSpan.FromSeconds(10);
     private readonly object _toastGate = new();
+    private readonly object _applyingGate = new();
 
     private readonly IAppUpdateService _updates;
     private readonly IUpdateSettingsService _updateSettings;
@@ -43,6 +47,20 @@ public sealed class UpdateFlowService : IUpdateFlowService
     private readonly IAppLogger _logger;
     private bool _activeUpdateToastVisible;
     private string _activeUpdateToastKey = string.Empty;
+    private bool _isApplying;
+
+    public bool IsApplying
+    {
+        get
+        {
+            lock (_applyingGate)
+            {
+                return _isApplying;
+            }
+        }
+    }
+
+    public event Action? StateChanged;
 
     public UpdateFlowService(
         IAppUpdateService updates,
@@ -196,6 +214,18 @@ public sealed class UpdateFlowService : IUpdateFlowService
 
     public async Task ApplyUpdateFlowAsync()
     {
+        lock (_applyingGate)
+        {
+            if (_isApplying)
+            {
+                return;
+            }
+
+            _isApplying = true;
+        }
+
+        StateChanged?.Invoke();
+
         ProgressBar? progressBar = null;
         var progressToastActive = false;
 
@@ -276,6 +306,25 @@ public sealed class UpdateFlowService : IUpdateFlowService
             _logger.Error("UpdateDesktopFlow", "update.apply.flow_fail", "Update apply flow failed", ex);
             _toasts.Error("应用更新", ex.Message);
         }
+        finally
+        {
+            SetApplying(false);
+        }
+    }
+
+    private void SetApplying(bool value)
+    {
+        lock (_applyingGate)
+        {
+            if (_isApplying == value)
+            {
+                return;
+            }
+
+            _isApplying = value;
+        }
+
+        StateChanged?.Invoke();
     }
 
     private static Task RunOnUiAsync(Action action)
