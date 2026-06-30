@@ -25,6 +25,6 @@
 
   <!--  Align pager chrome with CardPanel body padding when inner content is flush (FlushBody).  -->
   <Style Selector="controls|DataGridPager.CardPanelBodyInset">
-    <Setter Property="HorizontalInset" Value="{DynamicResource CardPanelBodyHorizontalInset}" />
+    <Setter Property="HorizontalInset" Value="{DynamicResource CardPanelBodyInset}" />
   </Style>
 </Styles>

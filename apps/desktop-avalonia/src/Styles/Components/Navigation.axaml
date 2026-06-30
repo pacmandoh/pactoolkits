@@ -18,66 +18,62 @@
     <Setter Property="Padding" Value="0" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFunctionAreaMenuItem">
+  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFuncMenuItem">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFunctionAreaMenuItem /template/ Border#BaseBackground">
+  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFuncMenuItem /template/ Border#BaseBackground">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Opacity" Value="0" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFunctionAreaMenuItem:pointerover /template/ Border#HoverBackground">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFuncMenuItem:pointerover /template/ Border#HoverBackground">
     <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
     <Setter Property="Opacity" Value="1" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFunctionAreaMenuItem:pointerover /template/ Border#BaseBackground">
+  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFuncMenuItem:pointerover /template/ Border#BaseBackground">
     <Setter Property="Opacity" Value="0" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:pointerover /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:pressed /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:open /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:selected /template/ Border#HoverBackground">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:pointerover /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:pressed /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:open /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:selected /template/ Border#HoverBackground">
     <Setter Property="Opacity" Value="0" />
   </Style>
 
-  <Style Selector="Border.SidebarFunctionAreaBadge">
-    <Setter Property="Background" Value="{DynamicResource SidebarFunctionAreaBadgeColor}" />
+  <Style Selector="Border.SidebarFuncBadge">
+    <Setter Property="Background" Value="{DynamicResource ShellAccentColor}" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:open Border.SidebarFunctionAreaBadge,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem:selected Border.SidebarFunctionAreaBadge,shad|Sidebar#MainSidebar[Expanded=False] Border.SidebarFunctionAreaBadge:pointerover,shad|Sidebar#MainSidebar[Expanded=False] Border.SidebarFunctionAreaBadge:pressed">
-    <Setter Property="Background" Value="{DynamicResource SidebarFunctionAreaBadgeAccentColor}" />
+  <Style Selector="Border.SidebarFuncBadge icons|AppIcon">
+    <Setter Property="Foreground" Value="{DynamicResource ShellAccentOnColor}" />
   </Style>
 
-  <Style Selector="Border.SidebarFunctionAreaBadge icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource SidebarFunctionAreaBadgeForegroundColor}" />
-  </Style>
-
-  <Style Selector="Border.SidebarFunctionAreaHost">
-    <Setter Property="MinHeight" Value="{DynamicResource SidebarFunctionAreaChromeHeight}" />
+  <Style Selector="Border.SidebarFuncHost">
+    <Setter Property="MinHeight" Value="{DynamicResource SidebarFuncHeight}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
   </Style>
 
-  <Style Selector="StackPanel.SidebarFunctionAreaText">
+  <Style Selector="StackPanel.SidebarFuncText">
     <Setter Property="Spacing" Value="2" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="StackPanel.SidebarFunctionAreaText &gt; TextBlock.Small,Border.ConnectivityBanner TextBlock.Small,Border.ContentHeader TextBlock.Small">
+  <Style Selector="StackPanel.SidebarFuncText &gt; TextBlock.Small,Border.ConnectivityBanner TextBlock.Small,Border.PageHeader TextBlock.Small">
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFunctionAreaMenuItem">
-    <Setter Property="Margin" Value="{DynamicResource SidebarFunctionAreaExpandedMargin}" />
-    <Setter Property="MinHeight" Value="{DynamicResource ContentChromeHeight}" />
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFuncMenuItem">
+    <Setter Property="Margin" Value="{DynamicResource SidebarFuncMargin}" />
+    <Setter Property="MinHeight" Value="{DynamicResource ChromeRowHeight}" />
     <Setter Property="Padding" Value="12,4" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFunctionAreaMenuItem">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem">
     <Setter Property="Margin" Value="0,0,0,4" />
-    <Setter Property="MinHeight" Value="{DynamicResource ContentChromeHeight}" />
-    <Setter Property="MaxHeight" Value="{DynamicResource ContentChromeHeight}" />
+    <Setter Property="MinHeight" Value="{DynamicResource ChromeRowHeight}" />
+    <Setter Property="MaxHeight" Value="{DynamicResource ChromeRowHeight}" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
@@ -86,11 +82,11 @@
     <Setter Property="Spacing" Value="{DynamicResource SidebarNavItemSpacing}" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItemLabel.SidebarNavSectionLabel">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItemLabel.SidebarSectionLabel">
     <Setter Property="Margin" Value="8,0,8,8" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItemLabel.SidebarNavSectionLabel">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItemLabel.SidebarSectionLabel">
     <Setter Property="Margin" Value="{DynamicResource SidebarNavSeparatorMargin}" />
   </Style>
 
@@ -159,13 +155,13 @@
   </Style>
 
   <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItem:checked /template/ Border#BaseBackground,shad|Sidebar#MainSidebar[Expanded=True] shad|SidebarItem:checked:pointerover /template/ Border#BaseBackground">
-    <Setter Property="Background" Value="{DynamicResource NavIndicatorBrushExpanded}" />
+    <Setter Property="Background" Value="{DynamicResource NavIndicatorBrush}" />
     <Setter Property="Opacity" Value="1" />
   </Style>
 
   <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItem:checked /template/ Border#BaseBackground,shad|Sidebar#MainSidebar[Expanded=False] shad|SidebarItem:checked:pointerover /template/ Border#BaseBackground">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NavIndicatorBarBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NavIndicatorFg}" />
     <Setter Property="BorderThickness" Value="4,0,0,0" />
     <Setter Property="Opacity" Value="1" />
   </Style>

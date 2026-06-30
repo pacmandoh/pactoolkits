@@ -67,7 +67,7 @@
             </Button>
           </Grid>
 
-          <Border Grid.Column="1" Classes="DashboardFilterColumnDivider" />
+          <Border Grid.Column="1" Classes="DashboardFilterDivider" />
 
           <Grid
             Grid.Column="2"
@@ -103,7 +103,7 @@
             </Button>
           </Grid>
 
-          <Border Grid.Column="3" Classes="DashboardFilterColumnDivider" />
+          <Border Grid.Column="3" Classes="DashboardFilterDivider" />
 
           <Grid
             Grid.Column="4"
@@ -435,12 +435,12 @@
                   Icon="{Binding SectionEmptyIcon}"
                   IsEmpty="{Binding IsTopClientsEmpty}"
                   IsPending="{Binding IsSectionPending}"
-                  SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                  SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                   SlotMode="PendingOnly">
                   <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
                     <controls:DeferredGridSlot
                       x:Name="TopClientsGridSlot"
-                      SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                      SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                       SlotName="TopClientsGridOverview">
                       <controls:DeferredGridSlot.GridTemplate>
                         <DataTemplate x:DataType="vm:DashboardViewModel">
@@ -522,7 +522,7 @@
                   Icon="{Binding SectionEmptyIcon}"
                   IsEmpty="{Binding IsEntryRecentEmpty}"
                   IsPending="{Binding IsSectionPending}"
-                  SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                  SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                   SlotMode="PendingOnly">
                   <shad:BusyArea IsBusy="{Binding IsEntryBusy}">
                     <ScrollViewer
@@ -628,12 +628,12 @@
               Icon="{Binding SectionEmptyIcon}"
               IsEmpty="{Binding IsEntryRecentEmpty}"
               IsPending="{Binding IsSectionPending}"
-              SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+              SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
               SlotMode="PendingOnly">
               <shad:BusyArea IsBusy="{Binding IsEntryBusy}">
                 <controls:DeferredGridSlot
                   x:Name="EntryGridSlot"
-                  SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                  SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                   SlotName="EntryRecentGridInputTab">
                   <controls:DeferredGridSlot.GridTemplate>
                     <DataTemplate x:DataType="vm:DashboardViewModel">
@@ -757,13 +757,13 @@
               Icon="{Binding SectionEmptyIcon}"
               IsEmpty="{Binding IsTxnPanelEmpty}"
               IsPending="{Binding IsSectionPending}"
-              SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+              SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
               SlotMode="PendingOnly">
               <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
                 <Grid MinHeight="0">
                   <controls:DeferredGridSlot
                     x:Name="TxnDetailGridSlot"
-                    SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                    SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                     SlotName="TxnDetailGrid">
                     <controls:DeferredGridSlot.GridTemplate>
                       <DataTemplate x:DataType="vm:DashboardViewModel">
@@ -824,7 +824,7 @@
 
                   <controls:DeferredGridSlot
                     x:Name="TxnTrendGridSlot"
-                    SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                    SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                     SlotName="TxnTrendGrid">
                     <controls:DeferredGridSlot.GridTemplate>
                       <DataTemplate x:DataType="vm:DashboardViewModel">
@@ -938,12 +938,12 @@
               Icon="{Binding SectionEmptyIcon}"
               IsEmpty="{Binding IsAbnormalEmpty}"
               IsPending="{Binding IsSectionPending}"
-              SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+              SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
               SlotMode="PendingOnly">
               <shad:BusyArea IsBusy="{Binding IsAbnormalBusy}">
                 <controls:DeferredGridSlot
                   x:Name="AbnormalGridSlot"
-                  SlotMinHeight="{DynamicResource OverviewListPendingMinHeight}"
+                  SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                   SlotName="AbnormalGrid">
                   <controls:DeferredGridSlot.GridTemplate>
                     <DataTemplate x:DataType="vm:DashboardViewModel">

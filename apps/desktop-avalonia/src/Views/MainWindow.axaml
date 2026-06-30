@@ -42,22 +42,22 @@
           Kind="Upload" />
       </Button>
 
-      <Border VerticalAlignment="Center" Classes="ShellTitleBarCapsule">
+      <Border VerticalAlignment="Center" Classes="TitleBarCapsule">
         <StackPanel Orientation="Horizontal" Spacing="0">
           <Button
             Classes="WindowControlsButton"
             Command="{Binding SwitchThemeCommand}"
             ToolTip.Tip="切换主题">
             <icons:AppIcon
-              Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
-              Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
+              Width="{DynamicResource TitleBarCapsuleIconSize}"
+              Height="{DynamicResource TitleBarCapsuleIconSize}"
               Kind="{Binding CurrentTheme, Converter={x:Static conv:ThemeModeConverters.ToIconKind}}" />
           </Button>
 
           <Border
             Width="1"
-            Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
-            Margin="{DynamicResource ShellTitleBarCapsuleDividerMargin}"
+            Height="{DynamicResource TitleBarCapsuleIconSize}"
+            Margin="{DynamicResource TitleBarCapsuleDividerMargin}"
             VerticalAlignment="Center"
             Background="{DynamicResource BorderColor}" />
 
@@ -67,13 +67,13 @@
             ToolTip.Tip="全屏">
             <Panel>
               <icons:AppIcon
-                Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
+                Width="{DynamicResource TitleBarCapsuleIconSize}"
+                Height="{DynamicResource TitleBarCapsuleIconSize}"
                 IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsNotFullScreen}}"
                 Kind="Maximize" />
               <icons:AppIcon
-                Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
+                Width="{DynamicResource TitleBarCapsuleIconSize}"
+                Height="{DynamicResource TitleBarCapsuleIconSize}"
                 IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsFullScreen}}"
                 Kind="Minimize" />
             </Panel>
@@ -81,8 +81,8 @@
 
           <Border
             Width="1"
-            Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
-            Margin="{DynamicResource ShellTitleBarCapsuleDividerMargin}"
+            Height="{DynamicResource TitleBarCapsuleIconSize}"
+            Margin="{DynamicResource TitleBarCapsuleDividerMargin}"
             VerticalAlignment="Center"
             Background="{DynamicResource BorderColor}" />
 
@@ -92,14 +92,14 @@
             Command="{Binding TryReconnectDbCommand}">
             <Panel>
               <icons:AppIcon
-                Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
+                Width="{DynamicResource TitleBarCapsuleIconSize}"
+                Height="{DynamicResource TitleBarCapsuleIconSize}"
                 Foreground="{DynamicResource SuccessColor}"
                 IsVisible="{Binding IsDbConnected}"
                 Kind="Link" />
               <icons:AppIcon
-                Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
+                Width="{DynamicResource TitleBarCapsuleIconSize}"
+                Height="{DynamicResource TitleBarCapsuleIconSize}"
                 Foreground="{DynamicResource ErrorColor}"
                 IsVisible="{Binding !IsDbConnected}"
                 Kind="Unlink" />
@@ -112,14 +112,14 @@
             Command="{Binding StartOrRestartAhkCommand}">
             <Panel>
               <icons:AppIcon
-                Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
+                Width="{DynamicResource TitleBarCapsuleIconSize}"
+                Height="{DynamicResource TitleBarCapsuleIconSize}"
                 Foreground="{DynamicResource SuccessColor}"
                 IsVisible="{Binding IsAhkRunning}"
                 Kind="Syringe" />
               <icons:AppIcon
-                Width="{DynamicResource ShellTitleBarCapsuleIconSize}"
-                Height="{DynamicResource ShellTitleBarCapsuleIconSize}"
+                Width="{DynamicResource TitleBarCapsuleIconSize}"
+                Height="{DynamicResource TitleBarCapsuleIconSize}"
                 Foreground="{DynamicResource ErrorColor}"
                 IsVisible="{Binding !IsAhkRunning}"
                 Kind="Syringe" />
@@ -131,14 +131,14 @@
   </shad:Window.RightWindowTitleBarContent>
 
   <shad:Window.LogoContent>
-    <Grid Classes="ShellTitleBarNavChrome" ColumnDefinitions="Auto,Auto,*">
-      <Button Classes="ShellTitleBarNavButton">
+    <Grid Classes="TitleBarNav" ColumnDefinitions="Auto,Auto,*">
+      <Button Classes="TitleBarNavBtn">
         <icons:AppIcon Kind="ChevronLeft" />
       </Button>
-      <Button Grid.Column="1" Classes="ShellTitleBarNavButton">
+      <Button Grid.Column="1" Classes="TitleBarNavBtn">
         <icons:AppIcon Kind="ChevronRight" />
       </Button>
-      <Border Grid.Column="2" Classes="ShellTitleBarPathBar">
+      <Border Grid.Column="2" Classes="TitleBarPath">
         <Grid ColumnDefinitions="*,Auto">
           <TextBlock
             Margin="12,0,8,0"
@@ -148,10 +148,10 @@
             Grid.Column="1"
             Margin="0,0,10,0"
             VerticalAlignment="Center"
-            Classes="ShellTitleBarPathTrailing"
+            Classes="TitleBarPathTrail"
             Orientation="Horizontal"
             Spacing="8">
-            <Border Classes="ShellTitleBarPathDot" />
+            <Border Classes="TitleBarPathDot" />
             <TextBlock Classes="Caption Muted" Text="3" />
             <icons:AppIcon Kind="MessageSquarePlus" />
             <icons:AppIcon Kind="ChevronDown" />
@@ -172,14 +172,14 @@
         Expanded="{Binding IsSidebarExpanded, Mode=TwoWay}"
         ItemIconContentSpacing="12">
         <shad:Sidebar.Header>
-          <Border Classes="SidebarFunctionAreaHost">
+          <Border Classes="SidebarFuncHost">
             <Menu Classes="Single">
               <MenuItem
                 HorizontalAlignment="Stretch"
                 shad:MenuItemAssist.PopupHorizontalOffset="4"
                 shad:MenuItemAssist.PopupPlacement="RightEdgeAlignedTop"
                 shad:MenuItemAssist.PopupVerticalOffset="0"
-                Classes="NoPressedAnimation SidebarFunctionAreaMenuItem"
+                Classes="NoPressedAnimation SidebarFuncMenuItem"
                 CornerRadius="{DynamicResource LgCornerRadius}">
                 <MenuItem.Header>
                   <Panel>
@@ -188,7 +188,7 @@
                       Height="36"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Center"
-                      Classes="SidebarFunctionAreaBadge"
+                      Classes="SidebarFuncBadge"
                       CornerRadius="{DynamicResource LgCornerRadius}"
                       IsVisible="{Binding !IsSidebarExpanded}">
                       <Viewbox Width="16" Height="16">
@@ -204,13 +204,13 @@
                         Width="36"
                         Height="36"
                         Margin="0,0,8,0"
-                        Classes="SidebarFunctionAreaBadge"
+                        Classes="SidebarFuncBadge"
                         CornerRadius="{DynamicResource XlCornerRadius}">
                         <Viewbox Width="16" Height="16">
                           <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />
                         </Viewbox>
                       </Border>
-                      <StackPanel Grid.Column="1" Classes="SidebarFunctionAreaText">
+                      <StackPanel Grid.Column="1" Classes="SidebarFuncText">
                         <TextBlock Classes="Small" Text="{Binding SelectedFunctionArea.Name}" />
                         <TextBlock
                           Classes="Caption Muted"
@@ -276,7 +276,7 @@
         <StackPanel Classes="SidebarNavHost" Spacing="4">
           <shad:SidebarItemLabel
             AsSeparator="True"
-            Classes="SidebarNavSectionLabel"
+            Classes="SidebarSectionLabel"
             Text="页面" />
 
           <ItemsControl ItemsSource="{Binding FilteredSidebarPages}">
@@ -401,11 +401,11 @@
         <Border
           BorderBrush="{DynamicResource BorderColor}"
           BorderThickness="0,0,0,1"
-          Classes="ContentHeader"
+          Classes="PageHeader"
           DockPanel.Dock="Top">
           <Grid
-            MinHeight="{DynamicResource ContentChromeHeight}"
-            Margin="{DynamicResource ContentHeaderPadding}"
+            MinHeight="{DynamicResource ChromeRowHeight}"
+            Margin="{DynamicResource HeaderPadding}"
             VerticalAlignment="Center"
             ColumnDefinitions="Auto, Auto, Auto, *, Auto, Auto, Auto">
             <StackPanel
@@ -443,15 +443,15 @@
                 <icons:AppIcon Foreground="{DynamicResource ErrorColor}" Kind="LockKeyholeOpen" />
               </Button>
             </StackPanel>
-            <Rectangle Grid.Column="1" Classes="ContentHeaderDivider" />
+            <Rectangle Grid.Column="1" Classes="HeaderDivider" />
             <StackPanel
               Grid.Column="2"
               VerticalAlignment="Center"
-              Classes="ContentHeaderTitleRail"
+              Classes="HeaderTitleRail"
               Orientation="Horizontal">
               <TextBlock Classes="Small Muted" Text="{Binding ActivePageText}" />
               <icons:AppIcon
-                Classes="ContentHeaderTitleChevron"
+                Classes="HeaderTitleChevron"
                 IsVisible="{Binding IsDashboardPageActive}"
                 Kind="ChevronRight" />
               <TabControl
@@ -509,14 +509,14 @@
               Grid.Column="4"
               HorizontalAlignment="Right"
               VerticalAlignment="Center"
-              Classes="ContentHeaderMenu"
+              Classes="HeaderMenu"
               IsVisible="{Binding IsInventoryPageActive}">
               <MenuItem
                 Command="{Binding InventoryToggleStockEditCommand}"
                 IsEnabled="{Binding CanInventoryToggleStockEdit}"
                 IsVisible="{Binding ShowInventoryEnableEdit}">
                 <MenuItem.Header>
-                  <StackPanel Classes="ContentHeaderMenuItemHeader">
+                  <StackPanel Classes="HeaderMenuItem">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeCompact}"
                       Height="{DynamicResource IconSizeCompact}"
@@ -530,7 +530,7 @@
                 IsEnabled="{Binding CanInventoryToggleStockEdit}"
                 IsVisible="{Binding ShowInventoryDisableEdit}">
                 <MenuItem.Header>
-                  <StackPanel Classes="ContentHeaderMenuItemHeader">
+                  <StackPanel Classes="HeaderMenuItem">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeCompact}"
                       Height="{DynamicResource IconSizeCompact}"
@@ -544,7 +544,7 @@
                 IsEnabled="{Binding CanInventoryToggleReassign}"
                 IsVisible="{Binding ShowInventoryReassign}">
                 <MenuItem.Header>
-                  <StackPanel Classes="ContentHeaderMenuItemHeader">
+                  <StackPanel Classes="HeaderMenuItem">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeCompact}"
                       Height="{DynamicResource IconSizeCompact}"
@@ -574,18 +574,18 @@
                   TextTrimming="CharacterEllipsis" />
               </StackPanel>
             </Border>
-            <Rectangle Grid.Column="5" Classes="ContentHeaderDivider" />
+            <Rectangle Grid.Column="5" Classes="HeaderDivider" />
             <Menu
               Grid.Column="6"
               HorizontalAlignment="Right"
               VerticalAlignment="Center"
-              Classes="ContentHeaderMenu">
+              Classes="HeaderMenu">
               <MenuItem
                 Command="{Binding RefreshActivePageCommand}"
                 IsEnabled="{Binding CanTopRefresh}"
                 IsVisible="{Binding ShowTopRefresh}">
                 <MenuItem.Header>
-                  <StackPanel Classes="ContentHeaderMenuItemHeader">
+                  <StackPanel Classes="HeaderMenuItem">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeCompact}"
                       Height="{DynamicResource IconSizeCompact}"
@@ -596,7 +596,7 @@
               </MenuItem>
               <MenuItem IsEnabled="False">
                 <MenuItem.Header>
-                  <StackPanel Classes="ContentHeaderMenuItemHeader">
+                  <StackPanel Classes="HeaderMenuItem">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeCompact}"
                       Height="{DynamicResource IconSizeCompact}"
@@ -610,7 +610,7 @@
                 IsEnabled="{Binding CanTopImport}"
                 IsVisible="{Binding ShowTopImport}">
                 <MenuItem.Header>
-                  <StackPanel Classes="ContentHeaderMenuItemHeader">
+                  <StackPanel Classes="HeaderMenuItem">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeCompact}"
                       Height="{DynamicResource IconSizeCompact}"
@@ -624,7 +624,7 @@
                 IsEnabled="{Binding CanTopExport}"
                 IsVisible="{Binding ShowTopExport}">
                 <MenuItem.Header>
-                  <StackPanel Classes="ContentHeaderMenuItemHeader">
+                  <StackPanel Classes="HeaderMenuItem">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeCompact}"
                       Height="{DynamicResource IconSizeCompact}"
@@ -682,12 +682,12 @@
 
     <Border
       Grid.Row="1"
-      MinHeight="{DynamicResource ShellStatusBarHeight}"
+      MinHeight="{DynamicResource StatusBarHeight}"
       Padding="0"
       HorizontalAlignment="Stretch"
       BorderBrush="{DynamicResource BorderColor}"
       BorderThickness="0,1,0,0"
-      Classes="ShellStatusBar">
+      Classes="StatusBar">
       <Grid ColumnDefinitions="*,Auto">
         <ScrollViewer
           Grid.Column="0"
@@ -697,7 +697,7 @@
           <StackPanel Orientation="Horizontal" Spacing="0">
             <Button
               shad:ButtonAssist.ShowProgress="{Binding IsDbProbeRunning}"
-              Classes="ShellStatusItem ShellStatusDbItem"
+              Classes="StatusBarItem StatusBarDbItem"
               Command="{Binding TryReconnectDbCommand}">
               <shad:ButtonAssist.Icon>
                 <Panel
@@ -717,11 +717,11 @@
               <TextBlock Classes="Caption Muted" Text="{Binding DbItemText}" />
             </Button>
 
-            <Border Classes="ShellStatusDivider" />
+            <Border Classes="StatusBarDivider" />
 
             <Button
               shad:ButtonAssist.ShowProgress="{Binding IsAhkActionRunning}"
-              Classes="ShellStatusItem ShellStatusAgentItem"
+              Classes="StatusBarItem StatusBarAgentItem"
               Command="{Binding StartOrRestartAhkCommand}">
               <shad:ButtonAssist.Icon>
                 <icons:AppIcon Foreground="{Binding IsAhkRunning, Converter={StaticResource BoolToDoneDangerBrush}}" Kind="Syringe" />
@@ -729,10 +729,10 @@
               <TextBlock Classes="Caption Muted" Text="{Binding AgentItemText}" />
             </Button>
 
-            <Border Classes="ShellStatusDivider" IsVisible="{Binding ShowAccessGuardItem}" />
+            <Border Classes="StatusBarDivider" IsVisible="{Binding ShowAccessGuardItem}" />
 
             <Button
-              Classes="ShellStatusItem"
+              Classes="StatusBarItem"
               Command="{Binding OpenSettingsCommand}"
               IsVisible="{Binding ShowAccessGuardItem}">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -753,7 +753,7 @@
           Orientation="Horizontal"
           Spacing="0">
           <Button
-            Classes="ShellStatusItem ShellStatusUpdateItem"
+            Classes="StatusBarItem StatusBarUpdateItem"
             Command="{Binding OpenUpdateCenterCommand}"
             IsVisible="{Binding HasUpdateAvailable}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
@@ -762,9 +762,9 @@
             </StackPanel>
           </Button>
 
-          <Border Classes="ShellStatusDivider" IsVisible="{Binding HasUpdateAvailable}" />
+          <Border Classes="StatusBarDivider" IsVisible="{Binding HasUpdateAvailable}" />
 
-          <Button Classes="ShellStatusItem" IsEnabled="False">
+          <Button Classes="StatusBarItem" IsEnabled="False">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
               <icons:AppIcon
                 Width="{DynamicResource IconSizeMini}"
@@ -775,10 +775,10 @@
             </StackPanel>
           </Button>
 
-          <Border Classes="ShellStatusDivider" />
+          <Border Classes="StatusBarDivider" />
 
           <Button
-            Classes="ShellStatusItem ShellStatusIconItem"
+            Classes="StatusBarItem StatusBarIconItem"
             Classes.active="{Binding IsSettingsPageActive}"
             Command="{Binding OpenSettingsCommand}">
             <Panel>

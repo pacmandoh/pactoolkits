@@ -9,7 +9,7 @@
     AccentBrush="{Binding AccentBrush, ElementName=Root}"
     Classes="Kpi"
     ShowMenuIcon="True">
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource KpiTileBodyColumnSpacing}">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource KpiTileColSpacing}">
       <StackPanel
         Grid.Column="0"
         VerticalAlignment="Center"
@@ -17,7 +17,7 @@
         <StackPanel
           VerticalAlignment="Center"
           Orientation="Horizontal"
-          Spacing="{DynamicResource KpiTileValueBadgeGap}">
+          Spacing="{DynamicResource KpiTileBadgeGap}">
           <TextBlock
             x:Name="ValueText"
             VerticalAlignment="Center"

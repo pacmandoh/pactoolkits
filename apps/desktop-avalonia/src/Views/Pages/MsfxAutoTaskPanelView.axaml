@@ -17,11 +17,11 @@
     VerticalAlignment="Stretch"
     HorizontalContentAlignment="Stretch"
     VerticalContentAlignment="Stretch">
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="{DynamicResource DialogRowSpacing}">
       <Grid
         IsVisible="{Binding !IsTaskPanelExpanded}"
         RowDefinitions="Auto,Auto,Auto"
-        RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+        RowSpacing="{DynamicResource DialogRowSpacing}">
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
           <StackPanel
             VerticalAlignment="Center"

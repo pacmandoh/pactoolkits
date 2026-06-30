@@ -12,27 +12,26 @@
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 
-  <SolidColorBrush x:Key="NavIndicatorBarBrush" Color="{DynamicResource ForegroundColor}" />
+  <SolidColorBrush x:Key="NavIndicatorFg" Color="{DynamicResource ForegroundColor}" />
 
-  <!--  Full-height indicator within item container.  -->
   <Rect x:Key="NavIndicatorFillRect">0,0,1,1</Rect>
-  <Rect x:Key="NavIndicatorBarRectExpanded">0.0,0,0.018,1</Rect>
+  <Rect x:Key="NavIndicatorRect">0.0,0,0.018,1</Rect>
 
-  <DrawingGroup x:Key="NavIndicatorDrawingExpanded">
+  <DrawingGroup x:Key="NavIndicatorDrawing">
     <GeometryDrawing Brush="Transparent">
       <GeometryDrawing.Geometry>
         <RectangleGeometry Rect="{StaticResource NavIndicatorFillRect}" />
       </GeometryDrawing.Geometry>
     </GeometryDrawing>
-    <GeometryDrawing Brush="{StaticResource NavIndicatorBarBrush}">
+    <GeometryDrawing Brush="{StaticResource NavIndicatorFg}">
       <GeometryDrawing.Geometry>
-        <RectangleGeometry Rect="{StaticResource NavIndicatorBarRectExpanded}" />
+        <RectangleGeometry Rect="{StaticResource NavIndicatorRect}" />
       </GeometryDrawing.Geometry>
     </GeometryDrawing>
   </DrawingGroup>
 
   <DrawingBrush
-    x:Key="NavIndicatorBrushExpanded"
-    Drawing="{StaticResource NavIndicatorDrawingExpanded}"
+    x:Key="NavIndicatorBrush"
+    Drawing="{StaticResource NavIndicatorDrawing}"
     Stretch="Fill" />
 </ResourceDictionary>
