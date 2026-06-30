@@ -13,7 +13,7 @@
           <Grid
             MinHeight="0"
             RowDefinitions="Auto,*"
-            RowSpacing="{DynamicResource CardPanelHeaderInnerGap}">
+            RowSpacing="{DynamicResource CardPanelHeaderGap}">
             <Grid
               Grid.Row="0"
               Margin="{DynamicResource CardPanelHeaderPadding}"
@@ -24,7 +24,7 @@
                 VerticalAlignment="Center"
                 IsVisible="{TemplateBinding HasTextTitle}"
                 Orientation="Horizontal"
-                Spacing="{DynamicResource CardPanelTitleRailSpacing}">
+                Spacing="{DynamicResource CardPanelTitleGap}">
                 <Ellipse
                   Width="{DynamicResource CardPanelAccentDotSize}"
                   Height="{DynamicResource CardPanelAccentDotSize}"
@@ -93,7 +93,7 @@
 
   <!--  Section chrome (default): nested outer shell + inner body well.  -->
   <Style Selector="Border.CardPanel">
-    <Setter Property="Background" Value="{DynamicResource CardPanelSectionChromeBackground}" />
+    <Setter Property="Background" Value="{DynamicResource CardPanelSectionBg}" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource CardPanelOuterRadius}" />
     <Setter Property="Padding" Value="0" />
@@ -144,7 +144,7 @@
   </Style>
 
   <Style Selector="controls|CardPanel.FlushBody Border.CardPanelBody">
-    <Setter Property="Padding" Value="{DynamicResource CardPanelFlushBodyPadding}" />
+    <Setter Property="Padding" Value="{DynamicResource CardPanelFlushPadding}" />
   </Style>
 
   <Style Selector="controls|KpiTile TextBlock.h3">

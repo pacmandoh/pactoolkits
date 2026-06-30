@@ -3,21 +3,20 @@
   <Thickness x:Key="SectionCardPadding">18</Thickness>
 
   <x:Double x:Key="ControlHeightCompact">38</x:Double>
-  <x:Double x:Key="FilterFieldComboBoxHeight">42</x:Double>
-  <Thickness x:Key="CompactPadding">10,8</Thickness>
-  <Thickness x:Key="FilterHintCardPadding">12,10</Thickness>
+  <x:Double x:Key="FilterComboHeight">42</x:Double>
+  <Thickness x:Key="RowPadding">10,8</Thickness>
+  <Thickness x:Key="FilterHintPadding">12,10</Thickness>
   <Thickness x:Key="AboutHeroCardPadding">14,12</Thickness>
 
-  <x:Double x:Key="HeroIconBadgeSize">36</x:Double>
-  <x:Double x:Key="HeroIconBadgeInnerSize">20</x:Double>
-  <x:Double x:Key="ButtonIconToggleSize">40</x:Double>
-  <x:Double x:Key="ButtonActionWideMinWidth">136</x:Double>
+  <x:Double x:Key="HeroBadgeSize">36</x:Double>
+  <x:Double x:Key="HeroBadgeInnerSize">20</x:Double>
+  <x:Double x:Key="IconToggleSize">40</x:Double>
+  <x:Double x:Key="ButtonWideMinWidth">136</x:Double>
   <x:Double x:Key="ActionTileMinHeight">64</x:Double>
 
   <x:Double x:Key="RowMinHeight">46</x:Double>
   <x:Double x:Key="InventoryRowHeight">52</x:Double>
   <CornerRadius x:Key="RowRadius">12</CornerRadius>
-  <Thickness x:Key="RowPadding">10,8</Thickness>
   <x:Double x:Key="DgH10Rows">460</x:Double>
   <x:Double x:Key="PagerEdgeSpacing">4</x:Double>
   <x:Double x:Key="TraceCodeLineHeight">19</x:Double>
@@ -25,7 +24,7 @@
   <x:Double x:Key="TraceCodeInputFontSize">13</x:Double>
   <FontFamily x:Key="TraceCodeInputFontFamily">Consolas,Menlo,monospace</FontFamily>
   <Thickness x:Key="TraceCodeInputPadding">12,10</Thickness>
-  <x:Double x:Key="OverviewListPendingMinHeight">160</x:Double>
+  <x:Double x:Key="OverviewPendingMinHeight">160</x:Double>
 
   <DataGridLength x:Key="DgWIndex">40</DataGridLength>
   <DataGridLength x:Key="DgWIcon">34</DataGridLength>
@@ -46,18 +45,23 @@
   <x:Double x:Key="EmptyStateSpacing">10</x:Double>
   <x:Double x:Key="EmptyStateIconSize">40</x:Double>
 
-  <x:Double x:Key="MsfxMiniIconBtnSize">28</x:Double>
-  <Thickness x:Key="MsfxMiniIconBtnPadding">2</Thickness>
+  <x:Double x:Key="MsfxIconBtnSize">28</x:Double>
+  <Thickness x:Key="MsfxIconBtnPadding">2</Thickness>
 
-  <Thickness x:Key="PagePadding">18,18,18,18</Thickness>
   <Thickness x:Key="PageRootMargin">18,18,18,18</Thickness>
-  <x:Double x:Key="ShellStatusBarHeight">28</x:Double>
-  <x:Double x:Key="ShellStatusDividerHeight">16</x:Double>
-  <x:Double x:Key="ShellStatusCaptionSize">11</x:Double>
-  <Thickness x:Key="ShellStatusItemPadding">10,0,10,0</Thickness>
-  <Thickness x:Key="ShellStatusIconItemPadding">8,0,8,0</Thickness>
-  <Thickness x:Key="SettingsSidebarMargin">18,18,0,18</Thickness>
-  <Thickness x:Key="SettingsContentMargin">18,18,18,18</Thickness>
+  <x:Double x:Key="StatusBarHeight">28</x:Double>
+  <x:Double x:Key="StatusBarDividerHeight">16</x:Double>
+  <x:Double x:Key="StatusBarCaptionSize">11</x:Double>
+  <Thickness x:Key="StatusBarItemPadding">10,0,10,0</Thickness>
+  <Thickness x:Key="StatusBarIconPadding">8,0,8,0</Thickness>
+  <Thickness x:Key="SettingsSidebarPadding">8,12,8,12</Thickness>
+  <Thickness x:Key="SettingsBodyPadding">26,8,26,28</Thickness>
+  <x:Double x:Key="SettingsBodySpacing">0</x:Double>
+  <Thickness x:Key="SettingsH1Padding">0,20,0,12</Thickness>
+  <Thickness x:Key="SettingsH2Padding">0,28,0,10</Thickness>
+  <Thickness x:Key="SettingsH3Padding">0,18,0,8</Thickness>
+  <Thickness x:Key="SettingsFieldPadding">12,12,12,12</Thickness>
+  <Thickness x:Key="SettingsStickyPadding">26,0,26,0</Thickness>
   <Thickness x:Key="DashboardLayoutMargin">0,0,0,18</Thickness>
   <Thickness x:Key="DashboardTabPanelMargin">18,18,18,0</Thickness>
   <Thickness x:Key="DashboardFilterBarPadding">12,10,12,10</Thickness>
@@ -70,28 +74,28 @@
   <Thickness x:Key="CardPanelHeaderPadding">12,12,12,0</Thickness>
   <Thickness x:Key="CardPanelInnerMargin">4,0,4,4</Thickness>
   <Thickness x:Key="KpiTileStripPadding">0</Thickness>
-  <x:Double x:Key="CardPanelHeaderInnerGap">12</x:Double>
+  <x:Double x:Key="CardPanelHeaderGap">12</x:Double>
   <x:Double x:Key="KpiTileInnerSpacing">10</x:Double>
-  <x:Double x:Key="KpiTileValueBadgeGap">10</x:Double>
-  <x:Double x:Key="KpiTileBodyColumnSpacing">12</x:Double>
-  <x:Double x:Key="KpiCircleProgressDiameter">64</x:Double>
-  <x:Double x:Key="KpiCircleProgressStroke">8</x:Double>
-  <x:Double x:Key="KpiCircleProgressLabelSize">12</x:Double>
-  <x:Double x:Key="KpiCircleProgressTrackOpacity">0.85</x:Double>
-  <x:Double x:Key="KpiCircleProgressOpacity">0.75</x:Double>
-  <x:TimeSpan x:Key="KpiCircleProgressAnimationDuration">0:0:0.8</x:TimeSpan>
-  <x:TimeSpan x:Key="KpiCircleProgressBrushAnimationDuration">0:0:0.5</x:TimeSpan>
-  <x:TimeSpan x:Key="KpiCircleProgressIndeterminateDuration">0:0:1.2</x:TimeSpan>
+  <x:Double x:Key="KpiTileBadgeGap">10</x:Double>
+  <x:Double x:Key="KpiTileColSpacing">12</x:Double>
+  <x:Double x:Key="KpiRingDiameter">64</x:Double>
+  <x:Double x:Key="KpiRingStroke">8</x:Double>
+  <x:Double x:Key="KpiRingLabelSize">12</x:Double>
+  <x:Double x:Key="KpiRingTrackOpacity">0.85</x:Double>
+  <x:Double x:Key="KpiRingOpacity">0.75</x:Double>
+  <x:TimeSpan x:Key="KpiRingAnimDuration">0:0:0.8</x:TimeSpan>
+  <x:TimeSpan x:Key="KpiRingBrushAnimDuration">0:0:0.5</x:TimeSpan>
+  <x:TimeSpan x:Key="KpiRingSpinDuration">0:0:1.2</x:TimeSpan>
   <x:Double x:Key="CardPanelAccentDotSize">8</x:Double>
-  <x:Double x:Key="CardPanelTitleRailSpacing">10</x:Double>
+  <x:Double x:Key="CardPanelTitleGap">10</x:Double>
   <Thickness x:Key="KpiTileInnerPadding">20,16</Thickness>
   <Thickness x:Key="CardPanelBodyPadding">12,12,12,12</Thickness>
-  <x:Double x:Key="CardPanelBodyHorizontalInset">12</x:Double>
+  <x:Double x:Key="CardPanelBodyInset">12</x:Double>
   <x:Double x:Key="CardPanelTabTitleSize">17</x:Double>
-  <Thickness x:Key="CardPanelFlushBodyPadding">0,0,0,0</Thickness>
+  <Thickness x:Key="CardPanelFlushPadding">0,0,0,0</Thickness>
   <x:Double x:Key="KpiTileColumnSpacing">12</x:Double>
-  <Thickness x:Key="ContentHeaderPadding">18,0,18,0</Thickness>
-  <Thickness x:Key="ContentHeaderDividerMargin">12,0</Thickness>
+  <Thickness x:Key="HeaderPadding">18,0,18,0</Thickness>
+  <Thickness x:Key="HeaderDividerMargin">12,0</Thickness>
   <Thickness x:Key="DialogPadding">18</Thickness>
 
   <x:Double x:Key="PageRowSpacing">12</x:Double>
@@ -99,19 +103,16 @@
   <x:Double x:Key="PageSectionSpacing">12</x:Double>
   <x:Double x:Key="FormRowSpacing">10</x:Double>
   <x:Double x:Key="FormColumnSpacing">12</x:Double>
-  <x:Double x:Key="DialogInnerRowSpacing">8</x:Double>
-  <x:Double x:Key="DialogFormRowSpacing">8</x:Double>
-  <x:Double x:Key="FilterFieldRowSpacing">11</x:Double>
+  <x:Double x:Key="DialogRowSpacing">8</x:Double>
+  <x:Double x:Key="FilterRowSpacing">11</x:Double>
 
   <Thickness x:Key="SettingsNavButtonPadding">12,10</Thickness>
-  <Thickness x:Key="SettingsNavCardPadding">10</Thickness>
 
   <x:Double x:Key="IconSizeMini">12</x:Double>
   <x:Double x:Key="IconSizeSmall">14</x:Double>
   <x:Double x:Key="IconSizeCompact">15</x:Double>
   <x:Double x:Key="IconSizeDefault">16</x:Double>
-  <x:Double x:Key="IconSizeSectionHeader">18</x:Double>
-  <x:Double x:Key="AppIconDefaultSize">16</x:Double>
+  <x:Double x:Key="IconSizeHeader">18</x:Double>
   <x:Double x:Key="IconBadgeSize">28</x:Double>
   <x:Double x:Key="IconBadgeInnerSize">16</x:Double>
   <x:Double x:Key="IconSizeDialog">22</x:Double>
@@ -119,15 +120,15 @@
   <Thickness x:Key="AboutExpanderContentMargin">8,6,8,8</Thickness>
   <x:Double x:Key="NavItemsSpacing">10</x:Double>
   <Thickness x:Key="SidebarChromePadding">8,0,8,8</Thickness>
-  <Thickness x:Key="SidebarFunctionAreaExpandedMargin">0,8,0,8</Thickness>
+  <Thickness x:Key="SidebarFuncMargin">0,8,0,8</Thickness>
   <Thickness x:Key="SidebarNavSeparatorMargin">8,4,8,4</Thickness>
   <x:Double x:Key="SidebarNavItemSpacing">4</x:Double>
   <x:Double x:Key="LegendDotSize">10</x:Double>
   <x:Double x:Key="TitleBarActionIconSize">17</x:Double>
   <x:Double x:Key="SidebarMenuIconSize">18</x:Double>
   <x:Double x:Key="SidebarMenuIconStroke">2.0</x:Double>
-  <x:Double x:Key="ContentChromeHeight">48</x:Double>
-  <x:Double x:Key="SidebarFunctionAreaChromeHeight">64</x:Double>
+  <x:Double x:Key="ChromeRowHeight">48</x:Double>
+  <x:Double x:Key="SidebarFuncHeight">64</x:Double>
 
   <Thickness x:Key="AboutSectionInset">8,8,8,8</Thickness>
   <Thickness x:Key="AboutSectionInsetTop">0,6,0,0</Thickness>
@@ -135,8 +136,6 @@
   <x:Double x:Key="SpacingInlineSm">6</x:Double>
   <x:Double x:Key="SpacingInlineMd">8</x:Double>
   <x:Double x:Key="PageColumnSpacingWide">14</x:Double>
-  <x:Double x:Key="SettingsSectionsRowSpacing">14</x:Double>
-
   <Thickness x:Key="MarginTopSm">0,8,0,0</Thickness>
   <Thickness x:Key="MarginTopMd">0,10,0,0</Thickness>
   <Thickness x:Key="MarginTopLg">0,12,0,0</Thickness>
@@ -145,26 +144,25 @@
   <Thickness x:Key="MarginBottomLg">0,0,0,8</Thickness>
   <Thickness x:Key="MarginLeftMd">12,0,0,0</Thickness>
   <Thickness x:Key="MarginHorizontalTiny">2,0,2,0</Thickness>
-  <Thickness x:Key="SettingsNavTitleMargin">6,2,6,4</Thickness>
   <Thickness x:Key="TitleBarActionMargin">0,0,6,0</Thickness>
-  <Thickness x:Key="ShellTitleBarRightContentMargin">0,4,0,4</Thickness>
-  <Thickness x:Key="ShellTitleBarCapsuleDividerMargin">2,0</Thickness>
-  <Thickness x:Key="ShellTitleBarCapsuleMargin">0,0,8,0</Thickness>
-  <Thickness x:Key="ShellTitleBarCapsuleButtonPadding">6,0</Thickness>
-  <x:Double x:Key="ShellTitleBarCapsuleButtonMinSize">22</x:Double>
-  <x:Double x:Key="ShellTitleBarCapsuleIconSize">16</x:Double>
-  <x:Double x:Key="ShellTitleBarHeight">32</x:Double>
-  <x:Double x:Key="ShellTitleBarNavChromeWidth">480</x:Double>
-  <x:Double x:Key="ShellTitleBarNavButtonSize">26</x:Double>
-  <x:Double x:Key="ShellTitleBarNavIconSize">15</x:Double>
-  <x:Double x:Key="ShellTitleBarPathBarHeight">26</x:Double>
-  <CornerRadius x:Key="ShellTitleBarPathBarRadius">7</CornerRadius>
+  <Thickness x:Key="TitleBarRightMargin">0,4,0,4</Thickness>
+  <Thickness x:Key="TitleBarCapsuleDividerMargin">2,0</Thickness>
+  <Thickness x:Key="TitleBarCapsuleMargin">0,0,8,0</Thickness>
+  <Thickness x:Key="TitleBarCapsuleBtnPadding">6,0</Thickness>
+  <x:Double x:Key="TitleBarCapsuleBtnSize">22</x:Double>
+  <x:Double x:Key="TitleBarCapsuleIconSize">16</x:Double>
+  <x:Double x:Key="TitleBarHeight">32</x:Double>
+  <x:Double x:Key="TitleBarNavWidth">480</x:Double>
+  <x:Double x:Key="TitleBarNavBtnSize">26</x:Double>
+  <x:Double x:Key="TitleBarNavIconSize">15</x:Double>
+  <x:Double x:Key="TitleBarPathHeight">26</x:Double>
+  <CornerRadius x:Key="TitleBarPathRadius">7</CornerRadius>
 
   <CornerRadius x:Key="TraceBadgeRadius">8</CornerRadius>
 
   <x:Double x:Key="DgSortResetButtonSize">20</x:Double>
-  <x:Double x:Key="DgIndexHeaderActionButtonSize">18</x:Double>
-  <x:Double x:Key="DgIndexHeaderActionIconSize">14</x:Double>
+  <x:Double x:Key="DgHeaderBtnSize">18</x:Double>
+  <x:Double x:Key="DgHeaderIconSize">14</x:Double>
   <x:Double x:Key="InventorySearchWidth">360</x:Double>
   <x:Double x:Key="PagerNavButtonSize">32</x:Double>
   <x:Double x:Key="PagerNavIconSize">14</x:Double>

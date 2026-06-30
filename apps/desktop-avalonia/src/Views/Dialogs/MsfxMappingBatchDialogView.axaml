@@ -72,7 +72,7 @@
       <Grid
         Grid.Row="1"
         RowDefinitions="Auto,*"
-        RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+        RowSpacing="{DynamicResource DialogRowSpacing}">
         <shad:Card IsVisible="{Binding IsSearchPanelVisible}">
           <Grid
             VerticalAlignment="Center"
@@ -248,7 +248,7 @@
           </shad:Card>
 
           <shad:Card Grid.Column="1" Padding="10,8">
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogFormRowSpacing}">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource DialogRowSpacing}">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                 <icons:AppIcon
                   Width="{DynamicResource IconSizeSmall}"

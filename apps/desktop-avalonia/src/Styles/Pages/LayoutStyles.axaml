@@ -22,11 +22,6 @@
     <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacing}" />
   </Style>
 
-  <Style Selector="Grid.SettingsSectionHeader">
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacing}" />
-  </Style>
-
   <!--  Pair a left field/summary with right actions; ColumnDefinitions="*,Auto" must be set inline on the Grid.  -->
   <Style Selector="Grid.ToolbarPairRow">
     <Setter Property="VerticalAlignment" Value="Center" />
@@ -91,7 +86,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Border.DashboardFilterColumnDivider">
+  <Style Selector="Border.DashboardFilterDivider">
     <Setter Property="Width" Value="1" />
     <Setter Property="Margin" Value="{DynamicResource DashboardFilterDividerMargin}" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
@@ -118,48 +113,48 @@
     <Setter Property="Background" Value="{DynamicResource WarningColor10}" />
   </Style>
 
-  <Style Selector="Border.ContentHeader">
+  <Style Selector="Border.PageHeader">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
-    <Setter Property="MinHeight" Value="{DynamicResource ContentChromeHeight}" />
+    <Setter Property="MinHeight" Value="{DynamicResource ChromeRowHeight}" />
   </Style>
 
-  <Style Selector="StackPanel.ContentHeaderMenuItemHeader">
+  <Style Selector="StackPanel.HeaderMenuItem">
     <Setter Property="Orientation" Value="Horizontal" />
     <Setter Property="Spacing" Value="{DynamicResource SpacingInlineSm}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="StackPanel.ContentHeaderMenuItemHeader &gt; TextBlock">
-    <Setter Property="FontSize" Value="{DynamicResource ContentHeaderMenuTitleSize}" />
+  <Style Selector="StackPanel.HeaderMenuItem &gt; TextBlock">
+    <Setter Property="FontSize" Value="{DynamicResource HeaderMenuTitleSize}" />
     <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Rectangle.ContentHeaderDivider">
+  <Style Selector="Rectangle.HeaderDivider">
     <Setter Property="Width" Value="1" />
     <Setter Property="Height" Value="16" />
-    <Setter Property="Margin" Value="{DynamicResource ContentHeaderDividerMargin}" />
+    <Setter Property="Margin" Value="{DynamicResource HeaderDividerMargin}" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Fill" Value="{DynamicResource BorderColor}" />
   </Style>
 
-  <Style Selector="StackPanel.ContentHeaderTitleRail">
+  <Style Selector="StackPanel.HeaderTitleRail">
     <Setter Property="Spacing" Value="{DynamicResource SpacingInlineSm}" />
   </Style>
 
-  <Style Selector="StackPanel.ContentHeaderTitleRail &gt; TextBlock">
+  <Style Selector="StackPanel.HeaderTitleRail &gt; TextBlock">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="icons|AppIcon.ContentHeaderTitleChevron">
+  <Style Selector="icons|AppIcon.HeaderTitleChevron">
     <Setter Property="Width" Value="14" />
     <Setter Property="Height" Value="14" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
   </Style>
 
-  <Style Selector="Menu.ContentHeaderMenu">
+  <Style Selector="Menu.HeaderMenu">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
@@ -170,7 +165,7 @@
     <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
 
-  <Style Selector="Border.ShellStatusBar">
+  <Style Selector="Border.StatusBar">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
   </Style>
 </Styles>

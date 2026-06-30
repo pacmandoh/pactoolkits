@@ -121,7 +121,7 @@
       <Grid
         Margin="{DynamicResource MarginHorizontalTiny}"
         RowDefinitions="Auto,*"
-        RowSpacing="{DynamicResource DialogInnerRowSpacing}">
+        RowSpacing="{DynamicResource DialogRowSpacing}">
         <controls:DataGridPager
           FirstPageCommand="{Binding FirstUpoutPageCommand}"
           IsContentEmpty="{Binding IsUpoutEmpty}"

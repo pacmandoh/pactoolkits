@@ -24,7 +24,7 @@
           VerticalAlignment="Center"
           ColumnDefinitions="Auto,*,Auto"
           ColumnSpacing="{DynamicResource PageColumnSpacing}">
-          <Border Classes="HeroIconBadge">
+          <Border Classes="HeroBadge">
             <icons:AppIcon Kind="Syringe" />
           </Border>
 

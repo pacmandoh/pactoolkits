@@ -40,8 +40,8 @@
       CornerRadius="12">
       <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
         <icons:AppIcon
-          Width="{DynamicResource IconSizeSectionHeader}"
-          Height="{DynamicResource IconSizeSectionHeader}"
+          Width="{DynamicResource IconSizeHeader}"
+          Height="{DynamicResource IconSizeHeader}"
           VerticalAlignment="Top"
           Foreground="{Binding Detail.State, Converter={StaticResource TraceEntryStateToFgBrush}}"
           Kind="{Binding Detail.State, Converter={StaticResource TraceEntryStateToIconKind}}" />

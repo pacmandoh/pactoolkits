@@ -88,7 +88,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
         var styles = ReadRepoFile("apps/desktop-avalonia/src/Styles/Components/ShellStyles.axaml");
 
         Assert.Contains("Button.WindowControlsButton", styles, StringComparison.Ordinal);
-        Assert.Contains("Button.ShellStatusItem", styles, StringComparison.Ordinal);
+        Assert.Contains("Button.StatusBarItem", styles, StringComparison.Ordinal);
         Assert.Contains("shad:BooleanConverters.ToLoading", styles, StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(styles, "shad:BooleanConverters.ToLoading"));
     }
