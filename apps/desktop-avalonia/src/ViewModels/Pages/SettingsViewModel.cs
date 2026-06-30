@@ -27,7 +27,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     protected override bool SupportsStaleWhileReconnect => false;
 
     private readonly ISettingsService _settings;
-    private readonly IDbConfigService _svc;
     private readonly IToastService _toast;
     private readonly IClientAliasService _alias;
     private readonly IAppConfigStore _appConfigStore;
@@ -154,7 +153,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     public SettingsViewModel(
         IAppConfigStore appConfigStore,
         ISettingsService settings,
-        IDbConfigService svc,
         IToastService toast,
         IClientAliasService alias,
         ITraceCodeRuleService traceCodeRule,
@@ -171,7 +169,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     {
         _appConfigStore = appConfigStore;
         _settings = settings;
-        _svc = svc;
         _toast = toast;
         _alias = alias;
         _traceCodeRule = traceCodeRule;
@@ -186,7 +183,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         _logger = logger;
         _clipboard = clipboard;
         ClientAliases.CollectionChanged += OnClientAliasesChanged;
-        var c = svc.Current;
+        var c = settings.AppliedDb;
         _host = c.Host;
         _port = c.Port;
         _database = c.Database;
@@ -236,7 +233,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     public void ResetDraftFromCurrent()
     {
         var cfg = _appConfigStore.Load();
-        var c = cfg.Postgres ?? _svc.Current;
+        var c = cfg.Postgres ?? _settings.AppliedDb;
         Host = c.Host;
         Port = c.Port;
         Database = c.Database;
