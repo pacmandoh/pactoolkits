@@ -15,7 +15,11 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public interface ISettingsPage { }
+public interface ISettingsPage
+{
+    bool HasUnsavedChanges { get; }
+    Task<bool> TrySaveOrDiscardAllAsync();
+}
 
 public partial class SettingsViewModel : AppPageBase, ISettingsPage
 {
@@ -56,14 +60,10 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _username;
     [ObservableProperty] private string _password;
 
-    [ObservableProperty] private string? _status;
-
     [ObservableProperty] private bool _isDbConnected;
     [ObservableProperty] private bool _isClientAliasRefreshing;
-    [ObservableProperty] private string _clientAliasHint = "加载中…";
     [ObservableProperty] private int _traceCodeRequiredLength = 20;
     [ObservableProperty] private string _traceCodePattern = "^8\\d+$";
-    [ObservableProperty] private string _traceCodeRuleHint = "默认：长度 20，正则 ^8\\d+$";
     [ObservableProperty] private bool _minimizeToTrayOnClose = true;
     [ObservableProperty] private bool _autoCheckUpdateOnStartup = true;
     [ObservableProperty] private string _updateChannel = "stable";
@@ -74,7 +74,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _currentProductVersion = "unknown";
     [ObservableProperty] private bool? _productUpdateAvailable;
     [ObservableProperty] private string _latestProductVersion = "unknown";
-    [ObservableProperty] private string _updateStatusHint = "未检查更新";
     [ObservableProperty] private string _updateChannelSwitchHint = "切换通道前会检查目标 Feed 与数据库兼容范围";
     [ObservableProperty] private bool _isUpdateChecking;
     [ObservableProperty] private bool _hasUpdateAvailable;
@@ -83,7 +82,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private int _loggingRetentionDays = 14;
     [ObservableProperty] private int _loggingMaxFileSizeMb = 20;
     [ObservableProperty] private string _loggingDirectory = string.Empty;
-    [ObservableProperty] private string _loggingStatusHint = "日志系统已启用";
     [ObservableProperty] private bool _isLoggingBusy;
     [ObservableProperty] private string _dbSchemaCurrentVersion = "unknown";
     [ObservableProperty] private string _dbSchemaTargetVersion = "unknown";
@@ -101,18 +99,16 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     [ObservableProperty] private string _dbSchemaPolicyText = DbMigrationPolicies.StableOnly;
     public string DbSchemaBetaConceptText
         => string.Equals(_releaseVersion.Current.BuildChannel, "beta", StringComparison.OrdinalIgnoreCase)
-            ? "当前是 Beta 应用。Beta 应用与 Beta 数据库是两个独立概念；默认不会升级共享生产数据库。"
-            : "应用发布通道与数据库环境相互独立；数据库迁移始终受清单策略和环境授权约束。";
+            ? "当前是 Beta 应用，Beta 应用与 Beta 数据库是两个独立概念；默认不会升级共享生产数据库"
+            : "应用发布通道与数据库环境相互独立；数据库迁移始终受清单策略和环境授权约束";
     [ObservableProperty] private string _msfxGatewayUrl = "https://eco.taobao.com/router/rest";
     [ObservableProperty] private string _msfxAppKey = string.Empty;
     [ObservableProperty] private string _msfxAppSecret = string.Empty;
-    [ObservableProperty] private bool _showMsfxAppSecret;
     [ObservableProperty] private string _msfxSessionToken = string.Empty;
     [ObservableProperty] private string _msfxRefEntId = string.Empty;
     [ObservableProperty] private int _msfxTimeoutSeconds = 20;
     [ObservableProperty] private bool? _msfxApiBadgeStatus;
     [ObservableProperty] private string _msfxApiBadgeLabel = "未配置";
-    public char MsfxAppSecretPasswordChar => ShowMsfxAppSecret ? '\0' : '•';
 
     [ObservableProperty] private bool _isClientAliasEditMode;
     [ObservableProperty] private bool _isClientAliasReadOnly = true;
@@ -224,66 +220,11 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         MsfxSessionToken = options.SessionToken;
         MsfxRefEntId = options.RefEntId;
         MsfxTimeoutSeconds = options.TimeoutSeconds;
-        RefreshMsfxApiHint(options);
+        RefreshMsfxBadge(options);
     }
 
     public Task RefreshSchemaStatusAsync(string source = "startup_postcheck")
         => UpdateSchemaStatusAsync(source, manualProbe: false);
-
-    public void ResetDraftFromCurrent()
-    {
-        var cfg = _appConfigStore.Load();
-        var c = cfg.Postgres ?? _settings.AppliedDb;
-        Host = c.Host;
-        Port = c.Port;
-        Database = c.Database;
-        Username = c.Username;
-        Password = c.Password;
-
-        Status = null;
-        ShowMsfxAppSecret = false;
-        IsClientAliasEditMode = false;
-        IsClientAliasReadOnly = true;
-
-        LoadAliasesOnly();
-        RefreshClientAlias();
-        LoadTraceCodeRule();
-        LoadMsfxApiOptions();
-        LoadUiBehavior();
-        LoadUpdateOptions();
-        LoadLoggingOptions();
-
-        // NumericUpDown can keep transient editor text (e.g. cleared but not committed).
-        // Force notify all numeric fields so UI rebinds to persisted/current values.
-        OnPropertyChanged(nameof(Port));
-        OnPropertyChanged(nameof(TraceCodeRequiredLength));
-        OnPropertyChanged(nameof(UpdatePollIntervalMinutes));
-        OnPropertyChanged(nameof(LoggingRetentionDays));
-        OnPropertyChanged(nameof(LoggingMaxFileSizeMb));
-        OnPropertyChanged(nameof(MsfxTimeoutSeconds));
-
-        // Force NumericUpDown editor text to rebind even when target value equals current value.
-        var targetPort = c.Port;
-        var targetTraceLength = TraceCodeRequiredLength;
-        var targetPollMinutes = UpdatePollIntervalMinutes;
-        var targetRetentionDays = LoggingRetentionDays;
-        var targetFileSizeMb = LoggingMaxFileSizeMb;
-        var targetMsfxTimeout = MsfxTimeoutSeconds;
-
-        Port = targetPort == 1 ? 2 : 1;
-        TraceCodeRequiredLength = targetTraceLength == 1 ? 2 : 1;
-        UpdatePollIntervalMinutes = targetPollMinutes == 0 ? 1 : 0;
-        LoggingRetentionDays = targetRetentionDays == 1 ? 2 : 1;
-        LoggingMaxFileSizeMb = targetFileSizeMb == 1 ? 2 : 1;
-        MsfxTimeoutSeconds = targetMsfxTimeout <= 3 ? 4 : 3;
-
-        Port = targetPort;
-        TraceCodeRequiredLength = targetTraceLength;
-        UpdatePollIntervalMinutes = targetPollMinutes;
-        LoggingRetentionDays = targetRetentionDays;
-        LoggingMaxFileSizeMb = targetFileSizeMb;
-        MsfxTimeoutSeconds = targetMsfxTimeout;
-    }
 
     private void OnClientAliasesChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsClientAliasesEmpty));
@@ -292,12 +233,15 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
     {
         SyncPageAvailability();
         _pageWorkCancelled = false;
+        RefreshUnsaved();
         return Task.CompletedTask;
     }
 
     public override Task OnPageDeactivatedAsync(CancellationToken ct = default)
     {
         CancelPageWork();
+        _loggingAutoSaveCts?.Cancel();
+        _updateAutoSaveCts?.Cancel();
         return Task.CompletedTask;
     }
 
@@ -427,9 +371,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         LoggingRetentionDays = options.RetentionDays;
         LoggingMaxFileSizeMb = options.MaxFileSizeMb;
         LoggingDirectory = _logger.LogDirectory;
-        LoggingStatusHint = options.Enabled
-            ? $"已启用（{options.MinimumLevel}）"
-            : "已禁用";
         _syncingLoggingOptions = false;
     }
 
@@ -464,25 +405,17 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         ProductUpdateAvailable = _updates.HasProductUpdateAvailable;
         HasUpdateAvailable = _updates.HasUpdateAvailable;
         IsUpdateChecking = _updates.IsChecking;
-        UpdateStatusHint = _updates.LastMessage;
     }
-
-    partial void OnLoggingMinimumLevelChanged(string value)
-        => OnPropertyChanged(nameof(LoggingMinimumLevelHint));
 
     partial void OnMinimizeToTrayOnCloseChanged(bool value)
     {
         if (_syncingUiBehavior)
+        {
             return;
+        }
 
         RunDetached(ct => SaveUiBehaviorImmediateAsync(value, ct), "desktop_behavior.save.fire_and_forget_fail");
     }
-
-    partial void OnUpdateChannelChanged(string value)
-        => SyncPollHint();
-
-    partial void OnUpdatePollIntervalMinutesChanged(int value)
-        => SyncPollHint();
 
     private void SyncPollHint()
     {
@@ -504,7 +437,6 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         var rule = _traceCodeRule.Current;
         TraceCodeRequiredLength = rule.RequiredLength;
         TraceCodePattern = rule.Pattern;
-        TraceCodeRuleHint = $"当前：长度 {rule.RequiredLength}，正则 {rule.Pattern}";
     }
 
     private void LoadAliasesOnly()
