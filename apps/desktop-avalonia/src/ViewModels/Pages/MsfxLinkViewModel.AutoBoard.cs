@@ -574,7 +574,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private async Task FirstMapQueuePageAsync()
     {
-        if (MapQueuePage <= 1 && !HasMapQueuePrevPage)
+        if (MapQueuePage <= 1 && !MapQueueHasNewer)
         {
             return;
         }
@@ -586,7 +586,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private async Task PrevMapQueuePageAsync()
     {
-        if (!HasMapQueuePrevPage || IsMapPanelBusy)
+        if (!MapQueueHasNewer || IsMapPanelBusy)
         {
             return;
         }
@@ -645,7 +645,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private async Task NextMapQueuePageAsync()
     {
-        if (!HasMapQueueNextPage || IsMapPanelBusy)
+        if (!MapQueueHasOlder || IsMapPanelBusy)
         {
             return;
         }
@@ -656,7 +656,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     [RelayCommand]
     private async Task LastMapQueuePageAsync()
     {
-        if (!HasMapQueueNextPage || IsMapPanelBusy)
+        if (!MapQueueHasOlder || IsMapPanelBusy)
         {
             return;
         }
@@ -1724,8 +1724,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         AutoTaskQueueRows.ResetContents(rows);
 
-        HasTaskQueuePrevPage = page > 1;
-        HasTaskQueueNextPage = page < totalPages;
         OnPropertyChanged(nameof(TaskQueueTotalPages));
     }
 
@@ -1744,8 +1742,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
         AutoLogPageRows.ResetContents(rows);
 
-        HasAutoLogPrevPage = page > 1;
-        HasAutoLogNextPage = page < totalPages;
         OnPropertyChanged(nameof(AutoLogTotalPages));
         OnPropertyChanged(nameof(IsAutoLogsEmpty));
     }
@@ -2055,8 +2051,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
             AutoMapQueueRows.ResetContents(gridRows);
 
-            HasMapQueuePrevPage = page.HasNewer;
-            HasMapQueueNextPage = page.HasOlder;
+            MapQueueHasNewer = page.HasNewer;
+            MapQueueHasOlder = page.HasOlder;
             if (fullMapMode)
             {
                 if (seekLastPage)
@@ -2274,9 +2270,6 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var rows = _allPullBatchRows.Skip(skip).Take(pageSize).ToList();
 
         AutoPullBatchRows.ResetContents(rows);
-
-        HasPullBatchPrevPage = page > 1;
-        HasPullBatchNextPage = page < totalPages;
     }
 
     private int GetMapQueuePageSize()
