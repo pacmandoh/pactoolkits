@@ -15,1304 +15,994 @@
   Classes="SettingsPage"
   Focusable="True"
   mc:Ignorable="d">
-  <Grid ColumnDefinitions="228,16,*">
-    <shad:Card
+  <Grid ColumnDefinitions="228,1,*">
+    <StackPanel
+      x:Name="NavItemsHost"
       Grid.Column="0"
-      Margin="{DynamicResource SettingsSidebarMargin}"
-      Padding="{DynamicResource SettingsNavCardPadding}"
-      VerticalAlignment="Stretch">
-      <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
-        <StackPanel
-          Margin="{DynamicResource SettingsNavTitleMargin}"
-          VerticalAlignment="Center"
-          Orientation="Horizontal"
-          Spacing="{DynamicResource SpacingInlineSm}">
-          <icons:AppIcon
-            Width="{DynamicResource IconSizeSectionHeader}"
-            Height="{DynamicResource IconSizeSectionHeader}"
-            Kind="List" />
-          <TextBlock
-            VerticalAlignment="Center"
-            Classes="SectionTitle"
-            Text="设置目录" />
-        </StackPanel>
-        <StackPanel
-          x:Name="NavItemsHost"
-          Grid.Row="1"
-          Classes="SettingsNavHost"
-          Spacing="{DynamicResource NavItemsSpacing}" />
-      </Grid>
-    </shad:Card>
-
-    <ScrollViewer
-      x:Name="ContentScrollViewer"
+      Margin="{DynamicResource SettingsSidebarPadding}"
+      VerticalAlignment="Stretch"
+      Classes="SettingsNavHost"
+      Spacing="{DynamicResource NavItemsSpacing}" />
+    <Border Grid.Column="1" Classes="SettingsSidebarDivider" />
+    <Panel
+      x:Name="SettingsContentHost"
       Grid.Column="2"
       HorizontalAlignment="Stretch"
       VerticalAlignment="Stretch"
-      HorizontalScrollBarVisibility="Disabled"
-      VerticalScrollBarVisibility="Auto">
+      Classes="SettingsContentHost">
 
+      <!--  PostgreSQL  -->
       <Grid
-        x:Name="SettingsSectionsGrid"
-        Margin="{DynamicResource SettingsContentMargin}"
-        KeyboardNavigation.TabNavigation="Cycle"
-        RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
-        RowSpacing="{DynamicResource SettingsSectionsRowSpacing}">
+        x:Name="TabDbPage"
+        Classes="SettingsTabPage"
+        IsVisible="True">
+        <ScrollViewer
+          controls:SettingsScroll.StickyHost="{Binding #DbStickyHost}"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+          <StackPanel Classes="SettingsBody">
+            <Border Classes="SettingsH1">
+              <TextBlock Classes="SettingsH1Text" Text="PostgreSQL 设置" />
+            </Border>
 
-
-        <Grid
-          x:Name="SectionDbAnchor"
-          VerticalAlignment="Center"
-          Classes="SettingsSectionHeader"
-          ColumnDefinitions="*,Auto">
-          <StackPanel Classes="SectionHeaderStack">
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeSectionHeader}"
-              Height="{DynamicResource IconSizeSectionHeader}"
-              Kind="Database" />
-            <TextBlock Classes="SectionTitle" Text="PostgreSQL 设置" />
-          </StackPanel>
-
-          <TextBlock
-            Grid.Column="1"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Classes="Caption Muted"
-            Text="{Binding Status}" />
-        </Grid>
-
-
-        <shad:Card Grid.Row="1" HorizontalAlignment="Stretch">
-          <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
-
-
-            <Grid
-              VerticalAlignment="Center"
-              Classes="ToolbarPairRow"
-              ColumnDefinitions="*,Auto">
-              <StackPanel Classes="SectionHeaderStack">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="Link" />
-                <TextBlock Classes="SectionTitle" Text="连接信息" />
-              </StackPanel>
-
-              <StackPanel
-                Grid.Column="1"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Center"
-                Orientation="Horizontal"
-                Spacing="{DynamicResource NavItemsSpacing}">
-                <Button Classes="Ghost" Command="{Binding TestCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="CircleCheck" />
-                    <TextBlock Text="测试连接" />
-                  </StackPanel>
-                </Button>
-                <Button Classes="Primary" Command="{Binding SaveCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="Save" />
-                    <TextBlock Text="保存并应用" />
-                  </StackPanel>
-                </Button>
-              </StackPanel>
-            </Grid>
-
-            <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="参数" />
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-
-
-                <Grid
-                  x:Name="DbParamsGrid"
-                  ColumnDefinitions="120,280"
-                  ColumnSpacing="{DynamicResource FormColumnSpacing}"
-                  RowDefinitions="Auto,Auto,Auto,Auto,Auto"
-                  RowSpacing="{DynamicResource FormRowSpacing}">
-
-                  <TextBlock VerticalAlignment="Center" Text="地址" />
-                  <TextBox
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Width="280"
-                    Height="{StaticResource ControlHeightCompact}"
-                    VerticalContentAlignment="Center"
-                    PlaceholderText="例如：127.0.0.1"
-                    Text="{Binding Host}" />
-
-                  <TextBlock
-                    Grid.Row="1"
-                    Grid.Column="0"
-                    VerticalAlignment="Center"
-                    Text="端口" />
-                  <NumericUpDown
-                    Grid.Row="1"
-                    Grid.Column="1"
-                    Width="280"
-                    VerticalContentAlignment="Center"
-                    FormatString="0"
-                    Increment="1"
-                    Maximum="65535"
-                    Minimum="1"
-                    PlaceholderText="例如：5432"
-                    Value="{Binding Port}" />
-
-                  <TextBlock
-                    Grid.Row="2"
-                    Grid.Column="0"
-                    VerticalAlignment="Center"
-                    Text="数据库名" />
-                  <TextBox
-                    Grid.Row="2"
-                    Grid.Column="1"
-                    Width="280"
-                    Height="{StaticResource ControlHeightCompact}"
-                    VerticalContentAlignment="Center"
-                    PlaceholderText="例如：pactoolkits"
-                    Text="{Binding Database}" />
-
-                  <TextBlock
-                    Grid.Row="3"
-                    Grid.Column="0"
-                    VerticalAlignment="Center"
-                    Text="用户名" />
-                  <TextBox
-                    Grid.Row="3"
-                    Grid.Column="1"
-                    Width="280"
-                    Height="{StaticResource ControlHeightCompact}"
-                    VerticalContentAlignment="Center"
-                    PlaceholderText="例如：postgres"
-                    Text="{Binding Username}" />
-
-                  <TextBlock
-                    Grid.Row="4"
-                    Grid.Column="0"
-                    VerticalAlignment="Center"
-                    Text="密码" />
-                  <TextBox
-                    Grid.Row="4"
-                    Grid.Column="1"
-                    Width="280"
-                    Height="{StaticResource ControlHeightCompact}"
-                    VerticalContentAlignment="Center"
-                    PasswordChar="●"
-                    PlaceholderText="请输入数据库密码"
-                    Text="{Binding Password}" />
-                </Grid>
-
-
-                <shad:Card
-                  Grid.Column="1"
-                  Height="{Binding #DbParamsGrid.Bounds.Height}"
-                  HorizontalAlignment="Stretch"
-                  VerticalAlignment="Top">
-                  <Grid RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
-                    <Grid
-                      VerticalAlignment="Center"
-                      ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto"
-                      ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                      <StackPanel Classes="SectionHeaderStack">
-                        <icons:AppIcon
-                          Width="{DynamicResource IconSizeDefault}"
-                          Height="{DynamicResource IconSizeDefault}"
-                          Kind="DatabaseBackup" />
-                        <TextBlock Classes="SectionTitle" Text="状态" />
-                      </StackPanel>
-                      <controls:UpdateStatusBadge
-                        Grid.Column="1"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Center"
-                        Label="{Binding DbSchemaBadgeLabel}"
-                        LatestVersion="{Binding DbSchemaTargetVersion}"
-                        Status="{Binding DbSchemaBadgeStatus}" />
-                      <Button
-                        Grid.Column="2"
-                        shad:ButtonAssist.ShowProgress="{Binding IsDbSchemaChecking}"
-                        Classes="Ghost"
-                        Command="{Binding CheckDbSchemaStatusCommand}"
-                        IsEnabled="{Binding !IsDbSchemaChecking}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}"
-                            Kind="RefreshCw" />
-                          <TextBlock Text="检查更新" />
-                        </StackPanel>
-                      </Button>
-                      <Button
-                        Grid.Column="3"
-                        Classes="Ghost"
-                        Command="{Binding ViewDbSchemaMigrationPlanCommand}"
-                        IsEnabled="{Binding !IsDbSchemaChecking}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}"
-                            Kind="ListTree" />
-                          <TextBlock Text="查看计划" />
-                        </StackPanel>
-                      </Button>
-                      <Button
-                        Grid.Column="4"
-                        Classes="Ghost"
-                        Command="{Binding CopyDbSchemaDiagnosticsCommand}"
-                        IsEnabled="{Binding CanCopyDbSchemaDiagnostics}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}"
-                            Kind="Copy" />
-                          <TextBlock Text="复制诊断" />
-                        </StackPanel>
-                      </Button>
-                      <Button
-                        Grid.Column="5"
-                        shad:ButtonAssist.ShowProgress="{Binding IsDbSchemaChecking}"
-                        Classes="Primary"
-                        Command="{Binding ApplyDbSchemaUpdateCommand}"
-                        IsEnabled="{Binding CanApplyDbSchemaUpdate}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}"
-                            Kind="DatabaseZap" />
-                          <TextBlock Text="立即更新" />
-                        </StackPanel>
-                      </Button>
-                    </Grid>
-
-                    <StackPanel
-                      Grid.Row="1"
-                      Margin="0,8,0,0"
-                      Spacing="4">
-                      <TextBlock
-                        Classes="Caption Muted"
-                        Text="{Binding DbSchemaBetaConceptText}"
-                        TextWrapping="Wrap" />
-                      <TextBlock
-                        Classes="Caption Muted"
-                        Text="{Binding DbSchemaPolicyText}"
-                        TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <Grid
-                      Grid.Row="2"
-                      ColumnDefinitions="250,*"
-                      ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                      <StackPanel VerticalAlignment="Stretch" Spacing="{DynamicResource FormRowSpacing}">
-                        <TextBlock Classes="SubsectionTitle" Text="结构信息" />
-                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                          <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-                            <Grid ColumnDefinitions="90,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                              <TextBlock
-                                VerticalAlignment="Center"
-                                Classes="Caption Muted"
-                                Text="最新版本" />
-                              <TextBlock
-                                Grid.Column="1"
-                                VerticalAlignment="Center"
-                                Text="{Binding DbSchemaTargetVersion}" />
-                            </Grid>
-
-                            <Grid
-                              Grid.Row="1"
-                              ColumnDefinitions="90,*"
-                              ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                              <TextBlock
-                                VerticalAlignment="Center"
-                                Classes="Caption Muted"
-                                Text="数据库版本" />
-                              <TextBlock
-                                Grid.Column="1"
-                                VerticalAlignment="Center"
-                                Text="{Binding DbSchemaCurrentVersion}" />
-                            </Grid>
-
-                            <Grid
-                              Grid.Row="2"
-                              ColumnDefinitions="90,*"
-                              ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                              <TextBlock
-                                VerticalAlignment="Center"
-                                Classes="Caption Muted"
-                                Text="最低要求" />
-                              <TextBlock
-                                Grid.Column="1"
-                                VerticalAlignment="Center"
-                                Classes="Caption Muted"
-                                Text="{Binding DbSchemaRequiredMinVersion}" />
-                            </Grid>
-
-                            <Grid
-                              Grid.Row="3"
-                              ColumnDefinitions="90,*"
-                              ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                              <TextBlock
-                                VerticalAlignment="Center"
-                                Classes="Caption Muted"
-                                Text="最高支持" />
-                              <TextBlock
-                                Grid.Column="1"
-                                VerticalAlignment="Center"
-                                Classes="Caption Muted"
-                                Text="{Binding DbSchemaRequiredMaxVersion}" />
-                            </Grid>
-                          </Grid>
-                        </ScrollViewer>
-                      </StackPanel>
-
-                      <StackPanel
-                        Grid.Column="1"
-                        VerticalAlignment="Stretch"
-                        Spacing="{DynamicResource FormRowSpacing}">
-                        <TextBlock Classes="SubsectionTitle" Text="运行信息" />
-                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                          <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource DialogInnerRowSpacing}">
-                            <Grid ColumnDefinitions="88,*" ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                              <TextBlock
-                                VerticalAlignment="Center"
-                                Classes="Caption Muted"
-                                Text="最近检查" />
-                              <TextBlock
-                                Grid.Column="1"
-                                VerticalAlignment="Center"
-                                Text="{Binding DbSchemaLastCheckedAtText}" />
-                            </Grid>
-                            <Grid
-                              Grid.Row="1"
-                              ColumnDefinitions="88,*"
-                              ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                              <TextBlock
-                                VerticalAlignment="Center"
-                                Classes="Caption Muted"
-                                Text="触发来源" />
-                              <TextBlock
-                                Grid.Column="1"
-                                VerticalAlignment="Center"
-                                Text="{Binding DbSchemaLastCheckSourceText}" />
-                            </Grid>
-                            <Grid
-                              Grid.Row="2"
-                              ColumnDefinitions="88,*"
-                              ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                              <TextBlock
-                                VerticalAlignment="Center"
-                                Classes="Caption Muted"
-                                Text="最近迁移" />
-                              <TextBlock
-                                Grid.Column="1"
-                                VerticalAlignment="Center"
-                                Text="{Binding DbSchemaLastMigrationText}"
-                                TextTrimming="CharacterEllipsis"
-                                TextWrapping="NoWrap" />
-                            </Grid>
-                          </Grid>
-                        </ScrollViewer>
-                      </StackPanel>
-                    </Grid>
-                  </Grid>
-                </shad:Card>
-
-              </Grid>
-            </StackPanel>
-
-          </Grid>
-        </shad:Card>
-
-        <Grid
-          x:Name="SectionAliasAnchor"
-          Grid.Row="2"
-          VerticalAlignment="Center"
-          Classes="SettingsSectionHeader"
-          ColumnDefinitions="*,Auto">
-          <StackPanel Classes="SectionHeaderStack">
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeSectionHeader}"
-              Height="{DynamicResource IconSizeSectionHeader}"
-              Kind="Users" />
-            <TextBlock Classes="SectionTitle" Text="客户端别名映射" />
-          </StackPanel>
-
-          <TextBlock
-            Grid.Column="1"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Classes="Caption Muted"
-            Text="{Binding ClientAliasHint}" />
-        </Grid>
-
-        <shad:Card
-          Grid.Row="3"
-          MinHeight="260"
-          HorizontalAlignment="Stretch">
-          <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
-
-
-            <Grid
-              VerticalAlignment="Center"
-              Classes="ToolbarPairRow"
-              ColumnDefinitions="*,Auto">
-              <StackPanel Classes="SectionHeaderStack">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="List" />
-                <TextBlock Classes="SectionTitle" Text="别名列表" />
-              </StackPanel>
-
-              <StackPanel
-                Grid.Column="1"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Center"
-                Orientation="Horizontal"
-                Spacing="{DynamicResource NavItemsSpacing}">
-                <Button
-                  Classes="Primary"
-                  Command="{Binding StartEditClientAliasesCommand}"
-                  IsEnabled="{Binding !IsClientAliasEditMode}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="SquarePen" />
-                    <TextBlock Text="开始编辑" />
-                  </StackPanel>
-                </Button>
-                <Button
-                  Classes="Primary"
-                  Command="{Binding SaveClientAliasesCommand}"
-                  IsEnabled="{Binding IsClientAliasEditMode}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="Save" />
-                    <TextBlock Text="保存别名" />
-                  </StackPanel>
-                </Button>
-                <Button
-                  Classes="Ghost"
-                  Command="{Binding ReloadClientAliasesCommand}"
-                  IsEnabled="{Binding !IsClientAliasRefreshing}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="Fingerprint" />
-                    <TextBlock Text="刷新机器标识" />
-                  </StackPanel>
-                </Button>
-              </StackPanel>
-            </Grid>
-
-
-            <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="参数" />
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-
-
-                <Grid RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
-
-
-                  <Grid ColumnDefinitions="260,280,*" ColumnSpacing="{DynamicResource FormColumnSpacing}">
-                    <TextBlock
-                      VerticalAlignment="Center"
-                      Classes="Caption Muted"
-                      Text="机器标识" />
-                    <TextBlock
-                      Grid.Column="1"
-                      VerticalAlignment="Center"
-                      Classes="Caption Muted"
-                      Text="别名" />
-                  </Grid>
-
-                  <Border
-                    Grid.Row="1"
-                    Height="1"
-                    Background="{DynamicResource ThemeBorderLowBrush}"
-                    Opacity="0.25" />
-
-
-                  <controls:EmptyStatePanel
-                    Grid.Row="2"
-                    EmptyHint="连接数据库或开始编辑后可维护别名"
-                    EmptyText="暂无客户端别名"
-                    IsEmpty="{Binding IsClientAliasesEmpty}">
-                    <ItemsControl ItemsSource="{Binding ClientAliases}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ClientAliasRow">
-                          <Grid
-                            Margin="{DynamicResource MarginBottomLg}"
-                            VerticalAlignment="Center"
-                            ColumnDefinitions="260,280,*"
-                            ColumnSpacing="{DynamicResource FormColumnSpacing}">
-
-
-                            <TextBlock
-                              Margin="0,0,0,0"
-                              VerticalAlignment="Center"
-                              Text="{Binding Machine}"
-                              TextTrimming="CharacterEllipsis" />
-
-
-                            <TextBox
-                              Grid.Column="1"
-                              Width="280"
-                              VerticalAlignment="Center"
-                              Classes="CompactField"
-                              IsEnabled="{Binding IsClientAliasEditable, ElementName=Root}"
-                              PlaceholderText="输入别名"
-                              Text="{Binding Alias}" />
-
-
-                          </Grid>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </controls:EmptyStatePanel>
-
-                </Grid>
-
-
-                <shad:Card
-                  Grid.Column="1"
-                  HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch"
-                  VerticalContentAlignment="Stretch">
-                  <Grid
-                    VerticalAlignment="Stretch"
-                    RowDefinitions="Auto,Auto,*"
-                    RowSpacing="{DynamicResource FormRowSpacing}">
-                    <Grid
-                      VerticalAlignment="Center"
-                      Classes="ToolbarPairRow"
-                      ColumnDefinitions="*,Auto">
-                      <StackPanel Classes="SectionHeaderStack">
-                        <icons:AppIcon
-                          Width="{DynamicResource IconSizeDefault}"
-                          Height="{DynamicResource IconSizeDefault}"
-                          Kind="SlidersHorizontal" />
-                        <TextBlock Classes="SectionTitle" Text="扩展 / 预留" />
-                      </StackPanel>
-                    </Grid>
-
-                    <Grid
-                      Grid.Row="1"
-                      VerticalAlignment="Stretch"
-                      RowDefinitions="Auto,*">
-                      <TextBlock
-                        Margin="{DynamicResource MarginBottomLg}"
-                        Classes="Caption Muted"
-                        Text="（此区域暂留模版）" />
-
-
-                      <Border Grid.Row="1" />
-                    </Grid>
-                  </Grid>
-                </shad:Card>
-
-              </Grid>
-            </StackPanel>
-
-          </Grid>
-        </shad:Card>
-
-        <Grid
-          x:Name="SectionTraceRuleAnchor"
-          Grid.Row="4"
-          VerticalAlignment="Center"
-          Classes="SettingsSectionHeader"
-          ColumnDefinitions="*,Auto">
-          <StackPanel Classes="SectionHeaderStack">
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeSectionHeader}"
-              Height="{DynamicResource IconSizeSectionHeader}"
-              Kind="NotebookText" />
-            <TextBlock Classes="SectionTitle" Text="追溯码校验规则" />
-          </StackPanel>
-
-          <TextBlock
-            Grid.Column="1"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Classes="Caption Muted"
-            Text="{Binding TraceCodeRuleHint}" />
-        </Grid>
-
-        <shad:Card Grid.Row="5" HorizontalAlignment="Stretch">
-          <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
-            <Grid
-              VerticalAlignment="Center"
-              Classes="ToolbarPairRow"
-              ColumnDefinitions="*,Auto">
-              <StackPanel Classes="SectionHeaderStack">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="Info" />
-                <TextBlock Classes="SectionTitle" Text="单条追溯码合法性" />
-              </StackPanel>
-              <Button
-                Grid.Column="1"
-                Classes="Primary"
-                Command="{Binding SaveTraceCodeRuleCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Kind="Save" />
-                  <TextBlock Text="保存规则" />
+            <Border Classes="SettingsH2">
+              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
+                <TextBlock Classes="SettingsH2Text" Text="连接信息" />
+                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+                  <Button
+                    Classes="Outline"
+                    Command="{Binding TestCommand}"
+                    Content="测试连接" />
+                  <Button
+                    Classes="Primary"
+                    Command="{Binding SaveCommand}"
+                    Content="保存并应用" />
                 </StackPanel>
-              </Button>
-            </Grid>
+              </Grid>
+            </Border>
 
-            <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="参数" />
-              <Grid
-                ColumnDefinitions="140,1.15*,1.85*"
-                ColumnSpacing="{DynamicResource FormColumnSpacing}"
-                RowDefinitions="Auto,Auto"
-                RowSpacing="{DynamicResource FormRowSpacing}">
-                <TextBlock VerticalAlignment="Center" Text="固定长度" />
-                <NumericUpDown
-                  Grid.Row="0"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="地址" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="数据库服务器主机名或 IP 地址" />
+                </StackPanel>
+                <TextBox
                   Grid.Column="1"
+                  VerticalAlignment="Center"
+                  PlaceholderText="例如：127.0.0.1"
+                  Text="{Binding Host}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="端口" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="PostgreSQL 监听端口，默认 5432" />
+                </StackPanel>
+                <NumericUpDown
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  FormatString="0"
+                  Increment="1"
+                  Maximum="65535"
+                  Minimum="1"
+                  PlaceholderText="例如：5432"
+                  Value="{Binding Port}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="数据库名" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="要连接的数据库名称" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  PlaceholderText="例如：pactoolkits"
+                  Text="{Binding Database}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="用户名" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="数据库登录用户名" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  PlaceholderText="例如：postgres"
+                  Text="{Binding Username}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="密码" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="数据库登录密码" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="PasswordReveal"
+                  PasswordChar="•"
+                  PlaceholderText="请输入数据库密码"
+                  Text="{Binding Password}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsH2">
+              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                  <TextBlock
+                    VerticalAlignment="Center"
+                    Classes="SettingsH2Text"
+                    Text="数据库架构" />
+                  <controls:UpdateStatusBadge
+                    VerticalAlignment="Center"
+                    Label="{Binding DbSchemaBadgeLabel}"
+                    LatestVersion="{Binding DbSchemaTargetVersion}"
+                    Status="{Binding DbSchemaBadgeStatus}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+                  <Button
+                    shad:ButtonAssist.ShowProgress="{Binding IsDbSchemaChecking}"
+                    Classes="Outline"
+                    Command="{Binding CheckDbSchemaStatusCommand}"
+                    Content="检查更新"
+                    IsEnabled="{Binding !IsDbSchemaChecking}" />
+                  <Button
+                    Classes="Outline"
+                    Command="{Binding ViewDbSchemaMigrationPlanCommand}"
+                    Content="查看计划"
+                    IsEnabled="{Binding !IsDbSchemaChecking}" />
+                  <Button
+                    Classes="Outline"
+                    Command="{Binding CopyDbSchemaDiagnosticsCommand}"
+                    Content="复制诊断"
+                    IsEnabled="{Binding CanCopyDbSchemaDiagnostics}" />
+                  <Button
+                    shad:ButtonAssist.ShowProgress="{Binding IsDbSchemaChecking}"
+                    Classes="Primary"
+                    Command="{Binding ApplyDbSchemaUpdateCommand}"
+                    Content="立即更新"
+                    IsEnabled="{Binding CanApplyDbSchemaUpdate}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <StackPanel Spacing="4">
+                <TextBlock
+                  Classes="Caption Muted SettingsFieldDesc"
+                  Text="{Binding DbSchemaBetaConceptText}"
+                  TextWrapping="Wrap" />
+                <TextBlock
+                  Classes="Caption Muted SettingsFieldDesc"
+                  Text="{Binding DbSchemaPolicyText}"
+                  TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="SettingsH3">
+              <TextBlock Classes="SettingsH3Text" Text="结构信息" />
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldTitle"
+                  Text="最新版本" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldValue"
+                  Text="{Binding DbSchemaTargetVersion}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldTitle"
+                  Text="数据库版本" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldValue"
+                  Text="{Binding DbSchemaCurrentVersion}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldTitle"
+                  Text="最低要求" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldValue"
+                  Text="{Binding DbSchemaRequiredMinVersion}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldTitle"
+                  Text="最高支持" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldValue"
+                  Text="{Binding DbSchemaRequiredMaxVersion}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsH3">
+              <TextBlock Classes="SettingsH3Text" Text="运行信息" />
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldTitle"
+                  Text="最近检查" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldValue"
+                  Text="{Binding DbSchemaLastCheckedAtText}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldTitle"
+                  Text="触发来源" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldValue"
+                  Text="{Binding DbSchemaLastCheckSourceText}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldTitle"
+                  Text="最近迁移" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="SettingsFieldValue"
+                  Text="{Binding DbSchemaLastMigrationText}"
+                  TextTrimming="CharacterEllipsis"
+                  TextWrapping="NoWrap" />
+              </Grid>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+        <Border
+          VerticalAlignment="Top"
+          Classes="SettingsStickyHost"
+          IsHitTestVisible="False">
+          <StackPanel x:Name="DbStickyHost" Spacing="0" />
+        </Border>
+      </Grid>
+
+      <!--  Client Aliases  -->
+      <Grid
+        x:Name="TabAliasPage"
+        Classes="SettingsTabPage"
+        IsVisible="False">
+        <ScrollViewer
+          controls:SettingsScroll.StickyHost="{Binding #AliasStickyHost}"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+          <StackPanel Classes="SettingsBody">
+            <Border Classes="SettingsH1">
+              <TextBlock Classes="SettingsH1Text" Text="客户端别名映射" />
+            </Border>
+
+            <Border Classes="SettingsH2">
+              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="SettingsH2Text" Text="别名列表" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="为每台客户端机器设置显示别名" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+                  <Button
+                    Classes="Outline"
+                    Command="{Binding StartEditClientAliasesCommand}"
+                    Content="开始编辑"
+                    IsEnabled="{Binding !IsClientAliasEditMode}" />
+                  <Button
+                    Classes="Outline"
+                    Command="{Binding ReloadClientAliasesCommand}"
+                    Content="刷新机器标识"
+                    IsEnabled="{Binding !IsClientAliasRefreshing}" />
+                  <Button
+                    Classes="Primary"
+                    Command="{Binding SaveClientAliasesCommand}"
+                    Content="保存别名"
+                    IsEnabled="{Binding IsClientAliasEditMode}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <controls:EmptyStatePanel
+              EmptyHint="连接数据库或开始编辑后可维护别名"
+              EmptyText="暂无客户端别名"
+              IsEmpty="{Binding IsClientAliasesEmpty}">
+              <ItemsControl ItemsSource="{Binding ClientAliases}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ClientAliasRow">
+                    <Border Classes="SettingsField">
+                      <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                        <TextBlock
+                          Grid.Column="0"
+                          VerticalAlignment="Center"
+                          Classes="SettingsFieldTitle"
+                          Text="{Binding Machine}"
+                          TextTrimming="CharacterEllipsis" />
+                        <TextBox
+                          Grid.Column="1"
+                          VerticalAlignment="Center"
+                          IsEnabled="{Binding IsClientAliasEditable, ElementName=Root}"
+                          PlaceholderText="输入别名"
+                          Text="{Binding Alias}" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </controls:EmptyStatePanel>
+          </StackPanel>
+        </ScrollViewer>
+        <Border
+          VerticalAlignment="Top"
+          Classes="SettingsStickyHost"
+          IsHitTestVisible="False">
+          <StackPanel x:Name="AliasStickyHost" Spacing="0" />
+        </Border>
+      </Grid>
+
+      <!--  Trace Code Rules  -->
+      <Grid
+        x:Name="TabTraceRulePage"
+        Classes="SettingsTabPage"
+        IsVisible="False">
+        <ScrollViewer
+          controls:SettingsScroll.StickyHost="{Binding #TraceStickyHost}"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+          <StackPanel Classes="SettingsBody">
+            <Border Classes="SettingsH1">
+              <TextBlock Classes="SettingsH1Text" Text="追溯码校验规则" />
+            </Border>
+
+            <Border Classes="SettingsH2">
+              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
+                <TextBlock Classes="SettingsH2Text" Text="单条追溯码合法性" />
+                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+                  <Button
+                    Classes="Primary"
+                    Command="{Binding SaveTraceCodeRuleCommand}"
+                    Content="保存规则" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="固定长度" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="追溯码必须满足的字符长度" />
+                </StackPanel>
+                <NumericUpDown
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
                   FormatString="0"
                   Increment="1"
                   Maximum="256"
                   Minimum="1"
                   Value="{Binding TraceCodeRequiredLength}" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="1"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="正则规则" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="正则规则" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="示例：^8\d+$ （以 8 开头的全数字）" />
+                </StackPanel>
                 <TextBox
-                  Grid.Row="1"
                   Grid.Column="1"
-                  Height="{StaticResource ControlHeightCompact}"
-                  VerticalContentAlignment="Center"
+                  VerticalAlignment="Center"
                   PlaceholderText="例如：^8\\d+$"
                   Text="{Binding TraceCodePattern}" />
-                <TextBlock
-                  Grid.Row="1"
-                  Grid.Column="2"
-                  VerticalAlignment="Center"
-                  Classes="Caption Muted"
-                  Text="示例：^8\\d+$ （以 8 开头的全数字）" />
               </Grid>
-            </StackPanel>
-          </Grid>
-        </shad:Card>
-
-        <Grid
-          x:Name="SectionUiBehaviorAnchor"
-          Grid.Row="6"
-          VerticalAlignment="Center"
-          Classes="SettingsSectionHeader"
-          ColumnDefinitions="*,Auto">
-          <StackPanel Classes="SectionHeaderStack">
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeSectionHeader}"
-              Height="{DynamicResource IconSizeSectionHeader}"
-              Kind="MonitorCog" />
-            <TextBlock Classes="SectionTitle" Text="界面行为" />
+            </Border>
           </StackPanel>
-        </Grid>
+        </ScrollViewer>
+        <Border
+          VerticalAlignment="Top"
+          Classes="SettingsStickyHost"
+          IsHitTestVisible="False">
+          <StackPanel x:Name="TraceStickyHost" Spacing="0" />
+        </Border>
+      </Grid>
 
-        <shad:Card Grid.Row="7" HorizontalAlignment="Stretch">
-          <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
-            <Grid VerticalAlignment="Center" ColumnDefinitions="*">
-              <StackPanel Classes="SectionHeaderStack">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="Settings" />
-                <TextBlock Classes="SectionTitle" Text="托盘模式" />
-              </StackPanel>
-            </Grid>
+      <!--  UI Behavior  -->
+      <Grid
+        x:Name="TabUiBehaviorPage"
+        Classes="SettingsTabPage"
+        IsVisible="False">
+        <ScrollViewer
+          controls:SettingsScroll.StickyHost="{Binding #UiStickyHost}"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+          <StackPanel Classes="SettingsBody">
+            <Border Classes="SettingsH1">
+              <TextBlock Classes="SettingsH1Text" Text="界面行为" />
+            </Border>
 
-            <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="参数" />
-              <Grid
-                ColumnDefinitions="220,*"
-                ColumnSpacing="{DynamicResource FormColumnSpacing}"
-                RowDefinitions="Auto"
-                RowSpacing="{DynamicResource FormRowSpacing}">
-                <TextBlock VerticalAlignment="Center" Text="关闭窗口时最小化到托盘" />
+            <Border Classes="SettingsH2">
+              <TextBlock Classes="SettingsH2Text" Text="托盘模式" />
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="关闭窗口时最小化到托盘" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="关闭主窗口后保留在系统托盘，而非退出应用" />
+                </StackPanel>
                 <ToggleSwitch
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   IsChecked="{Binding MinimizeToTrayOnClose}" />
               </Grid>
-            </StackPanel>
-          </Grid>
-        </shad:Card>
-
-        <Grid
-          x:Name="SectionUpdateAnchor"
-          Grid.Row="8"
-          VerticalAlignment="Center"
-          Classes="SettingsSectionHeader"
-          ColumnDefinitions="*,Auto">
-          <StackPanel Classes="SectionHeaderStack">
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeSectionHeader}"
-              Height="{DynamicResource IconSizeSectionHeader}"
-              Kind="Download" />
-            <TextBlock Classes="SectionTitle" Text="应用更新" />
+            </Border>
           </StackPanel>
+        </ScrollViewer>
+        <Border
+          VerticalAlignment="Top"
+          Classes="SettingsStickyHost"
+          IsHitTestVisible="False">
+          <StackPanel x:Name="UiStickyHost" Spacing="0" />
+        </Border>
+      </Grid>
 
-          <TextBlock
-            Grid.Column="1"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Classes="Caption Muted"
-            Text="{Binding UpdateStatusHint}" />
-        </Grid>
+      <!--  Updates  -->
+      <Grid
+        x:Name="TabUpdatePage"
+        Classes="SettingsTabPage"
+        IsVisible="False">
+        <ScrollViewer
+          controls:SettingsScroll.StickyHost="{Binding #UpdateStickyHost}"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+          <StackPanel Classes="SettingsBody">
+            <Border Classes="SettingsH1">
+              <TextBlock Classes="SettingsH1Text" Text="应用更新" />
+            </Border>
 
-        <shad:Card Grid.Row="9" HorizontalAlignment="Stretch">
-          <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
-            <Grid
-              VerticalAlignment="Center"
-              ColumnDefinitions="*,Auto,Auto,Auto"
-              ColumnSpacing="{DynamicResource SpacingInlineMd}">
-              <StackPanel Classes="SectionHeaderStack">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="Download" />
-                <TextBlock Classes="SectionTitle" Text="更新源与策略" />
-              </StackPanel>
-
-              <Button
-                Grid.Column="1"
-                shad:ButtonAssist.ShowProgress="{Binding IsUpdateChecking}"
-                Classes="Ghost"
-                Command="{Binding CheckUpdatesCommand}"
-                IsEnabled="{Binding !IsUpdateChecking}">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Kind="RefreshCw" />
-                  <TextBlock Text="检查更新" />
+            <Border Classes="SettingsH2">
+              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
+                <TextBlock Classes="SettingsH2Text" Text="更新源与策略" />
+                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+                  <Button
+                    shad:ButtonAssist.ShowProgress="{Binding IsUpdateChecking}"
+                    Classes="Outline"
+                    Command="{Binding CheckUpdatesCommand}"
+                    Content="检查更新"
+                    IsEnabled="{Binding !IsUpdateChecking}" />
+                  <Button
+                    Classes="Outline"
+                    Command="{Binding ApplyUpdateNowCommand}"
+                    IsEnabled="{Binding CanApplyProductUpdateNow}">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                      <Border
+                        Width="8"
+                        Height="8"
+                        VerticalAlignment="Center"
+                        Background="{DynamicResource WarningColor}"
+                        CornerRadius="999"
+                        IsVisible="{Binding HasUpdateAvailable}" />
+                      <TextBlock VerticalAlignment="Center" Text="立即更新" />
+                    </StackPanel>
+                  </Button>
+                  <Button
+                    Classes="Primary"
+                    Command="{Binding SaveUpdateOptionsCommand}"
+                    Content="保存配置" />
                 </StackPanel>
-              </Button>
+              </Grid>
+            </Border>
 
-              <Button
-                Grid.Column="2"
-                Classes="Ghost"
-                Command="{Binding ApplyUpdateNowCommand}"
-                IsEnabled="{Binding CanApplyProductUpdateNow}">
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
-                  HorizontalAlignment="Center"
-                  Orientation="Horizontal"
-                  Spacing="{DynamicResource SpacingInlineSm}">
-                  <Border
-                    Width="8"
-                    Height="8"
-                    VerticalAlignment="Center"
-                    Background="{DynamicResource WarningColor}"
-                    CornerRadius="999"
-                    IsVisible="{Binding HasUpdateAvailable}" />
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Kind="Download" />
-                  <TextBlock Text="立即更新" />
-                </StackPanel>
-              </Button>
-
-              <Button
-                Grid.Column="3"
-                Classes="Primary"
-                Command="{Binding SaveUpdateOptionsCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Kind="Save" />
-                  <TextBlock Text="保存配置" />
-                </StackPanel>
-              </Button>
-            </Grid>
-
-            <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="参数" />
-              <Grid
-                ColumnDefinitions="170,1.1*,1.9*"
-                ColumnSpacing="{DynamicResource FormColumnSpacing}"
-                RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
-                RowSpacing="{DynamicResource FormRowSpacing}">
-                <TextBlock VerticalAlignment="Center" Text="PacToolkits 版本" />
-                <TextBox
-                  Grid.Row="0"
-                  Grid.Column="1"
-                  Height="{StaticResource ControlHeightCompact}"
-                  VerticalContentAlignment="Center"
-                  IsEnabled="False"
-                  PlaceholderText="当前已安装版本"
-                  Text="{Binding CurrentProductVersion}" />
-                <controls:UpdateStatusBadge
-                  Grid.Row="0"
-                  Grid.Column="2"
-                  Label="{Binding ProductUpdateAvailabilityLabel}"
-                  LatestVersion="{Binding LatestProductVersion}"
-                  Status="{Binding ProductUpdateAvailable}" />
-
-                <TextBlock
-                  Grid.Row="1"
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="启动自动检查" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="PacToolkits 版本" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="当前已安装版本" />
+                </StackPanel>
+                <Grid
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  ColumnDefinitions="*,Auto"
+                  ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                  <TextBox
+                    IsEnabled="False"
+                    PlaceholderText="当前已安装版本"
+                    Text="{Binding CurrentProductVersion}" />
+                  <controls:UpdateStatusBadge
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Label="{Binding ProductUpdateAvailabilityLabel}"
+                    LatestVersion="{Binding LatestProductVersion}"
+                    Status="{Binding ProductUpdateAvailable}" />
+                </Grid>
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="启动自动检查" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="应用启动时自动检查是否有新版本" />
+                </StackPanel>
                 <ToggleSwitch
-                  Grid.Row="1"
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   IsChecked="{Binding AutoCheckUpdateOnStartup}" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="2"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="更新通道" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="更新通道" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="{Binding UpdateChannelSwitchHint}" />
+                </StackPanel>
                 <ComboBox
-                  Grid.Row="2"
                   Grid.Column="1"
+                  VerticalAlignment="Center"
                   ItemsSource="{Binding UpdateChannelOptions}"
                   SelectedItem="{Binding UpdateChannel}" />
-                <TextBlock
-                  Grid.Row="2"
-                  Grid.Column="2"
-                  VerticalAlignment="Center"
-                  Classes="Caption Muted"
-                  Text="{Binding UpdateChannelSwitchHint}"
-                  TextWrapping="Wrap" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="3"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="更新源地址" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="更新源地址" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="留空使用默认更新源" />
+                </StackPanel>
                 <TextBox
-                  Grid.Row="3"
                   Grid.Column="1"
-                  Height="{StaticResource ControlHeightCompact}"
-                  VerticalContentAlignment="Center"
+                  VerticalAlignment="Center"
                   PlaceholderText="留空使用默认更新源"
                   Text="{Binding UpdateFeedUrl}" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="4"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="自动轮询（分钟）" />
-                <Grid
-                  Grid.Row="4"
-                  Grid.Column="1"
-                  ColumnDefinitions="160,*"
-                  ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                  <NumericUpDown
-                    Grid.Column="0"
-                    Height="{StaticResource ControlHeightCompact}"
-                    FormatString="N0"
-                    Increment="5"
-                    Maximum="720"
-                    Minimum="0"
-                    Value="{Binding UpdatePollIntervalMinutes}" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="自动轮询（分钟）" />
                   <TextBlock
-                    Grid.Column="1"
-                    VerticalAlignment="Center"
-                    Classes="Caption Muted"
+                    Classes="Caption Muted SettingsFieldDesc"
                     Text="{Binding UpdatePollIntervalHint}"
-                    TextWrapping="NoWrap" />
-                </Grid>
+                    TextWrapping="Wrap" />
+                </StackPanel>
+                <NumericUpDown
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  FormatString="N0"
+                  Increment="5"
+                  Maximum="720"
+                  Minimum="0"
+                  Value="{Binding UpdatePollIntervalMinutes}" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="5"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="忽略版本" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="忽略版本" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="留空表示不忽略任何版本" />
+                </StackPanel>
                 <Grid
-                  Grid.Row="5"
                   Grid.Column="1"
-                  Classes="ToolbarPairRow"
-                  ColumnDefinitions="*,Auto">
-                  <TextBox
-                    Height="{StaticResource ControlHeightCompact}"
-                    VerticalContentAlignment="Center"
-                    PlaceholderText="留空表示不忽略任何版本"
-                    Text="{Binding IgnoredProductVersion}" />
+                  VerticalAlignment="Center"
+                  ColumnDefinitions="*,Auto"
+                  ColumnSpacing="{DynamicResource SpacingInlineSm}">
+                  <TextBox PlaceholderText="留空表示不忽略任何版本" Text="{Binding IgnoredProductVersion}" />
                   <Button
                     Grid.Column="1"
-                    Classes="Ghost"
-                    Command="{Binding ClearIgnoredVersionCommand}">
-                    <TextBlock Text="清空" />
-                  </Button>
+                    Classes="Outline"
+                    Command="{Binding ClearIgnoredVersionCommand}"
+                    Content="清空" />
                 </Grid>
               </Grid>
-            </StackPanel>
-          </Grid>
-        </shad:Card>
-
-        <Grid
-          x:Name="SectionLoggingAnchor"
-          Grid.Row="10"
-          VerticalAlignment="Center"
-          Classes="SettingsSectionHeader"
-          ColumnDefinitions="*,Auto">
-          <StackPanel Classes="SectionHeaderStack">
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeSectionHeader}"
-              Height="{DynamicResource IconSizeSectionHeader}"
-              Kind="TextCursorInput" />
-            <TextBlock Classes="SectionTitle" Text="日志与诊断" />
+            </Border>
           </StackPanel>
+        </ScrollViewer>
+        <Border
+          VerticalAlignment="Top"
+          Classes="SettingsStickyHost"
+          IsHitTestVisible="False">
+          <StackPanel x:Name="UpdateStickyHost" Spacing="0" />
+        </Border>
+      </Grid>
 
-          <TextBlock
-            Grid.Column="1"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Classes="Caption Muted"
-            Text="{Binding LoggingStatusHint}" />
-        </Grid>
+      <!--  Logging  -->
+      <Grid
+        x:Name="TabLoggingPage"
+        Classes="SettingsTabPage"
+        IsVisible="False">
+        <ScrollViewer
+          controls:SettingsScroll.StickyHost="{Binding #LoggingStickyHost}"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+          <StackPanel Classes="SettingsBody">
+            <Border Classes="SettingsH1">
+              <TextBlock Classes="SettingsH1Text" Text="日志与诊断" />
+            </Border>
 
-        <shad:Card Grid.Row="11" HorizontalAlignment="Stretch">
-          <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
-            <Grid
-              VerticalAlignment="Center"
-              ColumnDefinitions="*,Auto,Auto,Auto,Auto"
-              ColumnSpacing="{DynamicResource SpacingInlineMd}">
-              <StackPanel Classes="SectionHeaderStack">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="FileText" />
-                <TextBlock Classes="SectionTitle" Text="日志策略与操作" />
-              </StackPanel>
+            <Border Classes="SettingsH2">
+              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
+                <TextBlock Classes="SettingsH2Text" Text="日志策略与操作" />
+                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+                  <Button
+                    Classes="Outline"
+                    Command="{Binding OpenLogDirectoryCommand}"
+                    Content="打开目录"
+                    IsEnabled="{Binding !IsLoggingBusy}" />
+                  <Button
+                    Classes="Outline"
+                    Command="{Binding CopyCurrentLogPathCommand}"
+                    Content="复制路径"
+                    IsEnabled="{Binding !IsLoggingBusy}" />
+                  <Button
+                    Classes="Outline"
+                    Command="{Binding ExportRecentLogsCommand}"
+                    Content="导出24h"
+                    IsEnabled="{Binding !IsLoggingBusy}" />
+                  <Button
+                    Classes="Primary"
+                    Command="{Binding SaveLoggingOptionsCommand}"
+                    Content="保存日志配置"
+                    IsEnabled="{Binding !IsLoggingBusy}" />
+                </StackPanel>
+              </Grid>
+            </Border>
 
-              <Button
-                Grid.Column="1"
-                Classes="Ghost"
-                Command="{Binding OpenLogDirectoryCommand}"
-                IsEnabled="{Binding !IsLoggingBusy}">
-                <TextBlock Text="打开目录" />
-              </Button>
-
-              <Button
-                Grid.Column="2"
-                Classes="Ghost"
-                Command="{Binding CopyCurrentLogPathCommand}"
-                IsEnabled="{Binding !IsLoggingBusy}">
-                <TextBlock Text="复制路径" />
-              </Button>
-
-              <Button
-                Grid.Column="3"
-                Classes="Ghost"
-                Command="{Binding ExportRecentLogsCommand}"
-                IsEnabled="{Binding !IsLoggingBusy}">
-                <TextBlock Text="导出24h" />
-              </Button>
-
-              <Button
-                Grid.Column="4"
-                Classes="Primary"
-                Command="{Binding SaveLoggingOptionsCommand}"
-                IsEnabled="{Binding !IsLoggingBusy}">
-                <TextBlock Text="保存日志配置" />
-              </Button>
-            </Grid>
-
-            <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="参数" />
-              <Grid
-                ColumnDefinitions="170,1.1*,1.9*"
-                ColumnSpacing="{DynamicResource FormColumnSpacing}"
-                RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
-                RowSpacing="{DynamicResource FormRowSpacing}">
-                <TextBlock VerticalAlignment="Center" Text="启用日志" />
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="启用日志" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="开启后将按配置写入本地日志文件" />
+                </StackPanel>
                 <ToggleSwitch
-                  Grid.Row="0"
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   IsChecked="{Binding LoggingEnabled}" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="1"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="最小级别" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="最小级别" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="{Binding LoggingMinimumLevelHint}" />
+                </StackPanel>
                 <ComboBox
-                  Grid.Row="1"
                   Grid.Column="1"
-                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Center"
                   ItemsSource="{Binding LoggingLevelOptions}"
                   SelectedItem="{Binding LoggingMinimumLevel}" />
-                <StackPanel
-                  Grid.Row="1"
-                  Grid.Column="2"
-                  VerticalAlignment="Center"
-                  Orientation="Horizontal"
-                  Spacing="{DynamicResource SpacingInlineMd}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeSmall}"
-                    Height="{DynamicResource IconSizeSmall}"
-                    Kind="ShieldHalf" />
-                  <TextBlock
-                    VerticalAlignment="Center"
-                    Classes="Caption Muted"
-                    Text="{Binding LoggingMinimumLevelHint}"
-                    TextWrapping="Wrap" />
-                </StackPanel>
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="2"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="保留天数" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="保留天数" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="超过保留天数的日志文件将被自动清理" />
+                </StackPanel>
                 <NumericUpDown
-                  Grid.Row="2"
                   Grid.Column="1"
-                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Center"
                   Increment="1"
                   Maximum="180"
                   Minimum="1"
                   Value="{Binding LoggingRetentionDays}" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="3"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="单文件上限(MB)" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="单文件上限(MB)" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="单个日志文件的最大体积，超出后滚动到新文件" />
+                </StackPanel>
                 <NumericUpDown
-                  Grid.Row="3"
                   Grid.Column="1"
-                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Center"
                   Increment="1"
                   Maximum="200"
                   Minimum="1"
                   Value="{Binding LoggingMaxFileSizeMb}" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="4"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="日志目录" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="日志目录" />
+                  <TextBlock
+                    Classes="Caption Muted SettingsFieldDesc"
+                    Text="默认目录：ApplicationData/PacToolkits/logs/desktop；建议保持默认，便于部署和故障回溯"
+                    TextWrapping="Wrap" />
+                </StackPanel>
                 <TextBox
-                  Grid.Row="4"
                   Grid.Column="1"
-                  Height="{StaticResource ControlHeightCompact}"
-                  VerticalContentAlignment="Center"
+                  VerticalAlignment="Center"
                   PlaceholderText="留空使用默认日志目录"
                   Text="{Binding LoggingDirectory}" />
-
-                <TextBlock
-                  Grid.Row="5"
-                  Grid.Column="0"
-                  Grid.ColumnSpan="3"
-                  Classes="Caption Muted"
-                  Text="默认目录：ApplicationData/PacToolkits/logs/desktop；建议保持默认，便于部署和故障回溯"
-                  TextWrapping="Wrap" />
               </Grid>
-            </StackPanel>
-          </Grid>
-        </shad:Card>
-
-        <Grid
-          x:Name="SectionMsfxAnchor"
-          Grid.Row="12"
-          VerticalAlignment="Center"
-          ColumnDefinitions="*">
-          <StackPanel Classes="SectionHeaderStack">
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeSectionHeader}"
-              Height="{DynamicResource IconSizeSectionHeader}"
-              Kind="Webhook" />
-            <TextBlock Classes="SectionTitle" Text="码上放心 API" />
+            </Border>
           </StackPanel>
-        </Grid>
+        </ScrollViewer>
+        <Border
+          VerticalAlignment="Top"
+          Classes="SettingsStickyHost"
+          IsHitTestVisible="False">
+          <StackPanel x:Name="LoggingStickyHost" Spacing="0" />
+        </Border>
+      </Grid>
 
-        <shad:Card Grid.Row="13" HorizontalAlignment="Stretch">
-          <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource FormRowSpacing}">
-            <Grid
-              VerticalAlignment="Center"
-              Classes="ToolbarPairRow"
-              ColumnDefinitions="*,Auto">
-              <StackPanel Classes="SectionHeaderStack">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  Kind="Webhook" />
-                <TextBlock Classes="SectionTitle" Text="调用凭证与网关" />
-                <controls:UpdateStatusBadge Label="{Binding MsfxApiBadgeLabel}" Status="{Binding MsfxApiBadgeStatus}" />
-                <controls:StatusPill
-                  Classes="ToneInfo15"
-                  Icon="Link"
-                  Text="MSFX" />
-                <controls:StatusPill
-                  Classes="ToneInfo15"
-                  Icon="Cog"
-                  Text="配置中心" />
-              </StackPanel>
+      <!--  MSFX API  -->
+      <Grid
+        x:Name="TabMsfxPage"
+        Classes="SettingsTabPage"
+        IsVisible="False">
+        <ScrollViewer
+          controls:SettingsScroll.StickyHost="{Binding #MsfxStickyHost}"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+          <StackPanel Classes="SettingsBody">
+            <Border Classes="SettingsH1">
+              <TextBlock Classes="SettingsH1Text" Text="码上放心 API" />
+            </Border>
 
-              <StackPanel
-                Grid.Column="1"
-                HorizontalAlignment="Right"
-                Orientation="Horizontal"
-                Spacing="{DynamicResource SpacingInlineMd}">
-                <Button Classes="Primary" Command="{Binding SaveMsfxApiConfigCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="Save" />
-                    <TextBlock Text="保存配置" />
-                  </StackPanel>
-                </Button>
-              </StackPanel>
-            </Grid>
+            <Border Classes="SettingsH2">
+              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                  <TextBlock
+                    VerticalAlignment="Center"
+                    Classes="SettingsH2Text"
+                    Text="调用凭证与网关" />
+                  <controls:UpdateStatusBadge
+                    VerticalAlignment="Center"
+                    Label="{Binding MsfxApiBadgeLabel}"
+                    Status="{Binding MsfxApiBadgeStatus}" />
+                  <controls:StatusPill
+                    Classes="ToneInfo15"
+                    Icon="Link"
+                    Text="MSFX" />
+                  <controls:StatusPill
+                    Classes="ToneInfo15"
+                    Icon="Cog"
+                    Text="配置中心" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+                  <Button
+                    Classes="Primary"
+                    Command="{Binding SaveMsfxApiConfigCommand}"
+                    Content="保存配置" />
+                </StackPanel>
+              </Grid>
+            </Border>
 
-            <StackPanel Grid.Row="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="参数" />
-              <Grid
-                ColumnDefinitions="170,1.15*,1.85*"
-                ColumnSpacing="{DynamicResource FormColumnSpacing}"
-                RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
-                RowSpacing="{DynamicResource FormRowSpacing}">
-                <TextBlock VerticalAlignment="Center" Text="网关地址" />
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="网关地址" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="码上放心 API 网关 URL" />
+                </StackPanel>
                 <TextBox
-                  Grid.Row="0"
                   Grid.Column="1"
-                  Height="{StaticResource ControlHeightCompact}"
-                  VerticalContentAlignment="Center"
+                  VerticalAlignment="Center"
                   PlaceholderText="https://eco.taobao.com/router/rest"
                   Text="{Binding MsfxGatewayUrl}" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="1"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="AppKey" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="AppKey" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="应用 AppKey 凭证" />
+                </StackPanel>
                 <TextBox
-                  Grid.Row="1"
                   Grid.Column="1"
-                  Height="{StaticResource ControlHeightCompact}"
-                  VerticalContentAlignment="Center"
+                  VerticalAlignment="Center"
                   PlaceholderText="请输入 AppKey"
                   Text="{Binding MsfxAppKey}" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="2"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="AppSecret" />
-                <Grid
-                  Grid.Row="2"
-                  Grid.Column="1"
-                  ColumnDefinitions="*,40"
-                  ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                  <TextBox
-                    Height="{StaticResource ControlHeightCompact}"
-                    VerticalContentAlignment="Center"
-                    PasswordChar="{Binding MsfxAppSecretPasswordChar}"
-                    PlaceholderText="请输入 AppSecret"
-                    Text="{Binding MsfxAppSecret}" />
-                  <Button
-                    Grid.Column="1"
-                    Width="40"
-                    Height="{StaticResource ControlHeightCompact}"
-                    Padding="0"
-                    HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center"
-                    Classes="Ghost"
-                    Command="{Binding ToggleMsfxAppSecretVisibilityCommand}">
-                    <Panel
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeSmall}"
-                        Height="{DynamicResource IconSizeSmall}"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        IsVisible="{Binding !ShowMsfxAppSecret}"
-                        Kind="Eye" />
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeSmall}"
-                        Height="{DynamicResource IconSizeSmall}"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        IsVisible="{Binding ShowMsfxAppSecret}"
-                        Kind="EyeOff" />
-                    </Panel>
-                  </Button>
-                </Grid>
-
-                <TextBlock
-                  Grid.Row="3"
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Text="SessionToken" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="AppSecret" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="应用 AppSecret 凭证" />
+                </StackPanel>
                 <TextBox
-                  Grid.Row="3"
                   Grid.Column="1"
-                  Height="{StaticResource ControlHeightCompact}"
-                  VerticalContentAlignment="Center"
+                  VerticalAlignment="Center"
+                  Classes="PasswordReveal"
+                  PasswordChar="•"
+                  PlaceholderText="请输入 AppSecret"
+                  Text="{Binding MsfxAppSecret}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="SessionToken" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="非必填，可留空" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
                   PlaceholderText="非必填，可留空"
                   Text="{Binding MsfxSessionToken}" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="4"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="接收企业 RefEntId" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="接收企业 RefEntId" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="用于 ref_ent_id / 默认 to_ref_user_id" />
+                </StackPanel>
                 <TextBox
-                  Grid.Row="4"
                   Grid.Column="1"
-                  Height="{StaticResource ControlHeightCompact}"
-                  VerticalContentAlignment="Center"
+                  VerticalAlignment="Center"
                   PlaceholderText="用于 ref_ent_id / 默认 to_ref_user_id"
                   Text="{Binding MsfxRefEntId}" />
+              </Grid>
+            </Border>
 
-                <TextBlock
-                  Grid.Row="5"
+            <Border Classes="SettingsField">
+              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Text="超时（秒）" />
+                  Spacing="2">
+                  <TextBlock Classes="SettingsFieldTitle" Text="超时（秒）" />
+                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="建议 15-30 秒；网络较慢可适当调大" />
+                </StackPanel>
                 <NumericUpDown
-                  Grid.Row="5"
                   Grid.Column="1"
-                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Center"
                   FormatString="0"
                   Increment="1"
                   Maximum="120"
                   Minimum="3"
                   Value="{Binding MsfxTimeoutSeconds}" />
-                <TextBlock
-                  Grid.Row="5"
-                  Grid.Column="2"
-                  VerticalAlignment="Center"
-                  Classes="Caption Muted"
-                  Text="建议 15-30 秒；网络较慢可适当调大" />
               </Grid>
-            </StackPanel>
-          </Grid>
-        </shad:Card>
-
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+        <Border
+          VerticalAlignment="Top"
+          Classes="SettingsStickyHost"
+          IsHitTestVisible="False">
+          <StackPanel x:Name="MsfxStickyHost" Spacing="0" />
+        </Border>
       </Grid>
 
-    </ScrollViewer>
+    </Panel>
   </Grid>
 </UserControl>
