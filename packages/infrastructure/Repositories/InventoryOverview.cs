@@ -2,6 +2,7 @@ using System.Data;
 using Microsoft.Extensions.Options;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.TextSearch;
 using PacToolkits.Infrastructure.Database;
 
 namespace PacToolkits.Infrastructure.Repositories;
@@ -34,11 +35,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             """;
 
             var sql = $"""
-                with deprecated_map as (
-                  select distinct d.drug_id, d.spec
-                  from drug_index d
-                  where coalesce(d.note,'') ilike '%弃用%'
-                )
+                with {DrugCatalogSql.DeprecatedMapCte}
                 select
                   t.drug_id,
                   t.spec,
@@ -109,11 +106,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             """;
 
             var sql = $"""
-                with deprecated_map as (
-                   select distinct d.drug_id, d.spec
-                   from drug_index d
-                   where coalesce(d.note,'') ilike '%弃用%'
-                ),
+                with {DrugCatalogSql.DeprecatedMapCte},
                 pool as (
                    select
                      drug_id,
@@ -126,24 +119,8 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                      {groupedWhere}
                    group by drug_id, spec
                 ),
-                wk_range as (
-                   select
-                     (coalesce(max(created_at)::date, current_date)) as wk_to,
-                     (coalesce(max(created_at)::date, current_date) - 6) as wk_from
-                   from trace_txn
-                   where status='COMMITTED'
-                ),
-                wk as (
-                   select
-                     t.drug_id,
-                     t.spec,
-                     coalesce(sum(t.req_qty),0)::bigint as wk_used
-                   from trace_txn t
-                   cross join wk_range r
-                   where t.status='COMMITTED'
-                     and t.created_at::date between r.wk_from and r.wk_to
-                   group by t.drug_id, t.spec
-                )
+                {WeekUsageSql.WeekRangeCte},
+                {WeekUsageSql.WeekUsageCte}
                 select
                   p.drug_id,
                   p.spec,
@@ -204,11 +181,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             var groupedWhere = TracePoolKeywordSql.TracePoolGroupedWhereClause;
 
             var countSql = $"""
-                with active_drug as (
-                   select distinct d.drug_id, d.spec
-                   from drug_index d
-                   where coalesce(d.note,'') not ilike '%弃用%'
-                ),
+                with {DrugCatalogSql.ActiveDrugCte},
                 pool as (
                    select drug_id, spec,
                           coalesce(sum(remain),0)::bigint as remain_sum,
@@ -225,24 +198,8 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                      )
                    group by drug_id, spec
                 ),
-                wk_range as (
-                   select
-                     (coalesce(max(created_at)::date, current_date)) as wk_to,
-                     (coalesce(max(created_at)::date, current_date) - 6) as wk_from
-                   from trace_txn
-                   where status='COMMITTED'
-                ),
-                wk as (
-                   select
-                     t.drug_id,
-                     t.spec,
-                     coalesce(sum(t.req_qty),0)::bigint as wk_used
-                   from trace_txn t
-                   cross join wk_range r
-                   where t.status='COMMITTED'
-                     and t.created_at::date between r.wk_from and r.wk_to
-                   group by t.drug_id, t.spec
-                )
+                {WeekUsageSql.WeekRangeCte},
+                {WeekUsageSql.WeekUsageCte}
                 select count(*)::int
                 from pool p
                 left join wk using (drug_id,spec)
@@ -250,11 +207,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             """;
 
             var sql = $"""
-                with active_drug as (
-                   select distinct d.drug_id, d.spec
-                   from drug_index d
-                   where coalesce(d.note,'') not ilike '%弃用%'
-                ),
+                with {DrugCatalogSql.ActiveDrugCte},
                 pool as (
                    select drug_id, spec,
                           coalesce(sum(remain),0)::bigint as remain_sum,
@@ -271,24 +224,8 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                      )
                    group by drug_id, spec
                 ),
-                wk_range as (
-                   select
-                     (coalesce(max(created_at)::date, current_date)) as wk_to,
-                     (coalesce(max(created_at)::date, current_date) - 6) as wk_from
-                   from trace_txn
-                   where status='COMMITTED'
-                ),
-                wk as (
-                   select
-                     t.drug_id,
-                     t.spec,
-                     coalesce(sum(t.req_qty),0)::bigint as wk_used
-                   from trace_txn t
-                   cross join wk_range r
-                   where t.status='COMMITTED'
-                     and t.created_at::date between r.wk_from and r.wk_to
-                   group by t.drug_id, t.spec
-                )
+                {WeekUsageSql.WeekRangeCte},
+                {WeekUsageSql.WeekUsageCte}
                 select
                   p.drug_id,
                   p.spec,
@@ -481,13 +418,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 sourceSafe = "inventory_ui";
             }
 
-            const string targetSql = """
-                select exists(
-                  select 1 from drug_index d
-                  where d.drug_id = @drug_id
-                    and d.spec = @spec
-                )
-            """;
+            const string targetSql = DrugCatalogSql.DrugSpecExistsSql;
             bool targetExists;
             await using (var targetCmd = conn.CreateCommand(targetSql, _opt.CommandTimeoutSeconds, tx))
             {
@@ -641,13 +572,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 throw new ArgumentException("目标数量必须为大于 0 的整数", nameof(targetQty));
             }
 
-            const string targetSql = """
-                select exists(
-                  select 1 from drug_index d
-                  where d.drug_id = @drug_id
-                    and d.spec = @spec
-                )
-            """;
+            const string targetSql = DrugCatalogSql.DrugSpecExistsSql;
             bool targetExists;
             await using (var targetCmd = conn.CreateCommand(targetSql, _opt.CommandTimeoutSeconds))
             {
@@ -777,13 +702,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 sourceSafe = "inventory_ui";
             }
 
-            const string targetSql = """
-                select exists(
-                  select 1 from drug_index d
-                  where d.drug_id = @drug_id
-                    and d.spec = @spec
-                )
-            """;
+            const string targetSql = DrugCatalogSql.DrugSpecExistsSql;
             bool targetExists;
             await using (var targetCmd = conn.CreateCommand(targetSql, _opt.CommandTimeoutSeconds, tx))
             {
@@ -887,7 +806,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 from drug_index d
                 where
                   ({drugWhere})
-                  and coalesce(d.note,'') not ilike '%弃用%'
+                  and {DrugCatalogSql.ActiveNotePredicate}
                   and not exists (
                       select 1
                       from trace_pool p
@@ -901,7 +820,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                 from drug_index d
                 where
                   ({drugWhere})
-                  and coalesce(d.note,'') not ilike '%弃用%'
+                  and {DrugCatalogSql.ActiveNotePredicate}
                   and not exists (
                       select 1
                       from trace_pool p

@@ -148,13 +148,7 @@ public sealed partial class MsfxSyncRepo
                     return new MsfxMappingBatchPreview(0, 0, 0);
                 }
 
-                const string existsSql = """
-                    select exists(
-                      select 1 from drug_index d
-                      where d.drug_id = @drug_id
-                        and d.spec = @spec
-                    )
-                    """;
+                const string existsSql = DrugCatalogSql.DrugSpecExistsSql;
                 await using var existsCmd = conn.CreateCommand(existsSql, _opt.CommandTimeoutSeconds);
                 existsCmd.AddParam("drug_id", normalizedDrugId);
                 existsCmd.AddParam("spec", normalizedSpec);
