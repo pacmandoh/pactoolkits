@@ -20,7 +20,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class ScanCodeViewModel : AppPageBase
+public sealed partial class ScanCode : AppPageBase
 {
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan QtyLookupTimeout = TimeSpan.FromSeconds(6);
@@ -122,7 +122,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     [ObservableProperty] private string _status = "请选择药品与规格";
     [ObservableProperty] private string _autoFetchStatus = "自动拉取能力准备中：将支持账号、任务与回填策略配置";
 
-    public ScanCodeViewModel(
+    public ScanCode(
         ILookupCatalogService lookup,
         IScanCodeService scanCode,
         ITraceCodeRuleService traceCodeRule,
@@ -163,7 +163,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
                 _lookup.InvalidateDrugCatalog();
                 using var cts = new CancellationTokenSource(LookupTimeout);
-                var drugs = await LookupOptionLoader.LoadDrugOptionsAsync(
+                var drugs = await LookupOptions.GetDrugOptionsAsync(
                     _lookup,
                     cts.Token,
                     forceRefresh: true).ConfigureAwait(false);
@@ -505,7 +505,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
     }
 
     [RelayCommand]
-    private void ValidateEditorContext()
+    private void RequireDrugSpec()
     {
         if (SkipTrigger())
         {
@@ -645,7 +645,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             return;
         }
 
-        var drugs = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, ct).ConfigureAwait(false);
+        var drugs = await LookupOptions.GetDrugOptionsAsync(_lookup, ct).ConfigureAwait(false);
 
         await RunOnUiAsync(() =>
         {
@@ -676,7 +676,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
 
     private async Task ReloadSpecsByDrugAsync(string drugId, CancellationToken ct)
     {
-        var specs = await LookupOptionLoader.LoadSpecsAsync(_lookup, drugId, ct).ConfigureAwait(false);
+        var specs = await LookupOptions.GetSpecsAsync(_lookup, drugId, ct).ConfigureAwait(false);
         string? selectedSpecRaw = null;
 
         await RunOnUiAsync(() =>
@@ -808,7 +808,7 @@ public sealed partial class ScanCodeViewModel : AppPageBase
             StopAutoFetchCommand,
             RetryFailedCommand,
             OpenAutoFetchSettingsCommand,
-            ValidateEditorContextCommand
+            RequireDrugSpecCommand
         ];
 
     private void OnAutoTasksChanged(object? sender, NotifyCollectionChangedEventArgs e)

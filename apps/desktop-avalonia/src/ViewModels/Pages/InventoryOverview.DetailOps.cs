@@ -9,82 +9,134 @@ using global::Avalonia.Threading;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.TextSearch;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class InventoryOverviewViewModel : AppPageBase
+public sealed partial class InventoryOverview : AppPageBase
 {
-    private bool CanApplyReassignDrugFilter()
-        => IsReassignPanelVisible && CanOperateUi();
+    private bool CanApplyDrugFilter()
+        => IsReassignOpen && CanOperateUi();
 
-    [RelayCommand(CanExecute = nameof(CanApplyReassignDrugFilter))]
-    private async Task ApplyReassignDrugFilterAsync()
+    private bool CanClearDrugSpecFilter()
+        => IsReassignOpen && CanOperateUi() && AutoCompleteFilter.HasDrugText(DrugText);
+
+    [RelayCommand(CanExecute = nameof(CanClearDrugSpecFilter))]
+    private void ClearDrugSpecFilter()
     {
-        var drug = NormalizeInput(ReassignDrugText);
+        if (SkipTrigger("inventory.reassign.filter.clear", 250))
+        {
+            return;
+        }
+
+        IsDrugSuggestOpen = false;
+        DrugText = null;
+        ResetDrugSpecSelection();
+        RefreshPageCommands();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanApplyDrugFilter))]
+    private async Task ApplyDrugFilterAsync()
+    {
+        if (SkipTrigger("inventory.reassign.filter.apply", 350))
+        {
+            return;
+        }
+
+        IsDrugSuggestOpen = false;
+        var drug = NormalizeInput(DrugText);
         if (string.IsNullOrWhiteSpace(drug))
         {
-            ReassignSpecOptions.Clear();
-            ReassignSelectedSpec = null;
-            ReassignTargetDrugId = null;
-            ReassignTargetSpec = null;
-            ReassignQtyText = null;
-            IsReassignSpecSelected = false;
+            ResetDrugSpecSelection();
             return;
         }
 
         // Same context repeated by Enter should not rebuild options and trigger qty flicker.
-        if (string.Equals(drug, NormalizeInput(ReassignTargetDrugId), StringComparison.OrdinalIgnoreCase) &&
-            ReassignSpecOptions.Count > 0 &&
-            ReassignSelectedSpec is not null)
+        if (string.Equals(drug, NormalizeInput(TargetDrugId), StringComparison.OrdinalIgnoreCase) &&
+            SpecOptions.Count > 0 &&
+            SelectedSpec is not null)
         {
-            IsReassignDrugSuggestOpen = false;
             return;
         }
 
+        using var _ = BeginReassignContextSync();
         try
         {
             using var cts = new CancellationTokenSource(LookupTimeout);
-            var canonical = await _lookup.ResolveCanonicalDrugIdAsync(drug, cts.Token).ConfigureAwait(false);
+            var (canonical, specs) = await LookupOptions
+                .ResolveDrugAndSpecsAsync(_lookup, drug, cts.Token)
+                .ConfigureAwait(false);
+
             if (string.IsNullOrWhiteSpace(canonical))
             {
                 var isDeprecated = await _lookup.IsDeprecatedDrugIdAsync(drug, cts.Token).ConfigureAwait(false);
                 await RunOnUiAsync(() =>
                 {
-                    ReassignSpecOptions.Clear();
-                    ReassignSelectedSpec = null;
-                    ReassignQtyText = null;
-                    IsReassignSpecSelected = false;
-                    ReassignTargetDrugId = null;
-                    ReassignTargetSpec = null;
-                    ReassignPreviewText = isDeprecated
-                        ? "纠错上下文：药品已被弃用"
-                        : "纠错上下文：药品不存在，请重新输入";
+                    ResetSpecSelection();
+                    _toast.Warn(
+                        "药品纠错",
+                        isDeprecated ? "药品已被弃用" : "药品不存在，请重新输入");
                 });
                 return;
             }
 
             await RunOnUiAsync(() =>
             {
-                ReassignDrugText = canonical;
-                IsReassignDrugSuggestOpen = false;
-                ReassignTargetDrugId = canonical;
+                DrugText = canonical;
+                TargetDrugId = canonical;
             });
-            await LoadReassignSpecsByDrugAsync(canonical);
-            if (ReassignSpecOptions.Count == 0)
+            await SyncSpecsAsync(canonical, specs);
+            if (SpecOptions.Count == 0)
             {
-                await RunOnUiAsync(
-                    () => ReassignPreviewText = "纠错上下文：该药品暂无规格");
+                await RunOnUiAsync(() => _toast.Warn("药品纠错", "该药品暂无规格"));
             }
         }
         catch (Exception ex)
         {
             LogError("inventory.reassign_context.load_fail", "Failed to load reassign context", ex);
-            await RunOnUiAsync(
-                () => ReassignPreviewText = $"纠错上下文加载失败：{ex.Message}");
+            await RunOnUiAsync(() => _toast.Error("药品纠错", $"上下文加载失败：{ex.Message}"));
         }
     }
 
-    private async Task LoadReassignDrugsAsync()
+    private void ResetSpecSelection()
+    {
+        SpecOptions.Clear();
+        SelectedSpec = null;
+        TargetSpec = null;
+        QtyText = null;
+        IsSpecSelected = false;
+    }
+
+    private void ResetDrugSpecSelection()
+    {
+        ResetSpecSelection();
+        TargetDrugId = null;
+        ClearPreviewMessaging();
+        PreviewRows.Clear();
+        NotifyPreviewStateChanged();
+    }
+
+    private async Task SyncSpecsAsync(string canonicalDrug, IReadOnlyList<string> specs)
+    {
+        await RunOnUiAsync(() =>
+        {
+            DrugText = canonicalDrug;
+            IsDrugSuggestOpen = false;
+            TargetDrugId = canonicalDrug;
+            OptionCollectionHelper.ReplaceRaw(SpecOptions, specs, StringComparison.Ordinal);
+            if (SpecOptions.Count == 0)
+            {
+                ResetSpecSelection();
+                return;
+            }
+
+            SelectedSpec = SpecOptions[0];
+        });
+
+        await SyncQtyAsync();
+    }
+
+    private async Task SyncDrugCatalogAsync()
     {
         if (IsLookupCatalogSuspended())
         {
@@ -92,7 +144,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        if (_reassignDrugCatalog.Count > 0)
+        if (_drugCatalog.Count > 0)
         {
             return;
         }
@@ -100,14 +152,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         try
         {
             using var cts = new CancellationTokenSource(LookupTimeout);
-            var drugs = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, cts.Token).ConfigureAwait(false);
+            var drugs = await LookupOptions.GetDrugOptionsAsync(_lookup, cts.Token).ConfigureAwait(false);
             await RunOnUiAsync(() =>
             {
-                _reassignDrugCatalog = drugs;
+                _drugCatalog = drugs;
                 AutoCompleteFilter.RefreshVisibleOptions(
-                    ReassignDrugOptions,
-                    _reassignDrugCatalog,
-                    ReassignDrugText);
+                    DrugOptions,
+                    _drugCatalog,
+                    DrugText);
             });
         }
         catch (System.Exception ex)
@@ -116,13 +168,15 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
     }
 
-    private async Task RefreshReassignQtyAsync()
+    private async Task SyncQtyAsync()
     {
-        var drug = NormalizeInput(ReassignTargetDrugId);
-        var spec = NormalizeInput(ReassignTargetSpec);
+        using var _ = BeginReassignContextSync();
+
+        var drug = NormalizeInput(TargetDrugId);
+        var spec = NormalizeInput(TargetSpec);
         if (string.IsNullOrWhiteSpace(drug) || string.IsNullOrWhiteSpace(spec))
         {
-            ReassignQtyText = null;
+            await RunOnUiAsync(() => QtyText = null);
             return;
         }
 
@@ -138,87 +192,13 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             var qty = await _lookup.GetQtyAsync(drug, spec, cts.Token).ConfigureAwait(false);
             await RunOnUiAsync(() =>
             {
-                ReassignTargetDrugId = drug;
-                ReassignQtyText = qty?.ToString(CultureInfo.InvariantCulture);
+                TargetDrugId = drug;
+                QtyText = qty?.ToString(CultureInfo.InvariantCulture);
             });
         }
         catch
         {
-            await RunOnUiAsync(() =>
-            {
-                ReassignQtyText = null;
-            });
-        }
-    }
-
-    private async Task TryAutoResolveReassignContextAsync(string? drugText)
-    {
-        var drug = NormalizeInput(drugText);
-        if (string.IsNullOrWhiteSpace(drug))
-        {
-            return;
-        }
-
-        await LoadReassignDrugsAsync();
-
-        string? canonical = null;
-        foreach (var opt in ReassignDrugOptions)
-        {
-            if (string.Equals(opt.Raw, drug, StringComparison.OrdinalIgnoreCase))
-            {
-                canonical = opt.Raw;
-                break;
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(canonical))
-        {
-            try
-            {
-                using var cts = new CancellationTokenSource(LookupTimeout);
-                canonical = await _lookup.ResolveCanonicalDrugIdAsync(drug, cts.Token).ConfigureAwait(false);
-            }
-            catch
-            {
-                canonical = null;
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(canonical))
-        {
-            return;
-        }
-
-        await LoadReassignSpecsByDrugAsync(canonical);
-    }
-
-    private async Task LoadReassignSpecsByDrugAsync(string canonicalDrug)
-    {
-        try
-        {
-            using var cts = new CancellationTokenSource(LookupTimeout);
-            var specs = await LookupOptionLoader.LoadSpecsAsync(_lookup, canonicalDrug, cts.Token).ConfigureAwait(false);
-            await RunOnUiAsync(() =>
-            {
-                ReassignDrugText = canonicalDrug;
-                IsReassignDrugSuggestOpen = false;
-                ReassignTargetDrugId = canonicalDrug;
-                OptionCollectionHelper.ReplaceRaw(ReassignSpecOptions, specs, StringComparison.Ordinal);
-                if (ReassignSpecOptions.Count == 0)
-                {
-                    ReassignSelectedSpec = null;
-                    ReassignTargetSpec = null;
-                    ReassignQtyText = null;
-                    IsReassignSpecSelected = false;
-                    return;
-                }
-
-                ReassignSelectedSpec = ReassignSpecOptions[0];
-            });
-        }
-        catch (System.Exception ex)
-        {
-            LogWarn("inventory.reassign_specs.refresh_fail", "Failed to refresh reassign specs", ex);
+            await RunOnUiAsync(() => QtyText = null);
         }
     }
 
@@ -228,42 +208,43 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         => CanOperateUi()
            && DateTimeOffset.UtcNow >= _suppressAutoRefreshUntilUtc;
 
-    private bool CanRequestUnlock()
+    private bool CanUnlock()
         => CanOperateUi()
            && IsDetailMode;
 
-    [RelayCommand(CanExecute = nameof(CanRequestUnlock))]
-    private async Task RequestUnlockAsync()
+    [RelayCommand(CanExecute = nameof(CanUnlock))]
+    private async Task UnlockAsync()
     {
         await RequireUnlockAsync("库存编辑与药品纠错");
     }
 
-    private bool CanLockOperations()
+    private bool CanLock()
         => CanOperateUi()
            && IsDetailMode
-           && IsOperationUnlocked;
+           && IsOpsUnlocked;
 
-    [RelayCommand(CanExecute = nameof(CanLockOperations))]
-    private async Task LockOperationsAsync()
+    [RelayCommand(CanExecute = nameof(CanLock))]
+    private async Task LockAsync()
     {
         if (IsStockEditEnabled)
         {
-            await ToggleStockEditMode();
+            await ToggleStockEdit();
         }
 
-        IsReassignPanelVisible = false;
-        ReassignPreviewText = null;
-        ReassignPreviewRows.Clear();
-        OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-        _unlockService.Lock(UnlockScopeKey);
-        RefreshUnlockState();
+        IsReassignOpen = false;
+        SetReassignPreviewLive(false);
+        ClearPreviewMessaging();
+        PreviewRows.Clear();
+        NotifyPreviewStateChanged();
+        _unlockService.Lock(OpsScope);
+        RefreshOpsUnlock();
         StopUnlockTimer();
     }
 
-    private bool CanToggleStockEditMode() => CanOperateUi() && IsDetailMode;
+    private bool CanToggleStockEdit() => CanOperateUi() && IsDetailMode;
 
-    [RelayCommand(CanExecute = nameof(CanToggleStockEditMode))]
-    private async Task ToggleStockEditMode()
+    [RelayCommand(CanExecute = nameof(CanToggleStockEdit))]
+    private async Task ToggleStockEdit()
     {
         if (SkipTrigger("inventory.stock.edit", 250))
         {
@@ -326,86 +307,188 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        _nav.Navigate<ScanCodeViewModel>();
+        _nav.Navigate<ScanCode>();
         await _scanCode.PrefillFromInventoryAsync(d, s);
     }
 
-    [RelayCommand(CanExecute = nameof(CanToggleReassignPanel))]
-    private Task ToggleReassignPanelAsync()
+    [RelayCommand(CanExecute = nameof(CanToggleReassign))]
+    private async Task ToggleReassignAsync()
     {
         if (SkipTrigger("inventory.reassign.panel", 250))
         {
-            return Task.CompletedTask;
+            return;
         }
 
-        if (!CanToggleReassignPanel)
-        {
-            return Task.CompletedTask;
-        }
-
-        return ToggleReassignPanelInnerAsync();
-    }
-
-    private async Task ToggleReassignPanelInnerAsync()
-    {
-        if (!IsReassignPanelVisible && !await RequireUnlockAsync("药品纠错"))
+        if (!CanToggleReassign)
         {
             return;
         }
 
-        IsReassignPanelVisible = !IsReassignPanelVisible;
-        if (IsReassignPanelVisible)
+        if (!IsReassignOpen && !await RequireUnlockAsync("药品纠错"))
         {
-            ReassignReason = null;
-            ReassignDrugText = null;
-            ReassignSelectedSpec = null;
-            ReassignTargetDrugId = null;
-            ReassignTargetSpec = null;
-            ReassignQtyText = null;
-            IsReassignDrugSuggestOpen = false;
-            IsReassignSpecSelected = false;
-            ReassignPreviewText = null;
-            ReassignScopeIndex = 0;
-            ReassignPreviewRows.Clear();
-            OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+            return;
+        }
+
+        IsReassignOpen = !IsReassignOpen;
+        if (IsReassignOpen)
+        {
+            CorrectionReason = null;
+            DrugText = null;
+            SelectedSpec = null;
+            TargetDrugId = null;
+            TargetSpec = null;
+            QtyText = null;
+            IsDrugSuggestOpen = false;
+            IsSpecSelected = false;
+            SetReassignPreviewLive(false);
+            ClearPreviewMessaging();
+            ScopeIndex = 0;
+            PreviewRows.Clear();
+            NotifyPreviewStateChanged();
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanPreviewReassign))]
+    [RelayCommand(CanExecute = nameof(CanTogglePreview))]
     private async Task PreviewReassignAsync()
     {
-        if (!CanPreviewReassign)
+        if (_reassignPreviewLive)
+        {
+            ExitReassignPreview();
+            return;
+        }
+
+        if (!CanPreview)
         {
             return;
         }
 
-        var targetDrug = NormalizeInput(ReassignTargetDrugId);
-        var targetSpec = NormalizeInput(ReassignTargetSpec);
-        if (string.IsNullOrWhiteSpace(targetDrug) || string.IsNullOrWhiteSpace(targetSpec))
+        await PreviewReassignAsync(showBusy: false);
+    }
+
+    private void QueueReassignPreviewRefresh()
+    {
+        if (!_reassignPreviewLive || !IsReassignOpen)
         {
             return;
         }
 
-        await SetReassignBusyAsync(true);
+        if (!CanPreview)
+        {
+            ExitReassignPreview();
+            return;
+        }
+
+        _previewRefreshCts?.Cancel();
+        _previewRefreshCts?.Dispose();
+        _previewRefreshCts = new CancellationTokenSource();
+        var token = _previewRefreshCts.Token;
+        _ = RefreshReassignPreviewDebouncedAsync(token);
+    }
+
+    private async Task RefreshReassignPreviewDebouncedAsync(CancellationToken token)
+    {
         try
         {
-            if (IsSingleReassignScope)
+            await Task.Delay(200, token).ConfigureAwait(false);
+            if (token.IsCancellationRequested)
             {
-                var selectedRows = GetEffectiveSelectedRows();
+                return;
+            }
+
+            var canPreview = false;
+            await RunOnUiAsync(() => canPreview = CanPreview);
+            if (!canPreview)
+            {
+                await RunOnUiAsync(ExitReassignPreview);
+                return;
+            }
+
+            await PreviewReassignAsync(showBusy: false).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task PreviewReassignAsync(bool showBusy)
+    {
+        var skip = false;
+        var isLiveRefresh = false;
+        var isSingleScope = false;
+        var isFilterScope = false;
+        string? targetDrug = null;
+        string? targetSpec = null;
+        string? qtyText = null;
+        string? keyword = null;
+        List<StockRowItem> selectedRows = [];
+
+        await RunOnUiAsync(() =>
+        {
+            targetDrug = NormalizeInput(TargetDrugId);
+            targetSpec = NormalizeInput(TargetSpec);
+            if (string.IsNullOrWhiteSpace(targetDrug) || string.IsNullOrWhiteSpace(targetSpec))
+            {
+                skip = true;
+                return;
+            }
+
+            isLiveRefresh = !showBusy && _reassignPreviewLive;
+            isSingleScope = IsSingleScope;
+            isFilterScope = IsFilterScope;
+            qtyText = QtyText;
+            keyword = Keyword;
+            if (isSingleScope)
+            {
+                selectedRows = GetEffectiveSelectedRows();
+            }
+        });
+
+        if (skip)
+        {
+            return;
+        }
+
+        if (showBusy)
+        {
+            await SetPanelBusyAsync(true);
+        }
+
+        try
+        {
+            if (isSingleScope)
+            {
                 if (selectedRows.Count == 0)
                 {
+                    if (isLiveRefresh)
+                    {
+                        await RunOnUiAsync(ExitReassignPreview);
+                    }
+
                     return;
                 }
 
-                using var existsCts = new CancellationTokenSource(LookupTimeout);
-                var targetExists = await _inventory.TargetDrugSpecExistsAsync(targetDrug, targetSpec, existsCts.Token);
-                if (!targetExists)
+                var targetChanged = !string.Equals(_lastValidatedPreviewTargetDrug, targetDrug, StringComparison.Ordinal)
+                                    || !string.Equals(_lastValidatedPreviewTargetSpec, targetSpec, StringComparison.Ordinal);
+                if (!isLiveRefresh || targetChanged)
                 {
-                    ReassignPreviewText = "预览结果：目标药品/规格不存在，无法纠错";
-                    return;
+                    using var existsCts = new CancellationTokenSource(LookupTimeout);
+                    var targetExists = await _inventory
+                        .TargetDrugSpecExistsAsync(targetDrug!, targetSpec!, existsCts.Token)
+                        .ConfigureAwait(false);
+                    if (!targetExists)
+                    {
+                        await RunOnUiAsync(() => _toast.Warn("药品纠错预览", "目标药品/规格不存在"));
+                        return;
+                    }
+
+                    await RunOnUiAsync(() =>
+                    {
+                        _lastValidatedPreviewTargetDrug = targetDrug;
+                        _lastValidatedPreviewTargetSpec = targetSpec;
+                    });
                 }
 
-                var targetQtyResolved = int.TryParse(NormalizeInput(ReassignQtyText), out var parsedQty)
+                var targetQtyResolved = int.TryParse(NormalizeInput(qtyText), out var parsedQty)
                     ? parsedQty
                     : 0;
 
@@ -426,44 +509,53 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                         CurrentSpec: row.Spec,
                         CurrentQty: row.Qty,
                         CurrentRemain: row.Remain,
-                        TargetDrugId: targetDrug,
-                        TargetSpec: targetSpec,
+                        TargetDrugId: targetDrug!,
+                        TargetSpec: targetSpec!,
                         TargetQty: targetQtyResolved,
+                        TargetRemain: ResolveTargetRemain(row.Remain, targetQtyResolved),
                         TraceCode: row.TraceCode));
                 }
 
-                ReassignPreviewRows.ReplaceAll(singleScopePreviewRows);
-                OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-
-                if (willChangeCount <= 0)
+                var selectedCount = selectedRows.Count;
+                await RunOnUiAsync(() =>
                 {
-                    ReassignPreviewText = "预览结果：目标与当前一致，无需纠错";
-                    return;
-                }
+                    if (!IsReassignOpen || !IsSingleScope || GetEffectiveSelectedRows().Count == 0)
+                    {
+                        return;
+                    }
 
-                ReassignPreviewText =
-                    $"预览结果：选中行命中 {selectedRows.Count.ToString(CultureInfo.InvariantCulture)} 条，可变更 {willChangeCount.ToString(CultureInfo.InvariantCulture)} 条；目标 {targetDrug}/{targetSpec}，目标数量 {targetQtyResolved.ToString(CultureInfo.InvariantCulture)}";
+                    ApplyPreviewRows(singleScopePreviewRows);
+                    PreviewStatsText =
+                        $"命中 {selectedCount.ToString(CultureInfo.InvariantCulture)} 条 · 可变更 {willChangeCount.ToString(CultureInfo.InvariantCulture)} 条";
+                    PreviewNoticeText = null;
+                    EnsureReassignPreviewLive();
+
+                    if (willChangeCount <= 0)
+                    {
+                        _toast.Warn("药品纠错预览", "目标与当前一致，无需纠错");
+                    }
+                });
+
                 return;
             }
 
-            var kw = NormalizeInput(Keyword);
+            var kw = NormalizeInput(keyword);
             if (string.IsNullOrWhiteSpace(kw))
             {
-                ReassignPreviewText = "预览结果：批量纠错需要先输入筛选关键字";
+                await RunOnUiAsync(() => _toast.Warn("药品纠错预览", "批量纠错需先输入筛选关键字"));
                 return;
             }
 
-            var targetQtyResolvedForFilter = int.TryParse(NormalizeInput(ReassignQtyText), out var parsedQtyForFilter)
+            var targetQtyResolvedForFilter = int.TryParse(NormalizeInput(qtyText), out var parsedQtyForFilter)
                 ? parsedQtyForFilter
                 : 0;
             var preview = await _inventory.PreviewReassignByKeywordAsync(
                 kw,
-                targetDrug,
-                targetSpec,
+                targetDrug!,
+                targetSpec!,
                 targetQtyResolvedForFilter,
                 30,
-                default);
-            var scopeText = $"筛选批量（关键字：{kw}）";
+                default).ConfigureAwait(false);
 
             var previewRows = new List<StockReassignPreviewRowItem>(preview.Samples.Count);
             foreach (var row in preview.Samples)
@@ -473,67 +565,88 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     CurrentSpec: row.Spec,
                     CurrentQty: row.Qty,
                     CurrentRemain: row.Remain,
-                    TargetDrugId: targetDrug,
-                    TargetSpec: targetSpec,
+                    TargetDrugId: targetDrug!,
+                    TargetSpec: targetSpec!,
                     TargetQty: targetQtyResolvedForFilter,
+                    TargetRemain: ResolveTargetRemain(row.Remain, targetQtyResolvedForFilter),
                     TraceCode: row.TraceCode));
             }
 
-            ReassignPreviewRows.ReplaceAll(previewRows);
-            OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-
-            if (preview.MatchCount <= 0)
+            await RunOnUiAsync(() =>
             {
-                ReassignPreviewText = $"预览结果：{scopeText} 未命中任何记录";
-                return;
-            }
+                if (!IsReassignOpen)
+                {
+                    return;
+                }
 
-            if (!preview.TargetExists)
-            {
-                ReassignPreviewText = "预览结果：目标药品/规格不存在，无法纠错";
-                return;
-            }
+                if (preview.MatchCount <= 0)
+                {
+                    _toast.Warn("药品纠错预览", $"关键字「{kw}」未命中记录");
+                    return;
+                }
 
-            if (preview.IsNoopTarget)
-            {
-                ReassignPreviewText = "预览结果：目标与当前一致，无需纠错";
-                return;
-            }
+                if (!preview.TargetExists)
+                {
+                    _toast.Warn("药品纠错预览", "目标药品/规格不存在");
+                    return;
+                }
 
-            ReassignPreviewText = IsSingleReassignScope
-                ? $"预览结果：{scopeText} 命中 {preview.MatchCount.ToString(CultureInfo.InvariantCulture)} 条，可变更 {preview.WillChangeCount.ToString(CultureInfo.InvariantCulture)} 条；当前 {preview.CurrentDrugId}/{preview.CurrentSpec} -> 目标 {targetDrug}/{targetSpec}"
-                : $"预览结果：{scopeText} 命中 {preview.MatchCount.ToString(CultureInfo.InvariantCulture)} 条，可变更 {preview.WillChangeCount.ToString(CultureInfo.InvariantCulture)} 条；目标 {targetDrug}/{targetSpec}（下方显示前 {ReassignPreviewRows.Count.ToString(CultureInfo.InvariantCulture)} 条）";
+                ApplyPreviewRows(previewRows);
 
-            if (IsFilterReassignScope && preview.WillChangeCount > _inventory.LargeBatchReassignConfirmThreshold)
-            {
-                ReassignPreviewText +=
-                    $"注意：可变更数量超过 {_inventory.LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)} 条，提交时会触发二次确认";
-            }
+                if (preview.IsNoopTarget)
+                {
+                    PreviewStatsText =
+                        $"命中 {preview.MatchCount.ToString(CultureInfo.InvariantCulture)} 条 · 可变更 0 条";
+                    PreviewNoticeText = null;
+                    EnsureReassignPreviewLive();
+                    _toast.Warn("药品纠错预览", "目标与当前一致，无需纠错");
+                    return;
+                }
+
+                PreviewStatsText =
+                    $"命中 {preview.MatchCount.ToString(CultureInfo.InvariantCulture)} 条 · 可变更 {preview.WillChangeCount.ToString(CultureInfo.InvariantCulture)} 条";
+
+                PreviewNoticeText = isFilterScope && preview.WillChangeCount > _inventory.LargeBatchReassignConfirmThreshold
+                    ? $"超过 {_inventory.LargeBatchReassignConfirmThreshold.ToString(CultureInfo.InvariantCulture)} 条，提交时需二次确认"
+                    : null;
+                EnsureReassignPreviewLive();
+            });
         }
         catch (Exception ex)
         {
             LogError("inventory.reassign.preview_fail", "Failed to preview reassign operation", ex);
-            ReassignPreviewText = $"预览失败：{ex.Message}";
-            _toast.Error("药品纠错预览", ex.Message);
+            await RunOnUiAsync(() =>
+            {
+                if (!isLiveRefresh)
+                {
+                    ResetPreviewContent();
+                }
+
+                _toast.Error("药品纠错预览", ex.Message);
+            });
         }
         finally
         {
-            await SetReassignBusyAsync(false);
+            if (showBusy)
+            {
+                await SetPanelBusyAsync(false);
+                await RunOnUiAsync(RefreshPageCommands);
+            }
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanApplyReassign))]
+    [RelayCommand(CanExecute = nameof(CanApply))]
     private async Task ApplyReassignAsync()
     {
-        if (!CanApplyReassign)
+        if (!CanApply)
         {
             return;
         }
 
-        var targetDrug = NormalizeInput(ReassignTargetDrugId);
-        var targetSpec = NormalizeInput(ReassignTargetSpec);
-        var qtyText = NormalizeInput(ReassignQtyText);
-        var reason = NormalizeInput(ReassignReason);
+        var targetDrug = NormalizeInput(TargetDrugId);
+        var targetSpec = NormalizeInput(TargetSpec);
+        var qtyText = NormalizeInput(QtyText);
+        var reason = NormalizeInput(CorrectionReason);
         if (string.IsNullOrWhiteSpace(targetDrug)
             || string.IsNullOrWhiteSpace(targetSpec)
             || !int.TryParse(qtyText, out var targetQty)
@@ -548,7 +661,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        var confirmMessage = IsSingleReassignScope
+        var confirmMessage = IsSingleScope
             ? $"将选中追溯码纠错到 {targetDrug}/{targetSpec}，是否继续？"
             : $"将“当前筛选关键字”命中的库存批量纠错到 {targetDrug}/{targetSpec}，是否继续？";
         var ok = await _dialog.ConfirmDestructive("确认纠错", confirmMessage);
@@ -557,7 +670,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             return;
         }
 
-        var isSingleScope = IsSingleReassignScope;
+        var isSingleScope = IsSingleScope;
         var selectedTraceCodes = Array.Empty<string>();
         var batchKeyword = !isSingleScope ? NormalizeInput(Keyword) : null;
 
@@ -571,7 +684,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 .ToArray();
         }
 
-        await SetReassignBusyAsync(true);
+        await SetPanelBusyAsync(true);
         try
         {
             var operatorName = $"{Environment.UserName}@{Environment.MachineName}";
@@ -641,37 +754,43 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             }
 
             _toast.Success("药品纠错", $"纠错成功 {result.AffectedRows} 条，审计ID={result.AuditId}");
-            ReassignPreviewText = $"提交成功：影响 {result.AffectedRows} 条，审计ID={result.AuditId}";
-            IsReassignPanelVisible = false;
-            ReassignReason = null;
-            ReassignPreviewRows.Clear();
-            OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+            SetReassignPreviewLive(false);
+            ClearPreviewMessaging();
+            IsReassignOpen = false;
+            CorrectionReason = null;
+            PreviewRows.Clear();
+            NotifyPreviewStateChanged();
 
             if (!isSingleScope)
             {
-                // Batch mode: keyword usually becomes stale after reassignment.
                 Keyword = null;
+                PageIndex = 1;
+                await ReloadAsync();
             }
-
-            var updatedRows = ApplyReassignToCurrentDetailRows(
-                isSingleScope,
-                targetDrug,
-                targetSpec,
-                selectedTraceCodes,
-                targetQty,
-                batchKeyword);
-            PauseAutoRefresh(TimeSpan.FromSeconds(7));
-            ReconcilePageLater(TimeSpan.FromSeconds(5));
+            else
+            {
+                var updatedRows = ApplyTargetToDetailRows(
+                    singleScope: true,
+                    targetDrug,
+                    targetSpec,
+                    selectedTraceCodes,
+                    targetQty,
+                    batchKeyword: null);
+                if (updatedRows.Count > 0)
+                {
+                    PauseAutoRefresh(TimeSpan.FromSeconds(7));
+                    ReconcilePageLater(TimeSpan.FromSeconds(5));
+                }
+            }
         }
         catch (Exception ex)
         {
             LogError("inventory.reassign.apply_fail", "Failed to apply reassign operation", ex);
             _toast.Error("药品纠错", ex.Message);
-            ReassignPreviewText = $"提交失败：{ex.Message}";
         }
         finally
         {
-            await SetReassignBusyAsync(false);
+            await SetPanelBusyAsync(false);
         }
     }
 
@@ -754,7 +873,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             PauseAutoRefresh(TimeSpan.FromSeconds(8));
             await RunOnUiAsync(() => IsDetailBusy = true);
             var affected = await _inventory.DeleteStockByTraceCodesAsync(traceCodes, default);
-            await ReloadAsync(preserveEditSession: wasEditing);
+            await ReloadAsync(preserveEdit: wasEditing);
 
             await RunOnUiAsync(() =>
             {
@@ -858,38 +977,39 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
     private async Task<bool> RequireUnlockAsync(string scene)
     {
-        var hint = "敏感操作提示：验证仅在本地进行，不会上传密码\n请输入数据库密码以解锁库存敏感操作";
         var ok = await _unlockService.RequireUnlockAsync(
-            UnlockScopeKey,
+            OpsScope,
             scene,
             "身份验证",
-            hint);
-        RefreshUnlockState();
+            UnlockScopes.SharedOpsHint);
+        RefreshOpsUnlock();
         return ok;
     }
 
-    private void RefreshUnlockState()
+    private void RefreshOpsUnlock()
     {
-        var wasUnlocked = IsOperationUnlocked;
-        _unlockService.Refresh(UnlockScopeKey);
-        var snap = _unlockService.GetSnapshot(UnlockScopeKey);
+        var wasUnlocked = IsOpsUnlocked;
+        _unlockService.Refresh(OpsScope);
+        var snap = _unlockService.GetSnapshot(OpsScope);
 
-        IsOperationUnlocked = snap.IsUnlocked;
-        _operationUnlockCooldownUntilUtc = snap.CooldownUntilUtc;
+        IsOpsUnlocked = snap.IsUnlocked;
+        _opsCooldownUntilUtc = snap.CooldownUntilUtc;
 
-        if (wasUnlocked && !IsOperationUnlocked)
+        if (wasUnlocked && !IsOpsUnlocked)
         {
             if (IsStockEditEnabled)
             {
                 DiscardStockEdits();
             }
 
-            IsReassignPanelVisible = false;
-            ReassignPreviewRows.Clear();
-            OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+            IsReassignOpen = false;
+            SetReassignPreviewLive(false);
+            ClearPreviewMessaging();
+            PreviewRows.Clear();
+            NotifyPreviewStateChanged();
         }
 
-        if (IsOperationUnlocked || _operationUnlockCooldownUntilUtc > DateTimeOffset.UtcNow)
+        if (IsOpsUnlocked || _opsCooldownUntilUtc > DateTimeOffset.UtcNow)
         {
             StartUnlockTimer();
         }
@@ -916,29 +1036,20 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     }
 
     private void OnUnlockTimerTick(object? sender, EventArgs e)
-        => RefreshUnlockState();
+        => RefreshOpsUnlock();
 
-    private static async Task SetReassignBusyAsync(bool value, InventoryOverviewViewModel vm)
+    private static async Task SetPanelBusyAsync(bool value, InventoryOverview vm)
     {
-        await RunOnUiAsync(() => vm.IsReassignBusy = value);
+        await RunOnUiAsync(() => vm.IsPanelBusy = value);
     }
 
-    private Task SetReassignBusyAsync(bool value)
-        => SetReassignBusyAsync(value, this);
+    private Task SetPanelBusyAsync(bool value)
+        => SetPanelBusyAsync(value, this);
 
     private List<StockRowItem> GetEffectiveSelectedRows()
-    {
-        if (_selectedStockRows.Count > 0)
-        {
-            return _selectedStockRows.DistinctBy(x => x.RowNo).ToList();
-        }
+        => _selectedStockRows.DistinctBy(x => x.RowNo).ToList();
 
-        return SelectedStockRow is null
-            ? new List<StockRowItem>()
-            : new List<StockRowItem> { SelectedStockRow };
-    }
-
-    private IReadOnlyList<StockRowItem> ApplyReassignToCurrentDetailRows(
+    private IReadOnlyList<StockRowItem> ApplyTargetToDetailRows(
         bool singleScope,
         string targetDrug,
         string targetSpec,
@@ -968,7 +1079,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                     continue;
                 }
 
-                ApplyReassignToRow(row, targetDrug, targetSpec, targetQty);
+                ApplyTargetToRow(row, targetDrug, targetSpec, targetQty);
                 changedRows.Add(row);
             }
         }
@@ -991,7 +1102,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                         continue;
                     }
 
-                    ApplyReassignToRow(row, targetDrug, targetSpec, targetQty);
+                    ApplyTargetToRow(row, targetDrug, targetSpec, targetQty);
                     changedRows.Add(row);
                 }
             }
@@ -999,15 +1110,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
         if (changedRows.Count > 0)
         {
-            SetSelectedStockRows(changedRows);
-            SelectedStockRow ??= changedRows[0];
+            SetReassignSelectedRows(changedRows);
         }
 
         OnPropertyChanged(nameof(IsStockEmpty));
         return changedRows;
     }
 
-    private static void ApplyReassignToRow(
+    private static void ApplyTargetToRow(
         StockRowItem row,
         string targetDrug,
         string targetSpec,
@@ -1064,10 +1174,11 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
 
         if (value != 0)
         {
-            IsReassignPanelVisible = false;
-            ReassignPreviewText = null;
-            ReassignPreviewRows.Clear();
-            OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+            IsReassignOpen = false;
+            SetReassignPreviewLive(false);
+            ClearPreviewMessaging();
+            PreviewRows.Clear();
+            NotifyPreviewStateChanged();
         }
 
         _lastModeIndex = value;
@@ -1078,18 +1189,17 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         OnPropertyChanged(nameof(IsMissingMode));
         OnPropertyChanged(nameof(CanEnableStockEdit));
         OnPropertyChanged(nameof(CanDisableStockEdit));
-        OnPropertyChanged(nameof(ShowRequestUnlock));
-        OnPropertyChanged(nameof(ShowLockOperations));
-        OnPropertyChanged(nameof(UnlockStatusText));
-        OnPropertyChanged(nameof(CanToggleReassignPanel));
-        OnPropertyChanged(nameof(EditSessionStateText));
-        OnPropertyChanged(nameof(ShowEditSessionState));
+        OnPropertyChanged(nameof(ShowUnlock));
+        OnPropertyChanged(nameof(ShowLock));
+        OnPropertyChanged(nameof(CanToggleReassign));
+        OnPropertyChanged(nameof(EditStateText));
+        OnPropertyChanged(nameof(ShowEditState));
 
         if (PageIndex != 1)
             PageIndex = 1;
 
         RefreshPagingState();
-        RefreshUnlockState();
+        RefreshOpsUnlock();
         SetModeBusy(value, true);
         _ = ReloadAsync();
     }
@@ -1117,16 +1227,43 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _ = ReloadAsync();
     }
 
+    private bool UsesKeywordForBatchReassignOnly => IsReassignOpen && IsFilterScope;
+
     partial void OnKeywordChanged(string? value)
     {
         OnPropertyChanged(nameof(HasActiveKeyword));
 
-        if (IsFilterReassignScope)
+        if (UsesKeywordForBatchReassignOnly)
         {
-            ReassignPreviewText = null;
-            ReassignPreviewRows.Clear();
-            OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+            if (_reassignPreviewLive)
+            {
+                QueueReassignPreviewRefresh();
+            }
+            else
+            {
+                ClearPreviewMessaging();
+                PreviewRows.Clear();
+                NotifyPreviewStateChanged();
+            }
+
             RefreshPageCommands();
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                _keywordSearchDebouncer.Cancel();
+                DiscardStockEdits();
+                PageIndex = 1;
+                _ = ReloadQuietAsync();
+                return;
+            }
+
+            _keywordSearchDebouncer.Schedule(async () =>
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    DiscardStockEdits();
+                    PageIndex = 1;
+                    await ReloadQuietAsync().ConfigureAwait(true);
+                }));
             return;
         }
 
@@ -1164,6 +1301,20 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         }
 
         _keywordSearchDebouncer.Cancel();
+
+        if (UsesKeywordForBatchReassignOnly)
+        {
+            DiscardStockEdits();
+            PageIndex = 1;
+            await ReloadQuietAsync();
+            if (_reassignPreviewLive)
+            {
+                await PreviewReassignAsync(showBusy: false);
+            }
+
+            return;
+        }
+
         DiscardStockEdits();
 
         PageIndex = 1;
@@ -1274,7 +1425,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         RefreshPageCommands();
     }
 
-    public bool DeferExternalRefreshForTopic(string? topic)
+    public bool DeferRefreshForTopic(string? topic)
     {
         if (DateTimeOffset.UtcNow >= _suppressAutoRefreshUntilUtc)
         {
@@ -1331,7 +1482,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 // If count changed, rebuild the page rows to avoid stale tail rows.
                 if (StockRows.Count != pageResult.Rows.Count)
                 {
-                    ClearStockSelection();
+                    ClearReassignRowSelection();
                     ApplyStockRowsInPlace(rebuiltRows);
                     OnPropertyChanged(nameof(IsStockEmpty));
                 }
@@ -1363,5 +1514,8 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             LogWarn("inventory.external_refresh.reconcile_fail", "Failed to reconcile current detail page after external change", ex);
         }
     }
+
+    private static int ResolveTargetRemain(int currentRemain, int targetQty)
+        => Math.Min(currentRemain, targetQty);
 
 }

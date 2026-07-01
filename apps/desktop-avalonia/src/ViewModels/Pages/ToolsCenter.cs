@@ -19,7 +19,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class ToolsCenterViewModel : AppPageBase
+public sealed partial class ToolsCenter : AppPageBase
 {
     private readonly record struct SaveOptionsResult(bool Saved, bool Changed);
 
@@ -86,7 +86,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     private bool CanRestartAhk() => !IsAhkToggling && IsAhkEnabled;
     partial void OnIsAhkTogglingChanged(bool value) => RestartAhkCommand.NotifyCanExecuteChanged();
 
-    public ToolsCenterViewModel(
+    public ToolsCenter(
         IInjectorAgentRuntime injector,
         IToastService toast,
         IAutomationConfigService automationConfig,
@@ -104,7 +104,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
 
         ProgramVersionText = ResolveProgramVersionText(Injector.ToolVersion, _releaseVersion.Current.AgentInjectorAhkVersion);
         ApplyRuntimeSnapshot();
-        LoadAgentConfigSnapshot();
+        SyncAgentConfig();
         RefreshPendingChanges();
 
         Injector.StatusChanged += OnAhkRuntimeChanged;
@@ -178,7 +178,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
     {
         Injector.Reload();
         ApplyRuntimeSnapshot();
-        LoadAgentConfigSnapshot();
+        SyncAgentConfig();
         return Task.CompletedTask;
     }
 
@@ -248,7 +248,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
 
             _toast.Success("自动化套件", restarted ? "配置已保存，Agent 已重启" : "配置已保存");
             ApplyRuntimeSnapshot();
-            LoadAgentConfigSnapshot();
+            SyncAgentConfig();
         }
         catch (Exception ex)
         {
@@ -518,7 +518,7 @@ public sealed partial class ToolsCenterViewModel : AppPageBase
         }
     }
 
-    private void LoadAgentConfigSnapshot()
+    private void SyncAgentConfig()
     {
         var cfg = _automationConfig.Load();
         var ahk = cfg.Ahk;

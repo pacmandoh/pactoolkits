@@ -41,7 +41,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
     protected virtual bool SupportsStaleWhileReconnect => true;
     protected virtual bool CanAutoRefreshFromDbSignal() => IsEnabled && RefreshCommand is not null;
 
-    private readonly PageReloadBehavior _reload = new();
+    private readonly PageReload _reload = new();
     private readonly ConcurrentDictionary<string, byte> _uiCoalesceGates = new(StringComparer.Ordinal);
     private static readonly TimeSpan ReconnectSettleDelay = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan ReconnectToastSuppressWindow = TimeSpan.FromSeconds(5);
@@ -67,8 +67,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     public bool IsShowingStaleData => _pageDataAvailability == PageDataAvailability.Stale;
 
-    public string PageStaleHint
-        => "数据库已断开，当前显示的是上次成功加载的数据。连接恢复后将自动刷新。";
+    public string PageStaleHint => SectionEmptyCopy.StaleHint;
 
     public bool ShowPageUnavailable => _pageDataAvailability switch
     {
@@ -707,7 +706,7 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     /// <summary>
     /// Page-level operation errors should not toast when DB transport failed or DB is disconnected;
-    /// MainWindowViewModel owns the consolidated connection failure/recovery toasts.
+    /// MainWindow owns the consolidated connection failure/recovery toasts.
     /// </summary>
     protected bool CanToastError(Exception ex)
     {

@@ -162,10 +162,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isSidebarExpanded = true;
 
     public string SidebarToggleIconKind => IsSidebarExpanded ? "PanelLeftClose" : "PanelLeftOpen";
-    public string FilterbarToggleIconKind => IsDashboardFilterBarVisible ? "FunnelX" : "Funnel";
+    public string FilterBarToggleIconKind => IsDashboardFilterBarVisible ? "FunnelX" : "Funnel";
 
     public string SidebarToggleToolTip => IsSidebarExpanded ? "折叠侧边栏" : "展开侧边栏";
-    public string FilterbarToggleToolTip => IsDashboardFilterBarVisible ? "隐藏筛选栏" : "显示筛选栏";
+    public string FilterBarToggleToolTip => IsDashboardFilterBarVisible ? "隐藏筛选栏" : "显示筛选栏";
 
     [RelayCommand]
     private void ToggleSidebar() => IsSidebarExpanded = !IsSidebarExpanded;
@@ -420,16 +420,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         => UiThreadHelper.PostOnUi(action, priority);
 
     private ITopBarActions? ActiveTopBar => ActivePage;
-    private DashboardViewModel? _dashboardChromeSource;
+    private Dashboard? _dashboard;
 
-    public bool IsDashboardPageActive => ActivePage is DashboardViewModel;
+    public bool IsDashboardPageActive => ActivePage is Dashboard;
 
     public bool IsDashboardFilterBarVisible
     {
-        get => ActivePage is DashboardViewModel dashboard && dashboard.IsFilterBarVisible;
+        get => ActivePage is Dashboard dashboard && dashboard.IsFilterBarVisible;
         set
         {
-            if (ActivePage is DashboardViewModel dashboard && dashboard.IsFilterBarVisible != value)
+            if (ActivePage is Dashboard dashboard && dashboard.IsFilterBarVisible != value)
             {
                 dashboard.IsFilterBarVisible = value;
             }
@@ -438,59 +438,77 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public int DashboardSelectedTabIndex
     {
-        get => _dashboardChromeSource?.SelectedTabIndex ?? 0;
+        get => _dashboard?.SelectedTabIndex ?? 0;
         set
         {
-            if (_dashboardChromeSource is not null && _dashboardChromeSource.SelectedTabIndex != value)
+            if (_dashboard is not null && _dashboard.SelectedTabIndex != value)
             {
-                _dashboardChromeSource.SelectedTabIndex = value;
+                _dashboard.SelectedTabIndex = value;
             }
         }
     }
 
-    public string DashboardSectionHint => _dashboardChromeSource?.SectionHint ?? string.Empty;
+    public string DashboardSectionHint => _dashboard?.SectionHint ?? string.Empty;
 
-    private InventoryOverviewViewModel? _inventoryChromeSource;
+    private InventoryOverview? _inventory;
 
-    public bool IsInventoryPageActive => ActivePage is InventoryOverviewViewModel;
+    public bool IsInventoryPageActive => ActivePage is InventoryOverview;
 
-    public bool ShowInventoryRequestUnlock => _inventoryChromeSource?.ShowRequestUnlock == true;
+    public bool ShowEnableStockEdit => _inventory?.CanEnableStockEdit == true;
 
-    public bool ShowInventoryLockOperations => _inventoryChromeSource?.ShowLockOperations == true;
+    public bool ShowDisableStockEdit => _inventory?.CanDisableStockEdit == true;
 
-    public bool ShowInventoryEnableEdit => _inventoryChromeSource?.CanEnableStockEdit == true;
+    public bool ShowReassign => _inventory?.IsDetailMode == true;
+    public bool ShowOpenReassign => ShowReassign && _inventory?.IsReassignOpen != true;
+    public bool ShowCloseReassign => ShowReassign && _inventory?.IsReassignOpen == true;
 
-    public bool ShowInventoryDisableEdit => _inventoryChromeSource?.CanDisableStockEdit == true;
+    public System.Windows.Input.ICommand? ToggleStockEdit => _inventory?.ToggleStockEditCommand;
 
-    public bool ShowInventoryReassign => _inventoryChromeSource?.IsDetailMode == true;
+    public System.Windows.Input.ICommand? ToggleReassign => _inventory?.ToggleReassignCommand;
 
-    public System.Windows.Input.ICommand? InventoryRequestUnlockCommand => _inventoryChromeSource?.RequestUnlockCommand;
+    public bool CanToggleStockEdit => ToggleStockEdit?.CanExecute(null) == true;
 
-    public System.Windows.Input.ICommand? InventoryLockOperationsCommand => _inventoryChromeSource?.LockOperationsCommand;
+    public bool CanToggleReassign => ToggleReassign?.CanExecute(null) == true;
 
-    public System.Windows.Input.ICommand? InventoryToggleStockEditCommand => _inventoryChromeSource?.ToggleStockEditModeCommand;
+    private DrugIndex? _drugIndex;
 
-    public System.Windows.Input.ICommand? InventoryToggleReassignCommand => _inventoryChromeSource?.ToggleReassignPanelCommand;
+    public bool IsDrugIndexPageActive => ActivePage is DrugIndex;
 
-    public bool CanInventoryRequestUnlock => InventoryRequestUnlockCommand?.CanExecute(null) == true;
+    public System.Windows.Input.ICommand? Import => _drugIndex?.ImportCommand;
 
-    public bool CanInventoryLockOperations => InventoryLockOperationsCommand?.CanExecute(null) == true;
+    public System.Windows.Input.ICommand? NewItem => _drugIndex?.NewItemCommand;
 
-    public bool CanInventoryToggleStockEdit => InventoryToggleStockEditCommand?.CanExecute(null) == true;
+    public bool CanImport => Import?.CanExecute(null) == true;
 
-    public bool CanInventoryToggleReassign => InventoryToggleReassignCommand?.CanExecute(null) == true;
+    public bool CanNewItem => NewItem?.CanExecute(null) == true;
 
-    public System.Windows.Input.ICommand? TopRefreshCommand => ActiveTopBar?.RefreshCommand;
-    public System.Windows.Input.ICommand? TopImportCommand => ActiveTopBar?.ImportCommand;
-    public System.Windows.Input.ICommand? TopExportCommand => ActiveTopBar?.ExportCommand;
+    public bool ShowUnlock =>
+        _inventory?.ShowUnlock == true || _drugIndex?.ShowUnlock == true;
 
-    public bool ShowTopRefresh => TopRefreshCommand is not null;
-    public bool ShowTopImport => TopImportCommand is not null;
-    public bool ShowTopExport => TopExportCommand is not null;
+    public bool ShowLock =>
+        _inventory?.ShowLock == true || _drugIndex?.ShowLock == true;
 
-    public bool CanTopRefresh => TopRefreshCommand?.CanExecute(null) == true;
-    public bool CanTopImport => TopImportCommand?.CanExecute(null) == true;
-    public bool CanTopExport => TopExportCommand?.CanExecute(null) == true;
+    public System.Windows.Input.ICommand? Unlock =>
+        _inventory?.UnlockCommand ?? _drugIndex?.UnlockCommand;
+
+    public System.Windows.Input.ICommand? Lock =>
+        _inventory?.LockCommand ?? _drugIndex?.LockCommand;
+
+    public bool CanUnlock => Unlock?.CanExecute(null) == true;
+
+    public bool CanLock => Lock?.CanExecute(null) == true;
+
+    public System.Windows.Input.ICommand? TopRefresh => ActiveTopBar?.RefreshCommand;
+    public System.Windows.Input.ICommand? TopImport => ActiveTopBar?.ImportCommand;
+    public System.Windows.Input.ICommand? TopExport => ActiveTopBar?.ExportCommand;
+
+    public bool ShowTopRefresh => TopRefresh is not null;
+    public bool ShowTopImport => TopImport is not null;
+    public bool ShowTopExport => TopExport is not null;
+
+    public bool CanTopRefresh => TopRefresh?.CanExecute(null) == true;
+    public bool CanTopImport => TopImport?.CanExecute(null) == true;
+    public bool CanTopExport => TopExport?.CanExecute(null) == true;
 
     [RelayCommand]
     private void RefreshActivePage()
@@ -506,7 +524,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        var cmd = TopRefreshCommand;
+        var cmd = TopRefresh;
         if (cmd?.CanExecute(null) == true)
         {
             cmd.Execute(null);
@@ -651,7 +669,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             await CheckDbOnStartupAsync().ConfigureAwait(false);
             await RefreshSchemaStatusAsync("startup_postcheck").ConfigureAwait(false);
-            MarkDirtyByType<MsfxLinkViewModel>();
+            MarkDirtyByType<MsfxLink>();
 
             if (File.Exists(_configPath))
             {
@@ -760,32 +778,32 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void WireDashboardChrome(AppPageBase? page)
+    private void WireDashboard(AppPageBase? page)
     {
-        _dashboardChromeSource?.PropertyChanged -= OnDashboardChromePropertyChanged;
+        _dashboard?.PropertyChanged -= OnDashboardPropertyChanged;
 
-        _dashboardChromeSource = page as DashboardViewModel;
+        _dashboard = page as Dashboard;
 
-        _dashboardChromeSource?.PropertyChanged += OnDashboardChromePropertyChanged;
+        _dashboard?.PropertyChanged += OnDashboardPropertyChanged;
     }
 
-    private void WireInventoryChrome(AppPageBase? page)
+    private void WireInventory(AppPageBase? page)
     {
-        DetachInventoryChromeCommands();
-        _inventoryChromeSource?.PropertyChanged -= OnInventoryChromePropertyChanged;
+        DetachInventoryCommands();
+        _inventory?.PropertyChanged -= OnInventoryPropertyChanged;
 
-        _inventoryChromeSource = page as InventoryOverviewViewModel;
+        _inventory = page as InventoryOverview;
 
-        _inventoryChromeSource?.PropertyChanged += OnInventoryChromePropertyChanged;
-        AttachInventoryChromeCommands();
+        _inventory?.PropertyChanged += OnInventoryPropertyChanged;
+        AttachInventoryCommands();
     }
 
-    private void AttachInventoryChromeCommands()
+    private void AttachInventoryCommands()
     {
-        Attach(InventoryRequestUnlockCommand);
-        Attach(InventoryLockOperationsCommand);
-        Attach(InventoryToggleStockEditCommand);
-        Attach(InventoryToggleReassignCommand);
+        Attach(_inventory?.UnlockCommand);
+        Attach(_inventory?.LockCommand);
+        Attach(_inventory?.ToggleStockEditCommand);
+        Attach(_inventory?.ToggleReassignCommand);
 
         void Attach(System.Windows.Input.ICommand? cmd)
         {
@@ -794,16 +812,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            cmd.CanExecuteChanged += OnInventoryChromeCanExecuteChanged;
+            cmd.CanExecuteChanged += OnInventoryCanExecuteChanged;
         }
     }
 
-    private void DetachInventoryChromeCommands()
+    private void DetachInventoryCommands()
     {
-        Detach(InventoryRequestUnlockCommand);
-        Detach(InventoryLockOperationsCommand);
-        Detach(InventoryToggleStockEditCommand);
-        Detach(InventoryToggleReassignCommand);
+        Detach(_inventory?.UnlockCommand);
+        Detach(_inventory?.LockCommand);
+        Detach(_inventory?.ToggleStockEditCommand);
+        Detach(_inventory?.ToggleReassignCommand);
 
         void Detach(System.Windows.Input.ICommand? cmd)
         {
@@ -812,62 +830,155 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            cmd.CanExecuteChanged -= OnInventoryChromeCanExecuteChanged;
+            cmd.CanExecuteChanged -= OnInventoryCanExecuteChanged;
         }
     }
 
-    private void OnInventoryChromePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void WireDrugIndex(AppPageBase? page)
+    {
+        DetachDrugIndexCommands();
+        _drugIndex?.PropertyChanged -= OnDrugIndexPropertyChanged;
+
+        _drugIndex = page as DrugIndex;
+
+        _drugIndex?.PropertyChanged += OnDrugIndexPropertyChanged;
+        AttachDrugIndexCommands();
+    }
+
+    private void AttachDrugIndexCommands()
+    {
+        Attach(_drugIndex?.ImportCommand);
+        Attach(_drugIndex?.NewItemCommand);
+        Attach(_drugIndex?.UnlockCommand);
+        Attach(_drugIndex?.LockCommand);
+
+        void Attach(System.Windows.Input.ICommand? cmd)
+        {
+            if (cmd is null)
+            {
+                return;
+            }
+
+            cmd.CanExecuteChanged += OnDrugIndexCanExecuteChanged;
+        }
+    }
+
+    private void DetachDrugIndexCommands()
+    {
+        Detach(_drugIndex?.ImportCommand);
+        Detach(_drugIndex?.NewItemCommand);
+        Detach(_drugIndex?.UnlockCommand);
+        Detach(_drugIndex?.LockCommand);
+
+        void Detach(System.Windows.Input.ICommand? cmd)
+        {
+            if (cmd is null)
+            {
+                return;
+            }
+
+            cmd.CanExecuteChanged -= OnDrugIndexCanExecuteChanged;
+        }
+    }
+
+    private void OnDrugIndexPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
         {
-            case nameof(InventoryOverviewViewModel.ShowRequestUnlock):
-            case nameof(InventoryOverviewViewModel.ShowLockOperations):
-            case nameof(InventoryOverviewViewModel.CanEnableStockEdit):
-            case nameof(InventoryOverviewViewModel.CanDisableStockEdit):
-            case nameof(InventoryOverviewViewModel.IsDetailMode):
-                RaiseInventoryChromeBindings();
+            case nameof(DrugIndex.ShowUnlock):
+            case nameof(DrugIndex.ShowLock):
+            case nameof(DrugIndex.HasEditor):
+                RaiseDrugIndexBindings();
                 break;
         }
     }
 
-    private void OnInventoryChromeCanExecuteChanged(object? sender, EventArgs e)
-        => RaiseInventoryChromeCanExecuteBindings();
-
-    private void RaiseInventoryChromeBindings()
+    private void OnDrugIndexCanExecuteChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(ShowInventoryRequestUnlock));
-        OnPropertyChanged(nameof(ShowInventoryLockOperations));
-        OnPropertyChanged(nameof(ShowInventoryEnableEdit));
-        OnPropertyChanged(nameof(ShowInventoryDisableEdit));
-        OnPropertyChanged(nameof(ShowInventoryReassign));
-        OnPropertyChanged(nameof(InventoryRequestUnlockCommand));
-        OnPropertyChanged(nameof(InventoryLockOperationsCommand));
-        OnPropertyChanged(nameof(InventoryToggleStockEditCommand));
-        OnPropertyChanged(nameof(InventoryToggleReassignCommand));
-        RaiseInventoryChromeCanExecuteBindings();
+        RaiseDrugIndexCanExecute();
+        RaiseUnlockExecute();
     }
 
-    private void RaiseInventoryChromeCanExecuteBindings()
+    private void RaiseDrugIndexBindings()
     {
-        OnPropertyChanged(nameof(CanInventoryRequestUnlock));
-        OnPropertyChanged(nameof(CanInventoryLockOperations));
-        OnPropertyChanged(nameof(CanInventoryToggleStockEdit));
-        OnPropertyChanged(nameof(CanInventoryToggleReassign));
+        OnPropertyChanged(nameof(Import));
+        OnPropertyChanged(nameof(NewItem));
+        RaiseDrugIndexCanExecute();
+        RaiseUnlockBindings();
     }
 
-    private void OnDashboardChromePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void RaiseDrugIndexCanExecute()
+    {
+        OnPropertyChanged(nameof(CanImport));
+        OnPropertyChanged(nameof(CanNewItem));
+    }
+
+    private void RaiseUnlockBindings()
+    {
+        OnPropertyChanged(nameof(ShowUnlock));
+        OnPropertyChanged(nameof(ShowLock));
+        OnPropertyChanged(nameof(Unlock));
+        OnPropertyChanged(nameof(Lock));
+        RaiseUnlockExecute();
+    }
+
+    private void RaiseUnlockExecute()
+    {
+        OnPropertyChanged(nameof(CanUnlock));
+        OnPropertyChanged(nameof(CanLock));
+    }
+
+    private void OnInventoryPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
         {
-            case nameof(DashboardViewModel.IsFilterBarVisible):
+            case nameof(InventoryOverview.ShowUnlock):
+            case nameof(InventoryOverview.ShowLock):
+            case nameof(InventoryOverview.CanEnableStockEdit):
+            case nameof(InventoryOverview.CanDisableStockEdit):
+            case nameof(InventoryOverview.IsDetailMode):
+            case nameof(InventoryOverview.IsReassignOpen):
+                RaiseInventoryBindings();
+                break;
+        }
+    }
+
+    private void OnInventoryCanExecuteChanged(object? sender, EventArgs e)
+        => RaiseInventoryCanExecute();
+
+    private void RaiseInventoryBindings()
+    {
+        OnPropertyChanged(nameof(ShowEnableStockEdit));
+        OnPropertyChanged(nameof(ShowDisableStockEdit));
+        OnPropertyChanged(nameof(ShowReassign));
+        OnPropertyChanged(nameof(ShowOpenReassign));
+        OnPropertyChanged(nameof(ShowCloseReassign));
+        OnPropertyChanged(nameof(ToggleStockEdit));
+        OnPropertyChanged(nameof(ToggleReassign));
+        RaiseInventoryCanExecute();
+        RaiseUnlockBindings();
+    }
+
+    private void RaiseInventoryCanExecute()
+    {
+        OnPropertyChanged(nameof(CanToggleStockEdit));
+        OnPropertyChanged(nameof(CanToggleReassign));
+        RaiseUnlockExecute();
+    }
+
+    private void OnDashboardPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(Dashboard.IsFilterBarVisible):
                 OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
-                OnPropertyChanged(nameof(FilterbarToggleIconKind));
-                OnPropertyChanged(nameof(FilterbarToggleToolTip));
+                OnPropertyChanged(nameof(FilterBarToggleIconKind));
+                OnPropertyChanged(nameof(FilterBarToggleToolTip));
                 break;
-            case nameof(DashboardViewModel.SelectedTabIndex):
+            case nameof(Dashboard.SelectedTabIndex):
                 RaiseDashboardTabBindings();
                 break;
-            case nameof(DashboardViewModel.SectionHint):
+            case nameof(Dashboard.SectionHint):
                 OnPropertyChanged(nameof(DashboardSectionHint));
                 break;
         }
@@ -941,9 +1052,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void RaiseTopBarBindings()
     {
-        OnPropertyChanged(nameof(TopRefreshCommand));
-        OnPropertyChanged(nameof(TopImportCommand));
-        OnPropertyChanged(nameof(TopExportCommand));
+        OnPropertyChanged(nameof(TopRefresh));
+        OnPropertyChanged(nameof(TopImport));
+        OnPropertyChanged(nameof(TopExport));
         RaiseTopBarVisibilityBindings();
         RaiseTopBarCanExecuteBindings();
     }
@@ -1016,7 +1127,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         value?.SyncPageAvailability();
 
-        if (value is SettingsViewModel settingsPage)
+        if (value is Settings settingsPage)
         {
             _ = settingsPage.RefreshSchemaStatusAsync("open_settings");
         }
@@ -1029,18 +1140,21 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         WireTopBarCommands(value);
-        WireDashboardChrome(value);
-        WireInventoryChrome(value);
+        WireDashboard(value);
+        WireInventory(value);
+        WireDrugIndex(value);
 
         OnPropertyChanged(nameof(IsSettingsPageActive));
         OnPropertyChanged(nameof(IsDashboardPageActive));
         OnPropertyChanged(nameof(IsInventoryPageActive));
+        OnPropertyChanged(nameof(IsDrugIndexPageActive));
         OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
-        OnPropertyChanged(nameof(FilterbarToggleIconKind));
-        OnPropertyChanged(nameof(FilterbarToggleToolTip));
+        OnPropertyChanged(nameof(FilterBarToggleIconKind));
+        OnPropertyChanged(nameof(FilterBarToggleToolTip));
         RaiseDashboardTabBindings();
         OnPropertyChanged(nameof(DashboardSectionHint));
-        RaiseInventoryChromeBindings();
+        RaiseInventoryBindings();
+        RaiseDrugIndexBindings();
         RaiseTopBarVisibilityBindings();
         RaiseStatusItemsChanged();
 
@@ -1134,7 +1248,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        if (ActivePage is ISettingsPage settings && page is not SettingsViewModel)
+        if (ActivePage is ISettingsPage settings && page is not Settings)
         {
             var ok = await settings.TrySaveOrDiscardAllAsync();
             if (!ok)
@@ -1465,7 +1579,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         var target = DbSchemaCompat.NormalizeBound(version.DbSchemaVersion, version.DbSchemaVersion);
 
         var snapshot = await _settings
-            .ReadSchemaStatusAsync(context, trigger, CancellationToken.None)
+            .GetSchemaStatusAsync(context, trigger, CancellationToken.None)
             .ConfigureAwait(false);
 
         if (snapshot.Satisfied)
@@ -1679,7 +1793,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private async Task RefreshSchemaStatusAsync(string source)
     {
-        if (_settingsPage is not SettingsViewModel settingsPage)
+        if (_settingsPage is not Settings settingsPage)
         {
             return;
         }
@@ -1753,7 +1867,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _updateSettings.Changed -= OnUpdateSettingsChanged);
 
         WireTopBarCommands(null);
-        WireDashboardChrome(null);
+        WireDashboard(null);
+        WireInventory(null);
+        WireDrugIndex(null);
 
         if (_configWatcher is not null)
         {

@@ -4,7 +4,7 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
-public abstract class FormDialogViewModelBase(DialogManager dialogManager) : ViewModelBase
+public abstract class FormBase(DialogManager dialogManager) : ViewModelBase
 {
     private Action<bool>? _sessionComplete;
 

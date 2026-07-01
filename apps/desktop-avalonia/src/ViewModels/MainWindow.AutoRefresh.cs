@@ -144,12 +144,12 @@ public partial class MainWindowViewModel
     {
         PostOnUi(() =>
         {
-            var skipInventoryRefresh = ActivePage is InventoryOverviewViewModel inv
-                                       && inv.DeferExternalRefreshForTopic(topic);
+            var skipInventoryRefresh = ActivePage is InventoryOverview inv
+                                       && inv.DeferRefreshForTopic(topic);
 
             MarkPagesDirtyByTopic(topic, skipInventoryRefresh);
             if (RefreshActiveImmediatelyForTopic(topic)
-                && !(skipInventoryRefresh && ActivePage is InventoryOverviewViewModel))
+                && !(skipInventoryRefresh && ActivePage is InventoryOverview))
             {
                 TryRefreshDirtyActivePage();
             }
@@ -159,7 +159,7 @@ public partial class MainWindowViewModel
     private bool RefreshActiveImmediatelyForTopic(string? topic)
     {
         var key = (topic ?? string.Empty).Trim().ToLowerInvariant();
-        if (ActivePage is DrugIndexViewModel)
+        if (ActivePage is DrugIndex)
         {
             // Drug-key migration may emit trace_pool/trace_txn topics due FK cascade.
             // Keep DrugIndex page stable (no full-page flash); defer refresh until navigation/reopen.
@@ -179,8 +179,8 @@ public partial class MainWindowViewModel
         switch (key)
         {
             case "drug_index":
-                MarkDirtyByType<DrugIndexViewModel>();
-                MarkDirtyByType<DashboardViewModel>();
+                MarkDirtyByType<DrugIndex>();
+                MarkDirtyByType<Dashboard>();
                 break;
 
             case "inventory":
@@ -189,10 +189,10 @@ public partial class MainWindowViewModel
             case "trace_txn_item":
                 if (!skipInventoryPage)
                 {
-                    MarkDirtyByType<InventoryOverviewViewModel>();
+                    MarkDirtyByType<InventoryOverview>();
                 }
 
-                MarkDirtyByType<DashboardViewModel>();
+                MarkDirtyByType<Dashboard>();
                 break;
 
             default:

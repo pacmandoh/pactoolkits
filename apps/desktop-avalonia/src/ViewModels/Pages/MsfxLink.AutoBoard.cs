@@ -16,7 +16,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class MsfxLinkViewModel : AppPageBase
+public sealed partial class MsfxLink : AppPageBase
 {
     private bool CanRunAutoOnce()
         => !IsAutoBusy && !IsManualMsfxWriteActive;
@@ -56,12 +56,12 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             var options = BuildMsfxOptions();
             SetAutoProgress(2, "准备巡检");
-            window = await _syncService.LoadPullWindowAsync("listupout", ct).ConfigureAwait(false);
+            window = await _syncService.GetPullWindowAsync("listupout", ct).ConfigureAwait(false);
             AddAutoLog("任务", $"开始执行自动化拉取（{window.BeginAt:yyyy-MM-dd HH:mm:ss} ~ {window.EndAt:yyyy-MM-dd HH:mm:ss}）", TraceEntryState.Info);
             LogInfo("msfx.auto.run.start", "MSFX auto run started", new { window.BeginAt, window.EndAt });
             SetAutoProgress(5, $"拉取窗口 {window.BeginAt:MM-dd HH:mm} ~ {window.EndAt:MM-dd HH:mm}");
 
-            var batch = await _syncService.StartMsfxPullBatchAsync("listupout", window.BeginAt, window.EndAt, ct)
+            var batch = await _syncService.StartPullBatchAsync("listupout", window.BeginAt, window.EndAt, ct)
                 .ConfigureAwait(false);
             batchId = batch.BatchId;
             AddAutoLog("批次", $"拉取批次已创建：#{batchId}", TraceEntryState.Success);
@@ -124,7 +124,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                         return false;
                     }
 
-                    await _syncService.ScheduleBillRetryAsync(
+                    await _syncService.UpsertBillRetryAsync(
                         sourceApi: "listupout",
                         billCode: billCode,
                         fromRefUserId: normalizedFromRef,
@@ -145,7 +145,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     return false;
                 }
 
-                var billId = await _syncService.SaveInboundBillAsync(
+                var billId = await _syncService.UpsertInboundBillAsync(
                     batchId: batchId,
                     billCode: billCode,
                     billType: billType ?? string.Empty,
@@ -188,7 +188,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 }
 
                 var swIngest = Stopwatch.StartNew();
-                var ingest = await _syncService.IngestMsfxBillDetailAsync(
+                var ingest = await _syncService.IngestUpoutDetailAsync(
                     billId,
                     billCode,
                     detail.DrugItems
@@ -228,7 +228,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 return true;
             }
 
-            var dueRetries = await _syncService.LoadDueBillRetriesAsync("listupout", 200, ct).ConfigureAwait(false);
+            var dueRetries = await _syncService.GetDueBillRetriesAsync("listupout", 200, ct).ConfigureAwait(false);
             if (dueRetries.Count > 0)
             {
                 AddAutoLog("重试", $"发现待重试单据 {dueRetries.Count} 条，优先处理", TraceEntryState.Info);
@@ -283,7 +283,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
                 if (batchId > 0 && !string.IsNullOrWhiteSpace(list.Call.RequestId))
                 {
-                    await _syncService.UpdateMsfxPullBatchRequestIdAsync(batchId, list.Call.RequestId, ct).ConfigureAwait(false);
+                    await _syncService.UpdatePullBatchRequestIdAsync(batchId, list.Call.RequestId, ct).ConfigureAwait(false);
                 }
 
                 totalApiRows += list.Items.Count;
@@ -304,7 +304,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 foreach (var watch in watchRows)
                 {
                     ct.ThrowIfCancellationRequested();
-                    await _syncService.WatchMsfxBillAsync(
+                    await _syncService.UpsertBillWatchAsync(
                         sourceApi: "listupout",
                         billCode: watch.BillCode,
                         fromRefUserId: watch.FromRefUserId,
@@ -365,7 +365,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 page++;
             }
 
-            var dueWatches = await _syncService.LoadDueBillWatchesAsync("listupout", 200, ct).ConfigureAwait(false);
+            var dueWatches = await _syncService.GetDueBillWatchesAsync("listupout", 200, ct).ConfigureAwait(false);
             if (dueWatches.Count > 0)
             {
                 AddAutoLog("待确认补偿", $"发现待确认单据 {dueWatches.Count} 条，开始补偿重查", TraceEntryState.Info);
@@ -401,13 +401,13 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
 
             var swMap = Stopwatch.StartNew();
-            var mapBefore = await _syncService.LoadMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
+            var mapBefore = await _syncService.GetMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
             AddAutoLog(
                 "映射自检",
                 $"执行前 PENDING {mapBefore.PendingCount}，MAPPED {mapBefore.MappedCount}，NEED_REVIEW {mapBefore.NeedReviewCount}，FAILED {mapBefore.FailedCount}，TOTAL {mapBefore.TotalCount}",
                 TraceEntryState.Info);
 
-            MsfxBuildTaskResult taskResult = new(0, 0);
+            MsfxBuildInject taskResult = new(0, 0);
             if (IsManualMsfxWriteActive)
             {
                 AddAutoLog("自动巡检", "手动敏感操作进行中，跳过映射与建任务", TraceEntryState.Info);
@@ -424,8 +424,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
             else
             {
-                var map = await _syncService.ApplyMsfxMappingAsync(50000, ct).ConfigureAwait(false);
-                var mapAfter = await _syncService.LoadMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
+                var map = await _syncService.ApplyMappingAsync(50000, ct).ConfigureAwait(false);
+                var mapAfter = await _syncService.GetMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
                 mapMs += swMap.ElapsedMilliseconds;
                 SetAutoProgress(90, "执行自动映射");
                 var mapState = map.ProcessedCount == 0
@@ -445,7 +445,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 await RefreshMapPanelAsync(ct).ConfigureAwait(false);
 
                 var swTask = Stopwatch.StartNew();
-                taskResult = await _syncService.BuildMsfxInjectTasksAsync(500, ct).ConfigureAwait(false);
+                taskResult = await _syncService.BuildInjectsAsync(500, ct).ConfigureAwait(false);
                 taskBuildMs += swTask.ElapsedMilliseconds;
                 SetAutoProgress(96, "构建注入任务");
                 var taskState = taskResult.CreatedTasks > 0 ? TraceEntryState.Success : TraceEntryState.Warning;
@@ -459,9 +459,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
 
             var batchStatus = failCount > 0 ? "FAILED" : "SUCCESS";
-            await _syncService.CompleteMsfxPullBatchAsync(batchId, batchStatus, succeedCount, failCount, null, CancellationToken.None)
+            await _syncService.FinishPullBatchAsync(batchId, batchStatus, succeedCount, failCount, null, CancellationToken.None)
                 .ConfigureAwait(false);
-            await _syncService.AdvanceMsfxPullCursorAsync("listupout", window.BeginAt, window.EndAt, batchId, batchStatus, CancellationToken.None)
+            await _syncService.AdvancePullCursorAsync("listupout", window.BeginAt, window.EndAt, batchId, batchStatus, CancellationToken.None)
                 .ConfigureAwait(false);
             batchFinalized = true;
             await RefreshPullPanelAsync(ct).ConfigureAwait(false);
@@ -522,7 +522,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 try
                 {
-                    await _syncService.CompleteMsfxPullBatchAsync(
+                    await _syncService.FinishPullBatchAsync(
                         batchId,
                         "FAILED",
                         succeedCount,
@@ -717,7 +717,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var operatorName = Environment.UserName;
         var ok = await _unlockService.RequestUnlockAsync(new SensitiveOpRequest(
             Kind: kind,
-            ScopeKey: UnlockScopes.SharedSensitiveOps,
+            ScopeKey: UnlockScopes.SharedOps,
             Scene: scene,
             PromptTitle: scene,
             PromptHint: $"{scene} 属于高风险 MSFX 操作\n目标：{targetId}\n原因：{reason}\n请输入当前数据库密码以解锁",
@@ -808,7 +808,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 try
                 {
-                    var result = await _syncService.ReopenMsfxTaskAsync(
+                    var result = await _syncService.ReopenInjectAsync(
                         taskRow.TaskId,
                         opName,
                         "manual reopen from desktop",
@@ -902,7 +902,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 try
                 {
-                    var result = await _syncService.DiscardMsfxTaskAsync(
+                    var result = await _syncService.DiscardInjectAsync(
                         taskRow.TaskId,
                         opName,
                         "manual discard from desktop",
@@ -996,7 +996,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             {
                 try
                 {
-                    var result = await _syncService.RemapMsfxTaskAsync(
+                    var result = await _syncService.RemapInjectAsync(
                         taskRow.TaskId,
                         opName,
                         "manual remap from task queue",
@@ -1100,7 +1100,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             IsTaskPanelBusy = true;
             var opName = Environment.UserName;
-            var result = await _syncService.MergeMsfxTasksAsync(
+            var result = await _syncService.MergeInjectsAsync(
                 selectedRows.Select(x => x.TaskId).ToArray(),
                 opName,
                 "manual merge from task queue",
@@ -1154,20 +1154,20 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return;
         }
 
-        var splitUnits = await _syncService.LoadMsfxTaskSplitUnitsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
-        var splitCodeRows = await _syncService.LoadMsfxTaskSplitCodeRowsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
-        var choice = await _dialog.ShowMsfxTaskSplitDialog(new MsfxTaskSplitDialogModel(
+        var splitUnits = await _syncService.GetInjectSplitUnitsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
+        var splitCodeRows = await _syncService.GetInjectSplitCodeRowsAsync(taskRow.TaskId, CancellationToken.None).ConfigureAwait(false);
+        var choice = await _dialog.ShowMsfxTaskSplit(new MsfxTaskSplitArgs(
             TaskId: taskRow.TaskId,
             SourceBillCode: taskRow.SourceBillCode,
             Target: taskRow.Target,
             TotalCodes: taskRow.TotalCodes,
             SplitCodeRows: splitCodeRows)).ConfigureAwait(false);
-        if (choice.Action == MsfxTaskSplitDialogAction.Cancel)
+        if (choice.Action == MsfxTaskSplitAction.Cancel)
         {
             return;
         }
 
-        var splitReason = choice.Action == MsfxTaskSplitDialogAction.CustomQuantity
+        var splitReason = choice.Action == MsfxTaskSplitAction.CustomQuantity
             ? $"manual custom split from task queue: {choice.CustomQuantities}"
             : "manual split from task queue";
         if (!await RequireUnlockAsync(
@@ -1183,7 +1183,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         {
             IsTaskPanelBusy = true;
             var opName = Environment.UserName;
-            if (choice.Action == MsfxTaskSplitDialogAction.CustomQuantity)
+            if (choice.Action == MsfxTaskSplitAction.CustomQuantity)
             {
                 var customPlan = TryBuildCustomSplitPlan(splitUnits, choice.CustomQuantities, out var customError);
                 if (customPlan is null)
@@ -1192,7 +1192,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     return;
                 }
 
-                var customResult = await _syncService.SplitMsfxTaskCustomAsync(
+                var customResult = await _syncService.SplitInjectCustomAsync(
                     taskRow.TaskId,
                     customPlan.Value.GroupKeys,
                     customPlan.Value.BucketIndexes,
@@ -1214,8 +1214,8 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             }
             else
             {
-                var splitMode = choice.Action == MsfxTaskSplitDialogAction.ParentCluster ? "PARENT_CLUSTER" : "BATCH";
-                var result = await _syncService.SplitMsfxTaskAsync(
+                var splitMode = choice.Action == MsfxTaskSplitAction.ParentCluster ? "PARENT_CLUSTER" : "BATCH";
+                var result = await _syncService.SplitInjectAsync(
                     taskRow.TaskId,
                     splitMode,
                     opName,
@@ -1267,7 +1267,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         var batchScene = "批量映射";
         try
         {
-            var groups = await _syncService.LoadMappingBatchGroupsAsync(
+            var groups = await _syncService.GetMappingBatchGroupsAsync(
                 mapStatus: FilterInput.Norm(MapQueueMapStatusFilter),
                 codeStatus: FilterInput.Norm(MapQueueCodeStatusFilter),
                 searchScope: ResolveSearchScope(MapQueueSearchScope),
@@ -1275,19 +1275,19 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 limit: 500,
                 ct: CancellationToken.None).ConfigureAwait(false);
 
-            var res = await _dialog.ShowMsfxMappingBatchDialog(new MsfxMappingBatchDialogModel(
+            var res = await _dialog.ShowMsfxMappingBatch(new MsfxMappingBatchArgs(
                 Groups: groups,
                 MapStatusFilter: MapQueueMapStatusFilter,
                 CodeStatusFilter: MapQueueCodeStatusFilter,
                 SearchScope: MapQueueSearchScope,
                 Keyword: MapQueueKeyword ?? string.Empty)).ConfigureAwait(false);
 
-            if (res.Action == MsfxMappingBatchDialogAction.Cancel)
+            if (res.Action == MsfxMappingBatchAction.Cancel)
             {
                 return;
             }
 
-            batchScene = res.Action == MsfxMappingBatchDialogAction.DiscardTask
+            batchScene = res.Action == MsfxMappingBatchAction.DiscardTask
                 ? "批量弃用"
                 : "批量映射";
 
@@ -1300,19 +1300,19 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             var group = res.Group;
             var action = res.Action switch
             {
-                MsfxMappingBatchDialogAction.ApplyMap => "APPLY_MAP",
-                MsfxMappingBatchDialogAction.DiscardTask => "APPLY_DISCARD",
+                MsfxMappingBatchAction.ApplyMap => "APPLY_MAP",
+                MsfxMappingBatchAction.DiscardTask => "APPLY_DISCARD",
                 _ => "APPLY_MAP"
             };
 
-            if ((res.Action == MsfxMappingBatchDialogAction.ApplyMap || res.Action == MsfxMappingBatchDialogAction.DiscardTask) &&
+            if ((res.Action == MsfxMappingBatchAction.ApplyMap || res.Action == MsfxMappingBatchAction.DiscardTask) &&
                 (string.IsNullOrWhiteSpace(res.DrugId) || string.IsNullOrWhiteSpace(res.Spec)))
             {
                 _toast.Warn(batchScene, "需要填写需映射的药品信息和规格信息");
                 return;
             }
 
-            var preview = await _syncService.PreviewMsfxMappingBatchAsync(
+            var preview = await _syncService.PreviewMappingBatchByGroupAsync(
                 mapStatus: null,
                 codeStatus: null,
                 searchScope: "ALL",
@@ -1335,11 +1335,11 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             var confirmTitle = batchScene;
             var confirmMsg = res.Action switch
             {
-                MsfxMappingBatchDialogAction.ApplyMap => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认批量映射？",
-                MsfxMappingBatchDialogAction.DiscardTask => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认弃用任务？",
+                MsfxMappingBatchAction.ApplyMap => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认批量映射？",
+                MsfxMappingBatchAction.DiscardTask => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认弃用任务？",
                 _ => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认处理？"
             };
-            var ok = res.Action == MsfxMappingBatchDialogAction.DiscardTask
+            var ok = res.Action == MsfxMappingBatchAction.DiscardTask
                 ? await _dialog.ConfirmDestructive(confirmTitle, confirmMsg).ConfigureAwait(false)
                 : await _dialog.Confirm(confirmTitle, confirmMsg).ConfigureAwait(false);
             if (!ok)
@@ -1347,10 +1347,10 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 return;
             }
 
-            var mappingKind = res.Action == MsfxMappingBatchDialogAction.DiscardTask
+            var mappingKind = res.Action == MsfxMappingBatchAction.DiscardTask
                 ? SensitiveOpKind.MsfxDiscard
                 : SensitiveOpKind.MsfxMappingApply;
-            var mappingReason = res.Action == MsfxMappingBatchDialogAction.DiscardTask
+            var mappingReason = res.Action == MsfxMappingBatchAction.DiscardTask
                 ? "manual batch discard from mapping dialog"
                 : "manual batch mapping apply from mapping dialog";
             var unlockScene = confirmTitle;
@@ -1363,7 +1363,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 return;
             }
 
-            var apply = await _syncService.ApplyMsfxMappingBatchAsync(
+            var apply = await _syncService.ApplyMappingBatchByGroupAsync(
                 mapStatus: null,
                 codeStatus: null,
                 searchScope: "ALL",
@@ -1383,9 +1383,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 return;
             }
 
-            if (res.Action == MsfxMappingBatchDialogAction.ApplyMap && apply.AffectedCount > 0)
+            if (res.Action == MsfxMappingBatchAction.ApplyMap && apply.AffectedCount > 0)
             {
-                var built = await _syncService.BuildMsfxInjectTasksAsync(500, CancellationToken.None).ConfigureAwait(false);
+                var built = await _syncService.BuildInjectsAsync(500, CancellationToken.None).ConfigureAwait(false);
                 AddAutoLog(confirmTitle, $"分组处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}", TraceEntryState.Success);
                 LogInfo("msfx.map.batch.apply", "MSFX batch mapping applied", new
                 {
@@ -1398,7 +1398,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                 });
                 _toast.Success(confirmTitle, $"已处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}");
             }
-            else if (res.Action == MsfxMappingBatchDialogAction.DiscardTask)
+            else if (res.Action == MsfxMappingBatchAction.DiscardTask)
             {
                 AddAutoLog(confirmTitle, $"分组弃用 {apply.AffectedCount} 条，已进入弃用任务队列", TraceEntryState.Discarded);
                 LogInfo("msfx.map.batch.discard", "MSFX batch mapping discarded into task queue", new
@@ -1447,7 +1447,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             new("结束时间", row.FinishedAt),
             new("错误信息", string.IsNullOrWhiteSpace(row.ErrMsg) ? "--" : row.ErrMsg)
         };
-        return _dialog.ShowMsfxStateDetailDialog(new MsfxStateDetailDialogModel(
+        return _dialog.ShowMsfxStateDetail(new MsfxStateDetailArgs(
             Header: "拉取批次详情",
             SubHeader: "批次执行与结果审计",
             State: row.State,
@@ -1479,7 +1479,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             new("完成时间", row.FinishedAt),
             new("错误信息", string.IsNullOrWhiteSpace(row.ErrMsg) ? "--" : row.ErrMsg)
         };
-        return _dialog.ShowMsfxStateDetailDialog(new MsfxStateDetailDialogModel(
+        return _dialog.ShowMsfxStateDetail(new MsfxStateDetailArgs(
             Header: "Agent 任务详情",
             SubHeader: "注入执行状态与错误信息",
             State: row.State,
@@ -1498,7 +1498,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
             return Task.CompletedTask;
         }
 
-        return _dialog.ShowMsfxStateDetailDialog(new MsfxStateDetailDialogModel(
+        return _dialog.ShowMsfxStateDetail(new MsfxStateDetailArgs(
             Header: "运行日志详情",
             SubHeader: "自动化执行链路事件",
             State: row.State,
@@ -1567,7 +1567,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
 
     private async Task<MsfxAutoBoardSnapshot> RefreshAutoSummaryAsync(CancellationToken ct)
     {
-        var snap = await _syncService.LoadMsfxDashboardAsync(ct).ConfigureAwait(false);
+        var snap = await _syncService.GetAutoBoardSnapshotAsync(ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
         {
             AutoPullSummary = $"批次#{snap.LastBatchId} {snap.LastBatchStatus} 成功{snap.LastBatchSuccessCount}/失败{snap.LastBatchFailCount}";
@@ -1600,7 +1600,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task<MsfxAutoBoardSnapshot> RefreshPullPanelAsync(CancellationToken ct)
     {
         var snap = await RefreshAutoSummaryAsync(ct).ConfigureAwait(false);
-        var pullRows = await _syncService.LoadRecentPullBatchesAsync(500, ct).ConfigureAwait(false);
+        var pullRows = await _syncService.GetRecentPullBatchesAsync(500, ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
         {
             _allPullBatchRows = pullRows.Select(x => new MsfxAutoPullBatchGridRow(
@@ -1636,7 +1636,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private async Task<MsfxAutoBoardSnapshot> RefreshTaskPanelAsync(CancellationToken ct)
     {
         var snap = await RefreshAutoSummaryAsync(ct).ConfigureAwait(false);
-        var taskRows = await _syncService.LoadInjectTaskQueueAsync(0, ct).ConfigureAwait(false);
+        var taskRows = await _syncService.GetInjectQueueAsync(0, ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
         {
             var checkedIds = _allTaskQueueRows.Where(x => x.IsChecked).Select(x => x.TaskId).ToHashSet();
@@ -1782,7 +1782,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         => $"{NormalizeMergeKeyPart(row.MappedDrugId)}|{NormalizeMergeKeyPart(row.MappedSpec)}";
 
     private static (string[] GroupKeys, int[] BucketIndexes, string DisplayText)? TryBuildCustomSplitPlan(
-        IReadOnlyList<MsfxInjectTaskSplitUnitRow> units,
+        IReadOnlyList<MsfxInjectSplitUnitRow> units,
         string? rawText,
         out string? error)
     {
@@ -1983,7 +1983,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         }
 
         var pageSize = GetMapQueueQueryPageSize();
-        var page = await _syncService.LoadMappingQueuePageAsync(
+        var page = await _syncService.GetMappingQueuePageAsync(
             pageSize: pageSize,
             mapStatus: FilterInput.Norm(MapQueueMapStatusFilter),
             codeStatus: FilterInput.Norm(MapQueueCodeStatusFilter),
@@ -2137,7 +2137,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
                     Interlocked.Exchange(ref _autoTimerTickRunning, 0);
                 }
             },
-            module: "MsfxLinkViewModel",
+            module: "MsfxLink",
             eventName: "msfx.auto.timer_tick.fail");
     }
 
