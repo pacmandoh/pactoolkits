@@ -27,7 +27,7 @@ public sealed class DashboardService : IDashboardService
             TrendMetric: filter.TrendMetric);
     }
 
-    public async Task<DashboardSnapshot> LoadSnapshotAsync(DashboardLoadRequest request, CancellationToken ct)
+    public async Task<DashboardSnapshot> GetSnapshotAsync(DashboardRequest request, CancellationToken ct)
     {
         var qTop = BuildQuery(request.Filter, request.OverviewTopN);
         var qPaged = BuildQuery(request.Filter, topN: 0);
@@ -68,28 +68,28 @@ public sealed class DashboardService : IDashboardService
             Abnormal: await abnormalTask.ConfigureAwait(false));
     }
 
-    public Task<PagedResult<TraceTxnDto>> LoadTxnPageAsync(
+    public Task<PagedResult<TraceTxnDto>> GetTxnPageAsync(
         DashboardFilter filter,
         int page,
         int pageSize,
         CancellationToken ct)
         => _repo.GetRecentTxnsPageAsync(BuildQuery(filter, topN: 0), page, pageSize, ct);
 
-    public Task<PagedResult<TrendRowDto>> LoadTxnTrendPageAsync(
+    public Task<PagedResult<TrendRowDto>> GetTxnTrendPageAsync(
         DashboardFilter filter,
         int page,
         int pageSize,
         CancellationToken ct)
         => _repo.GetTrendPageAsync(BuildQuery(filter, topN: 0), page, pageSize, ct);
 
-    public Task<PagedResult<TraceEntryLogDto>> LoadEntryPageAsync(
+    public Task<PagedResult<TraceEntryLogDto>> GetEntryPageAsync(
         DashboardFilter filter,
         int page,
         int pageSize,
         CancellationToken ct)
         => _repo.GetEntryLogsPageAsync(BuildQuery(filter, topN: 0), page, pageSize, ct);
 
-    public Task<PagedResult<AbnormalRowDto>> LoadAbnormalPageAsync(
+    public Task<PagedResult<AbnormalRowDto>> GetAbnormalPageAsync(
         DashboardFilter filter,
         int page,
         int pageSize,

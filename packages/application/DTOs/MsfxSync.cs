@@ -21,7 +21,7 @@ public sealed record MsfxMappingStatusSnapshot(
     int FailedCount,
     int TotalCount);
 
-public sealed record MsfxBuildTaskResult(int CreatedTasks, int TaskedCodes);
+public sealed record MsfxBuildInject(int CreatedTasks, int TaskedCodes);
 
 public sealed record MsfxIngestDetailResult(int InsertedItems, int InsertedCodes, int InsertedStaging);
 
@@ -93,7 +93,7 @@ public sealed record MsfxMappingBatchGroupRow(
     int NeedReviewCount,
     int FailedCount);
 
-public sealed record MsfxInjectTaskQueueRow(
+public sealed record MsfxInjectQueueRow(
     long TaskId,
     string Status,
     string? SourceBillCode,
@@ -110,39 +110,39 @@ public sealed record MsfxInjectTaskQueueRow(
     DateTimeOffset? FinishedAt,
     string? ErrMsg);
 
-public sealed record MsfxReopenInjectTaskResult(
+public sealed record MsfxInjectReopen(
     long TaskId,
     string Status,
     int TotalCodes);
 
-public sealed record MsfxDiscardInjectTaskResult(
+public sealed record MsfxInjectDiscard(
     long TaskId,
     string Status,
     int TotalCodes);
 
-public sealed record MsfxRemapInjectTaskResult(
+public sealed record MsfxInjectRemap(
     long TaskId,
     string Status,
     int TotalCodes,
     int ResetStagingCount);
 
-public sealed record MsfxMergeInjectTaskResult(
+public sealed record MsfxInjectMerge(
     long TaskId,
     string Status,
     int TotalCodes,
     int MergedTaskCount);
 
-public sealed record MsfxSplitInjectTaskResult(
+public sealed record MsfxInjectSplit(
     int CreatedTasks,
     int TotalCodes,
     string SplitMode);
 
-public sealed record MsfxSplitInjectTaskCustomResult(
+public sealed record MsfxInjectSplitCustom(
     int CreatedTasks,
     int TotalCodes,
     int BucketCount);
 
-public sealed record MsfxInjectTaskSplitUnitRow(
+public sealed record MsfxInjectSplitUnitRow(
     string GroupKey,
     string ParentClusterKey,
     string DisplayClusterCode,
@@ -155,7 +155,7 @@ public sealed record MsfxInjectTaskSplitUnitRow(
     string SourceBillCodes,
     int CodeCount);
 
-public sealed record MsfxInjectTaskSplitCodeRow(
+public sealed record MsfxInjectSplitCodeRow(
     string GroupKey,
     string DisplayClusterCode,
     string LeafCode,

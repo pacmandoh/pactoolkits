@@ -142,6 +142,8 @@ public sealed class DrugIndexService : IDrugIndexService
             request.SourceTag,
             ct).ConfigureAwait(false);
 
+        _catalogCache.Invalidate();
+
         var sourceAfter = await _repo.GetByKeyAsync(request.Source.DrugId, request.Source.Spec, ct).ConfigureAwait(false);
         var targetAfter = await _repo.GetByKeyAsync(apply.Current.DrugId, apply.Current.Spec, ct).ConfigureAwait(false);
         return new DrugKeyFixCommitResult(apply, sourceAfter, targetAfter);

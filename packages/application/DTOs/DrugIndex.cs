@@ -38,3 +38,5 @@ public sealed record DrugKeyFixCommitResult(
     DrugKeyFixApplyResultDto Apply,
     DrugIndexDto? SourceAfter,
     DrugIndexDto? TargetAfter);
+
+public sealed record DrugIndexQuery(string? Keyword);

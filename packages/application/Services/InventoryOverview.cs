@@ -176,5 +176,5 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
             ct).ConfigureAwait(false);
 
     private Task<KeywordSearchContext> BuildKeywordContextAsync(string? keyword, CancellationToken ct)
-        => PinyinCatalogExpander.ExpandDrugKeywordAsync(_catalogCache, keyword, ct);
+        => PinyinExpansion.ExpandDrugKeywordAsync(_catalogCache, keyword, ct);
 }

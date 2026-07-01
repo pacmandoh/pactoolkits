@@ -1,4 +1,4 @@
-namespace PacToolkits.Application.DTOs;
+namespace PacToolkits.Application.TextSearch;
 
 public sealed record KeywordSearchContext(
     string Keyword,

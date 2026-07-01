@@ -12,6 +12,7 @@ public sealed class PinyinSearchCatalogCache : IPinyinSearchCatalogCache
     private readonly IDbAccessGuard _accessGuard;
     private readonly object _gate = new();
     private CacheEntry? _cache;
+    private int _generation;
 
     public PinyinSearchCatalogCache(IDrugIndexRepo drugIndexRepo, IDbAccessGuard accessGuard)
     {
@@ -47,21 +48,23 @@ public sealed class PinyinSearchCatalogCache : IPinyinSearchCatalogCache
         }
 
         var now = DateTimeOffset.UtcNow;
-        if (!forceRefresh)
+        var generationAtStart = 0;
+        lock (_gate)
         {
-            lock (_gate)
+            generationAtStart = _generation;
+            if (!forceRefresh && _cache is not null && _cache.ExpiresAt > now)
             {
-                if (_cache is not null && _cache.ExpiresAt > now)
-                {
-                    return _cache.Rows;
-                }
+                return _cache.Rows;
             }
         }
 
         var rows = await _drugIndexRepo.ListCatalogAsync(CatalogLimit, ct).ConfigureAwait(false);
         lock (_gate)
         {
-            _cache = new CacheEntry(rows, now.Add(Ttl));
+            if (generationAtStart == _generation)
+            {
+                _cache = new CacheEntry(rows, now.Add(Ttl));
+            }
         }
 
         return rows;
@@ -72,6 +75,10 @@ public sealed class PinyinSearchCatalogCache : IPinyinSearchCatalogCache
         lock (_gate)
         {
             _cache = null;
+            unchecked
+            {
+                _generation++;
+            }
         }
     }
 
