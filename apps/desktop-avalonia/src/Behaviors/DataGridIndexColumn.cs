@@ -34,29 +34,29 @@ public enum DataGridIndexHeaderFace
 /// Seeds a fixed first-column row index (#) once per grid instance.
 /// Never subscribes to column collection changes or drops state on visual detach.
 /// </summary>
-public class DataGridIndexColumnBehavior
+public class DataGridIndexColumn
 {
     public const string IndexColumnTag = "PacToolkits.IndexColumn";
 
     public static readonly AttachedProperty<bool> EnabledProperty =
-        AvaloniaProperty.RegisterAttached<DataGridIndexColumnBehavior, DataGrid, bool>("IndexColumnEnabled");
+        AvaloniaProperty.RegisterAttached<DataGridIndexColumn, DataGrid, bool>("IndexColumnEnabled");
 
     public static readonly AttachedProperty<bool> IsVisibleProperty =
-        AvaloniaProperty.RegisterAttached<DataGridIndexColumnBehavior, DataGrid, bool>(
+        AvaloniaProperty.RegisterAttached<DataGridIndexColumn, DataGrid, bool>(
             "IndexColumnVisible", defaultValue: true);
 
     public static readonly AttachedProperty<DataGridIndexColumnMode> ModeProperty =
-        AvaloniaProperty.RegisterAttached<DataGridIndexColumnBehavior, DataGrid, DataGridIndexColumnMode>(
+        AvaloniaProperty.RegisterAttached<DataGridIndexColumn, DataGrid, DataGridIndexColumnMode>(
             "IndexColumnMode", DataGridIndexColumnMode.DisplayOrder);
 
     public static readonly AttachedProperty<string> HeaderProperty =
-        AvaloniaProperty.RegisterAttached<DataGridIndexColumnBehavior, DataGrid, string>(
+        AvaloniaProperty.RegisterAttached<DataGridIndexColumn, DataGrid, string>(
             "IndexColumnHeader", "#");
 
     private static readonly ConcurrentDictionary<DataGrid, BehaviorState> States = new();
     private static readonly RowIndexConverter RowIndexPlusOne = new();
 
-    static DataGridIndexColumnBehavior()
+    static DataGridIndexColumn()
     {
         EnabledProperty.Changed.AddClassHandler<DataGrid>(OnEnabledChanged);
         IsVisibleProperty.Changed.AddClassHandler<DataGrid>(OnPresentationChanged);
@@ -245,7 +245,7 @@ public class DataGridIndexColumnBehavior
                 {
                     _structureSeeded = true;
                     ApplyPresentation();
-                    DataGridSortResetBehavior.RefreshIndexHeader(_grid);
+                    DataGridSortReset.RefreshIndexHeader(_grid);
                     return;
                 }
 
@@ -254,7 +254,7 @@ public class DataGridIndexColumnBehavior
                     _column = (DataGridTemplateColumn)_grid.Columns[0];
                     _structureSeeded = true;
                     ApplyPresentation();
-                    DataGridSortResetBehavior.RefreshIndexHeader(_grid);
+                    DataGridSortReset.RefreshIndexHeader(_grid);
                     return;
                 }
 
@@ -262,7 +262,7 @@ public class DataGridIndexColumnBehavior
                 InsertIndexColumn(_column);
                 _structureSeeded = true;
                 ApplyPresentation();
-                DataGridSortResetBehavior.RefreshIndexHeader(_grid);
+                DataGridSortReset.RefreshIndexHeader(_grid);
             }
             catch
             {
@@ -321,7 +321,7 @@ public class DataGridIndexColumnBehavior
             {
                 _column.Header = BuildHeader(headerText);
                 _appliedHeader = headerText;
-                DataGridSortResetBehavior.RefreshIndexHeader(_grid);
+                DataGridSortReset.RefreshIndexHeader(_grid);
             }
 
             if (_appliedMode != mode)

@@ -37,7 +37,7 @@ public static class AutoCompleteCommit
         sender as AutoCompleteBox;
 
     public static bool CommitOnEnter(
-        UserControl owner,
+        Control owner,
         object? sender,
         KeyEventArgs e,
         string nextControlName,
@@ -54,7 +54,7 @@ public static class AutoCompleteCommit
     }
 
     public static bool CommitOnEnterAsync(
-        UserControl owner,
+        Control owner,
         object? sender,
         KeyEventArgs e,
         string nextControlName,
@@ -72,7 +72,7 @@ public static class AutoCompleteCommit
 
     public static void AttachCandidateCommitApply(
         AutoCompleteBox box,
-        UserControl owner,
+        Control owner,
         string nextControlName,
         Action? applyAction)
     {
@@ -83,7 +83,7 @@ public static class AutoCompleteCommit
 
     public static void AttachCandidateCommitApplyAsync(
         AutoCompleteBox box,
-        UserControl owner,
+        Control owner,
         string nextControlName,
         Func<AutoCompleteBox, Task>? applyAsync)
     {
@@ -94,7 +94,7 @@ public static class AutoCompleteCommit
 
     private static void RunCommitAndApply(
         AutoCompleteBox box,
-        UserControl owner,
+        Control owner,
         string nextControlName,
         Action? applyAction)
     {
@@ -111,7 +111,7 @@ public static class AutoCompleteCommit
 
     private static void RunCommitAndApplyAsync(
         AutoCompleteBox box,
-        UserControl owner,
+        Control owner,
         string nextControlName,
         Func<AutoCompleteBox, Task>? applyAsync)
     {
@@ -132,7 +132,7 @@ public static class AutoCompleteCommit
 
     private static void RunCommitAndApplyImmediate(
         AutoCompleteBox box,
-        UserControl owner,
+        Control owner,
         string nextControlName,
         Action? applyAction)
     {
@@ -146,7 +146,7 @@ public static class AutoCompleteCommit
 
     private static async Task RunCommitAndApplyImmediateAsync(
         AutoCompleteBox box,
-        UserControl owner,
+        Control owner,
         string nextControlName,
         Func<AutoCompleteBox, Task>? applyAsync)
     {
