@@ -10,6 +10,7 @@
   -->
   <Style Selector="DataGrid.SectionGrid">
     <Setter Property="AutoGenerateColumns" Value="False" />
+    <Setter Property="RowHeight" Value="{DynamicResource RowMinHeight}" />
     <Setter Property="IsReadOnly" Value="True" />
     <Setter Property="CanUserReorderColumns" Value="False" />
     <Setter Property="CanUserSortColumns" Value="True" />
@@ -21,7 +22,7 @@
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
     <Setter Property="MinHeight" Value="0" />
-    <Setter Property="behaviors:DataGridSortSupportBehavior.Enabled" Value="True" />
+    <Setter Property="behaviors:DataGridSortSupport.Enabled" Value="True" />
     <Setter Property="Template">
       <ControlTemplate TargetType="DataGrid">
         <Border
@@ -93,22 +94,26 @@
 
   <!--  First column # index (Shad BasicDataTable look).  -->
   <Style Selector="DataGrid.IndexedGrid">
-    <Setter Property="behaviors:DataGridIndexColumnBehavior.Enabled" Value="True" />
-    <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="DisplayOrder" />
-    <Setter Property="behaviors:DataGridIndexColumnBehavior.IsVisible" Value="True" />
-    <Setter Property="behaviors:DataGridSortResetBehavior.Enabled" Value="True" />
+    <Setter Property="behaviors:DataGridIndexColumn.Enabled" Value="True" />
+    <Setter Property="behaviors:DataGridIndexColumn.Mode" Value="DisplayOrder" />
+    <Setter Property="behaviors:DataGridIndexColumn.IsVisible" Value="True" />
+    <Setter Property="behaviors:DataGridSortReset.Enabled" Value="True" />
   </Style>
 
   <Style Selector="DataGrid.IndexedGrid.StickyIndexDisplayIndex">
-    <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="DisplayIndex" />
+    <Setter Property="behaviors:DataGridIndexColumn.Mode" Value="DisplayIndex" />
   </Style>
 
   <Style Selector="DataGrid.IndexedGrid.StickyIndexRowNo">
-    <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="RowNo" />
+    <Setter Property="behaviors:DataGridIndexColumn.Mode" Value="RowNo" />
   </Style>
 
   <Style Selector="DataGrid.IndexedGrid.MapIndexedGrid">
-    <Setter Property="behaviors:DataGridIndexColumnBehavior.Mode" Value="DisplayIndex" />
+    <Setter Property="behaviors:DataGridIndexColumn.Mode" Value="DisplayIndex" />
+  </Style>
+
+  <Style Selector="DataGrid.FixedColumns">
+    <Setter Property="CanUserResizeColumns" Value="False" />
   </Style>
 
   <Style Selector="DataGrid.NonInteractive">
@@ -119,6 +124,46 @@
 
   <Style Selector="DataGrid.InventoryGrid">
     <Setter Property="RowHeight" Value="{DynamicResource InventoryRowHeight}" />
+  </Style>
+
+  <Style Selector="DataGrid.ReassignPreviewGrid">
+    <Setter Property="RowHeight" Value="{DynamicResource ReassignPreviewRowHeight}" />
+    <Setter Property="Height" Value="{DynamicResource ReassignPreviewHeight}" />
+    <Setter Property="MinHeight" Value="{DynamicResource ReassignPreviewHeight}" />
+    <Setter Property="MaxHeight" Value="{DynamicResource ReassignPreviewHeight}" />
+    <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+    <Setter Property="VerticalScrollBarVisibility" Value="Visible" />
+    <Setter Property="CanUserReorderColumns" Value="False" />
+    <Setter Property="CanUserSortColumns" Value="False" />
+    <Setter Property="CanUserResizeColumns" Value="False" />
+    <Setter Property="behaviors:DataGridSortSupport.Enabled" Value="False" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="IsTabStop" Value="False" />
+  </Style>
+
+  <Style Selector="DataGrid.ReassignPreviewGrid DataGridRow">
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+
+  <Style Selector="DataGrid.ReassignPreviewGrid /template/ Border#PART_HeaderBackground,                       DataGrid.ReassignPreviewGrid /template/ Border#PART_HeaderBackground:pointerover">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="DataGrid.ReassignPreviewGrid DataGridColumnHeader">
+    <Setter Property="FontSize" Value="{DynamicResource ReassignPreviewHeaderFontSize}" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+
+  <Style Selector="DataGrid.ReassignPreviewGrid DataGridCell">
+    <Setter Property="FontSize" Value="{DynamicResource ReassignPreviewFontSize}" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+
+  <Style Selector="DataGrid DataGridCheckBoxColumn">
+    <Setter Property="Width" Value="{StaticResource DgWSelect}" />
   </Style>
 
   <Style Selector="Button.DgIndexHeaderButton">
@@ -148,6 +193,17 @@
     <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
     <Setter Property="TextTrimming" Value="None" />
     <Setter Property="TextAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Border.DgStatusBadge">
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="TextBlock.DgQtyCell">
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
 
 </Styles>
