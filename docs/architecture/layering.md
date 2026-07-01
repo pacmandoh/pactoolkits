@@ -47,7 +47,7 @@ flowchart TB
 
 - **Abstractions/**：仓储与服务接口（`IDashboardService`、`IDashboardRepo` 等）
 - **DTOs/**：跨层传输模型（Dashboard、Msfx、ScanCode、Automation 等）
-- **Services/**：用例实现（`DashboardService`、`ScanCodeService`、`MsfxSyncService` 等）
+- **Services/**：用例实现（`DashboardService`、`ScanCodeService`、`SyncService` 等）
 - 注册入口：`AddPacToolkitsApplication()`（`ServiceCollectionExtensions.cs`）
 
 桌面 ViewModel **只注入应用服务或抽象**，不直接注入仓储实现。
