@@ -147,6 +147,20 @@
     <Setter Property="Padding" Value="{DynamicResource CardPanelFlushPadding}" />
   </Style>
 
+  <Style Selector="controls|CardPanel.SquareChrome.CardChrome Border.CardPanel">
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.BodyWell Border.CardPanelInner">
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.BodyWell Border.CardPanelBody">
+    <Setter Property="Padding" Value="{DynamicResource CardPanelBodyPadding}" />
+  </Style>
+
   <Style Selector="controls|KpiTile TextBlock.h3">
     <Setter Property="Margin" Value="0" />
     <Setter Property="Padding" Value="0" />

@@ -2,271 +2,274 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
-  <Style Selector="Border.SettingsSidebarDivider">
-    <Setter Property="Width" Value="1" />
-    <Setter Property="Background" Value="{DynamicResource BorderColor}" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
-  </Style>
+  <Style Selector=":is(UserControl).SettingsPage">
+    <Style Selector="^ Border.SidebarDivider">
+      <Setter Property="Width" Value="1" />
+      <Setter Property="Background" Value="{DynamicResource BorderColor}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
 
-  <Style Selector="Panel.SettingsContentHost">
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
-  </Style>
+    <Style Selector="^ Panel.ContentHost">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
 
-  <Style Selector="Grid.SettingsTabPage">
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
-  </Style>
+    <Style Selector="^ Grid.TabPage">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
 
-  <Style Selector="Grid.SettingsTabPage &gt; ScrollViewer">
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
-  </Style>
+    <Style Selector="^ Grid.TabPage &gt; ScrollViewer">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
 
-  <Style Selector="Grid.SettingsTabPage &gt; Border.SettingsStickyHost">
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Top" />
-    <Setter Property="IsVisible" Value="False" />
-    <Setter Property="ZIndex" Value="8" />
-  </Style>
+    <Style Selector="^ Grid.TabPage &gt; Border.StickyHost">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="IsVisible" Value="False" />
+      <Setter Property="ZIndex" Value="8" />
+    </Style>
 
-  <Style Selector="Border.SettingsStickyHost">
-    <Setter Property="Background" Value="{DynamicResource WindowBackgroundColor}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
-    <Setter Property="BorderThickness" Value="0,0,0,1" />
-    <Setter Property="Margin" Value="{DynamicResource SettingsStickyPadding}" />
-    <Setter Property="Padding" Value="0" />
-  </Style>
+    <Style Selector="^ Border.StickyHost">
+      <Setter Property="Background" Value="{DynamicResource WindowBackgroundColor}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="Margin" Value="{DynamicResource StickyPadding}" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
 
-  <Style Selector="Border.SettingsStickyRow">
-    <Setter Property="Background" Value="{DynamicResource WindowBackgroundColor}" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Padding" Value="0" />
-  </Style>
+    <Style Selector="^ Border.StickyRow">
+      <Setter Property="Background" Value="{DynamicResource WindowBackgroundColor}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
 
-  <Style Selector="Border.SettingsStickyRow.SettingsH1">
-    <Setter Property="Padding" Value="{DynamicResource SettingsH1Padding}" />
-  </Style>
+    <Style Selector="^ Border.StickyRow.H1">
+      <Setter Property="Padding" Value="{DynamicResource H1Padding}" />
+    </Style>
 
-  <Style Selector="Border.SettingsStickyRow.SettingsH2">
-    <Setter Property="Padding" Value="{DynamicResource SettingsH2Padding}" />
-  </Style>
+    <Style Selector="^ Border.StickyRow.H2">
+      <Setter Property="Padding" Value="{DynamicResource H2Padding}" />
+    </Style>
 
-  <Style Selector="Border.SettingsStickyRow.SettingsH3">
-    <Setter Property="Padding" Value="{DynamicResource SettingsH3Padding}" />
-  </Style>
+    <Style Selector="^ Border.StickyRow.H3">
+      <Setter Property="Padding" Value="{DynamicResource H3Padding}" />
+    </Style>
 
-  <Style Selector="StackPanel.SettingsBody">
-    <Setter Property="Margin" Value="{DynamicResource SettingsBodyPadding}" />
-    <Setter Property="Spacing" Value="{DynamicResource SettingsBodySpacing}" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-  </Style>
+    <Style Selector="^ StackPanel.Body">
+      <Setter Property="Margin" Value="{DynamicResource BodyPadding}" />
+      <Setter Property="Spacing" Value="{DynamicResource BodySpacing}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
 
-  <Style Selector="Grid.SettingsH2Row">
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
+    <Style Selector="^ Grid.H2Row">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
 
-  <Style Selector="Grid.SettingsH2Row &gt; TextBlock.SettingsH2Text">
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
+    <Style Selector="^ Grid.H2Row &gt; TextBlock.H2Text">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
 
-  <Style Selector="Grid.SettingsH2Row &gt; StackPanel">
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
+    <Style Selector="^ Grid.H2Row &gt; StackPanel">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
 
-  <Style Selector="Grid.SettingsFieldSplit">
-    <Setter Property="ColumnSpacing" Value="32" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
+    <Style Selector="^ Grid.FieldSplit">
+      <Setter Property="ColumnSpacing" Value="32" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
 
-  <Style Selector="Grid.SettingsFieldSplit &gt; StackPanel">
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Margin" Value="0,0,8,0" />
-  </Style>
+    <Style Selector="^ Grid.FieldSplit &gt; StackPanel">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
 
-  <Style Selector="Grid.SettingsFieldSplit &gt; TextBlock">
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
+    <Style Selector="^ Grid.FieldSplit &gt; TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
 
-  <Style Selector="Grid.SettingsFieldSplit &gt; Grid">
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
+    <Style Selector="^ Grid.FieldSplit &gt; Grid">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
 
-  <Style Selector="Grid.SettingsFieldSplit &gt; TextBox,                      Grid.SettingsFieldSplit &gt; ComboBox,                      Grid.SettingsFieldSplit &gt; NumericUpDown,                      Grid.SettingsFieldSplit &gt; ToggleSwitch">
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
+    <Style Selector="^ Grid.FieldSplit &gt; TextBox,                       ^ Grid.FieldSplit &gt; ComboBox,                       ^ Grid.FieldSplit &gt; NumericUpDown,                       ^ Grid.FieldSplit &gt; ToggleSwitch">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
 
-  <Style Selector="Grid.SettingsFieldSplit &gt; ToggleSwitch">
-    <Setter Property="HorizontalAlignment" Value="Left" />
-  </Style>
+    <Style Selector="^ Grid.FieldSplit &gt; ToggleSwitch">
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
 
-  <Style Selector="TextBlock.SettingsFieldValue">
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-  </Style>
+    <Style Selector="^ TextBlock.FieldValue">
+      <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
 
-  <Style Selector="Border.SettingsH1">
-    <Setter Property="Padding" Value="{DynamicResource SettingsH1Padding}" />
-    <Setter Property="Background" Value="Transparent" />
-  </Style>
+    <Style Selector="^ Border.H1">
+      <Setter Property="Padding" Value="{DynamicResource H1Padding}" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
 
-  <Style Selector="Border.SettingsH2">
-    <Setter Property="Padding" Value="{DynamicResource SettingsH2Padding}" />
-    <Setter Property="Background" Value="Transparent" />
-  </Style>
+    <Style Selector="^ Border.H2">
+      <Setter Property="Padding" Value="{DynamicResource H2Padding}" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
 
-  <Style Selector="Border.SettingsH3">
-    <Setter Property="Padding" Value="{DynamicResource SettingsH3Padding}" />
-    <Setter Property="Background" Value="Transparent" />
-  </Style>
+    <Style Selector="^ Border.H3">
+      <Setter Property="Padding" Value="{DynamicResource H3Padding}" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
 
-  <Style Selector="TextBlock.SettingsH1Text">
-    <Setter Property="FontSize" Value="26" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-  </Style>
+    <Style Selector="^ TextBlock.H1Text">
+      <Setter Property="FontSize" Value="26" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+    </Style>
 
-  <Style Selector="TextBlock.SettingsH2Text">
-    <Setter Property="FontSize" Value="18" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-  </Style>
+    <Style Selector="^ TextBlock.H2Text">
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+    </Style>
 
-  <Style Selector="TextBlock.SettingsH3Text">
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-  </Style>
+    <Style Selector="^ TextBlock.H3Text">
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+    </Style>
 
-  <Style Selector="Border.SettingsField">
-    <Setter Property="Padding" Value="{DynamicResource SettingsFieldPadding}" />
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="2,0,0,0" />
-    <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="CornerRadius" Value="0" />
-  </Style>
+    <Style Selector="^ Border.Field">
+      <Setter Property="Padding" Value="{DynamicResource FieldPadding}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="2,0,0,0" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="ClipToBounds" Value="False" />
+    </Style>
 
-  <Style Selector="Border.SettingsField:pointerover,Border.SettingsField:focus-within">
-    <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource ShellAccentBrush}" />
-  </Style>
+    <Style Selector="^ Border.Field:pointerover,                       ^ Border.Field:focus-within">
+      <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ShellAccentBrush}" />
+    </Style>
 
-  <Style Selector="Border.SettingsField TextBlock.SettingsFieldTitle">
-    <Setter Property="FontSize" Value="13" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-  </Style>
+    <Style Selector="^ Border.Field TextBlock.FieldTitle">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+    </Style>
 
-  <Style Selector="TextBlock.SettingsFieldDesc">
-    <Setter Property="FontSize" Value="12" />
-    <Setter Property="TextWrapping" Value="Wrap" />
-  </Style>
+    <Style Selector="^ TextBlock.FieldDesc">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
 
-  <Style Selector="Border.SettingsField TextBlock.SettingsFieldDesc">
-    <Setter Property="Margin" Value="0,2,0,0" />
-  </Style>
+    <Style Selector="^ Border.Field TextBlock.FieldDesc">
+      <Setter Property="Margin" Value="0,2,0,0" />
+    </Style>
 
-  <Style Selector="StackPanel.SettingsH2Actions">
-    <Setter Property="Orientation" Value="Horizontal" />
-    <Setter Property="Spacing" Value="{DynamicResource SpacingInlineSm}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
+    <Style Selector="^ StackPanel.H2Actions">
+      <Setter Property="Orientation" Value="Horizontal" />
+      <Setter Property="Spacing" Value="{DynamicResource SpacingInlineSm}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
 
-  <Style Selector="StackPanel.SettingsH2Actions &gt; Button">
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
+    <Style Selector="^ StackPanel.H2Actions &gt; Button">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
 
-  <Style Selector="UserControl.SettingsPage TextBox">
-    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="UseFloatingPlaceholder" Value="False" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="MinWidth" Value="0" />
-  </Style>
+    <Style Selector="^ Grid.FieldSplit &gt; TextBox,                       ^ Grid.FieldSplit &gt; Grid &gt; TextBox">
+      <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="UseFloatingPlaceholder" Value="False" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
 
-  <Style Selector="UserControl.SettingsPage ComboBox">
-    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="MinWidth" Value="0" />
-  </Style>
+    <Style Selector="^ Grid.FieldSplit &gt; ComboBox">
+      <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="MinWidth" Value="0" />
+    </Style>
 
-  <Style Selector="UserControl.SettingsPage NumericUpDown">
-    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="MinWidth" Value="0" />
-  </Style>
+    <Style Selector="^ Grid.FieldSplit &gt; NumericUpDown">
+      <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="MinWidth" Value="0" />
+    </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem">
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="Padding" Value="{DynamicResource SettingsNavButtonPadding}" />
-    <Setter Property="MinHeight" Value="{DynamicResource ButtonPrimaryMinHeight}" />
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="0" />
-    <Setter Property="Template">
-      <ControlTemplate>
-        <Border
-          Background="{TemplateBinding Background}"
-          BorderBrush="{TemplateBinding BorderBrush}"
-          BorderThickness="{TemplateBinding BorderThickness}"
-          CornerRadius="{TemplateBinding CornerRadius}">
-          <ContentPresenter
-            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-            Content="{TemplateBinding Content}"
-            ContentTemplate="{TemplateBinding ContentTemplate}" />
-        </Border>
-      </ControlTemplate>
-    </Setter>
-  </Style>
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Padding" Value="{DynamicResource NavButtonPadding}" />
+      <Setter Property="MinHeight" Value="{DynamicResource ButtonPrimaryMinHeight}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="{TemplateBinding BorderThickness}"
+            CornerRadius="{TemplateBinding CornerRadius}">
+            <ContentPresenter
+              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+              Content="{TemplateBinding Content}"
+              ContentTemplate="{TemplateBinding ContentTemplate}" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem &gt; StackPanel">
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="HorizontalAlignment" Value="Center" />
-  </Style>
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem &gt; StackPanel">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem icons|AppIcon">
-    <Setter Property="Width" Value="{DynamicResource SidebarMenuIconSize}" />
-    <Setter Property="Height" Value="{DynamicResource SidebarMenuIconSize}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
-  </Style>
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem icons|AppIcon">
+      <Setter Property="Width" Value="{DynamicResource SidebarMenuIconSize}" />
+      <Setter Property="Height" Value="{DynamicResource SidebarMenuIconSize}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
+    </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem TextBlock">
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
-  </Style>
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
+    </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pointerover icons|AppIcon,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pressed icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
-  </Style>
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pointerover icons|AppIcon,                       ^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pressed icons|AppIcon">
+      <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
+    </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pointerover TextBlock,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem:not(.Active):pressed TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
-  </Style>
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pointerover TextBlock,                       ^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pressed TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
+    </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active:pointerover">
-    <Setter Property="Background" Value="{DynamicResource NavIndicatorBrush}" />
-  </Style>
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem.Active,                       ^ StackPanel.NavHost &gt; Button.NavItem.Active:pointerover">
+      <Setter Property="Background" Value="{DynamicResource NavIndicatorBrush}" />
+    </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active icons|AppIcon,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active:pointerover icons|AppIcon">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
-  </Style>
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem.Active icons|AppIcon,                       ^ StackPanel.NavHost &gt; Button.NavItem.Active:pointerover icons|AppIcon">
+      <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
+    </Style>
 
-  <Style Selector="StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active TextBlock,                      StackPanel.SettingsNavHost &gt; Button.SettingsNavItem.Active:pointerover TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-  </Style>
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem.Active TextBlock,                       ^ StackPanel.NavHost &gt; Button.NavItem.Active:pointerover TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
 
-  <Style Selector="Border.SettingsNavUnsavedDot">
-    <Setter Property="Width" Value="6" />
-    <Setter Property="Height" Value="6" />
-    <Setter Property="CornerRadius" Value="3" />
-    <Setter Property="Background" Value="{DynamicResource WarningColor}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Margin" Value="6,0,0,0" />
+    <Style Selector="^ Border.NavUnsavedDot">
+      <Setter Property="Width" Value="6" />
+      <Setter Property="Height" Value="6" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Background" Value="{DynamicResource WarningColor}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="6,0,0,0" />
+    </Style>
   </Style>
 </Styles>
