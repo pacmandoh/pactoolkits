@@ -54,7 +54,7 @@ internal static class DialogAwaiter
 /// <summary>
 /// ShadUI registers dialog callbacks by VM type with TryAdd (never overwrites). One-shot VMs need
 /// explicit slot assignment plus orphan control cleanup before each Show. Session completion is also
-/// bound on <see cref="FormDialogViewModelBase"/> so awaiting tasks finish even when ShadUI slots
+/// bound on <see cref="FormBase"/> so awaiting tasks finish even when ShadUI slots
 /// were cleared before Close.
 /// </summary>
 internal static class DialogSessionStack
@@ -226,17 +226,17 @@ internal static class FormDialogSession
                     return;
                 }
 
-                if (context is FormDialogViewModelBase formVm)
+                if (context is FormBase form)
                 {
-                    formVm.BindSessionCompletion(null);
+                    form.BindSessionCompletion(null);
                 }
 
                 tcs.TrySetResult(success ? onSuccess(context) : onCancel());
             };
 
-            if (context is FormDialogViewModelBase bindVm)
+            if (context is FormBase bind)
             {
-                bindVm.BindSessionCompletion(completeSession);
+                bind.BindSessionCompletion(completeSession);
             }
 
             Action successCallback = () => completeSession(true);

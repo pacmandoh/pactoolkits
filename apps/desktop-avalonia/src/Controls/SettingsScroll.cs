@@ -217,7 +217,7 @@ public static class SettingsScroll
 
     private static void SetStickyChromeVisible(Panel stickyHost, bool visible)
     {
-        if (stickyHost.Parent is Border chrome && chrome.Classes.Contains("SettingsStickyHost"))
+        if (stickyHost.Parent is Border chrome && chrome.Classes.Contains("StickyHost"))
         {
             chrome.IsVisible = visible;
         }
@@ -246,23 +246,23 @@ public static class SettingsScroll
 
             var levelClass = active[i].Level switch
             {
-                1 => "SettingsH1",
-                2 => "SettingsH2",
-                _ => "SettingsH3"
+                1 => "H1",
+                2 => "H2",
+                _ => "H3"
             };
 
             var titleClass = active[i].Level switch
             {
-                1 => "SettingsH1Text",
-                2 => "SettingsH2Text",
-                _ => "SettingsH3Text"
+                1 => "H1Text",
+                2 => "H2Text",
+                _ => "H3Text"
             };
 
-            if (!row.Classes.Contains(levelClass) || !row.Classes.Contains("SettingsStickyRow"))
+            if (!row.Classes.Contains(levelClass) || !row.Classes.Contains("StickyRow"))
             {
                 row.Classes.Clear();
                 row.Classes.Add(levelClass);
-                row.Classes.Add("SettingsStickyRow");
+                row.Classes.Add("StickyRow");
             }
 
             if (row.Child is not TextBlock title)
@@ -292,7 +292,7 @@ public static class SettingsScroll
     private static Control? FindTabPage(ScrollViewer scrollViewer)
         => scrollViewer.GetVisualAncestors()
             .OfType<Control>()
-            .FirstOrDefault(static control => control.Classes.Contains("SettingsTabPage"));
+            .FirstOrDefault(static control => control.Classes.Contains("TabPage"));
 
     private static bool IsTabPageVisible(ScrollViewer scrollViewer)
     {
@@ -313,7 +313,7 @@ public static class SettingsScroll
     {
         foreach (var control in root.GetVisualDescendants().OfType<Control>())
         {
-            if (control.Classes.Contains("SettingsStickyRow"))
+            if (control.Classes.Contains("StickyRow"))
             {
                 continue;
             }
@@ -356,17 +356,17 @@ public static class SettingsScroll
 
     private static int? ResolveHeaderLevel(Control control)
     {
-        if (control.Classes.Contains("SettingsH1"))
+        if (control.Classes.Contains("H1"))
         {
             return 1;
         }
 
-        if (control.Classes.Contains("SettingsH2"))
+        if (control.Classes.Contains("H2"))
         {
             return 2;
         }
 
-        if (control.Classes.Contains("SettingsH3"))
+        if (control.Classes.Contains("H3"))
         {
             return 3;
         }
@@ -379,9 +379,9 @@ public static class SettingsScroll
         var title = header.GetVisualDescendants()
             .OfType<TextBlock>()
             .FirstOrDefault(static block =>
-                block.Classes.Contains("SettingsH1Text")
-                || block.Classes.Contains("SettingsH2Text")
-                || block.Classes.Contains("SettingsH3Text"));
+                block.Classes.Contains("H1Text")
+                || block.Classes.Contains("H2Text")
+                || block.Classes.Contains("H3Text"));
 
         return title?.Text;
     }

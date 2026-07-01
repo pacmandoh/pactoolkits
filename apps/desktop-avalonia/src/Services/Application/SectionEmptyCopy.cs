@@ -4,6 +4,8 @@ namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
 public static class SectionEmptyCopy
 {
+    public const string StaleHint = "数据库已断开，当前显示的是上次成功加载的数据。连接恢复后将自动刷新。";
+
     public static string GetTitle(string? readyTitle)
         => readyTitle ?? "暂无数据";
 
@@ -21,7 +23,7 @@ public static class SectionEmptyCopy
             PageDataAvailability.LoadFailed => string.IsNullOrWhiteSpace(loadFailedMessage)
                 ? "加载失败，请使用顶部菜单刷新"
                 : $"{loadFailedMessage}，请使用顶部菜单刷新",
-            PageDataAvailability.Stale => "数据库已断开，连接恢复后将自动刷新",
+            PageDataAvailability.Stale => StaleHint,
             _ => readyHint ?? "暂无数据",
         };
     }

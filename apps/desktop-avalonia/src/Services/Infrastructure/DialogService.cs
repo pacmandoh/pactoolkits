@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Application.Services;
+using PacToolkits.Application.Services.Msfx;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 using ShadUI;
@@ -27,29 +27,29 @@ public interface IDialogService
         bool targetExists,
         int tracePoolAffected,
         int traceTxnAffected);
-    Task<string?> PromptInventoryUnlockPassword(string title, string hintMessage);
+    Task<string?> PromptUnlockPassword(string title, string hintMessage);
     Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items);
-    Task ShowMsfxStateDetailDialog(MsfxStateDetailDialogModel model);
-    Task<MsfxMappingBatchDialogResult> ShowMsfxMappingBatchDialog(MsfxMappingBatchDialogModel model);
-    Task<MsfxTaskSplitDialogResult> ShowMsfxTaskSplitDialog(MsfxTaskSplitDialogModel model);
+    Task ShowMsfxStateDetail(MsfxStateDetailArgs model);
+    Task<MsfxMappingBatchResult> ShowMsfxMappingBatch(MsfxMappingBatchArgs model);
+    Task<MsfxTaskSplitResult> ShowMsfxTaskSplit(MsfxTaskSplitArgs model);
 }
 
 public sealed class DialogService(
     DialogManager dialogManager,
-    InventoryUnlockDialogViewModel unlockDialog,
+    SensitiveUnlock unlockDialog,
     ILookupCatalogService lookup,
-    IMsfxSyncService syncService,
+    ISyncService syncService,
     IDbAccessGuard accessGuard) : IDialogService
 {
     private const double AlertMaxWidth = 512;
     private const double DetailMaxWidth = 768;
     private const double WideFormMaxWidth = 1280;
 
-    private static readonly MsfxMappingBatchDialogResult MsfxMappingBatchCancelResult = new(
-        MsfxMappingBatchDialogAction.Cancel, null, string.Empty, string.Empty);
+    private static readonly MsfxMappingBatchResult MsfxMappingBatchCancelResult = new(
+        MsfxMappingBatchAction.Cancel, null, string.Empty, string.Empty);
 
-    private static readonly MsfxTaskSplitDialogResult MsfxTaskSplitCancelResult =
-        new(MsfxTaskSplitDialogAction.Cancel);
+    private static readonly MsfxTaskSplitResult MsfxTaskSplitCancelResult =
+        new(MsfxTaskSplitAction.Cancel);
 
     public Task Info(string title, string message)
         => Ok(title, message);
@@ -129,9 +129,9 @@ public sealed class DialogService(
         int traceTxnAffected)
         => FormDialogSession.ShowAsync(
             dialogManager,
-            new DrugKeyFixPreviewDialogViewModel(dialogManager)
+            new DrugKeyFixPreview(dialogManager)
             {
-                Preview = new DrugKeyFixPreviewDialogModel(
+                Preview = new DrugKeyFixPreviewArgs(
                     SourceKeyDisplay: $"{sourceDrugId}/{sourceSpec}",
                     TargetKeyDisplay: $"{targetDrugId}/{targetSpec}",
                     TracePoolAffectedDisplay: $"{tracePoolAffected} 条",
@@ -144,7 +144,7 @@ public sealed class DialogService(
             onSuccess: static _ => true,
             onCancel: static () => false);
 
-    public Task<string?> PromptInventoryUnlockPassword(string title, string hintMessage)
+    public Task<string?> PromptUnlockPassword(string title, string hintMessage)
         => FormDialogSession.ShowAsync(
             dialogManager,
             unlockDialog,
@@ -156,9 +156,9 @@ public sealed class DialogService(
     {
         await FormDialogSession.ShowAsync(
             dialogManager,
-            new InfoDetailDialogViewModel(dialogManager)
+            new InfoDetail(dialogManager)
             {
-                Detail = new InfoDetailDialogModel(title, subHeader, items)
+                Detail = new InfoDetailArgs(title, subHeader, items)
             },
             prepare: null,
             onSuccess: static _ => true,
@@ -166,30 +166,30 @@ public sealed class DialogService(
             maxWidth: DetailMaxWidth).ConfigureAwait(true);
     }
 
-    public async Task ShowMsfxStateDetailDialog(MsfxStateDetailDialogModel model)
+    public async Task ShowMsfxStateDetail(MsfxStateDetailArgs model)
     {
         await FormDialogSession.ShowAsync(
             dialogManager,
-            new MsfxStateDetailDialogViewModel(dialogManager) { Detail = model },
+            new MsfxStateDetail(dialogManager) { Detail = model },
             prepare: null,
             onSuccess: static _ => true,
             onCancel: static () => false,
             maxWidth: DetailMaxWidth).ConfigureAwait(true);
     }
 
-    public Task<MsfxMappingBatchDialogResult> ShowMsfxMappingBatchDialog(MsfxMappingBatchDialogModel model)
+    public Task<MsfxMappingBatchResult> ShowMsfxMappingBatch(MsfxMappingBatchArgs model)
         => FormDialogSession.ShowAsync(
             dialogManager,
-            new MsfxMappingBatchDialogViewModel(dialogManager, lookup, syncService, accessGuard) { Model = model },
+            new MsfxMappingBatch(dialogManager, lookup, syncService, accessGuard) { Args = model },
             prepare: null,
             onSuccess: vm => vm.Result ?? MsfxMappingBatchCancelResult,
             onCancel: () => MsfxMappingBatchCancelResult,
             maxWidth: WideFormMaxWidth);
 
-    public Task<MsfxTaskSplitDialogResult> ShowMsfxTaskSplitDialog(MsfxTaskSplitDialogModel model)
+    public Task<MsfxTaskSplitResult> ShowMsfxTaskSplit(MsfxTaskSplitArgs model)
         => FormDialogSession.ShowAsync(
             dialogManager,
-            new MsfxTaskSplitDialogViewModel(dialogManager) { Model = model },
+            new MsfxTaskSplit(dialogManager) { Args = model },
             prepare: null,
             onSuccess: vm => vm.Result ?? MsfxTaskSplitCancelResult,
             onCancel: () => MsfxTaskSplitCancelResult,
