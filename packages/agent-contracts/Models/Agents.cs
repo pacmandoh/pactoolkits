@@ -1,8 +1,44 @@
-
 using System.Text.Json;
 using PacToolkits.Agent.Contracts.Agents;
 
 namespace PacToolkits.Agent.Contracts.Models;
+
+public enum AgentTaskStatus
+{
+    Pending,
+    Running,
+    Succeeded,
+    Failed,
+    Cancelled,
+    Discarded
+}
+
+/// <summary>
+/// Runtime launch parameters shared between desktop UI and the AHK agent process.
+/// </summary>
+public sealed class AgentRuntimeConfig
+{
+    public string ExecutablePath { get; set; } = AgentPaths.InjectorAhkExecutable;
+
+    public string ProcessName { get; set; } = string.Empty;
+
+    public string UnifiedConfigPath { get; set; } = string.Empty;
+
+    public string AgentVersion { get; set; } = string.Empty;
+}
+
+public sealed class AgentInstanceConfig
+{
+    public bool Enabled { get; set; } = true;
+
+    public string ExecutablePath { get; set; } = string.Empty;
+
+    public string ProcessName { get; set; } = string.Empty;
+
+    public Dictionary<string, object?> Runtime { get; set; } = new(StringComparer.Ordinal);
+
+    public Dictionary<string, object?> Settings { get; set; } = new(StringComparer.Ordinal);
+}
 
 public sealed class AutomationToolsOptions
 {
