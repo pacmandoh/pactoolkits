@@ -2,7 +2,7 @@ using PacToolkits.Agent.Contracts.Models;
 
 namespace PacToolkits.Agent.Contracts.Mapping;
 
-public static class AgentContractMapping
+public static class AgentContracts
 {
     public static AgentRuntimeConfig ToRuntimeConfig(
         AhkToolOptions ahk,
