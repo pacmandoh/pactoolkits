@@ -6,7 +6,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public partial class SettingsViewModel : AppPageBase, ISettingsPage
+public partial class Settings : AppPageBase, ISettingsPage
 {
     [RelayCommand]
     private Task SaveMsfxApiConfigAsync() => ApplyMsfxApiConfigAsync();

@@ -10,7 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Application.Services;
+using PacToolkits.Application.Services.Msfx;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -18,7 +18,7 @@ using PacToolkits.Desktop.Avalonia.Services.Integration;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class MsfxLinkViewModel : AppPageBase
+public sealed partial class MsfxLink : AppPageBase
 {
     private const int AutoLogMaxRows = 500;
     private static readonly string[] PullBatchPageSizes = ["20", "50", "100"];
@@ -62,7 +62,7 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
         "CANCELLED"
     ];
     private readonly IMsfxApiClient _msfxApi;
-    private readonly IMsfxSyncService _syncService;
+    private readonly ISyncService _syncService;
     private readonly IAppConfigStore _configStore;
     private readonly ISensitiveUnlockService _unlockService;
     private readonly IToastService _toast;
@@ -312,9 +312,9 @@ public sealed partial class MsfxLinkViewModel : AppPageBase
     private readonly SearchInputDebouncer _upoutFilterDebouncer = new(300);
     private readonly RollingDateRangeController _upoutDateRangeController;
 
-    public MsfxLinkViewModel(
+    public MsfxLink(
         IMsfxApiClient msfxApi,
-        IMsfxSyncService syncService,
+        ISyncService syncService,
         IAppConfigStore configStore,
         ISensitiveUnlockService unlockService,
         IToastService toast,

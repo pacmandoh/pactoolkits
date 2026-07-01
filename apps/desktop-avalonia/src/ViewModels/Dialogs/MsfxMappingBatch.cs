@@ -8,7 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Application.Services;
+using PacToolkits.Application.Services.Msfx;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -17,11 +17,11 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
-public sealed partial class MsfxMappingBatchDialogViewModel(
+public sealed partial class MsfxMappingBatch(
     DialogManager dialogManager,
     ILookupCatalogService lookup,
-    IMsfxSyncService syncService,
-    IDbAccessGuard accessGuard) : FormDialogViewModelBase(dialogManager), IDisposable
+    ISyncService syncService,
+    IDbAccessGuard accessGuard) : FormBase(dialogManager), IDisposable
 {
     private static readonly string[] SearchScopes =
     [
@@ -37,10 +37,10 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
 
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
 
-    private const string LogModule = "MsfxMappingBatchDialogVM";
+    private const string LogModule = "MsfxMappingBatchDialog";
 
-    private static readonly MsfxMappingBatchDialogResult CancelResult = new(
-        MsfxMappingBatchDialogAction.Cancel, null, string.Empty, string.Empty);
+    private static readonly MsfxMappingBatchResult CancelResult = new(
+        MsfxMappingBatchAction.Cancel, null, string.Empty, string.Empty);
 
     private readonly SearchInputDebouncer _keywordDebouncer = new(450);
     private readonly CancellationTokenSource _sessionCts = new();
@@ -52,9 +52,9 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
     private Task? _inputCommitTask;
     private bool _isCompleting;
 
-    public required MsfxMappingBatchDialogModel Model { get; init; }
+    public required MsfxMappingBatchArgs Args { get; init; }
 
-    public MsfxMappingBatchDialogResult? Result { get; private set; }
+    public MsfxMappingBatchResult? Result { get; private set; }
 
     public IReadOnlyList<string> MapStatusFilters { get; } = ["ALL", "PENDING", "MAPPED", "NEED_REVIEW", "FAILED"];
 
@@ -171,12 +171,12 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
             return;
         }
 
-        SelectedSearchScope = ResolveScopeLabel(Model.SearchScope);
-        SelectedMapStatus = string.IsNullOrWhiteSpace(Model.MapStatusFilter) ? "ALL" : Model.MapStatusFilter;
-        SelectedCodeStatus = string.IsNullOrWhiteSpace(Model.CodeStatusFilter) ? "ALL" : Model.CodeStatusFilter;
-        Keyword = Model.Keyword ?? string.Empty;
+        SelectedSearchScope = ResolveScopeLabel(Args.SearchScope);
+        SelectedMapStatus = string.IsNullOrWhiteSpace(Args.MapStatusFilter) ? "ALL" : Args.MapStatusFilter;
+        SelectedCodeStatus = string.IsNullOrWhiteSpace(Args.CodeStatusFilter) ? "ALL" : Args.CodeStatusFilter;
+        Keyword = Args.Keyword ?? string.Empty;
 
-        if (Model.Groups is { Count: > 0 } groups)
+        if (Args.Groups is { Count: > 0 } groups)
         {
             ReplaceGroups(groups);
         }
@@ -254,13 +254,13 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
 
     [RelayCommand]
     private Task ApplyMapAsync()
-        => SubmitAsync(MsfxMappingBatchDialogAction.ApplyMap);
+        => SubmitAsync(MsfxMappingBatchAction.ApplyMap);
 
     [RelayCommand]
     private Task DiscardTaskAsync()
-        => SubmitAsync(MsfxMappingBatchDialogAction.DiscardTask);
+        => SubmitAsync(MsfxMappingBatchAction.DiscardTask);
 
-    private async Task SubmitAsync(MsfxMappingBatchDialogAction action)
+    private async Task SubmitAsync(MsfxMappingBatchAction action)
     {
         await FlushPendingInputAsync().ConfigureAwait(true);
         Complete(action);
@@ -287,7 +287,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
         _keywordDebouncer.Dispose();
     }
 
-    private void Complete(MsfxMappingBatchDialogAction action)
+    private void Complete(MsfxMappingBatchAction action)
     {
         if (_isCompleting)
         {
@@ -298,7 +298,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
         try
         {
             CancelSessionWork();
-            Result = new MsfxMappingBatchDialogResult(
+            Result = new MsfxMappingBatchResult(
                 action,
                 SelectedGroup,
                 ResolvedDrugId,
@@ -379,7 +379,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
     {
         var epoch = _reloadGate.BeginReload();
 
-        var groups = await syncService.LoadMappingBatchGroupsAsync(
+        var groups = await syncService.GetMappingBatchGroupsAsync(
             FilterInput.Norm(SelectedMapStatus),
             FilterInput.Norm(SelectedCodeStatus),
             ResolveSearchScope(SelectedSearchScope),
@@ -435,7 +435,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
         }
 
         using var cts = new CancellationTokenSource(LookupTimeout);
-        _drugCatalog = await LookupOptionLoader.LoadDrugOptionsAsync(lookup, cts.Token).ConfigureAwait(false);
+        _drugCatalog = await LookupOptions.GetDrugOptionsAsync(lookup, cts.Token).ConfigureAwait(false);
         await UiThreadHelper.RunOnUiAsync(() =>
         {
             AutoCompleteFilter.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
@@ -476,7 +476,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
         }
 
         using var cts = new CancellationTokenSource(LookupTimeout);
-        var (canonical, specs) = await LookupOptionLoader.ResolveDrugAndSpecsAsync(
+        var (canonical, specs) = await LookupOptions.ResolveDrugAndSpecsAsync(
             lookup,
             drugInput,
             cts.Token).ConfigureAwait(false);
@@ -516,7 +516,7 @@ public sealed partial class MsfxMappingBatchDialogViewModel(
             return;
         }
 
-        var preview = await syncService.PreviewMsfxMappingBatchAsync(
+        var preview = await syncService.PreviewMappingBatchByGroupAsync(
             mapStatus: FilterInput.Norm(SelectedMapStatus),
             codeStatus: FilterInput.Norm(SelectedCodeStatus),
             searchScope: ResolveSearchScope(SelectedSearchScope),

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Linq;
@@ -9,7 +10,6 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using global::Avalonia.Collections;
 using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
@@ -19,9 +19,9 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class DrugIndexViewModel : AppPageBase
+public sealed partial class DrugIndex : AppPageBase
 {
-    private const string UnlockScopeKey = UnlockScopes.SharedSensitiveOps;
+    private const string OpsScope = UnlockScopes.SharedOps;
     private static readonly string[] ClipboardLineSeparators = ["\r\n", "\n", "\r"];
     private static readonly Regex QtyAsteriskRegex = new(@"\*\s*(\d{1,5})", RegexOptions.Compiled);
     private static readonly Regex QtySuffixRegex = new(@"(\d{1,5})\s*(支|片|瓶|盒|袋|包|粒|枚|贴|丸)$", RegexOptions.Compiled);
@@ -30,32 +30,29 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     public override string Icon => "Tablets";
     public override int Index => 2;
     public override ICommand RefreshCommand => _localRefreshCommand;
+    public override ICommand ImportCommand => _importCommand;
+    public override ICommand ExportCommand => _exportCommand;
     protected override bool AutoRefreshOnDbDisconnected => true;
     protected override bool AutoRefreshOnDbReconnected => true;
-
-    public override ICommand ImportCommand => ImportDataCommand;
-    public override ICommand ExportCommand => ExportDataCommand;
 
     private bool CanOperateUi() => !IsUiBusy;
     private bool CanIo() => CanOperateUi();
 
-    [RelayCommand(CanExecute = nameof(CanIo))]
-    private async Task ImportDataAsync()
+    private async Task ImportAsync()
     {
         if (SkipTrigger())
         {
             return;
         }
 
-        if (!IsEditorUnlocked)
+        if (!IsOpsUnlocked)
         {
-            var hint = "敏感操作提示：验证仅在本地进行，不会上传密码\n请输入数据库密码以解锁药品信息编辑";
             var unlocked = await _unlockService.RequireUnlockAsync(
-                UnlockScopeKey,
+                OpsScope,
                 "药品信息维护",
                 "身份验证",
-                hint);
-            RefreshEditorUnlockState();
+                UnlockScopes.SharedOpsHint);
+            RefreshOpsUnlock();
             if (!unlocked)
             {
                 _toast.Warn("药品信息维护", "当前未解锁，无法填充剪贴板内容");
@@ -123,8 +120,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanIo))]
-    private async Task ExportDataAsync()
+    private async Task ExportAsync()
     {
         if (SkipTrigger())
         {
@@ -205,9 +201,11 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private readonly IDialogService _dialog;
     private readonly ISensitiveUnlockService _unlockService;
     private readonly IClipboardService _clipboard;
-    private readonly InventoryOverviewViewModel _inventoryOverview;
-    private readonly ScanCodeViewModel _scanCode;
+    private readonly InventoryOverview _inventoryOverview;
+    private readonly ScanCode _scanCode;
     private readonly AsyncRelayCommand _localRefreshCommand;
+    private readonly AsyncRelayCommand _importCommand;
+    private readonly AsyncRelayCommand _exportCommand;
     private readonly SearchInputDebouncer _keywordSearchDebouncer = new(450);
     private readonly DispatcherTimer _unlockStatusTimer;
     private IRelayCommand?[]? _notifiableCommands;
@@ -215,12 +213,13 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private int _reloadEpoch;
     private int _lastSuccessfulReloadEpoch;
 
-    public AvaloniaList<DrugRow> Items { get; } = new();
+    public ObservableCollection<DrugRow> Items { get; } = new();
     protected override void OnPageAvailabilityChanged()
     {
         OnPropertyChanged(nameof(IsItemsEmpty));
         OnPropertyChanged(nameof(ItemsEmptyText));
         OnPropertyChanged(nameof(ItemsEmptyHint));
+        OnPropertyChanged(nameof(IsListSectionPending));
     }
 
     public bool IsItemsEmpty => ShowSectionEmpty(Items.Count == 0);
@@ -235,6 +234,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         {
             _query = new DrugIndexQuery(Keyword: value);
             OnPropertyChanged();
+            OnPropertyChanged(nameof(HasActiveKeyword));
             ScheduleKeywordSearch(value);
         }
     }
@@ -251,30 +251,43 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         _keywordSearchDebouncer.Schedule(async () =>
             await Dispatcher.UIThread.InvokeAsync(ReloadAsync));
     }
-    [ObservableProperty] private bool _isSearchPanelVisible = false;
-
     [ObservableProperty] private DrugRow? _selected;
     [ObservableProperty] private bool _hasSelection;
     [ObservableProperty] private bool _hasEditor;
-    [ObservableProperty] private bool _isEditorUnlocked;
-    private DateTimeOffset _editorUnlockCooldownUntilUtc;
+    [ObservableProperty] private bool _isOpsUnlocked;
+    private DateTimeOffset _opsCooldownUntilUtc;
     [ObservableProperty] private bool _isListBusy;
+    [ObservableProperty] private bool _isDrugGridMounted;
+
+    public bool HasActiveKeyword => !string.IsNullOrWhiteSpace(NormalizeInput(_query.Keyword));
+
+    public bool IsListSectionPending => IsSectionPending || IsListBusy || !IsDrugGridMounted;
+
     partial void OnIsListBusyChanged(bool value)
     {
         OnPropertyChanged(nameof(IsUiBusy));
-        OnPropertyChanged(nameof(IsEditorInputEnabled));
-        OnPropertyChanged(nameof(CanRequestEditorUnlock));
-        OnPropertyChanged(nameof(CanLockEditor));
+        OnPropertyChanged(nameof(IsListSectionPending));
+        OnPropertyChanged(nameof(CanEdit));
+        OnPropertyChanged(nameof(CanUnlock));
+        OnPropertyChanged(nameof(CanLock));
         RefreshPageCommands();
     }
+
+    partial void OnIsDrugGridMountedChanged(bool value)
+        => OnPropertyChanged(nameof(IsListSectionPending));
     partial void OnHasEditorChanged(bool value)
     {
-        RefreshEditorUnlockUi();
+        OnPropertyChanged(nameof(ShowEditState));
+        OnPropertyChanged(nameof(EditStateText));
+        OnPropertyChanged(nameof(ShowUnlock));
+        OnPropertyChanged(nameof(ShowLock));
+        OnPropertyChanged(nameof(EditColSpan));
+        RefreshOpsUnlock();
     }
 
-    partial void OnIsEditorUnlockedChanged(bool value)
+    partial void OnIsOpsUnlockedChanged(bool value)
     {
-        RefreshEditorUnlockUi();
+        RefreshOpsUnlock();
     }
 
     [ObservableProperty] private string _editDrugId = "";
@@ -292,7 +305,15 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
     [ObservableProperty] private bool _isDirty;
     public bool HasPendingChanges => IsDirty;
-    partial void OnIsDirtyChanged(bool value) => OnPropertyChanged(nameof(HasPendingChanges));
+    public string EditStateText => HasPendingChanges ? "编辑中未保存" : "已保存";
+    public bool ShowEditState => HasEditor;
+    public string ItemCountText => $"{Items.Count} 条";
+
+    partial void OnIsDirtyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(HasPendingChanges));
+        OnPropertyChanged(nameof(EditStateText));
+    }
 
     private DrugIndexDto? _loadedSnapshot;
     private bool _suppressSelectionGuard;
@@ -305,10 +326,12 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     public string CreatedAtLocalText => FormatChinaTime(CreatedAt);
     public string UpdatedAtLocalText => UpdatedAt is null ? "" : FormatChinaTime(UpdatedAt.Value);
     public bool IsUiBusy => IsBusy || IsListBusy;
-    public bool CanRequestEditorUnlock => HasEditor && !IsEditorUnlocked && CanOperateUi();
-    public bool CanLockEditor => HasEditor && IsEditorUnlocked && CanOperateUi();
-    public bool IsEditorInputEnabled => HasEditor && IsEditorUnlocked && CanOperateUi();
-    public string EditorUnlockStatusText => HasEditor ? (IsEditorUnlocked ? "已解锁" : "未解锁") : string.Empty;
+    public bool CanUnlock => !IsOpsUnlocked && CanOperateUi();
+    public bool CanLock => IsOpsUnlocked && CanOperateUi();
+    public bool CanEdit => HasEditor && IsOpsUnlocked && CanOperateUi();
+    public bool ShowUnlock => !IsOpsUnlocked;
+    public bool ShowLock => IsOpsUnlocked;
+    public int EditColSpan => HasEditor ? 1 : 2;
 
     private static string FormatChinaTime(DateTimeOffset dt)
         => dt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture);
@@ -318,14 +341,14 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
 
 
-    public DrugIndexViewModel(
+    public DrugIndex(
         IDrugIndexService drugIndex,
         IToastService toast,
         IDialogService dialog,
         ISensitiveUnlockService unlockService,
         IClipboardService clipboard,
-        InventoryOverviewViewModel inventoryOverview,
-        ScanCodeViewModel scanCode)
+        InventoryOverview inventoryOverview,
+        ScanCode scanCode)
     {
         _drugIndex = drugIndex;
         _toast = toast;
@@ -335,20 +358,16 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         _inventoryOverview = inventoryOverview;
         _scanCode = scanCode;
         _localRefreshCommand = new AsyncRelayCommand(ReloadAsync, CanRefreshLocal);
+        _importCommand = new AsyncRelayCommand(ImportAsync, CanIo);
+        _exportCommand = new AsyncRelayCommand(ExportAsync, CanIo);
         _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _unlockStatusTimer.Tick += OnUnlockTimerTick;
-        _unlockService.StateChanged += OnUnlockScopeChanged;
+        _unlockService.StateChanged += OnUnlockChanged;
         Items.CollectionChanged += OnItemsCollectionChanged;
-        RefreshEditorUnlockState();
+        RefreshOpsUnlock();
 
         // Initial data load is posted to UI loop to avoid blocking page activation.
         Dispatcher.UIThread.Post(() => _ = ReloadAsync());
-    }
-
-    [RelayCommand]
-    private void ToggleSearchPanel()
-    {
-        IsSearchPanelVisible = !IsSearchPanelVisible;
     }
 
     private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -356,6 +375,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         OnPropertyChanged(nameof(IsItemsEmpty));
         OnPropertyChanged(nameof(ItemsEmptyText));
         OnPropertyChanged(nameof(ItemsEmptyHint));
+        OnPropertyChanged(nameof(ItemCountText));
     }
 
     private bool CanRefreshLocal() => CanOperateUi();
@@ -384,34 +404,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         }
 
         Items.Insert(0, new DrugRow(dto));
-    }
-
-    private DrugRow UpsertMigratedRowInPlace(string sourceDrugId, string sourceSpec, DrugIndexDto target)
-    {
-        var sourceIndex = -1;
-        for (var i = 0; i < Items.Count; i++)
-        {
-            if (Items[i].DrugId == sourceDrugId && Items[i].Spec == sourceSpec)
-            {
-                sourceIndex = i;
-                break;
-            }
-        }
-
-        for (var i = Items.Count - 1; i >= 0; i--)
-        {
-            var row = Items[i];
-            if ((row.DrugId == sourceDrugId && row.Spec == sourceSpec)
-                || (row.DrugId == target.DrugId && row.Spec == target.Spec))
-            {
-                Items.RemoveAt(i);
-            }
-        }
-
-        var insertIndex = sourceIndex >= 0 ? Math.Min(sourceIndex, Items.Count) : 0;
-        var inserted = new DrugRow(target);
-        Items.Insert(insertIndex, inserted);
-        return inserted;
     }
 
     partial void OnSelectedChanged(DrugRow? value)
@@ -503,7 +495,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             return;
         }
 
-        LoadToEditor(value);
+        SyncEditorFrom(value);
     }
 
     private void RevertSelection(DrugRow? prev)
@@ -549,7 +541,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         RefreshCommands(SaveCommand, DeleteCommand, FixDrugKeyCommand);
     }
 
-    private void LoadToEditor(DrugRow row)
+    private void SyncEditorFrom(DrugRow row)
     {
         EditDrugId = row.DrugId;
         EditSpec = row.Spec;
@@ -678,7 +670,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private bool CanSave()
         => CanOperateUi()
            && HasEditor
-           && IsEditorUnlocked
+           && IsOpsUnlocked
            && !string.IsNullOrWhiteSpace(EditDrugId)
            && !string.IsNullOrWhiteSpace(EditSpec)
            && EditQty is > 0
@@ -686,14 +678,14 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
     private bool CanDelete()
         => CanOperateUi()
-           && IsEditorUnlocked
+           && IsOpsUnlocked
            && !string.IsNullOrWhiteSpace(_originDrugId)
            && !string.IsNullOrWhiteSpace(_originSpec);
 
     private bool CanFixDrugKey()
         => CanOperateUi()
            && HasEditor
-           && IsEditorUnlocked
+           && IsOpsUnlocked
            && Selected is not null
            && !string.IsNullOrWhiteSpace(_originDrugId)
            && !string.IsNullOrWhiteSpace(_originSpec)
@@ -705,36 +697,35 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     private bool CanNewItem()
         => CanOperateUi();
 
-    [RelayCommand(CanExecute = nameof(CanRequestEditorUnlock))]
-    private async Task RequestEditorUnlockAsync()
+    [RelayCommand(CanExecute = nameof(CanUnlock))]
+    private async Task UnlockAsync()
     {
-        var hint = "敏感操作提示：验证仅在本地进行，不会上传密码\n请输入数据库密码以解锁药品信息编辑";
         await _unlockService.RequireUnlockAsync(
-            UnlockScopeKey,
+            OpsScope,
             "药品信息维护",
             "身份验证",
-            hint);
+            UnlockScopes.SharedOpsHint);
 
-        RefreshEditorUnlockState();
+        RefreshOpsUnlock();
     }
 
-    [RelayCommand(CanExecute = nameof(CanLockEditor))]
-    private Task LockEditorAsync()
+    [RelayCommand(CanExecute = nameof(CanLock))]
+    private Task LockAsync()
     {
-        _unlockService.Lock(UnlockScopeKey);
-        RefreshEditorUnlockState();
+        _unlockService.Lock(OpsScope);
+        RefreshOpsUnlock();
         _toast.Info("药品信息维护", "已锁定编辑");
         return Task.CompletedTask;
     }
 
-    private void RefreshEditorUnlockState()
+    private void RefreshOpsUnlock()
     {
-        _unlockService.Refresh(UnlockScopeKey);
-        var snap = _unlockService.GetSnapshot(UnlockScopeKey);
-        IsEditorUnlocked = snap.IsUnlocked;
-        _editorUnlockCooldownUntilUtc = snap.CooldownUntilUtc;
+        _unlockService.Refresh(OpsScope);
+        var snap = _unlockService.GetSnapshot(OpsScope);
+        IsOpsUnlocked = snap.IsUnlocked;
+        _opsCooldownUntilUtc = snap.CooldownUntilUtc;
 
-        if (IsEditorUnlocked || _editorUnlockCooldownUntilUtc > DateTimeOffset.UtcNow)
+        if (IsOpsUnlocked || _opsCooldownUntilUtc > DateTimeOffset.UtcNow)
         {
             StartUnlockTimer();
         }
@@ -742,23 +733,21 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         {
             StopUnlockTimer();
         }
-    }
 
-    private void RefreshEditorUnlockUi()
-    {
         RefreshPageCommands();
-        OnPropertyChanged(nameof(CanRequestEditorUnlock));
-        OnPropertyChanged(nameof(CanLockEditor));
-        OnPropertyChanged(nameof(IsEditorInputEnabled));
-        OnPropertyChanged(nameof(EditorUnlockStatusText));
+        OnPropertyChanged(nameof(CanUnlock));
+        OnPropertyChanged(nameof(CanLock));
+        OnPropertyChanged(nameof(CanEdit));
+        OnPropertyChanged(nameof(ShowUnlock));
+        OnPropertyChanged(nameof(ShowLock));
     }
 
     protected override void OnBusyChanged(bool isBusy)
     {
         OnPropertyChanged(nameof(IsUiBusy));
-        OnPropertyChanged(nameof(IsEditorInputEnabled));
-        OnPropertyChanged(nameof(CanRequestEditorUnlock));
-        OnPropertyChanged(nameof(CanLockEditor));
+        OnPropertyChanged(nameof(CanEdit));
+        OnPropertyChanged(nameof(CanUnlock));
+        OnPropertyChanged(nameof(CanLock));
     }
 
     private void StartUnlockTimer()
@@ -777,14 +766,14 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         }
     }
 
-    private void OnUnlockScopeChanged(string scopeKey)
+    private void OnUnlockChanged(string scopeKey)
     {
-        if (!string.Equals(scopeKey, UnlockScopeKey, StringComparison.Ordinal))
+        if (!string.Equals(scopeKey, OpsScope, StringComparison.Ordinal))
         {
             return;
         }
 
-        PostOnUi(RefreshEditorUnlockState, DispatcherPriority.Background);
+        PostOnUi(RefreshOpsUnlock, DispatcherPriority.Background);
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]
@@ -852,15 +841,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                 case DrugSaveOutcome.ConcurrencyConflict:
                     LogWarn("drug_index.save.concurrency_conflict", "Detected optimistic concurrency conflict", saveResult.Concurrency);
                     await _dialog.Warn("保存冲突", "该记录已被其他终端修改，请先刷新后再编辑");
-                    if (saveResult.Concurrency?.Current is not null)
-                    {
-                        await ReloadWithReselectAsync(saveResult.Concurrency.Current.DrugId, saveResult.Concurrency.Current.Spec);
-                    }
-                    else
-                    {
-                        await ReloadAsync();
-                    }
-
+                    await ReloadAsync();
                     return false;
             }
 
@@ -893,14 +874,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                 return true;
             }
 
-            if (reselectSavedRow)
-            {
-                await ReloadWithReselectAsync(drugId, spec);
-            }
-            else
-            {
-                await ReloadAsync();
-            }
+            await ReloadAsync();
 
             _inventoryOverview.ReloadAfterDrugIndexChange();
             _scanCode.ReloadAfterDrugIndexChange();
@@ -1042,15 +1016,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
                 }
             }
 
-            _originDrugId = dbTargetAfter.DrugId;
-            _originSpec = dbTargetAfter.Spec;
-            _loadedSnapshot = dbTargetAfter;
-
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                var row = UpsertMigratedRowInPlace(source.DrugId, source.Spec, dbTargetAfter);
-                Selected = row;
-            }, DispatcherPriority.Normal);
+            await ReloadAsync();
 
             Dispatcher.UIThread.Post(() =>
                 _toast.Success("药品纠错迁移",
@@ -1083,14 +1049,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             action: ReloadCoreAsync,
             onFinished: RefreshPageCommands);
 
-    private async Task ReloadWithReselectAsync(string drugId, string spec)
-    {
-        await ReloadAsync();
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            Selected = FindRow(drugId, spec);
-        }, DispatcherPriority.Normal);
-    }
     protected override async Task ReloadCoreAsync(CancellationToken ct)
     {
         // Epoch marks this reload attempt and helps suppress stale error toasts.
@@ -1102,8 +1060,6 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             var query = _query;
             var rows = await _drugIndex.SearchAsync(query.Keyword, limit: 1000, ct);
             var newRows = rows.Select(dto => new DrugRow(dto)).ToList();
-            var prevSelectedDrugId = Selected?.DrugId;
-            var prevSelectedSpec = Selected?.Spec;
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -1121,18 +1077,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
                     ClearEditor(keepEditorVisible: false);
 
-                    Items.Clear();
-                    Items.AddRange(newRows);
-
-                    if (!string.IsNullOrWhiteSpace(prevSelectedDrugId) && !string.IsNullOrWhiteSpace(prevSelectedSpec))
-                    {
-                        Selected = Items.FirstOrDefault(x =>
-                            x.DrugId == prevSelectedDrugId && x.Spec == prevSelectedSpec);
-                        if (Selected is not null)
-                        {
-                            ApplySelection(Selected);
-                        }
-                    }
+                    Items.ReplaceAll(newRows);
                 }
                 finally
                 {
@@ -1274,7 +1219,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanToggleEditorFlags))]
+    [RelayCommand(CanExecute = nameof(CanToggleFlags))]
     private void ToggleDeprecated(object? arg)
     {
         if (arg is DrugRow row)
@@ -1285,7 +1230,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         ApplyToggleDeprecated();
     }
 
-    [RelayCommand(CanExecute = nameof(CanToggleEditorFlags))]
+    [RelayCommand(CanExecute = nameof(CanToggleFlags))]
     private void ToggleNoSplit(object? arg)
     {
         if (arg is DrugRow row)
@@ -1296,12 +1241,12 @@ public sealed partial class DrugIndexViewModel : AppPageBase
         ApplyToggleNoSplit();
     }
 
-    private bool CanToggleEditorFlags()
-        => IsEditorInputEnabled;
+    private bool CanToggleFlags()
+        => CanEdit;
 
     private void ApplyToggleDeprecated()
     {
-        if (!HasEditor || !IsEditorUnlocked)
+        if (!HasEditor || !IsOpsUnlocked)
         {
             return;
         }
@@ -1311,7 +1256,7 @@ public sealed partial class DrugIndexViewModel : AppPageBase
 
     private void ApplyToggleNoSplit()
     {
-        if (!HasEditor || !IsEditorUnlocked)
+        if (!HasEditor || !IsOpsUnlocked)
         {
             return;
         }
@@ -1351,12 +1296,12 @@ public sealed partial class DrugIndexViewModel : AppPageBase
             SaveCommand,
             DeleteCommand,
             FixDrugKeyCommand,
-            RequestEditorUnlockCommand,
-            LockEditorCommand,
+            UnlockCommand,
+            LockCommand,
             ToggleDeprecatedCommand,
             ToggleNoSplitCommand,
-            ImportDataCommand,
-            ExportDataCommand
+            _importCommand,
+            _exportCommand
         ];
 
     private bool HasPrimaryKeyChanges()
@@ -1506,12 +1451,12 @@ public sealed partial class DrugIndexViewModel : AppPageBase
     }
 
     private void OnUnlockTimerTick(object? sender, EventArgs e)
-        => RefreshEditorUnlockState();
+        => RefreshOpsUnlock();
 
     public override void Dispose()
     {
         Items.CollectionChanged -= OnItemsCollectionChanged;
-        _unlockService.StateChanged -= OnUnlockScopeChanged;
+        _unlockService.StateChanged -= OnUnlockChanged;
         StopUnlockTimer();
         _unlockStatusTimer.Tick -= OnUnlockTimerTick;
         _keywordSearchDebouncer.Dispose();

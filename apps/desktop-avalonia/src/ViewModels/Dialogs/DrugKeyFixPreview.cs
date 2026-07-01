@@ -4,10 +4,10 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
-public sealed partial class DrugKeyFixPreviewDialogViewModel(DialogManager dialogManager)
-    : FormDialogViewModelBase(dialogManager)
+public sealed partial class DrugKeyFixPreview(DialogManager dialogManager)
+    : FormBase(dialogManager)
 {
-    public required DrugKeyFixPreviewDialogModel Preview { get; init; }
+    public required DrugKeyFixPreviewArgs Preview { get; init; }
 
     [RelayCommand]
     private void Confirm()

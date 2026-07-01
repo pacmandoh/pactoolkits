@@ -6,7 +6,7 @@ using global::Avalonia.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class DashboardViewModel : AppPageBase
+public sealed partial class Dashboard : AppPageBase
 {
     [RelayCommand]
     private async Task FirstTxnPageAsync()
@@ -154,7 +154,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                 body: async () =>
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var page = await _dashboard.LoadTxnPageAsync(CurrentFilter, TxnPageIndex, TxnPageSize, cts.Token).ConfigureAwait(false);
+                var page = await _dashboard.GetTxnPageAsync(CurrentFilter, TxnPageIndex, TxnPageSize, cts.Token).ConfigureAwait(false);
                 var items = BuildRecentTxnsPageItems(page.Rows, TxnPageIndex, TxnPageSize);
                 await RunOnUiAsync(() =>
                 {
@@ -184,7 +184,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                 body: async () =>
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var page = await _dashboard.LoadTxnTrendPageAsync(CurrentFilter, TxnTrendPageIndex, TxnTrendPageSize, cts.Token).ConfigureAwait(false);
+                var page = await _dashboard.GetTxnTrendPageAsync(CurrentFilter, TxnTrendPageIndex, TxnTrendPageSize, cts.Token).ConfigureAwait(false);
                 var items = BuildTxnTrendPageItems(page.Rows);
                 await RunOnUiAsync(() =>
                 {

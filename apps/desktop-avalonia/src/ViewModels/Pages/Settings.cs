@@ -21,7 +21,7 @@ public interface ISettingsPage
     Task<bool> TrySaveOrDiscardAllAsync();
 }
 
-public partial class SettingsViewModel : AppPageBase, ISettingsPage
+public partial class Settings : AppPageBase, ISettingsPage
 {
     public override string Icon => "Settings";
     public override int Index => 999;
@@ -146,7 +146,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         "Fatal" => "仅记录致命故障，最小日志开销",
         _ => "日志级别未识别，将使用 Error"
     };
-    public SettingsViewModel(
+    public Settings(
         IAppConfigStore appConfigStore,
         ISettingsService settings,
         IToastService toast,
@@ -189,16 +189,16 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         IsClientAliasEditMode = false;
         IsClientAliasReadOnly = true;
 
-        LoadAliasesOnly();
+        SyncAliases();
         RefreshClientAlias();
 
         RunDetached(ReloadClientAliasesAsync, "client_alias.reload.startup_fail");
 
-        LoadTraceCodeRule();
-        LoadMsfxApiOptions();
-        LoadUiBehavior();
-        LoadUpdateOptions();
-        LoadLoggingOptions();
+        SyncTraceCodeRule();
+        SyncMsfxApi();
+        SyncUiBehavior();
+        SyncUpdateOptions();
+        SyncLogging();
         DbSchemaPolicyText = _releaseVersion.Current.DbMigrationPolicy;
         RunDetached(RefreshSchemaStatusOnStartupAsync, "db.schema.startup_refresh.fire_and_forget_fail");
         _uiBehavior.Changed += OnUiBehaviorChanged;
@@ -209,7 +209,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     }
 
-    private void LoadMsfxApiOptions()
+    private void SyncMsfxApi()
     {
         var options = _appConfigStore.Load().MsfxApi ?? new MsfxApiOptions();
         MsfxGatewayUrl = string.Equals(options.GatewayUrl, MsfxDefaultGatewayUrl, StringComparison.OrdinalIgnoreCase)
@@ -318,13 +318,13 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         old.Dispose();
     }
 
-    private void LoadUiBehavior()
+    private void SyncUiBehavior()
     {
         var ui = _uiBehavior.Current;
         MinimizeToTrayOnClose = ui.MinimizeToTrayOnClose;
     }
 
-    private void LoadUpdateOptions()
+    private void SyncUpdateOptions()
     {
         _syncingUpdateOptions = true;
 
@@ -354,7 +354,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void OnUpdateSettingsChanged()
     {
-        PostUi(LoadUpdateOptions, "update_settings.changed.ui_fail");
+        PostUi(SyncUpdateOptions, "update_settings.changed.ui_fail");
     }
 
     private void OnUpdatesChanged()
@@ -362,7 +362,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         PostUi(SyncUpdateState, "updates.changed.ui_fail");
     }
 
-    private void LoadLoggingOptions()
+    private void SyncLogging()
     {
         _syncingLoggingOptions = true;
         var options = _loggingSettings.Current;
@@ -376,7 +376,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
 
     private void OnLoggingSettingsChanged()
     {
-        PostUi(LoadLoggingOptions, "logging_settings.changed.fail");
+        PostUi(SyncLogging, "logging_settings.changed.fail");
     }
 
     partial void OnProductUpdateAvailableChanged(bool? value)
@@ -432,14 +432,14 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
     }
 
-    private void LoadTraceCodeRule()
+    private void SyncTraceCodeRule()
     {
         var rule = _traceCodeRule.Current;
         TraceCodeRequiredLength = rule.RequiredLength;
         TraceCodePattern = rule.Pattern;
     }
 
-    private void LoadAliasesOnly()
+    private void SyncAliases()
     {
         UntrackAllAliasRows();
         ClientAliases.Clear();

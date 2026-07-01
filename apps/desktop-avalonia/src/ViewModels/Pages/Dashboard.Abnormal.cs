@@ -6,7 +6,7 @@ using global::Avalonia.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class DashboardViewModel : AppPageBase
+public sealed partial class Dashboard : AppPageBase
 {
     [RelayCommand]
     private async Task FirstAbnormalPageAsync()
@@ -86,7 +86,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                 body: async () =>
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var page = await _dashboard.LoadAbnormalPageAsync(CurrentFilter, AbnormalPageIndex, AbnormalPageSize, cts.Token).ConfigureAwait(false);
+                var page = await _dashboard.GetAbnormalPageAsync(CurrentFilter, AbnormalPageIndex, AbnormalPageSize, cts.Token).ConfigureAwait(false);
                 var items = BuildAbnormalQueueItems(page.Rows, AbnormalPageIndex, AbnormalPageSize);
                 await RunOnUiAsync(() =>
                 {

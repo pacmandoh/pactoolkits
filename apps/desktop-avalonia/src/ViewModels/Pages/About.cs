@@ -9,11 +9,11 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 public interface IAboutPage { }
 
-public sealed partial class AboutViewModel : AppPageBase, IAboutPage
+public sealed partial class About : AppPageBase, IAboutPage
 {
     private readonly ReleaseVersionInfo _version;
 
-    public AboutViewModel(IReleaseVersionService releaseVersion)
+    public About(IReleaseVersionService releaseVersion)
     {
         _version = releaseVersion.Current;
         var desktopDbOk = DbSchemaCompat.Evaluate(

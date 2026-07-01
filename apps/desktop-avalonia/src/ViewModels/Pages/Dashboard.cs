@@ -16,7 +16,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class DashboardViewModel : AppPageBase
+public sealed partial class Dashboard : AppPageBase
 {
     private const int DefaultTopN = 10;
     private const int EntryOverviewTopN = 6;
@@ -33,7 +33,7 @@ public sealed partial class DashboardViewModel : AppPageBase
     private readonly IClientAliasService _clientAlias;
     private readonly ILookupCatalogService _lookup;
     private readonly PageNavigationService _nav;
-    private readonly InventoryOverviewViewModel _inventoryOverview;
+    private readonly InventoryOverview _inventoryOverview;
     private bool _suppressRowSelectionAction;
     private int _specLoadGeneration;
     private readonly RollingDateRangeController _dateRangeController;
@@ -184,7 +184,7 @@ public sealed partial class DashboardViewModel : AppPageBase
             return;
         }
 
-        var list = await LookupOptionLoader.LoadDrugOptionsAsync(_lookup, ct).ConfigureAwait(false);
+        var list = await LookupOptions.GetDrugOptionsAsync(_lookup, ct).ConfigureAwait(false);
 
         await RunOnUiAsync(() =>
         {
@@ -213,7 +213,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
             if (!string.IsNullOrWhiteSpace(drug))
             {
-                specs = await LookupOptionLoader.LoadSpecsAsync(_lookup, drug, ct).ConfigureAwait(false);
+                specs = await LookupOptions.GetSpecsAsync(_lookup, drug, ct).ConfigureAwait(false);
             }
 
             await RunOnUiAsync(() =>
@@ -478,8 +478,8 @@ public sealed partial class DashboardViewModel : AppPageBase
     private bool _firstLoadTriggered;
     private bool _filtersLoaded;
 
-    public DashboardViewModel(IDashboardService dashboard, ILookupCatalogService lookup, IToastService toast,
-        IClientAliasService clientAlias, PageNavigationService nav, InventoryOverviewViewModel inventoryOverview)
+    public Dashboard(IDashboardService dashboard, ILookupCatalogService lookup, IToastService toast,
+        IClientAliasService clientAlias, PageNavigationService nav, InventoryOverview inventoryOverview)
     {
         _dashboard = dashboard;
         _toast = toast;
@@ -900,7 +900,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         if (DashboardDrugSpecParser.IsInventoryAbnormalTitle(item.Title))
         {
             _inventoryOverview.OpenMode(2);
-            _nav.Navigate<InventoryOverviewViewModel>();
+            _nav.Navigate<InventoryOverview>();
             return;
         }
 
@@ -1001,7 +1001,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                     }
                 }
 
-                var request = new DashboardLoadRequest(
+                var request = new DashboardRequest(
                     Filter: CurrentFilter,
                     OverviewTopN: DefaultTopN,
                     EntryOverviewTopN: EntryOverviewTopN,
@@ -1014,7 +1014,7 @@ public sealed partial class DashboardViewModel : AppPageBase
                     AbnormalPageIndex: AbnormalPageIndex,
                     AbnormalPageSize: AbnormalPageSize);
 
-                var loaded = await _dashboard.LoadSnapshotAsync(request, ct).ConfigureAwait(false);
+                var loaded = await _dashboard.GetSnapshotAsync(request, ct).ConfigureAwait(false);
 
                 var trendItems = BuildTrendItems(loaded.Trend);
                 var recentOverviewItems = BuildRecentTxnsOverviewItems(loaded.TxnsOverview.Rows);
@@ -1516,7 +1516,7 @@ public sealed partial class DashboardViewModel : AppPageBase
         // already owns refresh/dirty-state handling, so a dashboard jump must not force a
         // database reload on the UI navigation path.
         _inventoryOverview.OpenMode(0, forceReload: false);
-        _nav.Navigate<InventoryOverviewViewModel>();
+        _nav.Navigate<InventoryOverview>();
     }
 
     [RelayCommand]
@@ -1538,7 +1538,7 @@ public sealed partial class DashboardViewModel : AppPageBase
             return;
         }
 
-        _nav.Navigate<ScanCodeViewModel>();
+        _nav.Navigate<ScanCode>();
     }
 
     [RelayCommand]
@@ -1562,7 +1562,7 @@ public sealed partial class DashboardViewModel : AppPageBase
 
         _inventoryOverview.Keyword = null;
         _inventoryOverview.OpenMode(2);
-        _nav.Navigate<InventoryOverviewViewModel>();
+        _nav.Navigate<InventoryOverview>();
     }
 
     [RelayCommand]
