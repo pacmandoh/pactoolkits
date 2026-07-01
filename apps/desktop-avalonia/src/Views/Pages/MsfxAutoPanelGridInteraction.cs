@@ -13,8 +13,8 @@ internal static class MsfxAutoPanelGridInteraction
     public static void AttachDetailRowClick(
         DataGrid grid,
         bool allowRowBodyClick,
-        Action<MsfxLinkViewModel, object?> executeDetail,
-        Func<MsfxLinkViewModel, bool>? shouldSkip = null)
+        Action<MsfxLink, object?> executeDetail,
+        Func<MsfxLink, bool>? shouldSkip = null)
     {
         grid.AddHandler(
             InputElement.PointerPressedEvent,
@@ -25,7 +25,7 @@ internal static class MsfxAutoPanelGridInteraction
                     return;
                 }
 
-                if (targetGrid.DataContext is not MsfxLinkViewModel vm)
+                if (targetGrid.DataContext is not MsfxLink vm)
                 {
                     return;
                 }

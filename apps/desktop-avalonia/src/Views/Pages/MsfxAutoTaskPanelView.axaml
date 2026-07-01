@@ -11,7 +11,7 @@
   MinHeight="0"
   HorizontalAlignment="Stretch"
   VerticalAlignment="Stretch"
-  x:DataType="vm:MsfxLinkViewModel">
+  x:DataType="vm:MsfxLink">
   <shad:Card
     HorizontalAlignment="Stretch"
     VerticalAlignment="Stretch"
@@ -44,7 +44,7 @@
             Orientation="Horizontal"
             Spacing="{DynamicResource SpacingInlineSm}">
             <Button
-              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              behaviors:FocusClear.SuppressGridClear="True"
               Classes="Ghost MsfxMiniIconBtn"
               Command="{Binding BeginMergeTaskSelectionCommand}"
               IsEnabled="{Binding CanMergeTasks}">
@@ -54,7 +54,7 @@
                 Kind="GitMerge" />
             </Button>
             <Button
-              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              behaviors:FocusClear.SuppressGridClear="True"
               Classes="Ghost MsfxMiniIconBtn"
               Command="{Binding SplitSelectedTaskCommand}"
               IsEnabled="{Binding CanSplitSelectedTasks}">
@@ -64,7 +64,7 @@
                 Kind="GitBranch" />
             </Button>
             <Button
-              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              behaviors:FocusClear.SuppressGridClear="True"
               Classes="Ghost MsfxMiniIconBtn"
               Command="{Binding BeginRemapTaskSelectionCommand}"
               IsEnabled="{Binding CanRemapTasks}">
@@ -74,7 +74,7 @@
                 Kind="Undo2" />
             </Button>
             <Button
-              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              behaviors:FocusClear.SuppressGridClear="True"
               Classes="Ghost MsfxMiniIconBtn"
               Command="{Binding BeginDiscardTaskSelectionCommand}"
               IsEnabled="{Binding CanDiscardTasks}">
@@ -84,7 +84,7 @@
                 Kind="Ban" />
             </Button>
             <Button
-              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              behaviors:FocusClear.SuppressGridClear="True"
               Classes="Ghost MsfxMiniIconBtn"
               Command="{Binding BeginReopenTaskSelectionCommand}"
               IsEnabled="{Binding CanReopenTasks}">
@@ -94,7 +94,7 @@
                 Kind="RotateCcw" />
             </Button>
             <Button
-              behaviors:FocusClearBehavior.SuppressGridClear="True"
+              behaviors:FocusClear.SuppressGridClear="True"
               Classes="Ghost MsfxMiniIconBtn"
               Command="{Binding ToggleAutoPanelExpandCommand}"
               CommandParameter="TASK">
@@ -202,7 +202,7 @@
           <Button
             Height="{StaticResource ControlHeightCompact}"
             MinWidth="110"
-            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            behaviors:FocusClear.SuppressGridClear="True"
             Classes="Action"
             Command="{Binding BeginMergeTaskSelectionCommand}"
             IsEnabled="{Binding CanMergeTasks}">
@@ -217,7 +217,7 @@
           <Button
             Height="{StaticResource ControlHeightCompact}"
             MinWidth="110"
-            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            behaviors:FocusClear.SuppressGridClear="True"
             Classes="Action"
             Command="{Binding SplitSelectedTaskCommand}"
             IsEnabled="{Binding CanSplitSelectedTasks}">
@@ -232,7 +232,7 @@
           <Button
             Height="{StaticResource ControlHeightCompact}"
             MinWidth="110"
-            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            behaviors:FocusClear.SuppressGridClear="True"
             Classes="Action"
             Command="{Binding BeginRemapTaskSelectionCommand}"
             IsEnabled="{Binding CanRemapTasks}">
@@ -247,7 +247,7 @@
           <Button
             Height="{StaticResource ControlHeightCompact}"
             MinWidth="110"
-            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            behaviors:FocusClear.SuppressGridClear="True"
             Classes="Action"
             Command="{Binding BeginDiscardTaskSelectionCommand}"
             IsEnabled="{Binding CanDiscardTasks}">
@@ -262,7 +262,7 @@
           <Button
             Height="{StaticResource ControlHeightCompact}"
             MinWidth="110"
-            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            behaviors:FocusClear.SuppressGridClear="True"
             Classes="Action"
             Command="{Binding BeginReopenTaskSelectionCommand}"
             IsEnabled="{Binding CanReopenTasks}">
@@ -281,7 +281,7 @@
             Padding="0"
             HorizontalContentAlignment="Center"
             VerticalContentAlignment="Center"
-            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            behaviors:FocusClear.SuppressGridClear="True"
             Classes="Action"
             Command="{Binding ToggleTaskQueueSearchPanelCommand}">
             <Panel
@@ -312,7 +312,7 @@
             Padding="0"
             HorizontalContentAlignment="Center"
             VerticalContentAlignment="Center"
-            behaviors:FocusClearBehavior.SuppressGridClear="True"
+            behaviors:FocusClear.SuppressGridClear="True"
             Classes="Ghost"
             Command="{Binding ToggleAutoPanelExpandCommand}"
             CommandParameter="{Binding AutoExpandedPanel}">
@@ -455,6 +455,7 @@
                       Width="24"
                       Height="24"
                       Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                      Classes="DgStatusBadge"
                       CornerRadius="12">
                       <icons:AppIcon
                         Width="{DynamicResource IconSizeSmall}"

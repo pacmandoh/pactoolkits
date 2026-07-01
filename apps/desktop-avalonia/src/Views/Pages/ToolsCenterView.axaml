@@ -11,7 +11,7 @@
   x:Name="Root"
   d:DesignHeight="800"
   d:DesignWidth="1200"
-  x:DataType="vm:ToolsCenterViewModel"
+  x:DataType="vm:ToolsCenter"
   Focusable="True"
   mc:Ignorable="d">
   <Grid>
@@ -354,7 +354,7 @@
                             <Button
                               Grid.Column="1"
                               Classes="Ghost"
-                              Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentAppWinItemCommand}"
+                              Command="{Binding #Root.((vm:ToolsCenter)DataContext).RemoveAgentAppWinItemCommand}"
                               CommandParameter="{Binding .}">
                               <icons:AppIcon
                                 Width="{DynamicResource IconSizeSmall}"
@@ -622,7 +622,7 @@
                             <Button
                               Grid.Column="1"
                               Classes="Ghost"
-                              Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentWarehouseAnchorItemCommand}"
+                              Command="{Binding #Root.((vm:ToolsCenter)DataContext).RemoveAgentWarehouseAnchorItemCommand}"
                               CommandParameter="{Binding .}">
                               <icons:AppIcon
                                 Width="{DynamicResource IconSizeSmall}"
@@ -692,7 +692,7 @@
                             <Button
                               Grid.Column="1"
                               Classes="Ghost"
-                              Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentColSpecsItemCommand}"
+                              Command="{Binding #Root.((vm:ToolsCenter)DataContext).RemoveAgentColSpecsItemCommand}"
                               CommandParameter="{Binding .}">
                               <icons:AppIcon
                                 Width="{DynamicResource IconSizeSmall}"
@@ -754,7 +754,7 @@
                             <Button
                               Grid.Column="1"
                               Classes="Ghost"
-                              Command="{Binding #Root.((vm:ToolsCenterViewModel)DataContext).RemoveAgentIntColsItemCommand}"
+                              Command="{Binding #Root.((vm:ToolsCenter)DataContext).RemoveAgentIntColsItemCommand}"
                               CommandParameter="{Binding .}">
                               <icons:AppIcon
                                 Width="{DynamicResource IconSizeSmall}"

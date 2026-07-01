@@ -1,5 +1,5 @@
 ﻿<UserControl
-  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxMappingBatchDialogView"
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxMappingBatchView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
@@ -10,15 +10,15 @@
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   xmlns:vmDialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
   x:Name="Root"
-  behaviors:FocusClearBehavior.Enable="True"
-  behaviors:FocusClearBehavior.SuppressGridClear="True"
-  x:DataType="vmDialogs:MsfxMappingBatchDialogViewModel"
+  behaviors:FocusClear.Enable="True"
+  behaviors:FocusClear.SuppressGridClear="True"
+  x:DataType="vmDialogs:MsfxMappingBatch"
   Focusable="True">
   <shad:Card
     MinWidth="920"
     MaxWidth="1180"
     Padding="16"
-    behaviors:FocusClearBehavior.SuppressGridClear="True">
+    behaviors:FocusClear.SuppressGridClear="True">
     <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
         <Border

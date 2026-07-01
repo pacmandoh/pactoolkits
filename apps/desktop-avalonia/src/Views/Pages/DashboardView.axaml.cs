@@ -39,7 +39,7 @@ public partial class DashboardView : UserControl
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _gridMount.Cancel();
-        if (DataContext is DashboardViewModel vm)
+        if (DataContext is Dashboard vm)
         {
             vm.PropertyChanged -= OnDashboardVmPropertyChanged;
         }
@@ -71,7 +71,7 @@ public partial class DashboardView : UserControl
 
     private void OnDashboardDataContextChanged(object? sender, EventArgs e)
     {
-        if (DataContext is DashboardViewModel vm)
+        if (DataContext is Dashboard vm)
         {
             if (!_vmHooked)
             {
@@ -87,23 +87,23 @@ public partial class DashboardView : UserControl
 
     private void OnDashboardVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (sender is not DashboardViewModel vm)
+        if (sender is not Dashboard vm)
         {
             return;
         }
 
         switch (e.PropertyName)
         {
-            case nameof(DashboardViewModel.SelectedTabIndex):
+            case nameof(Dashboard.SelectedTabIndex):
                 QueueTabGrids(vm);
                 break;
-            case nameof(DashboardViewModel.IsTrendEmpty):
+            case nameof(Dashboard.IsTrendEmpty):
                 QueueOverviewGrids(vm);
                 break;
-            case nameof(DashboardViewModel.IsTrendChartVisible):
+            case nameof(Dashboard.IsTrendChartVisible):
                 MountTrendChart(vm);
                 break;
-            case nameof(DashboardViewModel.IsRecentTxnsEmpty):
+            case nameof(Dashboard.IsRecentTxnsEmpty):
                 QueueOverviewGrids(vm);
                 if (vm.IsTxnTab)
                 {
@@ -111,24 +111,24 @@ public partial class DashboardView : UserControl
                 }
 
                 break;
-            case nameof(DashboardViewModel.IsTopClientsEmpty):
+            case nameof(Dashboard.IsTopClientsEmpty):
                 QueueOverviewGrids(vm);
                 break;
-            case nameof(DashboardViewModel.IsEntryRecentEmpty):
+            case nameof(Dashboard.IsEntryRecentEmpty):
                 if (vm.IsInputTab)
                 {
                     QueueTabGrids(vm);
                 }
 
                 break;
-            case nameof(DashboardViewModel.IsTxnTrendEmpty):
+            case nameof(Dashboard.IsTxnTrendEmpty):
                 if (vm.IsTxnTab)
                 {
                     QueueTabGrids(vm);
                 }
 
                 break;
-            case nameof(DashboardViewModel.IsAbnormalEmpty):
+            case nameof(Dashboard.IsAbnormalEmpty):
                 if (vm.IsAbnormalTab)
                 {
                     QueueTabGrids(vm);
@@ -138,7 +138,7 @@ public partial class DashboardView : UserControl
         }
     }
 
-    private void QueueOverviewGrids(DashboardViewModel vm)
+    private void QueueOverviewGrids(Dashboard vm)
     {
         if (!vm.IsTrendEmpty && !TrendGridSlot.IsMounted)
         {
@@ -156,7 +156,7 @@ public partial class DashboardView : UserControl
         }
     }
 
-    private void MountTrendChart(DashboardViewModel vm)
+    private void MountTrendChart(Dashboard vm)
     {
         if (!vm.IsTrendChartVisible || TrendChartHost.Content is DrugTrendChart)
         {
@@ -169,7 +169,7 @@ public partial class DashboardView : UserControl
         };
     }
 
-    private void QueueTabGrids(DashboardViewModel vm)
+    private void QueueTabGrids(Dashboard vm)
     {
         switch (vm.SelectedTabIndex)
         {
@@ -226,7 +226,7 @@ public partial class DashboardView : UserControl
                 return;
             }
 
-            if (DataContext is not DashboardViewModel vm)
+            if (DataContext is not Dashboard vm)
             {
                 return;
             }
@@ -279,7 +279,7 @@ public partial class DashboardView : UserControl
 
     private void ApplyDrugFilterFromBox()
     {
-        if (DataContext is not DashboardViewModel vm)
+        if (DataContext is not Dashboard vm)
         {
             return;
         }
@@ -295,7 +295,7 @@ public partial class DashboardView : UserControl
     {
         try
         {
-            if (DataContext is not DashboardViewModel vm)
+            if (DataContext is not Dashboard vm)
             {
                 return;
             }
@@ -314,7 +314,7 @@ public partial class DashboardView : UserControl
         }
     }
 
-    private void ClearBrowsingSelectionInUi(DashboardViewModel vm)
+    private void ClearBrowsingSelectionInUi(Dashboard vm)
     {
         _syncingSelection = true;
         vm.SuppressRowSelectionActionScope(true);

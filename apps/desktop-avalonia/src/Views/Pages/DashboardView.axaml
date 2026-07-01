@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -11,7 +11,7 @@
   x:Name="Root"
   d:DesignHeight="820"
   d:DesignWidth="1200"
-  x:DataType="vm:DashboardViewModel"
+  x:DataType="vm:Dashboard"
   mc:Ignorable="d">
   <controls:PageDataShell
     IsLoadingData="{Binding IsBusy}"
@@ -24,12 +24,12 @@
     <Grid Classes="DashboardLayout" RowDefinitions="Auto,*">
       <Border
         Grid.Row="0"
-        Classes="DashboardFilterChrome"
+        Classes="FilterBarChrome"
         IsVisible="{Binding IsFilterBarVisible}">
-        <Grid Classes="DashboardFilterColumns" ColumnDefinitions="1*,Auto,0.85*,Auto,1.15*">
+        <Grid Classes="FilterBarColumns" ColumnDefinitions="1*,Auto,0.85*,Auto,1.15*">
           <Grid
             Grid.Column="0"
-            Classes="DashboardFilterColumn"
+            Classes="FilterBarColumn"
             ColumnDefinitions="Auto,*,Auto,*,Auto">
             <TextBlock
               Grid.Column="0"
@@ -67,11 +67,11 @@
             </Button>
           </Grid>
 
-          <Border Grid.Column="1" Classes="DashboardFilterDivider" />
+          <Border Grid.Column="1" Classes="FilterBarDivider" />
 
           <Grid
             Grid.Column="2"
-            Classes="DashboardFilterColumn"
+            Classes="FilterBarColumn"
             ColumnDefinitions="Auto,*,Auto">
             <TextBlock
               Grid.Column="0"
@@ -103,11 +103,11 @@
             </Button>
           </Grid>
 
-          <Border Grid.Column="3" Classes="DashboardFilterDivider" />
+          <Border Grid.Column="3" Classes="FilterBarDivider" />
 
           <Grid
             Grid.Column="4"
-            Classes="DashboardFilterColumn"
+            Classes="FilterBarColumn"
             ColumnDefinitions="Auto,*,Auto,*">
             <TextBlock
               Grid.Column="0"
@@ -157,7 +157,7 @@
 
 
             <Border Grid.Row="0" Classes="KpiTileStrip">
-              <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="{DynamicResource KpiTileColumnSpacing}">
+              <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="{DynamicResource KpiTileColSpacing}">
                 <controls:KpiTile
                   Title="可用追溯码库存"
                   Grid.Column="0"
@@ -254,31 +254,31 @@
                         SlotMinHeight="{DynamicResource DgH10Rows}"
                         SlotName="TrendGridOverview">
                         <controls:DeferredGridSlot.GridTemplate>
-                          <DataTemplate x:DataType="vm:DashboardViewModel">
+                          <DataTemplate x:DataType="vm:Dashboard">
                             <DataGrid
                               HorizontalAlignment="Stretch"
                               VerticalAlignment="Stretch"
-                              Classes="SectionGrid IndexedGrid"
+                              Classes="SectionGrid IndexedGrid FixedColumns"
                               ItemsSource="{Binding DrugTrend}"
                               RowHeight="{StaticResource RowMinHeight}"
                               SelectedItem="{Binding SelectedTrendItem}"
                               SelectionMode="Single">
                               <DataGrid.Columns>
-                                <DataGridTemplateColumn Width="0.90*" Header="药品">
+                                <DataGridTemplateColumn Width="0.85*" Header="药品">
                                   <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                       <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
                                     </DataTemplate>
                                   </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Width="0.55*" Header="规格">
+                                <DataGridTemplateColumn Width="0.68*" Header="规格">
                                   <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                       <TextBlock Classes="Caption Muted" Text="{Binding SpecDisplay}" />
                                     </DataTemplate>
                                   </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Width="1.80*" Header="主要客户端">
+                                <DataGridTemplateColumn Width="1.70*" Header="主要客户端">
                                   <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                       <TextBlock Classes="Caption Muted" Text="{Binding SourceText}" />
@@ -288,7 +288,10 @@
                                 <DataGridTemplateColumn Width="{StaticResource DgWUsage}" Header="用量">
                                   <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                      <TextBlock HorizontalAlignment="Right" Text="{Binding ValueText}" />
+                                      <TextBlock
+                                        Classes="DgQtyCell"
+                                        FontSize="{Binding ValueText, Converter={StaticResource DgQtyFontSize}}"
+                                        Text="{Binding ValueText}" />
                                     </DataTemplate>
                                   </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -336,11 +339,11 @@
                       SlotMinHeight="{DynamicResource DgH10Rows}"
                       SlotName="RecentTxnGridOverview">
                       <controls:DeferredGridSlot.GridTemplate>
-                        <DataTemplate x:DataType="vm:DashboardViewModel">
+                        <DataTemplate x:DataType="vm:Dashboard">
                           <DataGrid
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch"
-                            Classes="SectionGrid IndexedGrid"
+                            Classes="SectionGrid IndexedGrid FixedColumns"
                             ItemsSource="{Binding RecentTxnsOverview}"
                             RowHeight="{StaticResource RowMinHeight}"
                             SelectedItem="{Binding SelectedTxn}"
@@ -352,29 +355,26 @@
                                     <Border
                                       Width="{DynamicResource IconBadgeSize}"
                                       Height="{DynamicResource IconBadgeSize}"
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"
                                       Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                      Classes="DgStatusBadge"
                                       CornerRadius="{DynamicResource TraceBadgeRadius}">
                                       <icons:AppIcon
                                         Width="{DynamicResource IconSizeDefault}"
                                         Height="{DynamicResource IconSizeDefault}"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
                                         Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
                                         Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
                                     </Border>
                                   </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                               </DataGridTemplateColumn>
-                              <DataGridTemplateColumn Width="1.35*" Header="药品">
+                              <DataGridTemplateColumn Width="1.28*" Header="药品">
                                 <DataGridTemplateColumn.CellTemplate>
                                   <DataTemplate>
                                     <TextBlock FontWeight="SemiBold" Text="{Binding DrugId}" />
                                   </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                               </DataGridTemplateColumn>
-                              <DataGridTemplateColumn Width="1.05*" Header="规格">
+                              <DataGridTemplateColumn Width="1.20*" Header="规格">
                                 <DataGridTemplateColumn.CellTemplate>
                                   <DataTemplate>
                                     <TextBlock Text="{Binding Spec}" />
@@ -391,7 +391,10 @@
                               <DataGridTemplateColumn Width="{StaticResource DgWUsage}" Header="用量">
                                 <DataGridTemplateColumn.CellTemplate>
                                   <DataTemplate>
-                                    <TextBlock HorizontalAlignment="Right" Text="{Binding Qty}" />
+                                    <TextBlock
+                                      Classes="DgQtyCell"
+                                      FontSize="{Binding Qty, Converter={StaticResource DgQtyFontSize}}"
+                                      Text="{Binding Qty}" />
                                   </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                               </DataGridTemplateColumn>
@@ -443,11 +446,11 @@
                       SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                       SlotName="TopClientsGridOverview">
                       <controls:DeferredGridSlot.GridTemplate>
-                        <DataTemplate x:DataType="vm:DashboardViewModel">
+                        <DataTemplate x:DataType="vm:Dashboard">
                           <DataGrid
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch"
-                            Classes="SectionGrid IndexedGrid"
+                            Classes="SectionGrid IndexedGrid FixedColumns"
                             HorizontalScrollBarVisibility="Disabled"
                             ItemsSource="{Binding TopClients}"
                             RowHeight="{StaticResource RowMinHeight}"
@@ -473,7 +476,10 @@
                               <DataGridTemplateColumn Width="{StaticResource DgWUsage}" Header="用量">
                                 <DataGridTemplateColumn.CellTemplate>
                                   <DataTemplate>
-                                    <TextBlock HorizontalAlignment="Right" Text="{Binding Value}" />
+                                    <TextBlock
+                                      Classes="DgQtyCell"
+                                      FontSize="{Binding Value, Converter={StaticResource DgQtyFontSize}}"
+                                      Text="{Binding Value}" />
                                   </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                               </DataGridTemplateColumn>
@@ -538,56 +544,51 @@
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
                             <Border Classes="RowItem" PointerReleased="OnEntryRecentRowPointerReleased">
-                              <Grid
-                                VerticalAlignment="Center"
-                                ColumnDefinitions="44,*,180,84"
-                                RowDefinitions="Auto,Auto"
-                                RowSpacing="4">
+                              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource SpacingInlineMd}">
                                 <Border
+                                  Grid.Column="0"
                                   Width="{DynamicResource IconBadgeSize}"
                                   Height="{DynamicResource IconBadgeSize}"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
                                   Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                                  Classes="DgStatusBadge"
                                   CornerRadius="{DynamicResource TraceBadgeRadius}">
                                   <icons:AppIcon
                                     Width="{DynamicResource IconSizeDefault}"
                                     Height="{DynamicResource IconSizeDefault}"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
                                     Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                     Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
                                 </Border>
-                                <TextBlock
-                                  Grid.Row="0"
+                                <Grid
                                   Grid.Column="1"
-                                  FontWeight="SemiBold"
-                                  TextWrapping="NoWrap">
-                                  <Run Text="{Binding DrugId}" />
-                                  <Run Text=" " />
-                                  <Run Text="{Binding Spec}" />
-                                </TextBlock>
+                                  RowDefinitions="Auto,Auto"
+                                  RowSpacing="4">
+                                  <TextBlock
+                                    Grid.Row="0"
+                                    VerticalAlignment="Center"
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap">
+                                    <Run FontWeight="SemiBold" Text="{Binding DrugId}" />
+                                    <Run FontWeight="SemiBold" Text=" " />
+                                    <Run FontWeight="SemiBold" Text="{Binding Spec}" />
+                                    <Run Text="&#x9;" />
+                                    <Run Foreground="{DynamicResource MutedColor}" Text="{Binding ClientDisplay}" />
+                                  </TextBlock>
+                                  <TextBlock
+                                    Grid.Row="1"
+                                    Classes="Caption Muted"
+                                    Text="{Binding Message}"
+                                    TextTrimming="CharacterEllipsis" />
+                                </Grid>
                                 <TextBlock
-                                  Grid.Row="0"
                                   Grid.Column="2"
-                                  HorizontalAlignment="Right"
-                                  VerticalAlignment="Center"
-                                  Classes="Caption Muted"
-                                  Text="{Binding ClientDisplay}"
-                                  TextTrimming="CharacterEllipsis" />
-                                <TextBlock
-                                  Grid.Row="0"
-                                  Grid.Column="3"
-                                  HorizontalAlignment="Right"
-                                  VerticalAlignment="Center"
-                                  Text="{Binding Qty}" />
-                                <TextBlock
-                                  Grid.Row="1"
-                                  Grid.Column="1"
-                                  Grid.ColumnSpan="3"
-                                  Classes="Caption Muted"
-                                  Text="{Binding Message}" />
+                                  MinWidth="40"
+                                  Classes="DgQtyCell"
+                                  FontSize="{Binding Qty, Converter={StaticResource DgQtyFontSize}}"
+                                  FontWeight="SemiBold"
+                                  Text="{Binding Qty}"
+                                  TextAlignment="Right" />
                               </Grid>
                             </Border>
                           </DataTemplate>
@@ -636,7 +637,7 @@
                   SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                   SlotName="EntryRecentGridInputTab">
                   <controls:DeferredGridSlot.GridTemplate>
-                    <DataTemplate x:DataType="vm:DashboardViewModel">
+                    <DataTemplate x:DataType="vm:Dashboard">
                       <DataGrid
                         MinHeight="0"
                         HorizontalAlignment="Stretch"
@@ -649,21 +650,18 @@
                         SelectionMode="Extended"
                         VerticalScrollBarVisibility="Auto">
                         <DataGrid.Columns>
-                          <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                          <DataGridTemplateColumn Width="{StaticResource DgWIcon}" Header="状态">
                             <DataGridTemplateColumn.CellTemplate>
                               <DataTemplate>
                                 <Border
                                   Width="{DynamicResource IconBadgeSize}"
                                   Height="{DynamicResource IconBadgeSize}"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
                                   Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                                  Classes="DgStatusBadge"
                                   CornerRadius="{DynamicResource TraceBadgeRadius}">
                                   <icons:AppIcon
                                     Width="{DynamicResource IconSizeDefault}"
                                     Height="{DynamicResource IconSizeDefault}"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
                                     Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
                                     Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
                                 </Border>
@@ -682,10 +680,16 @@
                             Width="1.2*"
                             Binding="{Binding Spec}"
                             Header="规格" />
-                          <DataGridTextColumn
-                            Width="90"
-                            Binding="{Binding Qty}"
-                            Header="数量" />
+                          <DataGridTemplateColumn Width="90" Header="数量">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate>
+                                <TextBlock
+                                  Classes="DgQtyCell"
+                                  FontSize="{Binding Qty, Converter={StaticResource DgQtyFontSize}}"
+                                  Text="{Binding Qty}" />
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
                           <DataGridTextColumn
                             Width="110"
                             Binding="{Binding Source}"
@@ -766,10 +770,11 @@
                     SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                     SlotName="TxnDetailGrid">
                     <controls:DeferredGridSlot.GridTemplate>
-                      <DataTemplate x:DataType="vm:DashboardViewModel">
+                      <DataTemplate x:DataType="vm:Dashboard">
                         <DataGrid
                           MinHeight="0"
                           HorizontalAlignment="Stretch"
+                          CanUserResizeColumns="True"
                           Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
                           HorizontalScrollBarVisibility="Disabled"
                           IsVisible="{Binding IsTxnPanelDetailMode}"
@@ -779,21 +784,18 @@
                           SelectionMode="Extended"
                           VerticalScrollBarVisibility="Auto">
                           <DataGrid.Columns>
-                            <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                            <DataGridTemplateColumn Width="{StaticResource DgWIcon}" Header="状态">
                               <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                   <Border
                                     Width="{DynamicResource IconBadgeSize}"
                                     Height="{DynamicResource IconBadgeSize}"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
                                     Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                    Classes="DgStatusBadge"
                                     CornerRadius="{DynamicResource TraceBadgeRadius}">
                                     <icons:AppIcon
                                       Width="{DynamicResource IconSizeDefault}"
                                       Height="{DynamicResource IconSizeDefault}"
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"
                                       Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
                                       Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
                                   </Border>
@@ -827,10 +829,11 @@
                     SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                     SlotName="TxnTrendGrid">
                     <controls:DeferredGridSlot.GridTemplate>
-                      <DataTemplate x:DataType="vm:DashboardViewModel">
+                      <DataTemplate x:DataType="vm:Dashboard">
                         <DataGrid
                           MinHeight="0"
                           HorizontalAlignment="Stretch"
+                          CanUserResizeColumns="True"
                           Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
                           HorizontalScrollBarVisibility="Disabled"
                           IsVisible="{Binding IsTxnPanelTrendMode}"
@@ -845,15 +848,15 @@
                               Binding="{Binding Name}"
                               Header="药品" />
                             <DataGridTextColumn
-                              Width="1.2*"
+                              Width="1.35*"
                               Binding="{Binding Sub}"
                               Header="规格" />
                             <DataGridTextColumn
-                              Width="1.8*"
+                              Width="1.75*"
                               Binding="{Binding SourceText}"
                               Header="来源" />
                             <DataGridTextColumn
-                              Width="100"
+                              Width="{StaticResource DgWUsage}"
                               Binding="{Binding ValueText}"
                               Header="用量" />
                           </DataGrid.Columns>
@@ -946,10 +949,11 @@
                   SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                   SlotName="AbnormalGrid">
                   <controls:DeferredGridSlot.GridTemplate>
-                    <DataTemplate x:DataType="vm:DashboardViewModel">
+                    <DataTemplate x:DataType="vm:Dashboard">
                       <DataGrid
                         MinHeight="0"
                         HorizontalAlignment="Stretch"
+                        CanUserResizeColumns="True"
                         Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
                         HorizontalScrollBarVisibility="Disabled"
                         ItemsSource="{Binding AbnormalQueue}"
@@ -958,21 +962,18 @@
                         SelectionMode="Extended"
                         VerticalScrollBarVisibility="Auto">
                         <DataGrid.Columns>
-                          <DataGridTemplateColumn Width="{StaticResource DgWIcon}">
+                          <DataGridTemplateColumn Width="{StaticResource DgWIcon}" Header="状态">
                             <DataGridTemplateColumn.CellTemplate>
                               <DataTemplate>
                                 <Border
                                   Width="{DynamicResource IconBadgeSize}"
                                   Height="{DynamicResource IconBadgeSize}"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
                                   Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                  Classes="DgStatusBadge"
                                   CornerRadius="{DynamicResource TraceBadgeRadius}">
                                   <icons:AppIcon
                                     Width="{DynamicResource IconSizeDefault}"
                                     Height="{DynamicResource IconSizeDefault}"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
                                     Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
                                     Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
                                 </Border>

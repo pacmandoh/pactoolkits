@@ -6,7 +6,7 @@
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
-  x:DataType="vm:MsfxLinkViewModel"
+  x:DataType="vm:MsfxLink"
   Focusable="True">
   <Grid
     Margin="{DynamicResource MarginTopLg}"
@@ -91,6 +91,7 @@
                         Width="24"
                         Height="24"
                         Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                        Classes="DgStatusBadge"
                         CornerRadius="12">
                         <icons:AppIcon
                           Width="{DynamicResource IconSizeSmall}"

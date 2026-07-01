@@ -11,7 +11,7 @@
   x:Name="Root"
   d:DesignHeight="450"
   d:DesignWidth="800"
-  x:DataType="vm:SettingsViewModel"
+  x:DataType="vm:Settings"
   Classes="SettingsPage"
   Focusable="True"
   mc:Ignorable="d">
@@ -19,36 +19,36 @@
     <StackPanel
       x:Name="NavItemsHost"
       Grid.Column="0"
-      Margin="{DynamicResource SettingsSidebarPadding}"
+      Margin="{DynamicResource SidebarPadding}"
       VerticalAlignment="Stretch"
-      Classes="SettingsNavHost"
+      Classes="NavHost"
       Spacing="{DynamicResource NavItemsSpacing}" />
-    <Border Grid.Column="1" Classes="SettingsSidebarDivider" />
+    <Border Grid.Column="1" Classes="SidebarDivider" />
     <Panel
-      x:Name="SettingsContentHost"
+      x:Name="ContentHost"
       Grid.Column="2"
       HorizontalAlignment="Stretch"
       VerticalAlignment="Stretch"
-      Classes="SettingsContentHost">
+      Classes="ContentHost">
 
       <!--  PostgreSQL  -->
       <Grid
         x:Name="TabDbPage"
-        Classes="SettingsTabPage"
+        Classes="TabPage"
         IsVisible="True">
         <ScrollViewer
           controls:SettingsScroll.StickyHost="{Binding #DbStickyHost}"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="SettingsBody">
-            <Border Classes="SettingsH1">
-              <TextBlock Classes="SettingsH1Text" Text="PostgreSQL 设置" />
+          <StackPanel Classes="Body">
+            <Border Classes="H1">
+              <TextBlock Classes="H1Text" Text="PostgreSQL 设置" />
             </Border>
 
-            <Border Classes="SettingsH2">
-              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="SettingsH2Text" Text="连接信息" />
-                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <TextBlock Classes="H2Text" Text="连接信息" />
+                <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Outline"
                     Command="{Binding TestCommand}"
@@ -61,14 +61,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="地址" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="数据库服务器主机名或 IP 地址" />
+                  <TextBlock Classes="FieldTitle" Text="地址" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="数据库服务器主机名或 IP 地址" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -78,14 +78,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="端口" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="PostgreSQL 监听端口，默认 5432" />
+                  <TextBlock Classes="FieldTitle" Text="端口" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="PostgreSQL 监听端口，默认 5432" />
                 </StackPanel>
                 <NumericUpDown
                   Grid.Column="1"
@@ -99,14 +99,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="数据库名" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="要连接的数据库名称" />
+                  <TextBlock Classes="FieldTitle" Text="数据库名" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="要连接的数据库名称" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -116,14 +116,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="用户名" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="数据库登录用户名" />
+                  <TextBlock Classes="FieldTitle" Text="用户名" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="数据库登录用户名" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -133,14 +133,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="密码" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="数据库登录密码" />
+                  <TextBlock Classes="FieldTitle" Text="密码" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="数据库登录密码" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -152,12 +152,12 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsH2">
-              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <TextBlock
                     VerticalAlignment="Center"
-                    Classes="SettingsH2Text"
+                    Classes="H2Text"
                     Text="数据库架构" />
                   <controls:UpdateStatusBadge
                     VerticalAlignment="Center"
@@ -165,7 +165,7 @@
                     LatestVersion="{Binding DbSchemaTargetVersion}"
                     Status="{Binding DbSchemaBadgeStatus}" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+                <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     shad:ButtonAssist.ShowProgress="{Binding IsDbSchemaChecking}"
                     Classes="Outline"
@@ -192,128 +192,128 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
+            <Border Classes="Field">
               <StackPanel Spacing="4">
                 <TextBlock
-                  Classes="Caption Muted SettingsFieldDesc"
+                  Classes="Caption Muted FieldDesc"
                   Text="{Binding DbSchemaBetaConceptText}"
                   TextWrapping="Wrap" />
                 <TextBlock
-                  Classes="Caption Muted SettingsFieldDesc"
+                  Classes="Caption Muted FieldDesc"
                   Text="{Binding DbSchemaPolicyText}"
                   TextWrapping="Wrap" />
               </StackPanel>
             </Border>
 
-            <Border Classes="SettingsH3">
-              <TextBlock Classes="SettingsH3Text" Text="结构信息" />
+            <Border Classes="H3">
+              <TextBlock Classes="H3Text" Text="结构信息" />
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <TextBlock
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldTitle"
+                  Classes="FieldTitle"
                   Text="最新版本" />
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldValue"
+                  Classes="FieldValue"
                   Text="{Binding DbSchemaTargetVersion}" />
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <TextBlock
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldTitle"
+                  Classes="FieldTitle"
                   Text="数据库版本" />
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldValue"
+                  Classes="FieldValue"
                   Text="{Binding DbSchemaCurrentVersion}" />
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <TextBlock
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldTitle"
+                  Classes="FieldTitle"
                   Text="最低要求" />
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldValue"
+                  Classes="FieldValue"
                   Text="{Binding DbSchemaRequiredMinVersion}" />
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <TextBlock
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldTitle"
+                  Classes="FieldTitle"
                   Text="最高支持" />
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldValue"
+                  Classes="FieldValue"
                   Text="{Binding DbSchemaRequiredMaxVersion}" />
               </Grid>
             </Border>
 
-            <Border Classes="SettingsH3">
-              <TextBlock Classes="SettingsH3Text" Text="运行信息" />
+            <Border Classes="H3">
+              <TextBlock Classes="H3Text" Text="运行信息" />
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <TextBlock
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldTitle"
+                  Classes="FieldTitle"
                   Text="最近检查" />
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldValue"
+                  Classes="FieldValue"
                   Text="{Binding DbSchemaLastCheckedAtText}" />
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <TextBlock
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldTitle"
+                  Classes="FieldTitle"
                   Text="触发来源" />
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldValue"
+                  Classes="FieldValue"
                   Text="{Binding DbSchemaLastCheckSourceText}" />
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <TextBlock
                   Grid.Column="0"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldTitle"
+                  Classes="FieldTitle"
                   Text="最近迁移" />
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Classes="SettingsFieldValue"
+                  Classes="FieldValue"
                   Text="{Binding DbSchemaLastMigrationText}"
                   TextTrimming="CharacterEllipsis"
                   TextWrapping="NoWrap" />
@@ -323,7 +323,7 @@
         </ScrollViewer>
         <Border
           VerticalAlignment="Top"
-          Classes="SettingsStickyHost"
+          Classes="StickyHost"
           IsHitTestVisible="False">
           <StackPanel x:Name="DbStickyHost" Spacing="0" />
         </Border>
@@ -332,24 +332,24 @@
       <!--  Client Aliases  -->
       <Grid
         x:Name="TabAliasPage"
-        Classes="SettingsTabPage"
+        Classes="TabPage"
         IsVisible="False">
         <ScrollViewer
           controls:SettingsScroll.StickyHost="{Binding #AliasStickyHost}"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="SettingsBody">
-            <Border Classes="SettingsH1">
-              <TextBlock Classes="SettingsH1Text" Text="客户端别名映射" />
+          <StackPanel Classes="Body">
+            <Border Classes="H1">
+              <TextBlock Classes="H1Text" Text="客户端别名映射" />
             </Border>
 
-            <Border Classes="SettingsH2">
-              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Classes="SettingsH2Text" Text="别名列表" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="为每台客户端机器设置显示别名" />
+                  <TextBlock Classes="H2Text" Text="别名列表" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="为每台客户端机器设置显示别名" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+                <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Outline"
                     Command="{Binding StartEditClientAliasesCommand}"
@@ -376,12 +376,12 @@
               <ItemsControl ItemsSource="{Binding ClientAliases}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:ClientAliasRow">
-                    <Border Classes="SettingsField">
-                      <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+                    <Border Classes="Field">
+                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                         <TextBlock
                           Grid.Column="0"
                           VerticalAlignment="Center"
-                          Classes="SettingsFieldTitle"
+                          Classes="FieldTitle"
                           Text="{Binding Machine}"
                           TextTrimming="CharacterEllipsis" />
                         <TextBox
@@ -400,7 +400,7 @@
         </ScrollViewer>
         <Border
           VerticalAlignment="Top"
-          Classes="SettingsStickyHost"
+          Classes="StickyHost"
           IsHitTestVisible="False">
           <StackPanel x:Name="AliasStickyHost" Spacing="0" />
         </Border>
@@ -409,21 +409,21 @@
       <!--  Trace Code Rules  -->
       <Grid
         x:Name="TabTraceRulePage"
-        Classes="SettingsTabPage"
+        Classes="TabPage"
         IsVisible="False">
         <ScrollViewer
           controls:SettingsScroll.StickyHost="{Binding #TraceStickyHost}"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="SettingsBody">
-            <Border Classes="SettingsH1">
-              <TextBlock Classes="SettingsH1Text" Text="追溯码校验规则" />
+          <StackPanel Classes="Body">
+            <Border Classes="H1">
+              <TextBlock Classes="H1Text" Text="追溯码校验规则" />
             </Border>
 
-            <Border Classes="SettingsH2">
-              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="SettingsH2Text" Text="单条追溯码合法性" />
-                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <TextBlock Classes="H2Text" Text="单条追溯码合法性" />
+                <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Primary"
                     Command="{Binding SaveTraceCodeRuleCommand}"
@@ -432,14 +432,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="固定长度" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="追溯码必须满足的字符长度" />
+                  <TextBlock Classes="FieldTitle" Text="固定长度" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="追溯码必须满足的字符长度" />
                 </StackPanel>
                 <NumericUpDown
                   Grid.Column="1"
@@ -452,14 +452,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="正则规则" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="示例：^8\d+$ （以 8 开头的全数字）" />
+                  <TextBlock Classes="FieldTitle" Text="正则规则" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="示例：^8\d+$ （以 8 开头的全数字）" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -472,7 +472,7 @@
         </ScrollViewer>
         <Border
           VerticalAlignment="Top"
-          Classes="SettingsStickyHost"
+          Classes="StickyHost"
           IsHitTestVisible="False">
           <StackPanel x:Name="TraceStickyHost" Spacing="0" />
         </Border>
@@ -481,29 +481,29 @@
       <!--  UI Behavior  -->
       <Grid
         x:Name="TabUiBehaviorPage"
-        Classes="SettingsTabPage"
+        Classes="TabPage"
         IsVisible="False">
         <ScrollViewer
           controls:SettingsScroll.StickyHost="{Binding #UiStickyHost}"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="SettingsBody">
-            <Border Classes="SettingsH1">
-              <TextBlock Classes="SettingsH1Text" Text="界面行为" />
+          <StackPanel Classes="Body">
+            <Border Classes="H1">
+              <TextBlock Classes="H1Text" Text="界面行为" />
             </Border>
 
-            <Border Classes="SettingsH2">
-              <TextBlock Classes="SettingsH2Text" Text="托盘模式" />
+            <Border Classes="H2">
+              <TextBlock Classes="H2Text" Text="托盘模式" />
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="关闭窗口时最小化到托盘" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="关闭主窗口后保留在系统托盘，而非退出应用" />
+                  <TextBlock Classes="FieldTitle" Text="关闭窗口时最小化到托盘" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="关闭主窗口后保留在系统托盘，而非退出应用" />
                 </StackPanel>
                 <ToggleSwitch
                   Grid.Column="1"
@@ -515,7 +515,7 @@
         </ScrollViewer>
         <Border
           VerticalAlignment="Top"
-          Classes="SettingsStickyHost"
+          Classes="StickyHost"
           IsHitTestVisible="False">
           <StackPanel x:Name="UiStickyHost" Spacing="0" />
         </Border>
@@ -524,21 +524,21 @@
       <!--  Updates  -->
       <Grid
         x:Name="TabUpdatePage"
-        Classes="SettingsTabPage"
+        Classes="TabPage"
         IsVisible="False">
         <ScrollViewer
           controls:SettingsScroll.StickyHost="{Binding #UpdateStickyHost}"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="SettingsBody">
-            <Border Classes="SettingsH1">
-              <TextBlock Classes="SettingsH1Text" Text="应用更新" />
+          <StackPanel Classes="Body">
+            <Border Classes="H1">
+              <TextBlock Classes="H1Text" Text="应用更新" />
             </Border>
 
-            <Border Classes="SettingsH2">
-              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="SettingsH2Text" Text="更新源与策略" />
-                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <TextBlock Classes="H2Text" Text="更新源与策略" />
+                <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     shad:ButtonAssist.ShowProgress="{Binding IsUpdateChecking}"
                     Classes="Outline"
@@ -568,14 +568,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="PacToolkits 版本" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="当前已安装版本" />
+                  <TextBlock Classes="FieldTitle" Text="PacToolkits 版本" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="当前已安装版本" />
                 </StackPanel>
                 <Grid
                   Grid.Column="1"
@@ -596,14 +596,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="启动自动检查" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="应用启动时自动检查是否有新版本" />
+                  <TextBlock Classes="FieldTitle" Text="启动自动检查" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="应用启动时自动检查是否有新版本" />
                 </StackPanel>
                 <ToggleSwitch
                   Grid.Column="1"
@@ -612,14 +612,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="更新通道" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="{Binding UpdateChannelSwitchHint}" />
+                  <TextBlock Classes="FieldTitle" Text="更新通道" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="{Binding UpdateChannelSwitchHint}" />
                 </StackPanel>
                 <ComboBox
                   Grid.Column="1"
@@ -629,14 +629,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="更新源地址" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="留空使用默认更新源" />
+                  <TextBlock Classes="FieldTitle" Text="更新源地址" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="留空使用默认更新源" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -646,15 +646,15 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="自动轮询（分钟）" />
+                  <TextBlock Classes="FieldTitle" Text="自动轮询（分钟）" />
                   <TextBlock
-                    Classes="Caption Muted SettingsFieldDesc"
+                    Classes="Caption Muted FieldDesc"
                     Text="{Binding UpdatePollIntervalHint}"
                     TextWrapping="Wrap" />
                 </StackPanel>
@@ -669,14 +669,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="忽略版本" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="留空表示不忽略任何版本" />
+                  <TextBlock Classes="FieldTitle" Text="忽略版本" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="留空表示不忽略任何版本" />
                 </StackPanel>
                 <Grid
                   Grid.Column="1"
@@ -696,7 +696,7 @@
         </ScrollViewer>
         <Border
           VerticalAlignment="Top"
-          Classes="SettingsStickyHost"
+          Classes="StickyHost"
           IsHitTestVisible="False">
           <StackPanel x:Name="UpdateStickyHost" Spacing="0" />
         </Border>
@@ -705,21 +705,21 @@
       <!--  Logging  -->
       <Grid
         x:Name="TabLoggingPage"
-        Classes="SettingsTabPage"
+        Classes="TabPage"
         IsVisible="False">
         <ScrollViewer
           controls:SettingsScroll.StickyHost="{Binding #LoggingStickyHost}"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="SettingsBody">
-            <Border Classes="SettingsH1">
-              <TextBlock Classes="SettingsH1Text" Text="日志与诊断" />
+          <StackPanel Classes="Body">
+            <Border Classes="H1">
+              <TextBlock Classes="H1Text" Text="日志与诊断" />
             </Border>
 
-            <Border Classes="SettingsH2">
-              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="SettingsH2Text" Text="日志策略与操作" />
-                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <TextBlock Classes="H2Text" Text="日志策略与操作" />
+                <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Outline"
                     Command="{Binding OpenLogDirectoryCommand}"
@@ -744,14 +744,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="启用日志" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="开启后将按配置写入本地日志文件" />
+                  <TextBlock Classes="FieldTitle" Text="启用日志" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="开启后将按配置写入本地日志文件" />
                 </StackPanel>
                 <ToggleSwitch
                   Grid.Column="1"
@@ -760,14 +760,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="最小级别" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="{Binding LoggingMinimumLevelHint}" />
+                  <TextBlock Classes="FieldTitle" Text="最小级别" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="{Binding LoggingMinimumLevelHint}" />
                 </StackPanel>
                 <ComboBox
                   Grid.Column="1"
@@ -777,14 +777,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="保留天数" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="超过保留天数的日志文件将被自动清理" />
+                  <TextBlock Classes="FieldTitle" Text="保留天数" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="超过保留天数的日志文件将被自动清理" />
                 </StackPanel>
                 <NumericUpDown
                   Grid.Column="1"
@@ -796,14 +796,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="单文件上限(MB)" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="单个日志文件的最大体积，超出后滚动到新文件" />
+                  <TextBlock Classes="FieldTitle" Text="单文件上限(MB)" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="单个日志文件的最大体积，超出后滚动到新文件" />
                 </StackPanel>
                 <NumericUpDown
                   Grid.Column="1"
@@ -815,15 +815,15 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="日志目录" />
+                  <TextBlock Classes="FieldTitle" Text="日志目录" />
                   <TextBlock
-                    Classes="Caption Muted SettingsFieldDesc"
+                    Classes="Caption Muted FieldDesc"
                     Text="默认目录：ApplicationData/PacToolkits/logs/desktop；建议保持默认，便于部署和故障回溯"
                     TextWrapping="Wrap" />
                 </StackPanel>
@@ -838,7 +838,7 @@
         </ScrollViewer>
         <Border
           VerticalAlignment="Top"
-          Classes="SettingsStickyHost"
+          Classes="StickyHost"
           IsHitTestVisible="False">
           <StackPanel x:Name="LoggingStickyHost" Spacing="0" />
         </Border>
@@ -847,23 +847,23 @@
       <!--  MSFX API  -->
       <Grid
         x:Name="TabMsfxPage"
-        Classes="SettingsTabPage"
+        Classes="TabPage"
         IsVisible="False">
         <ScrollViewer
           controls:SettingsScroll.StickyHost="{Binding #MsfxStickyHost}"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="SettingsBody">
-            <Border Classes="SettingsH1">
-              <TextBlock Classes="SettingsH1Text" Text="码上放心 API" />
+          <StackPanel Classes="Body">
+            <Border Classes="H1">
+              <TextBlock Classes="H1Text" Text="码上放心 API" />
             </Border>
 
-            <Border Classes="SettingsH2">
-              <Grid Classes="SettingsH2Row" ColumnDefinitions="*,Auto">
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <TextBlock
                     VerticalAlignment="Center"
-                    Classes="SettingsH2Text"
+                    Classes="H2Text"
                     Text="调用凭证与网关" />
                   <controls:UpdateStatusBadge
                     VerticalAlignment="Center"
@@ -878,7 +878,7 @@
                     Icon="Cog"
                     Text="配置中心" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Classes="SettingsH2Actions">
+                <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Primary"
                     Command="{Binding SaveMsfxApiConfigCommand}"
@@ -887,14 +887,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="网关地址" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="码上放心 API 网关 URL" />
+                  <TextBlock Classes="FieldTitle" Text="网关地址" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="码上放心 API 网关 URL" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -904,14 +904,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="AppKey" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="应用 AppKey 凭证" />
+                  <TextBlock Classes="FieldTitle" Text="AppKey" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="应用 AppKey 凭证" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -921,14 +921,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="AppSecret" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="应用 AppSecret 凭证" />
+                  <TextBlock Classes="FieldTitle" Text="AppSecret" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="应用 AppSecret 凭证" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -940,14 +940,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="SessionToken" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="非必填，可留空" />
+                  <TextBlock Classes="FieldTitle" Text="SessionToken" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="非必填，可留空" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -957,14 +957,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="接收企业 RefEntId" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="用于 ref_ent_id / 默认 to_ref_user_id" />
+                  <TextBlock Classes="FieldTitle" Text="接收企业 RefEntId" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="用于 ref_ent_id / 默认 to_ref_user_id" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
@@ -974,14 +974,14 @@
               </Grid>
             </Border>
 
-            <Border Classes="SettingsField">
-              <Grid Classes="SettingsFieldSplit" ColumnDefinitions="1.35*,1*">
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
                 <StackPanel
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="SettingsFieldTitle" Text="超时（秒）" />
-                  <TextBlock Classes="Caption Muted SettingsFieldDesc" Text="建议 15-30 秒；网络较慢可适当调大" />
+                  <TextBlock Classes="FieldTitle" Text="超时（秒）" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="建议 15-30 秒；网络较慢可适当调大" />
                 </StackPanel>
                 <NumericUpDown
                   Grid.Column="1"
@@ -997,7 +997,7 @@
         </ScrollViewer>
         <Border
           VerticalAlignment="Top"
-          Classes="SettingsStickyHost"
+          Classes="StickyHost"
           IsHitTestVisible="False">
           <StackPanel x:Name="MsfxStickyHost" Spacing="0" />
         </Border>
