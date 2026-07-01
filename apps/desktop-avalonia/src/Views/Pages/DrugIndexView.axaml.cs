@@ -6,7 +6,6 @@ using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
-using global::Avalonia.Threading;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -15,12 +14,13 @@ namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 public partial class DrugIndexView : UserControl
 {
     private readonly PageGridMountScheduler _gridMount;
-    private DrugIndexViewModel? _vm;
+    private DrugIndex? _vm;
 
     public DrugIndexView()
     {
         _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
+        DrugGridSlot.GridMounted += OnDrugGridMounted;
         AddHandler(KeyDownEvent, OnEditorAreaKeyDown, RoutingStrategies.Tunnel);
         _gridMount.StartAfterFirstLayout();
         DataContextChanged += OnDrugIndexDataContextChanged;
@@ -29,24 +29,53 @@ public partial class DrugIndexView : UserControl
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _gridMount.Cancel();
-        _vm?.PropertyChanged -= OnVmPropertyChanged;
+        DetachVm(_vm);
 
         _vm = null;
         base.OnDetachedFromVisualTree(e);
     }
 
+    private void OnDrugGridMounted(object? sender, DataGrid grid)
+        => _vm?.IsDrugGridMounted = true;
+
     private void OnDrugIndexDataContextChanged(object? sender, EventArgs e)
     {
-        _vm?.PropertyChanged -= OnVmPropertyChanged;
+        DetachVm(_vm);
 
-        _vm = DataContext as DrugIndexViewModel;
-        _vm?.PropertyChanged += OnVmPropertyChanged;
+        _vm = DataContext as DrugIndex;
+        AttachVm(_vm);
+        if (_vm is not null && DrugGridSlot.IsMounted)
+        {
+            _vm.IsDrugGridMounted = true;
+        }
+
         QueueDrugGridMount();
+    }
+
+    private void AttachVm(DrugIndex? vm)
+    {
+        if (vm is null)
+        {
+            return;
+        }
+
+        vm.PropertyChanged += OnVmPropertyChanged;
+    }
+
+    private void DetachVm(DrugIndex? vm)
+    {
+        if (vm is null)
+        {
+            return;
+        }
+
+        vm.PropertyChanged -= OnVmPropertyChanged;
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(DrugIndexViewModel.IsItemsEmpty))
+        if (e.PropertyName is nameof(DrugIndex.IsItemsEmpty)
+            or nameof(DrugIndex.IsSectionPending))
         {
             QueueDrugGridMount();
         }
@@ -54,20 +83,10 @@ public partial class DrugIndexView : UserControl
 
     private void QueueDrugGridMount()
     {
-        if (_vm?.IsItemsEmpty == false && !DrugGridSlot.IsMounted)
+        if (!DrugGridSlot.IsMounted)
         {
             _gridMount.RequestMount(DrugGridSlot, 0);
         }
-    }
-
-    private void DrugIndexSearchBox_OnKeyUp(object? sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Enter)
-        {
-            return;
-        }
-
-        InputFocusHelper.FocusControlByName(this, "DrugIndexSearchButton", DispatcherPriority.Background);
     }
 
     private void OnEditorAreaKeyDown(object? sender, KeyEventArgs e)

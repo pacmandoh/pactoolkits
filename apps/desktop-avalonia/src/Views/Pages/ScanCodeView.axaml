@@ -12,7 +12,7 @@
   x:Name="Root"
   d:DesignHeight="800"
   d:DesignWidth="1200"
-  x:DataType="vm:ScanCodeViewModel"
+  x:DataType="vm:ScanCode"
   Focusable="True"
   mc:Ignorable="d">
   <UserControl.Resources>
@@ -469,7 +469,7 @@
               IsActive="{Binding IsAutoFetchTab}"
               IsVisible="{Binding IsAutoFetchTab}">
               <controls:DeferredContentHost.ContentTemplate>
-                <DataTemplate x:DataType="vm:ScanCodeViewModel">
+                <DataTemplate x:DataType="vm:ScanCode">
                   <Grid
                     Margin="{DynamicResource MarginTopMd}"
                     RowDefinitions="Auto,Auto,*,Auto"
@@ -609,7 +609,7 @@
                                 SlotMinHeight="{DynamicResource DgH10Rows}"
                                 SlotName="AutoTaskGrid">
                                 <controls:DeferredGridSlot.GridTemplate>
-                                  <DataTemplate x:DataType="vm:ScanCodeViewModel">
+                                  <DataTemplate x:DataType="vm:ScanCode">
                                     <DataGrid
                                       CanUserResizeColumns="True"
                                       Classes="SectionGrid"
@@ -662,7 +662,7 @@
                                 SlotMinHeight="{DynamicResource DgH10Rows}"
                                 SlotName="RecentRunGrid">
                                 <controls:DeferredGridSlot.GridTemplate>
-                                  <DataTemplate x:DataType="vm:ScanCodeViewModel">
+                                  <DataTemplate x:DataType="vm:ScanCode">
                                     <DataGrid
                                       CanUserResizeColumns="True"
                                       Classes="SectionGrid"
@@ -715,7 +715,7 @@
                                 SlotMinHeight="{DynamicResource DgH10Rows}"
                                 SlotName="RetryQueueGrid">
                                 <controls:DeferredGridSlot.GridTemplate>
-                                  <DataTemplate x:DataType="vm:ScanCodeViewModel">
+                                  <DataTemplate x:DataType="vm:ScanCode">
                                     <DataGrid
                                       CanUserResizeColumns="True"
                                       Classes="SectionGrid"

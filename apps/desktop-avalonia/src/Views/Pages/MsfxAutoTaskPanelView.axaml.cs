@@ -9,7 +9,7 @@ namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
 public partial class MsfxAutoTaskPanelView : UserControl
 {
-    private MsfxLinkViewModel? _viewModel;
+    private MsfxLink? _viewModel;
 
     public MsfxAutoTaskPanelView()
     {
@@ -29,14 +29,14 @@ public partial class MsfxAutoTaskPanelView : UserControl
     private void OnPanelDataContextChanged(object? sender, EventArgs e)
     {
         _viewModel?.PropertyChanged -= OnViewModelPropertyChanged;
-        _viewModel = DataContext as MsfxLinkViewModel;
+        _viewModel = DataContext as MsfxLink;
         _viewModel?.PropertyChanged += OnViewModelPropertyChanged;
         SyncBatchCheckColumnVisibility();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(MsfxLinkViewModel.IsTaskQueueBatchModeActive))
+        if (e.PropertyName is nameof(MsfxLink.IsTaskQueueBatchModeActive))
         {
             SyncBatchCheckColumnVisibility();
         }
@@ -57,7 +57,7 @@ public partial class MsfxAutoTaskPanelView : UserControl
 
     private void OnTaskQueueSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (DataContext is not MsfxLinkViewModel { IsTaskQueueBatchModeActive: true })
+        if (DataContext is not MsfxLink { IsTaskQueueBatchModeActive: true })
         {
             return;
         }
@@ -70,7 +70,7 @@ public partial class MsfxAutoTaskPanelView : UserControl
 
     private void OnTaskQueueCheckChanged(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MsfxLinkViewModel vm)
+        if (DataContext is not MsfxLink vm)
         {
             return;
         }

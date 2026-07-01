@@ -1,5 +1,5 @@
-﻿<UserControl
-  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InventoryUnlockDialogView"
+<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.SensitiveUnlockView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -9,7 +9,7 @@
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   d:DesignHeight="420"
   d:DesignWidth="320"
-  x:DataType="dialogs:InventoryUnlockDialogViewModel"
+  x:DataType="dialogs:SensitiveUnlock"
   mc:Ignorable="d">
   <StackPanel
     Width="320"
@@ -40,18 +40,20 @@
       TextAlignment="Center"
       TextWrapping="Wrap" />
 
-    <TextBox
-      shad:ControlAssist.Label="账户名"
-      IsEnabled="False"
-      Text="{Binding Username}" />
+    <StackPanel Spacing="6">
+      <TextBlock Classes="Caption Muted" Text="账户名" />
+      <TextBox IsEnabled="False" Text="{Binding Username}" />
+    </StackPanel>
 
-    <TextBox
-      shad:ControlAssist.Label="数据库密码"
-      shad:ElementAssist.FocusOnLoad="True"
-      Classes="PasswordReveal"
-      PasswordChar="•"
-      PlaceholderText="请输入数据库密码进行验证"
-      Text="{Binding Password, Mode=TwoWay}" />
+    <StackPanel Spacing="6">
+      <TextBlock Classes="Caption Muted" Text="数据库密码" />
+      <TextBox
+        shad:ElementAssist.FocusOnLoad="True"
+        PasswordChar="•"
+        PlaceholderText="请输入数据库密码进行验证"
+        RevealPassword="False"
+        Text="{Binding Password, Mode=TwoWay}" />
+    </StackPanel>
 
     <StackPanel Margin="0,24,0,0" Spacing="16">
       <Button

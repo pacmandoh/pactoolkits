@@ -1,12 +1,12 @@
 ﻿<UserControl
-  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxTaskSplitDialogView"
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxTaskSplitView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vmDialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
-  x:DataType="vmDialogs:MsfxTaskSplitDialogViewModel">
+  x:DataType="vmDialogs:MsfxTaskSplit">
   <StackPanel Margin="24" Spacing="16">
     <shad:Card
       MinWidth="980"
@@ -41,22 +41,22 @@
           <controls:StatusPill
             Classes="ToneInfo15"
             Icon="Hash"
-            Text="{Binding Model.TaskId, StringFormat=任务 #{0}}" />
+            Text="{Binding Args.TaskId, StringFormat=任务 #{0}}" />
           <controls:StatusPill
             Grid.Column="1"
             Classes="ToneWarning15"
             Icon="Package"
-            Text="{Binding Model.TotalCodes, StringFormat=总码数 {0}}" />
+            Text="{Binding Args.TotalCodes, StringFormat=总码数 {0}}" />
           <controls:StatusPill
             Grid.Column="2"
             Classes="ToneDone15"
             Icon="ReceiptText"
-            Text="{Binding Model.SourceBillCode}" />
+            Text="{Binding Args.SourceBillCode}" />
           <TextBlock
             Grid.Column="3"
             VerticalAlignment="Center"
             Classes="Caption Muted"
-            Text="{Binding Model.Target}"
+            Text="{Binding Args.Target}"
             TextTrimming="CharacterEllipsis" />
         </Grid>
 
@@ -88,7 +88,7 @@
           HeadersVisibility="All"
           HorizontalScrollBarVisibility="Auto"
           IsReadOnly="True"
-          ItemsSource="{Binding Model.SplitCodeRows}">
+          ItemsSource="{Binding Args.SplitCodeRows}">
           <DataGrid.Columns>
             <DataGridTextColumn
               Width="220"

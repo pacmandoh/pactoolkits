@@ -17,7 +17,7 @@ public partial class ScanCodeView : UserControl
     private static readonly string[] BrowsingGridNames = { "AutoTaskGrid", "RecentRunGrid", "RetryQueueGrid" };
 
     private readonly PageGridMountScheduler _gridMount;
-    private ScanCodeViewModel? _vm;
+    private ScanCode? _vm;
     private bool _autoFetchGridsWired;
 
     public ScanCodeView()
@@ -36,7 +36,7 @@ public partial class ScanCodeView : UserControl
     {
         _vm?.PropertyChanged -= OnVmPropertyChanged;
 
-        _vm = DataContext as ScanCodeViewModel;
+        _vm = DataContext as ScanCode;
         _vm?.PropertyChanged += OnVmPropertyChanged;
         TryQueueAutoFetchGrids();
     }
@@ -45,16 +45,16 @@ public partial class ScanCodeView : UserControl
     {
         switch (e.PropertyName)
         {
-            case nameof(ScanCodeViewModel.IsAutoFetchTab):
+            case nameof(ScanCode.IsAutoFetchTab):
                 TryQueueAutoFetchGrids();
                 break;
-            case nameof(ScanCodeViewModel.IsAutoTasksEmpty):
+            case nameof(ScanCode.IsAutoTasksEmpty):
                 TryQueueAutoFetchGrid("AutoTaskGridSlot", 0);
                 break;
-            case nameof(ScanCodeViewModel.IsRecentRunsEmpty):
+            case nameof(ScanCode.IsRecentRunsEmpty):
                 TryQueueAutoFetchGrid("RecentRunGridSlot", 1);
                 break;
-            case nameof(ScanCodeViewModel.IsRetryQueueEmpty):
+            case nameof(ScanCode.IsRetryQueueEmpty):
                 TryQueueAutoFetchGrid("RetryQueueGridSlot", 2);
                 break;
         }
@@ -248,7 +248,7 @@ public partial class ScanCodeView : UserControl
 
     private void ApplyDrugFilterFromBox()
     {
-        if (DataContext is not ScanCodeViewModel vm)
+        if (DataContext is not ScanCode vm)
         {
             return;
         }
@@ -262,12 +262,12 @@ public partial class ScanCodeView : UserControl
 
     private void CodeEditor_OnGotFocus(object? sender, FocusChangedEventArgs e)
     {
-        if (DataContext is not ScanCodeViewModel vm)
+        if (DataContext is not ScanCode vm)
         {
             return;
         }
 
-        var cmd = vm.ValidateEditorContextCommand;
+        var cmd = vm.RequireDrugSpecCommand;
         if (cmd?.CanExecute(null) == true)
         {
             cmd.Execute(null);
@@ -276,12 +276,12 @@ public partial class ScanCodeView : UserControl
 
     private void TraceCodeInputBlocked_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (DataContext is not ScanCodeViewModel vm)
+        if (DataContext is not ScanCode vm)
         {
             return;
         }
 
-        vm.ValidateEditorContextCommand.Execute(null);
+        vm.RequireDrugSpecCommand.Execute(null);
         e.Handled = true;
     }
 

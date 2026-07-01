@@ -37,7 +37,7 @@ public partial class SettingsView : UserControl
         ("TabMsfxPage", "码上放心 API", "Webhook")
     ];
 
-    private SettingsViewModel? _vm;
+    private Settings? _vm;
     private Panel? _contentHost;
     private StackPanel? _navItemsHost;
     private readonly List<TabLink> _tabLinks = new();
@@ -48,15 +48,15 @@ public partial class SettingsView : UserControl
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
         AddHandler(KeyDownEvent, OnSettingsKeyDown, global::Avalonia.Interactivity.RoutingStrategies.Tunnel);
-        TryAttach(DataContext as SettingsViewModel);
+        TryAttach(DataContext as Settings);
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        TryAttach(DataContext as SettingsViewModel);
+        TryAttach(DataContext as Settings);
     }
 
-    private void TryAttach(SettingsViewModel? vm)
+    private void TryAttach(Settings? vm)
     {
         if (ReferenceEquals(_vm, vm))
         {
@@ -84,7 +84,7 @@ public partial class SettingsView : UserControl
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(SettingsViewModel.IsClientAliasReadOnly))
+        if (e.PropertyName == nameof(Settings.IsClientAliasReadOnly))
         {
             IsClientAliasEditable = !(_vm?.IsClientAliasReadOnly ?? true);
         }
@@ -114,7 +114,7 @@ public partial class SettingsView : UserControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        TryAttach(DataContext as SettingsViewModel);
+        TryAttach(DataContext as Settings);
         Dispatcher.UIThread.Post(InitTabNav, DispatcherPriority.Loaded);
     }
 
@@ -187,7 +187,7 @@ public partial class SettingsView : UserControl
             return;
         }
 
-        _contentHost = this.FindControl<Panel>("SettingsContentHost");
+        _contentHost = this.FindControl<Panel>("ContentHost");
         _navItemsHost = this.FindControl<StackPanel>("NavItemsHost");
 
         if (_contentHost is null || _navItemsHost is null)
@@ -270,7 +270,7 @@ public partial class SettingsView : UserControl
         });
 
         unsavedDot = new Border { IsVisible = false };
-        unsavedDot.Classes.Add("SettingsNavUnsavedDot");
+        unsavedDot.Classes.Add("NavUnsavedDot");
         content.Children.Add(unsavedDot);
 
         navButton = new Button
@@ -280,7 +280,7 @@ public partial class SettingsView : UserControl
             HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Stretch,
             VerticalContentAlignment = global::Avalonia.Layout.VerticalAlignment.Center
         };
-        navButton.Classes.Add("SettingsNavItem");
+        navButton.Classes.Add("NavItem");
         return true;
     }
 

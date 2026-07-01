@@ -1,11 +1,11 @@
 ﻿<UserControl
-  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InfoDetailDialogView"
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InfoDetailView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:infra="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
-  x:DataType="dialogs:InfoDetailDialogViewModel">
+  x:DataType="dialogs:InfoDetail">
   <StackPanel
     MinWidth="460"
     MaxWidth="720"
