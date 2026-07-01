@@ -64,7 +64,7 @@ public sealed partial class MsfxSyncRepo
         }, ct);
     }
 
-    public Task<MsfxBuildTaskResult> BuildInjectTasksAsync(int maxGroups, CancellationToken ct)
+    public Task<MsfxBuildInject> BuildInjectsAsync(int maxGroups, CancellationToken ct)
     {
         const string cleanupSql = """
             delete from msfx_inject_task_code tc
@@ -89,10 +89,10 @@ public sealed partial class MsfxSyncRepo
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
             {
-                return new MsfxBuildTaskResult(0, 0);
+                return new MsfxBuildInject(0, 0);
             }
 
-            return new MsfxBuildTaskResult(
+            return new MsfxBuildInject(
                 reader.GetInt32(0),
                 reader.GetInt32(1));
         }, ct);

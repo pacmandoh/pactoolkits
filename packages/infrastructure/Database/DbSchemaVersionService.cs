@@ -15,10 +15,10 @@ public sealed class DbSchemaVersionService : IDbSchemaVersionService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(CancellationToken ct)
+    public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(CancellationToken ct)
         => TryReadSchemaVersionAsync(_dbConfig.Current, ct);
 
-    public async Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
+    public async Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
     {
         try
         {
@@ -31,18 +31,18 @@ public sealed class DbSchemaVersionService : IDbSchemaVersionService
 
             if (string.IsNullOrWhiteSpace(version))
             {
-                return new DbSchemaVersionReadResult(
+                return new DbSchemaVersionRead(
                     false,
                     null,
                     "数据库缺少 schema_version 当前值",
                     IsMetadataMissing: true);
             }
 
-            return new DbSchemaVersionReadResult(true, version, null);
+            return new DbSchemaVersionRead(true, version, null);
         }
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UndefinedTable)
         {
-            return new DbSchemaVersionReadResult(
+            return new DbSchemaVersionRead(
                 false,
                 null,
                 "schema_version 表不存在",
@@ -51,7 +51,7 @@ public sealed class DbSchemaVersionService : IDbSchemaVersionService
         catch (Exception ex)
         {
             _logger.Warn("DbSchemaVersion", "schema_version.read_fail", "Failed reading schema_version", ex);
-            return new DbSchemaVersionReadResult(false, null, ex.Message);
+            return new DbSchemaVersionRead(false, null, ex.Message);
         }
     }
 
