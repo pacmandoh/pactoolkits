@@ -94,12 +94,12 @@ public static class DataGridInteractionHelper
     private static bool IsIndexColumnCell(DataGridCell cell)
     {
         var grid = cell.FindAncestorOfType<DataGrid>();
-        if (grid is null || !DataGridIndexColumnBehavior.GetEnabled(grid) || !DataGridIndexColumnBehavior.GetIsVisible(grid))
+        if (grid is null || !DataGridIndexColumn.GetEnabled(grid) || !DataGridIndexColumn.GetIsVisible(grid))
         {
             return false;
         }
 
-        if (grid.Columns.Count == 0 || !DataGridIndexColumnBehavior.IsIndexColumn(grid.Columns[0]))
+        if (grid.Columns.Count == 0 || !DataGridIndexColumn.IsIndexColumn(grid.Columns[0]))
         {
             return false;
         }

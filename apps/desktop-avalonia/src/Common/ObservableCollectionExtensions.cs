@@ -9,7 +9,7 @@ public static class ObservableCollectionExtensions
     /// Syncs collection contents without calling Clear (Reset notification),
     /// so Avalonia DataGrid does not receive Reset and auto-select the first current cell.
     /// </summary>
-    public static void ResetContents<T>(this ObservableCollection<T> target, IReadOnlyList<T> items)
+    public static void ResetContents<T>(this IList<T> target, IReadOnlyList<T> items)
     {
         while (target.Count > items.Count)
         {
@@ -33,8 +33,21 @@ public static class ObservableCollectionExtensions
     }
 
     /// <summary>
+    /// Syncs collection contents without calling Clear (Reset notification),
+    /// so Avalonia DataGrid does not receive Reset and auto-select the first current cell.
+    /// </summary>
+    public static void ResetContents<T>(this ObservableCollection<T> target, IReadOnlyList<T> items)
+        => ((IList<T>)target).ResetContents(items);
+
+    /// <summary>
+    /// Replaces the entire collection in one pass without issuing a collection Reset notification.
+    /// </summary>
+    public static void ReplaceAll<T>(this IList<T> target, IReadOnlyList<T> items)
+        => target.ResetContents(items);
+
+    /// <summary>
     /// Replaces the entire collection in one pass without issuing a collection Reset notification.
     /// </summary>
     public static void ReplaceAll<T>(this ObservableCollection<T> target, IReadOnlyList<T> items)
-        => target.ResetContents(items);
+        => ((IList<T>)target).ReplaceAll(items);
 }

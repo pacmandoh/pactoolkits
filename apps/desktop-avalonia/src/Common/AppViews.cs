@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using global::Avalonia.Controls;
+using PacToolkits.Desktop.Avalonia.ViewModels;
+using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
@@ -29,13 +31,11 @@ public sealed class AppViews
         view = null!;
 
         var vmName = viewModel.GetType().Name;
-
-        if (!vmName.EndsWith("ViewModel", StringComparison.Ordinal))
+        var viewTypeName = ResolveViewTypeName(viewModel, vmName);
+        if (viewTypeName is null)
         {
             return false;
         }
-
-        var viewTypeName = vmName[..^"ViewModel".Length] + "View";
 
         if (!_viewTypesByName.TryGetValue(viewTypeName, out var viewType))
         {
@@ -49,5 +49,20 @@ public sealed class AppViews
 
         view = (Control)Activator.CreateInstance(viewType)!;
         return true;
+    }
+
+    private static string? ResolveViewTypeName(object viewModel, string vmName)
+    {
+        if (viewModel is AppPageBase or FormBase)
+        {
+            return vmName + "View";
+        }
+
+        if (vmName.EndsWith("ViewModel", StringComparison.Ordinal))
+        {
+            return vmName[..^"ViewModel".Length] + "View";
+        }
+
+        return null;
     }
 }

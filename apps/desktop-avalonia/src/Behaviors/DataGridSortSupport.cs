@@ -11,14 +11,14 @@ namespace PacToolkits.Desktop.Avalonia.Behaviors;
 /// <summary>
 /// Ensures bound text columns expose a sort path under Avalonia 12 compiled bindings.
 /// </summary>
-public class DataGridSortSupportBehavior
+public class DataGridSortSupport
 {
     public static readonly AttachedProperty<bool> EnabledProperty =
-        AvaloniaProperty.RegisterAttached<DataGridSortSupportBehavior, DataGrid, bool>("Enabled");
+        AvaloniaProperty.RegisterAttached<DataGridSortSupport, DataGrid, bool>("Enabled");
 
     private static readonly ConcurrentDictionary<DataGrid, NotifyCollectionChangedEventHandler> ColumnHandlers = new();
 
-    static DataGridSortSupportBehavior()
+    static DataGridSortSupport()
     {
         EnabledProperty.Changed.AddClassHandler<DataGrid>((grid, args) =>
         {

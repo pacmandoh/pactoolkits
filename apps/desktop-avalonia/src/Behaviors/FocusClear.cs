@@ -11,16 +11,16 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
-public class FocusClearBehavior
+public class FocusClear
 {
     private static WeakReference<TextBox>? _lastFocusedTextBox;
 
     public static readonly AttachedProperty<bool> EnableProperty =
-        AvaloniaProperty.RegisterAttached<FocusClearBehavior, Control, bool>("Enable");
+        AvaloniaProperty.RegisterAttached<FocusClear, Control, bool>("Enable");
     public static readonly AttachedProperty<bool> SuppressGridClearProperty =
-        AvaloniaProperty.RegisterAttached<FocusClearBehavior, Control, bool>("SuppressGridClear");
+        AvaloniaProperty.RegisterAttached<FocusClear, Control, bool>("SuppressGridClear");
 
-    static FocusClearBehavior()
+    static FocusClear()
     {
         EnableProperty.Changed.AddClassHandler<Control>((c, e) =>
         {
