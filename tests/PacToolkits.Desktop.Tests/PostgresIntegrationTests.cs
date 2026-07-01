@@ -59,7 +59,7 @@ public sealed class PostgresIntegrationTests
 
         var options = LoadPgOptions();
         var service = CreateLiveSettingsService(options);
-        var snapshot = await service.ReadSchemaStatusAsync(
+        var snapshot = await service.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
                 UiMinDbSchema: "1.2.20",
                 UiMaxDbSchema: "1.2.23",
@@ -84,7 +84,7 @@ public sealed class PostgresIntegrationTests
 
         var options = LoadPgOptions();
         var service = CreateLiveSettingsService(options);
-        var snapshot = await service.ReadSchemaStatusAsync(
+        var snapshot = await service.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
                 UiMinDbSchema: "1.2.24",
                 UiMaxDbSchema: "1.2.25",
@@ -110,7 +110,7 @@ public sealed class PostgresIntegrationTests
 
         var options = LoadPgOptions(betaDatabase);
         var service = CreateLiveSettingsService(options);
-        var snapshot = await service.ReadSchemaStatusAsync(
+        var snapshot = await service.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
                 UiMinDbSchema: "1.2.20",
                 UiMaxDbSchema: "1.2.23",

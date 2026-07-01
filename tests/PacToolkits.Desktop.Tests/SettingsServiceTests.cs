@@ -76,7 +76,7 @@ public sealed class SettingsServiceTests
         var guard = new DbAccessGuard();
         var service = CreateService(migration, guard, schemaVersion: "1.2.23");
 
-        var snapshot = await service.ReadSchemaStatusAsync(
+        var snapshot = await service.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
                 UiMinDbSchema: "1.2.20",
                 UiMaxDbSchema: "1.2.22",
@@ -187,7 +187,7 @@ public sealed class SettingsServiceTests
         var service = CreateService(
             migration,
             new DbAccessGuard(),
-            schemaReadResult: new DbSchemaVersionReadResult(
+            schemaReadResult: new DbSchemaVersionRead(
                 false,
                 null,
                 "schema_version 表不存在",
@@ -217,13 +217,13 @@ public sealed class SettingsServiceTests
         var service = CreateService(
             new FakeMigrationService(),
             new DbAccessGuard(),
-            schemaReadResult: new DbSchemaVersionReadResult(
+            schemaReadResult: new DbSchemaVersionRead(
                 false,
                 null,
                 "schema_version 表不存在",
                 IsMetadataMissing: true));
 
-        var snapshot = await service.ReadSchemaStatusAsync(
+        var snapshot = await service.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
                 UiMinDbSchema: "1.2.20",
                 UiMaxDbSchema: "1.2.22",
@@ -245,11 +245,11 @@ public sealed class SettingsServiceTests
         FakeMigrationService migration,
         DbAccessGuard guard,
         string schemaVersion = "1.2.20",
-        DbSchemaVersionReadResult? schemaReadResult = null)
+        DbSchemaVersionRead? schemaReadResult = null)
         => new(
             new FakeDbConfigService(),
             new FakeConnectionTester(),
-            new FakeSchemaVersionService(schemaReadResult ?? new DbSchemaVersionReadResult(true, schemaVersion, null)),
+            new FakeSchemaVersionService(schemaReadResult ?? new DbSchemaVersionRead(true, schemaVersion, null)),
             migration,
             new FakeClientIdReadRepo(),
             guard,
@@ -301,12 +301,12 @@ public sealed class SettingsServiceTests
             => Task.FromResult(new DbTestResult(true, "ok"));
     }
 
-    private sealed class FakeSchemaVersionService(DbSchemaVersionReadResult result) : IDbSchemaVersionService
+    private sealed class FakeSchemaVersionService(DbSchemaVersionRead result) : IDbSchemaVersionService
     {
-        public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(CancellationToken ct)
+        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(CancellationToken ct)
             => Task.FromResult(result);
 
-        public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
+        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
             => Task.FromResult(result);
     }
 
@@ -314,13 +314,13 @@ public sealed class SettingsServiceTests
     {
         public PgOptions? LastOptions { get; private set; }
 
-        public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(CancellationToken ct)
-            => Task.FromResult(new DbSchemaVersionReadResult(true, "1.2.19", null));
+        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(CancellationToken ct)
+            => Task.FromResult(new DbSchemaVersionRead(true, "1.2.19", null));
 
-        public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
+        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
         {
             LastOptions = options;
-            return Task.FromResult(new DbSchemaVersionReadResult(true, "1.2.19", null));
+            return Task.FromResult(new DbSchemaVersionRead(true, "1.2.19", null));
         }
     }
 

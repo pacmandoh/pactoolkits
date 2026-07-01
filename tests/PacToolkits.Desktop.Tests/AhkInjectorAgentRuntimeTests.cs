@@ -154,11 +154,11 @@ public sealed class AhkInjectorAgentRuntimeTests
 
     private sealed class FakeDbSchemaVersionService(string version = "1.2.22") : IDbSchemaVersionService
     {
-        public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(CancellationToken ct)
-            => Task.FromResult(new DbSchemaVersionReadResult(true, version, null));
+        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(CancellationToken ct)
+            => Task.FromResult(new DbSchemaVersionRead(true, version, null));
 
-        public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
-            => Task.FromResult(new DbSchemaVersionReadResult(true, version, null));
+        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
+            => Task.FromResult(new DbSchemaVersionRead(true, version, null));
     }
 
     private sealed class FakeDbEnvSettingsService : IDbEnvSettingsService

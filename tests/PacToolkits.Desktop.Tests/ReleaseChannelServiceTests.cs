@@ -177,16 +177,16 @@ public sealed class ReleaseChannelServiceTests
 
         public int ReadCount { get; private set; }
 
-        public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(CancellationToken ct)
+        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(CancellationToken ct)
         {
             ReadCount++;
-            return Task.FromResult(new DbSchemaVersionReadResult(true, Version, null));
+            return Task.FromResult(new DbSchemaVersionRead(true, Version, null));
         }
 
-        public Task<DbSchemaVersionReadResult> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
+        public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
         {
             ReadCount++;
-            return Task.FromResult(new DbSchemaVersionReadResult(true, Version, null));
+            return Task.FromResult(new DbSchemaVersionRead(true, Version, null));
         }
     }
 
