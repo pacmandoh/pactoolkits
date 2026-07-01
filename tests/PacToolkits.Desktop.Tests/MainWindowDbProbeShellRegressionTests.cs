@@ -26,6 +26,24 @@ public sealed class MainWindowDbProbeShellRegressionTests
         throw new FileNotFoundException($"Could not locate repo file: {relativePath}");
     }
 
+    private static string ReadMainWindowViewModelSource()
+    {
+        var vmDir = Path.GetDirectoryName(
+            ResolveRepoPath("apps/desktop-avalonia/src/ViewModels/AppPageBase.cs"))!;
+
+        var partials = Directory.GetFiles(vmDir, "MainWindow*.cs")
+            .OrderBy(static path => Path.GetFileName(path), StringComparer.Ordinal)
+            .Select(File.ReadAllText)
+            .ToArray();
+
+        if (partials.Length == 0)
+        {
+            throw new FileNotFoundException($"Could not locate MainWindow*.cs under {vmDir}.");
+        }
+
+        return string.Join(Environment.NewLine, partials);
+    }
+
     private static string ExtractSidebarBlock(string mainWindowAxaml)
     {
         const string open = "<shad:Sidebar";
@@ -56,7 +74,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
     [Fact]
     public void TryReconnectDbCommand_still_debounces_via_CanProbeDb()
     {
-        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindowViewModel.cs");
+        var source = ReadMainWindowViewModelSource();
 
         Assert.Contains("[RelayCommand(CanExecute = nameof(CanProbeDb))]", source, StringComparison.Ordinal);
         Assert.Contains("public bool CanProbeDb() => !IsDbProbeRunning;", source, StringComparison.Ordinal);
@@ -76,7 +94,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
     [Fact]
     public void IsDbProbeRunning_still_drives_shell_db_status_text()
     {
-        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindowViewModel.cs");
+        var source = ReadMainWindowViewModelSource();
 
         Assert.DoesNotContain("ShowDbBusyIcon", source, StringComparison.Ordinal);
         Assert.Contains("IsDbProbeRunning ? \"数据库：检测中…\"", source, StringComparison.Ordinal);
@@ -96,7 +114,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
     [Fact]
     public void RefreshActivePage_still_blocks_while_db_probe_or_startup_init_runs()
     {
-        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindowViewModel.cs");
+        var source = ReadMainWindowViewModelSource();
 
         Assert.Contains("if (IsDbProbeRunning)", source, StringComparison.Ordinal);
         Assert.Contains("数据库初始化进行中，请稍候", source, StringComparison.Ordinal);

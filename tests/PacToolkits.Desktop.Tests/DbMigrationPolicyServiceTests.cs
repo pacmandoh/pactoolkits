@@ -261,7 +261,7 @@ public sealed class DbMigrationPolicyServiceTests
         Assert.False(result.RunMigration);
     }
 
-    private DbMigrationPolicyResult Evaluate(
+    private DbMigrationOutcome Evaluate(
         DbMigrationTrigger trigger,
         DbSchemaCompatibility compatibility,
         string releaseChannel,
