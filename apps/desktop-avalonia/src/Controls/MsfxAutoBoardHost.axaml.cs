@@ -37,7 +37,7 @@ public partial class MsfxAutoBoardHost : Grid
     private bool _revealPaused;
     private bool _revealStarted;
     private bool _revealLoopActive;
-    private MsfxLinkViewModel? _vm;
+    private MsfxLink? _vm;
 
     public MsfxAutoBoardHost()
     {
@@ -76,7 +76,7 @@ public partial class MsfxAutoBoardHost : Grid
     {
         base.OnDataContextChanged(e);
         UnhookViewModel();
-        _vm = DataContext as MsfxLinkViewModel;
+        _vm = DataContext as MsfxLink;
         _vm?.PropertyChanged += OnViewModelPropertyChanged;
 
         foreach (var view in _panelViews.Values)
@@ -141,16 +141,16 @@ public partial class MsfxAutoBoardHost : Grid
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MsfxLinkViewModel.AutoExpandedPanel))
+        if (e.PropertyName == nameof(MsfxLink.AutoExpandedPanel))
         {
             ApplyPanelLayout();
         }
 
-        if (e.PropertyName is nameof(MsfxLinkViewModel.IsAutoPullBatchEmpty)
-            or nameof(MsfxLinkViewModel.IsAutoMapQueueEmpty)
-            or nameof(MsfxLinkViewModel.IsAutoTaskQueueEmpty)
-            or nameof(MsfxLinkViewModel.IsAutoLogsEmpty)
-            or nameof(MsfxLinkViewModel.AutoExpandedPanel))
+        if (e.PropertyName is nameof(MsfxLink.IsAutoPullBatchEmpty)
+            or nameof(MsfxLink.IsAutoMapQueueEmpty)
+            or nameof(MsfxLink.IsAutoTaskQueueEmpty)
+            or nameof(MsfxLink.IsAutoLogsEmpty)
+            or nameof(MsfxLink.AutoExpandedPanel))
         {
             _ = MountDeferredPanelsAsync();
         }
@@ -336,7 +336,7 @@ public partial class MsfxAutoBoardHost : Grid
     private void UpdateSkeletonVisibility()
         => SkeletonOverlay.IsVisible = _mountedPanelKeys.Count == 0;
 
-    private static bool MountPanel(string key, MsfxLinkViewModel vm)
+    private static bool MountPanel(string key, MsfxLink vm)
     {
         if (string.Equals(vm.AutoExpandedPanel, key, StringComparison.OrdinalIgnoreCase))
         {

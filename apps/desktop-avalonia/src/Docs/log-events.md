@@ -93,7 +93,7 @@
 ### 2.5 `MSFX` 页面审计日志（非 JSON logger）
 
 `码上放心联调` 页面下方的“运行日志详情”不是 `_logger` 写入的 JSON Line 日志，
-而是页面内审计面板数据，由 `MsfxLinkViewModel.AddAutoLog(...)` 维护。
+而是页面内审计面板数据，由 `MsfxLink.AddAutoLog(...)` 维护。
 
 这类事件:
 
@@ -103,7 +103,7 @@
 
 说明:
 
-- 当前已将部分关键节点同步写入 Desktop JSON logger，见下方 `MsfxLinkViewModel` 模块事件表
+- 当前已将部分关键节点同步写入 Desktop JSON logger，见下方 `MsfxLink` 模块事件表
 - 但页面内绝大多数即时轨迹仍以审计面板为主，不做全量持久化
 
 常见阶段名:
@@ -227,7 +227,7 @@
 - `dispose.logging_settings_unsub_fail`
 - `settings.nav_click.fail`
 
-## InventoryOverviewViewModel
+## InventoryOverview
 
 - `inventory.reassign_context.load_fail`
 - `inventory.reassign_drug_options.load_fail`
@@ -238,7 +238,7 @@
 - `inventory.stock.delete_fail`
 - `inventory.external_refresh.reconcile_fail`
 
-## ScanCodeViewModel
+## ScanCode
 
 - `scan.notify_drug_index.fail`
 - `scan.prefill.qty_read.fail`
@@ -246,7 +246,7 @@
 - `scan.entry_log.write_fail`
 - `scan.submit.fail`
 
-## ToolsCenterViewModel
+## ToolsCenter
 
 - `tools.save_settings.fail`
 - `tools.restart_ahk.fail`
@@ -264,7 +264,7 @@
 - `tools.dispose.intcols_item_unsub_fail`
 - `tools.dispose.warehouse_anchor_item_unsub_fail`
 
-## MsfxLinkViewModel
+## MsfxLink
 
 - `msfx.auto.run.start`
 - `msfx.auto.batch.created`
@@ -297,7 +297,7 @@
 
 - 批量映射对话框内分组加载/预览失败按 `Warn` 记录（模态对话框，不重复 shell 连接 toast）
 
-## MsfxMappingBatchDialogView
+## MsfxMappingBatchView
 
 - `msfx.map.batch.attach_init.fail`
 
@@ -305,7 +305,7 @@
 
 - `search.debounce.fail`
 
-## DashboardViewModel
+## Dashboard
 
 - `dashboard.init.filters_fail`
 - `dashboard.reload.lazy_filters_fail`
@@ -316,7 +316,7 @@
 - `dashboard.abnormal_page.reload_fail`
 - `dashboard.dispose.safe_execute_fail`
 
-## DrugIndexViewModel
+## DrugIndex
 
 - `drug_index.fix_key.concurrency_conflict`
 - `drug_index.fix_key.fail`
@@ -401,7 +401,7 @@
 - `config.atomic_cleanup.fail`
 - `logging.directory.migrate`
 
-## PageReloadBehavior
+## PageReload
 
 - `reload.run.fail`
 

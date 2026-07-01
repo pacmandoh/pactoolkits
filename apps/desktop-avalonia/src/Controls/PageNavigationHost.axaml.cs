@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Threading;
 using PacToolkits.Desktop.Avalonia.Common.Diagnostics;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 
@@ -21,6 +23,7 @@ public class PageNavigationHost : Grid
         AvaloniaProperty.Register<PageNavigationHost, AppPageBase?>(nameof(Page));
 
     private readonly Dictionary<AppPageBase, Control> _views = new();
+    private bool _warmupScheduled;
 
     static PageNavigationHost()
     {
@@ -51,6 +54,7 @@ public class PageNavigationHost : Grid
         base.OnAttachedToVisualTree(e);
         MountKnownViews();
         UpdateActiveVisibility();
+        SchedulePageWarmup();
     }
 
     private void OnPagesChanged()
@@ -61,6 +65,7 @@ public class PageNavigationHost : Grid
         }
 
         UpdateActiveVisibility();
+        SchedulePageWarmup();
     }
 
     private void MountKnownViews()
@@ -139,5 +144,40 @@ public class PageNavigationHost : Grid
         }
 
         return new TextBlock { Text = $"No template for {page.GetType().Name}" };
+    }
+
+    /// <summary>
+    /// Materializes cached page views one frame at a time so the first sidebar switch
+    /// does not pay the full AXAML compile cost on the UI thread.
+    /// </summary>
+    private void SchedulePageWarmup()
+    {
+        if (_warmupScheduled || Pages is null || Pages.Count == 0)
+        {
+            return;
+        }
+
+        _warmupScheduled = true;
+        var pending = Pages.Where(page => !_views.ContainsKey(page)).ToList();
+        WarmupPageAt(pending, 0);
+    }
+
+    private void WarmupPageAt(IReadOnlyList<AppPageBase> pending, int index)
+    {
+        if (index >= pending.Count)
+        {
+            return;
+        }
+
+        var page = pending[index];
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!_views.ContainsKey(page))
+            {
+                MountPageView(page);
+            }
+
+            WarmupPageAt(pending, index + 1);
+        }, DispatcherPriority.Background);
     }
 }
