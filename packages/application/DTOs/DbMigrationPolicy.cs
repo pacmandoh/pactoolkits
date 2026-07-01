@@ -43,7 +43,7 @@ public sealed record DbMigrationEvaluationContext(
     bool UserConfirmed,
     bool CiMigrationAuthorized);
 
-public sealed record DbMigrationPolicyResult(
+public sealed record DbMigrationOutcome(
     DbMigrationDecision Decision,
     string Reason,
     bool RunMigration);

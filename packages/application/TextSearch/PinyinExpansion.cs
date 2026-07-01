@@ -1,9 +1,10 @@
+using System.Collections.Concurrent;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.TextSearch;
 
-public static class PinyinCatalogExpander
+public static class PinyinExpansion
 {
     public static async Task<KeywordSearchContext> ExpandDrugKeywordAsync(
         IPinyinSearchCatalogCache catalogCache,
@@ -48,4 +49,41 @@ public static class PinyinCatalogExpander
 
         return new KeywordSearchContext(kw, drugIds.ToArray(), specs.ToArray());
     }
+}
+
+internal sealed class PinyinExpansionCache
+{
+    private static readonly TimeSpan Ttl = TimeSpan.FromSeconds(45);
+    private const int MaxEntries = 256;
+
+    private readonly ConcurrentDictionary<string, CacheEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
+
+    public bool TryGet(string keyword, out string[][]? exactPerToken)
+    {
+        exactPerToken = null;
+        if (!_entries.TryGetValue(keyword, out var entry) || entry.ExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            if (entry is not null)
+            {
+                _entries.TryRemove(keyword, out _);
+            }
+
+            return false;
+        }
+
+        exactPerToken = entry.ExactPerToken;
+        return true;
+    }
+
+    public void Set(string keyword, string[][]? exactPerToken)
+    {
+        if (_entries.Count >= MaxEntries)
+        {
+            _entries.Clear();
+        }
+
+        _entries[keyword] = new CacheEntry(exactPerToken, DateTimeOffset.UtcNow.Add(Ttl));
+    }
+
+    private sealed record CacheEntry(string[][]? ExactPerToken, DateTimeOffset ExpiresAt);
 }

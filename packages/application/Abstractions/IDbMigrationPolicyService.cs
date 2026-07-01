@@ -5,9 +5,9 @@ namespace PacToolkits.Application.Abstractions;
 
 public interface IDbMigrationPolicyService
 {
-    DbMigrationPolicyResult Evaluate(DbMigrationEvaluationContext context);
+    DbMigrationOutcome Evaluate(DbMigrationEvaluationContext context);
 
-    Task<DbMigrationPolicyResult> EvaluateAsync(
+    Task<DbMigrationOutcome> EvaluateAsync(
         DbMigrationTrigger trigger,
         DbSchemaCompatibility compatibility,
         string releaseChannel,

@@ -27,3 +27,20 @@ public sealed record CodeAnalysis(
     int Invalid,
     int Duplicate,
     IReadOnlyList<string> ValidUniqueCodes);
+
+public sealed record TraceCodeValidationRule(int RequiredLength, string Pattern);
+
+public sealed record ScanCodeSubmitRequest(
+    string DrugId,
+    string Spec,
+    IReadOnlyList<string> ValidUniqueCodes,
+    CodeAnalysis Analysis,
+    string ClientRaw,
+    string Source = "manual");
+
+public sealed record ScanCodeSubmitResult(
+    bool DrugFound,
+    ScanCodeInsertResult Insert,
+    int QtyPerTrace,
+    string EntryResult,
+    string EntryMessage);

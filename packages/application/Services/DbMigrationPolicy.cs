@@ -14,7 +14,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
             ?? throw new ArgumentNullException(nameof(envSettings));
     }
 
-    public async Task<DbMigrationPolicyResult> EvaluateAsync(
+    public async Task<DbMigrationOutcome> EvaluateAsync(
         DbMigrationTrigger trigger,
         DbSchemaCompatibility compatibility,
         string releaseChannel,
@@ -34,7 +34,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
             ciMigrationAuthorized));
     }
 
-    public DbMigrationPolicyResult Evaluate(DbMigrationEvaluationContext context)
+    public DbMigrationOutcome Evaluate(DbMigrationEvaluationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -51,7 +51,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
 
         if (context.Compatibility == DbSchemaCompatibility.Compatible)
         {
-            return new DbMigrationPolicyResult(
+            return new DbMigrationOutcome(
                 DbMigrationDecision.Allowed,
                 "数据库版本已在支持范围内",
                 RunMigration: false);
@@ -78,7 +78,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
                 => Block("Beta 应用禁止迁移共享生产数据库。请使用隔离测试库或等待 Stable 发布。"),
 
             DbMigrationPolicies.Manual when context.Trigger == DbMigrationTrigger.ExternalDeploy
-                => new DbMigrationPolicyResult(
+                => new DbMigrationOutcome(
                     DbMigrationDecision.Allowed,
                     "manual 策略仅允许外部手动部署迁移",
                     RunMigration: true),
@@ -97,7 +97,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
         };
     }
 
-    private static DbMigrationPolicyResult EvaluateIsolatedBeta(DbMigrationEvaluationContext context)
+    private static DbMigrationOutcome EvaluateIsolatedBeta(DbMigrationEvaluationContext context)
     {
         if (!context.EnvironmentSettings.IsIsolated)
         {
@@ -112,7 +112,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
         if (context.Trigger == DbMigrationTrigger.ExternalDeploy)
         {
             return context.CiMigrationAuthorized
-                ? new DbMigrationPolicyResult(
+                ? new DbMigrationOutcome(
                     DbMigrationDecision.Allowed,
                     "CI 已授权 Beta 隔离库迁移",
                     RunMigration: true)
@@ -121,30 +121,30 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
 
         if (!context.UserConfirmed)
         {
-            return new DbMigrationPolicyResult(
+            return new DbMigrationOutcome(
                 DbMigrationDecision.RequiresConfirmation,
                 "Beta 隔离库迁移需要二次确认",
                 RunMigration: false);
         }
 
-        return new DbMigrationPolicyResult(
+        return new DbMigrationOutcome(
             DbMigrationDecision.Allowed,
             "已满足 isolated-beta 迁移授权",
             RunMigration: true);
     }
 
-    private static DbMigrationPolicyResult AllowInAppMigration(
+    private static DbMigrationOutcome AllowInAppMigration(
         DbMigrationTrigger trigger,
         string reason)
     {
         _ = trigger;
-        return new DbMigrationPolicyResult(
+        return new DbMigrationOutcome(
             DbMigrationDecision.Allowed,
             reason,
             RunMigration: true);
     }
 
-    private static DbMigrationPolicyResult Block(string reason)
+    private static DbMigrationOutcome Block(string reason)
         => new(DbMigrationDecision.ReadOnlyRequired, reason, RunMigration: false);
 
     private static bool TryNormalizePolicy(string? migrationPolicy, out string policy)
