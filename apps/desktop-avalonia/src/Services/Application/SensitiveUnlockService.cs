@@ -162,7 +162,7 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             }
 
             var suffix = failed <= 0 ? promptHint : $"{promptHint}\n（已失败 {failed} 次）";
-            input = NormalizeInput(await _dialog.PromptInventoryUnlockPassword(promptTitle, suffix).ConfigureAwait(true));
+            input = NormalizeInput(await _dialog.PromptUnlockPassword(promptTitle, suffix).ConfigureAwait(true));
         }
         finally
         {

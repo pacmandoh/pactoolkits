@@ -143,7 +143,7 @@ public sealed class AhkInjectorAgentRuntime : IInjectorAgentRuntime
         {
             lock (_gate)
             {
-                return AgentContractMapping.ToRuntimeConfig(
+                return AgentContracts.ToRuntimeConfig(
                     Clone(_options),
                     _configStore.ConfigPath,
                     _releaseVersion.Current.AgentVersion ?? string.Empty);

@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using PacToolkits.Desktop.Avalonia.Services.Application;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
@@ -27,7 +28,7 @@ public partial class PageDataShell : UserControl
     public static readonly StyledProperty<string> StaleHintProperty =
         AvaloniaProperty.Register<PageDataShell, string>(
             nameof(StaleHint),
-            "数据库已断开，当前显示的是上次成功加载的数据。");
+            SectionEmptyCopy.StaleHint);
 
     public static readonly StyledProperty<bool> ShowLoadingOverlayProperty =
         AvaloniaProperty.Register<PageDataShell, bool>(nameof(ShowLoadingOverlay));
