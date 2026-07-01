@@ -9,7 +9,7 @@
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:Name="Root"
-  x:DataType="vm:MsfxLinkViewModel"
+  x:DataType="vm:MsfxLink"
   ClipToBounds="True"
   Focusable="True">
   <controls:PageDataShell

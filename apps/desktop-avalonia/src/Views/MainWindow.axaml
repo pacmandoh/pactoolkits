@@ -14,7 +14,7 @@
   Height="900"
   MinWidth="1350"
   MinHeight="800"
-  behaviors:FocusClearBehavior.Enable="True"
+  behaviors:FocusClear.Enable="True"
   x:DataType="vm:MainWindowViewModel"
   Icon="avares://pactoolkits-desktop/Assets/app.ico"
   ShowBottomBorder="False"
@@ -51,7 +51,7 @@
             <icons:AppIcon
               Width="{DynamicResource TitleBarCapsuleIconSize}"
               Height="{DynamicResource TitleBarCapsuleIconSize}"
-              Kind="{Binding CurrentTheme, Converter={x:Static conv:ThemeModeConverters.ToIconKind}}" />
+              Kind="{Binding CurrentTheme, Converter={x:Static conv:Theme.ToIconKind}}" />
           </Button>
 
           <Border
@@ -423,22 +423,22 @@
                 Classes.active="{Binding IsDashboardFilterBarVisible}"
                 Command="{Binding ToggleDashboardFilterBarCommand}"
                 IsVisible="{Binding IsDashboardPageActive}"
-                ToolTip.Tip="{Binding FilterbarToggleToolTip}">
-                <icons:AppIcon Kind="{Binding FilterbarToggleIconKind}" />
+                ToolTip.Tip="{Binding FilterBarToggleToolTip}">
+                <icons:AppIcon Kind="{Binding FilterBarToggleIconKind}" />
               </Button>
               <Button
                 Classes="Icon ghost-states"
-                Command="{Binding InventoryRequestUnlockCommand}"
-                IsEnabled="{Binding CanInventoryRequestUnlock}"
-                IsVisible="{Binding ShowInventoryRequestUnlock}"
+                Command="{Binding Unlock}"
+                IsEnabled="{Binding CanUnlock}"
+                IsVisible="{Binding ShowUnlock}"
                 ToolTip.Tip="解锁">
                 <icons:AppIcon Foreground="{DynamicResource WarningColor}" Kind="LockKeyhole" />
               </Button>
               <Button
                 Classes="Icon ghost-states"
-                Command="{Binding InventoryLockOperationsCommand}"
-                IsEnabled="{Binding CanInventoryLockOperations}"
-                IsVisible="{Binding ShowInventoryLockOperations}"
+                Command="{Binding Lock}"
+                IsEnabled="{Binding CanLock}"
+                IsVisible="{Binding ShowLock}"
                 ToolTip.Tip="锁定">
                 <icons:AppIcon Foreground="{DynamicResource ErrorColor}" Kind="LockKeyholeOpen" />
               </Button>
@@ -510,11 +510,40 @@
               HorizontalAlignment="Right"
               VerticalAlignment="Center"
               Classes="HeaderMenu"
+              IsVisible="{Binding IsDrugIndexPageActive}">
+              <MenuItem Command="{Binding Import}" IsEnabled="{Binding CanImport}">
+                <MenuItem.Header>
+                  <StackPanel Classes="HeaderMenuItem">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeCompact}"
+                      Height="{DynamicResource IconSizeCompact}"
+                      Kind="Clipboard" />
+                    <TextBlock Text="剪贴板导入" />
+                  </StackPanel>
+                </MenuItem.Header>
+              </MenuItem>
+              <MenuItem Command="{Binding NewItem}" IsEnabled="{Binding CanNewItem}">
+                <MenuItem.Header>
+                  <StackPanel Classes="HeaderMenuItem">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeCompact}"
+                      Height="{DynamicResource IconSizeCompact}"
+                      Kind="Plus" />
+                    <TextBlock Text="新建" />
+                  </StackPanel>
+                </MenuItem.Header>
+              </MenuItem>
+            </Menu>
+            <Menu
+              Grid.Column="4"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              Classes="HeaderMenu"
               IsVisible="{Binding IsInventoryPageActive}">
               <MenuItem
-                Command="{Binding InventoryToggleStockEditCommand}"
-                IsEnabled="{Binding CanInventoryToggleStockEdit}"
-                IsVisible="{Binding ShowInventoryEnableEdit}">
+                Command="{Binding ToggleStockEdit}"
+                IsEnabled="{Binding CanToggleStockEdit}"
+                IsVisible="{Binding ShowEnableStockEdit}">
                 <MenuItem.Header>
                   <StackPanel Classes="HeaderMenuItem">
                     <icons:AppIcon
@@ -526,9 +555,9 @@
                 </MenuItem.Header>
               </MenuItem>
               <MenuItem
-                Command="{Binding InventoryToggleStockEditCommand}"
-                IsEnabled="{Binding CanInventoryToggleStockEdit}"
-                IsVisible="{Binding ShowInventoryDisableEdit}">
+                Command="{Binding ToggleStockEdit}"
+                IsEnabled="{Binding CanToggleStockEdit}"
+                IsVisible="{Binding ShowDisableStockEdit}">
                 <MenuItem.Header>
                   <StackPanel Classes="HeaderMenuItem">
                     <icons:AppIcon
@@ -540,9 +569,9 @@
                 </MenuItem.Header>
               </MenuItem>
               <MenuItem
-                Command="{Binding InventoryToggleReassignCommand}"
-                IsEnabled="{Binding CanInventoryToggleReassign}"
-                IsVisible="{Binding ShowInventoryReassign}">
+                Command="{Binding ToggleReassign}"
+                IsEnabled="{Binding CanToggleReassign}"
+                IsVisible="{Binding ShowOpenReassign}">
                 <MenuItem.Header>
                   <StackPanel Classes="HeaderMenuItem">
                     <icons:AppIcon
@@ -550,6 +579,20 @@
                       Height="{DynamicResource IconSizeCompact}"
                       Kind="FilePenLine" />
                     <TextBlock Text="药品纠错" />
+                  </StackPanel>
+                </MenuItem.Header>
+              </MenuItem>
+              <MenuItem
+                Command="{Binding ToggleReassign}"
+                IsEnabled="{Binding CanToggleReassign}"
+                IsVisible="{Binding ShowCloseReassign}">
+                <MenuItem.Header>
+                  <StackPanel Classes="HeaderMenuItem">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeCompact}"
+                      Height="{DynamicResource IconSizeCompact}"
+                      Kind="X" />
+                    <TextBlock Text="关闭纠错" />
                   </StackPanel>
                 </MenuItem.Header>
               </MenuItem>
@@ -606,7 +649,7 @@
                 </MenuItem.Header>
               </MenuItem>
               <MenuItem
-                Command="{Binding TopImportCommand}"
+                Command="{Binding TopImport}"
                 IsEnabled="{Binding CanTopImport}"
                 IsVisible="{Binding ShowTopImport}">
                 <MenuItem.Header>
@@ -620,7 +663,7 @@
                 </MenuItem.Header>
               </MenuItem>
               <MenuItem
-                Command="{Binding TopExportCommand}"
+                Command="{Binding TopExport}"
                 IsEnabled="{Binding CanTopExport}"
                 IsVisible="{Binding ShowTopExport}">
                 <MenuItem.Header>
@@ -753,7 +796,7 @@
           Orientation="Horizontal"
           Spacing="0">
           <Button
-            Classes="StatusBarItem StatusBarUpdateItem"
+            Classes="StatusBarItem"
             Command="{Binding OpenUpdateCenterCommand}"
             IsVisible="{Binding HasUpdateAvailable}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">

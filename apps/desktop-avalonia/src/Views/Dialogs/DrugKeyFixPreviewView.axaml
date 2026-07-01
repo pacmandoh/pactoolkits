@@ -1,5 +1,5 @@
 ﻿<UserControl
-  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.DrugKeyFixPreviewDialogView"
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.DrugKeyFixPreviewView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,7 +8,7 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   d:DesignHeight="480"
   d:DesignWidth="400"
-  x:DataType="dialogs:DrugKeyFixPreviewDialogViewModel"
+  x:DataType="dialogs:DrugKeyFixPreview"
   mc:Ignorable="d">
   <StackPanel
     Width="400"
@@ -74,7 +74,6 @@
         <TextBlock
           Grid.Row="0"
           Grid.Column="1"
-          HorizontalAlignment="Right"
           FontWeight="SemiBold"
           Text="{Binding Preview.TracePoolAffectedDisplay}" />
 
@@ -86,7 +85,6 @@
         <TextBlock
           Grid.Row="1"
           Grid.Column="1"
-          HorizontalAlignment="Right"
           FontWeight="SemiBold"
           Text="{Binding Preview.TraceTxnAffectedDisplay}" />
       </Grid>

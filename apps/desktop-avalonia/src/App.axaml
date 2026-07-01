@@ -28,6 +28,7 @@
       <conv:TraceEntryStateToFgBrushConverter x:Key="TraceEntryStateToFgBrush" />
       <conv:TraceEntryStateToBgBrushConverter x:Key="TraceEntryStateToBgBrush" />
       <conv:SidebarNavToolTipConverter x:Key="SidebarNavToolTip" />
+      <conv:DgQtyFontSizeConverter x:Key="DgQtyFontSize" />
     </ResourceDictionary>
   </Application.Resources>
 

@@ -8,11 +8,11 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Dialogs;
 
-public partial class MsfxMappingBatchDialogView : UserControl
+public partial class MsfxMappingBatchView : UserControl
 {
-    private MsfxMappingBatchDialogViewModel? _attachedVm;
+    private MsfxMappingBatch? _attached;
 
-    public MsfxMappingBatchDialogView()
+    public MsfxMappingBatchView()
     {
         InitializeComponent();
         AttachDrugAutoComplete();
@@ -22,7 +22,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        _attachedVm = null;
+        _attached = null;
         _ = TryInitializeSafeAsync();
     }
 
@@ -38,7 +38,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
         catch (Exception ex)
         {
             AppLog.Warn(
-                "MsfxMappingBatchDialogView",
+                "MsfxMappingBatchView",
                 "msfx.map.batch.attach_init.fail",
                 "Dialog attach initialization failed",
                 ex);
@@ -47,12 +47,12 @@ public partial class MsfxMappingBatchDialogView : UserControl
 
     private async Task TryInitializeAsync()
     {
-        if (DataContext is not MsfxMappingBatchDialogViewModel vm || ReferenceEquals(_attachedVm, vm))
+        if (DataContext is not MsfxMappingBatch vm || ReferenceEquals(_attached, vm))
         {
             return;
         }
 
-        _attachedVm = vm;
+        _attached = vm;
         await vm.InitializeViewAsync().ConfigureAwait(true);
     }
 
@@ -64,7 +64,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
 
     private Task ApplyDrugCommitFromBoxAsync(AutoCompleteBox box)
     {
-        if (DataContext is MsfxMappingBatchDialogViewModel vm && vm.ApplyDrugCommitCommand.CanExecute(null))
+        if (DataContext is MsfxMappingBatch vm && vm.ApplyDrugCommitCommand.CanExecute(null))
         {
             vm.ApplyDrugCommitCommand.Execute(null);
         }
@@ -82,7 +82,7 @@ public partial class MsfxMappingBatchDialogView : UserControl
 
     private void KeywordBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter || DataContext is not MsfxMappingBatchDialogViewModel vm)
+        if (e.Key != Key.Enter || DataContext is not MsfxMappingBatch vm)
         {
             return;
         }

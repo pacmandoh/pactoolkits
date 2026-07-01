@@ -10,7 +10,7 @@
   MinHeight="0"
   HorizontalAlignment="Stretch"
   VerticalAlignment="Stretch"
-  x:DataType="vm:MsfxLinkViewModel">
+  x:DataType="vm:MsfxLink">
   <shad:Card
     HorizontalAlignment="Stretch"
     VerticalAlignment="Stretch"
@@ -138,6 +138,7 @@
                       Width="24"
                       Height="24"
                       Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                      Classes="DgStatusBadge"
                       CornerRadius="12">
                       <icons:AppIcon
                         Width="{DynamicResource IconSizeSmall}"

@@ -10,7 +10,7 @@
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   d:DesignHeight="820"
   d:DesignWidth="1200"
-  x:DataType="vm:AboutViewModel"
+  x:DataType="vm:About"
   mc:Ignorable="d">
   <ScrollViewer
     HorizontalAlignment="Stretch"

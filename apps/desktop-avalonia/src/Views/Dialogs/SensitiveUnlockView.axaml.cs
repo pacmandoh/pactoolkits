@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Dialogs;
 
-public partial class InventoryUnlockDialogView : UserControl
+public partial class SensitiveUnlockView : UserControl
 {
-    public InventoryUnlockDialogView()
+    public SensitiveUnlockView()
     {
         InitializeComponent();
     }

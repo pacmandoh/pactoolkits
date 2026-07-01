@@ -2,10 +2,11 @@ using global::Avalonia.Controls;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Dialogs;
 
-public partial class MsfxStateDetailDialogView : UserControl
+public partial class InfoDetailView : UserControl
 {
-    public MsfxStateDetailDialogView()
+    public InfoDetailView()
     {
         InitializeComponent();
     }
 }
+
