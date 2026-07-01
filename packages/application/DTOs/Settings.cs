@@ -11,7 +11,7 @@ public sealed record DbSchemaVersionContext(
     string ReleaseChannel = "stable",
     string MigrationPolicy = DbMigrationPolicies.StableOnly);
 
-public sealed record DbConnectionValidationResult(
+public sealed record DbConnectionValidation(
     bool ConnectionOk,
     string? ConnectionSummary,
     bool SchemaMigrationOk,
@@ -29,9 +29,15 @@ public sealed record DbSchemaStatusSnapshot(
     DbSchemaCompatibility Compatibility,
     bool Satisfied,
     bool Updatable,
-    DbMigrationPolicyResult ManualMigrationPolicy,
+    DbMigrationOutcome ManualMigrationPolicy,
     string? IncompatibleMessage);
 
-public sealed record ClientAliasSourceLoadResult(
+public sealed record ClientAliasSources(
     bool IsDbConnected,
     IReadOnlyList<string> ClientMachines);
+
+public sealed record DbSchemaVersionRead(
+    bool Ok,
+    string? Value,
+    string? Reason,
+    bool IsMetadataMissing = false);

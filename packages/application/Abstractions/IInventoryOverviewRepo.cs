@@ -1,4 +1,5 @@
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.TextSearch;
 
 namespace PacToolkits.Application.Abstractions;
 

@@ -4,27 +4,27 @@ namespace PacToolkits.Application.Abstractions;
 
 public interface IDashboardService
 {
-    Task<DashboardSnapshot> LoadSnapshotAsync(DashboardLoadRequest request, CancellationToken ct);
+    Task<DashboardSnapshot> GetSnapshotAsync(DashboardRequest request, CancellationToken ct);
 
-    Task<PagedResult<TraceTxnDto>> LoadTxnPageAsync(
+    Task<PagedResult<TraceTxnDto>> GetTxnPageAsync(
         DashboardFilter filter,
         int page,
         int pageSize,
         CancellationToken ct);
 
-    Task<PagedResult<TrendRowDto>> LoadTxnTrendPageAsync(
+    Task<PagedResult<TrendRowDto>> GetTxnTrendPageAsync(
         DashboardFilter filter,
         int page,
         int pageSize,
         CancellationToken ct);
 
-    Task<PagedResult<TraceEntryLogDto>> LoadEntryPageAsync(
+    Task<PagedResult<TraceEntryLogDto>> GetEntryPageAsync(
         DashboardFilter filter,
         int page,
         int pageSize,
         CancellationToken ct);
 
-    Task<PagedResult<AbnormalRowDto>> LoadAbnormalPageAsync(
+    Task<PagedResult<AbnormalRowDto>> GetAbnormalPageAsync(
         DashboardFilter filter,
         int page,
         int pageSize,

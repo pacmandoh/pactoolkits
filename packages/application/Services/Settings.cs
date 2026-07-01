@@ -10,7 +10,7 @@ public interface ISettingsService
 
     Task SaveDbConfigAsync(PgOptions options, CancellationToken ct);
 
-    Task<DbConnectionValidationResult> ValidateDbConnectionAsync(
+    Task<DbConnectionValidation> ValidateDbConnectionAsync(
         PgOptions options,
         DbSchemaVersionContext schemaContext,
         CancellationToken ct);
@@ -40,27 +40,27 @@ public interface ISettingsService
         PgOptions connectionOptions,
         CancellationToken ct);
 
-    Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+    Task<DbSchemaStatusSnapshot> GetSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
         CancellationToken ct);
 
-    Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+    Task<DbSchemaStatusSnapshot> GetSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
         DbMigrationTrigger trigger,
         CancellationToken ct);
 
-    Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+    Task<DbSchemaStatusSnapshot> GetSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
         PgOptions connectionOptions,
         CancellationToken ct);
 
-    Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+    Task<DbSchemaStatusSnapshot> GetSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
         DbMigrationTrigger trigger,
         PgOptions connectionOptions,
         CancellationToken ct);
 
-    Task<ClientAliasSourceLoadResult> LoadClientAliasSourcesAsync(
+    Task<ClientAliasSources> GetClientAliasSourcesAsync(
         PgOptions options,
         CancellationToken ct);
 }
@@ -107,7 +107,7 @@ public sealed class SettingsService : ISettingsService
         return (result.Ok, result.Summary);
     }
 
-    public async Task<DbConnectionValidationResult> ValidateDbConnectionAsync(
+    public async Task<DbConnectionValidation> ValidateDbConnectionAsync(
         PgOptions options,
         DbSchemaVersionContext schemaContext,
         CancellationToken ct)
@@ -115,7 +115,7 @@ public sealed class SettingsService : ISettingsService
         var test = await TestConnectionAsync(options, ct).ConfigureAwait(false);
         if (!test.Ok)
         {
-            return new DbConnectionValidationResult(
+            return new DbConnectionValidation(
                 ConnectionOk: false,
                 ConnectionSummary: test.Summary,
                 SchemaMigrationOk: false,
@@ -124,10 +124,10 @@ public sealed class SettingsService : ISettingsService
                 IncompatibleMessage: null);
         }
 
-        var statusBeforeMigration = await ReadSchemaStatusAsync(schemaContext, options, ct).ConfigureAwait(false);
+        var statusBeforeMigration = await GetSchemaStatusAsync(schemaContext, options, ct).ConfigureAwait(false);
         if (statusBeforeMigration.Compatibility == DbSchemaCompatibility.AboveMaximum)
         {
-            return new DbConnectionValidationResult(
+            return new DbConnectionValidation(
                 ConnectionOk: true,
                 ConnectionSummary: test.Summary,
                 SchemaMigrationOk: true,
@@ -150,7 +150,7 @@ public sealed class SettingsService : ISettingsService
 
             if (!policy.RunMigration)
             {
-                return new DbConnectionValidationResult(
+                return new DbConnectionValidation(
                     ConnectionOk: true,
                     ConnectionSummary: test.Summary,
                     SchemaMigrationOk: true,
@@ -169,7 +169,7 @@ public sealed class SettingsService : ISettingsService
             ct).ConfigureAwait(false);
         if (!migration.Ok)
         {
-            return new DbConnectionValidationResult(
+            return new DbConnectionValidation(
                 ConnectionOk: true,
                 ConnectionSummary: test.Summary,
                 SchemaMigrationOk: false,
@@ -179,7 +179,7 @@ public sealed class SettingsService : ISettingsService
         }
 
         var compat = await CheckSchemaCompatibilityAsync(schemaContext, options, ct).ConfigureAwait(false);
-        return new DbConnectionValidationResult(
+        return new DbConnectionValidation(
             ConnectionOk: true,
             ConnectionSummary: test.Summary,
             SchemaMigrationOk: true,
@@ -233,7 +233,7 @@ public sealed class SettingsService : ISettingsService
         PgOptions? connectionOptions,
         CancellationToken ct)
     {
-        var status = await ReadSchemaStatusAsync(schemaContext, trigger, connectionOptions, ct).ConfigureAwait(false);
+        var status = await GetSchemaStatusAsync(schemaContext, trigger, connectionOptions, ct).ConfigureAwait(false);
         if (status.Compatibility == DbSchemaCompatibility.AboveMaximum)
         {
             return (false, $"数据库版本高于当前程序支持范围：当前 {status.CurrentVersion}，最高支持 {status.RequiredMaxVersion}。不会执行自动降级。");
@@ -282,7 +282,7 @@ public sealed class SettingsService : ISettingsService
         PgOptions? connectionOptions,
         CancellationToken ct)
     {
-        var snapshot = await ReadSchemaStatusAsync(
+        var snapshot = await GetSchemaStatusAsync(
             schemaContext,
             DbMigrationTrigger.SettingsManual,
             connectionOptions,
@@ -295,32 +295,32 @@ public sealed class SettingsService : ISettingsService
         return (false, snapshot.IncompatibleMessage ?? BuildIncompatibleMessage(schemaContext, snapshot));
     }
 
-    public Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+    public Task<DbSchemaStatusSnapshot> GetSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
         CancellationToken ct)
-        => ReadSchemaStatusAsync(
+        => GetSchemaStatusAsync(
             schemaContext,
             DbMigrationTrigger.SettingsManual,
             connectionOptions: null,
             ct);
 
-    public Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+    public Task<DbSchemaStatusSnapshot> GetSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
         DbMigrationTrigger trigger,
         CancellationToken ct)
-        => ReadSchemaStatusAsync(schemaContext, trigger, connectionOptions: null, ct);
+        => GetSchemaStatusAsync(schemaContext, trigger, connectionOptions: null, ct);
 
-    public Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+    public Task<DbSchemaStatusSnapshot> GetSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
         PgOptions connectionOptions,
         CancellationToken ct)
-        => ReadSchemaStatusAsync(
+        => GetSchemaStatusAsync(
             schemaContext,
             DbMigrationTrigger.SettingsManual,
             connectionOptions,
             ct);
 
-    public async Task<DbSchemaStatusSnapshot> ReadSchemaStatusAsync(
+    public async Task<DbSchemaStatusSnapshot> GetSchemaStatusAsync(
         DbSchemaVersionContext schemaContext,
         DbMigrationTrigger trigger,
         PgOptions? connectionOptions,
@@ -379,7 +379,7 @@ public sealed class SettingsService : ISettingsService
         };
     }
 
-    private async Task<DbMigrationPolicyResult> EvaluatePolicyAsync(
+    private async Task<DbMigrationOutcome> EvaluatePolicyAsync(
         DbMigrationTrigger trigger,
         DbSchemaCompatibility compatibility,
         DbSchemaVersionContext schemaContext,
@@ -402,7 +402,7 @@ public sealed class SettingsService : ISettingsService
     }
 
     private static DbSchemaCompatibilityResult BuildCompatibility(
-        DbSchemaVersionReadResult schema,
+        DbSchemaVersionRead schema,
         string requiredMin,
         string requiredMax)
     {
@@ -429,7 +429,7 @@ public sealed class SettingsService : ISettingsService
             schema.Reason ?? "读取失败");
     }
 
-    public async Task<ClientAliasSourceLoadResult> LoadClientAliasSourcesAsync(PgOptions options, CancellationToken ct)
+    public async Task<ClientAliasSources> GetClientAliasSourcesAsync(PgOptions options, CancellationToken ct)
     {
         try
         {
@@ -444,13 +444,13 @@ public sealed class SettingsService : ISettingsService
                 }
             }
 
-            return new ClientAliasSourceLoadResult(
+            return new ClientAliasSources(
                 IsDbConnected: true,
                 ClientMachines: machines.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray());
         }
         catch
         {
-            return new ClientAliasSourceLoadResult(
+            return new ClientAliasSources(
                 IsDbConnected: false,
                 ClientMachines: Array.Empty<string>());
         }

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Services.Msfx;
 using PacToolkits.Application.TextSearch;
 
 namespace PacToolkits.Application.Services;
@@ -15,7 +16,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IInventoryOverviewService, InventoryOverviewService>();
         services.AddSingleton<IScanCodeService, ScanCodeService>();
         services.AddSingleton<IDrugIndexService, DrugIndexService>();
-        services.AddSingleton<IMsfxSyncService, MsfxSyncService>();
+        services.AddSingleton<ISyncService, SyncService>();
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<ILookupCatalogService, LookupCatalogService>();
         return services;
