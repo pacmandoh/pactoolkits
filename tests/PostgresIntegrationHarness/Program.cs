@@ -74,7 +74,7 @@ try
     var service = CreateService(options, guard);
     var stableContext = new DbSchemaVersionContext(
         "1.2.20", "1.2.23", "1.2.20", "1.2.23", "1.2.23", "stable", DbMigrationPolicies.StableOnly);
-    var snapshot = await service.ReadSchemaStatusAsync(stableContext, options, CancellationToken.None);
+    var snapshot = await service.GetSchemaStatusAsync(stableContext, options, CancellationToken.None);
     if (!snapshot.SchemaOk || snapshot.Compatibility != DbSchemaCompatibility.Compatible)
         Fail("stable_schema_status", $"{snapshot.Compatibility} {snapshot.Reason}");
     else
@@ -83,7 +83,7 @@ try
     var belowMinContext = new DbSchemaVersionContext(
         "1.2.24", "1.2.25", "1.2.24", "1.2.25", "1.2.25",
         "beta", DbMigrationPolicies.StableOnly);
-    var belowSnapshot = await service.ReadSchemaStatusAsync(belowMinContext, options, CancellationToken.None);
+    var belowSnapshot = await service.GetSchemaStatusAsync(belowMinContext, options, CancellationToken.None);
     if (belowSnapshot.ManualMigrationPolicy.Decision != DbMigrationDecision.ReadOnlyRequired
         || !belowSnapshot.ManualMigrationPolicy.Reason.Contains("Beta 应用禁止迁移", StringComparison.Ordinal))
         Fail("beta_policy_block", belowSnapshot.ManualMigrationPolicy.Reason);
@@ -157,7 +157,7 @@ try
             Pass("beta_env_markers=isolated/true");
 
         var betaService = CreateService(betaOptions, new DbAccessGuard());
-        var betaSnapshot = await betaService.ReadSchemaStatusAsync(
+        var betaSnapshot = await betaService.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
                 "1.2.20", "1.2.23", "1.2.20", "1.2.23", "1.2.23",
                 "beta", DbMigrationPolicies.IsolatedBeta),

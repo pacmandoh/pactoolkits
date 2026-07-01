@@ -10,7 +10,7 @@ public sealed class FormDialogSessionCompletionTests
     public void CloseDialog_completes_session_when_shad_callbacks_were_cleared()
     {
         var manager = new DialogManager();
-        var vm = new TestFormDialogViewModel(manager);
+        var vm = new TestFormDialog(manager);
         var completed = false;
 
         vm.BindSessionCompletion(success =>
@@ -19,7 +19,7 @@ public sealed class FormDialogSessionCompletionTests
             completed = true;
         });
 
-        DialogSessionStack.PrepareShow(manager, typeof(TestFormDialogViewModel));
+        DialogSessionStack.PrepareShow(manager, typeof(TestFormDialog));
         vm.Submit();
 
         Assert.True(completed);
@@ -29,7 +29,7 @@ public sealed class FormDialogSessionCompletionTests
     public void CloseDialog_completes_session_only_once_when_shad_callback_also_runs()
     {
         var manager = new DialogManager();
-        var vm = new TestFormDialogViewModel(manager);
+        var vm = new TestFormDialog(manager);
         var completedCount = 0;
 
         Action<bool> complete = _ => Interlocked.Increment(ref completedCount);
@@ -37,7 +37,7 @@ public sealed class FormDialogSessionCompletionTests
 
         DialogSessionStack.RegisterCallbacks(
             manager,
-            typeof(TestFormDialogViewModel),
+            typeof(TestFormDialog),
             () => complete(true),
             () => complete(false));
 
@@ -46,7 +46,7 @@ public sealed class FormDialogSessionCompletionTests
         Assert.Equal(1, completedCount);
     }
 
-    private sealed class TestFormDialogViewModel(DialogManager dialogManager) : FormDialogViewModelBase(dialogManager)
+    private sealed class TestFormDialog(DialogManager dialogManager) : FormBase(dialogManager)
     {
         public void Submit()
             => CloseDialog(success: true);
