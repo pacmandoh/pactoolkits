@@ -4,10 +4,10 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
-public sealed partial class MsfxStateDetailDialogViewModel(DialogManager dialogManager)
-    : FormDialogViewModelBase(dialogManager)
+public sealed partial class InfoDetail(DialogManager dialogManager)
+    : FormBase(dialogManager)
 {
-    public required MsfxStateDetailDialogModel Detail { get; init; }
+    public required InfoDetailArgs Detail { get; init; }
 
     [RelayCommand]
     private void Close()

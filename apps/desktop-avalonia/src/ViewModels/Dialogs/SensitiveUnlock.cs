@@ -4,8 +4,8 @@ using ShadUI;
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
 /// <summary>ShadUI Demo Login pattern — singleton VM, Initialize before Show, Close from Submit/Cancel.</summary>
-public sealed partial class InventoryUnlockDialogViewModel(DialogManager dialogManager)
-    : FormDialogViewModelBase(dialogManager)
+public sealed partial class SensitiveUnlock(DialogManager dialogManager)
+    : FormBase(dialogManager)
 {
     private string _title = string.Empty;
     private string _hintMessage = string.Empty;

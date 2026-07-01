@@ -1,8 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class StockRowItem : ObservableObject
+public sealed partial class StockRowItem : ObservableObject, ISelectableRow
 {
     public StockRowItem(
         int rowNo,
@@ -36,6 +37,7 @@ public sealed partial class StockRowItem : ObservableObject
     [ObservableProperty] private int _status;
     [ObservableProperty] private bool _isLow;
     [ObservableProperty] private bool _isDeprecated;
+    [ObservableProperty] private bool _isSelected;
 }
 
 public sealed record DrugSpecAggRowItem(
@@ -75,6 +77,7 @@ public sealed record StockReassignPreviewRowItem(
     string TargetDrugId,
     string TargetSpec,
     int TargetQty,
+    int TargetRemain,
     string TraceCode
 );
 

@@ -8,7 +8,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public partial class SettingsViewModel
+public partial class Settings
 {
     private enum Tab
     {
@@ -137,23 +137,23 @@ public partial class SettingsViewModel
                 _clientAliasEditBaseline = null;
                 IsClientAliasEditMode = false;
                 IsClientAliasReadOnly = true;
-                LoadAliasesOnly();
+                SyncAliases();
                 RefreshClientAlias();
                 break;
             case Tab.TraceCodeRule:
-                LoadTraceCodeRule();
+                SyncTraceCodeRule();
                 break;
             case Tab.Updates:
-                LoadUpdateOptions();
+                SyncUpdateOptions();
                 break;
             case Tab.MsfxApi:
-                LoadMsfxApiOptions();
+                SyncMsfxApi();
                 break;
             case Tab.UiBehavior:
-                LoadUiBehavior();
+                SyncUiBehavior();
                 break;
             case Tab.Logging:
-                LoadLoggingOptions();
+                SyncLogging();
                 break;
         }
 

@@ -15,18 +15,18 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class InventoryOverviewViewModel : AppPageBase
+public sealed partial class InventoryOverview : AppPageBase
 {
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
-    private const string UnlockScopeKey = UnlockScopes.SharedSensitiveOps;
+    private const string OpsScope = UnlockScopes.SharedOps;
     private static readonly int[] PageSizeOptionValues = [20, 50, 100];
 
     public override string DisplayName => "追溯码库存";
     public override string Icon => "Package";
     public override int Index => 1;
     public override ICommand RefreshCommand => _localRefreshCommand;
-    public override ICommand ImportCommand => ImportDataCommand;
-    public override ICommand ExportCommand => ExportDataCommand;
+    public override ICommand ImportCommand => _importCommand;
+    public override ICommand ExportCommand => _exportCommand;
     protected override bool AutoRefreshOnDbDisconnected => true;
     protected override bool AutoRefreshOnDbReconnected => true;
 
@@ -37,17 +37,19 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private readonly IToastService _toast;
     private readonly IDialogService _dialog;
     private readonly PageNavigationService _nav;
-    private readonly ScanCodeViewModel _scanCode;
+    private readonly ScanCode _scanCode;
     private readonly AsyncRelayCommand _localRefreshCommand;
+    private readonly AsyncRelayCommand _importCommand;
+    private readonly AsyncRelayCommand _exportCommand;
 
     public ObservableCollection<StockRowItem> StockRows { get; } = new();
     public ObservableCollection<DrugSpecAggRowItem> DrugSpecRows { get; } = new();
     public ObservableCollection<LowStockRowItem> LowStockRows { get; } = new();
     public ObservableCollection<MissingStockRowItem> MissingStockRows { get; } = new();
-    public ObservableCollection<StockReassignPreviewRowItem> ReassignPreviewRows { get; } = new();
-    public ObservableCollection<OptionItem> ReassignDrugOptions { get; } = new();
-    public ObservableCollection<OptionItem> ReassignSpecOptions { get; } = new();
-    private IReadOnlyList<OptionItem> _reassignDrugCatalog = [];
+    public ObservableCollection<StockReassignPreviewRowItem> PreviewRows { get; } = new();
+    public ObservableCollection<OptionItem> DrugOptions { get; } = new();
+    public ObservableCollection<OptionItem> SpecOptions { get; } = new();
+    private IReadOnlyList<OptionItem> _drugCatalog = [];
     public ObservableCollection<int> PageSizeOptions { get; } = new(PageSizeOptionValues);
 
     [ObservableProperty] private int _modeIndex;
@@ -59,23 +61,31 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     [ObservableProperty] private bool _isAggBusy;
     [ObservableProperty] private bool _isLowBusy;
     [ObservableProperty] private bool _isMissingBusy;
+    [ObservableProperty] private bool _isDetailGridMounted;
+    [ObservableProperty] private bool _isAggGridMounted;
+    [ObservableProperty] private bool _isLowGridMounted;
+    [ObservableProperty] private bool _isMissingGridMounted;
     [ObservableProperty] private bool _isStockEditEnabled;
-    [ObservableProperty] private bool _isOperationUnlocked;
-    private DateTimeOffset _operationUnlockCooldownUntilUtc;
-    [ObservableProperty] private StockRowItem? _selectedStockRow;
-    [ObservableProperty] private int _stockRowsRevision;
-    [ObservableProperty] private bool _isReassignPanelVisible;
-    [ObservableProperty] private string? _reassignDrugText;
-    [ObservableProperty] private OptionItem? _reassignSelectedSpec;
-    [ObservableProperty] private bool _isReassignDrugSuggestOpen;
-    [ObservableProperty] private bool _isReassignSpecSelected;
-    [ObservableProperty] private string? _reassignQtyText;
-    [ObservableProperty] private string? _reassignTargetDrugId;
-    [ObservableProperty] private string? _reassignTargetSpec;
-    [ObservableProperty] private string? _reassignReason;
-    [ObservableProperty] private string? _reassignPreviewText;
-    [ObservableProperty] private bool _isReassignBusy;
-    [ObservableProperty] private int _reassignScopeIndex;
+    [ObservableProperty] private bool _isOpsUnlocked;
+    private DateTimeOffset _opsCooldownUntilUtc;
+    [ObservableProperty] private bool _isReassignOpen;
+    [ObservableProperty] private string? _drugText;
+    [ObservableProperty] private OptionItem? _selectedSpec;
+    [ObservableProperty] private bool _isDrugSuggestOpen;
+    [ObservableProperty] private bool _isSpecSelected;
+    [ObservableProperty] private string? _qtyText;
+    [ObservableProperty] private string? _targetDrugId;
+    [ObservableProperty] private string? _targetSpec;
+    [ObservableProperty] private string? _correctionReason;
+    [ObservableProperty] private string? _previewStatsText;
+    [ObservableProperty] private string? _previewNoticeText;
+    [ObservableProperty] private bool _isPanelBusy;
+    [ObservableProperty] private int _scopeIndex;
+    private bool _reassignPreviewLive;
+    private int _reassignContextSyncDepth;
+    private string? _lastValidatedPreviewTargetDrug;
+    private string? _lastValidatedPreviewTargetSpec;
+    private CancellationTokenSource? _previewRefreshCts;
     private readonly Collection<PendingStockEdit> _pendingStockEdits = new();
     private readonly Dictionary<int, StockEditSnapshot> _stockEditSnapshotByRow = new();
     private readonly Collection<StockRowItem> _selectedStockRows = new();
@@ -87,39 +97,49 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     private readonly DispatcherTimer _unlockStatusTimer;
     private IRelayCommand?[]? _notifiableCommands;
     partial void OnIsDetailBusyChanged(bool value)
-        => OnPropertyChanged(nameof(IsDetailSectionPending));
+        => NotifySectionPendingChanged();
 
     partial void OnIsAggBusyChanged(bool value)
-        => OnPropertyChanged(nameof(IsAggSectionPending));
+        => NotifySectionPendingChanged();
 
     partial void OnIsLowBusyChanged(bool value)
-        => OnPropertyChanged(nameof(IsLowSectionPending));
+        => NotifySectionPendingChanged();
 
     partial void OnIsMissingBusyChanged(bool value)
-        => OnPropertyChanged(nameof(IsMissingSectionPending));
+        => NotifySectionPendingChanged();
+
+    partial void OnIsDetailGridMountedChanged(bool value)
+        => NotifySectionPendingChanged();
+
+    partial void OnIsAggGridMountedChanged(bool value)
+        => NotifySectionPendingChanged();
+
+    partial void OnIsLowGridMountedChanged(bool value)
+        => NotifySectionPendingChanged();
+
+    partial void OnIsMissingGridMountedChanged(bool value)
+        => NotifySectionPendingChanged();
     partial void OnIsStockEditEnabledChanged(bool value)
     {
         if (value)
         {
-            IsReassignPanelVisible = false;
-            ReassignPreviewText = null;
-            ReassignPreviewRows.Clear();
-            OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+            IsReassignOpen = false;
+            ClearPreviewMessaging();
+            PreviewRows.Clear();
+            NotifyPreviewStateChanged();
         }
         OnPropertyChanged(nameof(CanEnableStockEdit));
         OnPropertyChanged(nameof(CanDisableStockEdit));
-        OnPropertyChanged(nameof(ShowRequestUnlock));
-        OnPropertyChanged(nameof(ShowLockOperations));
-        OnPropertyChanged(nameof(UnlockStatusText));
-        OnPropertyChanged(nameof(CanToggleReassignPanel));
+        OnPropertyChanged(nameof(ShowUnlock));
+        OnPropertyChanged(nameof(ShowLock));
+        OnPropertyChanged(nameof(CanToggleReassign));
         RefreshPageCommands();
     }
 
-    partial void OnIsOperationUnlockedChanged(bool value)
+    partial void OnIsOpsUnlockedChanged(bool value)
     {
-        OnPropertyChanged(nameof(UnlockStatusText));
-        OnPropertyChanged(nameof(ShowRequestUnlock));
-        OnPropertyChanged(nameof(ShowLockOperations));
+        OnPropertyChanged(nameof(ShowUnlock));
+        OnPropertyChanged(nameof(ShowLock));
         RefreshPageCommands();
     }
 
@@ -127,64 +147,69 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public bool IsAggMode => ModeIndex == 1;
     public bool IsLowMode => ModeIndex == 2;
     public bool IsMissingMode => ModeIndex == 3;
-    public bool IsSingleReassignScope => ReassignScopeIndex == 0;
-    public bool IsFilterReassignScope => ReassignScopeIndex == 1;
-    public bool SuppressGridClearInReassignDialog => IsReassignPanelVisible && IsSingleReassignScope;
-    public bool IsReassignPreviewEmpty => ReassignPreviewRows.Count == 0;
-    public bool HasReassignPreviewText => !string.IsNullOrWhiteSpace(ReassignPreviewText);
+    public bool IsSingleScope => ScopeIndex == 0;
+    public bool IsFilterScope => ScopeIndex == 1;
+    public bool SuppressGridClear => IsReassignOpen && IsSingleScope;
+    public bool IsPreviewEmpty => PreviewRows.Count == 0;
+    public bool HasPreviewStatsText => !string.IsNullOrWhiteSpace(PreviewStatsText);
+    public bool HasPreviewNoticeText => !string.IsNullOrWhiteSpace(PreviewNoticeText);
+    public bool ShowReassignPreview => _reassignPreviewLive;
+    public string ReassignPreviewToggleText => _reassignPreviewLive ? "关闭预览" : "预览影响";
+    public bool ShowReassignRowSelection => IsReassignOpen && IsSingleScope && IsDetailMode;
+    public int StockReassignSelectedCount => _selectedStockRows.Count;
+    public int StockPagerSelectedCount => ShowReassignRowSelection ? StockReassignSelectedCount : -1;
     public bool CanEnableStockEdit => IsDetailMode && !IsStockEditEnabled;
     public bool CanDisableStockEdit => IsDetailMode && IsStockEditEnabled;
-    public bool ShowRequestUnlock => IsDetailMode && !IsOperationUnlocked;
-    public bool ShowLockOperations => IsDetailMode && IsOperationUnlocked;
-    public bool CanToggleReassignPanel
+    public bool ShowUnlock => IsDetailMode && !IsOpsUnlocked;
+    public bool ShowLock => IsDetailMode && IsOpsUnlocked;
+    public bool CanToggleReassign
         => IsDetailMode
            && !IsStockEditEnabled
            && CanOperateUi();
-    public bool CanPreviewReassign
-        => IsReassignPanelVisible
-           && (IsSingleReassignScope
-               ? (_selectedStockRows.Count > 0 || SelectedStockRow is not null)
+    public bool CanPreview
+        => IsReassignOpen
+           && (IsSingleScope
+               ? GetEffectiveSelectedRows().Count > 0
                : !string.IsNullOrWhiteSpace(NormalizeInput(Keyword)))
-           && !string.IsNullOrWhiteSpace(NormalizeInput(ReassignTargetDrugId))
-           && !string.IsNullOrWhiteSpace(NormalizeInput(ReassignTargetSpec))
-           && int.TryParse(NormalizeInput(ReassignQtyText), out var previewQty)
+           && !string.IsNullOrWhiteSpace(NormalizeInput(TargetDrugId))
+           && !string.IsNullOrWhiteSpace(NormalizeInput(TargetSpec))
+           && int.TryParse(NormalizeInput(QtyText), out var previewQty)
            && previewQty > 0
            && CanOperateUi();
-    public bool CanApplyReassign
-        => CanPreviewReassign
-           && !string.IsNullOrWhiteSpace(NormalizeInput(ReassignReason))
-           && int.TryParse(NormalizeInput(ReassignQtyText), out var qty)
+    public bool CanTogglePreview
+        => IsReassignOpen
+           && CanOperateUi()
+           && (_reassignPreviewLive || CanPreview);
+    public bool CanApply
+        => CanPreview
+           && !string.IsNullOrWhiteSpace(NormalizeInput(CorrectionReason))
+           && int.TryParse(NormalizeInput(QtyText), out var qty)
            && qty > 0;
-    public string EditSessionStateText
+    public string EditStateText
         => !IsDetailMode
             ? string.Empty
             : IsStockEditEnabled
                 ? (HasPendingChanges ? "有未提交变更" : "编辑中")
                 : string.Empty;
-    public string UnlockStatusText => IsOperationUnlocked ? "已解锁" : "未解锁";
     public bool HasActiveKeyword => !string.IsNullOrWhiteSpace(NormalizeInput(Keyword));
 
-    public bool ShowEditSessionState => IsDetailMode && IsStockEditEnabled;
+    public bool ShowEditState => IsDetailMode && IsStockEditEnabled;
     protected override void OnLookupCatalogSuspended()
     {
-        ReassignDrugOptions.Clear();
-        _reassignDrugCatalog = [];
-        ReassignSpecOptions.Clear();
-        IsReassignDrugSuggestOpen = false;
-        ReassignDrugText = null;
-        ReassignTargetDrugId = null;
-        ReassignSelectedSpec = null;
-        ReassignTargetSpec = null;
-        ReassignQtyText = null;
-        IsReassignSpecSelected = false;
+        DrugOptions.Clear();
+        _drugCatalog = [];
+        SpecOptions.Clear();
+        IsDrugSuggestOpen = false;
+        DrugText = null;
+        TargetDrugId = null;
+        SelectedSpec = null;
+        TargetSpec = null;
+        QtyText = null;
+        IsSpecSelected = false;
     }
 
     protected override void OnPageAvailabilityChanged()
     {
-        OnPropertyChanged(nameof(IsDetailSectionPending));
-        OnPropertyChanged(nameof(IsAggSectionPending));
-        OnPropertyChanged(nameof(IsLowSectionPending));
-        OnPropertyChanged(nameof(IsMissingSectionPending));
         OnPropertyChanged(nameof(IsStockEmpty));
         OnPropertyChanged(nameof(StockEmptyText));
         OnPropertyChanged(nameof(StockEmptyHint));
@@ -197,6 +222,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         OnPropertyChanged(nameof(IsMissingEmpty));
         OnPropertyChanged(nameof(MissingEmptyText));
         OnPropertyChanged(nameof(MissingEmptyHint));
+        NotifySectionPendingChanged();
     }
 
     public string StockEmptyText => GetSectionEmptyTitle("暂无库存明细");
@@ -212,11 +238,18 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public bool IsAggEmpty => ShowSectionEmpty(DrugSpecRows.Count == 0);
     public bool IsLowEmpty => ShowSectionEmpty(LowStockRows.Count == 0);
     public bool IsMissingEmpty => ShowSectionEmpty(MissingStockRows.Count == 0);
-    public bool IsDetailSectionPending => IsSectionPending || IsDetailBusy;
-    public bool IsAggSectionPending => IsSectionPending || IsAggBusy;
-    public bool IsLowSectionPending => IsSectionPending || IsLowBusy;
-    public bool IsMissingSectionPending => IsSectionPending || IsMissingBusy;
-    public bool IsUiBusy => IsBusy || IsReassignBusy;
+    public bool IsDetailSectionPending =>
+        IsSectionPending || IsDetailBusy || (IsDetailMode && !IsDetailGridMounted);
+
+    public bool IsAggSectionPending =>
+        IsSectionPending || IsAggBusy || (IsAggMode && !IsAggGridMounted);
+
+    public bool IsLowSectionPending =>
+        IsSectionPending || IsLowBusy || (IsLowMode && !IsLowGridMounted);
+
+    public bool IsMissingSectionPending =>
+        IsSectionPending || IsMissingBusy || (IsMissingMode && !IsMissingGridMounted);
+    public bool IsUiBusy => IsBusy || IsPanelBusy;
     public bool IsPagedMode => ModeIndex is 0 or 1 or 2 or 3;
     public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
     public bool HasPrevPage => IsPagedMode && PageIndex > 1;
@@ -224,7 +257,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public bool HasPendingChanges => IsStockEditEnabled && _pendingStockEdits.Count > 0;
     public IReadOnlyList<StockRowItem> SelectedStockRowsSnapshot => _selectedStockRowsSnapshot;
 
-    public InventoryOverviewViewModel(
+    public InventoryOverview(
         IInventoryOverviewService inventory,
         ILookupCatalogService lookup,
         IDbConfigNotifier dbConfigNotifier,
@@ -232,7 +265,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         IToastService toast,
         IDialogService dialog,
         PageNavigationService nav,
-        ScanCodeViewModel scanCode)
+        ScanCode scanCode)
     {
         _inventory = inventory;
         _lookup = lookup;
@@ -243,10 +276,12 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         _nav = nav;
         _scanCode = scanCode;
         _localRefreshCommand = new AsyncRelayCommand(() => ReloadAsync(), CanLocalRefresh);
+        _importCommand = new AsyncRelayCommand(ImportAsync, CanOperateUi);
+        _exportCommand = new AsyncRelayCommand(ExportAsync, CanOperateUi);
         _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _unlockStatusTimer.Tick += OnUnlockTimerTick;
-        _unlockService.StateChanged += OnUnlockScopeChanged;
-        RefreshUnlockState();
+        _unlockService.StateChanged += OnUnlockChanged;
+        RefreshOpsUnlock();
 
         _dbConfigNotifier.Applied += OnDbApplied;
         _lastModeIndex = ModeIndex;
@@ -254,8 +289,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
     }
 
-    [RelayCommand(CanExecute = nameof(CanOperateUi))]
-    private async Task ImportDataAsync()
+    private async Task ImportAsync()
     {
         if (SkipTrigger())
         {
@@ -265,8 +299,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         await _dialog.Warn("未实现", "导入功能稍后接入格式选择/打开路径");
     }
 
-    [RelayCommand(CanExecute = nameof(CanOperateUi))]
-    private async Task ExportDataAsync()
+    private async Task ExportAsync()
     {
         if (SkipTrigger())
         {
@@ -276,45 +309,57 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         await _dialog.Warn("未实现", "导出功能稍后接入格式选择/保存路径");
     }
 
-    partial void OnSelectedStockRowChanged(StockRowItem? value)
+    public void SyncReassignSelectionFromRows()
     {
-        if (IsSingleReassignScope)
+        if (!IsReassignOpen || !IsSingleScope)
         {
-            ReassignPreviewText = null;
-            ReassignPreviewRows.Clear();
-            OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+            return;
         }
 
-        RefreshPageCommands();
-    }
-
-    public void SetSelectedStockRows(IReadOnlyList<StockRowItem> rows)
-    {
         _selectedStockRows.Clear();
-        foreach (var row in rows)
+        foreach (var row in StockRows)
         {
-            _selectedStockRows.Add(row);
+            if (row.IsSelected)
+            {
+                _selectedStockRows.Add(row);
+            }
         }
 
         _selectedStockRowsSnapshot = _selectedStockRows.ToArray();
         OnPropertyChanged(nameof(SelectedStockRowsSnapshot));
-
-        if (IsSingleReassignScope)
-        {
-            ReassignPreviewText = null;
-            ReassignPreviewRows.Clear();
-            OnPropertyChanged(nameof(IsReassignPreviewEmpty));
-        }
-
+        OnPropertyChanged(nameof(StockReassignSelectedCount));
+        OnPropertyChanged(nameof(StockPagerSelectedCount));
         RefreshPageCommands();
+        QueueReassignPreviewRefresh();
     }
 
-    private void ClearStockSelection()
+    private void SetReassignSelectedRows(IReadOnlyList<StockRowItem> rows)
     {
-        SelectedStockRow = null;
+        foreach (var row in StockRows)
+        {
+            row.IsSelected = false;
+        }
+
+        foreach (var row in rows)
+        {
+            row.IsSelected = true;
+        }
+
+        SyncReassignSelectionFromRows();
+    }
+
+    private void ClearReassignRowSelection()
+    {
+        foreach (var row in StockRows)
+        {
+            row.IsSelected = false;
+        }
+
         _selectedStockRows.Clear();
         _selectedStockRowsSnapshot = Array.Empty<StockRowItem>();
         OnPropertyChanged(nameof(SelectedStockRowsSnapshot));
+        OnPropertyChanged(nameof(StockReassignSelectedCount));
+        OnPropertyChanged(nameof(StockPagerSelectedCount));
     }
 
     private void ApplyStockRowsInPlace(IReadOnlyList<StockRowItem> items)
@@ -344,109 +389,144 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         {
             StockRows.Add(items[i]);
         }
-
-        StockRowsRevision++;
     }
 
-    partial void OnIsReassignPanelVisibleChanged(bool value)
+    partial void OnIsReassignOpenChanged(bool value)
     {
         if (!value)
         {
-            ReassignPreviewRows.Clear();
-            OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+            SetReassignPreviewLive(false);
+            _previewRefreshCts?.Cancel();
+            ClearPreviewMessaging();
+            PreviewRows.Clear();
+            OnPropertyChanged(nameof(IsPreviewEmpty));
+            ClearReassignRowSelection();
         }
         else
         {
-            _ = LoadReassignDrugsAsync();
+            SetReassignPreviewLive(false);
+            OnPropertyChanged(nameof(ShowReassignRowSelection));
+            OnPropertyChanged(nameof(StockPagerSelectedCount));
+            _ = SyncDrugCatalogAsync();
         }
 
-        OnPropertyChanged(nameof(SuppressGridClearInReassignDialog));
+        OnPropertyChanged(nameof(ShowReassignRowSelection));
+        OnPropertyChanged(nameof(StockPagerSelectedCount));
+        OnPropertyChanged(nameof(SuppressGridClear));
         RefreshPageCommands();
     }
 
-    partial void OnReassignDrugTextChanged(string? value)
+    partial void OnDrugTextChanged(string? value)
     {
-        RefreshReassignDrugOptionsOrder(value);
+        ClearDrugSpecFilterCommand.NotifyCanExecuteChanged();
+        RefreshDrugOptionsOrder(value);
 
         var drug = NormalizeInput(value);
-        IsReassignDrugSuggestOpen = !string.IsNullOrWhiteSpace(drug);
+        IsDrugSuggestOpen = !string.IsNullOrWhiteSpace(drug);
         if (string.IsNullOrWhiteSpace(drug))
         {
-            ReassignTargetDrugId = null;
-            ReassignSelectedSpec = null;
-            ReassignTargetSpec = null;
-            ReassignQtyText = null;
-            IsReassignSpecSelected = false;
+            SpecOptions.Clear();
+            TargetDrugId = null;
+            SelectedSpec = null;
+            TargetSpec = null;
+            QtyText = null;
+            IsSpecSelected = false;
         }
+
         RefreshPageCommands();
     }
 
-    private void RefreshReassignDrugOptionsOrder(string? searchText)
+    private void RefreshDrugOptionsOrder(string? searchText)
     {
-        if (_reassignDrugCatalog.Count == 0)
+        if (_drugCatalog.Count == 0)
         {
             return;
         }
 
         AutoCompleteFilter.RefreshVisibleOptions(
-            ReassignDrugOptions,
-            _reassignDrugCatalog,
+            DrugOptions,
+            _drugCatalog,
             searchText);
     }
 
-    partial void OnReassignSelectedSpecChanged(OptionItem? value)
+    partial void OnSelectedSpecChanged(OptionItem? value)
     {
-        IsReassignSpecSelected = value is not null;
-        ReassignTargetSpec = NormalizeInput(value?.Raw);
-        _ = RefreshReassignQtyAsync();
-        RefreshPageCommands();
+        IsSpecSelected = value is not null;
+        TargetSpec = NormalizeInput(value?.Raw);
+        if (IsReassignContextSyncing)
+        {
+            return;
+        }
+
+        _ = SyncQtyAsync();
     }
 
-    partial void OnReassignTargetDrugIdChanged(string? value)
+    partial void OnTargetDrugIdChanged(string? value)
     {
-        ReassignPreviewText = null;
-        ReassignPreviewRows.Clear();
-        OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+        if (IsReassignContextSyncing)
+        {
+            return;
+        }
+
         RefreshPageCommands();
+        QueueReassignPreviewRefresh();
     }
 
-    partial void OnReassignTargetSpecChanged(string? value)
+    partial void OnTargetSpecChanged(string? value)
     {
-        ReassignPreviewText = null;
-        ReassignPreviewRows.Clear();
-        OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+        if (IsReassignContextSyncing)
+        {
+            return;
+        }
+
         RefreshPageCommands();
+        QueueReassignPreviewRefresh();
     }
 
-    partial void OnReassignReasonChanged(string? value)
+    partial void OnCorrectionReasonChanged(string? value)
         => RefreshPageCommands();
 
-    partial void OnReassignQtyTextChanged(string? value)
-        => RefreshPageCommands();
-
-    partial void OnReassignPreviewTextChanged(string? value)
+    partial void OnQtyTextChanged(string? value)
     {
-        OnPropertyChanged(nameof(HasReassignPreviewText));
+        if (IsReassignContextSyncing)
+        {
+            return;
+        }
+
         RefreshPageCommands();
+        QueueReassignPreviewRefresh();
     }
 
-    partial void OnIsReassignBusyChanged(bool value)
+    partial void OnPreviewStatsTextChanged(string? value)
+        => OnPropertyChanged(nameof(HasPreviewStatsText));
+
+    partial void OnPreviewNoticeTextChanged(string? value)
+        => OnPropertyChanged(nameof(HasPreviewNoticeText));
+
+    partial void OnIsPanelBusyChanged(bool value)
     {
         OnPropertyChanged(nameof(IsUiBusy));
         RefreshPageCommands();
     }
 
     protected override void OnBusyChanged(bool isBusy)
-        => OnPropertyChanged(nameof(IsUiBusy));
-
-    partial void OnReassignScopeIndexChanged(int value)
     {
-        OnPropertyChanged(nameof(IsSingleReassignScope));
-        OnPropertyChanged(nameof(IsFilterReassignScope));
-        OnPropertyChanged(nameof(SuppressGridClearInReassignDialog));
-        ReassignPreviewText = null;
-        ReassignPreviewRows.Clear();
-        OnPropertyChanged(nameof(IsReassignPreviewEmpty));
+        OnPropertyChanged(nameof(IsUiBusy));
+        RefreshPageCommands();
+    }
+
+    partial void OnScopeIndexChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsSingleScope));
+        OnPropertyChanged(nameof(IsFilterScope));
+        OnPropertyChanged(nameof(ShowReassignRowSelection));
+        OnPropertyChanged(nameof(StockPagerSelectedCount));
+        OnPropertyChanged(nameof(SuppressGridClear));
+        SetReassignPreviewLive(false);
+        _previewRefreshCts?.Cancel();
+        ClearPreviewMessaging();
+        PreviewRows.Clear();
+        OnPropertyChanged(nameof(IsPreviewEmpty));
         RefreshPageCommands();
     }
 
@@ -469,9 +549,17 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     protected override void OnReloadFinished()
         => RefreshPageCommands();
 
-    private Task ReloadAsync(bool preserveEditSession = false)
+    private void NotifySectionPendingChanged()
     {
-        if (IsStockEditEnabled && !preserveEditSession)
+        OnPropertyChanged(nameof(IsDetailSectionPending));
+        OnPropertyChanged(nameof(IsAggSectionPending));
+        OnPropertyChanged(nameof(IsLowSectionPending));
+        OnPropertyChanged(nameof(IsMissingSectionPending));
+    }
+
+    private Task ReloadAsync(bool preserveEdit = false)
+    {
+        if (IsStockEditEnabled && !preserveEdit)
         {
             DiscardStockEdits();
         }
@@ -485,6 +573,22 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
                 SetModeBusy(ModeIndex, false);
                 RefreshPageCommands();
             });
+    }
+
+    /// <summary>
+    /// Reload list data without section busy — keeps batch reassign panel operable while filtering.
+    /// </summary>
+    private Task ReloadQuietAsync(bool preserveEdit = false)
+    {
+        if (IsStockEditEnabled && !preserveEdit)
+        {
+            DiscardStockEdits();
+        }
+
+        return RunLocalReloadAsync(
+            setBusy: _ => { },
+            action: ct => ReloadBodyAsync(ct),
+            onFinished: RefreshPageCommands);
     }
 
     private async Task ReloadBodyAsync(CancellationToken ct)
@@ -522,7 +626,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             // DataGrid retains its selected index while ReplaceAll swaps every row instance.
             // Clearing both selection channels prevents that stale index from selecting an
             // unrelated row (commonly the final row on a 50-row page).
-            ClearStockSelection();
+            ClearReassignRowSelection();
             ApplyStockRowsInPlace(items);
             TotalCount = page.TotalCount;
             OnPropertyChanged(nameof(IsStockEmpty));
@@ -677,6 +781,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         IsMissingBusy = mode == 3 && busy;
     }
 
+    internal void MarkDetailGridMounted() => IsDetailGridMounted = true;
+
+    internal void MarkAggGridMounted() => IsAggGridMounted = true;
+
+    internal void MarkLowGridMounted() => IsLowGridMounted = true;
+
+    internal void MarkMissingGridMounted() => IsMissingGridMounted = true;
+
     private void OnDbApplied(object? sender, EventArgs e)
     {
         PageIndex = 1;
@@ -684,14 +796,14 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
         PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
     }
 
-    private void OnUnlockScopeChanged(string scopeKey)
+    private void OnUnlockChanged(string scopeKey)
     {
-        if (!string.Equals(scopeKey, UnlockScopeKey, StringComparison.Ordinal))
+        if (!string.Equals(scopeKey, OpsScope, StringComparison.Ordinal))
         {
             return;
         }
 
-        PostOnUi(RefreshUnlockState, DispatcherPriority.Background);
+        PostOnUi(RefreshOpsUnlock, DispatcherPriority.Background);
     }
 
     private void RefreshPageCommands()
@@ -713,22 +825,126 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
             PrevPageCommand,
             NextPageCommand,
             LastPageCommand,
-            RequestUnlockCommand,
-            LockOperationsCommand,
-            ToggleStockEditModeCommand,
-            ToggleReassignPanelCommand,
-            ApplyReassignDrugFilterCommand,
+            UnlockCommand,
+            LockCommand,
+            ToggleStockEditCommand,
+            ToggleReassignCommand,
+            ApplyDrugFilterCommand,
+            ClearDrugSpecFilterCommand,
             PreviewReassignCommand,
             ApplyReassignCommand,
-            ImportDataCommand,
-            ExportDataCommand
+            _importCommand,
+            _exportCommand
         ];
+
+    private bool IsReassignContextSyncing => _reassignContextSyncDepth > 0;
+
+    private ReassignContextSyncScope BeginReassignContextSync()
+        => new(this);
+
+    private sealed class ReassignContextSyncScope : IDisposable
+    {
+        private readonly InventoryOverview _vm;
+        private bool _disposed;
+
+        public ReassignContextSyncScope(InventoryOverview vm)
+        {
+            _vm = vm;
+            _vm._reassignContextSyncDepth++;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            if (_vm._reassignContextSyncDepth > 0)
+            {
+                _vm._reassignContextSyncDepth--;
+            }
+
+            if (_vm._reassignContextSyncDepth == 0)
+            {
+                _vm.RefreshPageCommands();
+                _vm.QueueReassignPreviewRefresh();
+            }
+        }
+    }
+
+    private void EnsureReassignPreviewLive()
+    {
+        if (!_reassignPreviewLive)
+        {
+            SetReassignPreviewLive(true);
+            return;
+        }
+
+        OnPropertyChanged(nameof(HasPreviewStatsText));
+        OnPropertyChanged(nameof(HasPreviewNoticeText));
+        NotifyPreviewStateChanged();
+    }
+
+    private void SetReassignPreviewLive(bool live)
+    {
+        if (_reassignPreviewLive == live)
+        {
+            return;
+        }
+
+        _reassignPreviewLive = live;
+        OnPropertyChanged(nameof(ShowReassignPreview));
+        OnPropertyChanged(nameof(ReassignPreviewToggleText));
+        PreviewReassignCommand.NotifyCanExecuteChanged();
+    }
+
+    private void ExitReassignPreview()
+    {
+        _previewRefreshCts?.Cancel();
+        _previewRefreshCts?.Dispose();
+        _previewRefreshCts = null;
+        SetReassignPreviewLive(false);
+        ResetPreviewContent();
+        NotifyPreviewStateChanged();
+        RefreshPageCommands();
+    }
+
+    private void ResetPreviewContent()
+    {
+        ClearPreviewMessaging();
+        PreviewRows.Clear();
+        _lastValidatedPreviewTargetDrug = null;
+        _lastValidatedPreviewTargetSpec = null;
+        OnPropertyChanged(nameof(IsPreviewEmpty));
+    }
+
+    private void ApplyPreviewRows(IReadOnlyList<StockReassignPreviewRowItem> rows)
+    {
+        PreviewRows.ReplaceAll(rows);
+        OnPropertyChanged(nameof(IsPreviewEmpty));
+    }
+
+    private void NotifyPreviewStateChanged()
+    {
+        OnPropertyChanged(nameof(IsPreviewEmpty));
+        OnPropertyChanged(nameof(ShowReassignPreview));
+        OnPropertyChanged(nameof(ReassignPreviewToggleText));
+        PreviewReassignCommand.NotifyCanExecuteChanged();
+    }
+
+    private void ClearPreviewMessaging()
+    {
+        PreviewStatsText = null;
+        PreviewNoticeText = null;
+    }
 
     private void RefreshPendingChanges()
     {
         OnPropertyChanged(nameof(HasPendingChanges));
-        OnPropertyChanged(nameof(EditSessionStateText));
-        OnPropertyChanged(nameof(ShowEditSessionState));
+        OnPropertyChanged(nameof(EditStateText));
+        OnPropertyChanged(nameof(ShowEditState));
     }
 
     private void RefreshPagingState()
@@ -764,7 +980,7 @@ public sealed partial class InventoryOverviewViewModel : AppPageBase
     public override void Dispose()
     {
         _dbConfigNotifier.Applied -= OnDbApplied;
-        _unlockService.StateChanged -= OnUnlockScopeChanged;
+        _unlockService.StateChanged -= OnUnlockChanged;
         StopUnlockTimer();
         _unlockStatusTimer.Tick -= OnUnlockTimerTick;
         _silentReconcileCts?.Cancel();

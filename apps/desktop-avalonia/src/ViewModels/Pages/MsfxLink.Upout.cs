@@ -8,7 +8,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class MsfxLinkViewModel : AppPageBase
+public sealed partial class MsfxLink : AppPageBase
 {
     [RelayCommand]
     private async Task QueryUpoutAsync()

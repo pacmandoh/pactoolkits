@@ -13,7 +13,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public partial class SettingsViewModel : AppPageBase, ISettingsPage
+public partial class Settings : AppPageBase, ISettingsPage
 {
     [RelayCommand]
     private void StartEditClientAliases()
@@ -197,7 +197,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         }
 
         var options = ToOptions();
-        var snapshot = await _settings.ReadSchemaStatusAsync(
+        var snapshot = await _settings.GetSchemaStatusAsync(
             BuildSchemaContext(),
             options,
             _pageWorkCts.Token);
@@ -261,7 +261,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             var opt = ToOptions();
             using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(6));
 
-            var loaded = await _settings.LoadClientAliasSourcesAsync(opt, cts.Token);
+            var loaded = await _settings.GetClientAliasSourcesAsync(opt, cts.Token);
             var isDbConnected = loaded.IsDbConnected;
             var aliasMap = NormalizeAliasMapByMachine(_alias.GetAll());
             var clientMachines = new HashSet<string>(loaded.ClientMachines, StringComparer.OrdinalIgnoreCase);

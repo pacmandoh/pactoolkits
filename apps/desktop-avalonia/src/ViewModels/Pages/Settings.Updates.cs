@@ -14,7 +14,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public partial class SettingsViewModel : AppPageBase, ISettingsPage
+public partial class Settings : AppPageBase, ISettingsPage
 {
     [RelayCommand]
     private Task SaveUpdateOptionsAsync() => ApplyUpdateOptionsAsync();
@@ -397,7 +397,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         try
         {
             using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(120));
-            var status = await _settings.ReadSchemaStatusAsync(
+            var status = await _settings.GetSchemaStatusAsync(
                 BuildSchemaContext(),
                 connectionOptions,
                 cts.Token);
@@ -476,7 +476,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         {
             var ct = operationCt.CanBeCanceled ? operationCt : _pageWorkCts.Token;
             var options = connectionOptions ?? ToOptions();
-            var snapshot = await _settings.ReadSchemaStatusAsync(BuildSchemaContext(), options, ct);
+            var snapshot = await _settings.GetSchemaStatusAsync(BuildSchemaContext(), options, ct);
             DbSchemaLastCheckedAtText = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
             DbSchemaLastCheckSourceText = MapDbSchemaCheckSource(source);
             DbSchemaTargetVersion = snapshot.TargetVersion;
@@ -484,7 +484,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
             DbSchemaRequiredMaxVersion = snapshot.RequiredMaxVersion;
             DbSchemaCurrentVersion = snapshot.CurrentVersion ?? "unknown";
 
-            UpdateManualMigrationPolicyState(snapshot.ManualMigrationPolicy);
+            SyncMigrationPolicy(snapshot.ManualMigrationPolicy);
 
             if (snapshot.Compatibility == DbSchemaCompatibility.MetadataMissing)
             {
@@ -612,7 +612,7 @@ public partial class SettingsViewModel : AppPageBase, ISettingsPage
         OnPropertyChanged(nameof(CanApplyDbSchemaUpdate));
     }
 
-    private void UpdateManualMigrationPolicyState(DbMigrationPolicyResult policy)
+    private void SyncMigrationPolicy(DbMigrationOutcome policy)
     {
         CanApplyDbSchemaUpdateByPolicy =
             policy.Decision is DbMigrationDecision.Allowed
