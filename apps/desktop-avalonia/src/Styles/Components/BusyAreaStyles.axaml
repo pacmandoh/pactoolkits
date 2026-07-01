@@ -8,6 +8,7 @@
     No AreaBackground — avoids gray-on-black clash with CardPanel Inner (WindowBackgroundColor).
   -->
   <Style Selector="shad|BusyArea">
+    <Setter Property="LoadingSize" Value="32" />
     <Setter Property="Template">
       <ControlTemplate>
         <Panel>

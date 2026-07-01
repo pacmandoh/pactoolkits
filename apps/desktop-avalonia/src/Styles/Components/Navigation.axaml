@@ -1,4 +1,4 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
@@ -18,26 +18,26 @@
     <Setter Property="Padding" Value="0" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFuncMenuItem">
+  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFuncMenuItem,                   shad|Sidebar#MainSidebar MenuItem.SidebarFooterMenuItem">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFuncMenuItem /template/ Border#BaseBackground">
+  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFuncMenuItem /template/ Border#BaseBackground,                   shad|Sidebar#MainSidebar MenuItem.SidebarFooterMenuItem /template/ Border#BaseBackground">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Opacity" Value="0" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFuncMenuItem:pointerover /template/ Border#HoverBackground">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFuncMenuItem:pointerover /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFuncMenuItem:pressed /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFuncMenuItem:open /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFooterMenuItem:pointerover /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFooterMenuItem:pressed /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFooterMenuItem:open /template/ Border#HoverBackground">
     <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
     <Setter Property="Opacity" Value="1" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFuncMenuItem:pointerover /template/ Border#BaseBackground">
+  <Style Selector="shad|Sidebar#MainSidebar MenuItem.SidebarFuncMenuItem:pointerover /template/ Border#BaseBackground,                   shad|Sidebar#MainSidebar MenuItem.SidebarFooterMenuItem:pointerover /template/ Border#BaseBackground">
     <Setter Property="Opacity" Value="0" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:pointerover /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:pressed /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:open /template/ Border#HoverBackground,shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:selected /template/ Border#HoverBackground">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:pointerover /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:pressed /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:open /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem:selected /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFooterMenuItem:pointerover /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFooterMenuItem:pressed /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFooterMenuItem:open /template/ Border#HoverBackground,                   shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFooterMenuItem:selected /template/ Border#HoverBackground">
     <Setter Property="Opacity" Value="0" />
   </Style>
 
@@ -63,14 +63,14 @@
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFuncMenuItem">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFuncMenuItem,                   shad|Sidebar#MainSidebar[Expanded=True] MenuItem.SidebarFooterMenuItem">
     <Setter Property="Margin" Value="{DynamicResource SidebarFuncMargin}" />
     <Setter Property="MinHeight" Value="{DynamicResource ChromeRowHeight}" />
     <Setter Property="Padding" Value="12,4" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
 
-  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem">
+  <Style Selector="shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFuncMenuItem,                   shad|Sidebar#MainSidebar[Expanded=False] MenuItem.SidebarFooterMenuItem">
     <Setter Property="Margin" Value="0,0,0,4" />
     <Setter Property="MinHeight" Value="{DynamicResource ChromeRowHeight}" />
     <Setter Property="MaxHeight" Value="{DynamicResource ChromeRowHeight}" />
