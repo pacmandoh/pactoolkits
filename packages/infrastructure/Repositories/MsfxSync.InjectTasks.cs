@@ -5,9 +5,9 @@ namespace PacToolkits.Infrastructure.Repositories;
 
 public sealed partial class MsfxSyncRepo
 {
-    public Task<IReadOnlyList<MsfxInjectTaskQueueRow>> GetInjectTaskQueueAsync(int limit, CancellationToken ct)
+    public Task<IReadOnlyList<MsfxInjectQueueRow>> GetInjectQueueAsync(int limit, CancellationToken ct)
     {
-        const string sqlBody = """
+        var sqlBody = $"""
             select
               t.id,
               t.status,
@@ -28,10 +28,7 @@ public sealed partial class MsfxSyncRepo
               t.finished_at,
               t.err_msg
             from msfx_inject_task t
-            left join msfx_inject_task_code tc on tc.task_id = t.id
-            left join msfx_code_staging s on s.id = tc.staging_id
-            left join msfx_code_relation r on r.id = s.source_relation_id
-            left join msfx_upout_item i on i.id = r.upout_item_id
+            {MsfxInjectSql.QueueStagingJoin}
             group by
               t.id,
               t.status,
@@ -64,10 +61,10 @@ public sealed partial class MsfxSyncRepo
             }
 
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
-            var rows = new List<MsfxInjectTaskQueueRow>(Math.Max(1, useLimit ? limit : 256));
+            var rows = new List<MsfxInjectQueueRow>(Math.Max(1, useLimit ? limit : 256));
             while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
-                rows.Add(new MsfxInjectTaskQueueRow(
+                rows.Add(new MsfxInjectQueueRow(
                     TaskId: reader.GetInt64(0),
                     Status: reader.GetString(1),
                     SourceBillCode: reader.IsDBNull(2) ? null : reader.GetString(2),
@@ -85,11 +82,11 @@ public sealed partial class MsfxSyncRepo
                     ErrMsg: reader.IsDBNull(14) ? null : reader.GetString(14)));
             }
 
-            return (IReadOnlyList<MsfxInjectTaskQueueRow>)rows;
+            return (IReadOnlyList<MsfxInjectQueueRow>)rows;
         }, ct);
     }
 
-    public Task<MsfxReopenInjectTaskResult> ReopenInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
+    public Task<MsfxInjectReopen> ReopenInjectAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
     {
         const string sql = """
             select task_id, task_status, total_codes
@@ -109,14 +106,14 @@ public sealed partial class MsfxSyncRepo
                 throw new InvalidOperationException($"未能重开任务 {taskId}");
             }
 
-            return new MsfxReopenInjectTaskResult(
+            return new MsfxInjectReopen(
                 TaskId: reader.GetInt64(0),
                 Status: reader.GetString(1),
                 TotalCodes: reader.GetInt32(2));
         }, ct);
     }
 
-    public Task<MsfxDiscardInjectTaskResult> DiscardInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
+    public Task<MsfxInjectDiscard> DiscardInjectAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
     {
         const string sql = """
             select task_id, task_status, total_codes
@@ -136,14 +133,14 @@ public sealed partial class MsfxSyncRepo
                 throw new InvalidOperationException($"未能弃用任务 {taskId}");
             }
 
-            return new MsfxDiscardInjectTaskResult(
+            return new MsfxInjectDiscard(
                 TaskId: reader.GetInt64(0),
                 Status: reader.GetString(1),
                 TotalCodes: reader.GetInt32(2));
         }, ct);
     }
 
-    public Task<MsfxRemapInjectTaskResult> RemapInjectTaskAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
+    public Task<MsfxInjectRemap> RemapInjectAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
     {
         const string sql = """
             select task_id, task_status, total_codes, reset_staging_count
@@ -163,7 +160,7 @@ public sealed partial class MsfxSyncRepo
                 throw new InvalidOperationException($"未能回退任务 {taskId} 到映射队列");
             }
 
-            return new MsfxRemapInjectTaskResult(
+            return new MsfxInjectRemap(
                 TaskId: reader.GetInt64(0),
                 Status: reader.GetString(1),
                 TotalCodes: reader.GetInt32(2),
@@ -171,7 +168,7 @@ public sealed partial class MsfxSyncRepo
         }, ct);
     }
 
-    public Task<MsfxMergeInjectTaskResult> MergeInjectTasksAsync(IReadOnlyList<long> taskIds, string? operatorName, string? reason, CancellationToken ct)
+    public Task<MsfxInjectMerge> MergeInjectsAsync(IReadOnlyList<long> taskIds, string? operatorName, string? reason, CancellationToken ct)
     {
         const string sql = """
             select
@@ -204,7 +201,7 @@ public sealed partial class MsfxSyncRepo
                 throw new InvalidOperationException("未能完成任务合并");
             }
 
-            return new MsfxMergeInjectTaskResult(
+            return new MsfxInjectMerge(
                 TaskId: reader.GetInt64(0),
                 Status: reader.GetString(1),
                 TotalCodes: reader.GetInt32(2),
@@ -212,7 +209,7 @@ public sealed partial class MsfxSyncRepo
         }, ct);
     }
 
-    public Task<MsfxSplitInjectTaskResult> SplitInjectTaskAsync(long taskId, string splitMode, string? operatorName, string? reason, CancellationToken ct)
+    public Task<MsfxInjectSplit> SplitInjectAsync(long taskId, string splitMode, string? operatorName, string? reason, CancellationToken ct)
     {
         const string sql = """
             select
@@ -236,14 +233,14 @@ public sealed partial class MsfxSyncRepo
                 throw new InvalidOperationException($"未能完成任务 {taskId} 的拆分");
             }
 
-            return new MsfxSplitInjectTaskResult(
+            return new MsfxInjectSplit(
                 CreatedTasks: reader.GetInt32(0),
                 TotalCodes: reader.GetInt32(1),
                 SplitMode: reader.GetString(2));
         }, ct);
     }
 
-    public Task<MsfxSplitInjectTaskCustomResult> SplitInjectTaskCustomAsync(long taskId, IReadOnlyList<string> groupKeys, IReadOnlyList<int> bucketIndexes, string? operatorName, string? reason, CancellationToken ct)
+    public Task<MsfxInjectSplitCustom> SplitInjectCustomAsync(long taskId, IReadOnlyList<string> groupKeys, IReadOnlyList<int> bucketIndexes, string? operatorName, string? reason, CancellationToken ct)
     {
         const string sql = """
             select
@@ -278,16 +275,16 @@ public sealed partial class MsfxSyncRepo
                 throw new InvalidOperationException($"未能完成任务 {taskId} 的自定义拆分");
             }
 
-            return new MsfxSplitInjectTaskCustomResult(
+            return new MsfxInjectSplitCustom(
                 CreatedTasks: reader.GetInt32(0),
                 TotalCodes: reader.GetInt32(1),
                 BucketCount: reader.GetInt32(2));
         }, ct);
     }
 
-    public Task<IReadOnlyList<MsfxInjectTaskSplitUnitRow>> GetInjectTaskSplitUnitsAsync(long taskId, CancellationToken ct)
+    public Task<IReadOnlyList<MsfxInjectSplitUnitRow>> GetInjectSplitUnitsAsync(long taskId, CancellationToken ct)
     {
-        const string sql = """
+        var sql = $"""
             with source_codes as (
               select
                 tc.leaf_code,
@@ -298,18 +295,9 @@ public sealed partial class MsfxSyncRepo
                 s.source_code_level_3,
                 s.source_code_level_4,
                 s.source_code_level_5,
-                coalesce(
-                  nullif(btrim(coalesce(s.source_code_level_5, '')), ''),
-                  nullif(btrim(coalesce(s.source_code_level_4, '')), ''),
-                  nullif(btrim(coalesce(s.source_code_level_3, '')), ''),
-                  nullif(btrim(coalesce(s.source_code_level_2, '')), ''),
-                  nullif(btrim(coalesce(s.source_code_level_1, '')), ''),
-                  nullif(btrim(coalesce(tc.leaf_code, '')), '')
-                ) as parent_cluster_key
+                {MsfxInjectSql.ParentClusterKeyExpr} as parent_cluster_key
               from msfx_inject_task_code tc
-              join msfx_code_staging s on s.id = tc.staging_id
-              left join msfx_code_relation r on r.id = s.source_relation_id
-              left join msfx_upout_item i on i.id = r.upout_item_id
+              {MsfxInjectSql.TaskCodeStagingJoin}
               where tc.task_id = @task_id
             )
             select
@@ -346,10 +334,10 @@ public sealed partial class MsfxSyncRepo
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             cmd.AddParam("task_id", taskId);
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
-            var rows = new List<MsfxInjectTaskSplitUnitRow>();
+            var rows = new List<MsfxInjectSplitUnitRow>();
             while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
-                rows.Add(new MsfxInjectTaskSplitUnitRow(
+                rows.Add(new MsfxInjectSplitUnitRow(
                     GroupKey: reader.GetString(0),
                     ParentClusterKey: reader.GetString(1),
                     DisplayClusterCode: reader.GetString(2),
@@ -363,30 +351,16 @@ public sealed partial class MsfxSyncRepo
                     CodeCount: reader.GetInt32(10)));
             }
 
-            return (IReadOnlyList<MsfxInjectTaskSplitUnitRow>)rows;
+            return (IReadOnlyList<MsfxInjectSplitUnitRow>)rows;
         }, ct);
     }
 
-    public Task<IReadOnlyList<MsfxInjectTaskSplitCodeRow>> GetInjectTaskSplitCodeRowsAsync(long taskId, CancellationToken ct)
+    public Task<IReadOnlyList<MsfxInjectSplitCodeRow>> GetInjectSplitCodeRowsAsync(long taskId, CancellationToken ct)
     {
-        const string sql = """
+        var sql = $"""
             select
-              coalesce(
-                nullif(btrim(coalesce(s.source_code_level_5, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_4, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_3, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_2, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_1, '')), ''),
-                nullif(btrim(coalesce(tc.leaf_code, '')), '')
-              ) as group_key,
-              coalesce(
-                nullif(btrim(coalesce(s.source_code_level_5, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_4, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_3, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_2, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_1, '')), ''),
-                nullif(btrim(coalesce(tc.leaf_code, '')), '')
-              ) as display_cluster_code,
+              {MsfxInjectSql.ParentClusterKeyExpr} as group_key,
+              {MsfxInjectSql.ParentClusterKeyExpr} as display_cluster_code,
               tc.leaf_code,
               nullif(btrim(coalesce(s.source_code_level_1, '')), '') as code_level_1,
               nullif(btrim(coalesce(s.source_code_level_2, '')), '') as code_level_2,
@@ -396,19 +370,10 @@ public sealed partial class MsfxSyncRepo
               coalesce(nullif(btrim(i.produce_batch_no), ''), '未提供批号') as batch_no,
               coalesce(nullif(btrim(s.source_bill_code), ''), '--') as source_bill_code
             from msfx_inject_task_code tc
-            join msfx_code_staging s on s.id = tc.staging_id
-            left join msfx_code_relation r on r.id = s.source_relation_id
-            left join msfx_upout_item i on i.id = r.upout_item_id
+            {MsfxInjectSql.TaskCodeStagingJoin}
             where tc.task_id = @task_id
             order by
-              coalesce(
-                nullif(btrim(coalesce(s.source_code_level_5, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_4, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_3, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_2, '')), ''),
-                nullif(btrim(coalesce(s.source_code_level_1, '')), ''),
-                nullif(btrim(coalesce(tc.leaf_code, '')), '')
-              ),
+              {MsfxInjectSql.ParentClusterKeyExpr},
               tc.leaf_code
             """;
 
@@ -417,10 +382,10 @@ public sealed partial class MsfxSyncRepo
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             cmd.AddParam("task_id", taskId);
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
-            var rows = new List<MsfxInjectTaskSplitCodeRow>();
+            var rows = new List<MsfxInjectSplitCodeRow>();
             while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
-                rows.Add(new MsfxInjectTaskSplitCodeRow(
+                rows.Add(new MsfxInjectSplitCodeRow(
                     GroupKey: reader.GetString(0),
                     DisplayClusterCode: reader.GetString(1),
                     LeafCode: reader.GetString(2),
@@ -433,7 +398,7 @@ public sealed partial class MsfxSyncRepo
                     SourceBillCode: reader.GetString(9)));
             }
 
-            return (IReadOnlyList<MsfxInjectTaskSplitCodeRow>)rows;
+            return (IReadOnlyList<MsfxInjectSplitCodeRow>)rows;
         }, ct);
     }
 

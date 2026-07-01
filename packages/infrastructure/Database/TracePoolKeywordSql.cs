@@ -1,5 +1,5 @@
 using Npgsql;
-using PacToolkits.Application.DTOs;
+using PacToolkits.Application.TextSearch;
 
 namespace PacToolkits.Infrastructure.Database;
 

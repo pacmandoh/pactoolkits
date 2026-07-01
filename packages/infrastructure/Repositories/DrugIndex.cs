@@ -503,24 +503,41 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                     returning drug_id, spec, qty, rule_key, pre_tc, note, created_at, updated_at, version
                 """;
 
-                await using var moveCmd = conn.CreateCommand(movePkSql, _opt.CommandTimeoutSeconds, tx);
-                moveCmd.AddParam("dst_drug", dstDrug);
-                moveCmd.AddParam("dst_spec", dstSpec);
-                moveCmd.AddParam("dst_qty", dstQty);
-                moveCmd.AddParam("dst_rule_key", dstRuleKey);
-                moveCmd.AddParam("dst_pre_tc", dstPreTc);
-                moveCmd.AddParam("dst_note", dstNote);
-                moveCmd.AddParam("src_drug", srcDrug);
-                moveCmd.AddParam("src_spec", srcSpec);
-                moveCmd.AddParam("src_version", source.Version);
-
-                await using var reader = await moveCmd.ExecuteReaderAsync(token);
-                if (!await reader.ReadAsync(token))
+                await using (var moveCmd = conn.CreateCommand(movePkSql, _opt.CommandTimeoutSeconds, tx))
                 {
-                    throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", sourceDb);
+                    moveCmd.AddParam("dst_drug", dstDrug);
+                    moveCmd.AddParam("dst_spec", dstSpec);
+                    moveCmd.AddParam("dst_qty", dstQty);
+                    moveCmd.AddParam("dst_rule_key", dstRuleKey);
+                    moveCmd.AddParam("dst_pre_tc", dstPreTc);
+                    moveCmd.AddParam("dst_note", dstNote);
+                    moveCmd.AddParam("src_drug", srcDrug);
+                    moveCmd.AddParam("src_spec", srcSpec);
+                    moveCmd.AddParam("src_version", source.Version);
+
+                    await using var reader = await moveCmd.ExecuteReaderAsync(token);
+                    if (!await reader.ReadAsync(token))
+                    {
+                        throw new DrugIndexConcurrencyException("该记录已被其他终端修改，请刷新后重试", sourceDb);
+                    }
+
+                    current = ReadDrugIndexDto(reader);
                 }
 
-                current = ReadDrugIndexDto(reader);
+                const string syncMovedPoolQtySql = """
+                    update trace_pool
+                    set qty = @dst_qty,
+                        remain = least(remain, @dst_qty)
+                    where drug_id = @dst_drug
+                      and spec = @dst_spec
+                """;
+                await using (var cmd = conn.CreateCommand(syncMovedPoolQtySql, _opt.CommandTimeoutSeconds, tx))
+                {
+                    cmd.AddParam("dst_qty", dstQty);
+                    cmd.AddParam("dst_drug", dstDrug);
+                    cmd.AddParam("dst_spec", dstSpec);
+                    await cmd.ExecuteNonQueryAsync(token);
+                }
             }
             else
             {
@@ -557,7 +574,9 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 const string updatePoolSql = """
                     update trace_pool
                     set drug_id = @dst_drug,
-                        spec = @dst_spec
+                        spec = @dst_spec,
+                        qty = @dst_qty,
+                        remain = least(remain, @dst_qty)
                     where drug_id = @src_drug
                       and spec = @src_spec
                 """;
@@ -565,6 +584,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 {
                     cmd.AddParam("dst_drug", dstDrug);
                     cmd.AddParam("dst_spec", dstSpec);
+                    cmd.AddParam("dst_qty", dstQty);
                     cmd.AddParam("src_drug", srcDrug);
                     cmd.AddParam("src_spec", srcSpec);
                     await cmd.ExecuteNonQueryAsync(token);

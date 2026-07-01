@@ -141,34 +141,16 @@ public sealed class DashboardRepo : IDashboardRepo
                                    and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
                                ),
 
-                               wk_range as (
-                                 select
-                                   (coalesce(max(created_at)::date, current_date)) as wk_to,
-                                   (coalesce(max(created_at)::date, current_date) - 6) as wk_from
-                                 from trace_txn
-                                 where status = 'COMMITTED'
-                               ),
+                               {WeekUsageSql.WeekRangeCte},
 
-                               wk as (
-                                 select
-                                   t.drug_id,
-                                   coalesce(t.spec,'') as spec,
-                                   coalesce(sum(t.req_qty),0)::bigint as wk_used
-                                 from trace_txn t
-                                 cross join wk_range r
-                                 where t.status = 'COMMITTED'
-                                   and t.created_at::date between r.wk_from and r.wk_to
-                                   and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
-                                   and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
-                                 group by t.drug_id, coalesce(t.spec,'')
-                               ),
+                               {WeekUsageSql.WeekUsageFilteredCte},
 
                                active_drug as (
                                  select distinct
                                    d.drug_id,
                                    coalesce(d.spec,'') as spec
                                  from drug_index d
-                                 where coalesce(d.note,'') not ilike '%弃用%'
+                                 where {DrugCatalogSql.ActiveNotePredicate}
                                ),
 
                                -- ====== pool aggregation ======
@@ -556,7 +538,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                    from drug_index
                                    where drug_id is not null
                                      and drug_id <> ''
-                                     and coalesce(note,'') not ilike '%弃用%'
+                                     and {DrugCatalogSql.ActiveNotePredicateUnaliased}
                                    order by drug_id
                                    limit 5000
                                """;
@@ -579,7 +561,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                    select distinct spec
                                    from drug_index
                                    where drug_id = @drug_id
-                                     and coalesce(note,'') not ilike '%弃用%'
+                                     and {DrugCatalogSql.ActiveNotePredicateUnaliased}
                                    order by spec
                                    limit 2000
                                """;
