@@ -52,17 +52,17 @@ public static class ServiceRegistration
         services.AddSingleton<AppViews>();
         services.AddSingleton<MainWindowViewModel>();
 
-        services.AddSingleton<InventoryUnlockDialogViewModel>();
+        services.AddSingleton<SensitiveUnlock>();
 
         services.AddSingleton<DialogManager>(sp =>
         {
             var manager = new DialogManager();
-            manager.Register<InventoryUnlockDialogView, InventoryUnlockDialogViewModel>();
-            manager.Register<DrugKeyFixPreviewDialogView, DrugKeyFixPreviewDialogViewModel>();
-            manager.Register<InfoDetailDialogView, InfoDetailDialogViewModel>();
-            manager.Register<MsfxStateDetailDialogView, MsfxStateDetailDialogViewModel>();
-            manager.Register<MsfxMappingBatchDialogView, MsfxMappingBatchDialogViewModel>();
-            manager.Register<MsfxTaskSplitDialogView, MsfxTaskSplitDialogViewModel>();
+            manager.Register<SensitiveUnlockView, SensitiveUnlock>();
+            manager.Register<DrugKeyFixPreviewView, DrugKeyFixPreview>();
+            manager.Register<InfoDetailView, InfoDetail>();
+            manager.Register<MsfxStateDetailView, MsfxStateDetail>();
+            manager.Register<MsfxMappingBatchView, MsfxMappingBatch>();
+            manager.Register<MsfxTaskSplitView, MsfxTaskSplit>();
             return manager;
         });
         services.AddSingleton<ToastManager>();

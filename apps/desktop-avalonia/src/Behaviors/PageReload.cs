@@ -10,7 +10,7 @@ namespace PacToolkits.Desktop.Avalonia.Behaviors;
 /// <summary>
 /// Single-flight gate for page reload work. Busy/loading UI is owned by the caller.
 /// </summary>
-public sealed class PageReloadBehavior : IDisposable
+public sealed class PageReload : IDisposable
 {
     private CancellationTokenSource? _cts;
     private int _runId;
@@ -24,7 +24,7 @@ public sealed class PageReloadBehavior : IDisposable
     {
         if (_disposed)
         {
-            throw new ObjectDisposedException(nameof(PageReloadBehavior));
+            throw new ObjectDisposedException(nameof(PageReload));
         }
 
         var cts = new CancellationTokenSource();
@@ -46,7 +46,7 @@ public sealed class PageReloadBehavior : IDisposable
         catch (Exception ex)
         {
             error = ex;
-            AppLog.Warn("PageReloadBehavior", "reload.run.fail", "Page reload behavior captured exception", ex);
+            AppLog.Warn("PageReload", "reload.run.fail", "Page reload behavior captured exception", ex);
         }
         finally
         {

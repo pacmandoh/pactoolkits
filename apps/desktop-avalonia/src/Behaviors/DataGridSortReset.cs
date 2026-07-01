@@ -10,20 +10,20 @@ using global::Avalonia.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
-public class DataGridSortResetBehavior
+public class DataGridSortReset
 {
     public static readonly AttachedProperty<bool> EnabledProperty =
-        AvaloniaProperty.RegisterAttached<DataGridSortResetBehavior, DataGrid, bool>("Enabled");
+        AvaloniaProperty.RegisterAttached<DataGridSortReset, DataGrid, bool>("Enabled");
 
     public static readonly AttachedProperty<bool> FilterActiveProperty =
-        AvaloniaProperty.RegisterAttached<DataGridSortResetBehavior, DataGrid, bool>("FilterActive");
+        AvaloniaProperty.RegisterAttached<DataGridSortReset, DataGrid, bool>("FilterActive");
 
     public static readonly AttachedProperty<ICommand?> ClearFilterCommandProperty =
-        AvaloniaProperty.RegisterAttached<DataGridSortResetBehavior, DataGrid, ICommand?>("ClearFilterCommand");
+        AvaloniaProperty.RegisterAttached<DataGridSortReset, DataGrid, ICommand?>("ClearFilterCommand");
 
     private static readonly ConcurrentDictionary<DataGrid, BehaviorState> States = new();
 
-    static DataGridSortResetBehavior()
+    static DataGridSortReset()
     {
         EnabledProperty.Changed.AddClassHandler<DataGrid>((grid, args) =>
         {
@@ -111,7 +111,7 @@ public class DataGridSortResetBehavior
             _grid.Sorting += OnSorting;
             _grid.PropertyChanged += OnGridPropertyChanged;
             _grid.Columns.CollectionChanged += OnColumnsChanged;
-            DataGridSortSupportBehavior.Apply(_grid);
+            DataGridSortSupport.Apply(_grid);
             AttachSortDescriptions(_grid.CollectionView?.SortDescriptions);
             InstallHeaderButton();
             UpdateHeaderFace();
@@ -137,21 +137,21 @@ public class DataGridSortResetBehavior
 
         private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
         {
-            DataGridSortSupportBehavior.Apply(_grid);
+            DataGridSortSupport.Apply(_grid);
             InstallHeaderButton();
             UpdateHeaderFace();
         }
 
         private void OnColumnsChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            DataGridSortSupportBehavior.Apply(_grid);
+            DataGridSortSupport.Apply(_grid);
         }
 
         private void OnGridPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
         {
             if (e.Property == DataGrid.CollectionViewProperty)
             {
-                DataGridSortSupportBehavior.Apply(_grid);
+                DataGridSortSupport.Apply(_grid);
                 AttachSortDescriptions(_grid.CollectionView?.SortDescriptions);
                 InstallHeaderButton();
                 Dispatcher.UIThread.Post(UpdateHeaderFace, DispatcherPriority.Background);
@@ -232,7 +232,7 @@ public class DataGridSortResetBehavior
         {
             void TryInstall()
             {
-                if (!DataGridIndexColumnBehavior.TryGetHeaderButton(_grid, out var button) || button is null)
+                if (!DataGridIndexColumn.TryGetHeaderButton(_grid, out var button) || button is null)
                 {
                     return;
                 }
@@ -260,17 +260,17 @@ public class DataGridSortResetBehavior
 
             if (GetFilterActive(_grid))
             {
-                DataGridIndexColumnBehavior.SetHeaderFace(_grid, DataGridIndexHeaderFace.ClearFilter);
+                DataGridIndexColumn.SetHeaderFace(_grid, DataGridIndexHeaderFace.ClearFilter);
                 return;
             }
 
             if (HasActiveSort())
             {
-                DataGridIndexColumnBehavior.SetHeaderFace(_grid, DataGridIndexHeaderFace.ClearSort);
+                DataGridIndexColumn.SetHeaderFace(_grid, DataGridIndexHeaderFace.ClearSort);
                 return;
             }
 
-            DataGridIndexColumnBehavior.SetHeaderFace(_grid, DataGridIndexHeaderFace.Default);
+            DataGridIndexColumn.SetHeaderFace(_grid, DataGridIndexHeaderFace.Default);
         }
 
         private bool HasActiveSort()

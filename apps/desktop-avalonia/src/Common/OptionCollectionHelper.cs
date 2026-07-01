@@ -11,7 +11,7 @@ public static class OptionCollectionHelper
         ObservableCollection<ViewModels.Pages.OptionItem> target,
         IEnumerable<string> values,
         StringComparison comparison = StringComparison.Ordinal)
-        => Replace(target, LookupOptionLoader.ToOptions(values), comparison);
+        => Replace(target, LookupOptions.ToOptions(values), comparison);
 
     public static bool Replace(
         ObservableCollection<ViewModels.Pages.OptionItem> target,

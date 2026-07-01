@@ -8,9 +8,9 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-public static class LookupOptionLoader
+public static class LookupOptions
 {
-    public static async Task<IReadOnlyList<OptionItem>> LoadDrugOptionsAsync(
+    public static async Task<IReadOnlyList<OptionItem>> GetDrugOptionsAsync(
         ILookupCatalogService lookup,
         CancellationToken ct,
         bool forceRefresh = false)
@@ -19,7 +19,7 @@ public static class LookupOptionLoader
         return ToOptions(drugs);
     }
 
-    public static async Task<IReadOnlyList<string>> LoadSpecsAsync(
+    public static async Task<IReadOnlyList<string>> GetSpecsAsync(
         ILookupCatalogService lookup,
         string? drug,
         CancellationToken ct)
