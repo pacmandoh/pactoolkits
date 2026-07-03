@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -249,6 +250,30 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     protected void ObserveDetached(Task task, string eventName, string? message = null)
         => TaskObserve.Observe(task, GetType().Name, eventName, message ?? "Detached task failed");
 
+    private void LogReloadStarted()
+        => LogInfo("reload.started", "Page reload started", new
+        {
+            availability = _pageDataAvailability.ToString(),
+            dbSignal = _reloadFromDbSignal,
+            hasLoadedOnce = _hasLoadedOnce
+        });
+
+    private void LogReloadSkipped(string reason)
+        => LogInfo("reload.skipped", "Page reload skipped", new
+        {
+            reason,
+            availability = _pageDataAvailability.ToString()
+        });
+
+    private void LogReloadFinished(string outcome, long durationMs)
+        => LogInfo("reload.finished", "Page reload finished", new
+        {
+            outcome,
+            durationMs,
+            availability = _pageDataAvailability.ToString(),
+            hasLoadedOnce = _hasLoadedOnce
+        });
+
     private async Task ExecuteRefreshAsync()
     {
         try
@@ -289,12 +314,17 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         Action<bool> setLoadingBusy,
         Func<CancellationToken, Task> fetch)
     {
+        using var traceScope = LogTrace.Begin();
+        var sw = Stopwatch.StartNew();
+        LogReloadStarted();
+
         _ = GetDbMonitor();
         _ = GetDbAccessGuard();
 
         if (IsDbAccessBlocked(out var blockReason))
         {
             SetPageAvailability(PageDataAvailability.AccessBlocked, blockReason);
+            LogReloadSkipped("access_blocked");
             return;
         }
 
@@ -305,6 +335,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
         if (!await WaitStartupReadyAsync(ct).ConfigureAwait(false))
         {
+            LogReloadSkipped("startup_not_ready");
             return;
         }
 
@@ -316,6 +347,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             var ok = await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
             if (!ok)
             {
+                LogReloadSkipped("db_wait_failed");
                 return;
             }
 
@@ -325,6 +357,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         if (IsDbAccessBlocked(out blockReason))
         {
             SetPageAvailability(PageDataAvailability.AccessBlocked, blockReason);
+            LogReloadSkipped("access_blocked");
             return;
         }
 
@@ -336,6 +369,8 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             }
             catch (OperationCanceledException)
             {
+                RestoreAfterCancel();
+                LogReloadFinished("cancelled", sw.ElapsedMilliseconds);
                 return;
             }
         }
@@ -362,15 +397,18 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
             MarkHasLoadedOnce();
             SetPageAvailability(PageDataAvailability.Ready);
+            LogReloadFinished("ready", sw.ElapsedMilliseconds);
         }
         catch (OperationCanceledException)
         {
             RestoreAfterCancel();
+            LogReloadFinished("cancelled", sw.ElapsedMilliseconds);
         }
         catch (Exception ex) when (IsDbAccessBlockedException(ex))
         {
             LogWarn("reload.access_blocked.fail", "Reload stopped because database access is blocked", ex);
             SetPageAvailability(PageDataAvailability.AccessBlocked, GetDbAccessGuard()?.BlockReason);
+            LogReloadFinished("access_blocked", sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
@@ -379,6 +417,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             if (IsDbTransportError(ex) || IsDbAccessBlockedException(ex))
             {
                 RestoreAfterFail();
+                LogReloadFinished("transport_degraded", sw.ElapsedMilliseconds);
                 return;
             }
 
@@ -390,6 +429,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
             LogError("reload.pipeline.fail", "Page reload failed with non-transport error", ex);
             SetPageAvailability(PageDataAvailability.LoadFailed, message);
+            LogReloadFinished("load_failed", sw.ElapsedMilliseconds);
         }
     }
 

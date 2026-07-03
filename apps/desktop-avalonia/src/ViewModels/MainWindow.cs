@@ -406,6 +406,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(AgentItemText));
     }
 
+    private void LogPageInfo(string eventName, string message, object? context = null)
+        => _logger.Info("MainWindowVM", eventName, message, context, LogTrace.Current);
+
     private static void ObserveDetached(Task task, string eventName, string? message = null)
         => TaskObserve.Observe(task, "MainWindowVM", eventName, message ?? "Detached task failed");
 
@@ -1187,27 +1190,44 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         int generation,
         CancellationToken ct)
     {
+        using var traceScope = LogTrace.Begin();
+        var fromPage = previous?.GetType().Name;
+        var toPage = current?.GetType().Name;
+
         try
         {
             if (previous is IPageLifecycleAware oldPage)
             {
+                LogPageInfo("page.deactivated", "Page deactivated", new { page = fromPage, next = toPage });
                 await oldPage.OnPageDeactivatedAsync(ct).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
+            LogPageInfo("page.lifecycle.skipped", "Page lifecycle superseded", new
+            {
+                reason = "deactivate_cancelled",
+                page = fromPage,
+                next = toPage
+            });
             return;
         }
         catch (Exception ex)
         {
             _logger.Warn("MainWindowVM", "page.lifecycle.deactivate_fail", "Page deactivation failed", ex, new
             {
-                page = previous?.GetType().Name
-            });
+                page = fromPage
+            }, LogTrace.Current);
         }
 
         if (ct.IsCancellationRequested || generation != _pageLifecycleGeneration)
         {
+            LogPageInfo("page.lifecycle.skipped", "Page lifecycle superseded", new
+            {
+                reason = "generation_changed",
+                page = fromPage,
+                next = toPage
+            });
             return;
         }
 
@@ -1216,17 +1236,23 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             if (current is IPageLifecycleAware newPage)
             {
                 await newPage.OnPageActivatedAsync(ct).ConfigureAwait(false);
+                LogPageInfo("page.activated", "Page activated", new { page = toPage, previous = fromPage });
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
+            LogPageInfo("page.lifecycle.skipped", "Page lifecycle superseded", new
+            {
+                reason = "activate_cancelled",
+                page = toPage
+            });
         }
         catch (Exception ex)
         {
             _logger.Warn("MainWindowVM", "page.lifecycle.activate_fail", "Page activation failed", ex, new
             {
-                page = current?.GetType().Name
-            });
+                page = toPage
+            }, LogTrace.Current);
         }
 
         if (generation != _pageLifecycleGeneration || current is null)
@@ -1247,8 +1273,29 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private async Task SetActivePageAsync(AppPageBase? page)
     {
-        if (page is null || !page.IsEnabled || ReferenceEquals(ActivePage, page))
+        using var traceScope = LogTrace.Begin();
+        var fromPage = ActivePage?.GetType().Name;
+        var toPage = page?.GetType().Name;
+        LogPageInfo("page.navigate.started", "Page navigation started", new { from = fromPage, to = toPage });
+
+        if (page is null || !page.IsEnabled)
         {
+            LogPageInfo("page.navigate.skipped", "Page navigation skipped", new
+            {
+                reason = "null_or_disabled",
+                from = fromPage,
+                to = toPage
+            });
+            return;
+        }
+
+        if (ReferenceEquals(ActivePage, page))
+        {
+            LogPageInfo("page.navigate.skipped", "Page navigation skipped", new
+            {
+                reason = "already_active",
+                page = toPage
+            });
             return;
         }
 
@@ -1257,11 +1304,23 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             var ok = await settings.TrySaveOrDiscardAllAsync();
             if (!ok)
             {
+                LogPageInfo("page.navigate.skipped", "Page navigation skipped", new
+                {
+                    reason = "settings_discard_cancelled",
+                    from = fromPage,
+                    to = toPage
+                });
                 return;
             }
         }
 
         ActivePage = page;
+        LogPageInfo("page.navigate.finished", "Page navigation finished", new
+        {
+            from = fromPage,
+            to = toPage,
+            route = page.SidebarRoute
+        });
     }
 
     [RelayCommand(CanExecute = nameof(CanProbeDb))]
