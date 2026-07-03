@@ -14,7 +14,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
-public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycleAware, IDisposable
+public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycleAware, IDisposable
 {
     public abstract string DisplayName { get; }
     public abstract string Icon { get; }

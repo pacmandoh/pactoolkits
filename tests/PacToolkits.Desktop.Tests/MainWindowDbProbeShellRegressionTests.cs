@@ -61,6 +61,18 @@ public sealed class MainWindowDbProbeShellRegressionTests
     private static int CountOccurrences(string source, string value)
         => source.Split(value, StringSplitOptions.None).Length - 1;
 
+    private static string ExtractSwitchCaseBlock(string source, string caseLabel)
+    {
+        var needle = $"case \"{caseLabel}\":";
+        var start = source.IndexOf(needle, StringComparison.Ordinal);
+        Assert.True(start >= 0, $"Expected switch case \"{caseLabel}\".");
+
+        var breakIndex = source.IndexOf("break;", start, StringComparison.Ordinal);
+        Assert.True(breakIndex > start, $"Expected break after case \"{caseLabel}\".");
+
+        return source[start..(breakIndex + "break;".Length)];
+    }
+
     [Fact]
     public void Sidebar_does_not_bind_IsEnabled_to_IsDbProbeRunning()
     {
@@ -136,7 +148,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
     {
         var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/InventoryOverview.DetailOps.cs");
 
-        Assert.Contains("StockRowsMatchServerOrder", source, StringComparison.Ordinal);
+        Assert.Contains("InventoryStockOrderPolicy.MatchTraceCodeOrder", source, StringComparison.Ordinal);
         Assert.Contains("StockRows.ReplaceAll(rebuiltRows)", source, StringComparison.Ordinal);
     }
 
@@ -150,12 +162,35 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Fact]
+    public void Msfx_topic_marks_only_msfx_link_dirty()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
+        var msfxCase = ExtractSwitchCaseBlock(source, "msfx");
+
+        Assert.Contains("MarkDirtyByType<MsfxLink>()", msfxCase, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkDirtyByType<Dashboard>()", msfxCase, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkDirtyByType<DrugIndex>()", msfxCase, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkDirtyByType<ScanCode>()", msfxCase, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkDirtyByType<InventoryOverview>()", msfxCase, StringComparison.Ordinal);
+        Assert.DoesNotContain("foreach (var page in WorkspacePages)", msfxCase, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Unknown_watermark_topic_still_marks_all_refreshable_pages_dirty()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
+
+        Assert.Contains("default:", source, StringComparison.Ordinal);
+        Assert.Contains("foreach (var page in WorkspacePages)", source, StringComparison.Ordinal);
+        Assert.Contains("MarkPageDirty(page)", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DrugIndex_defers_only_cascade_topics_and_supports_silent_reconcile()
     {
         var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.Reconcile.cs");
 
-        Assert.Contains("public bool DeferRefreshTopic(string? topic)", source, StringComparison.Ordinal);
-        Assert.Contains("trace_pool", source, StringComparison.Ordinal);
+        Assert.Contains("WatermarkActiveRefreshDeferPolicy.ShouldDeferDrugIndexActiveRefresh", source, StringComparison.Ordinal);
         Assert.Contains("ApplySilentReconcile", source, StringComparison.Ordinal);
         Assert.Contains("ShouldSilentReconcile", source, StringComparison.Ordinal);
         Assert.DoesNotContain("drug_index", source, StringComparison.Ordinal);
@@ -168,7 +203,24 @@ public sealed class MainWindowDbProbeShellRegressionTests
 
         Assert.Contains("if (!CanWorkspaceRefresh())", source, StringComparison.Ordinal);
         Assert.Contains("RunWorkspaceRefreshAsync", source, StringComparison.Ordinal);
+        Assert.Contains("WorkspaceBatchRefresh.RunAsync", source, StringComparison.Ordinal);
         Assert.Contains("TryRefreshDirtyActivePage", source, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.cs", "drug_index.reload.fail")]
+    [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/Dashboard.cs", "dashboard.reload.fail")]
+    [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/MsfxLink.AutoBoard.cs", "msfx.audit.snapshot.refresh_fail")]
+    [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/MsfxLink.Subcode.cs", "msfx.subcode.query_fail")]
+    [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/MsfxLink.Upout.cs", "msfx.upout.query_fail")]
+    public void Reload_failure_paths_rethrow_for_pipeline_load_failed(string relativePath, string logEvent)
+    {
+        var source = ReadRepoFile(relativePath);
+        var eventIndex = source.IndexOf(logEvent, StringComparison.Ordinal);
+        Assert.True(eventIndex >= 0, $"Expected log event {logEvent} in {relativePath}.");
+
+        var tail = source[eventIndex..Math.Min(source.Length, eventIndex + 700)];
+        Assert.Contains("throw;", tail, StringComparison.Ordinal);
     }
 
     [Fact]
