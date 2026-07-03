@@ -75,8 +75,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _updatePollCts;
     private CancellationTokenSource? _pageLifecycleCts;
     private int _pageLifecycleGeneration;
-    private readonly object _dirtyPagesGate = new();
-    private readonly HashSet<AppPageBase> _dirtyPages = new();
+    private readonly DirtyPageTracker _dirtyPages = new();
 
     private readonly ThemeWatcher _themeWatcher;
 

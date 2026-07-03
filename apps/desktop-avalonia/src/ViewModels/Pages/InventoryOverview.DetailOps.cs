@@ -9,6 +9,7 @@ using global::Avalonia.Threading;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.TextSearch;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -1432,8 +1433,7 @@ public sealed partial class InventoryOverview : AppPageBase
             return false;
         }
 
-        var key = (topic ?? string.Empty).Trim().ToLowerInvariant();
-        return key is "inventory" or "trace_pool" or "trace_txn" or "trace_txn_item" or "";
+        return WatermarkActiveRefreshDeferPolicy.ShouldDeferInventoryActiveRefresh(topic);
     }
 
     private void ReconcilePageLater(TimeSpan delay)
@@ -1480,7 +1480,11 @@ public sealed partial class InventoryOverview : AppPageBase
 
                 // Silent reconcile: in-place field updates only when trace codes still align by index.
                 // Rebuild when count or row order changes to avoid writing server data onto the wrong row.
-                if (StockRowsMatchServerOrder(StockRows, pageResult.Rows))
+                if (InventoryStockOrderPolicy.MatchTraceCodeOrder(
+                        StockRows,
+                        pageResult.Rows,
+                        static row => row.TraceCode,
+                        static row => row.TraceCode))
                 {
                     for (var i = 0; i < StockRows.Count; i++)
                     {
@@ -1514,26 +1518,6 @@ public sealed partial class InventoryOverview : AppPageBase
         {
             LogWarn("inventory.external_refresh.reconcile_fail", "Failed to reconcile current detail page after external change", ex);
         }
-    }
-
-    private static bool StockRowsMatchServerOrder(
-        IReadOnlyList<StockRowItem> current,
-        IReadOnlyList<TracePoolStockRowDto> server)
-    {
-        if (current.Count != server.Count)
-        {
-            return false;
-        }
-
-        for (var i = 0; i < current.Count; i++)
-        {
-            if (!string.Equals(current[i].TraceCode, server[i].TraceCode, StringComparison.Ordinal))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private static int ResolveTargetRemain(int currentRemain, int targetQty)
