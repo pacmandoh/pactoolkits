@@ -1089,20 +1089,21 @@ public sealed partial class DrugIndex : AppPageBase
         }
         catch (OperationCanceledException)
         {
+            throw;
         }
         catch (Exception ex)
         {
             LogError("drug_index.reload.fail", "Failed to reload drug index", ex);
             if (!CanToastError(ex))
             {
-                return;
+                throw;
             }
 
             await Task.Delay(180, ct).ConfigureAwait(false);
 
             if (ct.IsCancellationRequested)
             {
-                return;
+                throw;
             }
 
             if (Volatile.Read(ref _lastSuccessfulReloadEpoch) > epoch)
@@ -1112,6 +1113,7 @@ public sealed partial class DrugIndex : AppPageBase
 
             Dispatcher.UIThread.Post(() =>
                 _toast.Error("药品信息加载失败", ex.Message));
+            throw;
         }
     }
 

@@ -1562,6 +1562,8 @@ public sealed partial class MsfxLink : AppPageBase
             {
                 _toast.Error("刷新审计", ex.Message);
             }
+
+            throw;
         }
     }
 
