@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using global::Avalonia.Threading;
+using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
@@ -24,7 +24,7 @@ internal static class PageReloadBusyDelay
         if (first == busyDelayTask && !bodyTask.IsCompleted && !busyDelayCts.IsCancellationRequested)
         {
             busyShown = true;
-            await Dispatcher.UIThread.InvokeAsync(() => setBusy(true));
+            await UiThreadHelper.RunOnUiAsync(() => setBusy(true)).ConfigureAwait(false);
         }
 
         try
@@ -44,7 +44,7 @@ internal static class PageReloadBusyDelay
 
             if (busyShown)
             {
-                await Dispatcher.UIThread.InvokeAsync(() => setBusy(false));
+                await UiThreadHelper.RunOnUiAsync(() => setBusy(false)).ConfigureAwait(false);
             }
         }
     }
