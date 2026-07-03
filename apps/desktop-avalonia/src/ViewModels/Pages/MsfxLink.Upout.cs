@@ -77,13 +77,22 @@ public sealed partial class MsfxLink : AppPageBase
                 ApplyUpoutFilter();
             });
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
+            LogError("msfx.upout.query_fail", "Failed to query upstream outbound list", ex);
             await RunOnUiAsync(() =>
             {
                 UpoutStatus = $"查询异常：{ex.Message}";
-                _toast.Error("上游出库单查询", ex.Message);
+                if (CanToastError(ex))
+                {
+                    _toast.Error("上游出库单查询", ex.Message);
+                }
             });
+            throw;
         }
         finally
         {
