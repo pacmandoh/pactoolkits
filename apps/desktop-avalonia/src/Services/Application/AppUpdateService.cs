@@ -1,8 +1,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Desktop.Avalonia.Common;
 using Velopack;
 using Velopack.Locators;
 
