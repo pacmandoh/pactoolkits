@@ -119,7 +119,7 @@ public partial class App : global::Avalonia.Application
             var current = _uiBehavior?.Current.MinimizeToTrayOnClose ?? true;
             var next = !current;
             trayModeItem.IsChecked = next;
-            _ = PersistTrayModeAsync(next, trayModeItem);
+            TaskObserve.Observe(PersistTrayModeAsync(next, trayModeItem), "App", "tray.persist.detached.fail");
         };
 
         exitItem.Click += (_, _) =>
@@ -315,6 +315,7 @@ public partial class App : global::Avalonia.Application
         _taskUnhandledHandler = (_, e) =>
         {
             _logger?.Fatal("App", "unobserved.task", "Unobserved task exception", e.Exception);
+            e.SetObserved();
         };
         TaskScheduler.UnobservedTaskException += _taskUnhandledHandler;
 

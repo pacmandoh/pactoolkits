@@ -110,7 +110,7 @@ public sealed partial class MsfxMappingBatch(
             return;
         }
 
-        _ = RefreshPreviewSafeAsync(_sessionCts.Token);
+        TaskObserve.Observe(RefreshPreviewSafeAsync(_sessionCts.Token), "MsfxMappingBatch", "preview.refresh.detached.fail");
     }
 
     partial void OnSelectedGroupChanged(MsfxMappingBatchGroupRow? value)
@@ -120,7 +120,7 @@ public sealed partial class MsfxMappingBatch(
             return;
         }
 
-        _ = RefreshPreviewSafeAsync(_sessionCts.Token);
+        TaskObserve.Observe(RefreshPreviewSafeAsync(_sessionCts.Token), "MsfxMappingBatch", "preview.refresh.detached.fail");
     }
 
     partial void OnSelectedSearchScopeChanged(string value)
@@ -142,7 +142,7 @@ public sealed partial class MsfxMappingBatch(
         if (string.IsNullOrWhiteSpace(value))
         {
             _keywordDebouncer.Cancel();
-            _ = ReloadGroupsSafeAsync(_sessionCts.Token);
+            TaskObserve.Observe(ReloadGroupsSafeAsync(_sessionCts.Token), "MsfxMappingBatch", "groups.reload.detached.fail");
             return;
         }
 
@@ -161,7 +161,7 @@ public sealed partial class MsfxMappingBatch(
             return;
         }
 
-        _ = OnDrugInputChangedAsync(value);
+        TaskObserve.Observe(OnDrugInputChangedAsync(value), "MsfxMappingBatch", "drug_input.detached.fail");
     }
 
     public async Task InitializeViewAsync()
@@ -324,7 +324,7 @@ public sealed partial class MsfxMappingBatch(
         }
 
         _keywordDebouncer.Cancel();
-        _ = ReloadGroupsSafeAsync(_sessionCts.Token);
+        TaskObserve.Observe(ReloadGroupsSafeAsync(_sessionCts.Token), "MsfxMappingBatch", "groups.reload.detached.fail");
     }
 
     private void CancelSessionWork()

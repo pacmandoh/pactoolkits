@@ -153,7 +153,7 @@ public partial class SettingsView : UserControl
                 return;
             }
 
-            _ = SwitchTabAsync(tabIndex);
+            TaskObserve.Observe(SwitchTabAsync(tabIndex), "SettingsView", "settings.tab_switch.detached.fail");
         }
         catch (Exception ex)
         {

@@ -138,7 +138,7 @@ public sealed partial class ScanCode : AppPageBase
         SeedAutoFetchPanel();
         _traceCodeRule.Changed += OnTraceCodeRuleChanged;
 
-        PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
+        PostOnUi(() => ObserveDetached(ReloadAsync(), "reload.detached.fail"), DispatcherPriority.Background);
     }
 
     private Task ReloadAsync() => RefreshPageAsync();
@@ -286,7 +286,7 @@ public sealed partial class ScanCode : AppPageBase
     partial void OnSelectedSpecChanged(OptionItem? value)
     {
         IsSpecSelected = value is not null;
-        _ = RefreshQtyAndContextStatusAsync();
+        ObserveDetached(RefreshQtyAndContextStatusAsync(), "qty.refresh.detached.fail");
         RefreshPageCommands();
     }
 
@@ -912,7 +912,7 @@ public sealed partial class ScanCode : AppPageBase
         _poolCheckCts?.Dispose();
         var cts = new CancellationTokenSource();
         _poolCheckCts = cts;
-        _ = RunPoolCheckAsync(candidateCodes, cts.Token);
+        ObserveDetached(RunPoolCheckAsync(candidateCodes, cts.Token), "pool.check.detached.fail");
     }
 
     private async Task RunPoolCheckAsync(IReadOnlyList<string> candidateCodes, CancellationToken ct)

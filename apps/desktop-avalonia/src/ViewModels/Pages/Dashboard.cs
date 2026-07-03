@@ -324,7 +324,7 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(IsTxnPanelEmpty));
 
         if (IsTxnPanelTrendMode && TxnTrendRows.Count == 0 && !IsTxnBusy)
-            _ = ReloadTxnTrendPageOnlyAsync();
+            ObserveDetached(ReloadTxnTrendPageOnlyAsync(), "txn_trend.reload.detached.fail");
     }
 
     partial void OnTxnPageIndexChanged(int value)
@@ -512,7 +512,7 @@ public sealed partial class Dashboard : AppPageBase
             TxnPanelMode = TxnPanelModes.FirstOrDefault();
         }
 
-        PostOnUi(() => _ = InitializeAsync(), DispatcherPriority.Loaded);
+        PostOnUi(() => ObserveDetached(InitializeAsync(), "init.detached.fail"), DispatcherPriority.Loaded);
 
         _clientAlias.Changed += OnClientAliasChanged;
     }
@@ -609,7 +609,7 @@ public sealed partial class Dashboard : AppPageBase
     private void OnDebounceTimerTick(object? sender, EventArgs e)
     {
         _debounce?.Stop();
-        _ = ReloadNow();
+        ObserveDetached(ReloadNow(), "reload.detached.fail");
     }
 
     private void QueueTabPageReload(bool force = false)
@@ -617,7 +617,7 @@ public sealed partial class Dashboard : AppPageBase
         switch (SelectedTabIndex)
         {
             case 1 when force || (EntryRecent.Count == 0 && !IsEntryBusy):
-                _ = ReloadEntryPageOnlyAsync();
+                ObserveDetached(ReloadEntryPageOnlyAsync(), "entry.reload.detached.fail");
                 break;
             case 2:
                 if (!force && IsTxnBusy)
@@ -629,17 +629,17 @@ public sealed partial class Dashboard : AppPageBase
                 {
                     if (force || TxnTrendRows.Count == 0)
                     {
-                        _ = ReloadTxnTrendPageOnlyAsync();
+                        ObserveDetached(ReloadTxnTrendPageOnlyAsync(), "txn_trend.reload.detached.fail");
                     }
                 }
                 else if (force || RecentTxns.Count == 0)
                 {
-                    _ = ReloadTxnPageOnlyAsync();
+                    ObserveDetached(ReloadTxnPageOnlyAsync(), "txn.reload.detached.fail");
                 }
 
                 break;
             case 3 when force || (AbnormalQueue.Count == 0 && !IsAbnormalBusy):
-                _ = ReloadAbnormalPageOnlyAsync();
+                ObserveDetached(ReloadAbnormalPageOnlyAsync(), "abnormal.reload.detached.fail");
                 break;
         }
     }

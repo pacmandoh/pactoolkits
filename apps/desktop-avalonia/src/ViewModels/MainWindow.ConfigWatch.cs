@@ -150,10 +150,10 @@ public partial class MainWindowViewModel
            && a.MonitorPingTimeoutSeconds == b.MonitorPingTimeoutSeconds;
 
     private void OnConfigWatcherChanged(object? sender, FileSystemEventArgs e)
-        => _ = OnConfigChangedAsync();
+        => ObserveDetached(OnConfigChangedAsync(), "config.watch.detached.fail");
 
     private void OnConfigWatcherRenamed(object? sender, RenamedEventArgs e)
-        => _ = OnConfigChangedAsync();
+        => ObserveDetached(OnConfigChangedAsync(), "config.watch.detached.fail");
 
     private void OnDbConfigAppliedEvent(object? sender, EventArgs e)
         => OnDbConfigApplied();

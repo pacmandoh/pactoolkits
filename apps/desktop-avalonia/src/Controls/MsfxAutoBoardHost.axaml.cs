@@ -8,6 +8,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Threading;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Common.Diagnostics;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 using PacToolkits.Desktop.Avalonia.Views.Pages;
@@ -129,7 +130,7 @@ public partial class MsfxAutoBoardHost : Grid
         _revealPaused = false;
         if (_mountedPanelKeys.Count == 0 && _skippedPanelKeys.Count > 0)
         {
-            _ = MountDeferredPanelsAsync();
+            TaskObserve.Observe(MountDeferredPanelsAsync(), "MsfxAutoBoardHost", "panel.mount.detached.fail");
             return;
         }
 
@@ -152,7 +153,7 @@ public partial class MsfxAutoBoardHost : Grid
             or nameof(MsfxLink.IsAutoLogsEmpty)
             or nameof(MsfxLink.AutoExpandedPanel))
         {
-            _ = MountDeferredPanelsAsync();
+            TaskObserve.Observe(MountDeferredPanelsAsync(), "MsfxAutoBoardHost", "panel.mount.detached.fail");
         }
     }
 
@@ -167,7 +168,9 @@ public partial class MsfxAutoBoardHost : Grid
             return;
         }
 
-        Dispatcher.UIThread.Post(() => _ = RevealPanelsAsync(), DispatcherPriority.Background);
+        Dispatcher.UIThread.Post(
+            () => TaskObserve.Observe(RevealPanelsAsync(), "MsfxAutoBoardHost", "panel.reveal.detached.fail"),
+            DispatcherPriority.Background);
     }
 
     private async Task RevealPanelsAsync()

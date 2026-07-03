@@ -246,6 +246,9 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     protected void LogInfo(string eventName, string message, object? context = null)
         => AppLog.Info(GetType().Name, eventName, message, context);
 
+    protected void ObserveDetached(Task task, string eventName, string? message = null)
+        => TaskObserve.Observe(task, GetType().Name, eventName, message ?? "Detached task failed");
+
     private async Task ExecuteRefreshAsync()
     {
         try
@@ -843,7 +846,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             return;
         }
 
-        PostOnUi(() => _ = AutoRefreshOnDbSignalAsync(), DispatcherPriority.Background);
+        PostOnUi(() => ObserveDetached(AutoRefreshOnDbSignalAsync(), "auto_refresh.detached.fail"), DispatcherPriority.Background);
     }
 
     private async Task AutoRefreshOnDbSignalAsync()

@@ -23,7 +23,7 @@ public partial class MsfxMappingBatchView : UserControl
     {
         base.OnDataContextChanged(e);
         _attached = null;
-        _ = TryInitializeSafeAsync();
+        TaskObserve.Observe(TryInitializeSafeAsync(), "MsfxMappingBatchView", "init.detached.fail");
     }
 
     private async void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)

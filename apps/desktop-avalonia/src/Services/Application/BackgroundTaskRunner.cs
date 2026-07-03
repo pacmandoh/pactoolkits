@@ -16,7 +16,7 @@ public sealed class BackgroundTaskRunner(IAppLogger logger, IToastService toast)
         CancellationToken ct = default,
         bool toastOnError = false)
     {
-        _ = RunDetachedAsync(work, module, eventName, ct, toastOnError);
+        TaskObserve.Observe(RunDetachedAsync(work, module, eventName, ct, toastOnError), module, eventName);
     }
 
     private async Task RunDetachedAsync(

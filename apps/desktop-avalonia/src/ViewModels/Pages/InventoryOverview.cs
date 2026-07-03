@@ -286,7 +286,7 @@ public sealed partial class InventoryOverview : AppPageBase
         _dbConfigNotifier.Applied += OnDbApplied;
         _lastModeIndex = ModeIndex;
 
-        PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
+        PostOnUi(() => ObserveDetached(ReloadAsync(), "reload.detached.fail"), DispatcherPriority.Background);
     }
 
     private async Task ImportAsync()
@@ -407,7 +407,7 @@ public sealed partial class InventoryOverview : AppPageBase
             SetReassignPreviewLive(false);
             OnPropertyChanged(nameof(ShowReassignRowSelection));
             OnPropertyChanged(nameof(StockPagerSelectedCount));
-            _ = SyncDrugCatalogAsync();
+            ObserveDetached(SyncDrugCatalogAsync(), "catalog.sync.detached.fail");
         }
 
         OnPropertyChanged(nameof(ShowReassignRowSelection));
@@ -458,7 +458,7 @@ public sealed partial class InventoryOverview : AppPageBase
             return;
         }
 
-        _ = SyncQtyAsync();
+        ObserveDetached(SyncQtyAsync(), "qty.sync.detached.fail");
     }
 
     partial void OnTargetDrugIdChanged(string? value)
@@ -793,7 +793,7 @@ public sealed partial class InventoryOverview : AppPageBase
     {
         PageIndex = 1;
 
-        PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
+        PostOnUi(() => ObserveDetached(ReloadAsync(), "reload.detached.fail"), DispatcherPriority.Background);
     }
 
     private void OnUnlockChanged(string scopeKey)
@@ -973,7 +973,7 @@ public sealed partial class InventoryOverview : AppPageBase
         ModeIndex = next;
         if (forceReload && !modeChanged)
         {
-            _ = ReloadAsync();
+            ObserveDetached(ReloadAsync(), "reload.detached.fail");
         }
     }
 
@@ -992,6 +992,6 @@ public sealed partial class InventoryOverview : AppPageBase
 
     public void ReloadAfterDrugIndexChange()
     {
-        PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
+        PostOnUi(() => ObserveDetached(ReloadAsync(), "reload.detached.fail"), DispatcherPriority.Background);
     }
 }

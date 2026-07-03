@@ -79,7 +79,7 @@ public sealed class PageGridMountScheduler
         }
 
         _paused = false;
-        _ = RunQueueAsync();
+        TaskObserve.Observe(RunQueueAsync(), "PageGridMountScheduler", "grid.mount.detached.fail");
     }
 
     private void Register(DeferredGridSlot slot, int priority)
