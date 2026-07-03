@@ -1,16 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Application;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 public sealed partial class DrugIndex
 {
     public bool DeferRefreshTopic(string? topic)
-    {
-        var key = (topic ?? string.Empty).Trim().ToLowerInvariant();
-        return key is "trace_pool" or "trace_txn" or "trace_txn_item";
-    }
+        => WatermarkActiveRefreshDeferPolicy.ShouldDeferDrugIndexActiveRefresh(topic);
 
     private readonly record struct DrugKey(string DrugId, string Spec);
 
