@@ -518,7 +518,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        if (IsDbProbeRunning)
+        if (!CanWorkspaceRefresh())
         {
             _toasts.Info("刷新", "数据库初始化进行中，请稍候");
             return;
@@ -635,7 +635,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dbMonitor.Reconnected += ShowDbReconnectedInfo;
         _dbMonitor.Reconnected += OnDbReconnectedRefreshSchema;
         _dbMonitor.Reconnected += OnDbReconnectedMigrateSchema;
-        _changeWatermark.TopicChanged += OnWatermarkTopicChanged;
+        _changeWatermark.TopicChanged += OnTopicChanged;
 
         _dbMonitor.Reconnected += ScheduleAutoRefresh;
         _dbMonitor.Disconnected += ScheduleAutoRefresh;
@@ -1860,7 +1860,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedMigrateSchema);
         SafeExecute(() => _dbMonitor.Reconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _dbMonitor.Disconnected -= ScheduleAutoRefresh);
-        SafeExecute(() => _changeWatermark.TopicChanged -= OnWatermarkTopicChanged);
+        SafeExecute(() => _changeWatermark.TopicChanged -= OnTopicChanged);
         SafeExecute(() => Injector.StatusChanged -= OnAhkStatusChanged);
         SafeExecute(() => _updates.Changed -= OnUpdateChanged);
         SafeExecute(() => _updateFlow.StateChanged -= OnUpdateFlowStateChanged);
