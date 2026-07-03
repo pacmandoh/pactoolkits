@@ -123,6 +123,18 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Fact]
+    public void DrugIndex_defers_only_cascade_topics_and_supports_silent_reconcile()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.Reconcile.cs");
+
+        Assert.Contains("public bool DeferRefreshTopic(string? topic)", source, StringComparison.Ordinal);
+        Assert.Contains("trace_pool", source, StringComparison.Ordinal);
+        Assert.Contains("ApplySilentReconcile", source, StringComparison.Ordinal);
+        Assert.Contains("ShouldSilentReconcile", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("drug_index", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Auto_workspace_refresh_blocks_while_db_probe_or_startup_init_runs()
     {
         var source = ReadMainWindowViewModelSource();

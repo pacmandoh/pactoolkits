@@ -212,6 +212,7 @@ public sealed partial class DrugIndex : AppPageBase
     private DrugIndexQuery _query = new(null);
     private int _reloadEpoch;
     private int _lastSuccessfulReloadEpoch;
+    private bool _forceFullReload;
 
     public ObservableCollection<DrugRow> Items { get; } = new();
     protected override void OnPageAvailabilityChanged()
@@ -249,7 +250,7 @@ public sealed partial class DrugIndex : AppPageBase
         }
 
         _keywordSearchDebouncer.Schedule(async () =>
-            await Dispatcher.UIThread.InvokeAsync(ReloadAsync));
+            await Dispatcher.UIThread.InvokeAsync(() => ReloadAsync()));
     }
     [ObservableProperty] private DrugRow? _selected;
     [ObservableProperty] private bool _hasSelection;
@@ -357,7 +358,7 @@ public sealed partial class DrugIndex : AppPageBase
         _clipboard = clipboard;
         _inventoryOverview = inventoryOverview;
         _scanCode = scanCode;
-        _localRefreshCommand = new AsyncRelayCommand(ReloadAsync, CanRefreshLocal);
+        _localRefreshCommand = new AsyncRelayCommand(() => ReloadAsync(), CanRefreshLocal);
         _importCommand = new AsyncRelayCommand(ImportAsync, CanIo);
         _exportCommand = new AsyncRelayCommand(ExportAsync, CanIo);
         _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -841,7 +842,7 @@ public sealed partial class DrugIndex : AppPageBase
                 case DrugSaveOutcome.ConcurrencyConflict:
                     LogWarn("drug_index.save.concurrency_conflict", "Detected optimistic concurrency conflict", saveResult.Concurrency);
                     await _dialog.Warn("保存冲突", "该记录已被其他终端修改，请先刷新后再编辑");
-                    await ReloadAsync();
+                    await ReloadAsync(forceFull: true);
                     return false;
             }
 
@@ -940,7 +941,7 @@ public sealed partial class DrugIndex : AppPageBase
             if (source is null)
             {
                 await _dialog.Warn("纠错迁移", "源药品规格不存在或已被移除，请刷新后重试");
-                await ReloadAsync();
+                await ReloadAsync(forceFull: true);
                 return;
             }
 
@@ -1016,7 +1017,7 @@ public sealed partial class DrugIndex : AppPageBase
                 }
             }
 
-            await ReloadAsync();
+            await ReloadAsync(forceFull: true);
 
             Dispatcher.UIThread.Post(() =>
                 _toast.Success("药品纠错迁移",
@@ -1029,7 +1030,7 @@ public sealed partial class DrugIndex : AppPageBase
         {
             LogWarn("drug_index.fix_key.concurrency_conflict", "Detected key-fix concurrency conflict", cx);
             await _dialog.Warn("迁移冲突", "该记录已被其他终端修改，请先刷新后再试");
-            await ReloadAsync();
+            await ReloadAsync(forceFull: true);
         }
         catch (Exception ex)
         {
@@ -1043,11 +1044,14 @@ public sealed partial class DrugIndex : AppPageBase
         }
     }
 
-    private Task ReloadAsync()
-        => RunLocalReloadAsync(
+    private Task ReloadAsync(bool forceFull = false)
+    {
+        _forceFullReload = forceFull;
+        return RunLocalReloadAsync(
             setBusy: v => IsListBusy = v,
             action: ReloadCoreAsync,
-            onFinished: RefreshPageCommands);
+            onFinished: OnReloadFinished);
+    }
 
     protected override async Task ReloadCoreAsync(CancellationToken ct)
     {
@@ -1066,18 +1070,14 @@ public sealed partial class DrugIndex : AppPageBase
                 _suppressSelectionGuard = true;
                 try
                 {
-                    Selected?.NotePreview = null;
-
-                    Selected = null;
-                    _selectionBeforeChange = null;
-
-                    _originDrugId = null;
-                    _originSpec = null;
-                    _loadedSnapshot = null;
-
-                    ClearEditor(keepEditorVisible: false);
-
-                    Items.ReplaceAll(newRows);
+                    if (ShouldSilentReconcile())
+                    {
+                        ApplySilentReconcile(newRows);
+                    }
+                    else
+                    {
+                        ApplyFullReload(newRows);
+                    }
                 }
                 finally
                 {
@@ -1118,7 +1118,10 @@ public sealed partial class DrugIndex : AppPageBase
     }
 
     protected override void OnReloadFinished()
-        => RefreshPageCommands();
+    {
+        _forceFullReload = false;
+        RefreshPageCommands();
+    }
 
     [RelayCommand]
     private Task SearchAsync()
