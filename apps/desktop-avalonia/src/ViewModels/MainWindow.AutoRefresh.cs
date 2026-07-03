@@ -37,8 +37,16 @@ public partial class MainWindowViewModel
         PostOnUi(() => _ = RunWorkspaceRefreshAsync());
     }
 
+    private bool CanWorkspaceRefresh()
+        => !IsDbProbeRunning && _startupState.IsDbInitCompleted;
+
     private async Task RunWorkspaceRefreshAsync()
     {
+        if (!CanWorkspaceRefresh())
+        {
+            return;
+        }
+
         try
         {
             var active = ActivePage;
@@ -76,6 +84,11 @@ public partial class MainWindowViewModel
 
     private void TryRefreshDirtyActivePage()
     {
+        if (!CanWorkspaceRefresh())
+        {
+            return;
+        }
+
         var active = ActivePage;
         if (active is null || !CanRefreshPage(active) || !IsDirty(active))
         {
@@ -156,7 +169,7 @@ public partial class MainWindowViewModel
         }
     }
 
-    private void OnWatermarkTopicChanged(string topic)
+    private void OnTopicChanged(string topic)
     {
         PostOnUi(() =>
         {

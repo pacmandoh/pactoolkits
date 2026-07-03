@@ -116,8 +116,20 @@ public sealed class MainWindowDbProbeShellRegressionTests
     {
         var source = ReadMainWindowViewModelSource();
 
-        Assert.Contains("if (IsDbProbeRunning)", source, StringComparison.Ordinal);
+        Assert.Contains("CanWorkspaceRefresh()", source, StringComparison.Ordinal);
+        Assert.Contains("IsDbProbeRunning", source, StringComparison.Ordinal);
+        Assert.Contains("IsDbInitCompleted", source, StringComparison.Ordinal);
         Assert.Contains("数据库初始化进行中，请稍候", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Auto_workspace_refresh_blocks_while_db_probe_or_startup_init_runs()
+    {
+        var source = ReadMainWindowViewModelSource();
+
+        Assert.Contains("if (!CanWorkspaceRefresh())", source, StringComparison.Ordinal);
+        Assert.Contains("RunWorkspaceRefreshAsync", source, StringComparison.Ordinal);
+        Assert.Contains("TryRefreshDirtyActivePage", source, StringComparison.Ordinal);
     }
 
     [Fact]
