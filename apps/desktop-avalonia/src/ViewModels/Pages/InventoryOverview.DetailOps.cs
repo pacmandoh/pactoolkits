@@ -1425,7 +1425,7 @@ public sealed partial class InventoryOverview : AppPageBase
         RefreshPageCommands();
     }
 
-    public bool DeferRefreshForTopic(string? topic)
+    public bool DeferRefreshTopic(string? topic)
     {
         if (DateTimeOffset.UtcNow >= _suppressAutoRefreshUntilUtc)
         {

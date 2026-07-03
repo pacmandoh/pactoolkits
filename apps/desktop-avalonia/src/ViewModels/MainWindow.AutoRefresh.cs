@@ -174,31 +174,17 @@ public partial class MainWindowViewModel
         PostOnUi(() =>
         {
             var skipInventoryRefresh = ActivePage is InventoryOverview inv
-                                       && inv.DeferRefreshForTopic(topic);
+                                       && inv.DeferRefreshTopic(topic);
+            var skipDrugIndexRefresh = ActivePage is DrugIndex drug
+                                       && drug.DeferRefreshTopic(topic);
 
             MarkPagesDirtyByTopic(topic, skipInventoryRefresh);
-            if (RefreshActiveImmediatelyForTopic(topic)
-                && !(skipInventoryRefresh && ActivePage is InventoryOverview))
+            if (!skipInventoryRefresh
+                && !skipDrugIndexRefresh)
             {
                 TryRefreshDirtyActivePage();
             }
         });
-    }
-
-    private bool RefreshActiveImmediatelyForTopic(string? topic)
-    {
-        var key = (topic ?? string.Empty).Trim().ToLowerInvariant();
-        if (ActivePage is DrugIndex)
-        {
-            // Drug-key migration may emit trace_pool/trace_txn topics due FK cascade.
-            // Keep DrugIndex page stable (no full-page flash); defer refresh until navigation/reopen.
-            if (key is "drug_index" or "inventory" or "trace_pool" or "trace_txn" or "trace_txn_item")
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private void MarkPagesDirtyByTopic(string? topic, bool skipInventoryPage)
