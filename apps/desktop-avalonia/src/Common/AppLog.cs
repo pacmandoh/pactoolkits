@@ -30,7 +30,7 @@ public static class AppLog
             return;
         }
 
-        logger.Info(module, eventName, message, context);
+        logger.Info(module, eventName, message, context, LogTrace.Current);
     }
 
     public static void Warn(string module, string eventName, string message, Exception? ex = null, object? context = null)
@@ -41,7 +41,7 @@ public static class AppLog
             return;
         }
 
-        logger.Warn(module, eventName, message, ex, context);
+        logger.Warn(module, eventName, message, ex, context, LogTrace.Current);
     }
 
     public static void Error(string module, string eventName, string message, Exception? ex = null, object? context = null)
@@ -52,6 +52,6 @@ public static class AppLog
             return;
         }
 
-        logger.Error(module, eventName, message, ex, context);
+        logger.Error(module, eventName, message, ex, context, LogTrace.Current);
     }
 }
