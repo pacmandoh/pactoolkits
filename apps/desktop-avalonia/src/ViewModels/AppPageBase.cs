@@ -65,6 +65,8 @@ public abstract class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycl
 
     public bool HasLoadedOnce => _hasLoadedOnce;
 
+    public PageDataAvailability PageDataAvailability => _pageDataAvailability;
+
     public bool IsShowingStaleData => _pageDataAvailability == PageDataAvailability.Stale;
 
     public string PageStaleHint => SectionEmptyCopy.StaleHint;

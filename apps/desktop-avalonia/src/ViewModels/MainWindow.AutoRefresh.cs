@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -33,10 +34,10 @@ public partial class MainWindowViewModel
         }
 
         // Reason: Refresh runs on the UI thread because page commands touch bindings.
-        PostOnUi(RunWorkspaceRefresh);
+        PostOnUi(() => _ = RunWorkspaceRefreshAsync());
     }
 
-    private void RunWorkspaceRefresh()
+    private async Task RunWorkspaceRefreshAsync()
     {
         try
         {
@@ -57,7 +58,7 @@ public partial class MainWindowViewModel
 
             if (active is not null && CanRefreshPage(active))
             {
-                if (TryRefreshPage(active))
+                if (await TryRefreshPageAsync(active).ConfigureAwait(true))
                 {
                     ClearDirty(active);
                 }
@@ -82,16 +83,23 @@ public partial class MainWindowViewModel
         }
 
         // Defer refresh until after the sidebar/content switch paints.
-        PostOnUi(() =>
+        PostOnUi(async () =>
         {
-            if (!ReferenceEquals(ActivePage, active))
+            try
             {
-                return;
-            }
+                if (!ReferenceEquals(ActivePage, active))
+                {
+                    return;
+                }
 
-            if (TryRefreshPage(active))
+                if (await TryRefreshPageAsync(active).ConfigureAwait(true))
+                {
+                    ClearDirty(active);
+                }
+            }
+            catch (Exception ex)
             {
-                ClearDirty(active);
+                _logger.Warn("MainWindowVM", "page.refresh.active_fail", "Active page refresh failed", ex);
             }
         });
     }
@@ -100,7 +108,7 @@ public partial class MainWindowViewModel
         => page is not ISettingsPage
            && page is ITopBarActions { RefreshCommand: not null };
 
-    private static bool TryRefreshPage(AppPageBase page)
+    private static async Task<bool> TryRefreshPageAsync(AppPageBase page)
     {
         if (page is not ITopBarActions top || top.RefreshCommand is not { } cmd)
         {
@@ -112,8 +120,16 @@ public partial class MainWindowViewModel
             return false;
         }
 
-        cmd.Execute(null);
-        return true;
+        if (cmd is IAsyncRelayCommand asyncCmd)
+        {
+            await asyncCmd.ExecuteAsync(null).ConfigureAwait(true);
+        }
+        else
+        {
+            cmd.Execute(null);
+        }
+
+        return page.PageDataAvailability is PageDataAvailability.Ready or PageDataAvailability.Stale;
     }
 
     private void MarkPageDirty(AppPageBase page)
@@ -215,4 +231,3 @@ public partial class MainWindowViewModel
         }
     }
 }
-
