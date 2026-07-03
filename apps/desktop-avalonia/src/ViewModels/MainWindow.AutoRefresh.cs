@@ -1,8 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Desktop.Avalonia.Contracts;
+using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
@@ -51,30 +50,12 @@ public partial class MainWindowViewModel
         {
             var active = ActivePage;
 
-            foreach (var p in WorkspacePages)
-            {
-                if (!CanRefreshPage(p))
-                {
-                    continue;
-                }
-
-                if (!ReferenceEquals(p, active))
-                {
-                    MarkPageDirty(p);
-                }
-            }
-
-            if (active is not null && CanRefreshPage(active))
-            {
-                if (await TryRefreshPageAsync(active).ConfigureAwait(true))
-                {
-                    ClearDirty(active);
-                }
-                else
-                {
-                    MarkPageDirty(active);
-                }
-            }
+            await WorkspaceBatchRefresh.RunAsync(
+                WorkspacePages,
+                active,
+                CanRefreshPage,
+                TryRefreshPageAsync,
+                _dirtyPages).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
@@ -118,56 +99,19 @@ public partial class MainWindowViewModel
     }
 
     private static bool CanRefreshPage(AppPageBase page)
-        => page is not ISettingsPage
-           && page is ITopBarActions { RefreshCommand: not null };
+        => WorkspacePageRefresh.CanRefreshPage(page);
 
-    private static async Task<bool> TryRefreshPageAsync(AppPageBase page)
-    {
-        if (page is not ITopBarActions top || top.RefreshCommand is not { } cmd)
-        {
-            return false;
-        }
-
-        if (!cmd.CanExecute(null))
-        {
-            return false;
-        }
-
-        if (cmd is IAsyncRelayCommand asyncCmd)
-        {
-            await asyncCmd.ExecuteAsync(null).ConfigureAwait(true);
-        }
-        else
-        {
-            cmd.Execute(null);
-        }
-
-        return page.PageDataAvailability is PageDataAvailability.Ready or PageDataAvailability.Stale;
-    }
+    private static Task<bool> TryRefreshPageAsync(AppPageBase page)
+        => WorkspacePageRefresh.TryRefreshAsync(page);
 
     private void MarkPageDirty(AppPageBase page)
-    {
-        lock (_dirtyPagesGate)
-        {
-            _dirtyPages.Add(page);
-        }
-    }
+        => _dirtyPages.Mark(page);
 
     private bool IsDirty(AppPageBase page)
-    {
-        lock (_dirtyPagesGate)
-        {
-            return _dirtyPages.Contains(page);
-        }
-    }
+        => _dirtyPages.IsDirty(page);
 
     private void ClearDirty(AppPageBase page)
-    {
-        lock (_dirtyPagesGate)
-        {
-            _dirtyPages.Remove(page);
-        }
-    }
+        => _dirtyPages.Clear(page);
 
     private void OnTopicChanged(string topic)
     {
@@ -209,6 +153,10 @@ public partial class MainWindowViewModel
                 }
 
                 MarkDirtyByType<Dashboard>();
+                break;
+
+            case "msfx":
+                MarkDirtyByType<MsfxLink>();
                 break;
 
             default:
