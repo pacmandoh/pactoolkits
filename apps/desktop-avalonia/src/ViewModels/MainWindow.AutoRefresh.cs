@@ -196,6 +196,7 @@ public partial class MainWindowViewModel
             case "drug_index":
                 MarkDirtyByType<DrugIndex>();
                 MarkDirtyByType<Dashboard>();
+                MarkDirtyByType<ScanCode>();
                 break;
 
             case "inventory":
