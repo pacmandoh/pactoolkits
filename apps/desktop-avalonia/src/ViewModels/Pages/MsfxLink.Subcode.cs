@@ -91,8 +91,13 @@ public sealed partial class MsfxLink : AppPageBase
                 SubcodeStatus = $"子码查询完成：单据 {detail.BillCode}，共 {rows.Count} 条";
             });
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
+            LogError("msfx.subcode.query_fail", "Failed to query subcodes", ex);
             await RunOnUiAsync(() =>
             {
                 _allSubCodeRows.Clear();
@@ -100,8 +105,12 @@ public sealed partial class MsfxLink : AppPageBase
                 SubcodeTotal = 0;
                 SubcodePage = 1;
                 SubcodeStatus = $"查询异常：{ex.Message}";
-                _toast.Error("子码查询", ex.Message);
+                if (CanToastError(ex))
+                {
+                    _toast.Error("子码查询", ex.Message);
+                }
             });
+            throw;
         }
         finally
         {

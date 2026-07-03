@@ -1055,12 +1055,18 @@ public sealed partial class Dashboard : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.reload.fail", "Failed to reload dashboard", ex);
-            if (ct.IsCancellationRequested || !CanToastError(ex))
+            if (ct.IsCancellationRequested)
             {
-                return;
+                throw;
+            }
+
+            if (!CanToastError(ex))
+            {
+                throw;
             }
 
             PostOnUi(() => _toast.Error("概览加载失败", ex.Message));
+            throw;
         }
     }
 
