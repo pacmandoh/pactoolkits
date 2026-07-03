@@ -13,7 +13,7 @@ public partial class MainWindowViewModel
         _autoRefreshCts?.Cancel();
         _autoRefreshCts?.Dispose();
         _autoRefreshCts = new CancellationTokenSource();
-        _ = RunAutoRefreshAsync(_autoRefreshCts.Token);
+        ObserveDetached(RunAutoRefreshAsync(_autoRefreshCts.Token), "auto_refresh.detached.fail");
     }
 
     private async Task RunAutoRefreshAsync(CancellationToken ct)
@@ -33,7 +33,7 @@ public partial class MainWindowViewModel
         }
 
         // Reason: Refresh runs on the UI thread because page commands touch bindings.
-        PostOnUi(() => _ = RunWorkspaceRefreshAsync());
+        PostOnUi(() => ObserveDetached(RunWorkspaceRefreshAsync(), "workspace.refresh.detached.fail"));
     }
 
     private bool CanWorkspaceRefresh()

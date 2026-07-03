@@ -206,7 +206,7 @@ public sealed partial class ToolsCenter : AppPageBase
         if (_syncingFromRuntime)
             return;
 
-        _ = ToggleAhkAsync(value);
+        ObserveDetached(ToggleAhkAsync(value), "ahk.toggle.detached.fail");
     }
 
     partial void OnAhkStatusTextChanged(string value)

@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Application.Abstractions;
 using Velopack;
 using Velopack.Locators;
@@ -443,7 +444,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
         HasUpdateAvailable = false;
         HasProductUpdateAvailable = null;
         Changed?.Invoke();
-        _ = RecheckAfterSettingsChangedAsync();
+        TaskObserve.Observe(RecheckAfterSettingsChangedAsync(), "AppUpdateService", "update.recheck.detached.fail");
     }
 
     public void Dispose()

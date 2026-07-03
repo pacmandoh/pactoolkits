@@ -114,7 +114,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (page is not null)
         {
-            _ = SetActivePageAsync(page);
+            ObserveDetached(SetActivePageAsync(page), "page.active.detached.fail");
         }
     }
 
@@ -130,7 +130,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (page is not null)
         {
-            _ = SetActivePageAsync(page);
+            ObserveDetached(SetActivePageAsync(page), "page.active.detached.fail");
         }
     }
 
@@ -153,7 +153,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        _ = SetActivePageAsync(page);
+        ObserveDetached(SetActivePageAsync(page), "page.active.detached.fail");
     }
 
     [ObservableProperty] private AppPageBase? _activePage;
@@ -352,7 +352,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         _schemaRecoveryCts = new CancellationTokenSource();
-        _ = RunSchemaRecoveryPollingAsync(_schemaRecoveryCts.Token);
+        ObserveDetached(RunSchemaRecoveryPollingAsync(_schemaRecoveryCts.Token), "schema.recovery.detached.fail");
     }
 
     private async Task RunSchemaRecoveryPollingAsync(CancellationToken ct)
@@ -405,6 +405,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(AhkStatusText));
         OnPropertyChanged(nameof(AgentItemText));
     }
+
+    private static void ObserveDetached(Task task, string eventName, string? message = null)
+        => TaskObserve.Observe(task, "MainWindowVM", eventName, message ?? "Detached task failed");
 
     private static Task RunOnUiAsync(Action action)
         => UiThreadHelper.RunOnUiAsync(action, DispatcherPriority.Background);
@@ -648,12 +651,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         HasUpdateAvailable = _updates.HasUpdateAvailable;
         IsUpdateChecking = _updates.IsChecking;
 
-        _ = CheckConfigOnStartupAsync();
+        ObserveDetached(CheckConfigOnStartupAsync(), "startup.config.detached.fail");
         StartConfigWatcher();
         RaiseAhkStateChanged();
         _wasAccessGuardBlocked = _accessGuard.IsBlocked;
         RaiseConnectivityChanged();
-        _ = InitializeAfterStartupChecksAsync();
+        ObserveDetached(InitializeAfterStartupChecksAsync(), "startup.init.detached.fail");
         _logger.Info("MainWindowVM", "main.init", "Main window initialized");
     }
 
@@ -752,7 +755,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dbBootstrapCts?.Cancel();
         _dbBootstrapCts?.Dispose();
         _dbBootstrapCts = new CancellationTokenSource();
-        _ = RunDbStateBootstrapAsync(_dbBootstrapCts.Token);
+        ObserveDetached(RunDbStateBootstrapAsync(_dbBootstrapCts.Token), "db.bootstrap.detached.fail");
     }
 
     private async Task RunDbStateBootstrapAsync(CancellationToken ct)
@@ -1088,7 +1091,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (firstInArea is not null)
         {
-            _ = SetActivePageAsync(firstInArea);
+            ObserveDetached(SetActivePageAsync(firstInArea), "page.active.detached.fail");
         }
     }
 
@@ -1121,14 +1124,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _pageLifecycleCts?.Dispose();
             _pageLifecycleCts = new CancellationTokenSource();
             var generation = ++_pageLifecycleGeneration;
-            _ = RunPageLifecycleTransitionAsync(previous, value, generation, _pageLifecycleCts.Token);
+            ObserveDetached(
+                RunPageLifecycleTransitionAsync(previous, value, generation, _pageLifecycleCts.Token),
+                "page.lifecycle.detached.fail");
         }
 
         value?.SyncPageAvailability();
 
         if (value is Settings settingsPage)
         {
-            _ = settingsPage.RefreshSchemaStatusAsync("open_settings");
+            ObserveDetached(settingsPage.RefreshSchemaStatusAsync("open_settings"), "schema.refresh.detached.fail");
         }
 
         if (value is not null
@@ -1172,7 +1177,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (page is not null && !ReferenceEquals(ActivePage, page) && page.IsEnabled)
         {
-            _ = SetActivePageAsync(page);
+            ObserveDetached(SetActivePageAsync(page), "page.active.detached.fail");
         }
     }
 
@@ -1236,7 +1241,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         if (_pageByType.TryGetValue(pageType, out var page))
         {
-            _ = SetActivePageAsync(page);
+            ObserveDetached(SetActivePageAsync(page), "page.active.detached.fail");
         }
     }
 
@@ -1735,10 +1740,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     private void OnDbReconnectedRefreshSchema()
-        => _ = RefreshSchemaStatusAsync("db_reconnected");
+        => ObserveDetached(RefreshSchemaStatusAsync("db_reconnected"), "schema.refresh.detached.fail");
 
     private void OnDbReconnectedMigrateSchema()
-        => _ = MigrateSchemaOnReconnectAsync();
+        => ObserveDetached(MigrateSchemaOnReconnectAsync(), "schema.migrate.detached.fail");
 
     private async Task MigrateSchemaOnReconnectAsync()
     {

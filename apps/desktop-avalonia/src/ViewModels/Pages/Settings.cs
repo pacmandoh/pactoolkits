@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -248,7 +249,7 @@ public partial class Settings : AppPageBase, ISettingsPage
     private void RunDetached(Func<CancellationToken, Task> work, string eventName)
     {
         var token = _pageWorkCts.Token;
-        _ = RunDetachedAsync(work, eventName, token);
+        TaskObserve.Observe(RunDetachedAsync(work, eventName, token), "SettingsVM", eventName);
     }
 
     private async Task RunDetachedAsync(Func<CancellationToken, Task> work, string eventName, CancellationToken ct)
@@ -294,7 +295,7 @@ public partial class Settings : AppPageBase, ISettingsPage
 
     private void PostUi(Action action, string eventName)
     {
-        _ = PostUiAsync(action, eventName);
+        TaskObserve.Observe(PostUiAsync(action, eventName), "SettingsVM", eventName);
     }
 
     private async Task PostUiAsync(Action action, string eventName)

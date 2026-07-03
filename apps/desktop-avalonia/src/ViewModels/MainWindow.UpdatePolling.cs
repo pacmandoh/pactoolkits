@@ -19,7 +19,7 @@ public partial class MainWindowViewModel
         }
 
         _updatePollCts = new CancellationTokenSource();
-        _ = RunUpdatePollingAsync(interval, _updatePollCts.Token);
+        ObserveDetached(RunUpdatePollingAsync(interval, _updatePollCts.Token), "update.poll.detached.fail");
     }
 
     private async Task RunUpdatePollingAsync(TimeSpan interval, CancellationToken ct)

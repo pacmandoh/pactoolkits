@@ -335,17 +335,11 @@ public sealed class UpdateFlowService : IUpdateFlowService
 
     private void RunDetached(Func<Task> action, string eventName)
     {
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await action().ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("UpdateDesktopFlow", eventName, "Background action from update toast failed", ex);
-            }
-        });
+        TaskObserve.Observe(
+            Task.Run(action),
+            "UpdateDesktopFlow",
+            eventName,
+            "Background action from update toast failed");
     }
 
     private Task DismissActiveUpdateToastAsync()

@@ -383,7 +383,7 @@ public sealed partial class InventoryOverview : AppPageBase
         _previewRefreshCts?.Dispose();
         _previewRefreshCts = new CancellationTokenSource();
         var token = _previewRefreshCts.Token;
-        _ = RefreshReassignPreviewDebouncedAsync(token);
+        ObserveDetached(RefreshReassignPreviewDebouncedAsync(token), "reassign.preview.detached.fail");
     }
 
     private async Task RefreshReassignPreviewDebouncedAsync(CancellationToken token)
@@ -1202,7 +1202,7 @@ public sealed partial class InventoryOverview : AppPageBase
         RefreshPagingState();
         RefreshOpsUnlock();
         SetModeBusy(value, true);
-        _ = ReloadAsync();
+        ObserveDetached(ReloadAsync(), "reload.detached.fail");
     }
 
     partial void OnPageIndexChanged(int value)
@@ -1225,7 +1225,7 @@ public sealed partial class InventoryOverview : AppPageBase
 
         RefreshPagingState();
         RefreshPageCommands();
-        _ = ReloadAsync();
+        ObserveDetached(ReloadAsync(), "reload.detached.fail");
     }
 
     private bool UsesKeywordForBatchReassignOnly => IsReassignOpen && IsFilterScope;
@@ -1254,7 +1254,7 @@ public sealed partial class InventoryOverview : AppPageBase
                 _keywordSearchDebouncer.Cancel();
                 DiscardStockEdits();
                 PageIndex = 1;
-                _ = ReloadQuietAsync();
+                ObserveDetached(ReloadQuietAsync(), "reload.quiet.detached.fail");
                 return;
             }
 
@@ -1275,7 +1275,7 @@ public sealed partial class InventoryOverview : AppPageBase
             _keywordSearchDebouncer.Cancel();
             DiscardStockEdits();
             PageIndex = 1;
-            _ = ReloadAsync();
+            ObserveDetached(ReloadAsync(), "reload.detached.fail");
             return;
         }
 
@@ -1444,7 +1444,9 @@ public sealed partial class InventoryOverview : AppPageBase
 
         var page = PageIndex;
         var keyword = NormalizeInput(Keyword);
-        _ = RunSilentCurrentPageReconcileAsync(delay, page, keyword, _silentReconcileCts.Token);
+        ObserveDetached(
+            RunSilentCurrentPageReconcileAsync(delay, page, keyword, _silentReconcileCts.Token),
+            "reconcile.detached.fail");
     }
 
     private async Task RunSilentCurrentPageReconcileAsync(
