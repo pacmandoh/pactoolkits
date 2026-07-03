@@ -176,17 +176,21 @@ public sealed partial class ToolsCenter : AppPageBase
 
     protected override Task ReloadCoreAsync(CancellationToken ct)
     {
-        Injector.Reload();
-        ApplyRuntimeSnapshot();
-        SyncAgentConfig();
+        ReloadInjectorState();
         return Task.CompletedTask;
     }
 
     private Task RefreshRuntimeStateAsync()
     {
+        ReloadInjectorState();
+        return Task.CompletedTask;
+    }
+
+    private void ReloadInjectorState()
+    {
         Injector.Reload();
         ApplyRuntimeSnapshot();
-        return Task.CompletedTask;
+        SyncAgentConfig();
     }
 
     private void OnAhkRuntimeChanged()
