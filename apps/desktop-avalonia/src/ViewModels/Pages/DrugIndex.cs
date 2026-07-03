@@ -368,7 +368,7 @@ public sealed partial class DrugIndex : AppPageBase
         RefreshOpsUnlock();
 
         // Initial data load is posted to UI loop to avoid blocking page activation.
-        Dispatcher.UIThread.Post(() => _ = ReloadAsync());
+        PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
     }
 
     private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
