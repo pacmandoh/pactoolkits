@@ -123,6 +123,33 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Fact]
+    public void MsfxLink_reload_core_calls_auto_board_body_without_nested_page_reload()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/MsfxLink.cs");
+
+        Assert.Contains("0 => RefreshAutoBoardAsync(ct)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 => RefreshAutoBoardAsync()", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Inventory_silent_reconcile_rebuilds_when_trace_code_order_changes()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/InventoryOverview.DetailOps.cs");
+
+        Assert.Contains("StockRowsMatchServerOrder", source, StringComparison.Ordinal);
+        Assert.Contains("StockRows.ReplaceAll(rebuiltRows)", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Drug_index_topic_marks_scan_code_dirty_for_catalog_refresh()
+    {
+        var source = ReadMainWindowViewModelSource();
+
+        Assert.Contains("case \"drug_index\":", source, StringComparison.Ordinal);
+        Assert.Contains("MarkDirtyByType<ScanCode>()", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DrugIndex_defers_only_cascade_topics_and_supports_silent_reconcile()
     {
         var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.Reconcile.cs");
