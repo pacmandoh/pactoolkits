@@ -125,11 +125,39 @@ public partial class Settings : AppPageBase, ISettingsPage
     }
 
     [RelayCommand]
-    private Task SaveLoggingOptionsAsync() => ApplyLoggingOptionsAsync();
+    private async Task SaveLoggingOptionsAsync()
+    {
+        _loggingAutoSaveCts?.Cancel();
+        await ApplyLoggingOptionsAsync(silent: false);
+    }
 
     private async Task<bool> ApplyLoggingOptionsAsync(bool silent = false)
     {
-        if (_syncingLoggingOptions || IsLoggingBusy || SkipTrigger())
+        if (_syncingLoggingOptions)
+        {
+            return false;
+        }
+
+        if (IsLoggingBusy)
+        {
+            if (silent)
+            {
+                return false;
+            }
+
+            // A silent auto-save may still be finishing; wait briefly so manual save can toast.
+            for (var i = 0; i < 20 && IsLoggingBusy; i++)
+            {
+                await Task.Delay(50).ConfigureAwait(false);
+            }
+
+            if (IsLoggingBusy)
+            {
+                return false;
+            }
+        }
+
+        if (!silent && SkipTrigger())
         {
             return false;
         }
