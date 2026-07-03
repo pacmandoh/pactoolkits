@@ -138,8 +138,10 @@ public sealed partial class ScanCode : AppPageBase
         SeedAutoFetchPanel();
         _traceCodeRule.Changed += OnTraceCodeRuleChanged;
 
-        PostOnUi(() => _ = RefreshPageAsync(), DispatcherPriority.Background);
+        PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
     }
+
+    private Task ReloadAsync() => RefreshPageAsync();
 
     protected override Task ReloadCoreAsync(CancellationToken ct)
         => ReloadLookupAsync(ct);
