@@ -89,7 +89,10 @@ public static class AutoCompleteCommit
     {
         AttachCandidateCommitPipeline(box);
         GetState(box).CandidateCommitted = () =>
-            _ = RunCommitAndApplyImmediateAsync(box, owner, nextControlName, applyAsync);
+            TaskObserve.Observe(
+                RunCommitAndApplyImmediateAsync(box, owner, nextControlName, applyAsync),
+                "AutoCompleteCommit",
+                "commit.apply.detached.fail");
     }
 
     private static void RunCommitAndApply(

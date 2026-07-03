@@ -245,7 +245,7 @@ public sealed partial class DrugIndex : AppPageBase
         if (string.IsNullOrWhiteSpace(value))
         {
             _keywordSearchDebouncer.Cancel();
-            _ = ReloadAsync();
+            ObserveDetached(ReloadAsync(), "reload.detached.fail");
             return;
         }
 
@@ -368,7 +368,7 @@ public sealed partial class DrugIndex : AppPageBase
         RefreshOpsUnlock();
 
         // Initial data load is posted to UI loop to avoid blocking page activation.
-        PostOnUi(() => _ = ReloadAsync(), DispatcherPriority.Background);
+        PostOnUi(() => ObserveDetached(ReloadAsync(), "reload.detached.fail"), DispatcherPriority.Background);
     }
 
     private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -425,7 +425,9 @@ public sealed partial class DrugIndex : AppPageBase
         var nextDrugId = next?.DrugId;
         var nextSpec = next?.Spec;
 
-        Dispatcher.UIThread.Post(() => _ = OnSelectionChangedAsync(prev, next, nextDrugId, nextSpec));
+        Dispatcher.UIThread.Post(() => ObserveDetached(
+            OnSelectionChangedAsync(prev, next, nextDrugId, nextSpec),
+            "selection.change.detached.fail"));
     }
 
     private async Task OnSelectionChangedAsync(DrugRow? prev, DrugRow? next, string? nextDrugId, string? nextSpec)

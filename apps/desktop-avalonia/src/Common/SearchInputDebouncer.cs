@@ -34,7 +34,11 @@ public sealed class SearchInputDebouncer : IDisposable
             _cts = next;
         }
 
-        _ = RunDebouncedAsync(action, next);
+        TaskObserve.Observe(
+            RunDebouncedAsync(action, next),
+            "SearchInputDebouncer",
+            "search.debounce.fail",
+            "Debounced search action failed");
     }
 
     public void Cancel()
@@ -63,10 +67,6 @@ public sealed class SearchInputDebouncer : IDisposable
         }
         catch (OperationCanceledException)
         {
-        }
-        catch (Exception ex)
-        {
-            AppLog.Warn("SearchInputDebouncer", "search.debounce.fail", "Debounced search action failed", ex);
         }
     }
 }

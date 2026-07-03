@@ -595,7 +595,7 @@ public sealed partial class MsfxLink : AppPageBase
         ApplyPullBatchPage();
         ApplyTaskQueuePage();
         ApplyAutoLogPage();
-        _ = RefreshMapQueueLatestAsync();
+        ObserveDetached(RefreshMapQueueLatestAsync(), "map_queue.refresh.detached.fail");
     }
 
     partial void OnSelectedTabIndexChanged(int value)
@@ -619,7 +619,7 @@ public sealed partial class MsfxLink : AppPageBase
         MapQueuePage = 1;
         OnPropertyChanged(nameof(MapQueueEffectivePageSize));
         OnPropertyChanged(nameof(MapQueueTotalPages));
-        _ = RefreshMapQueueLatestAsync();
+        ObserveDetached(RefreshMapQueueLatestAsync(), "map_queue.refresh.detached.fail");
     }
 
     partial void OnMapQueueMapStatusFilterChanged(string value)
@@ -630,7 +630,7 @@ public sealed partial class MsfxLink : AppPageBase
         _mapCursorUpdatedAt = null;
         _mapCursorId = null;
         MapQueuePage = 1;
-        _ = RefreshMapQueueLatestAsync();
+        ObserveDetached(RefreshMapQueueLatestAsync(), "map_queue.refresh.detached.fail");
     }
 
     partial void OnMapQueueCodeStatusFilterChanged(string value)
@@ -641,7 +641,7 @@ public sealed partial class MsfxLink : AppPageBase
         _mapCursorUpdatedAt = null;
         _mapCursorId = null;
         MapQueuePage = 1;
-        _ = RefreshMapQueueLatestAsync();
+        ObserveDetached(RefreshMapQueueLatestAsync(), "map_queue.refresh.detached.fail");
     }
 
     partial void OnMapQueueSearchScopeChanged(string value)
@@ -652,7 +652,7 @@ public sealed partial class MsfxLink : AppPageBase
         _mapCursorUpdatedAt = null;
         _mapCursorId = null;
         MapQueuePage = 1;
-        _ = RefreshMapQueueLatestAsync();
+        ObserveDetached(RefreshMapQueueLatestAsync(), "map_queue.refresh.detached.fail");
     }
 
     partial void OnMapQueueTotalCountChanged(int value)
@@ -709,7 +709,7 @@ public sealed partial class MsfxLink : AppPageBase
         if (string.IsNullOrWhiteSpace(value))
         {
             _mapQueueSearchDebouncer.Cancel();
-            _ = SearchMapQueueAsync();
+            ObserveDetached(SearchMapQueueAsync(), "map_queue.search.detached.fail");
             return;
         }
 
