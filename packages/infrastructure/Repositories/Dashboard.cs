@@ -533,7 +533,7 @@ public sealed class DashboardRepo : IDashboardRepo
     public Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {
-            const string sql = """
+            var sql = $"""
                                    select distinct drug_id
                                    from drug_index
                                    where drug_id is not null
@@ -557,7 +557,7 @@ public sealed class DashboardRepo : IDashboardRepo
     public Task<IReadOnlyList<string>> GetSpecsByDrugAsync(string drugId, CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {
-            const string sql = """
+            var sql = $"""
                                    select distinct spec
                                    from drug_index
                                    where drug_id = @drug_id
