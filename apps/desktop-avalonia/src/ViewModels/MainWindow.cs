@@ -75,7 +75,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _updatePollCts;
     private CancellationTokenSource? _pageLifecycleCts;
     private int _pageLifecycleGeneration;
-    private readonly DirtyPageTracker _dirtyPages = new();
+    private readonly WorkspaceDirtyRefresh _dirtyRefresh;
 
     private readonly ThemeWatcher _themeWatcher;
 
@@ -585,7 +585,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IAppUpdateService updates,
         IUpdateSettingsService updateSettings,
         IUpdateFlowService updateFlow,
-        IAppLogger logger)
+        IAppLogger logger,
+        WorkspaceDirtyRefresh dirtyRefresh)
     {
         _toasts = toasts;
         _dialogs = dialogs;
@@ -604,7 +605,19 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _updateSettings = updateSettings ?? throw new ArgumentNullException(nameof(updateSettings));
         _updateFlow = updateFlow ?? throw new ArgumentNullException(nameof(updateFlow));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _dirtyRefresh = dirtyRefresh ?? throw new ArgumentNullException(nameof(dirtyRefresh));
         _nav = nav ?? throw new ArgumentNullException(nameof(nav));
+
+        _dirtyRefresh.Configure(
+            CanWorkspaceRefresh,
+            work => PostOnUi(() => ObserveDetached(work(), "workspace.dirty_refresh.fail")),
+            (page, ex) => _logger.Warn(
+                "MainWindowVM",
+                "page.refresh.active_fail",
+                "Active page refresh failed",
+                ex,
+                new { page = page.GetType().Name },
+                LogTrace.Current));
 
 
         _dbConfigNotifier.Applied += OnDbConfigAppliedEvent;

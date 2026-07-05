@@ -68,6 +68,7 @@ public sealed partial class MsfxLink : AppPageBase
     private readonly IToastService _toast;
     private readonly IDialogService _dialog;
     private readonly IBackgroundTaskRunner _backgroundTasks;
+    private readonly WorkspaceDirtyRefresh _dirtyRefresh;
     private readonly DispatcherTimer _autoTimer;
     private int _autoTimerTickRunning;
     private int _manualMsfxWriteDepth;
@@ -185,10 +186,10 @@ public sealed partial class MsfxLink : AppPageBase
     };
     public string TaskQueueBatchModeHint => TaskQueueBatchMode switch
     {
-        TaskQueueBatchActionMode.Merge => "仅可勾选同药名、同规格任务；允许跨单据合并。",
-        TaskQueueBatchActionMode.Remap => "勾选后会把任务退回映射结果队列重新处理。",
-        TaskQueueBatchActionMode.Discard => "勾选后会把任务标成弃用，保留追溯但不再执行。",
-        TaskQueueBatchActionMode.Reopen => "勾选后会把成功或弃用任务重新恢复到待执行。",
+        TaskQueueBatchActionMode.Merge => "仅可勾选同药名、同规格任务；允许跨单据合并",
+        TaskQueueBatchActionMode.Remap => "勾选后会把任务退回映射结果队列重新处理",
+        TaskQueueBatchActionMode.Discard => "勾选后会把任务标成弃用，保留追溯但不再执行",
+        TaskQueueBatchActionMode.Reopen => "勾选后会把成功或弃用任务重新恢复到待执行",
         _ => string.Empty
     };
     public string TaskQueueBatchConfirmText => TaskQueueBatchMode switch
@@ -319,7 +320,8 @@ public sealed partial class MsfxLink : AppPageBase
         ISensitiveUnlockService unlockService,
         IToastService toast,
         IDialogService dialog,
-        IBackgroundTaskRunner backgroundTasks)
+        IBackgroundTaskRunner backgroundTasks,
+        WorkspaceDirtyRefresh dirtyRefresh)
     {
         _msfxApi = msfxApi;
         _syncService = syncService;
@@ -328,6 +330,7 @@ public sealed partial class MsfxLink : AppPageBase
         _toast = toast;
         _dialog = dialog;
         _backgroundTasks = backgroundTasks;
+        _dirtyRefresh = dirtyRefresh;
         _upoutDateRangeController = new RollingDateRangeController(() =>
             PostOnUi(HandleUpoutDateRangeDayChanged, DispatcherPriority.Background));
 
@@ -606,6 +609,7 @@ public sealed partial class MsfxLink : AppPageBase
         if (value == 0)
         {
             ClearAllDetailSelectionsSilent();
+            _dirtyRefresh.TryRefreshIfDirty(this);
         }
     }
 
@@ -1015,7 +1019,7 @@ public sealed partial class MsfxLink : AppPageBase
 
     partial void OnSelectedAutoLogRowChanged(MsfxAutoLogRow? value)
     {
-        // 仅用户显式触发详情时再弹窗，避免“立即巡检”过程中因选中变更自动弹出。
+        // 仅用户显式触发详情时再弹窗，避免“立即巡检”过程中因选中变更自动弹出
     }
 
 }

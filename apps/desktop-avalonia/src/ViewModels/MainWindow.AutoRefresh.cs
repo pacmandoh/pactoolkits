@@ -55,7 +55,7 @@ public partial class MainWindowViewModel
                 active,
                 CanRefreshPage,
                 TryRefreshPageAsync,
-                _dirtyPages).ConfigureAwait(true);
+                _dirtyRefresh.Dirty).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
@@ -65,37 +65,13 @@ public partial class MainWindowViewModel
 
     private void TryRefreshDirtyActivePage()
     {
-        if (!CanWorkspaceRefresh())
-        {
-            return;
-        }
-
         var active = ActivePage;
-        if (active is null || !CanRefreshPage(active) || !IsDirty(active))
+        if (active is null)
         {
             return;
         }
 
-        // Defer refresh until after the sidebar/content switch paints.
-        PostOnUi(async () =>
-        {
-            try
-            {
-                if (!ReferenceEquals(ActivePage, active))
-                {
-                    return;
-                }
-
-                if (await TryRefreshPageAsync(active).ConfigureAwait(true))
-                {
-                    ClearDirty(active);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Warn("MainWindowVM", "page.refresh.active_fail", "Active page refresh failed", ex);
-            }
-        });
+        _dirtyRefresh.TryRefreshIfDirty(active, () => ReferenceEquals(ActivePage, active));
     }
 
     private static bool CanRefreshPage(AppPageBase page)
@@ -105,13 +81,13 @@ public partial class MainWindowViewModel
         => WorkspacePageRefresh.TryRefreshAsync(page);
 
     private void MarkPageDirty(AppPageBase page)
-        => _dirtyPages.Mark(page);
+        => _dirtyRefresh.Mark(page);
 
     private bool IsDirty(AppPageBase page)
-        => _dirtyPages.IsDirty(page);
+        => _dirtyRefresh.IsDirty(page);
 
     private void ClearDirty(AppPageBase page)
-        => _dirtyPages.Clear(page);
+        => _dirtyRefresh.Clear(page);
 
     private void OnTopicChanged(string topic)
     {
@@ -173,7 +149,7 @@ public partial class MainWindowViewModel
 
     private void MarkDirtyByType<TPage>() where TPage : AppPageBase
     {
-        if (_pageByType.TryGetValue(typeof(TPage), out var page) && CanRefreshPage(page))
+        if (_pageByType.TryGetValue(typeof(TPage), out var page))
         {
             MarkPageDirty(page);
         }
