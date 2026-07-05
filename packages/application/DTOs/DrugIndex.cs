@@ -9,9 +9,7 @@ public sealed record DrugIndexSaveRequest(
     long? ExpectedVersion,
     bool IsNew,
     bool HasPrimaryKeyChanges,
-    bool HasQtyChanged,
-    string? SelectedDrugId,
-    string? SelectedSpec);
+    bool HasQtyChanged);
 
 public enum DrugSaveOutcome
 {

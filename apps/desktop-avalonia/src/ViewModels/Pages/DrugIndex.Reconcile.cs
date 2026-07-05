@@ -12,55 +12,69 @@ public sealed partial class DrugIndex
 
     private readonly record struct DrugKey(string DrugId, string Spec);
 
+    private DrugKey? _pendingReselectKey;
+
     private static DrugKey KeyOf(DrugRow row) => new(row.DrugId, row.Spec);
 
+    private static DrugKey KeyOf(string drugId, string spec) => new(drugId, spec);
+
+    private void QueueReselect(string drugId, string spec)
+        => _pendingReselectKey = KeyOf(drugId, spec);
+
     private bool ShouldSilentReconcile()
-        => !_forceFullReload && HasPendingChanges;
+        => !_forceFullReload && !_pendingReselectKey.HasValue && HasPendingChanges;
 
     private static bool RowContentMatches(DrugRow existing, DrugRow server)
         => existing.Version == server.Version;
 
-    private void ApplyCleanRefresh(IReadOnlyList<DrugRow> serverRows)
+    private DrugRow MergeServerRow(DrugRow server, DrugKey? keepDraftKey)
+    {
+        if (keepDraftKey == KeyOf(server) && HasPendingChanges)
+        {
+            var draft = FindRow(server.DrugId, server.Spec);
+            return draft ?? server;
+        }
+
+        var existing = FindRow(server.DrugId, server.Spec);
+        return existing is not null && RowContentMatches(existing, server) ? existing : server;
+    }
+
+    private List<DrugRow> MergeServerRows(IReadOnlyList<DrugRow> serverRows, DrugKey? keepDraftKey)
     {
         var merged = new List<DrugRow>(serverRows.Count);
         foreach (var server in serverRows)
         {
-            var existing = FindRow(server.DrugId, server.Spec);
-            merged.Add(existing is not null && RowContentMatches(existing, server) ? existing : server);
+            merged.Add(MergeServerRow(server, keepDraftKey));
         }
 
-        Items.ReplaceAll(merged);
+        return merged;
+    }
 
-        if (Selected is not null)
+    private void DetachListSelectionBeforeReplace()
+    {
+        _suppressSelectionGuard = true;
+        try
         {
-            var refreshed = FindRow(Selected.DrugId, Selected.Spec);
-            if (refreshed is not null && !ReferenceEquals(refreshed, Selected))
-            {
-                _suppressSelectionGuard = true;
-                try
-                {
-                    Selected = refreshed;
-                    if (HasEditor)
-                    {
-                        SyncEditorFrom(refreshed);
-                    }
-                }
-                finally
-                {
-                    _suppressSelectionGuard = false;
-                }
-            }
+            Selected = null;
         }
+        finally
+        {
+            _suppressSelectionGuard = false;
+        }
+    }
 
-        OnPropertyChanged(nameof(ItemCountText));
-        OnPropertyChanged(nameof(IsResultTruncated));
+    private void ApplyCleanRefresh(IReadOnlyList<DrugRow> serverRows)
+    {
+        DetachListSelectionBeforeReplace();
+        Items.ReplaceAll(MergeServerRows(serverRows, keepDraftKey: null));
+        FinalizeItemsReload();
     }
 
     private DrugKey? ResolveSelectedKey()
     {
         if (!string.IsNullOrWhiteSpace(_originDrugId) && !string.IsNullOrWhiteSpace(_originSpec))
         {
-            return new DrugKey(_originDrugId, _originSpec);
+            return KeyOf(_originDrugId, _originSpec);
         }
 
         if (Selected is not null)
@@ -73,17 +87,9 @@ public sealed partial class DrugIndex
 
     private void ApplyFullReload(IReadOnlyList<DrugRow> newRows)
     {
-        Selected?.NotePreview = null;
-
-        Selected = null;
-        _selectionBeforeChange = null;
-
-        _originDrugId = null;
-        _originSpec = null;
-        _loadedSnapshot = null;
-
-        ClearEditor(keepEditorVisible: false);
+        ClearListFocus(clearOrigin: true);
         Items.ReplaceAll(newRows);
+        FinalizeItemsReload();
     }
 
     private void ApplySilentReconcile(IReadOnlyList<DrugRow> serverRows)
@@ -120,53 +126,87 @@ public sealed partial class DrugIndex
             Items.RemoveAt(i);
         }
 
-        var nextItems = new List<DrugRow>(serverRows.Count);
-        DrugRow? nextSelected = null;
-
-        foreach (var remote in serverRows)
-        {
-            var key = KeyOf(remote);
-            if (selectedKey == key)
-            {
-                if (HasPendingChanges)
-                {
-                    var existing = FindRow(remote.DrugId, remote.Spec);
-                    var kept = existing ?? remote;
-                    nextItems.Add(kept);
-                    nextSelected = kept;
-                    continue;
-                }
-
-                nextItems.Add(remote);
-                nextSelected = remote;
-                continue;
-            }
-
-            nextItems.Add(remote);
-        }
-
         _suppressSelectionGuard = true;
         try
         {
-            Items.ReplaceAll(nextItems);
-
-            if (selectedKey is not null)
-            {
-                _selectionBeforeChange = null;
-                Selected = nextSelected ?? FindRow(selectedKey.Value.DrugId, selectedKey.Value.Spec);
-
-                if (!HasPendingChanges && Selected is not null)
-                {
-                    SyncEditorFrom(Selected);
-                }
-            }
+            Items.ReplaceAll(MergeServerRows(serverRows, selectedKey));
         }
         finally
         {
             _suppressSelectionGuard = false;
         }
 
+        FinalizeItemsReload();
+    }
+
+    private void FinalizeItemsReload()
+    {
+        if (_pendingReselectKey is { } pending)
+        {
+            FocusSavedRow(pending.DrugId, pending.Spec);
+        }
+        else if (!HasPendingChanges)
+        {
+            ClearListFocus(clearOrigin: false);
+        }
+
         OnPropertyChanged(nameof(ItemCountText));
         OnPropertyChanged(nameof(IsResultTruncated));
+    }
+
+    private void ClearListFocus(bool clearOrigin)
+    {
+        Selected?.NotePreview = null;
+
+        _suppressSelectionGuard = true;
+        try
+        {
+            Selected = null;
+            _selectionBeforeChange = null;
+        }
+        finally
+        {
+            _suppressSelectionGuard = false;
+        }
+
+        if (clearOrigin)
+        {
+            _originDrugId = null;
+            _originSpec = null;
+            _loadedSnapshot = null;
+        }
+
+        ClearEditor(keepEditorVisible: false);
+    }
+
+    private void FocusSavedRow(string drugId, string spec)
+    {
+        _pendingReselectKey = null;
+
+        var row = FindRow(drugId, spec);
+        if (row is null)
+        {
+            ClearListFocus(clearOrigin: false);
+            return;
+        }
+
+        _selectionBeforeChange = row;
+
+        if (!ReferenceEquals(Selected, row))
+        {
+            _suppressSelectionGuard = true;
+            try
+            {
+                Selected = row;
+            }
+            finally
+            {
+                _suppressSelectionGuard = false;
+            }
+        }
+        else
+        {
+            ApplySelection(row);
+        }
     }
 }

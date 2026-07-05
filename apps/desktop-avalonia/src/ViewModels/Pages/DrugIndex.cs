@@ -149,9 +149,9 @@ public sealed partial class DrugIndex : AppPageBase
 
         public string DrugId { get; }
         public string Spec { get; }
-        public int Qty { get; }
-        public string? RuleKey { get; }
-        public string? PreTc { get; }
+        public int Qty { get; private set; }
+        public string? RuleKey { get; private set; }
+        public string? PreTc { get; private set; }
 
         [ObservableProperty] private string? _note;
         [ObservableProperty] private string? _notePreview;
@@ -160,7 +160,7 @@ public sealed partial class DrugIndex : AppPageBase
 
         public DateTimeOffset CreatedAt { get; }
         public DateTimeOffset? UpdatedAt { get; }
-        public long Version { get; }
+        public long Version { get; private set; }
 
         [ObservableProperty] private bool _isDeprecated;
         [ObservableProperty] private bool _isNoSplit;
@@ -182,6 +182,56 @@ public sealed partial class DrugIndex : AppPageBase
             var note = EffectiveNote;
             IsDeprecated = note.Contains("弃用", StringComparison.Ordinal);
             IsNoSplit = note.Contains("未拆零", StringComparison.Ordinal);
+        }
+
+        public bool ApplySaved(DrugIndexDto dto)
+        {
+            if (!string.Equals(DrugId, dto.DrugId, StringComparison.Ordinal)
+                || !string.Equals(Spec, dto.Spec, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            var changed = false;
+            if (Qty != dto.Qty)
+            {
+                Qty = dto.Qty;
+                OnPropertyChanged(nameof(Qty));
+                changed = true;
+            }
+
+            if (!string.Equals(RuleKey, dto.RuleKey, StringComparison.Ordinal))
+            {
+                RuleKey = dto.RuleKey;
+                OnPropertyChanged(nameof(RuleKey));
+                changed = true;
+            }
+
+            if (!string.Equals(PreTc, dto.PreTc, StringComparison.Ordinal))
+            {
+                PreTc = dto.PreTc;
+                OnPropertyChanged(nameof(PreTc));
+                changed = true;
+            }
+
+            if (!string.Equals(Note, dto.Note, StringComparison.Ordinal))
+            {
+                Note = dto.Note;
+                changed = true;
+            }
+
+            if (Version != dto.Version)
+            {
+                Version = dto.Version;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                RecalcFlags();
+            }
+
+            return true;
         }
 
         public DrugIndexDto ToDto() => new(
@@ -246,12 +296,19 @@ public sealed partial class DrugIndex : AppPageBase
         if (string.IsNullOrWhiteSpace(value))
         {
             _keywordSearchDebouncer.Cancel();
-            ObserveDetached(ReloadAsync(), "reload.detached.fail");
+            ObserveDetached(ReloadAsync(confirmIfDirty: true), "reload.detached.fail");
             return;
         }
 
         _keywordSearchDebouncer.Schedule(async () =>
-            await Dispatcher.UIThread.InvokeAsync(() => ReloadAsync()));
+        {
+            if (!await TryConfirmDirtyBeforeActionAsync("继续搜索将丢失未保存内容"))
+            {
+                return;
+            }
+
+            await ReloadAsync();
+        });
     }
     [ObservableProperty] private DrugRow? _selected;
     [ObservableProperty] private bool _hasSelection;
@@ -365,7 +422,7 @@ public sealed partial class DrugIndex : AppPageBase
         _clipboard = clipboard;
         _inventoryOverview = inventoryOverview;
         _scanCode = scanCode;
-        _localRefreshCommand = new AsyncRelayCommand(() => ReloadAsync(), CanRefreshLocal);
+        _localRefreshCommand = new AsyncRelayCommand(() => ReloadAsync(confirmIfDirty: true), CanRefreshLocal);
         _importCommand = new AsyncRelayCommand(ImportAsync, CanIo);
         _exportCommand = new AsyncRelayCommand(ExportAsync, CanIo);
         _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -397,22 +454,61 @@ public sealed partial class DrugIndex : AppPageBase
     private DrugRow? FindRow(string drugId, string spec)
         => Items.FirstOrDefault(x => x.DrugId == drugId && x.Spec == spec);
 
-    private void ReplaceOrInsertRowInPlace(DrugIndexDto dto)
+    private void CommitPostWrite(DrugIndexDto saved)
     {
+        _originDrugId = saved.DrugId;
+        _originSpec = saved.Spec;
+        _loadedSnapshot = saved;
+        IsDirty = false;
+    }
+
+    private void ApplySavedRowToGrid(DrugIndexDto saved)
+    {
+        if (FindRow(saved.DrugId, saved.Spec) is { } row && row.ApplySaved(saved))
+        {
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(_originDrugId) && !string.IsNullOrWhiteSpace(_originSpec))
         {
             for (var i = 0; i < Items.Count; i++)
             {
-                var r = Items[i];
-                if (r.DrugId == _originDrugId && r.Spec == _originSpec)
+                var existing = Items[i];
+                if (existing.DrugId == _originDrugId && existing.Spec == _originSpec)
                 {
-                    Items[i] = new DrugRow(dto);
+                    Items[i] = new DrugRow(saved);
                     return;
                 }
             }
         }
 
-        Items.Insert(0, new DrugRow(dto));
+        Items.Insert(0, new DrugRow(saved));
+    }
+
+    private async Task<bool> TryConfirmDirtyBeforeActionAsync(string actionHint)
+    {
+        if (!HasPendingChanges)
+        {
+            return true;
+        }
+
+        var choice = await _dialog.Confirm3(
+            "有未保存修改",
+            $"当前修改尚未保存，{actionHint}",
+            primaryText: "保存并继续",
+            secondaryText: "放弃修改",
+            cancelText: "取消");
+
+        switch (choice)
+        {
+            case 1:
+                return await SaveRowAsync(reselectSavedRow: true);
+            case 2:
+                DiscardDraft();
+                return true;
+            default:
+                return false;
+        }
     }
 
     partial void OnSelectedChanged(DrugRow? value)
@@ -453,7 +549,7 @@ public sealed partial class DrugIndex : AppPageBase
             {
                 case 1:
                     {
-                        var ok = await SaveRowAsync(reselectSavedRow: false, refreshAfterSave: false);
+                        var ok = await SaveRowAsync(reselectSavedRow: false);
                         if (!ok)
                         {
                             RevertSelection(prev);
@@ -795,10 +891,10 @@ public sealed partial class DrugIndex : AppPageBase
             return;
         }
 
-        await SaveRowAsync(reselectSavedRow: true, refreshAfterSave: false);
+        await SaveRowAsync(reselectSavedRow: true);
     }
 
-    private async Task<bool> SaveRowAsync(bool reselectSavedRow = true, bool refreshAfterSave = true)
+    private async Task<bool> SaveRowAsync(bool reselectSavedRow = true)
     {
         IsBusy = true;
 
@@ -831,9 +927,7 @@ public sealed partial class DrugIndex : AppPageBase
                     ExpectedVersion: isNew ? null : _loadedSnapshot?.Version,
                     IsNew: isNew,
                     HasPrimaryKeyChanges: !isNew && HasPrimaryKeyChanges(),
-                    HasQtyChanged: !isNew && HasQtyChanged(),
-                    SelectedDrugId: Selected?.DrugId,
-                    SelectedSpec: Selected?.Spec),
+                    HasQtyChanged: !isNew && HasQtyChanged()),
                 default);
 
             switch (saveResult.Outcome)
@@ -860,32 +954,18 @@ public sealed partial class DrugIndex : AppPageBase
 
             Dispatcher.UIThread.Post(() => _toast.Success("已保存", $"{drugId} / {spec}"));
 
-            _originDrugId = drugId;
-            _originSpec = spec;
-            _loadedSnapshot = saved;
-
-            IsDirty = false;
+            CommitPostWrite(saved);
             RefreshPageCommands();
 
-            var hasActiveKeyword = !string.IsNullOrWhiteSpace(NormalizeInput(_query.Keyword));
-            if (!refreshAfterSave && !hasActiveKeyword)
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                await Dispatcher.UIThread.InvokeAsync(() =>
+                ApplySavedRowToGrid(saved);
+
+                if (reselectSavedRow)
                 {
-                    ReplaceOrInsertRowInPlace(saved);
-
-                    if (reselectSavedRow)
-                    {
-                        Selected = FindRow(drugId, spec);
-                    }
-                }, DispatcherPriority.Normal);
-
-                _inventoryOverview.ReloadAfterDrugIndexChange();
-                _scanCode.ReloadAfterDrugIndexChange();
-                return true;
-            }
-
-            await ReloadAsync();
+                    FocusSavedRow(drugId, spec);
+                }
+            }, DispatcherPriority.Normal);
 
             _inventoryOverview.ReloadAfterDrugIndexChange();
             _scanCode.ReloadAfterDrugIndexChange();
@@ -1027,11 +1107,20 @@ public sealed partial class DrugIndex : AppPageBase
                 }
             }
 
-            await ReloadAsync(forceFull: true);
+            var focusDrugId = dbTargetAfter!.DrugId;
+            var focusSpec = dbTargetAfter.Spec;
+
+            CommitPostWrite(dbTargetAfter);
+            QueueReselect(focusDrugId, focusSpec);
+            await ReloadAsync();
+
+            await Dispatcher.UIThread.InvokeAsync(
+                () => FocusSavedRow(focusDrugId, focusSpec),
+                DispatcherPriority.Loaded);
 
             Dispatcher.UIThread.Post(() =>
                 _toast.Success("药品纠错迁移",
-                    $"已迁移到 {dbTargetAfter.DrugId}/{dbTargetAfter.Spec}，单条数量 {dbTargetAfter.Qty}，trace_pool {result.TracePoolAffected} 条，trace_txn {result.TraceTxnAffected} 条"));
+                    $"已迁移到 {focusDrugId}/{focusSpec}，单条数量 {dbTargetAfter.Qty}，trace_pool {result.TracePoolAffected} 条，trace_txn {result.TraceTxnAffected} 条"));
 
             _inventoryOverview.ReloadAfterDrugIndexChange();
             _scanCode.ReloadAfterDrugIndexChange();
@@ -1054,10 +1143,18 @@ public sealed partial class DrugIndex : AppPageBase
         }
     }
 
-    private Task ReloadAsync(bool forceFull = false)
+    private async Task ReloadAsync(bool forceFull = false, bool confirmIfDirty = false)
     {
+        if (confirmIfDirty && !forceFull && HasPendingChanges)
+        {
+            if (!await TryConfirmDirtyBeforeActionAsync("继续刷新将丢失未保存内容"))
+            {
+                return;
+            }
+        }
+
         _forceFullReload = forceFull;
-        return RunLocalReloadAsync(
+        await RunLocalReloadAsync(
             setBusy: v => IsListBusy = v,
             action: ReloadCoreAsync,
             onFinished: OnReloadFinished);
@@ -1152,7 +1249,7 @@ public sealed partial class DrugIndex : AppPageBase
         }
 
         _keywordSearchDebouncer.Cancel();
-        return ReloadAsync();
+        return ReloadAsync(confirmIfDirty: true);
     }
 
     [RelayCommand]
@@ -1331,12 +1428,6 @@ public sealed partial class DrugIndex : AppPageBase
 
     private bool HasPrimaryKeyChanges()
     {
-        if (Selected is not null)
-        {
-            return !string.Equals(NormalizeInput(Selected.DrugId), NormalizeInput(EditDrugId), StringComparison.Ordinal)
-                   || !string.Equals(NormalizeInput(Selected.Spec), NormalizeInput(EditSpec), StringComparison.Ordinal);
-        }
-
         if (_loadedSnapshot is not null)
         {
             return !string.Equals(NormalizeInput(_loadedSnapshot.DrugId), NormalizeInput(EditDrugId), StringComparison.Ordinal)
@@ -1354,22 +1445,12 @@ public sealed partial class DrugIndex : AppPageBase
 
     private bool HasQtyChanged()
     {
-        if (EditQty is not > 0)
+        if (EditQty is not > 0 || _loadedSnapshot is null)
         {
             return false;
         }
 
-        if (Selected is not null)
-        {
-            return Selected.Qty != EditQty.Value;
-        }
-
-        if (_loadedSnapshot is not null)
-        {
-            return _loadedSnapshot.Qty != EditQty.Value;
-        }
-
-        return false;
+        return _loadedSnapshot.Qty != EditQty.Value;
     }
 
     private bool HasMigrationKeyChanges()
