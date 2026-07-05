@@ -49,6 +49,29 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             return (IReadOnlyList<DrugIndexDto>)list;
         }, ct);
 
+    public Task<int> CountAsync(string? keyword, CancellationToken ct)
+        => _db.WithConnection(async (conn, token) =>
+        {
+            const string sql = """
+                select count(*)::int
+                from drug_index
+                where
+                  @kw = ''
+                  or drug_id ilike ('%' || @kw || '%')
+                  or spec    ilike ('%' || @kw || '%')
+                  or coalesce(rule_key,'') ilike ('%' || @kw || '%')
+                  or coalesce(pre_tc,'')   ilike ('%' || @kw || '%')
+                  or coalesce(note,'')     ilike ('%' || @kw || '%')
+            """;
+
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            var kw = (keyword ?? string.Empty).Trim();
+            cmd.AddParam("kw", kw);
+
+            var scalar = await cmd.ExecuteScalarAsync(token);
+            return scalar is int count ? count : Convert.ToInt32(scalar, System.Globalization.CultureInfo.InvariantCulture);
+        }, ct);
+
     public Task<IReadOnlyList<DrugIndexDto>> ListCatalogAsync(int limit, CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {

@@ -6,6 +6,8 @@ public interface IDrugIndexRepo
 {
     Task<IReadOnlyList<DrugIndexDto>> SearchAsync(string? keyword, int limit, CancellationToken ct);
 
+    Task<int> CountAsync(string? keyword, CancellationToken ct);
+
     Task<IReadOnlyList<DrugIndexDto>> ListCatalogAsync(int limit, CancellationToken ct);
 
     Task<DrugIndexDto?> GetByKeyAsync(string drugId, string spec, CancellationToken ct);

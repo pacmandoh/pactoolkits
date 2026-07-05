@@ -93,6 +93,9 @@ public sealed class LookupCatalogServiceTests
         public Task<IReadOnlyList<DrugIndexDto>> SearchAsync(string? keyword, int limit, CancellationToken ct)
             => throw new NotSupportedException();
 
+        public Task<int> CountAsync(string? keyword, CancellationToken ct)
+            => throw new NotSupportedException();
+
         public Task<IReadOnlyList<DrugIndexDto>> ListCatalogAsync(int limit, CancellationToken ct)
             => throw new NotSupportedException();
 
