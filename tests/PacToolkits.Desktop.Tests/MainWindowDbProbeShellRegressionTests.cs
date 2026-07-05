@@ -191,6 +191,16 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Fact]
+    public void Drug_index_topic_skips_self_mark_when_active_page_defers_refresh()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
+        var drugIndexCase = ExtractSwitchCaseBlock(source, "drug_index");
+
+        Assert.Contains("skipDrugIndexPage", source, StringComparison.Ordinal);
+        Assert.Contains("if (!skipDrugIndexPage)", drugIndexCase, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Msfx_topic_marks_only_msfx_link_dirty()
     {
         var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
@@ -241,7 +251,12 @@ public sealed class MainWindowDbProbeShellRegressionTests
         Assert.Contains("ApplySilentReconcile", source, StringComparison.Ordinal);
         Assert.Contains("ShouldSilentReconcile", source, StringComparison.Ordinal);
         Assert.Contains("HasPendingChanges", source, StringComparison.Ordinal);
+        Assert.Contains("_pendingReselectKey.HasValue", source, StringComparison.Ordinal);
         Assert.Contains("ApplyCleanRefresh", source, StringComparison.Ordinal);
+        Assert.Contains("ClearListFocus", source, StringComparison.Ordinal);
+        Assert.Contains("DetachListSelectionBeforeReplace", source, StringComparison.Ordinal);
+        Assert.Contains("FocusSavedRow", source, StringComparison.Ordinal);
+        Assert.Contains("QueueReselect", source, StringComparison.Ordinal);
         Assert.DoesNotContain("drug_index", source, StringComparison.Ordinal);
     }
 
