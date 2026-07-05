@@ -40,3 +40,7 @@ public sealed record DrugKeyFixCommitResult(
     DrugIndexDto? TargetAfter);
 
 public sealed record DrugIndexQuery(string? Keyword);
+
+public sealed record DrugIndexSearchResult(
+    IReadOnlyList<DrugIndexDto> Items,
+    int TotalCount);

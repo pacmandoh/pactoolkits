@@ -6,7 +6,7 @@ namespace PacToolkits.Application.Services;
 
 public interface IDrugIndexService
 {
-    Task<IReadOnlyList<DrugIndexDto>> SearchAsync(string? keyword, int limit, CancellationToken ct);
+    Task<DrugIndexSearchResult> SearchAsync(string? keyword, int limit, CancellationToken ct);
 
     Task<DrugIndexDto?> GetByKeyAsync(string drugId, string spec, CancellationToken ct);
 
@@ -35,22 +35,31 @@ public sealed class DrugIndexService : IDrugIndexService
         _catalogCache = catalogCache ?? throw new ArgumentNullException(nameof(catalogCache));
     }
 
-    public async Task<IReadOnlyList<DrugIndexDto>> SearchAsync(string? keyword, int limit, CancellationToken ct)
+    public async Task<DrugIndexSearchResult> SearchAsync(string? keyword, int limit, CancellationToken ct)
     {
         var kw = (keyword ?? string.Empty).Trim();
         var cap = Math.Clamp(limit, 1, 2000);
         if (kw.Length == 0)
         {
-            return await _repo.SearchAsync(null, cap, ct).ConfigureAwait(false);
+            var rows = await _repo.SearchAsync(null, cap, ct).ConfigureAwait(false);
+            var total = await _repo.CountAsync(null, ct).ConfigureAwait(false);
+            return new DrugIndexSearchResult(rows, total);
         }
 
         var sqlMatches = await _repo.SearchAsync(kw, cap, ct).ConfigureAwait(false);
-        if (sqlMatches.Count >= cap || !TextSearchHelper.LooksLikePinyinQuery(kw))
+        var sqlTotal = await _repo.CountAsync(kw, ct).ConfigureAwait(false);
+        if (!TextSearchHelper.LooksLikePinyinQuery(kw))
         {
-            return sqlMatches;
+            return new DrugIndexSearchResult(sqlMatches, sqlTotal);
         }
 
         var catalog = await _catalogCache.GetCatalogRowsAsync(ct).ConfigureAwait(false);
+        var matchTotal = Math.Max(sqlTotal, CountCatalogMatches(kw, catalog));
+        if (sqlMatches.Count >= cap)
+        {
+            return new DrugIndexSearchResult(sqlMatches, matchTotal);
+        }
+
         var seen = new HashSet<(string DrugId, string Spec)>(
             sqlMatches.Select(static row => (row.DrugId, row.Spec)));
 
@@ -65,7 +74,28 @@ public sealed class DrugIndexService : IDrugIndexService
                             row.Note))
             .Take(cap - sqlMatches.Count);
 
-        return sqlMatches.Concat(pinyinMatches).Take(cap).ToArray();
+        var items = sqlMatches.Concat(pinyinMatches).Take(cap).ToArray();
+        return new DrugIndexSearchResult(items, matchTotal);
+    }
+
+    private static int CountCatalogMatches(string keyword, IReadOnlyList<DrugIndexDto> catalog)
+    {
+        var count = 0;
+        foreach (var row in catalog)
+        {
+            if (TextSearchHelper.MatchesAny(
+                    keyword,
+                    row.DrugId,
+                    row.Spec,
+                    row.RuleKey,
+                    row.PreTc,
+                    row.Note))
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     public Task<DrugIndexDto?> GetByKeyAsync(string drugId, string spec, CancellationToken ct)
