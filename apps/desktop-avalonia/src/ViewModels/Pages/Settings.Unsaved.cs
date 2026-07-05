@@ -55,7 +55,7 @@ public partial class Settings
 
         var choice = await _dialog.Confirm3(
             "有未保存的更改",
-            $"「{TabTitles[tabIndex]}」中的修改尚未保存。",
+            $"「{TabTitles[tabIndex]}」中的修改尚未保存",
             "保存并继续",
             "放弃更改",
             "取消");
