@@ -22,6 +22,7 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 public sealed partial class DrugIndex : AppPageBase
 {
     private const string OpsScope = UnlockScopes.SharedOps;
+    private const int SearchLimit = 1000;
     private static readonly string[] ClipboardLineSeparators = ["\r\n", "\n", "\r"];
     private static readonly Regex QtyAsteriskRegex = new(@"\*\s*(\d{1,5})", RegexOptions.Compiled);
     private static readonly Regex QtySuffixRegex = new(@"(\d{1,5})\s*(支|片|瓶|盒|袋|包|粒|枚|贴|丸)$", RegexOptions.Compiled);
@@ -308,7 +309,12 @@ public sealed partial class DrugIndex : AppPageBase
     public bool HasPendingChanges => IsDirty;
     public string EditStateText => HasPendingChanges ? "编辑中未保存" : "已保存";
     public bool ShowEditState => HasEditor;
-    public string ItemCountText => $"{Items.Count} 条";
+    public bool IsResultTruncated => _totalCount > Items.Count;
+
+    public string ItemCountText =>
+        IsResultTruncated
+            ? $"已显示 {Items.Count}/共 {_totalCount} 条"
+            : $"{Items.Count} 条";
 
     partial void OnIsDirtyChanged(bool value)
     {
@@ -317,6 +323,7 @@ public sealed partial class DrugIndex : AppPageBase
     }
 
     private DrugIndexDto? _loadedSnapshot;
+    private int _totalCount;
     private bool _suppressSelectionGuard;
     private bool _preserveEditorOnSelectionRevert;
     private DrugRow? _selectionBeforeChange;
@@ -377,6 +384,7 @@ public sealed partial class DrugIndex : AppPageBase
         OnPropertyChanged(nameof(ItemsEmptyText));
         OnPropertyChanged(nameof(ItemsEmptyHint));
         OnPropertyChanged(nameof(ItemCountText));
+        OnPropertyChanged(nameof(IsResultTruncated));
     }
 
     private bool CanRefreshLocal() => CanOperateUi();
@@ -1064,11 +1072,17 @@ public sealed partial class DrugIndex : AppPageBase
         {
             // Reason: Capture query state before async work to avoid stale reads.
             var query = _query;
-            var rows = await _drugIndex.SearchAsync(query.Keyword, limit: 1000, ct);
-            var newRows = rows.Select(dto => new DrugRow(dto)).ToList();
+            var result = await _drugIndex.SearchAsync(query.Keyword, limit: SearchLimit, ct);
+            var newRows = result.Items.Select(dto => new DrugRow(dto)).ToList();
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
+                if (epoch != Volatile.Read(ref _reloadEpoch))
+                {
+                    return;
+                }
+
+                _totalCount = result.TotalCount;
                 _suppressSelectionGuard = true;
                 try
                 {
