@@ -47,8 +47,10 @@
           </controls:CardPanel.Title>
           <controls:CardPanel.HeaderContent>
             <controls:StatusPill
+              Classes.ToneDone25="{Binding !IsResultTruncated}"
+              Classes.ToneWarning25="{Binding IsResultTruncated}"
               Icon="Pill"
-              IconSize="16"
+              IconSize="14"
               PillPadding="8,4"
               Text="{Binding ItemCountText}"
               TextSize="12" />
