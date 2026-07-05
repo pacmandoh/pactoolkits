@@ -436,7 +436,7 @@ public partial class Settings : AppPageBase, ISettingsPage
                 DbSchemaRequiredMinVersion = status.RequiredMinVersion;
                 DbSchemaRequiredMaxVersion = status.RequiredMaxVersion;
                 var message =
-                    $"数据库版本高于当前程序支持范围：当前 {status.CurrentVersion}，最高支持 {status.RequiredMaxVersion}，不会执行自动降级");
+                    $"数据库版本高于当前程序支持范围：当前 {status.CurrentVersion}，最高支持 {status.RequiredMaxVersion}，不会执行自动降级";
                 SetDbSchemaStatus("版本过高", checking: false, failed: true, error: message);
                 _toast.Error("数据库结构更新", message);
                 return false;
