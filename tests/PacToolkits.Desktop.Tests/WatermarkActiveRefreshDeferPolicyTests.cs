@@ -8,7 +8,7 @@ public sealed class WatermarkActiveRefreshDeferPolicyTests
     [InlineData("trace_pool", true)]
     [InlineData("trace_txn", true)]
     [InlineData("trace_txn_item", true)]
-    [InlineData("drug_index", false)]
+    [InlineData("drug_index", true)]
     [InlineData("inventory", false)]
     [InlineData("msfx", false)]
     [InlineData("", false)]

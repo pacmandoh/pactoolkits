@@ -110,8 +110,8 @@ public sealed class DrugIndexService : IDrugIndexService
 
         if (!request.IsNew && request.HasQtyChanged)
         {
-            var sourceDrugId = request.SelectedDrugId ?? request.OriginDrugId ?? string.Empty;
-            var sourceSpec = request.SelectedSpec ?? request.OriginSpec ?? string.Empty;
+            var sourceDrugId = request.OriginDrugId ?? string.Empty;
+            var sourceSpec = request.OriginSpec ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(sourceDrugId) && !string.IsNullOrWhiteSpace(sourceSpec))
             {
                 var preview = await _repo.PreviewKeyFixAsync(

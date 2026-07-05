@@ -98,7 +98,7 @@ public partial class MainWindowViewModel
             var skipDrugIndexRefresh = ActivePage is DrugIndex drug
                                        && drug.DeferRefreshTopic(topic);
 
-            MarkPagesDirtyByTopic(topic, skipInventoryRefresh);
+            MarkPagesDirtyByTopic(topic, skipInventoryRefresh, skipDrugIndexRefresh);
             if (!skipInventoryRefresh
                 && !skipDrugIndexRefresh)
             {
@@ -107,14 +107,18 @@ public partial class MainWindowViewModel
         });
     }
 
-    private void MarkPagesDirtyByTopic(string? topic, bool skipInventoryPage)
+    private void MarkPagesDirtyByTopic(string? topic, bool skipInventoryPage, bool skipDrugIndexPage)
     {
         var key = (topic ?? string.Empty).Trim().ToLowerInvariant();
 
         switch (key)
         {
             case "drug_index":
-                MarkDirtyByType<DrugIndex>();
+                if (!skipDrugIndexPage)
+                {
+                    MarkDirtyByType<DrugIndex>();
+                }
+
                 MarkDirtyByType<Dashboard>();
                 MarkDirtyByType<ScanCode>();
                 break;
