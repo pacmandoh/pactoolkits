@@ -1,5 +1,5 @@
--- 任务结算与 warehouse_bill_no 原子写入。
--- 解决 SUCCESS 已提交但 warehouse_bill_no 独立回写失败导致的防重失效问题。
+-- 任务结算与 warehouse_bill_no 原子写入
+-- 解决 SUCCESS 已提交但 warehouse_bill_no 独立回写失败导致的防重失效问题
 
 drop function if exists msfx_finalize_inject_task(bigint, text);
 

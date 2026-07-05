@@ -1,5 +1,5 @@
 -- 修复 msfx_finalize_inject_task 中 task_id 歧义引用（PL/pgSQL 变量 vs 列名）
--- 说明：该问题会导致结算 SQL 报错并使任务状态无法正常收敛。
+-- 说明：该问题会导致结算 SQL 报错并使任务状态无法正常收敛
 
 create or replace function msfx_finalize_inject_task(
   p_task_id bigint,

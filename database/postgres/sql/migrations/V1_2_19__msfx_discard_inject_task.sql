@@ -1,5 +1,5 @@
--- 为注入任务增加手动弃用终态。
--- 仅允许 NEW / FAILED -> DISCARDED，弃用后不再参与 agent claim。
+-- 为注入任务增加手动弃用终态
+-- 仅允许 NEW / FAILED -> DISCARDED，弃用后不再参与 agent claim
 
 alter table if exists msfx_inject_task
   drop constraint if exists msfx_inject_task_status_check;

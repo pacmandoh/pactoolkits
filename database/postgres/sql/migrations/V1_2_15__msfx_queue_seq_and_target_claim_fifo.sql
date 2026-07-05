@@ -1,4 +1,4 @@
--- 为注入任务增加显式队列顺序，避免依赖 created_at / id 的隐式顺序。
+-- 为注入任务增加显式队列顺序，避免依赖 created_at / id 的隐式顺序
 -- 1) 既有任务回填 queue_seq
 -- 2) 重新定义建任务函数，按稳定分组顺序生成 queue_seq
 -- 3) 精确 claim 时按 queue_seq FIFO 领取
