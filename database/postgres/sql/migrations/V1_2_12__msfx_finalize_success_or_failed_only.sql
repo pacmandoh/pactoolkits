@@ -1,5 +1,5 @@
 -- 任务结算状态收敛：仅保留 SUCCESS / FAILED
--- 原子语义下不再输出 PARTIAL。
+-- 原子语义下不再输出 PARTIAL
 
 create or replace function msfx_finalize_inject_task(
   p_task_id bigint,

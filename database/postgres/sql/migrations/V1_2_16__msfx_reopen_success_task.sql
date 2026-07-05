@@ -1,5 +1,5 @@
--- 人工重开已成功的注入任务。
--- 仅允许 SUCCESS -> NEW，重置任务明细与 staging，使其重新进入可执行队列。
+-- 人工重开已成功的注入任务
+-- 仅允许 SUCCESS -> NEW，重置任务明细与 staging，使其重新进入可执行队列
 
 create or replace function msfx_reopen_inject_task(
   p_task_id bigint,

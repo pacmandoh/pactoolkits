@@ -1,4 +1,4 @@
--- 收敛注入任务状态：彻底移除 PARTIAL，并删除旧的队列直领 claim 入口。
+-- 收敛注入任务状态：彻底移除 PARTIAL，并删除旧的队列直领 claim 入口
 -- 1) 历史 PARTIAL 一律归并为 FAILED
 -- 2) 任务状态约束不再接受 PARTIAL
 -- 3) 删除旧的 msfx_claim_inject_tasks(text, integer)
