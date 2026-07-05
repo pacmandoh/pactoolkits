@@ -75,7 +75,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         {
             var confirmed = await _dialog.Confirm(
                 "切换到 Beta 更新通道",
-                "Beta 版本可能包含尚未完成验证的功能。切换前将检查 Beta Feed 和当前数据库兼容范围；不会执行数据库迁移。是否继续？");
+                "Beta 版本可能包含尚未完成验证的功能，切换前将检查 Beta Feed 和当前数据库兼容范围；不会执行数据库迁移，是否继续？");
             if (!confirmed)
             {
                 RestoreUpdateChannel(previous.Channel);
@@ -436,7 +436,7 @@ public partial class Settings : AppPageBase, ISettingsPage
                 DbSchemaRequiredMinVersion = status.RequiredMinVersion;
                 DbSchemaRequiredMaxVersion = status.RequiredMaxVersion;
                 var message =
-                    $"数据库版本高于当前程序支持范围：当前 {status.CurrentVersion}，最高支持 {status.RequiredMaxVersion}。不会执行自动降级。";
+                    $"数据库版本高于当前程序支持范围：当前 {status.CurrentVersion}，最高支持 {status.RequiredMaxVersion}，不会执行自动降级");
                 SetDbSchemaStatus("版本过高", checking: false, failed: true, error: message);
                 _toast.Error("数据库结构更新", message);
                 return false;

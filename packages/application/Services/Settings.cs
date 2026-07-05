@@ -236,7 +236,7 @@ public sealed class SettingsService : ISettingsService
         var status = await GetSchemaStatusAsync(schemaContext, trigger, connectionOptions, ct).ConfigureAwait(false);
         if (status.Compatibility == DbSchemaCompatibility.AboveMaximum)
         {
-            return (false, $"数据库版本高于当前程序支持范围：当前 {status.CurrentVersion}，最高支持 {status.RequiredMaxVersion}。不会执行自动降级。");
+            return (false, $"数据库版本高于当前程序支持范围：当前 {status.CurrentVersion}，最高支持 {status.RequiredMaxVersion}，不会执行自动降级");
         }
 
         var policy = await EvaluatePolicyAsync(

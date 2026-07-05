@@ -177,7 +177,7 @@ public static class DbSchemaCompat
                        && TryParseSemVer(schemaValue ?? string.Empty, out var current)
                        && TryParseSemVer(requiredMax ?? string.Empty, out var max)
                        && CompareSemVer(current, max) > 0
-            ? "数据库版本高于当前程序支持范围。已阻断数据库业务操作，不会执行自动降级。请升级 PacToolkits。"
+            ? "数据库版本高于当前程序支持范围，已阻断数据库业务操作，不会执行自动降级，请升级 PacToolkits"
             : "请联系维护者将数据库更新到适配版本后再连接";
 
         return $"检测到当前数据库版本与 PacToolkits 不兼容\n{detail}\n\n{guidance}";

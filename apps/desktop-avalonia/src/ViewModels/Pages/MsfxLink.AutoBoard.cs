@@ -782,7 +782,7 @@ public sealed partial class MsfxLink : AppPageBase
 
         var ok = await _dialog.Confirm(
             "重开注入任务",
-            $"将重开选中的 {selectedRows.Count} 条 SUCCESS / DISCARDED 任务，并重置为可执行队列。确认继续？").ConfigureAwait(false);
+            $"将重开选中的 {selectedRows.Count} 条 SUCCESS / DISCARDED 任务，并重置为可执行队列，确认继续？").ConfigureAwait(false);
         if (!ok)
         {
             return;
@@ -876,7 +876,7 @@ public sealed partial class MsfxLink : AppPageBase
 
         var ok = await _dialog.ConfirmDestructive(
             "弃用注入任务",
-            $"将弃用选中的 {selectedRows.Count} 条任务。弃用后 Agent 将不再执行这些任务。确认继续？").ConfigureAwait(false);
+            $"将弃用选中的 {selectedRows.Count} 条任务，弃用后 Agent 将不再执行这些任务，确认继续？").ConfigureAwait(false);
         if (!ok)
         {
             return;
@@ -969,7 +969,7 @@ public sealed partial class MsfxLink : AppPageBase
 
         var ok = await _dialog.Confirm(
             "回退到映射队列",
-            $"将把选中的 {selectedRows.Count} 条任务回退到映射结果队列，并等待重新映射。原任务会停止执行并保留审计记录。确认继续？").ConfigureAwait(false);
+            $"将把选中的 {selectedRows.Count} 条任务回退到映射结果队列，并等待重新映射，原任务会停止执行并保留审计记录，确认继续？").ConfigureAwait(false);
         if (!ok)
         {
             return;
@@ -1081,7 +1081,7 @@ public sealed partial class MsfxLink : AppPageBase
         var totalCodes = selectedRows.Sum(x => x.TotalCodes);
         var ok = await _dialog.Confirm(
             "合并任务",
-            $"将把选中的 {selectedRows.Count} 条任务合并为 1 条执行任务，总码数约 {totalCodes} 条。允许跨 bill.code 合并，确认继续？").ConfigureAwait(false);
+            $"将把选中的 {selectedRows.Count} 条任务合并为 1 条执行任务，总码数约 {totalCodes} 条，允许跨 bill.code 合并，确认继续？").ConfigureAwait(false);
         if (!ok)
         {
             return;
@@ -2423,7 +2423,7 @@ public sealed partial class MsfxLink : AppPageBase
     {
         if (snap.LastBatchId <= 0)
         {
-            return "暂无自动化巡检记录，执行一次巡检或点击刷新审计后显示最近批次时间。";
+            return "暂无自动化巡检记录，执行一次巡检或点击刷新审计后显示最近批次时间";
         }
 
         var status = string.IsNullOrWhiteSpace(snap.LastBatchStatus) ? "UNKNOWN" : snap.LastBatchStatus.Trim().ToUpperInvariant();

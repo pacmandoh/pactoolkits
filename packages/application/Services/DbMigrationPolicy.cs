@@ -75,7 +75,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
                 => AllowInAppMigration(context.Trigger, "Stable 通道允许应用内迁移"),
 
             DbMigrationPolicies.StableOnly when isBeta
-                => Block("Beta 应用禁止迁移共享生产数据库。请使用隔离测试库或等待 Stable 发布。"),
+                => Block("Beta 应用禁止迁移共享生产数据库，请使用隔离测试库或等待 Stable 发布"),
 
             DbMigrationPolicies.Manual when context.Trigger == DbMigrationTrigger.ExternalDeploy
                 => new DbMigrationOutcome(
