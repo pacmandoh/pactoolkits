@@ -125,13 +125,13 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
     groupPos := Map()
     noCodeLeafs := []
     noCodeStaging := []
-    ; MIN_LEVEL 极速路径：成功结果先累计，循环结束后批量回写，减少数据库往返。
+    ; MIN_LEVEL 极速路径：成功结果先累计，循环结束后批量回写，减少数据库往返
     minFirstLeafs := []
     minFirstStaging := []
     minSoftLeafs := []
     minSoftStaging := []
 
-    ; 先按取码策略计算目标码，再按目标码分组，避免同码重复注入。
+    ; 先按取码策略计算目标码，再按目标码分组，避免同码重复注入
     for _, item in codeRows {
         leafCode := item["leaf_code"]
         stagingId := item["staging_id"]
@@ -183,8 +183,8 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
         stagingIds := Msfx_GroupStagingIds(items)
         injectRuns++
 
-        ; 稳启动：仅首条走稳注入并强验证，后续全部走极速注入。
-        ; 目标是确保注入链对齐，同时把吞吐压到高位。
+        ; 稳启动：仅首条走稳注入并强验证，后续全部走极速注入
+        ; 目标是确保注入链对齐，同时把吞吐压到高位
         useStableInject := !firstVerified
         if useStableInject
             pr := UI_Paste_Impl(win, inputClassNN, injectCode, false)
@@ -211,14 +211,14 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
         verifyResult := "SOFT_OK"
         verifyOk := true
         if !firstVerified {
-            ; 仓库验证窗口结构与住院一致，沿用 TcxGridSite 第 1 个网格验证首条。
+            ; 仓库验证窗口结构与住院一致，沿用 TcxGridSite 第 1 个网格验证首条
             firstTimeout := (timeoutMs < 3500) ? 3500 : timeoutMs
             wc := UI_WaitConfirm_Warehouse([injectCode], firstTimeout, verifyGridClassNN, win)
             verifyOk := wc["ok"]
             verifyResult := verifyOk ? "FIRST_OK" : "FIRST_FAIL"
             if verifyOk {
                 firstVerified := true
-                ; 首条验证会把焦点切到验证区，进入极速循环前强制回到输入框。
+                ; 首条验证会把焦点切到验证区，进入极速循环前强制回到输入框
                 rePrep := UI_PrepareWarehouseFastTarget(inputClassNN, win)
                 if !rePrep["ok"] {
                     why := rePrep.Has("why") ? rePrep["why"] : "仓库窗口准备失败"
@@ -243,7 +243,7 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
             }
             Msfx_InsertEvent(taskId, "VERIFY", "ERR", "验证失败，码=" injectCode "，影响明细=" itemCount "，原因=" why)
 
-            ; 首条失败会导致后续注入发生错位链，直接终止本任务保证准确性。
+            ; 首条失败会导致后续注入发生错位链，直接终止本任务保证准确性
             if !firstVerified {
                 Msfx_FinalizeInjectTask(taskId, "首条验证失败，任务已终止以避免错位注入")
                 return Map("ok", false, "level", "ERR", "type", "[仓库任务错误]", "why", "首条注入验证失败，已终止任务，避免后续错位")
@@ -333,11 +333,11 @@ Msfx_ArrayAppend(dst, src) {
 }
 
 Msfx_ApplyWarehouseBurstPacing(groupIndex, totalGroups) {
-    ; 批量微节拍：每 N 组插入极短让步，降低窗口消息堆积，提升长序列稳定吞吐。
+    ; 批量微节拍：每 N 组插入极短让步，降低窗口消息堆积，提升长序列稳定吞吐
     if (groupIndex >= totalGroups)
         return
 
-    ; 固定节拍（硬编码）。
+    ; 固定节拍（硬编码）
     burstN := 40
     pauseMs := 2
 

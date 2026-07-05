@@ -97,8 +97,8 @@ Probe_UIA() {
             "NativeHwnd: " (h ? Format("0x{:X}", h) : "(none)") "`n"
             "ValuePattern: " (val != "" ? val : "(no/empty)") "`n`n"
             "说明：`n"
-            "- 如果能看到有意义的 Name/Value/ControlType，说明 UIA 可用。`n"
-            "- 如果这里依然失败/全空，多半是自绘控件或系统缺 UIA 组件。"
+            "- 如果能看到有意义的 Name/Value/ControlType，说明 UIA 可用`n"
+            "- 如果这里依然失败/全空，多半是自绘控件或系统缺 UIA 组件"
         )
         MsgBox out
     } catch as e {

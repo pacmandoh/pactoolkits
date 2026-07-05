@@ -14,7 +14,7 @@
 ; ! 强制 64-bit !
 if (A_PtrSize = 4) {
     if (A_IsCompiled) {
-        UI_Err("当前为 32 位打包程序，无法运行。`n请使用 64 位 AutoHotkey 基底重新打包后再启动。", "追溯码自动化 - 启动自检")
+        UI_Err("当前为 32 位打包程序，无法运行`n请使用 64 位 AutoHotkey 基底重新打包后再启动", "追溯码自动化 - 启动自检")
         ExitApp
     }
     Run('"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe" "' A_ScriptFullPath '"')
@@ -24,7 +24,7 @@ if (A_PtrSize = 4) {
 global Cfg := IsSet(Cfg) ? Cfg : Map()
 cfgPath := Util_GetConfigArg()
 if (cfgPath = "") {
-    UI_Err("启动参数缺失：`n请使用 --config " Chr(34) "<配置文件绝对路径>" Chr(34) " 启动。", "追溯码自动化 - 启动自检")
+    UI_Err("启动参数缺失：`n请使用 --config " Chr(34) "<配置文件绝对路径>" Chr(34) " 启动", "追溯码自动化 - 启动自检")
     ExitApp
 }
 
@@ -57,7 +57,7 @@ if (_missing.Length > 0) {
     join := ""
     for i, kk in _missing
         join .= (i=1 ? kk : "`n - " kk)
-    UI_Err("配置缺失：`n - " join "`n`n请检查 --config 指向的统一配置文件。", "追溯码自动化 - 启动自检")
+    UI_Err("配置缺失：`n - " join "`n`n请检查 --config 指向的统一配置文件", "追溯码自动化 - 启动自检")
     ExitApp
 }
 

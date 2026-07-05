@@ -11,7 +11,7 @@ global TEST_DRUG   := "盐酸氨基葡萄糖胶囊"
 global TEST_SPEC   := "0.75g*60粒"
 global TEST_CLIENT := A_ComputerName "\" A_UserName
 
-global TIMEOUT_MIN := 1    ; 自愈阈值（分钟）。脚本会制造 5 分钟前的 txn，必然超时
+global TIMEOUT_MIN := 1    ; 自愈阈值（分钟），脚本会制造 5 分钟前的 txn，必然超时
 global LIMIT_N      := 200 ; 一次最多清理多少条 PENDING
 
 Main()
@@ -76,7 +76,7 @@ Main() {
     ; 4) 执行自愈清理
     rr := Txn_CleanupPending(TIMEOUT_MIN, LIMIT_N)
 
-    ; rr 可能是 void 或 Map。这里不强制检查 rr["ok"]，只看最终库状态
+    ; rr 可能是 void 或 Map，这里不强制检查 rr["ok"]，只看最终库状态
     AssertTxnStatus(txnId, "ROLLED_BACK", "[信息] 自愈后状态校验(ROLLED_BACK)")
 
     afterCleanupSum := GetAvailRemainSum()
