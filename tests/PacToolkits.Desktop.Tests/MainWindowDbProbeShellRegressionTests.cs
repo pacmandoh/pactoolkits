@@ -240,6 +240,8 @@ public sealed class MainWindowDbProbeShellRegressionTests
         Assert.Contains("WatermarkActiveRefreshDeferPolicy.ShouldDeferDrugIndexActiveRefresh", source, StringComparison.Ordinal);
         Assert.Contains("ApplySilentReconcile", source, StringComparison.Ordinal);
         Assert.Contains("ShouldSilentReconcile", source, StringComparison.Ordinal);
+        Assert.Contains("HasPendingChanges", source, StringComparison.Ordinal);
+        Assert.Contains("ApplyCleanRefresh", source, StringComparison.Ordinal);
         Assert.DoesNotContain("drug_index", source, StringComparison.Ordinal);
     }
 
