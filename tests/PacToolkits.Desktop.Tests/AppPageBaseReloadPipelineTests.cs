@@ -73,6 +73,60 @@ public sealed class AppPageBaseReloadPipelineTests
         Assert.True(page.IsShowingStaleData);
     }
 
+    [Fact]
+    public async Task Transport_retry_when_reconnect_wait_fails_does_not_mark_ready()
+    {
+        var monitor = new FakeDbMonitor { IsConnected = true };
+        var attempts = 0;
+        var page = CreatePage(
+            dbMonitor: monitor,
+            reload: _ =>
+            {
+                attempts++;
+                throw new IOException("connection reset");
+            });
+
+        var run = page.TestRunReloadCoreAsync();
+        await Task.Delay(50);
+        await page.OnPageDeactivatedAsync();
+        await run;
+
+        Assert.Equal(PageDataAvailability.AwaitingDatabase, page.PageDataAvailability);
+        Assert.False(page.HasLoadedOnce);
+        Assert.Equal(1, attempts);
+    }
+
+    [Fact]
+    public async Task Transport_retry_when_reconnect_wait_fails_keeps_stale_after_first_load()
+    {
+        var monitor = new FakeDbMonitor { IsConnected = true };
+        var attempts = 0;
+        var page = CreatePage(
+            dbMonitor: monitor,
+            reload: ct =>
+            {
+                attempts++;
+                if (attempts == 1)
+                {
+                    return Task.CompletedTask;
+                }
+
+                throw new IOException("connection reset");
+            });
+
+        await page.TestRunReloadCoreAsync();
+        Assert.Equal(PageDataAvailability.Ready, page.PageDataAvailability);
+
+        var run = page.TestRunReloadCoreAsync();
+        await Task.Delay(50);
+        await page.OnPageDeactivatedAsync();
+        await run;
+
+        Assert.Equal(PageDataAvailability.Stale, page.PageDataAvailability);
+        Assert.True(page.HasLoadedOnce);
+        Assert.Equal(2, attempts);
+    }
+
     private static TestReloadPage CreatePage(
         Func<CancellationToken, Task>? reload = null,
         FakeDbMonitor? dbMonitor = null,
@@ -122,6 +176,7 @@ public sealed class AppPageBaseReloadPipelineTests
 
         public void Signal()
         {
+            IsConnected = false;
         }
 
         public Task<DbProbeReport> ProbeAsync(DbProbeKind kind, CancellationToken ct)
