@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -644,7 +645,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
                     var ok = await WaitForConnectedAsync(mon, ct).ConfigureAwait(false);
                     if (!ok)
                     {
-                        return;
+                        ExceptionDispatchInfo.Capture(ex).Throw();
                     }
                 }
             }
