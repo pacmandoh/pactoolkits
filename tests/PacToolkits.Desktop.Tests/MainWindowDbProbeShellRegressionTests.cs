@@ -73,6 +73,35 @@ public sealed class MainWindowDbProbeShellRegressionTests
         return source[start..(breakIndex + "break;".Length)];
     }
 
+    private static string ExtractMethodBlock(string source, string methodName)
+    {
+        var needle = $"void {methodName}";
+        var start = source.IndexOf(needle, StringComparison.Ordinal);
+        Assert.True(start >= 0, $"Expected method {methodName}.");
+
+        var openBrace = source.IndexOf('{', start);
+        Assert.True(openBrace > start, $"Expected opening brace for {methodName}.");
+
+        var depth = 0;
+        for (var i = openBrace; i < source.Length; i++)
+        {
+            if (source[i] == '{')
+            {
+                depth++;
+            }
+            else if (source[i] == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    return source[start..(i + 1)];
+                }
+            }
+        }
+
+        throw new InvalidOperationException($"Could not extract method block for {methodName}.");
+    }
+
     [Fact]
     public void Sidebar_does_not_bind_IsEnabled_to_IsDbProbeRunning()
     {
@@ -173,6 +202,24 @@ public sealed class MainWindowDbProbeShellRegressionTests
         Assert.DoesNotContain("MarkDirtyByType<ScanCode>()", msfxCase, StringComparison.Ordinal);
         Assert.DoesNotContain("MarkDirtyByType<InventoryOverview>()", msfxCase, StringComparison.Ordinal);
         Assert.DoesNotContain("foreach (var page in WorkspacePages)", msfxCase, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkDirtyByType_marks_page_without_refresh_command_gate()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
+
+        Assert.Contains("private void MarkDirtyByType<TPage>()", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("CanRefreshPage(page)", ExtractMethodBlock(source, "MarkDirtyByType"));
+    }
+
+    [Fact]
+    public void MsfxLink_refreshes_dirty_auto_board_when_returning_to_tab_zero()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/MsfxLink.cs");
+
+        Assert.Contains("partial void OnSelectedTabIndexChanged(int value)", source, StringComparison.Ordinal);
+        Assert.Contains("_dirtyRefresh.TryRefreshIfDirty(this)", source, StringComparison.Ordinal);
     }
 
     [Fact]
