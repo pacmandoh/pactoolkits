@@ -1,4 +1,4 @@
--- 支持手动将执行队列任务退回映射结果队列，并允许重开已弃用任务。
+-- 支持手动将执行队列任务退回映射结果队列，并允许重开已弃用任务
 
 create or replace function msfx_reopen_inject_task(
   p_task_id bigint,
