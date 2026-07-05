@@ -27,8 +27,8 @@ public static class ReleaseChannelAuth
     {
         var installed = string.IsNullOrWhiteSpace(installedChannel) ? "unknown" : NormalizeChannel(installedChannel);
         var target = NormalizeChannel(targetChannel);
-        return $"当前安装通道为 {installed}，配置目标通道为 {target}。"
-               + "请先在设置中完成通道切换并通过数据库兼容检查后再检查更新。";
+        return $"当前安装通道为 {installed}，配置目标通道为 {target}"
+               + "请先在设置中完成通道切换并通过数据库兼容检查后再检查更新";
     }
 
     private static string NormalizeChannel(string? channel)

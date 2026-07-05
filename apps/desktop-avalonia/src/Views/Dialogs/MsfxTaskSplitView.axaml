@@ -30,7 +30,7 @@
           </Border>
           <StackPanel Grid.Column="1" Spacing="2">
             <TextBlock Classes="DialogTitle" Text="拆分任务" />
-            <TextBlock Classes="Caption Muted" Text="按父码簇安全拆分，不再按叶子码任意硬切。" />
+            <TextBlock Classes="Caption Muted" Text="按父码簇安全拆分，不再按叶子码任意硬切" />
           </StackPanel>
         </Grid>
 
