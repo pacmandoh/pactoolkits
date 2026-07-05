@@ -436,7 +436,7 @@ Util_DetectScene(win := "A") {
     if (cls = Cfg["OPT_WINDOW_CLASS"])
         return "OPT"
 
-    ; 住院/仓库共用窗口类：只在该分支再按锚点区分仓库。
+    ; 住院/仓库共用窗口类：只在该分支再按锚点区分仓库
     if (cls = Cfg["IPT_WINDOW_CLASS"]) {
         if Util_IsWarehouseWindow(winId)
             return "WAREHOUSE"
@@ -456,13 +456,13 @@ Util_IsWarehouseWindow(win := "A") {
     if (anchors.Length = 0)
         return false
 
-    ; 主判定：通过当前点击数据所在网格的表头特征区分。
-    ; 仓库入库窗口通常不含“患者姓名”“应扫次数”两列。
+    ; 主判定：通过当前点击数据所在网格的表头特征区分
+    ; 仓库入库窗口通常不含“患者姓名”“应扫次数”两列
     hdrLine := Util_TryGetGridHeaderLine(win)
     if (hdrLine = "")
         return false
 
-    ; 命中任一锚点列则判定为住院；否则判定为仓库。
+    ; 命中任一锚点列则判定为住院；否则判定为仓库
     for _, a in anchors {
         t := Trim(a)
         if (t != "" && InStr(hdrLine, t))
@@ -491,7 +491,7 @@ Util_WarehouseSoftCheck(win := "A") {
                 "ok", false,
                 "level", "ERR",
                 "type", "[仓库模式校验]",
-                "why", "当前表头命中住院列特征：" t "。请关闭仓库模式后再操作",
+                "why", "当前表头命中住院列特征：" t "，请关闭仓库模式后再操作",
                 "header_line", hdrLine
             )
     }
