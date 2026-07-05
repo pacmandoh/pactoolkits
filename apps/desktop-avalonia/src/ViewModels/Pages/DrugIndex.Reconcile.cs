@@ -128,5 +128,6 @@ public sealed partial class DrugIndex
         }
 
         OnPropertyChanged(nameof(ItemCountText));
+        OnPropertyChanged(nameof(IsResultTruncated));
     }
 }
