@@ -15,7 +15,46 @@ public sealed partial class DrugIndex
     private static DrugKey KeyOf(DrugRow row) => new(row.DrugId, row.Spec);
 
     private bool ShouldSilentReconcile()
-        => !_forceFullReload && (HasEditor || Selected is not null);
+        => !_forceFullReload && HasPendingChanges;
+
+    private static bool RowContentMatches(DrugRow existing, DrugRow server)
+        => existing.Version == server.Version;
+
+    private void ApplyCleanRefresh(IReadOnlyList<DrugRow> serverRows)
+    {
+        var merged = new List<DrugRow>(serverRows.Count);
+        foreach (var server in serverRows)
+        {
+            var existing = FindRow(server.DrugId, server.Spec);
+            merged.Add(existing is not null && RowContentMatches(existing, server) ? existing : server);
+        }
+
+        Items.ReplaceAll(merged);
+
+        if (Selected is not null)
+        {
+            var refreshed = FindRow(Selected.DrugId, Selected.Spec);
+            if (refreshed is not null && !ReferenceEquals(refreshed, Selected))
+            {
+                _suppressSelectionGuard = true;
+                try
+                {
+                    Selected = refreshed;
+                    if (HasEditor)
+                    {
+                        SyncEditorFrom(refreshed);
+                    }
+                }
+                finally
+                {
+                    _suppressSelectionGuard = false;
+                }
+            }
+        }
+
+        OnPropertyChanged(nameof(ItemCountText));
+        OnPropertyChanged(nameof(IsResultTruncated));
+    }
 
     private DrugKey? ResolveSelectedKey()
     {

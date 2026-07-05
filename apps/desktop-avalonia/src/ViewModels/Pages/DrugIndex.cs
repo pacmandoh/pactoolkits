@@ -1090,9 +1090,13 @@ public sealed partial class DrugIndex : AppPageBase
                     {
                         ApplySilentReconcile(newRows);
                     }
-                    else
+                    else if (_forceFullReload)
                     {
                         ApplyFullReload(newRows);
+                    }
+                    else
+                    {
+                        ApplyCleanRefresh(newRows);
                     }
                 }
                 finally
