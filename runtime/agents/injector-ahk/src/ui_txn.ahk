@@ -29,7 +29,7 @@ UI_Paste_ByPolicy(
 }
 
 UI_Paste_Warehouse(text, inputClassNN, win := "A") {
-    ; 仓库极速通道：缓存控件句柄 + 直写输入框 + Enter keydown。
+    ; 仓库极速通道：缓存控件句柄 + 直写输入框 + Enter keydown
     return UI_Paste_WarehouseFast(text, inputClassNN, win)
 }
 
@@ -58,15 +58,15 @@ UI_Paste_WarehouseFast(text, inputClassNN, win := "A") {
     if !okSet
         return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "写入输入框失败")
 
-    ; 仓库高速通道固定节拍（硬编码）。
+    ; 仓库高速通道固定节拍（硬编码）
     keydownDelay := 8
     if (keydownDelay > 0)
         Sleep(keydownDelay)
 
-    ; 按既有住院行为，仅发 keydown（该窗口链路实际仅 PostMessage 可稳定生效）。
-    ; lParam 传 1（repeat=1），避免部分控件把 0 视为异常键消息。
+    ; 按既有住院行为，仅发 keydown（该窗口链路实际仅 PostMessage 可稳定生效）
+    ; lParam 传 1（repeat=1），避免部分控件把 0 视为异常键消息
     PostMessage(0x0100, 0x0D, 1, , "ahk_id " hwndCtrl)
-    ; 极短提交让步：降低高吞吐下 UI 消息拥挤导致的首尾错位概率。
+    ; 极短提交让步：降低高吞吐下 UI 消息拥挤导致的首尾错位概率
     Sleep(1)
     return Map("ok", true, "ctrl", inputClassNN, "enter", false)
 }
@@ -574,7 +574,7 @@ UI_MouseOnClassNN(targetNN, win := "A") {
     if !h0
         return false
 
-    ; 2) 按旧版语义：由完整 ClassNN 拆出基类，再向上找基类父控件。
+    ; 2) 按旧版语义：由完整 ClassNN 拆出基类，再向上找基类父控件
     nnTarget := Trim("" targetNN)
     baseClass := RegExReplace(nnTarget, "\d+$", "")
     if (baseClass = "")
