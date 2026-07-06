@@ -150,10 +150,21 @@ public sealed partial class InventoryOverview : AppPageBase
             return;
         }
 
+        await RefreshDrugCatalogAsync(forceRefresh: false);
+    }
+
+    private async Task RefreshDrugCatalogAsync(bool forceRefresh)
+    {
+        if (IsLookupCatalogSuspended())
+        {
+            await RunOnUiAsync(OnLookupCatalogSuspended);
+            return;
+        }
+
         try
         {
             using var cts = new CancellationTokenSource(LookupTimeout);
-            var drugs = await LookupOptions.GetDrugOptionsAsync(_lookup, cts.Token).ConfigureAwait(false);
+            var drugs = await LookupOptions.GetDrugOptionsAsync(_lookup, cts.Token, forceRefresh).ConfigureAwait(false);
             await RunOnUiAsync(() =>
             {
                 _drugCatalog = drugs;

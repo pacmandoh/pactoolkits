@@ -1014,6 +1014,10 @@ public sealed partial class InventoryOverview : AppPageBase
 
     public void ReloadAfterDrugIndexChange()
     {
-        PostOnUi(() => ObserveDetached(ReloadAsync(), "reload.detached.fail"), DispatcherPriority.Background);
+        PostOnUi(() =>
+        {
+            ObserveDetached(ReloadAsync(), "reload.detached.fail");
+            ObserveDetached(RefreshDrugCatalogAsync(forceRefresh: true), "catalog.refresh.detached.fail");
+        }, DispatcherPriority.Background);
     }
 }

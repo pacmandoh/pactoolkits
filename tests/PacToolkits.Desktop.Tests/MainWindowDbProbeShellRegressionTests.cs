@@ -299,6 +299,25 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Fact]
+    public void Drug_index_watermark_invalidates_lookup_catalog()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
+
+        Assert.Contains("case \"drug_index\":", source, StringComparison.Ordinal);
+        Assert.Contains("_lookup.InvalidateDrugCatalog();", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DrugIndex_notifies_lookup_catalog_after_writes()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.cs");
+
+        Assert.Contains("private void NotifyDrugCatalogChanged()", source, StringComparison.Ordinal);
+        Assert.Contains("_lookup.InvalidateDrugCatalog();", source, StringComparison.Ordinal);
+        Assert.Contains("_dashboard.ReloadAfterDrugIndexChange();", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unknown_watermark_topic_still_marks_all_refreshable_pages_dirty()
     {
         var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
