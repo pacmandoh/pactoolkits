@@ -488,7 +488,8 @@ public partial class Settings : AppPageBase, ISettingsPage
         string source,
         bool manualProbe,
         PgOptions? connectionOptions = null,
-        CancellationToken operationCt = default)
+        CancellationToken operationCt = default,
+        bool bindPageLifetime = true)
     {
         if (IsDbSchemaChecking && manualProbe)
         {
@@ -502,84 +503,90 @@ public partial class Settings : AppPageBase, ISettingsPage
 
         try
         {
-            var ct = operationCt.CanBeCanceled ? operationCt : _pageWorkCts.Token;
+            var ct = bindPageLifetime
+                ? operationCt.CanBeCanceled ? operationCt : _pageWorkCts.Token
+                : operationCt.CanBeCanceled ? operationCt : CancellationToken.None;
             var options = connectionOptions ?? ToOptions();
-            var snapshot = await _settings.GetSchemaStatusAsync(BuildSchemaContext(), options, ct);
-            DbSchemaLastCheckedAtText = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            DbSchemaLastCheckSourceText = MapDbSchemaCheckSource(source);
-            DbSchemaTargetVersion = snapshot.TargetVersion;
-            DbSchemaRequiredMinVersion = snapshot.RequiredMinVersion;
-            DbSchemaRequiredMaxVersion = snapshot.RequiredMaxVersion;
-            DbSchemaCurrentVersion = snapshot.CurrentVersion ?? "unknown";
+            var snapshot = await _settings.GetSchemaStatusAsync(BuildSchemaContext(), options, ct).ConfigureAwait(false);
 
-            SyncMigrationPolicy(snapshot.ManualMigrationPolicy);
-
-            if (snapshot.Compatibility == DbSchemaCompatibility.MetadataMissing)
+            await RunOnUiAsync(() =>
             {
-                SetDbSchemaStatus(
-                    "需要初始化",
-                    checking: false,
-                    failed: false,
-                    error: snapshot.Reason ?? "数据库缺少迁移元数据，需要初始化");
-                if (manualProbe)
+                DbSchemaLastCheckedAtText = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                DbSchemaLastCheckSourceText = MapDbSchemaCheckSource(source);
+                DbSchemaTargetVersion = snapshot.TargetVersion;
+                DbSchemaRequiredMinVersion = snapshot.RequiredMinVersion;
+                DbSchemaRequiredMaxVersion = snapshot.RequiredMaxVersion;
+                DbSchemaCurrentVersion = snapshot.CurrentVersion ?? "unknown";
+
+                SyncMigrationPolicy(snapshot.ManualMigrationPolicy);
+
+                if (snapshot.Compatibility == DbSchemaCompatibility.MetadataMissing)
                 {
-                    _toast.Warn("数据库结构更新", snapshot.Reason ?? "数据库缺少迁移元数据，需要初始化");
+                    SetDbSchemaStatus(
+                        "需要初始化",
+                        checking: false,
+                        failed: false,
+                        error: snapshot.Reason ?? "数据库缺少迁移元数据，需要初始化");
+                    if (manualProbe)
+                    {
+                        _toast.Warn("数据库结构更新", snapshot.Reason ?? "数据库缺少迁移元数据，需要初始化");
+                    }
+
+                    return;
                 }
 
-                return;
-            }
-
-            if (!snapshot.SchemaOk)
-            {
-                SetDbSchemaStatus("未知", checking: false, failed: false, error: snapshot.Reason ?? "读取失败");
-                if (manualProbe)
+                if (!snapshot.SchemaOk)
                 {
-                    _toast.Warn("数据库结构更新", $"状态未知：{snapshot.Reason ?? "读取失败"}");
+                    SetDbSchemaStatus("未知", checking: false, failed: false, error: snapshot.Reason ?? "读取失败");
+                    if (manualProbe)
+                    {
+                        _toast.Warn("数据库结构更新", $"状态未知：{snapshot.Reason ?? "读取失败"}");
+                    }
+
+                    return;
                 }
 
-                return;
-            }
-
-            if (snapshot.Compatibility == DbSchemaCompatibility.AboveMaximum)
-            {
-                SetDbSchemaStatus(
-                    "版本过高",
-                    checking: false,
-                    failed: true,
-                    error: $"数据库版本高于当前程序支持范围：当前 {snapshot.CurrentVersion}，最高支持 {snapshot.RequiredMaxVersion}");
-            }
-            else if (!snapshot.Satisfied)
-            {
-                SetDbSchemaStatus("需要更新", checking: false, failed: false, error: $"当前版本 {snapshot.CurrentVersion} 低于最低要求 {snapshot.RequiredMinVersion}");
-            }
-            else if (snapshot.Updatable)
-            {
-                SetDbSchemaStatus("可更新", checking: false, failed: false, error: $"当前版本 {snapshot.CurrentVersion} 低于本地版本文件 {snapshot.TargetVersion}");
-            }
-            else
-            {
-                SetDbSchemaStatus("已满足", checking: false, failed: false, error: null);
-            }
-
-            if (manualProbe)
-            {
                 if (snapshot.Compatibility == DbSchemaCompatibility.AboveMaximum)
                 {
-                    _toast.Error("数据库结构更新", $"数据库版本高于当前程序支持范围，最高支持 {snapshot.RequiredMaxVersion}");
+                    SetDbSchemaStatus(
+                        "版本过高",
+                        checking: false,
+                        failed: true,
+                        error: $"数据库版本高于当前程序支持范围：当前 {snapshot.CurrentVersion}，最高支持 {snapshot.RequiredMaxVersion}");
                 }
                 else if (!snapshot.Satisfied)
                 {
-                    _toast.Warn("数据库结构更新", $"当前版本 {snapshot.CurrentVersion}，低于最低要求 {snapshot.RequiredMinVersion}");
+                    SetDbSchemaStatus("需要更新", checking: false, failed: false, error: $"当前版本 {snapshot.CurrentVersion} 低于最低要求 {snapshot.RequiredMinVersion}");
                 }
                 else if (snapshot.Updatable)
                 {
-                    _toast.Warn("数据库结构更新", $"当前版本 {snapshot.CurrentVersion}，可更新到本地版本 {snapshot.TargetVersion}");
+                    SetDbSchemaStatus("可更新", checking: false, failed: false, error: $"当前版本 {snapshot.CurrentVersion} 低于本地版本文件 {snapshot.TargetVersion}");
                 }
                 else
                 {
-                    _toast.Success("数据库结构更新", $"当前版本 {snapshot.CurrentVersion}，满足最低要求 {snapshot.RequiredMinVersion}");
+                    SetDbSchemaStatus("已满足", checking: false, failed: false, error: null);
                 }
-            }
+
+                if (manualProbe)
+                {
+                    if (snapshot.Compatibility == DbSchemaCompatibility.AboveMaximum)
+                    {
+                        _toast.Error("数据库结构更新", $"数据库版本高于当前程序支持范围，最高支持 {snapshot.RequiredMaxVersion}");
+                    }
+                    else if (!snapshot.Satisfied)
+                    {
+                        _toast.Warn("数据库结构更新", $"当前版本 {snapshot.CurrentVersion}，低于最低要求 {snapshot.RequiredMinVersion}");
+                    }
+                    else if (snapshot.Updatable)
+                    {
+                        _toast.Warn("数据库结构更新", $"当前版本 {snapshot.CurrentVersion}，可更新到本地版本 {snapshot.TargetVersion}");
+                    }
+                    else
+                    {
+                        _toast.Success("数据库结构更新", $"当前版本 {snapshot.CurrentVersion}，满足最低要求 {snapshot.RequiredMinVersion}");
+                    }
+                }
+            }).ConfigureAwait(false);
         }
         finally
         {
