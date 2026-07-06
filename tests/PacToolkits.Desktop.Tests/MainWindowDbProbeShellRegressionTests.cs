@@ -282,6 +282,15 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Fact]
+    public void Dashboard_forces_tab_page_reload_when_workspace_dirty()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/Dashboard.cs");
+
+        Assert.Contains("WorkspaceDirtyRefresh dirtyRefresh", source, StringComparison.Ordinal);
+        Assert.Contains("QueueTabPageReload(force: _dirtyRefresh.IsDirty(this))", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unknown_watermark_topic_still_marks_all_refreshable_pages_dirty()
     {
         var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
