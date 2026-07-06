@@ -16,6 +16,7 @@ using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -264,6 +265,7 @@ public sealed partial class DrugIndex : AppPageBase
     private int _reloadEpoch;
     private int _lastSuccessfulReloadEpoch;
     private bool _forceFullReload;
+    private bool _clearListFocusAfterReload;
 
     public ObservableCollection<DrugRow> Items { get; } = new();
     protected override void OnPageAvailabilityChanged()
@@ -296,7 +298,7 @@ public sealed partial class DrugIndex : AppPageBase
         if (string.IsNullOrWhiteSpace(value))
         {
             _keywordSearchDebouncer.Cancel();
-            ObserveDetached(ReloadAsync(confirmIfDirty: true), "reload.detached.fail");
+            ObserveDetached(ReloadAsync(confirmIfDirty: true, clearListFocus: true), "reload.detached.fail");
             return;
         }
 
@@ -307,7 +309,7 @@ public sealed partial class DrugIndex : AppPageBase
                 return;
             }
 
-            await ReloadAsync();
+            await ReloadAsync(clearListFocus: true);
         });
     }
     [ObservableProperty] private DrugRow? _selected;
@@ -323,14 +325,7 @@ public sealed partial class DrugIndex : AppPageBase
     public bool IsListSectionPending => IsSectionPending || IsListBusy || !IsDrugGridMounted;
 
     partial void OnIsListBusyChanged(bool value)
-    {
-        OnPropertyChanged(nameof(IsUiBusy));
-        OnPropertyChanged(nameof(IsListSectionPending));
-        OnPropertyChanged(nameof(CanEdit));
-        OnPropertyChanged(nameof(CanUnlock));
-        OnPropertyChanged(nameof(CanLock));
-        RefreshPageCommands();
-    }
+        => OnPropertyChanged(nameof(IsListSectionPending));
 
     partial void OnIsDrugGridMountedChanged(bool value)
         => OnPropertyChanged(nameof(IsListSectionPending));
@@ -383,6 +378,7 @@ public sealed partial class DrugIndex : AppPageBase
     private int _totalCount;
     private bool _suppressSelectionGuard;
     private bool _preserveEditorOnSelectionRevert;
+    private bool _suppressDirtyDuringSync;
     private DrugRow? _selectionBeforeChange;
 
     [ObservableProperty] private bool _isDeprecated;
@@ -390,7 +386,7 @@ public sealed partial class DrugIndex : AppPageBase
 
     public string CreatedAtLocalText => FormatChinaTime(CreatedAt);
     public string UpdatedAtLocalText => UpdatedAt is null ? "" : FormatChinaTime(UpdatedAt.Value);
-    public bool IsUiBusy => IsBusy || IsListBusy;
+    public bool IsUiBusy => IsBusy;
     public bool CanUnlock => !IsOpsUnlocked && CanOperateUi();
     public bool CanLock => IsOpsUnlocked && CanOperateUi();
     public bool CanEdit => HasEditor && IsOpsUnlocked && CanOperateUi();
@@ -422,7 +418,9 @@ public sealed partial class DrugIndex : AppPageBase
         _clipboard = clipboard;
         _inventoryOverview = inventoryOverview;
         _scanCode = scanCode;
-        _localRefreshCommand = new AsyncRelayCommand(() => ReloadAsync(confirmIfDirty: true), CanRefreshLocal);
+        _localRefreshCommand = new AsyncRelayCommand(
+            () => ReloadAsync(confirmIfDirty: true, clearListFocus: true),
+            CanRefreshLocal);
         _importCommand = new AsyncRelayCommand(ImportAsync, CanIo);
         _exportCommand = new AsyncRelayCommand(ExportAsync, CanIo);
         _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -460,6 +458,7 @@ public sealed partial class DrugIndex : AppPageBase
         _originSpec = saved.Spec;
         _loadedSnapshot = saved;
         IsDirty = false;
+        ClearRemoteEditBaseline();
     }
 
     private void ApplySavedRowToGrid(DrugIndexDto saved)
@@ -492,23 +491,22 @@ public sealed partial class DrugIndex : AppPageBase
             return true;
         }
 
-        var choice = await _dialog.Confirm3(
-            "有未保存修改",
-            $"当前修改尚未保存，{actionHint}",
-            primaryText: "保存并继续",
-            secondaryText: "放弃修改",
-            cancelText: "取消");
+        var choice = await _dialog.Alert(
+            AlertBuilder<bool?>.Create("有未保存修改", $"当前修改尚未保存，{actionHint}")
+                .DiscardOrSave("保存并继续", "放弃修改"));
 
-        switch (choice)
+        if (choice is null)
         {
-            case 1:
-                return await SaveRowAsync(reselectSavedRow: true);
-            case 2:
-                DiscardDraft();
-                return true;
-            default:
-                return false;
+            return false;
         }
+
+        if (choice == true)
+        {
+            return await SaveRowAsync(reselectSavedRow: true);
+        }
+
+        DiscardDraft();
+        return true;
     }
 
     partial void OnSelectedChanged(DrugRow? value)
@@ -518,9 +516,15 @@ public sealed partial class DrugIndex : AppPageBase
             if (_preserveEditorOnSelectionRevert)
             {
                 _preserveEditorOnSelectionRevert = false;
+                RefreshPageCommands();
                 return;
             }
-            ApplySelection(value);
+
+            if (!HasPendingChanges)
+            {
+                ApplySelection(value);
+            }
+
             return;
         }
 
@@ -538,37 +542,33 @@ public sealed partial class DrugIndex : AppPageBase
     {
         if (HasEditor && HasChanges())
         {
-            var choice = await _dialog.Confirm3(
-                "有未保存修改",
-                "当前修改尚未保存，切换会丢失修改",
-                primaryText: "保存并切换",
-                secondaryText: "放弃修改",
-                cancelText: "取消");
+            var choice = await _dialog.Alert(
+                AlertBuilder<bool?>.Create("有未保存修改", "当前修改尚未保存，切换会丢失修改")
+                    .DiscardOrSave("保存并切换", "放弃修改"));
 
-            switch (choice)
+            if (choice is null)
             {
-                case 1:
-                    {
-                        var ok = await SaveRowAsync(reselectSavedRow: false);
-                        if (!ok)
-                        {
-                            RevertSelection(prev);
-                            return;
-                        }
+                RevertSelection(prev);
+                return;
+            }
 
-                        if (!string.IsNullOrWhiteSpace(nextDrugId) && !string.IsNullOrWhiteSpace(nextSpec))
-                        {
-                            next = FindRow(nextDrugId, nextSpec);
-                        }
-
-                        break;
-                    }
-                case 2:
-                    DiscardDraft();
-                    break;
-                default:
+            if (choice == true)
+            {
+                var ok = await SaveRowAsync(reselectSavedRow: false);
+                if (!ok)
+                {
                     RevertSelection(prev);
                     return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(nextDrugId) && !string.IsNullOrWhiteSpace(nextSpec))
+                {
+                    next = FindRow(nextDrugId, nextSpec);
+                }
+            }
+            else
+            {
+                DiscardDraft();
             }
         }
 
@@ -617,6 +617,8 @@ public sealed partial class DrugIndex : AppPageBase
         {
             _suppressSelectionGuard = false;
         }
+
+        RefreshPageCommands();
     }
 
     partial void OnEditDrugIdChanged(string value) => MarkDirty();
@@ -644,33 +646,47 @@ public sealed partial class DrugIndex : AppPageBase
 
     private void MarkDirty()
     {
+        if (_suppressDirtyDuringSync)
+        {
+            return;
+        }
+
         IsDirty = HasChanges();
         RefreshCommands(SaveCommand, DeleteCommand, FixDrugKeyCommand);
     }
 
     private void SyncEditorFrom(DrugRow row)
     {
-        EditDrugId = row.DrugId;
-        EditSpec = row.Spec;
-        EditQty = row.Qty;
-        EditRuleKey = row.RuleKey;
-        EditPreTc = row.PreTc;
-        EditNote = row.Note;
-        CreatedAt = row.CreatedAt;
-        UpdatedAt = row.UpdatedAt;
+        _suppressDirtyDuringSync = true;
+        try
+        {
+            EditDrugId = row.DrugId;
+            EditSpec = row.Spec;
+            EditQty = row.Qty;
+            EditRuleKey = row.RuleKey;
+            EditPreTc = row.PreTc;
+            EditNote = row.Note;
+            CreatedAt = row.CreatedAt;
+            UpdatedAt = row.UpdatedAt;
 
-        row.NotePreview = null;
+            row.NotePreview = null;
 
-        _originDrugId = row.DrugId;
-        _originSpec = row.Spec;
+            _originDrugId = row.DrugId;
+            _originSpec = row.Spec;
 
-        _loadedSnapshot = row.ToDto();
+            _loadedSnapshot = row.ToDto();
 
-        HasSelection = true;
-        HasEditor = true;
-        RecalcEditorFlags(EditNote);
+            HasSelection = true;
+            HasEditor = true;
+            RecalcEditorFlags(EditNote);
 
-        IsDirty = false;
+            IsDirty = false;
+        }
+        finally
+        {
+            _suppressDirtyDuringSync = false;
+        }
+
         RefreshPageCommands();
     }
 
@@ -750,21 +766,57 @@ public sealed partial class DrugIndex : AppPageBase
 
     private void DiscardDraft()
     {
+        if (_remoteEditBaseline is not null)
+        {
+            var dto = _remoteEditBaseline;
+            _suppressDirtyDuringSync = true;
+            try
+            {
+                EditDrugId = dto.DrugId;
+                EditSpec = dto.Spec;
+                EditQty = dto.Qty;
+                EditRuleKey = dto.RuleKey;
+                EditPreTc = dto.PreTc;
+                EditNote = dto.Note;
+                CreatedAt = dto.CreatedAt;
+                UpdatedAt = dto.UpdatedAt;
+                _loadedSnapshot = dto;
+                _originDrugId = dto.DrugId;
+                _originSpec = dto.Spec;
+                RecalcEditorFlags(EditNote);
+                Selected?.NotePreview = null;
+                IsDirty = false;
+            }
+            finally
+            {
+                _suppressDirtyDuringSync = false;
+            }
+
+            if (FindRow(dto.DrugId, dto.Spec) is { } row)
+            {
+                row.ApplySaved(dto);
+            }
+
+            ClearRemoteEditBaseline();
+            RefreshPageCommands();
+            return;
+        }
+
         if (_loadedSnapshot is null)
         {
             ClearEditor(keepEditorVisible: HasEditor);
             return;
         }
 
-        var dto = _loadedSnapshot;
-        EditDrugId = dto.DrugId;
-        EditSpec = dto.Spec;
-        EditQty = dto.Qty;
-        EditRuleKey = dto.RuleKey;
-        EditPreTc = dto.PreTc;
-        EditNote = dto.Note;
-        CreatedAt = dto.CreatedAt;
-        UpdatedAt = dto.UpdatedAt;
+        var snapshot = _loadedSnapshot;
+        EditDrugId = snapshot.DrugId;
+        EditSpec = snapshot.Spec;
+        EditQty = snapshot.Qty;
+        EditRuleKey = snapshot.RuleKey;
+        EditPreTc = snapshot.PreTc;
+        EditNote = snapshot.Note;
+        CreatedAt = snapshot.CreatedAt;
+        UpdatedAt = snapshot.UpdatedAt;
 
         RecalcEditorFlags(EditNote);
 
@@ -945,9 +997,7 @@ public sealed partial class DrugIndex : AppPageBase
                     return false;
                 case DrugSaveOutcome.ConcurrencyConflict:
                     LogWarn("drug_index.save.concurrency_conflict", "Detected optimistic concurrency conflict", saveResult.Concurrency);
-                    await _dialog.Warn("保存冲突", "该记录已被其他终端修改，请先刷新后再编辑");
-                    await ReloadAsync(forceFull: true);
-                    return false;
+                    return await HandleSaveConflictAsync(saveResult.Saved, drugId, spec, reselectSavedRow);
             }
 
             var saved = saveResult.Saved ?? throw new InvalidOperationException("保存成功但未返回记录");
@@ -986,6 +1036,37 @@ public sealed partial class DrugIndex : AppPageBase
             IsBusy = false;
             RefreshPageCommands();
         }
+    }
+
+    private async Task<bool> HandleSaveConflictAsync(
+        DrugIndexDto? serverRow,
+        string drugId,
+        string spec,
+        bool reselectSavedRow)
+    {
+        var choice = await _dialog.Alert(
+            AlertBuilder<bool?>.Create("保存冲突", $"该记录已被其他终端修改\n{DrugLabel.Format(drugId, spec)}")
+                .SaveConflict("放弃修改", "强制保存"));
+
+        if (choice is null)
+        {
+            return false;
+        }
+
+        if (choice == false)
+        {
+            await ApplyConflictServerBaselineAndReloadAsync(serverRow);
+            return false;
+        }
+
+        if (serverRow is null || _loadedSnapshot is null)
+        {
+            return false;
+        }
+
+        _loadedSnapshot = _loadedSnapshot with { Version = serverRow.Version };
+        ClearRemoteEditBaseline();
+        return await SaveRowAsync(reselectSavedRow);
     }
 
     [RelayCommand(CanExecute = nameof(CanFixDrugKey))]
@@ -1149,7 +1230,7 @@ public sealed partial class DrugIndex : AppPageBase
         }
     }
 
-    private async Task ReloadAsync(bool forceFull = false, bool confirmIfDirty = false)
+    private async Task ReloadAsync(bool forceFull = false, bool confirmIfDirty = false, bool clearListFocus = false)
     {
         if (confirmIfDirty && !forceFull && HasPendingChanges)
         {
@@ -1160,6 +1241,7 @@ public sealed partial class DrugIndex : AppPageBase
         }
 
         _forceFullReload = forceFull;
+        _clearListFocusAfterReload = clearListFocus && !forceFull;
         await RunLocalReloadAsync(
             setBusy: v => IsListBusy = v,
             action: ReloadCoreAsync,
@@ -1243,6 +1325,7 @@ public sealed partial class DrugIndex : AppPageBase
     protected override void OnReloadFinished()
     {
         _forceFullReload = false;
+        _clearListFocusAfterReload = false;
         RefreshPageCommands();
     }
 
@@ -1255,7 +1338,7 @@ public sealed partial class DrugIndex : AppPageBase
         }
 
         _keywordSearchDebouncer.Cancel();
-        return ReloadAsync(confirmIfDirty: true);
+        return ReloadAsync(confirmIfDirty: true, clearListFocus: true);
     }
 
     [RelayCommand]
@@ -1312,8 +1395,7 @@ public sealed partial class DrugIndex : AppPageBase
         {
             await _drugIndex.DeleteAsync(deleteDrugId, deleteSpec, default);
             Dispatcher.UIThread.Post(() => _toast.Success("已删除", DrugLabel.Format(deleteDrugId, deleteSpec)));
-            ClearListFocus(clearOrigin: true);
-            await ReloadAsync();
+            await ReloadAsync(clearListFocus: true);
             _inventoryOverview.ReloadAfterDrugIndexChange();
             _scanCode.ReloadAfterDrugIndexChange();
         }
