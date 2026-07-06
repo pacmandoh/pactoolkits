@@ -94,7 +94,6 @@ public sealed partial class InventoryOverview : AppPageBase
     private IReadOnlyList<StockRowItem> _selectedStockRowsSnapshot = Array.Empty<StockRowItem>();
     private int _lastModeIndex;
     private DateTimeOffset _suppressAutoRefreshUntilUtc = DateTimeOffset.MinValue;
-    private CancellationTokenSource? _suppressRefreshCts;
     private CancellationTokenSource? _silentReconcileCts;
     private int _detailStockEpoch;
     private readonly SearchInputDebouncer _keywordSearchDebouncer = new(450);
@@ -1006,9 +1005,6 @@ public sealed partial class InventoryOverview : AppPageBase
         _traceCodeRule.Changed -= OnTraceCodeRuleChanged;
         StopUnlockTimer();
         _unlockStatusTimer.Tick -= OnUnlockTimerTick;
-        _suppressRefreshCts?.Cancel();
-        _suppressRefreshCts?.Dispose();
-        _suppressRefreshCts = null;
         _silentReconcileCts?.Cancel();
         _silentReconcileCts?.Dispose();
         _silentReconcileCts = null;
