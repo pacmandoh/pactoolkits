@@ -1,5 +1,6 @@
 using System;
 using Avalonia.Threading;
+using PacToolkits.Desktop.Avalonia.Common;
 using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -33,35 +34,19 @@ public sealed class ToastService : IToastService
         }
     }
 
-    public void Success(string title, string message)
+    private static void Show(ToastManager toasts, string title, string message, Action<ToastBuilder> show)
         => RunOnUiThread(() =>
-            _toasts.CreateToast(title)
-                .WithContent(message)
-                .WithDelay(3)
-                .DismissOnClick()
-                .ShowSuccess());
+            show(toasts.CreateToast(title).WithContent(ToastContent.ForMessage(message))));
+
+    public void Success(string title, string message)
+        => Show(_toasts, title, message, static b => b.WithDelay(3).DismissOnClick().ShowSuccess());
 
     public void Error(string title, string message)
-        => RunOnUiThread(() =>
-            _toasts.CreateToast(title)
-                .WithContent(message)
-                .WithDelay(3)
-                .DismissOnClick()
-                .ShowError());
+        => Show(_toasts, title, message, static b => b.WithDelay(3).DismissOnClick().ShowError());
 
     public void Warn(string title, string message)
-        => RunOnUiThread(() =>
-            _toasts.CreateToast(title)
-                .WithContent(message)
-                .WithDelay(3)
-                .DismissOnClick()
-                .ShowWarning());
+        => Show(_toasts, title, message, static b => b.WithDelay(3).DismissOnClick().ShowWarning());
 
     public void Info(string title, string message)
-        => RunOnUiThread(() =>
-            _toasts.CreateToast(title)
-                .WithContent(message)
-                .WithDelay(3)
-                .DismissOnClick()
-                .ShowInfo());
+        => Show(_toasts, title, message, static b => b.WithDelay(3).DismissOnClick().ShowInfo());
 }
