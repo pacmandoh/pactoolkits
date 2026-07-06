@@ -179,7 +179,6 @@ public sealed partial class ScanCode : AppPageBase
                     return;
                 }
 
-                _lookup.InvalidateDrugCatalog();
                 using var cts = new CancellationTokenSource(LookupTimeout);
                 var drugs = await LookupOptions.GetDrugOptionsAsync(
                     _lookup,

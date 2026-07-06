@@ -203,6 +203,32 @@ public sealed partial class Dashboard : AppPageBase
         }, DispatcherPriority.Background);
     }
 
+    public void ReloadAfterDrugIndexChange()
+    {
+        PostOnUi(
+            () => ObserveDetached(ReloadDrugCatalogAfterIndexChangeAsync(), "catalog.reload.detached.fail"),
+            DispatcherPriority.Background);
+    }
+
+    private async Task ReloadDrugCatalogAfterIndexChangeAsync()
+    {
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            await ReloadDrugOptionsAsync(cts.Token).ConfigureAwait(false);
+
+            var drug = NormalizeInput(DrugText);
+            if (!string.IsNullOrWhiteSpace(drug))
+            {
+                await ReloadSpecsAsync(drug).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogWarn("dashboard.catalog.reload_fail", "Failed to reload drug catalog after drug-index change", ex);
+        }
+    }
+
     private async Task ReloadSpecsAsync(string drug)
     {
         var generation = Interlocked.Increment(ref _specLoadGeneration);

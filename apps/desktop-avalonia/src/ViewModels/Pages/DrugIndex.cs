@@ -255,6 +255,8 @@ public sealed partial class DrugIndex : AppPageBase
     private readonly IClipboardService _clipboard;
     private readonly InventoryOverview _inventoryOverview;
     private readonly ScanCode _scanCode;
+    private readonly Dashboard _dashboard;
+    private readonly ILookupCatalogService _lookup;
     private readonly AsyncRelayCommand _localRefreshCommand;
     private readonly AsyncRelayCommand _importCommand;
     private readonly AsyncRelayCommand _exportCommand;
@@ -409,7 +411,9 @@ public sealed partial class DrugIndex : AppPageBase
         ISensitiveUnlockService unlockService,
         IClipboardService clipboard,
         InventoryOverview inventoryOverview,
-        ScanCode scanCode)
+        ScanCode scanCode,
+        Dashboard dashboard,
+        ILookupCatalogService lookup)
     {
         _drugIndex = drugIndex;
         _toast = toast;
@@ -418,6 +422,8 @@ public sealed partial class DrugIndex : AppPageBase
         _clipboard = clipboard;
         _inventoryOverview = inventoryOverview;
         _scanCode = scanCode;
+        _dashboard = dashboard;
+        _lookup = lookup;
         _localRefreshCommand = new AsyncRelayCommand(
             () => ReloadAsync(confirmIfDirty: true, clearListFocus: true),
             CanRefreshLocal);
@@ -1017,8 +1023,7 @@ public sealed partial class DrugIndex : AppPageBase
                 }
             }, DispatcherPriority.Normal);
 
-            _inventoryOverview.ReloadAfterDrugIndexChange();
-            _scanCode.ReloadAfterDrugIndexChange();
+            NotifyDrugCatalogChanged();
 
             return true;
         }
@@ -1209,8 +1214,7 @@ public sealed partial class DrugIndex : AppPageBase
                     $"追溯码池影响：{result.TracePoolAffected} 条\n" +
                     $"执行事务影响：{result.TraceTxnAffected} 条"));
 
-            _inventoryOverview.ReloadAfterDrugIndexChange();
-            _scanCode.ReloadAfterDrugIndexChange();
+            NotifyDrugCatalogChanged();
         }
         catch (DrugIndexConcurrencyException cx)
         {
@@ -1396,8 +1400,7 @@ public sealed partial class DrugIndex : AppPageBase
             await _drugIndex.DeleteAsync(deleteDrugId, deleteSpec, default);
             Dispatcher.UIThread.Post(() => _toast.Success("已删除", DrugLabel.Format(deleteDrugId, deleteSpec)));
             await ReloadAsync(clearListFocus: true);
-            _inventoryOverview.ReloadAfterDrugIndexChange();
-            _scanCode.ReloadAfterDrugIndexChange();
+            NotifyDrugCatalogChanged();
         }
         catch (Exception ex)
         {
@@ -1472,6 +1475,14 @@ public sealed partial class DrugIndex : AppPageBase
         }
 
         return s + " " + token;
+    }
+
+    private void NotifyDrugCatalogChanged()
+    {
+        _lookup.InvalidateDrugCatalog();
+        _inventoryOverview.ReloadAfterDrugIndexChange();
+        _scanCode.ReloadAfterDrugIndexChange();
+        _dashboard.ReloadAfterDrugIndexChange();
     }
 
     private void RefreshPageCommands()
