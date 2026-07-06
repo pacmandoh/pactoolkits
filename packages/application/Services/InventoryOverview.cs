@@ -76,6 +76,7 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
 
     public async Task<StockCellEditBatchResult> ApplyStockCellEditsAsync(
         IReadOnlyList<StockCellEditRequest> edits,
+        TraceCodeValidationRule traceCodeRule,
         CancellationToken ct)
     {
         if (edits.Count == 0)
@@ -91,6 +92,14 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
         {
             try
             {
+                if (string.Equals(edit.ColumnHeader, "追溯码", StringComparison.Ordinal)
+                    && !TraceCodeAnalyzer.TryValidateFormat(edit.NewValue, traceCodeRule, out var formatError))
+                {
+                    failedCount++;
+                    lastError = $"{edit.MatchTraceCode} {edit.ColumnHeader}: {formatError}";
+                    continue;
+                }
+
                 await _repo.UpdateStockCellAsync(
                     edit.MatchTraceCode,
                     edit.ColumnHeader,
