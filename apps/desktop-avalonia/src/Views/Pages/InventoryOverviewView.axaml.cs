@@ -179,6 +179,12 @@ public partial class InventoryOverviewView : UserControl
             }
 
             var header = e.Column?.Header?.ToString();
+            if (string.Equals(header, "追溯码", StringComparison.Ordinal) && row.HasTraceCodeValidationError)
+            {
+                e.Cancel = true;
+                return;
+            }
+
             await vm.CommitStockCellEditAsync(row, header, editor.Text);
         }
         catch (Exception ex)

@@ -11,6 +11,7 @@ using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -32,6 +33,7 @@ public sealed partial class InventoryOverview : AppPageBase
 
     private readonly IInventoryOverviewService _inventory;
     private readonly ILookupCatalogService _lookup;
+    private readonly ITraceCodeRuleService _traceCodeRule;
     private readonly IDbConfigNotifier _dbConfigNotifier;
     private readonly ISensitiveUnlockService _unlockService;
     private readonly IToastService _toast;
@@ -129,6 +131,11 @@ public sealed partial class InventoryOverview : AppPageBase
             PreviewRows.Clear();
             NotifyPreviewStateChanged();
         }
+        else
+        {
+            DisableStockTraceCodeValidation();
+        }
+
         OnPropertyChanged(nameof(CanEnableStockEdit));
         OnPropertyChanged(nameof(CanDisableStockEdit));
         OnPropertyChanged(nameof(ShowUnlock));
@@ -261,6 +268,7 @@ public sealed partial class InventoryOverview : AppPageBase
     public InventoryOverview(
         IInventoryOverviewService inventory,
         ILookupCatalogService lookup,
+        ITraceCodeRuleService traceCodeRule,
         IDbConfigNotifier dbConfigNotifier,
         ISensitiveUnlockService unlockService,
         IToastService toast,
@@ -270,6 +278,7 @@ public sealed partial class InventoryOverview : AppPageBase
     {
         _inventory = inventory;
         _lookup = lookup;
+        _traceCodeRule = traceCodeRule;
         _dbConfigNotifier = dbConfigNotifier;
         _unlockService = unlockService;
         _toast = toast;
@@ -282,6 +291,7 @@ public sealed partial class InventoryOverview : AppPageBase
         _unlockStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _unlockStatusTimer.Tick += OnUnlockTimerTick;
         _unlockService.StateChanged += OnUnlockChanged;
+        _traceCodeRule.Changed += OnTraceCodeRuleChanged;
         RefreshOpsUnlock();
 
         _dbConfigNotifier.Applied += OnDbApplied;
@@ -992,6 +1002,7 @@ public sealed partial class InventoryOverview : AppPageBase
     {
         _dbConfigNotifier.Applied -= OnDbApplied;
         _unlockService.StateChanged -= OnUnlockChanged;
+        _traceCodeRule.Changed -= OnTraceCodeRuleChanged;
         StopUnlockTimer();
         _unlockStatusTimer.Tick -= OnUnlockTimerTick;
         _silentReconcileCts?.Cancel();
