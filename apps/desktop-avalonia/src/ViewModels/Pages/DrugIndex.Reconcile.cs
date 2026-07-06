@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 
@@ -7,8 +9,13 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 public sealed partial class DrugIndex
 {
+    private DrugIndexDto? _remoteEditBaseline;
+
     public bool DeferRefreshTopic(string? topic)
-        => WatermarkActiveRefreshDeferPolicy.ShouldDeferDrugIndexActiveRefresh(topic);
+        => WatermarkActiveRefreshDeferPolicy.ShouldDeferDrugIndexCascadeRefresh(topic);
+
+    public Task ReloadFromWatermarkAsync()
+        => ReloadAsync(confirmIfDirty: false);
 
     private readonly record struct DrugKey(string DrugId, string Spec);
 
@@ -36,7 +43,18 @@ public sealed partial class DrugIndex
         }
 
         var existing = FindRow(server.DrugId, server.Spec);
-        return existing is not null && RowContentMatches(existing, server) ? existing : server;
+        if (existing is null)
+        {
+            return server;
+        }
+
+        if (RowContentMatches(existing, server))
+        {
+            return existing;
+        }
+
+        existing.ApplySaved(server.ToDto());
+        return existing;
     }
 
     private List<DrugRow> MergeServerRows(IReadOnlyList<DrugRow> serverRows, DrugKey? keepDraftKey)
@@ -50,26 +68,28 @@ public sealed partial class DrugIndex
         return merged;
     }
 
-    private void DetachListSelection()
+    private void SynchronizeItemsOrder(IReadOnlyList<DrugRow> desired)
     {
-        Selected?.NotePreview = null;
-
-        _suppressSelectionGuard = true;
-        try
+        if (Items.Count != desired.Count)
         {
-            Selected = null;
-            _selectionBeforeChange = null;
+            Items.ReplaceAll(desired);
+            return;
         }
-        finally
+
+        for (var i = 0; i < desired.Count; i++)
         {
-            _suppressSelectionGuard = false;
+            if (KeyOf(Items[i]) != KeyOf(desired[i]))
+            {
+                Items.ReplaceAll(desired);
+                return;
+            }
         }
     }
 
     private void ApplyCleanRefresh(IReadOnlyList<DrugRow> serverRows)
     {
-        DetachListSelection();
-        Items.ReplaceAll(MergeServerRows(serverRows, keepDraftKey: null));
+        var merged = MergeServerRows(serverRows, keepDraftKey: null);
+        SynchronizeItemsOrder(merged);
         FinalizeItemsReload();
     }
 
@@ -104,10 +124,12 @@ public sealed partial class DrugIndex
         {
             if (serverByKey.TryGetValue(sk, out var remote) && remote.Version != _loadedSnapshot.Version)
             {
+                _remoteEditBaseline = remote.ToDto();
                 _toast.Warn("药品信息", "该行已在其它终端修改");
             }
             else if (!serverByKey.ContainsKey(sk))
             {
+                _remoteEditBaseline = null;
                 _toast.Warn("药品信息", "该行已在其它终端删除");
             }
         }
@@ -129,16 +151,8 @@ public sealed partial class DrugIndex
             Items.RemoveAt(i);
         }
 
-        _suppressSelectionGuard = true;
-        try
-        {
-            Items.ReplaceAll(MergeServerRows(serverRows, selectedKey));
-        }
-        finally
-        {
-            _suppressSelectionGuard = false;
-        }
-
+        var merged = MergeServerRows(serverRows, selectedKey);
+        SynchronizeItemsOrder(merged);
         FinalizeItemsReload();
     }
 
@@ -148,9 +162,29 @@ public sealed partial class DrugIndex
         {
             FocusSavedRow(pending.DrugId, pending.Spec);
         }
-        else if (!HasPendingChanges)
+        else if (_clearListFocusAfterReload && !HasPendingChanges)
         {
             ClearListFocus(clearOrigin: false);
+        }
+        else if (Selected is not null && !HasPendingChanges)
+        {
+            var refreshed = FindRow(Selected.DrugId, Selected.Spec);
+            if (refreshed is not null && !ReferenceEquals(refreshed, Selected))
+            {
+                _suppressSelectionGuard = true;
+                try
+                {
+                    Selected = refreshed;
+                }
+                finally
+                {
+                    _suppressSelectionGuard = false;
+                }
+            }
+            else if (refreshed is not null)
+            {
+                SyncEditorFrom(refreshed);
+            }
         }
 
         OnPropertyChanged(nameof(ItemCountText));
@@ -159,7 +193,18 @@ public sealed partial class DrugIndex
 
     private void ClearListFocus(bool clearOrigin, bool keepEditorVisible = false)
     {
-        DetachListSelection();
+        Selected?.NotePreview = null;
+
+        _suppressSelectionGuard = true;
+        try
+        {
+            Selected = null;
+            _selectionBeforeChange = null;
+        }
+        finally
+        {
+            _suppressSelectionGuard = false;
+        }
 
         if (clearOrigin)
         {
@@ -168,6 +213,7 @@ public sealed partial class DrugIndex
             _loadedSnapshot = null;
         }
 
+        _remoteEditBaseline = null;
         ClearEditor(keepEditorVisible: keepEditorVisible);
     }
 
@@ -196,9 +242,29 @@ public sealed partial class DrugIndex
                 _suppressSelectionGuard = false;
             }
         }
-        else
+        else if (!HasPendingChanges)
         {
             ApplySelection(row);
         }
+    }
+
+    private void ClearRemoteEditBaseline()
+        => _remoteEditBaseline = null;
+
+    private void ApplyConflictServerBaseline(DrugIndexDto? serverRow)
+    {
+        if (serverRow is null)
+        {
+            return;
+        }
+
+        _remoteEditBaseline = serverRow;
+        DiscardDraft();
+    }
+
+    private async Task ApplyConflictServerBaselineAndReloadAsync(DrugIndexDto? serverRow)
+    {
+        ApplyConflictServerBaseline(serverRow);
+        await ReloadAsync(forceFull: false, clearListFocus: true);
     }
 }

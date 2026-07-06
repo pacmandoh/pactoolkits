@@ -206,6 +206,31 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Fact]
+    public void DrugIndex_repo_disposes_update_reader_before_conflict_lookup()
+    {
+        var source = ReadRepoFile("packages/infrastructure/Repositories/DrugIndex.cs");
+        const string marker = "await using (var updated = await update.ExecuteReaderAsync(token))";
+
+        Assert.Contains(marker, source, StringComparison.Ordinal);
+        Assert.Contains("var latest = await GetByKeyAsync(conn, dto.DrugId, dto.Spec, token);", source, StringComparison.Ordinal);
+
+        var updateBlockStart = source.IndexOf(marker, StringComparison.Ordinal);
+        var lookupIndex = source.IndexOf("var latest = await GetByKeyAsync", updateBlockStart, StringComparison.Ordinal);
+        var blockClose = source.IndexOf('}', updateBlockStart);
+        Assert.True(lookupIndex > blockClose, "Conflict lookup must run after the update reader scope is disposed.");
+    }
+
+    [Fact]
+    public void Drug_index_topic_triggers_active_watermark_refresh()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
+
+        Assert.Contains("IsDrugIndexTopic(topic)", source, StringComparison.Ordinal);
+        Assert.Contains("RefreshDrugIndexFromWatermarkAsync", source, StringComparison.Ordinal);
+        Assert.Contains("ReloadFromWatermarkAsync", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Drug_index_topic_marks_scan_code_dirty_for_catalog_refresh()
     {
         var source = ReadMainWindowViewModelSource();
@@ -267,21 +292,62 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Fact]
+    public void DrugIndex_save_conflict_offers_discard_or_force_save_dialog()
+    {
+        var drugIndex = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.cs");
+        var reconcile = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.Reconcile.cs");
+        var alert = ReadRepoFile("apps/desktop-avalonia/src/Services/Infrastructure/Dialogs/Alert.cs");
+        var session = ReadRepoFile("apps/desktop-avalonia/src/Services/Infrastructure/Dialogs/AlertSession.cs");
+        var block = ExtractSaveConflictBlock(drugIndex);
+
+        Assert.Contains("HandleSaveConflictAsync", drugIndex, StringComparison.Ordinal);
+        Assert.Contains("AlertBuilder<bool?>.Create", block, StringComparison.Ordinal);
+        Assert.Contains(".SaveConflict(", block, StringComparison.Ordinal);
+        Assert.Contains(".Close(null)", alert, StringComparison.Ordinal);
+        Assert.Contains("BindSimpleDialogDismiss", session, StringComparison.Ordinal);
+        Assert.Contains("choice is null", block, StringComparison.Ordinal);
+        Assert.Contains("ApplyConflictServerBaselineAndReloadAsync", block, StringComparison.Ordinal);
+        Assert.Contains("ApplyConflictServerBaseline", reconcile, StringComparison.Ordinal);
+        Assert.Contains("DiscardDraft()", reconcile, StringComparison.Ordinal);
+        Assert.Contains("AlertRole.Dismiss", alert, StringComparison.Ordinal);
+        Assert.Contains("AlertRole.Danger", alert, StringComparison.Ordinal);
+        Assert.Contains("DialogButtonStyle.Ghost", alert, StringComparison.Ordinal);
+        Assert.Contains("DialogButtonStyle.Outline", alert, StringComparison.Ordinal);
+        Assert.DoesNotContain("AlertPresets", drugIndex, StringComparison.Ordinal);
+        Assert.DoesNotContain("ConfirmSaveConflict", drugIndex, StringComparison.Ordinal);
+        Assert.DoesNotContain("已被其他终端修改。", drugIndex, StringComparison.Ordinal);
+        Assert.DoesNotContain("await ReloadAsync(forceFull: true);", block, StringComparison.Ordinal);
+    }
+
+    private static string ExtractSaveConflictBlock(string source)
+    {
+        const string marker = "private async Task<bool> HandleSaveConflictAsync";
+        var start = source.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(start >= 0, "Expected save conflict handler.");
+
+        var end = source.IndexOf("\n    [RelayCommand", start, StringComparison.Ordinal);
+        return source[start..end];
+    }
+
+    [Fact]
     public void DrugIndex_defers_only_cascade_topics_and_supports_silent_reconcile()
     {
         var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.Reconcile.cs");
+        var drugIndex = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.cs");
 
-        Assert.Contains("WatermarkActiveRefreshDeferPolicy.ShouldDeferDrugIndexActiveRefresh", source, StringComparison.Ordinal);
+        Assert.Contains("ShouldDeferDrugIndexCascadeRefresh", source, StringComparison.Ordinal);
         Assert.Contains("ApplySilentReconcile", source, StringComparison.Ordinal);
         Assert.Contains("ShouldSilentReconcile", source, StringComparison.Ordinal);
         Assert.Contains("HasPendingChanges", source, StringComparison.Ordinal);
         Assert.Contains("_pendingReselectKey.HasValue", source, StringComparison.Ordinal);
         Assert.Contains("ApplyCleanRefresh", source, StringComparison.Ordinal);
-        Assert.Contains("ClearListFocus", source, StringComparison.Ordinal);
-        Assert.Contains("DetachListSelection()", source, StringComparison.Ordinal);
         Assert.Contains("FocusSavedRow", source, StringComparison.Ordinal);
         Assert.Contains("QueueReselect", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("drug_index", source, StringComparison.Ordinal);
+        Assert.Contains("ReloadFromWatermarkAsync", source, StringComparison.Ordinal);
+        Assert.Contains("_clearListFocusAfterReload", source, StringComparison.Ordinal);
+        Assert.Contains("clearListFocus: true", drugIndex, StringComparison.Ordinal);
+        Assert.Contains("existing.ApplySaved(server.ToDto())", source, StringComparison.Ordinal);
+        Assert.Contains("_remoteEditBaseline", source, StringComparison.Ordinal);
     }
 
     [Fact]
