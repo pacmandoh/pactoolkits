@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
@@ -53,25 +54,22 @@ public partial class Settings
             return true;
         }
 
-        var choice = await _dialog.Confirm3(
-            "有未保存的更改",
-            $"「{TabTitles[tabIndex]}」中的修改尚未保存",
-            "保存并继续",
-            "放弃更改",
-            "取消");
+        var choice = await _dialog.Alert(
+            AlertBuilder<bool?>.Create("有未保存的更改", $"「{TabTitles[tabIndex]}」中的修改尚未保存")
+                .DiscardOrSave("保存并继续", "放弃更改"));
 
-        if (choice == 1)
+        if (choice is null)
+        {
+            return false;
+        }
+
+        if (choice == true)
         {
             return await SaveTabAsync((Tab)tabIndex);
         }
 
-        if (choice == 2)
-        {
-            RevertTab((Tab)tabIndex);
-            return true;
-        }
-
-        return false;
+        RevertTab((Tab)tabIndex);
+        return true;
     }
 
     public async Task<bool> TrySaveOrDiscardAllAsync()
@@ -83,35 +81,34 @@ public partial class Settings
         }
 
         var names = string.Join("、", GetDirtyTabTitles());
-        var choice = await _dialog.Confirm3(
-            "设置页有未保存的更改",
-            $"以下板块尚未保存：{names}",
-            "全部保存",
-            "放弃全部",
-            "取消");
+        var choice = await _dialog.Alert(
+            AlertBuilder<bool?>.Create("设置页有未保存的更改", $"以下板块尚未保存：{names}")
+                .DiscardOrSave("全部保存", "放弃全部"));
 
-        switch (choice)
+        if (choice is null)
         {
-            case 1:
-                foreach (var tab in GetDirtyTabs().ToArray())
-                {
-                    if (!await SaveTabAsync(tab))
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            case 2:
-                foreach (var tab in GetDirtyTabs().ToArray())
-                {
-                    RevertTab(tab);
-                }
-
-                return true;
-            default:
-                return false;
+            return false;
         }
+
+        if (choice == true)
+        {
+            foreach (var tab in GetDirtyTabs().ToArray())
+            {
+                if (!await SaveTabAsync(tab))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        foreach (var tab in GetDirtyTabs().ToArray())
+        {
+            RevertTab(tab);
+        }
+
+        return true;
     }
 
     private async Task<bool> SaveTabAsync(Tab tab)
