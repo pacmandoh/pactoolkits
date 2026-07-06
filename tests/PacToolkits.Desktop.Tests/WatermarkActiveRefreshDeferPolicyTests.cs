@@ -8,13 +8,13 @@ public sealed class WatermarkActiveRefreshDeferPolicyTests
     [InlineData("trace_pool", true)]
     [InlineData("trace_txn", true)]
     [InlineData("trace_txn_item", true)]
-    [InlineData("drug_index", true)]
+    [InlineData("drug_index", false)]
     [InlineData("inventory", false)]
     [InlineData("msfx", false)]
     [InlineData("", false)]
-    public void DrugIndex_active_refresh_defer_matrix(string topic, bool expected)
+    public void DrugIndex_cascade_refresh_defer_matrix(string topic, bool expected)
     {
-        Assert.Equal(expected, WatermarkActiveRefreshDeferPolicy.ShouldDeferDrugIndexActiveRefresh(topic));
+        Assert.Equal(expected, WatermarkActiveRefreshDeferPolicy.ShouldDeferDrugIndexCascadeRefresh(topic));
     }
 
     [Theory]

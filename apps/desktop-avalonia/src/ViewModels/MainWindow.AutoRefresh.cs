@@ -99,12 +99,49 @@ public partial class MainWindowViewModel
                                        && drug.DeferRefreshTopic(topic);
 
             MarkPagesDirtyByTopic(topic, skipInventoryRefresh, skipDrugIndexRefresh);
+
+            if (ActivePage is DrugIndex drugIndex
+                && IsDrugIndexTopic(topic))
+            {
+                ObserveDetached(
+                    RefreshDrugIndexFromWatermarkAsync(drugIndex),
+                    "drug_index.watermark.refresh.fail");
+                return;
+            }
+
             if (!skipInventoryRefresh
                 && !skipDrugIndexRefresh)
             {
                 TryRefreshDirtyActivePage();
             }
         });
+    }
+
+    private static bool IsDrugIndexTopic(string? topic)
+    {
+        var key = (topic ?? string.Empty).Trim().ToLowerInvariant();
+        return key == "drug_index";
+    }
+
+    private async Task RefreshDrugIndexFromWatermarkAsync(DrugIndex page)
+    {
+        if (!ReferenceEquals(ActivePage, page))
+        {
+            return;
+        }
+
+        try
+        {
+            await page.ReloadFromWatermarkAsync().ConfigureAwait(true);
+            if (WorkspacePageRefresh.RefreshSucceeded(page))
+            {
+                ClearDirty(page);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn("MainWindowVM", "drug_index.watermark.refresh_fail", "Drug index watermark refresh failed", ex);
+        }
     }
 
     private void MarkPagesDirtyByTopic(string? topic, bool skipInventoryPage, bool skipDrugIndexPage)
