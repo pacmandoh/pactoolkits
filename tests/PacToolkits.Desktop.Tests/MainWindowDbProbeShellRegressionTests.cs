@@ -182,6 +182,20 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Fact]
+    public void Inventory_silent_reconcile_cancels_and_checks_epoch_on_reload()
+    {
+        var overview = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/InventoryOverview.cs");
+        var detailOps = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/InventoryOverview.DetailOps.cs");
+
+        Assert.Contains("BeginStockReload()", overview, StringComparison.Ordinal);
+        Assert.Contains("CancelSilentReconcile();", overview, StringComparison.Ordinal);
+        Assert.Contains("Interlocked.Increment(ref _detailStockEpoch)", overview, StringComparison.Ordinal);
+        Assert.Contains("epoch != Volatile.Read(ref _detailStockEpoch)", detailOps, StringComparison.Ordinal);
+        Assert.Contains("IsPageReloadActive", detailOps, StringComparison.Ordinal);
+        Assert.Contains("if (IsStockEditEnabled)", detailOps, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Drug_index_topic_marks_scan_code_dirty_for_catalog_refresh()
     {
         var source = ReadMainWindowViewModelSource();

@@ -65,6 +65,8 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     /// <summary>True while the active reload was scheduled from a DB connect/disconnect signal.</summary>
     protected bool IsDbSignalReload => _reloadFromDbSignal;
 
+    protected bool IsPageReloadActive => _reload.IsActive;
+
     public bool HasLoadedOnce => _hasLoadedOnce;
 
     public PageDataAvailability PageDataAvailability => _pageDataAvailability;
