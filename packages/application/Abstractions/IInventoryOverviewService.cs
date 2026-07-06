@@ -34,6 +34,7 @@ public interface IInventoryOverviewService
 
     Task<StockCellEditBatchResult> ApplyStockCellEditsAsync(
         IReadOnlyList<StockCellEditRequest> edits,
+        TraceCodeValidationRule traceCodeRule,
         CancellationToken ct);
 
     Task<int> DeleteStockByTraceCodesAsync(IReadOnlyList<string> traceCodes, CancellationToken ct);

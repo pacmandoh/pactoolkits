@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using PacToolkits.Application.DTOs;
 
@@ -5,6 +6,48 @@ namespace PacToolkits.Application.Services;
 
 public static class TraceCodeAnalyzer
 {
+    public static bool TryValidateFormat(
+        string? code,
+        TraceCodeValidationRule rule,
+        out string? errorMessage)
+    {
+        errorMessage = null;
+        var trimmed = (code ?? string.Empty).Trim();
+        if (trimmed.Length == 0)
+        {
+            errorMessage = "追溯码不能为空";
+            return false;
+        }
+
+        if (trimmed.Length != rule.RequiredLength)
+        {
+            errorMessage =
+                $"追溯码长度必须为 {rule.RequiredLength.ToString(CultureInfo.InvariantCulture)} 位";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(rule.Pattern))
+        {
+            return true;
+        }
+
+        try
+        {
+            if (!Regex.IsMatch(trimmed, rule.Pattern))
+            {
+                errorMessage = "追溯码格式不符合规则";
+                return false;
+            }
+        }
+        catch
+        {
+            errorMessage = "追溯码格式不符合规则";
+            return false;
+        }
+
+        return true;
+    }
+
     public static TraceCodeDetailedAnalysis AnalyzeDetailed(
         string? text,
         TraceCodeValidationRule rule,
@@ -76,26 +119,7 @@ public static class TraceCodeAnalyzer
     }
 
     private static bool IsValid(string code, TraceCodeValidationRule rule)
-    {
-        if (code.Length != rule.RequiredLength)
-        {
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(rule.Pattern))
-        {
-            return true;
-        }
-
-        try
-        {
-            return Regex.IsMatch(code, rule.Pattern);
-        }
-        catch
-        {
-            return false;
-        }
-    }
+        => TryValidateFormat(code, rule, out _);
 
     private static readonly HashSet<string> EmptyPool = new(StringComparer.Ordinal);
 }
