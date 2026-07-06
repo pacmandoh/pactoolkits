@@ -61,7 +61,7 @@
               EmptyText="{Binding ItemsEmptyText}"
               Icon="{Binding SectionEmptyIcon}"
               IsEmpty="{Binding IsItemsEmpty}"
-              IsPending="{Binding IsSectionPending}"
+              IsPending="{Binding IsListSectionPending}"
               SlotMinHeight="{DynamicResource DgH10Rows}">
               <controls:DeferredGridSlot
                 x:Name="DrugGridSlot"
