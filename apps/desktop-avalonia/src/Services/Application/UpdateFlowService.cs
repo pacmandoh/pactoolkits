@@ -111,7 +111,7 @@ public sealed class UpdateFlowService : IUpdateFlowService
                 }
 
                 _toastManager.CreateToast(title)
-                    .WithContent(content)
+                    .WithContent(ToastContent.ForMessage(content))
                     .WithAction("稍后", () => { })
                     .WithAction("忽略此版本", () => RunDetached(ignoreVersionAction, "update.toast.ignore"))
                     .WithAction("立即更新", () => RunDetached(applyNowAction, "update.toast.apply"))
