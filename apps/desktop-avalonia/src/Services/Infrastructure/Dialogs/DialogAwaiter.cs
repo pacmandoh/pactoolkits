@@ -111,6 +111,35 @@ internal static class DialogSessionStack
         }
     }
 
+    internal static void BindSimpleDialogDismiss(DialogManager manager, Action onDismiss)
+    {
+        var simpleDialogType = manager.GetType().Assembly.GetType("ShadUI.SimpleDialog")
+            ?? throw new InvalidOperationException("Missing ShadUI.SimpleDialog.");
+
+        RegisterCallbacks(manager, simpleDialogType, static () => { }, onDismiss);
+
+        foreach (var control in GetDialogControls(manager))
+        {
+            if (control.GetType() != simpleDialogType || control is not StyledElement element)
+            {
+                continue;
+            }
+
+            element.DataContext = element;
+        }
+    }
+
+    internal static void UnbindSimpleDialogDismiss(DialogManager manager)
+    {
+        var simpleDialogType = manager.GetType().Assembly.GetType("ShadUI.SimpleDialog");
+        if (simpleDialogType is null)
+        {
+            return;
+        }
+
+        ClearCallbackSlots(manager, simpleDialogType);
+    }
+
     private static void ClearAllCallbackSlots(DialogManager manager)
     {
         foreach (var fieldName in CallbackFields)
