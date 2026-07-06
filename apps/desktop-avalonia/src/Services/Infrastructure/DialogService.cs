@@ -18,8 +18,9 @@ public interface IDialogService
 
     Task Ok(string title, string message);
     Task<bool> Confirm(string title, string message);
+    Task<bool> Confirm(string title, string message, string okText, string cancelText, DialogButtonStyle primaryStyle = DialogButtonStyle.Primary);
     Task<bool> ConfirmDestructive(string title, string message);
-    Task<int> Confirm3(string title, string message, string primaryText, string secondaryText, string cancelText);
+    Task<T> Alert<T>(AlertBuilder<T> alert);
     Task<bool> ConfirmDrugKeyFixPreview(
         string sourceDrugId,
         string sourceSpec,
@@ -64,30 +65,19 @@ public sealed class DialogService(
         => Ok(title, message);
 
     public Task Error(string title, string message)
-        => Ok(title, message, DialogButtonStyle.Destructive);
+        => Ok(title, message);
 
     public Task Ok(string title, string message)
-        => Ok(title, message, DialogButtonStyle.Primary);
+        => Alert(AlertBuilder<object?>.Create(title, message).Close(null).Ack("确认", null));
 
     public Task<bool> Confirm(string title, string message)
         => Confirm(title, message, okText: "确认", cancelText: "取消");
 
     public Task<bool> ConfirmDestructive(string title, string message)
-        => Confirm(title, message, okText: "确认", cancelText: "取消", DialogButtonStyle.Destructive);
+        => Alert(AlertBuilder<bool>.Create(title, message).Close(false).Danger("确认", true));
 
-    public Task Ok(
-        string title,
-        string message,
-        DialogButtonStyle primaryStyle,
-        string okText = "确认")
-        => DialogAwaiter.RunAlertAsync<object?>(dialogManager, tcs =>
-        {
-            dialogManager.CreateDialog(title, message)
-                .WithPrimaryButton(okText, () => tcs.TrySetResult(null), primaryStyle)
-                .WithMaxWidth(AlertMaxWidth)
-                .Dismissible()
-                .Show();
-        });
+    public Task<T> Alert<T>(AlertBuilder<T> alert)
+        => AlertSession.ShowAsync(dialogManager, alert, AlertMaxWidth);
 
     public Task<bool> Confirm(
         string title,
@@ -95,32 +85,13 @@ public sealed class DialogService(
         string okText,
         string cancelText,
         DialogButtonStyle primaryStyle = DialogButtonStyle.Primary)
-        => DialogAwaiter.RunAlertAsync<bool>(dialogManager, tcs =>
-        {
-            dialogManager.CreateDialog(title, message)
-                .WithCancelButton(cancelText, () => tcs.TrySetResult(false))
-                .WithPrimaryButton(okText, () => tcs.TrySetResult(true), primaryStyle)
-                .WithMaxWidth(AlertMaxWidth)
-                .Dismissible()
-                .Show();
-        });
+    {
+        var builder = AlertBuilder<bool>.Create(title, message).Close(false).Cancel(cancelText, false);
 
-    public Task<int> Confirm3(
-        string title,
-        string message,
-        string primaryText,
-        string secondaryText,
-        string cancelText)
-        => DialogAwaiter.RunAlertAsync<int>(dialogManager, tcs =>
-        {
-            dialogManager.CreateDialog(title, message)
-                .WithCancelButton(cancelText, () => tcs.TrySetResult(0))
-                .WithTertiaryButton(secondaryText, () => tcs.TrySetResult(2))
-                .WithPrimaryButton(primaryText, () => tcs.TrySetResult(1))
-                .WithMaxWidth(AlertMaxWidth)
-                .Dismissible()
-                .Show();
-        });
+        return Alert(primaryStyle == DialogButtonStyle.Destructive
+            ? builder.Danger(okText, true)
+            : builder.Affirm(okText, true));
+    }
 
     public Task<bool> ConfirmDrugKeyFixPreview(
         string sourceDrugId,
