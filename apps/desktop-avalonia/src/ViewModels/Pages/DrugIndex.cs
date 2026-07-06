@@ -941,7 +941,7 @@ public sealed partial class DrugIndex : AppPageBase
                     return false;
                 case DrugSaveOutcome.BlockedDuplicate:
                     await _dialog.Warn("名称/规格重复",
-                        $"已存在相同记录：\nDrugId = {drugId}\nSpec = {spec}\n\n请改成“编辑已有记录”或修改 DrugId/Spec");
+                        $"已存在相同记录：\n{DrugLabel.Format(drugId, spec)}\n\n请改成“编辑已有记录”或修改药品名/规格");
                     return false;
                 case DrugSaveOutcome.ConcurrencyConflict:
                     LogWarn("drug_index.save.concurrency_conflict", "Detected optimistic concurrency conflict", saveResult.Concurrency);
@@ -952,7 +952,7 @@ public sealed partial class DrugIndex : AppPageBase
 
             var saved = saveResult.Saved ?? throw new InvalidOperationException("保存成功但未返回记录");
 
-            Dispatcher.UIThread.Post(() => _toast.Success("已保存", $"{drugId} / {spec}"));
+            Dispatcher.UIThread.Post(() => _toast.Success("已保存", DrugLabel.Format(drugId, spec)));
 
             CommitPostWrite(saved);
             RefreshPageCommands();
@@ -975,9 +975,9 @@ public sealed partial class DrugIndex : AppPageBase
         catch (Exception ex)
         {
             LogError("drug_index.save.fail", "Failed to save drug row", ex);
-            var drug = NormalizeInput(EditDrugId) ?? (EditDrugId ?? string.Empty).Trim();
-            var spec = NormalizeInput(EditSpec) ?? (EditSpec ?? string.Empty).Trim();
-            var target = $"{drug} / {spec}".Trim();
+            var target = DrugLabel.Format(
+                NormalizeInput(EditDrugId) ?? (EditDrugId ?? string.Empty).Trim(),
+                NormalizeInput(EditSpec) ?? (EditSpec ?? string.Empty).Trim());
             Dispatcher.UIThread.Post(() => _toast.Error("保存失败", $"{target}：{ex.Message}"));
             return false;
         }
@@ -1051,8 +1051,10 @@ public sealed partial class DrugIndex : AppPageBase
             var confirm = await _dialog.ConfirmDrugKeyFixPreview(
                 source.DrugId,
                 source.Spec,
+                source.Qty,
                 targetDrugId,
                 targetSpec,
+                EditQty.Value,
                 preview.TargetExists,
                 preview.TracePoolAffected,
                 preview.TraceTxnAffected);
@@ -1119,8 +1121,12 @@ public sealed partial class DrugIndex : AppPageBase
                 DispatcherPriority.Loaded);
 
             Dispatcher.UIThread.Post(() =>
-                _toast.Success("药品纠错迁移",
-                    $"已迁移到 {focusDrugId}/{focusSpec}，单条数量 {dbTargetAfter.Qty}，trace_pool {result.TracePoolAffected} 条，trace_txn {result.TraceTxnAffected} 条"));
+                _toast.Success(
+                    "药品纠错迁移",
+                    $"源药品名/规格：{DrugLabel.WithQty(source.DrugId, source.Spec, source.Qty)}\n" +
+                    $"目标药品名/规格：{DrugLabel.WithQty(focusDrugId, focusSpec, dbTargetAfter.Qty)}\n" +
+                    $"追溯码池影响：{result.TracePoolAffected} 条\n" +
+                    $"执行事务影响：{result.TraceTxnAffected} 条"));
 
             _inventoryOverview.ReloadAfterDrugIndexChange();
             _scanCode.ReloadAfterDrugIndexChange();
@@ -1273,24 +1279,7 @@ public sealed partial class DrugIndex : AppPageBase
             return;
         }
 
-        Selected?.NotePreview = null;
-
-        _suppressSelectionGuard = true;
-        try
-        {
-            Selected = null;
-            _selectionBeforeChange = null;
-        }
-        finally
-        {
-            _suppressSelectionGuard = false;
-        }
-        _loadedSnapshot = null;
-
-        ClearEditor(keepEditorVisible: true);
-        HasEditor = true;
-
-        IsDirty = false;
+        ClearListFocus(clearOrigin: true, keepEditorVisible: true);
         RefreshCommands(SaveCommand);
     }
 
@@ -1311,7 +1300,7 @@ public sealed partial class DrugIndex : AppPageBase
         var deleteSpec = _originSpec!;
 
         var ok = await _dialog.ConfirmDestructive("删除药品规格",
-            $"确认删除？\n{deleteDrugId} / {deleteSpec}\n\n注意：trace_pool / trace_txn 外键会阻止删除正在引用的记录");
+            $"确认删除？\n{DrugLabel.Format(deleteDrugId, deleteSpec)}\n\n注意：trace_pool / trace_txn 外键会阻止删除正在引用的记录");
 
         if (!ok)
         {
@@ -1322,9 +1311,8 @@ public sealed partial class DrugIndex : AppPageBase
         try
         {
             await _drugIndex.DeleteAsync(deleteDrugId, deleteSpec, default);
-            Dispatcher.UIThread.Post(() => _toast.Success("已删除", $"{deleteDrugId} / {deleteSpec}"));
-            Selected = null;
-            ClearEditor(keepEditorVisible: false);
+            Dispatcher.UIThread.Post(() => _toast.Success("已删除", DrugLabel.Format(deleteDrugId, deleteSpec)));
+            ClearListFocus(clearOrigin: true);
             await ReloadAsync();
             _inventoryOverview.ReloadAfterDrugIndexChange();
             _scanCode.ReloadAfterDrugIndexChange();

@@ -1333,11 +1333,12 @@ public sealed partial class MsfxLink : AppPageBase
             }
 
             var confirmTitle = batchScene;
+            var groupLabel = DrugLabel.Format(group.SourceDrugNameRaw, group.SourceSpecRaw);
             var confirmMsg = res.Action switch
             {
-                MsfxMappingBatchAction.ApplyMap => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认批量映射？",
-                MsfxMappingBatchAction.DiscardTask => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认弃用任务？",
-                _ => $"分组“{group.SourceDrugNameRaw} / {group.SourceSpecRaw}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认处理？"
+                MsfxMappingBatchAction.ApplyMap => $"分组“{groupLabel}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认批量映射？",
+                MsfxMappingBatchAction.DiscardTask => $"分组“{groupLabel}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认弃用任务？",
+                _ => $"分组“{groupLabel}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认处理？"
             };
             var ok = res.Action == MsfxMappingBatchAction.DiscardTask
                 ? await _dialog.ConfirmDestructive(confirmTitle, confirmMsg).ConfigureAwait(false)
@@ -1470,7 +1471,7 @@ public sealed partial class MsfxLink : AppPageBase
         {
             new("任务ID", row.TaskId.ToString(CultureInfo.InvariantCulture)),
             new("单据编码", row.SourceBillCode),
-            new("目标药品/规格", row.Target),
+            new("目标药品/规格", DrugLabel.Format(row.MappedDrugId, row.MappedSpec)),
             new("状态", row.Status),
             new("进度", row.Progress),
             new("重试次数", row.RetryCount.ToString(CultureInfo.InvariantCulture)),

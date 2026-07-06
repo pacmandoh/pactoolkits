@@ -254,7 +254,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
         Assert.Contains("_pendingReselectKey.HasValue", source, StringComparison.Ordinal);
         Assert.Contains("ApplyCleanRefresh", source, StringComparison.Ordinal);
         Assert.Contains("ClearListFocus", source, StringComparison.Ordinal);
-        Assert.Contains("DetachListSelectionBeforeReplace", source, StringComparison.Ordinal);
+        Assert.Contains("DetachListSelection()", source, StringComparison.Ordinal);
         Assert.Contains("FocusSavedRow", source, StringComparison.Ordinal);
         Assert.Contains("QueueReselect", source, StringComparison.Ordinal);
         Assert.DoesNotContain("drug_index", source, StringComparison.Ordinal);

@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.DrugKeyFixPreviewView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -35,7 +35,7 @@
     <Grid
       ColumnDefinitions="Auto,*"
       ColumnSpacing="{DynamicResource PageColumnSpacing}"
-      RowDefinitions="Auto,Auto"
+      RowDefinitions="Auto,Auto,Auto,Auto"
       RowSpacing="{DynamicResource DialogRowSpacing}">
       <TextBlock
         Grid.Row="0"
@@ -46,7 +46,8 @@
         Grid.Row="0"
         Grid.Column="1"
         FontFamily="Consolas"
-        Text="{Binding Preview.SourceKeyDisplay}" />
+        Text="{Binding Preview.SourceKeyDisplay}"
+        TextWrapping="Wrap" />
 
       <TextBlock
         Grid.Row="1"
@@ -57,38 +58,31 @@
         Grid.Row="1"
         Grid.Column="1"
         FontFamily="Consolas"
-        Text="{Binding Preview.TargetKeyDisplay}" />
+        Text="{Binding Preview.TargetKeyDisplay}"
+        TextWrapping="Wrap" />
+
+      <TextBlock
+        Grid.Row="2"
+        Grid.Column="0"
+        Classes="Caption Muted"
+        Text="追溯码池影响" />
+      <TextBlock
+        Grid.Row="2"
+        Grid.Column="1"
+        FontWeight="SemiBold"
+        Text="{Binding Preview.TracePoolAffectedDisplay}" />
+
+      <TextBlock
+        Grid.Row="3"
+        Grid.Column="0"
+        Classes="Caption Muted"
+        Text="执行事务影响" />
+      <TextBlock
+        Grid.Row="3"
+        Grid.Column="1"
+        FontWeight="SemiBold"
+        Text="{Binding Preview.TraceTxnAffectedDisplay}" />
     </Grid>
-
-    <Border Padding="12" CornerRadius="12">
-      <Grid
-        ColumnDefinitions="*,*"
-        ColumnSpacing="{DynamicResource PageColumnSpacing}"
-        RowDefinitions="Auto,Auto"
-        RowSpacing="{DynamicResource DialogRowSpacing}">
-        <TextBlock
-          Grid.Row="0"
-          Grid.Column="0"
-          Classes="Caption Muted"
-          Text="trace_pool 影响" />
-        <TextBlock
-          Grid.Row="0"
-          Grid.Column="1"
-          FontWeight="SemiBold"
-          Text="{Binding Preview.TracePoolAffectedDisplay}" />
-
-        <TextBlock
-          Grid.Row="1"
-          Grid.Column="0"
-          Classes="Caption Muted"
-          Text="trace_txn 影响" />
-        <TextBlock
-          Grid.Row="1"
-          Grid.Column="1"
-          FontWeight="SemiBold"
-          Text="{Binding Preview.TraceTxnAffectedDisplay}" />
-      </Grid>
-    </Border>
 
     <TextBlock
       Classes="Caption Muted"
