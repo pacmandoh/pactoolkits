@@ -206,8 +206,7 @@ public sealed partial class InventoryOverview : AppPageBase
     private bool CanOperateUi() => !IsUiBusy;
 
     private bool CanLocalRefresh()
-        => CanOperateUi()
-           && DateTimeOffset.UtcNow >= _suppressAutoRefreshUntilUtc;
+        => CanOperateUi();
 
     private bool CanUnlock()
         => CanOperateUi()
@@ -1467,38 +1466,6 @@ public sealed partial class InventoryOverview : AppPageBase
         if (until > _suppressAutoRefreshUntilUtc)
         {
             _suppressAutoRefreshUntilUtc = until;
-        }
-
-        RefreshPageCommands();
-        ResumeRefreshCommandsAfterSuppress();
-    }
-
-    private void ResumeRefreshCommandsAfterSuppress()
-    {
-        _suppressRefreshCts?.Cancel();
-        _suppressRefreshCts?.Dispose();
-        _suppressRefreshCts = new CancellationTokenSource();
-        var until = _suppressAutoRefreshUntilUtc;
-        var ct = _suppressRefreshCts.Token;
-        ObserveDetached(
-            ResumeRefreshCommandsAfterSuppressAsync(until, ct),
-            "inventory.refresh_suppress.detached.fail");
-    }
-
-    private async Task ResumeRefreshCommandsAfterSuppressAsync(DateTimeOffset until, CancellationToken ct)
-    {
-        try
-        {
-            var delay = until - DateTimeOffset.UtcNow;
-            if (delay > TimeSpan.Zero)
-            {
-                await Task.Delay(delay, ct).ConfigureAwait(false);
-            }
-
-            await RunOnUiAsync(RefreshPageCommands).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
         }
     }
 
