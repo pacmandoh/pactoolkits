@@ -225,7 +225,7 @@ public partial class Settings : AppPageBase, ISettingsPage
     }
 
     public Task RefreshSchemaStatusAsync(string source = "startup_postcheck")
-        => UpdateSchemaStatusAsync(source, manualProbe: false);
+        => UpdateSchemaStatusAsync(source, manualProbe: false, bindPageLifetime: false);
 
     private void OnClientAliasesChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsClientAliasesEmpty));

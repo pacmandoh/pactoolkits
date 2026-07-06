@@ -291,6 +291,14 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Fact]
+    public void Settings_schema_refresh_survives_page_deactivate()
+    {
+        var settings = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/Settings.cs");
+
+        Assert.Contains("bindPageLifetime: false", settings, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unknown_watermark_topic_still_marks_all_refreshable_pages_dirty()
     {
         var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
