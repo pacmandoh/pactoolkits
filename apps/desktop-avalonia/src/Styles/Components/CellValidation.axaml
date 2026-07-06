@@ -1,0 +1,45 @@
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Inline editors: red border + in-field error icon; tooltip synced from DataValidationErrors. -->
+  <Style Selector="DataValidationErrors">
+    <Setter Property="Template">
+      <ControlTemplate TargetType="DataValidationErrors">
+        <ContentPresenter
+          Background="{TemplateBinding Background}"
+          BorderBrush="{TemplateBinding BorderBrush}"
+          BorderThickness="{TemplateBinding BorderThickness}"
+          Content="{TemplateBinding Content}"
+          ContentTemplate="{TemplateBinding ContentTemplate}"
+          CornerRadius="{TemplateBinding CornerRadius}"
+          Name="PART_ContentPresenter"
+          Padding="{TemplateBinding Padding}" />
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="DataGrid TextBox">
+    <Setter Property="behaviors:ValidationToolTip.IsEnabled" Value="True" />
+  </Style>
+
+  <Style Selector="TextBox:error">
+    <Setter Property="InnerRightContent">
+      <Setter.Value>
+        <Template>
+          <PathIcon
+            Width="14"
+            Height="14"
+            Data="{x:Static shad:Icons.Error}"
+            Foreground="{DynamicResource ErrorColor}"
+            Margin="0,0,2,0" />
+        </Template>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style Selector="TextBox:error /template/ Border#Border">
+    <Setter Property="BorderBrush" Value="{DynamicResource ErrorColor}" />
+  </Style>
+</Styles>

@@ -402,7 +402,7 @@
                               IsReadOnly="True" />
                             <DataGridTextColumn
                               Width="1.4*"
-                              Binding="{Binding TraceCode}"
+                              Binding="{Binding TraceCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               Header="追溯码" />
                             <DataGridTextColumn
                               Width="{StaticResource DgWRightSmall}"

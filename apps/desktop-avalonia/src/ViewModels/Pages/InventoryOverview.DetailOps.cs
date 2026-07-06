@@ -254,6 +254,12 @@ public sealed partial class InventoryOverview : AppPageBase
 
         if (IsStockEditEnabled)
         {
+            if (StockRows.Any(static row => row.HasTraceCodeValidationError))
+            {
+                _toast.Warn("库存明细编辑", "请先修正追溯码格式错误");
+                return;
+            }
+
             CollectStockEdits();
             var (savedCount, failedCount, lastError) = (0, 0, (string?)null);
             if (_pendingStockEdits.Count > 0)
@@ -290,8 +296,45 @@ public sealed partial class InventoryOverview : AppPageBase
 
         _pendingStockEdits.Clear();
         SnapshotStockRows();
+        EnableStockTraceCodeValidation();
         IsStockEditEnabled = true;
         _lastModeIndex = ModeIndex;
+    }
+
+    private TraceCodeValidationRule CurrentTraceCodeRule()
+        => new(
+            _traceCodeRule.Current.RequiredLength,
+            _traceCodeRule.Current.Pattern);
+
+    private void EnableStockTraceCodeValidation()
+    {
+        var rule = CurrentTraceCodeRule();
+        foreach (var row in StockRows)
+        {
+            row.EnableTraceCodeEditValidation(rule);
+        }
+    }
+
+    private void DisableStockTraceCodeValidation()
+    {
+        foreach (var row in StockRows)
+        {
+            row.DisableTraceCodeEditValidation();
+        }
+    }
+
+    private void OnTraceCodeRuleChanged()
+    {
+        if (!IsStockEditEnabled)
+        {
+            return;
+        }
+
+        var rule = CurrentTraceCodeRule();
+        foreach (var row in StockRows)
+        {
+            row.RefreshTraceCodeEditRule(rule);
+        }
     }
 
     public async Task OpenScanCodeByRowAsync(string? drugId, string? spec)
@@ -884,6 +927,7 @@ public sealed partial class InventoryOverview : AppPageBase
                     IsStockEditEnabled = true;
                     _pendingStockEdits.Clear();
                     SnapshotStockRows();
+                    EnableStockTraceCodeValidation();
                 }
 
                 _toast.Success("库存明细删除", $"删除成功 {affected.ToString(CultureInfo.InvariantCulture)} 条");
@@ -912,6 +956,7 @@ public sealed partial class InventoryOverview : AppPageBase
 
         var batchResult = await _inventory.ApplyStockCellEditsAsync(
             edits.Select(e => new StockCellEditRequest(e.MatchTraceCode, e.ColumnHeader, e.NewValue)).ToArray(),
+            CurrentTraceCodeRule(),
             default).ConfigureAwait(false);
 
         if (batchResult.FailedCount > 0)
