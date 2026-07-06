@@ -1445,8 +1445,9 @@ public sealed partial class InventoryOverview : AppPageBase
 
         var page = PageIndex;
         var keyword = NormalizeInput(Keyword);
+        var epoch = Volatile.Read(ref _detailStockEpoch);
         ObserveDetached(
-            RunSilentCurrentPageReconcileAsync(delay, page, keyword, _silentReconcileCts.Token),
+            RunSilentCurrentPageReconcileAsync(delay, page, keyword, epoch, _silentReconcileCts.Token),
             "reconcile.detached.fail");
     }
 
@@ -1454,6 +1455,7 @@ public sealed partial class InventoryOverview : AppPageBase
         TimeSpan delay,
         int page,
         string? keyword,
+        int epoch,
         CancellationToken ct)
     {
         try
@@ -1467,6 +1469,16 @@ public sealed partial class InventoryOverview : AppPageBase
             await RunOnUiAsync(() =>
             {
                 if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                if (epoch != Volatile.Read(ref _detailStockEpoch) || IsPageReloadActive)
+                {
+                    return;
+                }
+
+                if (IsStockEditEnabled)
                 {
                     return;
                 }

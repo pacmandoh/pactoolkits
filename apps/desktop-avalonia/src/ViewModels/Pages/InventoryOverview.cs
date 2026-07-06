@@ -93,6 +93,7 @@ public sealed partial class InventoryOverview : AppPageBase
     private int _lastModeIndex;
     private DateTimeOffset _suppressAutoRefreshUntilUtc = DateTimeOffset.MinValue;
     private CancellationTokenSource? _silentReconcileCts;
+    private int _detailStockEpoch;
     private readonly SearchInputDebouncer _keywordSearchDebouncer = new(450);
     private readonly DispatcherTimer _unlockStatusTimer;
     private IRelayCommand?[]? _notifiableCommands;
@@ -546,6 +547,12 @@ public sealed partial class InventoryOverview : AppPageBase
         _silentReconcileCts = null;
     }
 
+    private void BeginStockReload()
+    {
+        CancelSilentReconcile();
+        Interlocked.Increment(ref _detailStockEpoch);
+    }
+
     protected override void OnReloadFinished()
         => RefreshPageCommands();
 
@@ -563,6 +570,8 @@ public sealed partial class InventoryOverview : AppPageBase
         {
             DiscardStockEdits();
         }
+
+        BeginStockReload();
 
         var mode = ModeIndex;
         return RunLocalReloadAsync(
@@ -584,6 +593,8 @@ public sealed partial class InventoryOverview : AppPageBase
         {
             DiscardStockEdits();
         }
+
+        BeginStockReload();
 
         return RunLocalReloadAsync(
             setBusy: _ => { },
