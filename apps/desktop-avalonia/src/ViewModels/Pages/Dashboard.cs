@@ -12,6 +12,7 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -34,6 +35,7 @@ public sealed partial class Dashboard : AppPageBase
     private readonly ILookupCatalogService _lookup;
     private readonly PageNavigationService _nav;
     private readonly InventoryOverview _inventoryOverview;
+    private readonly WorkspaceDirtyRefresh _dirtyRefresh;
     private bool _suppressRowSelectionAction;
     private int _specLoadGeneration;
     private readonly RollingDateRangeController _dateRangeController;
@@ -55,7 +57,7 @@ public sealed partial class Dashboard : AppPageBase
 
         ClearBrowsingSelections();
 
-        QueueTabPageReload();
+        QueueTabPageReload(force: _dirtyRefresh.IsDirty(this));
     }
 
     partial void OnTabPageSizeChanged(int value)
@@ -479,7 +481,8 @@ public sealed partial class Dashboard : AppPageBase
     private bool _filtersLoaded;
 
     public Dashboard(IDashboardService dashboard, ILookupCatalogService lookup, IToastService toast,
-        IClientAliasService clientAlias, PageNavigationService nav, InventoryOverview inventoryOverview)
+        IClientAliasService clientAlias, PageNavigationService nav, InventoryOverview inventoryOverview,
+        WorkspaceDirtyRefresh dirtyRefresh)
     {
         _dashboard = dashboard;
         _toast = toast;
@@ -487,6 +490,7 @@ public sealed partial class Dashboard : AppPageBase
         _lookup = lookup;
         _nav = nav;
         _inventoryOverview = inventoryOverview;
+        _dirtyRefresh = dirtyRefresh;
         _dateRangeController = new RollingDateRangeController(() =>
             PostOnUi(HandleDateRangeDayChanged, DispatcherPriority.Background));
 
