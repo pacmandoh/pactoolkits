@@ -8,6 +8,27 @@ public sealed class TraceCodeAnalyzerTests
     private static readonly TraceCodeValidationRule Rule = new(20, "^8\\d+$");
 
     [Fact]
+    public void TryValidateFormat_rejects_empty()
+    {
+        Assert.False(TraceCodeAnalyzer.TryValidateFormat("  ", Rule, out var error));
+        Assert.Equal("追溯码不能为空", error);
+    }
+
+    [Fact]
+    public void TryValidateFormat_rejects_invalid_pattern()
+    {
+        Assert.False(TraceCodeAnalyzer.TryValidateFormat("short", Rule, out var error));
+        Assert.Equal("追溯码长度必须为 20 位", error);
+    }
+
+    [Fact]
+    public void TryValidateFormat_accepts_valid_code()
+    {
+        Assert.True(TraceCodeAnalyzer.TryValidateFormat("89012345678901234567", Rule, out var error));
+        Assert.Null(error);
+    }
+
+    [Fact]
     public void AnalyzeDetailed_marks_invalid_scan_duplicate_and_pool_duplicate()
     {
         const string text = """
