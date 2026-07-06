@@ -180,10 +180,12 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 cmd.AddParam("pre_tc", (object?)dto.PreTc ?? DBNull.Value);
                 cmd.AddParam("note", (object?)dto.Note ?? DBNull.Value);
 
-                await using var reader = await cmd.ExecuteReaderAsync(token);
-                if (await reader.ReadAsync(token))
+                await using (var reader = await cmd.ExecuteReaderAsync(token))
                 {
-                    return ReadDrugIndexDto(reader);
+                    if (await reader.ReadAsync(token))
+                    {
+                        return ReadDrugIndexDto(reader);
+                    }
                 }
 
                 var current = await GetByKeyAsync(conn, dto.DrugId, dto.Spec, token);
@@ -213,10 +215,12 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             update.AddParam("note", (object?)dto.Note ?? DBNull.Value);
             update.AddParam("expected_version", expectedVersion.Value);
 
-            await using var updated = await update.ExecuteReaderAsync(token);
-            if (await updated.ReadAsync(token))
+            await using (var updated = await update.ExecuteReaderAsync(token))
             {
-                return ReadDrugIndexDto(updated);
+                if (await updated.ReadAsync(token))
+                {
+                    return ReadDrugIndexDto(updated);
+                }
             }
 
             var latest = await GetByKeyAsync(conn, dto.DrugId, dto.Spec, token);
