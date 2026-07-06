@@ -662,9 +662,10 @@ public sealed partial class InventoryOverview : AppPageBase
             return;
         }
 
+        var targetLabel = DrugLabel.WithQty(targetDrug, targetSpec, targetQty);
         var confirmMessage = IsSingleScope
-            ? $"将选中追溯码纠错到 {targetDrug}/{targetSpec}，是否继续？"
-            : $"将“当前筛选关键字”命中的库存批量纠错到 {targetDrug}/{targetSpec}，是否继续？";
+            ? $"将选中追溯码纠错到：{targetLabel}，是否继续？"
+            : $"将“当前筛选关键字”命中的库存批量纠错到：{targetLabel}，是否继续？";
         var ok = await _dialog.ConfirmDestructive("确认纠错", confirmMessage);
         if (!ok)
         {

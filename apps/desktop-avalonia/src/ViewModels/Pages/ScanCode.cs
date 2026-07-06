@@ -451,7 +451,7 @@ public sealed partial class ScanCode : AppPageBase
                         SelectedQtyText = submit.QtyPerTrace.ToString();
                         Status = $"处理 {result.RequestedCount} 条，成功 {result.InsertedCount} 条，跳过 {result.SkippedCount} 条";
                         var summary =
-                            $"{drug}/{spec} · 总数 {analysis.Total} · 有效 {analysis.ValidUniqueCodes.Count} · 重复 {analysis.Duplicate} · 跳过入库 {PoolSkipCount} · 无效 {analysis.Invalid} · 写入 {result.InsertedCount} · 跳过 {result.SkippedCount}";
+                            $"{DrugLabel.Format(drug, spec)} · 总数 {analysis.Total} · 有效 {analysis.ValidUniqueCodes.Count} · 重复 {analysis.Duplicate} · 跳过入库 {PoolSkipCount} · 无效 {analysis.Invalid} · 写入 {result.InsertedCount} · 跳过 {result.SkippedCount}";
 
                         if (logWriteError is not null)
                         {
@@ -708,17 +708,12 @@ public sealed partial class ScanCode : AppPageBase
 
             if (string.IsNullOrWhiteSpace(spec))
             {
-                UpdateStatus($"当前药品：{drugId}（请选择规格）", 0);
+                UpdateStatus($"当前药品：{DrugLabel.Format(drugId, "请选择规格")}", 0);
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(qty))
-            {
-                UpdateStatus($"当前药品：{drugId} / {spec}（未找到单条数量）", 2);
-                return;
-            }
-
-            UpdateStatus($"当前药品：{drugId} / {spec}", 1);
+            var (message, level) = BuildCurrentDrugStatus(drugId, spec, qty);
+            UpdateStatus(message, level);
         }, DispatcherPriority.Background);
     }
 
@@ -777,14 +772,24 @@ public sealed partial class ScanCode : AppPageBase
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(qtyText))
-            {
-                UpdateStatus($"当前药品：{drug} / {spec}（未找到单条数量）", 2);
-                return;
-            }
-
-            UpdateStatus($"当前药品：{drug} / {spec}", 1);
+            var (message, level) = BuildCurrentDrugStatus(drug, spec, qtyText);
+            UpdateStatus(message, level);
         });
+    }
+
+    private static (string Message, int Level) BuildCurrentDrugStatus(string drugId, string spec, string? qtyText)
+    {
+        if (string.IsNullOrWhiteSpace(qtyText))
+        {
+            return ($"当前药品：{DrugLabel.Format(drugId, spec)}（未找到单盒数量）", 2);
+        }
+
+        if (int.TryParse(qtyText, out var parsedQty))
+        {
+            return ($"当前药品：{DrugLabel.WithQty(drugId, spec, parsedQty)}", 1);
+        }
+
+        return ($"当前药品：{DrugLabel.Format(drugId, spec)}", 1);
     }
 
     private void UpdateStatus(string message, int level)

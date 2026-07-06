@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Services.Msfx;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 using ShadUI;
@@ -22,8 +23,10 @@ public interface IDialogService
     Task<bool> ConfirmDrugKeyFixPreview(
         string sourceDrugId,
         string sourceSpec,
+        int sourceQty,
         string targetDrugId,
         string targetSpec,
+        int targetQty,
         bool targetExists,
         int tracePoolAffected,
         int traceTxnAffected);
@@ -122,8 +125,10 @@ public sealed class DialogService(
     public Task<bool> ConfirmDrugKeyFixPreview(
         string sourceDrugId,
         string sourceSpec,
+        int sourceQty,
         string targetDrugId,
         string targetSpec,
+        int targetQty,
         bool targetExists,
         int tracePoolAffected,
         int traceTxnAffected)
@@ -132,8 +137,8 @@ public sealed class DialogService(
             new DrugKeyFixPreview(dialogManager)
             {
                 Preview = new DrugKeyFixPreviewArgs(
-                    SourceKeyDisplay: $"{sourceDrugId}/{sourceSpec}",
-                    TargetKeyDisplay: $"{targetDrugId}/{targetSpec}",
+                    SourceKeyDisplay: DrugLabel.WithQty(sourceDrugId, sourceSpec, sourceQty),
+                    TargetKeyDisplay: DrugLabel.WithQty(targetDrugId, targetSpec, targetQty),
                     TracePoolAffectedDisplay: $"{tracePoolAffected} 条",
                     TraceTxnAffectedDisplay: $"{traceTxnAffected} 条",
                     TargetExistsDisplay: targetExists
