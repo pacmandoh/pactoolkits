@@ -50,12 +50,15 @@ public sealed partial class DrugIndex
         return merged;
     }
 
-    private void DetachListSelectionBeforeReplace()
+    private void DetachListSelection()
     {
+        Selected?.NotePreview = null;
+
         _suppressSelectionGuard = true;
         try
         {
             Selected = null;
+            _selectionBeforeChange = null;
         }
         finally
         {
@@ -65,7 +68,7 @@ public sealed partial class DrugIndex
 
     private void ApplyCleanRefresh(IReadOnlyList<DrugRow> serverRows)
     {
-        DetachListSelectionBeforeReplace();
+        DetachListSelection();
         Items.ReplaceAll(MergeServerRows(serverRows, keepDraftKey: null));
         FinalizeItemsReload();
     }
@@ -154,20 +157,9 @@ public sealed partial class DrugIndex
         OnPropertyChanged(nameof(IsResultTruncated));
     }
 
-    private void ClearListFocus(bool clearOrigin)
+    private void ClearListFocus(bool clearOrigin, bool keepEditorVisible = false)
     {
-        Selected?.NotePreview = null;
-
-        _suppressSelectionGuard = true;
-        try
-        {
-            Selected = null;
-            _selectionBeforeChange = null;
-        }
-        finally
-        {
-            _suppressSelectionGuard = false;
-        }
+        DetachListSelection();
 
         if (clearOrigin)
         {
@@ -176,7 +168,7 @@ public sealed partial class DrugIndex
             _loadedSnapshot = null;
         }
 
-        ClearEditor(keepEditorVisible: false);
+        ClearEditor(keepEditorVisible: keepEditorVisible);
     }
 
     private void FocusSavedRow(string drugId, string spec)
