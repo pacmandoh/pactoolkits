@@ -151,6 +151,7 @@ public partial class MainWindowViewModel
         switch (key)
         {
             case "drug_index":
+                _lookup.InvalidateDrugCatalog();
                 if (!skipDrugIndexPage)
                 {
                     MarkDirtyByType<DrugIndex>();
