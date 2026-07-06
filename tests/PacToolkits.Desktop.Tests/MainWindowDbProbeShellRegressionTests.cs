@@ -196,6 +196,16 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Fact]
+    public void ScanCode_reload_reschedules_pool_check_when_input_present()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/ScanCode.cs");
+
+        Assert.Contains("ReschedulePoolCheckAfterReload()", source, StringComparison.Ordinal);
+        Assert.Contains("_lastPoolCheckKey = string.Empty;", source, StringComparison.Ordinal);
+        Assert.Contains("RecalcCodeStats(TraceCodesText)", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Drug_index_topic_marks_scan_code_dirty_for_catalog_refresh()
     {
         var source = ReadMainWindowViewModelSource();

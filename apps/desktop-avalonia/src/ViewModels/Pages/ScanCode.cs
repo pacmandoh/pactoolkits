@@ -147,7 +147,23 @@ public sealed partial class ScanCode : AppPageBase
         => ReloadLookupAsync(ct);
 
     protected override void OnReloadFinished()
-        => RefreshPageCommands();
+    {
+        ReschedulePoolCheckAfterReload();
+        RefreshPageCommands();
+    }
+
+    private void ReschedulePoolCheckAfterReload()
+    {
+        if (string.IsNullOrWhiteSpace(TraceCodesText))
+        {
+            return;
+        }
+
+        _existingPoolCodes.Clear();
+        _lastPoolCheckKey = string.Empty;
+        _poolCheckCts?.Cancel();
+        RecalcCodeStats(TraceCodesText);
+    }
 
     private bool CanOperateUi() => !IsBusy;
 
