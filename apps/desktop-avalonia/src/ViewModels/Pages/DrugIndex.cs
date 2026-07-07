@@ -15,12 +15,13 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class DrugIndex : AppPageBase
+public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 {
     private const string OpsScope = UnlockScopes.SharedOps;
     private const int SearchLimit = 1000;

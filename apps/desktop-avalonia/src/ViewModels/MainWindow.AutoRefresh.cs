@@ -93,12 +93,10 @@ public partial class MainWindowViewModel
     {
         PostOnUi(() =>
         {
-            var skipInventoryRefresh = ActivePage is InventoryOverview inv
-                                       && inv.DeferRefreshTopic(topic);
-            var skipDrugIndexRefresh = ActivePage is DrugIndex drug
-                                       && drug.DeferRefreshTopic(topic);
+            var (skipInventoryRefresh, skipDrugIndexRefresh) =
+                WorkspaceTopicRefresh.SkipActiveRefresh(ActivePage, topic);
 
-            MarkPagesDirtyByTopic(topic, skipInventoryRefresh, skipDrugIndexRefresh);
+            ApplyTopicDirtyMarks(topic, skipInventoryRefresh, skipDrugIndexRefresh);
 
             if (ActivePage is DrugIndex drugIndex
                 && IsDrugIndexTopic(topic))
@@ -144,49 +142,16 @@ public partial class MainWindowViewModel
         }
     }
 
-    private void MarkPagesDirtyByTopic(string? topic, bool skipInventoryPage, bool skipDrugIndexPage)
+    private void ApplyTopicDirtyMarks(string? topic, bool skipInventoryPage, bool skipDrugIndexPage)
     {
-        var key = (topic ?? string.Empty).Trim().ToLowerInvariant();
-
-        switch (key)
-        {
-            case "drug_index":
-                _lookup.InvalidateDrugCatalog();
-                if (!skipDrugIndexPage)
-                {
-                    MarkDirtyByType<DrugIndex>();
-                }
-
-                MarkDirtyByType<Dashboard>();
-                MarkDirtyByType<ScanCode>();
-                break;
-
-            case "inventory":
-            case "trace_pool":
-            case "trace_txn":
-            case "trace_txn_item":
-                if (!skipInventoryPage)
-                {
-                    MarkDirtyByType<InventoryOverview>();
-                }
-
-                MarkDirtyByType<Dashboard>();
-                break;
-
-            case "msfx":
-                MarkDirtyByType<MsfxLink>();
-                break;
-
-            default:
-                foreach (var page in WorkspacePages)
-                {
-                    if (CanRefreshPage(page))
-                    {
-                        MarkPageDirty(page);
-                    }
-                }
-                break;
-        }
+        var plan = WorkspaceTopicRefresh.PlanDirtyMarks(topic, skipInventoryPage, skipDrugIndexPage);
+        WorkspaceTopicRefresh.ApplyDirtyPlan(
+            plan,
+            () => _lookup.InvalidateDrugCatalog(),
+            type => _pageByType.TryGetValue(type, out var page) ? page : null,
+            WorkspacePages,
+            CanRefreshPage,
+            MarkPageDirty);
     }
 
     private void MarkDirtyByType<TPage>() where TPage : AppPageBase

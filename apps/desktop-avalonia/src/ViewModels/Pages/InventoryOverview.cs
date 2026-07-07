@@ -10,13 +10,14 @@ using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class InventoryOverview : AppPageBase
+public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPage
 {
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
     private const string OpsScope = UnlockScopes.SharedOps;
