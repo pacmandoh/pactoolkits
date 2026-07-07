@@ -12,6 +12,44 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class AlertSessionTests
 {
     [Fact]
+    public void DiscardOrSave_uses_cancel_role_for_discard()
+    {
+        var alert = AlertBuilder<bool?>.Create("有未保存修改", "message")
+            .DiscardOrSave("保存并切换", "放弃修改");
+
+        Assert.Equal(2, alert.Buttons.Count);
+        Assert.Equal(AlertRole.Cancel, alert.Buttons[0].Role);
+        Assert.Equal("放弃修改", alert.Buttons[0].Text);
+        Assert.False(alert.Buttons[0].Value);
+        Assert.Equal(AlertRole.Affirm, alert.Buttons[1].Role);
+    }
+
+    [Fact]
+    public void SaveConflict_uses_cancel_role_for_discard()
+    {
+        var alert = AlertBuilder<bool?>.Create("保存冲突", "message")
+            .SaveConflict("放弃修改", "强制保存");
+
+        Assert.Equal(2, alert.Buttons.Count);
+        Assert.Equal(AlertRole.Cancel, alert.Buttons[0].Role);
+        Assert.Equal("放弃修改", alert.Buttons[0].Text);
+        Assert.False(alert.Buttons[0].Value);
+        Assert.Equal(AlertRole.Danger, alert.Buttons[1].Role);
+    }
+
+    [Fact]
+    public void Dismiss_left_button_suppresses_auto_cancel()
+    {
+        var alert = AlertBuilder<bool?>.Create("title", "message")
+            .Close(null)
+            .Dismiss("放弃修改", false)
+            .Affirm("保存", true);
+
+        Assert.Equal(AlertRole.Dismiss, alert.Buttons[0].Role);
+        Assert.DoesNotContain(alert.Buttons, button => button.Role == AlertRole.Cancel);
+    }
+
+    [Fact]
     public async Task ShowAsync_without_Close_throws()
     {
         var manager = new DialogManager();
