@@ -105,12 +105,11 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
         CancellationToken ct = default)
     {
         var key = NormalizeScope(scopeKey);
-        ScopeState state;
         Refresh(key);
 
         lock (_gate)
         {
-            state = GetOrCreateState(key);
+            var state = GetOrCreateState(key);
             if (state.IsUnlocked)
             {
                 state.ExpiresAtUtc = DateTimeOffset.UtcNow + UnlockSessionDuration;
@@ -134,7 +133,7 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
         DateTimeOffset cooldownUntil;
         lock (_gate)
         {
-            state = GetOrCreateState(key);
+            var state = GetOrCreateState(key);
             cooldownUntil = state.CooldownUntilUtc;
         }
 
@@ -147,7 +146,7 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
 
         lock (_gate)
         {
-            state = GetOrCreateState(key);
+            var state = GetOrCreateState(key);
             state.IsPromptActive = true;
         }
 
@@ -157,79 +156,28 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             int failed;
             lock (_gate)
             {
-                state = GetOrCreateState(key);
+                var state = GetOrCreateState(key);
                 failed = state.FailedAttempts;
             }
 
             var suffix = failed <= 0 ? promptHint : $"{promptHint}\n（已失败 {failed} 次）";
-            input = NormalizeInput(await _dialog.PromptUnlockPassword(promptTitle, suffix).ConfigureAwait(true));
+            input = await _dialog.PromptUnlockPassword(
+                promptTitle,
+                suffix,
+                password => VerifyPassword(key, password, expectedPassword)).ConfigureAwait(true);
         }
         finally
         {
             lock (_gate)
             {
-                state = GetOrCreateState(key);
+                var state = GetOrCreateState(key);
                 state.IsPromptActive = false;
             }
         }
 
-        if (ct.IsCancellationRequested)
+        if (ct.IsCancellationRequested || string.IsNullOrWhiteSpace(input))
         {
             return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            return false;
-        }
-
-        if (!string.Equals(input, expectedPassword, StringComparison.Ordinal))
-        {
-            bool lockout;
-            int remaining;
-            var changed = false;
-            lock (_gate)
-            {
-                state = GetOrCreateState(key);
-                state.FailedAttempts++;
-                changed = true;
-                lockout = state.FailedAttempts >= UnlockFailedAttemptThreshold;
-                if (lockout)
-                {
-                    state.CooldownUntilUtc = DateTimeOffset.UtcNow + UnlockCooldownDuration;
-                    state.FailedAttempts = 0;
-                    remaining = 0;
-                }
-                else
-                {
-                    remaining = UnlockFailedAttemptThreshold - state.FailedAttempts;
-                }
-            }
-
-            if (lockout)
-            {
-                _toast.Error(scene, $"密码连续错误过多，已锁定 {UnlockCooldownDuration.TotalSeconds.ToString(CultureInfo.InvariantCulture)} 秒");
-            }
-            else
-            {
-                _toast.Error(scene, $"密码错误，还可重试 {remaining} 次");
-            }
-
-            if (changed)
-            {
-                RaiseStateChanged(key);
-            }
-
-            return false;
-        }
-
-        lock (_gate)
-        {
-            state = GetOrCreateState(key);
-            state.IsUnlocked = true;
-            state.FailedAttempts = 0;
-            state.CooldownUntilUtc = DateTimeOffset.MinValue;
-            state.ExpiresAtUtc = DateTimeOffset.UtcNow + UnlockSessionDuration;
         }
 
         if (notifySuccess)
@@ -251,6 +199,84 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             request.PromptHint,
             request.NotifySuccess,
             ct);
+    }
+
+    private string? VerifyPassword(string key, string password, string expectedPassword)
+    {
+        var cooldownError = GetCooldownError(key);
+        if (cooldownError is not null)
+        {
+            return cooldownError;
+        }
+
+        var normalized = NormalizeInput(password);
+        if (normalized is null)
+        {
+            return "请输入数据库密码";
+        }
+
+        if (!string.Equals(normalized, expectedPassword, StringComparison.Ordinal))
+        {
+            return RecordFailure(key);
+        }
+
+        RecordSuccess(key);
+        return null;
+    }
+
+    private string? GetCooldownError(string key)
+    {
+        lock (_gate)
+        {
+            var state = GetOrCreateState(key);
+            if (state.CooldownUntilUtc <= DateTimeOffset.UtcNow)
+            {
+                return null;
+            }
+
+            var left = state.CooldownUntilUtc - DateTimeOffset.UtcNow;
+            return $"验证冷却中，请在 {Math.Max(1, (int)Math.Ceiling(left.TotalSeconds))} 秒后重试";
+        }
+    }
+
+    private string RecordFailure(string key)
+    {
+        bool lockout;
+        int remaining;
+        lock (_gate)
+        {
+            var state = GetOrCreateState(key);
+            state.FailedAttempts++;
+            lockout = state.FailedAttempts >= UnlockFailedAttemptThreshold;
+            if (lockout)
+            {
+                state.CooldownUntilUtc = DateTimeOffset.UtcNow + UnlockCooldownDuration;
+                state.FailedAttempts = 0;
+                remaining = 0;
+            }
+            else
+            {
+                remaining = UnlockFailedAttemptThreshold - state.FailedAttempts;
+            }
+        }
+
+        RaiseStateChanged(key);
+
+        return lockout
+            ? $"密码连续错误过多，已锁定 {UnlockCooldownDuration.TotalSeconds.ToString(CultureInfo.InvariantCulture)} 秒"
+            : $"密码错误，还可重试 {remaining} 次";
+    }
+
+    private void RecordSuccess(string key)
+    {
+        lock (_gate)
+        {
+            var state = GetOrCreateState(key);
+            state.IsUnlocked = true;
+            state.FailedAttempts = 0;
+            state.CooldownUntilUtc = DateTimeOffset.MinValue;
+            state.ExpiresAtUtc = DateTimeOffset.UtcNow + UnlockSessionDuration;
+        }
     }
 
     private void RaiseStateChanged(string scopeKey)
