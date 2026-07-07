@@ -161,6 +161,17 @@ public sealed record MissingStockRowItem(
     string? Note
 );
 
+public sealed record StockRowSelection(
+    string TraceCode,
+    string DrugId,
+    string Spec,
+    int Qty,
+    int Remain)
+{
+    public static StockRowSelection From(StockRowItem row)
+        => new(row.TraceCode, row.DrugId, row.Spec, row.Qty, row.Remain);
+}
+
 public sealed record StockReassignPreviewRowItem(
     string CurrentDrugId,
     string CurrentSpec,
