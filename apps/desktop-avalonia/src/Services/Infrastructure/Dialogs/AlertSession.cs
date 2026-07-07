@@ -50,6 +50,14 @@ internal static class AlertSession
                     };
                 }
 
+                if (!alert.Buttons.Any(button => button.Role == AlertRole.Cancel))
+                {
+                    dialog = dialog.WithCancelButton(
+                        "取消",
+                        () => Finish(alert.CloseValue),
+                        DialogButtonStyle.Ghost);
+                }
+
                 dialog.WithMaxWidth(maxWidth).Dismissible().Show();
                 DialogSessionStack.BindSimpleDialogDismiss(manager, () => Finish(alert.CloseValue));
             }
