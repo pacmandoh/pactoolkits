@@ -40,9 +40,9 @@ public sealed class TaskObserveTests
     {
         var task = Task.Run(async () =>
         {
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
             throw new InvalidOperationException("late boom");
-        });
+        }, TestContext.Current.CancellationToken);
 
         TaskObserve.Observe(task, "TestModule", "test.detached.late_fail");
 

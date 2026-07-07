@@ -4,6 +4,8 @@ namespace PacToolkits.Desktop.Tests;
 
 public sealed class PageReloadTests
 {
+    private static CancellationToken TestCt => TestContext.Current.CancellationToken;
+
     [Fact]
     public async Task Superseding_run_cancels_previous_action()
     {
@@ -25,7 +27,7 @@ public sealed class PageReloadTests
             }
         });
 
-        await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(2), TestCt);
         Assert.True(gate.IsActive);
 
         var secondCompleted = false;
@@ -38,7 +40,7 @@ public sealed class PageReloadTests
         await second;
         await first;
 
-        await firstCancelled.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await firstCancelled.Task.WaitAsync(TimeSpan.FromSeconds(2), TestCt);
         Assert.True(secondCompleted);
         Assert.False(gate.IsActive);
     }
@@ -64,11 +66,11 @@ public sealed class PageReloadTests
             }
         });
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(2), TestCt);
         gate.CancelActiveRun();
 
         await run;
-        await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(2), TestCt);
         Assert.False(gate.IsActive);
     }
 
@@ -96,11 +98,11 @@ public sealed class PageReloadTests
             },
             onFinished: () => firstFinished++);
 
-        await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(2), TestCt);
 
         await gate.RunAsync(_ => Task.CompletedTask);
 
-        await Task.Delay(50);
+        await Task.Delay(50, TestCt);
         Assert.Equal(0, firstFinished);
     }
 
@@ -116,7 +118,7 @@ public sealed class PageReloadTests
             await Task.Delay(Timeout.InfiniteTimeSpan, ct);
         });
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(2), TestCt);
         gate.Dispose();
 
         await Assert.ThrowsAsync<ObjectDisposedException>(() => gate.RunAsync(_ => Task.CompletedTask));
