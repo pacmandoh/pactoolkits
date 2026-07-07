@@ -686,6 +686,11 @@ public sealed partial class Dashboard : AppPageBase
     protected override void OnReloadFinished()
     {
         base.OnReloadFinished();
+        if (WorkspacePageRefresh.RefreshSucceeded(this))
+        {
+            _dirtyRefresh.Clear(this);
+        }
+
         if (!IsDbSignalReload)
         {
             PostOnUi(BumpKpiProgressReplay);
