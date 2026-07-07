@@ -386,20 +386,25 @@ public sealed partial class InventoryOverview : AppPageBase
         IsReassignOpen = !IsReassignOpen;
         if (IsReassignOpen)
         {
-            CorrectionReason = null;
-            DrugText = null;
-            SelectedSpec = null;
-            TargetDrugId = null;
-            TargetSpec = null;
-            QtyText = null;
-            IsDrugSuggestOpen = false;
-            IsSpecSelected = false;
-            SetReassignPreviewLive(false);
-            ClearPreviewMessaging();
-            ScopeIndex = 0;
-            PreviewRows.Clear();
-            NotifyPreviewStateChanged();
+            ResetReassignForm();
         }
+    }
+
+    private void ResetReassignForm()
+    {
+        CorrectionReason = null;
+        DrugText = null;
+        SelectedSpec = null;
+        TargetDrugId = null;
+        TargetSpec = null;
+        QtyText = null;
+        IsDrugSuggestOpen = false;
+        IsSpecSelected = false;
+        SetReassignPreviewLive(false);
+        ClearPreviewMessaging();
+        ScopeIndex = 0;
+        PreviewRows.Clear();
+        NotifyPreviewStateChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanTogglePreview))]
@@ -809,16 +814,9 @@ public sealed partial class InventoryOverview : AppPageBase
             }
 
             _toast.Success("药品纠错", $"纠错成功 {result.AffectedRows} 条，审计ID={result.AuditId}");
-            SetReassignPreviewLive(false);
-            ClearPreviewMessaging();
-            IsReassignOpen = false;
-            CorrectionReason = null;
-            PreviewRows.Clear();
-            NotifyPreviewStateChanged();
 
             if (!isSingleScope)
             {
-                Keyword = null;
                 PageIndex = 1;
                 await ReloadAsync();
             }
@@ -837,6 +835,9 @@ public sealed partial class InventoryOverview : AppPageBase
                     ReconcilePageLater(TimeSpan.FromSeconds(5));
                 }
             }
+
+            ResetReassignForm();
+            ClearReassignChecks();
         }
         catch (Exception ex)
         {
@@ -1163,11 +1164,6 @@ public sealed partial class InventoryOverview : AppPageBase
                     changedRows.Add(row);
                 }
             }
-        }
-
-        if (changedRows.Count > 0)
-        {
-            SetReassignSelectedRows(changedRows);
         }
 
         OnPropertyChanged(nameof(IsStockEmpty));
@@ -1554,7 +1550,7 @@ public sealed partial class InventoryOverview : AppPageBase
                 }
                 else
                 {
-                    ClearReassignRowSelection();
+                    ClearReassignChecks();
                     StockRows.ReplaceAll(rebuiltRows);
                     OnPropertyChanged(nameof(IsStockEmpty));
                 }

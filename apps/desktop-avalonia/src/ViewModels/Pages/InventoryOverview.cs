@@ -345,22 +345,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         QueueReassignPreviewRefresh();
     }
 
-    private void SetReassignSelectedRows(IReadOnlyList<StockRowItem> rows)
-    {
-        foreach (var row in StockRows)
-        {
-            row.IsSelected = false;
-        }
-
-        foreach (var row in rows)
-        {
-            row.IsSelected = true;
-        }
-
-        SyncReassignSelectionFromRows();
-    }
-
-    private void ClearReassignRowSelection()
+    private void ClearReassignChecks()
     {
         foreach (var row in StockRows)
         {
@@ -412,7 +397,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
             ClearPreviewMessaging();
             PreviewRows.Clear();
             OnPropertyChanged(nameof(IsPreviewEmpty));
-            ClearReassignRowSelection();
+            ClearReassignChecks();
         }
         else
         {
@@ -648,7 +633,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
             // DataGrid retains its selected index while ReplaceAll swaps every row instance.
             // Clearing both selection channels prevents that stale index from selecting an
             // unrelated row (commonly the final row on a 50-row page).
-            ClearReassignRowSelection();
+            ClearReassignChecks();
             ApplyStockRowsInPlace(items);
             TotalCount = page.TotalCount;
             OnPropertyChanged(nameof(IsStockEmpty));
