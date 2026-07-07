@@ -413,6 +413,19 @@ public sealed class MainWindowDbProbeShellRegressionTests
         Assert.Contains("TryRefreshDirtyActivePage", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Drug_index_watermark_refresh_blocks_while_db_probe_or_startup_init_runs()
+    {
+        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
+        var methodStart = source.IndexOf("RefreshDrugIndexFromWatermarkAsync(DrugIndex page)", StringComparison.Ordinal);
+        Assert.True(methodStart >= 0, "Expected RefreshDrugIndexFromWatermarkAsync.");
+
+        var method = source[methodStart..Math.Min(source.Length, methodStart + 500)];
+
+        Assert.Contains("CanWorkspaceRefresh()", method, StringComparison.Ordinal);
+        Assert.Contains("ReloadFromWatermarkAsync", method, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.cs", "drug_index.reload.fail")]
     [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/Dashboard.cs", "dashboard.reload.fail")]
