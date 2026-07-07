@@ -72,12 +72,17 @@ public sealed partial class SensitiveUnlock(DialogManager dialogManager)
         Title = title;
         HintMessage = hintMessage;
         _verify = verify;
-        ClearSensitiveState();
+        ClearPasswordState();
     }
 
     internal void ClearSensitiveState()
     {
         _verify = null;
+        ClearPasswordState();
+    }
+
+    private void ClearPasswordState()
+    {
         SetPasswordError(null);
         Password = string.Empty;
     }
@@ -92,7 +97,13 @@ public sealed partial class SensitiveUnlock(DialogManager dialogManager)
             return;
         }
 
-        var error = _verify?.Invoke(password);
+        if (_verify is null)
+        {
+            SetPasswordError("验证未就绪，请关闭后重试");
+            return;
+        }
+
+        var error = _verify.Invoke(password);
         if (!string.IsNullOrEmpty(error))
         {
             SetPasswordError(error);
