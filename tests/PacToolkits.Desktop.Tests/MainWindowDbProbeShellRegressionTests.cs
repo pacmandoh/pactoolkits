@@ -427,6 +427,21 @@ public sealed class MainWindowDbProbeShellRegressionTests
     }
 
     [Theory]
+    [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/Dashboard.Entry.cs", "dashboard.entry_page.reload_fail")]
+    [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/Dashboard.Txn.cs", "dashboard.txn_page.reload_fail")]
+    [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/Dashboard.Txn.cs", "dashboard.txn_trend.reload_fail")]
+    [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/Dashboard.Abnormal.cs", "dashboard.abnormal_page.reload_fail")]
+    public void Dashboard_tab_reload_failures_rethrow(string relativePath, string logEvent)
+    {
+        var source = ReadRepoFile(relativePath);
+        var eventIndex = source.IndexOf(logEvent, StringComparison.Ordinal);
+        Assert.True(eventIndex >= 0, $"Expected log event {logEvent} in {relativePath}.");
+
+        var tail = source[eventIndex..Math.Min(source.Length, eventIndex + 400)];
+        Assert.Contains("FinishTabReloadFail", tail, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.cs", "drug_index.reload.fail")]
     [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/Dashboard.cs", "dashboard.reload.fail")]
     [InlineData("apps/desktop-avalonia/src/ViewModels/Pages/MsfxLink.AutoBoard.cs", "msfx.audit.snapshot.refresh_fail")]

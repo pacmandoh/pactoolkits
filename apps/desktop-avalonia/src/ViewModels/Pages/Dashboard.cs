@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -1103,6 +1104,16 @@ public sealed partial class Dashboard : AppPageBase
             PostOnUi(() => _toast.Error("概览加载失败", ex.Message));
             throw;
         }
+    }
+
+    private void FinishTabReloadFail(Exception ex, string toastTitle)
+    {
+        if (CanToastError(ex))
+        {
+            PostOnUi(() => _toast.Error(toastTitle, ex.Message));
+        }
+
+        ExceptionDispatchInfo.Capture(ex).Throw();
     }
 
     private bool ShowTxnBusy()
