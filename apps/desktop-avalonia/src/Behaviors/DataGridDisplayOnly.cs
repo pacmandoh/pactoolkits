@@ -35,7 +35,7 @@ public class DataGridDisplayOnly
             }
             else
             {
-                Detach(grid);
+                DetachFully(grid);
             }
         });
     }
@@ -60,9 +60,10 @@ public class DataGridDisplayOnly
         grid.CellPointerPressed += state.CellPointerPressed;
         States[grid] = state;
         ClearSelection(grid, state);
+        DataGridVisualLifecycle.Register(grid, Attach, DetachState, GetEnabled);
     }
 
-    private static void Detach(DataGrid grid)
+    private static void DetachState(DataGrid grid)
     {
         if (!States.TryRemove(grid, out var state))
         {
@@ -78,6 +79,12 @@ public class DataGridDisplayOnly
         {
             grid.CellPointerPressed -= state.CellPointerPressed;
         }
+    }
+
+    private static void DetachFully(DataGrid grid)
+    {
+        DetachState(grid);
+        DataGridVisualLifecycle.Unregister(grid);
     }
 
     private static void ClearSelection(DataGrid grid, State state)
