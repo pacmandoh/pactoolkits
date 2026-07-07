@@ -7,6 +7,7 @@ using Avalonia.Collections;
 using global::Avalonia.Controls;
 using global::Avalonia.Interactivity;
 using global::Avalonia.Threading;
+using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
@@ -267,19 +268,9 @@ public class DataGridSortReset
                 return;
             }
 
-            if (GetFilterActive(_grid))
-            {
-                DataGridIndexColumn.SetHeaderFace(_grid, DataGridIndexHeaderFace.ClearFilter);
-                return;
-            }
-
-            if (HasActiveSort())
-            {
-                DataGridIndexColumn.SetHeaderFace(_grid, DataGridIndexHeaderFace.ClearSort);
-                return;
-            }
-
-            DataGridIndexColumn.SetHeaderFace(_grid, DataGridIndexHeaderFace.Default);
+            DataGridIndexColumn.SetHeaderFace(
+                _grid,
+                DataGridBehaviorRules.IndexHeaderFace(GetFilterActive(_grid), HasActiveSort()));
         }
 
         private bool HasActiveSort()

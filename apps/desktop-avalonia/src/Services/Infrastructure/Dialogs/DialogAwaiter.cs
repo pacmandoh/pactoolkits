@@ -295,6 +295,11 @@ internal static class FormDialogSession
             .WithCancelCallback(cancelCallback)
             .Show();
 
+        EnsureOpenControlRegistered(manager, contextType);
+    }
+
+    internal static void EnsureOpenControlRegistered(DialogManager manager, Type contextType)
+    {
         if (DialogSessionStack.CountOpenControlsOfType(manager, contextType) > 0)
         {
             return;
