@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxAutoTaskPanelView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -524,6 +524,7 @@
 
       <controls:DataGridPager
         Grid.Row="4"
+        ClearTarget="{Binding #AutoTaskQueueGrid}"
         FirstPageCommand="{Binding FirstTaskQueuePageCommand}"
         IsContentEmpty="{Binding IsAutoTaskQueueEmpty}"
         IsVisible="{Binding IsTaskPanelExpanded}"

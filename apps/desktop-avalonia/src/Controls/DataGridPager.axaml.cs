@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows.Input;
 using Avalonia;
 using global::Avalonia.Controls;
+using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
@@ -70,6 +71,9 @@ public partial class DataGridPager : UserControl
 
     public static readonly StyledProperty<bool> IsActiveProperty =
         AvaloniaProperty.Register<DataGridPager, bool>(nameof(IsActive), true);
+
+    public static readonly StyledProperty<DataGrid?> ClearTargetProperty =
+        AvaloniaProperty.Register<DataGridPager, DataGrid?>(nameof(ClearTarget));
 
     public static readonly DirectProperty<DataGridPager, string> PageSummaryTextProperty =
         AvaloniaProperty.RegisterDirect<DataGridPager, string>(nameof(PageSummaryText), o => o.PageSummaryText);
@@ -231,6 +235,12 @@ public partial class DataGridPager : UserControl
         set => SetValue(IsActiveProperty, value);
     }
 
+    public DataGrid? ClearTarget
+    {
+        get => GetValue(ClearTargetProperty);
+        set => SetValue(ClearTargetProperty, value);
+    }
+
     public string PageSummaryText => _pageSummaryText;
     public string SelectionSummaryText => _selectionSummaryText;
     public bool ShowSelectionSummary => _showSelectionSummary;
@@ -269,8 +279,18 @@ public partial class DataGridPager : UserControl
             SyncSelectedPageSize();
         }
 
-        if (change.Property == PageIndexProperty
-            || change.Property == TotalPagesProperty
+        if (change.Property == PageIndexProperty)
+        {
+            RefreshDerivedState();
+            if (change.NewValue is int newIndex && change.OldValue is int oldIndex)
+            {
+                DataGridInteractionHelper.ClearOnPageChange(ClearTarget, oldIndex, newIndex);
+            }
+
+            return;
+        }
+
+        if (change.Property == TotalPagesProperty
             || change.Property == TotalCountProperty
             || change.Property == PageSizeProperty
             || change.Property == SelectedCountProperty

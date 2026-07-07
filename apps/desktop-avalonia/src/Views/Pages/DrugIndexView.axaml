@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DrugIndexView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -121,11 +121,11 @@
           x:Name="EditorCard"
           Title="编辑"
           Grid.Column="1"
-          HeaderIcon="SquarePen"
           MinHeight="0"
           behaviors:FocusClear.SuppressGridClear="True"
           Chrome="Card"
           Classes="SquareChrome BodyWell"
+          HeaderIcon="SquarePen"
           IsVisible="{Binding HasEditor}">
           <controls:CardPanel.HeaderContent>
             <WrapPanel
@@ -161,9 +161,7 @@
               HorizontalScrollBarVisibility="Disabled"
               IsEnabled="{Binding CanEdit}"
               VerticalScrollBarVisibility="Auto">
-              <StackPanel
-                IsHitTestVisible="{Binding !IsBusy}"
-                Spacing="{DynamicResource PageSectionSpacing}">
+              <StackPanel IsHitTestVisible="{Binding !IsBusy}" Spacing="{DynamicResource PageSectionSpacing}">
                 <StackPanel IsVisible="{Binding HasSelection}" Spacing="2">
                   <TextBlock Classes="Caption Muted">
                     <Run Text="创建：" />
