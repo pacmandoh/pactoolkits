@@ -298,7 +298,7 @@ public class DataGridRowSelection
         }
 
         private int GetInsertIndex()
-            => DataGridBehaviorRules.SelectionInsertIndex(
+            => DataGridInteractionHelper.Rules.SelectionInsertIndex(
                 _grid.Columns.Count > 0 && DataGridIndexColumn.IsIndexColumn(_grid.Columns[0]));
 
         private DataGridTemplateColumn CreateColumn()
@@ -567,7 +567,7 @@ public class DataGridRowSelection
             _grid.SetValue(SelectedCountProperty, selected);
             _grid.SetValue(TotalCountProperty, total);
 
-            var selectAll = DataGridBehaviorRules.SelectAllTriState(selected, total);
+            var selectAll = DataGridInteractionHelper.Rules.SelectAllTriState(selected, total);
 
             _syncingHeader = true;
             try

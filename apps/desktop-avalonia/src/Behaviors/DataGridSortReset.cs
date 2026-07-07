@@ -270,7 +270,7 @@ public class DataGridSortReset
 
             DataGridIndexColumn.SetHeaderFace(
                 _grid,
-                DataGridBehaviorRules.IndexHeaderFace(GetFilterActive(_grid), HasActiveSort()));
+                DataGridInteractionHelper.Rules.IndexHeaderFace(GetFilterActive(_grid), HasActiveSort()));
         }
 
         private bool HasActiveSort()

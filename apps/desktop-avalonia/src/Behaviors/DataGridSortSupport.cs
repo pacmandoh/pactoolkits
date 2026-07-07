@@ -95,7 +95,7 @@ public class DataGridSortSupport
 
             if (string.IsNullOrWhiteSpace(column.SortMemberPath))
             {
-                var path = DataGridBehaviorRules.SortPath(boundColumn.Binding);
+                var path = DataGridInteractionHelper.Rules.SortPath(boundColumn.Binding);
                 if (!string.IsNullOrWhiteSpace(path))
                 {
                     column.SortMemberPath = path;

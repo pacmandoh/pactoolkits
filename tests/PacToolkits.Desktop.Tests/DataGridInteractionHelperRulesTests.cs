@@ -4,25 +4,25 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class DataGridBehaviorRulesTests
+public sealed class DataGridInteractionHelperRulesTests
 {
     [Fact]
     public void SortPath_returns_reflection_binding_path()
     {
         var binding = new Binding("DrugName");
 
-        Assert.Equal("DrugName", DataGridBehaviorRules.SortPath(binding));
+        Assert.Equal("DrugName", DataGridInteractionHelper.Rules.SortPath(binding));
     }
 
     [Fact]
     public void SortPath_returns_null_for_missing_binding()
-        => Assert.Null(DataGridBehaviorRules.SortPath(null));
+        => Assert.Null(DataGridInteractionHelper.Rules.SortPath(null));
 
     [Theory]
     [InlineData(true, 1)]
     [InlineData(false, 0)]
     public void SelectionInsertIndex_places_after_index_column(bool indexColumnFirst, int expected)
-        => Assert.Equal(expected, DataGridBehaviorRules.SelectionInsertIndex(indexColumnFirst));
+        => Assert.Equal(expected, DataGridInteractionHelper.Rules.SelectionInsertIndex(indexColumnFirst));
 
     [Theory]
     [InlineData(true, false, DataGridIndexHeaderFace.ClearFilter)]
@@ -32,7 +32,7 @@ public sealed class DataGridBehaviorRulesTests
         bool filterActive,
         bool hasActiveSort,
         DataGridIndexHeaderFace expected)
-        => Assert.Equal(expected, DataGridBehaviorRules.IndexHeaderFace(filterActive, hasActiveSort));
+        => Assert.Equal(expected, DataGridInteractionHelper.Rules.IndexHeaderFace(filterActive, hasActiveSort));
 
     [Theory]
     [InlineData(0, 0, false)]
@@ -40,5 +40,5 @@ public sealed class DataGridBehaviorRulesTests
     [InlineData(3, 3, true)]
     [InlineData(2, 3, null)]
     public void SelectAllTriState_matches_row_selection_counts(int selected, int total, bool? expected)
-        => Assert.Equal(expected, DataGridBehaviorRules.SelectAllTriState(selected, total));
+        => Assert.Equal(expected, DataGridInteractionHelper.Rules.SelectAllTriState(selected, total));
 }
