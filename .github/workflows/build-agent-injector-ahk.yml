@@ -229,9 +229,27 @@ jobs:
           $outExe = "artifacts/agents/agent-injector-ahk/$env:RUNTIME/pactoolkits-injector.exe"
           $agentVersion4 = "$env:AGENT_VERSION.0"
           if (-not (Test-Path $outExe)) { throw "Agent binary missing: $outExe" }
+
+          $bytes = [System.IO.File]::ReadAllBytes($outExe)
+          if ($bytes.Length -lt 0x40) {
+            throw "Agent binary too small to be a valid PE file: $outExe"
+          }
+          $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
+          if ($peOffset -le 0 -or ($peOffset + 6) -ge $bytes.Length) {
+            throw "Invalid PE header offset in agent binary: $outExe"
+          }
+          $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
+          if ($machine -ne 0x8664) {
+            throw ("Agent binary is not x64. PE Machine=0x{0:X4}" -f $machine)
+          }
+
           $fileVersion = (Get-Item $outExe).VersionInfo.FileVersion
+          $productVersion = (Get-Item $outExe).VersionInfo.ProductVersion
           if ($fileVersion -ne $agentVersion4) {
             throw "FileVersion mismatch. expected=$agentVersion4 actual=$fileVersion"
+          }
+          if ($productVersion -ne $agentVersion4) {
+            throw "ProductVersion mismatch. expected=$agentVersion4 actual=$productVersion"
           }
 
       - name: Upload agent artifact
