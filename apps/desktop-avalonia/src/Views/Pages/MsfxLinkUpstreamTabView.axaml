@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxLinkUpstreamTabView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -123,6 +123,7 @@
         RowDefinitions="Auto,*"
         RowSpacing="{DynamicResource DialogRowSpacing}">
         <controls:DataGridPager
+          ClearTarget="{Binding #UpoutGrid}"
           FirstPageCommand="{Binding FirstUpoutPageCommand}"
           IsContentEmpty="{Binding IsUpoutEmpty}"
           LastPageCommand="{Binding LastUpoutPageCommand}"
@@ -142,6 +143,7 @@
             EmptyText="暂无上游出库单"
             IsEmpty="{Binding IsUpoutEmpty}">
             <DataGrid
+              x:Name="UpoutGrid"
               Classes="SectionGrid InventoryGrid IndexedGrid"
               HorizontalScrollBarVisibility="Auto"
               ItemsSource="{Binding UpoutRows}">

@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -634,6 +634,7 @@
               <shad:BusyArea IsBusy="{Binding IsEntryBusy}">
                 <controls:DeferredGridSlot
                   x:Name="EntryGridSlot"
+                  PagerPageIndex="{Binding EntryPageIndex}"
                   SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                   SlotName="EntryRecentGridInputTab">
                   <controls:DeferredGridSlot.GridTemplate>
@@ -767,6 +768,7 @@
                 <Grid MinHeight="0">
                   <controls:DeferredGridSlot
                     x:Name="TxnDetailGridSlot"
+                    PagerPageIndex="{Binding TxnPageIndex}"
                     SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                     SlotName="TxnDetailGrid">
                     <controls:DeferredGridSlot.GridTemplate>
@@ -826,6 +828,7 @@
 
                   <controls:DeferredGridSlot
                     x:Name="TxnTrendGridSlot"
+                    PagerPageIndex="{Binding TxnTrendPageIndex}"
                     SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                     SlotName="TxnTrendGrid">
                     <controls:DeferredGridSlot.GridTemplate>
@@ -946,6 +949,7 @@
               <shad:BusyArea IsBusy="{Binding IsAbnormalBusy}">
                 <controls:DeferredGridSlot
                   x:Name="AbnormalGridSlot"
+                  PagerPageIndex="{Binding AbnormalPageIndex}"
                   SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
                   SlotName="AbnormalGrid">
                   <controls:DeferredGridSlot.GridTemplate>

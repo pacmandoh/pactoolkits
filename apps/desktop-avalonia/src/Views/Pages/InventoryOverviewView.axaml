@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.InventoryOverviewView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -373,6 +373,7 @@
                   SlotMode="PendingOnly">
                   <controls:DeferredGridSlot
                     x:Name="StockDetailGridSlot"
+                    PagerPageIndex="{Binding PageIndex}"
                     SlotMinHeight="{DynamicResource DgH10Rows}"
                     SlotName="StockDetailGrid">
                     <controls:DeferredGridSlot.GridTemplate>
@@ -440,6 +441,7 @@
                   SlotMode="PendingOnly">
                   <controls:DeferredGridSlot
                     x:Name="AggGridSlot"
+                    PagerPageIndex="{Binding PageIndex}"
                     SlotMinHeight="{DynamicResource DgH10Rows}"
                     SlotName="AggGrid">
                     <controls:DeferredGridSlot.GridTemplate>
@@ -510,6 +512,7 @@
                   SlotMode="PendingOnly">
                   <controls:DeferredGridSlot
                     x:Name="LowStockGridSlot"
+                    PagerPageIndex="{Binding PageIndex}"
                     SlotMinHeight="{DynamicResource DgH10Rows}"
                     SlotName="LowStockGrid">
                     <controls:DeferredGridSlot.GridTemplate>
@@ -566,6 +569,7 @@
                   SlotMode="PendingOnly">
                   <controls:DeferredGridSlot
                     x:Name="MissingGridSlot"
+                    PagerPageIndex="{Binding PageIndex}"
                     SlotMinHeight="{DynamicResource DgH10Rows}"
                     SlotName="MissingGrid">
                     <controls:DeferredGridSlot.GridTemplate>

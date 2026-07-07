@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Input;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Behaviors;
 
@@ -46,6 +47,60 @@ public static class DataGridInteractionHelper
         }
 
         ClearCurrentCell(grid);
+    }
+
+    public static void ClearFocusAndSelection(DataGrid? grid)
+        => ClearNativeRowHighlight(grid);
+
+    internal static void ClearOnPageChange(DataGrid? grid, int oldIndex, int newIndex)
+    {
+        if (grid is null || oldIndex == newIndex)
+        {
+            return;
+        }
+
+        ClearNativeRowHighlight(grid);
+        Dispatcher.UIThread.Post(() => ClearNativeRowHighlight(grid), DispatcherPriority.Loaded);
+    }
+
+    /// <summary>
+    /// Clears DataGrid row highlight/focus only. Does not touch <see cref="ISelectableRow.IsSelected"/>.
+    /// </summary>
+    public static void ClearNativeRowHighlight(DataGrid? grid)
+    {
+        if (grid is null)
+        {
+            return;
+        }
+
+        ClearSelection(grid);
+
+        if (!grid.IsKeyboardFocusWithin)
+        {
+            return;
+        }
+
+        if (TopLevel.GetTopLevel(grid) is InputElement top)
+        {
+            top.Focus();
+        }
+    }
+
+    public static void TrySetCurrentColumn(DataGrid grid, DataGridColumn? column)
+    {
+        if (column is null)
+        {
+            return;
+        }
+
+        try
+        {
+            grid.CurrentColumn = column;
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("DataGridInteraction", "grid.set_current_column.fail", "Failed to set current column", ex);
+        }
     }
 
     private static void ClearCurrentCell(DataGrid? grid)
@@ -225,5 +280,4 @@ public static class DataGridInteractionHelper
             return null;
         }
     }
-
 }

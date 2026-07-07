@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxLinkSubcodeTabView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -61,6 +61,7 @@
         RowDefinitions="Auto,*"
         RowSpacing="{DynamicResource DialogRowSpacing}">
         <controls:DataGridPager
+          ClearTarget="{Binding #SubcodeGrid}"
           FirstPageCommand="{Binding FirstSubcodePageCommand}"
           IsContentEmpty="{Binding IsSubCodeEmpty}"
           LastPageCommand="{Binding LastSubcodePageCommand}"
@@ -80,6 +81,7 @@
             EmptyText="暂无子码结果"
             IsEmpty="{Binding IsSubCodeEmpty}">
             <DataGrid
+              x:Name="SubcodeGrid"
               Classes="SectionGrid InventoryGrid IndexedGrid"
               HorizontalScrollBarVisibility="Auto"
               ItemsSource="{Binding SubCodeRows}">
