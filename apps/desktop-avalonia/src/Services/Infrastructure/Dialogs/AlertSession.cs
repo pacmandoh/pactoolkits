@@ -50,7 +50,7 @@ internal static class AlertSession
                     };
                 }
 
-                if (!alert.Buttons.Any(button => button.Role == AlertRole.Cancel))
+                if (!alert.Buttons.Any(button => button.Role is AlertRole.Cancel or AlertRole.Dismiss))
                 {
                     dialog = dialog.WithCancelButton(
                         "取消",
