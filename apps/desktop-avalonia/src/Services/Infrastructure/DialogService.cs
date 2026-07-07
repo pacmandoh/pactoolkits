@@ -62,10 +62,10 @@ public sealed class DialogService(
         => Ok(title, message);
 
     public Task Warn(string title, string message)
-        => Ok(title, message);
+        => Alert(AlertBuilder<object?>.Create(title, message).Close(null).Affirm("确认", null));
 
     public Task Error(string title, string message)
-        => Ok(title, message);
+        => Alert(AlertBuilder<object?>.Create(title, message).Close(null).Danger("确认", null));
 
     public Task Ok(string title, string message)
         => Alert(AlertBuilder<object?>.Create(title, message).Close(null).Ack("确认", null));
