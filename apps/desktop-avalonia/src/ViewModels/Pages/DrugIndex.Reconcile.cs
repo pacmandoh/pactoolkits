@@ -72,6 +72,7 @@ public sealed partial class DrugIndex
     {
         if (Items.Count != desired.Count)
         {
+            // ReplaceAll avoids collection Reset (DataGrid selection) when order/content differs.
             Items.ReplaceAll(desired);
             return;
         }
@@ -117,6 +118,7 @@ public sealed partial class DrugIndex
 
     private void ApplySilentReconcile(IReadOnlyList<DrugRow> serverRows)
     {
+        // Watermark refresh while editing: merge server rows without discarding the local draft.
         var serverByKey = serverRows.ToDictionary(KeyOf);
         var selectedKey = ResolveSelectedKey();
 

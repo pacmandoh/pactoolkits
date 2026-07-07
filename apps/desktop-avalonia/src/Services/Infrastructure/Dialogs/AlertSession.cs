@@ -59,6 +59,7 @@ internal static class AlertSession
                 }
 
                 dialog.WithMaxWidth(maxWidth).Dismissible().Show();
+                // SimpleDialog X does not call WithCancelButton — bind dismiss to Close(...) separately.
                 DialogSessionStack.BindSimpleDialogDismiss(manager, () => Finish(alert.CloseValue));
             }
             catch

@@ -2,6 +2,7 @@ using PacToolkits.Desktop.Avalonia.Contracts;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
+/// <summary>Stale-while-reconnect and reload busy rules shared by pages.</summary>
 public static class PageReconnectPolicy
 {
     public static PageDataAvailability DisconnectedAvailability(bool hasLoadedOnce, bool supportsStaleWhileReconnect)

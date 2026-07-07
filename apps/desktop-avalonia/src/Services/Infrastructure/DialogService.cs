@@ -144,6 +144,7 @@ public sealed class DialogService(
         }
         finally
         {
+            // Singleton unlock VM: overlay dismiss never hits VM Cancel.
             unlockDialog.ClearSensitiveState();
         }
     }

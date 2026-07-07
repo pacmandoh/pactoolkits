@@ -33,6 +33,7 @@ internal static class DialogAwaiter
 
         if (Dispatcher.UIThread.CheckAccess() || global::Avalonia.Application.Current is null)
         {
+            // Design-time / no Application: run on the caller thread.
             Run();
         }
         else
@@ -52,10 +53,9 @@ internal static class DialogAwaiter
 }
 
 /// <summary>
-/// ShadUI registers dialog callbacks by VM type with TryAdd (never overwrites). One-shot VMs need
-/// explicit slot assignment plus orphan control cleanup before each Show. Session completion is also
-/// bound on <see cref="FormBase"/> so awaiting tasks finish even when ShadUI slots
-/// were cleared before Close.
+/// ShadUI registers dialog callbacks by VM type with TryAdd (never overwrites). Singleton form VMs
+/// need slot reassignment plus orphan control cleanup before each Show. <see cref="FormBase"/> session
+/// completion completes awaiters even when ShadUI clears slots before Close.
 /// </summary>
 internal static class DialogSessionStack
 {
@@ -125,6 +125,7 @@ internal static class DialogSessionStack
                 continue;
             }
 
+            // SimpleDialog X/light-dismiss routes by VM type; self DataContext wires the callback.
             element.DataContext = element;
         }
     }
@@ -250,6 +251,7 @@ internal static class FormDialogSession
             var completed = 0;
             Action<bool> completeSession = success =>
             {
+                // ShadUI can invoke success and cancel on the same dismiss path.
                 if (Interlocked.CompareExchange(ref completed, 1, 0) != 0)
                 {
                     return;
@@ -298,6 +300,7 @@ internal static class FormDialogSession
             return;
         }
 
+        // Show() must register synchronously; otherwise the awaiter would hang forever.
         throw new InvalidOperationException(
             $"Custom dialog for {contextType.FullName} did not register an open control after Show.");
     }

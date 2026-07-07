@@ -220,7 +220,7 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
                     var nextSignalTask = _signals.Reader.ReadAsync(waitCts.Token).AsTask();
                     var completed = await Task.WhenAny(dropped.Task, nextSignalTask).ConfigureAwait(false);
 
-                    // Reason: Cancel the pending read so it cannot consume the next signal.
+                    // Cancel the pending read so it cannot consume the next signal.
                     try { waitCts.Cancel(); }
                     catch (System.Exception ex)
                     {
