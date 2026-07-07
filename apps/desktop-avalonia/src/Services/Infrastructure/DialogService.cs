@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
@@ -31,7 +32,10 @@ public interface IDialogService
         bool targetExists,
         int tracePoolAffected,
         int traceTxnAffected);
-    Task<string?> PromptUnlockPassword(string title, string hintMessage);
+    Task<string?> PromptUnlockPassword(
+        string title,
+        string hintMessage,
+        Func<string, string?>? verify = null);
     Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items);
     Task ShowMsfxStateDetail(MsfxStateDetailArgs model);
     Task<MsfxMappingBatchResult> ShowMsfxMappingBatch(MsfxMappingBatchArgs model);
@@ -74,7 +78,7 @@ public sealed class DialogService(
         => Confirm(title, message, okText: "确认", cancelText: "取消");
 
     public Task<bool> ConfirmDestructive(string title, string message)
-        => Alert(AlertBuilder<bool>.Create(title, message).Close(false).Danger("确认", true));
+        => Confirm(title, message, okText: "确认", cancelText: "取消", primaryStyle: DialogButtonStyle.Destructive);
 
     public Task<T> Alert<T>(AlertBuilder<T> alert)
         => AlertSession.ShowAsync(dialogManager, alert, AlertMaxWidth);
@@ -120,12 +124,15 @@ public sealed class DialogService(
             onSuccess: static _ => true,
             onCancel: static () => false);
 
-    public Task<string?> PromptUnlockPassword(string title, string hintMessage)
+    public Task<string?> PromptUnlockPassword(
+        string title,
+        string hintMessage,
+        Func<string, string?>? verify = null)
         => FormDialogSession.ShowAsync(
             dialogManager,
             unlockDialog,
-            vm => vm.Initialize(title, hintMessage),
-            static vm => vm.Password,
+            vm => vm.Initialize(title, hintMessage, verify),
+            static vm => vm.Password.Trim(),
             static () => (string?)null);
 
     public async Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items)
