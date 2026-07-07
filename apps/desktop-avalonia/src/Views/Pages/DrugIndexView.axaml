@@ -121,6 +121,7 @@
           x:Name="EditorCard"
           Title="编辑"
           Grid.Column="1"
+          HeaderIcon="SquarePen"
           MinHeight="0"
           behaviors:FocusClear.SuppressGridClear="True"
           Chrome="Card"
@@ -141,7 +142,7 @@
                 Text="{Binding EditStateText}"
                 TextSize="12" />
 
-              <Button Classes="Action" Command="{Binding FixDrugKeyCommand}">
+              <Button Classes="Outline" Command="{Binding FixDrugKeyCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                   <icons:AppIcon
                     Width="{DynamicResource IconSizeDefault}"
@@ -153,149 +154,183 @@
             </WrapPanel>
           </controls:CardPanel.HeaderContent>
 
-          <Grid
-            KeyboardNavigation.TabNavigation="Cycle"
-            RowDefinitions="Auto,Auto,*,Auto"
-            RowSpacing="{DynamicResource PageRowSpacing}">
-
-            <shad:Card
+          <Grid RowDefinitions="*,Auto">
+            <ScrollViewer
               Grid.Row="0"
-              Padding="12"
-              IsEnabled="{Binding CanEdit}">
-              <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <ToggleButton
-                  Grid.Column="0"
-                  Height="{StaticResource ControlHeightCompact}"
-                  Command="{Binding ToggleDeprecatedCommand}"
-                  IsChecked="{Binding IsDeprecated, Mode=TwoWay}">
-                  <StackPanel
-                    HorizontalAlignment="Center"
-                    Orientation="Horizontal"
-                    Spacing="{DynamicResource SpacingInlineMd}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="CircleX" />
-                    <TextBlock Text="弃用" />
+              Classes="Stack"
+              HorizontalScrollBarVisibility="Disabled"
+              IsEnabled="{Binding CanEdit}"
+              VerticalScrollBarVisibility="Auto">
+              <StackPanel
+                IsHitTestVisible="{Binding !IsBusy}"
+                Spacing="{DynamicResource PageSectionSpacing}">
+                <StackPanel IsVisible="{Binding HasSelection}" Spacing="2">
+                  <TextBlock Classes="Caption Muted">
+                    <Run Text="创建：" />
+                    <Run Text="{Binding CreatedAtLocalText}" />
+                  </TextBlock>
+                  <TextBlock Classes="Caption Muted">
+                    <Run Text="更新：" />
+                    <Run Text="{Binding UpdatedAtLocalText}" />
+                  </TextBlock>
+                </StackPanel>
+
+                <StackPanel Spacing="{DynamicResource FormRowSpacing}">
+                  <TextBlock Classes="SubsectionTitle" Text="标记" />
+                  <Border
+                    Padding="8"
+                    Background="{DynamicResource CardBackgroundColor}"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource CardPanelInnerRadius}">
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                      <ToggleButton
+                        Grid.Column="0"
+                        Height="{StaticResource ControlHeightCompact}"
+                        Command="{Binding ToggleDeprecatedCommand}"
+                        IsChecked="{Binding IsDeprecated, Mode=TwoWay}">
+                        <StackPanel
+                          HorizontalAlignment="Center"
+                          Orientation="Horizontal"
+                          Spacing="{DynamicResource SpacingInlineMd}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeDefault}"
+                            Height="{DynamicResource IconSizeDefault}"
+                            Kind="CircleX" />
+                          <TextBlock Text="弃用" />
+                        </StackPanel>
+                      </ToggleButton>
+
+                      <ToggleButton
+                        Grid.Column="1"
+                        Height="{StaticResource ControlHeightCompact}"
+                        Command="{Binding ToggleNoSplitCommand}"
+                        IsChecked="{Binding IsNoSplit, Mode=TwoWay}">
+                        <StackPanel
+                          HorizontalAlignment="Center"
+                          Orientation="Horizontal"
+                          Spacing="{DynamicResource SpacingInlineMd}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeDefault}"
+                            Height="{DynamicResource IconSizeDefault}"
+                            Kind="Scissors" />
+                          <TextBlock Text="未拆零" />
+                        </StackPanel>
+                      </ToggleButton>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+
+                <StackPanel Spacing="{DynamicResource FormRowSpacing}">
+                  <TextBlock Classes="SubsectionTitle" Text="基本信息" />
+
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="Caption Muted" Text="药品" />
+                    <TextBox
+                      HorizontalAlignment="Stretch"
+                      VerticalContentAlignment="Center"
+                      AcceptsReturn="False"
+                      Classes="CompactField"
+                      PlaceholderText="必填"
+                      Text="{Binding EditDrugId, Mode=TwoWay}"
+                      TextWrapping="NoWrap" />
                   </StackPanel>
-                </ToggleButton>
 
-                <ToggleButton
-                  Grid.Column="1"
-                  Height="{StaticResource ControlHeightCompact}"
-                  Command="{Binding ToggleNoSplitCommand}"
-                  IsChecked="{Binding IsNoSplit, Mode=TwoWay}">
-                  <StackPanel
-                    HorizontalAlignment="Center"
-                    Orientation="Horizontal"
-                    Spacing="{DynamicResource SpacingInlineMd}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="Scissors" />
-                    <TextBlock Text="未拆零" />
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="Caption Muted" Text="规格" />
+                    <TextBox
+                      HorizontalAlignment="Stretch"
+                      VerticalContentAlignment="Center"
+                      AcceptsReturn="False"
+                      Classes="CompactField"
+                      PlaceholderText="必填"
+                      Text="{Binding EditSpec, Mode=TwoWay}"
+                      TextWrapping="NoWrap" />
                   </StackPanel>
-                </ToggleButton>
-              </Grid>
-            </shad:Card>
 
-            <StackPanel
-              Grid.Row="1"
-              IsVisible="{Binding HasSelection}"
-              Spacing="4">
-              <TextBlock Classes="Caption Muted">
-                <Run Text="创建：" />
-                <Run Text="{Binding CreatedAtLocalText}" />
-              </TextBlock>
-              <TextBlock Classes="Caption Muted">
-                <Run Text="更新：" />
-                <Run Text="{Binding UpdatedAtLocalText}" />
-              </TextBlock>
-            </StackPanel>
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="Caption Muted" Text="单盒数量" />
+                    <NumericUpDown
+                      HorizontalAlignment="Stretch"
+                      FormatString="0"
+                      Maximum="999999"
+                      Minimum="1"
+                      PlaceholderText="必填"
+                      Value="{Binding EditQty, Mode=TwoWay}" />
+                  </StackPanel>
 
-            <ScrollViewer Grid.Row="2" IsEnabled="{Binding CanEdit}">
-              <StackPanel Margin="{DynamicResource MarginBottomMd}" Spacing="{DynamicResource NavItemsSpacing}">
-                <TextBox
-                  VerticalContentAlignment="Center"
-                  AcceptsReturn="False"
-                  Classes="CompactField"
-                  PlaceholderText="药品名（必填）"
-                  Text="{Binding EditDrugId, Mode=TwoWay}"
-                  TextWrapping="NoWrap" />
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="Caption Muted" Text="简称" />
+                    <TextBox
+                      HorizontalAlignment="Stretch"
+                      VerticalContentAlignment="Center"
+                      AcceptsReturn="False"
+                      Classes="CompactField"
+                      PlaceholderText="可选"
+                      Text="{Binding EditRuleKey, Mode=TwoWay}"
+                      TextWrapping="NoWrap" />
+                  </StackPanel>
 
-                <TextBox
-                  VerticalContentAlignment="Center"
-                  AcceptsReturn="False"
-                  Classes="CompactField"
-                  PlaceholderText="规格（必填）"
-                  Text="{Binding EditSpec, Mode=TwoWay}"
-                  TextWrapping="NoWrap" />
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="Caption Muted" Text="追溯码前缀" />
+                    <TextBox
+                      HorizontalAlignment="Stretch"
+                      VerticalContentAlignment="Center"
+                      AcceptsReturn="False"
+                      Classes="CompactField"
+                      PlaceholderText="可选"
+                      Text="{Binding EditPreTc, Mode=TwoWay}"
+                      TextWrapping="NoWrap" />
+                  </StackPanel>
 
-                <NumericUpDown
-                  FormatString="0"
-                  Maximum="999999"
-                  Minimum="1"
-                  PlaceholderText="单盒数量（必填）"
-                  Value="{Binding EditQty, Mode=TwoWay}" />
-
-                <TextBox
-                  VerticalContentAlignment="Center"
-                  AcceptsReturn="False"
-                  Classes="CompactField"
-                  PlaceholderText="简称（可选）"
-                  Text="{Binding EditRuleKey, Mode=TwoWay}"
-                  TextWrapping="NoWrap" />
-
-                <TextBox
-                  VerticalContentAlignment="Center"
-                  AcceptsReturn="False"
-                  Classes="CompactField"
-                  PlaceholderText="追溯码前缀（可选）"
-                  Text="{Binding EditPreTc, Mode=TwoWay}"
-                  TextWrapping="NoWrap" />
-
-                <TextBox
-                  MinHeight="140"
-                  AcceptsReturn="True"
-                  PlaceholderText="备注（可选，弃用/未拆零为特殊值）"
-                  Text="{Binding EditNote, Mode=TwoWay}"
-                  TextWrapping="Wrap" />
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="Caption Muted" Text="备注" />
+                    <TextBox
+                      MinHeight="120"
+                      HorizontalAlignment="Stretch"
+                      AcceptsReturn="True"
+                      PlaceholderText="可选；弃用/未拆零会写入备注"
+                      Text="{Binding EditNote, Mode=TwoWay}"
+                      TextWrapping="Wrap" />
+                  </StackPanel>
+                </StackPanel>
               </StackPanel>
             </ScrollViewer>
 
-            <Grid
-              Grid.Row="3"
-              ColumnDefinitions="*,*"
-              ColumnSpacing="{DynamicResource FormColumnSpacing}"
-              IsEnabled="{Binding CanEdit}">
-              <Button
-                Grid.Column="0"
-                HorizontalAlignment="Stretch"
-                Classes="Action"
-                Command="{Binding SaveCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Kind="RefreshCw" />
-                  <TextBlock Text="保存" />
-                </StackPanel>
-              </Button>
+            <Border Grid.Row="1" Padding="0,12,0,0">
+              <Grid
+                ColumnDefinitions="*,*"
+                ColumnSpacing="{DynamicResource FormColumnSpacing}"
+                IsEnabled="{Binding CanEditActions}">
+                <Button
+                  Grid.Column="0"
+                  HorizontalAlignment="Stretch"
+                  Classes="Outline"
+                  Command="{Binding SaveCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Kind="Save" />
+                    <TextBlock Text="保存" />
+                  </StackPanel>
+                </Button>
 
-              <Button
-                Grid.Column="1"
-                HorizontalAlignment="Stretch"
-                Classes="Action"
-                Command="{Binding DeleteCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Kind="Trash2" />
-                  <TextBlock Text="删除" />
-                </StackPanel>
-              </Button>
-            </Grid>
+                <Button
+                  Grid.Column="1"
+                  HorizontalAlignment="Stretch"
+                  Classes="Destructive"
+                  Command="{Binding DeleteCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Kind="Trash2" />
+                    <TextBlock Text="删除" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+            </Border>
           </Grid>
         </controls:CardPanel>
       </Grid>
