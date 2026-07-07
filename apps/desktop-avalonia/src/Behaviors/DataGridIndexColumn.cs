@@ -32,7 +32,7 @@ public enum DataGridIndexHeaderFace
 
 /// <summary>
 /// Seeds a fixed first-column row index (#) once per grid instance.
-/// Never subscribes to column collection changes or drops state on visual detach.
+/// Does not subscribe to column collection changes.
 /// </summary>
 public class DataGridIndexColumn
 {
@@ -105,7 +105,7 @@ public class DataGridIndexColumn
         }
         else
         {
-            Detach(grid);
+            DetachFully(grid);
         }
     }
 
@@ -131,9 +131,10 @@ public class DataGridIndexColumn
         }
 
         state.Attach();
+        DataGridVisualLifecycle.Register(grid, Attach, DetachState, GetEnabled);
     }
 
-    private static void Detach(DataGrid grid)
+    private static void DetachState(DataGrid grid)
     {
         if (!States.TryRemove(grid, out var state))
         {
@@ -141,6 +142,12 @@ public class DataGridIndexColumn
         }
 
         state.Dispose();
+    }
+
+    private static void DetachFully(DataGrid grid)
+    {
+        DetachState(grid);
+        DataGridVisualLifecycle.Unregister(grid);
     }
 
     private sealed class BehaviorState : IDisposable
