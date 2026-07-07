@@ -38,7 +38,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     protected override bool AutoRefreshOnDbDisconnected => true;
     protected override bool AutoRefreshOnDbReconnected => true;
 
-    private bool CanOperateUi() => !IsUiBusy;
+    private bool CanOperateUi() => !IsBusy;
     private bool CanIo() => CanOperateUi();
 
     private async Task ImportAsync()
@@ -389,10 +389,10 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
     public string CreatedAtLocalText => FormatChinaTime(CreatedAt);
     public string UpdatedAtLocalText => UpdatedAt is null ? "" : FormatChinaTime(UpdatedAt.Value);
-    public bool IsUiBusy => IsBusy;
     public bool CanUnlock => !IsOpsUnlocked && CanOperateUi();
     public bool CanLock => IsOpsUnlocked && CanOperateUi();
-    public bool CanEdit => HasEditor && IsOpsUnlocked && CanOperateUi();
+    public bool CanEdit => HasEditor && IsOpsUnlocked;
+    public bool CanEditActions => CanEdit && CanOperateUi();
     public bool ShowUnlock => !IsOpsUnlocked;
     public bool ShowLock => IsOpsUnlocked;
     public int EditColSpan => HasEditor ? 1 : 2;
@@ -464,6 +464,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         _originDrugId = saved.DrugId;
         _originSpec = saved.Spec;
         _loadedSnapshot = saved;
+        UpdatedAt = saved.UpdatedAt;
         IsDirty = false;
         ClearRemoteEditBaseline();
     }
@@ -662,8 +663,36 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         RefreshCommands(SaveCommand, DeleteCommand, FixDrugKeyCommand);
     }
 
+    private static string Field(string? s) => (s ?? string.Empty).Trim();
+
+    private bool IsEditingRow(DrugRow row)
+        => string.Equals(_originDrugId, row.DrugId, StringComparison.Ordinal)
+           && string.Equals(_originSpec, row.Spec, StringComparison.Ordinal);
+
     private void SyncEditorFrom(DrugRow row)
     {
+        if (!HasPendingChanges && IsEditingRow(row))
+        {
+            row.NotePreview = null;
+            HasSelection = true;
+            HasEditor = true;
+
+            _suppressDirtyDuringSync = true;
+            try
+            {
+                UpdatedAt = row.UpdatedAt;
+                _loadedSnapshot = row.ToDto();
+                IsDirty = false;
+            }
+            finally
+            {
+                _suppressDirtyDuringSync = false;
+            }
+
+            RefreshPageCommands();
+            return;
+        }
+
         _suppressDirtyDuringSync = true;
         try
         {
@@ -761,14 +790,12 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             return false;
         }
 
-        static string N(string? s) => (s ?? string.Empty).Trim();
-
-        return N(_loadedSnapshot.DrugId) != N(EditDrugId)
-               || N(_loadedSnapshot.Spec) != N(EditSpec)
+        return Field(_loadedSnapshot.DrugId) != Field(EditDrugId)
+               || Field(_loadedSnapshot.Spec) != Field(EditSpec)
                || _loadedSnapshot.Qty != (EditQty ?? 0)
-               || N(_loadedSnapshot.RuleKey) != N(EditRuleKey)
-               || N(_loadedSnapshot.PreTc) != N(EditPreTc)
-               || N(_loadedSnapshot.Note) != N(EditNote);
+               || Field(_loadedSnapshot.RuleKey) != Field(EditRuleKey)
+               || Field(_loadedSnapshot.PreTc) != Field(EditPreTc)
+               || Field(_loadedSnapshot.Note) != Field(EditNote);
     }
 
     private void DiscardDraft()
@@ -904,14 +931,14 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         OnPropertyChanged(nameof(CanUnlock));
         OnPropertyChanged(nameof(CanLock));
         OnPropertyChanged(nameof(CanEdit));
+        OnPropertyChanged(nameof(CanEditActions));
         OnPropertyChanged(nameof(ShowUnlock));
         OnPropertyChanged(nameof(ShowLock));
     }
 
     protected override void OnBusyChanged(bool isBusy)
     {
-        OnPropertyChanged(nameof(IsUiBusy));
-        OnPropertyChanged(nameof(CanEdit));
+        OnPropertyChanged(nameof(CanEditActions));
         OnPropertyChanged(nameof(CanUnlock));
         OnPropertyChanged(nameof(CanLock));
     }
@@ -1203,10 +1230,6 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             QueueReselect(focusDrugId, focusSpec);
             await ReloadAsync();
 
-            await Dispatcher.UIThread.InvokeAsync(
-                () => FocusSavedRow(focusDrugId, focusSpec),
-                DispatcherPriority.Loaded);
-
             Dispatcher.UIThread.Post(() =>
                 _toast.Success(
                     "药品纠错迁移",
@@ -1388,7 +1411,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         var deleteSpec = _originSpec!;
 
         var ok = await _dialog.ConfirmDestructive("删除药品规格",
-            $"确认删除？\n{DrugLabel.Format(deleteDrugId, deleteSpec)}\n\n注意：trace_pool / trace_txn 外键会阻止删除正在引用的记录");
+            $"确认删除？\n{DrugLabel.Format(deleteDrugId, deleteSpec)}\n\n注意：追溯码池和事务中有记录会阻止删除正在引用的记录");
 
         if (!ok)
         {
@@ -1438,11 +1461,11 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     }
 
     private bool CanToggleFlags()
-        => CanEdit;
+        => CanEditActions;
 
     private void ApplyToggleDeprecated()
     {
-        if (!HasEditor || !IsOpsUnlocked)
+        if (!CanEdit)
         {
             return;
         }
@@ -1452,7 +1475,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
     private void ApplyToggleNoSplit()
     {
-        if (!HasEditor || !IsOpsUnlocked)
+        if (!CanEdit)
         {
             return;
         }
