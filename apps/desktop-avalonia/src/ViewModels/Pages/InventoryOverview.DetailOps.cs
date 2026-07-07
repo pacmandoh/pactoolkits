@@ -1481,14 +1481,7 @@ public sealed partial class InventoryOverview : AppPageBase
     }
 
     public bool DeferRefreshTopic(string? topic)
-    {
-        if (DateTimeOffset.UtcNow >= _suppressAutoRefreshUntilUtc)
-        {
-            return false;
-        }
-
-        return WatermarkActiveRefreshDeferPolicy.ShouldDeferInventoryActiveRefresh(topic);
-    }
+        => InventoryRefreshDefer.IsDeferred(_suppressAutoRefreshUntilUtc, DateTimeOffset.UtcNow, topic);
 
     private void ReconcilePageLater(TimeSpan delay)
     {
@@ -1521,27 +1514,17 @@ public sealed partial class InventoryOverview : AppPageBase
 
             await RunOnUiAsync(() =>
             {
-                if (ct.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                if (epoch != Volatile.Read(ref _detailStockEpoch) || IsPageReloadActive)
-                {
-                    return;
-                }
-
-                if (IsStockEditEnabled)
-                {
-                    return;
-                }
-
-                if (!IsDetailMode || page != PageIndex)
-                {
-                    return;
-                }
-
-                if (!string.Equals(NormalizeInput(Keyword), keyword, StringComparison.Ordinal))
+                if (!InventorySilentReconcilePolicy.CanApply(
+                        epoch,
+                        Volatile.Read(ref _detailStockEpoch),
+                        IsPageReloadActive,
+                        IsStockEditEnabled,
+                        IsDetailMode,
+                        page,
+                        PageIndex,
+                        keyword,
+                        NormalizeInput(Keyword),
+                        ct.IsCancellationRequested))
                 {
                     return;
                 }
