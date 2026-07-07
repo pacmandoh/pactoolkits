@@ -97,10 +97,7 @@ public sealed partial class Dashboard : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.entry_page.reload_fail", "Failed to reload entry page", ex);
-            if (CanToastError(ex))
-            {
-                PostOnUi(() => _toast.Error("录入列表加载失败", ex.Message));
-            }
+            FinishTabReloadFail(ex, "录入列表加载失败");
         }
     }
 }

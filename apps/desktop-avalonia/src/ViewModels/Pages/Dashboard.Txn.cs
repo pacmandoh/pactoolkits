@@ -166,10 +166,7 @@ public sealed partial class Dashboard : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.txn_page.reload_fail", "Failed to reload transaction page", ex);
-            if (CanToastError(ex))
-            {
-                PostOnUi(() => _toast.Error("事务列表加载失败", ex.Message));
-            }
+            FinishTabReloadFail(ex, "事务列表加载失败");
         }
     }
 
@@ -196,10 +193,7 @@ public sealed partial class Dashboard : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.txn_trend.reload_fail", "Failed to reload transaction trend page", ex);
-            if (CanToastError(ex))
-            {
-                PostOnUi(() => _toast.Error("事务趋势加载失败", ex.Message));
-            }
+            FinishTabReloadFail(ex, "事务趋势加载失败");
         }
     }
 }

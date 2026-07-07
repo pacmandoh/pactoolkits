@@ -97,10 +97,7 @@ public sealed partial class Dashboard : AppPageBase
         catch (Exception ex)
         {
             LogError("dashboard.abnormal_page.reload_fail", "Failed to reload abnormal page", ex);
-            if (CanToastError(ex))
-            {
-                PostOnUi(() => _toast.Error("异常列表加载失败", ex.Message));
-            }
+            FinishTabReloadFail(ex, "异常列表加载失败");
         }
     }
 }
