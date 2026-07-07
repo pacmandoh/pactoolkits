@@ -37,7 +37,7 @@ public sealed partial class Dashboard : AppPageBase
     private readonly PageNavigationService _nav;
     private readonly InventoryOverview _inventoryOverview;
     private readonly WorkspaceDirtyRefresh _dirtyRefresh;
-    private bool _suppressRowSelectionAction;
+    private int _rowSelectionSuppressDepth;
     private int _specLoadGeneration;
     private readonly RollingDateRangeController _dateRangeController;
 
@@ -850,7 +850,7 @@ public sealed partial class Dashboard : AppPageBase
 
     public async Task OpenTrendDrugAsync(TrendDrugItem? item)
     {
-        if (_suppressRowSelectionAction || item is null)
+        if (IsRowSelectionActionSuppressed || item is null)
         {
             return;
         }
@@ -860,7 +860,7 @@ public sealed partial class Dashboard : AppPageBase
 
     public async Task OpenTxnAsync(TxnItem? item)
     {
-        if (_suppressRowSelectionAction || item is null)
+        if (IsRowSelectionActionSuppressed || item is null)
         {
             return;
         }
@@ -870,32 +870,33 @@ public sealed partial class Dashboard : AppPageBase
         using (SuppressReload())
         {
             TxnPanelMode = TxnPanelModes.FirstOrDefault();
+            SelectedTabIndex = 2;
         }
-
-        SelectedTabIndex = 2;
 
         await RunOnUiAsync(() =>
         {
             using var _ = SuppressReload();
             SelectedTxn = RecentTxns.FirstOrDefault(x =>
-                x.Id == item.Id &&
-                string.Equals(x.Title, item.Title, StringComparison.Ordinal) &&
+                string.Equals(x.DrugId, item.DrugId, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(x.Spec, item.Spec, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(x.Time, item.Time, StringComparison.Ordinal) &&
-                string.Equals(x.Qty, item.Qty, StringComparison.Ordinal)) ?? item;
+                string.Equals(x.Qty, item.Qty, StringComparison.Ordinal));
         }, DispatcherPriority.Background);
     }
 
     public async Task OpenEntryAsync(EntryRecentItem? item)
     {
-        if (_suppressRowSelectionAction || item is null)
+        if (IsRowSelectionActionSuppressed || item is null)
         {
             return;
         }
 
         await ApplyDrugSpecFilterAndReloadAsync(item.DrugId, item.Spec);
 
-        using var _ = SuppressReload();
-        SelectedTabIndex = 1;
+        using (SuppressReload())
+        {
+            SelectedTabIndex = 1;
+        }
     }
 
     public async Task OpenClientAsync(TopClientItem? item)
@@ -922,7 +923,7 @@ public sealed partial class Dashboard : AppPageBase
 
     public async Task OpenAbnormalAsync(AbnormalItem? item)
     {
-        if (_suppressRowSelectionAction || item is null)
+        if (IsRowSelectionActionSuppressed || item is null)
         {
             return;
         }
@@ -940,27 +941,49 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        using var _ = SuppressReload();
-        TxnPanelMode = TxnPanelModes.FirstOrDefault();
-        SelectedTabIndex = 2;
+        using (SuppressReload())
+        {
+            TxnPanelMode = TxnPanelModes.FirstOrDefault();
+            SelectedTabIndex = 2;
+        }
     }
 
-    public void SuppressRowSelectionActionScope(bool suppress)
-        => _suppressRowSelectionAction = suppress;
+    public RowSelectionSuppressScope BeginRowSelectionSuppress()
+        => new(this);
+
+    private bool IsRowSelectionActionSuppressed => _rowSelectionSuppressDepth > 0;
 
     public void ClearBrowsingSelections()
     {
-        _suppressRowSelectionAction = true;
-        try
+        SelectedTrendItem = null;
+        SelectedTxn = null;
+        SelectedEntryRecent = null;
+        SelectedAbnormal = null;
+    }
+
+    public sealed class RowSelectionSuppressScope : IDisposable
+    {
+        private readonly Dashboard _vm;
+        private bool _disposed;
+
+        internal RowSelectionSuppressScope(Dashboard vm)
         {
-            SelectedTrendItem = null;
-            SelectedTxn = null;
-            SelectedEntryRecent = null;
-            SelectedAbnormal = null;
+            _vm = vm;
+            _vm._rowSelectionSuppressDepth++;
         }
-        finally
+
+        public void Dispose()
         {
-            _suppressRowSelectionAction = false;
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            if (_vm._rowSelectionSuppressDepth > 0)
+            {
+                _vm._rowSelectionSuppressDepth--;
+            }
         }
     }
 
@@ -1473,13 +1496,14 @@ public sealed partial class Dashboard : AppPageBase
 
     private async Task ApplyDrugSpecFilterAndReloadAsync(string? drugId, string? spec)
     {
+        using var _ = BeginRowSelectionSuppress();
         var drug = NormalizeInput(drugId);
         var specText = NormalizeInput(spec);
         ResetPagedIndexes();
 
         await RunOnUiAsync(() =>
         {
-            using var _ = SuppressReload();
+            using var __ = SuppressReload();
             DrugText = drug;
         });
 
@@ -1495,7 +1519,7 @@ public sealed partial class Dashboard : AppPageBase
             {
                 await RunOnUiAsync(() =>
                 {
-                    using var _ = SuppressReload();
+                    using var __ = SuppressReload();
                     SelectedSpec = ResolveOrAddSpecOption(specText);
                 });
             }

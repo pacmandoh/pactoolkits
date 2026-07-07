@@ -242,22 +242,28 @@ public partial class DashboardView : UserControl
                 return;
             }
 
-            // Consume the click before the handler reloads this grid. Otherwise DataGrid
-            // carries the old current-row index into the new collection and invokes the
-            // action again for the replacement row at that index.
-            ClearBrowsingSelectionInUi(vm);
-
-            switch (activeGrid.Name)
+            _syncingSelection = true;
+            try
             {
-                case "TrendGridOverview":
-                    await vm.OpenTrendDrugAsync(selected as TrendDrugItem);
-                    break;
-                case "RecentTxnGridOverview":
-                    await vm.OpenTxnAsync(selected as TxnItem);
-                    break;
-                case "TopClientsGridOverview":
-                    await vm.OpenClientAsync(selected as TopClientItem);
-                    break;
+                // Consume the click before reload; keep the handler locked through async apply/reload.
+                ClearBrowsingSelectionInUi(vm);
+
+                switch (activeGrid.Name)
+                {
+                    case "TrendGridOverview":
+                        await vm.OpenTrendDrugAsync(selected as TrendDrugItem);
+                        break;
+                    case "RecentTxnGridOverview":
+                        await vm.OpenTxnAsync(selected as TxnItem);
+                        break;
+                    case "TopClientsGridOverview":
+                        await vm.OpenClientAsync(selected as TopClientItem);
+                        break;
+                }
+            }
+            finally
+            {
+                _syncingSelection = false;
             }
         }
         catch (Exception ex)
@@ -295,6 +301,11 @@ public partial class DashboardView : UserControl
     {
         try
         {
+            if (_syncingSelection)
+            {
+                return;
+            }
+
             if (DataContext is not Dashboard vm)
             {
                 return;
@@ -305,8 +316,16 @@ public partial class DashboardView : UserControl
                 return;
             }
 
-            ClearBrowsingSelectionInUi(vm);
-            await vm.OpenEntryAsync(item);
+            _syncingSelection = true;
+            try
+            {
+                ClearBrowsingSelectionInUi(vm);
+                await vm.OpenEntryAsync(item);
+            }
+            finally
+            {
+                _syncingSelection = false;
+            }
         }
         catch (Exception ex)
         {
@@ -316,22 +335,12 @@ public partial class DashboardView : UserControl
 
     private void ClearBrowsingSelectionInUi(Dashboard vm)
     {
-        _syncingSelection = true;
-        vm.SuppressRowSelectionActionScope(true);
-        try
+        foreach (var grid in GetBrowsingGrids())
         {
-            foreach (var grid in GetBrowsingGrids())
-            {
-                HardClearGridSelection(grid);
-            }
+            HardClearGridSelection(grid);
+        }
 
-            vm.ClearBrowsingSelections();
-        }
-        finally
-        {
-            vm.SuppressRowSelectionActionScope(false);
-            _syncingSelection = false;
-        }
+        vm.ClearBrowsingSelections();
     }
 
     private IEnumerable<DataGrid> GetBrowsingGrids()
