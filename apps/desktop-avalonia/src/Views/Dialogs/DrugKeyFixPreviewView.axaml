@@ -96,7 +96,7 @@
         Content="继续迁移"
         HotKey="Enter" />
       <Button
-        Classes="Outline"
+        Classes="Ghost"
         Command="{Binding CancelCommand}"
         Content="取消"
         HotKey="Escape" />

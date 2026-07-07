@@ -100,10 +100,10 @@ internal static class AlertLayout
         => role switch
         {
             AlertRole.Dismiss => DialogButtonStyle.Ghost,
-            AlertRole.Cancel => DialogButtonStyle.Outline,
+            AlertRole.Cancel => DialogButtonStyle.Ghost,
             AlertRole.Affirm => DialogButtonStyle.Primary,
             AlertRole.Danger => DialogButtonStyle.Destructive,
             AlertRole.Ack => DialogButtonStyle.Outline,
-            _ => DialogButtonStyle.Outline
+            _ => DialogButtonStyle.Ghost
         };
 }
