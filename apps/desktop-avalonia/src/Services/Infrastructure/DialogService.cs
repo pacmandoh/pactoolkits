@@ -128,12 +128,25 @@ public sealed class DialogService(
         string title,
         string hintMessage,
         Func<string, string?>? verify = null)
-        => FormDialogSession.ShowAsync(
-            dialogManager,
-            unlockDialog,
-            vm => vm.Initialize(title, hintMessage, verify),
-            static vm => vm.Password.Trim(),
-            static () => (string?)null);
+        => ClearUnlockPasswordAfterPromptAsync(
+            FormDialogSession.ShowAsync(
+                dialogManager,
+                unlockDialog,
+                vm => vm.Initialize(title, hintMessage, verify),
+                static vm => vm.Password.Trim(),
+                static () => (string?)null));
+
+    private async Task<string?> ClearUnlockPasswordAfterPromptAsync(Task<string?> prompt)
+    {
+        try
+        {
+            return await prompt.ConfigureAwait(true);
+        }
+        finally
+        {
+            unlockDialog.ClearSensitiveState();
+        }
+    }
 
     public async Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items)
     {
