@@ -298,9 +298,8 @@ public class DataGridRowSelection
         }
 
         private int GetInsertIndex()
-            => _grid.Columns.Count > 0 && DataGridIndexColumn.IsIndexColumn(_grid.Columns[0])
-                ? 1
-                : 0;
+            => DataGridBehaviorRules.SelectionInsertIndex(
+                _grid.Columns.Count > 0 && DataGridIndexColumn.IsIndexColumn(_grid.Columns[0]));
 
         private DataGridTemplateColumn CreateColumn()
         {
@@ -568,13 +567,7 @@ public class DataGridRowSelection
             _grid.SetValue(SelectedCountProperty, selected);
             _grid.SetValue(TotalCountProperty, total);
 
-            var selectAll = total == 0
-                ? false
-                : selected == 0
-                    ? false
-                    : selected == total
-                        ? true
-                        : (bool?)null;
+            var selectAll = DataGridBehaviorRules.SelectAllTriState(selected, total);
 
             _syncingHeader = true;
             try
