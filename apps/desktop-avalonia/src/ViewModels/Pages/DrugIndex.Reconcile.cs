@@ -244,7 +244,7 @@ public sealed partial class DrugIndex
         }
         else if (!HasPendingChanges)
         {
-            ApplySelection(row);
+            SyncEditorFrom(row);
         }
     }
 
