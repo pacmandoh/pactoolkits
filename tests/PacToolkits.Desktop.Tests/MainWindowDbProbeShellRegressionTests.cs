@@ -61,16 +61,28 @@ public sealed class MainWindowDbProbeShellRegressionTests
     private static int CountOccurrences(string source, string value)
         => source.Split(value, StringSplitOptions.None).Length - 1;
 
-    private static string ExtractSwitchCaseBlock(string source, string caseLabel)
+    private static string ReadTopicRefreshSource()
+        => ReadRepoFile("apps/desktop-avalonia/src/Services/Application/WorkspaceTopicRefresh.cs");
+
+    private static string ExtractPlanArm(string source, string topicKey)
     {
-        var needle = $"case \"{caseLabel}\":";
+        var needle = source.Contains($"\"{topicKey}\" =>", StringComparison.Ordinal)
+            ? $"\"{topicKey}\" =>"
+            : topicKey == "_"
+                ? "_ =>"
+                : throw new InvalidOperationException($"Unknown plan arm key: {topicKey}");
+
         var start = source.IndexOf(needle, StringComparison.Ordinal);
-        Assert.True(start >= 0, $"Expected switch case \"{caseLabel}\".");
+        Assert.True(start >= 0, $"Expected plan arm \"{topicKey}\".");
 
-        var breakIndex = source.IndexOf("break;", start, StringComparison.Ordinal);
-        Assert.True(breakIndex > start, $"Expected break after case \"{caseLabel}\".");
+        var nextArm = source.IndexOf("\n            _ =>", start + needle.Length, StringComparison.Ordinal);
+        if (nextArm < 0)
+        {
+            nextArm = source.IndexOf("\n        };", start, StringComparison.Ordinal);
+        }
 
-        return source[start..(breakIndex + "break;".Length)];
+        Assert.True(nextArm > start, $"Expected end of plan arm \"{topicKey}\".");
+        return source[start..nextArm];
     }
 
     private static string ExtractMethodBlock(string source, string methodName)
@@ -186,13 +198,14 @@ public sealed class MainWindowDbProbeShellRegressionTests
     {
         var overview = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/InventoryOverview.cs");
         var detailOps = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/InventoryOverview.DetailOps.cs");
+        var policy = ReadRepoFile("apps/desktop-avalonia/src/Services/Application/InventorySilentReconcilePolicy.cs");
 
         Assert.Contains("BeginStockReload()", overview, StringComparison.Ordinal);
         Assert.Contains("CancelSilentReconcile();", overview, StringComparison.Ordinal);
         Assert.Contains("Interlocked.Increment(ref _detailStockEpoch)", overview, StringComparison.Ordinal);
-        Assert.Contains("epoch != Volatile.Read(ref _detailStockEpoch)", detailOps, StringComparison.Ordinal);
-        Assert.Contains("IsPageReloadActive", detailOps, StringComparison.Ordinal);
-        Assert.Contains("if (IsStockEditEnabled)", detailOps, StringComparison.Ordinal);
+        Assert.Contains("InventorySilentReconcilePolicy.CanApply", detailOps, StringComparison.Ordinal);
+        Assert.Contains("capturedEpoch != currentEpoch", policy, StringComparison.Ordinal);
+        Assert.Contains("isStockEditEnabled", policy, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -233,34 +246,35 @@ public sealed class MainWindowDbProbeShellRegressionTests
     [Fact]
     public void Drug_index_topic_marks_scan_code_dirty_for_catalog_refresh()
     {
-        var source = ReadMainWindowViewModelSource();
+        var source = ReadTopicRefreshSource();
 
-        Assert.Contains("case \"drug_index\":", source, StringComparison.Ordinal);
-        Assert.Contains("MarkDirtyByType<ScanCode>()", source, StringComparison.Ordinal);
+        Assert.Contains("\"drug_index\" =>", source, StringComparison.Ordinal);
+        Assert.Contains("MarkScanCode: true", source, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Drug_index_topic_skips_self_mark_when_active_page_defers_refresh()
     {
-        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
-        var drugIndexCase = ExtractSwitchCaseBlock(source, "drug_index");
+        var topicRefresh = ReadTopicRefreshSource();
+        var autoRefresh = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
+        var drugIndexArm = ExtractPlanArm(topicRefresh, "drug_index");
 
-        Assert.Contains("skipDrugIndexPage", source, StringComparison.Ordinal);
-        Assert.Contains("if (!skipDrugIndexPage)", drugIndexCase, StringComparison.Ordinal);
+        Assert.Contains("skipDrugIndexPage", autoRefresh, StringComparison.Ordinal);
+        Assert.Contains("MarkDrugIndex: !skipDrugIndexPage", drugIndexArm, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Msfx_topic_marks_only_msfx_link_dirty()
     {
-        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
-        var msfxCase = ExtractSwitchCaseBlock(source, "msfx");
+        var source = ReadTopicRefreshSource();
+        var msfxArm = ExtractPlanArm(source, "msfx");
 
-        Assert.Contains("MarkDirtyByType<MsfxLink>()", msfxCase, StringComparison.Ordinal);
-        Assert.DoesNotContain("MarkDirtyByType<Dashboard>()", msfxCase, StringComparison.Ordinal);
-        Assert.DoesNotContain("MarkDirtyByType<DrugIndex>()", msfxCase, StringComparison.Ordinal);
-        Assert.DoesNotContain("MarkDirtyByType<ScanCode>()", msfxCase, StringComparison.Ordinal);
-        Assert.DoesNotContain("MarkDirtyByType<InventoryOverview>()", msfxCase, StringComparison.Ordinal);
-        Assert.DoesNotContain("foreach (var page in WorkspacePages)", msfxCase, StringComparison.Ordinal);
+        Assert.Contains("MarkMsfx: true", msfxArm, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkDashboard: true", msfxArm, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkDrugIndex: true", msfxArm, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkScanCode: true", msfxArm, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkInventory: true", msfxArm, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkAllRefreshable: true", msfxArm, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -301,10 +315,12 @@ public sealed class MainWindowDbProbeShellRegressionTests
     [Fact]
     public void Drug_index_watermark_invalidates_lookup_catalog()
     {
-        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
+        var topicRefresh = ReadTopicRefreshSource();
+        var autoRefresh = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
 
-        Assert.Contains("case \"drug_index\":", source, StringComparison.Ordinal);
-        Assert.Contains("_lookup.InvalidateDrugCatalog();", source, StringComparison.Ordinal);
+        Assert.Contains("\"drug_index\" =>", topicRefresh, StringComparison.Ordinal);
+        Assert.Contains("InvalidateDrugCatalog: true", topicRefresh, StringComparison.Ordinal);
+        Assert.Contains("_lookup.InvalidateDrugCatalog()", autoRefresh, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -320,11 +336,11 @@ public sealed class MainWindowDbProbeShellRegressionTests
     [Fact]
     public void Unknown_watermark_topic_still_marks_all_refreshable_pages_dirty()
     {
-        var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/MainWindow.AutoRefresh.cs");
+        var topicRefresh = ReadTopicRefreshSource();
+        var defaultArm = ExtractPlanArm(topicRefresh, "_");
 
-        Assert.Contains("default:", source, StringComparison.Ordinal);
-        Assert.Contains("foreach (var page in WorkspacePages)", source, StringComparison.Ordinal);
-        Assert.Contains("MarkPageDirty(page)", source, StringComparison.Ordinal);
+        Assert.Contains("MarkAllRefreshable: true", defaultArm, StringComparison.Ordinal);
+        Assert.Contains("foreach (var page in workspacePages)", topicRefresh, StringComparison.Ordinal);
     }
 
     [Fact]
