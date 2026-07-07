@@ -127,6 +127,102 @@ public sealed class AppPageBaseReloadPipelineTests
         Assert.Equal(2, attempts);
     }
 
+    [Fact]
+    public async Task Transport_retry_exhaustion_before_first_load_does_not_mark_ready()
+    {
+        var monitor = new FakeDbMonitor
+        {
+            IsConnected = true,
+            ReconnectAfterSignal = true,
+            MaxReconnectSignals = 1
+        };
+        var attempts = 0;
+        var page = CreatePage(
+            dbMonitor: monitor,
+            reload: _ =>
+            {
+                attempts++;
+                throw new IOException("connection reset");
+            });
+
+        await page.TestRunReloadCoreAsync();
+
+        Assert.Equal(PageDataAvailability.AwaitingDatabase, page.PageDataAvailability);
+        Assert.False(page.HasLoadedOnce);
+        Assert.Equal(2, attempts);
+    }
+
+    [Fact]
+    public async Task Transport_retry_exhaustion_after_first_load_keeps_stale_not_ready()
+    {
+        var monitor = new FakeDbMonitor
+        {
+            IsConnected = true,
+            ReconnectAfterSignal = true,
+            MaxReconnectSignals = 1
+        };
+        var attempts = 0;
+        var page = CreatePage(
+            dbMonitor: monitor,
+            reload: _ =>
+            {
+                attempts++;
+                if (attempts == 1)
+                {
+                    return Task.CompletedTask;
+                }
+
+                throw new IOException("connection reset");
+            });
+
+        await page.TestRunReloadCoreAsync();
+        Assert.Equal(PageDataAvailability.Ready, page.PageDataAvailability);
+
+        var reloadAttempts = 0;
+        page.ReloadAction = _ =>
+        {
+            reloadAttempts++;
+            throw new IOException("connection reset");
+        };
+
+        await page.TestRunReloadCoreAsync();
+
+        Assert.Equal(PageDataAvailability.Stale, page.PageDataAvailability);
+        Assert.NotEqual(PageDataAvailability.Ready, page.PageDataAvailability);
+        Assert.True(page.HasLoadedOnce);
+        Assert.Equal(2, reloadAttempts);
+    }
+
+    [Fact]
+    public async Task Transport_retry_succeeds_on_second_attempt_marks_ready()
+    {
+        var monitor = new FakeDbMonitor
+        {
+            IsConnected = true,
+            ReconnectAfterSignal = true,
+            MaxReconnectSignals = 1
+        };
+        var attempts = 0;
+        var page = CreatePage(
+            dbMonitor: monitor,
+            reload: _ =>
+            {
+                attempts++;
+                if (attempts == 1)
+                {
+                    throw new IOException("connection reset");
+                }
+
+                return Task.CompletedTask;
+            });
+
+        await page.TestRunReloadCoreAsync();
+
+        Assert.Equal(PageDataAvailability.Ready, page.PageDataAvailability);
+        Assert.True(page.HasLoadedOnce);
+        Assert.Equal(2, attempts);
+    }
+
     private static TestReloadPage CreatePage(
         Func<CancellationToken, Task>? reload = null,
         FakeDbMonitor? dbMonitor = null,
@@ -160,6 +256,12 @@ public sealed class AppPageBaseReloadPipelineTests
     {
         public bool IsConnected { get; set; }
 
+        public bool ReconnectAfterSignal { get; set; }
+
+        public int MaxReconnectSignals { get; set; } = 1;
+
+        private int _signalCount;
+
 #pragma warning disable CS0067
         public event Action? Disconnected;
         public event Action? Reconnected;
@@ -177,6 +279,12 @@ public sealed class AppPageBaseReloadPipelineTests
         public void Signal()
         {
             IsConnected = false;
+            _signalCount++;
+            if (ReconnectAfterSignal && _signalCount <= MaxReconnectSignals)
+            {
+                IsConnected = true;
+                Reconnected?.Invoke();
+            }
         }
 
         public Task<DbProbeReport> ProbeAsync(DbProbeKind kind, CancellationToken ct)
