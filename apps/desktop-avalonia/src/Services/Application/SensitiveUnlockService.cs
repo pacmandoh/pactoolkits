@@ -182,6 +182,12 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             return false;
         }
 
+        Refresh(key);
+        if (!GetSnapshot(key).IsUnlocked)
+        {
+            return false;
+        }
+
         if (notifySuccess)
         {
             _toast.Success(scene, "验证通过，已解锁敏感操作");
