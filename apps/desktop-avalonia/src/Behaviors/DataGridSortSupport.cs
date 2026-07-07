@@ -2,9 +2,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Specialized;
 using Avalonia;
-using Avalonia.Data;
 using global::Avalonia.Controls;
 using global::Avalonia.Threading;
+using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
@@ -95,26 +95,12 @@ public class DataGridSortSupport
 
             if (string.IsNullOrWhiteSpace(column.SortMemberPath))
             {
-                var path = GetBindingPath(boundColumn.Binding);
+                var path = DataGridBehaviorRules.SortPath(boundColumn.Binding);
                 if (!string.IsNullOrWhiteSpace(path))
                 {
                     column.SortMemberPath = path;
                 }
             }
         }
-    }
-
-    private static string? GetBindingPath(BindingBase? binding)
-    {
-        if (binding is null)
-        {
-            return null;
-        }
-
-        return binding switch
-        {
-            Binding reflection => reflection.Path,
-            _ => binding.GetType().GetProperty("Path")?.GetValue(binding)?.ToString()
-        };
     }
 }
