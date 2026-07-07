@@ -10,8 +10,8 @@ using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -91,8 +91,8 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     private CancellationTokenSource? _previewRefreshCts;
     private readonly Collection<PendingStockEdit> _pendingStockEdits = new();
     private readonly Dictionary<int, StockEditSnapshot> _stockEditSnapshotByRow = new();
-    private readonly Collection<StockRowItem> _selectedStockRows = new();
-    private IReadOnlyList<StockRowItem> _selectedStockRowsSnapshot = Array.Empty<StockRowItem>();
+    private readonly Dictionary<string, StockRowSelection> _selectedStockRowsByTrace = new(StringComparer.Ordinal);
+    private IReadOnlyList<StockRowSelection> _selectedStockRowsSnapshot = Array.Empty<StockRowSelection>();
     private int _lastModeIndex;
     private DateTimeOffset _suppressAutoRefreshUntilUtc = DateTimeOffset.MinValue;
     private CancellationTokenSource? _silentReconcileCts;
@@ -165,7 +165,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     public bool ShowReassignPreview => _reassignPreviewLive;
     public string ReassignPreviewToggleText => _reassignPreviewLive ? "关闭预览" : "预览影响";
     public bool ShowReassignRowSelection => IsReassignOpen && IsSingleScope && IsDetailMode;
-    public int StockReassignSelectedCount => _selectedStockRows.Count;
+    public int StockReassignSelectedCount => _selectedStockRowsByTrace.Count;
     public int StockPagerSelectedCount => ShowReassignRowSelection ? StockReassignSelectedCount : -1;
     public bool CanEnableStockEdit => IsDetailMode && !IsStockEditEnabled;
     public bool CanDisableStockEdit => IsDetailMode && IsStockEditEnabled;
@@ -264,7 +264,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     public bool HasPrevPage => IsPagedMode && PageIndex > 1;
     public bool HasNextPage => IsPagedMode && PageIndex < TotalPages;
     public bool HasPendingChanges => IsStockEditEnabled && _pendingStockEdits.Count > 0;
-    public IReadOnlyList<StockRowItem> SelectedStockRowsSnapshot => _selectedStockRowsSnapshot;
+    public IReadOnlyList<StockRowSelection> SelectedStockRowsSnapshot => _selectedStockRowsSnapshot;
 
     public InventoryOverview(
         IInventoryOverviewService inventory,
@@ -323,26 +323,76 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
 
     public void SyncReassignSelectionFromRows()
     {
+        if (!IsReassignOpen || !IsSingleScope || IsReassignContextSyncing)
+        {
+            return;
+        }
+
+        foreach (var row in StockRows)
+        {
+            var key = SelectionKey(row);
+            if (key is null)
+            {
+                continue;
+            }
+
+            if (row.IsSelected)
+            {
+                _selectedStockRowsByTrace[key] = StockRowSelection.From(row);
+            }
+            else
+            {
+                _selectedStockRowsByTrace.Remove(key);
+            }
+        }
+
+        RefreshReassignSelectionCounts();
+        QueueReassignPreviewRefresh();
+    }
+
+    private void RestoreReassignChecksAfterPageLoad()
+    {
         if (!IsReassignOpen || !IsSingleScope)
         {
             return;
         }
 
-        _selectedStockRows.Clear();
         foreach (var row in StockRows)
         {
-            if (row.IsSelected)
+            var key = SelectionKey(row);
+            if (key is null)
             {
-                _selectedStockRows.Add(row);
+                row.IsSelected = false;
+                continue;
+            }
+
+            if (_selectedStockRowsByTrace.ContainsKey(key))
+            {
+                row.IsSelected = true;
+                _selectedStockRowsByTrace[key] = StockRowSelection.From(row);
+            }
+            else
+            {
+                row.IsSelected = false;
             }
         }
 
-        _selectedStockRowsSnapshot = _selectedStockRows.ToArray();
+        RefreshReassignSelectionCounts();
+    }
+
+    private void RefreshReassignSelectionCounts()
+    {
+        _selectedStockRowsSnapshot = _selectedStockRowsByTrace.Values.ToArray();
         OnPropertyChanged(nameof(SelectedStockRowsSnapshot));
         OnPropertyChanged(nameof(StockReassignSelectedCount));
         OnPropertyChanged(nameof(StockPagerSelectedCount));
         RefreshPageCommands();
-        QueueReassignPreviewRefresh();
+    }
+
+    private static string? SelectionKey(StockRowItem row)
+    {
+        var trace = NormalizeInput(row.TraceCode);
+        return string.IsNullOrWhiteSpace(trace) ? null : trace;
     }
 
     private void ClearReassignChecks()
@@ -352,8 +402,8 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
             row.IsSelected = false;
         }
 
-        _selectedStockRows.Clear();
-        _selectedStockRowsSnapshot = Array.Empty<StockRowItem>();
+        _selectedStockRowsByTrace.Clear();
+        _selectedStockRowsSnapshot = Array.Empty<StockRowSelection>();
         OnPropertyChanged(nameof(SelectedStockRowsSnapshot));
         OnPropertyChanged(nameof(StockReassignSelectedCount));
         OnPropertyChanged(nameof(StockPagerSelectedCount));
@@ -361,6 +411,14 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
 
     private void ApplyStockRowsInPlace(IReadOnlyList<StockRowItem> items)
     {
+        if (IsReassignOpen && IsSingleScope)
+        {
+            foreach (var row in StockRows)
+            {
+                row.IsSelected = false;
+            }
+        }
+
         var sharedCount = Math.Min(StockRows.Count, items.Count);
         for (var i = 0; i < sharedCount; i++)
         {
@@ -630,11 +688,18 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
 
         await RunOnUiAsync(() =>
         {
-            // DataGrid retains its selected index while ReplaceAll swaps every row instance.
-            // Clearing both selection channels prevents that stale index from selecting an
-            // unrelated row (commonly the final row on a 50-row page).
-            ClearReassignChecks();
-            ApplyStockRowsInPlace(items);
+            // ClearOnPageChange clears native row highlight; restore checkbox picks by trace code.
+            if (IsReassignOpen && IsSingleScope)
+            {
+                using var _ = BeginReassignContextSync();
+                ApplyStockRowsInPlace(items);
+                RestoreReassignChecksAfterPageLoad();
+            }
+            else
+            {
+                ApplyStockRowsInPlace(items);
+            }
+
             TotalCount = page.TotalCount;
             OnPropertyChanged(nameof(IsStockEmpty));
         });

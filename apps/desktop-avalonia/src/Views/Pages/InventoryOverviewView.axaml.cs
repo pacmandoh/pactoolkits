@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using Avalonia;
 using global::Avalonia.Controls;
+using global::Avalonia.Controls.Primitives;
 using global::Avalonia.Input;
 using global::Avalonia.LogicalTree;
 using global::Avalonia.Threading;
@@ -206,12 +207,14 @@ public partial class InventoryOverviewView : UserControl
 
             if (sender is DataGrid grid && row is not null)
             {
-                if (DataGridInteractionHelper.IsLeftClick(e.PointerPressedEventArgs, grid))
+                if (DataGridInteractionHelper.IsLeftClick(e.PointerPressedEventArgs, grid)
+                    && !DataGridRowSelection.IsSelectionColumn(e.Column)
+                    && e.PointerPressedEventArgs.Source is not CheckBox and not ToggleButton)
                 {
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        grid.CurrentColumn = e.Column;
-                    }, DispatcherPriority.Background);
+                    var column = e.Column;
+                    Dispatcher.UIThread.Post(
+                        () => DataGridInteractionHelper.TrySetCurrentColumn(grid, column),
+                        DispatcherPriority.Background);
                 }
             }
 
