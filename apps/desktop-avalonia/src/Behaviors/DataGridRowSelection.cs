@@ -99,7 +99,7 @@ public class DataGridRowSelection
         }
         else
         {
-            Detach(grid);
+            DetachFully(grid);
         }
     }
 
@@ -133,9 +133,10 @@ public class DataGridRowSelection
         }
 
         state.Attach();
+        DataGridVisualLifecycle.Register(grid, Attach, DetachState, GetEnabled);
     }
 
-    private static void Detach(DataGrid grid)
+    private static void DetachState(DataGrid grid)
     {
         if (!States.TryRemove(grid, out var state))
         {
@@ -143,6 +144,12 @@ public class DataGridRowSelection
         }
 
         state.Dispose();
+    }
+
+    private static void DetachFully(DataGrid grid)
+    {
+        DetachState(grid);
+        DataGridVisualLifecycle.Unregister(grid);
     }
 
     private sealed class BehaviorState : IDisposable

@@ -29,7 +29,7 @@ public class DataGridSortSupport
             }
             else
             {
-                Detach(grid);
+                DetachFully(grid);
             }
         });
     }
@@ -54,9 +54,10 @@ public class DataGridSortSupport
         grid.AttachedToVisualTree += OnAttachedToVisualTree;
         grid.Columns.CollectionChanged += handler;
         Apply(grid);
+        DataGridVisualLifecycle.Register(grid, Attach, DetachState, GetEnabled);
     }
 
-    private static void Detach(DataGrid grid)
+    private static void DetachState(DataGrid grid)
     {
         if (!ColumnHandlers.TryRemove(grid, out var handler))
         {
@@ -65,6 +66,12 @@ public class DataGridSortSupport
 
         grid.AttachedToVisualTree -= OnAttachedToVisualTree;
         grid.Columns.CollectionChanged -= handler;
+    }
+
+    private static void DetachFully(DataGrid grid)
+    {
+        DetachState(grid);
+        DataGridVisualLifecycle.Unregister(grid);
     }
 
     private static void OnAttachedToVisualTree(object? sender, EventArgs e)
