@@ -51,7 +51,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
             new NullAppLogger());
 
-        var result = await runtime.StartOrRestartAsync();
+        var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
 
         Assert.False(result.Ok);
         Assert.Contains("禁用", result.Message, StringComparison.Ordinal);
@@ -68,7 +68,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
             new NullAppLogger());
 
-        var result = await runtime.StartOrRestartAsync();
+        var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
 
         Assert.False(result.Ok);
         Assert.Contains("低于最低支持版本", result.Message, StringComparison.Ordinal);
@@ -85,7 +85,7 @@ public sealed class AhkInjectorAgentRuntimeTests
             new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
             new NullAppLogger());
 
-        var result = await runtime.StartOrRestartAsync();
+        var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
 
         Assert.False(result.Ok);
         Assert.Contains("数据库版本高于当前程序支持范围", result.Message, StringComparison.Ordinal);

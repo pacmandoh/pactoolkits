@@ -50,8 +50,8 @@ public sealed class AppPageBaseReloadPipelineTests
         var page = CreatePage(dbMonitor: monitor);
 
         var run = page.TestRunReloadCoreAsync();
-        await Task.Delay(50);
-        await page.OnPageDeactivatedAsync();
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+        await page.OnPageDeactivatedAsync(TestContext.Current.CancellationToken);
         await run;
 
         Assert.Equal(PageDataAvailability.AwaitingDatabase, page.PageDataAvailability);
@@ -87,8 +87,8 @@ public sealed class AppPageBaseReloadPipelineTests
             });
 
         var run = page.TestRunReloadCoreAsync();
-        await Task.Delay(50);
-        await page.OnPageDeactivatedAsync();
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+        await page.OnPageDeactivatedAsync(TestContext.Current.CancellationToken);
         await run;
 
         Assert.Equal(PageDataAvailability.AwaitingDatabase, page.PageDataAvailability);
@@ -118,8 +118,8 @@ public sealed class AppPageBaseReloadPipelineTests
         Assert.Equal(PageDataAvailability.Ready, page.PageDataAvailability);
 
         var run = page.TestRunReloadCoreAsync();
-        await Task.Delay(50);
-        await page.OnPageDeactivatedAsync();
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+        await page.OnPageDeactivatedAsync(TestContext.Current.CancellationToken);
         await run;
 
         Assert.Equal(PageDataAvailability.Stale, page.PageDataAvailability);

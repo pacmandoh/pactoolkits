@@ -16,9 +16,10 @@ public sealed class BackgroundTaskRunnerTests
         runner.RunDetached(
             _ => throw new InvalidOperationException("boom"),
             "TestModule",
-            "test.background.fail");
+            "test.background.fail",
+            TestContext.Current.CancellationToken);
 
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
 
         Assert.Equal("TestModule", logger.LastModule);
         Assert.Equal("test.background.fail", logger.LastEvent);
@@ -40,7 +41,7 @@ public sealed class BackgroundTaskRunnerTests
             "test.background.cancel",
             cts.Token);
 
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
 
         Assert.Null(logger.LastEvent);
     }
