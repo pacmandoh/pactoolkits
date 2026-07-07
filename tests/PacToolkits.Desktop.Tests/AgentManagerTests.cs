@@ -51,7 +51,7 @@ public sealed class AgentManagerTests
         };
         var manager = new AgentManager([runtime]);
 
-        var results = await manager.SyncConfigAsync();
+        var results = await manager.SyncConfigAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, runtime.ReloadCount);
         Assert.Equal(1, runtime.StopCount);
@@ -68,7 +68,7 @@ public sealed class AgentManagerTests
         };
         var manager = new AgentManager([runtime]);
 
-        await manager.SyncConfigAsync();
+        await manager.SyncConfigAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, runtime.ReloadCount);
         Assert.Equal(0, runtime.StopCount);
@@ -82,7 +82,7 @@ public sealed class AgentManagerTests
         var second = new FakeAgentRuntime(new AgentDescriptor("agent-b", "B", "test", "b.exe"));
         var manager = new AgentManager([first, second]);
 
-        var results = await manager.StopAllAsync();
+        var results = await manager.StopAllAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(2, results.Count);
         Assert.Equal(1, first.StopCount);
