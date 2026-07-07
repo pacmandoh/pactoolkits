@@ -386,6 +386,7 @@ public sealed partial class InventoryOverview : AppPageBase
         IsReassignOpen = !IsReassignOpen;
         if (IsReassignOpen)
         {
+            ScopeIndex = 0;
             ResetReassignForm();
         }
     }
@@ -402,7 +403,6 @@ public sealed partial class InventoryOverview : AppPageBase
         IsSpecSelected = false;
         SetReassignPreviewLive(false);
         ClearPreviewMessaging();
-        ScopeIndex = 0;
         PreviewRows.Clear();
         NotifyPreviewStateChanged();
     }
@@ -479,7 +479,7 @@ public sealed partial class InventoryOverview : AppPageBase
         string? targetSpec = null;
         string? qtyText = null;
         string? keyword = null;
-        List<StockRowItem> selectedRows = [];
+        List<StockRowSelection> selectedRows = [];
 
         await RunOnUiAsync(() =>
         {
@@ -900,7 +900,7 @@ public sealed partial class InventoryOverview : AppPageBase
         var selectedRows = GetEffectiveSelectedRows();
         if (selectedRows.Count == 0 && contextRow is not null)
         {
-            selectedRows.Add(contextRow);
+            selectedRows.Add(StockRowSelection.From(contextRow));
         }
 
         var traceCodes = selectedRows
@@ -1104,8 +1104,8 @@ public sealed partial class InventoryOverview : AppPageBase
     private Task SetPanelBusyAsync(bool value)
         => SetPanelBusyAsync(value, this);
 
-    private List<StockRowItem> GetEffectiveSelectedRows()
-        => _selectedStockRows.DistinctBy(x => x.RowNo).ToList();
+    private List<StockRowSelection> GetEffectiveSelectedRows()
+        => _selectedStockRowsByTrace.Values.ToList();
 
     private IReadOnlyList<StockRowItem> ApplyTargetToDetailRows(
         bool singleScope,
