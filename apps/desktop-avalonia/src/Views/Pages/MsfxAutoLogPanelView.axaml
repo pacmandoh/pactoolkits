@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxAutoLogPanelView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -97,6 +97,7 @@
 
       <controls:DataGridPager
         Grid.Row="1"
+        ClearTarget="{Binding #AutoLogGrid}"
         FirstPageCommand="{Binding FirstAutoLogPageCommand}"
         IsContentEmpty="{Binding IsAutoLogsEmpty}"
         IsVisible="{Binding IsLogPanelExpanded}"
