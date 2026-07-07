@@ -85,6 +85,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ahkBase = "C:\Program Files\AutoHotkey"
+          function Test-PeExecutable {
+            param([string]$Path)
+            if (-not (Test-Path $Path)) { return $false }
+            if ([System.IO.Path]::GetExtension($Path) -ne '.exe') { return $false }
+            try {
+              $bytes = [System.IO.File]::ReadAllBytes($Path)
+              if ($bytes.Length -lt 0x40) { return $false }
+              if ($bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { return $false }
+              $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
+              return $peOffset -gt 0 -and ($peOffset + 6) -lt $bytes.Length
+            } catch {
+              return $false
+            }
+          }
+
           function Find-AhkBase {
             $directCandidates = @(
               (Join-Path $ahkBase "v2\AutoHotkey64.exe"),
@@ -92,9 +107,10 @@ jobs:
               (Join-Path $ahkBase "Compiler\AutoHotkey64.exe"),
               (Join-Path $ahkBase "Compiler\Base Files\AutoHotkey64.exe")
             )
-            $base = $directCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+            $base = $directCandidates | Where-Object { Test-PeExecutable $_ } | Select-Object -First 1
             if ($base) { return $base }
-            Get-ChildItem -Path $ahkBase -Recurse -File -Filter "*64-bit*.bin" -ErrorAction SilentlyContinue |
+            Get-ChildItem -Path $ahkBase -Recurse -File -Filter "AutoHotkey64.exe" -ErrorAction SilentlyContinue |
+              Where-Object { Test-PeExecutable $_.FullName } |
               Select-Object -First 1 -ExpandProperty FullName
           }
 
