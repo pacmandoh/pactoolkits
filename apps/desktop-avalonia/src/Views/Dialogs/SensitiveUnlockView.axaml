@@ -4,10 +4,9 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
-  d:DesignHeight="420"
   d:DesignWidth="320"
   x:DataType="dialogs:SensitiveUnlock"
   mc:Ignorable="d">
@@ -52,7 +51,17 @@
         PasswordChar="•"
         PlaceholderText="请输入数据库密码进行验证"
         RevealPassword="False"
-        Text="{Binding Password, Mode=TwoWay}" />
+        Text="{Binding Password, Mode=TwoWay}">
+        <TextBox.KeyBindings>
+          <KeyBinding Command="{Binding SubmitCommand}" Gesture="Enter" />
+        </TextBox.KeyBindings>
+      </TextBox>
+      <TextBlock
+        Classes="Caption"
+        Foreground="{DynamicResource ErrorColor}"
+        IsVisible="{Binding PasswordError, Converter={x:Static ObjectConverters.IsNotNull}}"
+        Text="{Binding PasswordError}"
+        TextWrapping="Wrap" />
     </StackPanel>
 
     <StackPanel Margin="0,24,0,0" Spacing="16">
