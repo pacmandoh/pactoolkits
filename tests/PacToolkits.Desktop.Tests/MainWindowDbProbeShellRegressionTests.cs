@@ -361,8 +361,10 @@ public sealed class MainWindowDbProbeShellRegressionTests
         Assert.Contains("ApplyConflictServerBaselineAndReloadAsync", block, StringComparison.Ordinal);
         Assert.Contains("ApplyConflictServerBaseline", reconcile, StringComparison.Ordinal);
         Assert.Contains("DiscardDraft()", reconcile, StringComparison.Ordinal);
-        Assert.Contains("AlertRole.Dismiss", alert, StringComparison.Ordinal);
+        Assert.Contains("AlertRole.Cancel", alert, StringComparison.Ordinal);
         Assert.Contains("AlertRole.Danger", alert, StringComparison.Ordinal);
+        Assert.Contains(".Cancel(discardText, false)", alert, StringComparison.Ordinal);
+        Assert.Contains("AlertRole.Dismiss", alert, StringComparison.Ordinal);
         Assert.Contains("DialogButtonStyle.Ghost", alert, StringComparison.Ordinal);
         Assert.Contains("DialogButtonStyle.Outline", alert, StringComparison.Ordinal);
         Assert.DoesNotContain("AlertPresets", drugIndex, StringComparison.Ordinal);

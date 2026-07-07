@@ -50,6 +50,7 @@ public sealed class AlertBuilder<T>
         return this;
     }
 
+    /// <summary>Left ghost action. Prefer <see cref="Cancel"/> when the button should replace auto "取消".</summary>
     public AlertBuilder<T> Dismiss(string text, T value)
         => Button(AlertRole.Dismiss, text, value);
 
@@ -79,14 +80,17 @@ public static class AlertBuilderExtensions
     public static AlertBuilder<bool?> DiscardOrSave(
         this AlertBuilder<bool?> builder,
         string affirmText,
-        string dismissText)
-        => builder.Close(null).Dismiss(dismissText, false).Affirm(affirmText, true);
+        string discardText)
+        => builder.Close(null).Cancel(discardText, false).Affirm(affirmText, true);
 
+    /// <summary>
+    /// Left: discard local edits. Right: force save on conflict. X stays on <see cref="AlertBuilder{T}.CloseValue"/> (null).
+    /// </summary>
     public static AlertBuilder<bool?> SaveConflict(
         this AlertBuilder<bool?> builder,
-        string dismissText,
+        string discardText,
         string forceSaveText)
-        => builder.Close(null).Dismiss(dismissText, false).Danger(forceSaveText, true);
+        => builder.Close(null).Cancel(discardText, false).Danger(forceSaveText, true);
 }
 
 internal static class AlertLayout
