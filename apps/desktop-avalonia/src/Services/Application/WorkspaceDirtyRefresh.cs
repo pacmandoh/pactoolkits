@@ -4,6 +4,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
+/// <summary>Dirty-page tracker; refreshes inactive pages when navigated back.</summary>
 public sealed class WorkspaceDirtyRefresh
 {
     private readonly DirtyPageTracker _dirty = new();

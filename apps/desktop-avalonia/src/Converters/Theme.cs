@@ -30,9 +30,7 @@ public static class WindowStateConverters
         new FuncValueConverter<WindowState, bool>(state => state != WindowState.FullScreen);
 }
 
-/// <summary>
-/// Shad Demo sidebar pattern: expanded → no tooltip; collapsed → show label.
-/// </summary>
+/// <summary>Sidebar nav tooltip: expanded → no tooltip; collapsed → show label.</summary>
 public sealed class SidebarNavToolTipConverter : IMultiValueConverter
 {
     public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)

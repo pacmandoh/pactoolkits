@@ -112,12 +112,14 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             var state = GetOrCreateState(key);
             if (state.IsUnlocked)
             {
+                // Sliding session: each gated action extends the unlock window.
                 state.ExpiresAtUtc = DateTimeOffset.UtcNow + UnlockSessionDuration;
                 return true;
             }
 
             if (state.IsPromptActive)
             {
+                // Concurrent callers must not stack password dialogs.
                 return false;
             }
         }

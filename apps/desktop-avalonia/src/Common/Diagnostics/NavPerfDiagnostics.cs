@@ -7,7 +7,7 @@ using Avalonia.VisualTree;
 namespace PacToolkits.Desktop.Avalonia.Common.Diagnostics;
 
 /// <summary>
-/// Lightweight UI perf counters for navigation, first layout, and realized DataGrid rows.
+/// UI perf counters for navigation, first layout, and realized DataGrid rows.
 /// Enable with debugger attached or PACTOOLKITS_UI_PERF=1 (stderr when env var is set).
 /// </summary>
 public static class NavPerfDiagnostics

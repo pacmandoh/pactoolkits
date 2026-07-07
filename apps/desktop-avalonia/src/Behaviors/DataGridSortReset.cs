@@ -10,6 +10,7 @@ using global::Avalonia.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
+/// <summary>Reuses the index column header button for clear-sort / clear-filter.</summary>
 public class DataGridSortReset
 {
     public static readonly AttachedProperty<bool> EnabledProperty =
@@ -254,6 +255,7 @@ public class DataGridSortReset
             }
 
             TryInstall();
+            // Index header button is not ready on first attach.
             Dispatcher.UIThread.Post(TryInstall, DispatcherPriority.Loaded);
             Dispatcher.UIThread.Post(TryInstall, DispatcherPriority.ContextIdle);
         }

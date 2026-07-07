@@ -100,6 +100,7 @@ public static class ServiceRegistration
         foreach (var t in pageTypes)
         {
             services.AddSingleton(t);
+            // Concrete page + one IEnumerable<AppPageBase> entry per page type.
             services.AddSingleton(typeof(AppPageBase), sp => (AppPageBase)sp.GetRequiredService(t));
         }
 

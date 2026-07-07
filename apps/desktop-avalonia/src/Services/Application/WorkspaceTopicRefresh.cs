@@ -6,6 +6,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
+/// <summary>Maps change-watermark topics to which workspace pages should mark dirty.</summary>
 public static class WorkspaceTopicRefresh
 {
     public readonly record struct DirtyPlan(

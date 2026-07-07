@@ -32,7 +32,7 @@ public partial class MainWindowViewModel
             return;
         }
 
-        // Reason: Refresh runs on the UI thread because page commands touch bindings.
+        // Page refresh commands touch bindings; schedule on the UI thread.
         PostOnUi(() => ObserveDetached(RunWorkspaceRefreshAsync(), "workspace.refresh.detached.fail"));
     }
 

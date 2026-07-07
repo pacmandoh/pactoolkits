@@ -1139,6 +1139,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _pageLifecycleCts?.Cancel();
             _pageLifecycleCts?.Dispose();
             _pageLifecycleCts = new CancellationTokenSource();
+            // Superseded sidebar switches must not finish lifecycle on the wrong page.
             var generation = ++_pageLifecycleGeneration;
             ObserveDetached(
                 RunPageLifecycleTransitionAsync(previous, value, generation, _pageLifecycleCts.Token),
