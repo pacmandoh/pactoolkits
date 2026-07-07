@@ -108,4 +108,17 @@ jobs:
             --dry-run false \
             --confirm true
           $ssh_rsh "${FEED_SSH_USER}@${FEED_SSH_HOST}" "mkdir -p '${target_path}'"
-          rsync -a --delete --timeout=60 --rsh "$ssh_rsh" dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${target_path}/"
+          max_attempts=3
+          delay=10
+          for attempt in $(seq 1 "$max_attempts"); do
+            if rsync -a --delete --timeout=60 --rsh "$ssh_rsh" dist/ "${FEED_SSH_USER}@${FEED_SSH_HOST}:${target_path}/"; then
+              break
+            fi
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "rsync failed after $max_attempts attempts"
+              exit 1
+            fi
+            echo "rsync attempt $attempt failed; retrying in ${delay}s..."
+            sleep "$delay"
+            delay=$((delay * 2))
+          done
