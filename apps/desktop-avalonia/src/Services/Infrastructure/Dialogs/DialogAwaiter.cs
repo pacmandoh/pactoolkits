@@ -298,13 +298,7 @@ internal static class FormDialogSession
             return;
         }
 
-        DialogSessionStack.PrepareShow(manager, contextType);
-        DialogSessionStack.RegisterCallbacks(manager, contextType, successCallback, cancelCallback);
-        manager.CreateDialog(context)
-            .Dismissible()
-            .WithMaxWidth(maxWidth)
-            .WithSuccessCallback(successCallback)
-            .WithCancelCallback(cancelCallback)
-            .Show();
+        throw new InvalidOperationException(
+            $"Custom dialog for {contextType.FullName} did not register an open control after Show.");
     }
 }
