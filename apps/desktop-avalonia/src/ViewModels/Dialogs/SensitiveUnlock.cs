@@ -73,6 +73,12 @@ public sealed partial class SensitiveUnlock(DialogManager dialogManager)
         Title = title;
         HintMessage = hintMessage;
         _verify = verify;
+        ClearSensitiveState();
+    }
+
+    internal void ClearSensitiveState()
+    {
+        _verify = null;
         SetPasswordError(null);
         Password = string.Empty;
     }
@@ -95,11 +101,15 @@ public sealed partial class SensitiveUnlock(DialogManager dialogManager)
         }
 
         CloseDialog(success: true);
+        ClearSensitiveState();
     }
 
     [RelayCommand]
     private void Cancel()
-        => CloseDialog();
+    {
+        CloseDialog();
+        ClearSensitiveState();
+    }
 
     private void SetPasswordError(string? message)
     {
