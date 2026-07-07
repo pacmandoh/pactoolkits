@@ -123,6 +123,11 @@ public partial class MainWindowViewModel
 
     private async Task RefreshDrugIndexFromWatermarkAsync(DrugIndex page)
     {
+        if (!CanWorkspaceRefresh())
+        {
+            return;
+        }
+
         if (!ReferenceEquals(ActivePage, page))
         {
             return;
