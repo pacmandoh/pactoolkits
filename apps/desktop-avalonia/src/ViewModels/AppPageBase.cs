@@ -368,6 +368,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         {
             try
             {
+                // Brief settle after reconnect before querying the pool again.
                 await Task.Delay(ReconnectSettleDelay, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -386,6 +387,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
         try
         {
+            // Stale-while-reconnect: keep cached rows visible without a loading overlay.
             if (suppressReloadBusy)
             {
                 await RunWithTransportRetryAsync(fetch, mon, ct).ConfigureAwait(false);
@@ -556,6 +558,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         _pageDataAvailability = availability;
         if (ShowPageUnavailable || availability == PageDataAvailability.Stale)
         {
+            // Stale/unavailable shell must not leave the page busy overlay up.
             IsBusy = false;
         }
 
@@ -611,6 +614,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             or PageDataAvailability.AwaitingDatabase
             or PageDataAvailability.NotLoaded)
         {
+            // Reconnect with cached rows: promote back to Ready without a fetch.
             SetPageAvailability(_hasLoadedOnce ? PageDataAvailability.Ready : PageDataAvailability.NotLoaded);
         }
     }
@@ -771,6 +775,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
         if (DateTimeOffset.UtcNow < _reconnectToastSuppressUntil)
         {
+            // MainWindow owns the consolidated reconnect toast; pages stay quiet briefly.
             return false;
         }
 
@@ -884,6 +889,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     private void ScheduleAutoRefreshFromDbSignal()
     {
+        // Coalesce DB connect/disconnect bursts into one auto-refresh.
         if (Interlocked.Exchange(ref _dbSignalRefreshQueued, 1) == 1)
         {
             return;

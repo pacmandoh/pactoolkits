@@ -62,7 +62,7 @@ public partial class MainWindowViewModel
             return;
         }
 
-        // Reason: Debounce file watcher bursts from editor write patterns.
+        // Debounce file watcher bursts from editor write patterns.
         await Task.Delay(350).ConfigureAwait(false);
 
         if (!File.Exists(_configPath))

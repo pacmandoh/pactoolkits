@@ -9,7 +9,7 @@ using global::Avalonia.Threading;
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 /// <summary>
-/// Ensures bound text columns expose a sort path under Avalonia 12 compiled bindings.
+/// Avalonia 12 compiled bindings omit sort paths on some bound text columns unless seeded here.
 /// </summary>
 public class DataGridSortSupport
 {

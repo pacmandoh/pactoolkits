@@ -23,6 +23,7 @@ public static class WorkspaceBatchRefresh
 
             if (!ReferenceEquals(page, active))
             {
+                // Inactive pages mark dirty; only the active page reloads now.
                 dirty.Mark(page);
             }
         }

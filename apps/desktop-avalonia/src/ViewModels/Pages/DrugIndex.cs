@@ -541,6 +541,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         var nextDrugId = next?.DrugId;
         var nextSpec = next?.Spec;
 
+        // Save/discard dialog must not run inside the selection-changed callback (re-entrancy).
         Dispatcher.UIThread.Post(() => ObserveDetached(
             OnSelectionChangedAsync(prev, next, nextDrugId, nextSpec),
             "selection.change.detached.fail"));
@@ -1283,7 +1284,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
         try
         {
-            // Reason: Capture query state before async work to avoid stale reads.
+            // Capture query state before async work to avoid stale reads.
             var query = _query;
             var result = await _drugIndex.SearchAsync(query.Keyword, limit: SearchLimit, ct);
             var newRows = result.Items.Select(dto => new DrugRow(dto)).ToList();

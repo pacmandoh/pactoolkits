@@ -6,6 +6,7 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 
+/// <summary>ShadUI DialogHost background dismiss — no public API; resolved via reflection.</summary>
 internal static class DialogHostPolicy
 {
     private static readonly StyledProperty<bool> CanDismissWithBackgroundClick =

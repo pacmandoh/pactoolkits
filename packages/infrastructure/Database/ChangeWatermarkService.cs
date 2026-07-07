@@ -135,7 +135,7 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
             {
                 _ = await _topics.Reader.ReadAsync(ct).ConfigureAwait(false);
 
-                // Reason: Coalesce burst notifications into one watermark refresh.
+                // Coalesce burst notifications into one watermark refresh.
                 await Task.Delay(_notifyCoalesceWindow, ct).ConfigureAwait(false);
                 while (_topics.Reader.TryRead(out _)) { }
             }
