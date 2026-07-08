@@ -23,6 +23,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="PacToolkits.Desktop.Tests" />
+        <InternalsVisibleTo Include="PacToolkits.Desktop.UiTests" />
     </ItemGroup>
 
     <ItemGroup>
