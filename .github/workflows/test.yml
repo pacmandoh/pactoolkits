@@ -74,5 +74,26 @@ jobs:
       - name: Restore
         run: dotnet restore PacToolkits.sln
 
-      - name: Test
-        run: dotnet test PacToolkits.sln -c Release --no-restore --verbosity minimal --filter "Category!=PostgresIntegration"
+      - name: Unit tests
+        run: |
+          set -euo pipefail
+          dotnet test tests/PacToolkits.Agent.Contracts.Tests/PacToolkits.Agent.Contracts.Tests.csproj -c Release --no-restore --verbosity minimal
+          dotnet test tests/PacToolkits.Desktop.Tests/PacToolkits.Desktop.Tests.csproj -c Release --no-restore --verbosity minimal --filter "Category!=PostgresIntegration"
+
+  ui_headless_tests:
+    name: Headless UI Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore PacToolkits.sln
+
+      - name: Headless UI tests
+        run: dotnet test tests/PacToolkits.Desktop.UiTests/PacToolkits.Desktop.UiTests.csproj -c Release --no-restore --verbosity minimal
