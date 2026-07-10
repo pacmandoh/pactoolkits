@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ScanCodeView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -17,6 +17,7 @@
   mc:Ignorable="d">
   <UserControl.Resources>
     <conv:ContextStatusToBrushConverter x:Key="ContextStatusToBrush" />
+    <conv:HighlightFilterActiveConverter x:Key="HighlightFilterActive" />
   </UserControl.Resources>
 
   <controls:PageDataShell
@@ -27,494 +28,372 @@
     UnavailableHint="{Binding PageUnavailableHint}"
     UnavailableIcon="{Binding PageUnavailableIcon}"
     UnavailableTitle="{Binding PageUnavailableTitle}">
-    <Grid Classes="PageRootLayout" RowDefinitions="Auto,*">
-      <shad:Card Grid.Row="0">
-        <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FormRowSpacing}">
+    <Grid Classes="DashboardLayout" MinHeight="0" RowDefinitions="Auto,*" RowSpacing="0">
+      <Border Grid.Row="0" Classes="FilterBarChrome">
+        <Grid Classes="FilterBarColumns" ColumnDefinitions="1.1*,Auto,0.95*,Auto,0.55*">
+            <Grid
+              Grid.Column="0"
+              Classes="FilterBarColumn"
+              ColumnDefinitions="Auto,*,Auto">
+              <TextBlock
+                Grid.Column="0"
+                Classes="Caption Muted"
+                Text="药品" />
+              <AutoCompleteBox
+                x:Name="DrugBox"
+                Grid.Column="1"
+                HorizontalAlignment="Stretch"
+                IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
+                ItemsSource="{Binding DrugOptions}"
+                KeyDown="DrugBox_OnKeyDown"
+                PlaceholderText="输入药品名并回车"
+                Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}">
+                <AutoCompleteBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:OptionItem">
+                    <TextBlock Text="{Binding Display}" />
+                  </DataTemplate>
+                </AutoCompleteBox.ItemTemplate>
+              </AutoCompleteBox>
+              <Button
+                Grid.Column="2"
+                Classes="MicroClear DrugAutoCompleteClear"
+                Command="{Binding ClearDrugSpecFilterCommand}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeSmall}"
+                  Height="{DynamicResource IconSizeSmall}"
+                  Kind="CircleX" />
+              </Button>
+            </Grid>
+
+            <Border Grid.Column="1" Classes="FilterBarDivider" />
+
+            <Grid
+              Grid.Column="2"
+              Classes="FilterBarColumn"
+              ColumnDefinitions="Auto,*">
+              <TextBlock
+                Grid.Column="0"
+                Classes="Caption Muted"
+                Text="规格" />
+              <controls:FilterFieldInput Grid.Column="1">
+                <Grid>
+                  <ComboBox
+                    x:Name="SpecBox"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    DisplayMemberBinding="{Binding Display}"
+                    ItemsSource="{Binding SpecOptions}"
+                    SelectedItem="{Binding SelectedSpec}" />
+                  <TextBlock
+                    Classes="InputPlaceholder"
+                    IsVisible="{Binding !IsSpecSelected}"
+                    Text="请选择规格" />
+                </Grid>
+              </controls:FilterFieldInput>
+            </Grid>
+
+            <Border Grid.Column="3" Classes="FilterBarDivider" />
+
+            <Grid
+              Grid.Column="4"
+              Classes="FilterBarColumn"
+              ColumnDefinitions="Auto,*">
+              <TextBlock
+                Grid.Column="0"
+                Classes="Caption Muted"
+                Text="单条数量" />
+              <controls:FilterFieldInput Grid.Column="1">
+                <Grid>
+                  <TextBox IsEnabled="False" Text="{Binding SelectedQtyText, Mode=OneWay}" />
+                  <TextBlock
+                    Classes="InputPlaceholder"
+                    IsVisible="{Binding !IsSpecSelected}"
+                    Text="自动" />
+                </Grid>
+              </controls:FilterFieldInput>
+            </Grid>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="1" MinHeight="0" Margin="0">
+        <Grid
+          MinHeight="0"
+          Classes="DashboardTabPanel"
+          IsVisible="{Binding IsManualEntryTab}"
+          RowDefinitions="Auto,*"
+          RowSpacing="14">
           <Grid
             Grid.Row="0"
-            VerticalAlignment="Center"
-            ColumnDefinitions="Auto,*"
-            ColumnSpacing="{DynamicResource SpacingInlineMd}">
-            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-              <icons:AppIcon
-                Width="{DynamicResource IconSizeHeader}"
-                Height="{DynamicResource IconSizeHeader}"
-                Kind="ScanBarcode" />
-              <TextBlock Classes="SectionTitle" Text="录入药品选择" />
-            </StackPanel>
-            <TextBlock
+            ColumnDefinitions="*,*,*,*,*"
+            ColumnSpacing="{DynamicResource MetricTileColSpacing}">
+            <controls:OverviewCard
+              Grid.Column="0"
+              Classes="Success"
+              Title="有效"
+              Hint="通过校验，可提交入库；"
+              Value="{Binding ValidCodeCount}"
+              Command="{Binding SelectHighlightCommand}"
+              CommandParameter="valid"
+              IsActive="{Binding HighlightFilter, Converter={StaticResource HighlightFilterActive}, ConverterParameter=valid}">
+              <controls:OverviewCard.Icon>
+                <icons:AppIcon Classes="OverviewCardIcon" Kind="CircleCheck" />
+              </controls:OverviewCard.Icon>
+            </controls:OverviewCard>
+            <controls:OverviewCard
               Grid.Column="1"
-              VerticalAlignment="Center"
-              Classes="Caption Muted"
-              Text="先选药品与规格，再在下方选择录入方式" />
+              Classes="Warning"
+              Title="重复"
+              Hint="本次录入内重复行；"
+              Value="{Binding DuplicateCodeCount}"
+              Command="{Binding SelectHighlightCommand}"
+              CommandParameter="duplicate"
+              IsActive="{Binding HighlightFilter, Converter={StaticResource HighlightFilterActive}, ConverterParameter=duplicate}">
+              <controls:OverviewCard.Icon>
+                <icons:AppIcon Classes="OverviewCardIcon" Kind="Copy" />
+              </controls:OverviewCard.Icon>
+            </controls:OverviewCard>
+            <controls:OverviewCard
+              Grid.Column="2"
+              Classes="Warning"
+              Title="跳过入库"
+              Hint="库存中已存在；"
+              Value="{Binding PoolSkipCount}"
+              Command="{Binding SelectHighlightCommand}"
+              CommandParameter="pool"
+              IsActive="{Binding HighlightFilter, Converter={StaticResource HighlightFilterActive}, ConverterParameter=pool}">
+              <controls:OverviewCard.Icon>
+                <icons:AppIcon Classes="OverviewCardIcon" Kind="PackageMinus" />
+              </controls:OverviewCard.Icon>
+            </controls:OverviewCard>
+            <controls:OverviewCard
+              Grid.Column="3"
+              Classes="Danger"
+              Title="无效"
+              Hint="不符合校验规则；"
+              Value="{Binding InvalidCodeCount}"
+              Command="{Binding SelectHighlightCommand}"
+              CommandParameter="invalid"
+              IsActive="{Binding HighlightFilter, Converter={StaticResource HighlightFilterActive}, ConverterParameter=invalid}">
+              <controls:OverviewCard.Icon>
+                <icons:AppIcon Classes="OverviewCardIcon" Kind="CircleAlert" />
+              </controls:OverviewCard.Icon>
+            </controls:OverviewCard>
+            <controls:OverviewCard
+              Grid.Column="4"
+              Title="总计"
+              Hint="非空行合计；"
+              Value="{Binding TotalCodeCount}"
+              Command="{Binding SelectHighlightCommand}"
+              CommandParameter="total"
+              IsActive="{Binding HighlightFilter, Converter={StaticResource HighlightFilterActive}, ConverterParameter=total}">
+              <controls:OverviewCard.Icon>
+                <icons:AppIcon Classes="OverviewCardIcon" Kind="Hash" />
+              </controls:OverviewCard.Icon>
+            </controls:OverviewCard>
           </Grid>
 
           <Grid
             Grid.Row="1"
-            VerticalAlignment="Stretch"
-            ColumnDefinitions="320,260,150,*"
-            ColumnSpacing="{DynamicResource FormColumnSpacing}">
-            <shad:Card Grid.Column="0" VerticalAlignment="Stretch">
-              <Grid
-                VerticalAlignment="Stretch"
-                RowDefinitions="Auto,*"
-                RowSpacing="{DynamicResource FilterRowSpacing}">
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Grid.Column="0"
-                    Width="{DynamicResource IconSizeSmall}"
-                    Height="{DynamicResource IconSizeSmall}"
-                    VerticalAlignment="Center"
-                    Foreground="{DynamicResource MutedColor}"
-                    Kind="Pill" />
-                  <TextBlock
-                    Grid.Column="1"
-                    Classes="Caption Muted"
-                    Text="药品" />
-                  <Button
-                    Grid.Column="2"
-                    HorizontalAlignment="Right"
-                    Classes="MicroClear DrugAutoCompleteClear"
-                    Command="{Binding ClearDrugSpecFilterCommand}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeSmall}"
-                      Height="{DynamicResource IconSizeSmall}"
-                      Kind="CircleX" />
-                  </Button>
-                </Grid>
-                <AutoCompleteBox
-                  x:Name="DrugBox"
-                  Grid.Row="1"
-                  VerticalAlignment="Bottom"
-                  IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
-                  ItemsSource="{Binding DrugOptions}"
-                  KeyDown="DrugBox_OnKeyDown"
-                  PlaceholderText="输入药品名并回车"
-                  Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}">
-                  <AutoCompleteBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:OptionItem">
-                      <TextBlock Text="{Binding Display}" />
-                    </DataTemplate>
-                  </AutoCompleteBox.ItemTemplate>
-                </AutoCompleteBox>
-              </Grid>
-            </shad:Card>
-
-            <shad:Card Grid.Column="1" VerticalAlignment="Stretch">
-              <Grid
-                VerticalAlignment="Stretch"
-                RowDefinitions="Auto,*"
-                RowSpacing="{DynamicResource FilterRowSpacing}">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeSmall}"
-                    Height="{DynamicResource IconSizeSmall}"
-                    Kind="SlidersHorizontal" />
-                  <TextBlock Classes="Caption Muted" Text="规格" />
-                </StackPanel>
-                <Grid Grid.Row="1" VerticalAlignment="Bottom">
-                  <controls:FilterFieldInput>
-                    <Grid>
-                      <ComboBox
-                        x:Name="SpecBox"
-                        DisplayMemberBinding="{Binding Display}"
-                        ItemsSource="{Binding SpecOptions}"
-                        SelectedItem="{Binding SelectedSpec}" />
-                      <TextBlock
-                        Margin="{DynamicResource MarginLeftMd}"
-                        VerticalAlignment="Center"
-                        IsHitTestVisible="False"
-                        IsVisible="{Binding !IsSpecSelected}"
-                        Opacity="0.55"
-                        Text="请选择规格" />
-                    </Grid>
-                  </controls:FilterFieldInput>
-                </Grid>
-              </Grid>
-            </shad:Card>
-
-            <shad:Card Grid.Column="2" VerticalAlignment="Stretch">
-              <Grid
-                VerticalAlignment="Stretch"
-                RowDefinitions="Auto,*"
-                RowSpacing="{DynamicResource FilterRowSpacing}">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeSmall}"
-                    Height="{DynamicResource IconSizeSmall}"
-                    Kind="PillBottle" />
-                  <TextBlock Classes="Caption Muted" Text="单条数量" />
-                </StackPanel>
-                <Grid Grid.Row="1" VerticalAlignment="Bottom">
-                  <controls:FilterFieldInput>
-                    <Grid>
-                      <TextBox IsEnabled="False" Text="{Binding SelectedQtyText, Mode=OneWay}" />
-                      <TextBlock
-                        Margin="{DynamicResource MarginLeftMd}"
-                        VerticalAlignment="Center"
-                        IsHitTestVisible="False"
-                        IsVisible="{Binding !IsSpecSelected}"
-                        Opacity="0.55"
-                        Text="自动" />
-                    </Grid>
-                  </controls:FilterFieldInput>
-                </Grid>
-              </Grid>
-            </shad:Card>
-
+            MinHeight="0"
+            ColumnDefinitions="*,Auto"
+            ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
             <shad:Card
-              Grid.Column="3"
-              MinHeight="56"
-              Padding="{StaticResource RowPadding}"
-              HorizontalContentAlignment="Center"
-              Opacity="0.92">
-              <Grid
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                ColumnDefinitions="Auto,*"
-                ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeDefault}"
-                  Height="{DynamicResource IconSizeDefault}"
-                  VerticalAlignment="Center"
-                  Foreground="{Binding ContextStatusLevel, Converter={StaticResource ContextStatusToBrush}}"
-                  Kind="Info" />
-                <TextBlock
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Classes="Caption Muted"
-                  Text="{Binding Status}"
-                  TextAlignment="Center"
-                  TextTrimming="None"
-                  TextWrapping="Wrap" />
-              </Grid>
-            </shad:Card>
-          </Grid>
-        </Grid>
-      </shad:Card>
-
-      <shad:Card Grid.Row="1">
-        <TabControl SelectedIndex="{Binding SelectedTabIndex}">
-          <TabItem>
-            <TabItem.Header>
-              <StackPanel Classes="TabItemHeader">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeCompact}"
-                  Height="{DynamicResource IconSizeCompact}"
-                  Kind="Keyboard" />
-                <TextBlock Text="手动录入" />
-              </StackPanel>
-            </TabItem.Header>
-
-            <Grid
-              Margin="{DynamicResource MarginTopMd}"
-              RowDefinitions="Auto,*,Auto,Auto"
-              RowSpacing="{DynamicResource FormRowSpacing}">
-              <shad:Card
-                Grid.Row="0"
-                Padding="{StaticResource RowPadding}"
-                Opacity="0.95">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Kind="Clipboard" />
-                  <TextBlock Classes="Caption Muted" Text="左侧录入追溯码，右侧实时预览；有效条码为绿色，其余标注具体原因" />
-                </StackPanel>
-              </shad:Card>
-
-              <Grid
-                Grid.Row="1"
-                ColumnDefinitions="*,*"
-                ColumnSpacing="{DynamicResource TraceCodeColumnSpacing}">
-                <Grid
-                  Grid.Column="0"
-                  RowDefinitions="Auto,*"
-                  RowSpacing="{DynamicResource FilterRowSpacing}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeSmall}"
-                      Height="{DynamicResource IconSizeSmall}"
-                      Foreground="{DynamicResource MutedColor}"
-                      Kind="Keyboard" />
-                    <TextBlock Classes="Caption Muted" Text="录入追溯码区域" />
+              Grid.Column="0"
+              MinHeight="0"
+              VerticalAlignment="Stretch"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Stretch"
+              VerticalContentAlignment="Stretch"
+              Classes="SectionCard StretchBody">
+              <shad:Card.Header>
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="2">
+                    <TextBlock Classes="SectionTitle" Text="追溯码录入" />
+                    <TextBlock
+                      Classes="Caption Muted"
+                      Text="每行一条追溯码，支持批量粘贴与扫码枪连续录入" />
                   </StackPanel>
-                  <Grid Grid.Row="1">
-                    <TextBox
-                      x:Name="TraceCodeInput"
-                      Classes="TraceCodeInput"
-                      GotFocus="CodeEditor_OnGotFocus"
-                      IsEnabled="{Binding IsTraceCodeInputEnabled}"
-                      PlaceholderText="示例：&#10;89012345678901234567&#10;89012345678901234568&#10;89012345678901234569"
-                      Text="{Binding TraceCodesText, Mode=TwoWay}" />
-                    <Border
-                      Background="Transparent"
-                      CornerRadius="{DynamicResource RowRadius}"
-                      IsVisible="{Binding IsTraceCodeInputBlocked}"
-                      PointerPressed="TraceCodeInputBlocked_OnPointerPressed" />
-                  </Grid>
+                  <StackPanel
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource SpacingInlineSm}">
+                    <shad:Badge Content="{Binding TotalCodeCount, StringFormat=共 {0} 条}" Variant="Secondary" />
+                    <controls:StatusPill
+                      Classes="ToneDone15"
+                      Icon="CircleCheck"
+                      IconSize="12"
+                      IsVisible="{Binding ShowValidRate}"
+                      PillPadding="8,4"
+                      Text="{Binding ValidRatePct, StringFormat=有效率 {0:F0}%}"
+                      TextSize="12" />
+                  </StackPanel>
                 </Grid>
-
-                <Grid
-                  Grid.Column="1"
-                  RowDefinitions="Auto,*"
-                  RowSpacing="{DynamicResource FilterRowSpacing}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeSmall}"
-                      Height="{DynamicResource IconSizeSmall}"
-                      Foreground="{DynamicResource MutedColor}"
-                      Kind="ListChecks" />
-                    <TextBlock Classes="Caption Muted" Text="预览区域" />
-                  </StackPanel>
-                  <shad:Card
-                    Grid.Row="1"
-                    VerticalAlignment="Stretch"
-                    Classes="TraceCodePreviewCard">
-                    <controls:EmptyStatePanel
-                      EmptyHint="左侧录入追溯码后，将在此显示逐行校验结果"
-                      EmptyText="等待录入"
-                      Icon="ListChecks"
-                      IsEmpty="{Binding IsTraceCodePreviewEmpty}"
-                      SlotMinHeight="120">
-                      <ScrollViewer
-                        x:Name="TraceCodePreviewScroll"
-                        HorizontalScrollBarVisibility="Auto"
-                        VerticalScrollBarVisibility="Auto">
-                        <ItemsControl Padding="{DynamicResource TraceCodeInputPadding}" ItemsSource="{Binding TraceCodeLines}">
-                          <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                              <StackPanel Spacing="0" />
-                            </ItemsPanelTemplate>
-                          </ItemsControl.ItemsPanel>
-                          <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:TraceCodeLineItemViewModel">
-                              <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock
-                                  Grid.Column="0"
-                                  Height="{DynamicResource TraceCodeLineHeight}"
-                                  VerticalAlignment="Top"
-                                  Classes="TraceCodeText"
-                                  Classes.Duplicate="{Binding IsDuplicate}"
-                                  Classes.Invalid="{Binding IsInvalid}"
-                                  Classes.Valid="{Binding IsValid}"
-                                  FontFamily="{DynamicResource TraceCodeInputFontFamily}"
-                                  FontSize="{DynamicResource TraceCodeInputFontSize}"
-                                  LineHeight="{DynamicResource TraceCodeLineHeight}"
-                                  Text="{Binding DisplayText}"
-                                  TextWrapping="NoWrap" />
-                                <TextBlock
-                                  Grid.Column="1"
-                                  Height="{DynamicResource TraceCodeLineHeight}"
-                                  VerticalAlignment="Top"
-                                  Classes="Caption Muted TraceCodeStatusHint"
-                                  Classes.Duplicate="{Binding IsDuplicate}"
-                                  Classes.Invalid="{Binding IsInvalid}"
-                                  IsVisible="{Binding ShowStatusHint}"
-                                  LineHeight="{DynamicResource TraceCodeLineHeight}"
-                                  Text="{Binding StatusHint}" />
-                              </Grid>
-                            </DataTemplate>
-                          </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                      </ScrollViewer>
-                    </controls:EmptyStatePanel>
-                  </shad:Card>
-                </Grid>
-              </Grid>
-
-              <Grid
-                Grid.Row="2"
-                ColumnDefinitions="*,*,*,*,*"
-                ColumnSpacing="{DynamicResource SpacingInlineSm}">
-                <shad:Card Grid.Column="0">
-                  <StackPanel
-                    VerticalAlignment="Center"
-                    Orientation="Horizontal"
-                    Spacing="{DynamicResource SpacingInlineMd}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Foreground="{DynamicResource SuccessColor}"
-                      Kind="CircleCheck" />
-                    <TextBlock Classes="Caption Muted" Text="有效条码数" />
-                    <TextBlock
-                      FontWeight="Bold"
-                      Foreground="{DynamicResource SuccessColor}"
-                      Text="{Binding ValidCodeCount}" />
-                  </StackPanel>
-                </shad:Card>
-
-                <shad:Card Grid.Column="1">
-                  <StackPanel
-                    VerticalAlignment="Center"
-                    Orientation="Horizontal"
-                    Spacing="{DynamicResource SpacingInlineMd}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Foreground="{DynamicResource WarningColor}"
-                      Kind="CopyPlus" />
-                    <TextBlock Classes="Caption Muted" Text="重复数" />
-                    <TextBlock
-                      FontWeight="Bold"
-                      Foreground="{DynamicResource WarningColor}"
-                      Text="{Binding DuplicateCodeCount}" />
-                  </StackPanel>
-                </shad:Card>
-
-                <shad:Card Grid.Column="2">
-                  <StackPanel
-                    VerticalAlignment="Center"
-                    Orientation="Horizontal"
-                    Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Foreground="{DynamicResource WarningColor}"
-                      Kind="Ban" />
-                    <TextBlock Classes="Caption Muted" Text="跳过入库" />
-                    <TextBlock
-                      FontWeight="Bold"
-                      Foreground="{DynamicResource WarningColor}"
-                      Text="{Binding PoolSkipCount}" />
-                  </StackPanel>
-                </shad:Card>
-
-                <shad:Card Grid.Column="3">
-                  <StackPanel
-                    VerticalAlignment="Center"
-                    Orientation="Horizontal"
-                    Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Foreground="{DynamicResource ErrorColor}"
-                      Kind="CircleAlert" />
-                    <TextBlock Classes="Caption Muted" Text="无效数" />
-                    <TextBlock
-                      FontWeight="Bold"
-                      Foreground="{DynamicResource ErrorColor}"
-                      Text="{Binding InvalidCodeCount}" />
-                  </StackPanel>
-                </shad:Card>
-
-                <shad:Card Grid.Column="4">
-                  <StackPanel
-                    VerticalAlignment="Center"
-                    Orientation="Horizontal"
-                    Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="ListOrdered" />
-                    <TextBlock Classes="Caption Muted" Text="总数" />
-                    <TextBlock FontWeight="Bold" Text="{Binding TotalCodeCount}" />
-                  </StackPanel>
-                </shad:Card>
-              </Grid>
-
-              <Grid
-                Grid.Row="3"
-                ColumnDefinitions="Auto,Auto,Auto,*"
-                ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                <Button
-                  Grid.Column="0"
-                  Classes="Action"
-                  Command="{Binding SubmitCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="Save" />
-                    <TextBlock Text="保存录入" />
-                  </StackPanel>
-                </Button>
-
-                <Button
-                  Grid.Column="1"
-                  Classes="Action"
-                  Command="{Binding ClearCodesCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeDefault}"
-                      Height="{DynamicResource IconSizeDefault}"
-                      Kind="Delete" />
-                    <TextBlock Text="清空输入" />
-                  </StackPanel>
-                </Button>
-
-                <shad:Badge
-                  Grid.Column="2"
-                  VerticalAlignment="Center"
-                  Content="{Binding InputLineCount, StringFormat=行数 {0}}"
-                  Variant="Secondary" />
-              </Grid>
-            </Grid>
-          </TabItem>
-
-          <TabItem>
-            <TabItem.Header>
-              <StackPanel Classes="TabItemHeader">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeCompact}"
-                  Height="{DynamicResource IconSizeCompact}"
-                  Kind="Cloud" />
-                <TextBlock Text="自动拉取" />
-              </StackPanel>
-            </TabItem.Header>
-
-            <controls:DeferredContentHost
-              x:Name="AutoFetchTabHost"
-              IsActive="{Binding IsAutoFetchTab}"
-              IsVisible="{Binding IsAutoFetchTab}">
-              <controls:DeferredContentHost.ContentTemplate>
-                <DataTemplate x:DataType="vm:ScanCode">
+              </shad:Card.Header>
+              <controls:EmptyStatePanel
+                MinHeight="0"
+                EmptyHint="{Binding EntryEmptyHint}"
+                EmptyText="{Binding EntryEmptyText}"
+                Icon="PackageSearch"
+                IsEmpty="{Binding IsEntryContextEmpty}"
+                SlotMode="Always">
+                <controls:TraceCodeEditor
+                  x:Name="TraceCodeInput"
+                  VerticalAlignment="Stretch"
+                  EditorGotFocus="CodeEditor_OnGotFocus"
+                  HighlightFilter="{Binding HighlightFilter}"
+                  IsEnabled="{Binding IsTraceCodeInputEnabled}"
+                  LineKinds="{Binding LineKinds}"
+                  PlaceholderText="示例：&#10;89012345678901234567&#10;89012345678901234568&#10;89012345678901234569"
+                  Text="{Binding TraceCodesText, Mode=TwoWay}" />
+              </controls:EmptyStatePanel>
+              <shad:Card.Footer>
+                <Grid Classes="SectionCardFoot" ColumnDefinitions="*,Auto">
                   <Grid
-                    Margin="{DynamicResource MarginTopMd}"
-                    RowDefinitions="Auto,Auto,*,Auto"
-                    RowSpacing="{DynamicResource FormRowSpacing}">
-                    <shad:Card Grid.Row="0">
-                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    ColumnDefinitions="Auto,*"
+                    ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                    <icons:AppIcon
+                      VerticalAlignment="Center"
+                      Foreground="{Binding ContextStatusLevel, Converter={StaticResource ContextStatusToBrush}}"
+                      Kind="Info"
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}" />
+                    <TextBlock
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Classes="Caption Muted"
+                      Text="{Binding Status}"
+                      TextTrimming="CharacterEllipsis"
+                      TextWrapping="NoWrap" />
+                  </Grid>
+                  <StackPanel
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource SpacingInlineSm}">
+                    <Button Classes="Primary" Command="{Binding SubmitCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                         <icons:AppIcon
                           Width="{DynamicResource IconSizeDefault}"
                           Height="{DynamicResource IconSizeDefault}"
-                          Kind="Lightbulb" />
-                        <TextBlock Classes="Caption Muted" Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路" />
+                          Kind="Save" />
+                        <TextBlock Text="保存录入" />
                       </StackPanel>
-                    </shad:Card>
+                    </Button>
+                    <Button Classes="Outline" Command="{Binding ClearCodesCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                        <icons:AppIcon
+                          Width="{DynamicResource IconSizeDefault}"
+                          Height="{DynamicResource IconSizeDefault}"
+                          Kind="Delete" />
+                        <TextBlock Text="清空输入" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </shad:Card.Footer>
+            </shad:Card>
 
-                    <Grid
-                      Grid.Row="1"
-                      VerticalAlignment="Center"
-                      ColumnDefinitions="Auto,Auto,Auto,Auto,*"
-                      ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                      <shad:Card>
+            <shad:Card
+              Grid.Column="1"
+              MinHeight="0"
+              VerticalAlignment="Stretch"
+              Width="{DynamicResource ScanCodeContextWidth}"
+              Classes="SectionCard ScrollHostCard">
+              <shad:Card.Header>
+                <TextBlock Classes="SectionTitle" Text="录入上下文" />
+              </shad:Card.Header>
+              <StackPanel Spacing="{DynamicResource PageSectionSpacing}">
+                <StackPanel Spacing="{DynamicResource FormRowSpacing}">
+                  <TextBlock Classes="SubsectionTitle" Text="当前选择" />
+                  <StackPanel Spacing="8">
+                    <StackPanel Spacing="2">
+                      <TextBlock Classes="Caption Muted" Text="药品" />
+                      <TextBlock Classes="Small" Text="{Binding SelectedDrugDisplay}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                      <TextBlock Classes="Caption Muted" Text="规格" />
+                      <TextBlock Classes="Small" Text="{Binding SelectedSpecDisplay}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                      <TextBlock Classes="Caption Muted" Text="单条数量" />
+                      <TextBlock Classes="Small" Text="{Binding SelectedQtyDisplay}" />
+                    </StackPanel>
+                  </StackPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="{DynamicResource FormRowSpacing}">
+                  <TextBlock Classes="SubsectionTitle" Text="校验规则" />
+                  <StackPanel Spacing="6">
+                    <controls:StatusPill
+                      Classes="ToneInfo15"
+                      Icon="ListOrdered"
+                      IconSize="12"
+                      PillPadding="8,4"
+                      Text="{Binding TraceCodeRuleLength, StringFormat=固定长度 {0} 位}"
+                      TextSize="12" />
+                    <TextBlock
+                      Classes="Caption Muted"
+                      FontFamily="{DynamicResource TraceCodeInputFontFamily}"
+                      Text="{Binding TraceCodeRulePattern, StringFormat=正则：{0}}"
+                      TextWrapping="Wrap" />
+                  </StackPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="{DynamicResource FormRowSpacing}">
+                  <TextBlock Classes="SubsectionTitle" Text="录入说明" />
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="Caption Muted" Text="· 每行仅录入一条追溯码，空行自动忽略" />
+                    <TextBlock Classes="Caption Muted" Text="· 保存时仅写入有效且不重复的新码" />
+                    <TextBlock Classes="Caption Muted" Text="· 已在库存中的码会计入「跳过入库」" />
+                    <TextBlock Classes="Caption Muted" Text="· 可在设置中调整追溯码校验规则" />
+                  </StackPanel>
+                </StackPanel>
+              </StackPanel>
+            </shad:Card>
+          </Grid>
+        </Grid>
+
+        <controls:DeferredContentHost
+          x:Name="AutoFetchTabHost"
+          MinHeight="0"
+          IsActive="{Binding IsAutoFetchTab}"
+          IsVisible="{Binding IsAutoFetchTab}">
+              <controls:DeferredContentHost.ContentTemplate>
+                <DataTemplate x:DataType="vm:ScanCode">
+                  <Grid MinHeight="0" Margin="0" RowDefinitions="Auto,*" RowSpacing="0">
+                    <Border Grid.Row="0" Classes="FilterBarChrome">
+                      <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FilterBarGroupSpacing}">
+                        <TextBlock
+                          Grid.Row="0"
+                          Classes="Caption Muted"
+                          Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路" />
                         <Grid
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center"
-                          ColumnDefinitions="Auto,Auto,Auto"
-                          ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeDefault}"
-                            Height="{DynamicResource IconSizeDefault}"
-                            VerticalAlignment="Center"
-                            Foreground="{Binding IsAutoFetchEnabled, Converter={StaticResource BoolToDoneDangerBrush}}"
-                            Kind="Power" />
+                          Grid.Row="1"
+                          Classes="FilterBarColumns"
+                          ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
+                        <Grid
+                          Grid.Column="0"
+                          Classes="FilterBarColumn"
+                          ColumnDefinitions="Auto,Auto">
                           <TextBlock
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
+                            Grid.Column="0"
                             Classes="Caption Muted"
-                            Text="自动拉取开关" />
+                            Text="自动拉取" />
                           <ToggleSwitch
-                            Grid.Column="2"
+                            Grid.Column="1"
                             VerticalAlignment="Center"
                             IsChecked="{Binding IsAutoFetchEnabled}" />
                         </Grid>
-                      </shad:Card>
 
-                      <shad:Card Grid.Column="1">
-                        <Button Classes="Action" Command="{Binding StartAutoFetchCommand}">
+                        <Border Grid.Column="1" Classes="FilterBarDivider" />
+
+                        <Button
+                          Grid.Column="2"
+                          Classes="Action"
+                          Command="{Binding StartAutoFetchCommand}">
                           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                             <icons:AppIcon
                               Width="{DynamicResource IconSizeDefault}"
@@ -523,10 +402,13 @@
                             <TextBlock Text="开始任务" />
                           </StackPanel>
                         </Button>
-                      </shad:Card>
 
-                      <shad:Card Grid.Column="2">
-                        <Button Classes="Action" Command="{Binding StopAutoFetchCommand}">
+                        <Border Grid.Column="3" Classes="FilterBarDivider" />
+
+                        <Button
+                          Grid.Column="4"
+                          Classes="Outline"
+                          Command="{Binding StopAutoFetchCommand}">
                           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                             <icons:AppIcon
                               Width="{DynamicResource IconSizeDefault}"
@@ -535,261 +417,226 @@
                             <TextBlock Text="停止任务" />
                           </StackPanel>
                         </Button>
-                      </shad:Card>
 
-                      <shad:Card Grid.Column="3">
-                        <Button Classes="Action" Command="{Binding RetryFailedCommand}">
+                        <Border Grid.Column="5" Classes="FilterBarDivider" />
+
+                        <Grid
+                          Grid.Column="6"
+                          Classes="FilterBarColumn"
+                          ColumnDefinitions="Auto,Auto,*">
+                          <Button
+                            Grid.Column="0"
+                            Classes="Outline"
+                            Command="{Binding RetryFailedCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeDefault}"
+                                Height="{DynamicResource IconSizeDefault}"
+                                Kind="RotateCcw" />
+                              <TextBlock Text="重试失败" />
+                            </StackPanel>
+                          </Button>
+                          <Border Grid.Column="1" Classes="FilterBarDivider" />
+                          <Grid
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            ColumnDefinitions="Auto,*"
+                            ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                            <icons:AppIcon
+                              Grid.Column="0"
+                              Width="{DynamicResource IconSizeDefault}"
+                              Height="{DynamicResource IconSizeDefault}"
+                              VerticalAlignment="Center"
+                              Foreground="{DynamicResource SuccessColor}"
+                              Kind="Info" />
+                            <TextBlock
+                              Grid.Column="1"
+                              VerticalAlignment="Center"
+                              Classes="Caption Muted"
+                              Text="{Binding AutoFetchStatus}"
+                              TextTrimming="CharacterEllipsis"
+                              TextWrapping="NoWrap" />
+                          </Grid>
+                        </Grid>
+                        <Button
+                          Grid.Column="7"
+                          Classes="Outline"
+                          Command="{Binding OpenAutoFetchSettingsCommand}">
                           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                             <icons:AppIcon
                               Width="{DynamicResource IconSizeDefault}"
                               Height="{DynamicResource IconSizeDefault}"
-                              Kind="RotateCcw" />
-                            <TextBlock Text="重试失败" />
+                              Kind="SlidersHorizontal" />
+                            <TextBlock Text="参数设置" />
                           </StackPanel>
                         </Button>
-                      </shad:Card>
-
-                      <shad:Card
-                        Grid.Column="4"
-                        MinHeight="56"
-                        Padding="{StaticResource RowPadding}"
-                        HorizontalAlignment="Stretch"
-                        HorizontalContentAlignment="Center"
-                        Opacity="0.9">
-                        <Grid
-                          MaxWidth="420"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center"
-                          ColumnDefinitions="Auto,*"
-                          ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeDefault}"
-                            Height="{DynamicResource IconSizeDefault}"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource SuccessColor}"
-                            Kind="Info" />
-                          <TextBlock
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
-                            Classes="Caption Muted"
-                            Text="{Binding AutoFetchStatus}"
-                            TextAlignment="Center"
-                            TextTrimming="None"
-                            TextWrapping="Wrap" />
-                        </Grid>
-                      </shad:Card>
-                    </Grid>
+                      </Grid>
+                      </Grid>
+                    </Border>
 
                     <Grid
-                      Grid.Row="2"
+                      Grid.Row="1"
+                      MinHeight="0"
                       ColumnDefinitions="1.3*,1.4*,1.1*"
-                      ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                      <shad:Card Grid.Column="0">
-                        <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogRowSpacing}">
-                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                            <icons:AppIcon
-                              Width="{DynamicResource IconSizeDefault}"
-                              Height="{DynamicResource IconSizeDefault}"
-                              Kind="List" />
-                            <TextBlock Classes="SectionTitle" Text="任务列表" />
-                            <shad:Badge Content="{Binding AutoTasks.Count, StringFormat=共 {0} 项}" Variant="Secondary" />
-                          </StackPanel>
-
-                          <controls:EmptyStatePanel
-                            Grid.Row="1"
-                            EmptyHint="{Binding AutoTasksEmptyHint}"
-                            EmptyText="{Binding AutoTasksEmptyText}"
-                            Icon="{Binding SectionEmptyIcon}"
-                            IsEmpty="{Binding IsAutoTasksEmpty}"
-                            IsPending="{Binding IsSectionPending}"
-                            SlotMinHeight="{DynamicResource DgH10Rows}">
-                            <shad:BusyArea IsBusy="{Binding IsBusy}">
-                              <controls:DeferredGridSlot
-                                x:Name="AutoTaskGridSlot"
-                                SlotMinHeight="{DynamicResource DgH10Rows}"
-                                SlotName="AutoTaskGrid">
-                                <controls:DeferredGridSlot.GridTemplate>
-                                  <DataTemplate x:DataType="vm:ScanCode">
-                                    <DataGrid
-                                      CanUserResizeColumns="True"
-                                      Classes="SectionGrid"
-                                      ItemsSource="{Binding AutoTasks}">
-                                      <DataGrid.Columns>
-                                        <DataGridTextColumn
-                                          Width="1.3*"
-                                          Binding="{Binding Name}"
-                                          Header="任务" />
-                                        <DataGridTextColumn
-                                          Width="1*"
-                                          Binding="{Binding Schedule}"
-                                          Header="计划" />
-                                        <DataGridTextColumn
-                                          Width="0.8*"
-                                          Binding="{Binding State}"
-                                          Header="状态" />
-                                      </DataGrid.Columns>
-                                    </DataGrid>
-                                  </DataTemplate>
-                                </controls:DeferredGridSlot.GridTemplate>
-                              </controls:DeferredGridSlot>
-                            </shad:BusyArea>
-                          </controls:EmptyStatePanel>
-                        </Grid>
-                      </shad:Card>
-
-                      <shad:Card Grid.Column="1">
-                        <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogRowSpacing}">
-                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                            <icons:AppIcon
-                              Width="{DynamicResource IconSizeDefault}"
-                              Height="{DynamicResource IconSizeDefault}"
-                              Kind="History" />
-                            <TextBlock Classes="SectionTitle" Text="最近执行记录" />
-                            <shad:Badge Content="{Binding RecentRuns.Count, StringFormat=近 {0} 条}" Variant="Secondary" />
-                          </StackPanel>
-
-                          <controls:EmptyStatePanel
-                            Grid.Row="1"
-                            EmptyHint="{Binding RecentRunsEmptyHint}"
-                            EmptyText="{Binding RecentRunsEmptyText}"
-                            Icon="{Binding SectionEmptyIcon}"
-                            IsEmpty="{Binding IsRecentRunsEmpty}"
-                            IsPending="{Binding IsSectionPending}"
-                            SlotMinHeight="{DynamicResource DgH10Rows}">
-                            <shad:BusyArea IsBusy="{Binding IsBusy}">
-                              <controls:DeferredGridSlot
-                                x:Name="RecentRunGridSlot"
-                                SlotMinHeight="{DynamicResource DgH10Rows}"
-                                SlotName="RecentRunGrid">
-                                <controls:DeferredGridSlot.GridTemplate>
-                                  <DataTemplate x:DataType="vm:ScanCode">
-                                    <DataGrid
-                                      CanUserResizeColumns="True"
-                                      Classes="SectionGrid"
-                                      ItemsSource="{Binding RecentRuns}">
-                                      <DataGrid.Columns>
-                                        <DataGridTextColumn
-                                          Width="1.1*"
-                                          Binding="{Binding Name}"
-                                          Header="任务" />
-                                        <DataGridTextColumn
-                                          Width="1.2*"
-                                          Binding="{Binding StartedAtText}"
-                                          Header="开始时间" />
-                                        <DataGridTextColumn
-                                          Width="0.8*"
-                                          Binding="{Binding Result}"
-                                          Header="结果" />
-                                      </DataGrid.Columns>
-                                    </DataGrid>
-                                  </DataTemplate>
-                                </controls:DeferredGridSlot.GridTemplate>
-                              </controls:DeferredGridSlot>
-                            </shad:BusyArea>
-                          </controls:EmptyStatePanel>
-                        </Grid>
-                      </shad:Card>
-
-                      <shad:Card Grid.Column="2">
-                        <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource DialogRowSpacing}">
-                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                            <icons:AppIcon
-                              Width="{DynamicResource IconSizeDefault}"
-                              Height="{DynamicResource IconSizeDefault}"
-                              Kind="CircleAlert" />
-                            <TextBlock Classes="SectionTitle" Text="失败重试队列" />
-                            <shad:Badge Content="{Binding RetryQueue.Count, StringFormat=待重试 {0}}" Variant="Secondary" />
-                          </StackPanel>
-
-                          <controls:EmptyStatePanel
-                            Grid.Row="1"
-                            EmptyHint="{Binding RetryQueueEmptyHint}"
-                            EmptyText="{Binding RetryQueueEmptyText}"
-                            Icon="{Binding SectionEmptyIcon}"
-                            IsEmpty="{Binding IsRetryQueueEmpty}"
-                            IsPending="{Binding IsSectionPending}"
-                            SlotMinHeight="{DynamicResource DgH10Rows}">
-                            <shad:BusyArea IsBusy="{Binding IsBusy}">
-                              <controls:DeferredGridSlot
-                                x:Name="RetryQueueGridSlot"
-                                SlotMinHeight="{DynamicResource DgH10Rows}"
-                                SlotName="RetryQueueGrid">
-                                <controls:DeferredGridSlot.GridTemplate>
-                                  <DataTemplate x:DataType="vm:ScanCode">
-                                    <DataGrid
-                                      CanUserResizeColumns="True"
-                                      Classes="SectionGrid"
-                                      ItemsSource="{Binding RetryQueue}">
-                                      <DataGrid.Columns>
-                                        <DataGridTextColumn
-                                          Width="1.1*"
-                                          Binding="{Binding Name}"
-                                          Header="任务" />
-                                        <DataGridTextColumn
-                                          Width="1.2*"
-                                          Binding="{Binding Reason}"
-                                          Header="原因" />
-                                        <DataGridTextColumn
-                                          Width="0.8*"
-                                          Binding="{Binding RetryCountText}"
-                                          Header="重试" />
-                                      </DataGrid.Columns>
-                                    </DataGrid>
-                                  </DataTemplate>
-                                </controls:DeferredGridSlot.GridTemplate>
-                              </controls:DeferredGridSlot>
-                            </shad:BusyArea>
-                          </controls:EmptyStatePanel>
-                        </Grid>
-                      </shad:Card>
-                    </Grid>
-
-                    <Grid
-                      Grid.Row="3"
-                      ColumnDefinitions="Auto,Auto,*"
-                      ColumnSpacing="{DynamicResource PageColumnSpacing}">
-                      <Button
+                      ColumnSpacing="0">
+                      <controls:CardPanel
+                        Title="任务列表"
                         Grid.Column="0"
-                        Classes="Action"
-                        Command="{Binding OpenAutoFetchSettingsCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeDefault}"
-                            Height="{DynamicResource IconSizeDefault}"
-                            Kind="SlidersHorizontal" />
-                          <TextBlock Text="参数设置" />
-                        </StackPanel>
-                      </Button>
+                        MinHeight="0"
+                        Chrome="Card"
+                        Classes="FlushBody">
+                        <controls:CardPanel.HeaderContent>
+                          <shad:Badge Content="{Binding AutoTasks.Count, StringFormat=共 {0} 项}" Variant="Secondary" />
+                        </controls:CardPanel.HeaderContent>
+                        <controls:EmptyStatePanel
+                          MinHeight="0"
+                          EmptyHint="{Binding AutoTasksEmptyHint}"
+                          EmptyText="{Binding AutoTasksEmptyText}"
+                          Icon="{Binding SectionEmptyIcon}"
+                          IsEmpty="{Binding IsAutoTasksEmpty}"
+                          IsPending="{Binding IsSectionPending}"
+                          SlotMinHeight="{DynamicResource DgH10Rows}"
+                          SlotMode="Always">
+                          <shad:BusyArea IsBusy="{Binding IsBusy}">
+                            <controls:DeferredGridSlot
+                              x:Name="AutoTaskGridSlot"
+                              SlotMinHeight="{DynamicResource DgH10Rows}"
+                              SlotName="AutoTaskGrid">
+                              <controls:DeferredGridSlot.GridTemplate>
+                                <DataTemplate x:DataType="vm:ScanCode">
+                                  <DataGrid
+                                    CanUserResizeColumns="True"
+                                    Classes="SectionGrid"
+                                    ItemsSource="{Binding AutoTasks}">
+                                    <DataGrid.Columns>
+                                      <DataGridTextColumn
+                                        Width="1.3*"
+                                        Binding="{Binding Name}"
+                                        Header="任务" />
+                                      <DataGridTextColumn
+                                        Width="1*"
+                                        Binding="{Binding Schedule}"
+                                        Header="计划" />
+                                      <DataGridTextColumn
+                                        Width="0.8*"
+                                        Binding="{Binding State}"
+                                        Header="状态" />
+                                    </DataGrid.Columns>
+                                  </DataGrid>
+                                </DataTemplate>
+                              </controls:DeferredGridSlot.GridTemplate>
+                            </controls:DeferredGridSlot>
+                          </shad:BusyArea>
+                        </controls:EmptyStatePanel>
+                      </controls:CardPanel>
 
-                      <StackPanel
+                      <controls:CardPanel
+                        Title="最近执行记录"
                         Grid.Column="1"
-                        VerticalAlignment="Center"
-                        Orientation="Horizontal"
-                        Spacing="{DynamicResource SpacingInlineSm}">
-                        <Border
-                          Width="{DynamicResource LegendDotSize}"
-                          Height="{DynamicResource LegendDotSize}"
-                          VerticalAlignment="Center"
-                          Background="{Binding IsAutoFetchRunning, Converter={StaticResource BoolToDoneDangerBrush}}"
-                          CornerRadius="999" />
-                        <TextBlock Classes="Caption Muted" Text="运行状态：" />
-                        <TextBlock
-                          FontWeight="SemiBold"
-                          IsVisible="{Binding IsAutoFetchRunning}"
-                          Text="运行中" />
-                        <TextBlock
-                          FontWeight="SemiBold"
-                          IsVisible="{Binding !IsAutoFetchRunning}"
-                          Text="已停止" />
-                      </StackPanel>
+                        MinHeight="0"
+                        Chrome="Card"
+                        Classes="FlushBody">
+                        <controls:CardPanel.HeaderContent>
+                          <shad:Badge Content="{Binding RecentRuns.Count, StringFormat=近 {0} 条}" Variant="Secondary" />
+                        </controls:CardPanel.HeaderContent>
+                        <controls:EmptyStatePanel
+                          MinHeight="0"
+                          EmptyHint="{Binding RecentRunsEmptyHint}"
+                          EmptyText="{Binding RecentRunsEmptyText}"
+                          Icon="{Binding SectionEmptyIcon}"
+                          IsEmpty="{Binding IsRecentRunsEmpty}"
+                          IsPending="{Binding IsSectionPending}"
+                          SlotMinHeight="{DynamicResource DgH10Rows}"
+                          SlotMode="Always">
+                          <shad:BusyArea IsBusy="{Binding IsBusy}">
+                            <controls:DeferredGridSlot
+                              x:Name="RecentRunGridSlot"
+                              SlotMinHeight="{DynamicResource DgH10Rows}"
+                              SlotName="RecentRunGrid">
+                              <controls:DeferredGridSlot.GridTemplate>
+                                <DataTemplate x:DataType="vm:ScanCode">
+                                  <DataGrid
+                                    CanUserResizeColumns="True"
+                                    Classes="SectionGrid"
+                                    ItemsSource="{Binding RecentRuns}">
+                                    <DataGrid.Columns>
+                                      <DataGridTextColumn
+                                        Width="1.1*"
+                                        Binding="{Binding Name}"
+                                        Header="任务" />
+                                      <DataGridTextColumn
+                                        Width="1.2*"
+                                        Binding="{Binding StartedAtText}"
+                                        Header="开始时间" />
+                                      <DataGridTextColumn
+                                        Width="0.8*"
+                                        Binding="{Binding Result}"
+                                        Header="结果" />
+                                    </DataGrid.Columns>
+                                  </DataGrid>
+                                </DataTemplate>
+                              </controls:DeferredGridSlot.GridTemplate>
+                            </controls:DeferredGridSlot>
+                          </shad:BusyArea>
+                        </controls:EmptyStatePanel>
+                      </controls:CardPanel>
+
+                      <controls:CardPanel
+                        Title="失败重试队列"
+                        Grid.Column="2"
+                        MinHeight="0"
+                        Chrome="Card"
+                        Classes="FlushBody">
+                        <controls:CardPanel.HeaderContent>
+                          <shad:Badge Content="{Binding RetryQueue.Count, StringFormat=待重试 {0}}" Variant="Secondary" />
+                        </controls:CardPanel.HeaderContent>
+                        <controls:EmptyStatePanel
+                          MinHeight="0"
+                          EmptyHint="{Binding RetryQueueEmptyHint}"
+                          EmptyText="{Binding RetryQueueEmptyText}"
+                          Icon="{Binding SectionEmptyIcon}"
+                          IsEmpty="{Binding IsRetryQueueEmpty}"
+                          IsPending="{Binding IsSectionPending}"
+                          SlotMinHeight="{DynamicResource DgH10Rows}"
+                          SlotMode="Always">
+                          <shad:BusyArea IsBusy="{Binding IsBusy}">
+                            <controls:DeferredGridSlot
+                              x:Name="RetryQueueGridSlot"
+                              SlotMinHeight="{DynamicResource DgH10Rows}"
+                              SlotName="RetryQueueGrid">
+                              <controls:DeferredGridSlot.GridTemplate>
+                                <DataTemplate x:DataType="vm:ScanCode">
+                                  <DataGrid
+                                    CanUserResizeColumns="True"
+                                    Classes="SectionGrid"
+                                    ItemsSource="{Binding RetryQueue}">
+                                    <DataGrid.Columns>
+                                      <DataGridTextColumn
+                                        Width="1.1*"
+                                        Binding="{Binding Name}"
+                                        Header="任务" />
+                                      <DataGridTextColumn
+                                        Width="1.2*"
+                                        Binding="{Binding Reason}"
+                                        Header="原因" />
+                                      <DataGridTextColumn
+                                        Width="0.8*"
+                                        Binding="{Binding RetryCountText}"
+                                        Header="重试" />
+                                    </DataGrid.Columns>
+                                  </DataGrid>
+                                </DataTemplate>
+                              </controls:DeferredGridSlot.GridTemplate>
+                            </controls:DeferredGridSlot>
+                          </shad:BusyArea>
+                        </controls:EmptyStatePanel>
+                      </controls:CardPanel>
                     </Grid>
                   </Grid>
                 </DataTemplate>
               </controls:DeferredContentHost.ContentTemplate>
             </controls:DeferredContentHost>
-          </TabItem>
-        </TabControl>
-      </shad:Card>
+      </Grid>
     </Grid>
   </controls:PageDataShell>
 </UserControl>

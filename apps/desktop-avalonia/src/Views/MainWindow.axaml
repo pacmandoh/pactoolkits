@@ -1,4 +1,4 @@
-﻿<shad:Window
+<shad:Window
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -500,6 +500,38 @@
                         Height="{DynamicResource IconSizeCompact}"
                         Kind="OctagonAlert" />
                       <TextBlock Text="异常" />
+                    </StackPanel>
+                  </TabItem.Header>
+                </TabItem>
+              </TabControl>
+              <icons:AppIcon
+                Classes="HeaderTitleChevron"
+                IsVisible="{Binding IsScanCodePageActive}"
+                Kind="ChevronRight" />
+              <TabControl
+                shad:TabControlBehaviors.UseSlidingPill="True"
+                Classes="DashboardTabHeaders"
+                IsVisible="{Binding IsScanCodePageActive}"
+                SelectedIndex="{Binding ScanCodeSelectedTabIndex, Mode=TwoWay}">
+                <TabItem>
+                  <TabItem.Header>
+                    <StackPanel Classes="TabItemHeader">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeCompact}"
+                        Height="{DynamicResource IconSizeCompact}"
+                        Kind="Keyboard" />
+                      <TextBlock Text="手动录入" />
+                    </StackPanel>
+                  </TabItem.Header>
+                </TabItem>
+                <TabItem>
+                  <TabItem.Header>
+                    <StackPanel Classes="TabItemHeader">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeCompact}"
+                        Height="{DynamicResource IconSizeCompact}"
+                        Kind="Cloud" />
+                      <TextBlock Text="自动拉取" />
                     </StackPanel>
                   </TabItem.Header>
                 </TabItem>

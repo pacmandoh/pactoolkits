@@ -9,7 +9,7 @@
     AccentBrush="{Binding AccentBrush, ElementName=Root}"
     Classes="Kpi"
     ShowMenuIcon="True">
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource KpiTileColSpacing}">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource MetricTileColSpacing}">
       <StackPanel
         Grid.Column="0"
         VerticalAlignment="Center"
