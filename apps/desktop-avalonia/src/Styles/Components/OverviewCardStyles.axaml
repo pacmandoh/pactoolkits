@@ -1,0 +1,69 @@
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+  <Style Selector="controls|OverviewCard">
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="controls:OverviewCard">
+        <Border
+          x:Name="CardRoot"
+          MinWidth="150"
+          Background="{DynamicResource CardBackgroundColor}"
+          BorderBrush="{DynamicResource BorderColor}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource 2XlCornerRadius}">
+          <StackPanel Margin="24">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="Small" Text="{TemplateBinding Title}" />
+              <ContentPresenter Grid.Column="1" Content="{TemplateBinding Icon}" />
+            </Grid>
+            <TextBlock
+              Classes="h3 OverviewCardValue"
+              Margin="0,12,0,2"
+              Text="{TemplateBinding Value}"
+              TextWrapping="Wrap" />
+            <TextBlock
+              Classes="Caption Muted"
+              IsVisible="{TemplateBinding ShowHint}"
+              Text="{TemplateBinding Hint}"
+              TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="controls|OverviewCard:pointerover /template/ Border#CardRoot">
+    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+  </Style>
+
+  <Style Selector="controls|OverviewCard[IsActive=True] /template/ Border#CardRoot">
+    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+    <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+  </Style>
+
+  <Style Selector="controls|OverviewCard TextBlock.OverviewCardValue">
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+  </Style>
+
+  <Style Selector="controls|OverviewCard.Success TextBlock.OverviewCardValue">
+    <Setter Property="Foreground" Value="{DynamicResource SuccessColor}" />
+  </Style>
+
+  <Style Selector="controls|OverviewCard.Warning TextBlock.OverviewCardValue">
+    <Setter Property="Foreground" Value="{DynamicResource WarningColor}" />
+  </Style>
+
+  <Style Selector="controls|OverviewCard.Danger TextBlock.OverviewCardValue">
+    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}" />
+  </Style>
+
+  <Style Selector="icons|AppIcon.OverviewCardIcon">
+    <Setter Property="Width" Value="{DynamicResource OverviewCardIconSize}" />
+    <Setter Property="Height" Value="{DynamicResource OverviewCardIconSize}" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+</Styles>
