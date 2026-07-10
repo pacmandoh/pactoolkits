@@ -157,7 +157,7 @@
 
 
             <Border Grid.Row="0" Classes="KpiTileStrip">
-              <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="{DynamicResource KpiTileColSpacing}">
+              <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="{DynamicResource MetricTileColSpacing}">
                 <controls:KpiTile
                   Title="可用追溯码库存"
                   Grid.Column="0"

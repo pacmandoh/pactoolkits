@@ -426,8 +426,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private ITopBarActions? ActiveTopBar => ActivePage;
     private Dashboard? _dashboard;
+    private ScanCode? _scanCode;
 
     public bool IsDashboardPageActive => ActivePage is Dashboard;
+
+    public bool IsScanCodePageActive => ActivePage is ScanCode;
 
     public bool IsDashboardFilterBarVisible
     {
@@ -449,6 +452,18 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             if (_dashboard is not null && _dashboard.SelectedTabIndex != value)
             {
                 _dashboard.SelectedTabIndex = value;
+            }
+        }
+    }
+
+    public int ScanCodeSelectedTabIndex
+    {
+        get => _scanCode?.SelectedTabIndex ?? 0;
+        set
+        {
+            if (_scanCode is not null && _scanCode.SelectedTabIndex != value)
+            {
+                _scanCode.SelectedTabIndex = value;
             }
         }
     }
@@ -805,6 +820,15 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dashboard?.PropertyChanged += OnDashboardPropertyChanged;
     }
 
+    private void WireScanCode(AppPageBase? page)
+    {
+        _scanCode?.PropertyChanged -= OnScanCodePropertyChanged;
+
+        _scanCode = page as ScanCode;
+
+        _scanCode?.PropertyChanged += OnScanCodePropertyChanged;
+    }
+
     private void WireInventory(AppPageBase? page)
     {
         DetachInventoryCommands();
@@ -1007,6 +1031,19 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(DashboardSelectedTabIndex));
     }
 
+    private void OnScanCodePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ScanCode.SelectedTabIndex))
+        {
+            RaiseScanCodeTabBindings();
+        }
+    }
+
+    private void RaiseScanCodeTabBindings()
+    {
+        OnPropertyChanged(nameof(ScanCodeSelectedTabIndex));
+    }
+
     private void WireTopBarCommands(AppPageBase? newPage)
     {
         Detach(_lastRefreshCommand);
@@ -1162,17 +1199,20 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         WireTopBarCommands(value);
         WireDashboard(value);
+        WireScanCode(value);
         WireInventory(value);
         WireDrugIndex(value);
 
         OnPropertyChanged(nameof(IsSettingsPageActive));
         OnPropertyChanged(nameof(IsDashboardPageActive));
+        OnPropertyChanged(nameof(IsScanCodePageActive));
         OnPropertyChanged(nameof(IsInventoryPageActive));
         OnPropertyChanged(nameof(IsDrugIndexPageActive));
         OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
         OnPropertyChanged(nameof(FilterBarToggleIconKind));
         OnPropertyChanged(nameof(FilterBarToggleToolTip));
         RaiseDashboardTabBindings();
+        RaiseScanCodeTabBindings();
         OnPropertyChanged(nameof(DashboardSectionHint));
         RaiseInventoryBindings();
         RaiseDrugIndexBindings();
