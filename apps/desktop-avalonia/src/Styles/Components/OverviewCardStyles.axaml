@@ -1,4 +1,4 @@
-<Styles
+﻿<Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
@@ -20,8 +20,8 @@
               <ContentPresenter Grid.Column="1" Content="{TemplateBinding Icon}" />
             </Grid>
             <TextBlock
-              Classes="h3 OverviewCardValue"
               Margin="0,12,0,2"
+              Classes="h3 OverviewCardValue"
               Text="{TemplateBinding Value}"
               TextWrapping="Wrap" />
             <TextBlock
