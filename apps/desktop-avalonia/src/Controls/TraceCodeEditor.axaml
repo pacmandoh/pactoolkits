@@ -1,0 +1,17 @@
+<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.TraceCodeEditor"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  MinHeight="120"
+  Focusable="True">
+  <Grid MinHeight="120" ClipToBounds="True">
+    <Canvas x:Name="HighlightCanvas" IsHitTestVisible="False" />
+    <TextBox
+      x:Name="Editor"
+      MinHeight="120"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"
+      AcceptsReturn="True"
+      TextWrapping="NoWrap" />
+  </Grid>
+</UserControl>
