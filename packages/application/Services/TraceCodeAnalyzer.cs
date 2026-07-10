@@ -48,35 +48,37 @@ public static class TraceCodeAnalyzer
         return true;
     }
 
-    public static TraceCodeDetailedAnalysis AnalyzeDetailed(
+    public static TraceCodeAnalysisResult Analyze(
         string? text,
         TraceCodeValidationRule rule,
         IReadOnlySet<string>? existingInPool = null)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
-            return new TraceCodeDetailedAnalysis(
-                0, 0, 0, 0, 0,
-                Array.Empty<string>(),
-                Array.Empty<TraceCodeLineAnalysis>());
+            return new TraceCodeAnalysisResult(
+                new TraceCodeDetailedAnalysis(0, 0, 0, 0, 0, Array.Empty<string>()),
+                string.IsNullOrEmpty(text) ? [] : CreateEmptyLineKinds(text),
+                Array.Empty<string>());
         }
 
+        var lines = SplitDisplayLines(text);
+        var kinds = new TraceCodeLineKind[lines.Length];
         var total = 0;
         var invalid = 0;
         var scanDuplicate = 0;
         var poolDuplicate = 0;
         var valid = 0;
         var unique = new List<string>();
-        var lines = new List<TraceCodeLineAnalysis>();
+        var poolCheckCandidates = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var pool = existingInPool ?? EmptyPool;
 
-        foreach (var raw in text.Split(new[] { '\r', '\n' }, StringSplitOptions.None))
+        for (var i = 0; i < lines.Length; i++)
         {
-            var code = raw.Trim();
+            var code = lines[i].Trim();
             if (code.Length == 0)
             {
-                lines.Add(new TraceCodeLineAnalysis(raw, string.Empty, TraceCodeLineStatus.Blank));
+                kinds[i] = TraceCodeLineKind.Empty;
                 continue;
             }
 
@@ -85,38 +87,67 @@ public static class TraceCodeAnalyzer
             if (!IsValid(code, rule))
             {
                 invalid++;
-                lines.Add(new TraceCodeLineAnalysis(raw, code, TraceCodeLineStatus.Invalid));
+                kinds[i] = TraceCodeLineKind.Invalid;
                 continue;
             }
 
             if (!seen.Add(code))
             {
                 scanDuplicate++;
-                lines.Add(new TraceCodeLineAnalysis(raw, code, TraceCodeLineStatus.ScanDuplicate));
+                kinds[i] = TraceCodeLineKind.ScanDuplicate;
                 continue;
             }
+
+            poolCheckCandidates.Add(code);
 
             if (pool.Contains(code))
             {
                 poolDuplicate++;
-                lines.Add(new TraceCodeLineAnalysis(raw, code, TraceCodeLineStatus.PoolDuplicate));
+                kinds[i] = TraceCodeLineKind.PoolDuplicate;
                 continue;
             }
 
             valid++;
+            kinds[i] = TraceCodeLineKind.Valid;
             unique.Add(code);
-            lines.Add(new TraceCodeLineAnalysis(raw, code, TraceCodeLineStatus.Valid));
         }
 
-        return new TraceCodeDetailedAnalysis(
-            total,
-            invalid,
-            scanDuplicate,
-            poolDuplicate,
-            valid,
-            unique,
-            lines);
+        return new TraceCodeAnalysisResult(
+            new TraceCodeDetailedAnalysis(
+                total,
+                invalid,
+                scanDuplicate,
+                poolDuplicate,
+                valid,
+                unique),
+            kinds,
+            poolCheckCandidates);
     }
+
+    public static TraceCodeDetailedAnalysis AnalyzeDetailed(
+        string? text,
+        TraceCodeValidationRule rule,
+        IReadOnlySet<string>? existingInPool = null)
+        => Analyze(text, rule, existingInPool).Detailed;
+
+    public static TraceCodeLineKind[] AnalyzeLineKinds(
+        string? text,
+        TraceCodeValidationRule rule,
+        IReadOnlySet<string>? existingInPool = null)
+        => Analyze(text, rule, existingInPool).LineKinds;
+
+    public static IReadOnlyList<string> ListPoolCheckCandidates(
+        string? text,
+        TraceCodeValidationRule rule)
+        => Analyze(text, rule, existingInPool: null).PoolCheckCandidates;
+
+    private static TraceCodeLineKind[] CreateEmptyLineKinds(string text)
+        => new TraceCodeLineKind[SplitDisplayLines(text).Length];
+
+    private static string[] SplitDisplayLines(string text)
+        => text.Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Split('\n');
 
     private static bool IsValid(string code, TraceCodeValidationRule rule)
         => TryValidateFormat(code, rule, out _);
