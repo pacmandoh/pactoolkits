@@ -104,18 +104,9 @@
     <Setter Property="TextWrapping" Value="NoWrap" />
   </Style>
 
-  <Style Selector="TextBox.TraceCodeInput">
-    <Setter Property="MinHeight" Value="120" />
-    <Setter Property="Padding" Value="{DynamicResource TraceCodeInputPadding}" />
-    <Setter Property="CornerRadius" Value="{DynamicResource RowRadius}" />
-    <Setter Property="FontFamily" Value="{DynamicResource TraceCodeInputFontFamily}" />
-    <Setter Property="FontSize" Value="{DynamicResource TraceCodeInputFontSize}" />
-    <Setter Property="LineHeight" Value="{DynamicResource TraceCodeLineHeight}" />
+  <Style Selector="controls|TraceCodeEditor">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
-    <Setter Property="VerticalContentAlignment" Value="Top" />
-    <Setter Property="AcceptsReturn" Value="True" />
-    <Setter Property="TextWrapping" Value="NoWrap" />
-    <Setter Property="ClipToBounds" Value="True" />
   </Style>
 
   <Style Selector="controls|FilterFieldInput">
@@ -214,36 +205,6 @@
 
   <Style Selector="Border.RowItem:pressed">
     <Setter Property="Background" Value="{DynamicResource GhostColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.TraceCodeText">
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.TraceCodeText.Valid">
-    <Setter Property="Foreground" Value="{DynamicResource SuccessColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.TraceCodeText.Duplicate">
-    <Setter Property="Foreground" Value="{DynamicResource WarningColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.TraceCodeText.Invalid">
-    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.TraceCodeStatusHint">
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Margin" Value="8,0,0,0" />
-  </Style>
-
-  <Style Selector="TextBlock.TraceCodeStatusHint.Duplicate">
-    <Setter Property="Foreground" Value="{DynamicResource WarningColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.TraceCodeStatusHint.Invalid">
-    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}" />
   </Style>
 
   <Style Selector="controls|EmptyStatePanel">
