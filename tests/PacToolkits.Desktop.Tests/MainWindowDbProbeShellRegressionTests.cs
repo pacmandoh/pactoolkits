@@ -214,7 +214,8 @@ public sealed class MainWindowDbProbeShellRegressionTests
         var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/ScanCode.cs");
 
         Assert.Contains("ReschedulePoolCheckAfterReload()", source, StringComparison.Ordinal);
-        Assert.Contains("_lastPoolCheckKey = string.Empty;", source, StringComparison.Ordinal);
+        Assert.Contains("_lastCompletedPoolCheckKey = string.Empty;", source, StringComparison.Ordinal);
+        Assert.Contains("PoolCheckCandidates", source, StringComparison.Ordinal);
         Assert.Contains("RecalcCodeStats(TraceCodesText)", source, StringComparison.Ordinal);
     }
 
