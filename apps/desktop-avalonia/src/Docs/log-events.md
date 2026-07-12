@@ -47,7 +47,7 @@
 
 - 更新链路: `update.*.error`, `update.*.fail`
 - 数据库链路: `db.*.fail`, `dashboard.*.reload_fail`, `drug_index.*.fail`, `scan.submit.fail`, `inventory.reassign.*.fail`
-- 工具链路: `tools.*.fail`, `ahk.*.fail`
+- 自动化集成: `settings.automation.*.fail`, `ahk.*.fail`
 - 配置链路: `*.save.fail`, `config.external_apply_fail`
 
 含义:
@@ -246,23 +246,27 @@
 - `scan.entry_log.write_fail`
 - `scan.submit.fail`
 
-## ToolsCenter
+## Settings（自动化集成）
 
-- `tools.save_settings.fail`
-- `tools.restart_ahk.fail`
-- `tools.toggle_ahk.fail`
-- `tools.save_options.silent_fail`
-- `tools.save_options.fail`
-- `tools.agent_options.parse_fail`
-- `tools.dispose.runtime_unsub_fail`
-- `tools.dispose.appwin_collection_unsub_fail`
-- `tools.dispose.colspecs_collection_unsub_fail`
-- `tools.dispose.intcols_collection_unsub_fail`
-- `tools.dispose.warehouse_anchors_collection_unsub_fail`
-- `tools.dispose.appwin_item_unsub_fail`
-- `tools.dispose.colspecs_item_unsub_fail`
-- `tools.dispose.intcols_item_unsub_fail`
-- `tools.dispose.warehouse_anchor_item_unsub_fail`
+- `settings.automation.save.fail`
+- `settings.automation.restart.fail`
+- `settings.automation.toggle.fail`
+- `settings.automation.save_options.silent_fail`
+- `settings.automation.save_options.fail`
+- `settings.automation.agent_options.parse_fail`
+- `settings.automation.dispose.runtime_unsub_fail`
+- `settings.automation.dispose.appwin_collection_unsub_fail`
+- `settings.automation.dispose.colspecs_collection_unsub_fail`
+- `settings.automation.dispose.intcols_collection_unsub_fail`
+- `settings.automation.dispose.warehouse_anchors_collection_unsub_fail`
+- `settings.automation.dispose.appwin_item_unsub_fail`
+- `settings.automation.dispose.colspecs_item_unsub_fail`
+- `settings.automation.dispose.intcols_item_unsub_fail`
+- `settings.automation.dispose.warehouse_anchor_item_unsub_fail`
+
+说明:
+
+- 模块名为 `Settings`；事件前缀 `settings.automation.*`（设置页「自动化集成」Tab）
 
 ## MsfxLink
 
