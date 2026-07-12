@@ -23,9 +23,21 @@ public static class WorkspaceTopicRefresh
             active is IInventoryRefreshPage inventory && inventory.DeferRefreshTopic(topic),
             active is IDrugIndexRefreshPage drugIndex && drugIndex.DeferRefreshTopic(topic));
 
+    public static bool DeferDrugIndex(string? topic)
+    {
+        var key = Normalize(topic);
+        return key is "trace_pool" or "trace_txn" or "trace_txn_item";
+    }
+
+    public static bool DeferInventory(string? topic)
+    {
+        var key = Normalize(topic);
+        return key is "inventory" or "trace_pool" or "trace_txn" or "trace_txn_item" or "";
+    }
+
     public static DirtyPlan PlanDirtyMarks(string? topic, bool skipInventoryPage, bool skipDrugIndexPage)
     {
-        var key = (topic ?? string.Empty).Trim().ToLowerInvariant();
+        var key = Normalize(topic);
 
         return key switch
         {
@@ -115,4 +127,7 @@ public static class WorkspaceTopicRefresh
             }
         }
     }
+
+    private static string Normalize(string? topic)
+        => (topic ?? string.Empty).Trim().ToLowerInvariant();
 }

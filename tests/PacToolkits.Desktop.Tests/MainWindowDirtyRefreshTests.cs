@@ -24,34 +24,32 @@ public sealed class MainWindowDirtyRefreshTests
     {
         var active = CreatePage(_ => Task.CompletedTask);
         var other = CreatePage(_ => Task.CompletedTask);
-        var dirty = new DirtyPageTracker();
+        var refresh = new WorkspaceDirtyRefresh();
 
-        await WorkspaceBatchRefresh.RunAsync(
+        await refresh.RunAsync(
             [active, other],
             active,
             WorkspacePageRefresh.CanRefreshPage,
-            TryRefreshTestPageAsync,
-            dirty);
+            TryRefreshTestPageAsync);
 
-        Assert.False(dirty.IsDirty(active));
-        Assert.True(dirty.IsDirty(other));
-        Assert.Equal(1, dirty.Count);
+        Assert.False(refresh.IsDirty(active));
+        Assert.True(refresh.IsDirty(other));
+        Assert.Equal(1, refresh.Dirty.Count);
     }
 
     [Fact]
     public async Task Batch_refresh_keeps_active_dirty_when_refresh_fails()
     {
         var active = CreatePage(_ => throw new InvalidOperationException("boom"));
-        var dirty = new DirtyPageTracker();
+        var refresh = new WorkspaceDirtyRefresh();
 
-        await WorkspaceBatchRefresh.RunAsync(
+        await refresh.RunAsync(
             [active],
             active,
             WorkspacePageRefresh.CanRefreshPage,
-            TryRefreshTestPageAsync,
-            dirty);
+            TryRefreshTestPageAsync);
 
-        Assert.True(dirty.IsDirty(active));
+        Assert.True(refresh.IsDirty(active));
         Assert.Equal(PageDataAvailability.LoadFailed, active.PageDataAvailability);
     }
 

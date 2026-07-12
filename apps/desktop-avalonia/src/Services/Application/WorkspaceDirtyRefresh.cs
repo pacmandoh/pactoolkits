@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 
@@ -29,6 +30,42 @@ public sealed class WorkspaceDirtyRefresh
     public bool IsDirty(AppPageBase page) => _dirty.IsDirty(page);
 
     public void Clear(AppPageBase page) => _dirty.Clear(page);
+
+    public Task RunAsync(IEnumerable<AppPageBase> pages, AppPageBase? active)
+        => RunAsync(
+            pages,
+            active,
+            WorkspacePageRefresh.CanRefreshPage,
+            WorkspacePageRefresh.TryRefreshAsync);
+
+    internal async Task RunAsync(
+        IEnumerable<AppPageBase> pages,
+        AppPageBase? active,
+        Func<AppPageBase, bool> canRefresh,
+        Func<AppPageBase, Task<bool>> tryRefresh)
+    {
+        foreach (var page in pages)
+        {
+            if (canRefresh(page) && !ReferenceEquals(page, active))
+            {
+                _dirty.Mark(page);
+            }
+        }
+
+        if (active is null || !canRefresh(active))
+        {
+            return;
+        }
+
+        if (await tryRefresh(active).ConfigureAwait(true))
+        {
+            _dirty.Clear(active);
+        }
+        else
+        {
+            _dirty.Mark(active);
+        }
+    }
 
     public void TryRefreshIfDirty(AppPageBase page, Func<bool>? stillActive = null)
     {

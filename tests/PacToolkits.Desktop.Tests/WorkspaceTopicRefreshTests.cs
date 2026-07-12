@@ -23,7 +23,7 @@ public sealed class WorkspaceTopicRefreshTests
 
         Assert.Equal(
             expected,
-            InventoryRefreshDefer.IsDeferred(suppressUntil, now, topic));
+            now < suppressUntil && WorkspaceTopicRefresh.DeferInventory(topic));
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public sealed class WorkspaceTopicRefreshTests
     {
         var now = DateTimeOffset.UtcNow;
 
-        Assert.False(InventoryRefreshDefer.IsDeferred(now.AddSeconds(-1), now, "inventory"));
+        Assert.False(now < now.AddSeconds(-1) && WorkspaceTopicRefresh.DeferInventory("inventory"));
     }
 
     [Fact]
@@ -244,7 +244,8 @@ public sealed class WorkspaceTopicRefreshTests
         public Func<CancellationToken, Task>? ReloadAction { get; set; }
 
         public bool DeferRefreshTopic(string? topic)
-            => InventoryRefreshDefer.IsDeferred(_suppressUntilUtc, DateTimeOffset.UtcNow, topic);
+            => DateTimeOffset.UtcNow < _suppressUntilUtc
+               && WorkspaceTopicRefresh.DeferInventory(topic);
 
         public override string DisplayName => "Inventory";
         public override string Icon => "Package";
