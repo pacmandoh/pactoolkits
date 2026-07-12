@@ -1,38 +1,26 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Application.Abstractions;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
-
-public interface IUpdateSettingsService
-{
-    UpdateOptions Current { get; }
-    event Action? Changed;
-    Task SaveAsync(UpdateOptions options, CancellationToken ct = default);
-    Task SaveIgnoredVersionAsync(string version, CancellationToken ct = default);
-    void Reload();
-}
+namespace PacToolkits.Application.Services;
 
 public sealed class UpdateSettingsService : IUpdateSettingsService
 {
     private static readonly string[] SupportedChannels = ["stable", "beta"];
-    private readonly IAppConfigStore _configStore;
+    private readonly IUpdateSettingsStore _store;
     private UpdateOptions _current = new();
 
     public UpdateOptions Current => Clone(_current);
     public event Action? Changed;
 
-    public UpdateSettingsService(IAppConfigStore configStore)
+    public UpdateSettingsService(IUpdateSettingsStore store)
     {
-        _configStore = configStore;
+        _store = store;
         Reload();
     }
 
     public async Task SaveAsync(UpdateOptions options, CancellationToken ct = default)
     {
         var normalized = Normalize(options);
-        await _configStore.UpdateAsync(cfg => cfg.Update = Clone(normalized), ct).ConfigureAwait(false);
+        await _store.SaveAsync(Clone(normalized), ct).ConfigureAwait(false);
 
         _current = normalized;
         Changed?.Invoke();
@@ -47,8 +35,7 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
 
     public void Reload()
     {
-        var cfg = _configStore.Load();
-        _current = Normalize(cfg.Update);
+        _current = Normalize(_store.Load());
         Changed?.Invoke();
     }
 

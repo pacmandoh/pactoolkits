@@ -19,6 +19,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISyncService, SyncService>();
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<ILookupCatalogService, LookupCatalogService>();
+        services.AddSingleton<IClientAliasService, ClientAliasService>();
+        services.AddSingleton<ITraceCodeRuleService, TraceCodeRuleService>();
+        services.AddSingleton<IUpdateSettingsService, UpdateSettingsService>();
+        services.AddSingleton<IReleaseChannelService, ReleaseChannelService>();
         return services;
     }
 }
