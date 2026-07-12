@@ -1016,7 +1016,10 @@
           <StackPanel Classes="Body">
             <Border Classes="H1">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <TextBlock VerticalAlignment="Center" Classes="H1Text" Text="自动化集成" />
+                <TextBlock
+                  VerticalAlignment="Center"
+                  Classes="H1Text"
+                  Text="自动化集成" />
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Outline"
@@ -1035,7 +1038,10 @@
 
             <Border Classes="H2">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
-                <TextBlock VerticalAlignment="Center" Classes="H2Text" Text="Agent-Injector 运行" />
+                <TextBlock
+                  VerticalAlignment="Center"
+                  Classes="H2Text"
+                  Text="Agent-Injector 运行" />
                 <controls:StatusPill
                   VerticalAlignment="Center"
                   Classes="ToneInfo15"
