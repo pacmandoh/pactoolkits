@@ -6,14 +6,11 @@
   <x:Double x:Key="ControlHeightCompact">38</x:Double>
   <x:Double x:Key="FilterComboHeight">42</x:Double>
   <Thickness x:Key="RowPadding">10,8</Thickness>
-  <Thickness x:Key="FilterHintPadding">12,10</Thickness>
-  <Thickness x:Key="AboutHeroCardPadding">14,12</Thickness>
 
   <x:Double x:Key="HeroBadgeSize">36</x:Double>
   <x:Double x:Key="HeroBadgeInnerSize">20</x:Double>
   <x:Double x:Key="IconToggleSize">40</x:Double>
   <x:Double x:Key="ButtonWideMinWidth">136</x:Double>
-  <x:Double x:Key="ActionTileMinHeight">64</x:Double>
 
   <x:Double x:Key="RowMinHeight">48</x:Double>
   <x:Double x:Key="InventoryRowHeight">52</x:Double>
