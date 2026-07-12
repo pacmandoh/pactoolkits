@@ -35,10 +35,11 @@ public static class ServiceRegistration
         services.AddSingleton<AppConfigStore>();
         services.AddSingleton<IAppConfigStore>(sp => sp.GetRequiredService<AppConfigStore>());
         services.AddSingleton<IDbOptionsStore>(sp => sp.GetRequiredService<AppConfigStore>());
+        services.AddSingleton<IClientAliasStore, ClientAliasStore>();
+        services.AddSingleton<ITraceCodeRuleStore, TraceCodeRuleStore>();
+        services.AddSingleton<IUpdateSettingsStore, UpdateSettingsStore>();
         services.AddSingleton<IUiBehaviorService, UiBehaviorService>();
         services.AddSingleton<ILoggingSettingsService, LoggingSettingsService>();
-        services.AddSingleton<IUpdateSettingsService, UpdateSettingsService>();
-        services.AddSingleton<ITraceCodeRuleService, TraceCodeRuleService>();
         services.AddSingleton<IClipboardService, ClipboardService>();
         services.AddSingleton<IAppLogger, AppLogger>();
         services.AddSingleton<IReleaseVersionService, ReleaseVersionService>();
@@ -81,11 +82,8 @@ public static class ServiceRegistration
         services.AddSingleton<IAgentRuntime>(sp => sp.GetRequiredService<AhkInjectorAgentRuntime>());
         services.AddSingleton<IAgentManager, AgentManager>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
-        services.AddSingleton<IReleaseChannelService, ReleaseChannelService>();
         services.AddSingleton<IUpdateFlowService, UpdateFlowService>();
         services.AddSingleton<IMsfxApiClient, MsfxApiClient>();
-        services.AddSingleton<ClientAliasStore>();
-        services.AddSingleton<IClientAliasService, ClientAliasService>();
         services.AddSingleton<IAutomationConfigService, AutomationConfigService>();
         return services;
     }

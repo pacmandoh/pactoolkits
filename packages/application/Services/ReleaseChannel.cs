@@ -1,31 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Core;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
-
-public sealed record ReleaseChannelProbe(
-    bool Success,
-    string TargetChannel,
-    string FeedManifestUrl,
-    string? CurrentDbSchema,
-    string RequiredMinDbSchema,
-    string RequiredMaxDbSchema,
-    string Message);
-
-public interface IReleaseChannelService
-{
-    Task<ReleaseChannelProbe> ProbeAsync(
-        string? baseFeedUrl,
-        string targetChannel,
-        PgOptions pgOptions,
-        CancellationToken ct = default);
-}
+namespace PacToolkits.Application.Services;
 
 public sealed class ReleaseChannelService : IReleaseChannelService
 {

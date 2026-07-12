@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
+using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-public sealed class ClientAliasStore
+public sealed class ClientAliasStore : IClientAliasStore
 {
     private static readonly object _lock = new();
     private readonly IAppConfigStore _configStore;
@@ -24,7 +24,7 @@ public sealed class ClientAliasStore
         }
     }
 
-    public void Load()
+    public IReadOnlyDictionary<string, string> Load()
     {
         lock (_lock)
         {
@@ -39,10 +39,12 @@ public sealed class ClientAliasStore
             {
                 _aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             }
+
+            return new Dictionary<string, string>(_aliases, StringComparer.OrdinalIgnoreCase);
         }
     }
 
-    public void Save(IEnumerable<KeyValuePair<string, string>> items)
+    public IReadOnlyDictionary<string, string> Save(IEnumerable<KeyValuePair<string, string>> items)
     {
         lock (_lock)
         {
@@ -76,19 +78,9 @@ public sealed class ClientAliasStore
             {
                 AppLog.Warn("ClientAliasStore", "alias.save.persist_fail", "Failed to persist alias map to config", ex);
             }
+
+            return new Dictionary<string, string>(_aliases, StringComparer.OrdinalIgnoreCase);
         }
     }
 
-    public string? TryGet(string? machine)
-    {
-        if (string.IsNullOrWhiteSpace(machine))
-        {
-            return null;
-        }
-
-        lock (_lock)
-        {
-            return _aliases.TryGetValue(machine.Trim(), out var v) ? v : null;
-        }
-    }
 }

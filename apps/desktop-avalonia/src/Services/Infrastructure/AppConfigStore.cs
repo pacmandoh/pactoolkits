@@ -13,13 +13,6 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-public sealed class TraceCodeValidationOptions
-{
-    public int RequiredLength { get; set; } = 20;
-
-    public string Pattern { get; set; } = "^8\\d+$";
-}
-
 public sealed class AppConfigRoot
 {
     public int SchemaVersion { get; set; } = 1;
@@ -50,16 +43,6 @@ public sealed class MsfxApiOptions
 public sealed class UiBehaviorOptions
 {
     public bool MinimizeToTrayOnClose { get; set; } = true;
-}
-
-public sealed class UpdateOptions
-{
-    public bool AutoCheckOnStartup { get; set; } = true;
-    public string Channel { get; set; } = "stable";
-    public string ValidatedChannel { get; set; } = string.Empty;
-    public string FeedUrl { get; set; } = "https://updates.pacdocs.com/feed/pactoolkits";
-    public int AutoCheckIntervalMinutes { get; set; } = 0;
-    public string IgnoredVersion { get; set; } = string.Empty;
 }
 
 public sealed class LoggingOptions
