@@ -38,7 +38,7 @@ jobs:
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
 
       - name: Restore
-        run: dotnet restore PacToolkits.sln
+        run: dotnet restore PacToolkits.sln --locked-mode
 
       - name: Check format
         run: |
@@ -72,7 +72,7 @@ jobs:
           global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore PacToolkits.sln
+        run: dotnet restore PacToolkits.sln --locked-mode
 
       - name: Unit tests
         run: |
@@ -93,7 +93,7 @@ jobs:
           global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore PacToolkits.sln
+        run: dotnet restore PacToolkits.sln --locked-mode
 
       - name: Headless UI tests
         run: dotnet test tests/PacToolkits.Desktop.UiTests/PacToolkits.Desktop.UiTests.csproj -c Release --no-restore --verbosity minimal
