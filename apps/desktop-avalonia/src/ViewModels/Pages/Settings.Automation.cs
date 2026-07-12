@@ -6,7 +6,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
@@ -15,26 +14,16 @@ using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Application;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class ToolsCenter : AppPageBase
+public partial class Settings
 {
     private readonly record struct SaveOptionsResult(bool Saved, bool Changed);
 
-    public override string DisplayName => "自动化套件";
-    public override string Icon => "Syringe";
-    public override string FunctionAreaId => ShellFunctionAreas.AutomationId;
-    public override int Index => 4;
-    public override ICommand? RefreshCommand => _refreshRuntimeCommand;
-
     private readonly IInjectorAgentRuntime _injector;
     private IInjectorAgentRuntime Injector => _injector;
-    private readonly IToastService _toast;
     private readonly IAutomationConfigService _automationConfig;
-    private readonly IReleaseVersionService _releaseVersion;
-    private readonly IAsyncRelayCommand _refreshRuntimeCommand;
     private readonly object _agentSnapshotGate = new();
     private ToolEditorSnapshot? _savedSnapshot;
     private bool _hasPendingChanges;
@@ -86,17 +75,8 @@ public sealed partial class ToolsCenter : AppPageBase
     private bool CanRestartAhk() => !IsAhkToggling && IsAhkEnabled;
     partial void OnIsAhkTogglingChanged(bool value) => RestartAhkCommand.NotifyCanExecuteChanged();
 
-    public ToolsCenter(
-        IInjectorAgentRuntime injector,
-        IToastService toast,
-        IAutomationConfigService automationConfig,
-        IReleaseVersionService releaseVersion)
+    private void InitializeAutomation()
     {
-        _injector = injector;
-        _toast = toast;
-        _automationConfig = automationConfig;
-        _releaseVersion = releaseVersion;
-        _refreshRuntimeCommand = new AsyncRelayCommand(RefreshRuntimeStateAsync);
         WireLineCollection(AgentAppWinItems);
         WireLineCollection(AgentColSpecsItems);
         WireLineCollection(AgentIntColsItems);
@@ -108,6 +88,13 @@ public sealed partial class ToolsCenter : AppPageBase
         RefreshPendingChanges();
 
         Injector.StatusChanged += OnAhkRuntimeChanged;
+    }
+
+    private void ReloadAutomationRuntime()
+    {
+        Injector.Reload();
+        ApplyRuntimeSnapshot();
+        SyncAgentConfig();
     }
 
     partial void OnAhkExecutablePathChanged(string value) => RefreshPendingChanges();
@@ -172,26 +159,6 @@ public sealed partial class ToolsCenter : AppPageBase
 
     public bool HasPendingChanges
         => _baselineReady && _hasPendingChanges;
-    public bool IsSavedState => !HasPendingChanges;
-
-    protected override Task ReloadCoreAsync(CancellationToken ct)
-    {
-        ReloadInjectorState();
-        return Task.CompletedTask;
-    }
-
-    private Task RefreshRuntimeStateAsync()
-    {
-        ReloadInjectorState();
-        return Task.CompletedTask;
-    }
-
-    private void ReloadInjectorState()
-    {
-        Injector.Reload();
-        ApplyRuntimeSnapshot();
-        SyncAgentConfig();
-    }
 
     private void OnAhkRuntimeChanged()
     {
@@ -206,7 +173,7 @@ public sealed partial class ToolsCenter : AppPageBase
         if (_syncingFromRuntime)
             return;
 
-        ObserveDetached(ToggleAhkAsync(value), "ahk.toggle.detached.fail");
+        ObserveDetached(ToggleAhkAsync(value), "settings.automation.toggle.detached.fail");
     }
 
     partial void OnAhkStatusTextChanged(string value)
@@ -219,9 +186,14 @@ public sealed partial class ToolsCenter : AppPageBase
     [RelayCommand]
     private async Task SaveAhkSettingsAsync()
     {
+        await ApplyAutomationSettingsAsync(showSuccessToast: true);
+    }
+
+    private async Task<bool> ApplyAutomationSettingsAsync(bool showSuccessToast)
+    {
         if (SkipTrigger())
         {
-            return;
+            return !HasPendingChanges;
         }
 
         IsSavingSettings = true;
@@ -230,7 +202,7 @@ public sealed partial class ToolsCenter : AppPageBase
             var result = await SaveOptionsToConfigAsync(showToastOnError: true).ConfigureAwait(false);
             if (!result.Saved)
             {
-                return;
+                return false;
             }
 
             var restarted = false;
@@ -241,23 +213,29 @@ public sealed partial class ToolsCenter : AppPageBase
                 {
                     if (!restart.SuppressToast)
                     {
-                        _toast.Error("自动化套件", restart.Message);
+                        _toast.Error("自动化集成", restart.Message);
                     }
 
-                    return;
+                    return false;
                 }
 
                 restarted = true;
             }
 
-            _toast.Success("自动化套件", restarted ? "配置已保存，Agent 已重启" : "配置已保存");
+            if (showSuccessToast)
+            {
+                _toast.Success("自动化集成", restarted ? "配置已保存，Agent 已重启" : "配置已保存");
+            }
+
             ApplyRuntimeSnapshot();
             SyncAgentConfig();
+            return !HasPendingChanges;
         }
         catch (Exception ex)
         {
-            LogError("tools.save_settings.fail", "Failed to save AHK settings", ex);
-            _toast.Error("自动化套件", $"保存失败：{ex.Message}");
+            LogError("settings.automation.save.fail", "Failed to save AHK settings", ex);
+            _toast.Error("自动化集成", $"保存失败：{ex.Message}");
+            return false;
         }
         finally
         {
@@ -273,7 +251,7 @@ public sealed partial class ToolsCenter : AppPageBase
             return;
         }
 
-        if (SkipTrigger("tools.ahk.restart"))
+        if (SkipTrigger("settings.automation.ahk.restart"))
         {
             return;
         }
@@ -300,17 +278,17 @@ public sealed partial class ToolsCenter : AppPageBase
 
             if (result.Ok)
             {
-                _toast.Success("自动化套件", result.Message);
+                _toast.Success("自动化集成", result.Message);
             }
             else
             {
-                _toast.Error("自动化套件", result.Message);
+                _toast.Error("自动化集成", result.Message);
             }
         }
         catch (Exception ex)
         {
-            LogError("tools.restart_ahk.fail", "Failed to restart AHK runtime", ex);
-            _toast.Error("自动化套件", ex.Message);
+            LogError("settings.automation.restart.fail", "Failed to restart AHK runtime", ex);
+            _toast.Error("自动化集成", ex.Message);
         }
         finally
         {
@@ -329,7 +307,7 @@ public sealed partial class ToolsCenter : AppPageBase
             return;
         }
 
-        if (SkipTrigger(enabled ? "tools.ahk.enable" : "tools.ahk.disable"))
+        if (SkipTrigger(enabled ? "settings.automation.ahk.enable" : "settings.automation.ahk.disable"))
         {
             return;
         }
@@ -360,14 +338,14 @@ public sealed partial class ToolsCenter : AppPageBase
                 var result = (await Injector.StartOrRestartAsync().ConfigureAwait(false)).ToApplication();
                 if (!result.Ok && !result.SuppressToast)
                 {
-                    _toast.Error("自动化套件", result.Message);
+                    _toast.Error("自动化集成", result.Message);
                 }
             }
         }
         catch (Exception ex)
         {
-            LogError("tools.toggle_ahk.fail", "Failed to toggle AHK runtime", ex, new { enabled });
-            _toast.Error("自动化套件", ex.Message);
+            LogError("settings.automation.toggle.fail", "Failed to toggle AHK runtime", ex, new { enabled });
+            _toast.Error("自动化集成", ex.Message);
         }
         finally
         {
@@ -388,8 +366,8 @@ public sealed partial class ToolsCenter : AppPageBase
         }
         catch (Exception ex)
         {
-            LogError("tools.save_options.silent_fail", "Silent save options failed", ex);
-            _toast.Error("自动化套件", $"配置保存失败：{ex.Message}");
+            LogError("settings.automation.save_options.silent_fail", "Silent save options failed", ex);
+            _toast.Error("自动化集成", $"配置保存失败：{ex.Message}");
             return false;
         }
     }
@@ -433,10 +411,10 @@ public sealed partial class ToolsCenter : AppPageBase
         }
         catch (Exception ex)
         {
-            LogError("tools.save_options.fail", "Failed to save tool options to config", ex);
+            LogError("settings.automation.save_options.fail", "Failed to save tool options to config", ex);
             if (showToastOnError)
             {
-                _toast.Error("自动化套件", $"配置保存失败：{ex.Message}");
+                _toast.Error("自动化集成", $"配置保存失败：{ex.Message}");
             }
 
             return new SaveOptionsResult(false, false);
@@ -691,32 +669,44 @@ public sealed partial class ToolsCenter : AppPageBase
 
     private void RefreshPendingChanges()
     {
-        if (_suppressPendingRecalc)
+        void Apply()
         {
-            return;
-        }
-
-        if (!_baselineReady || _savedSnapshot is null)
-        {
-            if (_hasPendingChanges)
+            if (_suppressPendingRecalc)
             {
-                _hasPendingChanges = false;
-                OnPropertyChanged(nameof(HasPendingChanges));
-                OnPropertyChanged(nameof(IsSavedState));
+                return;
             }
-            return;
+
+            if (!_baselineReady || _savedSnapshot is null)
+            {
+                if (_hasPendingChanges)
+                {
+                    _hasPendingChanges = false;
+                    OnPropertyChanged(nameof(HasPendingChanges));
+                    RefreshUnsaved();
+                }
+
+                return;
+            }
+
+            var current = BuildCurrentSnapshot();
+            var pending = current is null || !SnapshotEquals(_savedSnapshot, current);
+            if (_hasPendingChanges == pending)
+            {
+                return;
+            }
+
+            _hasPendingChanges = pending;
+            OnPropertyChanged(nameof(HasPendingChanges));
+            RefreshUnsaved();
         }
 
-        var current = BuildCurrentSnapshot();
-        var pending = current is null || !SnapshotEquals(_savedSnapshot, current);
-        if (_hasPendingChanges == pending)
+        if (Dispatcher.UIThread.CheckAccess())
         {
+            Apply();
             return;
         }
 
-        _hasPendingChanges = pending;
-        OnPropertyChanged(nameof(HasPendingChanges));
-        OnPropertyChanged(nameof(IsSavedState));
+        Dispatcher.UIThread.Post(Apply);
     }
 
     private AutomationAgentOptionsDto? ParseAgentOptionsForSave()
@@ -726,14 +716,14 @@ public sealed partial class ToolsCenter : AppPageBase
             var appWin = ParseAppWinItems(AgentAppWinItems);
             if (appWin.Count == 0)
             {
-                _toast.Error("自动化套件", "AppWin 至少需要一个可执行文件");
+                _toast.Error("自动化集成", "AppWin 至少需要一个可执行文件");
                 return null;
             }
 
             var colSpecs = ParseLineItems(AgentColSpecsItems);
             if (colSpecs.Count == 0)
             {
-                _toast.Error("自动化套件", "ColSpecs 不能为空");
+                _toast.Error("自动化集成", "ColSpecs 不能为空");
                 return null;
             }
 
@@ -741,14 +731,14 @@ public sealed partial class ToolsCenter : AppPageBase
 
             if (AgentConfirmTimeoutMs is < 100 or > 10000)
             {
-                _toast.Error("自动化套件", "ConfirmTimeoutMs 范围应为 100-10000");
+                _toast.Error("自动化集成", "ConfirmTimeoutMs 范围应为 100-10000");
                 return null;
             }
 
             var codePickPolicy = AgentCodePickPolicy.Trim().ToUpperInvariant();
             if (codePickPolicy is not ("MAX_LEVEL" or "MIN_LEVEL"))
             {
-                _toast.Error("自动化套件", "CodePickPolicy 仅支持 MAX_LEVEL 或 MIN_LEVEL");
+                _toast.Error("自动化集成", "CodePickPolicy 仅支持 MAX_LEVEL 或 MIN_LEVEL");
                 return null;
             }
 
@@ -779,8 +769,8 @@ public sealed partial class ToolsCenter : AppPageBase
         }
         catch (Exception ex)
         {
-            LogError("tools.agent_options.parse_fail", "Failed to parse agent options", ex);
-            _toast.Error("自动化套件", $"Agent 配置格式错误：{ex.Message}");
+            LogError("settings.automation.agent_options.parse_fail", "Failed to parse agent options", ex);
+            _toast.Error("自动化集成", $"Agent 配置格式错误：{ex.Message}");
             return null;
         }
     }
@@ -1030,36 +1020,36 @@ public sealed partial class ToolsCenter : AppPageBase
         return v is "未知" or "未配置" ? null : v;
     }
 
-    public override void Dispose()
+    private void DisposeAutomation()
     {
         try { Injector.StatusChanged -= OnAhkRuntimeChanged; }
         catch (Exception ex)
         {
-            LogWarn("tools.dispose.runtime_unsub_fail", "Failed to unsubscribe runtime status", ex);
+            LogWarn("settings.automation.dispose.runtime_unsub_fail", "Failed to unsubscribe runtime status", ex);
         }
 
         try { AgentAppWinItems.CollectionChanged -= OnAgentLineCollectionChanged; }
         catch (Exception ex)
         {
-            LogWarn("tools.dispose.appwin_collection_unsub_fail", "Failed to unsubscribe AgentAppWinItems", ex);
+            LogWarn("settings.automation.dispose.appwin_collection_unsub_fail", "Failed to unsubscribe AgentAppWinItems", ex);
         }
 
         try { AgentColSpecsItems.CollectionChanged -= OnAgentLineCollectionChanged; }
         catch (Exception ex)
         {
-            LogWarn("tools.dispose.colspecs_collection_unsub_fail", "Failed to unsubscribe AgentColSpecsItems", ex);
+            LogWarn("settings.automation.dispose.colspecs_collection_unsub_fail", "Failed to unsubscribe AgentColSpecsItems", ex);
         }
 
         try { AgentIntColsItems.CollectionChanged -= OnAgentLineCollectionChanged; }
         catch (Exception ex)
         {
-            LogWarn("tools.dispose.intcols_collection_unsub_fail", "Failed to unsubscribe AgentIntColsItems", ex);
+            LogWarn("settings.automation.dispose.intcols_collection_unsub_fail", "Failed to unsubscribe AgentIntColsItems", ex);
         }
 
         try { AgentWarehouseAnchorItems.CollectionChanged -= OnAgentLineCollectionChanged; }
         catch (Exception ex)
         {
-            LogWarn("tools.dispose.warehouse_anchors_collection_unsub_fail", "Failed to unsubscribe AgentWarehouseAnchorItems", ex);
+            LogWarn("settings.automation.dispose.warehouse_anchors_collection_unsub_fail", "Failed to unsubscribe AgentWarehouseAnchorItems", ex);
         }
 
         foreach (var item in AgentAppWinItems)
@@ -1067,7 +1057,7 @@ public sealed partial class ToolsCenter : AppPageBase
             try { item.PropertyChanged -= OnAgentLineItemPropertyChanged; }
             catch (Exception ex)
             {
-                LogWarn("tools.dispose.appwin_item_unsub_fail", "Failed to unsubscribe AgentAppWin item", ex);
+                LogWarn("settings.automation.dispose.appwin_item_unsub_fail", "Failed to unsubscribe AgentAppWin item", ex);
             }
         }
 
@@ -1076,7 +1066,7 @@ public sealed partial class ToolsCenter : AppPageBase
             try { item.PropertyChanged -= OnAgentLineItemPropertyChanged; }
             catch (Exception ex)
             {
-                LogWarn("tools.dispose.colspecs_item_unsub_fail", "Failed to unsubscribe AgentColSpecs item", ex);
+                LogWarn("settings.automation.dispose.colspecs_item_unsub_fail", "Failed to unsubscribe AgentColSpecs item", ex);
             }
         }
 
@@ -1085,7 +1075,7 @@ public sealed partial class ToolsCenter : AppPageBase
             try { item.PropertyChanged -= OnAgentLineItemPropertyChanged; }
             catch (Exception ex)
             {
-                LogWarn("tools.dispose.intcols_item_unsub_fail", "Failed to unsubscribe AgentIntCols item", ex);
+                LogWarn("settings.automation.dispose.intcols_item_unsub_fail", "Failed to unsubscribe AgentIntCols item", ex);
             }
         }
 
@@ -1094,11 +1084,9 @@ public sealed partial class ToolsCenter : AppPageBase
             try { item.PropertyChanged -= OnAgentLineItemPropertyChanged; }
             catch (Exception ex)
             {
-                LogWarn("tools.dispose.warehouse_anchor_item_unsub_fail", "Failed to unsubscribe AgentWarehouseAnchor item", ex);
+                LogWarn("settings.automation.dispose.warehouse_anchor_item_unsub_fail", "Failed to unsubscribe AgentWarehouseAnchor item", ex);
             }
         }
-
-        base.Dispose();
     }
 
     private sealed record ToolEditorSnapshot(

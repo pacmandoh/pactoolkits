@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -34,7 +35,8 @@ public partial class SettingsView : UserControl
         ("TabUiBehaviorPage", "界面行为", "MonitorCog"),
         ("TabUpdatePage", "应用更新", "Download"),
         ("TabLoggingPage", "日志与诊断", "TextCursorInput"),
-        ("TabMsfxPage", "码上放心 API", "Webhook")
+        ("TabMsfxPage", "码上放心 API", "Webhook"),
+        ("TabAutomationPage", "自动化集成", "Syringe")
     ];
 
     private Settings? _vm;
@@ -91,7 +93,15 @@ public partial class SettingsView : UserControl
     }
 
     private void OnUnsavedChanged()
-        => RefreshNavDots();
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            RefreshNavDots();
+            return;
+        }
+
+        Dispatcher.UIThread.Post(RefreshNavDots);
+    }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
@@ -131,6 +141,48 @@ public partial class SettingsView : UserControl
 
     private IEnumerable<Control> EnumerateTabInputs() =>
         InputFocusHelper.EnumerateInputs(this, typeof(TextBox), typeof(NumericUpDown), typeof(ComboBox));
+
+    private void OnAutomationAddLineClicked(object? sender, RoutedEventArgs e)
+    {
+        var scroller = this.FindControl<ScrollViewer>("AutomationScrollViewer");
+        var shouldAutoFollow = false;
+        if (scroller is not null)
+        {
+            var remain = scroller.Extent.Height - (scroller.Offset.Y + scroller.Viewport.Height);
+            shouldAutoFollow = remain <= 28;
+        }
+
+        var targetName = (sender as Button)?.Tag as string;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (shouldAutoFollow && scroller is not null)
+            {
+                var maxY = Math.Max(0, scroller.Extent.Height - scroller.Viewport.Height);
+                scroller.Offset = new Vector(scroller.Offset.X, maxY);
+            }
+
+            if (string.IsNullOrWhiteSpace(targetName))
+            {
+                return;
+            }
+
+            var itemsControl = this.FindControl<ItemsControl>(targetName);
+            if (itemsControl is null)
+            {
+                return;
+            }
+
+            var targetBox = itemsControl.GetVisualDescendants().OfType<TextBox>().LastOrDefault();
+            if (targetBox is null)
+            {
+                return;
+            }
+
+            targetBox.Focus();
+            targetBox.CaretIndex = targetBox.Text?.Length ?? 0;
+        }, DispatcherPriority.Background);
+    }
 
     private void OnNavButtonClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
     {

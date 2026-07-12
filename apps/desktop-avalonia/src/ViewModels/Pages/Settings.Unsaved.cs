@@ -19,7 +19,8 @@ public partial class Settings
         UiBehavior = 3,
         Updates = 4,
         Logging = 5,
-        MsfxApi = 6
+        MsfxApi = 6,
+        Automation = 7
     }
 
     private static readonly string[] TabTitles =
@@ -30,7 +31,8 @@ public partial class Settings
         "界面行为",
         "应用更新",
         "日志与诊断",
-        "码上放心 API"
+        "码上放心 API",
+        "自动化集成"
     ];
 
     private int _unsavedMask;
@@ -119,6 +121,7 @@ public partial class Settings
             Tab.TraceCodeRule => await ApplyTraceCodeRuleAsync(),
             Tab.Updates => await ApplyUpdateOptionsAsync(),
             Tab.MsfxApi => await ApplyMsfxApiConfigAsync(),
+            Tab.Automation => await ApplyAutomationSettingsAsync(showSuccessToast: false),
             Tab.UiBehavior or Tab.Logging => true,
             _ => true
         };
@@ -145,6 +148,9 @@ public partial class Settings
                 break;
             case Tab.MsfxApi:
                 SyncMsfxApi();
+                break;
+            case Tab.Automation:
+                SyncAgentConfig();
                 break;
             case Tab.UiBehavior:
                 SyncUiBehavior();
@@ -197,6 +203,11 @@ public partial class Settings
         if (IsMsfxApiDirty())
         {
             nextMask |= 1 << (int)Tab.MsfxApi;
+        }
+
+        if (HasPendingChanges)
+        {
+            nextMask |= 1 << (int)Tab.Automation;
         }
 
         if (nextMask == _unsavedMask)
