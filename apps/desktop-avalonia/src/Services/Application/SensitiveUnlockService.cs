@@ -1,78 +1,40 @@
 using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
 public sealed class SensitiveUnlockService : ISensitiveUnlockService
 {
-    private static readonly TimeSpan UnlockSessionDuration = TimeSpan.FromMinutes(15);
-    private static readonly TimeSpan UnlockCooldownDuration = TimeSpan.FromMinutes(1);
-    private const int UnlockFailedAttemptThreshold = 5;
-
-    private sealed class ScopeState
-    {
-        public bool IsUnlocked { get; set; }
-        public DateTimeOffset ExpiresAtUtc { get; set; } = DateTimeOffset.MinValue;
-        public int FailedAttempts { get; set; }
-        public DateTimeOffset CooldownUntilUtc { get; set; } = DateTimeOffset.MinValue;
-        public bool IsPromptActive { get; set; }
-    }
-
-    private readonly object _gate = new();
-    private readonly Dictionary<string, ScopeState> _states = new(StringComparer.Ordinal);
+    private readonly SensitiveUnlockSession _session;
     private readonly IDbConfigService _dbConfig;
     private readonly IDialogService _dialog;
     private readonly IToastService _toast;
-    public event Action<string>? StateChanged;
 
     public SensitiveUnlockService(
+        SensitiveUnlockSession session,
         IDbConfigService dbConfig,
         IDialogService dialog,
         IToastService toast)
     {
+        _session = session;
         _dbConfig = dbConfig;
         _dialog = dialog;
         _toast = toast;
     }
 
+    public event Action<string>? StateChanged;
+
     public UnlockScopeSnapshot GetSnapshot(string scopeKey)
-    {
-        var key = NormalizeScope(scopeKey);
-        lock (_gate)
-        {
-            var state = GetOrCreateState(key);
-            return ToSnapshot(state);
-        }
-    }
+        => _session.GetSnapshot(scopeKey);
 
     public void Refresh(string scopeKey)
     {
-        var key = NormalizeScope(scopeKey);
-        var now = DateTimeOffset.UtcNow;
-        var changed = false;
-        lock (_gate)
-        {
-            var state = GetOrCreateState(key);
-            if (state.CooldownUntilUtc != DateTimeOffset.MinValue && state.CooldownUntilUtc <= now)
-            {
-                state.CooldownUntilUtc = DateTimeOffset.MinValue;
-                changed = true;
-            }
-
-            if (state.IsUnlocked && state.ExpiresAtUtc <= now)
-            {
-                state.IsUnlocked = false;
-                state.ExpiresAtUtc = DateTimeOffset.MinValue;
-                changed = true;
-            }
-        }
-
-        if (changed)
+        var key = SensitiveUnlockSession.NormalizeScope(scopeKey);
+        if (_session.Refresh(key, DateTimeOffset.UtcNow))
         {
             RaiseStateChanged(key);
         }
@@ -80,17 +42,8 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
 
     public void Lock(string scopeKey)
     {
-        var key = NormalizeScope(scopeKey);
-        var changed = false;
-        lock (_gate)
-        {
-            var state = GetOrCreateState(key);
-            changed = state.IsUnlocked || state.ExpiresAtUtc != DateTimeOffset.MinValue;
-            state.IsUnlocked = false;
-            state.ExpiresAtUtc = DateTimeOffset.MinValue;
-        }
-
-        if (changed)
+        var key = SensitiveUnlockSession.NormalizeScope(scopeKey);
+        if (_session.Lock(key))
         {
             RaiseStateChanged(key);
         }
@@ -104,24 +57,21 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
         bool notifySuccess = true,
         CancellationToken ct = default)
     {
-        var key = NormalizeScope(scopeKey);
-        Refresh(key);
-
-        lock (_gate)
+        var now = DateTimeOffset.UtcNow;
+        var access = _session.CheckAccess(scopeKey, now);
+        if (access.StateChanged)
         {
-            var state = GetOrCreateState(key);
-            if (state.IsUnlocked)
-            {
-                // Sliding session: each gated action extends the unlock window.
-                state.ExpiresAtUtc = DateTimeOffset.UtcNow + UnlockSessionDuration;
-                return true;
-            }
+            RaiseStateChanged(access.ScopeKey);
+        }
 
-            if (state.IsPromptActive)
-            {
-                // Concurrent callers must not stack password dialogs.
-                return false;
-            }
+        if (access.IsGranted)
+        {
+            return true;
+        }
+
+        if (access.IsPromptActive)
+        {
+            return false;
         }
 
         var expectedPassword = NormalizeInput(_dbConfig.Current.Password);
@@ -131,50 +81,43 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             return false;
         }
 
-        var now = DateTimeOffset.UtcNow;
-        DateTimeOffset cooldownUntil;
-        lock (_gate)
+        var prompt = _session.BeginPrompt(access.ScopeKey, DateTimeOffset.UtcNow);
+        if (prompt.StateChanged)
         {
-            var state = GetOrCreateState(key);
-            cooldownUntil = state.CooldownUntilUtc;
+            RaiseStateChanged(prompt.ScopeKey);
         }
 
-        if (cooldownUntil > now)
+        if (prompt.Status is SensitiveUnlockSession.PromptStatus.Granted)
         {
-            var left = cooldownUntil - now;
-            _toast.Warn(scene, $"验证冷却中，请在 {Math.Max(1, (int)Math.Ceiling(left.TotalSeconds))} 秒后重试");
+            return true;
+        }
+
+        if (prompt.Status is SensitiveUnlockSession.PromptStatus.Active)
+        {
             return false;
         }
 
-        lock (_gate)
+        if (prompt.Status is SensitiveUnlockSession.PromptStatus.CoolingDown)
         {
-            var state = GetOrCreateState(key);
-            state.IsPromptActive = true;
+            var left = prompt.CooldownUntilUtc - DateTimeOffset.UtcNow;
+            _toast.Warn(scene, $"验证冷却中，请在 {Math.Max(1, (int)Math.Ceiling(left.TotalSeconds))} 秒后重试");
+            return false;
         }
 
         string? input;
         try
         {
-            int failed;
-            lock (_gate)
-            {
-                var state = GetOrCreateState(key);
-                failed = state.FailedAttempts;
-            }
-
-            var suffix = failed <= 0 ? promptHint : $"{promptHint}\n（已失败 {failed} 次）";
+            var suffix = prompt.FailedAttempts <= 0
+                ? promptHint
+                : $"{promptHint}\n（已失败 {prompt.FailedAttempts} 次）";
             input = await _dialog.PromptUnlockPassword(
                 promptTitle,
                 suffix,
-                password => VerifyPassword(key, password, expectedPassword)).ConfigureAwait(true);
+                password => VerifyPassword(prompt.ScopeKey, password, expectedPassword)).ConfigureAwait(true);
         }
         finally
         {
-            lock (_gate)
-            {
-                var state = GetOrCreateState(key);
-                state.IsPromptActive = false;
-            }
+            _session.EndPrompt(prompt.ScopeKey);
         }
 
         if (ct.IsCancellationRequested || string.IsNullOrWhiteSpace(input))
@@ -182,8 +125,8 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             return false;
         }
 
-        Refresh(key);
-        if (!GetSnapshot(key).IsUnlocked)
+        Refresh(prompt.ScopeKey);
+        if (!GetSnapshot(prompt.ScopeKey).IsUnlocked)
         {
             return false;
         }
@@ -193,7 +136,7 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             _toast.Success(scene, "验证通过，已解锁敏感操作");
         }
 
-        RaiseStateChanged(key);
+        RaiseStateChanged(prompt.ScopeKey);
         return true;
     }
 
@@ -211,80 +154,13 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
 
     private string? VerifyPassword(string key, string password, string expectedPassword)
     {
-        var cooldownError = GetCooldownError(key);
-        if (cooldownError is not null)
+        var result = _session.Validate(key, password, expectedPassword, DateTimeOffset.UtcNow);
+        if (result.StateChanged && !result.IsSuccess)
         {
-            return cooldownError;
+            RaiseStateChanged(result.ScopeKey);
         }
 
-        var normalized = NormalizeInput(password);
-        if (normalized is null)
-        {
-            return "请输入数据库密码";
-        }
-
-        if (!string.Equals(normalized, expectedPassword, StringComparison.Ordinal))
-        {
-            return RecordFailure(key);
-        }
-
-        RecordSuccess(key);
-        return null;
-    }
-
-    private string? GetCooldownError(string key)
-    {
-        lock (_gate)
-        {
-            var state = GetOrCreateState(key);
-            if (state.CooldownUntilUtc <= DateTimeOffset.UtcNow)
-            {
-                return null;
-            }
-
-            var left = state.CooldownUntilUtc - DateTimeOffset.UtcNow;
-            return $"验证冷却中，请在 {Math.Max(1, (int)Math.Ceiling(left.TotalSeconds))} 秒后重试";
-        }
-    }
-
-    private string RecordFailure(string key)
-    {
-        bool lockout;
-        int remaining;
-        lock (_gate)
-        {
-            var state = GetOrCreateState(key);
-            state.FailedAttempts++;
-            lockout = state.FailedAttempts >= UnlockFailedAttemptThreshold;
-            if (lockout)
-            {
-                state.CooldownUntilUtc = DateTimeOffset.UtcNow + UnlockCooldownDuration;
-                state.FailedAttempts = 0;
-                remaining = 0;
-            }
-            else
-            {
-                remaining = UnlockFailedAttemptThreshold - state.FailedAttempts;
-            }
-        }
-
-        RaiseStateChanged(key);
-
-        return lockout
-            ? $"密码连续错误过多，已锁定 {UnlockCooldownDuration.TotalSeconds.ToString(CultureInfo.InvariantCulture)} 秒"
-            : $"密码错误，还可重试 {remaining} 次";
-    }
-
-    private void RecordSuccess(string key)
-    {
-        lock (_gate)
-        {
-            var state = GetOrCreateState(key);
-            state.IsUnlocked = true;
-            state.FailedAttempts = 0;
-            state.CooldownUntilUtc = DateTimeOffset.MinValue;
-            state.ExpiresAtUtc = DateTimeOffset.UtcNow + UnlockSessionDuration;
-        }
+        return result.Error;
     }
 
     private void RaiseStateChanged(string scopeKey)
@@ -303,32 +179,10 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             }
             catch
             {
-                // Keep unlock workflow robust even if one UI subscriber throws.
+                // One view subscriber must not abort the unlock workflow for the remaining listeners.
             }
         }
     }
-
-    private ScopeState GetOrCreateState(string key)
-    {
-        if (_states.TryGetValue(key, out var state))
-        {
-            return state;
-        }
-
-        state = new ScopeState();
-        _states[key] = state;
-        return state;
-    }
-
-    private static UnlockScopeSnapshot ToSnapshot(ScopeState state)
-        => new(
-            state.IsUnlocked,
-            state.ExpiresAtUtc,
-            state.FailedAttempts,
-            state.CooldownUntilUtc);
-
-    private static string NormalizeScope(string? scopeKey)
-        => string.IsNullOrWhiteSpace(scopeKey) ? "default" : scopeKey.Trim();
 
     private static string? NormalizeInput(string? value)
     {
