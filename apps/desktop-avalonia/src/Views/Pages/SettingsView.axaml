@@ -1003,6 +1003,659 @@
         </Border>
       </Grid>
 
+      <!--  自动化集成  -->
+      <Grid
+        x:Name="TabAutomationPage"
+        Classes="TabPage"
+        IsVisible="False">
+        <ScrollViewer
+          x:Name="AutomationScrollViewer"
+          controls:SettingsScroll.StickyHost="{Binding #AutomationStickyHost}"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+          <StackPanel Classes="Body">
+            <Border Classes="H1">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <TextBlock VerticalAlignment="Center" Classes="H1Text" Text="自动化集成" />
+                <StackPanel Grid.Column="1" Classes="H2Actions">
+                  <Button
+                    Classes="Outline"
+                    Command="{Binding RestartAhkCommand}"
+                    Content="重启 Agent"
+                    IsEnabled="{Binding !IsAhkToggling}" />
+                  <Button
+                    shad:ButtonAssist.ShowProgress="{Binding IsSavingSettings}"
+                    Classes="Primary"
+                    Command="{Binding SaveAhkSettingsCommand}"
+                    Content="保存配置"
+                    IsEnabled="{Binding !IsSavingSettings}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <Border Classes="H2">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                <TextBlock VerticalAlignment="Center" Classes="H2Text" Text="Agent-Injector 运行" />
+                <controls:StatusPill
+                  VerticalAlignment="Center"
+                  Classes="ToneInfo15"
+                  Icon="BadgeQuestionMark"
+                  IsVisible="{Binding IsAhkStatusUnknown}"
+                  Text="{Binding AhkStatusText}" />
+                <controls:StatusPill
+                  VerticalAlignment="Center"
+                  Classes="ToneDone25"
+                  Icon="CircleCheck"
+                  IsVisible="{Binding IsAhkStatusRunning}"
+                  Text="{Binding AhkStatusText}" />
+                <controls:StatusPill
+                  VerticalAlignment="Center"
+                  Classes="ToneDanger15"
+                  Icon="CircleAlert"
+                  IsVisible="{Binding IsAhkStatusStopped}"
+                  Text="{Binding AhkStatusText}" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="启动 Injector" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="开启后自动拉起 pactoolkits-injector 进程" />
+                </StackPanel>
+                <ToggleSwitch
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding IsAhkEnabled, Mode=TwoWay}"
+                  IsEnabled="{Binding !IsAhkToggling}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="运行说明" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="当前进程状态与操作建议" />
+                </StackPanel>
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding AhkStatusDetail}"
+                  TextWrapping="Wrap" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H2">
+              <TextBlock Classes="H2Text" Text="版本与运行信息" />
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="FieldTitle"
+                  Text="程序版本" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding ProgramVersionText}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="FieldTitle"
+                  Text="工具版本" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding AhkVersionText}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="FieldTitle"
+                  Text="最近拉起" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding LastLaunchText}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="FieldTitle"
+                  Text="最近错误" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding LastErrorText}"
+                  TextWrapping="Wrap" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H2">
+              <TextBlock Classes="H2Text" Text="基础配置" />
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="可执行路径" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="pactoolkits-injector 可执行文件路径" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  PlaceholderText="例如：.\Agents\injector\pactoolkits-injector.exe"
+                  Text="{Binding AhkExecutablePath}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="进程名" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="可选，用于检测进程（不带 .exe）" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  PlaceholderText="例如：pactoolkits-injector"
+                  Text="{Binding AhkProcessName}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="PG 驱动" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="Agent 连接 PostgreSQL 使用的 ODBC 驱动名" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Text="{Binding AgentPgDriver}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="PG SSL" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="Agent 连接数据库时是否启用 SSL" />
+                </StackPanel>
+                <ToggleSwitch
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding AgentPgSslEnabled, Mode=TwoWay}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="确认超时" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="UI 操作确认等待时间（毫秒，100–10000）" />
+                </StackPanel>
+                <NumericUpDown
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  FormatString="0"
+                  Increment="100"
+                  Maximum="10000"
+                  Minimum="100"
+                  Value="{Binding AgentConfirmTimeoutMs}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="H2Text" Text="目标进程" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="Agent 可注入的目标可执行文件，每行一个" />
+                </StackPanel>
+                <Button
+                  Grid.Column="1"
+                  Classes="Outline"
+                  Click="OnAutomationAddLineClicked"
+                  Command="{Binding AddAgentAppWinItemCommand}"
+                  Tag="AgentAppWinItemsControl">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="Plus" />
+                    <TextBlock VerticalAlignment="Center" Text="新增" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+            </Border>
+
+            <ItemsControl x:Name="AgentAppWinItemsControl" ItemsSource="{Binding AgentAppWinItems}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AgentLineItem">
+                  <Border Classes="Field">
+                    <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
+                      <TextBox
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        PlaceholderText="例如：his-client.exe"
+                        Text="{Binding Value}" />
+                      <Button
+                        Grid.Column="1"
+                        Classes="Ghost"
+                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveAgentAppWinItemCommand}"
+                        CommandParameter="{Binding .}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
+                            Kind="X" />
+                          <TextBlock VerticalAlignment="Center" Text="移除" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Classes="H2">
+              <TextBlock Classes="H2Text" Text="门诊配置" />
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="窗口类" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="门诊窗口 Class 名称" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Text="{Binding AgentOptWindowClass}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="解析区 ClassNN" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="门诊表格解析区域控件标识" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Text="{Binding AgentOptParseGridClassNN}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="验证区 ClassNN" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="门诊表格验证区域控件标识" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Text="{Binding AgentOptVerifyGridClassNN}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="输入控件 ClassNN" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="门诊追溯码输入框控件标识" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Text="{Binding AgentOptInputClassNN}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H2">
+              <TextBlock Classes="H2Text" Text="住院配置" />
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="窗口类" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="住院窗口 Class 名称" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Text="{Binding AgentIptWindowClass}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="解析区 ClassNN" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="住院表格解析区域控件标识" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Text="{Binding AgentIptParseGridClassNN}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="验证区 ClassNN" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="住院表格验证区域控件标识" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Text="{Binding AgentIptVerifyGridClassNN}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="输入控件 ClassNN" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="住院追溯码输入框控件标识" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Text="{Binding AgentIptInputClassNN}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H2">
+              <TextBlock Classes="H2Text" Text="仓库配置" />
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="仓库模式" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="开启后从数据库任务队列取单注入" />
+                </StackPanel>
+                <ToggleSwitch
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="任务标识" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="默认可填：单据号||当前编号" />
+                </StackPanel>
+                <TextBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Text="{Binding AgentWarehouseTaskIdentifier}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="取码策略" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="多层级追溯码选取规则" />
+                </StackPanel>
+                <ComboBox
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  ItemsSource="{Binding AgentCodePickPolicyOptions}"
+                  SelectedItem="{Binding SelectedAgentCodePickPolicyOption, Mode=TwoWay}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="H2Text" Text="仓库列特征" />
+                  <TextBlock
+                    Classes="Caption Muted FieldDesc"
+                    Text="表头命中任一列名则判定为住院；均未命中则判定为仓库（默认：患者姓名、应扫次数）"
+                    TextWrapping="Wrap" />
+                </StackPanel>
+                <Button
+                  Grid.Column="1"
+                  Classes="Outline"
+                  Click="OnAutomationAddLineClicked"
+                  Command="{Binding AddAgentWarehouseAnchorItemCommand}"
+                  Tag="AgentWarehouseAnchorItemsControl">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="Plus" />
+                    <TextBlock VerticalAlignment="Center" Text="新增" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+            </Border>
+
+            <ItemsControl x:Name="AgentWarehouseAnchorItemsControl" ItemsSource="{Binding AgentWarehouseAnchorItems}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AgentLineItem">
+                  <Border Classes="Field">
+                    <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
+                      <TextBox
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        PlaceholderText="列名"
+                        Text="{Binding Value}" />
+                      <Button
+                        Grid.Column="1"
+                        Classes="Ghost"
+                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveAgentWarehouseAnchorItemCommand}"
+                        CommandParameter="{Binding .}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
+                            Kind="X" />
+                          <TextBlock VerticalAlignment="Center" Text="移除" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="H2Text" Text="解析规则" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="表格列解析规则（ColSpecs），每行一条" />
+                </StackPanel>
+                <Button
+                  Grid.Column="1"
+                  Classes="Outline"
+                  Click="OnAutomationAddLineClicked"
+                  Command="{Binding AddAgentColSpecsItemCommand}"
+                  Tag="AgentColSpecsItemsControl">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="Plus" />
+                    <TextBlock VerticalAlignment="Center" Text="新增" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+            </Border>
+
+            <ItemsControl x:Name="AgentColSpecsItemsControl" ItemsSource="{Binding AgentColSpecsItems}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AgentLineItem">
+                  <Border Classes="Field">
+                    <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
+                      <TextBox
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        PlaceholderText="列规则"
+                        Text="{Binding Value}" />
+                      <Button
+                        Grid.Column="1"
+                        Classes="Ghost"
+                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveAgentColSpecsItemCommand}"
+                        CommandParameter="{Binding .}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
+                            Kind="X" />
+                          <TextBlock VerticalAlignment="Center" Text="移除" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="H2Text" Text="整数列" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="需要按整数解析的列名，每行一个" />
+                </StackPanel>
+                <Button
+                  Grid.Column="1"
+                  Classes="Outline"
+                  Click="OnAutomationAddLineClicked"
+                  Command="{Binding AddAgentIntColsItemCommand}"
+                  Tag="AgentIntColsItemsControl">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="Plus" />
+                    <TextBlock VerticalAlignment="Center" Text="新增" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+            </Border>
+
+            <ItemsControl x:Name="AgentIntColsItemsControl" ItemsSource="{Binding AgentIntColsItems}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AgentLineItem">
+                  <Border Classes="Field">
+                    <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
+                      <TextBox
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        PlaceholderText="列名"
+                        Text="{Binding Value}" />
+                      <Button
+                        Grid.Column="1"
+                        Classes="Ghost"
+                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveAgentIntColsItemCommand}"
+                        CommandParameter="{Binding .}">
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <icons:AppIcon
+                            Width="{DynamicResource IconSizeSmall}"
+                            Height="{DynamicResource IconSizeSmall}"
+                            Kind="X" />
+                          <TextBlock VerticalAlignment="Center" Text="移除" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+        <Border
+          VerticalAlignment="Top"
+          Classes="StickyHost"
+          IsHitTestVisible="False">
+          <StackPanel x:Name="AutomationStickyHost" Spacing="0" />
+        </Border>
+      </Grid>
+
     </Panel>
   </Grid>
 </UserControl>
