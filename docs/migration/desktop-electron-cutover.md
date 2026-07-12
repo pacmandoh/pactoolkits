@@ -80,7 +80,7 @@
 ## Agent 接口分层（当前）
 
 ```text
-ToolsCenterViewModel / MainWindowViewModel
+SettingsViewModel / MainWindowViewModel
   → IAgentManager.GetRequired(AgentIds.InjectorAhk)
     → IAgentRuntime (AhkInjectorAgentRuntime 实现)
 ```
