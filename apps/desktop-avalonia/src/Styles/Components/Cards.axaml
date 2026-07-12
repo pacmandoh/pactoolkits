@@ -96,7 +96,7 @@
     </Setter>
   </Style>
 
-  <Style Selector="shad|Card.SectionCard:not(.PageHero)">
+  <Style Selector="shad|Card.SectionCard">
     <Setter Property="CornerRadius" Value="{DynamicResource SectionCardRadius}" />
     <Setter Property="Padding" Value="{DynamicResource SectionCardPadding}" />
     <Setter Property="Template">
@@ -154,25 +154,20 @@
     </Setter>
   </Style>
 
-  <Style Selector="shad|Card.SectionCard.PageHero">
-    <Setter Property="CornerRadius" Value="{DynamicResource SectionCardRadius}" />
-    <Setter Property="Padding" Value="{DynamicResource SectionCardPadding}" />
-  </Style>
-
-  <Style Selector="shad|Card.SectionCard.ScrollHostCard:not(.PageHero) /template/ ContentPresenter#SectionBody">
+  <Style Selector="shad|Card.SectionCard.ScrollHostCard /template/ ContentPresenter#SectionBody">
     <Setter Property="IsVisible" Value="False" />
   </Style>
 
-  <Style Selector="shad|Card.SectionCard.ScrollHostCard:not(.PageHero) /template/ ScrollViewer#SectionBodyScroll">
+  <Style Selector="shad|Card.SectionCard.ScrollHostCard /template/ ScrollViewer#SectionBodyScroll">
     <Setter Property="IsVisible" Value="True" />
   </Style>
 
-  <Style Selector="shad|Card.SectionCard:not(.PageHero) Grid.SectionCardFoot">
+  <Style Selector="shad|Card.SectionCard Grid.SectionCardFoot">
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacing}" />
   </Style>
 
-  <Style Selector="shad|Card.SectionCard:not(.PageHero) Grid.SectionCardFoot &gt; StackPanel,                      shad|Card.SectionCard:not(.PageHero) Grid.SectionCardFoot Button">
+  <Style Selector="shad|Card.SectionCard Grid.SectionCardFoot &gt; StackPanel,                      shad|Card.SectionCard Grid.SectionCardFoot Button">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
@@ -180,15 +175,6 @@
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
     <Setter Property="VerticalContentAlignment" Value="Stretch" />
-  </Style>
-
-  <Style Selector="shad|Card.PageHero">
-    <Setter Property="Padding" Value="{DynamicResource AboutHeroCardPadding}" />
-  </Style>
-
-  <Style Selector="shad|Card.ActionTile">
-    <Setter Property="Padding" Value="{DynamicResource FilterHintPadding}" />
-    <Setter Property="MinHeight" Value="{DynamicResource ActionTileMinHeight}" />
   </Style>
 
   <Style Selector="Border.HeroBadge">
