@@ -10,7 +10,6 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services.Msfx;
 using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 using ShadUI;
@@ -48,7 +47,7 @@ public sealed partial class MsfxMappingBatch(
     private bool _initialized;
     private bool _isResettingFilters;
     private int _drugInputVersion;
-    private readonly MsfxBatchReloadGate _reloadGate = new();
+    private readonly ReloadGate _reloadGate = new();
     private Task? _inputCommitTask;
     private bool _isCompleting;
 
@@ -594,5 +593,16 @@ public sealed partial class MsfxMappingBatch(
     {
         var text = (scope ?? string.Empty).Trim();
         return SearchScopes.Contains(text) ? text : "全部字段";
+    }
+
+    internal sealed class ReloadGate
+    {
+        private int _epoch;
+
+        public int BeginReload() => Interlocked.Increment(ref _epoch);
+
+        public void Invalidate() => Interlocked.Increment(ref _epoch);
+
+        public bool IsCurrent(int epoch) => epoch == Volatile.Read(ref _epoch);
     }
 }

@@ -4,6 +4,12 @@ namespace PacToolkits.Desktop.Avalonia.Services.Application;
 
 public static class SectionEmptyPolicy
 {
+    public static bool IsPending(PageDataAvailability availability, bool hasLoadedOnce)
+        => !hasLoadedOnce
+           && availability is PageDataAvailability.NotLoaded
+               or PageDataAvailability.AwaitingDatabase
+               or PageDataAvailability.Loading;
+
     /// <summary>
     /// Prefer the section empty-state panel over an empty grid shell once the page has settled.
     /// During the first in-flight fetch, keep the section chrome visible and let panel busy states handle loading.
@@ -16,10 +22,7 @@ public static class SectionEmptyPolicy
             return false;
         }
 
-        if (!hasLoadedOnce
-            && availability is PageDataAvailability.NotLoaded
-                or PageDataAvailability.AwaitingDatabase
-                or PageDataAvailability.Loading)
+        if (IsPending(availability, hasLoadedOnce))
         {
             return false;
         }

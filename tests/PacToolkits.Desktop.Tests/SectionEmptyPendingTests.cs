@@ -3,7 +3,7 @@ using PacToolkits.Desktop.Avalonia.Services.Application;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class SectionPendingPolicyTests
+public sealed class SectionEmptyPendingTests
 {
     [Theory]
     [InlineData(PageDataAvailability.Loading)]
@@ -11,18 +11,18 @@ public sealed class SectionPendingPolicyTests
     [InlineData(PageDataAvailability.AwaitingDatabase)]
     public void Show_returns_true_during_first_fetch(PageDataAvailability availability)
     {
-        Assert.True(SectionPendingPolicy.Show(availability, hasLoadedOnce: false));
+        Assert.True(SectionEmptyPolicy.IsPending(availability, hasLoadedOnce: false));
     }
 
     [Fact]
     public void Show_returns_false_after_first_successful_load()
     {
-        Assert.False(SectionPendingPolicy.Show(PageDataAvailability.Loading, hasLoadedOnce: true));
+        Assert.False(SectionEmptyPolicy.IsPending(PageDataAvailability.Loading, hasLoadedOnce: true));
     }
 
     [Fact]
     public void Show_returns_false_when_page_is_ready()
     {
-        Assert.False(SectionPendingPolicy.Show(PageDataAvailability.Ready, hasLoadedOnce: false));
+        Assert.False(SectionEmptyPolicy.IsPending(PageDataAvailability.Ready, hasLoadedOnce: false));
     }
 }

@@ -189,7 +189,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
     {
         var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/InventoryOverview.DetailOps.cs");
 
-        Assert.Contains("InventoryStockOrderPolicy.MatchTraceCodeOrder", source, StringComparison.Ordinal);
+        Assert.Contains("HasSameTraceCodeOrder(StockRows, rebuiltRows)", source, StringComparison.Ordinal);
         Assert.Contains("StockRows.ReplaceAll(rebuiltRows)", source, StringComparison.Ordinal);
     }
 
@@ -390,7 +390,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
         var source = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.Reconcile.cs");
         var drugIndex = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/DrugIndex.cs");
 
-        Assert.Contains("ShouldDeferDrugIndexCascadeRefresh", source, StringComparison.Ordinal);
+        Assert.Contains("WorkspaceTopicRefresh.DeferDrugIndex", source, StringComparison.Ordinal);
         Assert.Contains("ApplySilentReconcile", source, StringComparison.Ordinal);
         Assert.Contains("ShouldSilentReconcile", source, StringComparison.Ordinal);
         Assert.Contains("HasPendingChanges", source, StringComparison.Ordinal);
@@ -412,7 +412,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
 
         Assert.Contains("if (!CanWorkspaceRefresh())", source, StringComparison.Ordinal);
         Assert.Contains("RunWorkspaceRefreshAsync", source, StringComparison.Ordinal);
-        Assert.Contains("WorkspaceBatchRefresh.RunAsync", source, StringComparison.Ordinal);
+        Assert.Contains("_dirtyRefresh.RunAsync", source, StringComparison.Ordinal);
         Assert.Contains("TryRefreshDirtyActivePage", source, StringComparison.Ordinal);
     }
 

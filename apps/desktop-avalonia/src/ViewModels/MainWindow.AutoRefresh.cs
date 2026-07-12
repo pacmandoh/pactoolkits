@@ -48,14 +48,7 @@ public partial class MainWindowViewModel
 
         try
         {
-            var active = ActivePage;
-
-            await WorkspaceBatchRefresh.RunAsync(
-                WorkspacePages,
-                active,
-                CanRefreshPage,
-                TryRefreshPageAsync,
-                _dirtyRefresh.Dirty).ConfigureAwait(true);
+            await _dirtyRefresh.RunAsync(WorkspacePages, ActivePage).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
@@ -76,9 +69,6 @@ public partial class MainWindowViewModel
 
     private static bool CanRefreshPage(AppPageBase page)
         => WorkspacePageRefresh.CanRefreshPage(page);
-
-    private static Task<bool> TryRefreshPageAsync(AppPageBase page)
-        => WorkspacePageRefresh.TryRefreshAsync(page);
 
     private void MarkPageDirty(AppPageBase page)
         => _dirtyRefresh.Mark(page);

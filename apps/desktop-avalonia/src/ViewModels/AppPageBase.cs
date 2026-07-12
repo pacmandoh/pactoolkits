@@ -113,7 +113,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     public string SectionEmptyIcon => SectionEmptyCopy.GetIcon(_pageDataAvailability);
 
-    public bool IsSectionPending => SectionPendingPolicy.Show(_pageDataAvailability, _hasLoadedOnce);
+    public bool IsSectionPending => SectionEmptyPolicy.IsPending(_pageDataAvailability, _hasLoadedOnce);
 
     protected string GetSectionEmptyTitle(string? readyTitle)
         => SectionEmptyCopy.GetTitle(readyTitle);

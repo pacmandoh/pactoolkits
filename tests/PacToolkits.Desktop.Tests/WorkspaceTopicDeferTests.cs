@@ -2,7 +2,7 @@ using PacToolkits.Desktop.Avalonia.Services.Application;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class WatermarkActiveRefreshDeferPolicyTests
+public sealed class WorkspaceTopicDeferTests
 {
     [Theory]
     [InlineData("trace_pool", true)]
@@ -14,7 +14,7 @@ public sealed class WatermarkActiveRefreshDeferPolicyTests
     [InlineData("", false)]
     public void DrugIndex_cascade_refresh_defer_matrix(string topic, bool expected)
     {
-        Assert.Equal(expected, WatermarkActiveRefreshDeferPolicy.ShouldDeferDrugIndexCascadeRefresh(topic));
+        Assert.Equal(expected, WorkspaceTopicRefresh.DeferDrugIndex(topic));
     }
 
     [Theory]
@@ -27,6 +27,6 @@ public sealed class WatermarkActiveRefreshDeferPolicyTests
     [InlineData("msfx", false)]
     public void Inventory_active_refresh_defer_matrix(string topic, bool expected)
     {
-        Assert.Equal(expected, WatermarkActiveRefreshDeferPolicy.ShouldDeferInventoryActiveRefresh(topic));
+        Assert.Equal(expected, WorkspaceTopicRefresh.DeferInventory(topic));
     }
 }
