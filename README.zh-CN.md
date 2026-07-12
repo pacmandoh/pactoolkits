@@ -198,8 +198,7 @@ pactoolkits/
 - `InventoryOverviewViewModel.cs`
 - `ScanCodeViewModel.cs`
 - `MsfxLinkViewModel.cs`
-- `ToolsCenterViewModel.cs`
-- `SettingsViewModel.cs`
+- `SettingsViewModel.cs`（含 `Settings.Automation` 自动化集成 Tab）
 
 **技术栈**
 
