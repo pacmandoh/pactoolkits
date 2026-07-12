@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
@@ -162,7 +163,9 @@ public partial class Settings : AppPageBase, ISettingsPage
         IDialogService dialog,
         ILoggingSettingsService loggingSettings,
         IAppLogger logger,
-        IClipboardService clipboard)
+        IClipboardService clipboard,
+        IInjectorAgentRuntime injector,
+        IAutomationConfigService automationConfig)
     {
         _appConfigStore = appConfigStore;
         _settings = settings;
@@ -179,6 +182,9 @@ public partial class Settings : AppPageBase, ISettingsPage
         _loggingSettings = loggingSettings;
         _logger = logger;
         _clipboard = clipboard;
+        _injector = injector;
+        _automationConfig = automationConfig;
+        InitializeAutomation();
         ClientAliases.CollectionChanged += OnClientAliasesChanged;
         var c = settings.AppliedDb;
         _host = c.Host;
@@ -234,6 +240,7 @@ public partial class Settings : AppPageBase, ISettingsPage
     {
         SyncPageAvailability();
         _pageWorkCancelled = false;
+        ReloadAutomationRuntime();
         RefreshUnsaved();
         return Task.CompletedTask;
     }
@@ -483,6 +490,7 @@ public partial class Settings : AppPageBase, ISettingsPage
             _logger.Warn("SettingsVM", "dispose.logging_settings_unsub_fail", "Failed to unsubscribe LoggingSettings", ex);
         }
         ClientAliases.CollectionChanged -= OnClientAliasesChanged;
+        DisposeAutomation();
         _pageWorkCts.Dispose();
         base.Dispose();
     }
