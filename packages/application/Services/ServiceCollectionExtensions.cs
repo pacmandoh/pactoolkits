@@ -23,6 +23,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ITraceCodeRuleService, TraceCodeRuleService>();
         services.AddSingleton<IUpdateSettingsService, UpdateSettingsService>();
         services.AddSingleton<IReleaseChannelService, ReleaseChannelService>();
+        services.AddSingleton<SensitiveUnlockSession>();
         return services;
     }
 }
