@@ -198,7 +198,6 @@ The desktop application is the operational center of the suite. It provides busi
 - `InventoryOverviewViewModel.cs`
 - `ScanCodeViewModel.cs`
 - `MsfxLinkViewModel.cs`
-- `ToolsCenterViewModel.cs`
 - `SettingsViewModel.cs`
 
 **Technology**

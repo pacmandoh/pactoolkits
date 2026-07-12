@@ -87,7 +87,7 @@ DashboardViewModel
 **自动化套件启停：**
 
 ```text
-ToolsCenterViewModel / MainWindowViewModel
+SettingsViewModel / MainWindowViewModel
   → IAgentManager.GetRequired(AgentIds.InjectorAhk)
     → IAgentRuntime (AhkInjectorAgentRuntime 实现)
       → 进程启停 + AgentConfigValidator (agent-contracts)
