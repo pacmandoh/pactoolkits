@@ -1477,7 +1477,8 @@ public sealed partial class InventoryOverview : AppPageBase
     }
 
     public bool DeferRefreshTopic(string? topic)
-        => InventoryRefreshDefer.IsDeferred(_suppressAutoRefreshUntilUtc, DateTimeOffset.UtcNow, topic);
+        => DateTimeOffset.UtcNow < _suppressAutoRefreshUntilUtc
+           && WorkspaceTopicRefresh.DeferInventory(topic);
 
     private void ReconcilePageLater(TimeSpan delay)
     {
@@ -1527,11 +1528,7 @@ public sealed partial class InventoryOverview : AppPageBase
 
                 // Silent reconcile: in-place field updates only when trace codes still align by index.
                 // Rebuild when count or row order changes to avoid writing server data onto the wrong row.
-                if (InventoryStockOrderPolicy.MatchTraceCodeOrder(
-                        StockRows,
-                        pageResult.Rows,
-                        static row => row.TraceCode,
-                        static row => row.TraceCode))
+                if (HasSameTraceCodeOrder(StockRows, rebuiltRows))
                 {
                     for (var i = 0; i < StockRows.Count; i++)
                     {
@@ -1565,6 +1562,26 @@ public sealed partial class InventoryOverview : AppPageBase
         {
             LogWarn("inventory.external_refresh.reconcile_fail", "Failed to reconcile current detail page after external change", ex);
         }
+    }
+
+    private static bool HasSameTraceCodeOrder(
+        IReadOnlyList<StockRowItem> current,
+        IReadOnlyList<StockRowItem> server)
+    {
+        if (current.Count != server.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < current.Count; i++)
+        {
+            if (!string.Equals(current[i].TraceCode, server[i].TraceCode, StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static int ResolveTargetRemain(int currentRemain, int targetQty)

@@ -12,7 +12,7 @@ public sealed partial class DrugIndex
     private DrugIndexDto? _remoteEditBaseline;
 
     public bool DeferRefreshTopic(string? topic)
-        => WatermarkActiveRefreshDeferPolicy.ShouldDeferDrugIndexCascadeRefresh(topic);
+        => WorkspaceTopicRefresh.DeferDrugIndex(topic);
 
     public Task ReloadFromWatermarkAsync()
         => ReloadAsync(confirmIfDirty: false);
