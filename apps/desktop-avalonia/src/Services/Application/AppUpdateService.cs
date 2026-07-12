@@ -103,9 +103,9 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             RefreshCurrentVersion();
             var options = _settings.Current;
             var now = DateTimeOffset.Now;
-            var targetChannel = NormalizeChannel(options.Channel);
+            var targetChannel = AppUpdatePolicy.NormalizeChannel(options.Channel);
             var currentChannel = ResolveInstalledChannel();
-            var source = BuildSource(options);
+            var source = AppUpdatePolicy.BuildSource(options);
 
             _logger.Info("AppUpdateService", "update.check.start", "Starting update check", new
             {
@@ -237,20 +237,16 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             }
 
             var latest = updates.TargetFullRelease.Version.ToString();
-            var ignored = string.Equals(latest, options.IgnoredVersion, StringComparison.Ordinal);
-            var hasUpdate = !ignored;
-            var message = hasUpdate
-                ? $"发现新版本 {latest}"
-                : $"已忽略版本 {latest}";
+            var decision = AppUpdatePolicy.EvaluateRelease(latest, options.IgnoredVersion);
             var result = CreateCheckResult(
                 success: true,
-                hasUpdate: hasUpdate,
-                hasProductUpdate: ignored ? false : true,
+                hasUpdate: decision.HasUpdate,
+                hasProductUpdate: decision.HasProductUpdate,
                 latestVersion: latest,
                 currentChannel: currentChannel,
                 targetChannel: targetChannel,
                 channelSwitchRequired: false,
-                message: message,
+                message: decision.Message,
                 checkedAt: now,
                 source: source);
             _logger.Info("AppUpdateService", "update.check.available", "Update check found release", new
@@ -259,7 +255,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 LatestVersion = latest,
                 CurrentChannel = currentChannel,
                 TargetChannel = targetChannel,
-                Ignored = ignored
+                Ignored = !decision.HasUpdate
             });
             SetState(result);
             return result;
@@ -276,11 +272,11 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
                 hasProductUpdate: null,
                 latestVersion: CurrentVersion,
                 currentChannel: ResolveInstalledChannel(),
-                targetChannel: NormalizeChannel(_settings.Current.Channel),
+                targetChannel: AppUpdatePolicy.NormalizeChannel(_settings.Current.Channel),
                 channelSwitchRequired: false,
                 message: $"更新源连接失败：{ex.Message}",
                 checkedAt: DateTimeOffset.Now,
-                source: BuildSource(_settings.Current));
+                source: AppUpdatePolicy.BuildSource(_settings.Current));
             _logger.Error("AppUpdateService", "update.check.fail", "Update check failed", ex, new
             {
                 CurrentVersion,
@@ -304,7 +300,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             RefreshCurrentVersion();
             var options = _settings.Current;
             var currentChannel = ResolveInstalledChannel();
-            var targetChannel = NormalizeChannel(options.Channel);
+            var targetChannel = AppUpdatePolicy.NormalizeChannel(options.Channel);
             if (string.IsNullOrWhiteSpace(options.FeedUrl))
             {
                 return new AppUpdateApplyResult(false, false, "未配置更新源地址", CurrentVersion);
@@ -373,7 +369,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             }
 
             var latest = updates.TargetFullRelease.Version.ToString();
-            if (string.Equals(latest, options.IgnoredVersion, StringComparison.Ordinal))
+            if (AppUpdatePolicy.IsIgnored(latest, options.IgnoredVersion))
             {
                 return new AppUpdateApplyResult(false, false, $"已忽略版本 {latest}", latest);
             }
@@ -477,42 +473,14 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
 
     private static UpdateManager CreateUpdateManager(PacToolkits.Application.Abstractions.UpdateOptions options)
     {
-        var explicitChannel = string.IsNullOrWhiteSpace(options.Channel) ? "stable" : options.Channel.Trim().ToLowerInvariant();
-        var feed = ResolveChannelFeedUrl(options.FeedUrl, explicitChannel);
+        var explicitChannel = AppUpdatePolicy.NormalizeFeedChannel(options.Channel);
+        var feed = AppUpdatePolicy.ResolveFeedUrl(options.FeedUrl, explicitChannel);
         var updateOptions = new Velopack.UpdateOptions
         {
             ExplicitChannel = explicitChannel
         };
 
         return new UpdateManager(feed, updateOptions);
-    }
-
-    private static string BuildSource(PacToolkits.Application.Abstractions.UpdateOptions options)
-    {
-        var channel = string.IsNullOrWhiteSpace(options.Channel) ? "stable" : options.Channel.Trim().ToLowerInvariant();
-        var feed = ResolveChannelFeedUrl(options.FeedUrl, channel);
-        return $"{channel} @ {feed}";
-    }
-
-    private static string ResolveChannelFeedUrl(string? baseFeedUrl, string channel)
-    {
-        var normalizedBase = string.IsNullOrWhiteSpace(baseFeedUrl) ? string.Empty : baseFeedUrl.Trim().TrimEnd('/');
-        if (string.IsNullOrWhiteSpace(normalizedBase))
-        {
-            return string.Empty;
-        }
-
-        if (normalizedBase.EndsWith("/stable", StringComparison.OrdinalIgnoreCase)
-            || normalizedBase.EndsWith("/beta", StringComparison.OrdinalIgnoreCase))
-        {
-            var lastSlash = normalizedBase.LastIndexOf('/');
-            if (lastSlash > 0)
-            {
-                normalizedBase = normalizedBase[..lastSlash];
-            }
-        }
-
-        return $"{normalizedBase}/{channel}";
     }
 
     private void RefreshCurrentVersion()
@@ -564,12 +532,6 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
         }
 
         return string.Empty;
-    }
-
-    private static string NormalizeChannel(string? channel)
-    {
-        var normalized = string.IsNullOrWhiteSpace(channel) ? "stable" : channel.Trim().ToLowerInvariant();
-        return normalized is "stable" or "beta" ? normalized : "stable";
     }
 
     private async Task RecheckAfterSettingsChangedAsync()
