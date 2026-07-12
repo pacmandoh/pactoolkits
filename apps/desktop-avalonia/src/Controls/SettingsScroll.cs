@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
+using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
@@ -155,7 +158,7 @@ public static class SettingsScroll
                 break;
             }
 
-            if (!IsHeaderFullyScrolledPast(header, offset))
+            if (header.Level == 1 && !IsHeaderFullyScrolledPast(header, offset))
             {
                 continue;
             }
@@ -251,13 +254,6 @@ public static class SettingsScroll
                 _ => "H3"
             };
 
-            var titleClass = active[i].Level switch
-            {
-                1 => "H1Text",
-                2 => "H2Text",
-                _ => "H3Text"
-            };
-
             if (!row.Classes.Contains(levelClass) || !row.Classes.Contains("StickyRow"))
             {
                 row.Classes.Clear();
@@ -265,23 +261,111 @@ public static class SettingsScroll
                 row.Classes.Add("StickyRow");
             }
 
-            if (row.Child is not TextBlock title)
+            row.Child = BuildStickyContent(active[i]);
+        }
+    }
+
+    private static Control BuildStickyContent(HeaderSnapshot header)
+    {
+        var titleClass = header.Level switch
+        {
+            1 => "H1Text",
+            2 => "H2Text",
+            _ => "H3Text"
+        };
+
+        if (!header.HasActions)
+        {
+            return new TextBlock
+            {
+                Text = header.Title,
+                Classes = { titleClass }
+            };
+        }
+
+        var grid = new Grid
+        {
+            Classes = { "H2Row" },
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            }
+        };
+
+        var title = new TextBlock
+        {
+            Text = header.Title,
+            Classes = { titleClass },
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(title, 0);
+        grid.Children.Add(title);
+
+        var actions = new StackPanel
+        {
+            Classes = { "H2Actions" },
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(actions, 1);
+
+        foreach (var sourceButton in GetActionButtons(header.Source))
+        {
+            actions.Children.Add(CloneActionButton(sourceButton));
+        }
+
+        grid.Children.Add(actions);
+        return grid;
+    }
+
+    private static Button CloneActionButton(Button source)
+    {
+        var button = new Button
+        {
+            Content = source.Content,
+            Command = source.Command,
+            CommandParameter = source.CommandParameter
+        };
+
+        foreach (var @class in source.Classes)
+        {
+            if (@class.Length > 0 && @class[0] == ':')
             {
                 continue;
             }
 
-            if (!title.Classes.Contains(titleClass))
-            {
-                title.Classes.Clear();
-                title.Classes.Add(titleClass);
-            }
-
-            if (!string.Equals(title.Text, active[i].Title, StringComparison.Ordinal))
-            {
-                title.Text = active[i].Title;
-            }
+            button.Classes.Add(@class);
         }
+
+        CopyBind(button, source, Button.IsEnabledProperty);
+        CopyBind(button, source, ButtonAssist.ShowProgressProperty);
+        return button;
     }
+
+    private static void CopyBind<T>(AvaloniaObject target, AvaloniaObject source, AvaloniaProperty<T> property)
+    {
+        if (!source.IsSet(property))
+        {
+            return;
+        }
+
+        if (source.GetBindingObservable(property) is IObservable<T> observable)
+        {
+            target.Bind(property, observable);
+            return;
+        }
+
+        target.SetValue(property, source.GetValue(property));
+    }
+
+    private static IEnumerable<Button> GetActionButtons(Control header)
+        => header.GetVisualDescendants()
+            .OfType<StackPanel>()
+            .Where(panel => panel.Classes.Contains("H2Actions"))
+            .SelectMany(panel => panel.Children.OfType<Button>());
+
+    private static bool HasActions(Control header)
+        => GetActionButtons(header).Any();
 
     private static Border CreateStickyRow()
         => new()
@@ -342,7 +426,7 @@ public static class SettingsScroll
                 height = EstimateHeaderHeight(level.Value);
             }
 
-            yield return new HeaderSnapshot(level.Value, title, topLeft.Value.Y, height);
+            yield return new HeaderSnapshot(level.Value, title, topLeft.Value.Y, height, control, HasActions(control));
         }
     }
 
@@ -386,5 +470,11 @@ public static class SettingsScroll
         return title?.Text;
     }
 
-    private sealed record HeaderSnapshot(int Level, string Title, double Y, double Height);
+    private sealed record HeaderSnapshot(
+        int Level,
+        string Title,
+        double Y,
+        double Height,
+        Control Source,
+        bool HasActions);
 }
