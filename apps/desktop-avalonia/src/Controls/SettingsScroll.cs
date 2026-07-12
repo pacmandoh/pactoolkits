@@ -79,7 +79,7 @@ public static class SettingsScroll
         if (GetStickyHost(scrollViewer) is Panel stickyHost)
         {
             stickyHost.Children.Clear();
-            SetStickyChromeVisible(stickyHost, false);
+            SetStickyChromeVisible(stickyHost, false, false);
         }
     }
 
@@ -178,7 +178,8 @@ public static class SettingsScroll
         }
 
         var active = new[] { h1, h2, h3 }.Where(static header => header is not null).Cast<HeaderSnapshot>().ToList();
-        ApplyStickyState(scrollViewer, stickyHost, active, active.Count > 0);
+        var interactive = active.Any(static header => header.HasActions);
+        ApplyStickyState(scrollViewer, stickyHost, active, active.Count > 0, interactive);
     }
 
     private static bool IsHeaderFullyScrolledPast(HeaderSnapshot header, double offset)
@@ -188,15 +189,17 @@ public static class SettingsScroll
         ScrollViewer scrollViewer,
         Panel stickyHost,
         IReadOnlyList<HeaderSnapshot> active,
-        bool showSticky)
+        bool showSticky,
+        bool interactive)
     {
         var stickyKey = showSticky
-            ? string.Join('|', active.Select(static header => $"{header.Level}:{header.Title}"))
+            ? string.Join('|', active.Select(static header => $"{header.Level}:{header.Title}:{header.HasActions}"))
             : string.Empty;
 
         if (string.Equals(scrollViewer.GetValue(LastStickyKeyProperty), stickyKey, StringComparison.Ordinal)
             && stickyHost.IsVisible == showSticky
-            && stickyHost.Children.Count == active.Count)
+            && stickyHost.Children.Count == active.Count
+            && GetStickyHostInteractive(stickyHost) == (showSticky && interactive))
         {
             return;
         }
@@ -210,19 +213,25 @@ public static class SettingsScroll
                 stickyHost.Children.Clear();
             }
 
-            SetStickyChromeVisible(stickyHost, false);
+            SetStickyChromeVisible(stickyHost, false, false);
             return;
         }
 
-        SetStickyChromeVisible(stickyHost, true);
+        SetStickyChromeVisible(stickyHost, true, interactive);
         SyncStickyChildren(stickyHost, active);
     }
 
-    private static void SetStickyChromeVisible(Panel stickyHost, bool visible)
+    private static bool GetStickyHostInteractive(Panel stickyHost)
+        => stickyHost.Parent is Border chrome
+           && chrome.Classes.Contains("StickyHost")
+           && chrome.IsHitTestVisible;
+
+    private static void SetStickyChromeVisible(Panel stickyHost, bool visible, bool interactive)
     {
         if (stickyHost.Parent is Border chrome && chrome.Classes.Contains("StickyHost"))
         {
             chrome.IsVisible = visible;
+            chrome.IsHitTestVisible = visible && interactive;
         }
 
         stickyHost.IsVisible = visible;
