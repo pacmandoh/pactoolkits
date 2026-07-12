@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Desktop.Avalonia.Services.Application;
+using PacToolkits.Application.Services;
 
 namespace PacToolkits.Desktop.Tests;
 

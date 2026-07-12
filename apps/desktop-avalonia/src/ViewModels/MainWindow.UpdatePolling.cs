@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 

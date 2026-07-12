@@ -1,21 +1,10 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Application.Abstractions;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
-
-public interface ITraceCodeRuleService
-{
-    TraceCodeValidationOptions Current { get; }
-    event Action? Changed;
-    void Reload();
-    Task SaveAsync(TraceCodeValidationOptions options, CancellationToken ct = default);
-}
+namespace PacToolkits.Application.Services;
 
 public sealed class TraceCodeRuleService : ITraceCodeRuleService
 {
-    private readonly IAppConfigStore _configStore;
+    private readonly ITraceCodeRuleStore _store;
     private readonly object _gate = new();
     private TraceCodeValidationOptions _current = new();
 
@@ -32,9 +21,9 @@ public sealed class TraceCodeRuleService : ITraceCodeRuleService
 
     public event Action? Changed;
 
-    public TraceCodeRuleService(IAppConfigStore configStore)
+    public TraceCodeRuleService(ITraceCodeRuleStore store)
     {
-        _configStore = configStore;
+        _store = store;
         Reload();
     }
 
@@ -42,8 +31,7 @@ public sealed class TraceCodeRuleService : ITraceCodeRuleService
     {
         lock (_gate)
         {
-            var cfg = _configStore.Load();
-            _current = Normalize(cfg.TraceCodeValidation);
+            _current = Normalize(_store.Load());
         }
 
         Changed?.Invoke();
@@ -52,7 +40,7 @@ public sealed class TraceCodeRuleService : ITraceCodeRuleService
     public async Task SaveAsync(TraceCodeValidationOptions options, CancellationToken ct = default)
     {
         var normalized = Normalize(options);
-        await _configStore.UpdateAsync(cfg => cfg.TraceCodeValidation = Clone(normalized), ct).ConfigureAwait(false);
+        await _store.SaveAsync(Clone(normalized), ct).ConfigureAwait(false);
 
         lock (_gate)
         {

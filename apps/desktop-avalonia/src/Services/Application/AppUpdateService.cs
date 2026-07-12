@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
 using Velopack;
 using Velopack.Locators;
@@ -474,7 +475,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
         Changed?.Invoke();
     }
 
-    private static UpdateManager CreateUpdateManager(PacToolkits.Desktop.Avalonia.Services.Infrastructure.UpdateOptions options)
+    private static UpdateManager CreateUpdateManager(PacToolkits.Application.Abstractions.UpdateOptions options)
     {
         var explicitChannel = string.IsNullOrWhiteSpace(options.Channel) ? "stable" : options.Channel.Trim().ToLowerInvariant();
         var feed = ResolveChannelFeedUrl(options.FeedUrl, explicitChannel);
@@ -486,7 +487,7 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
         return new UpdateManager(feed, updateOptions);
     }
 
-    private static string BuildSource(PacToolkits.Desktop.Avalonia.Services.Infrastructure.UpdateOptions options)
+    private static string BuildSource(PacToolkits.Application.Abstractions.UpdateOptions options)
     {
         var channel = string.IsNullOrWhiteSpace(options.Channel) ? "stable" : options.Channel.Trim().ToLowerInvariant();
         var feed = ResolveChannelFeedUrl(options.FeedUrl, channel);

@@ -1,6 +1,4 @@
-using System;
-
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Application.Services;
 
 public static class ReleaseChannelAuth
 {
