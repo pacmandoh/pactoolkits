@@ -62,7 +62,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
         => source.Split(value, StringSplitOptions.None).Length - 1;
 
     private static string ReadTopicRefreshSource()
-        => ReadRepoFile("apps/desktop-avalonia/src/Services/Application/WorkspaceTopicRefresh.cs");
+        => ReadRepoFile("apps/desktop-avalonia/src/Services/Workspace/WorkspaceTopicRefresh.cs");
 
     private static string ExtractPlanArm(string source, string topicKey)
     {
@@ -198,7 +198,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
     {
         var overview = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/InventoryOverview.cs");
         var detailOps = ReadRepoFile("apps/desktop-avalonia/src/ViewModels/Pages/InventoryOverview.DetailOps.cs");
-        var policy = ReadRepoFile("apps/desktop-avalonia/src/Services/Application/InventorySilentReconcilePolicy.cs");
+        var policy = ReadRepoFile("apps/desktop-avalonia/src/Services/Workspace/InventorySilentReconcilePolicy.cs");
 
         Assert.Contains("BeginStockReload()", overview, StringComparison.Ordinal);
         Assert.Contains("CancelSilentReconcile();", overview, StringComparison.Ordinal);

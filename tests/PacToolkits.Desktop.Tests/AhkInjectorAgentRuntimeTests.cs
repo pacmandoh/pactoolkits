@@ -4,8 +4,8 @@ using PacToolkits.Agent.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
-using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
 namespace PacToolkits.Desktop.Tests;
 

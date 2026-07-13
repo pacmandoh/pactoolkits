@@ -1,6 +1,6 @@
 using PacToolkits.Desktop.Avalonia.Contracts;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
 /// <summary>Stale-while-reconnect and reload busy rules shared by pages.</summary>
 public static class PageReconnectPolicy

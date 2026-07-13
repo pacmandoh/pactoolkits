@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
 public interface IBackgroundTaskRunner
 {

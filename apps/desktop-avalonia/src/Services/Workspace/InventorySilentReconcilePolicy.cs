@@ -1,6 +1,6 @@
 using System;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 public static class InventorySilentReconcilePolicy
 {
