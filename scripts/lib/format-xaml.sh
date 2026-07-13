@@ -2,19 +2,10 @@
 
 XAML_STYLER_CONFIG="${XAML_STYLER_CONFIG:-Settings.XamlStyler}"
 AXAML_ROOT="${AXAML_ROOT:-apps/desktop-avalonia/src}"
-DOTNET_TOOL_MANIFEST="${DOTNET_TOOL_MANIFEST:-dotnet-tools.json}"
-
-ensure_xaml_styler() {
-  [[ -f "$DOTNET_TOOL_MANIFEST" ]] || {
-    echo "ERROR: $DOTNET_TOOL_MANIFEST not found (xamlstyler.console required)" >&2
-    exit 1
-  }
-  dotnet tool restore --tool-manifest "$DOTNET_TOOL_MANIFEST"
-}
+XAML_STYLER_PACKAGE="${XAML_STYLER_PACKAGE:-xamlstyler.console@3.2501.8}"
 
 format_xaml_apply() {
-  ensure_xaml_styler
-  dotnet tool run xstyler -- \
+  dotnet tool exec "$XAML_STYLER_PACKAGE" -- \
     -d "$AXAML_ROOT" \
     -r \
     -i \
@@ -22,8 +13,7 @@ format_xaml_apply() {
 }
 
 format_xaml_check() {
-  ensure_xaml_styler
-  dotnet tool run xstyler -- \
+  dotnet tool exec "$XAML_STYLER_PACKAGE" -- \
     -d "$AXAML_ROOT" \
     -r \
     -i \
