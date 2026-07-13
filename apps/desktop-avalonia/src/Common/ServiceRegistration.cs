@@ -1,4 +1,3 @@
-using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PacToolkits.Agent.Contracts.Abstractions;
@@ -10,6 +9,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 using PacToolkits.Desktop.Avalonia.Services.Integration;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
+using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 using PacToolkits.Desktop.Avalonia.Views.Dialogs;
 using PacToolkits.Infrastructure.Database;
 using ShadUI;
@@ -88,20 +88,23 @@ public static class ServiceRegistration
         return services;
     }
 
-    private static IServiceCollection AddPageViewModels(this IServiceCollection services)
+    internal static IServiceCollection AddPageViewModels(this IServiceCollection services)
     {
-        var asm = typeof(AppPageBase).Assembly;
+        return services
+            .AddAppPage<Dashboard>()
+            .AddAppPage<InventoryOverview>()
+            .AddAppPage<DrugIndex>()
+            .AddAppPage<ScanCode>()
+            .AddAppPage<MsfxLink>()
+            .AddAppPage<Settings>()
+            .AddAppPage<About>();
+    }
 
-        var pageTypes = asm.GetTypes()
-            .Where(t => !t.IsAbstract && typeof(AppPageBase).IsAssignableFrom(t));
-
-        foreach (var t in pageTypes)
-        {
-            services.AddSingleton(t);
-            // Concrete page + one IEnumerable<AppPageBase> entry per page type.
-            services.AddSingleton(typeof(AppPageBase), sp => (AppPageBase)sp.GetRequiredService(t));
-        }
-
+    internal static IServiceCollection AddAppPage<TPage>(this IServiceCollection services)
+        where TPage : AppPageBase
+    {
+        services.AddSingleton<TPage>();
+        services.AddSingleton<AppPageBase>(sp => sp.GetRequiredService<TPage>());
         return services;
     }
 }
