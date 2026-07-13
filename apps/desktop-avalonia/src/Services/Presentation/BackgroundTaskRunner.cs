@@ -5,7 +5,7 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
 public sealed class BackgroundTaskRunner(IAppLogger logger, IToastService toast) : IBackgroundTaskRunner
 {

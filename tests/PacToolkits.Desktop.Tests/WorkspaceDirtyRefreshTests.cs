@@ -1,6 +1,6 @@
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
-using PacToolkits.Desktop.Avalonia.Services.Application;
+using PacToolkits.Desktop.Avalonia.Services.Workspace;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 
 namespace PacToolkits.Desktop.Tests;

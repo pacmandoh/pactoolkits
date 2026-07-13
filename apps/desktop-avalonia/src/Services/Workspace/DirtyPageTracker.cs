@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 public sealed class DirtyPageTracker
 {

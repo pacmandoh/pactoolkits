@@ -1,5 +1,5 @@
 using PacToolkits.Desktop.Avalonia.Contracts;
-using PacToolkits.Desktop.Avalonia.Services.Application;
+using PacToolkits.Desktop.Avalonia.Services.Workspace;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 

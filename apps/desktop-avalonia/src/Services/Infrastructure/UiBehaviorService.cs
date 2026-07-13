@@ -1,9 +1,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 public interface IUiBehaviorService
 {

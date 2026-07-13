@@ -1,6 +1,6 @@
 using PacToolkits.Application.Abstractions;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
 public enum ConnectivitySeverity
 {

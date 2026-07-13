@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Agent.Contracts.Commands;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Agent;
 
 public sealed class AgentManager : IAgentManager
 {
