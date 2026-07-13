@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using PacToolkits.Desktop.Avalonia.Services.Application;
+using PacToolkits.Desktop.Avalonia.Services.Workspace;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;

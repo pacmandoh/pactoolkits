@@ -18,8 +18,10 @@ using PacToolkits.Application.Services;
 using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Contracts;
-using PacToolkits.Desktop.Avalonia.Services.Application;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
+using PacToolkits.Desktop.Avalonia.Services.Presentation;
+using PacToolkits.Desktop.Avalonia.Services.Workspace;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 using ShadUI;
 

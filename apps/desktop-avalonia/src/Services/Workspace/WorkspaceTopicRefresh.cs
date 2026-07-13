@@ -4,7 +4,7 @@ using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 /// <summary>Maps change-watermark topics to which workspace pages should mark dirty.</summary>
 public static class WorkspaceTopicRefresh

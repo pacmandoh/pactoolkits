@@ -1,4 +1,4 @@
-using PacToolkits.Desktop.Avalonia.Services.Application;
+using PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 namespace PacToolkits.Desktop.Tests;
 

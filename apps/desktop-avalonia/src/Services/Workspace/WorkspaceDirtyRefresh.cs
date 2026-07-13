@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 /// <summary>Dirty-page tracker; refreshes inactive pages when navigated back.</summary>
 public sealed class WorkspaceDirtyRefresh

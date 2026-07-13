@@ -1,6 +1,6 @@
 using PacToolkits.Desktop.Avalonia.Contracts;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
 public static class SectionEmptyCopy
 {

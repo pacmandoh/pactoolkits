@@ -7,7 +7,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 using Velopack;
 using Velopack.Locators;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 
 public sealed record AppUpdateCheckResult(
     bool Success,

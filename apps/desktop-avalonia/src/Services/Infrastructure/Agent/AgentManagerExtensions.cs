@@ -1,9 +1,8 @@
 using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Agent.Contracts.Commands;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Application;
+namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
 
 public static class AgentManagerExtensions
 {
