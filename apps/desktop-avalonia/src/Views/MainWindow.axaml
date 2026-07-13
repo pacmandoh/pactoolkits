@@ -20,6 +20,10 @@
   ShowBottomBorder="False"
   TitleBarAnimationEnabled="False"
   WindowStartupLocation="CenterScreen">
+  <shad:Window.Resources>
+    <conv:SidebarNavToolTipConverter x:Key="SidebarNavToolTip" />
+  </shad:Window.Resources>
+
   <shad:Window.Hosts>
     <shad:ToastHost Manager="{Binding ToastManager}" />
     <shad:DialogHost Manager="{Binding DialogManager}" />

@@ -2,7 +2,6 @@
   x:Class="PacToolkits.Desktop.Avalonia.App"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   RequestedThemeVariant="Dark">
 
@@ -10,6 +9,8 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://pactoolkits-desktop/Styles/PacTheme.axaml" />
+        <ResourceInclude Source="avares://pactoolkits-desktop/Resources/Converters/CommonConverters.axaml" />
+        <ResourceInclude Source="avares://pactoolkits-desktop/Resources/Converters/TraceConverters.axaml" />
       </ResourceDictionary.MergedDictionaries>
 
       <NativeMenu x:Key="TrayMenu">
@@ -18,17 +19,6 @@
         <NativeMenuItemSeparator />
         <NativeMenuItem Header="退出" />
       </NativeMenu>
-
-
-      <conv:BoolToDoneDangerBrushConverter x:Key="BoolToDoneDangerBrush" />
-      <conv:BadgeToIconKindConverter x:Key="BadgeToIconKind" />
-      <conv:BadgeToFgBrushConverter x:Key="BadgeToFgBrush" />
-      <conv:BadgeToBgBrushConverter x:Key="BadgeToBgBrush" />
-      <conv:TraceEntryStateToIconKindConverter x:Key="TraceEntryStateToIconKind" />
-      <conv:TraceEntryStateToFgBrushConverter x:Key="TraceEntryStateToFgBrush" />
-      <conv:TraceEntryStateToBgBrushConverter x:Key="TraceEntryStateToBgBrush" />
-      <conv:SidebarNavToolTipConverter x:Key="SidebarNavToolTip" />
-      <conv:DgQtyFontSizeConverter x:Key="DgQtyFontSize" />
     </ResourceDictionary>
   </Application.Resources>
 

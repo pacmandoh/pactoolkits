@@ -3,6 +3,7 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -13,6 +14,13 @@
   d:DesignWidth="1200"
   x:DataType="vm:Dashboard"
   mc:Ignorable="d">
+  <UserControl.Resources>
+    <conv:BadgeToIconKindConverter x:Key="BadgeToIconKind" />
+    <conv:BadgeToFgBrushConverter x:Key="BadgeToFgBrush" />
+    <conv:BadgeToBgBrushConverter x:Key="BadgeToBgBrush" />
+    <conv:DgQtyFontSizeConverter x:Key="AdaptiveQtyFontSize" />
+  </UserControl.Resources>
+
   <controls:PageDataShell
     IsLoadingData="{Binding IsBusy}"
     ShowStale="{Binding IsShowingStaleData}"
@@ -290,7 +298,7 @@
                                     <DataTemplate>
                                       <TextBlock
                                         Classes="DgQtyCell"
-                                        FontSize="{Binding ValueText, Converter={StaticResource DgQtyFontSize}}"
+                                        FontSize="{Binding ValueText, Converter={StaticResource AdaptiveQtyFontSize}}"
                                         Text="{Binding ValueText}" />
                                     </DataTemplate>
                                   </DataGridTemplateColumn.CellTemplate>
@@ -393,7 +401,7 @@
                                   <DataTemplate>
                                     <TextBlock
                                       Classes="DgQtyCell"
-                                      FontSize="{Binding Qty, Converter={StaticResource DgQtyFontSize}}"
+                                      FontSize="{Binding Qty, Converter={StaticResource AdaptiveQtyFontSize}}"
                                       Text="{Binding Qty}" />
                                   </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -478,7 +486,7 @@
                                   <DataTemplate>
                                     <TextBlock
                                       Classes="DgQtyCell"
-                                      FontSize="{Binding Value, Converter={StaticResource DgQtyFontSize}}"
+                                      FontSize="{Binding Value, Converter={StaticResource AdaptiveQtyFontSize}}"
                                       Text="{Binding Value}" />
                                   </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -585,7 +593,7 @@
                                   Grid.Column="2"
                                   MinWidth="40"
                                   Classes="DgQtyCell"
-                                  FontSize="{Binding Qty, Converter={StaticResource DgQtyFontSize}}"
+                                  FontSize="{Binding Qty, Converter={StaticResource AdaptiveQtyFontSize}}"
                                   FontWeight="SemiBold"
                                   Text="{Binding Qty}"
                                   TextAlignment="Right" />
@@ -686,7 +694,7 @@
                               <DataTemplate>
                                 <TextBlock
                                   Classes="DgQtyCell"
-                                  FontSize="{Binding Qty, Converter={StaticResource DgQtyFontSize}}"
+                                  FontSize="{Binding Qty, Converter={StaticResource AdaptiveQtyFontSize}}"
                                   Text="{Binding Qty}" />
                               </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

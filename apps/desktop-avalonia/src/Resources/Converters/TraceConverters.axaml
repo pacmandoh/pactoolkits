@@ -1,0 +1,8 @@
+<ResourceDictionary
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters">
+  <conv:TraceEntryStateToIconKindConverter x:Key="TraceEntryStateToIconKind" />
+  <conv:TraceEntryStateToFgBrushConverter x:Key="TraceEntryStateToFgBrush" />
+  <conv:TraceEntryStateToBgBrushConverter x:Key="TraceEntryStateToBgBrush" />
+</ResourceDictionary>
