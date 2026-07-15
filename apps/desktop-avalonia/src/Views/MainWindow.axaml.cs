@@ -1,4 +1,7 @@
 using System;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
@@ -60,6 +63,56 @@ public partial class MainWindow : ShadWindow
         _titleBarCentering = null;
         base.OnClosed(e);
     }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == WindowStateProperty)
+        {
+            SyncMaximizedChrome();
+        }
+    }
+
+    private void SyncMaximizedChrome()
+    {
+        if (WindowState == WindowState.Maximized)
+        {
+            // ShadUI restores RootCornerRadius on Maximize; ClipToBounds then rounds into caption buttons.
+            RootCornerRadius = default;
+
+            if (OperatingSystem.IsWindows())
+            {
+                // Avalonia 12 zeros OffScreenMargin; ShadUI SnapLayout marks WM_NCCALCSIZE handled and
+                // skips Avalonia's BorderOnly maximize client shrink — content paints into the off-screen frame.
+                Margin = WindowsMaximizedFrameInset(DesktopScaling);
+            }
+
+            return;
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            ClearValue(MarginProperty);
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static Thickness WindowsMaximizedFrameInset(double scaling)
+    {
+        const int smCxFrame = 32;
+        const int smCyFrame = 33;
+        const int smCxPaddedBorder = 92;
+
+        var pad = GetSystemMetrics(smCxPaddedBorder);
+        var scale = scaling <= 0 ? 1 : scaling;
+        var x = (GetSystemMetrics(smCxFrame) + pad) / scale;
+        var y = (GetSystemMetrics(smCyFrame) + pad) / scale;
+        return new Thickness(x, y, x, y);
+    }
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int index);
 
     private void OnFullScreen(object? sender, RoutedEventArgs e)
     {
