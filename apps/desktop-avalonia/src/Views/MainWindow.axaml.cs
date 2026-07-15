@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Interactivity;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
@@ -34,6 +35,9 @@ public partial class MainWindow : ShadWindow
         _titleBarCentering?.Dispose();
         _titleBarCentering = null;
 
+        var titleBarBackground = e.NameScope.Find<Border>("PART_TitleBarBackground");
+        AttachWindowsTitleBarMark(titleBarBackground);
+
         var titlePanel = e.NameScope.Find<StackPanel>("AppTitlePanel");
         if (titlePanel is null)
         {
@@ -51,10 +55,23 @@ public partial class MainWindow : ShadWindow
             }
         }
 
-        var titleBarBackground = e.NameScope.Find<Border>("PART_TitleBarBackground");
         if (titleBarBackground is not null)
         {
             _titleBarCentering = new TitleBarCentering(titlePanel, TitleBarCenterAnchor, titleBarBackground);
+        }
+    }
+
+    private void AttachWindowsTitleBarMark(Border? titleBarBackground)
+    {
+        if (!OperatingSystem.IsWindows() || titleBarBackground is null)
+        {
+            return;
+        }
+
+        // ShadUI has no independent left title-bar slot; the background layer keeps the centered path undisturbed.
+        if (Resources["WindowsTitleBarMarkTemplate"] is IDataTemplate template)
+        {
+            titleBarBackground.Child = template.Build(null);
         }
     }
 

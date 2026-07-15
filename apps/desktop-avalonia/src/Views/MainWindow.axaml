@@ -23,6 +23,11 @@
   WindowStartupLocation="CenterScreen">
   <shad:Window.Resources>
     <conv:SidebarNavToolTipConverter x:Key="SidebarNavToolTip" />
+    <DataTemplate x:Key="WindowsTitleBarMarkTemplate">
+      <Border Classes="TitleBarMark">
+        <Image Source="avares://pactoolkits-desktop/Assets/app.ico" />
+      </Border>
+    </DataTemplate>
   </shad:Window.Resources>
 
   <shad:Window.Hosts>
