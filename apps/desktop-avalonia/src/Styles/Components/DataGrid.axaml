@@ -183,8 +183,8 @@
   </Style>
 
   <Style Selector="Button.DgIndexHeaderButton icons|AppIcon">
-    <Setter Property="Width" Value="{DynamicResource DgHeaderIconSize}" />
-    <Setter Property="Height" Value="{DynamicResource DgHeaderIconSize}" />
+    <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
   </Style>
 
   <Style Selector="TextBlock.DgIndexCell">

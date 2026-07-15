@@ -43,22 +43,22 @@
   <Style Selector="Border.TitleBarCapsule">
     <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
     <Setter Property="Margin" Value="{DynamicResource TitleBarCapsuleMargin}" />
     <Setter Property="Padding" Value="0.5" />
   </Style>
 
   <Style Selector="Border.TitleBarCapsule Button.WindowControlsButton">
-    <Setter Property="MinWidth" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
-    <Setter Property="MaxWidth" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
-    <Setter Property="MinHeight" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
-    <Setter Property="MaxHeight" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
+    <Setter Property="MinWidth" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="MaxWidth" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="MinHeight" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="MaxHeight" Value="{DynamicResource TitleBarControlSize}" />
     <Setter Property="Padding" Value="{DynamicResource TitleBarCapsuleBtnPadding}" />
   </Style>
 
   <Style Selector="Border.TitleBarCapsule Button.WindowControlsButton icons|AppIcon">
-    <Setter Property="Width" Value="{DynamicResource TitleBarCapsuleIconSize}" />
-    <Setter Property="Height" Value="{DynamicResource TitleBarCapsuleIconSize}" />
+    <Setter Property="Width" Value="{DynamicResource IconSizeDefault}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeDefault}" />
   </Style>
 
   <Style Selector="Grid.TitleBarNav">
@@ -71,8 +71,8 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
-    <Setter Property="Width" Value="{DynamicResource TitleBarNavBtnSize}" />
-    <Setter Property="Height" Value="{DynamicResource TitleBarNavBtnSize}" />
+    <Setter Property="Width" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarControlSize}" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -89,16 +89,16 @@
   </Style>
 
   <Style Selector="Button.TitleBarNavBtn icons|AppIcon">
-    <Setter Property="Width" Value="{DynamicResource TitleBarNavIconSize}" />
-    <Setter Property="Height" Value="{DynamicResource TitleBarNavIconSize}" />
+    <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
     <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
   </Style>
 
   <Style Selector="Button.TitleBarUpdateBtn">
-    <Setter Property="Height" Value="{DynamicResource TitleBarNavBtnSize}" />
-    <Setter Property="MinHeight" Value="{DynamicResource TitleBarNavBtnSize}" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="MinHeight" Value="{DynamicResource TitleBarControlSize}" />
     <Setter Property="Padding" Value="8,0" />
-    <Setter Property="CornerRadius" Value="{DynamicResource TitleBarPathRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
     <Setter Property="Background" Value="{DynamicResource ShellAccentBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource ShellAccentOnColor}" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -136,8 +136,8 @@
     <Setter Property="Background" Value="{DynamicResource GhostColor}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource TitleBarPathRadius}" />
-    <Setter Property="Height" Value="{DynamicResource TitleBarPathHeight}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarControlSize}" />
   </Style>
 
   <Style Selector="Border.TitleBarPath TextBlock.Caption">
@@ -294,11 +294,11 @@
   <Style Selector="Button.WindowControlsButton">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource MdCornerRadius}" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
     <Setter Property="Padding" Value="{DynamicResource TitleBarCapsuleBtnPadding}" />
-    <Setter Property="MinWidth" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
-    <Setter Property="MinHeight" Value="{DynamicResource TitleBarCapsuleBtnSize}" />
+    <Setter Property="MinWidth" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="MinHeight" Value="{DynamicResource TitleBarControlSize}" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="Cursor" Value="Hand" />
@@ -316,7 +316,7 @@
               Width="{TemplateBinding shad:ButtonAssist.ShowProgress,
                                       Converter={x:Static shad:BooleanConverters.ToZeroOrDouble},
                                       ConverterParameter=16}"
-              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              Height="{DynamicResource IconSizeDefault}"
               HorizontalAlignment="Center"
               VerticalAlignment="Center">
               <ContentPresenter Content="{TemplateBinding shad:ButtonAssist.ShowProgress, Converter={x:Static shad:BooleanConverters.ToLoading}}" />

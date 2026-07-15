@@ -81,7 +81,7 @@
   </Style>
 
   <Style Selector="TextBlock.InputPlaceholder">
-    <Setter Property="Margin" Value="{DynamicResource MarginLeftMd}" />
+    <Setter Property="Margin" Value="{DynamicResource InputPlaceholderMargin}" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="FontSize" Value="{DynamicResource HeaderMenuTitleSize}" />
     <Setter Property="Opacity" Value="0.55" />
@@ -192,7 +192,7 @@
   </Style>
 
   <Style Selector="Border.RowItem">
-    <Setter Property="CornerRadius" Value="{DynamicResource RowRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
     <Setter Property="Padding" Value="{DynamicResource RowPadding}" />
     <Setter Property="MinHeight" Value="{DynamicResource RowMinHeight}" />
     <Setter Property="Background" Value="Transparent" />
@@ -246,7 +246,7 @@
 
               <TextBlock
                 HorizontalAlignment="Center"
-                Classes="SubsectionTitle"
+                Classes="Small SubsectionTitle"
                 Text="{Binding EmptyText, RelativeSource={RelativeSource TemplatedParent}}" />
 
               <TextBlock

@@ -107,7 +107,7 @@
               <shad:Card
                 Width="52"
                 Height="52"
-                CornerRadius="14"
+                CornerRadius="{DynamicResource XlCornerRadius}"
                 Opacity="0.94">
                 <icons:AppIcon
                   Width="24"
@@ -648,7 +648,7 @@
             ColumnDefinitions="1.1*,1.1*,1.1*"
             ColumnSpacing="{DynamicResource PageColumnSpacing}">
             <StackPanel Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="视觉标记样例" />
+              <TextBlock Classes="Small SubsectionTitle" Text="视觉标记样例" />
               <WrapPanel
                 Margin="{DynamicResource AboutSectionInset}"
                 ItemSpacing="{DynamicResource SpacingInlineMd}"
@@ -673,7 +673,7 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="Settings Layout（演示）" />
+              <TextBlock Classes="Small SubsectionTitle" Text="Settings Layout（演示）" />
               <Grid
                 Margin="{DynamicResource AboutSectionInset}"
                 ColumnDefinitions="Auto,*"
@@ -727,7 +727,7 @@
             </StackPanel>
 
             <StackPanel Grid.Column="2" Spacing="{DynamicResource FormRowSpacing}">
-              <TextBlock Classes="SubsectionTitle" Text="Button 样式（实验）" />
+              <TextBlock Classes="Small SubsectionTitle" Text="Button 样式（实验）" />
               <WrapPanel
                 Margin="{DynamicResource AboutSectionInset}"
                 ItemSpacing="{DynamicResource SpacingInlineMd}"
@@ -742,7 +742,7 @@
           </Grid>
 
           <StackPanel Grid.Row="3" Spacing="{DynamicResource FormRowSpacing}">
-            <TextBlock Classes="SubsectionTitle" Text="WaveProgress（可调演示）" />
+            <TextBlock Classes="Small SubsectionTitle" Text="WaveProgress（可调演示）" />
             <Grid
               MinHeight="250"
               Margin="{DynamicResource AboutSectionInset}"
@@ -785,7 +785,7 @@
           </StackPanel>
 
           <StackPanel Grid.Row="4" Spacing="{DynamicResource FormRowSpacing}">
-            <TextBlock Classes="SubsectionTitle" Text="交互组件预览" />
+            <TextBlock Classes="Small SubsectionTitle" Text="交互组件预览" />
             <TabControl Margin="{DynamicResource AboutSectionInset}" SelectedIndex="0">
               <TabItem Header="布局">
                 <Grid

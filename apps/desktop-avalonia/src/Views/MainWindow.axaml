@@ -17,6 +17,7 @@
   behaviors:FocusClear.Enable="True"
   x:DataType="vm:MainWindowViewModel"
   Icon="avares://pactoolkits-desktop/Assets/app.ico"
+  RootCornerRadius="{DynamicResource XlCornerRadius}"
   ShowBottomBorder="False"
   TitleBarAnimationEnabled="False"
   WindowStartupLocation="CenterScreen">
@@ -116,14 +117,14 @@
           Command="{Binding SwitchThemeCommand}"
           ToolTip.Tip="切换主题">
           <icons:AppIcon
-            Width="{DynamicResource TitleBarCapsuleIconSize}"
-            Height="{DynamicResource TitleBarCapsuleIconSize}"
+            Width="{DynamicResource IconSizeDefault}"
+            Height="{DynamicResource IconSizeDefault}"
             Kind="{Binding CurrentTheme, Converter={x:Static conv:Theme.ToIconKind}}" />
         </Button>
 
         <Border
           Width="1"
-          Height="{DynamicResource TitleBarCapsuleIconSize}"
+          Height="{DynamicResource IconSizeDefault}"
           Margin="{DynamicResource TitleBarCapsuleDividerMargin}"
           VerticalAlignment="Center"
           Background="{DynamicResource BorderColor}" />
@@ -134,13 +135,13 @@
           ToolTip.Tip="全屏">
           <Panel>
             <icons:AppIcon
-              Width="{DynamicResource TitleBarCapsuleIconSize}"
-              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
               IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsNotExpanded}}"
               Kind="Maximize" />
             <icons:AppIcon
-              Width="{DynamicResource TitleBarCapsuleIconSize}"
-              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
               IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsExpanded}}"
               Kind="Minimize" />
           </Panel>
@@ -148,7 +149,7 @@
 
         <Border
           Width="1"
-          Height="{DynamicResource TitleBarCapsuleIconSize}"
+          Height="{DynamicResource IconSizeDefault}"
           Margin="{DynamicResource TitleBarCapsuleDividerMargin}"
           VerticalAlignment="Center"
           Background="{DynamicResource BorderColor}" />
@@ -160,14 +161,14 @@
           ToolTip.Tip="{Binding DbItemText}">
           <Panel>
             <icons:AppIcon
-              Width="{DynamicResource TitleBarCapsuleIconSize}"
-              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
               Foreground="{DynamicResource SuccessColor}"
               IsVisible="{Binding IsDbConnected}"
               Kind="Link" />
             <icons:AppIcon
-              Width="{DynamicResource TitleBarCapsuleIconSize}"
-              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
               Foreground="{DynamicResource ErrorColor}"
               IsVisible="{Binding !IsDbConnected}"
               Kind="Unlink" />
@@ -181,14 +182,14 @@
           ToolTip.Tip="{Binding AgentItemText}">
           <Panel>
             <icons:AppIcon
-              Width="{DynamicResource TitleBarCapsuleIconSize}"
-              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
               Foreground="{DynamicResource SuccessColor}"
               IsVisible="{Binding IsAhkRunning}"
               Kind="Syringe" />
             <icons:AppIcon
-              Width="{DynamicResource TitleBarCapsuleIconSize}"
-              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
               Foreground="{DynamicResource ErrorColor}"
               IsVisible="{Binding !IsAhkRunning}"
               Kind="Syringe" />

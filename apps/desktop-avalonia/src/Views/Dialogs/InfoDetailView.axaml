@@ -50,7 +50,7 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="infra:InfoDetailItem">
-            <Border Padding="10,8" CornerRadius="10">
+            <Border Padding="10,8" CornerRadius="{DynamicResource LgCornerRadius}">
               <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
                 <TextBlock Classes="Caption Muted" Text="{Binding Label}" />
                 <TextBlock

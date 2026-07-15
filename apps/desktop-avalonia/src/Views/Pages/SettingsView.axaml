@@ -47,7 +47,7 @@
 
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="H2Text" Text="连接信息" />
+                <TextBlock Classes="Large H2Text" Text="连接信息" />
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Outline"
@@ -157,7 +157,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <TextBlock
                     VerticalAlignment="Center"
-                    Classes="H2Text"
+                    Classes="Large H2Text"
                     Text="数据库架构" />
                   <controls:UpdateStatusBadge
                     VerticalAlignment="Center"
@@ -206,7 +206,7 @@
             </Border>
 
             <Border Classes="H3">
-              <TextBlock Classes="H3Text" Text="结构信息" />
+              <TextBlock Classes="Small H3Text" Text="结构信息" />
             </Border>
 
             <Border Classes="Field">
@@ -270,7 +270,7 @@
             </Border>
 
             <Border Classes="H3">
-              <TextBlock Classes="H3Text" Text="运行信息" />
+              <TextBlock Classes="Small H3Text" Text="运行信息" />
             </Border>
 
             <Border Classes="Field">
@@ -346,7 +346,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Classes="H2Text" Text="别名列表" />
+                  <TextBlock Classes="Large H2Text" Text="别名列表" />
                   <TextBlock Classes="Caption Muted FieldDesc" Text="为每台客户端机器设置显示别名" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Classes="H2Actions">
@@ -422,7 +422,7 @@
 
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="H2Text" Text="单条追溯码合法性" />
+                <TextBlock Classes="Large H2Text" Text="单条追溯码合法性" />
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Primary"
@@ -493,7 +493,7 @@
             </Border>
 
             <Border Classes="H2">
-              <TextBlock Classes="H2Text" Text="托盘模式" />
+              <TextBlock Classes="Large H2Text" Text="托盘模式" />
             </Border>
 
             <Border Classes="Field">
@@ -537,7 +537,7 @@
 
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="H2Text" Text="更新源与策略" />
+                <TextBlock Classes="Large H2Text" Text="更新源与策略" />
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     shad:ButtonAssist.ShowProgress="{Binding IsUpdateChecking}"
@@ -718,7 +718,7 @@
 
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="H2Text" Text="日志策略与操作" />
+                <TextBlock Classes="Large H2Text" Text="日志策略与操作" />
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Outline"
@@ -863,7 +863,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                   <TextBlock
                     VerticalAlignment="Center"
-                    Classes="H2Text"
+                    Classes="Large H2Text"
                     Text="调用凭证与网关" />
                   <controls:UpdateStatusBadge
                     VerticalAlignment="Center"
@@ -1040,7 +1040,7 @@
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
                 <TextBlock
                   VerticalAlignment="Center"
-                  Classes="H2Text"
+                  Classes="Large H2Text"
                   Text="Agent-Injector 运行" />
                 <controls:StatusPill
                   VerticalAlignment="Center"
@@ -1099,7 +1099,7 @@
             </Border>
 
             <Border Classes="H2">
-              <TextBlock Classes="H2Text" Text="版本与运行信息" />
+              <TextBlock Classes="Large H2Text" Text="版本与运行信息" />
             </Border>
 
             <Border Classes="Field">
@@ -1164,7 +1164,7 @@
             </Border>
 
             <Border Classes="H2">
-              <TextBlock Classes="H2Text" Text="基础配置" />
+              <TextBlock Classes="Large H2Text" Text="基础配置" />
             </Border>
 
             <Border Classes="Field">
@@ -1256,7 +1256,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Classes="H2Text" Text="目标进程" />
+                  <TextBlock Classes="Large H2Text" Text="目标进程" />
                   <TextBlock Classes="Caption Muted FieldDesc" Text="Agent 可注入的目标可执行文件，每行一个" />
                 </StackPanel>
                 <Button
@@ -1306,7 +1306,7 @@
             </ItemsControl>
 
             <Border Classes="H2">
-              <TextBlock Classes="H2Text" Text="门诊配置" />
+              <TextBlock Classes="Large H2Text" Text="门诊配置" />
             </Border>
 
             <Border Classes="Field">
@@ -1374,7 +1374,7 @@
             </Border>
 
             <Border Classes="H2">
-              <TextBlock Classes="H2Text" Text="住院配置" />
+              <TextBlock Classes="Large H2Text" Text="住院配置" />
             </Border>
 
             <Border Classes="Field">
@@ -1442,7 +1442,7 @@
             </Border>
 
             <Border Classes="H2">
-              <TextBlock Classes="H2Text" Text="仓库配置" />
+              <TextBlock Classes="Large H2Text" Text="仓库配置" />
             </Border>
 
             <Border Classes="Field">
@@ -1497,7 +1497,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Classes="H2Text" Text="仓库列特征" />
+                  <TextBlock Classes="Large H2Text" Text="仓库列特征" />
                   <TextBlock
                     Classes="Caption Muted FieldDesc"
                     Text="表头命中任一列名则判定为住院；均未命中则判定为仓库（默认：患者姓名、应扫次数）"
@@ -1552,7 +1552,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Classes="H2Text" Text="解析规则" />
+                  <TextBlock Classes="Large H2Text" Text="解析规则" />
                   <TextBlock Classes="Caption Muted FieldDesc" Text="表格列解析规则（ColSpecs），每行一条" />
                 </StackPanel>
                 <Button
@@ -1604,7 +1604,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Classes="H2Text" Text="整数列" />
+                  <TextBlock Classes="Large H2Text" Text="整数列" />
                   <TextBlock Classes="Caption Muted FieldDesc" Text="需要按整数解析的列名，每行一个" />
                 </StackPanel>
                 <Button

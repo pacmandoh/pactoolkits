@@ -97,7 +97,7 @@
   </Style>
 
   <Style Selector="shad|Card.SectionCard">
-    <Setter Property="CornerRadius" Value="{DynamicResource SectionCardRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
     <Setter Property="Padding" Value="{DynamicResource SectionCardPadding}" />
     <Setter Property="Template">
       <ControlTemplate TargetType="shad:Card">
@@ -193,7 +193,7 @@
 
   <Style Selector="Border.MsfxBoardSkeletonOverlay">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
-    <Setter Property="CornerRadius" Value="{DynamicResource SectionCardRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
     <Setter Property="Opacity" Value="0.92" />
   </Style>
 
@@ -201,7 +201,7 @@
     <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
     <Setter Property="MinHeight" Value="120" />
   </Style>
 
@@ -209,7 +209,7 @@
     <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
     <Setter Property="Opacity" Value="0.65" />
   </Style>
 </Styles>

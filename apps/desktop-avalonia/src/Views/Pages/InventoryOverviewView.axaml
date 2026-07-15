@@ -65,14 +65,14 @@
                       </ComboBox>
                       <TextBlock
                         Grid.Column="2"
-                        Margin="{DynamicResource MarginLeftMd}"
+                        Margin="12,0,0,0"
                         VerticalAlignment="Center"
                         Classes="Caption Muted"
                         IsVisible="{Binding IsSingleScope}"
                         Text="按当前选中库存行纠错" />
                       <TextBlock
                         Grid.Column="2"
-                        Margin="{DynamicResource MarginLeftMd}"
+                        Margin="12,0,0,0"
                         VerticalAlignment="Center"
                         Classes="Caption Muted"
                         IsVisible="{Binding IsFilterScope}"
