@@ -49,6 +49,15 @@
     <Setter Property="Foreground" Value="{DynamicResource ShellAccentOnColor}" />
   </Style>
 
+  <Style Selector="Border.UpdateDot">
+    <Setter Property="Width" Value="6" />
+    <Setter Property="Height" Value="6" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="Background" Value="{DynamicResource WarningColor}" />
+    <Setter Property="CornerRadius" Value="999" />
+  </Style>
+
   <Style Selector="Border.SidebarFuncHost">
     <Setter Property="MinHeight" Value="{DynamicResource SidebarFuncHeight}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />

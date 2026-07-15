@@ -124,7 +124,6 @@
   <Thickness x:Key="SidebarNavSeparatorMargin">8,4,8,4</Thickness>
   <x:Double x:Key="SidebarNavItemSpacing">4</x:Double>
   <x:Double x:Key="LegendDotSize">10</x:Double>
-  <x:Double x:Key="TitleBarActionIconSize">17</x:Double>
   <x:Double x:Key="SidebarMenuIconSize">18</x:Double>
   <x:Double x:Key="SidebarMenuIconStroke">2.0</x:Double>
   <x:Double x:Key="ChromeRowHeight">48</x:Double>
@@ -144,19 +143,20 @@
   <Thickness x:Key="MarginBottomLg">0,0,0,8</Thickness>
   <Thickness x:Key="MarginLeftMd">12,0,0,0</Thickness>
   <Thickness x:Key="MarginHorizontalTiny">2,0,2,0</Thickness>
-  <Thickness x:Key="TitleBarActionMargin">0,0,6,0</Thickness>
   <Thickness x:Key="TitleBarRightMargin">0,4,0,4</Thickness>
   <Thickness x:Key="TitleBarCapsuleDividerMargin">2,0</Thickness>
   <Thickness x:Key="TitleBarCapsuleMargin">0,0,8,0</Thickness>
   <Thickness x:Key="TitleBarCapsuleBtnPadding">6,0</Thickness>
   <x:Double x:Key="TitleBarCapsuleBtnSize">22</x:Double>
   <x:Double x:Key="TitleBarCapsuleIconSize">16</x:Double>
-  <x:Double x:Key="TitleBarHeight">32</x:Double>
-  <x:Double x:Key="TitleBarNavWidth">480</x:Double>
-  <x:Double x:Key="TitleBarNavBtnSize">26</x:Double>
-  <x:Double x:Key="TitleBarNavIconSize">15</x:Double>
-  <x:Double x:Key="TitleBarPathHeight">26</x:Double>
-  <CornerRadius x:Key="TitleBarPathRadius">7</CornerRadius>
+  <x:Double x:Key="TitleBarHeight">28</x:Double>
+  <x:Double x:Key="TitleBarNavBtnSize">22</x:Double>
+  <x:Double x:Key="TitleBarNavIconSize">14</x:Double>
+  <x:Double x:Key="TitleBarPathWidth">420</x:Double>
+  <x:Double x:Key="TitleBarPathHeight">22</x:Double>
+  <x:Double x:Key="TitleBarPathDividerHeight">12</x:Double>
+  <Thickness x:Key="TitleBarPathDividerMargin">10,0</Thickness>
+  <CornerRadius x:Key="TitleBarPathRadius">6</CornerRadius>
 
   <CornerRadius x:Key="TraceBadgeRadius">8</CornerRadius>
 

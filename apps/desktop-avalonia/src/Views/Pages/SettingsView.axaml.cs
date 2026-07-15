@@ -90,6 +90,11 @@ public partial class SettingsView : UserControl
         {
             IsClientAliasEditable = !(_vm?.IsClientAliasReadOnly ?? true);
         }
+
+        if (e.PropertyName == nameof(Settings.HasUpdateAvailable))
+        {
+            RefreshNavDots();
+        }
     }
 
     private void OnUnsavedChanged()
@@ -272,7 +277,15 @@ public partial class SettingsView : UserControl
                 continue;
             }
 
-            if (!CreateNavButton(title, icon, tabIndex, out var navButton, out var unsavedDot))
+            var tracksUpdate = string.Equals(pageName, "TabUpdatePage", StringComparison.Ordinal);
+            if (!CreateNavButton(
+                    title,
+                    icon,
+                    tabIndex,
+                    tracksUpdate,
+                    out var navButton,
+                    out var unsavedDot,
+                    out var updateDot))
             {
                 continue;
             }
@@ -280,7 +293,11 @@ public partial class SettingsView : UserControl
             navButton.Click += OnNavButtonClick;
 
             _navItemsHost.Children.Add(navButton);
-            _tabLinks.Add(new TabLink(navButton, page, unsavedDot));
+            _tabLinks.Add(new TabLink(
+                navButton,
+                page,
+                unsavedDot,
+                updateDot));
             tabIndex++;
         }
     }
@@ -289,11 +306,14 @@ public partial class SettingsView : UserControl
         string title,
         string icon,
         int tabIndex,
+        bool tracksUpdate,
         out Button navButton,
-        out Border unsavedDot)
+        out Border unsavedDot,
+        out Border? updateDot)
     {
         navButton = null!;
         unsavedDot = null!;
+        updateDot = null;
 
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -307,11 +327,26 @@ public partial class SettingsView : UserControl
             VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center
         };
 
-        content.Children.Add(new AppIcon
+        var iconHost = new Panel
+        {
+            Width = 20,
+            Height = 20,
+            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center
+        };
+        iconHost.Children.Add(new AppIcon
         {
             Kind = icon,
-            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center
+            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Bottom
         });
+
+        if (tracksUpdate)
+        {
+            updateDot = new Border { IsVisible = false };
+            updateDot.Classes.Add("UpdateDot");
+            iconHost.Children.Add(updateDot);
+        }
+        content.Children.Add(iconHost);
 
         content.Children.Add(new TextBlock
         {
@@ -390,8 +425,16 @@ public partial class SettingsView : UserControl
         for (var i = 0; i < _tabLinks.Count; i++)
         {
             _tabLinks[i].UnsavedDot.IsVisible = _vm.IsTabDirty(i);
+            if (_tabLinks[i].UpdateDot is { } updateDot)
+            {
+                updateDot.IsVisible = _vm.HasUpdateAvailable;
+            }
         }
     }
 
-    private sealed record TabLink(Button NavButton, Control Page, Border UnsavedDot);
+    private sealed record TabLink(
+        Button NavButton,
+        Control Page,
+        Border UnsavedDot,
+        Border? UpdateDot);
 }

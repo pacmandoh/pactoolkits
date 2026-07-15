@@ -29,6 +29,20 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
+    private sealed record NavigationLocation(AppPageBase Page, int? TabIndex);
+    private static readonly PageTab[] DashboardTabItems =
+    [
+        new("总览", "ChartLine"),
+        new("录入", "ScanBarcode"),
+        new("事务", "ArrowRightLeft"),
+        new("异常", "OctagonAlert")
+    ];
+    private static readonly PageTab[] ScanCodeTabItems =
+    [
+        new("手动录入", "Keyboard"),
+        new("自动拉取", "Cloud")
+    ];
+
     public ToastManager ToastManager { get; }
     public DialogManager DialogManager { get; }
 
@@ -85,6 +99,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public IReadOnlyList<AppPageBase> SidebarPages { get; }
 
     public IReadOnlyList<ShellFunctionArea> FunctionAreas => ShellFunctionAreas.All;
+    public IReadOnlyList<PageTab> DashboardTabs => DashboardTabItems;
+    public IReadOnlyList<PageTab> ScanCodeTabs => ScanCodeTabItems;
 
     [ObservableProperty]
     private ShellFunctionArea _selectedFunctionArea = ShellFunctionAreas.Traceability;
@@ -95,7 +111,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly Dictionary<Type, AppPageBase> _pageByType;
     private readonly AppPageBase? _settingsPage;
     private readonly AppPageBase? _aboutPage;
+    private readonly PageHistory<NavigationLocation> _pageHistory = new();
+    private NavigationLocation? _currentLocation;
     private AppPageBase? _activeLifecyclePage;
+    private bool _isHistoryNavigation;
     private bool _disposed;
 
     private System.Windows.Input.ICommand? _lastRefreshCommand;
@@ -201,6 +220,20 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public string ActivePageText => ActivePage?.DisplayName ?? "就绪";
 
+    public string ActivePageIcon => ActivePage?.Icon ?? "PanelTop";
+
+    public bool ShowActiveTab => ResolveTab(ActivePage) is not null;
+
+    public string ActiveTabText => ResolveTab(ActivePage)?.Text ?? string.Empty;
+
+    public string ActiveTabIcon => ResolveTab(ActivePage)?.Icon ?? "PanelTop";
+
+    public string NavigateBackToolTip
+        => _pageHistory.BackTarget is { } location ? $"后退到 {DescribeLocation(location)}" : "没有可后退位置";
+
+    public string NavigateForwardToolTip
+        => _pageHistory.ForwardTarget is { } location ? $"前进到 {DescribeLocation(location)}" : "没有可前进位置";
+
     public bool ShowAccessGuardItem => _accessGuard.IsBlocked;
 
     public string AccessGuardItemText
@@ -230,6 +263,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         => IsUpdateChecking ? "检查更新…" : VersionText;
 
     public bool IsUpdateApplying => _updateFlow.IsApplying;
+
+    public string UpdateActionText => GetUpdateText(IsUpdateApplying, _updateFlow.ApplyProgress);
 
     public bool ShowConnectivityBanner { get; private set; }
     public string ConnectivityBannerTitle { get; private set; } = string.Empty;
@@ -470,6 +505,26 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    public bool ShowAutoFetchActions => _scanCode?.IsAutoFetchTab == true;
+
+    public bool AutoFetchEnabled
+    {
+        get => _scanCode?.IsAutoFetchEnabled == true;
+        set
+        {
+            if (_scanCode is not null && _scanCode.IsAutoFetchEnabled != value)
+            {
+                _scanCode.IsAutoFetchEnabled = value;
+            }
+        }
+    }
+
+    public System.Windows.Input.ICommand? StartAutoFetch => _scanCode?.StartAutoFetchCommand;
+
+    public System.Windows.Input.ICommand? StopAutoFetch => _scanCode?.StopAutoFetchCommand;
+
+    public System.Windows.Input.ICommand? OpenAutoFetchSettings => _scanCode?.OpenAutoFetchSettingsCommand;
+
     public string DashboardSectionHint => _dashboard?.SectionHint ?? string.Empty;
 
     private InventoryOverview? _inventory;
@@ -578,7 +633,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        await ApplyUpdateFlowAsync().ConfigureAwait(false);
+        await _updateFlow.ApplyUpdateFlowAsync().ConfigureAwait(false);
     }
 
     public MainWindowViewModel(
@@ -1020,6 +1075,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 OnPropertyChanged(nameof(FilterBarToggleToolTip));
                 break;
             case nameof(Dashboard.SelectedTabIndex):
+                if (ReferenceEquals(ActivePage, _dashboard))
+                {
+                    TrackLocation(_dashboard);
+                }
+
                 RaiseDashboardTabBindings();
                 break;
             case nameof(Dashboard.SectionHint):
@@ -1031,19 +1091,38 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void RaiseDashboardTabBindings()
     {
         OnPropertyChanged(nameof(DashboardSelectedTabIndex));
+        RaiseBreadcrumbBindings();
     }
 
     private void OnScanCodePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ScanCode.SelectedTabIndex))
+        switch (e.PropertyName)
         {
-            RaiseScanCodeTabBindings();
+            case nameof(ScanCode.SelectedTabIndex):
+                if (ReferenceEquals(ActivePage, _scanCode))
+                {
+                    TrackLocation(_scanCode);
+                }
+
+                OnPropertyChanged(nameof(ScanCodeSelectedTabIndex));
+                OnPropertyChanged(nameof(ShowAutoFetchActions));
+                RaiseBreadcrumbBindings();
+                break;
+            case nameof(ScanCode.IsAutoFetchEnabled):
+                OnPropertyChanged(nameof(AutoFetchEnabled));
+                break;
         }
     }
 
-    private void RaiseScanCodeTabBindings()
+    private void RaiseScanCodeBindings()
     {
         OnPropertyChanged(nameof(ScanCodeSelectedTabIndex));
+        OnPropertyChanged(nameof(ShowAutoFetchActions));
+        OnPropertyChanged(nameof(AutoFetchEnabled));
+        OnPropertyChanged(nameof(StartAutoFetch));
+        OnPropertyChanged(nameof(StopAutoFetch));
+        OnPropertyChanged(nameof(OpenAutoFetchSettings));
+        RaiseBreadcrumbBindings();
     }
 
     private void WireTopBarCommands(AppPageBase? newPage)
@@ -1172,6 +1251,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         var previous = _activeLifecyclePage;
+        TrackLocation(value);
+
         if (!ReferenceEquals(previous, value))
         {
             _activeLifecyclePage = value;
@@ -1214,12 +1295,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(FilterBarToggleIconKind));
         OnPropertyChanged(nameof(FilterBarToggleToolTip));
         RaiseDashboardTabBindings();
-        RaiseScanCodeTabBindings();
+        RaiseScanCodeBindings();
         OnPropertyChanged(nameof(DashboardSectionHint));
         RaiseInventoryBindings();
         RaiseDrugIndexBindings();
         RaiseTopBarVisibilityBindings();
         RaiseStatusItemsChanged();
+        RaiseNavigationHistoryChanged();
 
         TryRefreshDirtyActivePage();
     }
@@ -1325,6 +1407,147 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             ObserveDetached(SetActivePageAsync(page), "page.active.detached.fail");
         }
+    }
+
+    private bool CanNavigateBack() => _pageHistory.CanGoBack;
+
+    private bool CanNavigateForward() => _pageHistory.CanGoForward;
+
+    [RelayCommand(CanExecute = nameof(CanNavigateBack))]
+    private Task NavigateBackAsync() => NavigateHistoryAsync(goBack: true);
+
+    [RelayCommand(CanExecute = nameof(CanNavigateForward))]
+    private Task NavigateForwardAsync() => NavigateHistoryAsync(goBack: false);
+
+    private static NavigationLocation? GetLocation(AppPageBase? page)
+        => page switch
+        {
+            Dashboard dashboard => new NavigationLocation(dashboard, dashboard.SelectedTabIndex),
+            ScanCode scanCode => new NavigationLocation(scanCode, scanCode.SelectedTabIndex),
+            not null => new NavigationLocation(page, null),
+            _ => null
+        };
+
+    private static PageTab? ResolveTab(AppPageBase? page, int? tabIndex = null)
+    {
+        var index = tabIndex ?? page switch
+        {
+            Dashboard dashboard => dashboard.SelectedTabIndex,
+            ScanCode scanCode => scanCode.SelectedTabIndex,
+            _ => -1
+        };
+
+        var tabs = page switch
+        {
+            Dashboard => DashboardTabItems,
+            ScanCode => ScanCodeTabItems,
+            _ => null
+        };
+
+        return tabs is not null && index >= 0 && index < tabs.Length
+            ? tabs[index]
+            : null;
+    }
+
+    private static string DescribeLocation(NavigationLocation location)
+        => ResolveTab(location.Page, location.TabIndex) is { } tab
+            ? $"{location.Page.DisplayName} / {tab.Text}"
+            : location.Page.DisplayName;
+
+    private void TrackLocation(AppPageBase? page)
+    {
+        var next = GetLocation(page);
+        if (next is null || EqualityComparer<NavigationLocation>.Default.Equals(_currentLocation, next))
+        {
+            return;
+        }
+
+        if (!_isHistoryNavigation)
+        {
+            _pageHistory.Record(_currentLocation, next);
+        }
+
+        _currentLocation = next;
+        RaiseBreadcrumbBindings();
+        RaiseNavigationHistoryChanged();
+    }
+
+    private static void ApplyLocation(NavigationLocation location)
+    {
+        if (location.TabIndex is not { } tabIndex)
+        {
+            return;
+        }
+
+        switch (location.Page)
+        {
+            case Dashboard dashboard:
+                dashboard.SelectedTabIndex = tabIndex;
+                break;
+            case ScanCode scanCode:
+                scanCode.SelectedTabIndex = tabIndex;
+                break;
+        }
+    }
+
+    private async Task NavigateHistoryAsync(bool goBack)
+    {
+        var target = goBack ? _pageHistory.BackTarget : _pageHistory.ForwardTarget;
+        var current = _currentLocation ?? GetLocation(ActivePage);
+        if (target is null || current is null)
+        {
+            return;
+        }
+
+        _isHistoryNavigation = true;
+        try
+        {
+            await SetActivePageAsync(target.Page);
+            if (!ReferenceEquals(ActivePage, target.Page))
+            {
+                return;
+            }
+
+            ApplyLocation(target);
+            var reached = GetLocation(ActivePage);
+            if (!EqualityComparer<NavigationLocation>.Default.Equals(reached, target))
+            {
+                return;
+            }
+
+            _currentLocation = reached;
+
+            if (goBack)
+            {
+                _pageHistory.CompleteBack(current);
+            }
+            else
+            {
+                _pageHistory.CompleteForward(current);
+            }
+        }
+        finally
+        {
+            _isHistoryNavigation = false;
+            RaiseNavigationHistoryChanged();
+        }
+    }
+
+    private void RaiseNavigationHistoryChanged()
+    {
+        NavigateBackCommand.NotifyCanExecuteChanged();
+        NavigateForwardCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(NavigateBackToolTip));
+        OnPropertyChanged(nameof(NavigateForwardToolTip));
+    }
+
+    private void RaiseBreadcrumbBindings()
+    {
+        OnPropertyChanged(nameof(ActivePageText));
+        OnPropertyChanged(nameof(ActivePageIcon));
+        OnPropertyChanged(nameof(ShowActiveTab));
+        OnPropertyChanged(nameof(ActiveTabText));
+        OnPropertyChanged(nameof(ActiveTabIcon));
     }
 
     private async Task SetActivePageAsync(AppPageBase? page)
@@ -1779,16 +2002,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         await _updateFlow.CheckAndHandleAsync(
             showNoUpdateToast: showNoUpdateToast,
             startupMode: startupMode,
-            applyNowAction: ApplyUpdateFlowAsync,
-            ignoreVersionAction: IgnoreCurrentUpdateAsync,
             logScope: "MainWindowVM").ConfigureAwait(false);
     }
-
-    private Task ApplyUpdateFlowAsync()
-        => _updateFlow.ApplyUpdateFlowAsync();
-
-    private Task IgnoreCurrentUpdateAsync()
-        => _updateFlow.IgnoreVersionAsync(LatestProductVersion);
 
     private void ShowDbConnectionFailed(string reason)
     {
@@ -1956,8 +2171,15 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void OnUpdateFlowStateChanged()
     {
-        PostOnUi(() => OnPropertyChanged(nameof(IsUpdateApplying)));
+        PostOnUi(() =>
+        {
+            OnPropertyChanged(nameof(IsUpdateApplying));
+            OnPropertyChanged(nameof(UpdateActionText));
+        });
     }
+
+    internal static string GetUpdateText(bool isApplying, int progress)
+        => isApplying ? $"更新 · {Math.Clamp(progress, 0, 100)}%" : "更新";
 
     public void Dispose()
     {

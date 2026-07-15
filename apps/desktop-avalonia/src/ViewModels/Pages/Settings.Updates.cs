@@ -329,8 +329,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         await _updateFlow.CheckAndHandleAsync(
             showNoUpdateToast: true,
             startupMode: false,
-            applyNowAction: ApplyUpdateNowAsync,
-            ignoreVersionAction: IgnoreCurrentUpdateAsync,
             logScope: "SettingsVM");
     }
 
@@ -363,20 +361,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         {
             _logger.Error("SettingsVM", "update.clear_ignored.fail", "Failed to clear ignored version", ex);
             _toast.Error("更新设置", ex.Message);
-        }
-    }
-
-    private async Task IgnoreCurrentUpdateAsync()
-    {
-        try
-        {
-            await _updateFlow.IgnoreVersionAsync(LatestProductVersion);
-            IgnoredProductVersion = LatestProductVersion;
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("SettingsVM", "update.ignore.fail", "Failed to ignore update version", ex);
-            _toast.Error("应用更新", ex.Message);
         }
     }
 

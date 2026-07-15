@@ -602,8 +602,8 @@
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="启动自动检查" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="应用启动时自动检查是否有新版本" />
+                  <TextBlock Classes="FieldTitle" Text="自动检查更新" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="启动后及运行期间静默检查，仅显示状态提示，不会自动下载" />
                 </StackPanel>
                 <ToggleSwitch
                   Grid.Column="1"

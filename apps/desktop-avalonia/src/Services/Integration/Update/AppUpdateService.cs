@@ -46,8 +46,11 @@ public interface IAppUpdateService
 
 public sealed class AppUpdateService : IAppUpdateService, IDisposable
 {
+    private const string SimulationVersionVariable = "PACTOOLKITS_SIMULATE_UPDATE_VERSION";
+
     private readonly IUpdateSettingsService _settings;
     private readonly IAppLogger _logger;
+    private readonly string? _simulatedVersion;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public string CurrentVersion { get; private set; }
@@ -61,11 +64,28 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
     public event Action? Changed;
 
     public AppUpdateService(IUpdateSettingsService settings, IAppLogger logger)
+        : this(settings, logger, Environment.GetEnvironmentVariable(SimulationVersionVariable))
+    {
+    }
+
+    internal AppUpdateService(
+        IUpdateSettingsService settings,
+        IAppLogger logger,
+        string? simulatedVersion)
     {
         _settings = settings;
         _logger = logger;
+        _simulatedVersion = string.IsNullOrWhiteSpace(simulatedVersion)
+            ? null
+            : simulatedVersion.Trim();
         CurrentVersion = ResolveInstalledVersion();
-        LatestVersion = CurrentVersion;
+        LatestVersion = _simulatedVersion ?? CurrentVersion;
+        HasUpdateAvailable = _simulatedVersion is not null;
+        HasProductUpdateAvailable = _simulatedVersion is null ? null : true;
+        if (_simulatedVersion is not null)
+        {
+            LastMessage = $"模拟发现新版本 {_simulatedVersion}";
+        }
 
         _settings.Changed += OnSettingsChanged;
     }
@@ -106,6 +126,30 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
             var targetChannel = AppUpdatePolicy.NormalizeChannel(options.Channel);
             var currentChannel = ResolveInstalledChannel();
             var source = AppUpdatePolicy.BuildSource(options);
+
+            if (_simulatedVersion is not null)
+            {
+                var simulated = CreateCheckResult(
+                    success: true,
+                    hasUpdate: true,
+                    hasProductUpdate: true,
+                    latestVersion: _simulatedVersion,
+                    currentChannel: currentChannel,
+                    targetChannel: targetChannel,
+                    channelSwitchRequired: false,
+                    message: $"模拟发现新版本 {_simulatedVersion}",
+                    checkedAt: now,
+                    source: "ui-simulation");
+                _logger.Info("AppUpdateService", "update.check.simulated", "Simulated update check found release", new
+                {
+                    CurrentVersion,
+                    LatestVersion = _simulatedVersion,
+                    CurrentChannel = currentChannel,
+                    TargetChannel = targetChannel
+                });
+                SetState(simulated);
+                return simulated;
+            }
 
             _logger.Info("AppUpdateService", "update.check.start", "Starting update check", new
             {
@@ -298,6 +342,30 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
         try
         {
             RefreshCurrentVersion();
+            if (_simulatedVersion is not null)
+            {
+                foreach (var value in new[] { 0, 20, 40, 60, 80, 100 })
+                {
+                    ct.ThrowIfCancellationRequested();
+                    progress?.Report(value);
+                    if (value < 100)
+                    {
+                        await Task.Delay(140, ct).ConfigureAwait(false);
+                    }
+                }
+
+                _logger.Info("AppUpdateService", "update.apply.simulated", "Blocked update download in simulation mode", new
+                {
+                    CurrentVersion,
+                    LatestVersion = _simulatedVersion
+                });
+                return new AppUpdateApplyResult(
+                    false,
+                    false,
+                    "当前为更新模拟模式，不会下载更新包或重启应用",
+                    _simulatedVersion);
+            }
+
             var options = _settings.Current;
             var currentChannel = ResolveInstalledChannel();
             var targetChannel = AppUpdatePolicy.NormalizeChannel(options.Channel);
@@ -437,6 +505,16 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
     private void OnSettingsChanged()
     {
         RefreshCurrentVersion();
+        if (_simulatedVersion is not null)
+        {
+            LatestVersion = _simulatedVersion;
+            HasUpdateAvailable = true;
+            HasProductUpdateAvailable = true;
+            LastMessage = $"模拟发现新版本 {_simulatedVersion}";
+            Changed?.Invoke();
+            return;
+        }
+
         LatestVersion = CurrentVersion;
         HasUpdateAvailable = false;
         HasProductUpdateAvailable = null;
