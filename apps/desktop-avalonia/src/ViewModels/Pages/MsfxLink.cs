@@ -294,7 +294,7 @@ public sealed partial class MsfxLink : AppPageBase
     {
         "PULL" => "PackageSearch",
         "MAP" => "Waypoints",
-        "TASK" => "Syringe",
+        "TASK" => "Bone",
         "LOG" => "TextSearch",
         _ => "Expand"
     };
