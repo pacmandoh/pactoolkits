@@ -30,7 +30,7 @@ public sealed class TitleBarCenteringTests
         var rightControls = new Border { Width = 250 };
         var titleBar = new Grid
         {
-            Height = 28,
+            Height = 32,
             ColumnDefinitions = new ColumnDefinitions("*,Auto"),
             Children = { centerSlot, rightControls },
         };

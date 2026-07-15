@@ -24,9 +24,17 @@
   <shad:Window.Resources>
     <conv:SidebarNavToolTipConverter x:Key="SidebarNavToolTip" />
     <DataTemplate x:Key="WindowsTitleBarMarkTemplate">
-      <Border Classes="TitleBarMark">
+      <StackPanel
+        Classes="TitleBarMark"
+        Orientation="Horizontal"
+        Spacing="6">
         <Image Source="avares://pactoolkits-desktop/Assets/app.ico" />
-      </Border>
+        <TextBlock
+          VerticalAlignment="Center"
+          Classes="Caption"
+          FontWeight="Bold"
+          Text="PacToolkits · PacDocs" />
+      </StackPanel>
     </DataTemplate>
   </shad:Window.Resources>
 
@@ -62,16 +70,30 @@
             Classes="TitleBarCrumbs"
             Orientation="Horizontal"
             Spacing="7">
-            <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />
+            <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="{Binding SelectedFunctionArea.Icon}" />
             <TextBlock Classes="Caption Muted" Text="{Binding SelectedFunctionArea.Name}" />
-            <icons:AppIcon Kind="ChevronRight" />
-            <icons:AppIcon Kind="{Binding ActivePageIcon}" />
+            <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="ChevronRight" />
+            <icons:AppIcon IsVisible="{Binding !ShowActiveTab}" Kind="{Binding ActivePageIcon}" />
             <TextBlock
               MaxWidth="180"
               Classes="Caption"
+              IsVisible="{Binding !ShowActiveTab}"
               Text="{Binding ActivePageText}"
               TextTrimming="CharacterEllipsis" />
-            <icons:AppIcon IsVisible="{Binding ShowActiveTab}" Kind="ChevronRight" />
+            <icons:AppIcon
+              Foreground="{DynamicResource MutedColor}"
+              IsVisible="{Binding ShowActiveTab}"
+              Kind="{Binding ActivePageIcon}" />
+            <TextBlock
+              MaxWidth="180"
+              Classes="Caption Muted"
+              IsVisible="{Binding ShowActiveTab}"
+              Text="{Binding ActivePageText}"
+              TextTrimming="CharacterEllipsis" />
+            <icons:AppIcon
+              Foreground="{DynamicResource MutedColor}"
+              IsVisible="{Binding ShowActiveTab}"
+              Kind="ChevronRight" />
             <icons:AppIcon IsVisible="{Binding ShowActiveTab}" Kind="{Binding ActiveTabIcon}" />
             <TextBlock
               MaxWidth="120"
@@ -83,14 +105,25 @@
           <Rectangle Grid.Column="1" Classes="TitleBarPathDivider" />
           <StackPanel
             Grid.Column="2"
-            Classes="TitleBarBrand"
             Orientation="Horizontal"
-            Spacing="6">
-            <Image
-              Width="{DynamicResource IconSizeSmall}"
-              Height="{DynamicResource IconSizeSmall}"
-              Source="avares://pactoolkits-desktop/Assets/app.ico" />
-            <TextBlock Classes="Caption Muted" Text="PacToolkits" />
+            Spacing="0">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse
+                Width="8"
+                Height="8"
+                Fill="{DynamicResource MutedColor}" />
+              <TextBlock Classes="Caption" Text="0" />
+            </StackPanel>
+            <Rectangle Classes="TitleBarPathDivider" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <icons:AppIcon
+                Width="14"
+                Height="14"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Kind="MessageSquareDot" />
+              <icons:AppIcon Kind="ChevronDown" />
+            </StackPanel>
           </StackPanel>
         </Grid>
       </Border>
