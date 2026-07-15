@@ -27,12 +27,13 @@
       <StackPanel
         Classes="TitleBarMark"
         Orientation="Horizontal"
-        Spacing="6">
+        Spacing="8">
         <Image Source="avares://pactoolkits-desktop/Assets/app.ico" />
         <TextBlock
           VerticalAlignment="Center"
           Classes="Caption"
-          FontWeight="Bold"
+          FontSize="14"
+          FontWeight="SemiBold"
           Text="PacToolkits · PacDocs" />
       </StackPanel>
     </DataTemplate>
