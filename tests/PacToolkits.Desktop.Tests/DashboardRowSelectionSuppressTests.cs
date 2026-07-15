@@ -20,6 +20,8 @@ public sealed class DashboardRowSelectionSuppressTests
         Assert.Contains("_syncingSelection = true;", source, StringComparison.Ordinal);
         Assert.Contains("await vm.OpenTxnAsync", source, StringComparison.Ordinal);
         Assert.Contains("_syncingSelection = false;", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("SelectionChanged +=", source, StringComparison.Ordinal);
+        Assert.Contains("\"TopClientsGridOverview\"", source, StringComparison.Ordinal);
     }
 
     private static string ReadRepoFile(string relativePath)

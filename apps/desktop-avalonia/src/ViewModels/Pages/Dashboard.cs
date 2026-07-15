@@ -901,7 +901,7 @@ public sealed partial class Dashboard : AppPageBase
 
     public async Task OpenClientAsync(TopClientItem? item)
     {
-        if (item is null)
+        if (IsRowSelectionActionSuppressed || item is null)
         {
             return;
         }

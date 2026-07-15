@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
@@ -16,6 +17,7 @@ public partial class DashboardView : UserControl
     {
         "TrendGridOverview",
         "RecentTxnGridOverview",
+        "TopClientsGridOverview",
         "EntryRecentGridInputTab",
         "TxnDetailGrid",
         "TxnTrendGrid",
@@ -25,13 +27,15 @@ public partial class DashboardView : UserControl
     private bool _syncingSelection;
     private bool _vmHooked;
     private readonly PageGridMountScheduler _gridMount;
+    private readonly DashboardGridActivation _gridActivation;
 
     public DashboardView()
     {
         _gridMount = new PageGridMountScheduler(this);
+        _gridActivation = new DashboardGridActivation(OpenOverviewItemAsync);
         InitializeComponent();
         AttachDrugFilter();
-        WireDeferredGridSlots();
+        WireOverviewGridSlots();
         _gridMount.StartAfterFirstLayout();
         DataContextChanged += OnDashboardDataContextChanged;
     }
@@ -48,25 +52,16 @@ public partial class DashboardView : UserControl
         base.OnDetachedFromVisualTree(e);
     }
 
-    private void WireDeferredGridSlots()
+    private void WireOverviewGridSlots()
     {
         WireOverviewSlot(TrendGridSlot);
         WireOverviewSlot(RecentTxnGridSlot);
         WireOverviewSlot(TopClientsGridSlot);
-        WireTargetSlot(EntryGridSlot);
-        WireTargetSlot(TxnDetailGridSlot);
-        WireTargetSlot(TxnTrendGridSlot);
-        WireTargetSlot(AbnormalGridSlot);
     }
 
     private void WireOverviewSlot(DeferredGridSlot slot)
     {
-        slot.GridMounted += (_, grid) => grid.SelectionChanged += OnBrowsingGridSelectionChanged;
-    }
-
-    private void WireTargetSlot(DeferredGridSlot slot)
-    {
-        slot.GridMounted += (_, grid) => grid.SelectionChanged += OnBrowsingGridSelectionChanged;
+        slot.GridMounted += (_, grid) => _gridActivation.Attach(grid);
     }
 
     private void OnDashboardDataContextChanged(object? sender, EventArgs e)
@@ -212,16 +207,11 @@ public partial class DashboardView : UserControl
             ApplyDrugFilterFromBox);
     }
 
-    private async void OnBrowsingGridSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private async Task OpenOverviewItemAsync(DataGrid activeGrid, object selected)
     {
         try
         {
             if (_syncingSelection)
-            {
-                return;
-            }
-
-            if (sender is not DataGrid activeGrid)
             {
                 return;
             }
@@ -236,16 +226,9 @@ public partial class DashboardView : UserControl
                 return;
             }
 
-            var selected = e.AddedItems.Count > 0 ? e.AddedItems[0] : activeGrid.SelectedItem;
-            if (selected is null)
-            {
-                return;
-            }
-
             _syncingSelection = true;
             try
             {
-                // Consume the click before reload; keep the handler locked through async apply/reload.
                 ClearBrowsingSelectionInUi(vm);
 
                 switch (activeGrid.Name)
