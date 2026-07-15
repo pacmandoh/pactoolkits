@@ -5,7 +5,7 @@
   <!--
     Pac typography — only where ShadUI has no 1:1 class:
     - SectionTitle (16 semi) — page/card headers; Shad Small=14, Large=18
-    - SubsectionTitle (14 semi) — in-card group headers
+    - SubsectionTitle (Shad Small semi) — in-card group headers
     - DialogTitle* — dialog chrome
     - AboutHeroVersion, AboutSubtitle — About hero only
     Content header page title: Small Muted.
@@ -37,7 +37,6 @@
   </Style>
 
   <Style Selector="TextBlock.SubsectionTitle">
-    <Setter Property="FontSize" Value="14" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
     <Setter Property="VerticalAlignment" Value="Center" />
@@ -65,7 +64,7 @@
   </Style>
 
   <Style Selector="TextBlock.AboutHeroVersion">
-    <Setter Property="FontSize" Value="28" />
+    <Setter Property="FontSize" Value="{DynamicResource AboutHeroVersionSize}" />
     <Setter Property="FontWeight" Value="Bold" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
     <Setter Property="LineHeight" Value="32" />

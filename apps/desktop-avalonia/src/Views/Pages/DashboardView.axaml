@@ -365,7 +365,7 @@
                                       Height="{DynamicResource IconBadgeSize}"
                                       Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
                                       Classes="DgStatusBadge"
-                                      CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                      CornerRadius="{DynamicResource LgCornerRadius}">
                                       <icons:AppIcon
                                         Width="{DynamicResource IconSizeDefault}"
                                         Height="{DynamicResource IconSizeDefault}"
@@ -559,7 +559,7 @@
                                   Height="{DynamicResource IconBadgeSize}"
                                   Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
                                   Classes="DgStatusBadge"
-                                  CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                  CornerRadius="{DynamicResource LgCornerRadius}">
                                   <icons:AppIcon
                                     Width="{DynamicResource IconSizeDefault}"
                                     Height="{DynamicResource IconSizeDefault}"
@@ -667,7 +667,7 @@
                                   Height="{DynamicResource IconBadgeSize}"
                                   Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
                                   Classes="DgStatusBadge"
-                                  CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                  CornerRadius="{DynamicResource LgCornerRadius}">
                                   <icons:AppIcon
                                     Width="{DynamicResource IconSizeDefault}"
                                     Height="{DynamicResource IconSizeDefault}"
@@ -802,7 +802,7 @@
                                     Height="{DynamicResource IconBadgeSize}"
                                     Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
                                     Classes="DgStatusBadge"
-                                    CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                    CornerRadius="{DynamicResource LgCornerRadius}">
                                     <icons:AppIcon
                                       Width="{DynamicResource IconSizeDefault}"
                                       Height="{DynamicResource IconSizeDefault}"
@@ -982,7 +982,7 @@
                                   Height="{DynamicResource IconBadgeSize}"
                                   Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
                                   Classes="DgStatusBadge"
-                                  CornerRadius="{DynamicResource TraceBadgeRadius}">
+                                  CornerRadius="{DynamicResource LgCornerRadius}">
                                   <icons:AppIcon
                                     Width="{DynamicResource IconSizeDefault}"
                                     Height="{DynamicResource IconSizeDefault}"

@@ -1,7 +1,6 @@
 ﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <!--  Pac-only semantic purple (ShadUI has no Purple notification family). Tint steps mirror Info/Success/Warning/Error.  -->
   <Color x:Key="PurpleColor">#7C3AED</Color>
-  <Color x:Key="PurpleColor5">#0D7C3AED</Color>
   <Color x:Key="PurpleColor10">#1A7C3AED</Color>
   <Color x:Key="PurpleColor20">#337C3AED</Color>
   <Color x:Key="PurpleColor60">#997C3AED</Color>

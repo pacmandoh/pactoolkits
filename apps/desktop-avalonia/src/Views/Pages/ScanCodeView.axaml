@@ -318,7 +318,7 @@
               </shad:Card.Header>
               <StackPanel Spacing="{DynamicResource PageSectionSpacing}">
                 <StackPanel Spacing="{DynamicResource FormRowSpacing}">
-                  <TextBlock Classes="SubsectionTitle" Text="当前选择" />
+                  <TextBlock Classes="Small SubsectionTitle" Text="当前选择" />
                   <StackPanel Spacing="8">
                     <StackPanel Spacing="2">
                       <TextBlock Classes="Caption Muted" Text="药品" />
@@ -342,7 +342,7 @@
                 </StackPanel>
 
                 <StackPanel Spacing="{DynamicResource FormRowSpacing}">
-                  <TextBlock Classes="SubsectionTitle" Text="校验规则" />
+                  <TextBlock Classes="Small SubsectionTitle" Text="校验规则" />
                   <StackPanel Spacing="6">
                     <controls:StatusPill
                       Classes="ToneInfo15"
@@ -360,7 +360,7 @@
                 </StackPanel>
 
                 <StackPanel Spacing="{DynamicResource FormRowSpacing}">
-                  <TextBlock Classes="SubsectionTitle" Text="录入说明" />
+                  <TextBlock Classes="Small SubsectionTitle" Text="录入说明" />
                   <StackPanel Spacing="4">
                     <TextBlock Classes="Caption Muted" Text="· 每行仅录入一条追溯码，空行自动忽略" />
                     <TextBlock Classes="Caption Muted" Text="· 保存时仅写入有效且不重复的新码" />
@@ -465,7 +465,7 @@
                                 Height="{DynamicResource IconBadgeSize}"
                                 Background="{Binding State, Converter={StaticResource FetchStateToBgBrush}}"
                                 Classes="DgStatusBadge"
-                                CornerRadius="{DynamicResource TraceBadgeRadius}"
+                                CornerRadius="{DynamicResource LgCornerRadius}"
                                 ToolTip.Tip="{Binding StateText}">
                                 <icons:AppIcon
                                   Width="{DynamicResource IconSizeDefault}"
@@ -530,7 +530,7 @@
                                   Height="{DynamicResource IconBadgeSize}"
                                   Background="{Binding State, Converter={StaticResource FetchStateToBgBrush}}"
                                   Classes="DgStatusBadge"
-                                  CornerRadius="{DynamicResource TraceBadgeRadius}"
+                                  CornerRadius="{DynamicResource LgCornerRadius}"
                                   ToolTip.Tip="{Binding StateText}">
                                   <icons:AppIcon
                                     Width="{DynamicResource IconSizeDefault}"
@@ -596,7 +596,7 @@
                                   Height="{DynamicResource IconBadgeSize}"
                                   Background="{Binding State, Converter={StaticResource FetchStateToBgBrush}}"
                                   Classes="DgStatusBadge"
-                                  CornerRadius="{DynamicResource TraceBadgeRadius}"
+                                  CornerRadius="{DynamicResource LgCornerRadius}"
                                   ToolTip.Tip="{Binding StateText}">
                                   <icons:AppIcon
                                     Width="{DynamicResource IconSizeDefault}"

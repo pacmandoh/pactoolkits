@@ -95,7 +95,7 @@
   <Style Selector="Border.CardPanel">
     <Setter Property="Background" Value="{DynamicResource CardPanelSectionBg}" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="{DynamicResource CardPanelOuterRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
@@ -106,7 +106,7 @@
     <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
   </Style>
 
   <Style Selector="controls|CardPanel.Kpi">
@@ -124,7 +124,7 @@
   <Style Selector="Border.CardPanelInner">
     <Setter Property="Background" Value="{DynamicResource WindowBackgroundColor}" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="{DynamicResource CardPanelInnerRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
     <Setter Property="Margin" Value="{DynamicResource CardPanelInnerMargin}" />
     <Setter Property="Padding" Value="0" />
   </Style>
@@ -144,7 +144,7 @@
   </Style>
 
   <Style Selector="controls|CardPanel.FlushBody Border.CardPanelBody">
-    <Setter Property="Padding" Value="{DynamicResource CardPanelFlushPadding}" />
+    <Setter Property="Padding" Value="0" />
   </Style>
 
   <Style Selector="controls|CardPanel.SquareChrome.CardChrome Border.CardPanel">
@@ -180,7 +180,6 @@
   <Style Selector="Border.KpiTileStrip">
     <Setter Property="Background" Value="{DynamicResource WindowBackgroundColor}" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Padding" Value="{DynamicResource KpiTileStripPadding}" />
-    <Setter Property="CornerRadius" Value="{DynamicResource CardPanelOuterRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
   </Style>
 </Styles>

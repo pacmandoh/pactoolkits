@@ -9,7 +9,7 @@
   x:DataType="vm:MsfxLink"
   Focusable="True">
   <Grid
-    Margin="{DynamicResource MarginTopLg}"
+    Margin="{DynamicResource TabContentMargin}"
     RowDefinitions="Auto,*"
     RowSpacing="{DynamicResource FormRowSpacing}">
     <shad:Card Grid.Row="0">

@@ -267,7 +267,7 @@
                   MaxDropDownHeight="300"
                   SelectedItem="{Binding SelectedSpec, Mode=TwoWay}" />
                 <TextBlock
-                  Margin="{DynamicResource MarginLeftMd}"
+                  Margin="{DynamicResource InputPlaceholderMargin}"
                   VerticalAlignment="Center"
                   Classes="Caption Muted"
                   IsHitTestVisible="False"

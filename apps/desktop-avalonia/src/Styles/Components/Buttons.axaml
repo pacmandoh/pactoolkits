@@ -27,7 +27,7 @@
     <Setter Property="MinWidth" Value="{DynamicResource MinWAction}" />
     <Setter Property="Padding" Value="{DynamicResource ButtonPaddingHorizontal}" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="CornerRadius" Value="{DynamicResource ButtonCornerRadius}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
   </Style>
 
   <Style Selector="Button.ActionWide">

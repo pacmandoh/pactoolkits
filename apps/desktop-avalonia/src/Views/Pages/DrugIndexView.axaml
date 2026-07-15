@@ -174,13 +174,13 @@
                 </StackPanel>
 
                 <StackPanel Spacing="{DynamicResource FormRowSpacing}">
-                  <TextBlock Classes="SubsectionTitle" Text="标记" />
+                  <TextBlock Classes="Small SubsectionTitle" Text="标记" />
                   <Border
                     Padding="8"
                     Background="{DynamicResource CardBackgroundColor}"
                     BorderBrush="{DynamicResource BorderColor}"
                     BorderThickness="1"
-                    CornerRadius="{DynamicResource CardPanelInnerRadius}">
+                    CornerRadius="{DynamicResource XlCornerRadius}">
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
                       <ToggleButton
                         Grid.Column="0"
@@ -220,7 +220,7 @@
                 </StackPanel>
 
                 <StackPanel Spacing="{DynamicResource FormRowSpacing}">
-                  <TextBlock Classes="SubsectionTitle" Text="基本信息" />
+                  <TextBlock Classes="Small SubsectionTitle" Text="基本信息" />
 
                   <StackPanel Spacing="4">
                     <TextBlock Classes="Caption Muted" Text="药品" />

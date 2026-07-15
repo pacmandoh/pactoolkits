@@ -106,8 +106,8 @@
   </Style>
 
   <Style Selector="shad|Sidebar#MainSidebar shad|SidebarItem Viewbox">
-    <Setter Property="Width" Value="{DynamicResource SidebarMenuIconSize}" />
-    <Setter Property="Height" Value="{DynamicResource SidebarMenuIconSize}" />
+    <Setter Property="Width" Value="{DynamicResource IconSizeHeader}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeHeader}" />
   </Style>
 
   <Style Selector="shad|Sidebar#MainSidebar MenuItem Viewbox">

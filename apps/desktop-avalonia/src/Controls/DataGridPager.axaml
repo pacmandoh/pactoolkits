@@ -66,8 +66,8 @@
             IsEnabled="{Binding CanGoFirstPage, ElementName=Root}"
             IsVisible="{Binding HasFirstPageCommand, ElementName=Root}">
             <icons:AppIcon
-              Width="{DynamicResource PagerNavIconSize}"
-              Height="{DynamicResource PagerNavIconSize}"
+              Width="{DynamicResource IconSizeSmall}"
+              Height="{DynamicResource IconSizeSmall}"
               Kind="ChevronsLeft" />
           </Button>
           <Button
@@ -76,8 +76,8 @@
             IsEnabled="{Binding CanGoPrevPage, ElementName=Root}"
             IsVisible="{Binding HasPrevPageCommand, ElementName=Root}">
             <icons:AppIcon
-              Width="{DynamicResource PagerNavIconSize}"
-              Height="{DynamicResource PagerNavIconSize}"
+              Width="{DynamicResource IconSizeSmall}"
+              Height="{DynamicResource IconSizeSmall}"
               Kind="ChevronLeft" />
           </Button>
           <Button
@@ -86,8 +86,8 @@
             IsEnabled="{Binding CanGoNextPage, ElementName=Root}"
             IsVisible="{Binding HasNextPageCommand, ElementName=Root}">
             <icons:AppIcon
-              Width="{DynamicResource PagerNavIconSize}"
-              Height="{DynamicResource PagerNavIconSize}"
+              Width="{DynamicResource IconSizeSmall}"
+              Height="{DynamicResource IconSizeSmall}"
               Kind="ChevronRight" />
           </Button>
           <Button
@@ -96,8 +96,8 @@
             IsEnabled="{Binding CanGoLastPage, ElementName=Root}"
             IsVisible="{Binding HasLastPageCommand, ElementName=Root}">
             <icons:AppIcon
-              Width="{DynamicResource PagerNavIconSize}"
-              Height="{DynamicResource PagerNavIconSize}"
+              Width="{DynamicResource IconSizeSmall}"
+              Height="{DynamicResource IconSizeSmall}"
               Kind="ChevronsRight" />
           </Button>
         </StackPanel>
