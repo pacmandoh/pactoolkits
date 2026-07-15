@@ -7,7 +7,8 @@
         <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
         <AppVersion Condition="'$(AppVersion)' == ''">0.0.0-local</AppVersion>
         <Product>PacToolkits</Product>
-        <Company>PacmanDoh</Company>
+        <Authors>PacmanDoh</Authors>
+        <Company>PacDocs</Company>
         <Version Condition="'$(Version)' == ''">$(AppVersion)</Version>
         <AssemblyVersion Condition="'$(AssemblyVersion)' == ''">0.0.0.0</AssemblyVersion>
         <FileVersion Condition="'$(FileVersion)' == ''">0.0.0.0</FileVersion>
