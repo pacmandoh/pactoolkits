@@ -2,6 +2,11 @@ name: Build Desktop Electron
 
 on:
   workflow_call:
+    inputs:
+      artifact_retention_days:
+        required: false
+        type: number
+        default: 3
   workflow_dispatch:
 
 permissions:
@@ -77,3 +82,4 @@ jobs:
           name: ${{ steps.plan.outputs.desktop_artifact_name }}
           path: ${{ steps.plan.outputs.publish_subdir }}/
           if-no-files-found: error
+          retention-days: ${{ inputs.artifact_retention_days || 3 }}

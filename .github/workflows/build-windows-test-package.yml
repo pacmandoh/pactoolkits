@@ -36,6 +36,7 @@ jobs:
     uses: ./.github/workflows/build-agent-injector-ahk.yml
     with:
       runtime: win-x64
+      artifact_retention_days: 1
     secrets: inherit
 
   build_desktop_avalonia:
@@ -45,6 +46,7 @@ jobs:
     uses: ./.github/workflows/build-desktop-avalonia.yml
     with:
       runtime: ${{ inputs.runtime || 'win-arm64' }}
+      artifact_retention_days: 1
     secrets: inherit
 
   package_desktop:
@@ -70,6 +72,7 @@ jobs:
       desktop_version: ${{ needs.resolve_release_plan.outputs.desktop_version }}
       channel: ${{ needs.resolve_release_plan.outputs.channel }}
       runtime: ${{ inputs.runtime || 'win-arm64' }}
+      artifact_retention_days: 1
     secrets: inherit
 
   publish_test_release:

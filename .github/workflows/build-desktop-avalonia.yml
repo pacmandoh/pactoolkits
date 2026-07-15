@@ -7,6 +7,10 @@ on:
         required: false
         type: string
         default: win-x64
+      artifact_retention_days:
+        required: false
+        type: number
+        default: 3
   workflow_dispatch:
     inputs:
       runtime:
@@ -98,3 +102,4 @@ jobs:
           name: pactoolkits-desktop-avalonia-${{ env.RUNTIME }}-${{ env.DESKTOP_VERSION }}
           path: apps/desktop-avalonia/src/bin/Release/net10.0/${{ env.RUNTIME }}/publish/
           if-no-files-found: error
+          retention-days: ${{ inputs.artifact_retention_days || 3 }}
