@@ -1,4 +1,4 @@
-<shad:Window
+﻿<shad:Window
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -29,141 +29,171 @@
     <shad:DialogHost Manager="{Binding DialogManager}" />
   </shad:Window.Hosts>
 
-  <shad:Window.RightWindowTitleBarContent>
-    <StackPanel
-      Margin="0"
-      Orientation="Horizontal"
-      Spacing="{DynamicResource SpacingInlineSm}">
-      <Button
-        Margin="{DynamicResource TitleBarActionMargin}"
-        Classes="WindowControlsButton"
-        Command="{Binding OpenUpdateCenterCommand}"
-        IsVisible="{Binding HasUpdateAvailable}">
-        <icons:AppIcon
-          Width="{DynamicResource TitleBarActionIconSize}"
-          Height="{DynamicResource TitleBarActionIconSize}"
-          Foreground="{DynamicResource WarningColor}"
-          Kind="Upload" />
-      </Button>
-
-      <Border VerticalAlignment="Center" Classes="TitleBarCapsule">
-        <StackPanel Orientation="Horizontal" Spacing="0">
-          <Button
-            Classes="WindowControlsButton"
-            Command="{Binding SwitchThemeCommand}"
-            ToolTip.Tip="切换主题">
-            <icons:AppIcon
-              Width="{DynamicResource TitleBarCapsuleIconSize}"
-              Height="{DynamicResource TitleBarCapsuleIconSize}"
-              Kind="{Binding CurrentTheme, Converter={x:Static conv:Theme.ToIconKind}}" />
-          </Button>
-
-          <Border
-            Width="1"
-            Height="{DynamicResource TitleBarCapsuleIconSize}"
-            Margin="{DynamicResource TitleBarCapsuleDividerMargin}"
-            VerticalAlignment="Center"
-            Background="{DynamicResource BorderColor}" />
-
-          <Button
-            x:Name="FullscreenButton"
-            Classes="WindowControlsButton"
-            ToolTip.Tip="全屏">
-            <Panel>
-              <icons:AppIcon
-                Width="{DynamicResource TitleBarCapsuleIconSize}"
-                Height="{DynamicResource TitleBarCapsuleIconSize}"
-                IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsNotFullScreen}}"
-                Kind="Maximize" />
-              <icons:AppIcon
-                Width="{DynamicResource TitleBarCapsuleIconSize}"
-                Height="{DynamicResource TitleBarCapsuleIconSize}"
-                IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsFullScreen}}"
-                Kind="Minimize" />
-            </Panel>
-          </Button>
-
-          <Border
-            Width="1"
-            Height="{DynamicResource TitleBarCapsuleIconSize}"
-            Margin="{DynamicResource TitleBarCapsuleDividerMargin}"
-            VerticalAlignment="Center"
-            Background="{DynamicResource BorderColor}" />
-
-          <Button
-            shad:ButtonAssist.ShowProgress="{Binding IsDbProbeRunning}"
-            Classes="WindowControlsButton"
-            Command="{Binding TryReconnectDbCommand}">
-            <Panel>
-              <icons:AppIcon
-                Width="{DynamicResource TitleBarCapsuleIconSize}"
-                Height="{DynamicResource TitleBarCapsuleIconSize}"
-                Foreground="{DynamicResource SuccessColor}"
-                IsVisible="{Binding IsDbConnected}"
-                Kind="Link" />
-              <icons:AppIcon
-                Width="{DynamicResource TitleBarCapsuleIconSize}"
-                Height="{DynamicResource TitleBarCapsuleIconSize}"
-                Foreground="{DynamicResource ErrorColor}"
-                IsVisible="{Binding !IsDbConnected}"
-                Kind="Unlink" />
-            </Panel>
-          </Button>
-
-          <Button
-            shad:ButtonAssist.ShowProgress="{Binding IsAhkActionRunning}"
-            Classes="WindowControlsButton"
-            Command="{Binding StartOrRestartAhkCommand}">
-            <Panel>
-              <icons:AppIcon
-                Width="{DynamicResource TitleBarCapsuleIconSize}"
-                Height="{DynamicResource TitleBarCapsuleIconSize}"
-                Foreground="{DynamicResource SuccessColor}"
-                IsVisible="{Binding IsAhkRunning}"
-                Kind="Syringe" />
-              <icons:AppIcon
-                Width="{DynamicResource TitleBarCapsuleIconSize}"
-                Height="{DynamicResource TitleBarCapsuleIconSize}"
-                Foreground="{DynamicResource ErrorColor}"
-                IsVisible="{Binding !IsAhkRunning}"
-                Kind="Syringe" />
-            </Panel>
-          </Button>
-        </StackPanel>
-      </Border>
-    </StackPanel>
-  </shad:Window.RightWindowTitleBarContent>
-
   <shad:Window.LogoContent>
-    <Grid Classes="TitleBarNav" ColumnDefinitions="Auto,Auto,*">
-      <Button Classes="TitleBarNavBtn">
-        <icons:AppIcon Kind="ChevronLeft" />
+    <Grid Classes="TitleBarNav" ColumnDefinitions="Auto,Auto,Auto,Auto">
+      <Button
+        Classes="TitleBarNavBtn"
+        Command="{Binding NavigateBackCommand}"
+        ToolTip.Tip="{Binding NavigateBackToolTip}">
+        <icons:AppIcon Kind="ArrowLeft" />
       </Button>
-      <Button Grid.Column="1" Classes="TitleBarNavBtn">
-        <icons:AppIcon Kind="ChevronRight" />
+      <Button
+        Grid.Column="1"
+        Classes="TitleBarNavBtn"
+        Command="{Binding NavigateForwardCommand}"
+        ToolTip.Tip="{Binding NavigateForwardToolTip}">
+        <icons:AppIcon Kind="ArrowRight" />
       </Button>
       <Border Grid.Column="2" Classes="TitleBarPath">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock
-            Margin="12,0,8,0"
-            Classes="Caption Muted"
-            Text="pactoolkits" />
+        <Grid
+          Margin="12,0,10,0"
+          VerticalAlignment="Center"
+          ColumnDefinitions="*,Auto,Auto">
           <StackPanel
-            Grid.Column="1"
-            Margin="0,0,10,0"
-            VerticalAlignment="Center"
-            Classes="TitleBarPathTrail"
+            Classes="TitleBarCrumbs"
             Orientation="Horizontal"
-            Spacing="8">
-            <Border Classes="TitleBarPathDot" />
-            <TextBlock Classes="Caption Muted" Text="3" />
-            <icons:AppIcon Kind="MessageSquarePlus" />
-            <icons:AppIcon Kind="ChevronDown" />
+            Spacing="7">
+            <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />
+            <TextBlock Classes="Caption Muted" Text="{Binding SelectedFunctionArea.Name}" />
+            <icons:AppIcon Kind="ChevronRight" />
+            <icons:AppIcon Kind="{Binding ActivePageIcon}" />
+            <TextBlock
+              MaxWidth="180"
+              Classes="Caption"
+              Text="{Binding ActivePageText}"
+              TextTrimming="CharacterEllipsis" />
+            <icons:AppIcon IsVisible="{Binding ShowActiveTab}" Kind="ChevronRight" />
+            <icons:AppIcon IsVisible="{Binding ShowActiveTab}" Kind="{Binding ActiveTabIcon}" />
+            <TextBlock
+              MaxWidth="120"
+              Classes="Caption"
+              IsVisible="{Binding ShowActiveTab}"
+              Text="{Binding ActiveTabText}"
+              TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <Rectangle Grid.Column="1" Classes="TitleBarPathDivider" />
+          <StackPanel
+            Grid.Column="2"
+            Classes="TitleBarBrand"
+            Orientation="Horizontal"
+            Spacing="6">
+            <Image
+              Width="{DynamicResource IconSizeSmall}"
+              Height="{DynamicResource IconSizeSmall}"
+              Source="avares://pactoolkits-desktop/Assets/app.ico" />
+            <TextBlock Classes="Caption Muted" Text="PacToolkits" />
           </StackPanel>
         </Grid>
       </Border>
+      <Button
+        Grid.Column="3"
+        shad:ButtonAssist.ShowProgress="{Binding IsUpdateApplying}"
+        Classes="TitleBarUpdateBtn"
+        Command="{Binding OpenUpdateCenterCommand}"
+        IsVisible="{Binding HasUpdateAvailable}">
+        <StackPanel
+          VerticalAlignment="Center"
+          Orientation="Horizontal"
+          Spacing="6">
+          <icons:AppIcon Kind="Download" />
+          <TextBlock
+            VerticalAlignment="Center"
+            Classes="Caption"
+            Text="{Binding UpdateActionText}" />
+        </StackPanel>
+      </Button>
     </Grid>
   </shad:Window.LogoContent>
+
+  <shad:Window.RightWindowTitleBarContent>
+    <Border VerticalAlignment="Center" Classes="TitleBarCapsule">
+      <StackPanel Orientation="Horizontal" Spacing="0">
+        <Button
+          Classes="WindowControlsButton"
+          Command="{Binding SwitchThemeCommand}"
+          ToolTip.Tip="切换主题">
+          <icons:AppIcon
+            Width="{DynamicResource TitleBarCapsuleIconSize}"
+            Height="{DynamicResource TitleBarCapsuleIconSize}"
+            Kind="{Binding CurrentTheme, Converter={x:Static conv:Theme.ToIconKind}}" />
+        </Button>
+
+        <Border
+          Width="1"
+          Height="{DynamicResource TitleBarCapsuleIconSize}"
+          Margin="{DynamicResource TitleBarCapsuleDividerMargin}"
+          VerticalAlignment="Center"
+          Background="{DynamicResource BorderColor}" />
+
+        <Button
+          x:Name="FullscreenButton"
+          Classes="WindowControlsButton"
+          ToolTip.Tip="全屏">
+          <Panel>
+            <icons:AppIcon
+              Width="{DynamicResource TitleBarCapsuleIconSize}"
+              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsNotFullScreen}}"
+              Kind="Maximize" />
+            <icons:AppIcon
+              Width="{DynamicResource TitleBarCapsuleIconSize}"
+              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsFullScreen}}"
+              Kind="Minimize" />
+          </Panel>
+        </Button>
+
+        <Border
+          Width="1"
+          Height="{DynamicResource TitleBarCapsuleIconSize}"
+          Margin="{DynamicResource TitleBarCapsuleDividerMargin}"
+          VerticalAlignment="Center"
+          Background="{DynamicResource BorderColor}" />
+
+        <Button
+          shad:ButtonAssist.ShowProgress="{Binding IsDbProbeRunning}"
+          Classes="WindowControlsButton"
+          Command="{Binding TryReconnectDbCommand}"
+          ToolTip.Tip="{Binding DbItemText}">
+          <Panel>
+            <icons:AppIcon
+              Width="{DynamicResource TitleBarCapsuleIconSize}"
+              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              Foreground="{DynamicResource SuccessColor}"
+              IsVisible="{Binding IsDbConnected}"
+              Kind="Link" />
+            <icons:AppIcon
+              Width="{DynamicResource TitleBarCapsuleIconSize}"
+              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              Foreground="{DynamicResource ErrorColor}"
+              IsVisible="{Binding !IsDbConnected}"
+              Kind="Unlink" />
+          </Panel>
+        </Button>
+
+        <Button
+          shad:ButtonAssist.ShowProgress="{Binding IsAhkActionRunning}"
+          Classes="WindowControlsButton"
+          Command="{Binding StartOrRestartAhkCommand}"
+          ToolTip.Tip="{Binding AgentItemText}">
+          <Panel>
+            <icons:AppIcon
+              Width="{DynamicResource TitleBarCapsuleIconSize}"
+              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              Foreground="{DynamicResource SuccessColor}"
+              IsVisible="{Binding IsAhkRunning}"
+              Kind="Syringe" />
+            <icons:AppIcon
+              Width="{DynamicResource TitleBarCapsuleIconSize}"
+              Height="{DynamicResource TitleBarCapsuleIconSize}"
+              Foreground="{DynamicResource ErrorColor}"
+              IsVisible="{Binding !IsAhkRunning}"
+              Kind="Syringe" />
+          </Panel>
+        </Button>
+      </StackPanel>
+    </Border>
+  </shad:Window.RightWindowTitleBarContent>
 
   <Grid RowDefinitions="*,Auto">
     <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
@@ -371,9 +401,10 @@
               </shad:MenuItemAssist.Label>
               <MenuItem Command="{Binding OpenSettingsCommand}" Header="设置">
                 <MenuItem.Icon>
-                  <Viewbox Width="16" Height="16">
+                  <Panel Classes="ShellMenuUpdateIcon">
                     <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="Settings" />
-                  </Viewbox>
+                    <Border Classes="UpdateDot" IsVisible="{Binding HasUpdateAvailable}" />
+                  </Panel>
                 </MenuItem.Icon>
               </MenuItem>
               <MenuItem Command="{Binding OpenAboutCommand}" Header="关于">
@@ -462,51 +493,19 @@
                 shad:TabControlBehaviors.UseSlidingPill="True"
                 Classes="DashboardTabHeaders"
                 IsVisible="{Binding IsDashboardPageActive}"
+                ItemsSource="{Binding DashboardTabs}"
                 SelectedIndex="{Binding DashboardSelectedTabIndex, Mode=TwoWay}">
-                <TabItem>
-                  <TabItem.Header>
+                <TabControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:PageTab">
                     <StackPanel Classes="TabItemHeader">
                       <icons:AppIcon
                         Width="{DynamicResource IconSizeCompact}"
                         Height="{DynamicResource IconSizeCompact}"
-                        Kind="ChartLine" />
-                      <TextBlock Text="总览" />
+                        Kind="{Binding Icon}" />
+                      <TextBlock Text="{Binding Text}" />
                     </StackPanel>
-                  </TabItem.Header>
-                </TabItem>
-                <TabItem>
-                  <TabItem.Header>
-                    <StackPanel Classes="TabItemHeader">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeCompact}"
-                        Height="{DynamicResource IconSizeCompact}"
-                        Kind="ScanBarcode" />
-                      <TextBlock Text="录入" />
-                    </StackPanel>
-                  </TabItem.Header>
-                </TabItem>
-                <TabItem>
-                  <TabItem.Header>
-                    <StackPanel Classes="TabItemHeader">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeCompact}"
-                        Height="{DynamicResource IconSizeCompact}"
-                        Kind="ArrowRightLeft" />
-                      <TextBlock Text="事务" />
-                    </StackPanel>
-                  </TabItem.Header>
-                </TabItem>
-                <TabItem>
-                  <TabItem.Header>
-                    <StackPanel Classes="TabItemHeader">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeCompact}"
-                        Height="{DynamicResource IconSizeCompact}"
-                        Kind="OctagonAlert" />
-                      <TextBlock Text="异常" />
-                    </StackPanel>
-                  </TabItem.Header>
-                </TabItem>
+                  </DataTemplate>
+                </TabControl.ItemTemplate>
               </TabControl>
               <icons:AppIcon
                 Classes="HeaderTitleChevron"
@@ -516,29 +515,19 @@
                 shad:TabControlBehaviors.UseSlidingPill="True"
                 Classes="DashboardTabHeaders"
                 IsVisible="{Binding IsScanCodePageActive}"
+                ItemsSource="{Binding ScanCodeTabs}"
                 SelectedIndex="{Binding ScanCodeSelectedTabIndex, Mode=TwoWay}">
-                <TabItem>
-                  <TabItem.Header>
+                <TabControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:PageTab">
                     <StackPanel Classes="TabItemHeader">
                       <icons:AppIcon
                         Width="{DynamicResource IconSizeCompact}"
                         Height="{DynamicResource IconSizeCompact}"
-                        Kind="Keyboard" />
-                      <TextBlock Text="手动录入" />
+                        Kind="{Binding Icon}" />
+                      <TextBlock Text="{Binding Text}" />
                     </StackPanel>
-                  </TabItem.Header>
-                </TabItem>
-                <TabItem>
-                  <TabItem.Header>
-                    <StackPanel Classes="TabItemHeader">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeCompact}"
-                        Height="{DynamicResource IconSizeCompact}"
-                        Kind="Cloud" />
-                      <TextBlock Text="自动拉取" />
-                    </StackPanel>
-                  </TabItem.Header>
-                </TabItem>
+                  </DataTemplate>
+                </TabControl.ItemTemplate>
               </TabControl>
             </StackPanel>
             <Menu
@@ -653,6 +642,45 @@
                   TextTrimming="CharacterEllipsis" />
               </StackPanel>
             </Border>
+            <StackPanel
+              Grid.Column="4"
+              VerticalAlignment="Center"
+              IsVisible="{Binding ShowAutoFetchActions}"
+              Orientation="Horizontal"
+              Spacing="{DynamicResource SpacingInlineSm}">
+              <Grid
+                VerticalAlignment="Center"
+                ColumnDefinitions="Auto,Auto"
+                ColumnSpacing="7">
+                <TextBlock
+                  VerticalAlignment="Center"
+                  Classes="Caption Muted"
+                  Text="启用调度" />
+                <ToggleSwitch
+                  Grid.Column="1"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding AutoFetchEnabled, Mode=TwoWay}" />
+              </Grid>
+              <Button Classes="Action" Command="{Binding StartAutoFetch}">
+                <StackPanel Classes="HeaderMenuItem">
+                  <icons:AppIcon Kind="Play" />
+                  <TextBlock Text="启动" />
+                </StackPanel>
+              </Button>
+              <Button Classes="Action" Command="{Binding StopAutoFetch}">
+                <StackPanel Classes="HeaderMenuItem">
+                  <icons:AppIcon Kind="Square" />
+                  <TextBlock Text="停止" />
+                </StackPanel>
+              </Button>
+              <Button Classes="Action" Command="{Binding OpenAutoFetchSettings}">
+                <StackPanel Classes="HeaderMenuItem">
+                  <icons:AppIcon Kind="SlidersHorizontal" />
+                  <TextBlock Text="拉取策略" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
             <Rectangle Grid.Column="5" Classes="HeaderDivider" />
             <Menu
               Grid.Column="6"
@@ -836,8 +864,11 @@
             Command="{Binding OpenUpdateCenterCommand}"
             IsVisible="{Binding HasUpdateAvailable}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-              <icons:AppIcon Kind="Upload" />
-              <TextBlock Classes="Caption Muted" Text="{Binding LatestProductVersion, StringFormat=更新 {0}}" />
+              <icons:AppIcon Foreground="{DynamicResource WarningColor}" Kind="Upload" />
+              <TextBlock
+                Classes="Caption"
+                Foreground="{DynamicResource WarningColor}"
+                Text="{Binding LatestProductVersion, StringFormat=更新 {0}}" />
             </StackPanel>
           </Button>
 
@@ -863,13 +894,8 @@
             <Panel>
               <icons:AppIcon Kind="Settings" />
               <Border
-                Width="6"
-                Height="6"
                 Margin="0,-2,-2,0"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Background="{DynamicResource WarningColor}"
-                CornerRadius="999"
+                Classes="UpdateDot"
                 IsVisible="{Binding HasUpdateAvailable}" />
             </Panel>
           </Button>
