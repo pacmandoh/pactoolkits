@@ -13,10 +13,14 @@
   d:DesignHeight="800"
   d:DesignWidth="1200"
   x:DataType="vm:ScanCode"
+  Classes="ScanCodePage"
   Focusable="True"
   mc:Ignorable="d">
   <UserControl.Resources>
     <conv:ContextStatusToBrushConverter x:Key="ContextStatusToBrush" />
+    <conv:FetchStateToBgBrushConverter x:Key="FetchStateToBgBrush" />
+    <conv:FetchStateToFgBrushConverter x:Key="FetchStateToFgBrush" />
+    <conv:FetchStateToIconKindConverter x:Key="FetchStateToIconKind" />
     <conv:HighlightFilterActiveConverter x:Key="HighlightFilterActive" />
   </UserControl.Resources>
 
@@ -33,7 +37,10 @@
       Classes="DashboardLayout"
       RowDefinitions="Auto,*"
       RowSpacing="0">
-      <Border Grid.Row="0" Classes="FilterBarChrome">
+      <Border
+        Grid.Row="0"
+        Classes="FilterBarChrome"
+        IsVisible="{Binding IsManualEntryTab}">
         <Grid Classes="FilterBarColumns" ColumnDefinitions="1.1*,Auto,0.95*,Auto,0.55*">
           <Grid
             Grid.Column="0"
@@ -368,7 +375,6 @@
         </Grid>
 
         <controls:DeferredContentHost
-          x:Name="AutoFetchTabHost"
           MinHeight="0"
           IsActive="{Binding IsAutoFetchTab}"
           IsVisible="{Binding IsAutoFetchTab}">
@@ -376,276 +382,251 @@
             <DataTemplate x:DataType="vm:ScanCode">
               <Grid
                 MinHeight="0"
-                Margin="0"
-                RowDefinitions="Auto,*"
-                RowSpacing="0">
-                <Border Grid.Row="0" Classes="FilterBarChrome">
-                  <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FilterBarGroupSpacing}">
-                    <TextBlock
-                      Grid.Row="0"
-                      Classes="Caption Muted"
-                      Text="任务面板为占位实现：可演示调度、运行记录和失败重试交互，后续接入真实拉取链路" />
-                    <Grid
-                      Grid.Row="1"
-                      Classes="FilterBarColumns"
-                      ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
-                      <Grid
-                        Grid.Column="0"
-                        Classes="FilterBarColumn"
-                        ColumnDefinitions="Auto,Auto">
-                        <TextBlock
-                          Grid.Column="0"
-                          Classes="Caption Muted"
-                          Text="自动拉取" />
-                        <ToggleSwitch
-                          Grid.Column="1"
-                          VerticalAlignment="Center"
-                          IsChecked="{Binding IsAutoFetchEnabled}" />
-                      </Grid>
-
-                      <Border Grid.Column="1" Classes="FilterBarDivider" />
-
-                      <Button
-                        Grid.Column="2"
-                        Classes="Action"
-                        Command="{Binding StartAutoFetchCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeDefault}"
-                            Height="{DynamicResource IconSizeDefault}"
-                            Kind="CirclePlay" />
-                          <TextBlock Text="开始任务" />
-                        </StackPanel>
-                      </Button>
-
-                      <Border Grid.Column="3" Classes="FilterBarDivider" />
-
-                      <Button
-                        Grid.Column="4"
-                        Classes="Outline"
-                        Command="{Binding StopAutoFetchCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeDefault}"
-                            Height="{DynamicResource IconSizeDefault}"
-                            Kind="CircleStop" />
-                          <TextBlock Text="停止任务" />
-                        </StackPanel>
-                      </Button>
-
-                      <Border Grid.Column="5" Classes="FilterBarDivider" />
-
-                      <Grid
-                        Grid.Column="6"
-                        Classes="FilterBarColumn"
-                        ColumnDefinitions="Auto,Auto,*">
-                        <Button
-                          Grid.Column="0"
-                          Classes="Outline"
-                          Command="{Binding RetryFailedCommand}">
-                          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                            <icons:AppIcon
-                              Width="{DynamicResource IconSizeDefault}"
-                              Height="{DynamicResource IconSizeDefault}"
-                              Kind="RotateCcw" />
-                            <TextBlock Text="重试失败" />
-                          </StackPanel>
-                        </Button>
-                        <Border Grid.Column="1" Classes="FilterBarDivider" />
-                        <Grid
-                          Grid.Column="2"
-                          VerticalAlignment="Center"
-                          ColumnDefinitions="Auto,*"
-                          ColumnSpacing="{DynamicResource SpacingInlineMd}">
-                          <icons:AppIcon
-                            Grid.Column="0"
-                            Width="{DynamicResource IconSizeDefault}"
-                            Height="{DynamicResource IconSizeDefault}"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource SuccessColor}"
-                            Kind="Info" />
-                          <TextBlock
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
-                            Classes="Caption Muted"
-                            Text="{Binding AutoFetchStatus}"
-                            TextTrimming="CharacterEllipsis"
-                            TextWrapping="NoWrap" />
-                        </Grid>
-                      </Grid>
-                      <Button
-                        Grid.Column="7"
-                        Classes="Outline"
-                        Command="{Binding OpenAutoFetchSettingsCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeDefault}"
-                            Height="{DynamicResource IconSizeDefault}"
-                            Kind="SlidersHorizontal" />
-                          <TextBlock Text="参数设置" />
-                        </StackPanel>
-                      </Button>
-                    </Grid>
-                  </Grid>
-                </Border>
+                Classes="AutoFetchWorkspace"
+                RowDefinitions="Auto,*">
+                <Grid
+                  Grid.Row="0"
+                  Classes="AutoFetchMetrics"
+                  ColumnDefinitions="*,*,*,*">
+                  <controls:OverviewCard
+                    Title="已编排任务"
+                    Grid.Column="0"
+                    Classes="ReadOnly"
+                    Hint="全量、增量与回补策略"
+                    Value="{Binding AutoTasks.Count}">
+                    <controls:OverviewCard.Icon>
+                      <icons:AppIcon Classes="OverviewCardIcon" Kind="ListChecks" />
+                    </controls:OverviewCard.Icon>
+                  </controls:OverviewCard>
+                  <controls:OverviewCard
+                    Title="正在运行"
+                    Grid.Column="1"
+                    Classes="ReadOnly Success"
+                    Hint="当前活动执行上下文"
+                    Value="{Binding ActiveAutoTaskCount}">
+                    <controls:OverviewCard.Icon>
+                      <icons:AppIcon Classes="OverviewCardIcon" Kind="Activity" />
+                    </controls:OverviewCard.Icon>
+                  </controls:OverviewCard>
+                  <controls:OverviewCard
+                    Title="近期成功率"
+                    Grid.Column="2"
+                    Classes="ReadOnly Success"
+                    Hint="按最近执行记录计算"
+                    Value="{Binding AutoFetchSuccessRateText}">
+                    <controls:OverviewCard.Icon>
+                      <icons:AppIcon Classes="OverviewCardIcon" Kind="ChartNoAxesCombined" />
+                    </controls:OverviewCard.Icon>
+                  </controls:OverviewCard>
+                  <controls:OverviewCard
+                    Title="待重试"
+                    Grid.Column="3"
+                    Classes="ReadOnly Warning"
+                    Hint="失败恢复队列"
+                    Value="{Binding RetryQueue.Count}">
+                    <controls:OverviewCard.Icon>
+                      <icons:AppIcon Classes="OverviewCardIcon" Kind="RotateCcw" />
+                    </controls:OverviewCard.Icon>
+                  </controls:OverviewCard>
+                </Grid>
 
                 <Grid
                   Grid.Row="1"
                   MinHeight="0"
-                  ColumnDefinitions="1.3*,1.4*,1.1*"
-                  ColumnSpacing="0">
+                  Classes="AutoFetchBoard"
+                  ColumnDefinitions="1.25*,1*">
                   <controls:CardPanel
-                    Title="任务列表"
+                    Title="任务编排"
                     Grid.Column="0"
                     MinHeight="0"
+                    AccentBrush="{DynamicResource InfoColor}"
                     Chrome="Card"
-                    Classes="FlushBody">
+                    Classes="FlushBody"
+                    HeaderHint="{Binding AutoFetchNextRunText}">
                     <controls:CardPanel.HeaderContent>
                       <shad:Badge Content="{Binding AutoTasks.Count, StringFormat=共 {0} 项}" Variant="Secondary" />
                     </controls:CardPanel.HeaderContent>
-                    <controls:EmptyStatePanel
+                    <DataGrid
+                      x:Name="AutoTaskGrid"
                       MinHeight="0"
-                      EmptyHint="{Binding AutoTasksEmptyHint}"
-                      EmptyText="{Binding AutoTasksEmptyText}"
-                      Icon="{Binding SectionEmptyIcon}"
-                      IsEmpty="{Binding IsAutoTasksEmpty}"
-                      IsPending="{Binding IsSectionPending}"
-                      SlotMinHeight="{DynamicResource DgH10Rows}"
-                      SlotMode="Always">
-                      <shad:BusyArea IsBusy="{Binding IsBusy}">
-                        <controls:DeferredGridSlot
-                          x:Name="AutoTaskGridSlot"
-                          SlotMinHeight="{DynamicResource DgH10Rows}"
-                          SlotName="AutoTaskGrid">
-                          <controls:DeferredGridSlot.GridTemplate>
-                            <DataTemplate x:DataType="vm:ScanCode">
-                              <DataGrid
-                                CanUserResizeColumns="True"
-                                Classes="SectionGrid"
-                                ItemsSource="{Binding AutoTasks}">
-                                <DataGrid.Columns>
-                                  <DataGridTextColumn
-                                    Width="1.3*"
-                                    Binding="{Binding Name}"
-                                    Header="任务" />
-                                  <DataGridTextColumn
-                                    Width="1*"
-                                    Binding="{Binding Schedule}"
-                                    Header="计划" />
-                                  <DataGridTextColumn
-                                    Width="0.8*"
-                                    Binding="{Binding State}"
-                                    Header="状态" />
-                                </DataGrid.Columns>
-                              </DataGrid>
+                      Background="Transparent"
+                      CanUserResizeColumns="True"
+                      Classes="SectionGrid IndexedGrid"
+                      ItemsSource="{Binding AutoTasks}"
+                      SelectionChanged="OnBrowsingGridSelectionChanged">
+                      <DataGrid.Columns>
+                        <DataGridTemplateColumn
+                          Width="{StaticResource DgWIcon}"
+                          Header="状态"
+                          SortMemberPath="StateText">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="vm:AutoFetchTaskItem">
+                              <Border
+                                Width="{DynamicResource IconBadgeSize}"
+                                Height="{DynamicResource IconBadgeSize}"
+                                Background="{Binding State, Converter={StaticResource FetchStateToBgBrush}}"
+                                Classes="DgStatusBadge"
+                                CornerRadius="{DynamicResource TraceBadgeRadius}"
+                                ToolTip.Tip="{Binding StateText}">
+                                <icons:AppIcon
+                                  Width="{DynamicResource IconSizeDefault}"
+                                  Height="{DynamicResource IconSizeDefault}"
+                                  Foreground="{Binding State, Converter={StaticResource FetchStateToFgBrush}}"
+                                  Kind="{Binding State, Converter={StaticResource FetchStateToIconKind}}" />
+                              </Border>
                             </DataTemplate>
-                          </controls:DeferredGridSlot.GridTemplate>
-                        </controls:DeferredGridSlot>
-                      </shad:BusyArea>
-                    </controls:EmptyStatePanel>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn
+                          Width="1.2*"
+                          Binding="{Binding Name}"
+                          Header="任务"
+                          SortMemberPath="Name" />
+                        <DataGridTextColumn
+                          Width="0.8*"
+                          Binding="{Binding Schedule}"
+                          Header="触发策略"
+                          SortMemberPath="Schedule" />
+                        <DataGridTextColumn
+                          Width="1.7*"
+                          Binding="{Binding Detail}"
+                          Header="处理范围"
+                          SortMemberPath="Detail" />
+                      </DataGrid.Columns>
+                    </DataGrid>
                   </controls:CardPanel>
 
-                  <controls:CardPanel
-                    Title="最近执行记录"
+                  <Grid
                     Grid.Column="1"
                     MinHeight="0"
-                    Chrome="Card"
-                    Classes="FlushBody">
-                    <controls:CardPanel.HeaderContent>
-                      <shad:Badge Content="{Binding RecentRuns.Count, StringFormat=近 {0} 条}" Variant="Secondary" />
-                    </controls:CardPanel.HeaderContent>
-                    <controls:EmptyStatePanel
+                    Classes="AutoFetchSide"
+                    RowDefinitions="*,*">
+                    <controls:CardPanel
+                      Title="最近执行"
+                      Grid.Row="0"
                       MinHeight="0"
-                      EmptyHint="{Binding RecentRunsEmptyHint}"
-                      EmptyText="{Binding RecentRunsEmptyText}"
-                      Icon="{Binding SectionEmptyIcon}"
-                      IsEmpty="{Binding IsRecentRunsEmpty}"
-                      IsPending="{Binding IsSectionPending}"
-                      SlotMinHeight="{DynamicResource DgH10Rows}"
-                      SlotMode="Always">
-                      <shad:BusyArea IsBusy="{Binding IsBusy}">
-                        <controls:DeferredGridSlot
-                          x:Name="RecentRunGridSlot"
-                          SlotMinHeight="{DynamicResource DgH10Rows}"
-                          SlotName="RecentRunGrid">
-                          <controls:DeferredGridSlot.GridTemplate>
-                            <DataTemplate x:DataType="vm:ScanCode">
-                              <DataGrid
-                                CanUserResizeColumns="True"
-                                Classes="SectionGrid"
-                                ItemsSource="{Binding RecentRuns}">
-                                <DataGrid.Columns>
-                                  <DataGridTextColumn
-                                    Width="1.1*"
-                                    Binding="{Binding Name}"
-                                    Header="任务" />
-                                  <DataGridTextColumn
-                                    Width="1.2*"
-                                    Binding="{Binding StartedAtText}"
-                                    Header="开始时间" />
-                                  <DataGridTextColumn
-                                    Width="0.8*"
-                                    Binding="{Binding Result}"
-                                    Header="结果" />
-                                </DataGrid.Columns>
-                              </DataGrid>
-                            </DataTemplate>
-                          </controls:DeferredGridSlot.GridTemplate>
-                        </controls:DeferredGridSlot>
-                      </shad:BusyArea>
-                    </controls:EmptyStatePanel>
-                  </controls:CardPanel>
+                      AccentBrush="{DynamicResource SuccessColor}"
+                      Chrome="Card"
+                      Classes="FlushBody">
+                      <controls:CardPanel.HeaderContent>
+                        <shad:Badge Content="{Binding RecentRuns.Count, StringFormat=近 {0} 条}" Variant="Secondary" />
+                      </controls:CardPanel.HeaderContent>
+                      <DataGrid
+                        x:Name="RecentRunGrid"
+                        MinHeight="0"
+                        Background="Transparent"
+                        CanUserResizeColumns="True"
+                        Classes="SectionGrid IndexedGrid"
+                        ItemsSource="{Binding RecentRuns}"
+                        SelectionChanged="OnBrowsingGridSelectionChanged">
+                        <DataGrid.Columns>
+                          <DataGridTemplateColumn
+                            Width="{StaticResource DgWIcon}"
+                            Header="状态"
+                            SortMemberPath="StateText">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate x:DataType="vm:AutoFetchRunItem">
+                                <Border
+                                  Width="{DynamicResource IconBadgeSize}"
+                                  Height="{DynamicResource IconBadgeSize}"
+                                  Background="{Binding State, Converter={StaticResource FetchStateToBgBrush}}"
+                                  Classes="DgStatusBadge"
+                                  CornerRadius="{DynamicResource TraceBadgeRadius}"
+                                  ToolTip.Tip="{Binding StateText}">
+                                  <icons:AppIcon
+                                    Width="{DynamicResource IconSizeDefault}"
+                                    Height="{DynamicResource IconSizeDefault}"
+                                    Foreground="{Binding State, Converter={StaticResource FetchStateToFgBrush}}"
+                                    Kind="{Binding State, Converter={StaticResource FetchStateToIconKind}}" />
+                                </Border>
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
+                          <DataGridTextColumn
+                            Width="1*"
+                            Binding="{Binding Name}"
+                            Header="任务"
+                            SortMemberPath="Name" />
+                          <DataGridTextColumn
+                            Width="1.15*"
+                            Binding="{Binding StartedAtText}"
+                            Header="开始时间"
+                            SortMemberPath="StartedAtText" />
+                        </DataGrid.Columns>
+                      </DataGrid>
+                    </controls:CardPanel>
 
-                  <controls:CardPanel
-                    Title="失败重试队列"
-                    Grid.Column="2"
-                    MinHeight="0"
-                    Chrome="Card"
-                    Classes="FlushBody">
-                    <controls:CardPanel.HeaderContent>
-                      <shad:Badge Content="{Binding RetryQueue.Count, StringFormat=待重试 {0}}" Variant="Secondary" />
-                    </controls:CardPanel.HeaderContent>
-                    <controls:EmptyStatePanel
+                    <controls:CardPanel
+                      Title="失败恢复"
+                      Grid.Row="1"
                       MinHeight="0"
-                      EmptyHint="{Binding RetryQueueEmptyHint}"
-                      EmptyText="{Binding RetryQueueEmptyText}"
-                      Icon="{Binding SectionEmptyIcon}"
-                      IsEmpty="{Binding IsRetryQueueEmpty}"
-                      IsPending="{Binding IsSectionPending}"
-                      SlotMinHeight="{DynamicResource DgH10Rows}"
-                      SlotMode="Always">
-                      <shad:BusyArea IsBusy="{Binding IsBusy}">
-                        <controls:DeferredGridSlot
-                          x:Name="RetryQueueGridSlot"
-                          SlotMinHeight="{DynamicResource DgH10Rows}"
-                          SlotName="RetryQueueGrid">
-                          <controls:DeferredGridSlot.GridTemplate>
-                            <DataTemplate x:DataType="vm:ScanCode">
-                              <DataGrid
-                                CanUserResizeColumns="True"
-                                Classes="SectionGrid"
-                                ItemsSource="{Binding RetryQueue}">
-                                <DataGrid.Columns>
-                                  <DataGridTextColumn
-                                    Width="1.1*"
-                                    Binding="{Binding Name}"
-                                    Header="任务" />
-                                  <DataGridTextColumn
-                                    Width="1.2*"
-                                    Binding="{Binding Reason}"
-                                    Header="原因" />
-                                  <DataGridTextColumn
-                                    Width="0.8*"
-                                    Binding="{Binding RetryCountText}"
-                                    Header="重试" />
-                                </DataGrid.Columns>
-                              </DataGrid>
-                            </DataTemplate>
-                          </controls:DeferredGridSlot.GridTemplate>
-                        </controls:DeferredGridSlot>
-                      </shad:BusyArea>
-                    </controls:EmptyStatePanel>
-                  </controls:CardPanel>
+                      AccentBrush="{DynamicResource WarningColor}"
+                      Chrome="Card"
+                      Classes="FlushBody">
+                      <controls:CardPanel.HeaderContent>
+                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                          <shad:Badge Content="{Binding RetryQueue.Count, StringFormat=待处理 {0}}" Variant="Secondary" />
+                          <Button Classes="Ghost" Command="{Binding RetryFailedCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeSmall}"
+                                Height="{DynamicResource IconSizeSmall}"
+                                Kind="RotateCcw" />
+                              <TextBlock Text="重试一项" />
+                            </StackPanel>
+                          </Button>
+                        </StackPanel>
+                      </controls:CardPanel.HeaderContent>
+                      <DataGrid
+                        x:Name="RetryQueueGrid"
+                        MinHeight="0"
+                        Background="Transparent"
+                        CanUserResizeColumns="True"
+                        Classes="SectionGrid IndexedGrid"
+                        ItemsSource="{Binding RetryQueue}"
+                        SelectionChanged="OnBrowsingGridSelectionChanged">
+                        <DataGrid.Columns>
+                          <DataGridTemplateColumn
+                            Width="{StaticResource DgWIcon}"
+                            Header="状态"
+                            SortMemberPath="StateText">
+                            <DataGridTemplateColumn.CellTemplate>
+                              <DataTemplate x:DataType="vm:AutoFetchRetryItem">
+                                <Border
+                                  Width="{DynamicResource IconBadgeSize}"
+                                  Height="{DynamicResource IconBadgeSize}"
+                                  Background="{Binding State, Converter={StaticResource FetchStateToBgBrush}}"
+                                  Classes="DgStatusBadge"
+                                  CornerRadius="{DynamicResource TraceBadgeRadius}"
+                                  ToolTip.Tip="{Binding StateText}">
+                                  <icons:AppIcon
+                                    Width="{DynamicResource IconSizeDefault}"
+                                    Height="{DynamicResource IconSizeDefault}"
+                                    Foreground="{Binding State, Converter={StaticResource FetchStateToFgBrush}}"
+                                    Kind="{Binding State, Converter={StaticResource FetchStateToIconKind}}" />
+                                </Border>
+                              </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                          </DataGridTemplateColumn>
+                          <DataGridTextColumn
+                            Width="1*"
+                            Binding="{Binding Name}"
+                            Header="任务"
+                            SortMemberPath="Name" />
+                          <DataGridTextColumn
+                            Width="1.3*"
+                            Binding="{Binding Reason}"
+                            Header="失败原因"
+                            SortMemberPath="Reason" />
+                          <DataGridTextColumn
+                            Width="0.65*"
+                            Binding="{Binding RetryCountText}"
+                            Header="次数"
+                            SortMemberPath="RetryCountText" />
+                        </DataGrid.Columns>
+                      </DataGrid>
+                    </controls:CardPanel>
+                  </Grid>
                 </Grid>
               </Grid>
             </DataTemplate>

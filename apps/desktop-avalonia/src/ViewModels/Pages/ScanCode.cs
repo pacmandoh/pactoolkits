@@ -66,29 +66,27 @@ public sealed partial class ScanCode : AppPageBase
         IsSpecSelected = false;
     }
 
-    protected override void OnPageAvailabilityChanged()
+    public int ActiveAutoTaskCount => IsAutoFetchRunning ? 1 : 0;
+
+    public string AutoFetchSuccessRateText
     {
-        OnPropertyChanged(nameof(IsAutoTasksEmpty));
-        OnPropertyChanged(nameof(AutoTasksEmptyText));
-        OnPropertyChanged(nameof(AutoTasksEmptyHint));
-        OnPropertyChanged(nameof(IsRecentRunsEmpty));
-        OnPropertyChanged(nameof(RecentRunsEmptyText));
-        OnPropertyChanged(nameof(RecentRunsEmptyHint));
-        OnPropertyChanged(nameof(IsRetryQueueEmpty));
-        OnPropertyChanged(nameof(RetryQueueEmptyText));
-        OnPropertyChanged(nameof(RetryQueueEmptyHint));
+        get
+        {
+            var completedCount = RecentRuns.Count(item =>
+                item.State is AutoFetchState.Succeeded or AutoFetchState.Failed);
+            if (completedCount == 0)
+            {
+                return "—";
+            }
+
+            var successCount = RecentRuns.Count(item =>
+                item.State == AutoFetchState.Succeeded);
+            return $"{Math.Round(successCount * 100.0 / completedCount):F0}%";
+        }
     }
 
-    public string AutoTasksEmptyText => GetSectionEmptyTitle("暂无任务");
-    public string AutoTasksEmptyHint => GetSectionEmptyHint("当前没有自动拉取任务");
-    public string RecentRunsEmptyText => GetSectionEmptyTitle("暂无执行记录");
-    public string RecentRunsEmptyHint => GetSectionEmptyHint("当前没有任务执行历史");
-    public string RetryQueueEmptyText => GetSectionEmptyTitle("暂无重试项");
-    public string RetryQueueEmptyHint => GetSectionEmptyHint("当前没有失败重试任务");
-
-    public bool IsAutoTasksEmpty => ShowSectionEmpty(AutoTasks.Count == 0);
-    public bool IsRecentRunsEmpty => ShowSectionEmpty(RecentRuns.Count == 0);
-    public bool IsRetryQueueEmpty => ShowSectionEmpty(RetryQueue.Count == 0);
+    public string AutoFetchNextRunText
+        => IsAutoFetchEnabled ? "下一轮：预计 2 分钟内" : "启用后开始调度";
 
     public bool IsTraceCodeInputEnabled =>
         CanOperateUi()
@@ -151,7 +149,6 @@ public sealed partial class ScanCode : AppPageBase
     [ObservableProperty] private bool _isAutoFetchRunning;
     [ObservableProperty] private int _contextStatusLevel;
     [ObservableProperty] private string _status = "请选择药品与规格";
-    [ObservableProperty] private string _autoFetchStatus = "自动拉取能力准备中：将支持账号、任务与回填策略配置";
 
     public ScanCode(
         ILookupCatalogService lookup,
@@ -163,7 +160,6 @@ public sealed partial class ScanCode : AppPageBase
         _scanCode = scanCode;
         _traceCodeRule = traceCodeRule;
         _toast = toast;
-        AutoTasks.CollectionChanged += OnAutoTasksChanged;
         RecentRuns.CollectionChanged += OnRecentRunsChanged;
         RetryQueue.CollectionChanged += OnRetryQueueChanged;
         SeedAutoFetchPanel();
@@ -637,14 +633,13 @@ public sealed partial class ScanCode : AppPageBase
         }
 
         IsAutoFetchRunning = true;
-        AutoFetchStatus = "模拟任务已启动：正在拉取并解析码上放心数据";
-        _toast.Info("自动拉取", "已启动模拟任务");
+        SetAutoTaskState("增量追踪任务", AutoFetchState.Running);
+        _toast.Info("自动拉取", "已启动样板任务");
 
         AddRecentRun(new AutoFetchRunItem(
-            Name: "全量拉取任务",
+            Name: "增量追踪任务",
             StartedAtText: NowText(),
-            Result: "RUNNING",
-            Detail: "任务已排队，等待后端接入"));
+            State: AutoFetchState.Running));
     }
 
     [RelayCommand]
@@ -655,20 +650,30 @@ public sealed partial class ScanCode : AppPageBase
             return;
         }
 
-        AutoFetchStatus = "参数配置面板准备中：将支持账号、时间窗、拉取频率和失败重试";
-        _toast.Info("自动拉取", "参数配置面板预留中");
+        _toast.Info("自动拉取", "参数入口将在执行器接入时启用");
     }
 
     partial void OnIsAutoFetchEnabledChanged(bool value)
     {
+        var stoppedRunning = !value && IsAutoFetchRunning;
         if (!value && IsAutoFetchRunning)
+        {
             IsAutoFetchRunning = false;
+            SetAutoTaskState("增量追踪任务", AutoFetchState.Paused);
+        }
 
-        AutoFetchStatus = value
-            ? "自动拉取已启用：可开始任务调度"
-            : "自动拉取已关闭：当前不会执行自动任务";
+        OnPropertyChanged(nameof(AutoFetchNextRunText));
+        if (!stoppedRunning)
+        {
+            StartAutoFetchCommand.NotifyCanExecuteChanged();
+        }
+    }
 
-        RefreshPageCommands();
+    partial void OnIsAutoFetchRunningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ActiveAutoTaskCount));
+        StartAutoFetchCommand.NotifyCanExecuteChanged();
+        StopAutoFetchCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanStopAutoFetch))]
@@ -686,14 +691,13 @@ public sealed partial class ScanCode : AppPageBase
         }
 
         IsAutoFetchRunning = false;
-        AutoFetchStatus = "任务已停止：等待下次手动启动";
-        _toast.Info("自动拉取", "已停止模拟任务");
+        SetAutoTaskState("增量追踪任务", AutoFetchState.Paused);
+        _toast.Info("自动拉取", "已停止样板任务");
 
         AddRecentRun(new AutoFetchRunItem(
-            Name: "全量拉取任务",
+            Name: "增量追踪任务",
             StartedAtText: NowText(),
-            Result: "STOPPED",
-            Detail: "由用户手动停止"));
+            State: AutoFetchState.Stopped));
     }
 
     [RelayCommand(CanExecute = nameof(CanRetryFailed))]
@@ -715,10 +719,8 @@ public sealed partial class ScanCode : AppPageBase
         AddRecentRun(new AutoFetchRunItem(
             Name: item.Name,
             StartedAtText: NowText(),
-            Result: "RETRYING",
-            Detail: $"已触发重试：{item.Reason}"));
+            State: AutoFetchState.Retrying));
 
-        AutoFetchStatus = $"已触发重试：{item.Name}";
         _toast.Info("重试队列", $"已重试：{item.Name}");
     }
 
@@ -923,32 +925,52 @@ public sealed partial class ScanCode : AppPageBase
             RequireDrugSpecCommand
         ];
 
-    private void OnAutoTasksChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        => OnPropertyChanged(nameof(IsAutoTasksEmpty));
-
     private void OnRecentRunsChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        => OnPropertyChanged(nameof(IsRecentRunsEmpty));
+    {
+        OnPropertyChanged(nameof(AutoFetchSuccessRateText));
+    }
 
     private void OnRetryQueueChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        => OnPropertyChanged(nameof(IsRetryQueueEmpty));
+        => RetryFailedCommand.NotifyCanExecuteChanged();
 
     private void SeedAutoFetchPanel()
     {
         AutoTasks.Clear();
-        AutoTasks.Add(new AutoFetchTaskItem("全量拉取任务", "每 20 分钟", "IDLE", "拉取全部待入库追溯码并去重"));
-        AutoTasks.Add(new AutoFetchTaskItem("增量追踪任务", "每 2 分钟", "IDLE", "仅拉取最近窗口变化数据"));
-        AutoTasks.Add(new AutoFetchTaskItem("回补任务", "每日 02:00", "IDLE", "补偿前一日失败批次"));
+        AutoTasks.Add(new AutoFetchTaskItem("全量拉取任务", "每 20 分钟", AutoFetchState.Ready, "拉取全部待入库追溯码并去重"));
+        AutoTasks.Add(new AutoFetchTaskItem("增量追踪任务", "每 2 分钟", AutoFetchState.Ready, "仅拉取最近窗口变化数据"));
+        AutoTasks.Add(new AutoFetchTaskItem("回补任务", "每日 02:00", AutoFetchState.Ready, "补偿前一日失败批次"));
+        AutoTasks.Add(new AutoFetchTaskItem("账号会话保活", "每 10 分钟", AutoFetchState.Ready, "刷新上游会话并校验授权状态"));
+        AutoTasks.Add(new AutoFetchTaskItem("一致性校验", "每日 03:30", AutoFetchState.Ready, "核对拉取批次与本地回填结果"));
 
         RecentRuns.Clear();
-        RecentRuns.Add(new AutoFetchRunItem("增量追踪任务", DateTime.Now.AddMinutes(-18).ToString("yyyy-MM-dd HH:mm:ss"), "SUCCESS", "处理 224 条，写入 220 条，跳过 4 条"));
-        RecentRuns.Add(new AutoFetchRunItem("全量拉取任务", DateTime.Now.AddHours(-2).ToString("yyyy-MM-dd HH:mm:ss"), "SUCCESS", "处理 3,102 条，写入 3,050 条，跳过 52 条"));
+        RecentRuns.Add(new AutoFetchRunItem("增量追踪任务", DateTime.Now.AddMinutes(-18).ToString("yyyy-MM-dd HH:mm:ss"), AutoFetchState.Succeeded));
+        RecentRuns.Add(new AutoFetchRunItem("全量拉取任务", DateTime.Now.AddHours(-2).ToString("yyyy-MM-dd HH:mm:ss"), AutoFetchState.Succeeded));
+        RecentRuns.Add(new AutoFetchRunItem("账号会话保活", DateTime.Now.AddHours(-3).ToString("yyyy-MM-dd HH:mm:ss"), AutoFetchState.Succeeded));
+        RecentRuns.Add(new AutoFetchRunItem("增量追踪任务", DateTime.Now.AddHours(-5).ToString("yyyy-MM-dd HH:mm:ss"), AutoFetchState.Failed));
+        RecentRuns.Add(new AutoFetchRunItem("回补任务", DateTime.Now.AddHours(-8).ToString("yyyy-MM-dd HH:mm:ss"), AutoFetchState.Succeeded));
 
         RetryQueue.Clear();
         RetryQueue.Add(new AutoFetchRetryItem("增量追踪任务", "网络抖动（超时）", "第 1 次"));
         RetryQueue.Add(new AutoFetchRetryItem("回补任务", "上游返回空 token", "第 2 次"));
+        RetryQueue.Add(new AutoFetchRetryItem("一致性校验", "批次摘要暂未生成", "第 1 次"));
 
         IsAutoFetchEnabled = false;
         IsAutoFetchRunning = false;
+    }
+
+    private void SetAutoTaskState(string name, AutoFetchState state)
+    {
+        for (var i = 0; i < AutoTasks.Count; i++)
+        {
+            var item = AutoTasks[i];
+            if (!string.Equals(item.Name, name, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            AutoTasks[i] = item with { State = state };
+            return;
+        }
     }
 
     private void AddRecentRun(AutoFetchRunItem item)
@@ -958,8 +980,6 @@ public sealed partial class ScanCode : AppPageBase
         {
             RecentRuns.RemoveAt(RecentRuns.Count - 1);
         }
-
-        RefreshPageCommands();
     }
 
     private static string NowText() => DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
@@ -1156,7 +1176,6 @@ public sealed partial class ScanCode : AppPageBase
         _poolCheckCts?.Cancel();
         _poolCheckCts?.Dispose();
         _traceCodeRule.Changed -= OnTraceCodeRuleChanged;
-        AutoTasks.CollectionChanged -= OnAutoTasksChanged;
         RecentRuns.CollectionChanged -= OnRecentRunsChanged;
         RetryQueue.CollectionChanged -= OnRetryQueueChanged;
         base.Dispose();
@@ -1206,6 +1225,50 @@ public sealed partial class ScanCode : AppPageBase
     }
 }
 
-public sealed record AutoFetchTaskItem(string Name, string Schedule, string State, string Detail);
-public sealed record AutoFetchRunItem(string Name, string StartedAtText, string Result, string Detail);
-public sealed record AutoFetchRetryItem(string Name, string Reason, string RetryCountText);
+public enum AutoFetchState
+{
+    Ready,
+    Running,
+    Succeeded,
+    Failed,
+    RetryPending,
+    Retrying,
+    Paused,
+    Stopped
+}
+
+internal static class AutoFetchStateText
+{
+    public static string Get(AutoFetchState state)
+        => state switch
+        {
+            AutoFetchState.Ready => "就绪",
+            AutoFetchState.Running => "运行中",
+            AutoFetchState.Succeeded => "成功",
+            AutoFetchState.Failed => "失败",
+            AutoFetchState.RetryPending => "待重试",
+            AutoFetchState.Retrying => "重试中",
+            AutoFetchState.Paused => "已暂停",
+            AutoFetchState.Stopped => "已停止",
+            _ => "未知"
+        };
+}
+
+public sealed record AutoFetchTaskItem(string Name, string Schedule, AutoFetchState State, string Detail)
+{
+    public string StateText => AutoFetchStateText.Get(State);
+}
+
+public sealed record AutoFetchRunItem(string Name, string StartedAtText, AutoFetchState State)
+{
+    public string StateText => AutoFetchStateText.Get(State);
+}
+
+public sealed record AutoFetchRetryItem(
+    string Name,
+    string Reason,
+    string RetryCountText,
+    AutoFetchState State = AutoFetchState.RetryPending)
+{
+    public string StateText => AutoFetchStateText.Get(State);
+}
