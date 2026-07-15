@@ -148,7 +148,7 @@
 
       <Grid
         Grid.Row="1"
-        Classes="DashboardTabPanel"
+        Classes="DashboardContent"
         IsVisible="{Binding IsOverviewTab}"
         RowDefinitions="*">
         <ScrollViewer
@@ -161,11 +161,11 @@
           Classes="Stack"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
-          <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="14">
+          <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource PagePanelSpacing}">
 
 
             <Border Grid.Row="0" Classes="KpiTileStrip">
-              <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="{DynamicResource MetricTileColSpacing}">
+              <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="{DynamicResource PagePanelSpacing}">
                 <controls:KpiTile
                   Title="可用追溯码库存"
                   Grid.Column="0"
@@ -215,7 +215,7 @@
             <Grid
               Grid.Row="1"
               ColumnDefinitions="11*,9*"
-              ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
+              ColumnSpacing="{DynamicResource PagePanelSpacing}">
 
 
               <controls:CardPanel
@@ -420,7 +420,7 @@
             <Grid
               Grid.Row="2"
               ColumnDefinitions="*,*"
-              ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
+              ColumnSpacing="{DynamicResource PagePanelSpacing}">
 
 
               <controls:CardPanel
@@ -613,7 +613,7 @@
 
       <Grid
         Grid.Row="1"
-        Classes="DashboardTabPanel"
+        Classes="DashboardContent"
         IsVisible="{Binding IsInputTab}"
         RowDefinitions="*">
         <controls:CardPanel
@@ -739,7 +739,7 @@
 
       <Grid
         Grid.Row="1"
-        Classes="DashboardTabPanel"
+        Classes="DashboardContent"
         IsVisible="{Binding IsTxnTab}"
         RowDefinitions="*">
         <controls:CardPanel
@@ -914,7 +914,7 @@
 
       <Grid
         Grid.Row="1"
-        Classes="DashboardTabPanel"
+        Classes="DashboardContent"
         IsVisible="{Binding IsAbnormalTab}"
         RowDefinitions="*">
         <controls:CardPanel

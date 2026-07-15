@@ -4,12 +4,12 @@
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
   <Style Selector=":is(UserControl).ScanCodePage">
     <Style Selector="^ Grid.AutoFetchWorkspace">
-      <Setter Property="Margin" Value="{DynamicResource DashboardTabPanelMargin}" />
-      <Setter Property="RowSpacing" Value="{DynamicResource PageSectionSpacing}" />
+      <Setter Property="Margin" Value="{DynamicResource PageRootMargin}" />
+      <Setter Property="RowSpacing" Value="{DynamicResource PagePanelSpacing}" />
     </Style>
 
     <Style Selector="^ Grid.AutoFetchMetrics">
-      <Setter Property="ColumnSpacing" Value="{DynamicResource MetricTileColSpacing}" />
+      <Setter Property="ColumnSpacing" Value="{DynamicResource PagePanelSpacing}" />
     </Style>
 
     <Style Selector="^ controls|OverviewCard.ReadOnly">
@@ -18,11 +18,11 @@
     </Style>
 
     <Style Selector="^ Grid.AutoFetchBoard">
-      <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacingWide}" />
+      <Setter Property="ColumnSpacing" Value="{DynamicResource PagePanelSpacing}" />
     </Style>
 
     <Style Selector="^ Grid.AutoFetchSide">
-      <Setter Property="RowSpacing" Value="{DynamicResource PageSectionSpacing}" />
+      <Setter Property="RowSpacing" Value="{DynamicResource PagePanelSpacing}" />
     </Style>
   </Style>
 </Styles>
