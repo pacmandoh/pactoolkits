@@ -7,6 +7,10 @@ on:
         required: false
         type: string
         default: win-x64
+      artifact_retention_days:
+        required: false
+        type: number
+        default: 3
   workflow_dispatch:
 
 permissions:
@@ -274,3 +278,4 @@ jobs:
           name: pactoolkits-injector-${{ env.RUNTIME }}-${{ env.AGENT_VERSION }}
           path: artifacts/agents/agent-injector-ahk/${{ env.RUNTIME }}/pactoolkits-injector.exe
           if-no-files-found: error
+          retention-days: ${{ inputs.artifact_retention_days || 3 }}

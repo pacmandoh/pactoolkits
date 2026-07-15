@@ -34,6 +34,10 @@ on:
         required: false
         type: string
         default: win-x64
+      artifact_retention_days:
+        required: false
+        type: number
+        default: 3
   workflow_dispatch:
 
 permissions:
@@ -233,3 +237,4 @@ jobs:
           name: pactoolkits-desktop-${{ env.RUNTIME }}-${{ inputs.product_version }}
           path: _desktop_release/*
           if-no-files-found: error
+          retention-days: ${{ inputs.artifact_retention_days || 3 }}
