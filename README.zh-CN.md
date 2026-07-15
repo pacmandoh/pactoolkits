@@ -48,29 +48,6 @@
 
 用于药品追溯码业务的 PacToolkits Desktop、AutoHotkey 自动化执行层与 PostgreSQL 任务编排数据库系统。
 
-<br />
-
-<table>
-  <tr>
-    <td align="center"><a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue?style=for-the-badge&logo=gnu&logoColor=white" alt="License: GPL-3.0-or-later" /></a></td>
-    <td align="center"><a href="https://www.jetbrains.com/opensource/"><img src="https://img.shields.io/badge/JetBrains-Supported-000000?style=for-the-badge&logo=jetbrains&logoColor=white" alt="JetBrains" /></a></td>
-    <td align="center"><img src="https://img.shields.io/badge/Platform-Windows-334155?style=for-the-badge&logo=microsoft&logoColor=white" alt="Platform" /></td>
-    <td align="center"><img src="https://img.shields.io/badge/.NET-net10.0-475569?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET" /></td>
-  </tr>
-  <tr>
-    <td align="center"><a href="./apps/desktop-avalonia/src"><img src="https://img.shields.io/badge/Desktop-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="Desktop" /></a></td>
-    <td align="center"><a href="./runtime/agents/injector-ahk"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
-    <td align="center"><a href="./database/postgres"><img src="https://img.shields.io/badge/Database-PostgreSQL-1d4ed8?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" /></a></td>
-    <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
-  </tr>
-  <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.17.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Desktop%20Version-0.16.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Desktop Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.6.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.23-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
-  </tr>
-</table>
-
 </div>
 
 ---
@@ -378,12 +355,14 @@ database/postgres/
 > 需要验证 Beta 数据库变更时，必须使用经过显式授权的隔离数据库。
 
 1. 发布清单
+
 - 统一读取 [release-manifest.json](./release-manifest.json)（`schemaVersion: 2`）
 - `product.version` 作为 Velopack `packVersion`
 - `release.channel` 作为当前发布通道
 - `components.desktop.bundles` 声明随 Desktop 安装的 Agent 组件 ID
 
-2. Desktop 打包
+1. Desktop 打包
+
 - [build-desktop-avalonia.yml](./.github/workflows/build-desktop-avalonia.yml) 发布 Desktop 程序
 - [package-desktop.yml](./.github/workflows/package-desktop.yml) 下载各 bundle Agent 并执行 Velopack
 - `packId` 固定为 `pactoolkits`
@@ -391,21 +370,24 @@ database/postgres/
 - `channel` 使用 `release.channel`
 - 主程序：`pactoolkits-desktop.exe`
 
-3. 产物推送
+1. 产物推送
+
 - [publish-release.yml](./.github/workflows/publish-release.yml) 负责发布产物
 - feed 产物会同步到对应通道子目录：
   - `.../stable/`
   - `.../beta/`
 - 不同通道不再混放到同一个 feed 目录
 
-4. 客户端检查更新
+1. 客户端检查更新
+
 - `AppUpdateService` 会把更新地址解析成：
   - `FeedUrl/stable`
   - `FeedUrl/beta`
 - 更新判断所用的当前版本只认 Velopack 已安装版本
 - `version.generated.json` 不再参与“当前更新版本”的判断
 
-5. 通道切换策略
+1. 通道切换策略
+
 - 如果“当前安装程序通道”和“设置中的目标通道”一致：
   - 正常检查该通道更新
 - 如果两者不一致：
@@ -413,7 +395,8 @@ database/postgres/
   - 明确提示下载安装目标通道最新安装包完成切换
 - 这样可以避免数据库或配置无法安全回退时的风险
 
-6. 数据库安全原则
+1. 数据库安全原则
+
 - 应用程序可以回退，但数据库 Schema 默认只前向演进
 - 当前数据库高于目标 Stable 的 `maxDbSchema` 时，禁止切回 Stable
 - 数据库备份恢复属于灾难恢复操作，禁止当作普通版本回退手段
