@@ -136,12 +136,12 @@
             <icons:AppIcon
               Width="{DynamicResource TitleBarCapsuleIconSize}"
               Height="{DynamicResource TitleBarCapsuleIconSize}"
-              IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsNotFullScreen}}"
+              IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsNotExpanded}}"
               Kind="Maximize" />
             <icons:AppIcon
               Width="{DynamicResource TitleBarCapsuleIconSize}"
               Height="{DynamicResource TitleBarCapsuleIconSize}"
-              IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsFullScreen}}"
+              IsVisible="{Binding #Root.WindowState, Converter={x:Static conv:WindowStateConverters.IsExpanded}}"
               Kind="Minimize" />
           </Panel>
         </Button>
