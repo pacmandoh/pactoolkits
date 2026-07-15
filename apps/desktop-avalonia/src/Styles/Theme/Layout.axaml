@@ -48,7 +48,7 @@
   <x:Double x:Key="MsfxIconBtnSize">28</x:Double>
   <Thickness x:Key="MsfxIconBtnPadding">2</Thickness>
 
-  <Thickness x:Key="PageRootMargin">18,18,18,18</Thickness>
+  <Thickness x:Key="PageRootMargin">6</Thickness>
   <x:Double x:Key="StatusBarHeight">28</x:Double>
   <x:Double x:Key="StatusBarDividerHeight">16</x:Double>
   <x:Double x:Key="StatusBarCaptionSize">11</x:Double>
@@ -100,6 +100,7 @@
 
   <x:Double x:Key="PageRowSpacing">12</x:Double>
   <x:Double x:Key="PageColumnSpacing">10</x:Double>
+  <x:Double x:Key="PagePanelSpacing">6</x:Double>
   <x:Double x:Key="PageSectionSpacing">12</x:Double>
   <x:Double x:Key="FormRowSpacing">10</x:Double>
   <x:Double x:Key="FormColumnSpacing">12</x:Double>

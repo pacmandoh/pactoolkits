@@ -35,8 +35,7 @@
     <Grid
       MinHeight="0"
       Classes="DashboardLayout"
-      RowDefinitions="Auto,*"
-      RowSpacing="0">
+      RowDefinitions="Auto,*">
       <Border
         Grid.Row="0"
         Classes="FilterBarChrome"
@@ -132,14 +131,14 @@
         Margin="0">
         <Grid
           MinHeight="0"
-          Classes="DashboardTabPanel"
+          Classes="DashboardContent"
           IsVisible="{Binding IsManualEntryTab}"
           RowDefinitions="Auto,*"
-          RowSpacing="14">
+          RowSpacing="{DynamicResource PagePanelSpacing}">
           <Grid
             Grid.Row="0"
             ColumnDefinitions="*,*,*,*,*"
-            ColumnSpacing="{DynamicResource MetricTileColSpacing}">
+            ColumnSpacing="{DynamicResource PagePanelSpacing}">
             <controls:OverviewCard
               Title="有效"
               Grid.Column="0"
@@ -210,7 +209,7 @@
             Grid.Row="1"
             MinHeight="0"
             ColumnDefinitions="*,Auto"
-            ColumnSpacing="{DynamicResource PageColumnSpacingWide}">
+            ColumnSpacing="{DynamicResource PagePanelSpacing}">
             <shad:Card
               Grid.Column="0"
               MinHeight="0"
