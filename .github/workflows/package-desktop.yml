@@ -186,7 +186,7 @@ jobs:
             --runtime "$RUNTIME" \
             --channel "$CHANNEL" \
             --packTitle PacToolkits \
-            --packAuthors pacmandoh \
+            --packAuthors PacmanDoh \
             --noPortable \
             -i "$ICON_PATH"
 
