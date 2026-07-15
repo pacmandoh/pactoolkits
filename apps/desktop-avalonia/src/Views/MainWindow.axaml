@@ -191,13 +191,13 @@
               Height="{DynamicResource IconSizeDefault}"
               Foreground="{DynamicResource SuccessColor}"
               IsVisible="{Binding IsAhkRunning}"
-              Kind="Syringe" />
+              Kind="Bone" />
             <icons:AppIcon
               Width="{DynamicResource IconSizeDefault}"
               Height="{DynamicResource IconSizeDefault}"
               Foreground="{DynamicResource ErrorColor}"
               IsVisible="{Binding !IsAhkRunning}"
-              Kind="Syringe" />
+              Kind="BoneFracture" />
           </Panel>
         </Button>
       </StackPanel>
@@ -840,7 +840,16 @@
               Classes="StatusBarItem StatusBarAgentItem"
               Command="{Binding StartOrRestartAhkCommand}">
               <shad:ButtonAssist.Icon>
-                <icons:AppIcon Foreground="{Binding IsAhkRunning, Converter={StaticResource BoolToDoneDangerBrush}}" Kind="Syringe" />
+                <Panel>
+                  <icons:AppIcon
+                    Foreground="{DynamicResource SuccessColor}"
+                    IsVisible="{Binding IsAhkRunning}"
+                    Kind="Bone" />
+                  <icons:AppIcon
+                    Foreground="{DynamicResource ErrorColor}"
+                    IsVisible="{Binding !IsAhkRunning}"
+                    Kind="BoneFracture" />
+                </Panel>
               </shad:ButtonAssist.Icon>
               <TextBlock Classes="Caption Muted" Text="{Binding AgentItemText}" />
             </Button>

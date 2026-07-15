@@ -36,7 +36,7 @@ public partial class SettingsView : UserControl
         ("TabUpdatePage", "应用更新", "Download"),
         ("TabLoggingPage", "日志与诊断", "TextCursorInput"),
         ("TabMsfxPage", "码上放心 API", "Webhook"),
-        ("TabAutomationPage", "自动化集成", "Syringe")
+        ("TabAutomationPage", "自动化集成", "Bone")
     ];
 
     private Settings? _vm;
