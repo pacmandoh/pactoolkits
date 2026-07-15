@@ -387,6 +387,8 @@ vpk_args+=(pack
   --mainExe "$MAIN_EXE"
   --runtime "$RUNTIME"
   --channel "$CHANNEL"
+  --packTitle PacToolkits
+  --packAuthors PacmanDoh
   --noPortable
   -i "$ICON_FILE")
 run_cmd "${vpk_args[@]}"
