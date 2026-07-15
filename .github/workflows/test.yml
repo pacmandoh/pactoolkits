@@ -81,8 +81,12 @@ jobs:
           dotnet test tests/PacToolkits.Desktop.Tests/PacToolkits.Desktop.Tests.csproj -c Release --no-restore --verbosity minimal --filter "Category!=PostgresIntegration"
 
   ui_headless_tests:
-    name: Headless UI Tests
-    runs-on: ubuntu-latest
+    name: Headless UI Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
