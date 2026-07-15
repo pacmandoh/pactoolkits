@@ -23,11 +23,14 @@ public static class Theme
 
 public static class WindowStateConverters
 {
-    public static readonly IValueConverter IsFullScreen =
-        new FuncValueConverter<WindowState, bool>(state => state == WindowState.FullScreen);
+    public static readonly IValueConverter IsExpanded =
+        new FuncValueConverter<WindowState, bool>(IsExpandedState);
 
-    public static readonly IValueConverter IsNotFullScreen =
-        new FuncValueConverter<WindowState, bool>(state => state != WindowState.FullScreen);
+    public static readonly IValueConverter IsNotExpanded =
+        new FuncValueConverter<WindowState, bool>(state => !IsExpandedState(state));
+
+    private static bool IsExpandedState(WindowState state) =>
+        state is WindowState.Maximized or WindowState.FullScreen;
 }
 
 /// <summary>Sidebar nav tooltip: expanded → no tooltip; collapsed → show label.</summary>
