@@ -1,0 +1,28 @@
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+  <Style Selector=":is(UserControl).ScanCodePage">
+    <Style Selector="^ Grid.AutoFetchWorkspace">
+      <Setter Property="Margin" Value="{DynamicResource DashboardTabPanelMargin}" />
+      <Setter Property="RowSpacing" Value="{DynamicResource PageSectionSpacing}" />
+    </Style>
+
+    <Style Selector="^ Grid.AutoFetchMetrics">
+      <Setter Property="ColumnSpacing" Value="{DynamicResource MetricTileColSpacing}" />
+    </Style>
+
+    <Style Selector="^ controls|OverviewCard.ReadOnly">
+      <Setter Property="Cursor" Value="Arrow" />
+      <Setter Property="Focusable" Value="False" />
+    </Style>
+
+    <Style Selector="^ Grid.AutoFetchBoard">
+      <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacingWide}" />
+    </Style>
+
+    <Style Selector="^ Grid.AutoFetchSide">
+      <Setter Property="RowSpacing" Value="{DynamicResource PageSectionSpacing}" />
+    </Style>
+  </Style>
+</Styles>

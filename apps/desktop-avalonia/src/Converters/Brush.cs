@@ -4,6 +4,7 @@ using global::Avalonia.Data.Converters;
 using global::Avalonia.Media;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Converters;
 
@@ -100,6 +101,25 @@ internal static class ConverterHelpers
             _ => StatusTone.Info,
         };
 
+    public static StatusTone ToneFromFetchState(object? value)
+        => FetchVisual(value).Tone;
+
+    public static string IconKindFromFetchState(object? value)
+        => FetchVisual(value).Icon;
+
+    private static (StatusTone Tone, string Icon) FetchVisual(object? value)
+        => value is AutoFetchState state ? state switch
+        {
+            AutoFetchState.Ready => (StatusTone.Info, "Clock3"),
+            AutoFetchState.Running => (StatusTone.Info, "Activity"),
+            AutoFetchState.Succeeded => (StatusTone.Done, "CircleCheck"),
+            AutoFetchState.Failed => (StatusTone.Danger, "CircleX"),
+            AutoFetchState.RetryPending or AutoFetchState.Retrying => (StatusTone.Warning, "RotateCcw"),
+            AutoFetchState.Paused => (StatusTone.Purple, "CirclePause"),
+            AutoFetchState.Stopped => (StatusTone.Purple, "Square"),
+            _ => (StatusTone.Info, "Info")
+        } : (StatusTone.Info, "Info");
+
     public static string ForegroundBrushKey(StatusTone tone)
         => tone switch
         {
@@ -133,6 +153,7 @@ internal static class ConverterHelpers
             TraceEntryState.Info => "Info",
             _ => "Info",
         };
+
 }
 
 public sealed class BadgeToIconKindConverter : IValueConverter
@@ -213,6 +234,40 @@ public sealed class TraceEntryStateToBgBrushConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
+public sealed class FetchStateToIconKindConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => ConverterHelpers.IconKindFromFetchState(value);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+public sealed class FetchStateToFgBrushConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var key = ConverterHelpers.ForegroundBrushKey(ConverterHelpers.ToneFromFetchState(value));
+        return ConverterHelpers.FindAppBrush(key, Brushes.White);
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+public sealed class FetchStateToBgBrushConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var level = ConverterHelpers.ParseLevel(parameter, 10);
+        var key = ConverterHelpers.BackgroundBrushKey(ConverterHelpers.ToneFromFetchState(value), level);
+        return ConverterHelpers.FindAppBrush(key, Brushes.Transparent);
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
 public sealed class ContextStatusToBrushConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -250,4 +305,3 @@ public sealed class BoolToDoneDangerBrushConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
-
