@@ -48,29 +48,6 @@
 
 PacToolkits Desktop, AutoHotkey automation, and PostgreSQL orchestration for drug trace-code operations.
 
-<br />
-
-<table>
-  <tr>
-    <td align="center"><a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue?style=for-the-badge&logo=gnu&logoColor=white" alt="License: GPL-3.0-or-later" /></a></td>
-    <td align="center"><a href="https://www.jetbrains.com/opensource/"><img src="https://img.shields.io/badge/JetBrains-Supported-000000?style=for-the-badge&logo=jetbrains&logoColor=white" alt="JetBrains" /></a></td>
-    <td align="center"><img src="https://img.shields.io/badge/Platform-Windows-334155?style=for-the-badge&logo=microsoft&logoColor=white" alt="Platform" /></td>
-    <td align="center"><img src="https://img.shields.io/badge/.NET-net10.0-475569?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET" /></td>
-  </tr>
-  <tr>
-    <td align="center"><a href="./apps/desktop-avalonia/src"><img src="https://img.shields.io/badge/Desktop-Avalonia%2011-0f766e?style=for-the-badge&logo=avaloniaui&logoColor=white" alt="Desktop" /></a></td>
-    <td align="center"><a href="./runtime/agents/injector-ahk"><img src="https://img.shields.io/badge/Agent-AutoHotkey%20v2-92400e?style=for-the-badge&logo=autohotkey&logoColor=white" alt="Agent" /></a></td>
-    <td align="center"><a href="./database/postgres"><img src="https://img.shields.io/badge/Database-PostgreSQL-1d4ed8?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" /></a></td>
-    <td align="center"><img src="https://img.shields.io/badge/Channel-stable-334155?style=for-the-badge&logo=githubactions&logoColor=white" alt="Channel" /></td>
-  </tr>
-  <tr>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Suite-0.17.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Suite" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Desktop%20Version-0.16.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Desktop Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/Agent%20Version-0.6.1-475569?style=for-the-badge&logo=git&logoColor=white" alt="Agent Version" /></a></td>
-    <td align="center"><a href="./release-manifest.json"><img src="https://img.shields.io/badge/DB%20Schema-1.2.23-475569?style=for-the-badge&logo=postgresql&logoColor=white" alt="DB Schema" /></a></td>
-  </tr>
-</table>
-
 </div>
 
 ---
@@ -380,12 +357,14 @@ The current release and update chain supports only `stable` and `beta`. Versioni
 > an explicitly authorized isolated database.
 
 1. Release manifest
+
 - Everything is driven from [release-manifest.json](./release-manifest.json) (`schemaVersion: 2`)
 - `product.version` is used as the Velopack `packVersion`
 - `release.channel` is used as the release channel
 - `components.desktop.bundles` lists agent component IDs bundled into the desktop installer
 
-2. Desktop packaging
+1. Desktop packaging
+
 - [build-desktop-avalonia.yml](./.github/workflows/build-desktop-avalonia.yml) publishes the desktop app
 - [package-desktop.yml](./.github/workflows/package-desktop.yml) downloads each bundled agent artifact and runs Velopack
 - `packId` is fixed to `pactoolkits`
@@ -393,21 +372,24 @@ The current release and update chain supports only `stable` and `beta`. Versioni
 - `channel` uses `release.channel`
 - Main executable: `pactoolkits-desktop.exe`
 
-3. Asset publishing
+1. Asset publishing
+
 - [publish-release.yml](./.github/workflows/publish-release.yml) uploads the release assets
 - Feed payloads are synced into channel-specific subdirectories:
   - `.../stable/`
   - `.../beta/`
 - Different channels are not mixed in one shared feed directory
 
-4. Client update checks
+1. Client update checks
+
 - `AppUpdateService` resolves the feed to:
   - `FeedUrl/stable`
   - `FeedUrl/beta`
 - The current version used for update decisions comes only from the Velopack installed version
 - `version.generated.json` is no longer used to determine the current update version
 
-5. Channel switching policy
+1. Channel switching policy
+
 - If the installed program channel matches the selected channel:
   - normal update checks run for that channel
 - If they do not match:
@@ -415,7 +397,8 @@ The current release and update chain supports only `stable` and `beta`. Versioni
   - it explicitly tells the user to install the latest installer for the target channel
 - This keeps database and config rollback risks out of the normal update flow
 
-6. Database safety policy
+1. Database safety policy
+
 - Application packages may be rolled back, but database schemas evolve forward by default
 - A database above the target Stable `maxDbSchema` blocks switching back to Stable
 - Restoring a database backup is a disaster-recovery operation, not a routine version rollback
