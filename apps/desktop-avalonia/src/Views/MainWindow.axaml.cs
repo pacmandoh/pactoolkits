@@ -1,3 +1,4 @@
+using System;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
@@ -10,6 +11,8 @@ namespace PacToolkits.Desktop.Avalonia.Views;
 
 public partial class MainWindow : ShadWindow
 {
+    private TitleBarCentering? _titleBarCentering;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -23,6 +26,9 @@ public partial class MainWindow : ShadWindow
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
+
+        _titleBarCentering?.Dispose();
+        _titleBarCentering = null;
 
         var titlePanel = e.NameScope.Find<StackPanel>("AppTitlePanel");
         if (titlePanel is null)
@@ -40,6 +46,19 @@ public partial class MainWindow : ShadWindow
                 break;
             }
         }
+
+        var titleBarBackground = e.NameScope.Find<Border>("PART_TitleBarBackground");
+        if (titleBarBackground is not null)
+        {
+            _titleBarCentering = new TitleBarCentering(titlePanel, TitleBarCenterAnchor, titleBarBackground);
+        }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _titleBarCentering?.Dispose();
+        _titleBarCentering = null;
+        base.OnClosed(e);
     }
 
     private void OnFullScreen(object? sender, RoutedEventArgs e)

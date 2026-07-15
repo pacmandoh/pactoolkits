@@ -44,7 +44,10 @@
         ToolTip.Tip="{Binding NavigateForwardToolTip}">
         <icons:AppIcon Kind="ArrowRight" />
       </Button>
-      <Border Grid.Column="2" Classes="TitleBarPath">
+      <Border
+        x:Name="TitleBarCenterAnchor"
+        Grid.Column="2"
+        Classes="TitleBarPath">
         <Grid
           Margin="12,0,10,0"
           VerticalAlignment="Center"
