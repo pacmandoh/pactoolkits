@@ -1,54 +1,44 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
-using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
 public interface IUpdateFlowService
 {
     bool IsApplying { get; }
+    int ApplyProgress { get; }
     event Action? StateChanged;
 
     Task<AppUpdateCheckResult?> CheckAndHandleAsync(
         bool showNoUpdateToast,
         bool startupMode,
-        Func<Task> applyNowAction,
-        Func<Task>? ignoreVersionAction = null,
         Action<AppUpdateCheckResult>? syncState = null,
         string logScope = "UpdateDesktopFlow",
         CancellationToken ct = default);
 
-    Task ShowUpdateAvailableToastAsync(
-        string currentVersion,
-        string latestVersion,
-        bool startupMode,
-        Func<Task> applyNowAction,
-        Func<Task>? ignoreVersionAction = null);
-    Task IgnoreVersionAsync(string version);
     Task ApplyUpdateFlowAsync();
 }
 
 public sealed class UpdateFlowService : IUpdateFlowService
 {
+    private sealed class ProgressSink(Action<int> report) : IProgress<int>
+    {
+        public void Report(int value) => report(value);
+    }
+
     private static readonly TimeSpan UpdateCheckTimeout = TimeSpan.FromSeconds(10);
-    private readonly object _toastGate = new();
     private readonly object _applyingGate = new();
 
     private readonly IAppUpdateService _updates;
-    private readonly IUpdateSettingsService _updateSettings;
     private readonly IToastService _toasts;
-    private readonly IDialogService _dialogs;
-    private readonly ToastManager _toastManager;
+    private readonly Func<string, string, Task<bool>> _confirmRestart;
     private readonly IAppLogger _logger;
-    private bool _activeUpdateToastVisible;
-    private string _activeUpdateToastKey = string.Empty;
     private bool _isApplying;
+    private int _applyProgress;
 
     public bool IsApplying
     {
@@ -61,74 +51,47 @@ public sealed class UpdateFlowService : IUpdateFlowService
         }
     }
 
+    public int ApplyProgress
+    {
+        get
+        {
+            lock (_applyingGate)
+            {
+                return _applyProgress;
+            }
+        }
+    }
+
     public event Action? StateChanged;
 
     public UpdateFlowService(
         IAppUpdateService updates,
-        IUpdateSettingsService updateSettings,
         IToastService toasts,
         IDialogService dialogs,
-        ToastManager toastManager,
+        IAppLogger logger)
+        : this(
+            updates,
+            toasts,
+            (dialogs ?? throw new ArgumentNullException(nameof(dialogs))).Confirm,
+            logger)
+    {
+    }
+
+    internal UpdateFlowService(
+        IAppUpdateService updates,
+        IToastService toasts,
+        Func<string, string, Task<bool>> confirmRestart,
         IAppLogger logger)
     {
         _updates = updates ?? throw new ArgumentNullException(nameof(updates));
-        _updateSettings = updateSettings ?? throw new ArgumentNullException(nameof(updateSettings));
         _toasts = toasts ?? throw new ArgumentNullException(nameof(toasts));
-        _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
-        _toastManager = toastManager ?? throw new ArgumentNullException(nameof(toastManager));
+        _confirmRestart = confirmRestart ?? throw new ArgumentNullException(nameof(confirmRestart));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
-    public async Task ShowUpdateAvailableToastAsync(
-        string currentVersion,
-        string latestVersion,
-        bool startupMode,
-        Func<Task> applyNowAction,
-        Func<Task>? ignoreVersionAction = null)
-    {
-        if (applyNowAction is null)
-        {
-            throw new ArgumentNullException(nameof(applyNowAction));
-        }
-
-        var title = startupMode ? "启动时发现更新" : "发现新版本";
-        var content = $"当前 {currentVersion} -> 最新 {latestVersion}";
-        var toastKey = $"{currentVersion}->{latestVersion}";
-        ignoreVersionAction ??= () => IgnoreVersionAsync(latestVersion);
-
-        await RunOnUiAsync(() =>
-        {
-            lock (_toastGate)
-            {
-                if (_activeUpdateToastVisible
-                    && string.Equals(_activeUpdateToastKey, toastKey, StringComparison.Ordinal))
-                {
-                    return;
-                }
-
-                if (_activeUpdateToastVisible)
-                {
-                    _toastManager.DismissAll();
-                }
-
-                _toastManager.CreateToast(title)
-                    .WithContent(ToastContent.ForMessage(content))
-                    .WithAction("稍后", () => { })
-                    .WithAction("忽略此版本", () => RunDetached(ignoreVersionAction, "update.toast.ignore"))
-                    .WithAction("立即更新", () => RunDetached(applyNowAction, "update.toast.apply"))
-                    .ShowInfo();
-
-                _activeUpdateToastVisible = true;
-                _activeUpdateToastKey = toastKey;
-            }
-        });
     }
 
     public async Task<AppUpdateCheckResult?> CheckAndHandleAsync(
         bool showNoUpdateToast,
         bool startupMode,
-        Func<Task> applyNowAction,
-        Func<Task>? ignoreVersionAction = null,
         Action<AppUpdateCheckResult>? syncState = null,
         string logScope = "UpdateDesktopFlow",
         CancellationToken ct = default)
@@ -165,22 +128,11 @@ public sealed class UpdateFlowService : IUpdateFlowService
                 return result;
             }
 
-            if (!result.HasUpdate)
+            if (!result.HasUpdate && showNoUpdateToast)
             {
-                if (showNoUpdateToast)
-                {
-                    _toasts.Info("应用更新", "当前已是最新版本");
-                }
-
-                return result;
+                _toasts.Info("应用更新", "当前已是最新版本");
             }
 
-            await ShowUpdateAvailableToastAsync(
-                result.CurrentVersion,
-                result.LatestVersion,
-                startupMode,
-                applyNowAction,
-                ignoreVersionAction ?? (() => IgnoreVersionAsync(result.LatestVersion))).ConfigureAwait(false);
             return result;
         }
         catch (OperationCanceledException)
@@ -206,69 +158,18 @@ public sealed class UpdateFlowService : IUpdateFlowService
         }
     }
 
-    public async Task IgnoreVersionAsync(string version)
-    {
-        await DismissActiveUpdateToastAsync().ConfigureAwait(false);
-        await _updateSettings.SaveIgnoredVersionAsync(version).ConfigureAwait(false);
-        _toasts.Info("应用更新", $"已忽略版本 {version}");
-    }
-
     public async Task ApplyUpdateFlowAsync()
     {
-        lock (_applyingGate)
+        if (!TryBeginApplying())
         {
-            if (_isApplying)
-            {
-                return;
-            }
-
-            _isApplying = true;
+            return;
         }
-
-        StateChanged?.Invoke();
-
-        ProgressBar? progressBar = null;
-        var progressToastActive = false;
 
         try
         {
-            await DismissActiveUpdateToastAsync().ConfigureAwait(false);
-            await RunOnUiAsync(() =>
-            {
-                progressBar = new ProgressBar
-                {
-                    MinWidth = 220,
-                    Minimum = 0,
-                    Maximum = 100,
-                    Value = 0,
-                    ShowProgressText = true
-                };
-
-                _toastManager.CreateToast("正在下载更新...")
-                    .WithContent(progressBar)
-                    .ShowInfo();
-
-                progressToastActive = true;
-            });
-
-            var progress = new Progress<int>(value =>
-            {
-                PostOnUi(() =>
-                {
-                    progressBar?.Value = Math.Clamp(value, 0, 100);
-                });
-            });
-
-            var result = await _updates.ApplyAsync(progress).ConfigureAwait(false);
-
-            await RunOnUiAsync(() =>
-            {
-                if (progressToastActive)
-                {
-                    _toastManager.DismissAll();
-                    progressToastActive = false;
-                }
-            });
+            var result = await _updates
+                .ApplyAsync(new ProgressSink(SetApplyProgress))
+                .ConfigureAwait(false);
 
             if (!result.Success)
             {
@@ -276,7 +177,7 @@ public sealed class UpdateFlowService : IUpdateFlowService
                 return;
             }
 
-            var restartNow = await _dialogs.Confirm(
+            var restartNow = await _confirmRestart(
                     "更新包已准备完成",
                     $"目标版本：{result.TargetVersion}\n是否立即重启应用以完成更新？")
                 .ConfigureAwait(false);
@@ -296,65 +197,56 @@ public sealed class UpdateFlowService : IUpdateFlowService
         }
         catch (Exception ex)
         {
-            await RunOnUiAsync(() =>
-            {
-                if (progressToastActive)
-                {
-                    _toastManager.DismissAll();
-                }
-            });
-
             _logger.Error("UpdateDesktopFlow", "update.apply.flow_fail", "Update apply flow failed", ex);
             _toasts.Error("应用更新", ex.Message);
         }
         finally
         {
-            SetApplying(false);
+            EndApplying();
         }
     }
 
-    private void SetApplying(bool value)
+    private bool TryBeginApplying()
     {
         lock (_applyingGate)
         {
-            if (_isApplying == value)
+            if (_isApplying)
+            {
+                return false;
+            }
+
+            _isApplying = true;
+            _applyProgress = 0;
+        }
+
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    private void SetApplyProgress(int value)
+    {
+        var progress = Math.Clamp(value, 0, 100);
+        lock (_applyingGate)
+        {
+            if (!_isApplying || _applyProgress == progress)
             {
                 return;
             }
 
-            _isApplying = value;
+            _applyProgress = progress;
         }
 
         StateChanged?.Invoke();
     }
 
-    private static Task RunOnUiAsync(Action action)
-        => UiThreadHelper.RunOnUiAsync(action);
-
-    private static void PostOnUi(Action action)
-        => UiThreadHelper.PostOnUi(action);
-
-    private void RunDetached(Func<Task> action, string eventName)
+    private void EndApplying()
     {
-        TaskObserve.Observe(
-            Task.Run(action),
-            "UpdateDesktopFlow",
-            eventName,
-            "Background action from update toast failed");
-    }
-
-    private Task DismissActiveUpdateToastAsync()
-        => RunOnUiAsync(() =>
+        lock (_applyingGate)
         {
-            lock (_toastGate)
-            {
-                if (_activeUpdateToastVisible)
-                {
-                    _toastManager.DismissAll();
-                }
+            _isApplying = false;
+            _applyProgress = 0;
+        }
 
-                _activeUpdateToastVisible = false;
-                _activeUpdateToastKey = string.Empty;
-            }
-        });
+        StateChanged?.Invoke();
+    }
 }

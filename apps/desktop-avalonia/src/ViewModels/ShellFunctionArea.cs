@@ -9,6 +9,8 @@ public sealed record ShellFunctionArea(string Id, string Name, string Subtitle, 
     public override string ToString() => Name;
 }
 
+public sealed record PageTab(string Text, string Icon);
+
 public static class ShellFunctionAreas
 {
     public const string TraceabilityId = "traceability";
