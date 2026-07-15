@@ -156,6 +156,18 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
+    private async Task ShowAppInfo()
+    {
+        if (SkipTrigger("main.dialog.app_info", 250))
+        {
+            return;
+        }
+
+        var version = _releaseVersion.Current;
+        await _dialogs.ShowAppInfo(new AppInfoArgs(version.ProductVersion, version.BuildDate));
+    }
+
+    [RelayCommand]
     private void SelectFunctionArea(ShellFunctionArea? area)
     {
         if (area is null)

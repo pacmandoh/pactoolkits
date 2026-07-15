@@ -93,7 +93,7 @@
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
-    <Style Selector="^ Grid.FieldSplit &gt; TextBox,                       ^ Grid.FieldSplit &gt; ComboBox,                       ^ Grid.FieldSplit &gt; NumericUpDown,                       ^ Grid.FieldSplit &gt; ToggleSwitch">
+    <Style Selector="^ Grid.FieldSplit &gt; TextBox, ^ Grid.FieldSplit &gt; ComboBox, ^ Grid.FieldSplit &gt; NumericUpDown, ^ Grid.FieldSplit &gt; ToggleSwitch">
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
@@ -146,7 +146,7 @@
       <Setter Property="ClipToBounds" Value="False" />
     </Style>
 
-    <Style Selector="^ Border.Field:pointerover,                       ^ Border.Field:focus-within">
+    <Style Selector="^ Border.Field:pointerover, ^ Border.Field:focus-within">
       <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
       <Setter Property="BorderBrush" Value="{DynamicResource ShellAccentBrush}" />
     </Style>
@@ -175,7 +175,7 @@
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
-    <Style Selector="^ Grid.FieldSplit &gt; TextBox,                       ^ Grid.FieldSplit &gt; Grid &gt; TextBox">
+    <Style Selector="^ Grid.FieldSplit &gt; TextBox, ^ Grid.FieldSplit &gt; Grid &gt; TextBox">
       <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
       <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="MinWidth" Value="0" />
@@ -238,23 +238,23 @@
       <Setter Property="Foreground" Value="{DynamicResource NavTextRest}" />
     </Style>
 
-    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pointerover icons|AppIcon,                       ^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pressed icons|AppIcon">
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pointerover icons|AppIcon, ^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pressed icons|AppIcon">
       <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
     </Style>
 
-    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pointerover TextBlock,                       ^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pressed TextBlock">
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pointerover TextBlock, ^ StackPanel.NavHost &gt; Button.NavItem:not(.Active):pressed TextBlock">
       <Setter Property="Foreground" Value="{DynamicResource NavTextHover}" />
     </Style>
 
-    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem.Active,                       ^ StackPanel.NavHost &gt; Button.NavItem.Active:pointerover">
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem.Active, ^ StackPanel.NavHost &gt; Button.NavItem.Active:pointerover">
       <Setter Property="Background" Value="{DynamicResource NavIndicatorBrush}" />
     </Style>
 
-    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem.Active icons|AppIcon,                       ^ StackPanel.NavHost &gt; Button.NavItem.Active:pointerover icons|AppIcon">
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem.Active icons|AppIcon, ^ StackPanel.NavHost &gt; Button.NavItem.Active:pointerover icons|AppIcon">
       <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
     </Style>
 
-    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem.Active TextBlock,                       ^ StackPanel.NavHost &gt; Button.NavItem.Active:pointerover TextBlock">
+    <Style Selector="^ StackPanel.NavHost &gt; Button.NavItem.Active TextBlock, ^ StackPanel.NavHost &gt; Button.NavItem.Active:pointerover TextBlock">
       <Setter Property="Foreground" Value="{DynamicResource NavTextSelected}" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>

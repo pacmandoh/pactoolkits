@@ -74,6 +74,7 @@ public static class ServiceRegistration
             var manager = new DialogManager();
             manager.Register<SensitiveUnlockView, SensitiveUnlock>();
             manager.Register<DrugKeyFixPreviewView, DrugKeyFixPreview>();
+            manager.Register<AppInfoView, AppInfo>();
             manager.Register<InfoDetailView, InfoDetail>();
             manager.Register<MsfxStateDetailView, MsfxStateDetail>();
             manager.Register<MsfxMappingBatchView, MsfxMappingBatch>();

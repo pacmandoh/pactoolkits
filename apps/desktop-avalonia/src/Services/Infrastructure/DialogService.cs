@@ -36,6 +36,7 @@ public interface IDialogService
         string title,
         string hintMessage,
         Func<string, string?>? verify = null);
+    Task ShowAppInfo(AppInfoArgs model);
     Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items);
     Task ShowMsfxStateDetail(MsfxStateDetailArgs model);
     Task<MsfxMappingBatchResult> ShowMsfxMappingBatch(MsfxMappingBatchArgs model);
@@ -147,6 +148,17 @@ public sealed class DialogService(
             // Singleton unlock VM: overlay dismiss never hits VM Cancel.
             unlockDialog.ClearSensitiveState();
         }
+    }
+
+    public async Task ShowAppInfo(AppInfoArgs model)
+    {
+        await FormDialogSession.ShowAsync(
+            dialogManager,
+            new AppInfo(dialogManager) { Info = model },
+            prepare: null,
+            onSuccess: static _ => true,
+            onCancel: static () => false,
+            maxWidth: AlertMaxWidth).ConfigureAwait(true);
     }
 
     public async Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items)

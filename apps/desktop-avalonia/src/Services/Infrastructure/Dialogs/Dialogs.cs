@@ -42,6 +42,10 @@ public sealed record InfoDetailArgs(
     string SubHeader,
     IReadOnlyList<InfoDetailItem> Items);
 
+public sealed record AppInfoArgs(
+    string Version,
+    string ReleaseDate);
+
 public sealed record MsfxMappingBatchArgs(
     IReadOnlyList<MsfxMappingBatchGroupRow> Groups,
     string MapStatusFilter,

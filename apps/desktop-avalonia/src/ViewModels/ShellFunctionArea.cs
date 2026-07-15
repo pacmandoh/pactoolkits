@@ -17,10 +17,10 @@ public static class ShellFunctionAreas
     public const string AutomationId = "automation";
 
     public static ShellFunctionArea Traceability { get; } =
-        new(TraceabilityId, "追溯码池", "Barcode", "Package");
+        new(TraceabilityId, "追溯码池", "Barcode", "GalleryVerticalEnd");
 
     public static ShellFunctionArea Automation { get; } =
-        new(AutomationId, "自动化集成", "Agent · Msfx", "Bot");
+        new(AutomationId, "自动化集成", "Agent · Msfx", "AudioWaveform");
 
     public static string TraceabilityName => Traceability.Name;
     public static string AutomationName => Automation.Name;

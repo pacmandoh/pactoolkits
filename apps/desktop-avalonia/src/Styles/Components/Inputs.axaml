@@ -144,7 +144,7 @@
     <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
 
-  <Style Selector="Border.FilterInputHost &gt; Grid,                      Border.FilterInputHost Grid,                      controls|FilterFieldInput &gt; Grid">
+  <Style Selector="Border.FilterInputHost &gt; Grid, Border.FilterInputHost Grid, controls|FilterFieldInput &gt; Grid">
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
