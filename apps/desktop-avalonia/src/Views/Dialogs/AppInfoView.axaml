@@ -1,0 +1,48 @@
+<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.AppInfoView"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
+  x:DataType="dialogs:AppInfo">
+  <StackPanel
+    MinWidth="420"
+    MaxWidth="480"
+    Margin="24"
+    Spacing="0">
+    <StackPanel
+      Margin="32,30,32,22"
+      HorizontalAlignment="Center"
+      Spacing="0">
+      <Image
+        Width="88"
+        Height="88"
+        HorizontalAlignment="Center"
+        Source="avares://pactoolkits-desktop/Assets/icon-128.png"
+        Stretch="Uniform" />
+      <TextBlock
+        Margin="0,20,0,0"
+        HorizontalAlignment="Center"
+        Classes="h2"
+        Text="PacToolkits" />
+      <TextBlock
+        Margin="0,22,0,0"
+        HorizontalAlignment="Center"
+        Classes="Small Muted"
+        Text="Powered by Avalonia &amp; ShadUI" />
+      <TextBlock
+        HorizontalAlignment="Center"
+        Classes="Small Muted"
+        Text="{Binding VersionText}" />
+      <TextBlock
+        Margin="0,14,0,0"
+        HorizontalAlignment="Center"
+        Classes="Small Muted"
+        Text="{Binding ReleaseText}" />
+      <TextBlock
+        Margin="0,18,0,0"
+        HorizontalAlignment="Center"
+        Classes="Small Muted"
+        Text="© PacDocs" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

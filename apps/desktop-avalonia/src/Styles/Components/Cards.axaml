@@ -167,7 +167,7 @@
     <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacing}" />
   </Style>
 
-  <Style Selector="shad|Card.SectionCard Grid.SectionCardFoot &gt; StackPanel,                      shad|Card.SectionCard Grid.SectionCardFoot Button">
+  <Style Selector="shad|Card.SectionCard Grid.SectionCardFoot &gt; StackPanel, shad|Card.SectionCard Grid.SectionCardFoot Button">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 

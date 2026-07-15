@@ -23,18 +23,21 @@
   WindowStartupLocation="CenterScreen">
   <shad:Window.Resources>
     <conv:SidebarNavToolTipConverter x:Key="SidebarNavToolTip" />
-    <DataTemplate x:Key="WindowsTitleBarMarkTemplate">
+    <DataTemplate x:Key="WindowsTitleBarMarkTemplate" x:DataType="vm:MainWindowViewModel">
       <StackPanel
         Classes="TitleBarMark"
         Orientation="Horizontal"
         Spacing="8">
         <Image Source="avares://pactoolkits-desktop/Assets/app.ico" />
-        <TextBlock
-          VerticalAlignment="Center"
-          Classes="Caption"
-          FontSize="14"
-          FontWeight="SemiBold"
-          Text="PacToolkits · PacDocs" />
+        <Button
+          Classes="TitleBarBrandMenu"
+          Command="{Binding ShowAppInfoCommand}"
+          ToolTip.Tip="关于 PacToolkits">
+          <icons:AppIcon
+            Width="18"
+            Height="18"
+            Kind="QrCode" />
+        </Button>
       </StackPanel>
     </DataTemplate>
   </shad:Window.Resources>
@@ -268,7 +271,7 @@
                       Classes="SidebarFuncBadge"
                       CornerRadius="{DynamicResource LgCornerRadius}"
                       IsVisible="{Binding !IsSidebarExpanded}">
-                      <Viewbox Width="16" Height="16">
+                      <Viewbox Width="{DynamicResource IconSizeHeader}" Height="{DynamicResource IconSizeHeader}">
                         <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />
                       </Viewbox>
                     </Border>
@@ -283,7 +286,7 @@
                         Margin="0,0,8,0"
                         Classes="SidebarFuncBadge"
                         CornerRadius="{DynamicResource XlCornerRadius}">
-                        <Viewbox Width="16" Height="16">
+                        <Viewbox Width="{DynamicResource IconSizeHeader}" Height="{DynamicResource IconSizeHeader}">
                           <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />
                         </Viewbox>
                       </Border>
@@ -315,8 +318,8 @@
                   Header="{x:Static vm:ShellFunctionAreas.TraceabilityName}">
                   <MenuItem.Icon>
                     <Border
-                      Width="24"
-                      Height="24"
+                      Width="26"
+                      Height="26"
                       Padding="4"
                       BorderBrush="{DynamicResource BorderColor}"
                       BorderThickness="1"
@@ -395,21 +398,35 @@
               shad:MenuItemAssist.PopupHorizontalOffset="4"
               shad:MenuItemAssist.PopupPlacement="RightEdgeAlignedBottom"
               shad:MenuItemAssist.PopupVerticalOffset="4"
-              Classes="NoPressedAnimation SidebarFooterMenuItem"
+              Classes="SidebarFooterMenuItem"
               CornerRadius="{DynamicResource LgCornerRadius}">
               <MenuItem.Header>
                 <Panel>
-                  <Image
+                  <Border
+                    Width="36"
+                    Height="36"
                     HorizontalAlignment="Center"
-                    Classes="SidebarBrandIcon"
-                    IsVisible="{Binding !IsSidebarExpanded}"
-                    Source="avares://pactoolkits-desktop/Assets/app.ico" />
+                    IsVisible="{Binding !IsSidebarExpanded}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconBadgeSize}"
+                      Height="{DynamicResource IconBadgeSize}"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      Kind="Command" />
+                  </Border>
                   <Grid
                     Margin="0,4"
                     ColumnDefinitions="Auto,*,Auto"
                     ColumnSpacing="8"
                     IsVisible="{Binding IsSidebarExpanded}">
-                    <Image Classes="SidebarBrandIcon" Source="avares://pactoolkits-desktop/Assets/app.ico" />
+                    <Grid Width="36" Height="36">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconBadgeSize}"
+                        Height="{DynamicResource IconBadgeSize}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Kind="Command" />
+                    </Grid>
                     <StackPanel Grid.Column="1" Classes="SidebarAccountText">
                       <TextBlock Classes="Small" Text="PacToolkits" />
                       <TextBlock
