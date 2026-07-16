@@ -239,7 +239,8 @@ internal static class FormDialogSession
         Action<TContext>? prepare,
         Func<TContext, TResult> onSuccess,
         Func<TResult> onCancel,
-        double maxWidth = 512)
+        double maxWidth = 512,
+        bool dismissible = false)
         where TContext : class
     {
         var contextType = typeof(TContext);
@@ -273,7 +274,14 @@ internal static class FormDialogSession
             Action successCallback = () => completeSession(true);
             Action cancelCallback = () => completeSession(false);
 
-            ShowCustomDialog(manager, context, contextType, maxWidth, successCallback, cancelCallback);
+            ShowCustomDialog(
+                manager,
+                context,
+                contextType,
+                maxWidth,
+                dismissible,
+                successCallback,
+                cancelCallback);
         });
     }
 
@@ -282,18 +290,24 @@ internal static class FormDialogSession
         TContext context,
         Type contextType,
         double maxWidth,
+        bool dismissible,
         Action successCallback,
         Action cancelCallback)
         where TContext : class
     {
         DialogSessionStack.RegisterCallbacks(manager, contextType, successCallback, cancelCallback);
 
-        manager.CreateDialog(context)
-            .Dismissible()
+        var dialog = manager.CreateDialog(context)
             .WithMaxWidth(maxWidth)
             .WithSuccessCallback(successCallback)
-            .WithCancelCallback(cancelCallback)
-            .Show();
+            .WithCancelCallback(cancelCallback);
+
+        if (dismissible)
+        {
+            dialog.Dismissible();
+        }
+
+        dialog.Show();
 
         EnsureOpenControlRegistered(manager, contextType);
     }

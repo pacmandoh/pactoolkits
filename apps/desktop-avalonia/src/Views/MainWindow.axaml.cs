@@ -8,7 +8,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Interactivity;
 using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 using ShadWindow = ShadUI.Window;
 
 namespace PacToolkits.Desktop.Avalonia.Views;
@@ -21,7 +20,6 @@ public partial class MainWindow : ShadWindow
     public MainWindow()
     {
         InitializeComponent();
-        DialogHostPolicy.DisableBackgroundDismiss(this);
         PopupDismissHelper.AttachTopLevel(this);
 
         FullscreenButton.Click += OnFullScreen;
