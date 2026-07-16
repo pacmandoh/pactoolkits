@@ -145,7 +145,7 @@ public sealed class DialogService(
         }
         finally
         {
-            // Singleton unlock VM: overlay dismiss never hits VM Cancel.
+            // Singleton unlock VM retains its input unless every session clears it here.
             unlockDialog.ClearSensitiveState();
         }
     }
@@ -158,7 +158,8 @@ public sealed class DialogService(
             prepare: null,
             onSuccess: static _ => true,
             onCancel: static () => false,
-            maxWidth: AlertMaxWidth).ConfigureAwait(true);
+            maxWidth: AlertMaxWidth,
+            dismissible: true).ConfigureAwait(true);
     }
 
     public async Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items)
