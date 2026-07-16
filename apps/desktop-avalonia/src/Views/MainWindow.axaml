@@ -467,7 +467,7 @@
                   </Panel>
                 </MenuItem.Icon>
               </MenuItem>
-              <MenuItem Command="{Binding OpenAboutCommand}" Header="关于">
+              <MenuItem Command="{Binding ShowAppInfoCommand}" Header="关于">
                 <MenuItem.Icon>
                   <Viewbox Width="16" Height="16">
                     <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="Info" />
