@@ -675,6 +675,42 @@ public sealed class DashboardRepo : IDashboardRepo
             return new PagedResult<TraceEntryLogDto>(list, totalCount);
         }, ct);
 
+    public Task<IReadOnlyList<EntryChartRowDto>> GetEntryChartAsync(DashboardQuery q, CancellationToken ct)
+        => _db.WithConnection(async (conn, token) =>
+        {
+            var sql = $"""
+                select
+                  {ClientMachineExpr("l")} as client_machine,
+                  case lower(coalesce(l.result, ''))
+                    when 'success' then 1
+                    when 'partial' then 2
+                    when 'failed' then 3
+                    else 0
+                  end as state,
+                  count(*)::bigint as count
+                from trace_entry_log l
+                where l.entry_at::date between @from and @to
+                group by client_machine, state
+                order by client_machine, state
+            """;
+
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("from", q.Range.From.ToDateTime(TimeOnly.MinValue));
+            cmd.AddParam("to", q.Range.To.ToDateTime(TimeOnly.MinValue));
+
+            var rows = new List<EntryChartRowDto>();
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                rows.Add(new EntryChartRowDto(
+                    ClientRaw: reader.IsDBNull(0) ? string.Empty : reader.GetString(0),
+                    State: (TraceEntryState)reader.GetInt32(1),
+                    Count: reader.GetInt64(2)));
+            }
+
+            return (IReadOnlyList<EntryChartRowDto>)rows;
+        }, ct);
+
     private static DateTimeOffset ReadDateTimeOffset(object value)
     {
         return value switch

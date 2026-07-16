@@ -84,6 +84,9 @@ public sealed class LookupCatalogServiceTests
         public Task<PagedResult<TraceEntryLogDto>> GetEntryLogsPageAsync(DashboardQuery q, int page, int pageSize, CancellationToken ct)
             => throw new NotSupportedException();
 
+        public Task<IReadOnlyList<EntryChartRowDto>> GetEntryChartAsync(DashboardQuery q, CancellationToken ct)
+            => throw new NotSupportedException();
+
         public Task<IReadOnlyList<string>> GetSpecsByDrugAsync(string drugId, CancellationToken ct)
             => throw new NotSupportedException();
     }

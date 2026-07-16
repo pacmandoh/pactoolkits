@@ -7,19 +7,15 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using LiveChartsCore;
+using LiveChartsCore.Measure;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
-using SkiaSharp;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
-/// <summary>
-/// Dashboard-style column chart for the same rows shown by the drug trend grid.
-/// The chart is kept behind a deferred host so LiveCharts/Skia construction never
-/// participates in the normal dashboard navigation path.
-/// </summary>
 public partial class DrugTrendChart : UserControl
 {
     public static readonly StyledProperty<IEnumerable?> ItemsSourceProperty =
@@ -37,6 +33,20 @@ public partial class DrugTrendChart : UserControl
     {
         InitializeComponent();
         ActualThemeVariantChanged += (_, _) => QueueRebuild();
+    }
+
+    public void ZoomIn() => Zoom(0.8);
+
+    public void ZoomOut() => Zoom(1.25);
+
+    private void Zoom(double scale)
+    {
+        if (_chartRows.Length < 2 || Chart.XAxes.FirstOrDefault() is not Axis axis)
+        {
+            return;
+        }
+
+        ChartZoom.Scale(axis, -0.5, _chartRows.Length - 0.5, scale, 2);
     }
 
     public IEnumerable? ItemsSource
@@ -111,48 +121,61 @@ public partial class DrugTrendChart : UserControl
 
         _chartRows = ItemsSource?.OfType<TrendDrugItem>().ToArray() ?? [];
         var labels = _chartRows.Select(row => row.Name).ToArray();
-        var values = _chartRows.Select(row => ParseValue(row.ValueText)).ToArray();
-        var primary = ResolveColor("PrimaryColor", Color.FromRgb(57, 168, 255));
         var foreground = ResolveColor("ForegroundColor", Colors.Gray);
         var muted = ResolveColor("MutedColor", Colors.Gray);
-        var primaryForeground = ResolveColor("PrimaryForegroundColor", Colors.White);
+        var tooltipBackground = ResolveColor("CardBackgroundColor", Color.FromRgb(30, 30, 30));
+        var clients = _chartRows.Select(ClientName).Distinct().ToArray();
+        var palette = ResolvePalette();
 
-        Chart.Series =
-        [
-            new ColumnSeries<double>
-            {
-                Name = string.Empty,
-                Values = values,
-                Fill = new SolidColorPaint(ToSkColor(primary)),
-                XToolTipLabelFormatter = FormatTooltipTitle,
-                YToolTipLabelFormatter = FormatTooltipBody
-            }
-        ];
+        Chart.Series = clients.Select((client, index) => (ISeries)new ColumnSeries<double?>
+        {
+            Name = client,
+            Values = _chartRows
+                .Select(row => ClientName(row) == client ? ParseValue(row.ValueText) : (double?)null)
+                .ToArray(),
+            Fill = new SolidColorPaint(ChartColor.ToSkColor(
+                palette[index % palette.Length],
+                ChartColor.Strong)),
+            MaxBarWidth = 28,
+            XToolTipLabelFormatter = FormatTooltipTitle,
+            YToolTipLabelFormatter = FormatTooltipBody
+        }).ToArray();
         Chart.XAxes =
         [
             new Axis
             {
                 Labels = labels,
-                LabelsPaint = new SolidColorPaint(ToSkColor(muted)),
+                LabelsPaint = new SolidColorPaint(ChartColor.ToSkColor(muted, ChartColor.Text)),
                 LabelsRotation = 45,
                 TextSize = 11,
                 MinStep = 1,
-                Padding = new LiveChartsCore.Drawing.Padding(8)
+                Padding = new LiveChartsCore.Drawing.Padding(8),
+                MinLimit = _chartRows.Length > 10 ? -0.5 : null,
+                MaxLimit = _chartRows.Length > 10 ? 9.5 : null
             }
         ];
         Chart.YAxes =
         [
             new Axis
             {
-                LabelsPaint = new SolidColorPaint(ToSkColor(foreground)),
+                LabelsPaint = new SolidColorPaint(ChartColor.ToSkColor(foreground, ChartColor.Text)),
+                SeparatorsPaint = new SolidColorPaint(ChartColor.ToSkColor(muted, ChartColor.Grid), 1),
                 TextSize = 12,
                 MinLimit = 0,
-                ShowSeparatorLines = false
+                ShowSeparatorLines = true
             }
         ];
-        Chart.TooltipBackgroundPaint = new SolidColorPaint(ToSkColor(primary));
-        Chart.TooltipTextPaint = new SolidColorPaint(ToSkColor(primaryForeground));
-        Chart.TooltipTextSize = 14;
+        Chart.LegendPosition = LegendPosition.Top;
+        Chart.LegendTextPaint = new SolidColorPaint(ChartColor.ToSkColor(foreground, ChartColor.Text));
+        Chart.LegendTextSize = 11;
+        Chart.TooltipBackgroundPaint = new SolidColorPaint(
+            ChartColor.ToSkColor(tooltipBackground, ChartColor.Tooltip));
+        Chart.TooltipTextPaint = new SolidColorPaint(
+            ChartColor.ToSkColor(foreground, ChartColor.Label));
+        Chart.TooltipTextSize = 13;
+        Chart.ZoomMode = ZoomAndPanMode.X | ZoomAndPanMode.NoZoomBySection;
+        Chart.InvalidateMeasure();
+        Chart.InvalidateVisual();
     }
 
     private string FormatTooltipTitle(LiveChartsCore.Kernel.ChartPoint point)
@@ -169,13 +192,8 @@ public partial class DrugTrendChart : UserControl
             return string.Empty;
         }
 
-        var spec = row.SpecDisplay;
-        if (string.IsNullOrWhiteSpace(spec))
-        {
-            return $"用量：{row.ValueText}";
-        }
-
-        return $"规格：{spec}\n用量：{row.ValueText}";
+        var spec = string.IsNullOrWhiteSpace(row.Sub) ? "-" : row.Sub;
+        return $"规格：{spec}\n使用比例：{row.UsagePercentText}\n用量：{row.ValueText}";
     }
 
     private TrendDrugItem? ResolveRow(LiveChartsCore.Kernel.ChartPoint point)
@@ -192,6 +210,21 @@ public partial class DrugTrendChart : UserControl
     private Color ResolveColor(string key, Color fallback)
         => ThemeBrushResolver.TryGetColor(key, out var color) ? color : fallback;
 
+    private Color[] ResolvePalette()
+        =>
+        [
+            ResolveColor("ChartCategoryOrangeColor", Color.FromRgb(255, 122, 26)),
+            ResolveColor("ChartCategoryTealColor", Color.FromRgb(20, 184, 166)),
+            ResolveColor("ChartCategoryIndigoColor", Color.FromRgb(99, 102, 241)),
+            ResolveColor("ChartCategoryYellowColor", Color.FromRgb(251, 191, 36)),
+            ResolveColor("ChartCategoryPinkColor", Color.FromRgb(236, 72, 153)),
+            ResolveColor("ChartCategoryBlueColor", Color.FromRgb(59, 130, 246)),
+            ResolveColor("ChartCategoryPurpleColor", Color.FromRgb(139, 92, 246))
+        ];
+
+    private static string ClientName(TrendDrugItem row)
+        => string.IsNullOrWhiteSpace(row.ClientDisplay) ? "未知客户端" : row.ClientDisplay;
+
     private static double ParseValue(string value)
     {
         if (double.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out var parsed)
@@ -203,6 +236,4 @@ public partial class DrugTrendChart : UserControl
         return 0;
     }
 
-    private static SKColor ToSkColor(Color color)
-        => new(color.R, color.G, color.B, color.A);
 }
