@@ -3,9 +3,7 @@ using System.Threading.Tasks;
 using global::Avalonia.Controls;
 using global::Avalonia.Controls.ApplicationLifetimes;
 using global::Avalonia.Markup.Xaml;
-using global::Avalonia.Media.Imaging;
 using global::Avalonia.Platform;
-using global::Avalonia.Styling;
 using global::Avalonia.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,7 +25,6 @@ public partial class App : global::Avalonia.Application
     private IAgentManager? _agentManager;
     private IAppLogger? _logger;
     private bool _forceExit;
-    private EventHandler? _themeChangedHandler;
     private UnhandledExceptionEventHandler? _appDomainUnhandledHandler;
     private EventHandler<UnobservedTaskExceptionEventArgs>? _taskUnhandledHandler;
     private DispatcherUnhandledExceptionEventHandler? _uiUnhandledHandler;
@@ -102,24 +99,38 @@ public partial class App : global::Avalonia.Application
             throw new InvalidOperationException("TrayMenu resource not found.");
         }
 
-        if (menu.Items.Count < 4 ||
+        if (menu.Items.Count != 5 ||
             menu.Items[0] is not NativeMenuItem showItem ||
             menu.Items[1] is not NativeMenuItem trayModeItem ||
-            menu.Items[3] is not NativeMenuItem exitItem)
+            menu.Items[2] is not NativeMenuItem aboutItem ||
+            menu.Items[3] is not NativeMenuItemSeparator ||
+            menu.Items[4] is not NativeMenuItem exitItem)
         {
             throw new InvalidOperationException("TrayMenu resource shape is invalid.");
         }
 
-        UpdateActionMenuIcons(showItem, exitItem);
         showItem.Click += (_, _) => ShowMainWindow(window);
 
-        trayModeItem.IsChecked = _uiBehavior?.Current.MinimizeToTrayOnClose ?? true;
+        UpdateTrayModeHeader(trayModeItem, _uiBehavior?.Current.MinimizeToTrayOnClose ?? true);
         trayModeItem.Click += (_, _) =>
         {
             var current = _uiBehavior?.Current.MinimizeToTrayOnClose ?? true;
             var next = !current;
-            trayModeItem.IsChecked = next;
+            UpdateTrayModeHeader(trayModeItem, next);
             TaskObserve.Observe(PersistTrayModeAsync(next, trayModeItem), "App", "tray.persist.detached.fail");
+        };
+
+        aboutItem.Click += (_, _) =>
+        {
+            // Native menu dismissal must finish before ShadUI opens a hosted dialog.
+            Dispatcher.UIThread.Post(() =>
+            {
+                ShowMainWindow(window);
+                if (window.DataContext is MainWindowViewModel viewModel)
+                {
+                    viewModel.ShowAppInfoCommand.Execute(null);
+                }
+            }, DispatcherPriority.Background);
         };
 
         exitItem.Click += (_, _) =>
@@ -138,17 +149,11 @@ public partial class App : global::Avalonia.Application
 
         _trayIcon.Clicked += (_, _) => ShowMainWindow(window);
 
-        _themeChangedHandler = (_, _) =>
-        {
-            Dispatcher.UIThread.Post(() => UpdateActionMenuIcons(showItem, exitItem));
-        };
-        ActualThemeVariantChanged += _themeChangedHandler;
-
         _uiBehavior?.Changed += () =>
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    trayModeItem.IsChecked = _uiBehavior.Current.MinimizeToTrayOnClose;
+                    UpdateTrayModeHeader(trayModeItem, _uiBehavior.Current.MinimizeToTrayOnClose);
                 });
             };
     }
@@ -172,48 +177,13 @@ public partial class App : global::Avalonia.Application
             var fallback = _uiBehavior.Current.MinimizeToTrayOnClose;
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                trayModeItem.IsChecked = fallback;
+                UpdateTrayModeHeader(trayModeItem, fallback);
             });
         }
     }
 
-    private static Bitmap? LoadMenuIcon(string uri)
-    {
-        try
-        {
-            using var stream = AssetLoader.Open(new Uri(uri));
-            return new Bitmap(stream);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private void UpdateActionMenuIcons(NativeMenuItem showItem, NativeMenuItem exitItem)
-    {
-        var dark = IsDarkThemeActive();
-        var showUri = dark
-            ? "avares://pactoolkits-desktop/Assets/open-in-app-dark.png"
-            : "avares://pactoolkits-desktop/Assets/open-in-app.png";
-        var exitUri = dark
-            ? "avares://pactoolkits-desktop/Assets/exit-to-app-dark.png"
-            : "avares://pactoolkits-desktop/Assets/exit-to-app.png";
-
-        showItem.Icon = LoadMenuIcon(showUri);
-        exitItem.Icon = LoadMenuIcon(exitUri);
-    }
-
-    private bool IsDarkThemeActive()
-    {
-        var variant = ActualThemeVariant;
-        if (variant == ThemeVariant.Default)
-        {
-            variant = RequestedThemeVariant;
-        }
-
-        return variant == ThemeVariant.Dark;
-    }
+    private static void UpdateTrayModeHeader(NativeMenuItem item, bool enabled)
+        => item.Header = $"关闭行为：{(enabled ? "后台" : "退出")}";
 
     private void ShowMainWindow(MainWindow window)
     {
@@ -271,12 +241,6 @@ public partial class App : global::Avalonia.Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.Exit -= OnDesktopExit;
-        }
-
-        if (_themeChangedHandler is not null)
-        {
-            ActualThemeVariantChanged -= _themeChangedHandler;
-            _themeChangedHandler = null;
         }
 
         _mainWindow?.Closing -= OnMainWindowClosing;
