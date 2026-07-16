@@ -141,7 +141,7 @@
           VerticalAlignment="Center"
           Orientation="Horizontal"
           Spacing="6">
-          <icons:AppIcon Kind="Download" />
+          <icons:AppIcon Kind="CloudDownload" />
           <TextBlock
             VerticalAlignment="Center"
             Classes="Caption"
@@ -940,7 +940,7 @@
             Command="{Binding OpenUpdateCenterCommand}"
             IsVisible="{Binding HasUpdateAvailable}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-              <icons:AppIcon Foreground="{DynamicResource WarningColor}" Kind="Upload" />
+              <icons:AppIcon Foreground="{DynamicResource WarningColor}" Kind="CloudDownload" />
               <TextBlock
                 Classes="Caption"
                 Foreground="{DynamicResource WarningColor}"

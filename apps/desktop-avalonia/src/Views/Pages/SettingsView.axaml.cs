@@ -33,7 +33,7 @@ public partial class SettingsView : UserControl
         ("TabAliasPage", "客户端别名映射", "Users"),
         ("TabTraceRulePage", "追溯码校验规则", "Regex"),
         ("TabUiBehaviorPage", "界面行为", "MonitorCog"),
-        ("TabUpdatePage", "应用更新", "Download"),
+        ("TabUpdatePage", "应用更新", "CloudDownload"),
         ("TabLoggingPage", "日志与诊断", "TextCursorInput"),
         ("TabMsfxPage", "码上放心 API", "Webhook"),
         ("TabAutomationPage", "自动化集成", "AudioWaveform")
