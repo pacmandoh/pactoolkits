@@ -1,48 +1,118 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.AppInfoView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   x:DataType="dialogs:AppInfo">
   <StackPanel
-    MinWidth="420"
-    MaxWidth="480"
-    Margin="24"
+    Width="440"
+    Margin="32,28"
+    HorizontalAlignment="Center"
     Spacing="0">
-    <StackPanel
-      Margin="32,30,32,22"
+    <Image
+      Width="80"
+      Height="80"
       HorizontalAlignment="Center"
-      Spacing="0">
-      <Image
-        Width="88"
-        Height="88"
-        HorizontalAlignment="Center"
-        Source="avares://pactoolkits-desktop/Assets/icon-128.png"
-        Stretch="Uniform" />
+      Source="avares://pactoolkits-desktop/Assets/icon-128.png"
+      Stretch="Uniform" />
+
+    <TextBlock
+      Margin="0,18,0,0"
+      HorizontalAlignment="Center"
+      Classes="h2"
+      Text="PacToolkits" />
+
+    <TextBlock
+      Margin="0,14,0,0"
+      HorizontalAlignment="Center"
+      Classes="Small Muted"
+      Text="药品追溯码业务与自动化工具套件"
+      TextAlignment="Center" />
+    <TextBlock
+      Margin="16,6,16,0"
+      HorizontalAlignment="Center"
+      Classes="Caption Muted"
+      Text="覆盖信息化、系统集成与自动化执行"
+      TextAlignment="Center"
+      TextWrapping="Wrap" />
+
+    <TextBlock
+      Margin="0,20,0,0"
+      HorizontalAlignment="Center"
+      Classes="Small"
+      Text="{Binding VersionText}" />
+    <TextBlock
+      Margin="0,3,0,0"
+      HorizontalAlignment="Center"
+      Classes="Small Muted"
+      Text="{Binding ReleaseText}" />
+
+    <StackPanel Margin="0,20,0,0" Spacing="3">
       <TextBlock
-        Margin="0,20,0,0"
         HorizontalAlignment="Center"
-        Classes="h2"
-        Text="PacToolkits" />
-      <TextBlock
-        Margin="0,22,0,0"
-        HorizontalAlignment="Center"
-        Classes="Small Muted"
-        Text="Powered by Avalonia &amp; ShadUI" />
+        Classes="Small"
+        Text="Powered By" />
       <TextBlock
         HorizontalAlignment="Center"
-        Classes="Small Muted"
-        Text="{Binding VersionText}" />
+        Classes="Caption Muted"
+        Text=".NET 10 · C# · Avalonia 12 · ShadUI" />
       <TextBlock
-        Margin="0,14,0,0"
         HorizontalAlignment="Center"
-        Classes="Small Muted"
-        Text="{Binding ReleaseText}" />
+        Classes="Caption Muted"
+        Text="PostgreSQL · Npgsql · AutoHotkey v2" />
       <TextBlock
-        Margin="0,18,0,0"
         HorizontalAlignment="Center"
-        Classes="Small Muted"
-        Text="© PacDocs" />
+        Classes="Caption Muted"
+        Text="CommunityToolkit.Mvvm · Lucide · Velopack" />
     </StackPanel>
+
+    <Grid
+      Margin="0,20,0,0"
+      HorizontalAlignment="Center"
+      ColumnDefinitions="Auto,Auto"
+      ColumnSpacing="12">
+      <shad:Avatar
+        Width="42"
+        Height="42"
+        Fallback="PD"
+        RenderOptions.BitmapInterpolationMode="HighQuality"
+        Source="avares://pactoolkits-desktop/Assets/pacmandoh.jpg"
+        UseLayoutRounding="True" />
+      <StackPanel
+        Grid.Column="1"
+        VerticalAlignment="Center"
+        Spacing="2">
+        <HyperlinkButton
+          MinHeight="0"
+          Padding="0"
+          Content="PacmanDoh · 窦皓"
+          FontWeight="SemiBold"
+          NavigateUri="https://github.com/pacmandoh" />
+        <TextBlock Classes="Caption Muted" Text="井研县中医医院 - 药剂科" />
+      </StackPanel>
+    </Grid>
+
+    <WrapPanel
+      Margin="0,20,0,0"
+      HorizontalAlignment="Center"
+      ItemSpacing="16">
+      <HyperlinkButton
+        MinHeight="0"
+        Padding="0"
+        Content="GitHub 仓库"
+        NavigateUri="https://github.com/pacmandoh/pactoolkits" />
+      <HyperlinkButton
+        MinHeight="0"
+        Padding="0"
+        Content="开源许可"
+        NavigateUri="https://github.com/pacmandoh/pactoolkits/blob/beta/LICENSE" />
+    </WrapPanel>
+
+    <TextBlock
+      Margin="0,20,0,0"
+      HorizontalAlignment="Center"
+      Classes="Caption Muted"
+      Text="{Binding CopyrightText}" />
   </StackPanel>
 </UserControl>
