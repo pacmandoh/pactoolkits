@@ -15,7 +15,6 @@
 
   <x:Double x:Key="HeroBadgeSize">36</x:Double>
   <x:Double x:Key="HeroBadgeInnerSize">20</x:Double>
-  <x:Double x:Key="IconToggleSize">40</x:Double>
   <x:Double x:Key="ButtonWideMinWidth">136</x:Double>
 
   <x:Double x:Key="RowMinHeight">48</x:Double>

@@ -34,12 +34,6 @@
     <Setter Property="MinWidth" Value="{DynamicResource ButtonWideMinWidth}" />
   </Style>
 
-  <Style Selector="Button.IconToggle">
-    <Setter Property="Width" Value="{DynamicResource IconToggleSize}" />
-    <Setter Property="MinWidth" Value="{DynamicResource IconToggleSize}" />
-    <Setter Property="Padding" Value="0" />
-  </Style>
-
   <Style Selector="Button.MicroClear">
     <Setter Property="Width" Value="{DynamicResource DgSortResetButtonSize}" />
     <Setter Property="Height" Value="{DynamicResource DgSortResetButtonSize}" />
