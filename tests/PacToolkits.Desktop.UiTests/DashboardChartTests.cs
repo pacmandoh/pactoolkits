@@ -233,6 +233,58 @@ public sealed class DashboardChartTests
 
             Assert.NotNull(host.Content);
             Assert.Equal(1, created);
+
+            var first = host.Content;
+            host.IsActive = false;
+            host.IsVisible = false;
+            Dispatcher.UIThread.RunJobs();
+
+            host.IsVisible = true;
+            host.IsActive = true;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.NotNull(host.Content);
+            Assert.NotSame(first, host.Content);
+            Assert.Equal(2, created);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Deferred_host_recreates_chart_with_data_changed_while_hidden()
+    {
+        var client = new ClientInfo("raw", "Client A", "machine", "user", "127.0.0.1", "Windows", "1.0");
+        var items = new ObservableCollection<TopClientItem>();
+        var host = new DeferredChartHost
+        {
+            Width = 240,
+            Height = 160,
+            IsActive = true,
+            Factory = () => new ClientChart(items, selectedClient: null)
+        };
+        var window = new Window { Content = host };
+
+        try
+        {
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var first = Assert.IsType<ClientChart>(host.Content);
+
+            host.IsActive = false;
+            host.IsVisible = false;
+            items.Add(new TopClientItem(1, client, "12"));
+            Dispatcher.UIThread.RunJobs();
+
+            host.IsVisible = true;
+            host.IsActive = true;
+            Dispatcher.UIThread.RunJobs();
+
+            var current = Assert.IsType<ClientChart>(host.Content);
+            Assert.NotSame(first, current);
+            Assert.Single(Assert.IsType<PieChart>(current.Content).Series);
         }
         finally
         {
