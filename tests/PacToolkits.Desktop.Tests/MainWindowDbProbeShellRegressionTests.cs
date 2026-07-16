@@ -156,12 +156,13 @@ public sealed class MainWindowDbProbeShellRegressionTests
     [Fact]
     public void Shell_button_templates_support_ButtonAssist_ShowProgress()
     {
-        var styles = ReadRepoFile("apps/desktop-avalonia/src/Styles/Components/ShellStyles.axaml");
+        var titleBarStyles = ReadRepoFile("apps/desktop-avalonia/src/Styles/Components/TitleBarStyles.axaml");
+        var statusBarStyles = ReadRepoFile("apps/desktop-avalonia/src/Styles/Components/StatusBarStyles.axaml");
 
-        Assert.Contains("Button.WindowControlsButton", styles, StringComparison.Ordinal);
-        Assert.Contains("Button.StatusBarItem", styles, StringComparison.Ordinal);
-        Assert.Contains("shad:BooleanConverters.ToLoading", styles, StringComparison.Ordinal);
-        Assert.Equal(2, CountOccurrences(styles, "shad:BooleanConverters.ToLoading"));
+        Assert.Contains("Button.WindowControlsButton", titleBarStyles, StringComparison.Ordinal);
+        Assert.Contains("Button.StatusBarItem", statusBarStyles, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(titleBarStyles, "shad:BooleanConverters.ToLoading"));
+        Assert.Equal(1, CountOccurrences(statusBarStyles, "shad:BooleanConverters.ToLoading"));
     }
 
     [Fact]
