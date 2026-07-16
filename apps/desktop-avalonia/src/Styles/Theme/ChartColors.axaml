@@ -1,0 +1,20 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--  Stable business meanings shared by status charts.  -->
+  <Color x:Key="ChartStatusDoneColor">#A3E635</Color>
+  <Color x:Key="ChartStatusWarningColor">#FB923C</Color>
+  <Color x:Key="ChartStatusDangerColor">#F43F5E</Color>
+  <Color x:Key="ChartStatusInfoColor">#2563EB</Color>
+  <Color x:Key="ChartStatusReviewColor">#C084FC</Color>
+  <Color x:Key="ChartStatusDiscardedColor">#64748B</Color>
+  <Color x:Key="ChartStatusMutedColor">#94A3B8</Color>
+
+  <!--  Shared category colors; each chart owns its mapping order.  -->
+  <Color x:Key="ChartCategoryOrangeColor">#FF7A1A</Color>
+  <Color x:Key="ChartCategoryPurpleColor">#8B5CF6</Color>
+  <Color x:Key="ChartCategoryIndigoColor">#6366F1</Color>
+  <Color x:Key="ChartCategoryBlueColor">#3B82F6</Color>
+  <Color x:Key="ChartCategoryYellowColor">#FBBF24</Color>
+  <Color x:Key="ChartCategoryTealColor">#14B8A6</Color>
+  <Color x:Key="ChartCategoryPinkColor">#EC4899</Color>
+  <Color x:Key="ChartCategoryIrrelevantColor">#64748B</Color>
+</ResourceDictionary>

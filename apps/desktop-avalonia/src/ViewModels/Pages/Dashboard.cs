@@ -289,6 +289,8 @@ public sealed partial class Dashboard : AppPageBase
     public string SectionHint => BuildRangeMeta(CurrentRange, SelectedClient);
 
     public ObservableCollection<TrendDrugItem> DrugTrend { get; } = new();
+    public ObservableCollection<TrendDrugItem> ChartDrugTrend { get; } = new();
+    public ObservableCollection<TxnItem> ChartTxns { get; } = new();
     public ObservableCollection<TrendDrugItem> TxnTrendRows { get; } = new();
     [ObservableProperty] private TrendDrugItem? _selectedTrendItem;
     [ObservableProperty] private bool _isTrendChartVisible;
@@ -300,6 +302,39 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(TrendViewToggleText));
         OnPropertyChanged(nameof(TrendViewToggleIcon));
     }
+
+    [ObservableProperty] private bool _isTxnChartVisible;
+    public string TxnViewToggleText => IsTxnChartVisible ? "数据框" : "图表";
+    public string TxnViewToggleIcon => IsTxnChartVisible ? "Table2" : "ChartNoAxesCombined";
+
+    partial void OnIsTxnChartVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(TxnViewToggleText));
+        OnPropertyChanged(nameof(TxnViewToggleIcon));
+    }
+
+    [ObservableProperty] private bool _isClientChartVisible;
+    public string ClientViewToggleText => IsClientChartVisible ? "数据框" : "图表";
+    public string ClientViewToggleIcon => IsClientChartVisible ? "Table2" : "ChartPie";
+
+    partial void OnIsClientChartVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ClientViewToggleText));
+        OnPropertyChanged(nameof(ClientViewToggleIcon));
+        OnPropertyChanged(nameof(IsClientPanelEmpty));
+    }
+
+    [ObservableProperty] private bool _isEntryChartVisible;
+    public string EntryViewToggleText => IsEntryChartVisible ? "数据框" : "图表";
+    public string EntryViewToggleIcon => IsEntryChartVisible ? "Table2" : "ChartNoAxesGantt";
+
+    partial void OnIsEntryChartVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(EntryViewToggleText));
+        OnPropertyChanged(nameof(EntryViewToggleIcon));
+        OnPropertyChanged(nameof(IsEntryPanelEmpty));
+    }
+
     [ObservableProperty] private TxnItem? _selectedTxn;
     [ObservableProperty] private EntryRecentItem? _selectedEntryRecent;
     [ObservableProperty] private AbnormalItem? _selectedAbnormal;
@@ -314,6 +349,9 @@ public sealed partial class Dashboard : AppPageBase
     partial void OnTrendModeChanged(SimpleModeItem? value) => RequestReload();
 
     public ObservableCollection<TopClientItem> TopClients { get; } = new();
+    public ObservableCollection<TopClientItem> ChartClients { get; } = new();
+    public ObservableCollection<EntryChartItem> EntryChartRows { get; } = new();
+    private DateRange? _chartRange;
     public ObservableCollection<int> TabPageSizeOptions { get; } = new(TabPageSizeOptionValues);
 
     public ObservableCollection<SimpleModeItem> ClientMetricModes { get; } = new()
@@ -415,6 +453,7 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(HasEntryPrevPage));
         OnPropertyChanged(nameof(HasEntryNextPage));
         OnPropertyChanged(nameof(IsEntryRecentEmpty));
+        OnPropertyChanged(nameof(IsEntryPanelEmpty));
     }
 
     public ObservableCollection<AbnormalItem> AbnormalQueue { get; } = new();
@@ -461,12 +500,14 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(TxnTrendEmptyText));
         OnPropertyChanged(nameof(TxnTrendEmptyHint));
         OnPropertyChanged(nameof(IsTopClientsEmpty));
+        OnPropertyChanged(nameof(IsClientPanelEmpty));
         OnPropertyChanged(nameof(TopClientsEmptyText));
         OnPropertyChanged(nameof(TopClientsEmptyHint));
         OnPropertyChanged(nameof(IsRecentTxnsEmpty));
         OnPropertyChanged(nameof(RecentTxnsEmptyText));
         OnPropertyChanged(nameof(RecentTxnsEmptyHint));
         OnPropertyChanged(nameof(IsEntryRecentEmpty));
+        OnPropertyChanged(nameof(IsEntryPanelEmpty));
         OnPropertyChanged(nameof(EntryRecentEmptyText));
         OnPropertyChanged(nameof(EntryRecentEmptyHint));
         OnPropertyChanged(nameof(AbnormalEmptyText));
@@ -495,8 +536,12 @@ public sealed partial class Dashboard : AppPageBase
     public bool IsTrendEmpty => ShowSectionEmpty(DrugTrend.Count == 0);
     public bool IsTxnTrendEmpty => ShowSectionEmpty(TxnTrendTotalCount == 0);
     public bool IsTopClientsEmpty => ShowSectionEmpty(TopClients.Count == 0);
+    public bool IsClientPanelEmpty => ShowSectionEmpty(
+        IsClientChartVisible ? ChartClients.Count == 0 : TopClients.Count == 0);
     public bool IsRecentTxnsEmpty => ShowSectionEmpty(TxnTotalCount == 0);
     public bool IsEntryRecentEmpty => ShowSectionEmpty(EntryTotalCount == 0);
+    public bool IsEntryPanelEmpty => ShowSectionEmpty(
+        IsEntryChartVisible ? EntryChartRows.Count == 0 : EntryTotalCount == 0);
     public bool IsAbnormalEmpty => ShowSectionEmpty(AbnormalTotalCount == 0);
 
     private DispatcherTimer? _debounce;
@@ -1062,6 +1107,7 @@ public sealed partial class Dashboard : AppPageBase
 
                 var request = new DashboardRequest(
                     Filter: CurrentFilter,
+                    RefreshDistributions: _chartRange != CurrentRange,
                     OverviewTopN: DefaultTopN,
                     EntryOverviewTopN: EntryOverviewTopN,
                     TxnPageIndex: TxnPageIndex,
@@ -1076,12 +1122,16 @@ public sealed partial class Dashboard : AppPageBase
                 var loaded = await _dashboard.GetSnapshotAsync(request, ct).ConfigureAwait(false);
 
                 var trendItems = BuildTrendItems(loaded.Trend);
+                var chartTrendItems = BuildTrendItems(loaded.ChartTrend);
                 var recentOverviewItems = BuildRecentTxnsOverviewItems(loaded.TxnsOverview.Rows);
+                var chartTxnItems = BuildRecentTxnsOverviewItems(loaded.ChartTxns);
                 var recentTxnPageItems = BuildRecentTxnsPageItems(loaded.TxnsPage.Rows, TxnPageIndex, TxnPageSize);
                 var txnTrendPageItems = BuildTxnTrendPageItems(loaded.TxnTrendPage.Rows);
                 var entryOverviewItems = BuildEntryLogsOverviewItems(loaded.EntriesOverview.Rows);
                 var entryPageItems = BuildEntryLogsPageItems(loaded.EntriesPage.Rows, EntryPageIndex, EntryPageSize);
                 var topClientItems = BuildTopClientItems(loaded.TopClients);
+                var chartClientItems = BuildTopClientItems(loaded.ChartClients);
+                var entryChartItems = BuildEntryChartItems(loaded.EntryChart);
                 var abnormalItems = BuildAbnormalQueueItems(loaded.Abnormal.Rows, AbnormalPageIndex, AbnormalPageSize);
 
                 await RunOnUiAsync(() =>
@@ -1090,12 +1140,22 @@ public sealed partial class Dashboard : AppPageBase
 
                     ApplyKpi(loaded.Kpi);
                     ApplyTrend(trendItems);
+                    ChartDrugTrend.ReplaceAll(chartTrendItems);
                     ApplyRecentTxnsOverview(recentOverviewItems);
+                    ChartTxns.ReplaceAll(chartTxnItems);
                     ApplyRecentTxnsPage(recentTxnPageItems, loaded.TxnsPage.TotalCount);
                     ApplyTxnTrendPage(txnTrendPageItems, loaded.TxnTrendPage.TotalCount);
                     ApplyEntryLogsOverview(entryOverviewItems);
                     ApplyEntryLogsPage(entryPageItems, loaded.EntriesPage.TotalCount);
                     ApplyTopClients(topClientItems);
+                    if (loaded.DistributionsRefreshed)
+                    {
+                        ChartClients.ReplaceAll(chartClientItems);
+                        EntryChartRows.ReplaceAll(entryChartItems);
+                        _chartRange = CurrentRange;
+                        OnPropertyChanged(nameof(IsClientPanelEmpty));
+                        OnPropertyChanged(nameof(IsEntryPanelEmpty));
+                    }
                     ApplyAbnormalQueue(abnormalItems, loaded.Abnormal.TotalCount);
 
                     OnPropertyChanged(nameof(IsTrendEmpty));
@@ -1148,8 +1208,18 @@ public sealed partial class Dashboard : AppPageBase
     private bool ShowAbnormalBusy()
         => AbnormalQueue.Count == 0;
 
-    private void ApplyClients(IReadOnlyList<string> list)
+    private void ApplyClients(IReadOnlyList<string> list, bool refreshAliases = false)
     {
+        var rawClients = list
+            .Where(raw => !string.IsNullOrWhiteSpace(raw))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (!refreshAliases
+            && Clients.Skip(1).Select(client => client.Raw).SequenceEqual(rawClients, StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         var selectedRaw = SelectedClient?.Raw ?? string.Empty;
 
         using (SuppressReload())
@@ -1157,7 +1227,7 @@ public sealed partial class Dashboard : AppPageBase
             Clients.Clear();
             Clients.Add(AllClients);
 
-            foreach (var raw in list.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct())
+            foreach (var raw in rawClients)
             {
                 Clients.Add(ClientDisplayResolver.Resolve(raw, _clientAlias));
             }
@@ -1271,12 +1341,15 @@ public sealed partial class Dashboard : AppPageBase
         var items = new List<TrendDrugItem>(rows.Count);
         foreach (var r in rows)
         {
+            var clientDisplay = ResolveTrendClient(r.TopClientRaw);
             items.Add(new TrendDrugItem
             {
                 DisplayIndex = r.Rank,
                 Name = r.Name,
                 Sub = r.Sub,
-                SourceText = BuildTrendSourceText(r.TopClientRaw, r.TopClientPct),
+                ClientDisplay = clientDisplay,
+                SourceText = BuildTrendSourceText(clientDisplay, r.TopClientPct),
+                UsagePercentText = $"{r.TopClientPct:0.#}%",
                 ValueText = r.ValueText
             });
         }
@@ -1295,12 +1368,15 @@ public sealed partial class Dashboard : AppPageBase
         var items = new List<TrendDrugItem>(rows.Count);
         foreach (var r in rows)
         {
+            var clientDisplay = ResolveTrendClient(r.TopClientRaw);
             items.Add(new TrendDrugItem
             {
                 DisplayIndex = r.Rank,
                 Name = r.Name,
                 Sub = r.Sub,
-                SourceText = BuildTrendSourceText(r.TopClientRaw, r.TopClientPct),
+                ClientDisplay = clientDisplay,
+                SourceText = BuildTrendSourceText(clientDisplay, r.TopClientPct),
+                UsagePercentText = $"{r.TopClientPct:0.#}%",
                 ValueText = r.ValueText
             });
         }
@@ -1337,7 +1413,16 @@ public sealed partial class Dashboard : AppPageBase
     {
         TopClients.ReplaceAll(items);
         OnPropertyChanged(nameof(IsTopClientsEmpty));
+        OnPropertyChanged(nameof(IsClientPanelEmpty));
     }
+
+    private List<EntryChartItem> BuildEntryChartItems(IReadOnlyList<EntryChartRowDto> rows)
+        => rows.Select(row =>
+            {
+                var client = ResolveClient(row.ClientRaw);
+                return new EntryChartItem(row.ClientRaw, client.Display, row.State, row.Count);
+            })
+            .ToList();
 
     private List<TxnItem> BuildRecentTxnsOverviewItems(IReadOnlyList<TraceTxnDto> rows)
     {
@@ -1352,6 +1437,7 @@ public sealed partial class Dashboard : AppPageBase
                 DrugId: t.DrugId,
                 Spec: t.Spec,
                 Qty: t.Qty.ToString("N0", CultureInfo.CurrentCulture),
+                CreatedAt: t.CreatedAt,
                 Time: t.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm:ss", CultureInfo.CurrentCulture),
                 ClientDisplay: ResolveClientText(t.ClientRaw)
             ));
@@ -1380,6 +1466,7 @@ public sealed partial class Dashboard : AppPageBase
                 DrugId: t.DrugId,
                 Spec: t.Spec,
                 Qty: t.Qty.ToString("N0", CultureInfo.CurrentCulture),
+                CreatedAt: t.CreatedAt,
                 Time: t.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm:ss", CultureInfo.CurrentCulture),
                 ClientDisplay: ResolveClientText(t.ClientRaw)
             ));
@@ -1465,15 +1552,11 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(IsAbnormalEmpty));
     }
 
-    private string BuildTrendSourceText(string? rawClient, decimal pct)
-    {
-        if (string.IsNullOrWhiteSpace(rawClient))
-        {
-            return "未知客户端";
-        }
+    private string ResolveTrendClient(string? rawClient)
+        => string.IsNullOrWhiteSpace(rawClient) ? "未知客户端" : ResolveClient(rawClient).Display;
 
-        return $"{ResolveClient(rawClient).Display} 使用比例: {pct:0.#}%";
-    }
+    private static string BuildTrendSourceText(string clientDisplay, decimal pct)
+        => $"{clientDisplay} 使用比例：{pct:0.#}%";
 
     private string ResolveClientText(string? raw)
         => string.IsNullOrWhiteSpace(raw) ? "-" : ResolveClient(raw).Display;
@@ -1701,7 +1784,9 @@ public sealed partial class Dashboard : AppPageBase
             // Local re-map for existing UI rows so alias changes are visible immediately.
             if (Clients.Count > 0)
             {
-                ApplyClients(Clients.Select(c => c.Raw).Where(r => !string.IsNullOrWhiteSpace(r)).ToList());
+                ApplyClients(
+                    Clients.Select(c => c.Raw).Where(r => !string.IsNullOrWhiteSpace(r)).ToList(),
+                    refreshAliases: true);
             }
 
             if (!string.IsNullOrWhiteSpace(selectedRaw))
@@ -1719,6 +1804,20 @@ public sealed partial class Dashboard : AppPageBase
                 {
                     TopClients.Add(item);
                 }
+            }
+
+            if (ChartClients.Count > 0)
+            {
+                ChartClients.ReplaceAll(ChartClients
+                    .Select(item => item with { Client = ResolveClient(item.Client.Raw) })
+                    .ToList());
+            }
+
+            if (EntryChartRows.Count > 0)
+            {
+                EntryChartRows.ReplaceAll(EntryChartRows
+                    .Select(item => item with { ClientDisplay = ResolveClient(item.ClientRaw).Display })
+                    .ToList());
             }
 
             if (EntryRecentOverview.Count > 0)

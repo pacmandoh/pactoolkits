@@ -40,7 +40,9 @@ public sealed partial class TrendDrugItem : ObservableObject
     [ObservableProperty] private int _displayIndex;
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private string _sub = "";
+    [ObservableProperty] private string _clientDisplay = "";
     [ObservableProperty] private string _sourceText = "";
+    [ObservableProperty] private string _usagePercentText = "";
     [ObservableProperty] private string _valueText = "";
 
     public string SpecDisplay => SpecLine.Format(Name, Sub);
@@ -57,6 +59,7 @@ public sealed record TxnItem(
     string DrugId,
     string Spec,
     string Qty,
+    DateTimeOffset CreatedAt,
     string Time,
     string ClientDisplay)
 {
@@ -107,6 +110,12 @@ public sealed record TopClientItem(int Index, ClientInfo Client, string Value)
 
     public bool HasMeta => !string.IsNullOrWhiteSpace(MetaText);
 }
+
+public sealed record EntryChartItem(
+    string ClientRaw,
+    string ClientDisplay,
+    TraceEntryState State,
+    long Count);
 
 public sealed record EntryRecentItem(
     int DisplayIndex,

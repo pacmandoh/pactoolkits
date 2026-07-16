@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
+using global::Avalonia.Interactivity;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Controls;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -34,6 +35,7 @@ public partial class DashboardView : UserControl
         _gridMount = new PageGridMountScheduler(this);
         _gridActivation = new DashboardGridActivation(OpenOverviewItemAsync);
         InitializeComponent();
+        ConfigureChartHosts();
         AttachDrugFilter();
         WireOverviewGridSlots();
         _gridMount.StartAfterFirstLayout();
@@ -76,7 +78,6 @@ public partial class DashboardView : UserControl
 
             QueueTabGrids(vm);
             QueueOverviewGrids(vm);
-            MountTrendChart(vm);
         }
     }
 
@@ -95,9 +96,6 @@ public partial class DashboardView : UserControl
             case nameof(Dashboard.IsTrendEmpty):
                 QueueOverviewGrids(vm);
                 break;
-            case nameof(Dashboard.IsTrendChartVisible):
-                MountTrendChart(vm);
-                break;
             case nameof(Dashboard.IsRecentTxnsEmpty):
                 QueueOverviewGrids(vm);
                 if (vm.IsTxnTab)
@@ -108,6 +106,9 @@ public partial class DashboardView : UserControl
                 break;
             case nameof(Dashboard.IsTopClientsEmpty):
                 QueueOverviewGrids(vm);
+                break;
+            case nameof(Dashboard.SelectedClient):
+                UpdateChartSelection(vm.SelectedClient?.Raw);
                 break;
             case nameof(Dashboard.IsEntryRecentEmpty):
                 if (vm.IsInputTab)
@@ -151,18 +152,44 @@ public partial class DashboardView : UserControl
         }
     }
 
-    private void MountTrendChart(Dashboard vm)
+    private void ConfigureChartHosts()
     {
-        if (!vm.IsTrendChartVisible || TrendChartHost.Content is DrugTrendChart)
+        TrendChartHost.Factory = () => DataContext is Dashboard vm
+            ? new DrugTrendChart { ItemsSource = vm.ChartDrugTrend }
+            : null;
+        TxnChartHost.Factory = () => DataContext is Dashboard vm ? new TxnChart(vm.ChartTxns) : null;
+        ClientChartHost.Factory = () => DataContext is Dashboard vm
+            ? new ClientChart(vm.ChartClients, vm.SelectedClient?.Raw)
+            : null;
+        EntryChartHost.Factory = () => DataContext is Dashboard vm
+            ? new EntryChart(vm.EntryChartRows, vm.SelectedClient?.Raw)
+            : null;
+    }
+
+    private void UpdateChartSelection(string? selectedClient)
+    {
+        if (ClientChartHost.Content is ClientChart clientChart)
         {
-            return;
+            clientChart.SetSelectedClient(selectedClient);
         }
 
-        TrendChartHost.Content = new DrugTrendChart
+        if (EntryChartHost.Content is EntryChart entryChart)
         {
-            ItemsSource = vm.DrugTrend
-        };
+            entryChart.SetSelectedClient(selectedClient);
+        }
     }
+
+    private void OnTrendZoomInClicked(object? sender, RoutedEventArgs e)
+        => (TrendChartHost.Content as DrugTrendChart)?.ZoomIn();
+
+    private void OnTrendZoomOutClicked(object? sender, RoutedEventArgs e)
+        => (TrendChartHost.Content as DrugTrendChart)?.ZoomOut();
+
+    private void OnTxnZoomInClicked(object? sender, RoutedEventArgs e)
+        => (TxnChartHost.Content as TxnChart)?.ZoomIn();
+
+    private void OnTxnZoomOutClicked(object? sender, RoutedEventArgs e)
+        => (TxnChartHost.Content as TxnChart)?.ZoomOut();
 
     private void QueueTabGrids(Dashboard vm)
     {

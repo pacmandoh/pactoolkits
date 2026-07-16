@@ -34,6 +34,8 @@ public interface IDashboardRepo
         int pageSize,
         CancellationToken ct);
 
+    Task<IReadOnlyList<EntryChartRowDto>> GetEntryChartAsync(DashboardQuery q, CancellationToken ct);
+
     Task<IReadOnlyList<string>> GetDrugIdsAsync(CancellationToken ct);
 
     Task<IReadOnlyList<string>> GetSpecsByDrugAsync(string drugId, CancellationToken ct);

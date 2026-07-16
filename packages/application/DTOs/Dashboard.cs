@@ -87,6 +87,11 @@ public sealed record TraceEntryLogDto(
     string? Message
 );
 
+public sealed record EntryChartRowDto(
+    string ClientRaw,
+    TraceEntryState State,
+    long Count);
+
 public sealed record TrendRowDto(
     int Rank,
     string Name,
@@ -211,6 +216,7 @@ public sealed record DashboardFilter(
 
 public sealed record DashboardRequest(
     DashboardFilter Filter,
+    bool RefreshDistributions,
     int OverviewTopN,
     int EntryOverviewTopN,
     int TxnPageIndex,
@@ -232,4 +238,9 @@ public sealed record DashboardSnapshot(
     PagedResult<TraceEntryLogDto> EntriesOverview,
     PagedResult<TraceEntryLogDto> EntriesPage,
     IReadOnlyList<(string Client, long Value)> TopClients,
+    IReadOnlyList<TrendRowDto> ChartTrend,
+    IReadOnlyList<TraceTxnDto> ChartTxns,
+    bool DistributionsRefreshed,
+    IReadOnlyList<(string Client, long Value)> ChartClients,
+    IReadOnlyList<EntryChartRowDto> EntryChart,
     PagedResult<AbnormalRowDto> Abnormal);
