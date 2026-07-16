@@ -1089,7 +1089,7 @@ public sealed partial class Dashboard : AppPageBase
                 showBusy: showAnyBusy,
                 body: async () =>
             {
-                if (DrugOptions.Count == 0)
+                if (DrugOptions.Count == 0 || _dirtyRefresh.IsDirty(this))
                 {
                     try
                     {
@@ -1112,7 +1112,9 @@ public sealed partial class Dashboard : AppPageBase
                     NormalizeInput(filter.Spec));
                 var request = new DashboardRequest(
                     Filter: filter,
-                    RefreshDistributions: _distributionScope != distributionScope,
+                    RefreshDistributions: IsDbSignalReload
+                                          || _dirtyRefresh.IsDirty(this)
+                                          || _distributionScope != distributionScope,
                     OverviewTopN: DefaultTopN,
                     EntryOverviewTopN: EntryOverviewTopN,
                     TxnPageIndex: TxnPageIndex,
