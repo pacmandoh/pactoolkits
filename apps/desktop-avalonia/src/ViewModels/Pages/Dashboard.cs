@@ -1290,7 +1290,7 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(IsTrendEmpty));
     }
 
-    private static List<TrendDrugItem> BuildTxnTrendPageItems(IReadOnlyList<TrendRowDto> rows)
+    private List<TrendDrugItem> BuildTxnTrendPageItems(IReadOnlyList<TrendRowDto> rows)
     {
         var items = new List<TrendDrugItem>(rows.Count);
         foreach (var r in rows)
@@ -1353,7 +1353,7 @@ public sealed partial class Dashboard : AppPageBase
                 Spec: t.Spec,
                 Qty: t.Qty.ToString("N0", CultureInfo.CurrentCulture),
                 Time: t.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm:ss", CultureInfo.CurrentCulture),
-                ClientDisplay: string.IsNullOrWhiteSpace(t.ClientName) ? "-" : t.ClientName
+                ClientDisplay: ResolveClientText(t.ClientRaw)
             ));
         }
 
@@ -1381,7 +1381,7 @@ public sealed partial class Dashboard : AppPageBase
                 Spec: t.Spec,
                 Qty: t.Qty.ToString("N0", CultureInfo.CurrentCulture),
                 Time: t.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm:ss", CultureInfo.CurrentCulture),
-                ClientDisplay: string.IsNullOrWhiteSpace(t.ClientName) ? "-" : t.ClientName
+                ClientDisplay: ResolveClientText(t.ClientRaw)
             ));
         }
 
@@ -1450,7 +1450,7 @@ public sealed partial class Dashboard : AppPageBase
                 DisplayIndex: start + idx++,
                 Title: row.Title,
                 Detail: row.Detail,
-                ClientDisplay: string.IsNullOrWhiteSpace(row.ClientDisplay) ? "-" : row.ClientDisplay,
+                ClientDisplay: ResolveClientText(row.ClientRaw),
                 Badge: row.Badge
             ));
         }
@@ -1465,21 +1465,18 @@ public sealed partial class Dashboard : AppPageBase
         OnPropertyChanged(nameof(IsAbnormalEmpty));
     }
 
-    private static string BuildTrendSourceText(string? rawClient, decimal pct)
+    private string BuildTrendSourceText(string? rawClient, decimal pct)
     {
         if (string.IsNullOrWhiteSpace(rawClient))
         {
             return "未知客户端";
         }
 
-        var client = ClientParser.Parse(rawClient);
-
-        var machine = string.IsNullOrWhiteSpace(client.Machine)
-            ? client.Display
-            : client.Machine;
-
-        return $"{machine} 使用比例: {pct:0.#}%";
+        return $"{ResolveClient(rawClient).Display} 使用比例: {pct:0.#}%";
     }
+
+    private string ResolveClientText(string? raw)
+        => string.IsNullOrWhiteSpace(raw) ? "-" : ResolveClient(raw).Display;
 
     private static string BuildRangeMeta(DateRange range, ClientInfo? client)
     {

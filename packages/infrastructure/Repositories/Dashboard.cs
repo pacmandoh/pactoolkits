@@ -9,13 +9,11 @@ public sealed class DashboardRepo : IDashboardRepo
 {
     private readonly IDb _db;
     private readonly PgOptions _opt;
-    private readonly IClientAliasService _alias;
 
-    public DashboardRepo(IDb db, Microsoft.Extensions.Options.IOptions<PgOptions> opt, IClientAliasService alias)
+    public DashboardRepo(IDb db, Microsoft.Extensions.Options.IOptions<PgOptions> opt)
     {
         _db = db;
         _opt = opt.Value;
-        _alias = alias;
     }
 
     public Task<IReadOnlyList<string>> GetClientNamesAsync(CancellationToken ct)
@@ -367,7 +365,7 @@ public sealed class DashboardRepo : IDashboardRepo
                     Rank: reader.GetInt32(0),
                     Name: reader.GetString(1),
                     Sub: reader.GetString(2),
-                    TopClientRaw: reader.IsDBNull(3) ? null : FormatClient(reader.GetString(3)),
+                    TopClientRaw: reader.IsDBNull(3) ? null : reader.GetString(3),
                     TopClientPct: reader.GetFieldValue<decimal>(4),
                     ValueText: reader.GetString(5)
                 ));
@@ -453,7 +451,7 @@ public sealed class DashboardRepo : IDashboardRepo
                     Spec: reader.GetString(4),
                     Qty: reader.GetInt32(5),
                     CreatedAt: ReadDateTimeOffset(reader.GetValue(6)),
-                    ClientName: reader.IsDBNull(7) ? null : FormatClient(reader.GetString(7))
+                    ClientRaw: reader.IsDBNull(7) ? null : reader.GetString(7)
                 ));
             }
 
@@ -521,7 +519,7 @@ public sealed class DashboardRepo : IDashboardRepo
                 list.Add(new AbnormalRowDto(
                     Title: reader.GetString(0),
                     Detail: reader.GetString(1),
-                    ClientDisplay: reader.IsDBNull(2) ? string.Empty : FormatClient(reader.GetString(2)),
+                    ClientRaw: reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
                     Badge: TxnBadge.Danger,
                     TxnId: null
                 ));
@@ -713,24 +711,6 @@ public sealed class DashboardRepo : IDashboardRepo
         cmd.AddParam("drug", q.DrugId ?? string.Empty);
         cmd.AddParam("spec", q.Spec ?? string.Empty);
         cmd.AddParam("trend_metric", ResolveTrendMetric(q));
-    }
-
-    private string FormatClient(string raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return raw;
-        }
-
-        var ci = ClientParser.Parse(raw);
-        var machine = (ci.Machine ?? raw).Trim();
-        if (machine.Length == 0)
-        {
-            return raw;
-        }
-
-        var display = _alias.Resolve(machine);
-        return string.IsNullOrWhiteSpace(display) ? machine : display;
     }
 
     private static string ClientMachineExpr(string alias)
