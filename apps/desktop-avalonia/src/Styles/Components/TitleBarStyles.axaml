@@ -1,0 +1,210 @@
+<Styles
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
+  <Style Selector="shad|Window /template/ Border#PART_TitleBarBackground">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+  </Style>
+
+  <Style Selector="shad|Window /template/ StackPanel#AppTitlePanel &gt; TextBlock">
+    <Setter Property="IsVisible" Value="False" />
+    <Setter Property="Width" Value="0" />
+    <Setter Property="Height" Value="0" />
+    <Setter Property="Margin" Value="0" />
+  </Style>
+
+  <Style Selector="shad|Window /template/ StackPanel#AppTitlePanel">
+    <Setter Property="Margin" Value="72,0,12,0" />
+    <Setter Property="MinHeight" Value="{DynamicResource TitleBarHeight}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Border.TitleBarCapsule">
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="Margin" Value="{DynamicResource TitleBarCapsuleMargin}" />
+    <Setter Property="Padding" Value="0.5" />
+  </Style>
+
+  <Style Selector="StackPanel.TitleBarMark">
+    <Setter Property="Margin" Value="{DynamicResource TitleBarLeftMargin}" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="IsHitTestVisible" Value="True" />
+  </Style>
+
+  <Style Selector="StackPanel.TitleBarMark Image">
+    <Setter Property="Width" Value="{DynamicResource IconSizeDialog}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeDialog}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.TitleBarBrandMenu">
+    <Setter Property="Width" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource MdCornerRadius}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.TitleBarBrandMenu:pointerover /template/ Border#PART_Border, Button.TitleBarBrandMenu:pressed /template/ Border#PART_Border">
+    <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+  </Style>
+
+  <Style Selector="Border.TitleBarCapsule Button.WindowControlsButton">
+    <Setter Property="MinWidth" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="{DynamicResource TitleBarCapsuleBtnPadding}" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="Border.TitleBarCapsule Button.WindowControlsButton icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource IconSizeDefault}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeDefault}" />
+  </Style>
+
+  <Style Selector="Grid.TitleBarNav">
+    <Setter Property="ColumnSpacing" Value="6" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.TitleBarNavBtn">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+    <Setter Property="Width" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.TitleBarNavBtn:pointerover /template/ Border#PART_Border,Button.TitleBarNavBtn:pressed /template/ Border#PART_Border">
+    <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+  </Style>
+
+  <Style Selector="Button.TitleBarNavBtn:disabled">
+    <Setter Property="Cursor" Value="Arrow" />
+    <Setter Property="Opacity" Value="0.35" />
+  </Style>
+
+  <Style Selector="Button.TitleBarNavBtn icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
+  </Style>
+
+  <Style Selector="Button.TitleBarUpdateBtn">
+    <Setter Property="Height" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="MinHeight" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+    <Setter Property="Background" Value="{DynamicResource ShellAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource ShellAccentOnColor}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.TitleBarUpdateBtn icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource IconSizeMini}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeMini}" />
+    <Setter Property="Foreground" Value="{DynamicResource ShellAccentOnColor}" />
+  </Style>
+
+  <Style Selector="Button.TitleBarUpdateBtn TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource ShellAccentOnColor}" />
+  </Style>
+
+  <Style Selector="Border.TitleBarPath">
+    <Setter Property="Width" Value="{DynamicResource TitleBarPathWidth}" />
+    <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarControlSize}" />
+  </Style>
+
+  <Style Selector="Border.TitleBarPath TextBlock.Caption">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="StackPanel.TitleBarCrumbs">
+    <Setter Property="ClipToBounds" Value="True" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="StackPanel.TitleBarCrumbs icons|AppIcon">
+    <Setter Property="Width" Value="12" />
+    <Setter Property="Height" Value="12" />
+  </Style>
+
+  <Style Selector="Rectangle.TitleBarPathDivider">
+    <Setter Property="Width" Value="1" />
+    <Setter Property="Height" Value="{DynamicResource TitleBarPathDividerHeight}" />
+    <Setter Property="Margin" Value="{DynamicResource TitleBarPathDividerMargin}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Fill" Value="{DynamicResource BorderColor}" />
+  </Style>
+
+  <Style Selector="Button.WindowControlsButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource MdCornerRadius}" />
+    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+    <Setter Property="Padding" Value="{DynamicResource TitleBarCapsuleBtnPadding}" />
+    <Setter Property="MinWidth" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="MinHeight" Value="{DynamicResource TitleBarControlSize}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border
+          x:Name="PART_Border"
+          Padding="{TemplateBinding Padding}"
+          Background="{TemplateBinding Background}"
+          BorderBrush="{TemplateBinding BorderBrush}"
+          BorderThickness="{TemplateBinding BorderThickness}"
+          CornerRadius="{TemplateBinding CornerRadius}">
+          <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Viewbox
+              Width="{TemplateBinding shad:ButtonAssist.ShowProgress,
+                                      Converter={x:Static shad:BooleanConverters.ToZeroOrDouble},
+                                      ConverterParameter=16}"
+              Height="{DynamicResource IconSizeDefault}"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+              <ContentPresenter Content="{TemplateBinding shad:ButtonAssist.ShowProgress, Converter={x:Static shad:BooleanConverters.ToLoading}}" />
+            </Viewbox>
+            <ContentPresenter
+              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+              Content="{TemplateBinding Content}"
+              ContentTemplate="{TemplateBinding ContentTemplate}"
+              Opacity="{TemplateBinding shad:ButtonAssist.ShowProgress,
+                                        Converter={x:Static shad:BooleanConverters.ToInverseOpacity}}" />
+          </Panel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.WindowControlsButton:pointerover /template/ Border#PART_Border">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Button.WindowControlsButton:pressed /template/ Border#PART_Border">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+</Styles>

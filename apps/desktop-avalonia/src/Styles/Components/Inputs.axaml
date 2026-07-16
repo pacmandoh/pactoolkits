@@ -96,6 +96,10 @@
     <Setter Property="MinWidth" Value="0" />
   </Style>
 
+  <Style Selector="Button.DrugAutoCompleteClear">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
   <Style Selector="TextBlock.ClientMetaSubline">
     <Setter Property="FontSize" Value="11" />
     <Setter Property="LineHeight" Value="14" />
@@ -207,69 +211,4 @@
     <Setter Property="Background" Value="{DynamicResource GhostColor}" />
   </Style>
 
-  <Style Selector="controls|EmptyStatePanel">
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
-    <Setter Property="MinHeight" Value="0" />
-    <Setter Property="Template">
-      <ControlTemplate>
-        <Grid
-          MinHeight="{Binding EffectiveSlotMinHeight, RelativeSource={RelativeSource TemplatedParent}}"
-          HorizontalAlignment="Stretch"
-          VerticalAlignment="Stretch"
-          ClipToBounds="False">
-          <ContentPresenter
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
-            HorizontalContentAlignment="Stretch"
-            VerticalContentAlignment="Stretch"
-            ClipToBounds="False"
-            Content="{TemplateBinding Content}"
-            Opacity="{Binding ContentOpacity, RelativeSource={RelativeSource TemplatedParent}}" />
-
-          <Border
-            Padding="{DynamicResource EmptyStatePadding}"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
-            IsHitTestVisible="{Binding ShowEmptyOverlay, RelativeSource={RelativeSource TemplatedParent}}"
-            IsVisible="{Binding ShowEmptyOverlay, RelativeSource={RelativeSource TemplatedParent}}"
-            ZIndex="1">
-            <StackPanel
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center"
-              Spacing="{DynamicResource EmptyStateSpacing}">
-              <icons:AppIcon
-                Width="{DynamicResource EmptyStateIconSize}"
-                Height="{DynamicResource EmptyStateIconSize}"
-                Foreground="{DynamicResource WarningColor}"
-                Kind="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}" />
-
-              <TextBlock
-                HorizontalAlignment="Center"
-                Classes="Small SubsectionTitle"
-                Text="{Binding EmptyText, RelativeSource={RelativeSource TemplatedParent}}" />
-
-              <TextBlock
-                Classes="Caption Muted"
-                IsVisible="{Binding HasHint, RelativeSource={RelativeSource TemplatedParent}}"
-                Text="{Binding EmptyHint, RelativeSource={RelativeSource TemplatedParent}}" />
-            </StackPanel>
-          </Border>
-
-          <shad:BusyArea
-            MinHeight="0"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
-            HorizontalContentAlignment="Stretch"
-            VerticalContentAlignment="Stretch"
-            IsBusy="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
-            IsHitTestVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
-            IsVisible="{Binding IsPending, RelativeSource={RelativeSource TemplatedParent}}"
-            ZIndex="2">
-            <Panel />
-          </shad:BusyArea>
-        </Grid>
-      </ControlTemplate>
-    </Setter>
-  </Style>
 </Styles>
