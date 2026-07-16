@@ -174,7 +174,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty] private AppPageBase? _activePage;
     [ObservableProperty] private ThemeMode _currentTheme = ThemeMode.Dark;
-    [ObservableProperty] private bool _isSidebarExpanded = true;
+    [ObservableProperty] private bool _isSidebarExpanded = false;
 
     public string SidebarToggleIconKind => IsSidebarExpanded ? "PanelLeftClose" : "PanelLeftOpen";
     public string FilterBarToggleIconKind => IsDashboardFilterBarVisible ? "FunnelX" : "Funnel";

@@ -416,6 +416,7 @@
                   </Border>
                   <Grid
                     Margin="0,4"
+                    ClipToBounds="True"
                     ColumnDefinitions="Auto,*,Auto"
                     ColumnSpacing="8"
                     IsVisible="{Binding IsSidebarExpanded}">
@@ -427,12 +428,18 @@
                         VerticalAlignment="Center"
                         Kind="Command" />
                     </Grid>
-                    <StackPanel Grid.Column="1" Classes="SidebarAccountText">
-                      <TextBlock Classes="Small" Text="PacToolkits" />
+                    <StackPanel
+                      Grid.Column="1"
+                      Classes="SidebarAccountText"
+                      ClipToBounds="True">
+                      <TextBlock
+                        Classes="Small"
+                        Text="PacToolkits"
+                        TextTrimming="CharacterEllipsis" />
                       <TextBlock
                         Classes="Caption Muted"
                         Text="{Binding VersionText}"
-                        TextWrapping="Wrap" />
+                        TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <Viewbox
                       Grid.Column="2"
