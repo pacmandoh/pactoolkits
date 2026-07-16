@@ -7,7 +7,6 @@
     - SectionTitle (16 semi) — page/card headers; Shad Small=14, Large=18
     - SubsectionTitle (Shad Small semi) — in-card group headers
     - DialogTitle* — dialog chrome
-    - AboutHeroVersion, AboutSubtitle — About hero only
     Content header page title: Small Muted.
     Secondary copy: use Shad Caption Muted. Body values: use Shad Small.
   -->
@@ -56,18 +55,6 @@
     <Setter Property="FontSize" Value="{DynamicResource DialogTitleSizeLg}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.AboutSubtitle">
-    <Setter Property="FontSize" Value="{DynamicResource AboutSubtitleSize}" />
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundLeadColor}" />
-  </Style>
-
-  <Style Selector="TextBlock.AboutHeroVersion">
-    <Setter Property="FontSize" Value="{DynamicResource AboutHeroVersionSize}" />
-    <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
-    <Setter Property="LineHeight" Value="32" />
   </Style>
 
 </Styles>

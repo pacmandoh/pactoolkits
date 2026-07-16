@@ -15,7 +15,6 @@ public sealed class PageRegistrationTests
         typeof(ScanCode),
         typeof(MsfxLink),
         typeof(Settings),
-        typeof(About),
     ];
 
     [Fact]

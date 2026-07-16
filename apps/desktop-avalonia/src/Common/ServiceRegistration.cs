@@ -120,8 +120,7 @@ public static class ServiceRegistration
             .AddAppPage<DrugIndex>()
             .AddAppPage<ScanCode>()
             .AddAppPage<MsfxLink>()
-            .AddAppPage<Settings>()
-            .AddAppPage<About>();
+            .AddAppPage<Settings>();
     }
 
     internal static IServiceCollection AddAppPage<TPage>(this IServiceCollection services)

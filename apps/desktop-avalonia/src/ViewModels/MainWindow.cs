@@ -110,7 +110,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public IReadOnlyList<AppPageBase> FilteredSidebarPages => _filteredSidebarPages;
     private readonly Dictionary<Type, AppPageBase> _pageByType;
     private readonly AppPageBase? _settingsPage;
-    private readonly AppPageBase? _aboutPage;
     private readonly PageHistory<NavigationLocation> _pageHistory = new();
     private NavigationLocation? _currentLocation;
     private AppPageBase? _activeLifecyclePage;
@@ -132,22 +131,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         var page = _settingsPage;
-
-        if (page is not null)
-        {
-            ObserveDetached(SetActivePageAsync(page), "page.active.detached.fail");
-        }
-    }
-
-    [RelayCommand]
-    private void OpenAbout()
-    {
-        if (SkipTrigger("main.nav.about", 250))
-        {
-            return;
-        }
-
-        var page = _aboutPage;
 
         if (page is not null)
         {
@@ -722,7 +705,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SidebarPages = ordered.Where(p => p.ShowInSidebar).ToList();
         _pageByType = ordered.ToDictionary(p => p.GetType(), p => p);
         _settingsPage = ordered.FirstOrDefault(p => p is ISettingsPage);
-        _aboutPage = ordered.FirstOrDefault(p => p is IAboutPage);
 
         _nav.NavigationRequested += OnNavigationRequested;
 
