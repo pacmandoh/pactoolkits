@@ -690,6 +690,8 @@ public sealed class DashboardRepo : IDashboardRepo
                   count(*)::bigint as count
                 from trace_entry_log l
                 where l.entry_at::date between @from and @to
+                  and (coalesce(@drug,'') = '' or btrim(l.drug_id) = btrim(@drug))
+                  and (coalesce(@spec,'') = '' or btrim(coalesce(l.spec,'')) = btrim(@spec))
                 group by client_machine, state
                 order by client_machine, state
             """;
@@ -697,6 +699,8 @@ public sealed class DashboardRepo : IDashboardRepo
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             cmd.AddParam("from", q.Range.From.ToDateTime(TimeOnly.MinValue));
             cmd.AddParam("to", q.Range.To.ToDateTime(TimeOnly.MinValue));
+            cmd.AddParam("drug", q.DrugId ?? string.Empty);
+            cmd.AddParam("spec", q.Spec ?? string.Empty);
 
             var rows = new List<EntryChartRowDto>();
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
