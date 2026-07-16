@@ -10,7 +10,8 @@ public sealed class AppInfo(DialogManager dialogManager)
 {
     public required AppInfoArgs Info { get; init; }
 
-    public string VersionText => $"Version {Info.Version}";
+    public string CopyrightText => $"© {DateTime.Today.Year} PacDocs · PacmanDoh 维护";
+    public string VersionText => $"版本 {Info.Version}";
     public string ReleaseText
         => DateOnly.TryParseExact(
             Info.ReleaseDate,
@@ -18,6 +19,6 @@ public sealed class AppInfo(DialogManager dialogManager)
             CultureInfo.InvariantCulture,
             DateTimeStyles.None,
             out var date)
-            ? $"Released {date.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)}"
-            : $"Released {Info.ReleaseDate}";
+            ? $"发布于 {date.Year} 年 {date.Month} 月 {date.Day} 日"
+            : $"发布日期 {Info.ReleaseDate}";
 }
