@@ -9,7 +9,7 @@
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels"
   x:Name="Root"
-  Title="PacToolkits - 自动化套件"
+  Title="PacToolkits"
   Width="1460"
   Height="900"
   MinWidth="1350"
@@ -874,11 +874,11 @@
                   <icons:AppIcon
                     Foreground="{DynamicResource SuccessColor}"
                     IsVisible="{Binding IsDbConnected}"
-                    Kind="Database" />
+                    Kind="Link" />
                   <icons:AppIcon
                     Foreground="{DynamicResource ErrorColor}"
                     IsVisible="{Binding !IsDbConnected}"
-                    Kind="Database" />
+                    Kind="Unlink" />
                 </Panel>
               </shad:ButtonAssist.Icon>
               <TextBlock Classes="Caption Muted" Text="{Binding DbItemText}" />

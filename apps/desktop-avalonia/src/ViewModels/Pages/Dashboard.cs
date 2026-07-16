@@ -25,7 +25,7 @@ public sealed partial class Dashboard : AppPageBase
     private static readonly int[] TabPageSizeOptionValues = [20, 50, 100];
 
     public override string DisplayName => "概览";
-    public override string Icon => "LayoutDashboard";
+    public override string Icon => "LayoutPanelLeft";
     public override int Index => 0;
     protected override bool AutoRefreshOnDbDisconnected => true;
     protected override bool AutoRefreshOnDbReconnected => true;
