@@ -7,18 +7,40 @@ namespace PacToolkits.Desktop.Avalonia;
 
 internal sealed class Program
 {
+    internal static SingleInstance? Instance { get; private set; }
+
     [STAThread]
     public static void Main(string[] args)
     {
         VelopackApp.Build().Run();
 
-        var zhCn = CultureInfo.GetCultureInfo("zh-CN");
-        CultureInfo.DefaultThreadCurrentCulture = zhCn;
-        CultureInfo.DefaultThreadCurrentUICulture = zhCn;
-        CultureInfo.CurrentCulture = zhCn;
-        CultureInfo.CurrentUICulture = zhCn;
+        var instance = SingleInstance.TryAcquire();
+        if (instance is null)
+        {
+            SingleInstance.NotifyAsync().GetAwaiter().GetResult();
+            return;
+        }
 
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        using (instance)
+        {
+            Instance = instance;
+            instance.Listen();
+
+            var zhCn = CultureInfo.GetCultureInfo("zh-CN");
+            CultureInfo.DefaultThreadCurrentCulture = zhCn;
+            CultureInfo.DefaultThreadCurrentUICulture = zhCn;
+            CultureInfo.CurrentCulture = zhCn;
+            CultureInfo.CurrentUICulture = zhCn;
+
+            try
+            {
+                BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+            }
+            finally
+            {
+                Instance = null;
+            }
+        }
     }
 
     public static AppBuilder BuildAvaloniaApp()

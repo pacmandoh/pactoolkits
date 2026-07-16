@@ -80,6 +80,7 @@ public partial class App : global::Avalonia.Application
         _mainWindow.Closing += OnMainWindowClosing;
 
         desktop.MainWindow = _mainWindow;
+        Program.Instance?.SetActivationHandler(ActivateMainWindow);
         try
         {
             BuildTrayIcon(_mainWindow, desktop);
@@ -227,6 +228,17 @@ public partial class App : global::Avalonia.Application
         }
 
         window.Activate();
+    }
+
+    private void ActivateMainWindow()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_mainWindow is not null)
+            {
+                ShowMainWindow(_mainWindow);
+            }
+        });
     }
 
     private void OnMainWindowClosing(object? sender, WindowClosingEventArgs e)
