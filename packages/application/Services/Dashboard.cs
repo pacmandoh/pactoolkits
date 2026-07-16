@@ -28,20 +28,25 @@ public sealed class DashboardService : IDashboardService
             TrendMetric: filter.TrendMetric);
     }
 
-    private static DashboardQuery BuildChartQuery(DashboardFilter filter, int topN)
-        => new(
+    private static DashboardQuery BuildDistributionQuery(DashboardFilter filter, int topN)
+    {
+        var drug = InputNormalizer.Normalize(filter.DrugId);
+        var spec = InputNormalizer.Normalize(filter.Spec);
+
+        return new DashboardQuery(
             Range: new DateRange(filter.From, filter.To),
             ClientName: null,
-            DrugId: null,
-            Spec: null,
+            DrugId: drug,
+            Spec: spec,
             TopN: topN,
             TrendMetric: filter.TrendMetric);
+    }
 
     public async Task<DashboardSnapshot> GetSnapshotAsync(DashboardRequest request, CancellationToken ct)
     {
         var qTop = BuildQuery(request.Filter, request.OverviewTopN);
         var qPaged = BuildQuery(request.Filter, topN: 0);
-        var qChart = BuildChartQuery(request.Filter, ChartPageSize);
+        var qDistribution = BuildDistributionQuery(request.Filter, ChartPageSize);
 
         var clientNamesTask = _repo.GetClientNamesAsync(ct);
         var kpiTask = _repo.GetKpisAsync(qTop, ct);
@@ -55,10 +60,10 @@ public sealed class DashboardService : IDashboardService
         var entryPageTask = _repo.GetEntryLogsPageAsync(qPaged, request.EntryPageIndex, request.EntryPageSize, ct);
         var topClientsTask = _repo.GetClientsAsync(qTop, ct);
         var chartClientsTask = request.RefreshDistributions
-            ? _repo.GetClientsAsync(qChart, ct)
+            ? _repo.GetClientsAsync(qDistribution, ct)
             : Task.FromResult<IReadOnlyList<(string Client, long Value)>>([]);
         var entryChartTask = request.RefreshDistributions
-            ? _repo.GetEntryChartAsync(qChart, ct)
+            ? _repo.GetEntryChartAsync(qDistribution, ct)
             : Task.FromResult<IReadOnlyList<EntryChartRowDto>>([]);
         var abnormalTask = _repo.GetAbnormalQueuePageAsync(qPaged, request.AbnormalPageIndex, request.AbnormalPageSize, ct);
 

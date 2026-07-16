@@ -7,7 +7,7 @@ namespace PacToolkits.Desktop.Tests;
 public sealed class DashboardChartScopeTests
 {
     [Fact]
-    public async Task Date_distribution_queries_ignore_non_date_filters_when_refreshing()
+    public async Task Distribution_queries_ignore_client_and_keep_date_drug_spec()
     {
         var repo = new Repo();
         var service = new DashboardService(repo);
@@ -17,13 +17,13 @@ public sealed class DashboardChartScopeTests
         Assert.Equal(2, repo.ClientQueries.Count);
         var chartQuery = Assert.Single(repo.ClientQueries, query => query.TopN == 200);
         Assert.Null(chartQuery.ClientName);
-        Assert.Null(chartQuery.DrugId);
-        Assert.Null(chartQuery.Spec);
+        Assert.Equal("drug-a", chartQuery.DrugId);
+        Assert.Equal("10mg", chartQuery.Spec);
         Assert.Equal(new DateRange(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 16)), chartQuery.Range);
         Assert.NotNull(repo.EntryChartQuery);
         Assert.Null(repo.EntryChartQuery.ClientName);
-        Assert.Null(repo.EntryChartQuery.DrugId);
-        Assert.Null(repo.EntryChartQuery.Spec);
+        Assert.Equal("drug-a", repo.EntryChartQuery.DrugId);
+        Assert.Equal("10mg", repo.EntryChartQuery.Spec);
         Assert.Equal(chartQuery.Range, repo.EntryChartQuery.Range);
     }
 
@@ -55,7 +55,7 @@ public sealed class DashboardChartScopeTests
     }
 
     [Fact]
-    public async Task Date_distribution_queries_are_skipped_when_date_range_is_unchanged()
+    public async Task Distribution_queries_are_skipped_when_scope_is_unchanged()
     {
         var repo = new Repo();
         var service = new DashboardService(repo);
@@ -75,8 +75,8 @@ public sealed class DashboardChartScopeTests
                 new DateOnly(2026, 7, 1),
                 new DateOnly(2026, 7, 16),
                 "client-a",
-                "drug-a",
-                "10mg",
+                " drug-a ",
+                " 10mg ",
                 TrendMetric.Qty),
             RefreshDistributions: refreshDistributions,
             OverviewTopN: 10,

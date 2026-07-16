@@ -351,7 +351,7 @@ public sealed partial class Dashboard : AppPageBase
     public ObservableCollection<TopClientItem> TopClients { get; } = new();
     public ObservableCollection<TopClientItem> ChartClients { get; } = new();
     public ObservableCollection<EntryChartItem> EntryChartRows { get; } = new();
-    private DateRange? _chartRange;
+    private DistributionScope? _distributionScope;
     public ObservableCollection<int> TabPageSizeOptions { get; } = new(TabPageSizeOptionValues);
 
     public ObservableCollection<SimpleModeItem> ClientMetricModes { get; } = new()
@@ -1105,9 +1105,14 @@ public sealed partial class Dashboard : AppPageBase
                     }
                 }
 
+                var filter = CurrentFilter;
+                var distributionScope = new DistributionScope(
+                    new DateRange(filter.From, filter.To),
+                    filter.DrugId,
+                    NormalizeInput(filter.Spec));
                 var request = new DashboardRequest(
-                    Filter: CurrentFilter,
-                    RefreshDistributions: _chartRange != CurrentRange,
+                    Filter: filter,
+                    RefreshDistributions: _distributionScope != distributionScope,
                     OverviewTopN: DefaultTopN,
                     EntryOverviewTopN: EntryOverviewTopN,
                     TxnPageIndex: TxnPageIndex,
@@ -1152,7 +1157,7 @@ public sealed partial class Dashboard : AppPageBase
                     {
                         ChartClients.ReplaceAll(chartClientItems);
                         EntryChartRows.ReplaceAll(entryChartItems);
-                        _chartRange = CurrentRange;
+                        _distributionScope = distributionScope;
                         OnPropertyChanged(nameof(IsClientPanelEmpty));
                         OnPropertyChanged(nameof(IsEntryPanelEmpty));
                     }
@@ -1554,6 +1559,8 @@ public sealed partial class Dashboard : AppPageBase
 
     private string ResolveTrendClient(string? rawClient)
         => string.IsNullOrWhiteSpace(rawClient) ? "未知客户端" : ResolveClient(rawClient).Display;
+
+    private readonly record struct DistributionScope(DateRange Range, string? DrugId, string? Spec);
 
     private static string BuildTrendSourceText(string clientDisplay, decimal pct)
         => $"{clientDisplay} 使用比例：{pct:0.#}%";
