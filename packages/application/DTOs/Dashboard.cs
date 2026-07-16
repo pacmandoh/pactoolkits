@@ -47,7 +47,7 @@ public sealed record TraceTxnDto(
     string Spec,
     int Qty,
     DateTimeOffset CreatedAt,
-    string? ClientName
+    string? ClientRaw
 );
 
 public sealed record DashboardKpiDto(
@@ -99,7 +99,7 @@ public sealed record TrendRowDto(
 public sealed record AbnormalRowDto(
     string Title,
     string Detail,
-    string ClientDisplay,
+    string ClientRaw,
     TxnBadge Badge,
     long? TxnId
 );
