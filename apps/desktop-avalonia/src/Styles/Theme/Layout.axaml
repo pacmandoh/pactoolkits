@@ -115,6 +115,7 @@
   <x:Double x:Key="SidebarMenuIconStroke">2.0</x:Double>
   <x:Double x:Key="ChromeRowHeight">48</x:Double>
   <x:Double x:Key="SidebarFuncHeight">64</x:Double>
+  <x:Double x:Key="SidebarFuncCollapsedSize">36</x:Double>
 
   <x:Double x:Key="SpacingInlineSm">6</x:Double>
   <x:Double x:Key="SpacingInlineMd">8</x:Double>

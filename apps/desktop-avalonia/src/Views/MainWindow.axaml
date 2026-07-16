@@ -137,16 +137,13 @@
         Classes="TitleBarUpdateBtn"
         Command="{Binding OpenUpdateCenterCommand}"
         IsVisible="{Binding HasUpdateAvailable}">
-        <StackPanel
-          VerticalAlignment="Center"
-          Orientation="Horizontal"
-          Spacing="6">
+        <shad:ButtonAssist.Icon>
           <icons:AppIcon Kind="CloudDownload" />
-          <TextBlock
-            VerticalAlignment="Center"
-            Classes="Caption"
-            Text="{Binding UpdateActionText}" />
-        </StackPanel>
+        </shad:ButtonAssist.Icon>
+        <TextBlock
+          VerticalAlignment="Center"
+          Classes="Caption"
+          Text="{Binding UpdateActionText}" />
       </Button>
     </Grid>
   </shad:Window.LogoContent>
@@ -255,7 +252,6 @@
           <Border Classes="SidebarFuncHost">
             <Menu Classes="Single">
               <MenuItem
-                HorizontalAlignment="Stretch"
                 shad:MenuItemAssist.PopupHorizontalOffset="4"
                 shad:MenuItemAssist.PopupPlacement="RightEdgeAlignedTop"
                 shad:MenuItemAssist.PopupVerticalOffset="0"
@@ -264,8 +260,6 @@
                 <MenuItem.Header>
                   <Panel>
                     <Border
-                      Width="38"
-                      Height="36"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Center"
                       Classes="SidebarFuncBadge"

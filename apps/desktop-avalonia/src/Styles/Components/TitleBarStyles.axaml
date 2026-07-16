@@ -115,13 +115,22 @@
     <Setter Property="HorizontalContentAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Button.TitleBarUpdateBtn icons|AppIcon">
-    <Setter Property="Width" Value="{DynamicResource IconSizeMini}" />
-    <Setter Property="Height" Value="{DynamicResource IconSizeMini}" />
-    <Setter Property="Foreground" Value="{DynamicResource ShellAccentOnColor}" />
+  <Style Selector="Button.TitleBarUpdateBtn:pointerover /template/ Border#BaseBackground">
+    <Setter Property="Background" Value="{DynamicResource ShellAccentBrush}" />
+    <Setter Property="Opacity" Value="0.82" />
+  </Style>
+
+  <Style Selector="Button.TitleBarUpdateBtn:pointerover /template/ Border#HoverBackground">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+
+  <Style Selector="Button.TitleBarUpdateBtn /template/ Viewbox">
+    <Setter Property="MaxWidth" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="MaxHeight" Value="{DynamicResource IconSizeSmall}" />
   </Style>
 
   <Style Selector="Button.TitleBarUpdateBtn TextBlock">
+    <Setter Property="Margin" Value="6,0,0,0" />
     <Setter Property="Foreground" Value="{DynamicResource ShellAccentOnColor}" />
   </Style>
 
