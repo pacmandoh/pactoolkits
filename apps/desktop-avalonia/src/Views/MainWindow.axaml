@@ -269,7 +269,7 @@
                       HorizontalAlignment="Center"
                       VerticalAlignment="Center"
                       Classes="SidebarFuncBadge"
-                      CornerRadius="{DynamicResource LgCornerRadius}"
+                      CornerRadius="{DynamicResource SpecCornerRadius}"
                       IsVisible="{Binding !IsSidebarExpanded}">
                       <Viewbox Width="{DynamicResource IconSizeHeader}" Height="{DynamicResource IconSizeHeader}">
                         <icons:AppIcon Kind="{Binding SelectedFunctionArea.Icon}" />

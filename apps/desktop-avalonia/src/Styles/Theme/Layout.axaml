@@ -1,8 +1,9 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <CornerRadius x:Key="SmCornerRadius">2</CornerRadius>
-  <CornerRadius x:Key="MdCornerRadius">3</CornerRadius>
-  <CornerRadius x:Key="LgCornerRadius">4</CornerRadius>
-  <CornerRadius x:Key="XlCornerRadius">6</CornerRadius>
+  <CornerRadius x:Key="SmCornerRadius">4</CornerRadius>
+  <CornerRadius x:Key="MdCornerRadius">5</CornerRadius>
+  <CornerRadius x:Key="LgCornerRadius">6</CornerRadius>
+  <CornerRadius x:Key="XlCornerRadius">7</CornerRadius>
+  <CornerRadius x:Key="SpecCornerRadius">8</CornerRadius>
   <StaticResource x:Key="2XlCornerRadius" ResourceKey="XlCornerRadius" />
   <StaticResource x:Key="3XlCornerRadius" ResourceKey="XlCornerRadius" />
   <StaticResource x:Key="4XlCornerRadius" ResourceKey="XlCornerRadius" />
