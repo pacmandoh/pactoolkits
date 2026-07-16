@@ -15,7 +15,8 @@
 
       <NativeMenu x:Key="TrayMenu">
         <NativeMenuItem Header="显示主窗口" />
-        <NativeMenuItem Header="关闭时最小化到托盘" ToggleType="CheckBox" />
+        <NativeMenuItem Header="关闭行为：后台" />
+        <NativeMenuItem Header="关于" />
         <NativeMenuItemSeparator />
         <NativeMenuItem Header="退出" />
       </NativeMenu>
