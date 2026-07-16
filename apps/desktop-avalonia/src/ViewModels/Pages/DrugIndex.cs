@@ -30,7 +30,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     private static readonly Regex QtySuffixRegex = new(@"(\d{1,5})\s*(支|片|瓶|盒|袋|包|粒|枚|贴|丸)$", RegexOptions.Compiled);
 
     public override string DisplayName => "药品信息维护";
-    public override string Icon => "Tablets";
+    public override string Icon => "Pill";
     public override int Index => 2;
     public override ICommand RefreshCommand => _localRefreshCommand;
     public override ICommand ImportCommand => _importCommand;

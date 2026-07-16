@@ -23,7 +23,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     private static readonly int[] PageSizeOptionValues = [20, 50, 100];
 
     public override string DisplayName => "追溯码库存";
-    public override string Icon => "Package";
+    public override string Icon => "Barcode";
     public override int Index => 1;
     public override ICommand RefreshCommand => _localRefreshCommand;
     public override ICommand ImportCommand => _importCommand;

@@ -31,7 +31,7 @@ public partial class SettingsView : UserControl
     [
         ("TabDbPage", "PostgreSQL 设置", "Database"),
         ("TabAliasPage", "客户端别名映射", "Users"),
-        ("TabTraceRulePage", "追溯码校验规则", "NotebookText"),
+        ("TabTraceRulePage", "追溯码校验规则", "Regex"),
         ("TabUiBehaviorPage", "界面行为", "MonitorCog"),
         ("TabUpdatePage", "应用更新", "Download"),
         ("TabLoggingPage", "日志与诊断", "TextCursorInput"),
@@ -336,8 +336,8 @@ public partial class SettingsView : UserControl
         iconHost.Children.Add(new AppIcon
         {
             Kind = icon,
-            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left,
-            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Bottom
+            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Center,
+            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center
         });
 
         if (tracksUpdate)
