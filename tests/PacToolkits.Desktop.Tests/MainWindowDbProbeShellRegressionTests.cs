@@ -303,6 +303,7 @@ public sealed class MainWindowDbProbeShellRegressionTests
 
         Assert.Contains("WorkspaceDirtyRefresh dirtyRefresh", source, StringComparison.Ordinal);
         Assert.Contains("QueueTabPageReload(force: _dirtyRefresh.IsDirty(this))", source, StringComparison.Ordinal);
+        Assert.Contains("DrugOptions.Count == 0 || _dirtyRefresh.IsDirty(this)", source, StringComparison.Ordinal);
     }
 
     [Fact]
