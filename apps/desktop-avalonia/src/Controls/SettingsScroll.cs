@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -142,48 +141,86 @@ public static class SettingsScroll
             return;
         }
 
-        var offset = scrollViewer.Offset.Y;
-        var headers = CollectHeaders(contentRoot)
-            .OrderBy(static header => header.Y)
+        var headers = CollectHeaders(contentRoot, scrollViewer)
+            .OrderBy(static header => header.Top)
             .ToList();
-
-        HeaderSnapshot? h1 = null;
-        HeaderSnapshot? h2 = null;
-        HeaderSnapshot? h3 = null;
-
-        foreach (var header in headers)
-        {
-            if (header.Y > offset + 0.5)
-            {
-                break;
-            }
-
-            if (header.Level == 1 && !IsHeaderFullyScrolledPast(header, offset))
-            {
-                continue;
-            }
-
-            switch (header.Level)
-            {
-                case 1:
-                    h1 = header;
-                    break;
-                case 2:
-                    h2 = header;
-                    break;
-                case 3:
-                    h3 = header;
-                    break;
-            }
-        }
-
-        var active = new[] { h1, h2, h3 }.Where(static header => header is not null).Cast<HeaderSnapshot>().ToList();
+        var positions = headers
+            .Select(static header => new HeaderPosition(header.Level, header.Top))
+            .ToList();
+        var active = SelectActive(positions, GetStickyHeights(stickyHost))
+            .Select(index => headers[index])
+            .ToList();
         var interactive = active.Any(static header => header.HasActions);
         ApplyStickyState(scrollViewer, stickyHost, active, active.Count > 0, interactive);
     }
 
-    private static bool IsHeaderFullyScrolledPast(HeaderSnapshot header, double offset)
-        => header.Y + header.Height <= offset + 0.5;
+    internal static IReadOnlyList<int> SelectActive(
+        IReadOnlyList<HeaderPosition> headers,
+        IReadOnlyList<double> stickyHeights)
+    {
+        const double edgeTolerance = 0.5;
+
+        if (stickyHeights.Count != 3)
+        {
+            throw new ArgumentException("Sticky heights must contain H1, H2, and H3 slots.", nameof(stickyHeights));
+        }
+
+        var active = new int?[3];
+
+        for (var i = 0; i < headers.Count; i++)
+        {
+            var header = headers[i];
+            var level = header.Level - 1;
+            if ((uint)level >= active.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(headers), header.Level, "Header level must be between 1 and 3.");
+            }
+
+            if (level > 0 && active[level - 1] is null)
+            {
+                continue;
+            }
+
+            var edge = 0d;
+            for (var slot = 0; slot < active.Length; slot++)
+            {
+                if (active[slot] is not null)
+                {
+                    edge += stickyHeights[slot];
+                }
+            }
+
+            if (header.Top > edge + edgeTolerance)
+            {
+                continue;
+            }
+
+            active[level] = i;
+            for (var child = level + 1; child < active.Length; child++)
+            {
+                active[child] = null;
+            }
+        }
+
+        return active.Where(static index => index is not null).Select(static index => index!.Value).ToList();
+    }
+
+    private static IReadOnlyList<double> GetStickyHeights(Panel stickyHost)
+    {
+        var heights = new double[3];
+        foreach (var row in stickyHost.Children.OfType<Border>())
+        {
+            var level = ResolveHeaderLevel(row);
+            if (level is not { } value || row.Bounds.Height <= 0)
+            {
+                continue;
+            }
+
+            heights[value - 1] = row.Bounds.Height;
+        }
+
+        return heights;
+    }
 
     private static void ApplyStickyState(
         ScrollViewer scrollViewer,
@@ -193,7 +230,8 @@ public static class SettingsScroll
         bool interactive)
     {
         var stickyKey = showSticky
-            ? string.Join('|', active.Select(static header => $"{header.Level}:{header.Title}:{header.HasActions}"))
+            ? string.Join('|', active.Select(static header =>
+                $"{header.Level}:{header.Title}:{header.HasActions}:{string.Join(',', header.TitleClasses)}"))
             : string.Empty;
 
         if (string.Equals(scrollViewer.GetValue(LastStickyKeyProperty), stickyKey, StringComparison.Ordinal)
@@ -219,6 +257,9 @@ public static class SettingsScroll
 
         SetStickyChromeVisible(stickyHost, true, interactive);
         SyncStickyChildren(stickyHost, active);
+
+        // Sticky rows need one layout pass before descendant trigger slots can use their rendered heights.
+        Dispatcher.UIThread.Post(() => RefreshSticky(scrollViewer), DispatcherPriority.Render);
     }
 
     private static bool GetStickyHostInteractive(Panel stickyHost)
@@ -276,20 +317,11 @@ public static class SettingsScroll
 
     private static Control BuildStickyContent(HeaderSnapshot header)
     {
-        var titleClass = header.Level switch
-        {
-            1 => "H1Text",
-            2 => "H2Text",
-            _ => "H3Text"
-        };
+        var title = CreateStickyTitle(header);
 
         if (!header.HasActions)
         {
-            return new TextBlock
-            {
-                Text = header.Title,
-                Classes = { titleClass }
-            };
+            return title;
         }
 
         var grid = new Grid
@@ -302,12 +334,7 @@ public static class SettingsScroll
             }
         };
 
-        var title = new TextBlock
-        {
-            Text = header.Title,
-            Classes = { titleClass },
-            VerticalAlignment = VerticalAlignment.Center
-        };
+        title.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(title, 0);
         grid.Children.Add(title);
 
@@ -325,6 +352,17 @@ public static class SettingsScroll
 
         grid.Children.Add(actions);
         return grid;
+    }
+
+    private static TextBlock CreateStickyTitle(HeaderSnapshot header)
+    {
+        var title = new TextBlock { Text = header.Title };
+        foreach (var @class in header.TitleClasses)
+        {
+            title.Classes.Add(@class);
+        }
+
+        return title;
     }
 
     private static Button CloneActionButton(Button source)
@@ -402,7 +440,7 @@ public static class SettingsScroll
            && scrollViewer.Bounds.Height > 0
            && contentRoot.Bounds.Height > 0;
 
-    private static IEnumerable<HeaderSnapshot> CollectHeaders(Control root)
+    private static IEnumerable<HeaderSnapshot> CollectHeaders(Control root, ScrollViewer scrollViewer)
     {
         foreach (var control in root.GetVisualDescendants().OfType<Control>())
         {
@@ -417,35 +455,29 @@ public static class SettingsScroll
                 continue;
             }
 
-            var title = ResolveHeaderTitle(control);
-            if (string.IsNullOrWhiteSpace(title))
+            var title = FindHeaderTitle(control);
+            if (string.IsNullOrWhiteSpace(title?.Text))
             {
                 continue;
             }
 
-            var topLeft = control.TranslatePoint(new Point(0, 0), root);
+            var topLeft = title.TranslatePoint(new Point(0, 0), scrollViewer);
             if (topLeft is null)
             {
                 continue;
             }
 
-            var height = control.Bounds.Height;
-            if (height <= 0)
-            {
-                height = EstimateHeaderHeight(level.Value);
-            }
+            var titleClasses = SelectTitleClasses(title.Classes);
 
-            yield return new HeaderSnapshot(level.Value, title, topLeft.Value.Y, height, control, HasActions(control));
+            yield return new HeaderSnapshot(
+                level.Value,
+                title.Text,
+                titleClasses,
+                topLeft.Value.Y,
+                control,
+                HasActions(control));
         }
     }
-
-    private static double EstimateHeaderHeight(int level)
-        => level switch
-        {
-            1 => 52,
-            2 => 44,
-            _ => 36
-        };
 
     private static int? ResolveHeaderLevel(Control control)
     {
@@ -467,23 +499,26 @@ public static class SettingsScroll
         return null;
     }
 
-    private static string? ResolveHeaderTitle(Control header)
-    {
-        var title = header.GetVisualDescendants()
+    private static TextBlock? FindHeaderTitle(Control header)
+        => header.GetVisualDescendants()
             .OfType<TextBlock>()
             .FirstOrDefault(static block =>
                 block.Classes.Contains("H1Text")
                 || block.Classes.Contains("H2Text")
                 || block.Classes.Contains("H3Text"));
 
-        return title?.Text;
-    }
+    internal static IReadOnlyList<string> SelectTitleClasses(IEnumerable<string> classes)
+        => classes
+            .Where(static @class => @class.Length > 0 && @class[0] != ':')
+            .ToArray();
+
+    internal readonly record struct HeaderPosition(int Level, double Top);
 
     private sealed record HeaderSnapshot(
         int Level,
         string Title,
-        double Y,
-        double Height,
+        IReadOnlyList<string> TitleClasses,
+        double Top,
         Control Source,
         bool HasActions);
 }
