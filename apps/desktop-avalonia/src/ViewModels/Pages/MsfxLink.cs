@@ -13,7 +13,6 @@ using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services.Msfx;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using PacToolkits.Desktop.Avalonia.Services.Integration;
 using PacToolkits.Desktop.Avalonia.Services.Presentation;
 using PacToolkits.Desktop.Avalonia.Services.Workspace;
 
@@ -64,6 +63,7 @@ public sealed partial class MsfxLink : AppPageBase
     ];
     private readonly IMsfxApiClient _msfxApi;
     private readonly ISyncService _syncService;
+    private readonly IMsfxAutoRunService _autoRun;
     private readonly IAppConfigStore _configStore;
     private readonly ISensitiveUnlockService _unlockService;
     private readonly IToastService _toast;
@@ -317,6 +317,7 @@ public sealed partial class MsfxLink : AppPageBase
     public MsfxLink(
         IMsfxApiClient msfxApi,
         ISyncService syncService,
+        IMsfxAutoRunService autoRun,
         IAppConfigStore configStore,
         ISensitiveUnlockService unlockService,
         IToastService toast,
@@ -326,6 +327,7 @@ public sealed partial class MsfxLink : AppPageBase
     {
         _msfxApi = msfxApi;
         _syncService = syncService;
+        _autoRun = autoRun;
         _configStore = configStore;
         _unlockService = unlockService;
         _toast = toast;

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;

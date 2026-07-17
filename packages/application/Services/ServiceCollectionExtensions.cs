@@ -16,7 +16,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IInventoryOverviewService, InventoryOverviewService>();
         services.AddSingleton<IScanCodeService, ScanCodeService>();
         services.AddSingleton<IDrugIndexService, DrugIndexService>();
-        services.AddSingleton<ISyncService, SyncService>();
+        services.AddSingleton<SyncService>();
+        services.AddSingleton<ISyncService>(sp => sp.GetRequiredService<SyncService>());
+        services.AddSingleton<IMsfxAutoRunStore>(sp => sp.GetRequiredService<SyncService>());
+        services.AddSingleton<IMsfxAutoRunService, MsfxAutoRunService>();
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<ILookupCatalogService, LookupCatalogService>();
         services.AddSingleton<IClientAliasService, ClientAliasService>();

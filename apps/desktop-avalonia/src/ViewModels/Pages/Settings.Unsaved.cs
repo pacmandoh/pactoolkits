@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
