@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using PacToolkits.Agent.Contracts.Agents;
 using PacToolkits.Agent.Contracts.Models;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -27,17 +28,6 @@ public sealed class AppConfigRoot
     public UiBehaviorOptions UiBehavior { get; set; } = new();
     public UpdateOptions Update { get; set; } = new();
     public LoggingOptions Logging { get; set; } = new();
-}
-
-public sealed class MsfxApiOptions
-{
-    public string GatewayUrl { get; set; } = "https://eco.taobao.com/router/rest";
-    public string AppKey { get; set; } = string.Empty;
-    public string AppSecret { get; set; } = string.Empty;
-    public string SessionToken { get; set; } = string.Empty;
-    public string RefEntId { get; set; } = string.Empty;
-    public string DefaultMethod { get; set; } = string.Empty;
-    public int TimeoutSeconds { get; set; } = 20;
 }
 
 public sealed class UiBehaviorOptions

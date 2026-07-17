@@ -40,7 +40,7 @@ public interface ISyncService
     Task<MsfxMappingBatchApplyResult> ApplyMappingBatchByGroupAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, string? groupSourceDrugNameRaw, string? groupSourceSpecRaw, string? groupSourceNameNorm, string? groupSourceSpecNorm, string action, string? drugId, string? spec, CancellationToken ct);
 }
 
-public sealed class SyncService : ISyncService
+public sealed class SyncService : ISyncService, IMsfxAutoRunStore
 {
     private readonly IMsfxSyncRepo _repo;
     private readonly IPinyinSearchCatalogCache _catalogCache;

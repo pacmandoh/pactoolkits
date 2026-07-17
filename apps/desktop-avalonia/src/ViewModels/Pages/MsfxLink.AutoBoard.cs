@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -40,457 +39,38 @@ public sealed partial class MsfxLink : AppPageBase
 
     private async Task RunAutoOnceWorkAsync(CancellationToken ct)
     {
-        long batchId = 0;
-        var batchFinalized = false;
-        string? batchErrMsg = null;
-        var succeedCount = 0;
-        var failCount = 0;
-        var window = default(MsfxPullWindow);
-        var swTotal = Stopwatch.StartNew();
-        long listApiMs = 0;
-        long detailApiMs = 0;
-        long ingestMs = 0;
-        long mapMs = 0;
-        long taskBuildMs = 0;
         try
         {
             var options = BuildMsfxOptions();
-            SetAutoProgress(2, "准备巡检");
-            window = await _syncService.GetPullWindowAsync("listupout", ct).ConfigureAwait(false);
-            AddAutoLog("任务", $"开始执行自动化拉取（{window.BeginAt:yyyy-MM-dd HH:mm:ss} ~ {window.EndAt:yyyy-MM-dd HH:mm:ss}）", TraceEntryState.Info);
-            LogInfo("msfx.auto.run.start", "MSFX auto run started", new { window.BeginAt, window.EndAt });
-            SetAutoProgress(5, $"拉取窗口 {window.BeginAt:MM-dd HH:mm} ~ {window.EndAt:MM-dd HH:mm}");
+            LogInfo("msfx.auto.run.start", "MSFX auto run started");
 
-            var batch = await _syncService.StartPullBatchAsync("listupout", window.BeginAt, window.EndAt, ct)
-                .ConfigureAwait(false);
-            batchId = batch.BatchId;
-            AddAutoLog("批次", $"拉取批次已创建：#{batchId}", TraceEntryState.Success);
-            LogInfo("msfx.auto.batch.created", "MSFX pull batch created", new
-            {
-                batchId,
-                sourceApi = "listupout",
-                window.BeginAt,
-                window.EndAt
-            });
-            SetAutoProgress(8, $"批次 #{batchId} 已创建");
-            await RefreshPullPanelAsync(ct).ConfigureAwait(false);
+            var result = await _autoRun.RunAsync(
+                new MsfxAutoRunRequest(options),
+                new AutoRunObserver(this),
+                ct).ConfigureAwait(false);
 
-            var begin = window.BeginAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            var end = window.EndAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            var page = 1;
-            const int pageSize = 50;
-            var totalApiRows = 0;
-            var totalInboundRows = 0;
-            var totalBills = 0;
-            var detailSubCodes = 0;
-            var retryQueuedCount = 0;
-            var retrySucceededCount = 0;
-            var retryFailedCount = 0;
-            var watchQueuedCount = 0;
-            var watchResolvedCount = 0;
-            var watchDeferredCount = 0;
-            var processedBillCodes = new HashSet<string>(StringComparer.Ordinal);
-            var totalPagesEstimate = 1;
-            var processedBills = 0;
-            var expectedBills = 1;
-
-            async Task<bool> TryIngestBillDetailAsync(
-                string billCode,
-                string? fromRefUserId,
-                string? fromEntName,
-                string? toRefUserId,
-                string? billType,
-                string? billTime,
-                string? billUploadTime,
-                string rawJson,
-                bool fromRetry,
-                bool fromWatch,
-                string? watchStatus)
-            {
-                var normalizedToRef = string.IsNullOrWhiteSpace(toRefUserId) ? options.RefEntId : toRefUserId;
-                var normalizedFromRef = NormalizeInput(fromRefUserId);
-                async Task<bool> QueueRetryAndLogAsync(string err)
-                {
-                    if (fromWatch)
-                    {
-                        await _syncService.RescheduleBillWatchAsync(
-                            sourceApi: "listupout",
-                            billCode: billCode,
-                            lastSeenStatus: watchStatus,
-                            lastError: err,
-                            ct: ct).ConfigureAwait(false);
-                        watchDeferredCount++;
-                        AddAutoLog("待确认补偿", $"单据 {billCode} 暂未就绪，已延后重查：{err}", TraceEntryState.Warning);
-                        return false;
-                    }
-
-                    await _syncService.UpsertBillRetryAsync(
-                        sourceApi: "listupout",
-                        billCode: billCode,
-                        fromRefUserId: normalizedFromRef,
-                        toRefUserId: normalizedToRef,
-                        lastError: err,
-                        ct: ct).ConfigureAwait(false);
-                    retryQueuedCount++;
-                    if (fromRetry)
-                    {
-                        retryFailedCount++;
-                        AddAutoLog("重试", $"单据 {billCode} 仍失败：{err}", TraceEntryState.Warning);
-                    }
-                    else
-                    {
-                        AddAutoLog("子码解析", $"单据 {billCode} 失败，已入重试队列：{err}", TraceEntryState.Warning);
-                    }
-
-                    return false;
-                }
-
-                var billId = await _syncService.UpsertInboundBillAsync(
-                    batchId: batchId,
-                    billCode: billCode,
-                    billType: billType ?? string.Empty,
-                    billTime: billTime ?? string.Empty,
-                    billUploadTime: billUploadTime ?? string.Empty,
-                    fromRefUserId: fromRefUserId ?? string.Empty,
-                    fromEntName: fromEntName ?? string.Empty,
-                    toRefUserId: normalizedToRef ?? string.Empty,
-                    toUserId: string.Empty,
-                    toUserName: string.Empty,
-                    status: "2",
-                    rawJson: rawJson,
-                    ct: ct).ConfigureAwait(false);
-
-                MsfxListUpoutDetailResult detail;
-                try
-                {
-                    using var detailCts = CreateMsfxTimeout(options.TimeoutSeconds);
-                    using var detailLinkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, detailCts.Token);
-                    var swDetail = Stopwatch.StartNew();
-                    detail = await _msfxApi.GetYljgListUpoutDetailAsync(options, new MsfxListUpoutDetailRequest(
-                        RefEntId: options.RefEntId,
-                        BillCode: billCode,
-                        ToRefUserId: normalizedToRef,
-                        FromRefUserId: normalizedFromRef), detailLinkedCts.Token).ConfigureAwait(false);
-                    detailApiMs += swDetail.ElapsedMilliseconds;
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    return await QueueRetryAndLogAsync(ex.Message).ConfigureAwait(false);
-                }
-
-                if (!detail.Call.Ok)
-                {
-                    return await QueueRetryAndLogAsync(BuildApiErrorMessage(detail.Call)).ConfigureAwait(false);
-                }
-
-                var swIngest = Stopwatch.StartNew();
-                var ingest = await _syncService.IngestUpoutDetailAsync(
-                    billId,
-                    billCode,
-                    detail.DrugItems
-                        .Select(d => (
-                            d.PhysicName,
-                            d.PackageSpec,
-                            d.PrepnSpec,
-                            d.ProduceBatchNo,
-                            (IReadOnlyList<(string Code, string CodeLevel, string? Level1Code, string? Level2Code, string? Level3Code, string? Level4Code, string? Level5Code)>)d.TraceCodes
-                                .Select(c => (c.Code, c.CodeLevel, c.Level1Code, c.Level2Code, c.Level3Code, c.Level4Code, c.Level5Code))
-                                .ToList()))
-                        .ToList(),
-                    ct).ConfigureAwait(false);
-                ingestMs += swIngest.ElapsedMilliseconds;
-
-                succeedCount++;
-                detailSubCodes += ingest.InsertedCodes;
-                if (fromRetry)
-                {
-                    retrySucceededCount++;
-                    await _syncService.MarkBillRetrySucceededAsync("listupout", billCode, ct).ConfigureAwait(false);
-                    AddAutoLog("重试", $"单据 {billCode} 重试成功：药品 {ingest.InsertedItems}，码 {ingest.InsertedCodes}，新增 staging {ingest.InsertedStaging}", TraceEntryState.Success);
-                }
-                else if (fromWatch)
-                {
-                    watchResolvedCount++;
-                    AddAutoLog("待确认补偿", $"单据 {billCode} 已转入库：药品 {ingest.InsertedItems}，码 {ingest.InsertedCodes}，新增 staging {ingest.InsertedStaging}", TraceEntryState.Success);
-                }
-                else
-                {
-                    var ingestState = ingest.InsertedStaging > 0 ? TraceEntryState.Success : TraceEntryState.Warning;
-                    AddAutoLog("落库", $"单据 {billCode}：药品 {ingest.InsertedItems}，码 {ingest.InsertedCodes}，新增 staging {ingest.InsertedStaging}", ingestState);
-                }
-
-                await _syncService.MarkBillWatchResolvedAsync("listupout", billCode, ct).ConfigureAwait(false);
-
-                return true;
-            }
-
-            var dueRetries = await _syncService.GetDueBillRetriesAsync("listupout", 200, ct).ConfigureAwait(false);
-            if (dueRetries.Count > 0)
-            {
-                AddAutoLog("重试", $"发现待重试单据 {dueRetries.Count} 条，优先处理", TraceEntryState.Info);
-                foreach (var retry in dueRetries)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    if (!processedBillCodes.Add(retry.BillCode))
-                    {
-                        continue;
-                    }
-
-                    processedBills++;
-                    expectedBills = Math.Max(expectedBills, processedBills + 1);
-                    SetAutoProgress(
-                        12 + Math.Min(20, processedBills * (20d / Math.Max(1, expectedBills))),
-                        $"重试单据 {processedBills}/{Math.Max(1, expectedBills)}：{retry.BillCode}");
-
-                    _ = await TryIngestBillDetailAsync(
-                        billCode: retry.BillCode,
-                        fromRefUserId: retry.FromRefUserId,
-                        fromEntName: string.Empty,
-                        toRefUserId: retry.ToRefUserId,
-                        billType: string.Empty,
-                        billTime: string.Empty,
-                        billUploadTime: string.Empty,
-                        rawJson: "{}",
-                        fromRetry: true,
-                        fromWatch: false,
-                        watchStatus: null).ConfigureAwait(false);
-                }
-                await RefreshPullPanelAsync(ct).ConfigureAwait(false);
-            }
-
-            while (true)
-            {
-                using var cts = CreateMsfxTimeout(options.TimeoutSeconds);
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, cts.Token);
-                var swList = Stopwatch.StartNew();
-                var list = await _msfxApi.GetYljgListUpoutAsync(options, new MsfxListUpoutRequest(
-                    RefEntId: options.RefEntId,
-                    BeginDate: begin,
-                    EndDate: end,
-                    Page: page,
-                    PageSize: pageSize), linkedCts.Token).ConfigureAwait(false);
-                listApiMs += swList.ElapsedMilliseconds;
-
-                if (!list.Call.Ok)
-                {
-                    failCount++;
-                    throw new InvalidOperationException($"上游出库单拉取失败：{BuildApiErrorMessage(list.Call)}");
-                }
-
-                if (batchId > 0 && !string.IsNullOrWhiteSpace(list.Call.RequestId))
-                {
-                    await _syncService.UpdatePullBatchRequestIdAsync(batchId, list.Call.RequestId, ct).ConfigureAwait(false);
-                }
-
-                totalApiRows += list.Items.Count;
-                totalPagesEstimate = Math.Max(1, (int)Math.Ceiling(list.Total / (double)pageSize));
-                var inboundRows = list.Items.Where(x => string.Equals(x.Status, "2", StringComparison.Ordinal)).ToList();
-                var watchRows = list.Items
-                    .Where(x => !string.IsNullOrWhiteSpace(x.BillCode) && !string.Equals(x.Status, "2", StringComparison.Ordinal))
-                    .GroupBy(x => x.BillCode)
-                    .Select(g => g.First())
-                    .ToList();
-                totalInboundRows += inboundRows.Count;
-                SetAutoProgress(
-                    10 + Math.Min(30, page * (30d / totalPagesEstimate)),
-                    $"上游单据第 {page}/{totalPagesEstimate} 页，API {list.Items.Count} 条，已入库 {inboundRows.Count} 条");
-
-                AddAutoLog("上游出库单", $"第 {page} 页：API {list.Items.Count} 条，已入库(status=2) {inboundRows.Count} 条", TraceEntryState.Info);
-
-                foreach (var watch in watchRows)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    await _syncService.UpsertBillWatchAsync(
-                        sourceApi: "listupout",
-                        billCode: watch.BillCode,
-                        fromRefUserId: watch.FromRefUserId,
-                        toRefUserId: watch.ToRefUserId,
-                        fromEntName: watch.FromEntName,
-                        billType: watch.BillType,
-                        billTime: watch.BillTime,
-                        billUploadTime: watch.BillUploadTime,
-                        lastSeenStatus: watch.Status,
-                        rawJson: System.Text.Json.JsonSerializer.Serialize(watch),
-                        ct: ct).ConfigureAwait(false);
-                    watchQueuedCount++;
-                }
-
-                var bills = inboundRows
-                    .Where(x => !string.IsNullOrWhiteSpace(x.BillCode))
-                    .GroupBy(x => x.BillCode)
-                    .Select(g => g.First())
-                    .ToList();
-
-                totalBills += bills.Count;
-                expectedBills = Math.Max(expectedBills, totalBills);
-                foreach (var bill in bills)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    if (!processedBillCodes.Add(bill.BillCode))
-                    {
-                        continue;
-                    }
-
-                    processedBills++;
-                    SetAutoProgress(
-                        40 + Math.Min(45, processedBills * (45d / Math.Max(1, expectedBills))),
-                        $"解析单据 {processedBills}/{Math.Max(1, expectedBills)}：{bill.BillCode}");
-
-                    _ = await TryIngestBillDetailAsync(
-                        billCode: bill.BillCode,
-                        fromRefUserId: bill.FromRefUserId,
-                        fromEntName: bill.FromEntName,
-                        toRefUserId: bill.ToRefUserId,
-                        billType: bill.BillType,
-                        billTime: bill.BillTime,
-                        billUploadTime: bill.BillUploadTime,
-                        rawJson: System.Text.Json.JsonSerializer.Serialize(bill),
-                        fromRetry: false,
-                        fromWatch: false,
-                        watchStatus: null).ConfigureAwait(false);
-                }
-
-                await RefreshPullPanelAsync(ct).ConfigureAwait(false);
-
-                var loaded = page * pageSize;
-                if (list.Items.Count == 0 || loaded >= list.Total)
-                {
-                    break;
-                }
-
-                page++;
-            }
-
-            var dueWatches = await _syncService.GetDueBillWatchesAsync("listupout", 200, ct).ConfigureAwait(false);
-            if (dueWatches.Count > 0)
-            {
-                AddAutoLog("待确认补偿", $"发现待确认单据 {dueWatches.Count} 条，开始补偿重查", TraceEntryState.Info);
-                foreach (var watch in dueWatches)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    if (!processedBillCodes.Add(watch.BillCode))
-                    {
-                        continue;
-                    }
-
-                    processedBills++;
-                    expectedBills = Math.Max(expectedBills, processedBills + 1);
-                    SetAutoProgress(
-                        60 + Math.Min(20, processedBills * (20d / Math.Max(1, expectedBills))),
-                        $"补偿重查 {processedBills}/{Math.Max(1, expectedBills)}：{watch.BillCode}");
-
-                    _ = await TryIngestBillDetailAsync(
-                        billCode: watch.BillCode,
-                        fromRefUserId: watch.FromRefUserId,
-                        fromEntName: watch.FromEntName,
-                        toRefUserId: watch.ToRefUserId,
-                        billType: watch.BillType,
-                        billTime: watch.BillTime,
-                        billUploadTime: watch.BillUploadTime,
-                        rawJson: watch.RawJson ?? "{}",
-                        fromRetry: false,
-                        fromWatch: true,
-                        watchStatus: watch.LastSeenStatus).ConfigureAwait(false);
-                }
-
-                await RefreshPullPanelAsync(ct).ConfigureAwait(false);
-            }
-
-            var swMap = Stopwatch.StartNew();
-            var mapBefore = await _syncService.GetMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
-            AddAutoLog(
-                "映射自检",
-                $"执行前 PENDING {mapBefore.PendingCount}，MAPPED {mapBefore.MappedCount}，NEED_REVIEW {mapBefore.NeedReviewCount}，FAILED {mapBefore.FailedCount}，TOTAL {mapBefore.TotalCount}",
-                TraceEntryState.Info);
-
-            MsfxBuildInject taskResult = new(0, 0);
-            if (IsManualMsfxWriteActive)
-            {
-                AddAutoLog("自动巡检", "手动敏感操作进行中，跳过映射与建任务", TraceEntryState.Info);
-                SetAutoProgress(96, "跳过映射与建任务");
-            }
-            else if (!await RequireUnlockAsync(
-                    SensitiveOpKind.MsfxMappingApply,
-                    "自动映射",
-                    batchId > 0 ? $"batch:{batchId}" : "auto-run",
-                    "auto mapping apply before task build",
-                    ct).ConfigureAwait(false))
-            {
-                throw new InvalidOperationException("MSFX 自动映射未解锁，已停止在映射写入前");
-            }
-            else
-            {
-                var map = await _syncService.ApplyMappingAsync(50000, ct).ConfigureAwait(false);
-                var mapAfter = await _syncService.GetMappingStatusSnapshotAsync(ct).ConfigureAwait(false);
-                mapMs += swMap.ElapsedMilliseconds;
-                SetAutoProgress(90, "执行自动映射");
-                var mapState = map.ProcessedCount == 0
-                    ? TraceEntryState.Warning
-                    : map.ReviewCount > 0 ? TraceEntryState.Warning : TraceEntryState.Success;
-                AddAutoLog("映射", $"处理 {map.ProcessedCount}，命中 {map.MappedCount}，待人工 {map.ReviewCount}", mapState);
-                LogInfo("msfx.auto.map.summary", "MSFX auto mapping finished", new
-                {
-                    map.ProcessedCount,
-                    map.MappedCount,
-                    map.ReviewCount
-                });
-                AddAutoLog(
-                    "映射自检",
-                    $"执行后 PENDING {mapAfter.PendingCount}，MAPPED {mapAfter.MappedCount}，NEED_REVIEW {mapAfter.NeedReviewCount}，FAILED {mapAfter.FailedCount}，TOTAL {mapAfter.TotalCount}",
-                    map.ProcessedCount == 0 ? TraceEntryState.Warning : TraceEntryState.Success);
-                await RefreshMapPanelAsync(ct).ConfigureAwait(false);
-
-                var swTask = Stopwatch.StartNew();
-                taskResult = await _syncService.BuildInjectsAsync(500, ct).ConfigureAwait(false);
-                taskBuildMs += swTask.ElapsedMilliseconds;
-                SetAutoProgress(96, "构建注入任务");
-                var taskState = taskResult.CreatedTasks > 0 ? TraceEntryState.Success : TraceEntryState.Warning;
-                AddAutoLog("建任务", $"创建任务 {taskResult.CreatedTasks}，下发码 {taskResult.TaskedCodes}", taskState);
-                LogInfo("msfx.auto.task_build.summary", "MSFX inject tasks built", new
-                {
-                    taskResult.CreatedTasks,
-                    taskResult.TaskedCodes
-                });
-                await RefreshTaskPanelAsync(ct).ConfigureAwait(false);
-            }
-
-            var batchStatus = failCount > 0 ? "FAILED" : "SUCCESS";
-            await _syncService.FinishPullBatchAsync(batchId, batchStatus, succeedCount, failCount, null, CancellationToken.None)
-                .ConfigureAwait(false);
-            await _syncService.AdvancePullCursorAsync("listupout", window.BeginAt, window.EndAt, batchId, batchStatus, CancellationToken.None)
-                .ConfigureAwait(false);
-            batchFinalized = true;
-            await RefreshPullPanelAsync(ct).ConfigureAwait(false);
-
-            SetAutoProgress(100, "巡检完成");
-            AutoStatus = $"自动化拉取完成：API {totalApiRows}，已入库 {totalInboundRows}，单据 {totalBills}，码 {detailSubCodes}，重试成功 {retrySucceededCount}，重试失败 {retryFailedCount}，重试入队 {retryQueuedCount}，待确认入池 {watchQueuedCount}，补偿成功 {watchResolvedCount}，补偿延后 {watchDeferredCount}，新增任务 {taskResult.CreatedTasks}";
-
-            AddAutoLog(
-                "性能",
-                $"总耗时 {FormatElapsed(swTotal.Elapsed)}，列表API {FormatElapsed(listApiMs)}，详情API {FormatElapsed(detailApiMs)}，入库 {FormatElapsed(ingestMs)}，映射 {FormatElapsed(mapMs)}，建任务 {FormatElapsed(taskBuildMs)}",
-                TraceEntryState.Info);
+            SetAutoProgress(100, BuildAutoRunStatus(result));
             LogInfo("msfx.auto.run.finish", "MSFX auto run finished", new
             {
-                batchId,
-                totalApiRows,
-                totalInboundRows,
-                totalBills,
-                detailSubCodes,
-                retryQueuedCount,
-                retrySucceededCount,
-                retryFailedCount,
-                watchQueuedCount,
-                watchResolvedCount,
-                watchDeferredCount,
-                createdTasks = taskResult.CreatedTasks,
-                taskedCodes = taskResult.TaskedCodes,
-                elapsedMs = swTotal.ElapsedMilliseconds
+                result.BatchId,
+                result.ApiRows,
+                result.InboundRows,
+                result.Bills,
+                result.Codes,
+                result.RetryQueued,
+                result.RetrySucceeded,
+                result.RetryFailed,
+                result.WatchQueued,
+                result.WatchResolved,
+                result.WatchDeferred,
+                result.MapProcessed,
+                result.MapMatched,
+                result.MapReview,
+                result.CreatedTasks,
+                result.TaskedCodes,
+                result.ElapsedMs
             });
-            _toast.Success("码上放心自动化", $"完成：下发任务 {taskResult.CreatedTasks}，下发码 {taskResult.TaskedCodes}");
+            _toast.Success("码上放心自动化", $"完成：下发任务 {result.CreatedTasks}，下发码 {result.TaskedCodes}");
         }
         catch (OperationCanceledException)
         {
@@ -498,19 +78,9 @@ public sealed partial class MsfxLink : AppPageBase
         }
         catch (Exception ex)
         {
-            batchErrMsg = ex.Message;
-            SetAutoProgress(100, $"巡检失败：{ex.Message}");
-
+            SetAutoProgress(100, $"自动化拉取异常：{ex.Message}");
             AddAutoLog("异常", ex.Message, TraceEntryState.Failed);
-            LogError("msfx.auto.run.fail", "MSFX auto run failed", ex, new
-            {
-                batchId,
-                windowBeginAt = window?.BeginAt,
-                windowEndAt = window?.EndAt,
-                succeedCount,
-                failCount
-            });
-            AutoStatus = $"自动化拉取异常：{ex.Message}";
+            LogError("msfx.auto.run.fail", "MSFX auto run failed", ex);
             if (CanToastError(ex))
             {
                 _toast.Error("自动化监控", ex.Message);
@@ -518,34 +88,52 @@ public sealed partial class MsfxLink : AppPageBase
         }
         finally
         {
-            if (batchId > 0 && !batchFinalized)
-            {
-                try
-                {
-                    await _syncService.FinishPullBatchAsync(
-                        batchId,
-                        "FAILED",
-                        succeedCount,
-                        Math.Max(failCount, 1),
-                        string.IsNullOrWhiteSpace(batchErrMsg) ? "执行失败，详见运行日志" : batchErrMsg,
-                        CancellationToken.None).ConfigureAwait(false);
-                }
-                catch (Exception finalizeEx)
-                {
-                    AddAutoLog("批次结算", $"批次#{batchId} 状态回写失败：{finalizeEx.Message}", TraceEntryState.Failed);
-                    LogError("msfx.auto.batch_finalize.fail", "MSFX batch finalize failed", finalizeEx, new
-                    {
-                        batchId,
-                        succeedCount,
-                        failCount,
-                        batchErrMsg
-                    });
-                }
-            }
-
             await RefreshAutoBoardAsync().ConfigureAwait(false);
         }
     }
+
+    private sealed class AutoRunObserver(MsfxLink owner) : IMsfxAutoRunObserver
+    {
+        public bool IsManualWriteActive => owner.IsManualMsfxWriteActive;
+
+        public void Report(MsfxAutoRunUpdate update)
+        {
+            if (update.Progress is { } progress && update.Status is { } status)
+            {
+                owner.SetAutoProgress(progress, status);
+            }
+
+            if (update.Stage is { } stage
+                && update.Message is { } message
+                && update.State is { } state)
+            {
+                owner.AddAutoLog(stage, message, state);
+            }
+        }
+
+        public Task DataChangedAsync(MsfxAutoRunData data, CancellationToken ct)
+            => data switch
+            {
+                MsfxAutoRunData.PullAudit => owner.RefreshPullPanelAsync(ct),
+                MsfxAutoRunData.MappingQueue => owner.RefreshMapPanelAsync(ct),
+                MsfxAutoRunData.TaskQueue => owner.RefreshTaskPanelAsync(ct),
+                _ => Task.CompletedTask
+            };
+
+        public Task<bool> AuthorizeMappingAsync(long batchId, CancellationToken ct)
+            => owner.RequireUnlockAsync(
+                SensitiveOpKind.MsfxMappingApply,
+                "自动映射",
+                batchId > 0 ? $"batch:{batchId}" : "auto-run",
+                "auto mapping apply before task build",
+                ct);
+    }
+
+    private static string BuildAutoRunStatus(MsfxAutoRunResult result)
+        => $"自动化拉取完成：API {result.ApiRows}，已入库 {result.InboundRows}，单据 {result.Bills}，码 {result.Codes}，" +
+           $"重试成功 {result.RetrySucceeded}，重试失败 {result.RetryFailed}，重试入队 {result.RetryQueued}，" +
+           $"待确认入池 {result.WatchQueued}，补偿成功 {result.WatchResolved}，补偿延后 {result.WatchDeferred}，" +
+           $"新增任务 {result.CreatedTasks}";
 
     [RelayCommand]
     private void ClearAutoLogs()
@@ -2432,12 +2020,6 @@ public sealed partial class MsfxLink : AppPageBase
         var finished = snap.LastBatchFinishedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--";
         return $"批次 #{snap.LastBatchId} · {status} · 成功 {snap.LastBatchSuccessCount} / 失败 {snap.LastBatchFailCount}\n开始 {started} · 结束 {finished}";
     }
-
-    private static string FormatElapsed(TimeSpan elapsed)
-        => $"{elapsed.TotalSeconds:F2}s";
-
-    private static string FormatElapsed(long elapsedMs)
-        => $"{elapsedMs / 1000d:F2}s";
 
     private static TraceEntryState ToBatchState(string status)
         => (status ?? string.Empty).Trim().ToUpperInvariant() switch

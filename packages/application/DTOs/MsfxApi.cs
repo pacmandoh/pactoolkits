@@ -1,5 +1,16 @@
 namespace PacToolkits.Application.DTOs;
 
+public sealed class MsfxApiOptions
+{
+    public string GatewayUrl { get; set; } = "https://eco.taobao.com/router/rest";
+    public string AppKey { get; set; } = string.Empty;
+    public string AppSecret { get; set; } = string.Empty;
+    public string SessionToken { get; set; } = string.Empty;
+    public string RefEntId { get; set; } = string.Empty;
+    public string DefaultMethod { get; set; } = string.Empty;
+    public int TimeoutSeconds { get; set; } = 20;
+}
+
 public sealed record MsfxApiCallResult(
     bool Ok,
     int? HttpStatusCode,

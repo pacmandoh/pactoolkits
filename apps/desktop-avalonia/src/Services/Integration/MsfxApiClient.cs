@@ -8,29 +8,10 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Integration;
-
-public interface IMsfxApiClient
-{
-    Task<MsfxApiCallResult> ExecuteRawAsync(
-        MsfxApiOptions options,
-        string method,
-        IReadOnlyDictionary<string, string?> bizParams,
-        CancellationToken ct);
-
-    Task<MsfxListUpoutResult> GetYljgListUpoutAsync(
-        MsfxApiOptions options,
-        MsfxListUpoutRequest request,
-        CancellationToken ct);
-
-    Task<MsfxListUpoutDetailResult> GetYljgListUpoutDetailAsync(
-        MsfxApiOptions options,
-        MsfxListUpoutDetailRequest request,
-        CancellationToken ct);
-}
 
 public sealed class MsfxApiClient : IMsfxApiClient
 {
