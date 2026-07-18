@@ -1,5 +1,5 @@
 ﻿<UserControl
-  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.SettingsView"
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.Settings"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
@@ -991,6 +991,61 @@
                   Maximum="120"
                   Minimum="3"
                   Value="{Binding MsfxTimeoutSeconds}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H2">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                  <TextBlock
+                    VerticalAlignment="Center"
+                    Classes="Large H2Text"
+                    Text="拉取游标" />
+                  <controls:StatusPill
+                    Classes="ToneWarning15"
+                    Icon="History"
+                    Text="高级操作" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Classes="H2Actions">
+                  <Button
+                    Classes="Outline"
+                    Command="{Binding RefreshMsfxCursorCommand}"
+                    Content="刷新"
+                    IsEnabled="{Binding !IsMsfxCursorBusy}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="手动前移游标" />
+                  <TextBlock
+                    Classes="Caption Muted FieldDesc"
+                    Text="{Binding MsfxCursorCurrentText}"
+                    TextWrapping="Wrap" />
+                </StackPanel>
+                <Grid
+                  Grid.Column="1"
+                  ColumnDefinitions="*,Auto"
+                  ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                  <CalendarDatePicker
+                    VerticalAlignment="Center"
+                    DisplayDateEnd="{Binding MsfxCursorMaxDate}"
+                    IsTodayHighlighted="True"
+                    SelectedDate="{Binding MsfxCursorTargetDate}"
+                    SelectedDateFormat="Short" />
+                  <Button
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Classes="Outline"
+                    Command="{Binding AdvanceMsfxCursorCommand}"
+                    Content="跳过至该日"
+                    IsEnabled="{Binding !IsMsfxCursorBusy}" />
+                </Grid>
               </Grid>
             </Border>
           </StackPanel>

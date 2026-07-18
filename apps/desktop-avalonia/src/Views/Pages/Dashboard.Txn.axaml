@@ -1,0 +1,191 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardTxn"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:Dashboard"
+  mc:Ignorable="d">
+  <UserControl.Resources>
+    <conv:BadgeToIconKindConverter x:Key="BadgeToIconKind" />
+    <conv:BadgeToFgBrushConverter x:Key="BadgeToFgBrush" />
+    <conv:BadgeToBgBrushConverter x:Key="BadgeToBgBrush" />
+  </UserControl.Resources>
+
+  <Grid Classes="DashboardContent" RowDefinitions="*">
+    <controls:CardPanel
+      Title="{Binding TxnPanelMode.Title}"
+      Grid.Row="0"
+      AccentBrush="{DynamicResource SuccessColor}"
+      Classes="FlushBody TabSection">
+      <controls:CardPanel.HeaderContent>
+        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+          <ComboBox
+            Width="120"
+            VerticalAlignment="Center"
+            ItemsSource="{Binding TxnPanelModes}"
+            SelectedItem="{Binding TxnPanelMode}" />
+          <Button
+            VerticalAlignment="Center"
+            Classes="Outline"
+            Command="{Binding OpenAbnormalCommand}"
+            Content="查看异常" />
+        </StackPanel>
+      </controls:CardPanel.HeaderContent>
+      <Grid RowDefinitions="*,Auto">
+        <controls:EmptyStatePanel
+          Grid.Row="0"
+          MinHeight="0"
+          EmptyHint="{Binding TxnPanelEmptyHint}"
+          EmptyText="{Binding TxnPanelEmptyText}"
+          Icon="{Binding SectionEmptyIcon}"
+          IsEmpty="{Binding IsTxnPanelEmpty}"
+          IsPending="{Binding IsSectionPending}"
+          SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
+          SlotMode="PendingOnly">
+          <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
+            <Grid MinHeight="0">
+              <controls:DeferredGridSlot
+                x:Name="TxnDetailGridSlot"
+                PagerPageIndex="{Binding TxnPageIndex}"
+                SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
+                SlotName="TxnDetailGrid">
+                <controls:DeferredGridSlot.GridTemplate>
+                  <DataTemplate x:DataType="vm:Dashboard">
+                    <DataGrid
+                      MinHeight="0"
+                      HorizontalAlignment="Stretch"
+                      CanUserResizeColumns="True"
+                      Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
+                      HorizontalScrollBarVisibility="Disabled"
+                      IsVisible="{Binding IsTxnPanelDetailMode}"
+                      ItemsSource="{Binding RecentTxns}"
+                      RowHeight="{StaticResource RowMinHeight}"
+                      SelectedItem="{Binding SelectedTxn}"
+                      SelectionMode="Extended"
+                      VerticalScrollBarVisibility="Auto">
+                      <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="{StaticResource DgWIcon}" Header="状态">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                              <Border
+                                Width="{DynamicResource IconBadgeSize}"
+                                Height="{DynamicResource IconBadgeSize}"
+                                Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                Classes="DgStatusBadge"
+                                CornerRadius="{DynamicResource LgCornerRadius}">
+                                <icons:AppIcon
+                                  Width="{DynamicResource IconSizeDefault}"
+                                  Height="{DynamicResource IconSizeDefault}"
+                                  Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
+                                  Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
+                              </Border>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn
+                          Width="1.9*"
+                          Binding="{Binding Title}"
+                          Header="标题" />
+                        <DataGridTextColumn
+                          Width="1.2*"
+                          Binding="{Binding ClientDisplay}"
+                          Header="客户端" />
+                        <DataGridTextColumn
+                          Width="1.1*"
+                          Binding="{Binding Time}"
+                          Header="时间" />
+                        <DataGridTextColumn
+                          Width="100"
+                          Binding="{Binding Qty}"
+                          Header="数量" />
+                      </DataGrid.Columns>
+                    </DataGrid>
+                  </DataTemplate>
+                </controls:DeferredGridSlot.GridTemplate>
+              </controls:DeferredGridSlot>
+
+              <controls:DeferredGridSlot
+                x:Name="TxnTrendGridSlot"
+                PagerPageIndex="{Binding TxnTrendPageIndex}"
+                SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
+                SlotName="TxnTrendGrid">
+                <controls:DeferredGridSlot.GridTemplate>
+                  <DataTemplate x:DataType="vm:Dashboard">
+                    <DataGrid
+                      MinHeight="0"
+                      HorizontalAlignment="Stretch"
+                      CanUserResizeColumns="True"
+                      Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
+                      HorizontalScrollBarVisibility="Disabled"
+                      IsVisible="{Binding IsTxnPanelTrendMode}"
+                      ItemsSource="{Binding TxnTrendRows}"
+                      RowHeight="{StaticResource RowMinHeight}"
+                      SelectedItem="{Binding SelectedTrendItem}"
+                      SelectionMode="Extended"
+                      VerticalScrollBarVisibility="Auto">
+                      <DataGrid.Columns>
+                        <DataGridTextColumn
+                          Width="1.2*"
+                          Binding="{Binding Name}"
+                          Header="药品" />
+                        <DataGridTextColumn
+                          Width="1.35*"
+                          Binding="{Binding Sub}"
+                          Header="规格" />
+                        <DataGridTextColumn
+                          Width="1.75*"
+                          Binding="{Binding SourceText}"
+                          Header="来源" />
+                        <DataGridTextColumn
+                          Width="{StaticResource DgWUsage}"
+                          Binding="{Binding ValueText}"
+                          Header="用量" />
+                      </DataGrid.Columns>
+                    </DataGrid>
+                  </DataTemplate>
+                </controls:DeferredGridSlot.GridTemplate>
+              </controls:DeferredGridSlot>
+            </Grid>
+          </shad:BusyArea>
+        </controls:EmptyStatePanel>
+
+        <controls:DataGridPager
+          Grid.Row="1"
+          Classes="CardPanelBodyInset"
+          FirstPageCommand="{Binding FirstTxnPageCommand}"
+          IsActive="{Binding IsTxnPanelDetailMode}"
+          IsContentEmpty="{Binding IsRecentTxnsEmpty}"
+          LastPageCommand="{Binding LastTxnPageCommand}"
+          NextPageCommand="{Binding NextTxnPageCommand}"
+          PageSizeOptions="{Binding TabPageSizeOptions}"
+          PrevPageCommand="{Binding PrevTxnPageCommand}"
+          SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
+          TotalCount="{Binding TxnTotalCount}"
+          TotalPages="{Binding TxnTotalPages}"
+          PageIndex="{Binding TxnPageIndex}" />
+
+        <controls:DataGridPager
+          Grid.Row="1"
+          Classes="CardPanelBodyInset"
+          FirstPageCommand="{Binding FirstTxnTrendPageCommand}"
+          IsActive="{Binding IsTxnPanelTrendMode}"
+          IsContentEmpty="{Binding IsTxnTrendEmpty}"
+          LastPageCommand="{Binding LastTxnTrendPageCommand}"
+          NextPageCommand="{Binding NextTxnTrendPageCommand}"
+          PageSizeOptions="{Binding TabPageSizeOptions}"
+          PrevPageCommand="{Binding PrevTxnTrendPageCommand}"
+          SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
+          TotalCount="{Binding TxnTrendTotalCount}"
+          TotalPages="{Binding TxnTrendTotalPages}"
+          PageIndex="{Binding TxnTrendPageIndex}" />
+      </Grid>
+    </controls:CardPanel>
+  </Grid>
+
+</UserControl>

@@ -1,0 +1,139 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardInput"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:Dashboard"
+  mc:Ignorable="d">
+  <UserControl.Resources>
+    <conv:DgQtyFontSizeConverter x:Key="AdaptiveQtyFontSize" />
+  </UserControl.Resources>
+
+  <Grid Classes="DashboardContent" RowDefinitions="*">
+    <controls:CardPanel
+      Title="录入追溯码情况"
+      Grid.Row="0"
+      AccentBrush="{DynamicResource InfoColor}"
+      Classes="FlushBody TabSection">
+      <controls:CardPanel.HeaderContent>
+        <Button
+          VerticalAlignment="Center"
+          Classes="Outline"
+          Command="{Binding OpenOverviewTabCommand}"
+          Content="回总览" />
+      </controls:CardPanel.HeaderContent>
+      <Grid RowDefinitions="*,Auto">
+        <controls:EmptyStatePanel
+          Grid.Row="0"
+          MinHeight="0"
+          EmptyHint="{Binding EntryRecentEmptyHint}"
+          EmptyText="{Binding EntryRecentEmptyText}"
+          Icon="{Binding SectionEmptyIcon}"
+          IsEmpty="{Binding IsEntryRecentEmpty}"
+          IsPending="{Binding IsSectionPending}"
+          SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
+          SlotMode="PendingOnly">
+          <shad:BusyArea IsBusy="{Binding IsEntryBusy}">
+            <controls:DeferredGridSlot
+              x:Name="EntryGridSlot"
+              PagerPageIndex="{Binding EntryPageIndex}"
+              SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
+              SlotName="EntryRecentGridInputTab">
+              <controls:DeferredGridSlot.GridTemplate>
+                <DataTemplate x:DataType="vm:Dashboard">
+                  <DataGrid
+                    MinHeight="0"
+                    HorizontalAlignment="Stretch"
+                    CanUserResizeColumns="True"
+                    Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
+                    HorizontalScrollBarVisibility="Disabled"
+                    ItemsSource="{Binding EntryRecent}"
+                    RowHeight="{StaticResource RowMinHeight}"
+                    SelectedItem="{Binding SelectedEntryRecent}"
+                    SelectionMode="Extended"
+                    VerticalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn Width="{StaticResource DgWIcon}" Header="状态">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Border
+                              Width="{DynamicResource IconBadgeSize}"
+                              Height="{DynamicResource IconBadgeSize}"
+                              Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                              Classes="DgStatusBadge"
+                              CornerRadius="{DynamicResource LgCornerRadius}">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeDefault}"
+                                Height="{DynamicResource IconSizeDefault}"
+                                Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                            </Border>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTextColumn
+                        Width="120"
+                        Binding="{Binding EntryAtText}"
+                        Header="时间" />
+                      <DataGridTextColumn
+                        Width="1.5*"
+                        Binding="{Binding DrugId}"
+                        Header="药品" />
+                      <DataGridTextColumn
+                        Width="1.2*"
+                        Binding="{Binding Spec}"
+                        Header="规格" />
+                      <DataGridTemplateColumn Width="90" Header="数量">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <TextBlock
+                              Classes="DgQtyCell"
+                              FontSize="{Binding Qty, Converter={StaticResource AdaptiveQtyFontSize}}"
+                              Text="{Binding Qty}" />
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTextColumn
+                        Width="110"
+                        Binding="{Binding Source}"
+                        Header="来源" />
+                      <DataGridTextColumn
+                        Width="1.4*"
+                        Binding="{Binding ClientDisplay}"
+                        Header="客户端" />
+                      <DataGridTextColumn
+                        Width="2.2*"
+                        Binding="{Binding Message}"
+                        Header="说明" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </DataTemplate>
+              </controls:DeferredGridSlot.GridTemplate>
+            </controls:DeferredGridSlot>
+          </shad:BusyArea>
+        </controls:EmptyStatePanel>
+
+        <controls:DataGridPager
+          Grid.Row="1"
+          Classes="CardPanelBodyInset"
+          FirstPageCommand="{Binding FirstEntryPageCommand}"
+          IsContentEmpty="{Binding IsEntryRecentEmpty}"
+          LastPageCommand="{Binding LastEntryPageCommand}"
+          NextPageCommand="{Binding NextEntryPageCommand}"
+          PageSizeOptions="{Binding TabPageSizeOptions}"
+          PrevPageCommand="{Binding PrevEntryPageCommand}"
+          SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
+          TotalCount="{Binding EntryTotalCount}"
+          TotalPages="{Binding EntryTotalPages}"
+          PageIndex="{Binding EntryPageIndex}" />
+      </Grid>
+    </controls:CardPanel>
+  </Grid>
+
+</UserControl>

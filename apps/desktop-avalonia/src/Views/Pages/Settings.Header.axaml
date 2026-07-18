@@ -1,0 +1,16 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.SettingsHeader"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:Settings"
+  Classes="PageHeaderContent">
+  <Grid ColumnDefinitions="Auto,Auto,*">
+    <Rectangle Grid.Column="1" Classes="HeaderDivider" />
+    <TextBlock
+      Grid.Column="2"
+      VerticalAlignment="Center"
+      Classes="Small Muted"
+      Text="{Binding DisplayName}" />
+  </Grid>
+</UserControl>

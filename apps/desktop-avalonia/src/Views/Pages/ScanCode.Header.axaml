@@ -1,0 +1,85 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ScanCodeHeader"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:ScanCode"
+  Classes="PageHeaderContent">
+  <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+    <Rectangle Grid.Column="1" Classes="HeaderDivider" />
+    <StackPanel
+      Grid.Column="2"
+      Classes="HeaderTitleRail"
+      Orientation="Horizontal">
+      <TextBlock Classes="Small Muted" Text="{Binding DisplayName}" />
+      <icons:AppIcon Classes="HeaderTitleChevron" Kind="ChevronRight" />
+      <TabControl
+        shad:TabControlBehaviors.UseSlidingPill="True"
+        Classes="DashboardTabHeaders"
+        SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="Keyboard" />
+              <TextBlock Text="手动录入" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="Cloud" />
+              <TextBlock Text="自动拉取" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+      </TabControl>
+    </StackPanel>
+    <StackPanel
+      Grid.Column="3"
+      VerticalAlignment="Center"
+      IsVisible="{Binding IsAutoFetchTab}"
+      Orientation="Horizontal"
+      Spacing="{DynamicResource SpacingInlineSm}">
+      <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="7">
+        <TextBlock
+          VerticalAlignment="Center"
+          Classes="Caption Muted"
+          Text="启用调度" />
+        <ToggleSwitch
+          Grid.Column="1"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          IsChecked="{Binding IsAutoFetchEnabled, Mode=TwoWay}" />
+      </Grid>
+      <Menu Classes="HeaderMenu">
+        <MenuItem Command="{Binding StartAutoFetchCommand}">
+          <MenuItem.Header>
+            <StackPanel Classes="HeaderMenuItem">
+              <icons:AppIcon Kind="Play" />
+              <TextBlock Text="启动" />
+            </StackPanel>
+          </MenuItem.Header>
+        </MenuItem>
+        <MenuItem Command="{Binding StopAutoFetchCommand}">
+          <MenuItem.Header>
+            <StackPanel Classes="HeaderMenuItem">
+              <icons:AppIcon Kind="Square" />
+              <TextBlock Text="停止" />
+            </StackPanel>
+          </MenuItem.Header>
+        </MenuItem>
+        <MenuItem Command="{Binding OpenAutoFetchSettingsCommand}">
+          <MenuItem.Header>
+            <StackPanel Classes="HeaderMenuItem">
+              <icons:AppIcon Kind="SlidersHorizontal" />
+              <TextBlock Text="拉取策略" />
+            </StackPanel>
+          </MenuItem.Header>
+        </MenuItem>
+      </Menu>
+    </StackPanel>
+  </Grid>
+</UserControl>

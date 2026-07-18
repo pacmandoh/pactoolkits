@@ -1244,6 +1244,8 @@ public sealed partial class InventoryOverview : AppPageBase
         OnPropertyChanged(nameof(CanDisableStockEdit));
         OnPropertyChanged(nameof(ShowUnlock));
         OnPropertyChanged(nameof(ShowLock));
+        OnPropertyChanged(nameof(ShowOpenReassign));
+        OnPropertyChanged(nameof(ShowCloseReassign));
         OnPropertyChanged(nameof(CanToggleReassign));
         OnPropertyChanged(nameof(EditStateText));
         OnPropertyChanged(nameof(ShowEditState));

@@ -1,0 +1,133 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardAbnormal"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:Dashboard"
+  mc:Ignorable="d">
+  <UserControl.Resources>
+    <conv:BadgeToIconKindConverter x:Key="BadgeToIconKind" />
+    <conv:BadgeToFgBrushConverter x:Key="BadgeToFgBrush" />
+    <conv:BadgeToBgBrushConverter x:Key="BadgeToBgBrush" />
+  </UserControl.Resources>
+
+  <Grid Classes="DashboardContent" RowDefinitions="*">
+    <controls:CardPanel
+      Title="异常事务队列"
+      Grid.Row="0"
+      AccentBrush="{DynamicResource WarningColor}"
+      Classes="FlushBody TabSection">
+      <controls:CardPanel.HeaderContent>
+        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+          <Button
+            VerticalAlignment="Center"
+            Classes="Outline"
+            Command="{Binding OpenTxnListCommand}"
+            Content="查看事务" />
+          <Button
+            VerticalAlignment="Center"
+            Classes="Primary"
+            Command="{Binding GoInputTabCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSmall}"
+                Height="{DynamicResource IconSizeSmall}"
+                Kind="ScanBarcode" />
+              <TextBlock Text="去录入" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </controls:CardPanel.HeaderContent>
+      <Grid RowDefinitions="*,Auto">
+        <controls:EmptyStatePanel
+          Grid.Row="0"
+          MinHeight="0"
+          EmptyHint="{Binding AbnormalEmptyHint}"
+          EmptyText="{Binding AbnormalEmptyText}"
+          Icon="{Binding SectionEmptyIcon}"
+          IsEmpty="{Binding IsAbnormalEmpty}"
+          IsPending="{Binding IsSectionPending}"
+          SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
+          SlotMode="PendingOnly">
+          <shad:BusyArea IsBusy="{Binding IsAbnormalBusy}">
+            <controls:DeferredGridSlot
+              x:Name="AbnormalGridSlot"
+              PagerPageIndex="{Binding AbnormalPageIndex}"
+              SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
+              SlotName="AbnormalGrid">
+              <controls:DeferredGridSlot.GridTemplate>
+                <DataTemplate x:DataType="vm:Dashboard">
+                  <DataGrid
+                    MinHeight="0"
+                    HorizontalAlignment="Stretch"
+                    CanUserResizeColumns="True"
+                    Classes="SectionGrid IndexedGrid StickyIndexDisplayIndex"
+                    HorizontalScrollBarVisibility="Disabled"
+                    ItemsSource="{Binding AbnormalQueue}"
+                    RowHeight="{StaticResource RowMinHeight}"
+                    SelectedItem="{Binding SelectedAbnormal}"
+                    SelectionMode="Extended"
+                    VerticalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn Width="{StaticResource DgWIcon}" Header="状态">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Border
+                              Width="{DynamicResource IconBadgeSize}"
+                              Height="{DynamicResource IconBadgeSize}"
+                              Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                              Classes="DgStatusBadge"
+                              CornerRadius="{DynamicResource LgCornerRadius}">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeDefault}"
+                                Height="{DynamicResource IconSizeDefault}"
+                                Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
+                                Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
+                            </Border>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTextColumn
+                        Width="180"
+                        Binding="{Binding Title}"
+                        Header="类型" />
+                      <DataGridTextColumn
+                        Width="1.1*"
+                        Binding="{Binding ClientDisplay}"
+                        Header="客户端" />
+                      <DataGridTextColumn
+                        Width="2*"
+                        Binding="{Binding Detail}"
+                        Header="详情" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </DataTemplate>
+              </controls:DeferredGridSlot.GridTemplate>
+            </controls:DeferredGridSlot>
+          </shad:BusyArea>
+        </controls:EmptyStatePanel>
+
+        <controls:DataGridPager
+          Grid.Row="1"
+          Classes="CardPanelBodyInset"
+          FirstPageCommand="{Binding FirstAbnormalPageCommand}"
+          IsContentEmpty="{Binding IsAbnormalEmpty}"
+          LastPageCommand="{Binding LastAbnormalPageCommand}"
+          NextPageCommand="{Binding NextAbnormalPageCommand}"
+          PageSizeOptions="{Binding TabPageSizeOptions}"
+          PrevPageCommand="{Binding PrevAbnormalPageCommand}"
+          SelectedPageSize="{Binding TabPageSize, Mode=TwoWay}"
+          TotalCount="{Binding AbnormalTotalCount}"
+          TotalPages="{Binding AbnormalTotalPages}"
+          PageIndex="{Binding AbnormalPageIndex}" />
+      </Grid>
+    </controls:CardPanel>
+  </Grid>
+
+</UserControl>

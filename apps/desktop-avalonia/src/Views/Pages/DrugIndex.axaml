@@ -1,5 +1,5 @@
 ﻿<UserControl
-  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DrugIndexView"
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DrugIndex"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"

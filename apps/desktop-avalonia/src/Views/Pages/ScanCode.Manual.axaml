@@ -1,0 +1,360 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ScanCodeManual"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:ScanCode"
+  Classes="ScanCodePage"
+  mc:Ignorable="d">
+  <UserControl.Resources>
+    <conv:ContextStatusToBrushConverter x:Key="ContextStatusToBrush" />
+    <conv:HighlightFilterActiveConverter x:Key="HighlightFilterActive" />
+  </UserControl.Resources>
+
+  <Grid
+    MinHeight="0"
+    Classes="DashboardLayout"
+    RowDefinitions="Auto,*">
+    <ContentControl Grid.Row="0" Classes="FilterBarChrome">
+      <Grid Classes="FilterBarColumns" ColumnDefinitions="1.1*,Auto,0.95*,Auto,0.55*">
+        <Grid
+          Grid.Column="0"
+          Classes="FilterBarColumn"
+          ColumnDefinitions="Auto,*,Auto">
+          <TextBlock
+            Grid.Column="0"
+            Classes="Caption Muted"
+            Text="药品" />
+          <AutoCompleteBox
+            x:Name="DrugBox"
+            Grid.Column="1"
+            HorizontalAlignment="Stretch"
+            IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
+            ItemsSource="{Binding DrugOptions}"
+            KeyDown="DrugBox_OnKeyDown"
+            PlaceholderText="输入药品名并回车"
+            Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}">
+            <AutoCompleteBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:OptionItem">
+                <TextBlock Text="{Binding Display}" />
+              </DataTemplate>
+            </AutoCompleteBox.ItemTemplate>
+          </AutoCompleteBox>
+          <Button
+            Grid.Column="2"
+            Classes="MicroClear DrugAutoCompleteClear"
+            Command="{Binding ClearDrugSpecFilterCommand}">
+            <icons:AppIcon
+              Width="{DynamicResource IconSizeSmall}"
+              Height="{DynamicResource IconSizeSmall}"
+              Kind="CircleX" />
+          </Button>
+        </Grid>
+
+        <Border Grid.Column="1" Classes="FilterBarDivider" />
+
+        <Grid
+          Grid.Column="2"
+          Classes="FilterBarColumn"
+          ColumnDefinitions="Auto,*">
+          <TextBlock
+            Grid.Column="0"
+            Classes="Caption Muted"
+            Text="规格" />
+          <controls:FilterFieldInput Grid.Column="1">
+            <Grid>
+              <ComboBox
+                x:Name="SpecBox"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                DisplayMemberBinding="{Binding Display}"
+                ItemsSource="{Binding SpecOptions}"
+                SelectedItem="{Binding SelectedSpec}" />
+              <TextBlock
+                Classes="InputPlaceholder"
+                IsVisible="{Binding !IsSpecSelected}"
+                Text="请选择规格" />
+            </Grid>
+          </controls:FilterFieldInput>
+        </Grid>
+
+        <Border Grid.Column="3" Classes="FilterBarDivider" />
+
+        <Grid
+          Grid.Column="4"
+          Classes="FilterBarColumn"
+          ColumnDefinitions="Auto,*">
+          <TextBlock
+            Grid.Column="0"
+            Classes="Caption Muted"
+            Text="单条数量" />
+          <controls:FilterFieldInput Grid.Column="1">
+            <Grid>
+              <TextBox IsEnabled="False" Text="{Binding SelectedQtyText, Mode=OneWay}" />
+              <TextBlock
+                Classes="InputPlaceholder"
+                IsVisible="{Binding !IsSpecSelected}"
+                Text="自动" />
+            </Grid>
+          </controls:FilterFieldInput>
+        </Grid>
+      </Grid>
+    </ContentControl>
+
+    <Grid
+      Grid.Row="1"
+      MinHeight="0"
+      Margin="0">
+      <Grid
+        MinHeight="0"
+        Classes="DashboardContent"
+        RowDefinitions="Auto,*"
+        RowSpacing="{DynamicResource PagePanelSpacing}">
+        <Grid
+          Grid.Row="0"
+          ColumnDefinitions="*,*,*,*,*"
+          ColumnSpacing="{DynamicResource PagePanelSpacing}">
+          <controls:OverviewCard
+            Title="有效"
+            Grid.Column="0"
+            Classes="Success"
+            Command="{Binding SelectHighlightCommand}"
+            CommandParameter="valid"
+            Hint="通过校验，可提交入库；"
+            IsActive="{Binding HighlightFilter, Converter={StaticResource HighlightFilterActive}, ConverterParameter=valid}"
+            Value="{Binding ValidCodeCount}">
+            <controls:OverviewCard.Icon>
+              <icons:AppIcon Classes="OverviewCardIcon" Kind="CircleCheck" />
+            </controls:OverviewCard.Icon>
+          </controls:OverviewCard>
+          <controls:OverviewCard
+            Title="重复"
+            Grid.Column="1"
+            Classes="Warning"
+            Command="{Binding SelectHighlightCommand}"
+            CommandParameter="duplicate"
+            Hint="本次录入内重复行；"
+            IsActive="{Binding HighlightFilter, Converter={StaticResource HighlightFilterActive}, ConverterParameter=duplicate}"
+            Value="{Binding DuplicateCodeCount}">
+            <controls:OverviewCard.Icon>
+              <icons:AppIcon Classes="OverviewCardIcon" Kind="Copy" />
+            </controls:OverviewCard.Icon>
+          </controls:OverviewCard>
+          <controls:OverviewCard
+            Title="跳过入库"
+            Grid.Column="2"
+            Classes="Warning"
+            Command="{Binding SelectHighlightCommand}"
+            CommandParameter="pool"
+            Hint="库存中已存在；"
+            IsActive="{Binding HighlightFilter, Converter={StaticResource HighlightFilterActive}, ConverterParameter=pool}"
+            Value="{Binding PoolSkipCount}">
+            <controls:OverviewCard.Icon>
+              <icons:AppIcon Classes="OverviewCardIcon" Kind="PackageMinus" />
+            </controls:OverviewCard.Icon>
+          </controls:OverviewCard>
+          <controls:OverviewCard
+            Title="无效"
+            Grid.Column="3"
+            Classes="Danger"
+            Command="{Binding SelectHighlightCommand}"
+            CommandParameter="invalid"
+            Hint="不符合校验规则；"
+            IsActive="{Binding HighlightFilter, Converter={StaticResource HighlightFilterActive}, ConverterParameter=invalid}"
+            Value="{Binding InvalidCodeCount}">
+            <controls:OverviewCard.Icon>
+              <icons:AppIcon Classes="OverviewCardIcon" Kind="CircleAlert" />
+            </controls:OverviewCard.Icon>
+          </controls:OverviewCard>
+          <controls:OverviewCard
+            Title="总计"
+            Grid.Column="4"
+            Command="{Binding SelectHighlightCommand}"
+            CommandParameter="total"
+            Hint="非空行合计；"
+            IsActive="{Binding HighlightFilter, Converter={StaticResource HighlightFilterActive}, ConverterParameter=total}"
+            Value="{Binding TotalCodeCount}">
+            <controls:OverviewCard.Icon>
+              <icons:AppIcon Classes="OverviewCardIcon" Kind="Hash" />
+            </controls:OverviewCard.Icon>
+          </controls:OverviewCard>
+        </Grid>
+
+        <Grid
+          Grid.Row="1"
+          MinHeight="0"
+          ColumnDefinitions="*,Auto"
+          ColumnSpacing="{DynamicResource PagePanelSpacing}">
+          <shad:Card
+            Grid.Column="0"
+            MinHeight="0"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            VerticalContentAlignment="Stretch"
+            Classes="SectionCard StretchBody">
+            <shad:Card.Header>
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="SectionTitle" Text="追溯码录入" />
+                  <TextBlock Classes="Caption Muted" Text="每行一条追溯码，支持批量粘贴与扫码枪连续录入" />
+                </StackPanel>
+                <StackPanel
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Orientation="Horizontal"
+                  Spacing="{DynamicResource SpacingInlineSm}">
+                  <shad:Badge Content="{Binding TotalCodeCount, StringFormat=共 {0} 条}" Variant="Secondary" />
+                  <controls:StatusPill
+                    Classes="ToneDone15"
+                    Icon="CircleCheck"
+                    IconSize="12"
+                    IsVisible="{Binding ShowValidRate}"
+                    PillPadding="8,4"
+                    Text="{Binding ValidRatePct, StringFormat=有效率 {0:F0}%}"
+                    TextSize="12" />
+                </StackPanel>
+              </Grid>
+            </shad:Card.Header>
+            <controls:EmptyStatePanel
+              MinHeight="0"
+              EmptyHint="{Binding EntryEmptyHint}"
+              EmptyText="{Binding EntryEmptyText}"
+              Icon="PackageSearch"
+              IsEmpty="{Binding IsEntryContextEmpty}"
+              SlotMode="Always">
+              <controls:TraceCodeEditor
+                x:Name="TraceCodeInput"
+                VerticalAlignment="Stretch"
+                EditorGotFocus="CodeEditor_OnGotFocus"
+                HighlightFilter="{Binding HighlightFilter}"
+                IsEnabled="{Binding IsTraceCodeInputEnabled}"
+                LineKinds="{Binding LineKinds}"
+                PlaceholderText="示例：&#10;89012345678901234567&#10;89012345678901234568&#10;89012345678901234569"
+                Text="{Binding TraceCodesText, Mode=TwoWay}" />
+            </controls:EmptyStatePanel>
+            <shad:Card.Footer>
+              <Grid Classes="SectionCardFoot" ColumnDefinitions="*,Auto">
+                <Grid
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  ColumnDefinitions="Auto,*"
+                  ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeDefault}"
+                    Height="{DynamicResource IconSizeDefault}"
+                    VerticalAlignment="Center"
+                    Foreground="{Binding ContextStatusLevel, Converter={StaticResource ContextStatusToBrush}}"
+                    Kind="Info" />
+                  <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Classes="Caption Muted"
+                    Text="{Binding Status}"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+                </Grid>
+                <StackPanel
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Orientation="Horizontal"
+                  Spacing="{DynamicResource SpacingInlineSm}">
+                  <Button Classes="Primary" Command="{Binding SubmitCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
+                        Kind="Save" />
+                      <TextBlock Text="保存录入" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Outline" Command="{Binding ClearCodesCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                      <icons:AppIcon
+                        Width="{DynamicResource IconSizeDefault}"
+                        Height="{DynamicResource IconSizeDefault}"
+                        Kind="Delete" />
+                      <TextBlock Text="清空输入" />
+                    </StackPanel>
+                  </Button>
+                </StackPanel>
+              </Grid>
+            </shad:Card.Footer>
+          </shad:Card>
+
+          <shad:Card
+            Grid.Column="1"
+            Width="{DynamicResource ScanCodeContextWidth}"
+            MinHeight="0"
+            VerticalAlignment="Stretch"
+            Classes="SectionCard ScrollHostCard">
+            <shad:Card.Header>
+              <TextBlock Classes="SectionTitle" Text="录入上下文" />
+            </shad:Card.Header>
+            <StackPanel Spacing="{DynamicResource PageSectionSpacing}">
+              <StackPanel Spacing="{DynamicResource FormRowSpacing}">
+                <TextBlock Classes="Small SubsectionTitle" Text="当前选择" />
+                <StackPanel Spacing="8">
+                  <StackPanel Spacing="2">
+                    <TextBlock Classes="Caption Muted" Text="药品" />
+                    <TextBlock
+                      Classes="Small"
+                      Text="{Binding SelectedDrugDisplay}"
+                      TextWrapping="Wrap" />
+                  </StackPanel>
+                  <StackPanel Spacing="2">
+                    <TextBlock Classes="Caption Muted" Text="规格" />
+                    <TextBlock
+                      Classes="Small"
+                      Text="{Binding SelectedSpecDisplay}"
+                      TextWrapping="Wrap" />
+                  </StackPanel>
+                  <StackPanel Spacing="2">
+                    <TextBlock Classes="Caption Muted" Text="单条数量" />
+                    <TextBlock Classes="Small" Text="{Binding SelectedQtyDisplay}" />
+                  </StackPanel>
+                </StackPanel>
+              </StackPanel>
+
+              <StackPanel Spacing="{DynamicResource FormRowSpacing}">
+                <TextBlock Classes="Small SubsectionTitle" Text="校验规则" />
+                <StackPanel Spacing="6">
+                  <controls:StatusPill
+                    Classes="ToneInfo15"
+                    Icon="ListOrdered"
+                    IconSize="12"
+                    PillPadding="8,4"
+                    Text="{Binding TraceCodeRuleLength, StringFormat=固定长度 {0} 位}"
+                    TextSize="12" />
+                  <TextBlock
+                    Classes="Caption Muted"
+                    FontFamily="{DynamicResource TraceCodeInputFontFamily}"
+                    Text="{Binding TraceCodeRulePattern, StringFormat=正则：{0}}"
+                    TextWrapping="Wrap" />
+                </StackPanel>
+              </StackPanel>
+
+              <StackPanel Spacing="{DynamicResource FormRowSpacing}">
+                <TextBlock Classes="Small SubsectionTitle" Text="录入说明" />
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="Caption Muted" Text="· 每行仅录入一条追溯码，空行自动忽略" />
+                  <TextBlock Classes="Caption Muted" Text="· 保存时仅写入有效且不重复的新码" />
+                  <TextBlock Classes="Caption Muted" Text="· 已在库存中的码会计入「跳过入库」" />
+                  <TextBlock Classes="Caption Muted" Text="· 可在设置中调整追溯码校验规则" />
+                </StackPanel>
+              </StackPanel>
+            </StackPanel>
+          </shad:Card>
+        </Grid>
+      </Grid>
+
+    </Grid>
+  </Grid>
+
+</UserControl>

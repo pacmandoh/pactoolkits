@@ -1,0 +1,184 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.Dashboard"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:pages="clr-namespace:PacToolkits.Desktop.Avalonia.Views.Pages"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:Name="Root"
+  d:DesignHeight="820"
+  d:DesignWidth="1200"
+  x:DataType="vm:Dashboard"
+  mc:Ignorable="d">
+  <controls:PageDataShell
+    IsLoadingData="{Binding IsBusy}"
+    ShowStale="{Binding IsShowingStaleData}"
+    ShowUnavailable="{Binding ShowPageUnavailable}"
+    StaleHint="{Binding PageStaleHint}"
+    UnavailableHint="{Binding PageUnavailableHint}"
+    UnavailableIcon="{Binding PageUnavailableIcon}"
+    UnavailableTitle="{Binding PageUnavailableTitle}">
+    <Grid Classes="DashboardLayout" RowDefinitions="Auto,*">
+      <ContentControl
+        Grid.Row="0"
+        Classes="FilterBarChrome"
+        IsVisible="{Binding IsFilterBarVisible}">
+        <Grid Classes="FilterBarColumns" ColumnDefinitions="1*,Auto,0.85*,Auto,1.15*">
+          <Grid
+            Grid.Column="0"
+            Classes="FilterBarColumn"
+            ColumnDefinitions="Auto,*,Auto,*,Auto">
+            <TextBlock
+              Grid.Column="0"
+              Classes="Caption Muted"
+              Text="起始" />
+            <controls:FilterFieldInput Grid.Column="1">
+              <CalendarDatePicker
+                HorizontalAlignment="Stretch"
+                DisplayDateEnd="{Binding FromMaxDate}"
+                IsTodayHighlighted="True"
+                SelectedDate="{Binding FromDate}" />
+            </controls:FilterFieldInput>
+            <TextBlock
+              Grid.Column="2"
+              Classes="Caption Muted"
+              Text="结束" />
+            <controls:FilterFieldInput Grid.Column="3">
+              <CalendarDatePicker
+                HorizontalAlignment="Stretch"
+                DisplayDateEnd="{Binding ToMaxDate}"
+                DisplayDateStart="{Binding ToMinDate}"
+                IsTodayHighlighted="True"
+                SelectedDate="{Binding ToDate}"
+                SelectedDateFormat="Short" />
+            </controls:FilterFieldInput>
+            <Button
+              Grid.Column="4"
+              VerticalAlignment="Center"
+              Classes="MicroClear"
+              Command="{Binding ResetDateRangeCommand}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSmall}"
+                Height="{DynamicResource IconSizeSmall}"
+                Kind="RotateCcw" />
+            </Button>
+          </Grid>
+
+          <Border Grid.Column="1" Classes="FilterBarDivider" />
+
+          <Grid
+            Grid.Column="2"
+            Classes="FilterBarColumn"
+            ColumnDefinitions="Auto,*,Auto">
+            <TextBlock
+              Grid.Column="0"
+              Classes="Caption Muted"
+              Text="药品" />
+            <AutoCompleteBox
+              x:Name="DrugBox"
+              Grid.Column="1"
+              HorizontalAlignment="Stretch"
+              IsDropDownOpen="{Binding IsDrugSuggestOpen, Mode=TwoWay}"
+              ItemsSource="{Binding DrugOptions}"
+              KeyDown="DrugBox_OnKeyDown"
+              PlaceholderText="全部药品"
+              Text="{Binding DrugText, Mode=TwoWay, TargetNullValue='', FallbackValue=''}">
+              <AutoCompleteBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:OptionItem">
+                  <TextBlock Text="{Binding Display}" />
+                </DataTemplate>
+              </AutoCompleteBox.ItemTemplate>
+            </AutoCompleteBox>
+            <Button
+              Grid.Column="2"
+              Classes="MicroClear DrugAutoCompleteClear"
+              Command="{Binding ClearDrugSpecFilterCommand}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSmall}"
+                Height="{DynamicResource IconSizeSmall}"
+                Kind="CircleX" />
+            </Button>
+          </Grid>
+
+          <Border Grid.Column="3" Classes="FilterBarDivider" />
+
+          <Grid
+            Grid.Column="4"
+            Classes="FilterBarColumn"
+            ColumnDefinitions="Auto,*,Auto,*">
+            <TextBlock
+              Grid.Column="0"
+              Classes="Caption Muted"
+              Text="规格" />
+            <controls:FilterFieldInput Grid.Column="1">
+              <ComboBox
+                x:Name="SpecBox"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                DisplayMemberBinding="{Binding Display}"
+                ItemsSource="{Binding SpecOptions}"
+                SelectedItem="{Binding SelectedSpec}" />
+            </controls:FilterFieldInput>
+            <TextBlock
+              Grid.Column="2"
+              Classes="Caption Muted"
+              Text="客户端" />
+            <controls:FilterFieldInput Grid.Column="3">
+              <ComboBox
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                DisplayMemberBinding="{Binding Display}"
+                ItemsSource="{Binding Clients}"
+                SelectedItem="{Binding SelectedClient}" />
+            </controls:FilterFieldInput>
+          </Grid>
+        </Grid>
+      </ContentControl>
+
+      <controls:DeferredContentHost
+        Grid.Row="1"
+        IsActive="{Binding IsOverviewTab}"
+        IsVisible="{Binding IsOverviewTab}">
+        <controls:DeferredContentHost.ContentTemplate>
+          <DataTemplate x:DataType="vm:Dashboard">
+            <pages:DashboardOverview />
+          </DataTemplate>
+        </controls:DeferredContentHost.ContentTemplate>
+      </controls:DeferredContentHost>
+      <controls:DeferredContentHost
+        Grid.Row="1"
+        IsActive="{Binding IsInputTab}"
+        IsVisible="{Binding IsInputTab}">
+        <controls:DeferredContentHost.ContentTemplate>
+          <DataTemplate x:DataType="vm:Dashboard">
+            <pages:DashboardInput />
+          </DataTemplate>
+        </controls:DeferredContentHost.ContentTemplate>
+      </controls:DeferredContentHost>
+      <controls:DeferredContentHost
+        Grid.Row="1"
+        IsActive="{Binding IsTxnTab}"
+        IsVisible="{Binding IsTxnTab}">
+        <controls:DeferredContentHost.ContentTemplate>
+          <DataTemplate x:DataType="vm:Dashboard">
+            <pages:DashboardTxn />
+          </DataTemplate>
+        </controls:DeferredContentHost.ContentTemplate>
+      </controls:DeferredContentHost>
+      <controls:DeferredContentHost
+        Grid.Row="1"
+        IsActive="{Binding IsAbnormalTab}"
+        IsVisible="{Binding IsAbnormalTab}">
+        <controls:DeferredContentHost.ContentTemplate>
+          <DataTemplate x:DataType="vm:Dashboard">
+            <pages:DashboardAbnormal />
+          </DataTemplate>
+        </controls:DeferredContentHost.ContentTemplate>
+      </controls:DeferredContentHost>
+    </Grid>
+  </controls:PageDataShell>
+</UserControl>

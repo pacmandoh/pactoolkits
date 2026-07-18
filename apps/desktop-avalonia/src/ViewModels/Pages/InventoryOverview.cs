@@ -467,6 +467,8 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         OnPropertyChanged(nameof(ShowReassignRowSelection));
         OnPropertyChanged(nameof(StockPagerSelectedCount));
         OnPropertyChanged(nameof(SuppressGridClear));
+        OnPropertyChanged(nameof(ShowOpenReassign));
+        OnPropertyChanged(nameof(ShowCloseReassign));
         RefreshPageCommands();
     }
 

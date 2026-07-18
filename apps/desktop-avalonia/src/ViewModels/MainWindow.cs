@@ -42,6 +42,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         new("手动录入", "Keyboard"),
         new("自动拉取", "Cloud")
     ];
+    private static readonly PageTab[] MsfxTabItems =
+    [
+        new("运行中心", "Gauge"),
+        new("处理队列", "ListTodo"),
+        new("上游核查", "ClipboardSearch")
+    ];
 
     public ToastManager ToastManager { get; }
     public DialogManager DialogManager { get; }
@@ -99,9 +105,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public IReadOnlyList<AppPageBase> SidebarPages { get; }
 
     public IReadOnlyList<ShellFunctionArea> FunctionAreas => ShellFunctionAreas.All;
-    public IReadOnlyList<PageTab> DashboardTabs => DashboardTabItems;
-    public IReadOnlyList<PageTab> ScanCodeTabs => ScanCodeTabItems;
-
     [ObservableProperty]
     private ShellFunctionArea _selectedFunctionArea = ShellFunctionAreas.Traceability;
 
@@ -177,17 +180,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isSidebarExpanded = false;
 
     public string SidebarToggleIconKind => IsSidebarExpanded ? "PanelLeftClose" : "PanelLeftOpen";
-    public string FilterBarToggleIconKind => IsDashboardFilterBarVisible ? "FunnelX" : "Funnel";
 
     public string SidebarToggleToolTip => IsSidebarExpanded ? "折叠侧边栏" : "展开侧边栏";
-    public string FilterBarToggleToolTip => IsDashboardFilterBarVisible ? "隐藏筛选栏" : "显示筛选栏";
 
     [RelayCommand]
     private void ToggleSidebar() => IsSidebarExpanded = !IsSidebarExpanded;
-
-    [RelayCommand]
-    private void ToggleDashboardFilterBar() =>
-        IsDashboardFilterBarVisible = !IsDashboardFilterBarVisible;
 
     partial void OnIsSidebarExpandedChanged(bool value)
     {
@@ -459,116 +456,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private ITopBarActions? ActiveTopBar => ActivePage;
     private Dashboard? _dashboard;
     private ScanCode? _scanCode;
-
-    public bool IsDashboardPageActive => ActivePage is Dashboard;
-
-    public bool IsScanCodePageActive => ActivePage is ScanCode;
-
-    public bool IsDashboardFilterBarVisible
-    {
-        get => ActivePage is Dashboard dashboard && dashboard.IsFilterBarVisible;
-        set
-        {
-            if (ActivePage is Dashboard dashboard && dashboard.IsFilterBarVisible != value)
-            {
-                dashboard.IsFilterBarVisible = value;
-            }
-        }
-    }
-
-    public int DashboardSelectedTabIndex
-    {
-        get => _dashboard?.SelectedTabIndex ?? 0;
-        set
-        {
-            if (_dashboard is not null && _dashboard.SelectedTabIndex != value)
-            {
-                _dashboard.SelectedTabIndex = value;
-            }
-        }
-    }
-
-    public int ScanCodeSelectedTabIndex
-    {
-        get => _scanCode?.SelectedTabIndex ?? 0;
-        set
-        {
-            if (_scanCode is not null && _scanCode.SelectedTabIndex != value)
-            {
-                _scanCode.SelectedTabIndex = value;
-            }
-        }
-    }
-
-    public bool ShowAutoFetchActions => _scanCode?.IsAutoFetchTab == true;
-
-    public bool AutoFetchEnabled
-    {
-        get => _scanCode?.IsAutoFetchEnabled == true;
-        set
-        {
-            if (_scanCode is not null && _scanCode.IsAutoFetchEnabled != value)
-            {
-                _scanCode.IsAutoFetchEnabled = value;
-            }
-        }
-    }
-
-    public System.Windows.Input.ICommand? StartAutoFetch => _scanCode?.StartAutoFetchCommand;
-
-    public System.Windows.Input.ICommand? StopAutoFetch => _scanCode?.StopAutoFetchCommand;
-
-    public System.Windows.Input.ICommand? OpenAutoFetchSettings => _scanCode?.OpenAutoFetchSettingsCommand;
-
-    public string DashboardSectionHint => _dashboard?.SectionHint ?? string.Empty;
-
-    private InventoryOverview? _inventory;
-
-    public bool IsInventoryPageActive => ActivePage is InventoryOverview;
-
-    public bool ShowEnableStockEdit => _inventory?.CanEnableStockEdit == true;
-
-    public bool ShowDisableStockEdit => _inventory?.CanDisableStockEdit == true;
-
-    public bool ShowReassign => _inventory?.IsDetailMode == true;
-    public bool ShowOpenReassign => ShowReassign && _inventory?.IsReassignOpen != true;
-    public bool ShowCloseReassign => ShowReassign && _inventory?.IsReassignOpen == true;
-
-    public System.Windows.Input.ICommand? ToggleStockEdit => _inventory?.ToggleStockEditCommand;
-
-    public System.Windows.Input.ICommand? ToggleReassign => _inventory?.ToggleReassignCommand;
-
-    public bool CanToggleStockEdit => ToggleStockEdit?.CanExecute(null) == true;
-
-    public bool CanToggleReassign => ToggleReassign?.CanExecute(null) == true;
-
-    private DrugIndex? _drugIndex;
-
-    public bool IsDrugIndexPageActive => ActivePage is DrugIndex;
-
-    public System.Windows.Input.ICommand? Import => _drugIndex?.ImportCommand;
-
-    public System.Windows.Input.ICommand? NewItem => _drugIndex?.NewItemCommand;
-
-    public bool CanImport => Import?.CanExecute(null) == true;
-
-    public bool CanNewItem => NewItem?.CanExecute(null) == true;
-
-    public bool ShowUnlock =>
-        _inventory?.ShowUnlock == true || _drugIndex?.ShowUnlock == true;
-
-    public bool ShowLock =>
-        _inventory?.ShowLock == true || _drugIndex?.ShowLock == true;
-
-    public System.Windows.Input.ICommand? Unlock =>
-        _inventory?.UnlockCommand ?? _drugIndex?.UnlockCommand;
-
-    public System.Windows.Input.ICommand? Lock =>
-        _inventory?.LockCommand ?? _drugIndex?.LockCommand;
-
-    public bool CanUnlock => Unlock?.CanExecute(null) == true;
-
-    public bool CanLock => Lock?.CanExecute(null) == true;
+    private MsfxLink? _msfx;
 
     public System.Windows.Input.ICommand? TopRefresh => ActiveTopBar?.RefreshCommand;
     public System.Windows.Input.ICommand? TopImport => ActiveTopBar?.ImportCommand;
@@ -880,243 +768,52 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _scanCode?.PropertyChanged += OnScanCodePropertyChanged;
     }
 
-    private void WireInventory(AppPageBase? page)
+    private void WireMsfx(AppPageBase? page)
     {
-        DetachInventoryCommands();
-        _inventory?.PropertyChanged -= OnInventoryPropertyChanged;
+        _msfx?.PropertyChanged -= OnMsfxPropertyChanged;
 
-        _inventory = page as InventoryOverview;
+        _msfx = page as MsfxLink;
 
-        _inventory?.PropertyChanged += OnInventoryPropertyChanged;
-        AttachInventoryCommands();
-    }
-
-    private void AttachInventoryCommands()
-    {
-        Attach(_inventory?.UnlockCommand);
-        Attach(_inventory?.LockCommand);
-        Attach(_inventory?.ToggleStockEditCommand);
-        Attach(_inventory?.ToggleReassignCommand);
-
-        void Attach(System.Windows.Input.ICommand? cmd)
-        {
-            if (cmd is null)
-            {
-                return;
-            }
-
-            cmd.CanExecuteChanged += OnInventoryCanExecuteChanged;
-        }
-    }
-
-    private void DetachInventoryCommands()
-    {
-        Detach(_inventory?.UnlockCommand);
-        Detach(_inventory?.LockCommand);
-        Detach(_inventory?.ToggleStockEditCommand);
-        Detach(_inventory?.ToggleReassignCommand);
-
-        void Detach(System.Windows.Input.ICommand? cmd)
-        {
-            if (cmd is null)
-            {
-                return;
-            }
-
-            cmd.CanExecuteChanged -= OnInventoryCanExecuteChanged;
-        }
-    }
-
-    private void WireDrugIndex(AppPageBase? page)
-    {
-        DetachDrugIndexCommands();
-        _drugIndex?.PropertyChanged -= OnDrugIndexPropertyChanged;
-
-        _drugIndex = page as DrugIndex;
-
-        _drugIndex?.PropertyChanged += OnDrugIndexPropertyChanged;
-        AttachDrugIndexCommands();
-    }
-
-    private void AttachDrugIndexCommands()
-    {
-        Attach(_drugIndex?.ImportCommand);
-        Attach(_drugIndex?.NewItemCommand);
-        Attach(_drugIndex?.UnlockCommand);
-        Attach(_drugIndex?.LockCommand);
-
-        void Attach(System.Windows.Input.ICommand? cmd)
-        {
-            if (cmd is null)
-            {
-                return;
-            }
-
-            cmd.CanExecuteChanged += OnDrugIndexCanExecuteChanged;
-        }
-    }
-
-    private void DetachDrugIndexCommands()
-    {
-        Detach(_drugIndex?.ImportCommand);
-        Detach(_drugIndex?.NewItemCommand);
-        Detach(_drugIndex?.UnlockCommand);
-        Detach(_drugIndex?.LockCommand);
-
-        void Detach(System.Windows.Input.ICommand? cmd)
-        {
-            if (cmd is null)
-            {
-                return;
-            }
-
-            cmd.CanExecuteChanged -= OnDrugIndexCanExecuteChanged;
-        }
-    }
-
-    private void OnDrugIndexPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        switch (e.PropertyName)
-        {
-            case nameof(DrugIndex.ShowUnlock):
-            case nameof(DrugIndex.ShowLock):
-            case nameof(DrugIndex.HasEditor):
-                RaiseDrugIndexBindings();
-                break;
-        }
-    }
-
-    private void OnDrugIndexCanExecuteChanged(object? sender, EventArgs e)
-    {
-        RaiseDrugIndexCanExecute();
-        RaiseUnlockExecute();
-    }
-
-    private void RaiseDrugIndexBindings()
-    {
-        OnPropertyChanged(nameof(Import));
-        OnPropertyChanged(nameof(NewItem));
-        RaiseDrugIndexCanExecute();
-        RaiseUnlockBindings();
-    }
-
-    private void RaiseDrugIndexCanExecute()
-    {
-        OnPropertyChanged(nameof(CanImport));
-        OnPropertyChanged(nameof(CanNewItem));
-    }
-
-    private void RaiseUnlockBindings()
-    {
-        OnPropertyChanged(nameof(ShowUnlock));
-        OnPropertyChanged(nameof(ShowLock));
-        OnPropertyChanged(nameof(Unlock));
-        OnPropertyChanged(nameof(Lock));
-        RaiseUnlockExecute();
-    }
-
-    private void RaiseUnlockExecute()
-    {
-        OnPropertyChanged(nameof(CanUnlock));
-        OnPropertyChanged(nameof(CanLock));
-    }
-
-    private void OnInventoryPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        switch (e.PropertyName)
-        {
-            case nameof(InventoryOverview.ShowUnlock):
-            case nameof(InventoryOverview.ShowLock):
-            case nameof(InventoryOverview.CanEnableStockEdit):
-            case nameof(InventoryOverview.CanDisableStockEdit):
-            case nameof(InventoryOverview.IsDetailMode):
-            case nameof(InventoryOverview.IsReassignOpen):
-                RaiseInventoryBindings();
-                break;
-        }
-    }
-
-    private void OnInventoryCanExecuteChanged(object? sender, EventArgs e)
-        => RaiseInventoryCanExecute();
-
-    private void RaiseInventoryBindings()
-    {
-        OnPropertyChanged(nameof(ShowEnableStockEdit));
-        OnPropertyChanged(nameof(ShowDisableStockEdit));
-        OnPropertyChanged(nameof(ShowReassign));
-        OnPropertyChanged(nameof(ShowOpenReassign));
-        OnPropertyChanged(nameof(ShowCloseReassign));
-        OnPropertyChanged(nameof(ToggleStockEdit));
-        OnPropertyChanged(nameof(ToggleReassign));
-        RaiseInventoryCanExecute();
-        RaiseUnlockBindings();
-    }
-
-    private void RaiseInventoryCanExecute()
-    {
-        OnPropertyChanged(nameof(CanToggleStockEdit));
-        OnPropertyChanged(nameof(CanToggleReassign));
-        RaiseUnlockExecute();
+        _msfx?.PropertyChanged += OnMsfxPropertyChanged;
     }
 
     private void OnDashboardPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        switch (e.PropertyName)
+        if (e.PropertyName == nameof(Dashboard.SelectedTabIndex))
         {
-            case nameof(Dashboard.IsFilterBarVisible):
-                OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
-                OnPropertyChanged(nameof(FilterBarToggleIconKind));
-                OnPropertyChanged(nameof(FilterBarToggleToolTip));
-                break;
-            case nameof(Dashboard.SelectedTabIndex):
-                if (ReferenceEquals(ActivePage, _dashboard))
-                {
-                    TrackLocation(_dashboard);
-                }
+            if (ReferenceEquals(ActivePage, _dashboard))
+            {
+                TrackLocation(_dashboard);
+            }
 
-                RaiseDashboardTabBindings();
-                break;
-            case nameof(Dashboard.SectionHint):
-                OnPropertyChanged(nameof(DashboardSectionHint));
-                break;
+            RaiseBreadcrumbBindings();
         }
-    }
-
-    private void RaiseDashboardTabBindings()
-    {
-        OnPropertyChanged(nameof(DashboardSelectedTabIndex));
-        RaiseBreadcrumbBindings();
     }
 
     private void OnScanCodePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        switch (e.PropertyName)
+        if (e.PropertyName == nameof(ScanCode.SelectedTabIndex))
         {
-            case nameof(ScanCode.SelectedTabIndex):
-                if (ReferenceEquals(ActivePage, _scanCode))
-                {
-                    TrackLocation(_scanCode);
-                }
+            if (ReferenceEquals(ActivePage, _scanCode))
+            {
+                TrackLocation(_scanCode);
+            }
 
-                OnPropertyChanged(nameof(ScanCodeSelectedTabIndex));
-                OnPropertyChanged(nameof(ShowAutoFetchActions));
-                RaiseBreadcrumbBindings();
-                break;
-            case nameof(ScanCode.IsAutoFetchEnabled):
-                OnPropertyChanged(nameof(AutoFetchEnabled));
-                break;
+            RaiseBreadcrumbBindings();
         }
     }
 
-    private void RaiseScanCodeBindings()
+    private void OnMsfxPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        OnPropertyChanged(nameof(ScanCodeSelectedTabIndex));
-        OnPropertyChanged(nameof(ShowAutoFetchActions));
-        OnPropertyChanged(nameof(AutoFetchEnabled));
-        OnPropertyChanged(nameof(StartAutoFetch));
-        OnPropertyChanged(nameof(StopAutoFetch));
-        OnPropertyChanged(nameof(OpenAutoFetchSettings));
-        RaiseBreadcrumbBindings();
+        if (e.PropertyName == nameof(MsfxLink.SelectedTabIndex))
+        {
+            if (ReferenceEquals(ActivePage, _msfx))
+            {
+                TrackLocation(_msfx);
+            }
+
+            RaiseBreadcrumbBindings();
+        }
     }
 
     private void WireTopBarCommands(AppPageBase? newPage)
@@ -1277,22 +974,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         WireTopBarCommands(value);
         WireDashboard(value);
         WireScanCode(value);
-        WireInventory(value);
-        WireDrugIndex(value);
+        WireMsfx(value);
 
         OnPropertyChanged(nameof(IsSettingsPageActive));
-        OnPropertyChanged(nameof(IsDashboardPageActive));
-        OnPropertyChanged(nameof(IsScanCodePageActive));
-        OnPropertyChanged(nameof(IsInventoryPageActive));
-        OnPropertyChanged(nameof(IsDrugIndexPageActive));
-        OnPropertyChanged(nameof(IsDashboardFilterBarVisible));
-        OnPropertyChanged(nameof(FilterBarToggleIconKind));
-        OnPropertyChanged(nameof(FilterBarToggleToolTip));
-        RaiseDashboardTabBindings();
-        RaiseScanCodeBindings();
-        OnPropertyChanged(nameof(DashboardSectionHint));
-        RaiseInventoryBindings();
-        RaiseDrugIndexBindings();
+        RaiseBreadcrumbBindings();
         RaiseTopBarVisibilityBindings();
         RaiseStatusItemsChanged();
         RaiseNavigationHistoryChanged();
@@ -1418,6 +1103,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             Dashboard dashboard => new NavigationLocation(dashboard, dashboard.SelectedTabIndex),
             ScanCode scanCode => new NavigationLocation(scanCode, scanCode.SelectedTabIndex),
+            MsfxLink msfx => new NavigationLocation(msfx, msfx.SelectedTabIndex),
             not null => new NavigationLocation(page, null),
             _ => null
         };
@@ -1428,6 +1114,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             Dashboard dashboard => dashboard.SelectedTabIndex,
             ScanCode scanCode => scanCode.SelectedTabIndex,
+            MsfxLink msfx => msfx.SelectedTabIndex,
             _ => -1
         };
 
@@ -1435,6 +1122,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             Dashboard => DashboardTabItems,
             ScanCode => ScanCodeTabItems,
+            MsfxLink => MsfxTabItems,
             _ => null
         };
 
@@ -1480,6 +1168,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 break;
             case ScanCode scanCode:
                 scanCode.SelectedTabIndex = tabIndex;
+                break;
+            case MsfxLink msfx:
+                msfx.SelectedTabIndex = tabIndex;
                 break;
         }
     }
@@ -2203,8 +1894,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         WireTopBarCommands(null);
         WireDashboard(null);
-        WireInventory(null);
-        WireDrugIndex(null);
+        WireScanCode(null);
+        WireMsfx(null);
 
         if (_configWatcher is not null)
         {

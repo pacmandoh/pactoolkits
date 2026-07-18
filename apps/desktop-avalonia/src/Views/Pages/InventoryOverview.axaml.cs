@@ -10,17 +10,18 @@ using global::Avalonia.Threading;
 using PacToolkits.Desktop.Avalonia.Behaviors;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
+using InventoryOverviewViewModel = PacToolkits.Desktop.Avalonia.ViewModels.Pages.InventoryOverview;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
-public partial class InventoryOverviewView : UserControl
+public partial class InventoryOverview : UserControl
 {
     private readonly PageGridMountScheduler _gridMount;
-    private InventoryOverview? _vm;
+    private InventoryOverviewViewModel? _vm;
     private Control? _reassignRoot;
     private AutoCompleteBox? _reassignDrugBox;
 
-    public InventoryOverviewView()
+    public InventoryOverview()
     {
         _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
@@ -143,7 +144,7 @@ public partial class InventoryOverviewView : UserControl
     {
         try
         {
-            if (DataContext is not InventoryOverview vm)
+            if (DataContext is not InventoryOverviewViewModel vm)
             {
                 return;
             }
@@ -156,7 +157,7 @@ public partial class InventoryOverviewView : UserControl
         }
         catch (Exception ex)
         {
-            AppLog.Warn("InventoryOverviewView", "inventory.pointer_release.fail", "Failed handling row pointer action", ex);
+            AppLog.Warn("InventoryOverview", "inventory.pointer_release.fail", "Failed handling row pointer action", ex);
         }
     }
 
@@ -164,7 +165,7 @@ public partial class InventoryOverviewView : UserControl
     {
         try
         {
-            if (DataContext is not InventoryOverview vm)
+            if (DataContext is not InventoryOverviewViewModel vm)
             {
                 return;
             }
@@ -190,7 +191,7 @@ public partial class InventoryOverviewView : UserControl
         }
         catch (Exception ex)
         {
-            AppLog.Warn("InventoryOverviewView", "inventory.stock_edit_end.fail", "Failed committing stock cell edit", ex);
+            AppLog.Warn("InventoryOverview", "inventory.stock_edit_end.fail", "Failed committing stock cell edit", ex);
         }
     }
 
@@ -198,7 +199,7 @@ public partial class InventoryOverviewView : UserControl
     {
         try
         {
-            if (DataContext is not InventoryOverview vm)
+            if (DataContext is not InventoryOverviewViewModel vm)
             {
                 return;
             }
@@ -231,7 +232,7 @@ public partial class InventoryOverviewView : UserControl
         }
         catch (Exception ex)
         {
-            AppLog.Warn("InventoryOverviewView", "inventory.stock_cell_press.fail", "Failed handling stock cell pointer pressed", ex);
+            AppLog.Warn("InventoryOverview", "inventory.stock_cell_press.fail", "Failed handling stock cell pointer pressed", ex);
         }
     }
 
@@ -239,7 +240,7 @@ public partial class InventoryOverviewView : UserControl
     {
         try
         {
-            if (DataContext is not InventoryOverview vm)
+            if (DataContext is not InventoryOverviewViewModel vm)
             {
                 return;
             }
@@ -259,13 +260,13 @@ public partial class InventoryOverviewView : UserControl
         }
         catch (Exception ex)
         {
-            AppLog.Warn("InventoryOverviewView", "inventory.stock_begin_edit.fail", "Failed handling stock begin-edit", ex);
+            AppLog.Warn("InventoryOverview", "inventory.stock_begin_edit.fail", "Failed handling stock begin-edit", ex);
         }
     }
 
     private void OnStockRowSelectionChanged(object? sender, DataGridRowSelectionChangedEventArgs e)
     {
-        if (DataContext is not InventoryOverview vm)
+        if (DataContext is not InventoryOverviewViewModel vm)
         {
             return;
         }
@@ -285,7 +286,7 @@ public partial class InventoryOverviewView : UserControl
 
     private void ApplyDrugFilterFromBox()
     {
-        if (DataContext is not InventoryOverview vm)
+        if (DataContext is not InventoryOverviewViewModel vm)
         {
             return;
         }
@@ -300,7 +301,7 @@ public partial class InventoryOverviewView : UserControl
     {
         _vm?.PropertyChanged -= OnVmPropertyChanged;
 
-        _vm = DataContext as InventoryOverview;
+        _vm = DataContext as InventoryOverviewViewModel;
         _vm?.PropertyChanged += OnVmPropertyChanged;
 
         if (_vm is not null)
@@ -313,7 +314,7 @@ public partial class InventoryOverviewView : UserControl
         TryQueueActiveModeGrid();
     }
 
-    private void SyncMountedGridFlags(InventoryOverview vm)
+    private void SyncMountedGridFlags(InventoryOverviewViewModel vm)
     {
         if (StockDetailGridSlot.IsMounted)
         {
@@ -360,25 +361,25 @@ public partial class InventoryOverviewView : UserControl
             return;
         }
 
-        if (e.PropertyName == nameof(InventoryOverview.IsStockEditEnabled))
+        if (e.PropertyName == nameof(InventoryOverviewViewModel.IsStockEditEnabled))
         {
             SyncStockEditClass();
         }
 
-        if (e.PropertyName == nameof(InventoryOverview.ModeIndex))
+        if (e.PropertyName == nameof(InventoryOverviewViewModel.ModeIndex))
         {
             QueueStockDetailGridMount();
             TryQueueActiveModeGrid();
         }
 
-        if (e.PropertyName == nameof(InventoryOverview.IsStockEmpty))
+        if (e.PropertyName == nameof(InventoryOverviewViewModel.IsStockEmpty))
         {
             QueueStockDetailGridMount();
         }
 
-        if (e.PropertyName is nameof(InventoryOverview.IsAggEmpty)
-            or nameof(InventoryOverview.IsLowEmpty)
-            or nameof(InventoryOverview.IsMissingEmpty))
+        if (e.PropertyName is nameof(InventoryOverviewViewModel.IsAggEmpty)
+            or nameof(InventoryOverviewViewModel.IsLowEmpty)
+            or nameof(InventoryOverviewViewModel.IsMissingEmpty))
         {
             TryQueueActiveModeGrid();
         }

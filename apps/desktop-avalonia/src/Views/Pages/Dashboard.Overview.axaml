@@ -1,0 +1,593 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardOverview"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:Dashboard"
+  mc:Ignorable="d">
+  <UserControl.Resources>
+    <conv:BadgeToIconKindConverter x:Key="BadgeToIconKind" />
+    <conv:BadgeToFgBrushConverter x:Key="BadgeToFgBrush" />
+    <conv:BadgeToBgBrushConverter x:Key="BadgeToBgBrush" />
+    <conv:DgQtyFontSizeConverter x:Key="AdaptiveQtyFontSize" />
+  </UserControl.Resources>
+
+  <Grid Classes="DashboardContent" RowDefinitions="*">
+    <ScrollViewer
+      Grid.Row="0"
+      Padding="0"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"
+      AllowAutoHide="False"
+      BringIntoViewOnFocusChange="False"
+      Classes="Stack"
+      HorizontalScrollBarVisibility="Disabled"
+      VerticalScrollBarVisibility="Auto">
+      <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource PagePanelSpacing}">
+
+
+        <Border Grid.Row="0" Classes="KpiTileStrip">
+          <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="{DynamicResource PagePanelSpacing}">
+            <controls:KpiTile
+              Title="可用追溯码库存"
+              Grid.Column="0"
+              AccentBrush="{DynamicResource InfoColor}"
+              Command="{Binding OpenInventoryCommand}"
+              Hint="{Binding Kpi.AvailableRemainHint}"
+              Pct="{Binding Kpi.AvailableRemainPct}"
+              PctMetric="RemainHealth"
+              ReplayTrigger="{Binding KpiProgressReplayTrigger}"
+              Value="{Binding Kpi.AvailableRemain}" />
+            <controls:KpiTile
+              Title="期间使用条数"
+              Grid.Column="1"
+              AccentBrush="{DynamicResource SuccessColor}"
+              Command="{Binding OpenPeriodUsageCommand}"
+              Hint="{Binding Kpi.PeriodUsedHint}"
+              Pct="{Binding Kpi.PeriodUsedPct}"
+              PctMetric="UsageIntensity"
+              ReplayTrigger="{Binding KpiProgressReplayTrigger}"
+              Value="{Binding Kpi.PeriodUsed}" />
+            <controls:KpiTile
+              Title="异常 / 回滚"
+              Grid.Column="2"
+              AccentBrush="{DynamicResource WarningColor}"
+              Command="{Binding OpenAbnormalCommand}"
+              Hint="{Binding Kpi.AbnormalHint}"
+              Pct="{Binding Kpi.AbnormalPct}"
+              PctMetric="AbnormalShare"
+              ReplayTrigger="{Binding KpiProgressReplayTrigger}"
+              ValueForeground="{DynamicResource WarningColor}"
+              Value="{Binding Kpi.Abnormal}" />
+            <controls:KpiTile
+              Title="追溯码告紧"
+              Grid.Column="3"
+              AccentBrush="{DynamicResource ErrorColor}"
+              Command="{Binding OpenLowStockCommand}"
+              Hint="{Binding Kpi.LowStockHint}"
+              Pct="{Binding Kpi.LowStockPct}"
+              PctMetric="LowStockShare"
+              ReplayTrigger="{Binding KpiProgressReplayTrigger}"
+              ValueForeground="{DynamicResource ErrorColor}"
+              Value="{Binding Kpi.LowStockCount}" />
+          </Grid>
+        </Border>
+
+
+        <Grid
+          Grid.Row="1"
+          ColumnDefinitions="11*,9*"
+          ColumnSpacing="{DynamicResource PagePanelSpacing}">
+
+
+          <controls:CardPanel
+            Title="药品使用统计"
+            Grid.Column="0"
+            AccentBrush="{DynamicResource InfoColor}"
+            Classes="FlushBody">
+            <controls:CardPanel.HeaderContent>
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <Button
+                  Classes="Icon ghost-states"
+                  Click="OnTrendZoomInClicked"
+                  IsVisible="{Binding IsTrendChartVisible}"
+                  ToolTip.Tip="放大图表">
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    Kind="ZoomIn" />
+                </Button>
+                <Button
+                  Classes="Icon ghost-states"
+                  Click="OnTrendZoomOutClicked"
+                  IsVisible="{Binding IsTrendChartVisible}"
+                  ToolTip.Tip="缩小图表">
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    Kind="ZoomOut" />
+                </Button>
+                <ToggleButton
+                  VerticalAlignment="Center"
+                  Classes="Outline"
+                  IsChecked="{Binding IsTrendChartVisible, Mode=TwoWay}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="{Binding TrendViewToggleIcon}" />
+                    <TextBlock VerticalAlignment="Center" Text="{Binding TrendViewToggleText}" />
+                  </StackPanel>
+                </ToggleButton>
+                <ComboBox
+                  Width="136"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Center"
+                  ItemsSource="{Binding TrendModes}"
+                  SelectedItem="{Binding TrendMode}" />
+              </StackPanel>
+            </controls:CardPanel.HeaderContent>
+            <controls:EmptyStatePanel
+              MinHeight="0"
+              EmptyHint="{Binding TrendEmptyHint}"
+              EmptyText="{Binding TrendEmptyText}"
+              Icon="{Binding SectionEmptyIcon}"
+              IsEmpty="{Binding IsTrendEmpty}"
+              IsPending="{Binding IsSectionPending}"
+              SlotMinHeight="{DynamicResource DgH10Rows}"
+              SlotMode="Always">
+              <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
+                <Grid MinHeight="{StaticResource DgH10Rows}">
+                  <controls:DeferredGridSlot
+                    x:Name="TrendGridSlot"
+                    IsVisible="{Binding !IsTrendChartVisible}"
+                    SlotMinHeight="{DynamicResource DgH10Rows}"
+                    SlotName="TrendGridOverview">
+                    <controls:DeferredGridSlot.GridTemplate>
+                      <DataTemplate x:DataType="vm:Dashboard">
+                        <DataGrid
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Classes="SectionGrid IndexedGrid FixedColumns"
+                          ItemsSource="{Binding DrugTrend}"
+                          RowHeight="{StaticResource RowMinHeight}"
+                          SelectedItem="{Binding SelectedTrendItem}"
+                          SelectionMode="Single">
+                          <DataGrid.Columns>
+                            <DataGridTemplateColumn Width="0.85*" Header="药品">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="0.68*" Header="规格">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <TextBlock Classes="Caption Muted" Text="{Binding SpecDisplay}" />
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="1.70*" Header="主要客户端">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <TextBlock Classes="Caption Muted" Text="{Binding SourceText}" />
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="{StaticResource DgWUsage}" Header="用量">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <TextBlock
+                                    Classes="DgQtyCell"
+                                    FontSize="{Binding ValueText, Converter={StaticResource AdaptiveQtyFontSize}}"
+                                    Text="{Binding ValueText}" />
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                          </DataGrid.Columns>
+                        </DataGrid>
+                      </DataTemplate>
+                    </controls:DeferredGridSlot.GridTemplate>
+                  </controls:DeferredGridSlot>
+                  <controls:DeferredChartHost
+                    x:Name="TrendChartHost"
+                    MinHeight="{StaticResource DgH10Rows}"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"
+                    IsActive="{Binding IsTrendChartVisible}"
+                    IsVisible="{Binding IsTrendChartVisible}" />
+                </Grid>
+              </shad:BusyArea>
+            </controls:EmptyStatePanel>
+          </controls:CardPanel>
+
+
+          <controls:CardPanel
+            Title="事务总览"
+            Grid.Column="1"
+            AccentBrush="{DynamicResource InfoColor}"
+            Classes="FlushBody">
+            <controls:CardPanel.HeaderContent>
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <Button
+                  Classes="Icon ghost-states"
+                  Click="OnTxnZoomInClicked"
+                  IsVisible="{Binding IsTxnChartVisible}"
+                  ToolTip.Tip="放大图表">
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    Kind="ZoomIn" />
+                </Button>
+                <Button
+                  Classes="Icon ghost-states"
+                  Click="OnTxnZoomOutClicked"
+                  IsVisible="{Binding IsTxnChartVisible}"
+                  ToolTip.Tip="缩小图表">
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeSmall}"
+                    Height="{DynamicResource IconSizeSmall}"
+                    Kind="ZoomOut" />
+                </Button>
+                <ToggleButton
+                  VerticalAlignment="Center"
+                  Classes="Outline"
+                  IsChecked="{Binding IsTxnChartVisible, Mode=TwoWay}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="{Binding TxnViewToggleIcon}" />
+                    <TextBlock VerticalAlignment="Center" Text="{Binding TxnViewToggleText}" />
+                  </StackPanel>
+                </ToggleButton>
+                <Button
+                  VerticalAlignment="Center"
+                  Classes="Outline"
+                  Command="{Binding OpenTxnListCommand}"
+                  Content="查看全部" />
+              </StackPanel>
+            </controls:CardPanel.HeaderContent>
+            <controls:EmptyStatePanel
+              MinHeight="0"
+              EmptyHint="{Binding RecentTxnsEmptyHint}"
+              EmptyText="{Binding RecentTxnsEmptyText}"
+              Icon="{Binding SectionEmptyIcon}"
+              IsEmpty="{Binding IsRecentTxnsEmpty}"
+              IsPending="{Binding IsSectionPending}"
+              SlotMinHeight="{DynamicResource DgH10Rows}"
+              SlotMode="Always">
+              <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
+                <Grid MinHeight="{StaticResource DgH10Rows}">
+                  <controls:DeferredGridSlot
+                    x:Name="RecentTxnGridSlot"
+                    IsVisible="{Binding !IsTxnChartVisible}"
+                    SlotMinHeight="{DynamicResource DgH10Rows}"
+                    SlotName="RecentTxnGridOverview">
+                    <controls:DeferredGridSlot.GridTemplate>
+                      <DataTemplate x:DataType="vm:Dashboard">
+                        <DataGrid
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Classes="SectionGrid IndexedGrid FixedColumns"
+                          ItemsSource="{Binding RecentTxnsOverview}"
+                          RowHeight="{StaticResource RowMinHeight}"
+                          SelectedItem="{Binding SelectedTxn}"
+                          SelectionMode="Single">
+                          <DataGrid.Columns>
+                            <DataGridTemplateColumn Width="{StaticResource DgWStatus}" Header="状态">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <Border
+                                    Width="{DynamicResource IconBadgeSize}"
+                                    Height="{DynamicResource IconBadgeSize}"
+                                    Background="{Binding Badge, Converter={StaticResource BadgeToBgBrush}}"
+                                    Classes="DgStatusBadge"
+                                    CornerRadius="{DynamicResource LgCornerRadius}">
+                                    <icons:AppIcon
+                                      Width="{DynamicResource IconSizeDefault}"
+                                      Height="{DynamicResource IconSizeDefault}"
+                                      Foreground="{Binding Badge, Converter={StaticResource BadgeToFgBrush}}"
+                                      Kind="{Binding Badge, Converter={StaticResource BadgeToIconKind}}" />
+                                  </Border>
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="1.28*" Header="药品">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <TextBlock FontWeight="SemiBold" Text="{Binding DrugId}" />
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="1.20*" Header="规格">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <TextBlock Text="{Binding Spec}" />
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="{StaticResource DgWTimeCompact}" Header="时间">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <TextBlock Text="{Binding Time}" />
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="{StaticResource DgWUsage}" Header="用量">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <TextBlock
+                                    Classes="DgQtyCell"
+                                    FontSize="{Binding Qty, Converter={StaticResource AdaptiveQtyFontSize}}"
+                                    Text="{Binding Qty}" />
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                          </DataGrid.Columns>
+                        </DataGrid>
+                      </DataTemplate>
+                    </controls:DeferredGridSlot.GridTemplate>
+                  </controls:DeferredGridSlot>
+                  <controls:DeferredChartHost
+                    x:Name="TxnChartHost"
+                    MinHeight="{StaticResource DgH10Rows}"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"
+                    IsActive="{Binding IsTxnChartVisible}"
+                    IsVisible="{Binding IsTxnChartVisible}" />
+                </Grid>
+              </shad:BusyArea>
+            </controls:EmptyStatePanel>
+          </controls:CardPanel>
+        </Grid>
+
+
+        <Grid
+          Grid.Row="2"
+          ColumnDefinitions="*,*"
+          ColumnSpacing="{DynamicResource PagePanelSpacing}">
+
+
+          <controls:CardPanel
+            Title="客户端"
+            Grid.Column="0"
+            MinHeight="220"
+            VerticalAlignment="Stretch"
+            AccentBrush="{DynamicResource InfoColor}"
+            Classes="FlushBody">
+            <controls:CardPanel.HeaderContent>
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <ToggleButton
+                  VerticalAlignment="Center"
+                  Classes="Outline"
+                  IsChecked="{Binding IsClientChartVisible, Mode=TwoWay}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="{Binding ClientViewToggleIcon}" />
+                    <TextBlock VerticalAlignment="Center" Text="{Binding ClientViewToggleText}" />
+                  </StackPanel>
+                </ToggleButton>
+                <ComboBox
+                  Width="120"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Center"
+                  ItemsSource="{Binding ClientMetricModes}"
+                  SelectedItem="{Binding ClientMetricMode}" />
+              </StackPanel>
+            </controls:CardPanel.HeaderContent>
+            <controls:EmptyStatePanel
+              MinHeight="0"
+              VerticalAlignment="Stretch"
+              EmptyHint="{Binding TopClientsEmptyHint}"
+              EmptyText="{Binding TopClientsEmptyText}"
+              Icon="{Binding SectionEmptyIcon}"
+              IsEmpty="{Binding IsClientPanelEmpty}"
+              IsPending="{Binding IsSectionPending}"
+              SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
+              SlotMode="PendingOnly">
+              <shad:BusyArea IsBusy="{Binding IsTxnBusy}">
+                <Grid MinHeight="{DynamicResource OverviewPendingMinHeight}">
+                  <controls:DeferredGridSlot
+                    x:Name="TopClientsGridSlot"
+                    IsVisible="{Binding !IsClientChartVisible}"
+                    SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
+                    SlotName="TopClientsGridOverview">
+                    <controls:DeferredGridSlot.GridTemplate>
+                      <DataTemplate x:DataType="vm:Dashboard">
+                        <DataGrid
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Classes="SectionGrid IndexedGrid FixedColumns"
+                          HorizontalScrollBarVisibility="Disabled"
+                          ItemsSource="{Binding TopClients}"
+                          RowHeight="{StaticResource RowMinHeight}"
+                          SelectionMode="Single">
+                          <DataGrid.Columns>
+                            <DataGridTemplateColumn Width="*" Header="客户端">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <StackPanel VerticalAlignment="Center" Spacing="0">
+                                    <TextBlock
+                                      MaxHeight="18"
+                                      FontWeight="SemiBold"
+                                      Text="{Binding ClientDisplay}"
+                                      TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                      Classes="Caption Muted ClientMetaSubline"
+                                      IsVisible="{Binding HasMeta}"
+                                      Text="{Binding MetaText}" />
+                                  </StackPanel>
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="{StaticResource DgWUsage}" Header="用量">
+                              <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                  <TextBlock
+                                    Classes="DgQtyCell"
+                                    FontSize="{Binding Value, Converter={StaticResource AdaptiveQtyFontSize}}"
+                                    Text="{Binding Value}" />
+                                </DataTemplate>
+                              </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                          </DataGrid.Columns>
+                        </DataGrid>
+                      </DataTemplate>
+                    </controls:DeferredGridSlot.GridTemplate>
+                  </controls:DeferredGridSlot>
+                  <controls:DeferredChartHost
+                    x:Name="ClientChartHost"
+                    MinHeight="{DynamicResource OverviewPendingMinHeight}"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"
+                    IsActive="{Binding IsClientChartVisible}"
+                    IsVisible="{Binding IsClientChartVisible}" />
+                </Grid>
+              </shad:BusyArea>
+            </controls:EmptyStatePanel>
+          </controls:CardPanel>
+
+
+          <controls:CardPanel
+            Title="录入追溯码情况"
+            Grid.Column="1"
+            MinHeight="220"
+            VerticalAlignment="Stretch"
+            AccentBrush="{DynamicResource InfoColor}">
+            <controls:CardPanel.HeaderContent>
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <ToggleButton
+                  VerticalAlignment="Center"
+                  Classes="Outline"
+                  IsChecked="{Binding IsEntryChartVisible, Mode=TwoWay}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="{Binding EntryViewToggleIcon}" />
+                    <TextBlock VerticalAlignment="Center" Text="{Binding EntryViewToggleText}" />
+                  </StackPanel>
+                </ToggleButton>
+                <Button
+                  VerticalAlignment="Center"
+                  Classes="Outline"
+                  Command="{Binding OpenInputHistoryCommand}"
+                  Content="查看全部" />
+                <Button
+                  VerticalAlignment="Center"
+                  Classes="Primary"
+                  Command="{Binding GoInputTabCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeSmall}"
+                      Height="{DynamicResource IconSizeSmall}"
+                      Kind="ScanBarcode" />
+                    <TextBlock Text="去录入" />
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+            </controls:CardPanel.HeaderContent>
+            <controls:EmptyStatePanel
+              MinHeight="0"
+              VerticalAlignment="Stretch"
+              EmptyHint="{Binding EntryRecentEmptyHint}"
+              EmptyText="{Binding EntryRecentEmptyText}"
+              Icon="{Binding SectionEmptyIcon}"
+              IsEmpty="{Binding IsEntryPanelEmpty}"
+              IsPending="{Binding IsSectionPending}"
+              SlotMinHeight="{DynamicResource OverviewPendingMinHeight}"
+              SlotMode="PendingOnly">
+              <shad:BusyArea IsBusy="{Binding IsEntryBusy}">
+                <Grid MinHeight="{DynamicResource OverviewPendingMinHeight}">
+                  <ScrollViewer
+                    BringIntoViewOnFocusChange="False"
+                    HorizontalScrollBarVisibility="Disabled"
+                    IsVisible="{Binding !IsEntryChartVisible}"
+                    VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding EntryRecentOverview}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Spacing="{DynamicResource SpacingInlineSm}" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border Classes="RowItem" PointerReleased="OnEntryRecentRowPointerReleased">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource SpacingInlineMd}">
+                              <Border
+                                Grid.Column="0"
+                                Width="{DynamicResource IconBadgeSize}"
+                                Height="{DynamicResource IconBadgeSize}"
+                                Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                                Classes="DgStatusBadge"
+                                CornerRadius="{DynamicResource LgCornerRadius}">
+                                <icons:AppIcon
+                                  Width="{DynamicResource IconSizeDefault}"
+                                  Height="{DynamicResource IconSizeDefault}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                  Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                              </Border>
+                              <Grid
+                                Grid.Column="1"
+                                RowDefinitions="Auto,Auto"
+                                RowSpacing="4">
+                                <TextBlock
+                                  Grid.Row="0"
+                                  VerticalAlignment="Center"
+                                  TextTrimming="CharacterEllipsis"
+                                  TextWrapping="NoWrap">
+                                  <Run FontWeight="SemiBold" Text="{Binding DrugId}" />
+                                  <Run FontWeight="SemiBold" Text=" " />
+                                  <Run FontWeight="SemiBold" Text="{Binding Spec}" />
+                                  <Run Text="&#x9;" />
+                                  <Run Foreground="{DynamicResource MutedColor}" Text="{Binding ClientDisplay}" />
+                                </TextBlock>
+                                <TextBlock
+                                  Grid.Row="1"
+                                  Classes="Caption Muted"
+                                  Text="{Binding Message}"
+                                  TextTrimming="CharacterEllipsis" />
+                              </Grid>
+                              <TextBlock
+                                Grid.Column="2"
+                                MinWidth="40"
+                                Classes="DgQtyCell"
+                                FontSize="{Binding Qty, Converter={StaticResource AdaptiveQtyFontSize}}"
+                                FontWeight="SemiBold"
+                                Text="{Binding Qty}"
+                                TextAlignment="Right" />
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+                  <controls:DeferredChartHost
+                    x:Name="EntryChartHost"
+                    MinHeight="{DynamicResource OverviewPendingMinHeight}"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"
+                    IsActive="{Binding IsEntryChartVisible}"
+                    IsVisible="{Binding IsEntryChartVisible}" />
+                </Grid>
+              </shad:BusyArea>
+            </controls:EmptyStatePanel>
+          </controls:CardPanel>
+        </Grid>
+      </Grid>
+    </ScrollViewer>
+  </Grid>
+
+</UserControl>
