@@ -2,6 +2,14 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls">
+  <Style Selector="controls|StatusPill.Interactive">
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.Interactive:pointerover Border#PillChrome">
+    <Setter Property="Opacity" Value="0.8" />
+  </Style>
+
   <Style Selector="controls|StatusPill.ToneInfo15">
     <Setter Property="BackgroundBrush" Value="{DynamicResource InfoColor10}" />
     <Setter Property="PillBorderBrush" Value="{DynamicResource InfoColor20}" />
@@ -60,5 +68,30 @@
     <Setter Property="BackgroundBrush" Value="{DynamicResource PurpleColor20}" />
     <Setter Property="PillBorderBrush" Value="{DynamicResource PurpleColor60}" />
     <Setter Property="ForegroundBrush" Value="{DynamicResource PurpleColor}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.ToneInfo15[IsActive=True]">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource InfoColor20}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource InfoColor60}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.ToneDone15[IsActive=True]">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource SuccessColor20}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource SuccessColor60}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.ToneWarning15[IsActive=True]">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource WarningColor20}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource WarningColor60}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.ToneDanger15[IsActive=True]">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource ErrorColor20}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource ErrorColor60}" />
+  </Style>
+
+  <Style Selector="controls|StatusPill.TonePurple15[IsActive=True]">
+    <Setter Property="BackgroundBrush" Value="{DynamicResource PurpleColor20}" />
+    <Setter Property="PillBorderBrush" Value="{DynamicResource PurpleColor60}" />
   </Style>
 </Styles>

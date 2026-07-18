@@ -11,26 +11,38 @@
     Padding="{Binding PillPadding, ElementName=Root}"
     Background="{Binding BackgroundBrush, ElementName=Root}"
     BorderBrush="{Binding PillBorderBrush, ElementName=Root}"
-    CornerRadius="999">
-    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-      <icons:AppIcon
-        Width="{Binding IconSize, ElementName=Root}"
-        Height="{Binding IconSize, ElementName=Root}"
-        VerticalAlignment="Center"
-        Foreground="{Binding ForegroundBrush, ElementName=Root}"
-        Kind="{Binding Icon, ElementName=Root}" />
+    CornerRadius="999"
+    ToolTip.Tip="{Binding Text, ElementName=Root}">
+    <Grid>
       <TextBlock
-        VerticalAlignment="Center"
+        Width="0"
         FontFamily="{DynamicResource StatusPillFontFamily}"
         FontSize="{Binding TextSize, ElementName=Root}"
         FontWeight="{Binding TextWeight, ElementName=Root}"
-        Foreground="{Binding ForegroundBrush, ElementName=Root}"
-        IsVisible="{Binding !HasSuffixContent, ElementName=Root}"
-        Text="{Binding Text, ElementName=Root}" />
-      <ContentPresenter
-        VerticalAlignment="Center"
-        Content="{Binding SuffixContent, ElementName=Root}"
-        IsVisible="{Binding HasSuffixContent, ElementName=Root}" />
-    </StackPanel>
+        IsHitTestVisible="False"
+        Opacity="0"
+        Text="0" />
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+        <icons:AppIcon
+          Width="{Binding IconSize, ElementName=Root}"
+          Height="{Binding IconSize, ElementName=Root}"
+          VerticalAlignment="Center"
+          Foreground="{Binding ForegroundBrush, ElementName=Root}"
+          Kind="{Binding Icon, ElementName=Root}" />
+        <TextBlock
+          x:Name="PillText"
+          VerticalAlignment="Center"
+          FontFamily="{DynamicResource StatusPillFontFamily}"
+          FontSize="{Binding TextSize, ElementName=Root}"
+          FontWeight="{Binding TextWeight, ElementName=Root}"
+          Foreground="{Binding ForegroundBrush, ElementName=Root}"
+          IsVisible="{Binding ShowTextContent, ElementName=Root}"
+          Text="{Binding Text, ElementName=Root}" />
+        <ContentPresenter
+          VerticalAlignment="Center"
+          Content="{Binding SuffixContent, ElementName=Root}"
+          IsVisible="{Binding HasSuffixContent, ElementName=Root}" />
+      </StackPanel>
+    </Grid>
   </Border>
 </UserControl>

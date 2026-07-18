@@ -11,11 +11,8 @@
   <x:Double x:Key="SectionCardZoneGap">12</x:Double>
 
   <x:Double x:Key="ControlHeightCompact">38</x:Double>
-  <x:Double x:Key="FilterComboHeight">42</x:Double>
   <Thickness x:Key="RowPadding">10,8</Thickness>
 
-  <x:Double x:Key="HeroBadgeSize">36</x:Double>
-  <x:Double x:Key="HeroBadgeInnerSize">20</x:Double>
   <x:Double x:Key="ButtonWideMinWidth">136</x:Double>
 
   <x:Double x:Key="RowMinHeight">48</x:Double>
@@ -62,7 +59,6 @@
   <Thickness x:Key="H3Padding">0,18,0,8</Thickness>
   <Thickness x:Key="FieldPadding">12,12,12,12</Thickness>
   <Thickness x:Key="StickyPadding">26,0,26,0</Thickness>
-  <Thickness x:Key="TabContentMargin">0,12,0,0</Thickness>
   <x:Double x:Key="ScanCodeContextWidth">320</x:Double>
   <Thickness x:Key="FilterBarPadding">12,10,12,10</Thickness>
   <x:Double x:Key="FilterBarGroupSpacing">8</x:Double>
@@ -70,6 +66,7 @@
   <Thickness x:Key="CardPanelHeaderPadding">12,12,12,0</Thickness>
   <Thickness x:Key="CardPanelInnerMargin">4,0,4,4</Thickness>
   <x:Double x:Key="CardPanelHeaderGap">12</x:Double>
+  <x:Double x:Key="CardPanelResponsiveHeaderMinHeight">24</x:Double>
   <x:Double x:Key="KpiTileInnerSpacing">10</x:Double>
   <x:Double x:Key="KpiTileBadgeGap">10</x:Double>
   <x:Double x:Key="MetricTileColSpacing">12</x:Double>

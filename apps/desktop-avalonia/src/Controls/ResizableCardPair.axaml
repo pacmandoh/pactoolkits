@@ -1,0 +1,60 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.ResizableCardPair"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  x:Name="Root">
+  <UserControl.Styles>
+    <Style Selector="GridSplitter.CardPairSplitter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid Background="Transparent">
+            <Border
+              x:Name="Grip"
+              Width="2"
+              Height="2"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Background="{DynamicResource BorderColor}"
+              CornerRadius="1" />
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="GridSplitter.CardPairSplitter.Horizontal /template/ Border#Grip">
+      <Setter Property="Height" Value="40" />
+    </Style>
+    <Style Selector="GridSplitter.CardPairSplitter.Vertical /template/ Border#Grip">
+      <Setter Property="Width" Value="40" />
+    </Style>
+    <Style Selector="GridSplitter.CardPairSplitter:pointerover /template/ Border#Grip">
+      <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid x:Name="LayoutRoot" MinHeight="0">
+    <ContentPresenter
+      x:Name="FirstPresenter"
+      MinHeight="0"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"
+      HorizontalContentAlignment="Stretch"
+      VerticalContentAlignment="Stretch"
+      Content="{Binding FirstContent, ElementName=Root}" />
+    <GridSplitter
+      x:Name="Splitter"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"
+      Classes="CardPairSplitter"
+      ResizeBehavior="PreviousAndNext"
+      ShowsPreview="False" />
+    <ContentPresenter
+      x:Name="SecondPresenter"
+      MinHeight="0"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"
+      HorizontalContentAlignment="Stretch"
+      VerticalContentAlignment="Stretch"
+      Content="{Binding SecondContent, ElementName=Root}" />
+  </Grid>
+</UserControl>

@@ -68,7 +68,7 @@ internal sealed class DashboardGridActivation
         }
         catch (Exception ex)
         {
-            AppLog.Warn("DashboardView", "dashboard.row_activation.fail", "Dashboard row activation failed", ex);
+            AppLog.Warn("Dashboard", "dashboard.row_activation.fail", "Dashboard row activation failed", ex);
         }
     }
 }

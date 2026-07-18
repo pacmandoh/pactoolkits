@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using Avalonia;
 using global::Avalonia.Controls;
+using global::Avalonia.Input;
 using global::Avalonia.Media;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
@@ -36,13 +38,29 @@ public partial class StatusPill : UserControl
     public static readonly StyledProperty<bool> ShowBorderProperty =
         AvaloniaProperty.Register<StatusPill, bool>(nameof(ShowBorder), true);
 
+    public static readonly StyledProperty<bool> ShowTextProperty =
+        AvaloniaProperty.Register<StatusPill, bool>(nameof(ShowText), true);
+
     public static readonly StyledProperty<object?> SuffixContentProperty =
         AvaloniaProperty.Register<StatusPill, object?>(nameof(SuffixContent));
+
+    public static readonly StyledProperty<bool> IsActiveProperty =
+        AvaloniaProperty.Register<StatusPill, bool>(nameof(IsActive));
+
+    public static readonly StyledProperty<ICommand?> CommandProperty =
+        AvaloniaProperty.Register<StatusPill, ICommand?>(nameof(Command));
+
+    public static readonly StyledProperty<object?> CommandParameterProperty =
+        AvaloniaProperty.Register<StatusPill, object?>(nameof(CommandParameter));
 
     public static readonly DirectProperty<StatusPill, bool> HasSuffixContentProperty =
         AvaloniaProperty.RegisterDirect<StatusPill, bool>(nameof(HasSuffixContent), o => o.HasSuffixContent);
 
+    public static readonly DirectProperty<StatusPill, bool> ShowTextContentProperty =
+        AvaloniaProperty.RegisterDirect<StatusPill, bool>(nameof(ShowTextContent), o => o.ShowTextContent);
+
     private bool _hasSuffixContent;
+    private bool _showTextContent = true;
 
     public string Icon
     {
@@ -104,13 +122,38 @@ public partial class StatusPill : UserControl
         set => SetValue(ShowBorderProperty, value);
     }
 
+    public bool ShowText
+    {
+        get => GetValue(ShowTextProperty);
+        set => SetValue(ShowTextProperty, value);
+    }
+
     public object? SuffixContent
     {
         get => GetValue(SuffixContentProperty);
         set => SetValue(SuffixContentProperty, value);
     }
 
+    public bool IsActive
+    {
+        get => GetValue(IsActiveProperty);
+        set => SetValue(IsActiveProperty, value);
+    }
+
+    public ICommand? Command
+    {
+        get => GetValue(CommandProperty);
+        set => SetValue(CommandProperty, value);
+    }
+
+    public object? CommandParameter
+    {
+        get => GetValue(CommandParameterProperty);
+        set => SetValue(CommandParameterProperty, value);
+    }
+
     public bool HasSuffixContent => _hasSuffixContent;
+    public bool ShowTextContent => _showTextContent;
 
     public StatusPill()
     {
@@ -122,13 +165,20 @@ public partial class StatusPill : UserControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == SuffixContentProperty)
+        if (change.Property == SuffixContentProperty
+            || change.Property == ShowTextProperty)
         {
             RefreshState();
         }
         else if (change.Property == ShowBorderProperty)
         {
             UpdateBorderThickness();
+        }
+        else if (change.Property == CommandProperty)
+        {
+            var interactive = Command is not null;
+            Classes.Set("Interactive", interactive);
+            Focusable = interactive;
         }
     }
 
@@ -151,5 +201,52 @@ public partial class StatusPill : UserControl
     private void RefreshState()
     {
         SetAndRaise(HasSuffixContentProperty, ref _hasSuffixContent, SuffixContent is not null);
+        SetAndRaise(ShowTextContentProperty, ref _showTextContent, ShowText && SuffixContent is null);
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        if (e.Handled || e.InitialPressMouseButton != MouseButton.Left)
+        {
+            return;
+        }
+
+        var point = e.GetPosition(this);
+        if (point.X < 0 || point.Y < 0 || point.X > Bounds.Width || point.Y > Bounds.Height)
+        {
+            return;
+        }
+
+        if (ExecuteCommand())
+        {
+            e.Handled = true;
+        }
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Handled || e.Key is not (Key.Enter or Key.Space))
+        {
+            return;
+        }
+
+        if (ExecuteCommand())
+        {
+            e.Handled = true;
+        }
+    }
+
+    private bool ExecuteCommand()
+    {
+        var command = Command;
+        if (command?.CanExecute(CommandParameter) != true)
+        {
+            return false;
+        }
+
+        command.Execute(CommandParameter);
+        return true;
     }
 }

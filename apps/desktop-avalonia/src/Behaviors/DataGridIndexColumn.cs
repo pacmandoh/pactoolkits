@@ -353,7 +353,7 @@ public class DataGridIndexColumn
                 };
             }
 
-            return new DataGridTemplateColumn
+            var column = new DataGridTemplateColumn
             {
                 Tag = IndexColumnTag,
                 Width = new DataGridLength(width),
@@ -362,6 +362,8 @@ public class DataGridIndexColumn
                 CanUserResize = false,
                 IsReadOnly = true,
             };
+            DataGridFrozenColumns.SetIsFrozen(column, true);
+            return column;
         }
 
         private Panel BuildHeader(string headerText)

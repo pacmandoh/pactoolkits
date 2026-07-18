@@ -15,6 +15,7 @@
             RowDefinitions="Auto,*"
             RowSpacing="{DynamicResource CardPanelHeaderGap}">
             <Grid
+              x:Name="HeaderLayout"
               Grid.Row="0"
               Margin="{DynamicResource CardPanelHeaderPadding}"
               ColumnDefinitions="*,Auto">
@@ -159,6 +160,23 @@
 
   <Style Selector="controls|CardPanel.BodyWell Border.CardPanelBody">
     <Setter Property="Padding" Value="{DynamicResource CardPanelBodyPadding}" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.ResponsiveCompact :is(Control).ResponsiveCompactHidden">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.ResponsiveEnabled /template/ Grid#HeaderLayout">
+    <Setter Property="MinHeight" Value="{DynamicResource CardPanelResponsiveHeaderMinHeight}" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.ResponsiveMinimal :is(Control).ResponsiveMinimalHidden">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+
+  <Style Selector="controls|CardPanel.ResponsiveCompact controls|StatusPill.ResponsiveIconOnly">
+    <Setter Property="ShowText" Value="False" />
+    <Setter Property="PillPadding" Value="6,3" />
   </Style>
 
   <Style Selector="controls|KpiTile TextBlock.h3">

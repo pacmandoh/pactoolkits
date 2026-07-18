@@ -194,6 +194,8 @@ public class DataGridRowSelection
             _grid.AttachedToVisualTree -= OnAttachedToVisualTree;
             _grid.PropertyChanged -= OnGridPropertyChanged;
             DetachItemsSource();
+            _headerCheckBox?.IsCheckedChanged -= OnHeaderCheckBoxChanged;
+
             if (_column is not null && _grid.Columns.Contains(_column))
             {
                 _grid.Columns.Remove(_column);
@@ -215,7 +217,7 @@ public class DataGridRowSelection
 
         private void OnGridPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
         {
-            if (e.Property == ItemsControl.ItemsSourceProperty)
+            if (e.Property == DataGrid.ItemsSourceProperty)
             {
                 DetachItemsSource();
                 AttachItemsSource(_grid.ItemsSource);
@@ -274,6 +276,7 @@ public class DataGridRowSelection
 
                 _column = templateColumn;
                 _headerCheckBox = templateColumn.Header as CheckBox;
+                DataGridFrozenColumns.SetIsFrozen(_column, true);
                 EnsureHeaderCheckBox();
                 MoveColumnToSlot(_column);
                 return true;
@@ -320,11 +323,9 @@ public class DataGridRowSelection
                 VerticalAlignment = VerticalAlignment.Center,
                 IsThreeState = true,
             };
-            header.IsCheckedChanged += OnHeaderCheckBoxChanged;
+            SetHeaderCheckBox(header);
 
-            _headerCheckBox = header;
-
-            return new DataGridTemplateColumn
+            var column = new DataGridTemplateColumn
             {
                 Tag = SelectionColumnTag,
                 Header = header,
@@ -333,6 +334,8 @@ public class DataGridRowSelection
                 Width = new DataGridLength(width),
                 CellTemplate = BuildCellTemplate(),
             };
+            DataGridFrozenColumns.SetIsFrozen(column, true);
+            return column;
         }
 
         private static FuncDataTemplate<object?> BuildCellTemplate()
@@ -367,7 +370,7 @@ public class DataGridRowSelection
 
             if (_column.Header is CheckBox existing)
             {
-                _headerCheckBox = existing;
+                SetHeaderCheckBox(existing);
                 return;
             }
 
@@ -377,9 +380,23 @@ public class DataGridRowSelection
                 VerticalAlignment = VerticalAlignment.Center,
                 IsThreeState = true,
             };
-            header.IsCheckedChanged += OnHeaderCheckBoxChanged;
             _column.Header = header;
+            SetHeaderCheckBox(header);
+        }
+
+        private void SetHeaderCheckBox(CheckBox header)
+        {
+            if (ReferenceEquals(_headerCheckBox, header))
+            {
+                header.IsCheckedChanged -= OnHeaderCheckBoxChanged;
+                header.IsCheckedChanged += OnHeaderCheckBoxChanged;
+                return;
+            }
+
+            _headerCheckBox?.IsCheckedChanged -= OnHeaderCheckBoxChanged;
+
             _headerCheckBox = header;
+            _headerCheckBox.IsCheckedChanged += OnHeaderCheckBoxChanged;
         }
 
         public void ApplyPresentation()
@@ -394,6 +411,7 @@ public class DataGridRowSelection
             {
                 _column.IsVisible = visible;
                 _appliedVisible = visible;
+                DataGridFrozenColumns.Refresh(_grid);
             }
         }
 
@@ -488,6 +506,22 @@ public class DataGridRowSelection
 
         private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
+            if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                foreach (var row in _rowSubscriptions.ToArray())
+                {
+                    UnsubscribeRow(row);
+                }
+
+                foreach (var row in EnumerateRows())
+                {
+                    SubscribeRow(row);
+                }
+
+                UpdateCounts();
+                return;
+            }
+
             if (e.OldItems is not null)
             {
                 foreach (var item in e.OldItems)
@@ -537,6 +571,11 @@ public class DataGridRowSelection
                 return;
             }
 
+            if (_syncingSelectAll)
+            {
+                return;
+            }
+
             UpdateCounts();
         }
 
@@ -570,6 +609,7 @@ public class DataGridRowSelection
             var selectAll = DataGridInteractionHelper.Rules.SelectAllTriState(selected, total);
 
             _syncingHeader = true;
+            _syncingSelectAll = true;
             try
             {
                 _headerCheckBox?.IsChecked = selectAll;
@@ -578,6 +618,7 @@ public class DataGridRowSelection
             }
             finally
             {
+                _syncingSelectAll = false;
                 _syncingHeader = false;
             }
 
