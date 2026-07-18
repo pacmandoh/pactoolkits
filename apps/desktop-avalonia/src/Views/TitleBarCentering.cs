@@ -58,7 +58,10 @@ internal sealed class TitleBarCentering : IDisposable
 
         var renderedCenter = transform.Value.Transform(new Point(_anchor.Bounds.Width / 2, 0)).X;
         var arrangedCenter = renderedCenter - _translation.X;
-        var nextTranslation = (_surface.Bounds.Width / 2) - arrangedCenter;
+        var rawTranslation = (_surface.Bounds.Width / 2) - arrangedCenter;
+        var renderScaling = TopLevel.GetTopLevel(_surface)?.RenderScaling ?? 1;
+        // Render transforms bypass layout rounding, so keep the title content on the physical pixel grid.
+        var nextTranslation = Math.Round(rawTranslation * renderScaling) / renderScaling;
         if (Math.Abs(_translation.X - nextTranslation) > 0.1)
         {
             _translation.X = nextTranslation;
