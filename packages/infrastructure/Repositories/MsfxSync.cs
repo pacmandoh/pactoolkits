@@ -7,12 +7,13 @@ namespace PacToolkits.Infrastructure.Repositories;
 
 public sealed partial class MsfxSyncRepo : IMsfxSyncRepo
 {
+    private const int MappingCommandTimeoutSeconds = 120;
+
     private const string MapQueueBaseWhere = """
         (
           s.map_status in ('PENDING', 'NEED_REVIEW', 'FAILED')
           or (s.map_status = 'MAPPED' and s.code_status in ('NEW', 'TASKED', 'FAILED'))
         )
-        and (@map_status::text is null or s.map_status = @map_status::text)
         and (@code_status::text is null or s.code_status = @code_status::text)
         """;
 
@@ -48,6 +49,35 @@ public sealed partial class MsfxSyncRepo : IMsfxSyncRepo
         _opt = opt.Value;
     }
 
+    public Task<IAsyncDisposable?> TryAcquireRunLockAsync(
+        string sourceApi,
+        CancellationToken ct)
+        => _db.TryAcquireSessionLockAsync($"msfx:auto:{sourceApi.Trim().ToLowerInvariant()}", ct);
+
+    public Task<int> FailInterruptedPullBatchesAsync(
+        string sourceApi,
+        string error,
+        CancellationToken ct)
+    {
+        const string sql = """
+            update msfx_pull_batch
+            set status = 'FAILED',
+                fail_count = greatest(fail_count, 1),
+                err_msg = @error,
+                finished_at = clock_timestamp()
+            where source_api = @source_api
+              and status = 'RUNNING'
+            """;
+
+        return _db.WithConnection(async (conn, token) =>
+        {
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("source_api", sourceApi);
+            cmd.AddParam("error", error);
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct);
+    }
+
     public Task<MsfxPullWindow> GetPullWindowAsync(string sourceApi, CancellationToken ct)
     {
         const string sql = "select begin_at, end_at from msfx_get_pull_window(@source_api)";
@@ -65,6 +95,62 @@ public sealed partial class MsfxSyncRepo : IMsfxSyncRepo
             var begin = reader.GetFieldValue<DateTimeOffset>(0);
             var end = reader.GetFieldValue<DateTimeOffset>(1);
             return new MsfxPullWindow(begin, end);
+        }, ct);
+    }
+
+    public Task<MsfxPullCursorState> GetPullCursorAsync(string sourceApi, CancellationToken ct)
+    {
+        const string sql = """
+            select last_success_begin, last_success_end, last_batch_id, updated_at
+            from msfx_pull_cursor
+            where source_api = @source_api
+            """;
+        return _db.WithConnection(async (conn, token) =>
+        {
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("source_api", sourceApi);
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                return new MsfxPullCursorState(null, null, null, null);
+            }
+
+            return new MsfxPullCursorState(
+                reader.IsDBNull(0) ? null : reader.GetFieldValue<DateTimeOffset>(0),
+                reader.IsDBNull(1) ? null : reader.GetFieldValue<DateTimeOffset>(1),
+                reader.IsDBNull(2) ? null : reader.GetInt64(2),
+                reader.IsDBNull(3) ? null : reader.GetFieldValue<DateTimeOffset>(3));
+        }, ct);
+    }
+
+    public Task<bool> AdvancePullCursorToAsync(
+        string sourceApi,
+        DateTimeOffset target,
+        CancellationToken ct)
+    {
+        const string sql = """
+            insert into msfx_pull_cursor(
+                source_api,
+                last_success_begin,
+                last_success_end,
+                last_batch_id,
+                updated_at
+            )
+            values (@source_api, @target, @target, null, clock_timestamp())
+            on conflict (source_api) do update
+            set last_success_begin = excluded.last_success_begin,
+                last_success_end = excluded.last_success_end,
+                updated_at = excluded.updated_at
+            where msfx_pull_cursor.last_success_end is null
+               or excluded.last_success_end > msfx_pull_cursor.last_success_end
+            returning true
+            """;
+        return _db.WithConnection(async (conn, token) =>
+        {
+            await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("source_api", sourceApi);
+            cmd.AddParam("target", target.UtcDateTime);
+            return await cmd.ExecuteScalarAsync(token).ConfigureAwait(false) is true;
         }, ct);
     }
 
@@ -149,7 +235,33 @@ public sealed partial class MsfxSyncRepo : IMsfxSyncRepo
         string batchStatus,
         CancellationToken ct)
     {
-        const string sql = "select msfx_advance_pull_cursor(@source_api, @begin_at, @end_at, @batch_id, @batch_status)";
+        const string sql = """
+            insert into msfx_pull_cursor(
+                source_api,
+                last_success_begin,
+                last_success_end,
+                last_batch_id,
+                updated_at
+            )
+            select
+                @source_api,
+                @begin_at,
+                @end_at,
+                @batch_id,
+                clock_timestamp()
+            where @batch_status = 'SUCCESS'
+            on conflict (source_api) do update
+            set last_success_begin = excluded.last_success_begin,
+                last_success_end = excluded.last_success_end,
+                last_batch_id = excluded.last_batch_id,
+                updated_at = excluded.updated_at
+            where msfx_pull_cursor.last_success_end is null
+               or excluded.last_success_end > msfx_pull_cursor.last_success_end
+               or (
+                    excluded.last_success_end = msfx_pull_cursor.last_success_end
+                    and excluded.last_batch_id > coalesce(msfx_pull_cursor.last_batch_id, 0)
+               )
+            """;
         return _db.WithConnection(async (conn, token) =>
         {
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
@@ -158,7 +270,7 @@ public sealed partial class MsfxSyncRepo : IMsfxSyncRepo
             cmd.AddParam("end_at", endAt.UtcDateTime);
             cmd.AddParam("batch_id", batchId);
             cmd.AddParam("batch_status", batchStatus);
-            _ = await cmd.ExecuteScalarAsync(token).ConfigureAwait(false);
+            _ = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct);
     }
 

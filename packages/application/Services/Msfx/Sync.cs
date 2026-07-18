@@ -7,6 +7,8 @@ namespace PacToolkits.Application.Services.Msfx;
 public interface ISyncService
 {
     Task<MsfxPullWindow> GetPullWindowAsync(string sourceApi, CancellationToken ct);
+    Task<MsfxPullCursorState> GetPullCursorAsync(string sourceApi, CancellationToken ct);
+    Task<MsfxPullCursorState> AdvancePullCursorToAsync(string sourceApi, DateTimeOffset target, CancellationToken ct);
     Task<MsfxPullBatchStartResult> StartPullBatchAsync(string sourceApi, DateTimeOffset beginAt, DateTimeOffset endAt, CancellationToken ct);
     Task FinishPullBatchAsync(long batchId, string status, int successCount, int failCount, string? errMsg, CancellationToken ct);
     Task UpdatePullBatchRequestIdAsync(long batchId, string? requestId, CancellationToken ct);
@@ -25,7 +27,7 @@ public interface ISyncService
     Task<MsfxBuildInject> BuildInjectsAsync(int maxGroups, CancellationToken ct);
     Task<MsfxAutoBoardSnapshot> GetAutoBoardSnapshotAsync(CancellationToken ct);
     Task<IReadOnlyList<MsfxPullBatchRow>> GetRecentPullBatchesAsync(int limit, CancellationToken ct);
-    Task<MsfxMappingQueuePage> GetMappingQueuePageAsync(int pageSize, string? mapStatus, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, bool seekLastPage, CancellationToken ct);
+    Task<MsfxMappingQueuePage> GetMappingQueuePageAsync(int pageSize, IReadOnlyCollection<string>? mapStatuses, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, bool seekLastPage, CancellationToken ct);
     Task<IReadOnlyList<MsfxInjectQueueRow>> GetInjectQueueAsync(int limit, CancellationToken ct);
     Task<MsfxInjectReopen> ReopenInjectAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
     Task<MsfxInjectDiscard> DiscardInjectAsync(long taskId, string? operatorName, string? reason, CancellationToken ct);
@@ -52,10 +54,63 @@ public sealed class SyncService : ISyncService, IMsfxAutoRunStore
         _catalogCache = catalogCache ?? throw new ArgumentNullException(nameof(catalogCache));
     }
 
+    public Task<IAsyncDisposable?> TryAcquireRunLockAsync(
+        string sourceApi,
+        CancellationToken ct)
+    {
+        RequireSourceApi(sourceApi);
+        return _repo.TryAcquireRunLockAsync(sourceApi, ct);
+    }
+
+    public Task<int> FailInterruptedPullBatchesAsync(
+        string sourceApi,
+        string error,
+        CancellationToken ct)
+    {
+        RequireSourceApi(sourceApi);
+        ArgumentException.ThrowIfNullOrWhiteSpace(error);
+        return _repo.FailInterruptedPullBatchesAsync(sourceApi, error.Trim(), ct);
+    }
+
     public Task<MsfxPullWindow> GetPullWindowAsync(string sourceApi, CancellationToken ct)
     {
         RequireSourceApi(sourceApi);
         return _repo.GetPullWindowAsync(sourceApi, ct);
+    }
+
+    public Task<MsfxPullCursorState> GetPullCursorAsync(string sourceApi, CancellationToken ct)
+    {
+        RequireSourceApi(sourceApi);
+        return _repo.GetPullCursorAsync(sourceApi, ct);
+    }
+
+    public async Task<MsfxPullCursorState> AdvancePullCursorToAsync(
+        string sourceApi,
+        DateTimeOffset target,
+        CancellationToken ct)
+    {
+        RequireSourceApi(sourceApi);
+        if (target > DateTimeOffset.Now)
+        {
+            throw new ArgumentOutOfRangeException(nameof(target), "MSFX 拉取游标不能晚于当前时间");
+        }
+
+        await using var runLock =
+            await _repo.TryAcquireRunLockAsync(sourceApi, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("MSFX 自动巡检正在运行，暂时不能调整拉取游标");
+
+        var current = await _repo.GetPullCursorAsync(sourceApi, ct).ConfigureAwait(false);
+        if (current.LastSuccessEnd is { } currentEnd && target <= currentEnd)
+        {
+            throw new InvalidOperationException("目标游标必须晚于当前游标；设置页只允许向前跳过数据");
+        }
+
+        if (!await _repo.AdvancePullCursorToAsync(sourceApi, target, ct).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException("拉取游标未更新，请刷新当前游标后重试");
+        }
+
+        return await _repo.GetPullCursorAsync(sourceApi, ct).ConfigureAwait(false);
     }
 
     public Task<MsfxPullBatchStartResult> StartPullBatchAsync(string sourceApi, DateTimeOffset beginAt, DateTimeOffset endAt, CancellationToken ct)
@@ -186,10 +241,10 @@ public sealed class SyncService : ISyncService, IMsfxAutoRunStore
     public Task<IReadOnlyList<MsfxPullBatchRow>> GetRecentPullBatchesAsync(int limit, CancellationToken ct)
         => _repo.GetRecentPullBatchesAsync(NormalizeLimit(limit), ct);
 
-    public async Task<MsfxMappingQueuePage> GetMappingQueuePageAsync(int pageSize, string? mapStatus, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, bool seekLastPage, CancellationToken ct)
+    public async Task<MsfxMappingQueuePage> GetMappingQueuePageAsync(int pageSize, IReadOnlyCollection<string>? mapStatuses, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, bool seekLastPage, CancellationToken ct)
         => await _repo.GetMappingQueuePageAsync(
             NormalizeLimit(pageSize),
-            mapStatus,
+            mapStatuses,
             codeStatus,
             searchScope,
             keyword,

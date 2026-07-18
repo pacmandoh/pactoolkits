@@ -2,6 +2,12 @@ namespace PacToolkits.Application.DTOs;
 
 public sealed record MsfxPullWindow(DateTimeOffset BeginAt, DateTimeOffset EndAt);
 
+public sealed record MsfxPullCursorState(
+    DateTimeOffset? LastSuccessBegin,
+    DateTimeOffset? LastSuccessEnd,
+    long? LastBatchId,
+    DateTimeOffset? UpdatedAt);
+
 public sealed record MsfxPullBatchStartResult(long BatchId);
 
 public sealed record MsfxBillRetryRow(
@@ -23,7 +29,11 @@ public sealed record MsfxMappingStatusSnapshot(
 
 public sealed record MsfxBuildInject(int CreatedTasks, int TaskedCodes);
 
-public sealed record MsfxIngestDetailResult(int InsertedItems, int InsertedCodes, int InsertedStaging);
+public sealed record MsfxIngestDetailResult(
+    int ProcessedItems,
+    int NewItems,
+    int ProcessedCodes,
+    int NewCodes);
 
 public sealed record MsfxMappingBacklogDiagnostic(
     int PendingCount,

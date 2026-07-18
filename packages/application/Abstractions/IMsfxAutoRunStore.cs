@@ -4,6 +4,15 @@ namespace PacToolkits.Application.Abstractions;
 
 public interface IMsfxAutoRunStore
 {
+    Task<IAsyncDisposable?> TryAcquireRunLockAsync(
+        string sourceApi,
+        CancellationToken ct);
+
+    Task<int> FailInterruptedPullBatchesAsync(
+        string sourceApi,
+        string error,
+        CancellationToken ct);
+
     Task<MsfxPullWindow> GetPullWindowAsync(string sourceApi, CancellationToken ct);
     Task<MsfxPullBatchStartResult> StartPullBatchAsync(
         string sourceApi,

@@ -4,7 +4,23 @@ namespace PacToolkits.Application.Abstractions;
 
 public interface IMsfxSyncRepo
 {
+    Task<IAsyncDisposable?> TryAcquireRunLockAsync(
+        string sourceApi,
+        CancellationToken ct);
+
+    Task<int> FailInterruptedPullBatchesAsync(
+        string sourceApi,
+        string error,
+        CancellationToken ct);
+
     Task<MsfxPullWindow> GetPullWindowAsync(string sourceApi, CancellationToken ct);
+
+    Task<MsfxPullCursorState> GetPullCursorAsync(string sourceApi, CancellationToken ct);
+
+    Task<bool> AdvancePullCursorToAsync(
+        string sourceApi,
+        DateTimeOffset target,
+        CancellationToken ct);
 
     Task<MsfxPullBatchStartResult> StartPullBatchAsync(
         string sourceApi,
@@ -114,7 +130,7 @@ public interface IMsfxSyncRepo
 
     Task<MsfxMappingQueuePage> GetMappingQueuePageAsync(
         int pageSize,
-        string? mapStatus,
+        IReadOnlyCollection<string>? mapStatuses,
         string? codeStatus,
         string? searchScope,
         string? keyword,

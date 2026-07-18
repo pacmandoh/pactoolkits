@@ -24,6 +24,35 @@ public sealed class PgDb : IDb
         _accessGuard = accessGuard;
     }
 
+    public async Task<IAsyncDisposable?> TryAcquireSessionLockAsync(
+        string key,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        _accessGuard.ThrowIfBlocked();
+
+        var conn = await OpenConnectionWithRetryAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "select pg_try_advisory_lock(hashtextextended(@key, 0))";
+            cmd.Parameters.AddWithValue("key", key);
+            var acquired = Convert.ToBoolean(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
+            if (!acquired)
+            {
+                await conn.DisposeAsync().ConfigureAwait(false);
+                return null;
+            }
+
+            return new SessionLock(conn, key, _logger);
+        }
+        catch
+        {
+            await conn.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
     public async Task<T> WithConnection<T>(
         Func<IDbConnection, CancellationToken, Task<T>> work,
         CancellationToken ct = default)
@@ -164,6 +193,40 @@ public sealed class PgDb : IDb
         catch (System.Exception ex)
         {
             _logger.Warn("PgDb", "pool.clear.fail", "Failed to clear Npgsql pools", ex);
+        }
+    }
+
+    private sealed class SessionLock(
+        NpgsqlConnection connection,
+        string key,
+        IAppLogger logger) : IAsyncDisposable
+    {
+        private NpgsqlConnection? _connection = connection;
+
+        public async ValueTask DisposeAsync()
+        {
+            var conn = Interlocked.Exchange(ref _connection, null);
+            if (conn is null)
+            {
+                return;
+            }
+
+            try
+            {
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "select pg_advisory_unlock(hashtextextended(@key, 0))";
+                cmd.Parameters.AddWithValue("key", key);
+                _ = await cmd.ExecuteScalarAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.Warn("PgDb", "session_lock.release.fail", "PostgreSQL session lock release failed", ex);
+                NpgsqlConnection.ClearPool(conn);
+            }
+            finally
+            {
+                await conn.DisposeAsync().ConfigureAwait(false);
+            }
         }
     }
 }
