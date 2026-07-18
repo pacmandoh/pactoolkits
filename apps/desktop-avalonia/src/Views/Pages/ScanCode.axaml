@@ -1,0 +1,53 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.ScanCode"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:pages="clr-namespace:PacToolkits.Desktop.Avalonia.Views.Pages"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:Name="Root"
+  d:DesignHeight="800"
+  d:DesignWidth="1200"
+  x:DataType="vm:ScanCode"
+  Classes="ScanCodePage"
+  Focusable="True"
+  mc:Ignorable="d">
+  <controls:PageDataShell
+    IsLoadingData="{Binding IsBusy}"
+    ShowStale="{Binding IsShowingStaleData}"
+    ShowUnavailable="{Binding ShowPageUnavailable}"
+    StaleHint="{Binding PageStaleHint}"
+    UnavailableHint="{Binding PageUnavailableHint}"
+    UnavailableIcon="{Binding PageUnavailableIcon}"
+    UnavailableTitle="{Binding PageUnavailableTitle}">
+    <Grid
+      MinHeight="0"
+      Classes="DashboardLayout"
+      RowDefinitions="Auto,*">
+      <controls:DeferredContentHost
+        Grid.Row="1"
+        IsActive="{Binding IsManualEntryTab}"
+        IsVisible="{Binding IsManualEntryTab}">
+        <controls:DeferredContentHost.ContentTemplate>
+          <DataTemplate x:DataType="vm:ScanCode">
+            <pages:ScanCodeManual />
+          </DataTemplate>
+        </controls:DeferredContentHost.ContentTemplate>
+      </controls:DeferredContentHost>
+      <controls:DeferredContentHost
+        Grid.Row="1"
+        IsActive="{Binding IsAutoFetchTab}"
+        IsVisible="{Binding IsAutoFetchTab}">
+        <controls:DeferredContentHost.ContentTemplate>
+          <DataTemplate x:DataType="vm:ScanCode">
+            <pages:ScanCodeAutoFetch />
+          </DataTemplate>
+        </controls:DeferredContentHost.ContentTemplate>
+      </controls:DeferredContentHost>
+    </Grid>
+  </controls:PageDataShell>
+</UserControl>

@@ -6,6 +6,8 @@
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:conv="clr-namespace:PacToolkits.Desktop.Avalonia.Converters"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:pageVm="using:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  xmlns:pages="clr-namespace:PacToolkits.Desktop.Avalonia.Views.Pages"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels"
   x:Name="Root"
@@ -503,7 +505,7 @@
             MinHeight="{DynamicResource ChromeRowHeight}"
             Margin="{DynamicResource HeaderPadding}"
             VerticalAlignment="Center"
-            ColumnDefinitions="Auto, Auto, Auto, *, Auto, Auto, Auto">
+            ColumnDefinitions="Auto,*,Auto,Auto">
             <StackPanel
               Grid.Column="0"
               Orientation="Horizontal"
@@ -514,237 +516,36 @@
                 ToolTip.Tip="{Binding SidebarToggleToolTip}">
                 <icons:AppIcon Kind="{Binding SidebarToggleIconKind}" />
               </Button>
-              <Button
-                Classes="Icon ghost-states"
-                Classes.active="{Binding IsDashboardFilterBarVisible}"
-                Command="{Binding ToggleDashboardFilterBarCommand}"
-                IsVisible="{Binding IsDashboardPageActive}"
-                ToolTip.Tip="{Binding FilterBarToggleToolTip}">
-                <icons:AppIcon Kind="{Binding FilterBarToggleIconKind}" />
-              </Button>
-              <Button
-                Classes="Icon ghost-states"
-                Command="{Binding Unlock}"
-                IsEnabled="{Binding CanUnlock}"
-                IsVisible="{Binding ShowUnlock}"
-                ToolTip.Tip="解锁">
-                <icons:AppIcon Foreground="{DynamicResource WarningColor}" Kind="LockKeyhole" />
-              </Button>
-              <Button
-                Classes="Icon ghost-states"
-                Command="{Binding Lock}"
-                IsEnabled="{Binding CanLock}"
-                IsVisible="{Binding ShowLock}"
-                ToolTip.Tip="锁定">
-                <icons:AppIcon Foreground="{DynamicResource ErrorColor}" Kind="LockKeyholeOpen" />
-              </Button>
             </StackPanel>
-            <Rectangle Grid.Column="1" Classes="HeaderDivider" />
-            <StackPanel
-              Grid.Column="2"
-              VerticalAlignment="Center"
-              Classes="HeaderTitleRail"
-              Orientation="Horizontal">
-              <TextBlock Classes="Small Muted" Text="{Binding ActivePageText}" />
-              <icons:AppIcon
-                Classes="HeaderTitleChevron"
-                IsVisible="{Binding IsDashboardPageActive}"
-                Kind="ChevronRight" />
-              <TabControl
-                shad:TabControlBehaviors.UseSlidingPill="True"
-                Classes="DashboardTabHeaders"
-                IsVisible="{Binding IsDashboardPageActive}"
-                ItemsSource="{Binding DashboardTabs}"
-                SelectedIndex="{Binding DashboardSelectedTabIndex, Mode=TwoWay}">
-                <TabControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:PageTab">
-                    <StackPanel Classes="TabItemHeader">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeCompact}"
-                        Height="{DynamicResource IconSizeCompact}"
-                        Kind="{Binding Icon}" />
-                      <TextBlock Text="{Binding Text}" />
-                    </StackPanel>
-                  </DataTemplate>
-                </TabControl.ItemTemplate>
-              </TabControl>
-              <icons:AppIcon
-                Classes="HeaderTitleChevron"
-                IsVisible="{Binding IsScanCodePageActive}"
-                Kind="ChevronRight" />
-              <TabControl
-                shad:TabControlBehaviors.UseSlidingPill="True"
-                Classes="DashboardTabHeaders"
-                IsVisible="{Binding IsScanCodePageActive}"
-                ItemsSource="{Binding ScanCodeTabs}"
-                SelectedIndex="{Binding ScanCodeSelectedTabIndex, Mode=TwoWay}">
-                <TabControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:PageTab">
-                    <StackPanel Classes="TabItemHeader">
-                      <icons:AppIcon
-                        Width="{DynamicResource IconSizeCompact}"
-                        Height="{DynamicResource IconSizeCompact}"
-                        Kind="{Binding Icon}" />
-                      <TextBlock Text="{Binding Text}" />
-                    </StackPanel>
-                  </DataTemplate>
-                </TabControl.ItemTemplate>
-              </TabControl>
-            </StackPanel>
+            <ContentControl
+              Grid.Column="1"
+              HorizontalContentAlignment="Stretch"
+              VerticalContentAlignment="Center"
+              Content="{Binding ActivePage}">
+              <ContentControl.DataTemplates>
+                <DataTemplate x:DataType="pageVm:Dashboard">
+                  <pages:DashboardHeader />
+                </DataTemplate>
+                <DataTemplate x:DataType="pageVm:ScanCode">
+                  <pages:ScanCodeHeader />
+                </DataTemplate>
+                <DataTemplate x:DataType="pageVm:MsfxLink">
+                  <pages:MsfxLinkHeader />
+                </DataTemplate>
+                <DataTemplate x:DataType="pageVm:InventoryOverview">
+                  <pages:InventoryOverviewHeader />
+                </DataTemplate>
+                <DataTemplate x:DataType="pageVm:DrugIndex">
+                  <pages:DrugIndexHeader />
+                </DataTemplate>
+                <DataTemplate x:DataType="pageVm:Settings">
+                  <pages:SettingsHeader />
+                </DataTemplate>
+              </ContentControl.DataTemplates>
+            </ContentControl>
+            <Rectangle Grid.Column="2" Classes="HeaderDivider" />
             <Menu
-              Grid.Column="4"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Center"
-              Classes="HeaderMenu"
-              IsVisible="{Binding IsDrugIndexPageActive}">
-              <MenuItem Command="{Binding Import}" IsEnabled="{Binding CanImport}">
-                <MenuItem.Header>
-                  <StackPanel Classes="HeaderMenuItem">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeCompact}"
-                      Height="{DynamicResource IconSizeCompact}"
-                      Kind="Clipboard" />
-                    <TextBlock Text="剪贴板导入" />
-                  </StackPanel>
-                </MenuItem.Header>
-              </MenuItem>
-              <MenuItem Command="{Binding NewItem}" IsEnabled="{Binding CanNewItem}">
-                <MenuItem.Header>
-                  <StackPanel Classes="HeaderMenuItem">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeCompact}"
-                      Height="{DynamicResource IconSizeCompact}"
-                      Kind="Plus" />
-                    <TextBlock Text="新建" />
-                  </StackPanel>
-                </MenuItem.Header>
-              </MenuItem>
-            </Menu>
-            <Menu
-              Grid.Column="4"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Center"
-              Classes="HeaderMenu"
-              IsVisible="{Binding IsInventoryPageActive}">
-              <MenuItem
-                Command="{Binding ToggleStockEdit}"
-                IsEnabled="{Binding CanToggleStockEdit}"
-                IsVisible="{Binding ShowEnableStockEdit}">
-                <MenuItem.Header>
-                  <StackPanel Classes="HeaderMenuItem">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeCompact}"
-                      Height="{DynamicResource IconSizeCompact}"
-                      Kind="SquarePen" />
-                    <TextBlock Text="编辑" />
-                  </StackPanel>
-                </MenuItem.Header>
-              </MenuItem>
-              <MenuItem
-                Command="{Binding ToggleStockEdit}"
-                IsEnabled="{Binding CanToggleStockEdit}"
-                IsVisible="{Binding ShowDisableStockEdit}">
-                <MenuItem.Header>
-                  <StackPanel Classes="HeaderMenuItem">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeCompact}"
-                      Height="{DynamicResource IconSizeCompact}"
-                      Kind="Check" />
-                    <TextBlock Text="完成编辑" />
-                  </StackPanel>
-                </MenuItem.Header>
-              </MenuItem>
-              <MenuItem
-                Command="{Binding ToggleReassign}"
-                IsEnabled="{Binding CanToggleReassign}"
-                IsVisible="{Binding ShowOpenReassign}">
-                <MenuItem.Header>
-                  <StackPanel Classes="HeaderMenuItem">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeCompact}"
-                      Height="{DynamicResource IconSizeCompact}"
-                      Kind="FilePenLine" />
-                    <TextBlock Text="药品纠错" />
-                  </StackPanel>
-                </MenuItem.Header>
-              </MenuItem>
-              <MenuItem
-                Command="{Binding ToggleReassign}"
-                IsEnabled="{Binding CanToggleReassign}"
-                IsVisible="{Binding ShowCloseReassign}">
-                <MenuItem.Header>
-                  <StackPanel Classes="HeaderMenuItem">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeCompact}"
-                      Height="{DynamicResource IconSizeCompact}"
-                      Kind="X" />
-                    <TextBlock Text="关闭纠错" />
-                  </StackPanel>
-                </MenuItem.Header>
-              </MenuItem>
-            </Menu>
-            <Border
-              Grid.Column="4"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Center"
-              Classes="DashboardTabContext"
-              IsHitTestVisible="False"
-              IsVisible="{Binding IsDashboardPageActive}">
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                <icons:AppIcon
-                  Width="{DynamicResource IconSizeSmall}"
-                  Height="{DynamicResource IconSizeSmall}"
-                  Kind="CalendarRange" />
-                <TextBlock
-                  MaxWidth="360"
-                  VerticalAlignment="Center"
-                  Classes="Caption Muted"
-                  Text="{Binding DashboardSectionHint}"
-                  TextTrimming="CharacterEllipsis" />
-              </StackPanel>
-            </Border>
-            <StackPanel
-              Grid.Column="4"
-              VerticalAlignment="Center"
-              IsVisible="{Binding ShowAutoFetchActions}"
-              Orientation="Horizontal"
-              Spacing="{DynamicResource SpacingInlineSm}">
-              <Grid
-                VerticalAlignment="Center"
-                ColumnDefinitions="Auto,Auto"
-                ColumnSpacing="7">
-                <TextBlock
-                  VerticalAlignment="Center"
-                  Classes="Caption Muted"
-                  Text="启用调度" />
-                <ToggleSwitch
-                  Grid.Column="1"
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  IsChecked="{Binding AutoFetchEnabled, Mode=TwoWay}" />
-              </Grid>
-              <Button Classes="Action" Command="{Binding StartAutoFetch}">
-                <StackPanel Classes="HeaderMenuItem">
-                  <icons:AppIcon Kind="Play" />
-                  <TextBlock Text="启动" />
-                </StackPanel>
-              </Button>
-              <Button Classes="Action" Command="{Binding StopAutoFetch}">
-                <StackPanel Classes="HeaderMenuItem">
-                  <icons:AppIcon Kind="Square" />
-                  <TextBlock Text="停止" />
-                </StackPanel>
-              </Button>
-              <Button Classes="Action" Command="{Binding OpenAutoFetchSettings}">
-                <StackPanel Classes="HeaderMenuItem">
-                  <icons:AppIcon Kind="SlidersHorizontal" />
-                  <TextBlock Text="拉取策略" />
-                </StackPanel>
-              </Button>
-            </StackPanel>
-            <Rectangle Grid.Column="5" Classes="HeaderDivider" />
-            <Menu
-              Grid.Column="6"
+              Grid.Column="3"
               HorizontalAlignment="Right"
               VerticalAlignment="Center"
               Classes="HeaderMenu">

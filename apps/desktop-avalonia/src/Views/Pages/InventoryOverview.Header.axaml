@@ -1,0 +1,70 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.InventoryOverviewHeader"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:InventoryOverview"
+  Classes="PageHeaderContent">
+  <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+    <StackPanel
+      Margin="4,0,0,0"
+      Orientation="Horizontal"
+      Spacing="4">
+      <Button
+        Classes="Icon ghost-states"
+        Command="{Binding UnlockCommand}"
+        IsVisible="{Binding ShowUnlock}"
+        ToolTip.Tip="解锁">
+        <icons:AppIcon Foreground="{DynamicResource WarningColor}" Kind="LockKeyhole" />
+      </Button>
+      <Button
+        Classes="Icon ghost-states"
+        Command="{Binding LockCommand}"
+        IsVisible="{Binding ShowLock}"
+        ToolTip.Tip="锁定">
+        <icons:AppIcon Foreground="{DynamicResource ErrorColor}" Kind="LockKeyholeOpen" />
+      </Button>
+    </StackPanel>
+    <Rectangle Grid.Column="1" Classes="HeaderDivider" />
+    <TextBlock
+      Grid.Column="2"
+      VerticalAlignment="Center"
+      Classes="Small Muted"
+      Text="{Binding DisplayName}" />
+    <Menu Grid.Column="3" Classes="HeaderMenu">
+      <MenuItem Command="{Binding ToggleStockEditCommand}" IsVisible="{Binding CanEnableStockEdit}">
+        <MenuItem.Header>
+          <StackPanel Classes="HeaderMenuItem">
+            <icons:AppIcon Kind="SquarePen" />
+            <TextBlock Text="编辑" />
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding ToggleStockEditCommand}" IsVisible="{Binding CanDisableStockEdit}">
+        <MenuItem.Header>
+          <StackPanel Classes="HeaderMenuItem">
+            <icons:AppIcon Kind="Check" />
+            <TextBlock Text="完成编辑" />
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding ToggleReassignCommand}" IsVisible="{Binding ShowOpenReassign}">
+        <MenuItem.Header>
+          <StackPanel Classes="HeaderMenuItem">
+            <icons:AppIcon Kind="FilePenLine" />
+            <TextBlock Text="药品纠错" />
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding ToggleReassignCommand}" IsVisible="{Binding ShowCloseReassign}">
+        <MenuItem.Header>
+          <StackPanel Classes="HeaderMenuItem">
+            <icons:AppIcon Kind="X" />
+            <TextBlock Text="关闭纠错" />
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+    </Menu>
+  </Grid>
+</UserControl>

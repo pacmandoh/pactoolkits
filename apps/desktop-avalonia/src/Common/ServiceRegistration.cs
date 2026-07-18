@@ -77,7 +77,6 @@ public static class ServiceRegistration
             manager.Register<AppInfoView, AppInfo>();
             manager.Register<InfoDetailView, InfoDetail>();
             manager.Register<MsfxStateDetailView, MsfxStateDetail>();
-            manager.Register<MsfxMappingBatchView, MsfxMappingBatch>();
             manager.Register<MsfxTaskSplitView, MsfxTaskSplit>();
             return manager;
         });

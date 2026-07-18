@@ -1,5 +1,5 @@
 <UserControl
-  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.InventoryOverviewView"
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.InventoryOverview"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
@@ -38,7 +38,7 @@
               ClipToBounds="True"
               RowDefinitions="Auto,Auto"
               RowSpacing="0">
-              <Border Grid.Row="0" Classes="FilterBarChrome">
+              <ContentControl Grid.Row="0" Classes="FilterBarChrome">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource FilterBarGroupSpacing}">
                   <Grid
                     Grid.Row="0"
@@ -192,9 +192,9 @@
                     </Grid>
                   </Grid>
                 </Grid>
-              </Border>
+              </ContentControl>
 
-              <Border
+              <ContentControl
                 Grid.Row="1"
                 Classes="FilterBarChrome"
                 IsVisible="{Binding ShowReassignPreview}">
@@ -294,7 +294,7 @@
                     </DataGrid>
                   </Grid>
                 </Grid>
-              </Border>
+              </ContentControl>
             </Grid>
           </DataTemplate>
         </controls:DeferredContentHost.ContentTemplate>

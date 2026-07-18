@@ -12,14 +12,14 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Controls;
-using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
+using SettingsViewModel = PacToolkits.Desktop.Avalonia.ViewModels.Pages.Settings;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
-public partial class SettingsView : UserControl
+public partial class Settings : UserControl
 {
     public static readonly StyledProperty<bool> IsClientAliasEditableProperty =
-        AvaloniaProperty.Register<SettingsView, bool>(nameof(IsClientAliasEditable), false);
+        AvaloniaProperty.Register<Settings, bool>(nameof(IsClientAliasEditable), false);
 
     public bool IsClientAliasEditable
     {
@@ -39,26 +39,26 @@ public partial class SettingsView : UserControl
         ("TabAutomationPage", "自动化集成", "AudioWaveform")
     ];
 
-    private Settings? _vm;
+    private SettingsViewModel? _vm;
     private Panel? _contentHost;
     private StackPanel? _navItemsHost;
     private readonly List<TabLink> _tabLinks = new();
     private int _activeTabIndex;
 
-    public SettingsView()
+    public Settings()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
         AddHandler(KeyDownEvent, OnSettingsKeyDown, global::Avalonia.Interactivity.RoutingStrategies.Tunnel);
-        TryAttach(DataContext as Settings);
+        TryAttach(DataContext as SettingsViewModel);
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        TryAttach(DataContext as Settings);
+        TryAttach(DataContext as SettingsViewModel);
     }
 
-    private void TryAttach(Settings? vm)
+    private void TryAttach(SettingsViewModel? vm)
     {
         if (ReferenceEquals(_vm, vm))
         {
@@ -86,12 +86,12 @@ public partial class SettingsView : UserControl
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(Settings.IsClientAliasReadOnly))
+        if (e.PropertyName == nameof(SettingsViewModel.IsClientAliasReadOnly))
         {
             IsClientAliasEditable = !(_vm?.IsClientAliasReadOnly ?? true);
         }
 
-        if (e.PropertyName == nameof(Settings.HasUpdateAvailable))
+        if (e.PropertyName == nameof(SettingsViewModel.HasUpdateAvailable))
         {
             RefreshNavDots();
         }
@@ -129,7 +129,7 @@ public partial class SettingsView : UserControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        TryAttach(DataContext as Settings);
+        TryAttach(DataContext as SettingsViewModel);
         Dispatcher.UIThread.Post(InitTabNav, DispatcherPriority.Loaded);
     }
 
@@ -210,11 +210,11 @@ public partial class SettingsView : UserControl
                 return;
             }
 
-            TaskObserve.Observe(SwitchTabAsync(tabIndex), "SettingsView", "settings.tab_switch.detached.fail");
+            TaskObserve.Observe(SwitchTabAsync(tabIndex), "Settings", "settings.tab_switch.detached.fail");
         }
         catch (Exception ex)
         {
-            AppLog.Warn("SettingsView", "settings.nav_click.fail", "Navigation button handler failed", ex);
+            AppLog.Warn("Settings", "settings.nav_click.fail", "Navigation button handler failed", ex);
         }
     }
 

@@ -7,16 +7,16 @@ using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
 using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
+using DrugIndexViewModel = PacToolkits.Desktop.Avalonia.ViewModels.Pages.DrugIndex;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
-public partial class DrugIndexView : UserControl
+public partial class DrugIndex : UserControl
 {
     private readonly PageGridMountScheduler _gridMount;
-    private DrugIndex? _vm;
+    private DrugIndexViewModel? _vm;
 
-    public DrugIndexView()
+    public DrugIndex()
     {
         _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
@@ -42,7 +42,7 @@ public partial class DrugIndexView : UserControl
     {
         DetachVm(_vm);
 
-        _vm = DataContext as DrugIndex;
+        _vm = DataContext as DrugIndexViewModel;
         AttachVm(_vm);
         if (_vm is not null && DrugGridSlot.IsMounted)
         {
@@ -52,7 +52,7 @@ public partial class DrugIndexView : UserControl
         QueueDrugGridMount();
     }
 
-    private void AttachVm(DrugIndex? vm)
+    private void AttachVm(DrugIndexViewModel? vm)
     {
         if (vm is null)
         {
@@ -62,7 +62,7 @@ public partial class DrugIndexView : UserControl
         vm.PropertyChanged += OnVmPropertyChanged;
     }
 
-    private void DetachVm(DrugIndex? vm)
+    private void DetachVm(DrugIndexViewModel? vm)
     {
         if (vm is null)
         {
@@ -74,8 +74,8 @@ public partial class DrugIndexView : UserControl
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(DrugIndex.IsItemsEmpty)
-            or nameof(DrugIndex.IsSectionPending))
+        if (e.PropertyName is nameof(DrugIndexViewModel.IsItemsEmpty)
+            or nameof(DrugIndexViewModel.IsSectionPending))
         {
             QueueDrugGridMount();
         }

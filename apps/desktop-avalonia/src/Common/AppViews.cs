@@ -53,7 +53,12 @@ public sealed class AppViews
 
     private static string? ResolveViewTypeName(object viewModel, string vmName)
     {
-        if (viewModel is AppPageBase or FormBase)
+        if (viewModel is AppPageBase)
+        {
+            return vmName;
+        }
+
+        if (viewModel is FormBase)
         {
             return vmName + "View";
         }

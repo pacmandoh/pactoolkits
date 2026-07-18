@@ -1,0 +1,81 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.DashboardHeader"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:Dashboard"
+  Classes="PageHeaderContent">
+  <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+    <Button
+      Margin="4,0,0,0"
+      Classes="Icon ghost-states"
+      Classes.active="{Binding IsFilterBarVisible}"
+      Command="{Binding ToggleFilterBarCommand}"
+      ToolTip.Tip="{Binding FilterBarToggleToolTip}">
+      <icons:AppIcon Kind="{Binding FilterBarToggleIconKind}" />
+    </Button>
+    <Rectangle Grid.Column="1" Classes="HeaderDivider" />
+    <StackPanel
+      Grid.Column="2"
+      Classes="HeaderTitleRail"
+      Orientation="Horizontal">
+      <TextBlock Classes="Small Muted" Text="{Binding DisplayName}" />
+      <icons:AppIcon Classes="HeaderTitleChevron" Kind="ChevronRight" />
+      <TabControl
+        shad:TabControlBehaviors.UseSlidingPill="True"
+        Classes="DashboardTabHeaders"
+        SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="ChartLine" />
+              <TextBlock Text="总览" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="ScanBarcode" />
+              <TextBlock Text="录入" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="ArrowRightLeft" />
+              <TextBlock Text="事务" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="OctagonAlert" />
+              <TextBlock Text="异常" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+      </TabControl>
+    </StackPanel>
+    <Border
+      Grid.Column="3"
+      HorizontalAlignment="Right"
+      VerticalAlignment="Center"
+      Classes="DashboardTabContext"
+      IsHitTestVisible="False">
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+        <icons:AppIcon Kind="CalendarRange" />
+        <TextBlock
+          MaxWidth="360"
+          VerticalAlignment="Center"
+          Classes="Caption Muted"
+          Text="{Binding SectionHint}"
+          TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>
