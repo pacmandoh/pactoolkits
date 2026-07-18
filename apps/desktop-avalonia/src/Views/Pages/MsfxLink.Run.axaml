@@ -1,0 +1,374 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxLinkRun"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:MsfxLink">
+  <Grid
+    MinHeight="0"
+    Classes="DashboardLayout"
+    RowDefinitions="Auto,*">
+    <ContentControl Classes="FilterBarChrome" IsVisible="{Binding IsRunConfigBarVisible}">
+      <Grid Classes="FilterBarColumns" ColumnDefinitions="Auto,*,Auto">
+        <Grid ColumnDefinitions="Auto,Auto,Auto">
+          <Grid Classes="FilterBarColumn" ColumnDefinitions="Auto,Auto">
+            <TextBlock
+              VerticalAlignment="Center"
+              Classes="Caption Muted"
+              Text="自动监控" />
+            <ToggleSwitch
+              Grid.Column="1"
+              VerticalAlignment="Center"
+              IsChecked="{Binding IsAutoEnabled, Mode=TwoWay}" />
+          </Grid>
+          <Border Grid.Column="1" Classes="FilterBarDivider" />
+          <Grid
+            Grid.Column="2"
+            Classes="FilterBarColumn"
+            ColumnDefinitions="Auto,Auto">
+            <TextBlock
+              VerticalAlignment="Center"
+              Classes="Caption Muted"
+              Text="轮询（分钟）" />
+            <NumericUpDown
+              Grid.Column="1"
+              Width="128"
+              MinWidth="128"
+              Classes="MsfxInput"
+              FormatString="0"
+              Increment="5"
+              Maximum="720"
+              Minimum="1"
+              Value="{Binding AutoIntervalMinutes, Mode=TwoWay}" />
+          </Grid>
+        </Grid>
+
+        <Grid
+          Grid.Column="1"
+          MinWidth="0"
+          MaxWidth="640"
+          Margin="24,0"
+          HorizontalAlignment="Stretch">
+          <Grid
+            ColumnDefinitions="Auto,220,*,64"
+            ColumnSpacing="{DynamicResource SpacingInlineSm}"
+            IsVisible="{Binding ShowAutoProgress}">
+            <icons:AppIcon
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              VerticalAlignment="Center"
+              Foreground="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
+              Kind="{Binding AutoRiskState, Converter={StaticResource TraceEntryStateToIconKind}}" />
+            <TextBlock
+              Grid.Column="1"
+              VerticalAlignment="Center"
+              Classes="Caption"
+              Text="{Binding AutoStatus}"
+              TextTrimming="CharacterEllipsis"
+              TextWrapping="NoWrap" />
+            <Border
+              Grid.Column="2"
+              Height="5"
+              VerticalAlignment="Center"
+              Background="{DynamicResource BorderColor}"
+              ClipToBounds="True"
+              CornerRadius="{DynamicResource XlCornerRadius}">
+              <ProgressBar
+                VerticalAlignment="Stretch"
+                Background="Transparent"
+                ClipToBounds="True"
+                CornerRadius="{DynamicResource XlCornerRadius}"
+                Foreground="{DynamicResource ShellAccentBrush}"
+                Maximum="100"
+                Minimum="0"
+                Value="{Binding AutoRunProgressValue}" />
+            </Border>
+            <shad:Badge
+              Grid.Column="3"
+              Width="64"
+              VerticalAlignment="Center"
+              HorizontalContentAlignment="Center"
+              Classes="MsfxMetaBadge"
+              Content="{Binding AutoRunProgressValue, StringFormat={}{0:F0}%}"
+              Variant="Secondary" />
+          </Grid>
+        </Grid>
+
+        <Grid
+          Grid.Column="2"
+          Width="240"
+          HorizontalAlignment="Right"
+          Classes="FilterBarColumn"
+          ColumnDefinitions="64,*">
+          <shad:Badge
+            Width="64"
+            VerticalAlignment="Center"
+            HorizontalContentAlignment="Center"
+            Classes="MsfxMetaBadge"
+            Content="{Binding AutoLogCount, StringFormat=日志 {0}}"
+            Variant="Secondary" />
+          <controls:StatusPill
+            Grid.Column="1"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            Classes.ToneDanger15="{Binding IsLastRunFailed}"
+            Classes.ToneDone15="{Binding IsLastRunSuccess}"
+            Classes.ToneWarning15="{Binding IsLastRunWarning}"
+            ClipToBounds="True"
+            Icon="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToIconKind}}"
+            Text="{Binding AutoLastRunAtText}"
+            ToolTip.Tip="{Binding AutoLastRunAtTip}" />
+        </Grid>
+      </Grid>
+    </ContentControl>
+
+    <Grid
+      Grid.Row="1"
+      MinHeight="0"
+      Classes="DashboardContent">
+      <controls:ResizableCardPair
+        FirstMinSize="320"
+        SecondMinSize="320"
+        SplitterSize="{DynamicResource PagePanelSpacing}">
+        <controls:ResizableCardPair.FirstContent>
+          <controls:CardPanel
+            MinHeight="0"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            VerticalContentAlignment="Stretch"
+            Chrome="Card"
+            Classes="FlushBody"
+            IsResponsive="True">
+            <controls:CardPanel.Title>
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                <StackPanel
+                  VerticalAlignment="Center"
+                  Orientation="Horizontal"
+                  Spacing="{DynamicResource SpacingInlineMd}">
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeDefault}"
+                    Height="{DynamicResource IconSizeDefault}"
+                    Foreground="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                    Kind="{Binding AutoPullState, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                  <TextBlock
+                    VerticalAlignment="Center"
+                    Classes="SectionTitle"
+                    Text="拉取批次明细" />
+                  <TextBlock
+                    VerticalAlignment="Center"
+                    Classes="Caption Muted ResponsiveCompactHidden"
+                    Text="{Binding AutoPullSummary}" />
+                </StackPanel>
+                <shad:Badge
+                  Grid.Column="2"
+                  VerticalAlignment="Center"
+                  Classes="ResponsiveMinimalHidden"
+                  Content="{Binding AutoPullBatchRows.Count, StringFormat=共 {0} 条}"
+                  Variant="Secondary" />
+              </Grid>
+            </controls:CardPanel.Title>
+            <Grid RowDefinitions="*,Auto">
+              <shad:BusyArea MinHeight="120" IsBusy="{Binding IsPullPanelBusy}">
+                <controls:EmptyStatePanel
+                  EmptyHint="执行一次巡检后查看最近批次详情"
+                  EmptyText="暂无拉取批次数据"
+                  IsEmpty="{Binding IsAutoPullBatchEmpty}">
+                  <DataGrid
+                    x:Name="AutoPullBatchGrid"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Classes="SectionGrid InventoryGrid IndexedGrid StickyIndexDisplayIndex MsfxStickyColumns"
+                    ItemsSource="{Binding AutoPullBatchRows}"
+                    SelectedItem="{Binding SelectedAutoPullBatchRow, Mode=TwoWay}">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn
+                        Width="54"
+                        behaviors:DataGridFrozenColumns.IsFrozen="True"
+                        Header="状态">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Border
+                              Width="24"
+                              Height="24"
+                              Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                              Classes="DgStatusBadge"
+                              CornerRadius="12">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeSmall}"
+                                Height="{DynamicResource IconSizeSmall}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                            </Border>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTextColumn
+                        Width="110"
+                        Binding="{Binding BatchId}"
+                        Header="批次ID" />
+                      <DataGridTextColumn
+                        Width="120"
+                        Binding="{Binding SourceApi}"
+                        Header="源接口" />
+                      <DataGridTextColumn
+                        Width="220"
+                        Binding="{Binding Window}"
+                        Header="日期窗口" />
+                      <DataGridTextColumn
+                        Width="100"
+                        Binding="{Binding Status}"
+                        Header="状态" />
+                      <DataGridTextColumn
+                        Width="80"
+                        Binding="{Binding SuccessCount}"
+                        Header="成功" />
+                      <DataGridTextColumn
+                        Width="80"
+                        Binding="{Binding FailCount}"
+                        Header="失败" />
+                      <DataGridTextColumn
+                        Width="165"
+                        Binding="{Binding StartedAt}"
+                        Header="开始时间" />
+                      <DataGridTextColumn
+                        Width="165"
+                        Binding="{Binding FinishedAt}"
+                        Header="结束时间" />
+                      <DataGridTextColumn
+                        Width="260"
+                        Binding="{Binding ErrMsg}"
+                        Header="错误信息" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </controls:EmptyStatePanel>
+              </shad:BusyArea>
+              <controls:DataGridPager
+                Grid.Row="1"
+                Classes="CardPanelBodyInset"
+                ClearTarget="{Binding #AutoPullBatchGrid}"
+                FirstPageCommand="{Binding FirstPullBatchPageCommand}"
+                IsContentEmpty="{Binding IsAutoPullBatchEmpty}"
+                LastPageCommand="{Binding LastPullBatchPageCommand}"
+                NextPageCommand="{Binding NextPullBatchPageCommand}"
+                PageSizeOptions="{Binding PullBatchPageSizeOptions}"
+                PrevPageCommand="{Binding PrevPullBatchPageCommand}"
+                SelectedPageSize="{Binding PullBatchPageSize, Mode=TwoWay}"
+                TotalPages="{Binding PullBatchTotalPages}"
+                PageIndex="{Binding PullBatchPage}" />
+            </Grid>
+          </controls:CardPanel>
+        </controls:ResizableCardPair.FirstContent>
+
+        <controls:ResizableCardPair.SecondContent>
+          <controls:CardPanel
+            MinHeight="0"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            VerticalContentAlignment="Stretch"
+            Chrome="Card"
+            Classes="FlushBody"
+            IsResponsive="True">
+            <controls:CardPanel.Title>
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                <StackPanel
+                  VerticalAlignment="Center"
+                  Orientation="Horizontal"
+                  Spacing="{DynamicResource SpacingInlineMd}">
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeDefault}"
+                    Height="{DynamicResource IconSizeDefault}"
+                    Kind="TextSearch" />
+                  <TextBlock
+                    VerticalAlignment="Center"
+                    Classes="SectionTitle"
+                    Text="审计日志" />
+                </StackPanel>
+                <shad:Badge
+                  Grid.Column="2"
+                  VerticalAlignment="Center"
+                  Classes="ResponsiveMinimalHidden"
+                  Content="{Binding AutoLogCount, StringFormat=共 {0} 条}"
+                  Variant="Secondary" />
+              </Grid>
+            </controls:CardPanel.Title>
+            <Grid RowDefinitions="*,Auto">
+              <controls:EmptyStatePanel
+                EmptyHint="点击“立即巡检”或开启自动监控后将显示执行日志"
+                EmptyText="暂无自动化日志"
+                IsEmpty="{Binding IsAutoLogsEmpty}">
+                <DataGrid
+                  x:Name="AutoLogGrid"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  Classes="SectionGrid InventoryGrid IndexedGrid StickyIndexDisplayIndex MsfxStickyColumns"
+                  ColumnWidth="*"
+                  ItemsSource="{Binding AutoLogPageRows}"
+                  SelectedItem="{Binding SelectedAutoLogRow, Mode=TwoWay}">
+                  <DataGrid.Columns>
+                    <DataGridTemplateColumn
+                      Width="54"
+                      behaviors:DataGridFrozenColumns.IsFrozen="True"
+                      Header="状态">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                          <Border
+                            Width="24"
+                            Height="24"
+                            Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                            Classes="DgStatusBadge"
+                            CornerRadius="12">
+                            <icons:AppIcon
+                              Width="{DynamicResource IconSizeSmall}"
+                              Height="{DynamicResource IconSizeSmall}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                              Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                          </Border>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn
+                      Width="140"
+                      Binding="{Binding At}"
+                      Header="时间" />
+                    <DataGridTextColumn
+                      Width="160"
+                      Binding="{Binding Stage}"
+                      Header="流程阶段" />
+                    <DataGridTextColumn
+                      Width="*"
+                      Binding="{Binding Message}"
+                      Header="详细信息" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </controls:EmptyStatePanel>
+              <controls:DataGridPager
+                Grid.Row="1"
+                Classes="CardPanelBodyInset"
+                ClearTarget="{Binding #AutoLogGrid}"
+                FirstPageCommand="{Binding FirstAutoLogPageCommand}"
+                IsContentEmpty="{Binding IsAutoLogsEmpty}"
+                LastPageCommand="{Binding LastAutoLogPageCommand}"
+                NextPageCommand="{Binding NextAutoLogPageCommand}"
+                PageSizeOptions="{Binding AutoLogPageSizeOptions}"
+                PrevPageCommand="{Binding PrevAutoLogPageCommand}"
+                SelectedPageSize="{Binding AutoLogPageSize, Mode=TwoWay}"
+                TotalCount="{Binding AutoLogCount}"
+                TotalPages="{Binding AutoLogTotalPages}"
+                PageIndex="{Binding AutoLogPage}" />
+            </Grid>
+          </controls:CardPanel>
+        </controls:ResizableCardPair.SecondContent>
+      </controls:ResizableCardPair>
+    </Grid>
+  </Grid>
+</UserControl>

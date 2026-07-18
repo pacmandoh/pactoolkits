@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using PacToolkits.Application.Abstractions;
-using PacToolkits.Application.Services.Msfx;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
@@ -39,23 +37,16 @@ public interface IDialogService
     Task ShowAppInfo(AppInfoArgs model);
     Task InfoDetail(string title, string subHeader, IReadOnlyList<InfoDetailItem> items);
     Task ShowMsfxStateDetail(MsfxStateDetailArgs model);
-    Task<MsfxMappingBatchResult> ShowMsfxMappingBatch(MsfxMappingBatchArgs model);
     Task<MsfxTaskSplitResult> ShowMsfxTaskSplit(MsfxTaskSplitArgs model);
 }
 
 public sealed class DialogService(
     DialogManager dialogManager,
-    SensitiveUnlock unlockDialog,
-    ILookupCatalogService lookup,
-    ISyncService syncService,
-    IDbAccessGuard accessGuard) : IDialogService
+    SensitiveUnlock unlockDialog) : IDialogService
 {
     private const double AlertMaxWidth = 512;
     private const double DetailMaxWidth = 768;
-    private const double WideFormMaxWidth = 1280;
-
-    private static readonly MsfxMappingBatchResult MsfxMappingBatchCancelResult = new(
-        MsfxMappingBatchAction.Cancel, null, string.Empty, string.Empty);
+    private const double TaskSplitMaxWidth = 1024;
 
     private static readonly MsfxTaskSplitResult MsfxTaskSplitCancelResult =
         new(MsfxTaskSplitAction.Cancel);
@@ -184,17 +175,9 @@ public sealed class DialogService(
             prepare: null,
             onSuccess: static _ => true,
             onCancel: static () => false,
-            maxWidth: DetailMaxWidth).ConfigureAwait(true);
+            maxWidth: DetailMaxWidth,
+            dismissible: true).ConfigureAwait(true);
     }
-
-    public Task<MsfxMappingBatchResult> ShowMsfxMappingBatch(MsfxMappingBatchArgs model)
-        => FormDialogSession.ShowAsync(
-            dialogManager,
-            new MsfxMappingBatch(dialogManager, lookup, syncService, accessGuard) { Args = model },
-            prepare: null,
-            onSuccess: vm => vm.Result ?? MsfxMappingBatchCancelResult,
-            onCancel: () => MsfxMappingBatchCancelResult,
-            maxWidth: WideFormMaxWidth);
 
     public Task<MsfxTaskSplitResult> ShowMsfxTaskSplit(MsfxTaskSplitArgs model)
         => FormDialogSession.ShowAsync(
@@ -203,5 +186,5 @@ public sealed class DialogService(
             prepare: null,
             onSuccess: vm => vm.Result ?? MsfxTaskSplitCancelResult,
             onCancel: () => MsfxTaskSplitCancelResult,
-            maxWidth: WideFormMaxWidth);
+            maxWidth: TaskSplitMaxWidth);
 }

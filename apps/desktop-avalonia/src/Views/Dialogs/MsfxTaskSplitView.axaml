@@ -4,154 +4,177 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vmDialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
   x:DataType="vmDialogs:MsfxTaskSplit">
-  <StackPanel Margin="24" Spacing="16">
-    <shad:Card
-      MinWidth="980"
-      MaxWidth="1220"
-      Padding="16"
-      Classes="SectionCard">
-      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="{DynamicResource PageRowSpacing}">
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
-          <Border
-            Width="40"
-            Height="40"
-            Background="{DynamicResource InfoColor10}"
-            CornerRadius="20">
-            <icons:AppIcon
-              Width="20"
-              Height="20"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center"
-              Foreground="{DynamicResource InfoColor}"
-              Kind="GitBranchPlus" />
-          </Border>
-          <StackPanel Grid.Column="1" Spacing="2">
-            <TextBlock Classes="DialogTitle" Text="拆分任务" />
-            <TextBlock Classes="Caption Muted" Text="按父码簇安全拆分，不再按叶子码任意硬切" />
-          </StackPanel>
-        </Grid>
+  <Grid
+    MinWidth="820"
+    MaxWidth="960"
+    Margin="24"
+    RowDefinitions="Auto,Auto,*,Auto,Auto"
+    RowSpacing="{DynamicResource PageRowSpacing}">
+    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+      <Border
+        Width="40"
+        Height="40"
+        Background="{DynamicResource InfoColor10}"
+        CornerRadius="20">
+        <icons:AppIcon
+          Width="20"
+          Height="20"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Foreground="{DynamicResource InfoColor}"
+          Kind="GitBranchPlus" />
+      </Border>
+      <StackPanel Grid.Column="1" Spacing="2">
+        <TextBlock Classes="DialogTitle" Text="拆分任务" />
+        <TextBlock Classes="Caption Muted" Text="按父码簇安全拆分，不再按叶子码任意硬切" />
+      </StackPanel>
+    </Grid>
 
-        <Grid
-          Grid.Row="1"
-          ColumnDefinitions="Auto,Auto,Auto,*"
-          ColumnSpacing="{DynamicResource SpacingInlineMd}">
-          <controls:StatusPill
-            Classes="ToneInfo15"
-            Icon="Hash"
-            Text="{Binding Args.TaskId, StringFormat=任务 #{0}}" />
-          <controls:StatusPill
-            Grid.Column="1"
-            Classes="ToneWarning15"
-            Icon="Package"
-            Text="{Binding Args.TotalCodes, StringFormat=总码数 {0}}" />
-          <controls:StatusPill
-            Grid.Column="2"
-            Classes="ToneDone15"
-            Icon="ReceiptText"
-            Text="{Binding Args.SourceBillCode}" />
-          <TextBlock
-            Grid.Column="3"
-            VerticalAlignment="Center"
-            Classes="Caption Muted"
-            Text="{Binding Args.Target}"
-            TextTrimming="CharacterEllipsis" />
-        </Grid>
+    <Grid
+      Grid.Row="1"
+      ColumnDefinitions="Auto,Auto,Auto,*"
+      ColumnSpacing="{DynamicResource SpacingInlineMd}">
+      <controls:StatusPill
+        Classes="ToneInfo15"
+        Icon="Hash"
+        Text="{Binding Args.TaskId, StringFormat=任务 #{0}}" />
+      <controls:StatusPill
+        Grid.Column="1"
+        Classes="ToneWarning15"
+        Icon="Package"
+        Text="{Binding Args.TotalCodes, StringFormat=总码数 {0}}" />
+      <controls:StatusPill
+        Grid.Column="2"
+        Classes="ToneDone15"
+        Icon="ReceiptText"
+        Text="{Binding Args.SourceBillCode}" />
+      <TextBlock
+        Grid.Column="3"
+        VerticalAlignment="Center"
+        Classes="Caption Muted"
+        Text="{Binding Args.Target}"
+        TextTrimming="CharacterEllipsis" />
+    </Grid>
 
-        <Grid
-          Grid.Row="2"
-          ColumnDefinitions="Auto,*"
-          ColumnSpacing="{DynamicResource PageColumnSpacing}">
-          <StackPanel VerticalAlignment="Center" Spacing="4">
-            <TextBlock FontWeight="SemiBold" Text="自定义数量拆分" />
-            <TextBlock
-              MaxWidth="300"
-              Classes="Caption Muted"
-              Text="按逗号或空格输入数量，例如：400,400,800，系统只会按父码簇完整分配，不会危险硬切"
-              TextWrapping="Wrap" />
-          </StackPanel>
-          <TextBox
-            Grid.Column="1"
-            HorizontalAlignment="Stretch"
-            PlaceholderText="例如：400, 400, 400, 400"
-            Text="{Binding CustomQuantities, Mode=TwoWay}" />
-        </Grid>
+    <DataGrid
+      Grid.Row="2"
+      Height="320"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"
+      Classes="SectionGrid InventoryGrid IndexedGrid MsfxStickyColumns"
+      ItemsSource="{Binding Args.SplitCodeRows}">
+      <DataGrid.Columns>
+        <DataGridTextColumn
+          Width="220"
+          Binding="{Binding DisplayClusterCode}"
+          Header="父码簇" />
+        <DataGridTextColumn
+          Width="220"
+          Binding="{Binding LeafCode}"
+          Header="最小包装码" />
+        <DataGridTextColumn
+          Width="180"
+          Binding="{Binding CodeLevel1}"
+          Header="一级码" />
+        <DataGridTextColumn
+          Width="180"
+          Binding="{Binding CodeLevel2}"
+          Header="二级码" />
+        <DataGridTextColumn
+          Width="180"
+          Binding="{Binding CodeLevel3}"
+          Header="三级码" />
+        <DataGridTextColumn
+          Width="180"
+          Binding="{Binding CodeLevel4}"
+          Header="四级码" />
+        <DataGridTextColumn
+          Width="180"
+          Binding="{Binding CodeLevel5}"
+          Header="五级码" />
+        <DataGridTextColumn
+          Width="180"
+          Binding="{Binding BatchNo}"
+          Header="批号" />
+        <DataGridTextColumn
+          Width="220"
+          Binding="{Binding SourceBillCode}"
+          Header="来源单据" />
+      </DataGrid.Columns>
+    </DataGrid>
 
-        <DataGrid
-          x:Name="SplitUnitGrid"
-          Grid.Row="3"
-          Height="320"
-          Classes="SectionGrid InventoryGrid IndexedGrid"
-          GridLinesVisibility="All"
-          HeadersVisibility="All"
-          HorizontalScrollBarVisibility="Auto"
-          IsReadOnly="True"
-          ItemsSource="{Binding Args.SplitCodeRows}">
-          <DataGrid.Columns>
-            <DataGridTextColumn
-              Width="220"
-              Binding="{Binding DisplayClusterCode}"
-              Header="父码簇" />
-            <DataGridTextColumn
-              Width="220"
-              Binding="{Binding LeafCode}"
-              Header="最小包装码" />
-            <DataGridTextColumn
-              Width="180"
-              Binding="{Binding CodeLevel1}"
-              Header="一级码" />
-            <DataGridTextColumn
-              Width="180"
-              Binding="{Binding CodeLevel2}"
-              Header="二级码" />
-            <DataGridTextColumn
-              Width="180"
-              Binding="{Binding CodeLevel3}"
-              Header="三级码" />
-            <DataGridTextColumn
-              Width="180"
-              Binding="{Binding CodeLevel4}"
-              Header="四级码" />
-            <DataGridTextColumn
-              Width="180"
-              Binding="{Binding CodeLevel5}"
-              Header="五级码" />
-            <DataGridTextColumn
-              Width="180"
-              Binding="{Binding BatchNo}"
-              Header="批号" />
-            <DataGridTextColumn
-              Width="220"
-              Binding="{Binding SourceBillCode}"
-              Header="来源单据" />
-          </DataGrid.Columns>
-        </DataGrid>
+    <Grid
+      Grid.Row="3"
+      ColumnDefinitions="*,Auto"
+      ColumnSpacing="{DynamicResource PageColumnSpacing}"
+      IsVisible="{Binding IsCustomSplitOpen}">
+      <StackPanel
+        HorizontalAlignment="Left"
+        VerticalAlignment="Center"
+        Spacing="4">
+        <TextBlock Classes="SubsectionTitle" Text="自定义数量拆分" />
+        <TextBlock
+          MaxWidth="300"
+          Classes="Caption Muted"
+          Text="按逗号或空格输入数量，例如：400,400,800，系统只会按父码簇完整分配，不会危险硬切"
+          TextWrapping="Wrap" />
+      </StackPanel>
+      <TextBox
+        Grid.Column="1"
+        Width="360"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Center"
+        PlaceholderText="例如：400, 400, 400, 400"
+        Text="{Binding CustomQuantities, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+    </Grid>
 
-        <StackPanel
-          Grid.Row="4"
-          HorizontalAlignment="Right"
-          Orientation="Horizontal"
-          Spacing="{DynamicResource SpacingInlineSm}">
-          <Button
-            Classes="Outline"
-            Command="{Binding CloseCommand}"
-            Content="关闭" />
-          <Button
-            Classes="Secondary"
-            Command="{Binding SplitByBatchCommand}"
-            Content="按批号拆分" />
-          <Button
-            Classes="Secondary"
-            Command="{Binding SplitCustomCommand}"
-            Content="自定义数量拆分" />
-          <Button
-            Classes="Primary"
-            Command="{Binding SplitByParentClusterCommand}"
-            Content="按父码簇拆分" />
-        </StackPanel>
-      </Grid>
-    </shad:Card>
-  </StackPanel>
+    <StackPanel
+      Grid.Row="4"
+      HorizontalAlignment="Right"
+      IsVisible="{Binding !IsCustomSplitOpen}"
+      Orientation="Horizontal"
+      Spacing="{DynamicResource SpacingInlineSm}">
+      <Button
+        Classes="Outline"
+        Command="{Binding CloseCommand}"
+        Content="关闭"
+        HotKey="Escape" />
+      <Button
+        Classes="Outline"
+        Command="{Binding SplitByBatchCommand}"
+        Content="按批号拆分" />
+      <Button
+        Classes="Outline"
+        Command="{Binding BeginCustomSplitCommand}"
+        Content="自定义数量拆分" />
+      <Button
+        Classes="Outline"
+        Command="{Binding SplitByParentClusterCommand}"
+        Content="按父码簇拆分" />
+    </StackPanel>
+
+    <StackPanel
+      Grid.Row="4"
+      HorizontalAlignment="Right"
+      IsVisible="{Binding IsCustomSplitOpen}"
+      Orientation="Horizontal"
+      Spacing="{DynamicResource SpacingInlineSm}">
+      <Button
+        Classes="Outline"
+        Command="{Binding CloseCommand}"
+        Content="关闭" />
+      <Button
+        Classes="Outline"
+        Command="{Binding CancelCustomSplitCommand}"
+        Content="取消"
+        HotKey="Escape" />
+      <Button
+        Classes="Outline"
+        Command="{Binding ConfirmCustomSplitCommand}"
+        Content="确定"
+        HotKey="Enter" />
+    </StackPanel>
+  </Grid>
 </UserControl>

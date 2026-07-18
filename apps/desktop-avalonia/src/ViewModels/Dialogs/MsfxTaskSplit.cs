@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using ShadUI;
@@ -16,10 +17,18 @@ public sealed partial class MsfxTaskSplit(DialogManager dialogManager)
 
     public MsfxTaskSplitResult? Result { get; private set; }
 
+    [ObservableProperty] private bool _isCustomSplitOpen;
+
     public string CustomQuantities
     {
         get => _customQuantities;
-        set => SetProperty(ref _customQuantities, value);
+        set
+        {
+            if (SetProperty(ref _customQuantities, value))
+            {
+                ConfirmCustomSplitCommand.NotifyCanExecuteChanged();
+            }
+        }
     }
 
     [RelayCommand]
@@ -34,7 +43,21 @@ public sealed partial class MsfxTaskSplit(DialogManager dialogManager)
         => Complete(MsfxTaskSplitAction.Batch);
 
     [RelayCommand]
-    private void SplitCustom()
+    private void BeginCustomSplit()
+        => IsCustomSplitOpen = true;
+
+    [RelayCommand]
+    private void CancelCustomSplit()
+    {
+        CustomQuantities = string.Empty;
+        IsCustomSplitOpen = false;
+    }
+
+    private bool CanConfirmCustomSplit()
+        => !string.IsNullOrWhiteSpace(CustomQuantities);
+
+    [RelayCommand(CanExecute = nameof(CanConfirmCustomSplit))]
+    private void ConfirmCustomSplit()
         => Complete(MsfxTaskSplitAction.CustomQuantity, CustomQuantities);
 
     [RelayCommand]

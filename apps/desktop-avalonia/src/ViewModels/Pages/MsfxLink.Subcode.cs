@@ -10,14 +10,26 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 public sealed partial class MsfxLink : AppPageBase
 {
     [RelayCommand]
-    private async Task QuerySubCodesAsync()
+    private async Task OpenSubcodesAsync(MsfxUpoutGridRow? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        UpstreamQueryMode = 1;
+        UpstreamKeyword = row.BillCode;
+        await QuerySubCodesAsync(row.FromRefUserId, row.ToRefUserId).ConfigureAwait(false);
+    }
+
+    private async Task QuerySubCodesAsync(string? fromRefUserId, string? toRefUserId)
     {
         if (IsSubcodeBusy)
         {
             return;
         }
 
-        var billCode = (SubcodeBillCode ?? string.Empty).Trim();
+        var billCode = UpstreamKeyword.Trim();
         if (billCode.Length == 0)
         {
             _toast.Warn("子码查询", "请先输入单据编码");
@@ -28,7 +40,11 @@ public sealed partial class MsfxLink : AppPageBase
         try
         {
             var options = BuildMsfxOptions();
-            var route = await ResolveBillRouteFromListUpoutAsync(options, billCode).ConfigureAwait(false);
+            var route = string.IsNullOrWhiteSpace(fromRefUserId)
+                ? await ResolveBillRouteFromListUpoutAsync(options, billCode).ConfigureAwait(false)
+                : (
+                    ToRefUserId: string.IsNullOrWhiteSpace(toRefUserId) ? options.RefEntId : toRefUserId,
+                    FromRefUserId: fromRefUserId);
             if (route is null || string.IsNullOrWhiteSpace(route.Value.FromRefUserId))
             {
                 await RunOnUiAsync(() =>
@@ -37,8 +53,7 @@ public sealed partial class MsfxLink : AppPageBase
                     SubCodeRows.Clear();
                     SubcodeTotal = 0;
                     SubcodePage = 1;
-                    SubcodeStatus = "未从上游出库单查询到该单据的 from_ref_user_id";
-                    _toast.Error("子码查询", SubcodeStatus);
+                    _toast.Error("子码查询", "未从上游出库单查询到该单据的 from_ref_user_id");
                 });
                 return;
             }
@@ -59,8 +74,8 @@ public sealed partial class MsfxLink : AppPageBase
                     SubCodeRows.Clear();
                     SubcodeTotal = 0;
                     SubcodePage = 1;
-                    SubcodeStatus = $"查询失败：{detail.Call.BizCode} {detail.Call.BizMessage}".Trim();
-                    _toast.Error("子码查询", SubcodeStatus);
+                    var message = $"查询失败：{detail.Call.BizCode} {detail.Call.BizMessage}".Trim();
+                    _toast.Error("子码查询", message);
                 });
                 return;
             }
@@ -79,6 +94,7 @@ public sealed partial class MsfxLink : AppPageBase
                     Level4Code: code.Level4Code ?? string.Empty,
                     Level5Code: code.Level5Code ?? string.Empty,
                     State: string.IsNullOrWhiteSpace(code.Level1Code) ? TraceEntryState.Warning : TraceEntryState.Success)))
+                .Select((row, index) => row with { DisplayIndex = index + 1 })
                 .ToList();
 
             await RunOnUiAsync(() =>
@@ -87,12 +103,19 @@ public sealed partial class MsfxLink : AppPageBase
                 SubcodeTotal = rows.Count;
                 SubcodePage = 1;
                 ApplySubCodePage();
-                SubcodeStatus = $"子码查询完成：单据 {detail.BillCode}，共 {rows.Count} 条";
             });
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            throw;
+            LogWarn("msfx.subcode.query_timeout", "Subcode query timed out", ex);
+            await RunOnUiAsync(() =>
+            {
+                _allSubCodeRows.Clear();
+                SubCodeRows.Clear();
+                SubcodeTotal = 0;
+                SubcodePage = 1;
+                _toast.Error("子码查询", "查询超时，请稍后重试");
+            });
         }
         catch (Exception ex)
         {
@@ -103,13 +126,11 @@ public sealed partial class MsfxLink : AppPageBase
                 SubCodeRows.Clear();
                 SubcodeTotal = 0;
                 SubcodePage = 1;
-                SubcodeStatus = $"查询异常：{ex.Message}";
                 if (CanToastError(ex))
                 {
                     _toast.Error("子码查询", ex.Message);
                 }
             });
-            throw;
         }
         finally
         {
@@ -213,14 +234,4 @@ public sealed partial class MsfxLink : AppPageBase
         await Task.CompletedTask;
     }
 
-    [RelayCommand]
-    private void ClearSubcodeQuery()
-    {
-        SubcodeBillCode = string.Empty;
-        _allSubCodeRows.Clear();
-        SubCodeRows.Clear();
-        SubcodeTotal = 0;
-        SubcodePage = 1;
-        SubcodeStatus = "请输入单据编码后查询子码";
-    }
 }

@@ -12,6 +12,93 @@ public partial class Settings : AppPageBase, ISettingsPage
     [RelayCommand]
     private Task SaveMsfxApiConfigAsync() => ApplyMsfxApiConfigAsync();
 
+    [RelayCommand]
+    private Task RefreshMsfxCursorAsync() => RefreshMsfxCursorCoreAsync(_pageWorkCts.Token);
+
+    [RelayCommand]
+    private async Task AdvanceMsfxCursorAsync()
+    {
+        if (SkipTrigger() || IsMsfxCursorBusy)
+        {
+            return;
+        }
+
+        if (MsfxCursorTargetDate is not { } selectedDate)
+        {
+            _toast.Warn("拉取游标", "请先选择要跳过至的日期");
+            return;
+        }
+
+        var target = ResolveCursorTarget(selectedDate);
+        var confirmed = await _dialog.ConfirmDestructive(
+            "确认前移拉取游标",
+            $"游标将前移至 {target.LocalDateTime:yyyy-MM-dd HH:mm:ss}，下次巡检从其前 10 分钟开始。\n\n" +
+            "更早的上游数据将被跳过，已入库数据不会删除。是否继续？");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await RunOnUiAsync(() => IsMsfxCursorBusy = true);
+        try
+        {
+            var cursor = await _msfxSync.AdvancePullCursorToAsync(
+                MsfxPullSourceApi,
+                target,
+                _pageWorkCts.Token);
+            await RunOnUiAsync(() =>
+            {
+                BindMsfxCursor(cursor);
+                _toast.Success("拉取游标", "游标已前移，下次巡检将从新位置继续");
+            });
+        }
+        catch (OperationCanceledException) when (_pageWorkCts.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("SettingsVM", "msfx.cursor.advance.fail", "Failed to advance msfx pull cursor", ex);
+            await RunOnUiAsync(() => _toast.Error("拉取游标更新失败", ex.Message));
+        }
+        finally
+        {
+            await RunOnUiAsync(() => IsMsfxCursorBusy = false);
+        }
+    }
+
+    private async Task RefreshMsfxCursorCoreAsync(CancellationToken ct)
+    {
+        await RunOnUiAsync(() => IsMsfxCursorBusy = true);
+        try
+        {
+            var cursor = await _msfxSync.GetPullCursorAsync(MsfxPullSourceApi, ct);
+            await RunOnUiAsync(() => BindMsfxCursor(cursor));
+        }
+        finally
+        {
+            await RunOnUiAsync(() => IsMsfxCursorBusy = false);
+        }
+    }
+
+    private void BindMsfxCursor(MsfxPullCursorState cursor)
+    {
+        MsfxCursorCurrentText = cursor.LastSuccessEnd is { } end
+            ? $"{end.LocalDateTime:yyyy-MM-dd HH:mm:ss}（下次回看 10 分钟）"
+            : "尚未建立（首次运行默认回看 7 天）";
+    }
+
+    private static DateTimeOffset ResolveCursorTarget(DateTime selectedDate)
+    {
+        var date = selectedDate.Date;
+        if (date >= DateTime.Today)
+        {
+            return DateTimeOffset.Now;
+        }
+
+        var endOfDay = date.AddDays(1).AddTicks(-1);
+        return new DateTimeOffset(endOfDay, TimeZoneInfo.Local.GetUtcOffset(endOfDay));
+    }
+
     private async Task<bool> ApplyMsfxApiConfigAsync()
     {
         if (SkipTrigger())
