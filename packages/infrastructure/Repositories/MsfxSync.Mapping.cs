@@ -12,16 +12,15 @@ public sealed partial class MsfxSyncRepo
         return _db.WithConnection(async (conn, token) =>
         {
             var safeLimit = Math.Max(0, limit);
-            var pendingBefore = await GetPendingCountAsync(conn, token).ConfigureAwait(false);
-            if (pendingBefore <= 0)
-            {
-                return new MsfxMapApplyResult(0, 0, 0);
-            }
-
             var result = await ApplyMappingViaFunctionAsync(conn, safeLimit, token).ConfigureAwait(false);
             if (result.ProcessedCount == 0)
             {
                 var backlog = await GetMappingBacklogDiagnosticByConnectionAsync(conn, token).ConfigureAwait(false);
+                if (backlog.PendingCount == 0)
+                {
+                    return result;
+                }
+
                 throw new InvalidOperationException(
                     $"映射函数未推进：PENDING={backlog.PendingCount}, " +
                     $"源药名={backlog.PendingWithDrugRawCount}, " +
@@ -225,7 +224,7 @@ public sealed partial class MsfxSyncRepo
 
     public Task<MsfxMappingQueuePage> GetMappingQueuePageAsync(
         int pageSize,
-        string? mapStatus,
+        IReadOnlyCollection<string>? mapStatuses,
         string? codeStatus,
         string? searchScope,
         string? keyword,
@@ -237,6 +236,15 @@ public sealed partial class MsfxSyncRepo
         CancellationToken ct)
     {
         var scope = NormalizeSearchScope(searchScope);
+        var normalizedMapStatuses = (mapStatuses ?? Array.Empty<string>())
+            .Select(NormalizeOptional)
+            .Where(static status => status is not null)
+            .Select(static status => status!.ToUpperInvariant())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var mapStatusesClause = normalizedMapStatuses.Length == 0
+            ? string.Empty
+            : "and s.map_status = any(@map_statuses::text[])";
         var tokens = SplitKeywords(keyword);
         var keywordClause = BuildKeywordClause(scope, tokens, pinyinExactPerToken);
         var orderDir = seekLastPage ? "asc" : newer ? "asc" : "desc";
@@ -275,6 +283,7 @@ public sealed partial class MsfxSyncRepo
             left join msfx_code_relation r on r.id = s.source_relation_id
             left join msfx_upout_item i on i.id = r.upout_item_id
             where {MapQueueBaseWhere}
+            {mapStatusesClause}
             {keywordClause}
             {cursorClause}
             order by s.updated_at {orderDir}, s.id {orderDir}
@@ -284,6 +293,7 @@ public sealed partial class MsfxSyncRepo
             select count(*)::int
             from msfx_code_staging s
             where {MapQueueBaseWhere}
+            {mapStatusesClause}
             {keywordClause}
             """;
         var hasNewerSql = $"""
@@ -291,6 +301,7 @@ public sealed partial class MsfxSyncRepo
               select 1
               from msfx_code_staging s
               where {MapQueueBaseWhere}
+                {mapStatusesClause}
                 {keywordClause}
                 and (s.updated_at, s.id) > (@first_updated_at, @first_id)
             )
@@ -300,6 +311,7 @@ public sealed partial class MsfxSyncRepo
               select 1
               from msfx_code_staging s
               where {MapQueueBaseWhere}
+                {mapStatusesClause}
                 {keywordClause}
                 and (s.updated_at, s.id) < (@last_updated_at, @last_id)
             )
@@ -311,8 +323,8 @@ public sealed partial class MsfxSyncRepo
             var scanned = new List<MsfxMappingQueueRow>(Math.Max(1, size + 1));
             {
                 await using var listCmd = conn.CreateCommand(listSql, _opt.CommandTimeoutSeconds);
-                AddNullableParam(listCmd, "map_status", NormalizeOptional(mapStatus));
                 AddNullableParam(listCmd, "code_status", NormalizeOptional(codeStatus));
+                AddMapStatusesParam(listCmd, normalizedMapStatuses);
                 AddKeywordParams(listCmd, tokens, pinyinExactPerToken);
                 listCmd.AddParam("limit", size + 1);
                 if (cursorUpdatedAt.HasValue && cursorId.HasValue)
@@ -356,8 +368,8 @@ public sealed partial class MsfxSyncRepo
             }
 
             await using var countCmd = conn.CreateCommand(countSql, _opt.CommandTimeoutSeconds);
-            AddNullableParam(countCmd, "map_status", NormalizeOptional(mapStatus));
             AddNullableParam(countCmd, "code_status", NormalizeOptional(codeStatus));
+            AddMapStatusesParam(countCmd, normalizedMapStatuses);
             AddKeywordParams(countCmd, tokens, pinyinExactPerToken);
             var totalCount = Convert.ToInt32((await countCmd.ExecuteScalarAsync(token).ConfigureAwait(false)) ?? 0, CultureInfo.InvariantCulture);
 
@@ -369,16 +381,16 @@ public sealed partial class MsfxSyncRepo
                 var last = pageRows[^1];
 
                 await using var newerCmd = conn.CreateCommand(hasNewerSql, _opt.CommandTimeoutSeconds);
-                AddNullableParam(newerCmd, "map_status", NormalizeOptional(mapStatus));
                 AddNullableParam(newerCmd, "code_status", NormalizeOptional(codeStatus));
+                AddMapStatusesParam(newerCmd, normalizedMapStatuses);
                 AddKeywordParams(newerCmd, tokens, pinyinExactPerToken);
                 newerCmd.AddParam("first_updated_at", first.UpdatedAt.ToUniversalTime());
                 newerCmd.AddParam("first_id", first.StagingId);
                 hasNewer = Convert.ToBoolean((await newerCmd.ExecuteScalarAsync(token).ConfigureAwait(false)) ?? false, CultureInfo.InvariantCulture);
 
                 await using var olderCmd = conn.CreateCommand(hasOlderSql, _opt.CommandTimeoutSeconds);
-                AddNullableParam(olderCmd, "map_status", NormalizeOptional(mapStatus));
                 AddNullableParam(olderCmd, "code_status", NormalizeOptional(codeStatus));
+                AddMapStatusesParam(olderCmd, normalizedMapStatuses);
                 AddKeywordParams(olderCmd, tokens, pinyinExactPerToken);
                 olderCmd.AddParam("last_updated_at", last.UpdatedAt.ToUniversalTime());
                 olderCmd.AddParam("last_id", last.StagingId);
@@ -389,6 +401,14 @@ public sealed partial class MsfxSyncRepo
 
             return new MsfxMappingQueuePage(pageRows, totalCount, hasNewer, hasOlder);
         }, ct);
+    }
+
+    private static void AddMapStatusesParam(Npgsql.NpgsqlCommand command, string[] mapStatuses)
+    {
+        if (mapStatuses.Length > 0)
+        {
+            command.AddParam("map_statuses", mapStatuses);
+        }
     }
 
 }

@@ -4,6 +4,10 @@ namespace PacToolkits.Application.Abstractions;
 
 public interface IDb
 {
+    Task<IAsyncDisposable?> TryAcquireSessionLockAsync(
+        string key,
+        CancellationToken ct = default);
+
     Task<T> WithConnection<T>(
         Func<IDbConnection, CancellationToken, Task<T>> work,
         CancellationToken ct = default);

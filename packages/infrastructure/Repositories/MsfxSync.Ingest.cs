@@ -18,37 +18,39 @@ public sealed partial class MsfxSyncRepo
     {
         return _db.WithTransaction(async (conn, tx, token) =>
         {
-            var insertedItems = 0;
-            var insertedCodes = 0;
-            var insertedStaging = 0;
+            var processedItems = 0;
+            var newItems = 0;
+            var processedCodes = 0;
+            var newCodes = 0;
 
             foreach (var drug in drugs)
             {
                 var rowKey = BuildSourceRowKey(billCode, drug.DrugName, drug.PackageSpec, drug.PrepnSpec, drug.BatchNo);
-                var itemId = await UpsertDetailItemAsync(conn, tx, billId, rowKey, drug, token).ConfigureAwait(false);
-                if (itemId > 0)
+                var item = await UpsertDetailItemAsync(conn, tx, billId, rowKey, drug, token).ConfigureAwait(false);
+                processedItems++;
+                if (item.IsNew)
                 {
-                    insertedItems++;
+                    newItems++;
                 }
 
                 var batch = await UpsertCodeRelationAndStagingBatchAsync(
                     conn,
                     tx,
-                    itemId,
+                    item.Id,
                     billCode,
                     drug.DrugName,
                     drug.PrepnSpec,
                     drug.Codes,
                     token).ConfigureAwait(false);
-                insertedCodes += batch.RelationCount;
-                insertedStaging += batch.NewStagingCount;
+                processedCodes += batch.ProcessedCount;
+                newCodes += batch.NewCount;
             }
 
-            return new MsfxIngestDetailResult(insertedItems, insertedCodes, insertedStaging);
+            return new MsfxIngestDetailResult(processedItems, newItems, processedCodes, newCodes);
         }, ct: ct);
     }
 
-    private async Task<long> UpsertDetailItemAsync(
+    private async Task<(long Id, bool IsNew)> UpsertDetailItemAsync(
         System.Data.IDbConnection conn,
         System.Data.IDbTransaction tx,
         long billId,
@@ -87,7 +89,7 @@ public sealed partial class MsfxSyncRepo
                 produce_batch_no = excluded.produce_batch_no,
                 code_count = excluded.code_count,
                 raw_json = excluded.raw_json
-            returning id
+            returning id, (xmax = 0) as is_new
             """;
 
         await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds, tx);
@@ -108,11 +110,16 @@ public sealed partial class MsfxSyncRepo
             CodeCount = drug.Codes.Count
         }));
 
-        var idObj = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
-        return Convert.ToInt64(idObj ?? 0L);
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            return (0, false);
+        }
+
+        return (reader.GetInt64(0), reader.GetBoolean(1));
     }
 
-    private async Task<(int RelationCount, int NewStagingCount)> UpsertCodeRelationAndStagingBatchAsync(
+    private async Task<(int ProcessedCount, int NewCount)> UpsertCodeRelationAndStagingBatchAsync(
         System.Data.IDbConnection conn,
         System.Data.IDbTransaction tx,
         long upoutItemId,
@@ -306,139 +313,6 @@ public sealed partial class MsfxSyncRepo
         return (reader.GetInt32(0), reader.GetInt32(1));
     }
 
-    private async Task<long> UpsertCodeRelationAsync(
-        System.Data.IDbConnection conn,
-        System.Data.IDbTransaction tx,
-        long upoutItemId,
-        string leafCode,
-        string codeLevel,
-        string? level1Code,
-        string? level2Code,
-        string? level3Code,
-        string? level4Code,
-        string? level5Code,
-        string prepnSpec,
-        CancellationToken ct)
-    {
-        var hierarchy = BuildCodeHierarchy(leafCode, codeLevel, level1Code, level2Code, level3Code, level4Code, level5Code);
-        const string insertSql = """
-            insert into msfx_code_relation(
-                upout_item_id,
-                source_type,
-                leaf_code,
-                code_level_1,
-                code_level_2,
-                code_level_3,
-                code_level_4,
-                code_level_5,
-                prepn_spec,
-                raw_json
-            )
-            values (
-                @upout_item_id,
-                'UPOUT_DETAIL',
-                @leaf_code,
-                @code_level_1,
-                @code_level_2,
-                @code_level_3,
-                @code_level_4,
-                @code_level_5,
-                @prepn_spec,
-                @raw_json::jsonb
-            )
-            on conflict (leaf_code) do update
-            set upout_item_id = coalesce(msfx_code_relation.upout_item_id, excluded.upout_item_id),
-                source_type = excluded.source_type,
-                code_level_1 = coalesce(excluded.code_level_1, msfx_code_relation.code_level_1),
-                code_level_2 = coalesce(excluded.code_level_2, msfx_code_relation.code_level_2),
-                code_level_3 = coalesce(excluded.code_level_3, msfx_code_relation.code_level_3),
-                code_level_4 = coalesce(excluded.code_level_4, msfx_code_relation.code_level_4),
-                code_level_5 = coalesce(excluded.code_level_5, msfx_code_relation.code_level_5),
-                prepn_spec = coalesce(excluded.prepn_spec, msfx_code_relation.prepn_spec),
-                raw_json = excluded.raw_json
-            returning id
-            """;
-
-        await using var cmd = conn.CreateCommand(insertSql, _opt.CommandTimeoutSeconds, tx);
-        cmd.AddParam("upout_item_id", upoutItemId);
-        cmd.AddParam("leaf_code", leafCode);
-        AddNullableParam(cmd, "code_level_1", hierarchy.L1);
-        AddNullableParam(cmd, "code_level_2", hierarchy.L2);
-        AddNullableParam(cmd, "code_level_3", hierarchy.L3);
-        AddNullableParam(cmd, "code_level_4", hierarchy.L4);
-        AddNullableParam(cmd, "code_level_5", hierarchy.L5);
-        AddNullableParam(cmd, "prepn_spec", NullIfWhiteSpace(prepnSpec));
-        cmd.AddParam("raw_json", JsonSerializer.Serialize(new { LeafCode = leafCode, CodeLevel = codeLevel, PrepnSpec = prepnSpec }));
-
-        var idObj = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
-        return Convert.ToInt64(idObj ?? 0L);
-    }
-
-    private async Task<bool> UpsertStagingAsync(
-        System.Data.IDbConnection conn,
-        System.Data.IDbTransaction tx,
-        long sourceRelationId,
-        string billCode,
-        string drugName,
-        string prepnSpec,
-        string leafCode,
-        CancellationToken ct)
-    {
-        const string sql = """
-            insert into msfx_code_staging(
-                leaf_code,
-                source_relation_id,
-                source_bill_code,
-                source_drug_name_raw,
-                source_spec_raw,
-                source_code_level_1,
-                source_code_level_2,
-                source_code_level_3,
-                source_code_level_4,
-                source_code_level_5,
-                map_status,
-                code_status
-            )
-            select
-                @leaf_code,
-                @source_relation_id,
-                @source_bill_code,
-                @source_drug_name_raw,
-                @source_spec_raw,
-                r.code_level_1,
-                r.code_level_2,
-                r.code_level_3,
-                r.code_level_4,
-                r.code_level_5,
-                'PENDING',
-                'NEW'
-            from msfx_code_relation r
-            where r.id = @source_relation_id
-            on conflict (leaf_code) do update
-            set source_relation_id = excluded.source_relation_id,
-                source_bill_code = excluded.source_bill_code,
-                source_drug_name_raw = excluded.source_drug_name_raw,
-                source_spec_raw = excluded.source_spec_raw,
-                source_code_level_1 = coalesce(excluded.source_code_level_1, msfx_code_staging.source_code_level_1),
-                source_code_level_2 = coalesce(excluded.source_code_level_2, msfx_code_staging.source_code_level_2),
-                source_code_level_3 = coalesce(excluded.source_code_level_3, msfx_code_staging.source_code_level_3),
-                source_code_level_4 = coalesce(excluded.source_code_level_4, msfx_code_staging.source_code_level_4),
-                source_code_level_5 = coalesce(excluded.source_code_level_5, msfx_code_staging.source_code_level_5),
-                updated_at = now()
-            returning id
-            """;
-
-        await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds, tx);
-        cmd.AddParam("leaf_code", leafCode);
-        cmd.AddParam("source_relation_id", sourceRelationId);
-        AddNullableParam(cmd, "source_bill_code", NullIfWhiteSpace(billCode));
-        AddNullableParam(cmd, "source_drug_name_raw", NullIfWhiteSpace(drugName));
-        AddNullableParam(cmd, "source_spec_raw", NullIfWhiteSpace(prepnSpec));
-
-        var idObj = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
-        return idObj is not null && idObj != DBNull.Value;
-    }
-
     private static void AddNullableParam<T>(NpgsqlCommand cmd, string name, T? value)
     {
         cmd.Parameters.AddWithValue(name, value is null ? DBNull.Value : (object)value);
@@ -542,21 +416,15 @@ public sealed partial class MsfxSyncRepo
         }
     }
 
-    private async Task<int> GetPendingCountAsync(System.Data.IDbConnection conn, CancellationToken ct)
-    {
-        const string sql = "select count(*)::int from msfx_code_staging where map_status = 'PENDING'";
-        await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
-        var obj = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
-        return Convert.ToInt32(obj ?? 0, CultureInfo.InvariantCulture);
-    }
-
     private async Task<MsfxMapApplyResult> ApplyMappingViaFunctionAsync(
         System.Data.IDbConnection conn,
         int limit,
         CancellationToken ct)
     {
         const string sql = "select processed_count, mapped_count, review_count from msfx_apply_mapping(@limit)";
-        await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+        await using var cmd = conn.CreateCommand(
+            sql,
+            Math.Max(_opt.CommandTimeoutSeconds, MappingCommandTimeoutSeconds));
         cmd.AddParam("limit", limit);
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))
