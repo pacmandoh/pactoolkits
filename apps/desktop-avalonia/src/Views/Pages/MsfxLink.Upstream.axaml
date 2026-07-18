@@ -1,0 +1,436 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxLinkUpstream"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:Name="Root"
+  x:DataType="vm:MsfxLink">
+  <Grid
+    MinHeight="0"
+    Classes="DashboardLayout"
+    RowDefinitions="Auto,*">
+    <ContentControl Classes="FilterBarChrome">
+      <Grid Classes="FilterBarColumns" ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+        <Grid Classes="FilterBarColumn" ColumnDefinitions="Auto,Auto">
+          <TextBlock
+            VerticalAlignment="Center"
+            Classes="Caption Muted"
+            Text="查询范围" />
+          <ComboBox
+            Grid.Column="1"
+            Width="128"
+            Classes="FilterBarComboAuto"
+            SelectedIndex="{Binding UpstreamQueryMode, Mode=TwoWay}">
+            <ComboBoxItem Content="出库单" />
+            <ComboBoxItem Content="子码详情" />
+          </ComboBox>
+        </Grid>
+
+        <Border Grid.Column="1" Classes="FilterBarDivider" />
+
+        <Grid
+          Grid.Column="2"
+          Classes="FilterBarColumn"
+          ColumnDefinitions="Auto,Auto"
+          IsVisible="{Binding IsUpoutQueryMode}">
+          <TextBlock
+            VerticalAlignment="Center"
+            Classes="Caption Muted"
+            Text="日期" />
+          <Grid
+            Grid.Column="1"
+            Width="330"
+            VerticalAlignment="Center"
+            ColumnDefinitions="*,Auto,*"
+            ColumnSpacing="{DynamicResource SpacingInlineSm}">
+            <controls:FilterFieldInput>
+              <CalendarDatePicker
+                DisplayDateEnd="{Binding UpoutFromMaxDate}"
+                IsTodayHighlighted="True"
+                SelectedDate="{Binding UpoutFromDate}" />
+            </controls:FilterFieldInput>
+            <icons:AppIcon
+              Grid.Column="1"
+              Width="{DynamicResource IconSizeSmall}"
+              Height="{DynamicResource IconSizeSmall}"
+              VerticalAlignment="Center"
+              Foreground="{DynamicResource MutedColor}"
+              Kind="ArrowRight" />
+            <controls:FilterFieldInput Grid.Column="2">
+              <CalendarDatePicker
+                DisplayDateEnd="{Binding UpoutToMaxDate}"
+                DisplayDateStart="{Binding UpoutToMinDate}"
+                IsTodayHighlighted="True"
+                SelectedDate="{Binding UpoutToDate}" />
+            </controls:FilterFieldInput>
+          </Grid>
+        </Grid>
+
+        <Grid
+          Grid.Column="3"
+          MinWidth="0"
+          Classes="FilterBarColumn"
+          ColumnDefinitions="Auto,Auto">
+          <TextBlock
+            VerticalAlignment="Center"
+            Classes="Caption Muted"
+            IsVisible="{Binding IsUpoutQueryMode}"
+            Text="关键字" />
+          <TextBlock
+            VerticalAlignment="Center"
+            Classes="Caption Muted"
+            IsVisible="{Binding IsSubcodeQueryMode}"
+            Text="单据编码" />
+          <TextBox
+            Grid.Column="1"
+            Width="360"
+            VerticalContentAlignment="Center"
+            shad:TextBoxAssist.Clearable="True"
+            AcceptsReturn="False"
+            Classes="SearchBox Clearable"
+            PlaceholderText="单据编码 / 药品 / 发货单位"
+            Text="{Binding UpstreamKeyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            TextWrapping="NoWrap">
+            <TextBox.KeyBindings>
+              <KeyBinding Command="{Binding QueryUpstreamCommand}" Gesture="Enter" />
+            </TextBox.KeyBindings>
+          </TextBox>
+        </Grid>
+
+        <StackPanel
+          Grid.Column="4"
+          HorizontalAlignment="Right"
+          VerticalAlignment="Center"
+          Orientation="Horizontal"
+          Spacing="{DynamicResource SpacingInlineSm}">
+          <Button
+            Height="{DynamicResource ControlHeightCompact}"
+            Classes="Outline"
+            Command="{Binding QueryUpstreamCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="Search" />
+              <TextBlock Text="查询" />
+            </StackPanel>
+          </Button>
+          <Button
+            Height="{DynamicResource ControlHeightCompact}"
+            Classes="Outline"
+            Command="{Binding ResetUpstreamFiltersCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeCompact}"
+                Height="{DynamicResource IconSizeCompact}"
+                Kind="RotateCcw" />
+              <TextBlock Text="重置" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Grid>
+    </ContentControl>
+
+    <Grid
+      Grid.Row="1"
+      MinHeight="0"
+      Classes="DashboardContent">
+      <controls:CardPanel
+        MinHeight="0"
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Stretch"
+        Chrome="Card"
+        Classes="FlushBody">
+        <controls:CardPanel.Title>
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+            <StackPanel
+              VerticalAlignment="Center"
+              Orientation="Horizontal"
+              Spacing="{DynamicResource SpacingInlineMd}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeDefault}"
+                Height="{DynamicResource IconSizeDefault}"
+                IsVisible="{Binding IsUpoutQueryMode}"
+                Kind="Truck" />
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeDefault}"
+                Height="{DynamicResource IconSizeDefault}"
+                IsVisible="{Binding IsSubcodeQueryMode}"
+                Kind="ScanSearch" />
+              <TextBlock
+                VerticalAlignment="Center"
+                Classes="SectionTitle"
+                IsVisible="{Binding IsUpoutQueryMode}"
+                Text="上游出库单" />
+              <TextBlock
+                VerticalAlignment="Center"
+                Classes="SectionTitle"
+                IsVisible="{Binding IsSubcodeQueryMode}"
+                Text="子码详情" />
+            </StackPanel>
+            <shad:Badge
+              Grid.Column="2"
+              VerticalAlignment="Center"
+              Content="{Binding UpoutRows.Count, StringFormat=共 {0} 条}"
+              IsVisible="{Binding IsUpoutQueryMode}"
+              Variant="Secondary" />
+            <shad:Badge
+              Grid.Column="2"
+              VerticalAlignment="Center"
+              Content="{Binding SubcodeTotal, StringFormat=共 {0} 条}"
+              IsVisible="{Binding IsSubcodeQueryMode}"
+              Variant="Secondary" />
+          </Grid>
+        </controls:CardPanel.Title>
+
+        <Grid MinHeight="0">
+          <Grid
+            MinHeight="0"
+            IsVisible="{Binding IsUpoutQueryMode}"
+            RowDefinitions="*,Auto">
+            <shad:BusyArea IsBusy="{Binding IsUpoutBusy}">
+              <controls:EmptyStatePanel
+                EmptyHint="请调整查询条件并执行查询"
+                EmptyText="暂无上游出库单"
+                IsEmpty="{Binding IsUpoutEmpty}">
+                <DataGrid
+                  x:Name="UpoutGrid"
+                  behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearActiveUpstreamSearchCommand}"
+                  behaviors:DataGridSortReset.FilterActive="{Binding HasActiveUpstreamSearch}"
+                  Classes="SectionGrid InventoryGrid IndexedGrid StickyIndexDisplayIndex MsfxStickyColumns"
+                  ItemsSource="{Binding UpoutRows}">
+                  <DataGrid.Columns>
+                    <DataGridTemplateColumn
+                      Width="54"
+                      behaviors:DataGridFrozenColumns.IsFrozen="True"
+                      Header="状态">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                          <Border
+                            Width="24"
+                            Height="24"
+                            Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                            Classes="DgStatusBadge"
+                            CornerRadius="12">
+                            <icons:AppIcon
+                              Width="{DynamicResource IconSizeSmall}"
+                              Height="{DynamicResource IconSizeSmall}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                              Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                          </Border>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn
+                      Width="96"
+                      behaviors:DataGridFrozenColumns.IsFrozen="True"
+                      Header="子码">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="vm:MsfxUpoutGridRow">
+                          <Button
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Classes="Ghost"
+                            Command="{Binding #Root.((vm:MsfxLink)DataContext).OpenSubcodesCommand}"
+                            CommandParameter="{Binding}">
+                            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                              <icons:AppIcon
+                                Width="{DynamicResource IconSizeSmall}"
+                                Height="{DynamicResource IconSizeSmall}"
+                                Kind="ScanSearch" />
+                              <TextBlock Text="查看" />
+                            </StackPanel>
+                          </Button>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn
+                      Width="240"
+                      Binding="{Binding BillCode}"
+                      Header="单据编码" />
+                    <DataGridTextColumn
+                      Width="120"
+                      Binding="{Binding BillType}"
+                      Header="单据类型" />
+                    <DataGridTextColumn
+                      Width="170"
+                      Binding="{Binding BillTime}"
+                      Header="时间" />
+                    <DataGridTextColumn
+                      Width="260"
+                      Binding="{Binding DrugName}"
+                      Header="药品" />
+                    <DataGridTextColumn
+                      Width="130"
+                      Binding="{Binding PackageSpec}"
+                      Header="包装规格" />
+                    <DataGridTextColumn
+                      Width="180"
+                      Binding="{Binding PrepnSpec}"
+                      Header="制剂规格" />
+                    <DataGridTextColumn
+                      Width="110"
+                      Binding="{Binding CodeCount}"
+                      Header="追溯码数" />
+                    <DataGridTextColumn
+                      Width="100"
+                      Binding="{Binding PrepnCount}"
+                      Header="数量" />
+                    <DataGridTextColumn
+                      Width="120"
+                      Binding="{Binding ProduceBatchNo}"
+                      Header="批号" />
+                    <DataGridTextColumn
+                      Width="120"
+                      Binding="{Binding ExpireDate}"
+                      Header="有效期" />
+                    <DataGridTextColumn
+                      Width="240"
+                      Binding="{Binding FromEntName}"
+                      Header="发货单位" />
+                    <DataGridTextColumn
+                      Width="230"
+                      Binding="{Binding FromRefUserId}"
+                      Header="发货RefId" />
+                    <DataGridTextColumn
+                      Width="220"
+                      Binding="{Binding ProduceEntName}"
+                      Header="生产企业" />
+                    <DataGridTextColumn
+                      Width="130"
+                      Binding="{Binding LogisticsStatus}"
+                      Header="入库状态" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </controls:EmptyStatePanel>
+            </shad:BusyArea>
+            <controls:DataGridPager
+              Grid.Row="1"
+              Classes="CardPanelBodyInset"
+              ClearTarget="{Binding #UpoutGrid}"
+              FirstPageCommand="{Binding FirstUpoutPageCommand}"
+              IsContentEmpty="{Binding IsUpoutEmpty}"
+              LastPageCommand="{Binding LastUpoutPageCommand}"
+              NextPageCommand="{Binding NextUpoutPageCommand}"
+              PageSizeOptions="{Binding UpoutPageSizeOptions}"
+              PrevPageCommand="{Binding PrevUpoutPageCommand}"
+              SelectedPageSize="{Binding UpoutPageSize, Mode=TwoWay}"
+              StatusText="{Binding UpoutStatus}"
+              TotalCount="{Binding UpoutTotal}"
+              TotalPages="{Binding UpoutTotalPages}"
+              PageIndex="{Binding UpoutPage}" />
+          </Grid>
+
+          <Grid
+            MinHeight="0"
+            IsVisible="{Binding IsSubcodeQueryMode}"
+            RowDefinitions="*,Auto">
+            <shad:BusyArea IsBusy="{Binding IsSubcodeBusy}">
+              <controls:EmptyStatePanel
+                EmptyHint="请输入单据编码并执行查询"
+                EmptyText="暂无子码结果"
+                IsEmpty="{Binding IsSubCodeEmpty}">
+                <DataGrid
+                  x:Name="SubcodeGrid"
+                  behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearActiveUpstreamSearchCommand}"
+                  behaviors:DataGridSortReset.FilterActive="{Binding HasActiveUpstreamSearch}"
+                  Classes="SectionGrid InventoryGrid IndexedGrid StickyIndexDisplayIndex MsfxStickyColumns"
+                  ItemsSource="{Binding SubCodeRows}">
+                  <DataGrid.Columns>
+                    <DataGridTemplateColumn
+                      Width="54"
+                      behaviors:DataGridFrozenColumns.IsFrozen="True"
+                      Header="状态">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                          <Border
+                            Width="24"
+                            Height="24"
+                            Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                            Classes="DgStatusBadge"
+                            CornerRadius="12">
+                            <icons:AppIcon
+                              Width="{DynamicResource IconSizeSmall}"
+                              Height="{DynamicResource IconSizeSmall}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                              Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                          </Border>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn
+                      Width="220"
+                      Binding="{Binding BillCode}"
+                      Header="单据编码" />
+                    <DataGridTextColumn
+                      Width="280"
+                      Binding="{Binding DrugName}"
+                      Header="药品" />
+                    <DataGridTextColumn
+                      Width="140"
+                      Binding="{Binding PackageSpec}"
+                      Header="包装规格" />
+                    <DataGridTextColumn
+                      Width="180"
+                      Binding="{Binding PrepnSpec}"
+                      Header="制剂规格" />
+                    <DataGridTextColumn
+                      Width="130"
+                      Binding="{Binding BatchNo}"
+                      Header="批号" />
+                    <DataGridTextColumn
+                      Width="240"
+                      Binding="{Binding Code}"
+                      Header="追溯码" />
+                    <DataGridTextColumn
+                      Width="220"
+                      Binding="{Binding Level1Code}"
+                      Header="一级码" />
+                    <DataGridTextColumn
+                      Width="220"
+                      Binding="{Binding Level2Code}"
+                      Header="二级码" />
+                    <DataGridTextColumn
+                      Width="220"
+                      Binding="{Binding Level3Code}"
+                      Header="三级码" />
+                    <DataGridTextColumn
+                      Width="220"
+                      Binding="{Binding Level4Code}"
+                      Header="四级码" />
+                    <DataGridTextColumn
+                      Width="220"
+                      Binding="{Binding Level5Code}"
+                      Header="五级码" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </controls:EmptyStatePanel>
+            </shad:BusyArea>
+            <controls:DataGridPager
+              Grid.Row="1"
+              Classes="CardPanelBodyInset"
+              ClearTarget="{Binding #SubcodeGrid}"
+              FirstPageCommand="{Binding FirstSubcodePageCommand}"
+              IsContentEmpty="{Binding IsSubCodeEmpty}"
+              LastPageCommand="{Binding LastSubcodePageCommand}"
+              NextPageCommand="{Binding NextSubcodePageCommand}"
+              PageSizeOptions="{Binding SubcodePageSizeOptions}"
+              PrevPageCommand="{Binding PrevSubcodePageCommand}"
+              SelectedPageSize="{Binding SubcodePageSize, Mode=TwoWay}"
+              TotalCount="{Binding SubcodeTotal}"
+              TotalPages="{Binding SubcodeTotalPages}"
+              PageIndex="{Binding SubcodePage}" />
+          </Grid>
+        </Grid>
+      </controls:CardPanel>
+    </Grid>
+  </Grid>
+</UserControl>

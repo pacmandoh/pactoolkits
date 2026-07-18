@@ -11,6 +11,7 @@ using PacToolkits.Agent.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
+using PacToolkits.Application.Services.Msfx;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
@@ -48,6 +49,7 @@ public partial class Settings : AppPageBase, ISettingsPage
     private readonly ILoggingSettingsService _loggingSettings;
     private readonly IAppLogger _logger;
     private readonly IClipboardService _clipboard;
+    private readonly ISyncService _msfxSync;
     private readonly HashSet<ClientAliasRow> _trackedAliasRows = new();
     private CancellationTokenSource _pageWorkCts = new();
     private bool _disposed;
@@ -56,6 +58,7 @@ public partial class Settings : AppPageBase, ISettingsPage
     private bool _syncingUpdateOptions;
     private bool _syncingLoggingOptions;
     private const string MsfxDefaultGatewayUrl = "https://eco.taobao.com/router/rest";
+    private const string MsfxPullSourceApi = "listupout";
 
     [ObservableProperty] private string _host;
     [ObservableProperty] private int _port;
@@ -112,6 +115,10 @@ public partial class Settings : AppPageBase, ISettingsPage
     [ObservableProperty] private int _msfxTimeoutSeconds = 20;
     [ObservableProperty] private bool? _msfxApiBadgeStatus;
     [ObservableProperty] private string _msfxApiBadgeLabel = "未配置";
+    [ObservableProperty] private bool _isMsfxCursorBusy;
+    [ObservableProperty] private DateTime? _msfxCursorTargetDate = DateTime.Today;
+    [ObservableProperty] private string _msfxCursorCurrentText = "未读取";
+    public DateTime MsfxCursorMaxDate => DateTime.Today;
 
     [ObservableProperty] private bool _isClientAliasEditMode;
     [ObservableProperty] private bool _isClientAliasReadOnly = true;
@@ -165,6 +172,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         ILoggingSettingsService loggingSettings,
         IAppLogger logger,
         IClipboardService clipboard,
+        ISyncService msfxSync,
         IInjectorAgentRuntime injector,
         IAutomationConfigService automationConfig)
     {
@@ -183,6 +191,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         _loggingSettings = loggingSettings;
         _logger = logger;
         _clipboard = clipboard;
+        _msfxSync = msfxSync;
         _injector = injector;
         _automationConfig = automationConfig;
         InitializeAutomation();
@@ -243,6 +252,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         _pageWorkCancelled = false;
         ReloadAutomationRuntime();
         RefreshUnsaved();
+        RunDetached(RefreshMsfxCursorCoreAsync, "msfx.cursor.refresh.activate_fail");
         return Task.CompletedTask;
     }
 

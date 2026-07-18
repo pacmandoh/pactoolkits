@@ -26,15 +26,37 @@ public sealed partial class MsfxLink : AppPageBase
     [RelayCommand(CanExecute = nameof(CanRunAutoOnce))]
     private async Task RunAutoOnceAsync()
     {
-        await QueueAutoOnceAsync(showProgressPanel: true).ConfigureAwait(false);
+        await QueueAutoOnceAsync(showProgress: true).ConfigureAwait(false);
     }
 
-    private async Task QueueAutoOnceAsync(bool showProgressPanel)
+    private async Task QueueAutoOnceAsync(bool showProgress)
     {
-        ShowAutoProgressPanel = showProgressPanel;
-        await RunLocalReloadAsync(
-            setBusy: v => IsAutoBusy = v,
-            action: RunAutoOnceWorkAsync);
+        if (Interlocked.CompareExchange(ref _autoRunRunning, 1, 0) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await RunOnUiAsync(() =>
+            {
+                ShowAutoProgress = showProgress;
+                IsAutoBusy = true;
+            }).ConfigureAwait(false);
+
+            await RunAutoOnceWorkAsync(_autoRunLifetimeCts.Token).ConfigureAwait(false);
+        }
+        finally
+        {
+            try
+            {
+                await RunOnUiAsync(() => IsAutoBusy = false).ConfigureAwait(false);
+            }
+            finally
+            {
+                Volatile.Write(ref _autoRunRunning, 0);
+            }
+        }
     }
 
     private async Task RunAutoOnceWorkAsync(CancellationToken ct)
@@ -78,7 +100,7 @@ public sealed partial class MsfxLink : AppPageBase
         }
         catch (Exception ex)
         {
-            SetAutoProgress(100, $"自动化拉取异常：{ex.Message}");
+            SetAutoProgress(100, $"自动化运行异常：{ex.Message}");
             AddAutoLog("异常", ex.Message, TraceEntryState.Failed);
             LogError("msfx.auto.run.fail", "MSFX auto run failed", ex);
             if (CanToastError(ex))
@@ -120,13 +142,6 @@ public sealed partial class MsfxLink : AppPageBase
                 _ => Task.CompletedTask
             };
 
-        public Task<bool> AuthorizeMappingAsync(long batchId, CancellationToken ct)
-            => owner.RequireUnlockAsync(
-                SensitiveOpKind.MsfxMappingApply,
-                "自动映射",
-                batchId > 0 ? $"batch:{batchId}" : "auto-run",
-                "auto mapping apply before task build",
-                ct);
     }
 
     private static string BuildAutoRunStatus(MsfxAutoRunResult result)
@@ -143,20 +158,6 @@ public sealed partial class MsfxLink : AppPageBase
         AutoLogPage = 1;
         ApplyAutoLogPage();
         AddAutoLog("日志", "日志已清空", TraceEntryState.Info);
-    }
-
-    [RelayCommand]
-    private void ToggleAutoPanelExpand(string panelKey)
-    {
-        var key = (panelKey ?? string.Empty).Trim().ToUpperInvariant();
-        if (key.Length == 0)
-        {
-            return;
-        }
-
-        AutoExpandedPanel = string.Equals(AutoExpandedPanel, key, StringComparison.OrdinalIgnoreCase)
-            ? string.Empty
-            : key;
     }
 
     [RelayCommand]
@@ -252,47 +253,75 @@ public sealed partial class MsfxLink : AppPageBase
         await RunMapPanelQueryAsync(ct => RefreshMapQueueAsync(ct, olderPage: null, seekLastPage: true)).ConfigureAwait(false);
     }
 
-    [RelayCommand]
-    private async Task SearchMapQueueAsync()
+    private async Task SearchQueueAsync()
     {
-        _mapQueueSearchDebouncer.Cancel();
+        _queueSearchDebouncer.Cancel();
+        ResetMapQueueCursor();
+        TaskQueuePage = 1;
+        ApplyTaskQueueFilter();
+        await RefreshMapQueueLatestAsync().ConfigureAwait(false);
+    }
+
+    [RelayCommand]
+    private async Task ToggleMapQueueStatusFilterAsync(string? status)
+    {
+        var normalized = NormalizeMapQueueStatusFilter(status);
+        if (normalized is null || IsAutoBoardBusy)
+        {
+            return;
+        }
+
+        ToggleStatusFilter(_mapQueueStatusFilters, normalized);
+        NotifyMapQueueStatusFiltersChanged();
         ResetMapQueueCursor();
         await RefreshMapQueueLatestAsync().ConfigureAwait(false);
     }
 
     [RelayCommand]
-    private async Task ResetMapQueueFiltersAsync()
+    private void ToggleTaskQueueStatusFilter(string? status)
     {
-        if (MapQueuePageSize == "120" &&
-            string.Equals(MapQueueMapStatusFilter, "ALL", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(MapQueueCodeStatusFilter, "ALL", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(MapQueueSearchScope, "全部字段", StringComparison.OrdinalIgnoreCase) &&
-            string.IsNullOrWhiteSpace(MapQueueKeyword))
+        var normalized = NormalizeTaskQueueStatusFilter(status);
+        if (normalized is null)
         {
-            ResetMapQueueCursor();
-            await RefreshMapQueueLatestAsync().ConfigureAwait(false);
             return;
         }
 
-        _isResettingMapQueueFilters = true;
+        ToggleStatusFilter(_taskQueueStatusFilters, normalized);
+        NotifyTaskQueueStatusFiltersChanged();
+        TaskQueuePage = 1;
+        ApplyTaskQueueFilter();
+    }
+
+    [RelayCommand]
+    private async Task ClearMapQueueFiltersAsync()
+    {
+        _mapQueueStatusFilters.Clear();
+        NotifyMapQueueStatusFiltersChanged();
+        await ClearSharedQueueKeywordAndRefreshAsync().ConfigureAwait(false);
+    }
+
+    [RelayCommand]
+    private async Task ClearTaskQueueFiltersAsync()
+    {
+        _taskQueueStatusFilters.Clear();
+        NotifyTaskQueueStatusFiltersChanged();
+        await ClearSharedQueueKeywordAndRefreshAsync().ConfigureAwait(false);
+    }
+
+    private async Task ClearSharedQueueKeywordAndRefreshAsync()
+    {
+        _queueSearchDebouncer.Cancel();
+        _suppressQueueSearchRefresh = true;
         try
         {
-            _mapQueueSearchDebouncer.Cancel();
-            MapQueuePageSize = "120";
-            MapQueueMapStatusFilter = "ALL";
-            MapQueueCodeStatusFilter = "ALL";
-            MapQueueSearchScope = "全部字段";
-            MapQueueKeyword = string.Empty;
-            ResetMapQueueCursor();
+            QueueSearchKeyword = string.Empty;
         }
         finally
         {
-            _isResettingMapQueueFilters = false;
+            _suppressQueueSearchRefresh = false;
         }
 
-        OnPropertyChanged(nameof(MapQueueEffectivePageSize));
-        OnPropertyChanged(nameof(MapQueueTotalPages));
-        await RefreshMapQueueLatestAsync().ConfigureAwait(false);
+        await SearchQueueAsync().ConfigureAwait(false);
     }
 
     private async Task<bool> RequireUnlockAsync(
@@ -313,6 +342,7 @@ public sealed partial class MsfxLink : AppPageBase
             TargetId: targetId,
             Reason: reason,
             NotifySuccess: false), ct).ConfigureAwait(false);
+        await RunOnUiAsync(RefreshOpsUnlock).ConfigureAwait(false);
 
         var audit = new
         {
@@ -387,7 +417,7 @@ public sealed partial class MsfxLink : AppPageBase
 
         try
         {
-            IsTaskPanelBusy = true;
+            await RunOnUiAsync(() => IsTaskPanelBusy = true).ConfigureAwait(false);
             var opName = Environment.UserName;
             var successCount = 0;
             var failedCount = 0;
@@ -481,7 +511,7 @@ public sealed partial class MsfxLink : AppPageBase
 
         try
         {
-            IsTaskPanelBusy = true;
+            await RunOnUiAsync(() => IsTaskPanelBusy = true).ConfigureAwait(false);
             var opName = Environment.UserName;
             var successCount = 0;
             var failedCount = 0;
@@ -574,7 +604,7 @@ public sealed partial class MsfxLink : AppPageBase
 
         try
         {
-            IsTaskPanelBusy = true;
+            await RunOnUiAsync(() => IsTaskPanelBusy = true).ConfigureAwait(false);
             var opName = Environment.UserName;
             var successCount = 0;
             var failedCount = 0;
@@ -686,7 +716,7 @@ public sealed partial class MsfxLink : AppPageBase
 
         try
         {
-            IsTaskPanelBusy = true;
+            await RunOnUiAsync(() => IsTaskPanelBusy = true).ConfigureAwait(false);
             var opName = Environment.UserName;
             var result = await _syncService.MergeInjectsAsync(
                 selectedRows.Select(x => x.TaskId).ToArray(),
@@ -725,7 +755,9 @@ public sealed partial class MsfxLink : AppPageBase
     [RelayCommand]
     private async Task SplitSelectedTaskAsync()
     {
-        var taskRow = SelectedAutoTaskQueueRow;
+        var taskRow = SelectedAutoTaskQueueRowsSnapshot.Count == 1
+            ? SelectedAutoTaskQueueRowsSnapshot[0]
+            : null;
         if (taskRow is null
             || taskRow.CurrentCodeCount <= 1
             || !(string.Equals(taskRow.Status, "NEW", StringComparison.OrdinalIgnoreCase)
@@ -769,7 +801,7 @@ public sealed partial class MsfxLink : AppPageBase
 
         try
         {
-            IsTaskPanelBusy = true;
+            await RunOnUiAsync(() => IsTaskPanelBusy = true).ConfigureAwait(false);
             var opName = Environment.UserName;
             if (choice.Action == MsfxTaskSplitAction.CustomQuantity)
             {
@@ -840,180 +872,6 @@ public sealed partial class MsfxLink : AppPageBase
         finally
         {
             await RunOnUiAsync(() => IsTaskPanelBusy = false);
-        }
-    }
-
-    [RelayCommand]
-    private async Task OpenMapBatchDialogAsync()
-    {
-        if (IsAutoBoardBusy)
-        {
-            return;
-        }
-
-        EnterManualMsfxWrite();
-        var batchScene = "批量映射";
-        try
-        {
-            var groups = await _syncService.GetMappingBatchGroupsAsync(
-                mapStatus: FilterInput.Norm(MapQueueMapStatusFilter),
-                codeStatus: FilterInput.Norm(MapQueueCodeStatusFilter),
-                searchScope: ResolveSearchScope(MapQueueSearchScope),
-                keyword: NormalizeText(MapQueueKeyword),
-                limit: 500,
-                ct: CancellationToken.None).ConfigureAwait(false);
-
-            var res = await _dialog.ShowMsfxMappingBatch(new MsfxMappingBatchArgs(
-                Groups: groups,
-                MapStatusFilter: MapQueueMapStatusFilter,
-                CodeStatusFilter: MapQueueCodeStatusFilter,
-                SearchScope: MapQueueSearchScope,
-                Keyword: MapQueueKeyword ?? string.Empty)).ConfigureAwait(false);
-
-            if (res.Action == MsfxMappingBatchAction.Cancel)
-            {
-                return;
-            }
-
-            batchScene = res.Action == MsfxMappingBatchAction.DiscardTask
-                ? "批量弃用"
-                : "批量映射";
-
-            if (res.Group is null)
-            {
-                _toast.Warn(batchScene, "请先在分组表中选择一条记录");
-                return;
-            }
-
-            var group = res.Group;
-            var action = res.Action switch
-            {
-                MsfxMappingBatchAction.ApplyMap => "APPLY_MAP",
-                MsfxMappingBatchAction.DiscardTask => "APPLY_DISCARD",
-                _ => "APPLY_MAP"
-            };
-
-            if ((res.Action == MsfxMappingBatchAction.ApplyMap || res.Action == MsfxMappingBatchAction.DiscardTask) &&
-                (string.IsNullOrWhiteSpace(res.DrugId) || string.IsNullOrWhiteSpace(res.Spec)))
-            {
-                _toast.Warn(batchScene, "需要填写需映射的药品信息和规格信息");
-                return;
-            }
-
-            var preview = await _syncService.PreviewMappingBatchByGroupAsync(
-                mapStatus: null,
-                codeStatus: null,
-                searchScope: "ALL",
-                keyword: null,
-                groupSourceDrugNameRaw: group.SourceDrugNameRaw,
-                groupSourceSpecRaw: group.SourceSpecRaw,
-                groupSourceNameNorm: group.SourceNameNorm,
-                groupSourceSpecNorm: group.SourceSpecNorm,
-                action: action,
-                drugId: res.DrugId,
-                spec: res.Spec,
-                ct: CancellationToken.None).ConfigureAwait(false);
-
-            if (preview.EligibleCount <= 0)
-            {
-                _toast.Warn(batchScene, $"无可执行记录，将影响 {preview.CandidateCount} 条，阻塞 {preview.BlockedCount} 条");
-                return;
-            }
-
-            var confirmTitle = batchScene;
-            var groupLabel = DrugLabel.Format(group.SourceDrugNameRaw, group.SourceSpecRaw);
-            var confirmMsg = res.Action switch
-            {
-                MsfxMappingBatchAction.ApplyMap => $"分组“{groupLabel}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认批量映射？",
-                MsfxMappingBatchAction.DiscardTask => $"分组“{groupLabel}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认弃用任务？",
-                _ => $"分组“{groupLabel}”将影响 {preview.CandidateCount} 条，可执行 {preview.EligibleCount} 条，确认处理？"
-            };
-            var ok = res.Action == MsfxMappingBatchAction.DiscardTask
-                ? await _dialog.ConfirmDestructive(confirmTitle, confirmMsg).ConfigureAwait(false)
-                : await _dialog.Confirm(confirmTitle, confirmMsg).ConfigureAwait(false);
-            if (!ok)
-            {
-                return;
-            }
-
-            var mappingKind = res.Action == MsfxMappingBatchAction.DiscardTask
-                ? SensitiveOpKind.MsfxDiscard
-                : SensitiveOpKind.MsfxMappingApply;
-            var mappingReason = res.Action == MsfxMappingBatchAction.DiscardTask
-                ? "manual batch discard from mapping dialog"
-                : "manual batch mapping apply from mapping dialog";
-            var unlockScene = confirmTitle;
-            if (!await RequireUnlockAsync(
-                    mappingKind,
-                    unlockScene,
-                    $"{group.SourceDrugNameRaw}/{group.SourceSpecRaw}",
-                    mappingReason).ConfigureAwait(false))
-            {
-                return;
-            }
-
-            var apply = await _syncService.ApplyMappingBatchByGroupAsync(
-                mapStatus: null,
-                codeStatus: null,
-                searchScope: "ALL",
-                keyword: null,
-                groupSourceDrugNameRaw: group.SourceDrugNameRaw,
-                groupSourceSpecRaw: group.SourceSpecRaw,
-                groupSourceNameNorm: group.SourceNameNorm,
-                groupSourceSpecNorm: group.SourceSpecNorm,
-                action: action,
-                drugId: res.DrugId,
-                spec: res.Spec,
-                ct: CancellationToken.None).ConfigureAwait(false);
-
-            if (apply.AffectedCount <= 0)
-            {
-                _toast.Warn(confirmTitle, "本次未更新任何记录，请检查筛选条件或映射目标");
-                return;
-            }
-
-            if (res.Action == MsfxMappingBatchAction.ApplyMap && apply.AffectedCount > 0)
-            {
-                var built = await _syncService.BuildInjectsAsync(500, CancellationToken.None).ConfigureAwait(false);
-                AddAutoLog(confirmTitle, $"分组处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}", TraceEntryState.Success);
-                LogInfo("msfx.map.batch.apply", "MSFX batch mapping applied", new
-                {
-                    apply.AffectedCount,
-                    built.CreatedTasks,
-                    group.SourceDrugNameRaw,
-                    group.SourceSpecRaw,
-                    DrugId = res.DrugId,
-                    Spec = res.Spec
-                });
-                _toast.Success(confirmTitle, $"已处理 {apply.AffectedCount} 条，新增任务 {built.CreatedTasks}");
-            }
-            else if (res.Action == MsfxMappingBatchAction.DiscardTask)
-            {
-                AddAutoLog(confirmTitle, $"分组弃用 {apply.AffectedCount} 条，已进入弃用任务队列", TraceEntryState.Discarded);
-                LogInfo("msfx.map.batch.discard", "MSFX batch mapping discarded into task queue", new
-                {
-                    apply.AffectedCount,
-                    group.SourceDrugNameRaw,
-                    group.SourceSpecRaw,
-                    DrugId = res.DrugId,
-                    Spec = res.Spec
-                });
-                _toast.Success(confirmTitle, $"已处理 {apply.AffectedCount} 条，并直接进入弃用任务队列");
-            }
-            else
-            {
-                _toast.Info(confirmTitle, $"已处理 {apply.AffectedCount} 条");
-            }
-
-            await RefreshAutoBoardAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _toast.Error(batchScene, ex.Message);
-        }
-        finally
-        {
-            await RunOnUiAsync(ExitManualMsfxWrite);
         }
     }
 
@@ -1109,6 +967,8 @@ public sealed partial class MsfxLink : AppPageBase
     {
         try
         {
+            await RecoverInterruptedPullBatchesAsync(ct).ConfigureAwait(false);
+
             MsfxAutoBoardSnapshot snap = default!;
             await RunLocalBusyAsync(
                 ct,
@@ -1156,13 +1016,31 @@ public sealed partial class MsfxLink : AppPageBase
         }
     }
 
+    private async Task RecoverInterruptedPullBatchesAsync(CancellationToken ct)
+    {
+        if (_interruptedPullBatchesRecovered || IsAutoBusy)
+        {
+            return;
+        }
+
+        var recovered = await _autoRun.RecoverInterruptedAsync(ct).ConfigureAwait(false);
+        _interruptedPullBatchesRecovered = true;
+        if (recovered > 0)
+        {
+            AddAutoLog("批次恢复", $"已将 {recovered} 个异常中断批次结算为失败", TraceEntryState.Warning);
+        }
+    }
+
     private async Task<MsfxAutoBoardSnapshot> RefreshAutoSummaryAsync(CancellationToken ct)
     {
         var snap = await _syncService.GetAutoBoardSnapshotAsync(ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
         {
             AutoPullSummary = $"批次#{snap.LastBatchId} {snap.LastBatchStatus} 成功{snap.LastBatchSuccessCount}/失败{snap.LastBatchFailCount}";
-            AutoMapSummary = $"待映射{snap.MapPendingCount} 已映射{snap.MapMappedCount} 待人工{snap.MapNeedReviewCount} 失败{snap.MapFailedCount}";
+            AutoMapPendingCount = snap.MapPendingCount;
+            AutoMapMappedCount = snap.MapMappedCount;
+            AutoMapNeedReviewCount = snap.MapNeedReviewCount;
+            AutoMapFailedCount = snap.MapFailedCount;
             AutoTaskNewCount = snap.TaskNewCount;
             AutoTaskRunningCount = snap.TaskRunningCount;
             AutoTaskSuccessCount = snap.TaskSuccessCount;
@@ -1195,16 +1073,16 @@ public sealed partial class MsfxLink : AppPageBase
         await RunOnUiAsync(() =>
         {
             _allPullBatchRows = pullRows.Select(x => new MsfxAutoPullBatchGridRow(
-                    BatchId: x.BatchId,
-                    SourceApi: x.SourceApi,
-                    Window: $"{(x.BeginDate?.ToString("yyyy-MM-dd") ?? "--")} ~ {(x.EndDate?.ToString("yyyy-MM-dd") ?? "--")}",
-                    Status: x.Status,
-                    SuccessCount: x.SuccessCount,
-                    FailCount: x.FailCount,
-                    StartedAt: x.StartedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
-                    FinishedAt: x.FinishedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--",
-                    ErrMsg: x.ErrMsg ?? string.Empty,
-                    State: ToBatchState(x.Status))).ToList();
+                    batchId: x.BatchId,
+                    sourceApi: x.SourceApi,
+                    window: $"{(x.BeginDate?.ToString("yyyy-MM-dd") ?? "--")} ~ {(x.EndDate?.ToString("yyyy-MM-dd") ?? "--")}",
+                    status: x.Status,
+                    successCount: x.SuccessCount,
+                    failCount: x.FailCount,
+                    startedAt: x.StartedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
+                    finishedAt: x.FinishedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--",
+                    errMsg: x.ErrMsg ?? string.Empty,
+                    state: ToBatchState(x.Status))).ToList();
             PullBatchTotalCount = _allPullBatchRows.Count;
             if (PullBatchPage > PullBatchTotalPages)
             {
@@ -1230,7 +1108,7 @@ public sealed partial class MsfxLink : AppPageBase
         var taskRows = await _syncService.GetInjectQueueAsync(0, ct).ConfigureAwait(false);
         await RunOnUiAsync(() =>
         {
-            var checkedIds = _allTaskQueueRows.Where(x => x.IsChecked).Select(x => x.TaskId).ToHashSet();
+            var selectedIds = _allTaskQueueRows.Where(x => x.IsSelected).Select(x => x.TaskId).ToHashSet();
             _allTaskQueueRows = taskRows.Select(x => new MsfxAutoTaskQueueGridRow(
                     taskId: x.TaskId,
                     sourceBillCode: x.SourceBillCode ?? "--",
@@ -1251,37 +1129,34 @@ public sealed partial class MsfxLink : AppPageBase
                 .ToList();
             foreach (var row in _allTaskQueueRows)
             {
-                row.IsChecked = checkedIds.Contains(row.TaskId);
+                row.IsSelected = selectedIds.Contains(row.TaskId);
             }
 
             ApplyTaskQueueFilter();
-            SyncCheckedAutoTaskQueueRows();
+            SyncAutoTaskQueueSelection();
         });
         return snap;
     }
 
     private void ApplyTaskQueueFilter()
     {
-        var keyword = TaskQueueKeyword?.Trim() ?? string.Empty;
+        var keyword = QueueSearchKeyword?.Trim() ?? string.Empty;
         IEnumerable<MsfxAutoTaskQueueGridRow> filtered = _allTaskQueueRows;
-        if (!string.Equals(TaskQueueStatusFilter, "ALL", StringComparison.OrdinalIgnoreCase))
+
+        if (_taskQueueStatusFilters.Count > 0)
         {
-            filtered = filtered.Where(row => string.Equals(row.Status, TaskQueueStatusFilter, StringComparison.OrdinalIgnoreCase));
+            filtered = filtered.Where(row => _taskQueueStatusFilters.Contains(
+                (row.Status ?? string.Empty).Trim().ToUpperInvariant()));
         }
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
-            filtered = filtered.Where(row => TaskQueueSearchScope switch
-            {
-                "单据编号" => ContainsTaskQueueIgnoreCase(row.SourceBillCode, keyword),
-                "药品" => ContainsTaskQueueIgnoreCase(row.MappedDrugId, keyword),
-                "规格" => ContainsTaskQueueIgnoreCase(row.MappedSpec, keyword),
-                _ => ContainsTaskQueueIgnoreCase(row.SourceBillCode, keyword)
-                     || ContainsTaskQueueIgnoreCase(row.MappedDrugId, keyword)
-                     || ContainsTaskQueueIgnoreCase(row.MappedSpec, keyword)
-                     || ContainsTaskQueueIgnoreCase(row.BatchNos, keyword)
-                     || ContainsTaskQueueIgnoreCase(row.Status, keyword)
-            });
+            filtered = filtered.Where(row =>
+                ContainsTaskQueueIgnoreCase(row.SourceBillCode, keyword)
+                || ContainsTaskQueueIgnoreCase(row.MappedDrugId, keyword)
+                || ContainsTaskQueueIgnoreCase(row.MappedSpec, keyword)
+                || ContainsTaskQueueIgnoreCase(row.BatchNos, keyword)
+                || ContainsTaskQueueIgnoreCase(row.Status, keyword));
         }
 
         _filteredTaskQueueRows = filtered.ToList();
@@ -1296,8 +1171,10 @@ public sealed partial class MsfxLink : AppPageBase
         OnPropertyChanged(nameof(CanRemapTasks));
         OnPropertyChanged(nameof(CanDiscardTasks));
         OnPropertyChanged(nameof(CanReopenTasks));
+        OnPropertyChanged(nameof(CanSplitTasks));
         OnPropertyChanged(nameof(TaskQueueTotalPages));
         OnPropertyChanged(nameof(TaskQueueFilteredCount));
+        SyncAutoTaskQueueSelection();
     }
 
     private void ApplyTaskQueuePage()
@@ -1311,16 +1188,28 @@ public sealed partial class MsfxLink : AppPageBase
 
         var page = Math.Max(1, TaskQueuePage);
         var skip = (page - 1) * pageSize;
-        var rows = _filteredTaskQueueRows.Skip(skip).Take(pageSize).ToList();
+        var rows = _filteredTaskQueueRows
+            .Skip(skip)
+            .Take(pageSize)
+            .Select((row, index) => row.CreatePageRow(skip + index + 1))
+            .ToList();
 
-        AutoTaskQueueRows.ResetContents(rows);
+        _syncingTaskQueuePageRows = true;
+        try
+        {
+            AutoTaskQueueRows.SyncContentsInPlace(rows, static (target, source) => target.UpdateFrom(source));
+        }
+        finally
+        {
+            _syncingTaskQueuePageRows = false;
+        }
 
         OnPropertyChanged(nameof(TaskQueueTotalPages));
     }
 
     private void ApplyAutoLogPage()
     {
-        var pageSize = GetAutoLogEffectivePageSize();
+        var pageSize = GetAutoLogPageSize();
         var totalPages = AutoLogTotalPages;
         if (AutoLogPage > totalPages)
         {
@@ -1329,9 +1218,13 @@ public sealed partial class MsfxLink : AppPageBase
 
         var page = Math.Max(1, AutoLogPage);
         var skip = (page - 1) * pageSize;
-        var rows = AutoLogs.Skip(skip).Take(pageSize).ToList();
+        var rows = AutoLogs
+            .Skip(skip)
+            .Take(pageSize)
+            .Select((row, index) => row.CreatePageRow(skip + index + 1))
+            .ToList();
 
-        AutoLogPageRows.ResetContents(rows);
+        AutoLogPageRows.SyncContentsInPlace(rows, static (target, source) => target.UpdateFrom(source));
 
         OnPropertyChanged(nameof(AutoLogTotalPages));
         OnPropertyChanged(nameof(IsAutoLogsEmpty));
@@ -1348,7 +1241,7 @@ public sealed partial class MsfxLink : AppPageBase
     }
 
     private int GetTaskQueueEffectivePageSize()
-        => IsTaskPanelExpanded ? GetTaskQueuePageSize() : TaskQueuePreviewPageSize;
+        => GetTaskQueuePageSize();
 
     private int GetAutoLogPageSize()
     {
@@ -1359,9 +1252,6 @@ public sealed partial class MsfxLink : AppPageBase
 
         return Math.Clamp(pageSize, 10, 500);
     }
-
-    private int GetAutoLogEffectivePageSize()
-        => IsLogPanelExpanded ? GetAutoLogPageSize() : AutoLogPreviewPageSize;
 
     private static bool ContainsTaskQueueIgnoreCase(string? text, string keyword)
         => TextSearchHelper.Matches(keyword, text);
@@ -1510,7 +1400,7 @@ public sealed partial class MsfxLink : AppPageBase
 
     private Task RefreshMapQueueLatestAsync()
     {
-        if (IsAutoBoardBusy || SelectedTabIndex != 0)
+        if (IsAutoBoardBusy || SelectedTabIndex != 1)
         {
             return Task.CompletedTask;
         }
@@ -1563,23 +1453,13 @@ public sealed partial class MsfxLink : AppPageBase
             cursorId = null;
         }
 
-        var fullMapMode = IsMapPanelExpanded;
-        if (!fullMapMode)
-        {
-            cursorAt = null;
-            cursorId = null;
-            newer = false;
-            olderPage = null;
-            seekLastPage = false;
-        }
-
         var pageSize = GetMapQueueQueryPageSize();
         var page = await _syncService.GetMappingQueuePageAsync(
             pageSize: pageSize,
-            mapStatus: FilterInput.Norm(MapQueueMapStatusFilter),
-            codeStatus: FilterInput.Norm(MapQueueCodeStatusFilter),
-            searchScope: ResolveSearchScope(MapQueueSearchScope),
-            keyword: NormalizeText(MapQueueKeyword),
+            mapStatuses: _mapQueueStatusFilters.ToArray(),
+            codeStatus: null,
+            searchScope: "ALL",
+            keyword: NormalizeText(QueueSearchKeyword),
             cursorUpdatedAt: cursorAt,
             cursorId: cursorId,
             newer: newer,
@@ -1592,20 +1472,17 @@ public sealed partial class MsfxLink : AppPageBase
             MapQueueTotalCount = page.TotalCount;
             var totalPages = Math.Max(1, (int)Math.Ceiling(page.TotalCount / (double)Math.Max(1, pageSize)));
             var requestedPage = Math.Max(1, MapQueuePage);
-            if (fullMapMode)
+            if (seekLastPage)
             {
-                if (seekLastPage)
-                {
-                    requestedPage = totalPages;
-                }
-                else if (olderPage == true)
-                {
-                    requestedPage = Math.Max(1, MapQueuePage + 1);
-                }
-                else if (olderPage == false)
-                {
-                    requestedPage = Math.Max(1, MapQueuePage - 1);
-                }
+                requestedPage = totalPages;
+            }
+            else if (olderPage == true)
+            {
+                requestedPage = Math.Max(1, MapQueuePage + 1);
+            }
+            else if (olderPage == false)
+            {
+                requestedPage = Math.Max(1, MapQueuePage - 1);
             }
 
             var displayStart = ((requestedPage - 1) * pageSize) + 1;
@@ -1614,82 +1491,50 @@ public sealed partial class MsfxLink : AppPageBase
             {
                 var x = page.Rows[i];
                 gridRows.Add(new MsfxAutoMapQueueGridRow(
-                    DisplayIndex: displayStart + i,
-                    StagingId: x.StagingId,
-                    LeafCode: x.LeafCode,
-                    ProduceBatchNo: string.IsNullOrWhiteSpace(x.ProduceBatchNo) ? "--" : x.ProduceBatchNo!,
-                    SourceBillTime: string.IsNullOrWhiteSpace(x.SourceBillTime) ? "--" : x.SourceBillTime!,
-                    SourceBillCode: x.SourceBillCode ?? "--",
-                    SourceDrugNameRaw: x.SourceDrugNameRaw ?? "--",
-                    SourceSpecRaw: x.SourceSpecRaw ?? "--",
-                    SourceNameNorm: x.SourceNameNorm ?? "--",
-                    SourceSpecNorm: x.SourceSpecNorm ?? "--",
-                    SourceCodeLevel1: x.SourceCodeLevel1 ?? "--",
-                    SourceCodeLevel2: x.SourceCodeLevel2 ?? "--",
-                    SourceCodeLevel3: x.SourceCodeLevel3 ?? "--",
-                    SourceCodeLevel4: x.SourceCodeLevel4 ?? "--",
-                    SourceCodeLevel5: x.SourceCodeLevel5 ?? "--",
-                    MapReasonCode: x.MapReasonCode ?? "--",
-                    MapReasonDetail: x.MapReasonDetail ?? "--",
-                    MappedDrugId: x.MappedDrugId ?? "--",
-                    MappedSpec: x.MappedSpec ?? "--",
-                    MapStatus: x.MapStatus,
-                    CodeStatus: x.CodeStatus,
-                    UpdatedAt: x.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
-                    State: ToMapState(x.MapStatus),
-                    UpdatedAtRaw: x.UpdatedAt));
+                    displayIndex: displayStart + i,
+                    stagingId: x.StagingId,
+                    leafCode: x.LeafCode,
+                    produceBatchNo: string.IsNullOrWhiteSpace(x.ProduceBatchNo) ? "--" : x.ProduceBatchNo!,
+                    sourceBillTime: string.IsNullOrWhiteSpace(x.SourceBillTime) ? "--" : x.SourceBillTime!,
+                    sourceBillCode: x.SourceBillCode ?? "--",
+                    sourceDrugNameRaw: x.SourceDrugNameRaw ?? "--",
+                    sourceSpecRaw: x.SourceSpecRaw ?? "--",
+                    sourceNameNorm: x.SourceNameNorm ?? "--",
+                    sourceSpecNorm: x.SourceSpecNorm ?? "--",
+                    sourceCodeLevel1: x.SourceCodeLevel1 ?? "--",
+                    sourceCodeLevel2: x.SourceCodeLevel2 ?? "--",
+                    sourceCodeLevel3: x.SourceCodeLevel3 ?? "--",
+                    sourceCodeLevel4: x.SourceCodeLevel4 ?? "--",
+                    sourceCodeLevel5: x.SourceCodeLevel5 ?? "--",
+                    mapReasonCode: x.MapReasonCode ?? "--",
+                    mapReasonDetail: x.MapReasonDetail ?? "--",
+                    mappedDrugId: x.MappedDrugId ?? "--",
+                    mappedSpec: x.MappedSpec ?? "--",
+                    mapStatus: x.MapStatus,
+                    codeStatus: x.CodeStatus,
+                    updatedAt: x.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
+                    state: ToMapState(x.MapStatus),
+                    updatedAtRaw: x.UpdatedAt));
             }
 
-            AutoMapQueueRows.ResetContents(gridRows);
+            AutoMapQueueRows.SyncContentsInPlace(
+                gridRows,
+                static (target, source) => target.UpdateFrom(source));
+            MapQueuePage = requestedPage;
 
             MapQueueHasNewer = page.HasNewer;
             MapQueueHasOlder = page.HasOlder;
-            if (fullMapMode)
-            {
-                if (seekLastPage)
-                {
-                    MapQueuePage = totalPages;
-                }
-                else if (olderPage == true && page.Rows.Count > 0)
-                {
-                    MapQueuePage += 1;
-                }
-                else if (olderPage == false && page.Rows.Count > 0)
-                {
-                    MapQueuePage = Math.Max(1, MapQueuePage - 1);
-                }
-                else if (olderPage is null)
-                {
-                    MapQueuePage = 1;
-                }
-            }
-            else
-            {
-                MapQueuePage = 1;
-            }
 
             if (AutoMapQueueRows.Count > 0)
             {
                 var first = AutoMapQueueRows[0];
                 _mapCursorUpdatedAt = first.UpdatedAtRaw;
                 _mapCursorId = first.StagingId;
-
-                var start = displayStart;
-                var end = start + AutoMapQueueRows.Count - 1;
-                MapQueueRangeText = $"序号 {start}-{end}";
-            }
-            else if (MapQueueTotalCount > 0)
-            {
-                _mapCursorUpdatedAt = null;
-                _mapCursorId = null;
-                var end = Math.Min(displayStart + pageSize - 1, MapQueueTotalCount);
-                MapQueueRangeText = $"序号 {displayStart}-{end}";
             }
             else
             {
                 _mapCursorUpdatedAt = null;
                 _mapCursorId = null;
-                MapQueueRangeText = "序号 --";
             }
 
             ClearAllDetailSelectionsSilent();
@@ -1699,9 +1544,7 @@ public sealed partial class MsfxLink : AppPageBase
     private void ClearAllDetailSelectionsSilent()
     {
         SelectedAutoPullBatchRow = null;
-        SelectedAutoTaskQueueRow = null;
         SelectedAutoLogRow = null;
-        SetSelectedAutoTaskQueueRows(Array.Empty<MsfxAutoTaskQueueGridRow>());
     }
 
     private void OnAutoTimerTick(object? sender, EventArgs e)
@@ -1711,23 +1554,8 @@ public sealed partial class MsfxLink : AppPageBase
             return;
         }
 
-        if (Interlocked.CompareExchange(ref _autoTimerTickRunning, 1, 0) != 0)
-        {
-            return;
-        }
-
         _backgroundTasks.RunDetached(
-            async _ =>
-            {
-                try
-                {
-                    await QueueAutoOnceAsync(showProgressPanel: false).ConfigureAwait(false);
-                }
-                finally
-                {
-                    Interlocked.Exchange(ref _autoTimerTickRunning, 0);
-                }
-            },
+            _ => QueueAutoOnceAsync(showProgress: false),
             module: "MsfxLink",
             eventName: "msfx.auto.timer_tick.fail");
     }
@@ -1746,6 +1574,7 @@ public sealed partial class MsfxLink : AppPageBase
             ExpireDate: x.ExpireDate,
             FromEntName: x.FromEntName,
             FromRefUserId: x.FromRefUserId,
+            ToRefUserId: x.ToRefUserId,
             ProduceEntName: x.ProduceEntName,
             LogisticsStatus: string.IsNullOrWhiteSpace(x.LogisticsStatus) ? x.Status : x.LogisticsStatus,
             State: ParseUpoutState(x.Status));
@@ -1757,9 +1586,7 @@ public sealed partial class MsfxLink : AppPageBase
             return;
         }
 
-        var hasKeyword = !string.IsNullOrWhiteSpace(UpoutBillCodeKeyword)
-                         || !string.IsNullOrWhiteSpace(UpoutDrugKeyword)
-                         || !string.IsNullOrWhiteSpace(UpoutFromEntKeyword);
+        var hasKeyword = !string.IsNullOrWhiteSpace(UpstreamKeyword);
         if (!hasKeyword)
         {
             _upoutFilterDebouncer.Cancel();
@@ -1792,26 +1619,11 @@ public sealed partial class MsfxLink : AppPageBase
 
     private bool MatchUpoutFilter(MsfxUpoutGridRow row)
     {
-        var bill = NormalizeText(UpoutBillCodeKeyword);
-        var drug = NormalizeText(UpoutDrugKeyword);
-        var ent = NormalizeText(UpoutFromEntKeyword);
-
-        if (!string.IsNullOrWhiteSpace(bill) && !TextSearchHelper.Matches(bill, row.BillCode))
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(drug) && !TextSearchHelper.Matches(drug, row.DrugName))
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(ent) && !TextSearchHelper.Matches(ent, row.FromEntName))
-        {
-            return false;
-        }
-
-        return true;
+        var keyword = NormalizeText(UpstreamKeyword);
+        return string.IsNullOrWhiteSpace(keyword)
+               || TextSearchHelper.Matches(keyword, row.BillCode)
+               || TextSearchHelper.Matches(keyword, row.DrugName)
+               || TextSearchHelper.Matches(keyword, row.FromEntName);
     }
 
     private int GetPageSize()
@@ -1844,12 +1656,9 @@ public sealed partial class MsfxLink : AppPageBase
         return Math.Clamp(pageSize, 10, 500);
     }
 
-    private int GetPullBatchEffectivePageSize()
-        => IsPullPanelExpanded ? GetPullBatchPageSize() : PullBatchPreviewPageSize;
-
     private void ApplyPullBatchPage()
     {
-        var pageSize = GetPullBatchEffectivePageSize();
+        var pageSize = GetPullBatchPageSize();
         var totalPages = Math.Max(1, (int)Math.Ceiling(PullBatchTotalCount / (double)pageSize));
         if (PullBatchPage > totalPages)
         {
@@ -1858,9 +1667,13 @@ public sealed partial class MsfxLink : AppPageBase
 
         var page = Math.Max(1, PullBatchPage);
         var skip = (page - 1) * pageSize;
-        var rows = _allPullBatchRows.Skip(skip).Take(pageSize).ToList();
+        var rows = _allPullBatchRows
+            .Skip(skip)
+            .Take(pageSize)
+            .Select((row, index) => row.CreatePageRow(skip + index + 1))
+            .ToList();
 
-        AutoPullBatchRows.ResetContents(rows);
+        AutoPullBatchRows.SyncContentsInPlace(rows, static (target, source) => target.UpdateFrom(source));
     }
 
     private int GetMapQueuePageSize()
@@ -1874,7 +1687,7 @@ public sealed partial class MsfxLink : AppPageBase
     }
 
     private int GetMapQueueQueryPageSize()
-        => IsMapPanelExpanded ? GetMapQueuePageSize() : MapQueuePreviewPageSize;
+        => GetMapQueuePageSize();
 
     private void ApplySubCodePage()
     {
@@ -1918,22 +1731,6 @@ public sealed partial class MsfxLink : AppPageBase
         return text.Length == 0 ? null : text;
     }
 
-    private static string ResolveSearchScope(string? value)
-    {
-        var text = (value ?? string.Empty).Trim();
-        return text switch
-        {
-            "最小包装码" => "TRACE",
-            "单据编码" => "BILL",
-            "原始药/规" or "药名/规格(原始)" => "SOURCE_RAW",
-            "校正药/规" or "药名/规格(归一化)" => "SOURCE_NORM",
-            "层级码" or "层级码(1-5)" => "LEVEL_CODE",
-            "映射目标" => "TARGET",
-            "原因信息" => "REASON",
-            _ => "ALL"
-        };
-    }
-
     private static CancellationTokenSource CreateMsfxTimeout(int seconds)
         => new(TimeSpan.FromSeconds(Math.Clamp(seconds, 3, 120)));
 
@@ -1958,10 +1755,10 @@ public sealed partial class MsfxLink : AppPageBase
         }
 
         var row = new MsfxAutoLogRow(
-            At: DateTime.Now.ToString("HH:mm:ss"),
-            Stage: normalizedStage,
-            Message: normalizedMessage,
-            State: state);
+            at: DateTime.Now.ToString("HH:mm:ss"),
+            stage: normalizedStage,
+            message: normalizedMessage,
+            state: state);
 
         PostOnUi(() =>
         {
@@ -2052,6 +1849,54 @@ public sealed partial class MsfxLink : AppPageBase
             _ => TraceEntryState.Info
         };
 
+    private static void ToggleStatusFilter(HashSet<string> filters, string status)
+    {
+        if (!filters.Remove(status))
+        {
+            filters.Add(status);
+        }
+    }
+
+    private static string? NormalizeMapQueueStatusFilter(string? status)
+        => (status ?? string.Empty).Trim().ToUpperInvariant() switch
+        {
+            "PENDING" => "PENDING",
+            "MAPPED" => "MAPPED",
+            "NEED_REVIEW" => "NEED_REVIEW",
+            "FAILED" => "FAILED",
+            _ => null
+        };
+
+    private static string? NormalizeTaskQueueStatusFilter(string? status)
+        => (status ?? string.Empty).Trim().ToUpperInvariant() switch
+        {
+            "NEW" => "NEW",
+            "RUNNING" => "RUNNING",
+            "SUCCESS" => "SUCCESS",
+            "FAILED" => "FAILED",
+            "DISCARDED" => "DISCARDED",
+            _ => null
+        };
+
+    private void NotifyMapQueueStatusFiltersChanged()
+    {
+        OnPropertyChanged(nameof(IsMapPendingFilterActive));
+        OnPropertyChanged(nameof(IsMapMappedFilterActive));
+        OnPropertyChanged(nameof(IsMapNeedReviewFilterActive));
+        OnPropertyChanged(nameof(IsMapFailedFilterActive));
+        OnPropertyChanged(nameof(HasActiveMapQueueFilter));
+    }
+
+    private void NotifyTaskQueueStatusFiltersChanged()
+    {
+        OnPropertyChanged(nameof(IsTaskNewFilterActive));
+        OnPropertyChanged(nameof(IsTaskRunningFilterActive));
+        OnPropertyChanged(nameof(IsTaskSuccessFilterActive));
+        OnPropertyChanged(nameof(IsTaskFailedFilterActive));
+        OnPropertyChanged(nameof(IsTaskDiscardedFilterActive));
+        OnPropertyChanged(nameof(HasActiveTaskQueueFilter));
+    }
+
     private static TraceEntryState ParseUpoutState(string? status)
         => (status ?? string.Empty).Trim() switch
         {
@@ -2097,6 +1942,7 @@ public sealed partial class MsfxLink : AppPageBase
     private void OnAutoLogsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         OnPropertyChanged(nameof(IsAutoLogsEmpty));
+        OnPropertyChanged(nameof(AutoLogCount));
         OnPropertyChanged(nameof(AutoLogTotalPages));
         ApplyAutoLogPage();
     }
@@ -2105,11 +1951,7 @@ public sealed partial class MsfxLink : AppPageBase
         => OnPropertyChanged(nameof(IsAutoPullBatchEmpty));
 
     private void OnAutoMapQueueRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        OnPropertyChanged(nameof(IsAutoMapQueueEmpty));
-        OnPropertyChanged(nameof(MapQueueDisplayText));
-        OnPropertyChanged(nameof(MapQueuePagerStatusText));
-    }
+        => OnPropertyChanged(nameof(IsAutoMapQueueEmpty));
 
     private void OnAutoTaskQueueRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsAutoTaskQueueEmpty));
@@ -2125,18 +1967,22 @@ public sealed partial class MsfxLink : AppPageBase
 
     public override void Dispose()
     {
+        _autoRunLifetimeCts.Cancel();
         _autoTimer.Stop();
         _autoTimer.Tick -= OnAutoTimerTick;
+        _unlockStatusTimer.Stop();
+        _unlockStatusTimer.Tick -= OnUnlockStatusTimerTick;
         AutoLogs.CollectionChanged -= OnAutoLogsCollectionChanged;
         AutoPullBatchRows.CollectionChanged -= OnAutoPullBatchRowsCollectionChanged;
         AutoMapQueueRows.CollectionChanged -= OnAutoMapQueueRowsCollectionChanged;
         AutoTaskQueueRows.CollectionChanged -= OnAutoTaskQueueRowsCollectionChanged;
         UpoutRows.CollectionChanged -= OnUpoutRowsCollectionChanged;
         SubCodeRows.CollectionChanged -= OnSubCodeRowsCollectionChanged;
-        _mapQueueSearchDebouncer.Dispose();
-        _taskQueueSearchDebouncer.Dispose();
+        _queueSearchDebouncer.Dispose();
         _upoutFilterDebouncer.Dispose();
         _upoutDateRangeController.Dispose();
+        _autoRunLifetimeCts.Dispose();
+        DisposeMappingWorkspace();
         base.Dispose();
     }
 }

@@ -292,18 +292,14 @@
 - 人工介入且需要保留审计可见性的事件，如 `msfx.task.reopen.success`、`msfx.map.batch.apply`、`msfx.task.merge.success`、`msfx.task.split.success`，按 `Warn` 记录
 - 失败类事件按 `Error`
 
-## MsfxMappingBatchDialogVM
+## MsfxMapping
 
-- `msfx.map.batch.reload_fail`
-- `msfx.map.batch.preview_fail`
+- `msfx.mapping.groups.reload_fail`
+- `msfx.mapping.preview_fail`
 
 说明:
 
-- 批量映射对话框内分组加载/预览失败按 `Warn` 记录（模态对话框，不重复 shell 连接 toast）
-
-## MsfxMappingBatchView
-
-- `msfx.map.batch.attach_init.fail`
+- 批量映射工作区的分组加载/预览失败按 `Warn` 记录，不重复 shell 连接 toast
 
 ## SearchInputDebouncer
 
@@ -426,12 +422,12 @@
 
 - `view.resolve.fail`
 
-## DashboardView
+## Dashboard
 
 - `dashboard.selection_handler.fail`
 - `dashboard.pointer_handler.fail`
 
-## InventoryOverviewView
+## InventoryOverview
 
 - `inventory.pointer_release.fail`
 - `inventory.stock_edit_end.fail`

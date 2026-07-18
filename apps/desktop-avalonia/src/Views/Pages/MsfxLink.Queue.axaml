@@ -1,0 +1,805 @@
+﻿<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Pages.MsfxLinkQueue"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:behaviors="clr-namespace:PacToolkits.Desktop.Avalonia.Behaviors"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+  xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
+  x:DataType="vm:MsfxLink">
+  <Grid
+    MinHeight="0"
+    Classes="DashboardLayout"
+    RowDefinitions="*">
+    <Grid
+      MinHeight="0"
+      IsVisible="{Binding IsQueueMonitorWorkspace}"
+      RowDefinitions="Auto,*">
+      <ContentControl Classes="FilterBarChrome" IsVisible="{Binding ShowQueueToolbar}">
+        <Grid Classes="FilterBarColumns" ColumnDefinitions="Auto,*,Auto">
+          <Grid Classes="FilterBarColumn" ColumnDefinitions="Auto,Auto">
+            <TextBlock
+              VerticalAlignment="Center"
+              Classes="Caption Muted"
+              Text="搜索" />
+            <TextBox
+              Grid.Column="1"
+              Width="440"
+              VerticalContentAlignment="Center"
+              shad:TextBoxAssist.Clearable="True"
+              AcceptsReturn="False"
+              Classes="SearchBox Clearable"
+              PlaceholderText="单据编码 / 药品 / 规格 / 批号 / 状态"
+              Text="{Binding QueueSearchKeyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+              TextWrapping="NoWrap" />
+          </Grid>
+          <StackPanel
+            Grid.Column="2"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            IsVisible="{Binding !IsTaskQueueBatchModeActive}"
+            Orientation="Horizontal"
+            Spacing="{DynamicResource SpacingInlineSm}">
+            <Button
+              behaviors:FocusClear.SuppressGridClear="True"
+              Classes="Outline"
+              Command="{Binding BeginMergeTaskSelectionCommand}"
+              IsEnabled="{Binding CanMergeTasks}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="GitMerge" />
+                <TextBlock Text="合并" />
+              </StackPanel>
+            </Button>
+            <Button
+              behaviors:FocusClear.SuppressGridClear="True"
+              Classes="Outline"
+              Command="{Binding BeginSplitTaskSelectionCommand}"
+              IsEnabled="{Binding CanSplitTasks}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="GitBranch" />
+                <TextBlock Text="拆分" />
+              </StackPanel>
+            </Button>
+            <Button
+              behaviors:FocusClear.SuppressGridClear="True"
+              Classes="Outline"
+              Command="{Binding BeginRemapTaskSelectionCommand}"
+              IsEnabled="{Binding CanRemapTasks}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="Undo2" />
+                <TextBlock Text="重映射" />
+              </StackPanel>
+            </Button>
+            <Button
+              behaviors:FocusClear.SuppressGridClear="True"
+              Classes="Outline"
+              Command="{Binding BeginDiscardTaskSelectionCommand}"
+              IsEnabled="{Binding CanDiscardTasks}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="Ban" />
+                <TextBlock Text="弃用" />
+              </StackPanel>
+            </Button>
+            <Button
+              behaviors:FocusClear.SuppressGridClear="True"
+              Classes="Outline"
+              Command="{Binding BeginReopenTaskSelectionCommand}"
+              IsEnabled="{Binding CanReopenTasks}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="RotateCcw" />
+                <TextBlock Text="重开" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+          <Grid
+            Grid.Column="2"
+            VerticalAlignment="Center"
+            ColumnDefinitions="Auto,Auto,Auto"
+            ColumnSpacing="{DynamicResource SpacingInlineSm}"
+            IsVisible="{Binding IsTaskQueueBatchModeActive}">
+            <TextBlock
+              VerticalAlignment="Center"
+              Classes="Caption Muted"
+              Text="{Binding TaskQueueBatchModeTitle}"
+              ToolTip.Tip="{Binding TaskQueueBatchModeHint}" />
+            <Button
+              Grid.Column="1"
+              Classes="Outline"
+              Command="{Binding ConfirmTaskQueueBatchActionCommand}"
+              IsEnabled="{Binding CanConfirmTaskQueueBatchAction}">
+              <TextBlock Text="{Binding TaskQueueBatchConfirmText}" />
+            </Button>
+            <Button
+              Grid.Column="2"
+              Classes="Outline"
+              Command="{Binding CancelTaskQueueBatchSelectionCommand}">
+              <TextBlock Text="取消" />
+            </Button>
+          </Grid>
+        </Grid>
+      </ContentControl>
+
+      <Grid
+        Grid.Row="1"
+        MinHeight="0"
+        Classes="DashboardContent">
+        <controls:ResizableCardPair
+          FirstMinSize="320"
+          SecondMinSize="320"
+          SplitterSize="{DynamicResource PagePanelSpacing}">
+          <controls:ResizableCardPair.FirstContent>
+            <controls:CardPanel
+              MinHeight="0"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch"
+              Chrome="Card"
+              Classes="FlushBody"
+              IsResponsive="True">
+              <controls:CardPanel.Title>
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                  <StackPanel
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource SpacingInlineMd}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Foreground="{Binding AutoMapState, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                      Kind="{Binding AutoMapState, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                    <TextBlock
+                      VerticalAlignment="Center"
+                      Classes="SectionTitle"
+                      Text="映射结果队列" />
+                  </StackPanel>
+                  <StackPanel
+                    Grid.Column="2"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource SpacingInlineSm}">
+                    <controls:StatusPill
+                      Classes="ToneWarning15 ResponsiveIconOnly"
+                      Command="{Binding ToggleMapQueueStatusFilterCommand}"
+                      CommandParameter="PENDING"
+                      Icon="CircleDot"
+                      IconSize="12"
+                      IsActive="{Binding IsMapPendingFilterActive}"
+                      IsEnabled="{Binding !IsMapPanelBusy}"
+                      PillPadding="8,3"
+                      Text="{Binding AutoMapPendingCount, StringFormat=待映射 {0}}"
+                      TextSize="11" />
+                    <controls:StatusPill
+                      Classes="ToneDone15 ResponsiveIconOnly"
+                      Command="{Binding ToggleMapQueueStatusFilterCommand}"
+                      CommandParameter="MAPPED"
+                      Icon="CircleCheck"
+                      IconSize="12"
+                      IsActive="{Binding IsMapMappedFilterActive}"
+                      IsEnabled="{Binding !IsMapPanelBusy}"
+                      PillPadding="8,3"
+                      Text="{Binding AutoMapMappedCount, StringFormat=已映射 {0}}"
+                      TextSize="11" />
+                    <controls:StatusPill
+                      Classes="ToneInfo15 ResponsiveIconOnly"
+                      Command="{Binding ToggleMapQueueStatusFilterCommand}"
+                      CommandParameter="NEED_REVIEW"
+                      Icon="UserRoundSearch"
+                      IconSize="12"
+                      IsActive="{Binding IsMapNeedReviewFilterActive}"
+                      IsEnabled="{Binding !IsMapPanelBusy}"
+                      PillPadding="8,3"
+                      Text="{Binding AutoMapNeedReviewCount, StringFormat=待人工 {0}}"
+                      TextSize="11" />
+                    <controls:StatusPill
+                      Classes="ToneDanger15 ResponsiveIconOnly"
+                      Command="{Binding ToggleMapQueueStatusFilterCommand}"
+                      CommandParameter="FAILED"
+                      Icon="TriangleAlert"
+                      IconSize="12"
+                      IsActive="{Binding IsMapFailedFilterActive}"
+                      IsEnabled="{Binding !IsMapPanelBusy}"
+                      PillPadding="8,3"
+                      Text="{Binding AutoMapFailedCount, StringFormat=失败 {0}}"
+                      TextSize="11" />
+                  </StackPanel>
+                </Grid>
+              </controls:CardPanel.Title>
+
+              <Grid MinHeight="0" RowDefinitions="*,Auto">
+
+                <shad:BusyArea
+                  Grid.Row="0"
+                  MinHeight="120"
+                  IsBusy="{Binding IsMapPanelBusy}">
+                  <controls:EmptyStatePanel
+                    EmptyHint="待映射、需人工、失败和待下发记录将显示在这里"
+                    EmptyText="暂无映射队列数据"
+                    IsEmpty="{Binding IsAutoMapQueueEmpty}">
+                    <DataGrid
+                      x:Name="AutoMapQueueGrid"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearMapQueueFiltersCommand}"
+                      behaviors:DataGridSortReset.FilterActive="{Binding HasActiveMapQueueFilter}"
+                      Classes="SectionGrid InventoryGrid IndexedGrid MapIndexedGrid MsfxStickyColumns"
+                      ItemsSource="{Binding AutoMapQueueRows}">
+                      <DataGrid.Columns>
+                        <DataGridTemplateColumn
+                          Width="54"
+                          behaviors:DataGridFrozenColumns.IsFrozen="True"
+                          Header="状态">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                              <Border
+                                Width="24"
+                                Height="24"
+                                Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                                Classes="DgStatusBadge"
+                                CornerRadius="12">
+                                <icons:AppIcon
+                                  Width="{DynamicResource IconSizeSmall}"
+                                  Height="{DynamicResource IconSizeSmall}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                  Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                              </Border>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn
+                          Width="120"
+                          Binding="{Binding SourceBillTime}"
+                          Header="单据时间" />
+                        <DataGridTextColumn
+                          Width="220"
+                          Binding="{Binding SourceBillCode}"
+                          Header="单据编码" />
+                        <DataGridTextColumn
+                          Width="140"
+                          Binding="{Binding ProduceBatchNo}"
+                          Header="批号" />
+                        <DataGridTextColumn
+                          Width="220"
+                          Binding="{Binding LeafCode}"
+                          Header="最小包装码" />
+                        <DataGridTextColumn
+                          Width="200"
+                          Binding="{Binding SourceDrugNameRaw}"
+                          Header="药名(原始)" />
+                        <DataGridTextColumn
+                          Width="180"
+                          Binding="{Binding SourceSpecRaw}"
+                          Header="规格(原始)" />
+                        <DataGridTextColumn
+                          Width="180"
+                          Binding="{Binding SourceNameNorm}"
+                          Header="药名(归一化)" />
+                        <DataGridTextColumn
+                          Width="180"
+                          Binding="{Binding SourceSpecNorm}"
+                          Header="规格(归一化)" />
+                        <DataGridTextColumn
+                          Width="180"
+                          Binding="{Binding SourceCodeLevel1}"
+                          Header="一级码" />
+                        <DataGridTextColumn
+                          Width="180"
+                          Binding="{Binding SourceCodeLevel2}"
+                          Header="二级码" />
+                        <DataGridTextColumn
+                          Width="180"
+                          Binding="{Binding SourceCodeLevel3}"
+                          Header="三级码" />
+                        <DataGridTextColumn
+                          Width="180"
+                          Binding="{Binding SourceCodeLevel4}"
+                          Header="四级码" />
+                        <DataGridTextColumn
+                          Width="180"
+                          Binding="{Binding SourceCodeLevel5}"
+                          Header="五级码" />
+                        <DataGridTextColumn
+                          Width="160"
+                          Binding="{Binding MapReasonCode}"
+                          Header="原因编码" />
+                        <DataGridTextColumn
+                          Width="240"
+                          Binding="{Binding MapReasonDetail}"
+                          Header="原因详情" />
+                        <DataGridTextColumn
+                          Width="160"
+                          Binding="{Binding MappedDrugId}"
+                          Header="映射药品ID" />
+                        <DataGridTextColumn
+                          Width="160"
+                          Binding="{Binding MappedSpec}"
+                          Header="映射规格" />
+                        <DataGridTextColumn
+                          Width="130"
+                          Binding="{Binding MapStatus}"
+                          Header="映射状态" />
+                        <DataGridTextColumn
+                          Width="120"
+                          Binding="{Binding CodeStatus}"
+                          Header="码状态" />
+                        <DataGridTextColumn
+                          Width="170"
+                          Binding="{Binding UpdatedAt}"
+                          Header="更新时间" />
+                      </DataGrid.Columns>
+                    </DataGrid>
+                  </controls:EmptyStatePanel>
+                </shad:BusyArea>
+
+                <controls:DataGridPager
+                  Grid.Row="1"
+                  Classes="CardPanelBodyInset"
+                  ClearTarget="{Binding #AutoMapQueueGrid}"
+                  FirstPageCommand="{Binding FirstMapQueuePageCommand}"
+                  IsContentEmpty="{Binding IsAutoMapQueueEmpty}"
+                  LastPageCommand="{Binding LastMapQueuePageCommand}"
+                  NextPageCommand="{Binding NextMapQueuePageCommand}"
+                  PageSizeOptions="{Binding MapQueuePageSizeOptions}"
+                  PrevPageCommand="{Binding PrevMapQueuePageCommand}"
+                  SelectedPageSize="{Binding MapQueuePageSize, Mode=TwoWay}"
+                  TotalPages="{Binding MapQueueTotalPages}"
+                  PageIndex="{Binding MapQueuePage}" />
+              </Grid>
+            </controls:CardPanel>
+          </controls:ResizableCardPair.FirstContent>
+          <controls:ResizableCardPair.SecondContent>
+            <controls:CardPanel
+              MinHeight="0"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch"
+              Chrome="Card"
+              Classes="FlushBody"
+              IsResponsive="True">
+              <controls:CardPanel.Title>
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+                  <StackPanel
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource SpacingInlineMd}">
+                    <icons:AppIcon
+                      Width="{DynamicResource IconSizeDefault}"
+                      Height="{DynamicResource IconSizeDefault}"
+                      Foreground="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                      Kind="{Binding AutoTaskState, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                    <TextBlock
+                      VerticalAlignment="Center"
+                      Classes="SectionTitle"
+                      Text="执行队列" />
+                  </StackPanel>
+                  <StackPanel
+                    Grid.Column="2"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource SpacingInlineSm}">
+                    <controls:StatusPill
+                      Classes="ToneWarning15 ResponsiveIconOnly"
+                      Command="{Binding ToggleTaskQueueStatusFilterCommand}"
+                      CommandParameter="NEW"
+                      Icon="CircleDot"
+                      IconSize="12"
+                      IsActive="{Binding IsTaskNewFilterActive}"
+                      IsEnabled="{Binding !IsTaskPanelBusy}"
+                      PillPadding="8,3"
+                      Text="{Binding AutoTaskNewCount, StringFormat=待执行 {0}}"
+                      TextSize="11" />
+                    <controls:StatusPill
+                      Classes="ToneInfo15 ResponsiveIconOnly"
+                      Command="{Binding ToggleTaskQueueStatusFilterCommand}"
+                      CommandParameter="RUNNING"
+                      Icon="LoaderCircle"
+                      IconSize="12"
+                      IsActive="{Binding IsTaskRunningFilterActive}"
+                      IsEnabled="{Binding !IsTaskPanelBusy}"
+                      PillPadding="8,3"
+                      Text="{Binding AutoTaskRunningCount, StringFormat=运行中 {0}}"
+                      TextSize="11" />
+                    <controls:StatusPill
+                      Classes="ToneDone15 ResponsiveIconOnly"
+                      Command="{Binding ToggleTaskQueueStatusFilterCommand}"
+                      CommandParameter="SUCCESS"
+                      Icon="CircleCheck"
+                      IconSize="12"
+                      IsActive="{Binding IsTaskSuccessFilterActive}"
+                      IsEnabled="{Binding !IsTaskPanelBusy}"
+                      PillPadding="8,3"
+                      Text="{Binding AutoTaskSuccessCount, StringFormat=成功 {0}}"
+                      TextSize="11" />
+                    <controls:StatusPill
+                      Classes="ToneDanger15 ResponsiveIconOnly"
+                      Command="{Binding ToggleTaskQueueStatusFilterCommand}"
+                      CommandParameter="FAILED"
+                      Icon="TriangleAlert"
+                      IconSize="12"
+                      IsActive="{Binding IsTaskFailedFilterActive}"
+                      IsEnabled="{Binding !IsTaskPanelBusy}"
+                      PillPadding="8,3"
+                      Text="{Binding AutoTaskFailedCount, StringFormat=失败 {0}}"
+                      TextSize="11" />
+                    <controls:StatusPill
+                      Classes="TonePurple15 ResponsiveIconOnly"
+                      Command="{Binding ToggleTaskQueueStatusFilterCommand}"
+                      CommandParameter="DISCARDED"
+                      Icon="Ban"
+                      IconSize="12"
+                      IsActive="{Binding IsTaskDiscardedFilterActive}"
+                      IsEnabled="{Binding !IsTaskPanelBusy}"
+                      PillPadding="8,3"
+                      Text="{Binding AutoTaskDiscardedCount, StringFormat=弃用 {0}}"
+                      TextSize="11" />
+                  </StackPanel>
+                </Grid>
+              </controls:CardPanel.Title>
+
+              <Grid MinHeight="0" RowDefinitions="*,Auto">
+                <shad:BusyArea
+                  Grid.Row="0"
+                  MinHeight="120"
+                  IsBusy="{Binding IsTaskPanelBusy}">
+                  <controls:EmptyStatePanel
+                    EmptyHint="仅 MAPPED + NEW 的码会创建任务"
+                    EmptyText="暂无 Agent 任务队列"
+                    IsEmpty="{Binding IsAutoTaskQueueEmpty}">
+                    <DataGrid
+                      x:Name="AutoTaskQueueGrid"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      behaviors:DataGridRowSelection.Enabled="True"
+                      behaviors:DataGridRowSelection.IsVisible="{Binding IsTaskQueueBatchModeActive}"
+                      behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearTaskQueueFiltersCommand}"
+                      behaviors:DataGridSortReset.FilterActive="{Binding HasActiveTaskQueueFilter}"
+                      Classes="SectionGrid InventoryGrid IndexedGrid StickyIndexDisplayIndex MsfxStickyColumns"
+                      ItemsSource="{Binding AutoTaskQueueRows}">
+                      <DataGrid.Columns>
+                        <DataGridTemplateColumn
+                          Width="54"
+                          behaviors:DataGridFrozenColumns.IsFrozen="True"
+                          Header="状态">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                              <Border
+                                Width="24"
+                                Height="24"
+                                Background="{Binding State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+                                Classes="DgStatusBadge"
+                                CornerRadius="12">
+                                <icons:AppIcon
+                                  Width="{DynamicResource IconSizeSmall}"
+                                  Height="{DynamicResource IconSizeSmall}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Foreground="{Binding State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+                                  Kind="{Binding State, Converter={StaticResource TraceEntryStateToIconKind}}" />
+                              </Border>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn
+                          Width="110"
+                          Binding="{Binding TaskId}"
+                          Header="任务ID" />
+                        <DataGridTextColumn
+                          Width="220"
+                          Binding="{Binding SourceBillCode}"
+                          Header="单据编码" />
+                        <DataGridTextColumn
+                          Width="180"
+                          Binding="{Binding BatchNos}"
+                          Header="批号" />
+                        <DataGridTextColumn
+                          Width="260"
+                          Binding="{Binding Target}"
+                          Header="目标药品/规格" />
+                        <DataGridTextColumn
+                          Width="100"
+                          MinWidth="88"
+                          Binding="{Binding Status}"
+                          Header="状态" />
+                        <DataGridTextColumn
+                          Width="170"
+                          MinWidth="120"
+                          Binding="{Binding Progress}"
+                          Header="进度" />
+                        <DataGridTextColumn
+                          Width="88"
+                          MinWidth="72"
+                          Binding="{Binding RetryCount}"
+                          Header="重试" />
+                        <DataGridTextColumn
+                          Width="160"
+                          MinWidth="128"
+                          Binding="{Binding CreatedAt}"
+                          Header="创建时间" />
+                        <DataGridTextColumn
+                          Width="160"
+                          MinWidth="128"
+                          Binding="{Binding PickedAt}"
+                          Header="抢占时间" />
+                        <DataGridTextColumn
+                          Width="165"
+                          Binding="{Binding FinishedAt}"
+                          Header="完成时间" />
+                        <DataGridTextColumn
+                          Width="260"
+                          Binding="{Binding ErrMsg}"
+                          Header="错误信息" />
+                      </DataGrid.Columns>
+                    </DataGrid>
+                  </controls:EmptyStatePanel>
+                </shad:BusyArea>
+
+                <controls:DataGridPager
+                  Grid.Row="1"
+                  Classes="CardPanelBodyInset"
+                  ClearTarget="{Binding #AutoTaskQueueGrid}"
+                  FirstPageCommand="{Binding FirstTaskQueuePageCommand}"
+                  IsContentEmpty="{Binding IsAutoTaskQueueEmpty}"
+                  LastPageCommand="{Binding LastTaskQueuePageCommand}"
+                  NextPageCommand="{Binding NextTaskQueuePageCommand}"
+                  PageSizeOptions="{Binding TaskQueuePageSizeOptions}"
+                  PrevPageCommand="{Binding PrevTaskQueuePageCommand}"
+                  SelectedCount="{Binding TaskQueuePagerSelectedCount}"
+                  SelectedPageSize="{Binding TaskQueuePageSize, Mode=TwoWay}"
+                  TotalCount="{Binding TaskQueueFilteredCount}"
+                  TotalPages="{Binding TaskQueueTotalPages}"
+                  PageIndex="{Binding TaskQueuePage}" />
+              </Grid>
+            </controls:CardPanel>
+          </controls:ResizableCardPair.SecondContent>
+        </controls:ResizableCardPair>
+      </Grid>
+    </Grid>
+
+    <Grid
+      MinHeight="0"
+      IsVisible="{Binding IsMappingWorkspace}"
+      RowDefinitions="Auto,*">
+      <ContentControl Classes="FilterBarChrome" IsVisible="{Binding IsMappingConfigBarVisible}">
+        <Grid Classes="FilterBarColumns" ColumnDefinitions="1.1*,Auto,0.95*,Auto,0.55*,*,Auto">
+          <Grid
+            Grid.Column="0"
+            Classes="FilterBarColumn"
+            ColumnDefinitions="Auto,*,Auto">
+            <TextBlock Classes="Caption Muted" Text="药品" />
+            <AutoCompleteBox
+              x:Name="MappingDrugBox"
+              Grid.Column="1"
+              HorizontalAlignment="Stretch"
+              ItemsSource="{Binding MappingDrugOptions}"
+              KeyDown="MappingDrugBox_OnKeyDown"
+              PlaceholderText="输入药品名并回车"
+              Text="{Binding MappingDrugText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+              <AutoCompleteBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:OptionItem">
+                  <TextBlock Text="{Binding Display}" />
+                </DataTemplate>
+              </AutoCompleteBox.ItemTemplate>
+            </AutoCompleteBox>
+            <Button
+              Grid.Column="2"
+              Classes="MicroClear DrugAutoCompleteClear"
+              Command="{Binding ClearMappingDrugSpecCommand}">
+              <icons:AppIcon
+                Width="{DynamicResource IconSizeSmall}"
+                Height="{DynamicResource IconSizeSmall}"
+                Kind="CircleX" />
+            </Button>
+          </Grid>
+
+          <Border Grid.Column="1" Classes="FilterBarDivider" />
+
+          <Grid
+            Grid.Column="2"
+            Classes="FilterBarColumn"
+            ColumnDefinitions="Auto,*">
+            <TextBlock Classes="Caption Muted" Text="规格" />
+            <controls:FilterFieldInput Grid.Column="1">
+              <Grid>
+                <ComboBox
+                  x:Name="MappingSpecBox"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch"
+                  DisplayMemberBinding="{Binding Display}"
+                  ItemsSource="{Binding MappingSpecOptions}"
+                  SelectedItem="{Binding MappingSelectedSpec, Mode=TwoWay}" />
+                <TextBlock
+                  Classes="InputPlaceholder"
+                  IsVisible="{Binding !IsMappingSpecSelected}"
+                  Text="请选择规格" />
+              </Grid>
+            </controls:FilterFieldInput>
+          </Grid>
+
+          <Border Grid.Column="3" Classes="FilterBarDivider" />
+
+          <Grid
+            Grid.Column="4"
+            Classes="FilterBarColumn"
+            ColumnDefinitions="Auto,*">
+            <TextBlock Classes="Caption Muted" Text="单条数量" />
+            <controls:FilterFieldInput Grid.Column="1">
+              <TextBox IsEnabled="False" Text="{Binding MappingQuantityDisplay}" />
+            </controls:FilterFieldInput>
+          </Grid>
+
+          <StackPanel
+            Grid.Column="6"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="{DynamicResource SpacingInlineSm}">
+            <Button Classes="Outline" Command="{Binding DiscardMappingGroupCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="Ban" />
+                <TextBlock Text="弃用任务" />
+              </StackPanel>
+            </Button>
+            <Button Classes="Outline" Command="{Binding ApplyMappingGroupCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                <icons:AppIcon
+                  Width="{DynamicResource IconSizeCompact}"
+                  Height="{DynamicResource IconSizeCompact}"
+                  Kind="Table2" />
+                <TextBlock Text="批量映射" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </ContentControl>
+
+      <Grid
+        Grid.Row="1"
+        MinHeight="0"
+        Classes="DashboardContent">
+        <controls:CardPanel
+          MinHeight="0"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          Chrome="Card"
+          Classes="FlushBody"
+          IsResponsive="True">
+          <controls:CardPanel.Title>
+            <TextBox
+              shad:TextBoxAssist.Clearable="True"
+              AcceptsReturn="False"
+              Classes="SearchBox Clearable"
+              PlaceholderText="搜索：单据编码 / 原始药名 / 规格 / 归一化信息..."
+              Text="{Binding MappingKeyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+              TextWrapping="NoWrap" />
+          </controls:CardPanel.Title>
+          <controls:CardPanel.HeaderContent>
+            <StackPanel
+              VerticalAlignment="Center"
+              Orientation="Horizontal"
+              Spacing="{DynamicResource SpacingInlineMd}">
+              <controls:StatusPill
+                Classes="ToneInfo25"
+                Icon="TableProperties"
+                IconSize="12"
+                PillPadding="8,3"
+                Text="{Binding MappingGroupCountText}"
+                TextSize="11" />
+              <TextBlock
+                MaxWidth="520"
+                VerticalAlignment="Center"
+                Classes="Caption Muted"
+                Text="{Binding MappingPreviewText}"
+                TextTrimming="CharacterEllipsis"
+                ToolTip.Tip="{Binding MappingPreviewText}" />
+            </StackPanel>
+          </controls:CardPanel.HeaderContent>
+
+          <shad:BusyArea IsBusy="{Binding IsMappingBusy}">
+            <controls:EmptyStatePanel
+              EmptyHint="调整左上角搜索条件，或等待新的待映射分组"
+              EmptyText="暂无批量映射分组"
+              IsEmpty="{Binding IsMappingGroupEmpty}">
+              <DataGrid
+                x:Name="MappingGroupGrid"
+                MinHeight="0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                behaviors:DataGridRowSelection.Enabled="True"
+                behaviors:DataGridRowSelection.IsVisible="True"
+                behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearMappingSearchCommand}"
+                behaviors:DataGridSortReset.FilterActive="{Binding HasMappingKeyword}"
+                Classes="SectionGrid InventoryGrid IndexedGrid MsfxStickyColumns"
+                HorizontalScrollBarVisibility="Auto"
+                IsReadOnly="True"
+                ItemsSource="{Binding MappingGroups}"
+                SelectionMode="Extended">
+                <DataGrid.Columns>
+                  <DataGridTextColumn
+                    Width="140"
+                    Binding="{Binding SourceBillTimes}"
+                    Header="单据时间" />
+                  <DataGridTextColumn
+                    Width="220"
+                    Binding="{Binding SourceBillCodes}"
+                    Header="单据编码" />
+                  <DataGridTextColumn
+                    Width="200"
+                    Binding="{Binding SourceDrugNameRaw}"
+                    Header="原始药名" />
+                  <DataGridTextColumn
+                    Width="180"
+                    Binding="{Binding SourceSpecRaw}"
+                    Header="原始规格" />
+                  <DataGridTextColumn
+                    Width="200"
+                    Binding="{Binding SourceNameNorm}"
+                    Header="归一化药名" />
+                  <DataGridTextColumn
+                    Width="180"
+                    Binding="{Binding SourceSpecNorm}"
+                    Header="归一化规格" />
+                  <DataGridTextColumn
+                    Width="88"
+                    Binding="{Binding TotalCount}"
+                    Header="总数" />
+                  <DataGridTemplateColumn Width="520" Header="状态构成">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate x:DataType="vm:MsfxMappingBatchGroupGridRow">
+                        <StackPanel
+                          VerticalAlignment="Center"
+                          Orientation="Horizontal"
+                          Spacing="{DynamicResource SpacingInlineMd}">
+                          <controls:StatusPill
+                            Classes="ToneWarning25"
+                            Icon="Info"
+                            IconSize="12"
+                            PillPadding="8,3"
+                            Text="{Binding PendingCount, StringFormat=待映射 {0}}"
+                            TextSize="11" />
+                          <controls:StatusPill
+                            Classes="ToneInfo25"
+                            Icon="Bookmark"
+                            IconSize="12"
+                            PillPadding="8,3"
+                            Text="{Binding NeedReviewCount, StringFormat=待人工 {0}}"
+                            TextSize="11" />
+                          <controls:StatusPill
+                            Classes="ToneDanger25"
+                            Icon="CircleX"
+                            IconSize="12"
+                            PillPadding="8,3"
+                            Text="{Binding FailedCount, StringFormat=失败 {0}}"
+                            TextSize="11" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                </DataGrid.Columns>
+              </DataGrid>
+            </controls:EmptyStatePanel>
+          </shad:BusyArea>
+        </controls:CardPanel>
+      </Grid>
+    </Grid>
+  </Grid>
+</UserControl>

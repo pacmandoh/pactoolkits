@@ -10,11 +10,16 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 public sealed partial class MsfxLink : AppPageBase
 {
+    private string _upoutKeyword = string.Empty;
+    private string _subcodeKeyword = string.Empty;
+
     [RelayCommand]
-    private async Task QueryUpoutAsync()
+    private Task QueryUpstreamAsync()
     {
         _upoutFilterDebouncer.Cancel();
-        await QueryUpoutAsync(resetPage: true).ConfigureAwait(false);
+        return IsSubcodeQueryMode
+            ? QuerySubCodesAsync(null, null)
+            : QueryUpoutAsync(resetPage: true);
     }
 
     private async Task QueryUpoutAsync(bool resetPage)
@@ -68,7 +73,10 @@ public sealed partial class MsfxLink : AppPageBase
                 return;
             }
 
-            var mapped = result.Items.Select(MapUpoutRow).ToList();
+            var displayStart = ((UpoutPage - 1) * GetPageSize()) + 1;
+            var mapped = result.Items
+                .Select((item, index) => MapUpoutRow(item) with { DisplayIndex = displayStart + index })
+                .ToList();
             _upoutLastServerTotal = result.Total;
 
             await RunOnUiAsync(() =>
@@ -79,7 +87,8 @@ public sealed partial class MsfxLink : AppPageBase
         }
         catch (OperationCanceledException)
         {
-            throw;
+            LogWarn("msfx.upout.query_timeout", "Upstream outbound query timed out");
+            await RunOnUiAsync(() => _toast.Error("上游出库单查询", "查询超时，请稍后重试"));
         }
         catch (Exception ex)
         {
@@ -92,7 +101,6 @@ public sealed partial class MsfxLink : AppPageBase
                     _toast.Error("上游出库单查询", ex.Message);
                 }
             });
-            throw;
         }
         finally
         {
@@ -149,9 +157,22 @@ public sealed partial class MsfxLink : AppPageBase
     }
 
     [RelayCommand]
-    private void ResetUpoutFilters()
+    private void ResetUpstreamFilters()
     {
         _upoutFilterDebouncer.Cancel();
+        if (IsSubcodeQueryMode)
+        {
+            _subcodeKeyword = string.Empty;
+            UpstreamKeyword = string.Empty;
+            _allSubCodeRows.Clear();
+            SubCodeRows.Clear();
+            SubcodeTotal = 0;
+            SubcodePage = 1;
+            SubcodePageSize = "200";
+            return;
+        }
+
+        _upoutKeyword = string.Empty;
         _allUpoutRows.Clear();
         UpoutRows.Clear();
         UpoutTotal = 0;
@@ -160,20 +181,56 @@ public sealed partial class MsfxLink : AppPageBase
             RollingDateRangeController.DefaultToDate);
         UpoutFromDate = defaults.From;
         UpoutToDate = defaults.To;
-        UpoutBillCodeKeyword = string.Empty;
-        UpoutDrugKeyword = string.Empty;
-        UpoutFromEntKeyword = string.Empty;
+        UpstreamKeyword = string.Empty;
         UpoutPage = 1;
         UpoutPageSize = "20";
         UpoutStatus = "筛选条件已重置";
     }
 
-    partial void OnUpoutBillCodeKeywordChanged(string value)
-        => ScheduleUpoutFilter();
+    [RelayCommand]
+    private void ClearActiveUpstreamSearch()
+    {
+        _upoutFilterDebouncer.Cancel();
+        UpstreamKeyword = string.Empty;
+        if (!IsSubcodeQueryMode)
+        {
+            ApplyUpoutFilter();
+            return;
+        }
 
-    partial void OnUpoutDrugKeywordChanged(string value)
-        => ScheduleUpoutFilter();
+        _allSubCodeRows.Clear();
+        SubCodeRows.Clear();
+        SubcodeTotal = 0;
+        SubcodePage = 1;
+    }
 
-    partial void OnUpoutFromEntKeywordChanged(string value)
-        => ScheduleUpoutFilter();
+    partial void OnUpstreamQueryModeChanging(int oldValue, int newValue)
+    {
+        if (oldValue == 0)
+        {
+            _upoutKeyword = UpstreamKeyword;
+        }
+        else
+        {
+            _subcodeKeyword = UpstreamKeyword;
+        }
+    }
+
+    partial void OnUpstreamKeywordChanged(string value)
+    {
+        if (IsSubcodeQueryMode)
+        {
+            _subcodeKeyword = value;
+        }
+        else
+        {
+            _upoutKeyword = value;
+        }
+
+        OnPropertyChanged(nameof(HasActiveUpstreamSearch));
+        if (IsUpoutQueryMode)
+        {
+            ScheduleUpoutFilter();
+        }
+    }
 }

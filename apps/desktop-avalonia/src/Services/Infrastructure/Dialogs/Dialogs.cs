@@ -3,19 +3,6 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-public enum MsfxMappingBatchAction
-{
-    Cancel = 0,
-    DiscardTask = 1,
-    ApplyMap = 2
-}
-
-public sealed record MsfxMappingBatchResult(
-    MsfxMappingBatchAction Action,
-    MsfxMappingBatchGroupRow? Group,
-    string DrugId,
-    string Spec);
-
 public enum MsfxTaskSplitAction
 {
     Cancel = 0,
@@ -45,13 +32,6 @@ public sealed record InfoDetailArgs(
 public sealed record AppInfoArgs(
     string Version,
     string ReleaseDate);
-
-public sealed record MsfxMappingBatchArgs(
-    IReadOnlyList<MsfxMappingBatchGroupRow> Groups,
-    string MapStatusFilter,
-    string CodeStatusFilter,
-    string SearchScope,
-    string Keyword);
 
 public sealed record MsfxStateDetailArgs(
     string Header,
