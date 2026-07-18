@@ -45,6 +45,15 @@ public partial class DataGridPager : UserControl
     public static readonly StyledProperty<bool> ShowPageSizeSectionProperty =
         AvaloniaProperty.Register<DataGridPager, bool>(nameof(ShowPageSizeSection), true);
 
+    public static readonly StyledProperty<bool> IsResponsiveProperty =
+        AvaloniaProperty.Register<DataGridPager, bool>(nameof(IsResponsive), true);
+
+    public static readonly StyledProperty<double> ResponsiveCompactThresholdProperty =
+        AvaloniaProperty.Register<DataGridPager, double>(nameof(ResponsiveCompactThreshold), 520d);
+
+    public static readonly StyledProperty<double> ResponsiveMinimalThresholdProperty =
+        AvaloniaProperty.Register<DataGridPager, double>(nameof(ResponsiveMinimalThreshold), 340d);
+
     public static readonly StyledProperty<DataGridPagerPlacement> PlacementProperty =
         AvaloniaProperty.Register<DataGridPager, DataGridPagerPlacement>(nameof(Placement), DataGridPagerPlacement.Bottom);
 
@@ -113,6 +122,16 @@ public partial class DataGridPager : UserControl
     public static readonly DirectProperty<DataGridPager, bool> HasLastPageCommandProperty =
         AvaloniaProperty.RegisterDirect<DataGridPager, bool>(nameof(HasLastPageCommand), o => o.HasLastPageCommand);
 
+    public static readonly DirectProperty<DataGridPager, bool> ShowResponsivePageSizeSectionProperty =
+        AvaloniaProperty.RegisterDirect<DataGridPager, bool>(
+            nameof(ShowResponsivePageSizeSection),
+            o => o.ShowResponsivePageSizeSection);
+
+    public static readonly DirectProperty<DataGridPager, bool> ShowResponsivePageSummaryProperty =
+        AvaloniaProperty.RegisterDirect<DataGridPager, bool>(
+            nameof(ShowResponsivePageSummary),
+            o => o.ShowResponsivePageSummary);
+
     private string _pageSummaryText = "第 1 页，共 1 页";
     private string _selectionSummaryText = string.Empty;
     private bool _showSelectionSummary;
@@ -125,6 +144,8 @@ public partial class DataGridPager : UserControl
     private bool _hasPrevPageCommand;
     private bool _hasNextPageCommand;
     private bool _hasLastPageCommand;
+    private bool _showResponsivePageSizeSection = true;
+    private bool _showResponsivePageSummary = true;
     private IEnumerable? _boundPageSizeOptions;
 
     public int PageIndex
@@ -179,6 +200,24 @@ public partial class DataGridPager : UserControl
     {
         get => GetValue(ShowPageSizeSectionProperty);
         set => SetValue(ShowPageSizeSectionProperty, value);
+    }
+
+    public bool IsResponsive
+    {
+        get => GetValue(IsResponsiveProperty);
+        set => SetValue(IsResponsiveProperty, value);
+    }
+
+    public double ResponsiveCompactThreshold
+    {
+        get => GetValue(ResponsiveCompactThresholdProperty);
+        set => SetValue(ResponsiveCompactThresholdProperty, value);
+    }
+
+    public double ResponsiveMinimalThreshold
+    {
+        get => GetValue(ResponsiveMinimalThresholdProperty);
+        set => SetValue(ResponsiveMinimalThresholdProperty, value);
     }
 
     public DataGridPagerPlacement Placement
@@ -253,6 +292,8 @@ public partial class DataGridPager : UserControl
     public bool HasPrevPageCommand => _hasPrevPageCommand;
     public bool HasNextPageCommand => _hasNextPageCommand;
     public bool HasLastPageCommand => _hasLastPageCommand;
+    public bool ShowResponsivePageSizeSection => _showResponsivePageSizeSection;
+    public bool ShowResponsivePageSummary => _showResponsivePageSummary;
 
     public DataGridPager()
     {
@@ -262,6 +303,7 @@ public partial class DataGridPager : UserControl
         RefreshDerivedState();
         ApplyPlacementVisuals();
         UpdatePagerVisibility();
+        UpdateResponsiveState();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -317,6 +359,15 @@ public partial class DataGridPager : UserControl
         {
             UpdatePagerVisibility();
         }
+
+        if (change.Property == BoundsProperty
+            || change.Property == IsResponsiveProperty
+            || change.Property == ResponsiveCompactThresholdProperty
+            || change.Property == ResponsiveMinimalThresholdProperty
+            || change.Property == ShowPageSizeSectionProperty)
+        {
+            UpdateResponsiveState();
+        }
     }
 
     private void RefreshPageSizeComboItems()
@@ -358,6 +409,24 @@ public partial class DataGridPager : UserControl
     private void UpdatePagerVisibility()
     {
         IsVisible = IsActive && !IsContentEmpty;
+    }
+
+    private void UpdateResponsiveState()
+    {
+        var width = Bounds.Width;
+        var compact = IsResponsive && width > 0 && width < ResponsiveCompactThreshold;
+        var minimal = IsResponsive && width > 0 && width < ResponsiveMinimalThreshold;
+
+        Classes.Set("ResponsiveCompact", compact);
+        Classes.Set("ResponsiveMinimal", minimal);
+        SetAndRaise(
+            ShowResponsivePageSizeSectionProperty,
+            ref _showResponsivePageSizeSection,
+            ShowPageSizeSection && !compact);
+        SetAndRaise(
+            ShowResponsivePageSummaryProperty,
+            ref _showResponsivePageSummary,
+            !minimal);
     }
 
     private void RefreshDerivedState()

@@ -8,22 +8,6 @@
     <Setter Property="IsEnabled" Value="False" />
   </Style>
 
-  <Style Selector="TextBox.MsfxInput">
-    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="Padding" Value="{DynamicResource InputPaddingHorizontal}" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="TextWrapping" Value="NoWrap" />
-    <Setter Property="AcceptsReturn" Value="False" />
-  </Style>
-
-  <Style Selector="ComboBox.MsfxInput">
-    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-  </Style>
-
-  <Style Selector="CalendarDatePicker.MsfxInput">
-    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-  </Style>
-
   <Style Selector="NumericUpDown.MsfxInput">
     <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
   </Style>
@@ -49,6 +33,11 @@
     </Setter>
   </Style>
 
+  <Style Selector="ContentControl.FilterBarChrome TextBox.SearchBox">
+    <Setter Property="Height" Value="36" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+  </Style>
+
   <Style Selector="AutoCompleteBox">
     <Setter Property="InnerRightContent">
       <Setter.Value>
@@ -63,20 +52,21 @@
     </Setter>
   </Style>
 
-  <Style Selector="Border.FilterBarChrome AutoCompleteBox">
-    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="MaxHeight" Value="{DynamicResource ControlHeightCompact}" />
+  <Style Selector="ContentControl.FilterBarChrome AutoCompleteBox">
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
     <Setter Property="MinWidth" Value="0" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Border.FilterBarChrome ComboBox">
-    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="MaxHeight" Value="{DynamicResource ControlHeightCompact}" />
+  <Style Selector="ContentControl.FilterBarChrome ComboBox">
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="Border.FilterBarChrome ComboBox.FilterBarComboAuto">
+  <Style Selector="ContentControl.FilterBarChrome ComboBox.FilterBarComboAuto">
     <Setter Property="HorizontalAlignment" Value="Left" />
   </Style>
 
@@ -114,10 +104,12 @@
   </Style>
 
   <Style Selector="controls|FilterFieldInput">
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="MinWidth" Value="0" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="ClipToBounds" Value="False" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Template">
       <ControlTemplate TargetType="controls:FilterFieldInput">
         <Border
@@ -154,45 +146,25 @@
   </Style>
 
   <Style Selector="controls|FilterFieldInput ComboBox">
-    <Setter Property="MinHeight" Value="{DynamicResource FilterComboHeight}" />
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="ClipToBounds" Value="False" />
   </Style>
 
   <Style Selector="controls|FilterFieldInput TextBox">
-    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
   <Style Selector="controls|FilterFieldInput CalendarDatePicker">
-    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="ClipToBounds" Value="False" />
-  </Style>
-
-  <Style Selector="Border.FilterBarChrome controls|FilterFieldInput ComboBox">
-    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="MaxHeight" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
-
-  <Style Selector="Border.FilterBarChrome controls|FilterFieldInput CalendarDatePicker">
-    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="MaxHeight" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
-
-  <Style Selector="Border.FilterBarChrome controls|FilterFieldInput">
-    <Setter Property="MinWidth" Value="0" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <Style Selector="Border.RowItem">

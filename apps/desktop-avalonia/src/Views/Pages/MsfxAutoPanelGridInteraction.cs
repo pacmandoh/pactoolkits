@@ -4,7 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using PacToolkits.Desktop.Avalonia.Common;
-using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
+using MsfxLinkViewModel = PacToolkits.Desktop.Avalonia.ViewModels.Pages.MsfxLink;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
@@ -13,8 +13,8 @@ internal static class MsfxAutoPanelGridInteraction
     public static void AttachDetailRowClick(
         DataGrid grid,
         bool allowRowBodyClick,
-        Action<MsfxLink, object?> executeDetail,
-        Func<MsfxLink, bool>? shouldSkip = null)
+        Action<MsfxLinkViewModel, object?> executeDetail,
+        Func<MsfxLinkViewModel, bool>? shouldSkip = null)
     {
         grid.AddHandler(
             InputElement.PointerPressedEvent,
@@ -25,7 +25,7 @@ internal static class MsfxAutoPanelGridInteraction
                     return;
                 }
 
-                if (targetGrid.DataContext is not MsfxLink vm)
+                if (targetGrid.DataContext is not MsfxLinkViewModel vm)
                 {
                     return;
                 }

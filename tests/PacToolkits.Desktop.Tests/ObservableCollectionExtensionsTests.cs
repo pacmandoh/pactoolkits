@@ -73,4 +73,28 @@ public sealed class ObservableCollectionExtensionsTests
 
         Assert.Equal(0, changes);
     }
+
+    [Fact]
+    public void SyncContentsInPlace_preserves_shared_item_identity_without_collection_changes()
+    {
+        var first = new MutableRow(1);
+        var second = new MutableRow(2);
+        var target = new ObservableCollection<MutableRow> { first, second };
+        var changes = 0;
+        target.CollectionChanged += (_, _) => changes++;
+
+        target.SyncContentsInPlace(
+            [new MutableRow(11), new MutableRow(12)],
+            static (existing, incoming) => existing.Value = incoming.Value);
+
+        Assert.Equal(0, changes);
+        Assert.Same(first, target[0]);
+        Assert.Same(second, target[1]);
+        Assert.Equal([11, 12], target.Select(static row => row.Value));
+    }
+
+    private sealed class MutableRow(int value)
+    {
+        public int Value { get; set; } = value;
+    }
 }

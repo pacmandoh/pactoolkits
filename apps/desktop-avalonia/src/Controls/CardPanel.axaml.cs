@@ -30,6 +30,15 @@ public class CardPanel : ContentControl
     public static readonly StyledProperty<CardPanelChrome> ChromeProperty =
         AvaloniaProperty.Register<CardPanel, CardPanelChrome>(nameof(Chrome), CardPanelChrome.Section);
 
+    public static readonly StyledProperty<bool> IsResponsiveProperty =
+        AvaloniaProperty.Register<CardPanel, bool>(nameof(IsResponsive));
+
+    public static readonly StyledProperty<double> ResponsiveCompactThresholdProperty =
+        AvaloniaProperty.Register<CardPanel, double>(nameof(ResponsiveCompactThreshold), 680d);
+
+    public static readonly StyledProperty<double> ResponsiveMinimalThresholdProperty =
+        AvaloniaProperty.Register<CardPanel, double>(nameof(ResponsiveMinimalThreshold), 400d);
+
     public static readonly DirectProperty<CardPanel, bool> HasHeaderHintProperty =
         AvaloniaProperty.RegisterDirect<CardPanel, bool>(
             nameof(HasHeaderHint),
@@ -68,6 +77,11 @@ public class CardPanel : ContentControl
         ShowMenuIconProperty.Changed.AddClassHandler<CardPanel>((panel, _) => panel.UpdateMenuIconState());
         HeaderContentProperty.Changed.AddClassHandler<CardPanel>((panel, _) => panel.UpdateMenuIconState());
         ChromeProperty.Changed.AddClassHandler<CardPanel>((panel, _) => panel.UpdateChromeClasses());
+        IsResponsiveProperty.Changed.AddClassHandler<CardPanel>((panel, _) => panel.UpdateResponsiveClasses());
+        ResponsiveCompactThresholdProperty.Changed.AddClassHandler<CardPanel>(
+            (panel, _) => panel.UpdateResponsiveClasses());
+        ResponsiveMinimalThresholdProperty.Changed.AddClassHandler<CardPanel>(
+            (panel, _) => panel.UpdateResponsiveClasses());
     }
 
     public CardPanel()
@@ -118,6 +132,24 @@ public class CardPanel : ContentControl
         set => SetValue(ChromeProperty, value);
     }
 
+    public bool IsResponsive
+    {
+        get => GetValue(IsResponsiveProperty);
+        set => SetValue(IsResponsiveProperty, value);
+    }
+
+    public double ResponsiveCompactThreshold
+    {
+        get => GetValue(ResponsiveCompactThresholdProperty);
+        set => SetValue(ResponsiveCompactThresholdProperty, value);
+    }
+
+    public double ResponsiveMinimalThreshold
+    {
+        get => GetValue(ResponsiveMinimalThresholdProperty);
+        set => SetValue(ResponsiveMinimalThresholdProperty, value);
+    }
+
     public bool HasHeaderHint => !string.IsNullOrWhiteSpace(HeaderHint);
 
     public bool ShowDefaultMenuIcon => ShowMenuIcon && HeaderContent is null;
@@ -129,6 +161,15 @@ public class CardPanel : ContentControl
     public bool HasTextTitle => Title is string;
 
     public bool HasCustomTitle => Title is not null && Title is not string;
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == BoundsProperty)
+        {
+            UpdateResponsiveClasses();
+        }
+    }
 
     private void UpdateHeaderHintState()
         => RaisePropertyChanged(HasHeaderHintProperty, false, HasHeaderHint);
@@ -151,4 +192,16 @@ public class CardPanel : ContentControl
 
     private void UpdateChromeClasses()
         => Classes.Set("CardChrome", Chrome == CardPanelChrome.Card);
+
+    private void UpdateResponsiveClasses()
+    {
+        var width = Bounds.Width;
+        Classes.Set("ResponsiveEnabled", IsResponsive);
+        Classes.Set(
+            "ResponsiveCompact",
+            IsResponsive && width > 0 && width < ResponsiveCompactThreshold);
+        Classes.Set(
+            "ResponsiveMinimal",
+            IsResponsive && width > 0 && width < ResponsiveMinimalThreshold);
+    }
 }

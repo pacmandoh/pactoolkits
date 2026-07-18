@@ -53,16 +53,35 @@
     <Setter Property="Margin" Value="0" />
   </Style>
 
-  <Style Selector="Border.FilterBarChrome">
+  <Style Selector="ContentControl.FilterBarChrome">
     <Setter Property="Margin" Value="0" />
     <Setter Property="Padding" Value="{DynamicResource FilterBarPadding}" />
     <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
-    <Setter Property="BorderThickness" Value="0,0,0,1" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="ContentControl">
+        <Grid Background="{TemplateBinding Background}">
+          <ContentPresenter
+            Padding="{TemplateBinding Padding}"
+            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+            Content="{TemplateBinding Content}"
+            ContentTemplate="{TemplateBinding ContentTemplate}" />
+          <Border
+            Height="1"
+            VerticalAlignment="Bottom"
+            Background="{TemplateBinding BorderBrush}"
+            IsHitTestVisible="False" />
+        </Grid>
+      </ControlTemplate>
+    </Setter>
   </Style>
 
   <Style Selector="Grid.FilterBarColumns">
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
@@ -73,10 +92,13 @@
   </Style>
 
   <Style Selector="Border.DashboardTabContext icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource IconSizeSmall}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeSmall}" />
     <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
   </Style>
 
   <Style Selector="Grid.FilterBarColumn">
+    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
     <Setter Property="Margin" Value="{DynamicResource FilterBarColumnPadding}" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="ColumnSpacing" Value="{DynamicResource FilterBarGroupSpacing}" />
@@ -117,6 +139,19 @@
     <Setter Property="MinHeight" Value="{DynamicResource ChromeRowHeight}" />
   </Style>
 
+  <Style Selector="UserControl.PageHeaderContent">
+    <Setter Property="MinHeight" Value="{DynamicResource ChromeRowHeight}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="UserControl.PageHeaderContent &gt; Grid">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
   <Style Selector="StackPanel.HeaderMenuItem">
     <Setter Property="Orientation" Value="Horizontal" />
     <Setter Property="Spacing" Value="{DynamicResource SpacingInlineSm}" />
@@ -128,6 +163,11 @@
     <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
     <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="StackPanel.HeaderMenuItem &gt; icons|AppIcon,StackPanel.TabItemHeader &gt; icons|AppIcon">
+    <Setter Property="Width" Value="{DynamicResource IconSizeCompact}" />
+    <Setter Property="Height" Value="{DynamicResource IconSizeCompact}" />
   </Style>
 
   <Style Selector="Rectangle.HeaderDivider">

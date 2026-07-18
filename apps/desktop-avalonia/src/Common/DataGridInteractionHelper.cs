@@ -37,20 +37,18 @@ public static class DataGridInteractionHelper
             AppLog.Warn("DataGridInteraction", "grid.clear_selection_index.fail", "Failed to clear selected index", ex);
         }
 
-        try
+        if (grid.SelectionMode == DataGridSelectionMode.Extended)
         {
-            grid.SelectedItems?.Clear();
+            try
+            {
+                grid.SelectedItems?.Clear();
+            }
+            catch (System.Exception ex)
+            {
+                AppLog.Warn("DataGridInteraction", "grid.clear_selection_items.fail", "Failed to clear selected items", ex);
+            }
         }
-        catch (System.Exception ex)
-        {
-            AppLog.Warn("DataGridInteraction", "grid.clear_selection_items.fail", "Failed to clear selected items", ex);
-        }
-
-        ClearCurrentCell(grid);
     }
-
-    public static void ClearFocusAndSelection(DataGrid? grid)
-        => ClearNativeRowHighlight(grid);
 
     internal static void ClearOnPageChange(DataGrid? grid, int oldIndex, int newIndex)
     {
@@ -100,23 +98,6 @@ public static class DataGridInteractionHelper
         catch (Exception ex)
         {
             AppLog.Warn("DataGridInteraction", "grid.set_current_column.fail", "Failed to set current column", ex);
-        }
-    }
-
-    private static void ClearCurrentCell(DataGrid? grid)
-    {
-        if (grid is null)
-        {
-            return;
-        }
-
-        try
-        {
-            grid.CurrentColumn = null;
-        }
-        catch (System.Exception ex)
-        {
-            AppLog.Warn("DataGridInteraction", "grid.clear_current_column.fail", "Failed to clear current column", ex);
         }
     }
 

@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
   x:Class="PacToolkits.Desktop.Avalonia.Controls.DataGridPager"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -9,7 +9,11 @@
     x:Name="PagerChrome"
     Padding="{Binding PagerPadding, ElementName=Root}"
     BorderBrush="{DynamicResource BorderColor}">
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource PageColumnSpacing}">
+    <Grid
+      MinHeight="{DynamicResource ControlHeightCompact}"
+      ClipToBounds="True"
+      ColumnDefinitions="*,Auto"
+      ColumnSpacing="{DynamicResource PageColumnSpacing}">
       <StackPanel
         VerticalAlignment="Center"
         Classes="DataGridPagerLeft"
@@ -24,7 +28,7 @@
 
         <StackPanel
           VerticalAlignment="Center"
-          IsVisible="{Binding ShowPageSizeSection, ElementName=Root}"
+          IsVisible="{Binding ShowResponsivePageSizeSection, ElementName=Root}"
           Orientation="Horizontal"
           Spacing="{DynamicResource SpacingInlineSm}">
           <TextBlock
@@ -33,7 +37,6 @@
             Text="每页行数" />
           <ComboBox
             x:Name="PageSizeCombo"
-            Height="{StaticResource ControlHeightCompact}"
             MinWidth="72"
             SelectedItem="{Binding SelectedPageSize, ElementName=Root, Mode=TwoWay}" />
         </StackPanel>
@@ -54,6 +57,7 @@
         <TextBlock
           VerticalAlignment="Center"
           Classes="Caption Muted"
+          IsVisible="{Binding ShowResponsivePageSummary, ElementName=Root}"
           Text="{Binding PageSummaryText, ElementName=Root}" />
 
         <StackPanel

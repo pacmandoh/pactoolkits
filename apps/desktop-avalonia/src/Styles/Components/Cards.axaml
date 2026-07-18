@@ -177,34 +177,6 @@
     <Setter Property="VerticalContentAlignment" Value="Stretch" />
   </Style>
 
-  <Style Selector="Border.HeroBadge">
-    <Setter Property="Width" Value="{DynamicResource HeroBadgeSize}" />
-    <Setter Property="Height" Value="{DynamicResource HeroBadgeSize}" />
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
-  </Style>
-
-  <Style Selector="Border.HeroBadge &gt; icons|AppIcon">
-    <Setter Property="Width" Value="{DynamicResource HeroBadgeInnerSize}" />
-    <Setter Property="Height" Value="{DynamicResource HeroBadgeInnerSize}" />
-    <Setter Property="HorizontalAlignment" Value="Center" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
-
-  <Style Selector="Border.MsfxBoardSkeletonOverlay">
-    <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
-    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
-    <Setter Property="Opacity" Value="0.92" />
-  </Style>
-
-  <Style Selector="Border.MsfxBoardSkeletonTile">
-    <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource XlCornerRadius}" />
-    <Setter Property="MinHeight" Value="120" />
-  </Style>
-
   <Style Selector="Border.GridSlotSkeleton">
     <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
