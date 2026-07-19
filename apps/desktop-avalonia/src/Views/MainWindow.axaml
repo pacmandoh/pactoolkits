@@ -30,7 +30,10 @@
         Classes="TitleBarMark"
         Orientation="Horizontal"
         Spacing="8">
-        <Image Source="avares://pactoolkits-desktop/Assets/app.ico" />
+        <Image
+          RenderOptions.BitmapInterpolationMode="HighQuality"
+          Source="avares://pactoolkits-desktop/Assets/app.ico"
+          UseLayoutRounding="True" />
         <Button
           Classes="TitleBarBrandMenu"
           Command="{Binding ShowAppInfoCommand}"
