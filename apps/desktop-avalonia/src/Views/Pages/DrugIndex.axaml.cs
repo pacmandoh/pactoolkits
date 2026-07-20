@@ -6,6 +6,7 @@ using Avalonia;
 using global::Avalonia.Controls;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
+using global::Avalonia.Threading;
 using PacToolkits.Desktop.Avalonia.Common;
 using DrugIndexViewModel = PacToolkits.Desktop.Avalonia.ViewModels.Pages.DrugIndex;
 
@@ -60,6 +61,7 @@ public partial class DrugIndex : UserControl
         }
 
         vm.PropertyChanged += OnVmPropertyChanged;
+        vm.RevealSelected += OnRevealSelected;
     }
 
     private void DetachVm(DrugIndexViewModel? vm)
@@ -70,6 +72,22 @@ public partial class DrugIndex : UserControl
         }
 
         vm.PropertyChanged -= OnVmPropertyChanged;
+        vm.RevealSelected -= OnRevealSelected;
+    }
+
+    private void OnRevealSelected()
+    {
+        var item = _vm?.Selected;
+        var grid = DataGridInteractionHelper.FindDeferredGrid(this, "DrugGrid");
+        if (item is null || grid is null)
+        {
+            return;
+        }
+
+        // ReplaceAll may still be settling slots; scroll after the next layout pass.
+        Dispatcher.UIThread.Post(
+            () => DataGridInteractionHelper.TryScrollIntoView(grid, item),
+            DispatcherPriority.Loaded);
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
