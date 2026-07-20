@@ -24,9 +24,52 @@ public partial class Settings : AppPageBase, ISettingsPage
 
         IsClientAliasEditMode = true;
         IsClientAliasReadOnly = false;
-        CaptureClientAliasEditBaseline();
-        RefreshClientAlias();
-        RunDetached(ReloadClientAliasesAsync, "client_alias.reload.edit_start_fail");
+        RunDetached(ReloadForEditAsync, "client_alias.reload.edit_start_fail");
+    }
+
+    private async Task ReloadForEditAsync(CancellationToken pageCt)
+    {
+        await ReloadClientAliasesAsync(pageCt);
+        await RunOnUiAsync(CaptureClientAliasEditBaseline);
+    }
+
+    private void RequestClientAliasReload(string failEvent)
+    {
+        if (IsClientAliasEditMode)
+        {
+            return;
+        }
+
+        RunDetached(ReloadClientAliasesAsync, failEvent);
+    }
+
+    private void RebindClientAliasRowsFromMap()
+    {
+        var map = NormalizeAliasMapByMachine(_alias.GetAll());
+        var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var row in ClientAliases)
+        {
+            known.Add(row.Machine);
+            map.TryGetValue(row.Machine, out var alias);
+            var next = alias ?? string.Empty;
+            if (!string.Equals(row.Alias, next, StringComparison.Ordinal))
+            {
+                row.Alias = next;
+            }
+        }
+
+        foreach (var kv in map.OrderBy(static x => x.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            if (known.Contains(kv.Key))
+            {
+                continue;
+            }
+
+            var row = new ClientAliasRow(kv.Key, kv.Value);
+            ClientAliases.Add(row);
+            TrackAliasRow(row);
+        }
     }
 
     [RelayCommand]
@@ -50,7 +93,6 @@ public partial class Settings : AppPageBase, ISettingsPage
             if (!validation.ConnectionOk)
             {
                 IsDbConnected = false;
-                RefreshClientAlias();
                 _toast.Error("数据库连接失败", validation.ConnectionSummary ?? "连接失败");
                 return;
             }
@@ -59,7 +101,6 @@ public partial class Settings : AppPageBase, ISettingsPage
             {
                 var reason = validation.MigrationSummary ?? "数据库结构更新失败";
                 IsDbConnected = false;
-                RefreshClientAlias();
                 _toast.Warn("数据库迁移策略", reason);
                 return;
             }
@@ -67,13 +108,11 @@ public partial class Settings : AppPageBase, ISettingsPage
             if (!validation.SchemaCompatible)
             {
                 IsDbConnected = false;
-                RefreshClientAlias();
                 await _dialog.Warn(DbSchemaCompat.GetIncompatibleTitle(), validation.IncompatibleMessage ?? "数据库版本不兼容");
                 return;
             }
 
             IsDbConnected = true;
-            RunDetached(ReloadClientAliasesAsync, "client_alias.reload.after_test_fail");
             _toast.Success("数据库连接", "连接成功");
         }
         catch (OperationCanceledException)
@@ -85,7 +124,6 @@ public partial class Settings : AppPageBase, ISettingsPage
 
             _logger.Warn("SettingsVM", "db.test.timeout", "DB connection test timed out");
             IsDbConnected = false;
-            RefreshClientAlias();
             _toast.Error("数据库连接失败", "连接超时：请检查网络/主机/端口");
         }
     }
@@ -106,7 +144,6 @@ public partial class Settings : AppPageBase, ISettingsPage
             if (!await MigrateDbSchemaAsync())
             {
                 IsDbConnected = false;
-                RefreshClientAlias();
                 _toast.Warn("数据库配置", "配置已保存，但迁移失败，当前不可用");
                 return false;
             }
@@ -114,14 +151,12 @@ public partial class Settings : AppPageBase, ISettingsPage
             if (!await CheckDbSchemaAsync())
             {
                 IsDbConnected = false;
-                RefreshClientAlias();
                 _toast.Warn("数据库配置", "配置已保存，但数据库版本不兼容，当前不可用");
                 return false;
             }
 
             IsDbConnected = true;
             _toast.Success("配置已保存", "数据库配置已应用");
-            RunDetached(ReloadClientAliasesAsync, "client_alias.reload.after_save_fail");
             RefreshUnsaved();
             return true;
         }
@@ -134,7 +169,6 @@ public partial class Settings : AppPageBase, ISettingsPage
 
             _logger.Error("SettingsVM", "db.save.fail", "Failed to save DB settings", ex);
             IsDbConnected = false;
-            RefreshClientAlias();
             _toast.Error("保存失败", ex.Message);
             return false;
         }
@@ -245,10 +279,9 @@ public partial class Settings : AppPageBase, ISettingsPage
         Password = Password
     };
 
-    [RelayCommand]
     private async Task ReloadClientAliasesAsync(CancellationToken pageCt)
     {
-        if (IsClientAliasRefreshing || SkipTrigger())
+        if (IsClientAliasRefreshing)
         {
             return;
         }
@@ -290,19 +323,12 @@ public partial class Settings : AppPageBase, ISettingsPage
                     ClientAliases.Add(row);
                     TrackAliasRow(row);
                 }
-
-                RefreshClientAlias();
             });
         }
         finally
         {
             await SetAliasRefreshingAsync(false);
         }
-    }
-
-    private void RefreshClientAlias()
-    {
-        IsClientAliasReadOnly = !IsClientAliasEditMode;
     }
 
     [RelayCommand]
@@ -321,8 +347,6 @@ public partial class Settings : AppPageBase, ISettingsPage
             return false;
         }
 
-        RefreshClientAlias();
-
         try
         {
             var items = ClientAliases
@@ -335,8 +359,6 @@ public partial class Settings : AppPageBase, ISettingsPage
             IsClientAliasReadOnly = true;
 
             _toast.Success("客户端别名", "已保存并生效");
-            RunDetached(ReloadClientAliasesAsync, "client_alias.reload.after_alias_save_fail");
-            RefreshClientAlias();
             RefreshUnsaved();
             return true;
         }

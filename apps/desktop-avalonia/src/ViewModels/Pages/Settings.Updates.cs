@@ -749,7 +749,6 @@ public partial class Settings : AppPageBase, ISettingsPage
     {
         if (e.PropertyName == nameof(ClientAliasRow.Alias))
         {
-            RefreshClientAlias();
             RefreshUnsaved();
         }
     }

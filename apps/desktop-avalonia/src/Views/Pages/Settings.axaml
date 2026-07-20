@@ -356,11 +356,6 @@
                     Content="开始编辑"
                     IsEnabled="{Binding !IsClientAliasEditMode}" />
                   <Button
-                    Classes="Outline"
-                    Command="{Binding ReloadClientAliasesCommand}"
-                    Content="刷新机器标识"
-                    IsEnabled="{Binding !IsClientAliasRefreshing}" />
-                  <Button
                     Classes="Primary"
                     Command="{Binding SaveClientAliasesCommand}"
                     Content="保存别名"
@@ -370,7 +365,7 @@
             </Border>
 
             <controls:EmptyStatePanel
-              EmptyHint="连接数据库或开始编辑后可维护别名"
+              EmptyHint="连接数据库后可自动同步机器标识并维护别名"
               EmptyText="暂无客户端别名"
               IsEmpty="{Binding IsClientAliasesEmpty}">
               <ItemsControl ItemsSource="{Binding ClientAliases}">

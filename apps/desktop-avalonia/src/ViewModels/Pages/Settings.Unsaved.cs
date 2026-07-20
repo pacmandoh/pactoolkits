@@ -36,6 +36,7 @@ public partial class Settings
     ];
 
     private int _unsavedMask;
+    private int _activeTabIndex = -1;
     private Dictionary<string, string>? _clientAliasEditBaseline;
     private CancellationTokenSource? _loggingAutoSaveCts;
     private CancellationTokenSource? _updateAutoSaveCts;
@@ -48,6 +49,20 @@ public partial class Settings
         => tabIndex >= 0
            && tabIndex < TabTitles.Length
            && (_unsavedMask & (1 << tabIndex)) != 0;
+
+    public void OnTabEntered(int tabIndex)
+    {
+        _activeTabIndex = tabIndex;
+        ReloadClientAliasesIfVisible("client_alias.reload.tab_enter_fail");
+    }
+
+    private void ReloadClientAliasesIfVisible(string failEvent)
+    {
+        if (_activeTabIndex == (int)Tab.ClientAliases)
+        {
+            RequestClientAliasReload(failEvent);
+        }
+    }
 
     public async Task<bool> ConfirmLeaveTabAsync(int tabIndex)
     {
@@ -137,8 +152,7 @@ public partial class Settings
                 _clientAliasEditBaseline = null;
                 IsClientAliasEditMode = false;
                 IsClientAliasReadOnly = true;
-                SyncAliases();
-                RefreshClientAlias();
+                RequestClientAliasReload("client_alias.reload.after_revert_fail");
                 break;
             case Tab.TraceCodeRule:
                 SyncTraceCodeRule();
