@@ -56,8 +56,12 @@ public interface IAppConfigStore
 
 public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
 {
-    private const string UnifiedConfigFileName = "PacToolkits.Desktop.Avalonia.config.json";
-    private const string LegacyConfigFileName = "pactoolkits-ui.config.json";
+    private const string UnifiedConfigFileName = "PacToolkits.Desktop.config.json";
+    private static readonly string[] LegacyConfigFileNames =
+    [
+        "PacToolkits.Desktop.Avalonia.config.json",
+        "pactoolkits-ui.config.json",
+    ];
     private static readonly string[] SupportedUpdateChannels = ["stable", "beta"];
     private static readonly JsonSerializerOptions _writeOptions = new()
     {
@@ -216,10 +220,13 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             return primaryPath;
         }
 
-        var legacyPath = Path.Combine(_configDir, LegacyConfigFileName);
-        if (File.Exists(legacyPath))
+        foreach (var legacyName in LegacyConfigFileNames)
         {
-            return legacyPath;
+            var legacyPath = Path.Combine(_configDir, legacyName);
+            if (File.Exists(legacyPath))
+            {
+                return legacyPath;
+            }
         }
 
         return primaryPath;
@@ -901,21 +908,30 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
     private static void MigrateLegacyConfig(string configDir)
     {
         var newPath = Path.Combine(configDir, UnifiedConfigFileName);
-        var legacyPath = Path.Combine(configDir, LegacyConfigFileName);
-        if (File.Exists(newPath) || !File.Exists(legacyPath))
+        if (File.Exists(newPath))
         {
             return;
         }
 
-        try
+        foreach (var legacyName in LegacyConfigFileNames)
         {
-            File.Copy(legacyPath, newPath);
-        }
-        catch (Exception ex)
-        {
-            AppLog.Warn("AppConfigStore", "config.legacy_migrate.fail",
-                "Failed to migrate legacy config file", ex,
-                new { legacyPath, newPath });
+            var legacyPath = Path.Combine(configDir, legacyName);
+            if (!File.Exists(legacyPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                File.Copy(legacyPath, newPath);
+                return;
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("AppConfigStore", "config.legacy_migrate.fail",
+                    "Failed to migrate legacy config file", ex,
+                    new { legacyPath, newPath });
+            }
         }
     }
 

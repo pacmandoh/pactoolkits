@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -103,36 +104,57 @@ public partial class MainWindowViewModel
             return;
         }
 
-        if (IsSamePgOptions(_settings.AppliedDb, loaded.Postgres))
-        {
-            _lastSeenConfigJson = json;
-            return;
-        }
+        _lastSeenConfigJson = json;
 
-        try
+        var postgresChanged = !IsSamePgOptions(_settings.AppliedDb, loaded.Postgres);
+        if (postgresChanged)
         {
             // Do not hot-apply external DB target changes during runtime.
             // Runtime datasource switches can cause cross-DB read/write inconsistency.
-            _isApplyingConfig = true;
-            _lastSeenConfigJson = json;
-            _logger.Warn("MainWindowVM", "config.external_db_change_ignored",
-                "Detected external DB config change, ignored until manual apply in Settings", null, new
-                {
-                    loaded.Postgres.Host,
-                    loaded.Postgres.Port,
-                    loaded.Postgres.Database
-                });
+            try
+            {
+                _isApplyingConfig = true;
+                _logger.Warn("MainWindowVM", "config.external_db_change_ignored",
+                    "Detected external DB config change, ignored until manual apply in Settings", null, new
+                    {
+                        loaded.Postgres.Host,
+                        loaded.Postgres.Port,
+                        loaded.Postgres.Database
+                    });
+                await RunOnUiAsync(() => _toasts.Warn(
+                    "配置文件",
+                    "检测到外部数据库配置变更，请在设置页手动保存并测试连接后生效"));
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("MainWindowVM", "config.external_apply_fail", "Failed to handle external DB config change", ex);
+            }
+            finally
+            {
+                _isApplyingConfig = false;
+            }
+
+            _dbMonitor.Signal();
+        }
+
+        ApplySafeConfigHotReload(loaded);
+    }
+
+    private void ApplySafeConfigHotReload(AppConfigRoot cfg)
+    {
+        try
+        {
+            // One deserialized snapshot → section Apply; unchanged sections skip Changed.
+            _clientAlias.Apply(cfg.ClientAliases ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+            _loggingSettings.Apply(cfg.Logging ?? new LoggingOptions());
+            _uiBehavior.Apply(cfg.UiBehavior ?? new UiBehaviorOptions());
+            _updateSettings.Apply(cfg.Update ?? new UpdateOptions());
+            _traceCodeRule.Apply(cfg.TraceCodeValidation ?? new TraceCodeValidationOptions());
         }
         catch (Exception ex)
         {
-            _logger.Warn("MainWindowVM", "config.external_apply_fail", "Failed to apply external config changes", ex);
+            _logger.Warn("MainWindowVM", "config.safe_hot_reload.fail", "Failed to hot-reload safe config sections", ex);
         }
-        finally
-        {
-            _isApplyingConfig = false;
-        }
-
-        _dbMonitor.Signal();
     }
 
     private static bool IsSamePgOptions(PgOptions a, PgOptions b)

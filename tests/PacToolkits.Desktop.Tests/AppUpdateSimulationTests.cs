@@ -96,6 +96,8 @@ public sealed class AppUpdateSimulationTests
         public Task SaveIgnoredVersionAsync(string version, CancellationToken ct = default)
             => Task.CompletedTask;
 
+        public void Apply(UpdateOptions options) => Changed?.Invoke();
+
         public void Reload() => Changed?.Invoke();
     }
 

@@ -17,6 +17,7 @@ public interface ITraceCodeRuleService
 {
     TraceCodeValidationOptions Current { get; }
     event Action? Changed;
+    void Apply(TraceCodeValidationOptions options);
     void Reload();
     Task SaveAsync(TraceCodeValidationOptions options, CancellationToken ct = default);
 }

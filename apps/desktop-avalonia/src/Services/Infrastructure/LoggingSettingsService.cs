@@ -10,6 +10,7 @@ public interface ILoggingSettingsService
     LoggingOptions Current { get; }
     event Action? Changed;
     Task SaveAsync(LoggingOptions options, CancellationToken ct = default);
+    void Apply(LoggingOptions options);
     void Reload();
 }
 
@@ -36,12 +37,26 @@ public sealed class LoggingSettingsService : ILoggingSettingsService
         Changed?.Invoke();
     }
 
-    public void Reload()
+    public void Apply(LoggingOptions options)
     {
-        var cfg = _configStore.Load();
-        _current = Normalize(cfg.Logging);
+        var normalized = Normalize(options);
+        if (Equals(_current, normalized))
+        {
+            return;
+        }
+
+        _current = normalized;
         Changed?.Invoke();
     }
+
+    public void Reload() => Apply(_configStore.Load().Logging);
+
+    private static bool Equals(LoggingOptions left, LoggingOptions right)
+        => left.Enabled == right.Enabled
+           && string.Equals(left.MinimumLevel, right.MinimumLevel, StringComparison.Ordinal)
+           && left.RetentionDays == right.RetentionDays
+           && left.MaxFileSizeMb == right.MaxFileSizeMb
+           && string.Equals(left.LogDirectory, right.LogDirectory, StringComparison.Ordinal);
 
     private static LoggingOptions Normalize(LoggingOptions? source)
     {

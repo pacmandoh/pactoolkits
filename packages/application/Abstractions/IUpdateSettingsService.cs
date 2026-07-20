@@ -22,5 +22,6 @@ public interface IUpdateSettingsService
     event Action? Changed;
     Task SaveAsync(UpdateOptions options, CancellationToken ct = default);
     Task SaveIgnoredVersionAsync(string version, CancellationToken ct = default);
+    void Apply(UpdateOptions options);
     void Reload();
 }

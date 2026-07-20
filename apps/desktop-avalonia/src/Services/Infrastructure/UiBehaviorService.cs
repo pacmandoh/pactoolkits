@@ -9,6 +9,8 @@ public interface IUiBehaviorService
     UiBehaviorOptions Current { get; }
     event Action? Changed;
     Task SaveAsync(UiBehaviorOptions options, CancellationToken ct = default);
+    void Apply(UiBehaviorOptions options);
+    void Reload();
 }
 
 public sealed class UiBehaviorService : IUiBehaviorService
@@ -22,7 +24,7 @@ public sealed class UiBehaviorService : IUiBehaviorService
     public UiBehaviorService(IAppConfigStore configStore)
     {
         _configStore = configStore;
-        LoadFromConfig();
+        Reload();
     }
 
     public async Task SaveAsync(UiBehaviorOptions options, CancellationToken ct = default)
@@ -34,12 +36,22 @@ public sealed class UiBehaviorService : IUiBehaviorService
         Changed?.Invoke();
     }
 
-    private void LoadFromConfig()
+    public void Apply(UiBehaviorOptions options)
     {
-        var cfg = _configStore.Load();
-        _current = Normalize(cfg.UiBehavior);
+        var normalized = Normalize(options);
+        if (Equals(_current, normalized))
+        {
+            return;
+        }
+
+        _current = normalized;
         Changed?.Invoke();
     }
+
+    public void Reload() => Apply(_configStore.Load().UiBehavior);
+
+    private static bool Equals(UiBehaviorOptions left, UiBehaviorOptions right)
+        => left.MinimizeToTrayOnClose == right.MinimizeToTrayOnClose;
 
     private static UiBehaviorOptions Normalize(UiBehaviorOptions? src)
     {

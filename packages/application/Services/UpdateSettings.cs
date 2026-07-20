@@ -33,11 +33,27 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
         await SaveAsync(next, ct).ConfigureAwait(false);
     }
 
-    public void Reload()
+    public void Apply(UpdateOptions options)
     {
-        _current = Normalize(_store.Load());
+        var normalized = Normalize(options);
+        if (Equals(_current, normalized))
+        {
+            return;
+        }
+
+        _current = normalized;
         Changed?.Invoke();
     }
+
+    public void Reload() => Apply(_store.Load());
+
+    private static bool Equals(UpdateOptions left, UpdateOptions right)
+        => left.AutoCheckOnStartup == right.AutoCheckOnStartup
+           && string.Equals(left.Channel, right.Channel, StringComparison.Ordinal)
+           && string.Equals(left.ValidatedChannel, right.ValidatedChannel, StringComparison.Ordinal)
+           && string.Equals(left.FeedUrl, right.FeedUrl, StringComparison.Ordinal)
+           && left.AutoCheckIntervalMinutes == right.AutoCheckIntervalMinutes
+           && string.Equals(left.IgnoredVersion, right.IgnoredVersion, StringComparison.Ordinal);
 
     private static UpdateOptions Normalize(UpdateOptions? source)
     {
