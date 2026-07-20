@@ -153,7 +153,10 @@ public sealed partial class MsfxLink
     private Task DiscardMappingGroupAsync()
         => ExecuteMappingGroupAsync(discard: true);
 
-    [RelayCommand]
+    private bool CanClearMappingDrugSpec()
+        => AutoCompleteFilter.HasDrugText(MappingDrugText);
+
+    [RelayCommand(CanExecute = nameof(CanClearMappingDrugSpec))]
     private void ClearMappingDrugSpec()
         => ClearMappingTarget();
 
@@ -229,6 +232,7 @@ public sealed partial class MsfxLink
             MappingQuantityText = null;
         }
 
+        ClearMappingDrugSpecCommand.NotifyCanExecuteChanged();
         RefreshMappingCommands();
     }
 
@@ -567,6 +571,8 @@ public sealed partial class MsfxLink
                 _toast.Success(scene, $"已处理 {affectedCount} 条，新增任务 {built.CreatedTasks}");
             }
 
+            await RunOnUiAsync(ClearMappingTarget).ConfigureAwait(false);
+
             await Task.WhenAll(
                 ReloadMappingGroupsSafeAsync(_mappingLifetimeCts.Token),
                 RefreshAutoBoardAsync()).ConfigureAwait(false);
@@ -619,7 +625,10 @@ public sealed partial class MsfxLink
     }
 
     private void RefreshMappingCommands()
-        => RefreshCommands(ApplyMappingGroupCommand, DiscardMappingGroupCommand);
+        => RefreshCommands(
+            ApplyMappingGroupCommand,
+            DiscardMappingGroupCommand,
+            ClearMappingDrugSpecCommand);
 
     private async Task<MsfxMappingBatchPreview> PreviewMappingGroupsAsync(
         IReadOnlyList<MsfxMappingBatchGroupGridRow> groups,
