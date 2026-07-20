@@ -197,50 +197,43 @@ public sealed partial class ScanCode : AppPageBase
 
     public void ReloadAfterDrugIndexChange()
     {
-        PostOnUi(async () =>
+        PostOnUi(
+            () => ObserveDetached(
+                RefreshDrugCatalogAsync(forceRefresh: true),
+                "catalog.refresh.detached.fail"),
+            DispatcherPriority.Background);
+    }
+
+    private async Task RefreshDrugCatalogAsync(bool forceRefresh)
+    {
+        try
         {
-            try
+            if (IsLookupCatalogSuspended())
             {
-                if (IsLookupCatalogSuspended())
+                await RunOnUiAsync(OnLookupCatalogSuspended, DispatcherPriority.Background);
+                return;
+            }
+
+            var drugs = await DrugCatalogRefresh.LoadAsync(_lookup, forceRefresh).ConfigureAwait(false);
+            await RunOnUiAsync(() =>
+            {
+                _drugCatalog = drugs;
+                AutoCompleteFilter.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
+
+                if (DrugCatalogRefresh.IsMissing(drugs, NormalizeInput(DrugText)))
                 {
-                    OnLookupCatalogSuspended();
-                    return;
+                    DrugText = null;
+                    SpecOptions.Clear();
+                    SelectedSpec = null;
+                    SelectedQtyText = null;
+                    IsSpecSelected = false;
                 }
-
-                using var cts = new CancellationTokenSource(LookupTimeout);
-                var drugs = await LookupOptions.GetDrugOptionsAsync(
-                    _lookup,
-                    cts.Token,
-                    forceRefresh: true).ConfigureAwait(false);
-                await RunOnUiAsync(() =>
-                {
-                    var currentDrug = NormalizeInput(DrugText);
-                    _drugCatalog = drugs;
-                    AutoCompleteFilter.RefreshVisibleOptions(DrugOptions, _drugCatalog, DrugText);
-
-                    if (string.IsNullOrWhiteSpace(currentDrug))
-                    {
-                        return;
-                    }
-
-                    var stillExists = _drugCatalog.Any(x =>
-                        string.Equals(x.Raw, currentDrug, StringComparison.OrdinalIgnoreCase));
-                    if (!stillExists)
-                    {
-                        DrugText = null;
-                        SpecOptions.Clear();
-                        SelectedSpec = null;
-                        SelectedQtyText = null;
-                        IsSpecSelected = false;
-                        UpdateStatus("当前药品已不存在，请重新选择", 2);
-                    }
-                }, DispatcherPriority.Background);
-            }
-            catch (System.Exception ex)
-            {
-                LogWarn("scan.notify_drug_index.fail", "Failed to refresh drug options after drug-index change", ex);
-            }
-        }, DispatcherPriority.Background);
+            }, DispatcherPriority.Background);
+        }
+        catch (System.Exception ex)
+        {
+            LogWarn("scan.notify_drug_index.fail", "Failed to refresh drug options after drug-index change", ex);
+        }
     }
 
     public async Task PrefillFromInventoryAsync(string? drugId, string? spec)

@@ -163,8 +163,7 @@ public sealed partial class InventoryOverview : AppPageBase
 
         try
         {
-            using var cts = new CancellationTokenSource(LookupTimeout);
-            var drugs = await LookupOptions.GetDrugOptionsAsync(_lookup, cts.Token, forceRefresh).ConfigureAwait(false);
+            var drugs = await DrugCatalogRefresh.LoadAsync(_lookup, forceRefresh).ConfigureAwait(false);
             await RunOnUiAsync(() =>
             {
                 _drugCatalog = drugs;
@@ -172,6 +171,12 @@ public sealed partial class InventoryOverview : AppPageBase
                     DrugOptions,
                     _drugCatalog,
                     DrugText);
+
+                if (DrugCatalogRefresh.IsMissing(drugs, NormalizeInput(DrugText)))
+                {
+                    DrugText = null;
+                    ResetDrugSpecSelection();
+                }
             });
         }
         catch (System.Exception ex)

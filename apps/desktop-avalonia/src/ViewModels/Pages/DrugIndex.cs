@@ -263,6 +263,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     private readonly InventoryOverview _inventoryOverview;
     private readonly ScanCode _scanCode;
     private readonly Dashboard _dashboard;
+    private readonly MsfxLink _msfxLink;
     private readonly ILookupCatalogService _lookup;
     private readonly AsyncRelayCommand _localRefreshCommand;
     private readonly AsyncRelayCommand _importCommand;
@@ -420,6 +421,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         InventoryOverview inventoryOverview,
         ScanCode scanCode,
         Dashboard dashboard,
+        MsfxLink msfxLink,
         ILookupCatalogService lookup)
     {
         _drugIndex = drugIndex;
@@ -430,6 +432,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         _inventoryOverview = inventoryOverview;
         _scanCode = scanCode;
         _dashboard = dashboard;
+        _msfxLink = msfxLink;
         _lookup = lookup;
         _localRefreshCommand = new AsyncRelayCommand(
             () => ReloadAsync(confirmIfDirty: true, clearListFocus: true),
@@ -1534,6 +1537,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         _inventoryOverview.ReloadAfterDrugIndexChange();
         _scanCode.ReloadAfterDrugIndexChange();
         _dashboard.ReloadAfterDrugIndexChange();
+        _msfxLink.ReloadAfterDrugIndexChange();
     }
 
     private void RefreshPageCommands()
