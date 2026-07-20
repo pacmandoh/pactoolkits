@@ -147,6 +147,7 @@ public partial class DataGridPager : UserControl
     private bool _showResponsivePageSizeSection = true;
     private bool _showResponsivePageSummary = true;
     private IEnumerable? _boundPageSizeOptions;
+    private readonly EventHandler _onCommandCanExecuteChanged;
 
     public int PageIndex
     {
@@ -297,6 +298,7 @@ public partial class DataGridPager : UserControl
 
     public DataGridPager()
     {
+        _onCommandCanExecuteChanged = (_, _) => RefreshDerivedState();
         InitializeComponent();
         RefreshPageSizeComboItems();
         SyncSelectedPageSize();
@@ -321,6 +323,25 @@ public partial class DataGridPager : UserControl
             SyncSelectedPageSize();
         }
 
+        if (change.Property == FirstPageCommandProperty
+            || change.Property == PrevPageCommandProperty
+            || change.Property == NextPageCommandProperty
+            || change.Property == LastPageCommandProperty)
+        {
+            if (change.OldValue is ICommand oldCommand)
+            {
+                oldCommand.CanExecuteChanged -= _onCommandCanExecuteChanged;
+            }
+
+            if (change.NewValue is ICommand newCommand)
+            {
+                newCommand.CanExecuteChanged += _onCommandCanExecuteChanged;
+            }
+
+            RefreshDerivedState();
+            return;
+        }
+
         if (change.Property == PageIndexProperty)
         {
             RefreshDerivedState();
@@ -339,11 +360,7 @@ public partial class DataGridPager : UserControl
             || change.Property == StatusTextProperty
             || change.Property == PageSizeOptionsProperty
             || change.Property == SelectedPageSizeProperty
-            || change.Property == ShowPageSizeSectionProperty
-            || change.Property == FirstPageCommandProperty
-            || change.Property == PrevPageCommandProperty
-            || change.Property == NextPageCommandProperty
-            || change.Property == LastPageCommandProperty)
+            || change.Property == ShowPageSizeSectionProperty)
         {
             RefreshDerivedState();
         }
@@ -368,6 +385,20 @@ public partial class DataGridPager : UserControl
         {
             UpdateResponsiveState();
         }
+    }
+
+    protected override void OnDetachedFromVisualTree(global::Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        UnhookCommands();
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void UnhookCommands()
+    {
+        FirstPageCommand?.CanExecuteChanged -= _onCommandCanExecuteChanged;
+        PrevPageCommand?.CanExecuteChanged -= _onCommandCanExecuteChanged;
+        NextPageCommand?.CanExecuteChanged -= _onCommandCanExecuteChanged;
+        LastPageCommand?.CanExecuteChanged -= _onCommandCanExecuteChanged;
     }
 
     private void RefreshPageSizeComboItems()
@@ -448,16 +479,20 @@ public partial class DataGridPager : UserControl
 
         var hasPrev = safePageIndex > 1;
         var hasNext = safePageIndex < safeTotalPages;
-        SetAndRaise(CanGoFirstPageProperty, ref _canGoFirstPage, hasPrev && FirstPageCommand is not null);
-        SetAndRaise(CanGoPrevPageProperty, ref _canGoPrevPage, hasPrev && PrevPageCommand is not null);
-        SetAndRaise(CanGoNextPageProperty, ref _canGoNextPage, hasNext && NextPageCommand is not null);
-        SetAndRaise(CanGoLastPageProperty, ref _canGoLastPage, hasNext && LastPageCommand is not null);
+        // Button IsEnabled is explicit; must AND CanExecute or busy/guard gates never show disabled.
+        SetAndRaise(CanGoFirstPageProperty, ref _canGoFirstPage, hasPrev && CanExecute(FirstPageCommand));
+        SetAndRaise(CanGoPrevPageProperty, ref _canGoPrevPage, hasPrev && CanExecute(PrevPageCommand));
+        SetAndRaise(CanGoNextPageProperty, ref _canGoNextPage, hasNext && CanExecute(NextPageCommand));
+        SetAndRaise(CanGoLastPageProperty, ref _canGoLastPage, hasNext && CanExecute(LastPageCommand));
 
         SetAndRaise(HasFirstPageCommandProperty, ref _hasFirstPageCommand, FirstPageCommand is not null);
         SetAndRaise(HasPrevPageCommandProperty, ref _hasPrevPageCommand, PrevPageCommand is not null);
         SetAndRaise(HasNextPageCommandProperty, ref _hasNextPageCommand, NextPageCommand is not null);
         SetAndRaise(HasLastPageCommandProperty, ref _hasLastPageCommand, LastPageCommand is not null);
     }
+
+    private static bool CanExecute(ICommand? command)
+        => command is not null && command.CanExecute(null);
 
     private IEnumerable ResolvePageSizeOptions()
     {

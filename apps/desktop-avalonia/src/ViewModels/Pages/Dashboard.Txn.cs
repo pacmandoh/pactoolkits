@@ -21,8 +21,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        TxnPageIndex = 1;
-        await ReloadTxnPageOnlyAsync();
+        await ReloadTxnPageOnlyAsync(1);
     }
 
     [RelayCommand]
@@ -38,8 +37,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        TxnPageIndex--;
-        await ReloadTxnPageOnlyAsync();
+        await ReloadTxnPageOnlyAsync(TxnPageIndex - 1);
     }
 
     [RelayCommand]
@@ -55,8 +53,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        TxnPageIndex++;
-        await ReloadTxnPageOnlyAsync();
+        await ReloadTxnPageOnlyAsync(TxnPageIndex + 1);
     }
 
     [RelayCommand]
@@ -72,8 +69,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        TxnPageIndex = TxnTotalPages;
-        await ReloadTxnPageOnlyAsync();
+        await ReloadTxnPageOnlyAsync(TxnTotalPages);
     }
 
     [RelayCommand]
@@ -89,8 +85,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        TxnTrendPageIndex = 1;
-        await ReloadTxnTrendPageOnlyAsync();
+        await ReloadTxnTrendPageOnlyAsync(1);
     }
 
     [RelayCommand]
@@ -106,8 +101,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        TxnTrendPageIndex--;
-        await ReloadTxnTrendPageOnlyAsync();
+        await ReloadTxnTrendPageOnlyAsync(TxnTrendPageIndex - 1);
     }
 
     [RelayCommand]
@@ -123,8 +117,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        TxnTrendPageIndex++;
-        await ReloadTxnTrendPageOnlyAsync();
+        await ReloadTxnTrendPageOnlyAsync(TxnTrendPageIndex + 1);
     }
 
     [RelayCommand]
@@ -140,10 +133,12 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        TxnTrendPageIndex = TxnTrendTotalPages;
-        await ReloadTxnTrendPageOnlyAsync();
+        await ReloadTxnTrendPageOnlyAsync(TxnTrendTotalPages);
     }
-    private async Task ReloadTxnPageOnlyAsync()
+
+    private Task ReloadTxnPageOnlyAsync() => ReloadTxnPageOnlyAsync(TxnPageIndex);
+
+    private async Task ReloadTxnPageOnlyAsync(int pageIndex)
     {
         try
         {
@@ -154,10 +149,11 @@ public sealed partial class Dashboard : AppPageBase
                 body: async () =>
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var page = await _dashboard.GetTxnPageAsync(CurrentFilter, TxnPageIndex, TxnPageSize, cts.Token).ConfigureAwait(false);
-                var items = BuildRecentTxnsPageItems(page.Rows, TxnPageIndex, TxnPageSize);
+                var page = await _dashboard.GetTxnPageAsync(CurrentFilter, pageIndex, TxnPageSize, cts.Token).ConfigureAwait(false);
+                var items = BuildRecentTxnsPageItems(page.Rows, pageIndex, TxnPageSize);
                 await RunOnUiAsync(() =>
                 {
+                    TxnPageIndex = pageIndex;
                     ApplyRecentTxnsPage(items, page.TotalCount);
                     OnPropertyChanged(nameof(IsTxnPanelEmpty));
                 }, DispatcherPriority.Background);
@@ -170,7 +166,9 @@ public sealed partial class Dashboard : AppPageBase
         }
     }
 
-    private async Task ReloadTxnTrendPageOnlyAsync()
+    private Task ReloadTxnTrendPageOnlyAsync() => ReloadTxnTrendPageOnlyAsync(TxnTrendPageIndex);
+
+    private async Task ReloadTxnTrendPageOnlyAsync(int pageIndex)
     {
         try
         {
@@ -181,10 +179,11 @@ public sealed partial class Dashboard : AppPageBase
                 body: async () =>
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var page = await _dashboard.GetTxnTrendPageAsync(CurrentFilter, TxnTrendPageIndex, TxnTrendPageSize, cts.Token).ConfigureAwait(false);
+                var page = await _dashboard.GetTxnTrendPageAsync(CurrentFilter, pageIndex, TxnTrendPageSize, cts.Token).ConfigureAwait(false);
                 var items = BuildTxnTrendPageItems(page.Rows);
                 await RunOnUiAsync(() =>
                 {
+                    TxnTrendPageIndex = pageIndex;
                     ApplyTxnTrendPage(items, page.TotalCount);
                     OnPropertyChanged(nameof(IsTxnPanelEmpty));
                 }, DispatcherPriority.Background);

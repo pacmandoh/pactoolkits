@@ -66,11 +66,14 @@ public sealed class AppPageBaseReloadPipelineTests
 
         await page.TestRunReloadCoreAsync();
 
+        Assert.True(page.CanPageFromDb);
+
         monitor.IsConnected = false;
         page.SyncPageAvailability();
 
         Assert.Equal(PageDataAvailability.Stale, page.PageDataAvailability);
         Assert.True(page.IsShowingStaleData);
+        Assert.False(page.CanPageFromDb);
     }
 
     [Fact]

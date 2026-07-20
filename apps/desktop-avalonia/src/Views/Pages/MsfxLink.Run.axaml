@@ -255,6 +255,7 @@
                 ClearTarget="{Binding #AutoPullBatchGrid}"
                 FirstPageCommand="{Binding FirstPullBatchPageCommand}"
                 IsContentEmpty="{Binding IsAutoPullBatchEmpty}"
+                IsEnabled="{Binding CanPageFromDb}"
                 LastPageCommand="{Binding LastPullBatchPageCommand}"
                 NextPageCommand="{Binding NextPullBatchPageCommand}"
                 PageSizeOptions="{Binding PullBatchPageSizeOptions}"

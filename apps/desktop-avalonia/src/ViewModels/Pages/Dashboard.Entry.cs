@@ -21,8 +21,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        EntryPageIndex = 1;
-        await ReloadEntryPageOnlyAsync();
+        await ReloadEntryPageOnlyAsync(1);
     }
 
     [RelayCommand]
@@ -38,8 +37,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        EntryPageIndex--;
-        await ReloadEntryPageOnlyAsync();
+        await ReloadEntryPageOnlyAsync(EntryPageIndex - 1);
     }
 
     [RelayCommand]
@@ -55,8 +53,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        EntryPageIndex++;
-        await ReloadEntryPageOnlyAsync();
+        await ReloadEntryPageOnlyAsync(EntryPageIndex + 1);
     }
 
     [RelayCommand]
@@ -72,10 +69,12 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        EntryPageIndex = EntryTotalPages;
-        await ReloadEntryPageOnlyAsync();
+        await ReloadEntryPageOnlyAsync(EntryTotalPages);
     }
-    private async Task ReloadEntryPageOnlyAsync()
+
+    private Task ReloadEntryPageOnlyAsync() => ReloadEntryPageOnlyAsync(EntryPageIndex);
+
+    private async Task ReloadEntryPageOnlyAsync(int pageIndex)
     {
         try
         {
@@ -86,10 +85,11 @@ public sealed partial class Dashboard : AppPageBase
                 body: async () =>
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var page = await _dashboard.GetEntryPageAsync(CurrentFilter, EntryPageIndex, EntryPageSize, cts.Token).ConfigureAwait(false);
-                var items = BuildEntryLogsPageItems(page.Rows, EntryPageIndex, EntryPageSize);
+                var page = await _dashboard.GetEntryPageAsync(CurrentFilter, pageIndex, EntryPageSize, cts.Token).ConfigureAwait(false);
+                var items = BuildEntryLogsPageItems(page.Rows, pageIndex, EntryPageSize);
                 await RunOnUiAsync(() =>
                 {
+                    EntryPageIndex = pageIndex;
                     ApplyEntryLogsPage(items, page.TotalCount);
                 }, DispatcherPriority.Background);
             });
