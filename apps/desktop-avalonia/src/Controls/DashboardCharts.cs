@@ -231,13 +231,13 @@ public sealed class ClientChart : DashboardChart<TopClientItem, PieChart>
             Name = slice.Name,
             Values = [slice.Value],
             Fill = new SolidColorPaint(ToSkColor(
-                hasSelection && !IsSelected(slice.ClientRaw)
+                hasSelection && !IsSelected(slice.ClientRaws)
                     ? irrelevant
                     : palette[slice.ColorIndex % palette.Length],
                 ChartColor.Shape)),
             InnerRadius = 54,
-            Pushout = IsSelected(slice.ClientRaw) ? 10 : 0,
-            HoverPushout = IsSelected(slice.ClientRaw) ? 10 : 4,
+            Pushout = IsSelected(slice.ClientRaws) ? 10 : 0,
+            HoverPushout = IsSelected(slice.ClientRaws) ? 10 : 4,
             CornerRadius = 5,
             MaxRadialColumnWidth = 42,
             ToolTipLabelFormatter = _ => $"{slice.Value:N0}（{FormatPercent(slice.Value, total)}）"
@@ -253,7 +253,7 @@ public sealed class ClientChart : DashboardChart<TopClientItem, PieChart>
     {
         var rows = Items
             .Select((row, index) => new ClientSlice(
-                row.Client.Machine ?? row.Client.Raw,
+                row.Machines.ToHashSet(StringComparer.OrdinalIgnoreCase),
                 row.ClientDisplay,
                 ParseNumber(row.Value),
                 index))
@@ -266,15 +266,19 @@ public sealed class ClientChart : DashboardChart<TopClientItem, PieChart>
 
         ClientSlice? selected = _selectedClient is null
             ? null
-            : rows.FirstOrDefault(row => IsSelected(row.ClientRaw));
-        var visible = selected is null || rows.Take(6).Any(row => IsSelected(row.ClientRaw))
+            : rows.FirstOrDefault(row => IsSelected(row.ClientRaws));
+        var visible = selected is null || rows.Take(6).Any(row => IsSelected(row.ClientRaws))
             ? rows.Take(6).ToArray()
             : rows.Take(5).Append(selected.Value).ToArray();
-        var visibleRaw = visible.Select(row => row.ClientRaw).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var otherValue = rows.Where(row => !visibleRaw.Contains(row.ClientRaw)).Sum(row => row.Value);
+        var visibleKeys = visible.Select(row => row.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var otherValue = rows.Where(row => !visibleKeys.Contains(row.Name)).Sum(row => row.Value);
 
         return visible
-            .Append(new ClientSlice(string.Empty, "其他", otherValue, 6))
+            .Append(new ClientSlice(
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                "其他",
+                otherValue,
+                6))
             .ToArray();
     }
 
@@ -290,10 +294,15 @@ public sealed class ClientChart : DashboardChart<TopClientItem, PieChart>
             ResolveColor("ChartCategoryIndigoColor", Color.FromRgb(99, 102, 241))
         ];
 
-    private bool IsSelected(string clientRaw)
-        => ClientEquals(clientRaw, _selectedClient);
+    private bool IsSelected(IReadOnlySet<string> clientRaws)
+        => _selectedClient is not null
+           && clientRaws.Any(raw => ClientEquals(raw, _selectedClient));
 
-    private readonly record struct ClientSlice(string ClientRaw, string Name, double Value, int ColorIndex);
+    private readonly record struct ClientSlice(
+        IReadOnlySet<string> ClientRaws,
+        string Name,
+        double Value,
+        int ColorIndex);
 }
 
 public sealed class EntryChart : DashboardChart<EntryChartItem, CartesianChart>

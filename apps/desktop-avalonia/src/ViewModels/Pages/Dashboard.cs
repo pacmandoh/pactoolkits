@@ -1039,15 +1039,31 @@ public sealed partial class Dashboard : AppPageBase
         get
         {
             var range = CurrentRange;
-            var raw = SelectedClient?.Raw;
-            var client = string.IsNullOrWhiteSpace(raw) ? null : raw;
             var metric = TrendMode?.Title == "按事务次数"
                 ? TrendMetric.Txn
                 : TrendMetric.Qty;
             var drug = NormalizeInput(DrugText);
             var spec = string.IsNullOrWhiteSpace(SelectedSpec.Raw) ? null : SelectedSpec.Raw;
-            return new DashboardFilter(range.From, range.To, client, drug, spec, metric);
+            return new DashboardFilter(
+                range.From,
+                range.To,
+                ResolveSelectedClientMachines(),
+                drug,
+                spec,
+                metric);
         }
+    }
+
+    private IReadOnlyList<string>? ResolveSelectedClientMachines()
+    {
+        var selected = SelectedClient;
+        if (selected is null || string.IsNullOrWhiteSpace(selected.Raw))
+        {
+            return null;
+        }
+
+        var machines = selected.MachineKeys;
+        return machines.Count == 0 ? null : machines;
     }
 
     private DateRange CurrentRange
@@ -1223,26 +1239,47 @@ public sealed partial class Dashboard : AppPageBase
             .Where(raw => !string.IsNullOrWhiteSpace(raw))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+        var currentKnown = Clients
+            .Skip(1)
+            .SelectMany(static client => client.MachineKeys)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
         if (!refreshAliases
-            && Clients.Skip(1).Select(client => client.Raw).SequenceEqual(rawClients, StringComparer.OrdinalIgnoreCase))
+            && currentKnown.SequenceEqual(rawClients, StringComparer.OrdinalIgnoreCase))
         {
             return;
         }
 
         var selectedRaw = SelectedClient?.Raw ?? string.Empty;
+        var options = ClientDisplayResolver.OptionsByDisplay(rawClients, _clientAlias);
 
         using (SuppressReload())
         {
             Clients.Clear();
             Clients.Add(AllClients);
-
-            foreach (var raw in rawClients)
+            foreach (var option in options)
             {
-                Clients.Add(ClientDisplayResolver.Resolve(raw, _clientAlias));
+                Clients.Add(option);
             }
 
-            SelectedClient = Clients.FirstOrDefault(c => c.Raw == selectedRaw) ?? AllClients;
+            SelectedClient = FindClientOptionByRaw(selectedRaw) ?? AllClients;
         }
+    }
+
+    private ClientInfo? FindClientOptionByRaw(string? selectedRaw)
+    {
+        if (string.IsNullOrWhiteSpace(selectedRaw))
+        {
+            return null;
+        }
+
+        var resolved = ResolveClient(selectedRaw);
+        var machine = resolved.MachineKeys.FirstOrDefault() ?? selectedRaw.Trim();
+        return Clients.FirstOrDefault(client =>
+            !string.IsNullOrWhiteSpace(client.Raw)
+            && (string.Equals(client.Raw, selectedRaw, StringComparison.OrdinalIgnoreCase)
+                || client.ContainsMachine(machine)
+                || string.Equals(client.Display, resolved.Display, StringComparison.OrdinalIgnoreCase)));
     }
 
     private ClientInfo ResolveClient(string raw)
@@ -1403,16 +1440,17 @@ public sealed partial class Dashboard : AppPageBase
 
     private List<TopClientItem> BuildTopClientItems(IReadOnlyList<(string Client, long Value)> rows)
     {
-        var items = new List<TopClientItem>(rows.Count);
+        var aggregated = ClientDisplayResolver.AggregateByDisplay(
+            rows.Select(row => (row.Client, row.Value)),
+            _clientAlias);
+        var items = new List<TopClientItem>(aggregated.Count);
         var idx = 1;
-        foreach (var r in rows)
+        foreach (var row in aggregated)
         {
-            var client = ResolveClient(r.Client);
             items.Add(new TopClientItem(
                 Index: idx++,
-                Client: client,
-                Value: r.Value.ToString("N0", CultureInfo.CurrentCulture)
-            ));
+                Client: row.Client,
+                Value: row.Value.ToString("N0", CultureInfo.CurrentCulture)));
         }
 
         return items;
@@ -1636,15 +1674,10 @@ public sealed partial class Dashboard : AppPageBase
 
     private ClientInfo? FindClientOption(ClientInfo selected)
     {
-        var raw = selected.Raw;
-        if (!string.IsNullOrWhiteSpace(raw))
+        var byRaw = FindClientOptionByRaw(selected.Raw);
+        if (byRaw is not null)
         {
-            var hit = Clients.FirstOrDefault(c =>
-                string.Equals(c.Raw, raw, StringComparison.OrdinalIgnoreCase));
-            if (hit is not null)
-            {
-                return hit;
-            }
+            return byRaw;
         }
 
         var machine = NormalizeInput(selected.Machine ?? selected.Display);
@@ -1653,11 +1686,7 @@ public sealed partial class Dashboard : AppPageBase
             return null;
         }
 
-        return Clients.FirstOrDefault(c =>
-        {
-            var cm = NormalizeInput(c.Machine ?? c.Display);
-            return string.Equals(cm, machine, StringComparison.OrdinalIgnoreCase);
-        });
+        return FindClientOptionByRaw(machine);
     }
 
     [RelayCommand]
@@ -1788,75 +1817,7 @@ public sealed partial class Dashboard : AppPageBase
 
     private void OnClientAliasChanged()
     {
-        PostOnUi(() =>
-        {
-            var selectedRaw = SelectedClient?.Raw ?? string.Empty;
-
-            // Local re-map for existing UI rows so alias changes are visible immediately.
-            if (Clients.Count > 0)
-            {
-                ApplyClients(
-                    Clients.Select(c => c.Raw).Where(r => !string.IsNullOrWhiteSpace(r)).ToList(),
-                    refreshAliases: true);
-            }
-
-            if (!string.IsNullOrWhiteSpace(selectedRaw))
-            {
-                SelectedClient = Clients.FirstOrDefault(c => string.Equals(c.Raw, selectedRaw, StringComparison.OrdinalIgnoreCase)) ?? AllClients;
-            }
-
-            if (TopClients.Count > 0)
-            {
-                var remappedTop = TopClients
-                    .Select(x => x with { Client = ResolveClient(x.Client.Raw) })
-                    .ToList();
-                TopClients.Clear();
-                foreach (var item in remappedTop)
-                {
-                    TopClients.Add(item);
-                }
-            }
-
-            if (ChartClients.Count > 0)
-            {
-                ChartClients.ReplaceAll(ChartClients
-                    .Select(item => item with { Client = ResolveClient(item.Client.Raw) })
-                    .ToList());
-            }
-
-            if (EntryChartRows.Count > 0)
-            {
-                EntryChartRows.ReplaceAll(EntryChartRows
-                    .Select(item => item with { ClientDisplay = ResolveClient(item.ClientRaw).Display })
-                    .ToList());
-            }
-
-            if (EntryRecentOverview.Count > 0)
-            {
-                var remappedOverview = EntryRecentOverview
-                    .Select(x => x.WithClient(ResolveClient(x.ClientRaw)))
-                    .ToList();
-                EntryRecentOverview.Clear();
-                foreach (var item in remappedOverview)
-                {
-                    EntryRecentOverview.Add(item);
-                }
-            }
-
-            if (EntryRecent.Count > 0)
-            {
-                var remappedPage = EntryRecent
-                    .Select(x => x.WithClient(ResolveClient(x.ClientRaw)))
-                    .ToList();
-                EntryRecent.Clear();
-                foreach (var item in remappedPage)
-                {
-                    EntryRecent.Add(item);
-                }
-            }
-
-            OnPropertyChanged(nameof(SectionHint));
-            RequestReload();
-        });
+        // Alias merges change filter machines and chart aggregation — one reload is the source of truth.
+        PostOnUi(RequestReload);
     }
 }

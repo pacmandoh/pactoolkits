@@ -23,6 +23,63 @@ public static class ClientDisplayResolver
             User: ci.User,
             Ip: ci.Ip,
             Os: ci.Os,
-            Version: ci.Version);
+            Version: ci.Version,
+            Machines: string.IsNullOrWhiteSpace(machine) ? [] : [machine]);
+    }
+
+    public static IReadOnlyList<ClientInfo> OptionsByDisplay(
+        IEnumerable<string> machines,
+        IClientAliasService aliasService)
+        => GroupByDisplay(
+                machines.Select(static machine => (ClientRaw: machine, Value: 0L)),
+                aliasService,
+                pickBestByValue: false)
+            .Select(static row => row.Client)
+            .OrderBy(static client => client.Display, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    public static IReadOnlyList<(ClientInfo Client, long Value)> AggregateByDisplay(
+        IEnumerable<(string ClientRaw, long Value)> rows,
+        IClientAliasService aliasService)
+        => GroupByDisplay(rows, aliasService, pickBestByValue: true)
+            .OrderByDescending(static row => row.Value)
+            .ThenBy(static row => row.Client.Display, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private static List<(ClientInfo Client, long Value)> GroupByDisplay(
+        IEnumerable<(string ClientRaw, long Value)> rows,
+        IClientAliasService aliasService,
+        bool pickBestByValue)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(aliasService);
+
+        return rows
+            .Select(row => (Client: Resolve(row.ClientRaw, aliasService), row.Value))
+            .Where(row => !string.IsNullOrWhiteSpace(row.Client.Display))
+            .GroupBy(row => row.Client.Display, StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+            {
+                var sample = pickBestByValue
+                    ? group
+                        .OrderByDescending(row => row.Value)
+                        .ThenBy(row => row.Client.Raw, StringComparer.OrdinalIgnoreCase)
+                        .First()
+                    : group
+                        .OrderBy(row => row.Client.Raw, StringComparer.OrdinalIgnoreCase)
+                        .First();
+
+                var machines = group
+                    .SelectMany(row => row.Client.MachineKeys)
+                    .Where(static machine => !string.IsNullOrWhiteSpace(machine))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(static machine => machine, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                return (
+                    Client: sample.Client with { Machines = machines },
+                    Value: group.Sum(row => row.Value));
+            })
+            .ToList();
     }
 }
