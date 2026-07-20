@@ -412,6 +412,7 @@ public partial class Settings : UserControl
         }
 
         _activeTabIndex = index;
+        _vm?.OnTabEntered(index);
         RefreshNavDots();
     }
 

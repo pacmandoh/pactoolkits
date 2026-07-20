@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -206,11 +205,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         IsClientAliasEditMode = false;
         IsClientAliasReadOnly = true;
 
-        SyncAliases();
-        RefreshClientAlias();
-
-        RunDetached(ReloadClientAliasesAsync, "client_alias.reload.startup_fail");
-
         SyncTraceCodeRule();
         SyncMsfxApi();
         SyncUiBehavior();
@@ -223,6 +217,8 @@ public partial class Settings : AppPageBase, ISettingsPage
         _updates.Changed += OnUpdatesChanged;
         _updateFlow.StateChanged += OnUpdateFlowStateChanged;
         _loggingSettings.Changed += OnLoggingSettingsChanged;
+        _alias.Changed += OnClientAliasMapChanged;
+        _traceCodeRule.Changed += OnTraceCodeRuleChanged;
 
     }
 
@@ -252,6 +248,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         _pageWorkCancelled = false;
         ReloadAutomationRuntime();
         RefreshUnsaved();
+        ReloadClientAliasesIfVisible("client_alias.reload.activate_fail");
         RunDetached(RefreshMsfxCursorCoreAsync, "msfx.cursor.refresh.activate_fail");
         return Task.CompletedTask;
     }
@@ -373,7 +370,16 @@ public partial class Settings : AppPageBase, ISettingsPage
 
     private void OnUpdateSettingsChanged()
     {
-        PostUi(SyncUpdateOptions, "update_settings.changed.ui_fail");
+        PostUi(() =>
+        {
+            if (IsTabDirty((int)Tab.Updates))
+            {
+                _toast.Warn("应用更新", "配置文件已更新，当前未保存的更新设置未同步");
+                return;
+            }
+
+            SyncUpdateOptions();
+        }, "update_settings.changed.ui_fail");
     }
 
     private void OnUpdatesChanged()
@@ -396,6 +402,40 @@ public partial class Settings : AppPageBase, ISettingsPage
     private void OnLoggingSettingsChanged()
     {
         PostUi(SyncLogging, "logging_settings.changed.fail");
+    }
+
+    private void OnClientAliasMapChanged()
+    {
+        PostUi(() =>
+        {
+            if (IsClientAliasEditMode)
+            {
+                _toast.Warn(
+                    "客户端别名",
+                    "配置文件中的别名已更新；当前编辑未同步，保存将覆盖外部修改，或放弃编辑以加载最新");
+                return;
+            }
+
+            if (_activeTabIndex == (int)Tab.ClientAliases)
+            {
+                RebindClientAliasRowsFromMap();
+            }
+        }, "client_alias.changed.ui_fail");
+    }
+
+    private void OnTraceCodeRuleChanged()
+    {
+        PostUi(() =>
+        {
+            if (IsTabDirty((int)Tab.TraceCodeRule))
+            {
+                _toast.Warn("追溯码规则", "配置文件已更新，当前未保存的规则未同步");
+                return;
+            }
+
+            SyncTraceCodeRule();
+            RefreshUnsaved();
+        }, "trace_rule.changed.ui_fail");
     }
 
     partial void OnProductUpdateAvailableChanged(bool? value)
@@ -458,18 +498,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         TraceCodePattern = rule.Pattern;
     }
 
-    private void SyncAliases()
-    {
-        UntrackAllAliasRows();
-        ClientAliases.Clear();
-        foreach (var kv in NormalizeAliasMapByMachine(_alias.GetAll()).OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-        {
-            var row = new ClientAliasRow(kv.Key, kv.Value);
-            ClientAliases.Add(row);
-            TrackAliasRow(row);
-        }
-    }
-
     public override void Dispose()
     {
         _disposed = true;
@@ -499,6 +527,16 @@ public partial class Settings : AppPageBase, ISettingsPage
         catch (System.Exception ex)
         {
             _logger.Warn("SettingsVM", "dispose.logging_settings_unsub_fail", "Failed to unsubscribe LoggingSettings", ex);
+        }
+        try { _alias.Changed -= OnClientAliasMapChanged; }
+        catch (System.Exception ex)
+        {
+            _logger.Warn("SettingsVM", "dispose.client_alias_unsub_fail", "Failed to unsubscribe ClientAlias", ex);
+        }
+        try { _traceCodeRule.Changed -= OnTraceCodeRuleChanged; }
+        catch (System.Exception ex)
+        {
+            _logger.Warn("SettingsVM", "dispose.trace_rule_unsub_fail", "Failed to unsubscribe TraceCodeRule", ex);
         }
         ClientAliases.CollectionChanged -= OnClientAliasesChanged;
         DisposeAutomation();
