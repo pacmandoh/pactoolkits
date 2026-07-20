@@ -1059,8 +1059,6 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
             var saved = saveResult.Saved ?? throw new InvalidOperationException("保存成功但未返回记录");
 
-            Dispatcher.UIThread.Post(() => _toast.Success("已保存", DrugLabel.Format(drugId, spec)));
-
             CommitPostWrite(saved);
             RefreshPageCommands();
 
