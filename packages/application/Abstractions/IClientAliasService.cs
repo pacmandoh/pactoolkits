@@ -8,5 +8,6 @@ public interface IClientAliasService
     string Resolve(string? machine);
 
     void ReplaceAll(IEnumerable<KeyValuePair<string, string>> items);
+    void Apply(IReadOnlyDictionary<string, string> aliases);
     void Reload();
 }

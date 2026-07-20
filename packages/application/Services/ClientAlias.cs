@@ -12,7 +12,7 @@ public sealed class ClientAliasService : IClientAliasService
     public ClientAliasService(IClientAliasStore store)
     {
         _store = store;
-        _aliases = _store.Load();
+        _aliases = Normalize(_store.Load());
     }
 
     public IReadOnlyDictionary<string, string> GetAll() => _aliases;
@@ -35,9 +35,61 @@ public sealed class ClientAliasService : IClientAliasService
         Changed?.Invoke();
     }
 
-    public void Reload()
+    public void Apply(IReadOnlyDictionary<string, string> aliases)
     {
-        _aliases = _store.Load();
+        var next = Normalize(aliases);
+        if (MapsEqual(_aliases, next))
+        {
+            return;
+        }
+
+        _aliases = next;
         Changed?.Invoke();
+    }
+
+    public void Reload() => Apply(_store.Load());
+
+    private static IReadOnlyDictionary<string, string> Normalize(IReadOnlyDictionary<string, string> source)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var kv in source)
+        {
+            var key = (kv.Key ?? string.Empty).Trim();
+            if (key.Length == 0)
+            {
+                continue;
+            }
+
+            var value = (kv.Value ?? string.Empty).Trim();
+            if (value.Length == 0)
+            {
+                continue;
+            }
+
+            map[key] = value;
+        }
+
+        return map;
+    }
+
+    private static bool MapsEqual(
+        IReadOnlyDictionary<string, string> left,
+        IReadOnlyDictionary<string, string> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        foreach (var (key, value) in left)
+        {
+            if (!right.TryGetValue(key, out var other)
+                || !string.Equals(value, other, StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

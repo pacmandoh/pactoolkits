@@ -69,6 +69,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IAppUpdateService _updates;
     private readonly IUpdateSettingsService _updateSettings;
     private readonly IUpdateFlowService _updateFlow;
+    private readonly IClientAliasService _clientAlias;
+    private readonly ILoggingSettingsService _loggingSettings;
+    private readonly IUiBehaviorService _uiBehavior;
+    private readonly ITraceCodeRuleService _traceCodeRule;
     private readonly IAppLogger _logger;
     private readonly PageNavigationService _nav;
     private readonly string _configPath;
@@ -540,6 +544,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IAppUpdateService updates,
         IUpdateSettingsService updateSettings,
         IUpdateFlowService updateFlow,
+        IClientAliasService clientAlias,
+        ILoggingSettingsService loggingSettings,
+        IUiBehaviorService uiBehavior,
+        ITraceCodeRuleService traceCodeRule,
         IAppLogger logger,
         WorkspaceDirtyRefresh dirtyRefresh)
     {
@@ -559,6 +567,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _updates = updates ?? throw new ArgumentNullException(nameof(updates));
         _updateSettings = updateSettings ?? throw new ArgumentNullException(nameof(updateSettings));
         _updateFlow = updateFlow ?? throw new ArgumentNullException(nameof(updateFlow));
+        _clientAlias = clientAlias ?? throw new ArgumentNullException(nameof(clientAlias));
+        _loggingSettings = loggingSettings ?? throw new ArgumentNullException(nameof(loggingSettings));
+        _uiBehavior = uiBehavior ?? throw new ArgumentNullException(nameof(uiBehavior));
+        _traceCodeRule = traceCodeRule ?? throw new ArgumentNullException(nameof(traceCodeRule));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _dirtyRefresh = dirtyRefresh ?? throw new ArgumentNullException(nameof(dirtyRefresh));
         _nav = nav ?? throw new ArgumentNullException(nameof(nav));

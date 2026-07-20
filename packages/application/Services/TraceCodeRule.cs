@@ -27,15 +27,23 @@ public sealed class TraceCodeRuleService : ITraceCodeRuleService
         Reload();
     }
 
-    public void Reload()
+    public void Apply(TraceCodeValidationOptions options)
     {
+        var normalized = Normalize(options);
         lock (_gate)
         {
-            _current = Normalize(_store.Load());
+            if (Equals(_current, normalized))
+            {
+                return;
+            }
+
+            _current = Clone(normalized);
         }
 
         Changed?.Invoke();
     }
+
+    public void Reload() => Apply(_store.Load());
 
     public async Task SaveAsync(TraceCodeValidationOptions options, CancellationToken ct = default)
     {
@@ -49,6 +57,10 @@ public sealed class TraceCodeRuleService : ITraceCodeRuleService
 
         Changed?.Invoke();
     }
+
+    private static bool Equals(TraceCodeValidationOptions left, TraceCodeValidationOptions right)
+        => left.RequiredLength == right.RequiredLength
+           && string.Equals(left.Pattern, right.Pattern, StringComparison.Ordinal);
 
     private static TraceCodeValidationOptions Normalize(TraceCodeValidationOptions? src)
     {
