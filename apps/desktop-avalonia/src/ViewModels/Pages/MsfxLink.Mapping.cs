@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
@@ -14,7 +15,6 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 public sealed partial class MsfxLink
 {
-    private static readonly TimeSpan MappingLookupTimeout = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan MappingQuantityTimeout = TimeSpan.FromSeconds(6);
     private const string MappingLogModule = "MsfxMapping";
 
@@ -123,7 +123,7 @@ public sealed partial class MsfxLink
 
             var version = Interlocked.Increment(ref _mappingDrugInputVersion);
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(_mappingLifetimeCts.Token);
-            cts.CancelAfter(MappingLookupTimeout);
+            cts.CancelAfter(DrugCatalogRefresh.Timeout);
             var (canonical, specs) = await LookupOptions.ResolveDrugAndSpecsAsync(
                 _lookup,
                 input,
@@ -253,7 +253,7 @@ public sealed partial class MsfxLink
         {
             await Task.WhenAll(
                 ReloadMappingGroupsAsync(ct),
-                RefreshMappingDrugCatalogAsync(ct)).ConfigureAwait(false);
+                RefreshDrugCatalogAsync(ct)).ConfigureAwait(false);
             _mappingInitialized = true;
             await RefreshMappingPreviewSafeAsync(ct).ConfigureAwait(false);
             return;
@@ -324,7 +324,21 @@ public sealed partial class MsfxLink
         SyncMappingGroupSelection();
     }
 
-    private async Task RefreshMappingDrugCatalogAsync(CancellationToken ct)
+    public void ReloadAfterDrugIndexChange()
+    {
+        if (!_mappingInitialized)
+        {
+            return;
+        }
+
+        PostOnUi(
+            () => ObserveDetached(
+                RefreshDrugCatalogAsync(_mappingLifetimeCts.Token, forceRefresh: true),
+                "msfx.mapping.catalog.reload.detached.fail"),
+            DispatcherPriority.Background);
+    }
+
+    private async Task RefreshDrugCatalogAsync(CancellationToken ct, bool forceRefresh = false)
     {
         if (IsLookupCatalogSuspended())
         {
@@ -337,17 +351,34 @@ public sealed partial class MsfxLink
             return;
         }
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        cts.CancelAfter(MappingLookupTimeout);
-        var catalog = await LookupOptions.GetDrugOptionsAsync(_lookup, cts.Token).ConfigureAwait(false);
-        await RunOnUiAsync(() =>
+        try
         {
-            _mappingDrugCatalog = catalog;
-            AutoCompleteFilter.RefreshVisibleOptions(
-                MappingDrugOptions,
-                _mappingDrugCatalog,
-                MappingDrugText);
-        }).ConfigureAwait(false);
+            var catalog = await DrugCatalogRefresh.LoadAsync(_lookup, forceRefresh, ct)
+                .ConfigureAwait(false);
+            await RunOnUiAsync(() =>
+            {
+                _mappingDrugCatalog = catalog;
+                AutoCompleteFilter.RefreshVisibleOptions(
+                    MappingDrugOptions,
+                    _mappingDrugCatalog,
+                    MappingDrugText);
+
+                if (DrugCatalogRefresh.IsMissing(catalog, NormalizeText(MappingDrugText)))
+                {
+                    ClearMappingTarget();
+                }
+            }).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            LogWarn(
+                "msfx.mapping.catalog.reload_fail",
+                "Failed to refresh mapping drug catalog",
+                ex);
+        }
     }
 
     private async Task RefreshMappingTargetAsync(CancellationToken ct)

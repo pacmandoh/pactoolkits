@@ -170,7 +170,7 @@ public sealed partial class Dashboard : AppPageBase
         }
     }
 
-    private async Task ReloadDrugOptionsAsync(CancellationToken ct)
+    private async Task RefreshDrugCatalogAsync(CancellationToken ct, bool forceRefresh = false)
     {
         if (IsLookupCatalogSuspended())
         {
@@ -187,7 +187,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        var list = await LookupOptions.GetDrugOptionsAsync(_lookup, ct).ConfigureAwait(false);
+        var list = await DrugCatalogRefresh.LoadAsync(_lookup, forceRefresh, ct).ConfigureAwait(false);
 
         await RunOnUiAsync(() =>
         {
@@ -200,34 +200,36 @@ public sealed partial class Dashboard : AppPageBase
                 {
                     SpecOptions.Add(AllSpec);
                 }
+
+                if (DrugCatalogRefresh.IsMissing(list, NormalizeInput(DrugText)))
+                {
+                    DrugText = null;
+                    IsDrugSuggestOpen = false;
+                    ResetSpecToAll();
+                }
             }
         }, DispatcherPriority.Background);
     }
 
     public void ReloadAfterDrugIndexChange()
     {
-        PostOnUi(
-            () => ObserveDetached(ReloadDrugCatalogAfterIndexChangeAsync(), "catalog.reload.detached.fail"),
-            DispatcherPriority.Background);
-    }
-
-    private async Task ReloadDrugCatalogAfterIndexChangeAsync()
-    {
-        try
+        PostOnUi(async () =>
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            await ReloadDrugOptionsAsync(cts.Token).ConfigureAwait(false);
-
-            var drug = NormalizeInput(DrugText);
-            if (!string.IsNullOrWhiteSpace(drug))
+            try
             {
-                await ReloadSpecsAsync(drug).ConfigureAwait(false);
+                await RefreshDrugCatalogAsync(CancellationToken.None, forceRefresh: true).ConfigureAwait(false);
+
+                var drug = NormalizeInput(DrugText);
+                if (!string.IsNullOrWhiteSpace(drug))
+                {
+                    await ReloadSpecsAsync(drug).ConfigureAwait(false);
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            LogWarn("dashboard.catalog.reload_fail", "Failed to reload drug catalog after drug-index change", ex);
-        }
+            catch (Exception ex)
+            {
+                LogWarn("dashboard.catalog.reload_fail", "Failed to reload drug catalog after drug-index change", ex);
+            }
+        }, DispatcherPriority.Background);
     }
 
     private async Task ReloadSpecsAsync(string drug)
@@ -623,7 +625,7 @@ public sealed partial class Dashboard : AppPageBase
                 if (!IsDbAccessBlocked(out _))
                 {
                     using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-                    await ReloadDrugOptionsAsync(cts.Token);
+                    await RefreshDrugCatalogAsync(cts.Token);
 
                     if (!string.IsNullOrWhiteSpace(DrugText))
                     {
@@ -1093,7 +1095,7 @@ public sealed partial class Dashboard : AppPageBase
                 {
                     try
                     {
-                        await ReloadDrugOptionsAsync(ct).ConfigureAwait(false);
+                        await RefreshDrugCatalogAsync(ct).ConfigureAwait(false);
                         if (!string.IsNullOrWhiteSpace(DrugText))
                         {
                             await ReloadSpecsAsync(NormalizeInput(DrugText)!).ConfigureAwait(false);
