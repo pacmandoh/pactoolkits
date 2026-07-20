@@ -40,7 +40,7 @@ public partial class MainWindowViewModel
                 return;
             }
 
-            await PromptUpdateAsync(showNoUpdateToast: false, startupMode: false).ConfigureAwait(false);
+            await PromptUpdateAsync(silent: true).ConfigureAwait(false);
         }
     }
 

@@ -327,8 +327,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         }
 
         await _updateFlow.CheckAndHandleAsync(
-            showNoUpdateToast: true,
-            startupMode: false,
+            silent: false,
             logScope: "SettingsVM");
     }
 
