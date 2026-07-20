@@ -101,6 +101,23 @@ public static class DataGridInteractionHelper
         }
     }
 
+    public static void TryScrollIntoView(DataGrid? grid, object? item)
+    {
+        if (grid is null || item is null)
+        {
+            return;
+        }
+
+        try
+        {
+            grid.ScrollIntoView(item, column: null);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("DataGridInteraction", "grid.scroll_into_view.fail", "Failed to scroll row into view", ex);
+        }
+    }
+
     private static DataGridRow? FindRowFromPointerSource(object? source, out bool hitRowHeader)
     {
         hitRowHeader = false;

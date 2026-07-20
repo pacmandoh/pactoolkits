@@ -161,7 +161,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         public string EffectiveNote => NotePreview ?? Note ?? string.Empty;
 
         public DateTimeOffset CreatedAt { get; }
-        public DateTimeOffset? UpdatedAt { get; }
+        public DateTimeOffset? UpdatedAt { get; private set; }
         public long Version { get; private set; }
 
         [ObservableProperty] private bool _isDeprecated;
@@ -219,6 +219,12 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             if (!string.Equals(Note, dto.Note, StringComparison.Ordinal))
             {
                 Note = dto.Note;
+                changed = true;
+            }
+
+            if (UpdatedAt != dto.UpdatedAt)
+            {
+                UpdatedAt = dto.UpdatedAt;
                 changed = true;
             }
 
@@ -476,20 +482,22 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(_originDrugId) && !string.IsNullOrWhiteSpace(_originSpec))
+        if (string.IsNullOrWhiteSpace(_originDrugId) || string.IsNullOrWhiteSpace(_originSpec))
         {
-            for (var i = 0; i < Items.Count; i++)
+            return;
+        }
+
+        for (var i = 0; i < Items.Count; i++)
+        {
+            var existing = Items[i];
+            if (existing.DrugId == _originDrugId && existing.Spec == _originSpec)
             {
-                var existing = Items[i];
-                if (existing.DrugId == _originDrugId && existing.Spec == _originSpec)
-                {
-                    Items[i] = new DrugRow(saved);
-                    return;
-                }
+                Items[i] = new DrugRow(saved);
+                return;
             }
         }
 
-        Items.Insert(0, new DrugRow(saved));
+        // New keys join the grid via watermark reload + QueueReselect.
     }
 
     private async Task<bool> TryConfirmDirtyBeforeActionAsync(string actionHint)
@@ -528,7 +536,8 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                 return;
             }
 
-            if (!HasPendingChanges)
+            // ReplaceAll churn under reload must not toggle HasEditor before QueueReselect lands.
+            if (!HasPendingChanges && !_pendingReselectKey.HasValue)
             {
                 ApplySelection(value);
             }
@@ -670,9 +679,20 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         => string.Equals(_originDrugId, row.DrugId, StringComparison.Ordinal)
            && string.Equals(_originSpec, row.Spec, StringComparison.Ordinal);
 
+    private bool EditorMatchesRow(DrugRow row)
+        => Field(row.DrugId) == Field(EditDrugId)
+           && Field(row.Spec) == Field(EditSpec)
+           && row.Qty == (EditQty ?? 0)
+           && Field(row.RuleKey) == Field(EditRuleKey)
+           && Field(row.PreTc) == Field(EditPreTc)
+           && Field(row.Note) == Field(EditNote);
+
     private void SyncEditorFrom(DrugRow row)
     {
-        if (!HasPendingChanges && IsEditingRow(row))
+        // Same key + clean editor: only bump snapshot when fields already match.
+        // Remote watermark may ApplySaved into the row first — then fall through and
+        // rewrite Edit* so HasChanges() does not spuriously become true.
+        if (!HasPendingChanges && IsEditingRow(row) && EditorMatchesRow(row))
         {
             row.NotePreview = null;
             HasSelection = true;
@@ -1048,7 +1068,13 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
                 if (reselectSavedRow)
                 {
-                    FocusSavedRow(drugId, spec);
+                    if (FindRow(drugId, spec) is not null)
+                    {
+                        FocusSavedRow(drugId, spec);
+                    }
+
+                    // Survive watermark ReplaceAll after this local select.
+                    QueueReselect(drugId, spec);
                 }
             }, DispatcherPriority.Normal);
 

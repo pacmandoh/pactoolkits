@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -219,6 +220,8 @@ public sealed partial class DrugIndex
         ClearEditor(keepEditorVisible: keepEditorVisible);
     }
 
+    public event Action? RevealSelected;
+
     private void FocusSavedRow(string drugId, string spec)
     {
         _pendingReselectKey = null;
@@ -226,7 +229,7 @@ public sealed partial class DrugIndex
         var row = FindRow(drugId, spec);
         if (row is null)
         {
-            ClearListFocus(clearOrigin: false);
+            // Not in the current result set — keep the editor rather than ClearListFocus.
             return;
         }
 
@@ -248,6 +251,8 @@ public sealed partial class DrugIndex
         {
             SyncEditorFrom(row);
         }
+
+        RevealSelected?.Invoke();
     }
 
     private void ClearRemoteEditBaseline()
