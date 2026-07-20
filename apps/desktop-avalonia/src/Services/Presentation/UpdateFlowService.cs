@@ -14,8 +14,7 @@ public interface IUpdateFlowService
     event Action? StateChanged;
 
     Task<AppUpdateCheckResult?> CheckAndHandleAsync(
-        bool showNoUpdateToast,
-        bool startupMode,
+        bool silent = false,
         Action<AppUpdateCheckResult>? syncState = null,
         string logScope = "UpdateDesktopFlow",
         CancellationToken ct = default);
@@ -90,8 +89,7 @@ public sealed class UpdateFlowService : IUpdateFlowService
     }
 
     public async Task<AppUpdateCheckResult?> CheckAndHandleAsync(
-        bool showNoUpdateToast,
-        bool startupMode,
+        bool silent = false,
         Action<AppUpdateCheckResult>? syncState = null,
         string logScope = "UpdateDesktopFlow",
         CancellationToken ct = default)
@@ -112,23 +110,18 @@ public sealed class UpdateFlowService : IUpdateFlowService
                 result.Message
             });
 
-            if (!result.Success)
+            if (silent)
             {
-                if (!startupMode)
-                {
-                    _toasts.Warn("应用更新", result.Message);
-                }
-
                 return result;
             }
 
-            if (result.ChannelSwitchRequired)
+            if (!result.Success || result.ChannelSwitchRequired)
             {
                 _toasts.Warn("应用更新", result.Message);
                 return result;
             }
 
-            if (!result.HasUpdate && showNoUpdateToast)
+            if (!result.HasUpdate)
             {
                 _toasts.Info("应用更新", "当前已是最新版本");
             }
@@ -140,20 +133,30 @@ public sealed class UpdateFlowService : IUpdateFlowService
             if (ct.IsCancellationRequested)
             {
                 _logger.Warn(logScope, "update.check.cancel", "Update check canceled");
-                _toasts.Warn("应用更新", "检查已取消");
+                if (!silent)
+                {
+                    _toasts.Warn("应用更新", "检查已取消");
+                }
             }
             else
             {
                 _logger.Warn(logScope, "update.check.timeout",
                     $"Update check timed out after {(int)UpdateCheckTimeout.TotalSeconds}s");
-                _toasts.Warn("应用更新", $"检查超时（{(int)UpdateCheckTimeout.TotalSeconds} 秒），请检查更新源连通性后重试");
+                if (!silent)
+                {
+                    _toasts.Warn("应用更新", $"检查超时（{(int)UpdateCheckTimeout.TotalSeconds} 秒），请检查更新源连通性后重试");
+                }
             }
             return null;
         }
         catch (Exception ex)
         {
             _logger.Error(logScope, "update.check.error", "Update check failed", ex);
-            _toasts.Error("应用更新", ex.Message);
+            if (!silent)
+            {
+                _toasts.Error("应用更新", ex.Message);
+            }
+
             return null;
         }
     }
