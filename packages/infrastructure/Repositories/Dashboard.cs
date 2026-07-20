@@ -60,7 +60,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                      from trace_txn t
                                      where t.status = 'COMMITTED'
                                        and t.created_at::date between @from and @to
-                                       and (coalesce(@client,'') = '' or {ClientMachineExpr("t")} = @client)
+                                       and {ClientMachineFilter("t")}
                                        and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                        and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
                                    ),
@@ -90,7 +90,7 @@ public sealed class DashboardRepo : IDashboardRepo
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             cmd.AddParam("from", q.Range.From.ToDateTime(TimeOnly.MinValue));
             cmd.AddParam("to", q.Range.To.ToDateTime(TimeOnly.MinValue));
-            cmd.AddParam("client", q.ClientName ?? string.Empty);
+            AddClientMachinesParam(cmd, q);
             cmd.AddParam("n", q.TopN);
             cmd.AddParam("drug", q.DrugId ?? string.Empty);
             cmd.AddParam("spec", q.Spec ?? string.Empty);
@@ -134,7 +134,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                  from trace_txn t
                                  where 1=1
                                    and t.created_at::date between @from::date and @to::date
-                                   and (coalesce(@client,'') = '' or {ClientMachineExpr("t")} = @client)
+                                   and {ClientMachineFilter("t")}
                                    and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                    and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
                                ),
@@ -248,7 +248,7 @@ public sealed class DashboardRepo : IDashboardRepo
             cmd.AddParam("from", q.Range.From.ToDateTime(TimeOnly.MinValue));
             cmd.AddParam("to", q.Range.To.ToDateTime(TimeOnly.MinValue));
 
-            cmd.AddParam("client", q.ClientName ?? string.Empty);
+            AddClientMachinesParam(cmd, q);
             cmd.AddParam("drug", q.DrugId ?? string.Empty);
             cmd.AddParam("spec", q.Spec ?? string.Empty);
 
@@ -290,7 +290,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                     from trace_txn t
                                     where t.status = 'COMMITTED'
                                       and t.created_at::date between @from and @to
-                                      and (coalesce(@client,'') = '' or {ClientMachineExpr("t")}=@client)
+                                      and {ClientMachineFilter("t")}
                                       and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                       and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
                                   ),
@@ -387,7 +387,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                    select count(*)::int
                                    from trace_txn t
                                    where t.created_at::date between @from and @to
-                                     and (coalesce(@client,'') = '' or {ClientMachineExpr("t")}=@client)
+                                     and {ClientMachineFilter("t")}
                                      and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                      and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
                                """;
@@ -404,7 +404,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                      {ClientMachineExpr("t")} as client_machine
                                    from trace_txn t
                                    where t.created_at::date between @from and @to
-                                     and (coalesce(@client,'') = '' or {ClientMachineExpr("t")}=@client)
+                                     and {ClientMachineFilter("t")}
                                      and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                      and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
                                    order by t.created_at desc
@@ -415,7 +415,7 @@ public sealed class DashboardRepo : IDashboardRepo
             await using var count = conn.CreateCommand(countSql, _opt.CommandTimeoutSeconds);
             count.AddParam("from", q.Range.From.ToDateTime(TimeOnly.MinValue));
             count.AddParam("to", q.Range.To.ToDateTime(TimeOnly.MinValue));
-            count.AddParam("client", q.ClientName ?? string.Empty);
+            AddClientMachinesParam(count, q);
             count.AddParam("drug", q.DrugId ?? string.Empty);
             count.AddParam("spec", q.Spec ?? string.Empty);
             var totalObj = await count.ExecuteScalarAsync(token);
@@ -424,7 +424,7 @@ public sealed class DashboardRepo : IDashboardRepo
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             cmd.AddParam("from", q.Range.From.ToDateTime(TimeOnly.MinValue));
             cmd.AddParam("to", q.Range.To.ToDateTime(TimeOnly.MinValue));
-            cmd.AddParam("client", q.ClientName ?? string.Empty);
+            AddClientMachinesParam(cmd, q);
             cmd.AddParam("offset", offset);
             cmd.AddParam("n", safePageSize);
             cmd.AddParam("drug", q.DrugId ?? string.Empty);
@@ -471,7 +471,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                    select count(*)::int
                                    from trace_txn t
                                    where t.created_at::date between @from and @to
-                                     and (coalesce(@client,'') = '' or {ClientMachineExpr("t")}=@client)
+                                     and {ClientMachineFilter("t")}
                                      and t.status = 'ROLLED_BACK'
                                      and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                      and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
@@ -485,7 +485,7 @@ public sealed class DashboardRepo : IDashboardRepo
                                      null::bigint as txn_id
                                    from trace_txn t
                                    where t.created_at::date between @from and @to
-                                     and (coalesce(@client,'') = '' or {ClientMachineExpr("t")}=@client)
+                                     and {ClientMachineFilter("t")}
                                      and t.status = 'ROLLED_BACK'
                                      and (coalesce(@drug,'') = '' or btrim(t.drug_id) = btrim(@drug))
                                      and (coalesce(@spec,'') = '' or btrim(coalesce(t.spec,'')) = btrim(@spec))
@@ -497,7 +497,7 @@ public sealed class DashboardRepo : IDashboardRepo
             await using var count = conn.CreateCommand(countSql, _opt.CommandTimeoutSeconds);
             count.AddParam("from", q.Range.From.ToDateTime(TimeOnly.MinValue));
             count.AddParam("to", q.Range.To.ToDateTime(TimeOnly.MinValue));
-            count.AddParam("client", q.ClientName ?? string.Empty);
+            AddClientMachinesParam(count, q);
             count.AddParam("drug", q.DrugId ?? string.Empty);
             count.AddParam("spec", q.Spec ?? string.Empty);
             var totalObj = await count.ExecuteScalarAsync(token);
@@ -506,7 +506,7 @@ public sealed class DashboardRepo : IDashboardRepo
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             cmd.AddParam("from", q.Range.From.ToDateTime(TimeOnly.MinValue));
             cmd.AddParam("to", q.Range.To.ToDateTime(TimeOnly.MinValue));
-            cmd.AddParam("client", q.ClientName ?? string.Empty);
+            AddClientMachinesParam(cmd, q);
             cmd.AddParam("offset", offset);
             cmd.AddParam("n", safePageSize);
             cmd.AddParam("drug", q.DrugId ?? string.Empty);
@@ -599,7 +599,7 @@ public sealed class DashboardRepo : IDashboardRepo
                 select count(*)::int
                 from trace_entry_log l
                 where l.entry_at::date between @from and @to
-                  and (coalesce(@client,'') = '' or {ClientMachineExpr("l")} = @client)
+                  and {ClientMachineFilter("l")}
                   and (coalesce(@drug,'') = '' or btrim(l.drug_id) = btrim(@drug))
                   and (coalesce(@spec,'') = '' or btrim(coalesce(l.spec,'')) = btrim(@spec))
             """;
@@ -624,7 +624,7 @@ public sealed class DashboardRepo : IDashboardRepo
                   l.message
                 from trace_entry_log l
                 where l.entry_at::date between @from and @to
-                  and (coalesce(@client,'') = '' or {ClientMachineExpr("l")} = @client)
+                  and {ClientMachineFilter("l")}
                   and (coalesce(@drug,'') = '' or btrim(l.drug_id) = btrim(@drug))
                   and (coalesce(@spec,'') = '' or btrim(coalesce(l.spec,'')) = btrim(@spec))
                 order by l.entry_at desc
@@ -635,7 +635,7 @@ public sealed class DashboardRepo : IDashboardRepo
             await using var count = conn.CreateCommand(countSql, _opt.CommandTimeoutSeconds);
             count.AddParam("from", q.Range.From.ToDateTime(TimeOnly.MinValue));
             count.AddParam("to", q.Range.To.ToDateTime(TimeOnly.MinValue));
-            count.AddParam("client", q.ClientName ?? string.Empty);
+            AddClientMachinesParam(count, q);
             count.AddParam("drug", q.DrugId ?? string.Empty);
             count.AddParam("spec", q.Spec ?? string.Empty);
             var totalObj = await count.ExecuteScalarAsync(token);
@@ -644,7 +644,7 @@ public sealed class DashboardRepo : IDashboardRepo
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
             cmd.AddParam("from", q.Range.From.ToDateTime(TimeOnly.MinValue));
             cmd.AddParam("to", q.Range.To.ToDateTime(TimeOnly.MinValue));
-            cmd.AddParam("client", q.ClientName ?? string.Empty);
+            AddClientMachinesParam(cmd, q);
             cmd.AddParam("drug", q.DrugId ?? string.Empty);
             cmd.AddParam("spec", q.Spec ?? string.Empty);
             cmd.AddParam("offset", offset);
@@ -747,10 +747,19 @@ public sealed class DashboardRepo : IDashboardRepo
     {
         cmd.AddParam("from", q.Range.From.ToDateTime(TimeOnly.MinValue));
         cmd.AddParam("to", q.Range.To.ToDateTime(TimeOnly.MinValue));
-        cmd.AddParam("client", q.ClientName ?? string.Empty);
+        AddClientMachinesParam(cmd, q);
         cmd.AddParam("drug", q.DrugId ?? string.Empty);
         cmd.AddParam("spec", q.Spec ?? string.Empty);
         cmd.AddParam("trend_metric", ResolveTrendMetric(q));
+    }
+
+    private static string ClientMachineFilter(string alias)
+        => $"(cardinality(@clients) = 0 or {ClientMachineExpr(alias)} = any(@clients))";
+
+    private static void AddClientMachinesParam(NpgsqlCommand cmd, DashboardQuery q)
+    {
+        var machines = q.ClientMachines as string[] ?? q.ClientMachines.ToArray();
+        cmd.AddParam("clients", machines);
     }
 
     private static string ClientMachineExpr(string alias)

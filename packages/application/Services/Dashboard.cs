@@ -15,13 +15,12 @@ public sealed class DashboardService : IDashboardService
 
     private static DashboardQuery BuildQuery(DashboardFilter filter, int topN)
     {
-        var client = InputNormalizer.Normalize(filter.ClientRaw);
         var drug = InputNormalizer.Normalize(filter.DrugId);
         var spec = InputNormalizer.Normalize(filter.Spec);
 
         return new DashboardQuery(
             Range: new DateRange(filter.From, filter.To),
-            ClientName: client,
+            ClientMachines: NormalizeClientMachines(filter.ClientMachines),
             DrugId: drug,
             Spec: spec,
             TopN: topN,
@@ -35,11 +34,26 @@ public sealed class DashboardService : IDashboardService
 
         return new DashboardQuery(
             Range: new DateRange(filter.From, filter.To),
-            ClientName: null,
+            ClientMachines: [],
             DrugId: drug,
             Spec: spec,
             TopN: topN,
             TrendMetric: filter.TrendMetric);
+    }
+
+    private static IReadOnlyList<string> NormalizeClientMachines(IReadOnlyList<string>? machines)
+    {
+        if (machines is null || machines.Count == 0)
+        {
+            return [];
+        }
+
+        return machines
+            .Select(InputNormalizer.Normalize)
+            .Where(static machine => machine is not null)
+            .Cast<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     public async Task<DashboardSnapshot> GetSnapshotAsync(DashboardRequest request, CancellationToken ct)

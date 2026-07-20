@@ -16,12 +16,12 @@ public sealed class DashboardChartScopeTests
 
         Assert.Equal(2, repo.ClientQueries.Count);
         var chartQuery = Assert.Single(repo.ClientQueries, query => query.TopN == 200);
-        Assert.Null(chartQuery.ClientName);
+        Assert.Empty(chartQuery.ClientMachines);
         Assert.Equal("drug-a", chartQuery.DrugId);
         Assert.Equal("10mg", chartQuery.Spec);
         Assert.Equal(new DateRange(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 16)), chartQuery.Range);
         Assert.NotNull(repo.EntryChartQuery);
-        Assert.Null(repo.EntryChartQuery.ClientName);
+        Assert.Empty(repo.EntryChartQuery.ClientMachines);
         Assert.Equal("drug-a", repo.EntryChartQuery.DrugId);
         Assert.Equal("10mg", repo.EntryChartQuery.Spec);
         Assert.Equal(chartQuery.Range, repo.EntryChartQuery.Range);
@@ -36,22 +36,22 @@ public sealed class DashboardChartScopeTests
         await service.GetSnapshotAsync(CreateRequest(refreshDistributions: true), CancellationToken.None);
 
         var trendChartQuery = Assert.Single(repo.TrendQueries, item => item.PageSize == 200).Query;
-        Assert.Equal("client-a", trendChartQuery.ClientName);
+        Assert.Equal(["client-a"], trendChartQuery.ClientMachines);
         Assert.Equal("drug-a", trendChartQuery.DrugId);
         Assert.Equal("10mg", trendChartQuery.Spec);
 
         var txnChartQuery = Assert.Single(repo.TxnQueries, item => item.PageSize == 200).Query;
-        Assert.Equal("client-a", txnChartQuery.ClientName);
+        Assert.Equal(["client-a"], txnChartQuery.ClientMachines);
         Assert.Equal("drug-a", txnChartQuery.DrugId);
         Assert.Equal("10mg", txnChartQuery.Spec);
 
         var trendOverviewQuery = Assert.Single(repo.TrendQueries,
             item => item.PageSize == 10 && item.Query.TopN == 10).Query;
-        Assert.Equal("client-a", trendOverviewQuery.ClientName);
+        Assert.Equal(["client-a"], trendOverviewQuery.ClientMachines);
 
         var txnOverviewQuery = Assert.Single(repo.TxnQueries,
             item => item.PageSize == 10 && item.Query.TopN == 10).Query;
-        Assert.Equal("client-a", txnOverviewQuery.ClientName);
+        Assert.Equal(["client-a"], txnOverviewQuery.ClientMachines);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class DashboardChartScopeTests
             Filter: new DashboardFilter(
                 new DateOnly(2026, 7, 1),
                 new DateOnly(2026, 7, 16),
-                "client-a",
+                ["client-a"],
                 " drug-a ",
                 " 10mg ",
                 TrendMetric.Qty),

@@ -69,8 +69,31 @@ public sealed record ClientInfo(
     string? User,
     string? Ip,
     string? Os,
-    string? Version
-);
+    string? Version,
+    IReadOnlyList<string>? Machines = null)
+{
+    public IReadOnlyList<string> MachineKeys
+    {
+        get
+        {
+            if (Machines is { Count: > 0 })
+            {
+                return Machines;
+            }
+
+            var key = !string.IsNullOrWhiteSpace(Machine)
+                ? Machine
+                : string.IsNullOrWhiteSpace(Raw)
+                    ? null
+                    : Raw.Split('|', 2, StringSplitOptions.TrimEntries)[0];
+            return string.IsNullOrWhiteSpace(key) ? [] : [key];
+        }
+    }
+
+    public bool ContainsMachine(string? machine)
+        => !string.IsNullOrWhiteSpace(machine)
+           && MachineKeys.Any(key => string.Equals(key, machine, StringComparison.OrdinalIgnoreCase));
+}
 
 public sealed record TraceEntryLogDto(
     DateTimeOffset EntryAt,
@@ -119,7 +142,7 @@ public enum TrendMetric
 
 public sealed record DashboardQuery(
     DateRange Range,
-    string? ClientName,
+    IReadOnlyList<string> ClientMachines,
     string? DrugId = null,
     string? Spec = null,
     int TopN = 10,
@@ -209,7 +232,7 @@ public sealed record DrugKeyFixApplyResultDto(
 public sealed record DashboardFilter(
     DateOnly From,
     DateOnly To,
-    string? ClientRaw,
+    IReadOnlyList<string>? ClientMachines,
     string? DrugId,
     string? Spec,
     TrendMetric TrendMetric);

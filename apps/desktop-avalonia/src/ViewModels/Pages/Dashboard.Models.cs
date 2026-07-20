@@ -70,6 +70,8 @@ public sealed record AbnormalItem(int DisplayIndex, string Title, string Detail,
 
 public sealed record TopClientItem(int Index, ClientInfo Client, string Value)
 {
+    public IReadOnlyList<string> Machines => Client.MachineKeys;
+
     public string Name => Client.Display;
 
     public string ClientDisplay => Client.Display;
