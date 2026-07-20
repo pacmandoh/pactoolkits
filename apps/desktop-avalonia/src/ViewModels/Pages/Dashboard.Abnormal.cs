@@ -21,8 +21,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        AbnormalPageIndex = 1;
-        await ReloadAbnormalPageOnlyAsync();
+        await ReloadAbnormalPageOnlyAsync(1);
     }
 
     [RelayCommand]
@@ -38,8 +37,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        AbnormalPageIndex--;
-        await ReloadAbnormalPageOnlyAsync();
+        await ReloadAbnormalPageOnlyAsync(AbnormalPageIndex - 1);
     }
 
     [RelayCommand]
@@ -55,8 +53,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        AbnormalPageIndex++;
-        await ReloadAbnormalPageOnlyAsync();
+        await ReloadAbnormalPageOnlyAsync(AbnormalPageIndex + 1);
     }
 
     [RelayCommand]
@@ -72,10 +69,12 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        AbnormalPageIndex = AbnormalTotalPages;
-        await ReloadAbnormalPageOnlyAsync();
+        await ReloadAbnormalPageOnlyAsync(AbnormalTotalPages);
     }
-    private async Task ReloadAbnormalPageOnlyAsync()
+
+    private Task ReloadAbnormalPageOnlyAsync() => ReloadAbnormalPageOnlyAsync(AbnormalPageIndex);
+
+    private async Task ReloadAbnormalPageOnlyAsync(int pageIndex)
     {
         try
         {
@@ -86,10 +85,11 @@ public sealed partial class Dashboard : AppPageBase
                 body: async () =>
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var page = await _dashboard.GetAbnormalPageAsync(CurrentFilter, AbnormalPageIndex, AbnormalPageSize, cts.Token).ConfigureAwait(false);
-                var items = BuildAbnormalQueueItems(page.Rows, AbnormalPageIndex, AbnormalPageSize);
+                var page = await _dashboard.GetAbnormalPageAsync(CurrentFilter, pageIndex, AbnormalPageSize, cts.Token).ConfigureAwait(false);
+                var items = BuildAbnormalQueueItems(page.Rows, pageIndex, AbnormalPageSize);
                 await RunOnUiAsync(() =>
                 {
+                    AbnormalPageIndex = pageIndex;
                     ApplyAbnormalQueue(items, page.TotalCount);
                 }, DispatcherPriority.Background);
             });

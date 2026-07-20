@@ -73,6 +73,9 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     public bool IsShowingStaleData => _pageDataAvailability == PageDataAvailability.Stale;
 
+    // DB-sourced DataGridPager: IsEnabled="{Binding CanPageFromDb}". Local-only pagers omit it.
+    public bool CanPageFromDb => IsDbConnected && !IsDbAccessBlocked(out _);
+
     public string PageStaleHint => SectionEmptyCopy.StaleHint;
 
     public bool ShowPageUnavailable => _pageDataAvailability switch
@@ -588,6 +591,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         OnPropertyChanged(nameof(PageUnavailableHint));
         OnPropertyChanged(nameof(PageUnavailableIcon));
         OnPropertyChanged(nameof(IsShowingStaleData));
+        OnPropertyChanged(nameof(CanPageFromDb));
         OnPropertyChanged(nameof(SectionEmptyIcon));
         OnPropertyChanged(nameof(IsSectionPending));
         OnPageAvailabilityChanged();

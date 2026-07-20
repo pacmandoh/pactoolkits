@@ -608,6 +608,7 @@
             FirstPageCommand="{Binding FirstPageCommand}"
             IsActive="{Binding IsPagedMode}"
             IsContentEmpty="{Binding IsStockEmpty}"
+            IsEnabled="{Binding CanPageFromDb}"
             LastPageCommand="{Binding LastPageCommand}"
             NextPageCommand="{Binding NextPageCommand}"
             PageSizeOptions="{Binding PageSizeOptions}"

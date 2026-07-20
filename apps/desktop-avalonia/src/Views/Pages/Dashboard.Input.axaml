@@ -124,6 +124,7 @@
           Classes="CardPanelBodyInset"
           FirstPageCommand="{Binding FirstEntryPageCommand}"
           IsContentEmpty="{Binding IsEntryRecentEmpty}"
+          IsEnabled="{Binding CanPageFromDb}"
           LastPageCommand="{Binding LastEntryPageCommand}"
           NextPageCommand="{Binding NextEntryPageCommand}"
           PageSizeOptions="{Binding TabPageSizeOptions}"
