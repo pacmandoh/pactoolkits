@@ -340,8 +340,7 @@ public sealed partial class MsfxLink : AppPageBase
             PromptHint: $"{scene} 属于高风险 MSFX 操作\n目标：{targetId}\n原因：{reason}\n请输入当前数据库密码以解锁",
             OperatorName: operatorName,
             TargetId: targetId,
-            Reason: reason,
-            NotifySuccess: false), ct).ConfigureAwait(false);
+            Reason: reason), ct).ConfigureAwait(false);
         await RunOnUiAsync(RefreshOpsUnlock).ConfigureAwait(false);
 
         var audit = new

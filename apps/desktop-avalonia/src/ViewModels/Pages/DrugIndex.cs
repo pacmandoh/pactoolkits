@@ -931,7 +931,6 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     {
         _unlockService.Lock(OpsScope);
         RefreshOpsUnlock();
-        _toast.Info("药品信息维护", "已锁定编辑");
         return Task.CompletedTask;
     }
 

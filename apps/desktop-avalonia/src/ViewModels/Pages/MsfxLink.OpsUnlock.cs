@@ -45,7 +45,6 @@ public sealed partial class MsfxLink
     {
         _unlockService.Lock(OpsScope);
         RefreshOpsUnlock();
-        _toast.Info("码上放心联调", "敏感操作已锁定");
         return Task.CompletedTask;
     }
 
