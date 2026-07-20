@@ -1412,11 +1412,26 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     }
 
     [RelayCommand(CanExecute = nameof(CanNewItem))]
-    private void NewItem()
+    private async Task NewItemAsync()
     {
         if (SkipTrigger(milliseconds: 250))
         {
             return;
+        }
+
+        if (!IsOpsUnlocked)
+        {
+            var unlocked = await _unlockService.RequireUnlockAsync(
+                OpsScope,
+                "药品信息维护",
+                "身份验证",
+                UnlockScopes.SharedOpsHint);
+            RefreshOpsUnlock();
+            if (!unlocked)
+            {
+                _toast.Warn("药品信息维护", "当前未解锁，无法新建");
+                return;
+            }
         }
 
         ClearListFocus(clearOrigin: true, keepEditorVisible: true);
