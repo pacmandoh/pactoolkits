@@ -54,7 +54,6 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
         string scene,
         string promptTitle,
         string promptHint,
-        bool notifySuccess = true,
         CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
@@ -131,11 +130,6 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             return false;
         }
 
-        if (notifySuccess)
-        {
-            _toast.Success(scene, "验证通过，已解锁敏感操作");
-        }
-
         RaiseStateChanged(prompt.ScopeKey);
         return true;
     }
@@ -148,7 +142,6 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             request.Scene,
             request.PromptTitle,
             request.PromptHint,
-            request.NotifySuccess,
             ct);
     }
 

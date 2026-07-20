@@ -18,8 +18,7 @@ public sealed record SensitiveOpRequest(
     string PromptHint,
     string? OperatorName = null,
     string? TargetId = null,
-    string? Reason = null,
-    bool NotifySuccess = true);
+    string? Reason = null);
 
 public sealed record UnlockScopeSnapshot(
     bool IsUnlocked,
@@ -42,6 +41,5 @@ public interface ISensitiveUnlockService
         string scene,
         string promptTitle,
         string promptHint,
-        bool notifySuccess = true,
         CancellationToken ct = default);
 }
