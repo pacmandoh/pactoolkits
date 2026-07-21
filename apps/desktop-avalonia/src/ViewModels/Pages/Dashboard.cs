@@ -17,6 +17,14 @@ using PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
+/// <summary>
+/// 概览页 ViewModel
+///
+/// 负责：
+/// - KPI / 趋势 / 录入 / 事务 / 异常 Tab
+/// - 日期与客户筛选驱动的 reload
+/// - 跳转库存等跨页导航入口
+/// </summary>
 public sealed partial class Dashboard : AppPageBase
 {
     private const int DefaultTopN = 10;
@@ -284,7 +292,6 @@ public sealed partial class Dashboard : AppPageBase
 
     public DashboardKpiModel Kpi { get; } = new();
 
-    /// <summary>Bump to replay KPI ring animations (page activate / manual refresh).</summary>
     public int KpiProgressReplayTrigger { get; private set; }
 
     public string SectionHint => BuildRangeMeta(CurrentRange, SelectedClient);
@@ -760,7 +767,7 @@ public sealed partial class Dashboard : AppPageBase
         ApplyDateRangeFromBoundary(value, updateFromBoundary: false);
     }
 
-    // Keep date range valid and trigger a single reload path for both boundaries.
+    // 保证日期区间合法，起止边界共用同一条 reload 路径
     private void ApplyDateRangeFromBoundary(DateTime? value, bool updateFromBoundary)
     {
         var today = DateTime.Today;
@@ -878,7 +885,7 @@ public sealed partial class Dashboard : AppPageBase
 
     private void RequestReloadWithPagingReset()
     {
-        // Filters and date changes always reset paging to first page.
+        // 筛选与日期变更一律回到第一页再 reload
         ResetPagedIndexes();
         RequestReload();
     }
@@ -1220,7 +1227,7 @@ public sealed partial class Dashboard : AppPageBase
             PostOnUi(() => _toast.Error(toastTitle, ex.Message));
         }
 
-        // Do not rethrow: tab page flips run under RelayCommand / ObserveDetached and already logged.
+        // 不 rethrow：Tab 翻页在 RelayCommand / ObserveDetached 下已记录日志
     }
 
     private bool ShowTxnBusy()
@@ -1707,9 +1714,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        // Match sidebar navigation: reveal the cached page immediately. The inventory page
-        // already owns refresh/dirty-state handling, so a dashboard jump must not force a
-        // database reload on the UI navigation path.
+        // 与侧栏导航一致：先露出缓存页。库存页自管刷新/dirty，概览跳转不得在 UI 导航路径上强制 DB reload
         _inventoryOverview.OpenMode(0, forceReload: false);
         _nav.Navigate<InventoryOverview>();
     }
@@ -1816,7 +1821,7 @@ public sealed partial class Dashboard : AppPageBase
 
     private void OnClientAliasChanged()
     {
-        // Alias merges change filter machines and chart aggregation — one reload is the source of truth.
+        // 别名合并会改筛选机台与图表聚合，以一次 reload 为准
         PostOnUi(RequestReload);
     }
 }

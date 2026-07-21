@@ -5,7 +5,7 @@ using Avalonia.Controls;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
-/// <summary>Maps <see cref="DataValidationErrors"/> to control tooltips.</summary>
+/// <summary>将 <see cref="DataValidationErrors"/> 映射到控件 ToolTip</summary>
 public static class ValidationToolTip
 {
     public static readonly AttachedProperty<bool> IsEnabledProperty =

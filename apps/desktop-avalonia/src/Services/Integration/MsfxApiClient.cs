@@ -13,6 +13,11 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Integration;
 
+/// <summary>
+/// 码上放心（MSFX）HTTP API 客户端
+///
+/// 负责请求拼装与响应解析；不含业务落库
+/// </summary>
 public sealed class MsfxApiClient : IMsfxApiClient
 {
     private static readonly HttpClient Http = new();
@@ -141,7 +146,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
             {
                 resultList = GetPropertyOrDefault(model, "rows");
             }
-            // Some responses wrap rows as: result_list.bill_up_out_detail_do[]
+            // 部分响应用 result_list.bill_up_out_detail_do[] 包裹行数据
             if (resultList.ValueKind == JsonValueKind.Object)
             {
                 var wrapped = GetPropertyOrDefault(resultList, "bill_up_out_detail_do");
@@ -187,7 +192,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }
         catch
         {
-            // Keep call result as-is. UI still can inspect raw response text.
+            // 保留原始调用结果，UI 仍可查看原始响应文本
         }
 
         return new MsfxListUpoutResult(call, total, items);
@@ -273,7 +278,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }
         catch
         {
-            // Keep call result as-is. UI still can inspect raw response text.
+            // 保留原始调用结果，UI 仍可查看原始响应文本
         }
 
         var minimalCodeSet = new HashSet<string>(StringComparer.Ordinal);
@@ -566,7 +571,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
                 new HashSet<string>(StringComparer.Ordinal));
         }
 
-        // query.relation: align with verified API-tool request template.
+        // query.relation：与已验证的 API-tool 请求模板对齐
         var des = refEntId;
         var joined = string.Join(",", codes);
         var bizParams = new Dictionary<string, string?>
@@ -628,7 +633,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }
         catch
         {
-            // ignored
+            // 忽略
         }
         return map;
     }
@@ -643,7 +648,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }
         catch
         {
-            // ignored
+            // 忽略
         }
 
         return levels;
@@ -659,7 +664,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }
         catch
         {
-            // ignored
+            // 忽略
         }
 
         return set;
@@ -694,7 +699,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
                 "source_code");
             var code = GetStringAny(node, "code", "Code", "trace_code", "traceCode");
             var c1 = GetStringAny(node, "child_code", "childCode", "ChildCode", "sub_code", "to_code", "des_code", "target_code");
-            // query.relation commonly returns: code_relation_list.code_info[].{ parent_code, code, code_level }
+            // query.relation 常见返回：code_relation_list.code_info[].{ parent_code, code, code_level }
             if (parentSet.Contains(parent) &&
                 IsCandidateTraceCode(code) &&
                 !string.Equals(parent, code, StringComparison.Ordinal))

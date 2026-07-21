@@ -16,6 +16,16 @@ using PacToolkits.Desktop.Avalonia.Services.Presentation;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
+/// <summary>
+/// 桌面页 ViewModel 基类
+///
+/// 负责：
+/// - 页面 reload 管线（busy / stale / unavailable）
+/// - DB 断连/重连信号与自动刷新
+/// - 顶栏刷新入口与页面生命周期
+///
+/// 不负责具体业务查询与 DataGrid 行模型
+/// </summary>
 public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycleAware, IDisposable
 {
     public abstract string DisplayName { get; }
@@ -62,7 +72,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     private bool _isBusy;
     private bool _reloadFromDbSignal;
 
-    /// <summary>True while the active reload was scheduled from a DB connect/disconnect signal.</summary>
+    // 当前活跃 reload 是否由 DB 断连/重连信号触发（影响 stale-while-reconnect 等行为）
     protected bool IsDbSignalReload => _reloadFromDbSignal;
 
     protected bool IsPageReloadActive => _reload.IsActive;
@@ -73,7 +83,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     public bool IsShowingStaleData => _pageDataAvailability == PageDataAvailability.Stale;
 
-    // DB-sourced DataGridPager: IsEnabled="{Binding CanPageFromDb}". Local-only pagers omit it.
+    // DB 分页 DataGridPager 绑定 CanPageFromDb；纯本地分页勿绑此属性
     public bool CanPageFromDb => IsDbConnected && !IsDbAccessBlocked(out _);
 
     public string PageStaleHint => SectionEmptyCopy.StaleHint;
@@ -128,9 +138,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             _accessBlockedReason,
             _loadFailedMessage);
 
-    /// <summary>
-    /// True only while fetching data — not while waiting for DB connectivity.
-    /// </summary>
+    // 仅表示正在拉数；等待 DB 连通时不应为 true（否则会盖住 unavailable/stale 壳）
     public bool IsBusy
     {
         get => _isBusy;
@@ -157,8 +165,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             execute: ExecuteRefreshAsync,
             canExecute: CanRefresh);
 
-        // Eagerly resolve DB monitor on UI thread so disconnect/reconnect signals
-        // are not missed before first manual reload.
+        // 在 UI 线程尽早挂上 DB monitor，避免首次手动刷新前漏掉断连/重连信号
         PostOnUi(() =>
         {
             _ = GetDbMonitor();
@@ -371,7 +378,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         {
             try
             {
-                // Brief settle after reconnect before querying the pool again.
+                // 重连后稍等再查连接池，避免刚恢复就打到未就绪连接
                 await Task.Delay(ReconnectSettleDelay, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -390,7 +397,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
         try
         {
-            // Stale-while-reconnect: keep cached rows visible without a loading overlay.
+            // stale-while-reconnect：保留缓存行，不盖 loading 遮罩
             if (suppressReloadBusy)
             {
                 await RunWithTransportRetryAsync(fetch, mon, ct).ConfigureAwait(false);
@@ -561,7 +568,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         _pageDataAvailability = availability;
         if (ShowPageUnavailable || availability == PageDataAvailability.Stale)
         {
-            // Stale/unavailable shell must not leave the page busy overlay up.
+            // stale/unavailable 壳展示时清掉 busy，避免遮罩叠在空态上
             IsBusy = false;
         }
 
@@ -598,7 +605,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     }
 
     /// <summary>
-    /// Reconcile page availability with current guard and DB monitor without fetching data.
+    /// 按当前 guard / DB monitor 同步页面可用性，不触发数据拉取
     /// </summary>
     public void SyncPageAvailability()
     {
@@ -618,7 +625,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             or PageDataAvailability.AwaitingDatabase
             or PageDataAvailability.NotLoaded)
         {
-            // Reconnect with cached rows: promote back to Ready without a fetch.
+            // 已有缓存行时重连直接升回 Ready，避免多余一次 fetch
             SetPageAvailability(_hasLoadedOnce ? PageDataAvailability.Ready : PageDataAvailability.NotLoaded);
         }
     }
@@ -761,8 +768,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     }
 
     /// <summary>
-    /// Page-level operation errors should not toast when DB transport failed or DB is disconnected;
-    /// MainWindow owns the consolidated connection failure/recovery toasts.
+    /// DB 传输失败或已断连时页面操作错误不 toast；连接失败/恢复提示由 MainWindow 统一负责
     /// </summary>
     protected bool CanToastError(Exception ex)
     {
@@ -779,7 +785,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
         if (DateTimeOffset.UtcNow < _reconnectToastSuppressUntil)
         {
-            // MainWindow owns the consolidated reconnect toast; pages stay quiet briefly.
+            // 重连 toast 由 MainWindow 统一发；冷却期内页面保持静默
             return false;
         }
 
@@ -847,7 +853,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         monitor.Reconnected += StartReconnectToastCooldown;
         _dbMonitorEventsHooked = true;
 
-        // If page initializes while DB is already disconnected, show unavailable and queue refresh.
+        // 页面初始化时若 DB 已断，先展示 unavailable 并排队自动刷新
         if (!monitor.IsConnected)
         {
             PostOnUi(SyncPageAvailability);
@@ -882,7 +888,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             return;
         }
 
-        // A reload already waiting on DB will resume on reconnect — avoid queuing a duplicate.
+        // 已有 reload 在等 DB，重连后会继续；勿再排队一次自动刷新
         if (_reload.IsActive)
         {
             return;
@@ -893,7 +899,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     private void ScheduleAutoRefreshFromDbSignal()
     {
-        // Coalesce DB connect/disconnect bursts into one auto-refresh.
+        // 合并 DB 断连/重连连发信号，只触发一次自动刷新
         if (Interlocked.Exchange(ref _dbSignalRefreshQueued, 1) == 1)
         {
             return;

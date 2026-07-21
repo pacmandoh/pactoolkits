@@ -5,6 +5,7 @@ using global::Avalonia.Data.Converters;
 
 namespace PacToolkits.Desktop.Avalonia.Converters;
 
+/// <summary>DataGrid 行索引 0-based → 1-based 展示</summary>
 public sealed class RowIndexConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -14,7 +15,6 @@ public sealed class RowIndexConverter : IValueConverter
         => BindingOperations.DoNothing;
 }
 
-/// <summary>Shrink qty font for long formatted numbers while keeping left-aligned layout.</summary>
 public sealed class DgQtyFontSizeConverter : IValueConverter
 {
     private const double BaseSize = 14;

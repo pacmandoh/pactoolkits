@@ -18,6 +18,11 @@ using DbMigrationTrigger = PacToolkits.Application.DTOs.DbMigrationTrigger;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
+/// <summary>
+/// Agents 运行时
+///
+/// 负责 Host/模块启停、状态观测与进程兜底；不含业务注入逻辑
+/// </summary>
 public sealed class AgentsRuntime : IAgentsRuntime
 {
     private readonly IAppConfigStore _configStore;
@@ -28,6 +33,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
     private readonly object _gate = new();
     private readonly SemaphoreSlim _commandGate = new(1, 1);
     private readonly Timer _pollTimer;
+    // 连点/并发启停冷却；与顶栏 toast debounce 同量级
     private static readonly TimeSpan CommandCooldown = TimeSpan.FromMilliseconds(1200);
 
     private AgentsOptions _options = new();
@@ -186,6 +192,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         _logger = logger;
         Reload();
 
+        // 启停态先快扫 300ms，稳态再 1s，兼顾及时性与负载
         _pollTimer = new Timer(_ => PollStatus(), null, TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(1));
     }
 
@@ -225,6 +232,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
     public async Task<AgentsCommandResult> StartOrRestartAsync(CancellationToken ct = default)
     {
+        // WaitAsync(0)：已有命令在跑则立刻拒绝，避免排队叠启停
         var entered = await _commandGate.WaitAsync(0, ct).ConfigureAwait(false);
         if (!entered)
         {
@@ -279,7 +287,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return SetHostError(validate.Message);
             }
 
-            // Restart truth is process presence, not State — Failed can still leave a Host up.
+            // 重启判定看进程是否仍在，而非 State——Failed 时 Host 仍可能存活
             var wasActive = GetTargetProcesses(options).Any();
             if (wasActive)
             {
@@ -300,7 +308,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
                 ClearModuleControl(options);
 
-                // Give shell tray time to remove icon before relaunch.
+                // 给 shell 托盘一点时间移除图标，再重新拉起
                 await Task.Delay(250, ct).ConfigureAwait(false);
             }
 
@@ -370,7 +378,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                         .ConfigureAwait(false);
                     if (!ready)
                     {
-                        // Host may still be up; module self-check failed.
+                        // Host 可能仍在；失败的是模块自检
                         return SetInjectorError("已触发启动，但 Injector 未完成自检（配置错误或启动失败）");
                     }
 
@@ -483,7 +491,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return new AgentsCommandResult(true, "已停止");
             }
 
-            // Ask resident Host to unload module and exit; kill remains the fallback.
+            // 请常驻 Host 卸载模块并退出；kill 仍作兜底
             WriteModuleControl(options, "quit");
             ClearModuleReady(options);
 
@@ -524,7 +532,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
             ClearModuleControl(options);
 
-            // Allow shell to clean tray icon cache after process exit.
+            // 进程退出后给 shell 清理托盘图标缓存的时间
             await Task.Delay(250, ct).ConfigureAwait(false);
 
             lock (_gate)
@@ -585,7 +593,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
             lock (_gate)
             {
-                // Hold off "Starting" while Host stays up with no module.ready.
+                // Host 仍在但尚无 module.ready 时，先不要标成 Starting
                 _injectorStopped = true;
                 _injectorLastError = null;
             }
@@ -643,7 +651,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return SetInjectorError(validate.Message);
             }
 
-            // Host down → full Agents start (Desktop mounts Injector after Host is up).
+            // Host 已挂 → 完整启动 Agents（Desktop 等 Host 起来后再挂 Injector）
             if (!GetTargetProcesses(options).Any())
             {
                 _commandGate.Release();
@@ -651,7 +659,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return await StartOrRestartAsync(ct).ConfigureAwait(false);
             }
 
-            // Host ignores start while the module process is still alive — stop first to remount.
+            // 模块进程仍在时 Host 会忽略 start——需先 stop 再 remount
             if (!await EnsureInjectorStoppedAsync(options, ct).ConfigureAwait(false))
             {
                 return SetInjectorError("重启失败：Injector 进程仍在运行");
@@ -810,7 +818,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
             var ready = ModuleReadyExists(options);
             if (ready && !alive)
             {
-                // Stale marker after crash/kill while Host stays resident.
+                // Host 常驻下 crash/kill 后可能残留过期 marker
                 ClearModuleReady(options);
                 ready = false;
             }
@@ -833,7 +841,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                     return AgentsRunState.Failed;
                 }
 
-                // Starting only while a start/remount is in flight, or process is up before ready.
+                // 仅在 start/remount 进行中，或进程已起但尚未 ready 时标 Starting
                 if (_starting || (alive && !ready))
                 {
                     return AgentsRunState.Starting;
@@ -950,7 +958,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return true;
             }
 
-            // Main-only: still stop Tools\pacinjector.exe after config migrated to Host.
+            // 仅 Main：配置迁到 Host 后仍需停掉 Tools\pacinjector.exe
             return AgentsPath.IsMainToolsStoredPath(normalizedModulePath);
         }
         catch
@@ -1025,6 +1033,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         var now = DateTimeOffset.UtcNow;
         lock (_gate)
         {
+            // 与顶栏 toast debounce 同窗口，防连点叠启停
             if (now - _lastCommandAt < CommandCooldown)
             {
                 return true;
@@ -1208,7 +1217,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
         catch
         {
-            // Host may still be stopped via process kill fallback
+            // Host 仍可能走进程 kill 兜底停止
         }
     }
 
@@ -1230,7 +1239,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
         catch
         {
-            // best-effort; Desktop clears again before the next start/write
+            // best-effort；下次 start/write 前 Desktop 会再清一次
         }
     }
 
@@ -1366,7 +1375,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
         catch
         {
-            // best-effort; a stale marker is cleared again on next Injector boot
+            // best-effort；下次 Injector 启动时会再清过期 marker
         }
     }
 
@@ -1379,7 +1388,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
         try
         {
-            // Prefer graceful termination first so tray icon has a chance to dispose cleanly.
+            // 优先优雅结束，让托盘图标有机会干净 dispose
             if (p.CloseMainWindow())
             {
                 if (p.WaitForExit(2200))

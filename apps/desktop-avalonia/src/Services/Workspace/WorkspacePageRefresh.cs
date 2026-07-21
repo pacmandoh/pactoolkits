@@ -6,6 +6,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Workspace;
 
+/// <summary>工作区页面可刷新判定与 TryRefresh 入口</summary>
 public static class WorkspacePageRefresh
 {
     public static bool CanRefreshPage(AppPageBase page)

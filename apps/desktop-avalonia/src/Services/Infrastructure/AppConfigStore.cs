@@ -43,6 +43,7 @@ public sealed class LoggingOptions
     public string LogDirectory { get; set; } = string.Empty;
 }
 
+/// <summary>应用配置读写与 schema 迁移入口</summary>
 public interface IAppConfigStore
 {
     string ConfigPath { get; }
@@ -53,6 +54,11 @@ public interface IAppConfigStore
     Task UpdateAsync(Action<AppConfigRoot> mutator, CancellationToken ct = default);
 }
 
+/// <summary>
+/// 应用配置存储
+///
+/// 负责统一配置文件读写与 schema 迁移；不含业务查询
+/// </summary>
 public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
 {
     private const string UnifiedConfigFileName = "PacToolkits.Desktop.config.json";
@@ -264,8 +270,8 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
                 && HasPersistedDefaults(raw)
                 && HasRequiredConfigKeys(existingJson))
             {
-                // Persist schema v2 / Main Tools→Agents host rewrites even when the unified
-                // file already exists (InitConfig used to return without writing).
+                // 即便统一配置文件已存在，仍要落盘 schema v2 / Main Tools→Agents host 改写
+                //（旧 InitConfig 曾直接 return 不写）
                 if (!string.Equals(readablePath, ConfigPath, StringComparison.OrdinalIgnoreCase)
                     || !string.Equals(existingJson, json, StringComparison.Ordinal))
                 {
@@ -473,7 +479,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         }
     }
 
-    /// <summary>Main SchemaVersion=1 AutomationTools → schema-2 Agents + Injector.</summary>
+    /// <summary>Main SchemaVersion=1 的 AutomationTools → schema-2 Agents + Injector</summary>
     internal static string MigrateConfigJsonToV2(string json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -491,7 +497,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             var schema = root["SchemaVersion"]?.GetValue<int>() ?? 0;
             var agentsNode = root["Agents"] as JsonObject;
 
-            // Schema ≥2: strip leftovers only — never re-merge Main AutomationTools.
+            // Schema ≥2：只清残留，绝不回并 Main AutomationTools
             if (schema >= 2)
             {
                 root["SchemaVersion"] = 2;
@@ -518,7 +524,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
                 return root.ToJsonString(_writeOptions);
             }
 
-            // Main only (schema < 2): AutomationTools.Ahk + AutomationTools.Agent → Agents.
+            // 仅 Main（schema < 2）：AutomationTools.Ahk + AutomationTools.Agent → Agents
             string? path = null;
             string? processName = null;
             JsonNode? injector = new JsonObject();
@@ -828,6 +834,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         WriteAllTextAtomic(ConfigPath, json);
     }
 
+    // 先写临时文件再替换，避免半写配置被读到
     private static void WriteAllTextAtomic(string path, string content)
     {
         var dir = Path.GetDirectoryName(path);
@@ -858,6 +865,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         ReplaceAtomic(tempPath, path);
     }
 
+    // Replace 失败时用 Move(overwrite) 兜底（跨平台/权限差异）
     private static void ReplaceAtomic(string tempPath, string targetPath)
     {
         try

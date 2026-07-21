@@ -8,6 +8,9 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
+/// <summary>
+/// 敏感操作密码解锁对话框 ViewModel
+/// </summary>
 public sealed partial class SensitiveUnlock(DialogManager dialogManager)
     : FormBase(dialogManager), INotifyDataErrorInfo
 {

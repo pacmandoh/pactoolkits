@@ -6,7 +6,7 @@ using global::Avalonia.Controls;
 namespace PacToolkits.Desktop.Avalonia.Common;
 
 /// <summary>
-/// Resolves Shad theme color tokens (<see cref="Color"/> resources) to brushes for code-behind rendering.
+/// 将 Shad 主题色 token（<see cref="Color"/> 资源）解析为 code-behind 可用的画刷
 /// </summary>
 public static class ThemeBrushResolver
 {

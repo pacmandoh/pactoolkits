@@ -8,6 +8,7 @@ using PacToolkits.Agents.Contracts.Commands;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
+/// <summary>Agents 生命周期管理门面</summary>
 public sealed class AgentsManager : IAgentsManager
 {
     private readonly IReadOnlyDictionary<string, IAgentsRuntime> _runtimes;

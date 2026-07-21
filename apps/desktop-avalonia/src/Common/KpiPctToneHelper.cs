@@ -3,10 +3,11 @@ using System;
 namespace PacToolkits.Desktop.Avalonia.Common;
 
 /// <summary>
-/// Shared KPI percentage tone rules for <c>StatusPill</c> badges and <c>CircleProgressRing</c> progress color.
+/// KPI 百分比色调规则，供 <c>StatusPill</c> 徽章与 <c>CircleProgressRing</c> 进度色共用
 /// </summary>
 public static class KpiPctToneHelper
 {
+    /// <summary>KPI 百分比口径名称常量</summary>
     public static class Metrics
     {
         public const string RemainHealth = "RemainHealth";
@@ -15,6 +16,7 @@ public static class KpiPctToneHelper
         public const string LowStockShare = "LowStockShare";
     }
 
+    /// <summary>KPI 百分比色调档位</summary>
     public enum Tone
     {
         Done,
@@ -23,11 +25,11 @@ public static class KpiPctToneHelper
     }
 
     /// <summary>
-    /// Scheme A thresholds:
-    /// RemainHealth ≥45 / 20–44 / &lt;20;
-    /// UsageIntensity ≤55 / 56–80 / &gt;80 (mirror);
-    /// AbnormalShare ≤3 / 4–10 / &gt;10;
-    /// LowStockShare ≤5 / 6–15 / &gt;15.
+    /// Scheme A 阈值：
+    /// RemainHealth ≥45 / 20–44 / &lt;20；
+    /// UsageIntensity ≤55 / 56–80 / &gt;80（镜像）；
+    /// AbnormalShare ≤3 / 4–10 / &gt;10；
+    /// LowStockShare ≤5 / 6–15 / &gt;15
     /// </summary>
     public static Tone ResolveTone(double pct, string? metric)
     {
@@ -71,7 +73,7 @@ public static class KpiPctToneHelper
         _ => "ToneDanger25",
     };
 
-    /// <summary>Theme resource key for tone foreground / progress arc (matches <c>StatusPill</c>).</summary>
+    /// <summary>色调前景/进度弧的主题资源键（与 <c>StatusPill</c> 对齐）</summary>
     public static string ProgressBrushResourceKey(Tone tone) => tone switch
     {
         Tone.Done => "SuccessColor",

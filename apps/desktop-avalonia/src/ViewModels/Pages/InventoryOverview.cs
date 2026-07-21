@@ -16,6 +16,13 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
+/// <summary>
+/// 追溯码库存页 ViewModel
+///
+/// 负责：
+/// - 库存明细 / 规格汇总 / 低库存 / 缺失列表
+/// - 行级编辑、批量改派与导入导出
+/// </summary>
 public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPage
 {
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
@@ -639,9 +646,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
             });
     }
 
-    /// <summary>
-    /// Reload list data without section busy — keeps batch reassign panel operable while filtering.
-    /// </summary>
+    // 列表静默 reload：不拉起 section busy，筛选时批量改派面板仍可操作
     private Task ReloadQuietAsync(bool preserveEdit = false)
     {
         if (IsStockEditEnabled && !preserveEdit)
@@ -689,7 +694,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
 
         await RunOnUiAsync(() =>
         {
-            // ClearOnPageChange clears native row highlight; restore checkbox picks by trace code.
+            // ClearOnPageChange 会清掉原生行高亮；按追溯码恢复勾选
             if (IsReassignOpen && IsSingleScope)
             {
                 using var _ = BeginReassignContextSync();

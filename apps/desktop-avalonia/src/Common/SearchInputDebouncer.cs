@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace PacToolkits.Desktop.Avalonia.Common;
 
 /// <summary>
-/// Debounces search-box input so rapid typing does not trigger repeated queries.
+/// 搜索框输入防抖，避免快速输入反复触发查询
 /// </summary>
 public sealed class SearchInputDebouncer : IDisposable
 {

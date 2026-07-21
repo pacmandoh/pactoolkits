@@ -122,7 +122,7 @@ public partial class App : global::Avalonia.Application
 
         aboutItem.Click += (_, _) =>
         {
-            // Native menu dismissal must finish before ShadUI opens a hosted dialog.
+            // Native 菜单收起完成后再让 ShadUI 打开托管对话框
             Dispatcher.UIThread.Post(() =>
             {
                 ShowMainWindow(window);
@@ -254,7 +254,7 @@ public partial class App : global::Avalonia.Application
 
         UnregisterGlobalExceptionHandlers();
 
-        // Real app exit: ensure every registered Host process is stopped.
+        // 真正退出应用：确保已注册的 Host 进程全部停掉
         if (_agentsManager is not null)
         {
             try

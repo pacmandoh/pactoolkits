@@ -50,7 +50,7 @@ public sealed class AlertBuilder<T>
         return this;
     }
 
-    /// <summary>Left ghost action. Prefer <see cref="Cancel"/> when the button should replace auto "取消".</summary>
+    /// <summary>左侧 Ghost 操作。若要替换自动生成的「取消」，优先用 <see cref="Cancel"/></summary>
     public AlertBuilder<T> Dismiss(string text, T value)
         => Button(AlertRole.Dismiss, text, value);
 
@@ -84,7 +84,7 @@ public static class AlertBuilderExtensions
         => builder.Close(null).Cancel(discardText, false).Affirm(affirmText, true);
 
     /// <summary>
-    /// Left: discard local edits. Right: force save on conflict. X stays on <see cref="AlertBuilder{T}.CloseValue"/> (null).
+    /// 左：丢弃本地编辑；右：冲突时强制保存；X 仍走 <see cref="AlertBuilder{T}.CloseValue"/>（null）
     /// </summary>
     public static AlertBuilder<bool?> SaveConflict(
         this AlertBuilder<bool?> builder,

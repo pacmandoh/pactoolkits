@@ -8,6 +8,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>下拉/查找选项构建</summary>
 public static class LookupOptions
 {
     public static async Task<IReadOnlyList<OptionItem>> GetDrugOptionsAsync(

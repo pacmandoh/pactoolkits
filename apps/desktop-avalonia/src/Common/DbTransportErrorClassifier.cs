@@ -4,6 +4,7 @@ using System.Text;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>将 DB 传输异常归类为可展示错误</summary>
 public static class DbTransportErrorClassifier
 {
     public static bool IsTransportError(Exception? ex)

@@ -6,11 +6,13 @@ using PacToolkits.Application.Services;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
+/// <summary>当前发布版本信息入口</summary>
 public interface IReleaseVersionService
 {
     ReleaseVersionInfo Current { get; }
 }
 
+/// <summary>读取当前构建/发布版本信息</summary>
 public sealed class ReleaseVersionService : IReleaseVersionService
 {
     public ReleaseVersionInfo Current { get; }

@@ -18,6 +18,13 @@ using PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
+/// <summary>
+/// 码上放心联调页 ViewModel
+///
+/// 负责：
+/// - 出库/子码/映射/任务队列与自动巡检看板
+/// - MSFX API 写入与敏感操作解锁
+/// </summary>
 public sealed partial class MsfxLink : AppPageBase
 {
     private const int AutoLogMaxRows = 500;

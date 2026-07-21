@@ -5,6 +5,9 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
+/// <summary>
+/// MSFX 任务拆分数量确认对话框 ViewModel
+/// </summary>
 public sealed partial class MsfxTaskSplit(DialogManager dialogManager)
     : FormBase(dialogManager)
 {

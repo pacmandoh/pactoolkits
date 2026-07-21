@@ -2,6 +2,7 @@ using PacToolkits.Desktop.Avalonia.Contracts;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
+/// <summary>Section 空态门控文案</summary>
 public static class SectionEmptyCopy
 {
     public const string StaleHint = "数据库已断开，连接恢复后将自动刷新";

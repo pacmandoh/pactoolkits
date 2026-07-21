@@ -21,6 +21,14 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
+/// <summary>
+/// 药品信息维护页 ViewModel
+///
+/// 负责：
+/// - 药典检索与编辑器草稿
+/// - watermark 刷新与本地草稿对账
+/// - 导入导出与敏感操作解锁
+/// </summary>
 public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 {
     private const string OpsScope = UnlockScopes.SharedOps;
@@ -445,7 +453,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         Items.CollectionChanged += OnItemsCollectionChanged;
         RefreshOpsUnlock();
 
-        // Initial data load is posted to UI loop to avoid blocking page activation.
+        // 首屏数据挂到 UI 循环，避免阻塞页面激活
         PostOnUi(() => ObserveDetached(ReloadAsync(), "reload.detached.fail"), DispatcherPriority.Background);
     }
 
@@ -500,7 +508,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             }
         }
 
-        // New keys join the grid via watermark reload + QueueReselect.
+        // 新 key 靠 watermark reload + QueueReselect 进 DataGrid
     }
 
     private async Task<bool> TryConfirmDirtyBeforeActionAsync(string actionHint)
@@ -539,7 +547,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                 return;
             }
 
-            // ReplaceAll churn under reload must not toggle HasEditor before QueueReselect lands.
+            // reload 期间 ReplaceAll 抖动不得在 QueueReselect 落地前翻转 HasEditor
             if (!HasPendingChanges && !_pendingReselectKey.HasValue)
             {
                 ApplySelection(value);
@@ -553,7 +561,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         var nextDrugId = next?.DrugId;
         var nextSpec = next?.Spec;
 
-        // Save/discard dialog must not run inside the selection-changed callback (re-entrancy).
+        // 保存/丢弃对话框不得在 selection-changed 回调内同步跑（防重入）
         Dispatcher.UIThread.Post(() => ObserveDetached(
             OnSelectionChangedAsync(prev, next, nextDrugId, nextSpec),
             "selection.change.detached.fail"));
@@ -692,9 +700,8 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
     private void SyncEditorFrom(DrugRow row)
     {
-        // Same key + clean editor: only bump snapshot when fields already match.
-        // Remote watermark may ApplySaved into the row first — then fall through and
-        // rewrite Edit* so HasChanges() does not spuriously become true.
+        // 同 key 且编辑器干净：字段已一致时只抬 snapshot
+        // 远端 watermark 可能先 ApplySaved 进行，再回写 Edit*，避免 HasChanges() 误报
         if (!HasPendingChanges && IsEditingRow(row) && EditorMatchesRow(row))
         {
             row.NotePreview = null;
@@ -1073,7 +1080,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                         FocusSavedRow(drugId, spec);
                     }
 
-                    // Survive watermark ReplaceAll after this local select.
+                    // 本地选中后经得起后续 watermark ReplaceAll
                     QueueReselect(drugId, spec);
                 }
             }, DispatcherPriority.Normal);
@@ -1305,12 +1312,12 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
     protected override async Task ReloadCoreAsync(CancellationToken ct)
     {
-        // Epoch marks this reload attempt and helps suppress stale error toasts.
+        // epoch 标记本轮 reload，用于抑制过期错误 toast
         var epoch = Interlocked.Increment(ref _reloadEpoch);
 
         try
         {
-            // Capture query state before async work to avoid stale reads.
+            // 异步前先拍查询快照，避免读到半途变更
             var query = _query;
             var result = await _drugIndex.SearchAsync(query.Keyword, limit: SearchLimit, ct);
             var newRows = result.Items.Select(dto => new DrugRow(dto)).ToList();

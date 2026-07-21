@@ -4,6 +4,7 @@ using global::Avalonia.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>UI 线程切换辅助</summary>
 public static class UiThreadHelper
 {
     public static Task RunOnUiAsync(Action action)

@@ -5,6 +5,9 @@ using AppDtos = PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
+/// <summary>
+/// contracts ↔ Application DTO 映射边界，不含业务逻辑
+/// </summary>
 internal static class AgentsContractMapper
 {
     public static AppDtos.AgentsConfigDto ToApplication(AgentsOptions source)

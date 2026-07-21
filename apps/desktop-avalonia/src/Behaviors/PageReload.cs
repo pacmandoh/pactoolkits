@@ -8,7 +8,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 /// <summary>
-/// Single-flight gate for page reload work. Busy/loading UI is owned by the caller.
+/// 页面 reload 的单飞门控。Busy/loading UI 由调用方负责
 /// </summary>
 public sealed class PageReload : IDisposable
 {
@@ -50,6 +50,7 @@ public sealed class PageReload : IDisposable
         }
         finally
         {
+            // 被顶替的旧 run 不得再收尾 UI（避免错页/错态）
             if (onFinished is not null && IsCurrentRun(runId, cts))
             {
                 await Dispatcher.UIThread.InvokeAsync(onFinished);

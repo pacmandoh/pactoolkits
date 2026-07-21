@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
+/// <summary>UI 行为偏好入口</summary>
 public interface IUiBehaviorService
 {
     UiBehaviorOptions Current { get; }
@@ -13,6 +14,7 @@ public interface IUiBehaviorService
     void Reload();
 }
 
+/// <summary>读写 UI 行为偏好（动画/交互等）</summary>
 public sealed class UiBehaviorService : IUiBehaviorService
 {
     private readonly IAppConfigStore _configStore;

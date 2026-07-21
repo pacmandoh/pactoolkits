@@ -9,7 +9,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 /// <summary>
-/// Avalonia 12 compiled bindings omit sort paths on some bound text columns unless seeded here.
+/// Avalonia 12 的 compiled binding 会漏掉部分文本列的 sort path，需在此补种
 /// </summary>
 public class DataGridSortSupport
 {

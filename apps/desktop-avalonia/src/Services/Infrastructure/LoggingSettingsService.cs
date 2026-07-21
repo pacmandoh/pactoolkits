@@ -5,6 +5,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
+/// <summary>日志设置读写入口</summary>
 public interface ILoggingSettingsService
 {
     LoggingOptions Current { get; }
@@ -14,6 +15,7 @@ public interface ILoggingSettingsService
     void Reload();
 }
 
+/// <summary>日志级别与目录等设置服务</summary>
 public sealed class LoggingSettingsService : ILoggingSettingsService
 {
     private readonly IAppConfigStore _configStore;

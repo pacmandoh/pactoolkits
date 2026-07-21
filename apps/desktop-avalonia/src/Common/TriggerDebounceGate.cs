@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>Per-key trigger debounce gate for UI actions.</summary>
+/// <summary>按 key 的 UI 触发防抖门控</summary>
 public sealed class TriggerDebounceGate
 {
     private readonly object _lock = new();

@@ -5,8 +5,8 @@ using global::Avalonia.Controls;
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 /// <summary>
-/// Drops attached behavior state when a <see cref="DataGrid"/> leaves the visual tree
-/// and re-attaches when it returns while still enabled.
+/// <see cref="DataGrid"/> 离开 visual tree 时丢弃 attached behavior 状态；
+/// 仍启用时回到树中再重新 attach
 /// </summary>
 internal static class DataGridVisualLifecycle
 {

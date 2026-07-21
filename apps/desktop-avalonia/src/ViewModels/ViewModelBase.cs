@@ -5,6 +5,9 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
+/// <summary>
+/// MVVM 基类：ObservableObject + 命令触发防抖
+/// </summary>
 public abstract class ViewModelBase : ObservableObject
 {
     private readonly TriggerDebounceGate _triggerDebounce = new();

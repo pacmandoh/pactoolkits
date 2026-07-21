@@ -11,7 +11,7 @@ using global::Avalonia.Controls.Primitives;
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 /// <summary>
-/// Moves marked columns to the left edge before applying Avalonia's contiguous frozen-column range.
+/// 先把标记列移到左缘，再套用 Avalonia 的连续 frozen-column 区间
 /// </summary>
 public class DataGridFrozenColumns
 {
@@ -204,7 +204,7 @@ public class DataGridFrozenColumns
                 continue;
             }
 
-            // Avalonia rounds the row bounds to physical pixels but rounds this transform to whole DIPs.
+            // Avalonia 将行 bounds 对齐到物理像素，但此 transform 按整 DIP 取整
             var alignedOffset = -row.Bounds.X;
             if (Math.Abs(transform.X - alignedOffset) > 0.001)
             {

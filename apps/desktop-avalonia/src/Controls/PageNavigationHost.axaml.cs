@@ -11,8 +11,8 @@ using PacToolkits.Desktop.Avalonia.ViewModels;
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
 /// <summary>
-/// Keeps workspace page views alive in the visual tree and toggles visibility.
-/// Cached page views stay attached; sidebar switches only change IsVisible.
+/// 工作区页面 View 保活在 visual tree 中，仅切换可见性
+/// 缓存页保持 attach；侧栏切换只改 IsVisible
 /// </summary>
 public class PageNavigationHost : Grid
 {
@@ -147,8 +147,7 @@ public class PageNavigationHost : Grid
     }
 
     /// <summary>
-    /// Materializes cached page views one frame at a time so the first sidebar switch
-    /// does not pay the full AXAML compile cost on the UI thread.
+    /// 按帧物化缓存页 View，避免首次侧栏切换在 UI 线程一次性承担全部 AXAML 编译成本
     /// </summary>
     private void SchedulePageWarmup()
     {

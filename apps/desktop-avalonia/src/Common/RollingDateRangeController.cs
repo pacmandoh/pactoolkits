@@ -3,6 +3,7 @@ using global::Avalonia.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>滚动日期范围（近 N 天等）控制器</summary>
 public sealed class RollingDateRangeController : IDisposable
 {
     private readonly DispatcherTimer _timer = new();

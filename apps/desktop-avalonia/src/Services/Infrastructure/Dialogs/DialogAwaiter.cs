@@ -13,6 +13,9 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 
+/// <summary>
+/// Dialog 在 UI 线程上的 TCS 桥；会话栈由 DialogSessionStack 管
+/// </summary>
 internal static class DialogAwaiter
 {
     internal static Task<T> RunOnUiThread<T>(Action<TaskCompletionSource<T>> show)
@@ -33,7 +36,7 @@ internal static class DialogAwaiter
 
         if (Dispatcher.UIThread.CheckAccess() || global::Avalonia.Application.Current is null)
         {
-            // Design-time / no Application: run on the caller thread.
+            // Design-time 或尚无 Application：在调用线程直接执行
             Run();
         }
         else
@@ -53,9 +56,9 @@ internal static class DialogAwaiter
 }
 
 /// <summary>
-/// ShadUI registers dialog callbacks by VM type with TryAdd (never overwrites). Singleton form VMs
-/// need slot reassignment plus orphan control cleanup before each Show. <see cref="FormBase"/> session
-/// completion completes awaiters even when ShadUI clears slots before Close.
+/// ShadUI 按 VM 类型用 TryAdd 注册对话框回调（不会覆盖）。单例表单 VM
+/// 每次 Show 前需重绑 slot 并清理孤儿控件。<see cref="FormBase"/> session
+/// 完成时仍会完成 awaiter，即使 ShadUI 在 Close 前已清掉 slot
 /// </summary>
 internal static class DialogSessionStack
 {
@@ -125,7 +128,7 @@ internal static class DialogSessionStack
                 continue;
             }
 
-            // SimpleDialog X/light-dismiss routes by VM type; self DataContext wires the callback.
+            // SimpleDialog 的 X/light-dismiss 按 VM 类型路由；自身 DataContext 用于挂回调
             element.DataContext = element;
         }
     }
@@ -252,7 +255,7 @@ internal static class FormDialogSession
             var completed = 0;
             Action<bool> completeSession = success =>
             {
-                // ShadUI can invoke success and cancel on the same dismiss path.
+                // ShadUI 可能在同一次 dismiss 路径上同时触发 success 与 cancel
                 if (Interlocked.CompareExchange(ref completed, 1, 0) != 0)
                 {
                     return;
@@ -319,7 +322,7 @@ internal static class FormDialogSession
             return;
         }
 
-        // Show() must register synchronously; otherwise the awaiter would hang forever.
+        // Show() 必须同步注册回调，否则 awaiter 会永久挂起
         throw new InvalidOperationException(
             $"Custom dialog for {contextType.FullName} did not register an open control after Show.");
     }

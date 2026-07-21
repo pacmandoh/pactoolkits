@@ -33,7 +33,7 @@ public static class WindowStateConverters
         state is WindowState.Maximized or WindowState.FullScreen;
 }
 
-/// <summary>Sidebar nav tooltip: expanded → no tooltip; collapsed → show label.</summary>
+/// <summary>侧栏导航 ToolTip：展开无 tip；折叠显示标签</summary>
 public sealed class SidebarNavToolTipConverter : IMultiValueConverter
 {
     public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)

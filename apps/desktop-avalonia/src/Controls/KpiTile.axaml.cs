@@ -93,10 +93,8 @@ public partial class KpiTile : UserControl
         set => SetValue(PctProperty, value);
     }
 
-    /// <summary>
-    /// Which KPI percentage formula drives badge tone/icon and progress ring color:
-    /// RemainHealth, UsageIntensity, AbnormalShare, LowStockShare.
-    /// </summary>
+    // 决定徽章色调/图标与进度环颜色的 KPI 百分比口径：
+    // RemainHealth、UsageIntensity、AbnormalShare、LowStockShare
     public string? PctMetric
     {
         get => GetValue(PctMetricProperty);
@@ -109,7 +107,7 @@ public partial class KpiTile : UserControl
         set => SetValue(AccentBrushProperty, value);
     }
 
-    /// <summary>When unset, <see cref="ValueText"/> uses theme <c>ForegroundColor</c> via styles.</summary>
+    // 未设置时 ValueText 经 styles 使用主题 ForegroundColor
     public IBrush? ValueForeground
     {
         get => GetValue(ValueForegroundProperty);
@@ -215,6 +213,7 @@ public partial class KpiTile : UserControl
         pill.Classes.Add(toneClass);
     }
 
+    /// <summary>KPI 百分比口径常量（转发 <c>KpiPctToneHelper.Metrics</c>）</summary>
     public static class PctMetrics
     {
         public const string RemainHealth = KpiPctToneHelper.Metrics.RemainHealth;

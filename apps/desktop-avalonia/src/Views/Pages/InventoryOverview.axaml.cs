@@ -57,7 +57,7 @@ public partial class InventoryOverview : UserControl
         }
 
         var root = _reassignRoot ?? ReassignPanelHost.Content as Control;
-        // Deferred template x:Name is not on FindControl scope; logical tree has the drug box.
+        // 延迟模板的 x:Name 不在 FindControl 作用域；逻辑树里能拿到药品框
         if (root?.GetLogicalDescendants().OfType<AutoCompleteBox>().FirstOrDefault() is not { } box)
         {
             return;

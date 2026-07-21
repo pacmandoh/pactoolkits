@@ -5,6 +5,7 @@ using System.Linq;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>选项集合填充辅助</summary>
 public static class OptionCollectionHelper
 {
     public static bool ReplaceRaw(

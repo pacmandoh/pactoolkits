@@ -12,6 +12,9 @@ using ShadWindow = ShadUI.Window;
 
 namespace PacToolkits.Desktop.Avalonia.Views;
 
+/// <summary>
+/// 主窗口：标题栏居中导航、Windows 最大化 chrome、macOS 退出路径
+/// </summary>
 public partial class MainWindow : ShadWindow
 {
     private TitleBarCentering? _titleBarCentering;
@@ -42,7 +45,7 @@ public partial class MainWindow : ShadWindow
             return;
         }
 
-        // ShadUI disables hit testing for LogoContent; this slot hosts the centered navigation controls.
+        // ShadUI 对 LogoContent 关闭命中测试；此槽位承载居中导航控件
         titlePanel.IsHitTestVisible = true;
         foreach (var child in titlePanel.Children)
         {
@@ -66,7 +69,7 @@ public partial class MainWindow : ShadWindow
             return;
         }
 
-        // ShadUI has no independent left title-bar slot; the background layer keeps the centered path undisturbed.
+        // ShadUI 没有独立左侧标题栏槽；背景层用于保持居中路径不被挤乱
         if (Resources["WindowsTitleBarMarkTemplate"] is IDataTemplate template)
         {
             titleBarBackground.Child = template.Build(null);
@@ -123,13 +126,13 @@ public partial class MainWindow : ShadWindow
     {
         if (WindowState == WindowState.Maximized)
         {
-            // ShadUI restores RootCornerRadius on Maximize; ClipToBounds then rounds into caption buttons.
+            // ShadUI 在 Maximize 时恢复 RootCornerRadius；ClipToBounds 会圆角裁进标题按钮
             RootCornerRadius = default;
 
             if (OperatingSystem.IsWindows())
             {
-                // Avalonia 12 zeros OffScreenMargin; ShadUI SnapLayout marks WM_NCCALCSIZE handled and
-                // skips Avalonia's BorderOnly maximize client shrink — content paints into the off-screen frame.
+                // Avalonia 12 将 OffScreenMargin 置零；ShadUI SnapLayout 接管 WM_NCCALCSIZE 后
+                // 跳过 Avalonia BorderOnly 最大化客户区收缩，内容会画进屏外边框
                 Margin = WindowsMaximizedFrameInset(DesktopScaling);
             }
 
@@ -194,7 +197,7 @@ public partial class MainWindow : ShadWindow
             return;
         }
 
-        // Avalonia restores decorations before AppKit finishes a programmatic exit; use the traffic-light path.
+        // Avalonia 在 AppKit 完成程序化退出前会先恢复装饰；走红绿灯关闭路径
         var selector = GetMacSelector("toggleFullScreen:");
         SendMacMessage(handle, selector, 0);
     }

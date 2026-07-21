@@ -6,6 +6,7 @@ using global::Avalonia.Media;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
+/// <summary>状态徽章（色调 class + 图标）</summary>
 public partial class StatusPill : UserControl
 {
     public static readonly StyledProperty<string> IconProperty =

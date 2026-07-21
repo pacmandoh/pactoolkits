@@ -18,6 +18,7 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>桌面 DI 服务注册入口</summary>
 public static class ServiceRegistration
 {
     public static IServiceCollection AddPacToolkitsUiServices(this IServiceCollection services, IConfiguration config)
