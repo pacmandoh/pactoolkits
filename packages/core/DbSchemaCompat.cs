@@ -1,5 +1,8 @@
 namespace PacToolkits.Core;
 
+/// <summary>
+/// 数据库 Schema 与 Desktop / Agents 声明范围的兼容状态
+/// </summary>
 public enum DbSchemaCompatibility
 {
     Unknown,
@@ -9,6 +12,9 @@ public enum DbSchemaCompatibility
     AboveMaximum,
 }
 
+/// <summary>
+/// Schema 兼容判定结果（含面向 UI 的说明文案）
+/// </summary>
 public sealed record DbSchemaCompatibilityResult(
     DbSchemaCompatibility Status,
     string CurrentVersion,
@@ -21,6 +27,11 @@ public sealed record DbSchemaCompatibilityResult(
     public bool IsTooLow => Status == DbSchemaCompatibility.BelowMinimum;
 }
 
+/// <summary>
+/// 按 SemVer 判定数据库 Schema 是否落在 Desktop / Agents 交集范围内
+///
+/// 负责：兼容枚举、门槛合并、不兼容提示文案。不访问数据库
+/// </summary>
 public static class DbSchemaCompat
 {
     private const string IncompatibleTitle = "数据库版本不兼容";

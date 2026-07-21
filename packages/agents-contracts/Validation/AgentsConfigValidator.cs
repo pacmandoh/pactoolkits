@@ -3,6 +3,9 @@ using PacToolkits.Agents.Contracts.Models;
 
 namespace PacToolkits.Agents.Contracts.Validation;
 
+/// <summary>
+/// Agents 启动前统一配置校验（SchemaVersion=2、Postgres、Injector 字段）
+/// </summary>
 public static class AgentsConfigValidator
 {
     public sealed record LaunchContext(
@@ -31,7 +34,7 @@ public static class AgentsConfigValidator
             return new AgentsCommandResult(false, "统一配置校验失败：Postgres 连接字段不完整");
         }
 
-        // Injector rejects empty PG_PASS even when Desktop can connect via trust/empty auth.
+        // Injector 拒绝空 PG_PASS；Desktop 在 trust/空密码下仍可能连上，故此处单独拦住
         if (string.IsNullOrWhiteSpace(context.PostgresPassword))
         {
             return new AgentsCommandResult(
