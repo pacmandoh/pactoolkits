@@ -86,14 +86,14 @@ fi
 base_schema_version="$(manifest_schema_version "$BASE_MANIFEST")"
 base_db_version="$(manifest_database_postgres_version "$BASE_MANIFEST")"
 is_stable_semver "$base_db_version" \
-  || die "stable/main baseline release-manifest.json must expose a stable DB version via components.database-postgres.version or legacy dbSchemaVersion"
+  || die "stable/main baseline release-manifest.json must expose components.database.postgres.version"
 
 channel="$(manifest_release_channel "$MANIFEST")"
 policy="$(manifest_database_migration_policy "$MANIFEST")"
 candidate_db_version="$(manifest_database_postgres_version "$MANIFEST")"
 
 LEGACY_MIGRATION_DIR="pactoolkits-db/sql/migrations"
-CURRENT_MIGRATION_DIR="database/postgres/sql/migrations"
+CURRENT_MIGRATION_DIR="database/postgres/migrations"
 
 migration_dir_at_ref() {
   local ref="$1"

@@ -13,9 +13,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\database\postgres\sql\bootstrap\*.sql" Link="Sql\Bootstrap\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Include="..\..\database\postgres\sql\migrations\*.sql" Link="Sql\Migrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Include="..\..\database\postgres\sql\verify\*.sql" Link="Sql\Verify\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\database\postgres\bootstrap\*.sql" Link="Postgres\Bootstrap\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\database\postgres\migrations\*.sql" Link="Postgres\Migrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\database\postgres\verify\*.sql" Link="Postgres\Verify\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <PropertyGroup>

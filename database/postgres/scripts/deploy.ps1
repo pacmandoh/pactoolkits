@@ -9,8 +9,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $DbRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
-$SqlRoot = Join-Path $DbRoot 'sql'
-$RepoRoot = Resolve-Path (Join-Path $DbRoot '..\..')
+$RepoRoot = Resolve-Path (Join-Path $DbRoot.Path '..\..')
 $ManifestPath = Join-Path $RepoRoot.Path 'release-manifest.json'
 $LockOwner = "{0}@{1}:{2}" -f $env:USERNAME, $PID, ([guid]::NewGuid().ToString('N'))
 $LockLeaseMinutes = 60
@@ -49,7 +48,7 @@ function Psql-File([string]$filePath) {
 }
 
 function Ensure-MetaTables() {
-  Psql-File (Join-Path $SqlRoot 'bootstrap\000_init_meta.sql')
+  Psql-File (Join-Path $DbRoot.Path 'bootstrap\000_init_meta.sql')
 }
 
 function Escape-SqlLiteral([string]$value) {
@@ -72,14 +71,11 @@ create table if not exists schema_deploy_lock (
 function Read-ManifestDbVersion() {
   $m = Read-Json $ManifestPath
   $version = $null
-  if ($m.components -and $m.components.'database-postgres' -and $m.components.'database-postgres'.version) {
-    $version = "$($m.components.'database-postgres'.version)"
-  }
-  if ([string]::IsNullOrWhiteSpace($version) -and $m.dbSchemaVersion) {
-    $version = "$($m.dbSchemaVersion)"
+  if ($m.components -and $m.components.database.postgres -and $m.components.database.postgres.version) {
+    $version = "$($m.components.database.postgres.version)"
   }
   if ([string]::IsNullOrWhiteSpace($version)) {
-    throw "[ERROR] manifest database-postgres.version is empty: $ManifestPath"
+    throw "[ERROR] manifest database.postgres.version is empty: $ManifestPath"
   }
   $version
 }
@@ -103,7 +99,7 @@ function Migration-SortKey([System.IO.FileInfo]$file) {
 }
 
 function Get-MigrationFiles() {
-  Get-ChildItem (Join-Path $SqlRoot 'migrations') -Filter 'V*__*.sql' |
+  Get-ChildItem (Join-Path $DbRoot.Path 'migrations') -Filter 'V*__*.sql' |
     Sort-Object @{ Expression = { Migration-SortKey $_ } }
 }
 
@@ -216,11 +212,11 @@ function Run-Upgrade() {
 
 function Run-Verify() {
   $expected = Read-ManifestDbVersion
-  Psql-File (Join-Path $SqlRoot 'verify\01_structure.sql')
-  Psql-File (Join-Path $SqlRoot 'verify\02_constraints.sql')
-  & psql -v ON_ERROR_STOP=1 -X -v "expected_schema_version=$expected" -f (Join-Path $SqlRoot 'verify\03_schema_version.sql')
+  Psql-File (Join-Path $DbRoot.Path 'verify\01_structure.sql')
+  Psql-File (Join-Path $DbRoot.Path 'verify\02_constraints.sql')
+  & psql -v ON_ERROR_STOP=1 -X -v "expected_schema_version=$expected" -f (Join-Path $DbRoot.Path 'verify\03_schema_version.sql')
   if ($LASTEXITCODE -ne 0) { throw '[ERROR] verify failed' }
-  Psql-File (Join-Path $SqlRoot 'verify\04_environment_settings.sql')
+  Psql-File (Join-Path $DbRoot.Path 'verify\04_environment_settings.sql')
   Write-Host "[db] verify passed (expected schema_version=$expected)"
 }
 
@@ -237,7 +233,7 @@ switch ($Command) {
     Ensure-MetaTables
     $expected = Read-ManifestDbVersion
     $current = Psql-Scalar 'select schema_version from schema_version where singleton=true'
-    Write-Host "manifest database-postgres.version: $expected"
+    Write-Host "manifest database.postgres.version: $expected"
     Write-Host "db.schema_version:      $current"
   }
   'plan' {

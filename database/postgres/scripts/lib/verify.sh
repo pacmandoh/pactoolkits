@@ -4,7 +4,7 @@ set -euo pipefail
 # shellcheck disable=SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
-VERIFY_DIR="$SQL_ROOT/verify"
+VERIFY_DIR="$DB_ROOT/verify"
 
 run_verify_suite() {
   local expected="$1"
