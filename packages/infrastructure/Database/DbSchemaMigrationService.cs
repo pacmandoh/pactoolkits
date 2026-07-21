@@ -331,7 +331,7 @@ set schema_version = excluded.schema_version,
 
     private static List<SqlScript> LoadBootstrapScripts()
     {
-        var root = Path.Combine(AppContext.BaseDirectory, "Sql", "Bootstrap");
+        var root = Path.Combine(AppContext.BaseDirectory, "Postgres", "Bootstrap");
         if (!Directory.Exists(root))
         {
             throw new DirectoryNotFoundException($"缺少迁移目录：{root}");
@@ -352,7 +352,7 @@ set schema_version = excluded.schema_version,
 
     private static List<SqlScript> LoadMigrationScripts()
     {
-        var root = Path.Combine(AppContext.BaseDirectory, "Sql", "Migrations");
+        var root = Path.Combine(AppContext.BaseDirectory, "Postgres", "Migrations");
         if (!Directory.Exists(root))
         {
             throw new DirectoryNotFoundException($"缺少迁移目录：{root}");

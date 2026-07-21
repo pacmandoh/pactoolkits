@@ -80,24 +80,24 @@ public static class DbSchemaCompat
             $"数据库版本 {currentText} 位于支持范围 {minimumText} - {maximumText}");
     }
 
-    public static string GetRequiredMax(string uiMax, string agentMax)
+    public static string GetRequiredMax(string uiMax, string agentsMax)
     {
-        if (!TryParseSemVer(uiMax, out var ui) || !TryParseSemVer(agentMax, out var agent))
+        if (!TryParseSemVer(uiMax, out var ui) || !TryParseSemVer(agentsMax, out var agents))
         {
             return uiMax;
         }
 
-        return CompareSemVer(ui, agent) <= 0 ? uiMax : agentMax;
+        return CompareSemVer(ui, agents) <= 0 ? uiMax : agentsMax;
     }
 
-    public static string GetRequiredMin(string uiMin, string agentMin)
+    public static string GetRequiredMin(string uiMin, string agentsMin)
     {
-        if (!TryParseSemVer(uiMin, out var ui) || !TryParseSemVer(agentMin, out var agent))
+        if (!TryParseSemVer(uiMin, out var ui) || !TryParseSemVer(agentsMin, out var agents))
         {
             return uiMin;
         }
 
-        return CompareSemVer(ui, agent) >= 0 ? uiMin : agentMin;
+        return CompareSemVer(ui, agents) >= 0 ? uiMin : agentsMin;
     }
 
     public static bool TryParseSemVer(string value, out (int major, int minor, int patch) ver)
@@ -153,15 +153,15 @@ public static class DbSchemaCompat
         string? schemaValue,
         string? schemaReason,
         string uiMin,
-        string agentMin,
+        string agentsMin,
         string uiMax,
-        string agentMax,
+        string agentsMax,
         string? requiredMin = null,
         string? requiredMax = null)
     {
         var detail = schemaOk
-            ? $"数据库版本：{schemaValue}\nDesktop 支持范围：{uiMin} - {uiMax}\nAgent 支持范围：{agentMin} - {agentMax}"
-            : $"读取失败：{schemaReason ?? "缺少 schema_version 表或版本记录"}\nDesktop 支持范围：{uiMin} - {uiMax}\nAgent 支持范围：{agentMin} - {agentMax}";
+            ? $"数据库版本：{schemaValue}\nDesktop 支持范围：{uiMin} - {uiMax}\nAgents 支持范围：{agentsMin} - {agentsMax}"
+            : $"读取失败：{schemaReason ?? "缺少 schema_version 表或版本记录"}\nDesktop 支持范围：{uiMin} - {uiMax}\nAgents 支持范围：{agentsMin} - {agentsMax}";
 
         if (!string.IsNullOrWhiteSpace(requiredMin))
         {

@@ -3,7 +3,6 @@ set -euo pipefail
 
 DB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SCRIPT_ROOT="$DB_ROOT/scripts"
-SQL_ROOT="$DB_ROOT/sql"
 MANIFEST_PATH="$DB_ROOT/../../release-manifest.json"
 
 log() { printf '[db] %s\n' "$*"; }
@@ -28,8 +27,8 @@ sha256_file() {
 read_manifest_db_version() {
   [[ -f "$MANIFEST_PATH" ]] || die "manifest not found: $MANIFEST_PATH"
   local version
-  version="$(jq -r '.components["database-postgres"].version // .dbSchemaVersion // empty' "$MANIFEST_PATH")"
-  [[ -n "$version" && "$version" != "null" ]] || die "manifest database-postgres.version is empty: $MANIFEST_PATH"
+  version="$(jq -r '.components.database.postgres.version // empty' "$MANIFEST_PATH")"
+  [[ -n "$version" && "$version" != "null" ]] || die "manifest database.postgres.version is empty: $MANIFEST_PATH"
   printf '%s' "$version"
 }
 

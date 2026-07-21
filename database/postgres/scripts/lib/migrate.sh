@@ -4,8 +4,8 @@ set -euo pipefail
 # shellcheck disable=SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
-MIGRATIONS_DIR="$SQL_ROOT/migrations"
-BOOTSTRAP_SQL="$SQL_ROOT/bootstrap/000_init_meta.sql"
+MIGRATIONS_DIR="$DB_ROOT/migrations"
+BOOTSTRAP_SQL="$DB_ROOT/bootstrap/000_init_meta.sql"
 
 migration_files() {
   find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name 'V*__*.sql' \
