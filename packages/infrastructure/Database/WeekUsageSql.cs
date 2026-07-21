@@ -1,5 +1,9 @@
 namespace PacToolkits.Infrastructure.Database;
 
+/// <summary>
+/// 近 7 日（含当日）已提交流水用量 CTE
+/// 窗口锚点取 <c>trace_txn</c> 最新 created_at，而非 wall-clock
+/// </summary>
 internal static class WeekUsageSql
 {
     public const string WeekRangeCte = """

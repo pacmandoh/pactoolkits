@@ -4,6 +4,12 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Infrastructure.Database;
 
+/// <summary>
+/// 业务变更水位监听与分发
+///
+/// 负责：LISTEN/NOTIFY + 轮询 <c>app_change_watermark</c>，按 topic 触发 <c>TopicChanged</c>
+/// 不负责具体页面刷新逻辑
+/// </summary>
 public sealed class ChangeWatermarkService : IChangeWatermarkService
 {
     private const string NotifyChannel = "pactoolkits_change";
@@ -65,6 +71,7 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
         {
             try
             {
+                // poll：首次见到 topic 不刷页（避免启动连环刷新）
                 await RefreshFromWatermarkAsync(emitOnBootstrap: false, ct).ConfigureAwait(false);
             }
             catch (System.Exception ex)
@@ -135,7 +142,7 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
             {
                 _ = await _topics.Reader.ReadAsync(ct).ConfigureAwait(false);
 
-                // Coalesce burst notifications into one watermark refresh.
+                // 短窗内合并突发 NOTIFY，避免一次水位刷新打成多次
                 await Task.Delay(_notifyCoalesceWindow, ct).ConfigureAwait(false);
                 while (_topics.Reader.TryRead(out _)) { }
             }
@@ -146,6 +153,7 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
 
             try
             {
+                // NOTIFY/dispatch：首次见到 topic 也要 emit
                 await RefreshFromWatermarkAsync(emitOnBootstrap: true, ct).ConfigureAwait(false);
             }
             catch (System.Exception ex)
@@ -176,6 +184,7 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
                 else
                 {
                     _versions[topic] = version;
+                    // 首次见到 topic：poll 启动不刷页；dispatch/NOTIFY 路径才 emit
                     shouldEmit = emitOnBootstrap;
                 }
             }
@@ -228,6 +237,7 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
             timeoutSeconds: Math.Max(3, opt.ConnectTimeoutSeconds)))
         {
             KeepAlive = Math.Max(5, opt.KeepAliveSeconds),
+            // LISTEN/NOTIFY 会话不能走连接池，否则通知会丢到别的连接
             Pooling = false
         };
         return csb.ConnectionString;

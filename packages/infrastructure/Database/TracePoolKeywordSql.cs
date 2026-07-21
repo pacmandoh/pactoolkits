@@ -3,6 +3,10 @@ using PacToolkits.Application.TextSearch;
 
 namespace PacToolkits.Infrastructure.Database;
 
+/// <summary>
+/// 追溯池 / 药品索引关键词过滤 SQL 与参数绑定
+/// 含拼音精确命中数组，供库存总览等查询复用
+/// </summary>
 internal static class TracePoolKeywordSql
 {
     public const string TracePoolWhereClause = """

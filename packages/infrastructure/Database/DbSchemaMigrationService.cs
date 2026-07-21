@@ -8,6 +8,12 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Infrastructure.Database;
 
+/// <summary>
+/// Schema 迁移执行与计划查询
+///
+/// 负责：bootstrap/版本脚本装载、advisory lock 下按序应用、校验 checksum
+/// 不解析业务 SQL 语义；脚本内容由嵌入资源决定
+/// </summary>
 public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
 {
     private const string Module = "DbSchemaMigration";
@@ -91,6 +97,7 @@ public sealed class DbSchemaMigrationService : IDbSchemaMigrationService
             targetVersion = hasTarget ? $"{targetSemVer.major}.{targetSemVer.minor}.{targetSemVer.patch}" : null
         });
 
+        // 会话级 advisory lock：多实例并发迁移时串行同一库
         await ExecuteScalarAsync(conn,
             "select pg_advisory_lock(hashtext(@k))",
             commandTimeout,
@@ -229,7 +236,7 @@ set schema_version = excluded.schema_version,
             }
             catch
             {
-                // Ignore unlock failures. Session close also releases advisory locks.
+                // 解锁失败可忽略：会话关闭时 advisory lock 会一并释放
             }
         }
     }

@@ -89,6 +89,7 @@ public sealed partial class MsfxSyncRepo
                 produce_batch_no = excluded.produce_batch_no,
                 code_count = excluded.code_count,
                 raw_json = excluded.raw_json
+            -- xmax=0 表示本语句插入了新行（Postgres upsert 区分 insert/update）
             returning id, (xmax = 0) as is_new
             """;
 
@@ -96,6 +97,7 @@ public sealed partial class MsfxSyncRepo
         cmd.AddParam("bill_id", billId);
         cmd.AddParam("source_row_key", sourceRowKey);
         AddNullableParam(cmd, "physic_name", NullIfWhiteSpace(drug.DrugName));
+        // package_spec 与 pkg_spec 同写：兼容历史双列，勿删其一
         AddNullableParam(cmd, "package_spec", NullIfWhiteSpace(drug.PackageSpec));
         AddNullableParam(cmd, "pkg_spec", NullIfWhiteSpace(drug.PackageSpec));
         AddNullableParam(cmd, "prepn_spec", NullIfWhiteSpace(drug.PrepnSpec));
@@ -559,10 +561,12 @@ public sealed partial class MsfxSyncRepo
 
     private static string NormalizeTaskSplitMode(string? splitMode)
     {
+        // 非 PARENT_CLUSTER 一律 BATCH（默认拆分策略）
         var raw = NormalizeOptional(splitMode)?.ToUpperInvariant();
         return raw == "PARENT_CLUSTER" ? "PARENT_CLUSTER" : "BATCH";
     }
 
+    // 幂等键：字段组合变更会导致重复入库或丢行
     private static string BuildSourceRowKey(
         string billCode,
         string drugName,

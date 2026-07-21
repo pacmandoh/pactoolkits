@@ -6,6 +6,12 @@ using PacToolkits.Infrastructure.Database;
 
 namespace PacToolkits.Infrastructure.Repositories;
 
+/// <summary>
+/// 扫码入库（追溯码写入 <c>trace_pool</c>）
+///
+/// 负责：批量插入、唯一冲突时序列校准后重试
+/// 不解析扫码设备协议
+/// </summary>
 public sealed class ScanCodeRepo : IScanCodeRepo
 {
     private readonly IDb _db;
@@ -59,6 +65,7 @@ public sealed class ScanCodeRepo : IScanCodeRepo
             return await _db.WithConnection(
                 (conn, token) => InsertAsync(conn, drugId, spec, qty, traceCodes, token), ct).ConfigureAwait(false);
         }
+        // 仅校准 serial 漂移导致的 pkey 冲突；业务码重复走另一条路径
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation &&
                                            string.Equals(ex.ConstraintName, "trace_pool_pkey", StringComparison.Ordinal))
         {

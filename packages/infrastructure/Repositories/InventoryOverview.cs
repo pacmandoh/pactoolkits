@@ -7,6 +7,12 @@ using PacToolkits.Infrastructure.Database;
 
 namespace PacToolkits.Infrastructure.Repositories;
 
+/// <summary>
+/// 库存总览（追溯池）分页与汇总查询
+///
+/// 负责：<c>trace_pool</c> 库存页、关键词/拼音过滤、弃用标记联查
+/// 仅数据访问，不含 UI 分页状态
+/// </summary>
 public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
 {
     private readonly IDb _db;

@@ -6,6 +6,12 @@ using PacToolkits.Infrastructure.Database;
 
 namespace PacToolkits.Infrastructure.Repositories;
 
+/// <summary>
+/// 药品索引表（<c>drug_index</c>）数据访问
+///
+/// 负责：检索/计数/目录、增删改、主键修正与关联池/流水同步
+/// 仅数据访问，不含业务口径计算
+/// </summary>
 public sealed class DrugIndexRepo : IDrugIndexRepo
 {
     private readonly IDb _db;
@@ -192,6 +198,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
                 throw new DrugIndexConcurrencyException("该记录已被其他终端创建，请刷新后重试", current);
             }
 
+            // version 乐观锁：不匹配则抛 Concurrency，避免静默覆盖他端改动
             const string updateSql = """
                 update drug_index
                 set
@@ -513,7 +520,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             }
             else if (!targetExisted)
             {
-                // Target key not present: move source PK directly and rely on FK ON UPDATE CASCADE.
+                // 目标主键不存在：直接改源 PK，依赖 FK ON UPDATE CASCADE 同步子表
                 const string movePkSql = """
                     update drug_index
                     set drug_id = @dst_drug,
@@ -711,7 +718,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             }
             else
             {
-                // Keep key-fix available for old schema; audit becomes best-effort until DB upgraded.
+                // 旧 Schema 无审计表时仍完成键修正；审计写入待库升级后再保证
             }
 
             return new DrugKeyFixApplyResultDto(targetExisted, poolAffected, txnAffected, auditId, current);

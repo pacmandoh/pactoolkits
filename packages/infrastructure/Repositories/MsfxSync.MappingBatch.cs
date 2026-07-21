@@ -53,6 +53,7 @@ public sealed partial class MsfxSyncRepo
             where {MapQueueBaseWhere}
               {keywordClause}
               and s.map_status in ('PENDING', 'FAILED', 'NEED_REVIEW')
+            -- 批量映射聚合键；改 group 会拆散同一批次
             group by
               coalesce(s.source_drug_name_raw, ''),
               coalesce(s.source_spec_raw, ''),

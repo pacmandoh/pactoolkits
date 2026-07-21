@@ -45,6 +45,7 @@ public sealed partial class MsfxSyncRepo
               t.err_msg,
               t.queue_seq
             order by
+              -- DISCARDED 沉底；其余按 queue_seq 展示
               case when t.status = 'DISCARDED' then 1 else 0 end,
               t.queue_seq,
               t.id
@@ -284,6 +285,7 @@ public sealed partial class MsfxSyncRepo
 
     public Task<IReadOnlyList<MsfxInjectSplitUnitRow>> GetInjectSplitUnitsAsync(long taskId, CancellationToken ct)
     {
+        // group/display 与 ParentClusterKeyExpr 同源，保证拆分 UI 与执行一致
         var sql = $"""
             with source_codes as (
               select

@@ -5,10 +5,17 @@ using PacToolkits.Infrastructure.Database;
 
 namespace PacToolkits.Infrastructure.Repositories;
 
+/// <summary>
+/// 码上放心（MSFX）同步相关数据访问
+///
+/// 负责：拉取批次、入库明细、映射队列、注入任务等表读写
+/// 不调用外部 MSFX API；仅持久化与查询
+/// </summary>
 public sealed partial class MsfxSyncRepo : IMsfxSyncRepo
 {
     private const int MappingCommandTimeoutSeconds = 120;
 
+    // 未结案码仍留在映射队列：已 MAPPED 但码状态为 NEW/TASKED/FAILED
     private const string MapQueueBaseWhere = """
         (
           s.map_status in ('PENDING', 'NEED_REVIEW', 'FAILED')
@@ -17,6 +24,7 @@ public sealed partial class MsfxSyncRepo : IMsfxSyncRepo
         and (@code_status::text is null or s.code_status = @code_status::text)
         """;
 
+    // 手工映射回填 norm：已有 > 入参 > 函数归一 > '-' 占位（勿把空串当有效）
     private const string ManualMapNormBackfillSetClause = """
         source_name_norm = coalesce(
           nullif(trim(s.source_name_norm), ''),

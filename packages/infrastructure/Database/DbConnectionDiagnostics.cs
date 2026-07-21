@@ -4,6 +4,10 @@ using Npgsql;
 
 namespace PacToolkits.Infrastructure.Database;
 
+/// <summary>
+/// 将 Npgsql / 网络异常归类为面向设置页的中文失败原因
+/// 不抛出、不记录日志
+/// </summary>
 internal static class DbConnectionDiagnostics
 {
     public static (string reason, string? sqlState) Classify(Exception ex)

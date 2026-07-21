@@ -5,6 +5,12 @@ using PacToolkits.Infrastructure.Database;
 
 namespace PacToolkits.Infrastructure.Repositories;
 
+/// <summary>
+/// Dashboard 页面统计数据访问
+///
+/// 负责：客户端用量、趋势、药品排行等 SQL 聚合查询
+/// 仅数据访问，不含 KPI 展示口径之外的业务计算
+/// </summary>
 public sealed class DashboardRepo : IDashboardRepo
 {
     private readonly IDb _db;
