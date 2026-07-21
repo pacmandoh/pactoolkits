@@ -69,8 +69,8 @@ jobs:
             dry_run=false
             confirm=true
           fi
-          # Beta branch CI expects isolated-beta migration work relative to origin/main.
-          # Explicit authorization is enforced for tag/release via workflow_dispatch inputs and release.yml release_gate.
+          # Beta 分支 CI：相对 origin/main 的 isolated-beta migration 需显式授权
+          # tag/release 的授权由 workflow_dispatch 输入与 release.yml 的 release_gate 强制
           if [[ "$allow_beta_db_migration" != "true" ]]; then
             channel="$(jq -r '.release.channel // empty' release-manifest.json)"
             policy="$(jq -r '.components.database.postgres.migrationPolicy // "stable-only"' release-manifest.json)"

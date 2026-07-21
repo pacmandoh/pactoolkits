@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 # -----------------------------
-# Auto elevate to Administrator
+# 自动提权到 Administrator
 # -----------------------------
 $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
@@ -54,7 +54,7 @@ if ([string]::IsNullOrWhiteSpace($plainPassword)) {
 }
 
 # -----------------------------
-# Remove existing task if exists
+# 若已存在则先删除旧任务
 # -----------------------------
 $existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($existing) {
@@ -62,9 +62,6 @@ if ($existing) {
     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
 }
 
-# -----------------------------
-# Build action
-# -----------------------------
 try {
     $action = New-ScheduledTaskAction `
         -Execute $psExe `
@@ -78,7 +75,7 @@ try {
 }
 
 # -----------------------------
-# Trigger 1: every N minutes after first registration
+# Trigger 1：首次注册后每隔 N 分钟
 # -----------------------------
 $trigger1 = New-ScheduledTaskTrigger `
     -Once `
@@ -87,7 +84,7 @@ $trigger1 = New-ScheduledTaskTrigger `
     -RepetitionDuration (New-TimeSpan -Days 3650)
 
 # -----------------------------
-# Trigger 2: at logon
+# Trigger 2：登录时
 # -----------------------------
 try {
     $trigger2 = New-ScheduledTaskTrigger -AtLogOn -User $userId
@@ -97,7 +94,7 @@ try {
 }
 
 # -----------------------------
-# Settings
+# 任务设置
 # -----------------------------
 $settings = New-ScheduledTaskSettingsSet `
     -MultipleInstances IgnoreNew `
@@ -107,9 +104,8 @@ $settings = New-ScheduledTaskSettingsSet `
     -Hidden
 
 # -----------------------------
-# Run as current user, highest
-# Password logon keeps the task capable of background execution
-# while preserving network access better than S4U.
+# 以当前用户、最高权限运行
+# Password 登录才能后台跑且比 S4U 更易保留网络访问
 # -----------------------------
 $taskPrincipal = New-ScheduledTaskPrincipal `
     -UserId $userId `
@@ -122,9 +118,6 @@ $task = New-ScheduledTask `
     -Settings $settings `
     -Principal $taskPrincipal
 
-# -----------------------------
-# Register task
-# -----------------------------
 try {
     Register-ScheduledTask `
         -TaskName $TaskName `

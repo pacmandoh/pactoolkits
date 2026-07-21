@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - beta
-      # Feature-branch smoke: any push builds a Windows test package (no manifest bump required).
+      # 功能分支冒烟：任意 push 打 Windows 测试包（无需 bump manifest）
       - 'refactor/**'
     paths:
       - 'release-manifest.json'

@@ -214,7 +214,7 @@ jobs:
               echo "Bundled Agents source missing for collect step ($exe_name, version=$version)" >&2
               exit 1
             }
-            # Host alone is not runnable; ship the same Agents/ layout as a zip (gh release upload is file-only).
+            # 仅 Host 不可独立运行；打包与 zip 同布局的 Agents/（gh release upload 只接受文件）
             agents_dist="$dist/Agents"
             mkdir -p "$agents_dist"
             cp "$source" "$agents_dist/$exe_name"

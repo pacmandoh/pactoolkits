@@ -25,7 +25,7 @@ jobs:
       - name: Generate or update release notes
         run: |
           set -euo pipefail
-          # Pin refs so test-v* tags on the same commit do not break changelogen.
+          # 钉住 ref，避免同 commit 上的 test-v* tag 弄坏 changelogen
           PREV_V_TAG="$(git tag -l 'v*' --sort=-version:refname | grep -vx "${GITHUB_REF_NAME}" | head -1 || true)"
           ARGS=(--to "${GITHUB_REF_NAME}")
           if [[ -n "$PREV_V_TAG" ]]; then
