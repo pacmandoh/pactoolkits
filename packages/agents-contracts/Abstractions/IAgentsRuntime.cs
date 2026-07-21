@@ -3,6 +3,9 @@ using PacToolkits.Agents.Contracts.Commands;
 
 namespace PacToolkits.Agents.Contracts.Abstractions;
 
+/// <summary>
+/// 单个 Agents 运行时：常驻 Host + 可装卸 Injector 模块的启停与状态
+/// </summary>
 public interface IAgentsRuntime : IDisposable
 {
     event Action? StatusChanged;
@@ -41,9 +44,13 @@ public interface IAgentsRuntime : IDisposable
 
     Task<AgentsCommandResult> StopAsync(CancellationToken ct = default);
 
-    /// <summary>Start or remount Injector; keeps Host up when it is already running.</summary>
+    /// <summary>
+    /// 启动或重挂 Injector；Host 已在运行时保持不杀进程
+    /// </summary>
     Task<AgentsCommandResult> StartInjectorAsync(CancellationToken ct = default);
 
-    /// <summary>Hard-stop Injector module process; Host stays resident when supported.</summary>
+    /// <summary>
+    /// 硬停 Injector 模块进程；在 Host 支持常驻时不退出 Host
+    /// </summary>
     Task<AgentsCommandResult> StopInjectorAsync(CancellationToken ct = default);
 }

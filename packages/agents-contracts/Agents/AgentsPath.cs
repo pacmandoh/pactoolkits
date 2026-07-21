@@ -2,6 +2,9 @@ using System.Text.Json;
 
 namespace PacToolkits.Agents.Contracts.Agents;
 
+/// <summary>
+/// Host 可执行路径解析结果来源（配置路径 / 标准布局 / 缺失）
+/// </summary>
 public enum HostExecutableResolutionSource
 {
     Configured,
@@ -9,14 +12,19 @@ public enum HostExecutableResolutionSource
     Missing,
 }
 
+/// <summary>
+/// Host 路径解析结果（含写入配置时应使用的存储路径）
+/// </summary>
 public sealed record HostExecutableResolution(
     string? ResolvedPath,
     string StoredPath,
     HostExecutableResolutionSource Source);
 
+/// <summary>
+/// Host / module.json 路径解析与 Main Tools→Host 配置迁移判定
+/// </summary>
 public static class AgentsPath
 {
-    /// <summary>Reads <c>entry.windows-x64</c> from a module.json path.</summary>
     public static string? TryReadModuleEntryFileName(string manifestPath)
     {
         if (string.IsNullOrWhiteSpace(manifestPath) || !File.Exists(manifestPath))
@@ -61,7 +69,6 @@ public static class AgentsPath
             : Path.Combine(AgentsPaths.ModuleDir(agentsDir, moduleId), fileName);
     }
 
-    /// <summary>Reads top-level <c>version</c> from a module.json path.</summary>
     public static string? TryReadModuleVersion(string manifestPath)
     {
         if (string.IsNullOrWhiteSpace(manifestPath) || !File.Exists(manifestPath))
@@ -95,8 +102,7 @@ public static class AgentsPath
         var resolvedStandard = ResolvePath(standardStored, baseDirectory);
         var standardExists = resolvedStandard is not null && File.Exists(resolvedStandard);
 
-        // Main-only: rewrite Tools\pacinjector.exe in stored config even when the Host
-        // binary is not present on this machine (e.g. macOS dev / not yet bundled).
+        // Main-only：即使本机尚无 Host 二进制（如 macOS 开发机），也要把 Tools\pacinjector.exe 写回标准 Host 路径
         if (!string.IsNullOrWhiteSpace(configured) && IsMainToolsStoredPath(configured))
         {
             return new HostExecutableResolution(
@@ -121,7 +127,7 @@ public static class AgentsPath
 
         if (standardExists)
         {
-            // Do not rewrite arbitrary missing custom paths — only Main Tools→Host migrates.
+            // 自定义缺失路径不自动改写；仅 Main Tools→Host 走迁移
             return new HostExecutableResolution(
                 resolvedStandard,
                 standardStored,

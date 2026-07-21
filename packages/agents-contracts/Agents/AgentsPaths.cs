@@ -1,11 +1,11 @@
 namespace PacToolkits.Agents.Contracts.Agents;
 
+/// <summary>
+/// Agents 布局与进程名常量（Host 入口、Modules 目录、Main Tools 迁移源）
+/// </summary>
 public static class AgentsPaths
 {
-    /// <summary>
-    /// Host = Agents entry process that hosts modules (Agents.exe).
-    /// Not a product name; Agents is the container, Injector is a module.
-    /// </summary>
+    // Host = Agents 入口进程（Agents.exe）；Agents 是容器，Injector 是挂载模块
     public const string HostExecutableFileName = "Agents.exe";
 
     public const string HostExecutable = @".\Agents\Agents.exe";
@@ -14,27 +14,24 @@ public static class AgentsPaths
 
     public const string InjectorModuleId = "Injector";
 
-    /// <summary>Written by a module after startup self-check passes.</summary>
+    // 模块启动自检通过后写入，供 Desktop / Host 判定 Injector 就绪
     public const string ModuleReadyFileName = "module.ready";
 
     public const string ModuleManifestFileName = "module.json";
 
-    /// <summary>
-    /// Desktop ↔ Host control file under <c>Modules/&lt;Id&gt;/</c>.
-    /// One command per write: <c>start</c>, <c>stop</c>, or <c>quit</c>.
-    /// </summary>
+    // Desktop ↔ Host 控制文件（Modules/<Id>/）；每次写入一条命令：start / stop / quit
     public const string ModuleControlFileName = "module.control";
 
     public const string ModulesDirectoryName = "Modules";
 
-    /// <summary>Main-shipped layout (config migration source only).</summary>
+    // Main 已发布布局；仅作配置迁移源，不是运行时兜底扫描路径
     public const string MainToolsExecutable = @".\Tools\pacinjector.exe";
 
     public const string MainToolsFileName = "pacinjector.exe";
 
     public const string MainToolsProcessName = "pacinjector";
 
-    /// <summary>Host entry process names for status/stop (includes Main Tools process).</summary>
+    // 状态探测 / 停止时包含 Main Tools 进程名，便于迁移后清掉旧 pacinjector
     public static readonly string[] HostProcessNameCandidates =
     [
         HostProcessName,

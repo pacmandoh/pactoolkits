@@ -2,6 +2,9 @@ using PacToolkits.Agents.Contracts.Agents;
 
 namespace PacToolkits.Agents.Contracts.Models;
 
+/// <summary>
+/// Desktop / Host 共享的 Agents 配置根（可执行路径 + Injector 模块选项）
+/// </summary>
 public sealed class AgentsOptions
 {
     public string ExecutablePath { get; set; } = AgentsPaths.HostExecutable;
@@ -11,6 +14,9 @@ public sealed class AgentsOptions
     public InjectorOptions Injector { get; set; } = new();
 }
 
+/// <summary>
+/// Injector 模块运行参数（门诊/住院窗口类名、列规格、仓库任务标识等）
+/// </summary>
 public sealed class InjectorOptions
 {
     public bool Enabled { get; set; } = true;
