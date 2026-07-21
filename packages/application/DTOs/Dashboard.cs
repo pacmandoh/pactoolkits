@@ -8,6 +8,9 @@ public enum TxnBadge
     Danger = 3
 }
 
+/// <summary>
+/// 追溯录入流水状态（含人工复核等）
+/// </summary>
 public enum TraceEntryState
 {
     Unknown = 0,
@@ -26,6 +29,9 @@ public enum TxnStatus
     Pending = 3
 }
 
+/// <summary>
+/// 药品索引行（drugId+spec 主键与版本）
+/// </summary>
 public sealed record DrugIndexDto(
     string DrugId,
     string Spec,
@@ -62,6 +68,9 @@ public sealed record DashboardKpiDto(
     long? SelectedZeroRemainCount
 );
 
+/// <summary>
+/// 客户端展示信息（含别名后的 Display）
+/// </summary>
 public sealed record ClientInfo(
     string Raw,
     string Display,
@@ -134,6 +143,9 @@ public sealed record AbnormalRowDto(
 
 public sealed record DateRange(DateOnly From, DateOnly To);
 
+/// <summary>
+/// 趋势图度量口径
+/// </summary>
 public enum TrendMetric
 {
     Qty = 0,
@@ -214,6 +226,9 @@ public sealed record StockReassignPreviewItemDto(
     int Remain
 );
 
+/// <summary>
+/// 药品主键修复预览
+/// </summary>
 public sealed record DrugKeyFixPreviewDto(
     bool SourceExists,
     bool TargetExists,
@@ -221,6 +236,9 @@ public sealed record DrugKeyFixPreviewDto(
     int TraceTxnAffected
 );
 
+/// <summary>
+/// 药品主键修复应用结果
+/// </summary>
 public sealed record DrugKeyFixApplyResultDto(
     bool TargetExisted,
     int TracePoolAffected,

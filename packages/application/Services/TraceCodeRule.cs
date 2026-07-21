@@ -2,6 +2,9 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 追溯码校验规则内存态与持久化同步
+/// </summary>
 public sealed class TraceCodeRuleService : ITraceCodeRuleService
 {
     private readonly ITraceCodeRuleStore _store;

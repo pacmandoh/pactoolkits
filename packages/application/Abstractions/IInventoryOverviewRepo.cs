@@ -3,6 +3,9 @@ using PacToolkits.Application.TextSearch;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// 库存总览分页与单元格编辑的数据访问
+/// </summary>
 public interface IInventoryOverviewRepo
 {
     Task<PagedResult<TracePoolStockRowDto>> GetStockPageAsync(

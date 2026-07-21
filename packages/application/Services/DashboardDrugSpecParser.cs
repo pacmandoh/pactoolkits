@@ -1,5 +1,8 @@
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 从异常详情文案解析药品/规格；识别库存异常标题
+/// </summary>
 public static class DashboardDrugSpecParser
 {
     public static bool IsInventoryAbnormalTitle(string? title)

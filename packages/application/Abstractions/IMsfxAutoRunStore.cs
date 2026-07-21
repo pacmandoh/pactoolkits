@@ -2,6 +2,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// 自动跑批持久化：拉窗游标、批次、重试与观察队列
+/// </summary>
 public interface IMsfxAutoRunStore
 {
     Task<IAsyncDisposable?> TryAcquireRunLockAsync(

@@ -1,5 +1,8 @@
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// Postgres 连接与池/监控超时参数
+/// </summary>
 public sealed class PgOptions
 {
     public string Host { get; set; } = "localhost";

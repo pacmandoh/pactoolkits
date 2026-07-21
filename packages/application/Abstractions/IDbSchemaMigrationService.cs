@@ -2,6 +2,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// Schema 迁移计划与执行（升到目标版本）
+/// </summary>
 public interface IDbSchemaMigrationService
 {
     Task<DbSchemaMigrationPlan> GetPlanAsync(CancellationToken ct, string? targetVersion = null);

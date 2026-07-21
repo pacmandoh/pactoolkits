@@ -2,11 +2,15 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 药品/规格查找短 TTL 缓存；访问阻断时返回空目录
+/// </summary>
 public sealed class LookupCatalogService : ILookupCatalogService
 {
     private static readonly TimeSpan DrugIdsTtl = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan SpecsTtl = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan CanonicalTtl = TimeSpan.FromSeconds(20);
+    // Qty 更易变，TTL 短于其它目录缓存
     private static readonly TimeSpan QtyTtl = TimeSpan.FromSeconds(10);
 
     private readonly IDashboardRepo _dashboardRepo;

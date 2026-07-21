@@ -2,6 +2,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// 解析 client_id 原始串（machine|user|key=value…）为 ClientInfo
+/// </summary>
 public static class ClientParser
 {
     public static ClientInfo Parse(string raw)

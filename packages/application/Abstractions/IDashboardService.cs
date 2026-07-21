@@ -2,6 +2,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// Dashboard 业务编排：快照与分页查询入口
+/// </summary>
 public interface IDashboardService
 {
     Task<DashboardSnapshot> GetSnapshotAsync(DashboardRequest request, CancellationToken ct);

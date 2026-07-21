@@ -2,6 +2,9 @@ using System.Text.Json;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 从发布清单 JSON 解析唯一 desktop 实现节点
+/// </summary>
 public static class ReleaseManifestDesktop
 {
     public static bool TryGetImplementation(JsonElement components, out JsonElement desktop)

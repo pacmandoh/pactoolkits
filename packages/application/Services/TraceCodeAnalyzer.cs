@@ -4,6 +4,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 追溯码格式校验与批量分析（行种类、池内重复候选）
+/// </summary>
 public static class TraceCodeAnalyzer
 {
     public static bool TryValidateFormat(
@@ -41,6 +44,7 @@ public static class TraceCodeAnalyzer
         }
         catch
         {
+            // 非法 Regex pattern 当格式失败，不 throw 打断录入
             errorMessage = "追溯码格式不符合规则";
             return false;
         }

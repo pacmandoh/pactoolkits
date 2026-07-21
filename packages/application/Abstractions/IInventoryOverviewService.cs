@@ -2,6 +2,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// 库存总览业务：关键字扩展、单元格批量编辑与大批量改派门槛
+/// </summary>
 public interface IInventoryOverviewService
 {
     int LargeBatchReassignConfirmThreshold { get; }

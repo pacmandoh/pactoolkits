@@ -2,6 +2,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// MSFX 同步全量数据访问（入库、映射、注入任务等）
+/// </summary>
 public interface IMsfxSyncRepo
 {
     Task<IAsyncDisposable?> TryAcquireRunLockAsync(

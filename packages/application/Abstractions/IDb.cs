@@ -2,6 +2,9 @@ using System.Data;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// 应用层数据库会话入口（连接/事务/会话锁）；具体驱动由 Infrastructure 实现
+/// </summary>
 public interface IDb
 {
     Task<IAsyncDisposable?> TryAcquireSessionLockAsync(

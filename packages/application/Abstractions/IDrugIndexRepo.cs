@@ -2,6 +2,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// 药品索引表 CRUD/检索与主键修复数据访问
+/// </summary>
 public interface IDrugIndexRepo
 {
     Task<IReadOnlyList<DrugIndexDto>> SearchAsync(string? keyword, int limit, CancellationToken ct);

@@ -2,8 +2,9 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Application.Services;
 
-// Shared database compatibility gate. PgDb enforces this for all IDb access;
-// infrastructure helpers that open explicit connections must call ThrowIfBlocked() too.
+/// <summary>
+/// Schema 不兼容共享阻断门实现；PgDb 与直连路径共用
+/// </summary>
 public sealed class DbAccessGuard : IDbAccessGuard
 {
     private readonly object _gate = new();

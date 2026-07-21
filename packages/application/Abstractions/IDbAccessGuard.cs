@@ -1,6 +1,8 @@
 namespace PacToolkits.Application.Abstractions;
 
-// Compatibility gate shared with PgDb. Repos and services that bypass IDb must call ThrowIfBlocked().
+/// <summary>
+/// Schema 不兼容时的共享阻断门；绕过 IDb 的路径也须 ThrowIfBlocked()
+/// </summary>
 public interface IDbAccessGuard
 {
     bool IsBlocked { get; }

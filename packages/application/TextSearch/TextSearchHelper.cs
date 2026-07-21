@@ -1,5 +1,8 @@
 namespace PacToolkits.Application.TextSearch;
 
+/// <summary>
+/// 文本/拼音检索辅助（匹配判定与拼音查询形态识别）
+/// </summary>
 public static class TextSearchHelper
 {
     public const int DefaultMaxPinyinExactMatches = 25;

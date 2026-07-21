@@ -6,6 +6,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Services.Msfx;
 
+/// <summary>
+/// MSFX 自动跑批：拉单→入库→映射→建任务；可恢复中断批次
+/// </summary>
 public sealed class MsfxAutoRunService(
     IMsfxApiClient api,
     IMsfxAutoRunStore store) : IMsfxAutoRunService
@@ -15,6 +18,7 @@ public sealed class MsfxAutoRunService(
     private const int PageSize = 50;
     private const int MappingBatchSize = 1000;
     private const int MappingMaxRows = 50000;
+    // 同窗补扫上限；仍漏的靠下轮回看窗口补偿
     private const int ReconciliationPasses = 3;
     private const int RateLimitAttempts = 3;
 
@@ -40,7 +44,9 @@ public sealed class MsfxAutoRunService(
             throw new InvalidOperationException("请先在设置页面配置接收企业 RefEntId");
         }
 
+        // 进度只增不减，避免补扫/重试时 UI 回跳
         observer = new MonotonicObserver(observer);
+        // 单飞行跑批：同 SourceApi 不允许并行第二趟
         await using var runLock =
             await store.TryAcquireRunLockAsync(SourceApi, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException("另一个 MSFX 自动巡检正在运行，请等待其完成");
@@ -745,6 +751,7 @@ public sealed class MsfxAutoRunService(
         return (result!, apiMilliseconds);
     }
 
+    // 上游约定：BizCode=7 / 文案含 App Call Limited
     private static bool IsRateLimited(MsfxApiCallResult call)
         => string.Equals(call.BizCode?.Trim(), "7", StringComparison.OrdinalIgnoreCase)
            || call.BizMessage?.Contains("App Call Limited", StringComparison.OrdinalIgnoreCase) == true
@@ -757,6 +764,7 @@ public sealed class MsfxAutoRunService(
         TraceEntryState state)
         => observer.Report(new MsfxAutoRunUpdate(Stage: stage, Message: message, State: state));
 
+    /// <summary>包装观察者：Progress 单调不减，避免 UI 回跳</summary>
     private sealed class MonotonicObserver(IMsfxAutoRunObserver inner) : IMsfxAutoRunObserver
     {
         private double _progress;

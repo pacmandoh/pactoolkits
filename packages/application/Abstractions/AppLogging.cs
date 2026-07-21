@@ -9,6 +9,9 @@ public enum AppLogLevel
     Fatal = 4
 }
 
+/// <summary>
+/// 应用结构化日志入口（按模块/事件写入，支持导出近期日志）
+/// </summary>
 public interface IAppLogger
 {
     string LogDirectory { get; }

@@ -4,6 +4,9 @@ using PacToolkits.Application.TextSearch;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 库存总览：关键字拼音扩展、单元格编辑与改派门槛
+/// </summary>
 public sealed class InventoryOverviewService : IInventoryOverviewService
 {
     public const int DefaultLargeBatchReassignConfirmThreshold = 500;
