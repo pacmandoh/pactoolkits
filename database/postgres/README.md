@@ -1,13 +1,13 @@
-# pactoolkits-db (Refactored)
+# PostgreSQL（database/postgres）
 
-This project is fully migrated to a unified deployment model:
+统一部署模型：
 
-- single command entry
-- migration ledger (`schema_migrations`)
-- schema version gate (`schema_version` vs manifest)
-- read-only verification safe for non-empty databases
+- 单一命令入口
+- migration 账本（`schema_migrations`）
+- schema 版本门禁（`schema_version` vs manifest）
+- 对非空库安全的只读 verify
 
-## Layout
+## 布局
 
 ```text
 database/postgres/
@@ -29,14 +29,14 @@ database/postgres/
       verify.sh
 ```
 
-## Commands
+## 命令
 
 ### macOS / Linux
 
 ```bash
 cd database/postgres
 cp scripts/config.example.json scripts/config.json
-# edit scripts/config.json
+# 编辑 scripts/config.json
 
 ./scripts/deploy.sh doctor
 ./scripts/deploy.sh plan
@@ -50,7 +50,7 @@ cp scripts/config.example.json scripts/config.json
 ```powershell
 Set-Location database/postgres
 Copy-Item scripts/config.example.json scripts/config.json
-# edit scripts/config.json
+# 编辑 scripts/config.json
 
 ./scripts/deploy.ps1 doctor
 ./scripts/deploy.ps1 plan
@@ -59,19 +59,18 @@ Copy-Item scripts/config.example.json scripts/config.json
 ./scripts/deploy.ps1 full
 ```
 
-## Rules
+## 规则
 
-1. Source of target DB version: `../../release-manifest.json` -> `components.database.postgres.version`.
-2. Every schema change must be a new migration file: `Vx_y_z__description.sql`.
-3. Applied migration files are immutable (checksum protected).
-4. `verify` is read-only and production-safe on non-empty databases.
+1. 目标 DB 版本来源：`../../release-manifest.json` → `components.database.postgres.version`。
+2. 每次 schema 变更必须新增 migration 文件：`Vx_y_z__description.sql`。
+3. 已应用的 migration 文件不可变（校验和保护）。
+4. `verify` 只读，对非空生产库安全。
 
-## Isolated Beta database
+## 隔离 Beta 数据库
 
-Beta databases are created only by an explicit operator command. The Desktop
-application does not run these scripts.
+Beta 库仅由运维显式命令创建；Desktop 应用不会执行这些脚本。
 
-Clone a Stable database on macOS/Linux:
+在 macOS/Linux 上从 Stable 库克隆：
 
 ```bash
 ./scripts/create-beta-database.sh \
@@ -80,11 +79,9 @@ Clone a Stable database on macOS/Linux:
   --config database/postgres/scripts/config.json
 ```
 
-The template database must have no active connections. The scripts check this
-before cloning and stop with an explicit error; disconnect application and
-administrative sessions from the template database first.
+模板库不得有活跃连接。脚本会在克隆前检查；请先断开应用与管理会话。
 
-Restore a Stable backup:
+从 Stable 备份恢复：
 
 ```bash
 ./scripts/create-beta-database.sh \
@@ -93,7 +90,7 @@ Restore a Stable backup:
   --config database/postgres/scripts/config.json
 ```
 
-Windows PowerShell uses the same policy:
+Windows PowerShell 策略相同：
 
 ```powershell
 ./scripts/create-beta-database.ps1 `
@@ -102,12 +99,18 @@ Windows PowerShell uses the same policy:
   -ConfigPath database/postgres/scripts/config.json
 ```
 
-The generated name is `pactoolkits_beta_0_18_0_beta_1`. Existing databases are
-never overwritten or deleted. After cloning, the script writes:
+生成库名形如 `pactoolkits_beta_0_18_0_beta_1`。已存在同名库时不会覆盖或删除。克隆成功后写入：
 
 - `Database.Environment=isolated`
 - `Database.AllowBetaMigrations=true`
 - `Database.Source=production-clone`
 - `Database.BetaVersion=<version>`
 
-The connection string printed at completion intentionally omits the password.
+完成时打印的连接串故意不含密码。
+
+## 文档
+
+- [业务主题与职责](./docs/overview.md)
+- [数据库兼容与回退政策](../../docs/operations/database-compatibility-policy.md)
+- [Beta 发布政策](../../docs/operations/beta-release-policy.md)
+- [发布流程](../../docs/operations/release-flow.md)
