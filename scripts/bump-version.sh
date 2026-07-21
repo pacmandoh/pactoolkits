@@ -10,19 +10,15 @@ usage() {
 Usage:
   bump-version.sh [--product X.Y.Z|X.Y.Z-beta.N|auto] [--desktop X.Y.Z|X.Y.Z-beta.N]
                   [--db X.Y.Z] [--component COMPONENT_ID=X.Y.Z]...
+                  [--module MODULE_ID=X.Y.Z]...
                   [--component-min-db COMPONENT_ID=X.Y.Z]...
-                  [--desktop-min-db X.Y.Z] [--agent-min-db X.Y.Z]
+                  [--desktop-min-db X.Y.Z]
                   [--channel stable|beta] [--date YYYY-MM-DD]
                   [--output PATH] [--dry-run]
 
-Legacy aliases (mapped to manifest v2 fields):
-  --suite -> --product
-  --ui -> --desktop
-  --agent -> --component agent-injector-ahk=X.Y.Z
-  --agent-min-db -> --component-min-db agent-injector-ahk=X.Y.Z
-
 Examples:
-  bump-version.sh --product 0.4.1 --desktop 0.4.1 --component agent-injector-ahk=0.3.1
+  bump-version.sh --product 0.4.1 --desktop 0.4.1 --component agents=0.3.1
+  bump-version.sh --module Injector=0.6.2
   bump-version.sh --product auto --desktop 0.4.4
   bump-version.sh --db 1.2.1 --channel beta
 USAGE
@@ -146,30 +142,30 @@ PRODUCT=""
 DESKTOP=""
 DB=""
 DESKTOP_MIN_DB=""
-AGENT_MIN_DB=""
 CHANNEL=""
 DATE_STR="$(date -u +%F)"
 DRY_RUN="false"
 OUTPUT_FILE=""
 declare -a COMPONENT_UPDATES=()
+declare -a MODULE_UPDATES=()
 declare -a COMPONENT_MIN_DB_UPDATES=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --product | --suite)
+    --product)
       PRODUCT="${2:-}"
       shift 2
       ;;
-    --desktop | --ui)
+    --desktop)
       DESKTOP="${2:-}"
-      shift 2
-      ;;
-    --agent)
-      COMPONENT_UPDATES+=("agent-injector-ahk=${2:-}")
       shift 2
       ;;
     --component)
       COMPONENT_UPDATES+=("${2:-}")
+      shift 2
+      ;;
+    --module)
+      MODULE_UPDATES+=("${2:-}")
       shift 2
       ;;
     --component-min-db)
@@ -180,13 +176,8 @@ while [[ $# -gt 0 ]]; do
       DB="${2:-}"
       shift 2
       ;;
-    --desktop-min-db | --ui-min-db)
+    --desktop-min-db)
       DESKTOP_MIN_DB="${2:-}"
-      shift 2
-      ;;
-    --agent-min-db)
-      AGENT_MIN_DB="${2:-}"
-      COMPONENT_MIN_DB_UPDATES+=("agent-injector-ahk=${2:-}")
       shift 2
       ;;
     --channel)
@@ -255,7 +246,7 @@ if [[ -n "$DESKTOP" ]]; then
     exit 1
   }
 fi
-for v in "$DB" "$DESKTOP_MIN_DB" "$AGENT_MIN_DB"; do
+for v in "$DB" "$DESKTOP_MIN_DB"; do
   [[ -z "$v" ]] || is_semver "$v" || {
     echo "ERROR: invalid semver arg" >&2
     exit 1
@@ -276,7 +267,7 @@ if [[ -n "$CHANNEL" ]]; then
   esac
 fi
 
-if [[ -z "$PRODUCT$DESKTOP$DB$DESKTOP_MIN_DB$AGENT_MIN_DB$CHANNEL" && ${#COMPONENT_UPDATES[@]} -eq 0 && ${#COMPONENT_MIN_DB_UPDATES[@]} -eq 0 ]]; then
+if [[ -z "$PRODUCT$DESKTOP$DB$DESKTOP_MIN_DB$CHANNEL" && ${#COMPONENT_UPDATES[@]} -eq 0 && ${#MODULE_UPDATES[@]} -eq 0 && ${#COMPONENT_MIN_DB_UPDATES[@]} -eq 0 ]]; then
   echo "ERROR: nothing to update" >&2
   usage
   exit 1
@@ -289,6 +280,7 @@ current_desktop="$(manifest_desktop_version "$MANIFEST")"
 current_db="$(manifest_database_postgres_version "$MANIFEST")"
 
 component_updates_json='{}'
+module_updates_json='{}'
 product_auto_level="none"
 desktop_level="none"
 db_level="none"
@@ -308,11 +300,29 @@ for item in "${COMPONENT_UPDATES[@]}"; do
     echo "ERROR: invalid component version for $component_id: $component_version" >&2
     exit 1
   }
-  jq -e --arg id "$component_id" '.components[$id].version' "$MANIFEST" > /dev/null || {
-    echo "ERROR: unknown manifest component: $component_id" >&2
-    exit 1
-  }
-  current_component_version="$(jq -r --arg id "$component_id" '.components[$id].version' "$MANIFEST")"
+  case "$component_id" in
+    database.postgres)
+      jq -e '.components.database.postgres.version' "$MANIFEST" > /dev/null || {
+        echo "ERROR: unknown manifest component: $component_id" >&2
+        exit 1
+      }
+      current_component_version="$(jq -r '.components.database.postgres.version' "$MANIFEST")"
+      ;;
+    desktop)
+      current_component_version="$(manifest_desktop_version "$MANIFEST")"
+      [[ -n "$current_component_version" ]] || {
+        echo "ERROR: unknown manifest component: $component_id" >&2
+        exit 1
+      }
+      ;;
+    *)
+      jq -e --arg id "$component_id" '.components[$id].version' "$MANIFEST" > /dev/null || {
+        echo "ERROR: unknown manifest component: $component_id" >&2
+        exit 1
+      }
+      current_component_version="$(jq -r --arg id "$component_id" '.components[$id].version' "$MANIFEST")"
+      ;;
+  esac
   component_level="$(semver_change_level "$current_component_version" "$component_version")"
   [[ "$component_level" != "downgrade" ]] || {
     echo "ERROR: --component $component_id cannot downgrade ($current_component_version -> $component_version)" >&2
@@ -323,6 +333,44 @@ for item in "${COMPONENT_UPDATES[@]}"; do
     --argjson base "$component_updates_json" \
     --arg id "$component_id" \
     --arg ver "$component_version" \
+    '$base + {($id): $ver}')"
+done
+
+for item in "${MODULE_UPDATES[@]}"; do
+  [[ "$item" == *=* ]] || {
+    echo "ERROR: --module expects MODULE_ID=X.Y.Z, got: $item" >&2
+    exit 1
+  }
+  module_id="${item%%=*}"
+  module_version="${item#*=}"
+  existing_version="$(jq -r --arg id "$module_id" '.[$id] // empty' <<< "$module_updates_json")"
+  if [[ -n "$existing_version" ]]; then
+    if [[ "$existing_version" != "$module_version" ]]; then
+      echo "ERROR: conflicting module version for $module_id: $existing_version vs $module_version" >&2
+    else
+      echo "ERROR: duplicate module update for $module_id" >&2
+    fi
+    exit 1
+  fi
+  is_semver "$module_version" || {
+    echo "ERROR: invalid module version for $module_id: $module_version" >&2
+    exit 1
+  }
+  jq -e --arg id "$module_id" '.components.agents.modules[$id].version' "$MANIFEST" > /dev/null || {
+    echo "ERROR: unknown agents module: $module_id" >&2
+    exit 1
+  }
+  current_module_version="$(jq -r --arg id "$module_id" '.components.agents.modules[$id].version' "$MANIFEST")"
+  module_level="$(semver_change_level "$current_module_version" "$module_version")"
+  [[ "$module_level" != "downgrade" ]] || {
+    echo "ERROR: --module $module_id cannot downgrade ($current_module_version -> $module_version)" >&2
+    exit 1
+  }
+  product_auto_level="$(max_level "$product_auto_level" "$module_level")"
+  module_updates_json="$(jq -n \
+    --argjson base "$module_updates_json" \
+    --arg id "$module_id" \
+    --arg ver "$module_version" \
     '$base + {($id): $ver}')"
 done
 
@@ -339,12 +387,12 @@ if [[ -n "$DESKTOP" ]]; then
 fi
 
 if [[ -n "$DB" ]]; then
-  existing_db="$(jq -r '."database-postgres" // empty' <<< "$component_updates_json")"
+  existing_db="$(jq -r '."database.postgres" // empty' <<< "$component_updates_json")"
   if [[ -n "$existing_db" ]]; then
     if [[ "$existing_db" != "$DB" ]]; then
-      echo "ERROR: conflicting database version: --db $DB vs --component database-postgres=$existing_db" >&2
+      echo "ERROR: conflicting database version: --db $DB vs --component database.postgres=$existing_db" >&2
     else
-      echo "ERROR: duplicate database update: use --db or --component database-postgres=..., not both" >&2
+      echo "ERROR: duplicate database update: use --db or --component database.postgres=..., not both" >&2
     fi
     exit 1
   fi
@@ -366,10 +414,25 @@ for item in "${COMPONENT_MIN_DB_UPDATES[@]}"; do
     echo "ERROR: invalid component minDbSchema for $component_id: $min_db_version" >&2
     exit 1
   }
-  jq -e --arg id "$component_id" '.components[$id].minDbSchema' "$MANIFEST" > /dev/null || {
-    echo "ERROR: unknown manifest component for minDbSchema: $component_id" >&2
-    exit 1
-  }
+  case "$component_id" in
+    desktop)
+      desktop_impl="$(manifest_desktop_implementation "$MANIFEST")"
+      [[ -n "$desktop_impl" ]] || {
+        echo "ERROR: unknown manifest component for minDbSchema: $component_id" >&2
+        exit 1
+      }
+      jq -e --arg impl "$desktop_impl" '.components.desktop[$impl].minDbSchema' "$MANIFEST" > /dev/null || {
+        echo "ERROR: unknown manifest component for minDbSchema: $component_id" >&2
+        exit 1
+      }
+      ;;
+    *)
+      jq -e --arg id "$component_id" '.components[$id].minDbSchema' "$MANIFEST" > /dev/null || {
+        echo "ERROR: unknown manifest component for minDbSchema: $component_id" >&2
+        exit 1
+      }
+      ;;
+  esac
   component_min_db_json="$(jq -n \
     --argjson base "$component_min_db_json" \
     --arg id "$component_id" \
@@ -414,7 +477,7 @@ fi
 should_auto_product=false
 if [[ "$PRODUCT" == "auto" ]]; then
   should_auto_product=true
-elif [[ -z "$PRODUCT" && (${#COMPONENT_UPDATES[@]} -gt 0 || -n "$DESKTOP$DB") ]]; then
+elif [[ -z "$PRODUCT" && (${#COMPONENT_UPDATES[@]} -gt 0 || ${#MODULE_UPDATES[@]} -gt 0 || -n "$DESKTOP$DB") ]]; then
   should_auto_product=true
 elif [[ "$entering_beta_channel" == "true" ]]; then
   should_auto_product=true
@@ -438,22 +501,44 @@ jq \
   --arg desktop "$DESKTOP" \
   --arg db "$DB" \
   --arg desktop_min_db "$DESKTOP_MIN_DB" \
-  --arg agent_min_db "$AGENT_MIN_DB" \
   --arg channel "$CHANNEL" \
   --arg date "$DATE_STR" \
   --argjson component_updates "$component_updates_json" \
+  --argjson module_updates "$module_updates_json" \
   --argjson component_min_db_updates "$component_min_db_json" \
   '
+  def desktop_impl:
+    .components.desktop
+    | to_entries
+    | map(select(.value | type == "object"))
+    | .[0].key;
   .product.version = (if $product == "" then .product.version else $product end) |
   reduce ($component_updates | to_entries[]) as $item (.;
-    .components[$item.key].version = $item.value
+    if $item.key == "database.postgres" then
+      .components.database.postgres.version = $item.value
+    elif $item.key == "desktop" then
+      .components.desktop[desktop_impl].version = $item.value
+    else
+      .components[$item.key].version = $item.value
+    end
+  ) |
+  reduce ($module_updates | to_entries[]) as $item (.;
+    .components.agents.modules[$item.key].version = $item.value
   ) |
   reduce ($component_min_db_updates | to_entries[]) as $item (.;
-    .components[$item.key].minDbSchema = $item.value
+    if $item.key == "desktop" then
+      .components.desktop[desktop_impl].minDbSchema = $item.value
+    else
+      .components[$item.key].minDbSchema = $item.value
+    end
   ) |
-  .components.desktop.version = (if $desktop == "" then .components.desktop.version else $desktop end) |
-  .components["database-postgres"].version = (if $db == "" then .components["database-postgres"].version else $db end) |
-  .components.desktop.minDbSchema = (if $desktop_min_db == "" then .components.desktop.minDbSchema else $desktop_min_db end) |
+  .components.desktop[desktop_impl].version = (
+    if $desktop == "" then .components.desktop[desktop_impl].version else $desktop end
+  ) |
+  .components.database.postgres.version = (if $db == "" then .components.database.postgres.version else $db end) |
+  .components.desktop[desktop_impl].minDbSchema = (
+    if $desktop_min_db == "" then .components.desktop[desktop_impl].minDbSchema else $desktop_min_db end
+  ) |
   .release.channel = (if $channel == "" then .release.channel else $channel end) |
   .release.date = $date
   ' "$MANIFEST" > "$TMP_FILE"

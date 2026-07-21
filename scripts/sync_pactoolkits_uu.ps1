@@ -2,7 +2,7 @@
 # Sync pactoolkits feed from updates.pacdocs.com to local folder, with change detection and parallel download.
 
 $Base="https://updates.pacdocs.com/feed/pactoolkits/stable"; $Dest="F:\PacDocs\feed\pactoolkits\stable"; $Sync="F:\PacDocs\sync"
-$Man="releases.stable.json"; $Rel="RELEASES-stable"; $Ast="assets.stable.json"; $Setup="pactoolkits-stable-Setup.exe"; $Inj="pactoolkits-injector.exe"
+$Man="releases.stable.json"; $Rel="RELEASES-stable"; $Ast="assets.stable.json"; $Setup="pactoolkits-stable-Setup.exe"
 $Tag="$Sync\tag_manifest.txt"; $Log="$Sync\logs\sync_uu.log"; New-Item -Force -ItemType Directory $Dest,("$Sync\logs")|Out-Null
 
 function L($m){Add-Content -LiteralPath $Log -Value ("[{0}] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"),$m)}
@@ -18,7 +18,7 @@ try{
   if(!$arts -or $arts.Count -eq 0){L "Skip: no artifacts"; exit 0}
 
   foreach($f in $arts){try{Invoke-WebRequest -Method Head -UseBasicParsing -Uri "$Base/$f" -TimeoutSec 15|Out-Null}catch{L "Skip: not ready $f"; exit 0}}
-  $payload=@($Setup,$Inj,$Ast)+$arts | sort -Unique
+  $payload=@($Setup,$Ast)+$arts | sort -Unique
   L ("Ready. Download {0} files..." -f $payload.Count)
 
   $jobs=@()

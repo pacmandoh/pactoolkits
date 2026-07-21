@@ -14,10 +14,10 @@ Usage:
   release-desktop.sh [options]
 
 Options:
-  --bump-desktop X.Y.Z       Optional: bump components.desktop.version before release.
-  --bump-product X.Y.Z       Optional: bump product.version (alias: --bump-suite).
-  --bump-agent X.Y.Z         Optional: bump components.agent-injector-ahk.version.
-  --bump-db X.Y.Z            Optional: bump components.database-postgres.version.
+  --bump-desktop X.Y.Z       Optional: bump components.desktop.<impl>.version before release.
+  --bump-product X.Y.Z       Optional: bump product.version.
+  --bump-agents X.Y.Z         Optional: bump components.agents.version.
+  --bump-db X.Y.Z            Optional: bump components.database.postgres.version.
   --bump-channel C           Optional: bump release.channel (stable|beta).
   --pack-version X.Y.Z       Optional: vpk pack version (default: manifest product.version).
   --channel C                Optional: vpk channel (default: manifest release.channel).
@@ -27,7 +27,7 @@ Options:
   --self-contained true|false   dotnet publish self-contained (default: false).
   --output-dir DIR           vpk output directory (default: desktop Releases directory).
   --pack-dir DIR             publish output directory for vpk (default: bin/<cfg>/<tfm>/<rid>/publish).
-  --main-exe FILE            main exe for vpk (default: pactoolkits-desktop.exe).
+  --main-exe FILE            main exe for vpk (default: PacToolkits.Desktop.exe).
   --icon FILE                icon for setup package (default: Assets/app.ico).
   --vpk-directive NAME       optional vpk target directive (e.g. win).
   --upload-target TARGET     Optional rsync target, e.g. user@host:/path/feed/pactoolkits
@@ -70,9 +70,9 @@ run_cmd() {
   fi
 }
 
-BUMP_UI=""
-BUMP_SUITE=""
-BUMP_AGENT=""
+BUMP_DESKTOP=""
+BUMP_PRODUCT=""
+BUMP_AGENTS=""
 BUMP_DB=""
 BUMP_CHANNEL=""
 PACK_VERSION=""
@@ -83,7 +83,7 @@ CONFIGURATION="Release"
 SELF_CONTAINED="false"
 OUTPUT_DIR="$DESKTOP_PROJECT_DIR/Releases"
 PACK_DIR=""
-MAIN_EXE="pactoolkits-desktop.exe"
+MAIN_EXE="PacToolkits.Desktop.exe"
 ICON_FILE="$DESKTOP_PROJECT_DIR/Assets/app.ico"
 VPK_DIRECTIVE=""
 UPLOAD_TARGET=""
@@ -94,16 +94,16 @@ PLAN_MANIFEST_TMP=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --bump-desktop | --bump-ui)
-      BUMP_UI="${2:-}"
+    --bump-desktop)
+      BUMP_DESKTOP="${2:-}"
       shift 2
       ;;
-    --bump-product | --bump-suite)
-      BUMP_SUITE="${2:-}"
+    --bump-product)
+      BUMP_PRODUCT="${2:-}"
       shift 2
       ;;
-    --bump-agent)
-      BUMP_AGENT="${2:-}"
+    --bump-agents)
+      BUMP_AGENTS="${2:-}"
       shift 2
       ;;
     --bump-db)
@@ -201,16 +201,16 @@ fi
   exit 1
 }
 
-[[ -z "$BUMP_UI" ]] || is_semver "$BUMP_UI" || {
-  echo "ERROR: invalid --bump-ui" >&2
+[[ -z "$BUMP_DESKTOP" ]] || is_semver "$BUMP_DESKTOP" || {
+  echo "ERROR: invalid --bump-desktop" >&2
   exit 1
 }
-[[ -z "$BUMP_SUITE" ]] || is_semver "$BUMP_SUITE" || {
-  echo "ERROR: invalid --bump-suite" >&2
+[[ -z "$BUMP_PRODUCT" ]] || is_semver "$BUMP_PRODUCT" || {
+  echo "ERROR: invalid --bump-product" >&2
   exit 1
 }
-[[ -z "$BUMP_AGENT" ]] || is_semver "$BUMP_AGENT" || {
-  echo "ERROR: invalid --bump-agent" >&2
+[[ -z "$BUMP_AGENTS" ]] || is_semver "$BUMP_AGENTS" || {
+  echo "ERROR: invalid --bump-agents" >&2
   exit 1
 }
 [[ -z "$BUMP_DB" ]] || is_semver "$BUMP_DB" || {
@@ -261,11 +261,11 @@ cleanup_release_temp() {
 }
 trap cleanup_release_temp EXIT
 
-if [[ -n "$BUMP_UI$BUMP_SUITE$BUMP_AGENT$BUMP_DB$BUMP_CHANNEL" ]]; then
+if [[ -n "$BUMP_DESKTOP$BUMP_PRODUCT$BUMP_AGENTS$BUMP_DB$BUMP_CHANNEL" ]]; then
   bump_args=("$ROOT_DIR/scripts/bump-version.sh")
-  [[ -n "$BUMP_UI" ]] && bump_args+=(--ui "$BUMP_UI")
-  [[ -n "$BUMP_SUITE" ]] && bump_args+=(--suite "$BUMP_SUITE")
-  [[ -n "$BUMP_AGENT" ]] && bump_args+=(--agent "$BUMP_AGENT")
+  [[ -n "$BUMP_DESKTOP" ]] && bump_args+=(--desktop "$BUMP_DESKTOP")
+  [[ -n "$BUMP_PRODUCT" ]] && bump_args+=(--product "$BUMP_PRODUCT")
+  [[ -n "$BUMP_AGENTS" ]] && bump_args+=(--component "agents=$BUMP_AGENTS")
   [[ -n "$BUMP_DB" ]] && bump_args+=(--db "$BUMP_DB")
   [[ -n "$BUMP_CHANNEL" ]] && bump_args+=(--channel "$BUMP_CHANNEL")
   if [[ "$DRY_RUN" == "true" ]]; then
@@ -287,9 +287,10 @@ fi
 
 run_cmd "$ROOT_DIR/scripts/check-version.sh"
 
-manifest_desktop="$(manifest_desktop_version "$MANIFEST_FOR_PLAN" 2> /dev/null || jq -r '.components.desktop.version // .uiVersion' "$MANIFEST_FOR_PLAN")"
-manifest_product="$(manifest_product_version "$MANIFEST_FOR_PLAN" 2> /dev/null || jq -r '.product.version // .suiteVersion' "$MANIFEST_FOR_PLAN")"
-manifest_channel="$(manifest_release_channel "$MANIFEST_FOR_PLAN" 2> /dev/null || jq -r '.release.channel // .build.channel' "$MANIFEST_FOR_PLAN")"
+manifest_desktop="$(manifest_desktop_version "$MANIFEST_FOR_PLAN")"
+manifest_product="$(manifest_product_version "$MANIFEST_FOR_PLAN")"
+manifest_channel="$(manifest_release_channel "$MANIFEST_FOR_PLAN")"
+manifest_pack_id="$(manifest_desktop_package_id "$MANIFEST_FOR_PLAN")"
 
 if [[ -z "$PACK_VERSION" ]]; then
   PACK_VERSION="$manifest_product"
@@ -306,7 +307,8 @@ fi
 
 echo "Release plan:"
 echo "- product.version: $PACK_VERSION"
-echo "- desktop.version: $manifest_desktop"
+echo "- desktop.<impl>.version: $manifest_desktop"
+echo "- packId: $manifest_pack_id"
 echo "- channel: $CHANNEL"
 echo "- runtime: $RUNTIME"
 echo "- framework: $FRAMEWORK"
@@ -319,29 +321,51 @@ run_cmd dotnet publish "$DESKTOP_PROJECT_DIR/PacToolkits.Desktop.Avalonia.csproj
   -r "$RUNTIME" \
   --self-contained "$SELF_CONTAINED"
 
-AGENT_SRC="${ARTIFACT_DIR:-$ROOT_DIR/artifacts/agents/agent-injector-ahk/win-x64}/pactoolkits-injector.exe"
-AGENT_DST_DIR="$PACK_DIR/Agents/injector"
-AGENT_DST="$AGENT_DST_DIR/pactoolkits-injector.exe"
+AGENT_SRC_DIR="${ARTIFACT_DIR:-$ROOT_DIR/artifacts/agents/win-x64}"
+AGENT_HOST_SRC="$AGENT_SRC_DIR/Agents.exe"
+AGENT_MODULE_SRC="$AGENT_SRC_DIR/Modules/Injector"
+AGENT_DST_DIR="$PACK_DIR/Agents"
+AGENT_HOST_DST="$AGENT_DST_DIR/Agents.exe"
+AGENT_MODULE_DST="$AGENT_DST_DIR/Modules/Injector"
 AGENT_MIN_BYTES=4096
 
 if [[ "$DRY_RUN" == "true" ]]; then
-  printf '[dry-run] mkdir -p %q\n' "$AGENT_DST_DIR"
-  printf '[dry-run] cp -f %q %q\n' "$AGENT_SRC" "$AGENT_DST"
+  printf '[dry-run] mkdir -p %q\n' "$AGENT_DST_DIR/Modules/Injector"
+  printf '[dry-run] cp -f %q %q\n' "$AGENT_HOST_SRC" "$AGENT_HOST_DST"
+  printf '[dry-run] cp -R %q/. %q/\n' "$AGENT_MODULE_SRC" "$AGENT_MODULE_DST"
 else
-  [[ -f "$AGENT_SRC" ]] || {
-    echo "ERROR: missing agent binary: $AGENT_SRC" >&2
-    echo "Build agent first, e.g.: ./scripts/release-agent-injector-ahk.sh --artifact-dir ... --skip-upload" >&2
+  [[ -f "$AGENT_HOST_SRC" ]] || {
+    echo "ERROR: missing Host binary: $AGENT_HOST_SRC" >&2
+    echo "Build agent first, e.g.: ./scripts/release-agents.sh --artifact-dir ... --skip-upload" >&2
     exit 1
   }
-  mkdir -p "$AGENT_DST_DIR"
-  cp -f "$AGENT_SRC" "$AGENT_DST"
-  [[ -f "$AGENT_DST" ]] || {
-    echo "ERROR: failed to copy agent binary to publish output" >&2
+  [[ -d "$AGENT_MODULE_SRC" ]] || {
+    echo "ERROR: missing agent module dir: $AGENT_MODULE_SRC" >&2
     exit 1
   }
-  agent_size="$(wc -c < "$AGENT_DST" | tr -d ' ')"
+  [[ -f "$AGENT_MODULE_SRC/Injector.exe" ]] || {
+    echo "ERROR: missing injector module binary: $AGENT_MODULE_SRC/Injector.exe" >&2
+    exit 1
+  }
+  [[ -f "$AGENT_MODULE_SRC/module.json" ]] || {
+    echo "ERROR: missing module.json: $AGENT_MODULE_SRC/module.json" >&2
+    exit 1
+  }
+  mkdir -p "$AGENT_MODULE_DST"
+  cp -f "$AGENT_HOST_SRC" "$AGENT_HOST_DST"
+  cp -R "$AGENT_MODULE_SRC/." "$AGENT_MODULE_DST/"
+  [[ -f "$AGENT_HOST_DST" ]] || {
+    echo "ERROR: failed to copy Host binary to publish output" >&2
+    exit 1
+  }
+  agent_size="$(wc -c < "$AGENT_HOST_DST" | tr -d ' ')"
   if [[ "${agent_size:-0}" -le "$AGENT_MIN_BYTES" ]]; then
-    echo "ERROR: agent binary too small to be valid ($AGENT_DST, ${agent_size} bytes)" >&2
+    echo "ERROR: Host binary too small to be valid ($AGENT_HOST_DST, ${agent_size} bytes)" >&2
+    exit 1
+  fi
+  module_size="$(wc -c < "$AGENT_MODULE_DST/Injector.exe" | tr -d ' ')"
+  if [[ "${module_size:-0}" -le "$AGENT_MIN_BYTES" ]]; then
+    echo "ERROR: injector module binary too small to be valid ($AGENT_MODULE_DST/Injector.exe, ${module_size} bytes)" >&2
     exit 1
   fi
 fi
@@ -359,19 +383,23 @@ if [[ "$DRY_RUN" != "true" ]]; then
     echo "ERROR: icon not found: $ICON_FILE" >&2
     exit 1
   }
-  [[ -f "$AGENT_DST" ]] || {
-    echo "ERROR: agent binary not found in publish output: $AGENT_DST" >&2
+  [[ -f "$AGENT_HOST_DST" ]] || {
+    echo "ERROR: Host binary not found in publish output: $AGENT_HOST_DST" >&2
     exit 1
   }
-  [[ -f "$PACK_DIR/Sql/Bootstrap/000_init_meta.sql" ]] || {
+  [[ -f "$AGENT_MODULE_DST/Injector.exe" ]] || {
+    echo "ERROR: injector module binary not found in publish output: $AGENT_MODULE_DST/Injector.exe" >&2
+    exit 1
+  }
+  [[ -f "$PACK_DIR/Postgres/Bootstrap/000_init_meta.sql" ]] || {
     echo "ERROR: bootstrap SQL not found in publish output" >&2
     exit 1
   }
-  [[ -d "$PACK_DIR/Sql/Migrations" ]] || {
+  [[ -d "$PACK_DIR/Postgres/Migrations" ]] || {
     echo "ERROR: migrations SQL directory not found in publish output" >&2
     exit 1
   }
-  [[ -d "$PACK_DIR/Sql/Verify" ]] || {
+  [[ -d "$PACK_DIR/Postgres/Verify" ]] || {
     echo "ERROR: verify SQL directory not found in publish output" >&2
     exit 1
   }
@@ -380,7 +408,7 @@ fi
 vpk_args=(vpk)
 [[ -n "$VPK_DIRECTIVE" ]] && vpk_args+=("[$VPK_DIRECTIVE]")
 vpk_args+=(pack
-  --packId pactoolkits
+  --packId "$manifest_pack_id"
   --packVersion "$PACK_VERSION"
   --packDir "$PACK_DIR"
   --outputDir "$OUTPUT_DIR"

@@ -6,27 +6,32 @@
   },
   "components": {
     "desktop": {
-      "version": "1.0.2-beta.5",
-      "implementation": "avalonia",
-      "packageId": "pactoolkits",
-      "minDbSchema": "1.2.23",
-      "maxDbSchema": "1.2.23",
-      "bundles": [
-        "agent-injector-ahk"
-      ]
+      "avalonia": {
+        "version": "1.0.2-beta.5",
+        "packageId": "PacToolkits",
+        "minDbSchema": "1.2.23",
+        "maxDbSchema": "1.2.23"
+      }
     },
-    "agent-injector-ahk": {
-      "version": "0.6.1",
+    "agents": {
+      "version": "0.1.0",
       "minDbSchema": "1.2.23",
       "maxDbSchema": "1.2.23",
       "artifact": {
-        "windows-x64": "pactoolkits-injector.exe",
-        "installDir": "injector"
+        "windows-x64": "Agents.exe",
+        "installDir": "."
+      },
+      "modules": {
+        "Injector": {
+          "version": "0.6.1"
+        }
       }
     },
-    "database-postgres": {
-      "version": "1.2.23",
-      "migrationPolicy": "stable-only"
+    "database": {
+      "postgres": {
+        "version": "1.2.23",
+        "migrationPolicy": "stable-only"
+      }
     }
   },
   "release": {

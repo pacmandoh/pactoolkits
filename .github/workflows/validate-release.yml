@@ -73,7 +73,7 @@ jobs:
           # Explicit authorization is enforced for tag/release via workflow_dispatch inputs and release.yml release_gate.
           if [[ "$allow_beta_db_migration" != "true" ]]; then
             channel="$(jq -r '.release.channel // empty' release-manifest.json)"
-            policy="$(jq -r '.components["database-postgres"].migrationPolicy // "stable-only"' release-manifest.json)"
+            policy="$(jq -r '.components.database.postgres.migrationPolicy // "stable-only"' release-manifest.json)"
             if [[ "$channel" == "beta" && "$policy" == "isolated-beta" ]]; then
               case "$EVENT_NAME" in
                 push)

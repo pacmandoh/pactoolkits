@@ -9,10 +9,10 @@ on:
         default: win-x64
     outputs:
       implementation:
-        description: Formal desktop implementation from manifest (avalonia|electron)
+        description: Formal desktop implementation from manifest (avalonia)
         value: ${{ jobs.resolve_release_plan.outputs.implementation }}
       desktop_version:
-        description: components.desktop.version
+        description: components.desktop.<impl>.version
         value: ${{ jobs.resolve_release_plan.outputs.desktop_version }}
       product_version:
         description: product.version
@@ -36,7 +36,7 @@ on:
         description: Velopack output directory relative to repo root
         value: ${{ jobs.resolve_release_plan.outputs.releases_dir }}
       publish_subdir:
-        description: Expected dotnet/electron publish directory relative to repo root
+        description: Expected desktop publish directory relative to repo root
         value: ${{ jobs.resolve_release_plan.outputs.publish_subdir }}
       runtime:
         description: Windows runtime identifier

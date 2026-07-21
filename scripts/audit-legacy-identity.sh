@@ -82,14 +82,50 @@ scan "workflow/script old main exe" 'pactoolkits-ui\.exe' \
 scan "csproj old assembly override" '<AssemblyName>pactoolkits-ui</AssemblyName>' \
   apps/desktop-avalonia/src
 
+scan "csproj kebab assembly override" '<AssemblyName>pactoolkits-desktop</AssemblyName>' \
+  apps/desktop-avalonia/src
+
+scan "avares old kebab assembly uri" 'avares://pactoolkits-desktop/' \
+  apps/desktop-avalonia/src tests
+
+scan "workflow/script kebab main exe" 'pactoolkits-desktop\.exe' \
+  .github scripts
+
 scan "legacy csharp namespace" 'pactoolkits_ui' \
   apps/desktop-avalonia/src
+
+scan "legacy agent-injector-ahk identity" 'agent-injector-ahk' \
+  apps packages scripts .github runtime docs tests
+
+scan "legacy agent-injector.exe module binary" 'agent-injector\.exe' \
+  apps packages scripts .github runtime docs tests
+
+scan "legacy injector-ahk source path" 'runtime/agents/injector-ahk' \
+  apps packages scripts .github docs tests
+
+scan "legacy AhkInjector type" 'AhkInjector' \
+  apps packages scripts .github docs tests
+
+scan "legacy postgres/sql source path" 'database/postgres/sql' \
+  apps packages scripts .github docs tests database
+
+scan "legacy Sql publish link" 'Link="Sql\\' \
+  packages
+
+scan "legacy PacToolkits.Agents.exe host name" 'PacToolkits\.Agents\.exe' \
+  apps packages scripts .github runtime docs tests
 
 allow "legacy config compatibility constant" 'pactoolkits-ui\.config\.json' \
   apps/desktop-avalonia/src/Services/Infrastructure/AppConfigStore.cs
 
 allow "git history legacy migration dir constant" 'LEGACY_MIGRATION_DIR="pactoolkits-db/sql/migrations"' \
   scripts/validate-database-policy.sh
+
+allow "Main Tools pacinjector migration" 'pacinjector' \
+  packages/agents-contracts apps/desktop-avalonia/src tests/PacToolkits.Agents.Contracts.Tests tests/PacToolkits.Desktop.Tests docs
+
+allow "Main AutomationTools.Ahk migration" '"Ahk"' \
+  apps/desktop-avalonia/src/Services/Infrastructure/AppConfigStore.cs
 
 if [[ "$fail" -ne 0 ]]; then
   echo "Legacy identity audit failed."

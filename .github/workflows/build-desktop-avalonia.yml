@@ -82,11 +82,11 @@ jobs:
           set -euo pipefail
           publish_dir="apps/desktop-avalonia/src/bin/Release/net10.0/$RUNTIME/publish"
           required_files=(
-            "pactoolkits-desktop.exe"
-            "Sql/Bootstrap/000_init_meta.sql"
-            "Sql/Verify/01_structure.sql"
-            "Sql/Verify/02_constraints.sql"
-            "Sql/Verify/03_schema_version.sql"
+            "PacToolkits.Desktop.exe"
+            "Postgres/Bootstrap/000_init_meta.sql"
+            "Postgres/Verify/01_structure.sql"
+            "Postgres/Verify/02_constraints.sql"
+            "Postgres/Verify/03_schema_version.sql"
           )
           for file in "${required_files[@]}"; do
             path="$publish_dir/$file"

@@ -59,7 +59,7 @@ jobs:
       DESKTOP_VERSION: ${{ inputs.desktop_version }}
       CHANNEL: ${{ inputs.channel }}
       RUNTIME: ${{ inputs.runtime || 'win-x64' }}
-      AGENT_RUNTIME: win-x64
+      AGENTS_RUNTIME: win-x64
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -95,7 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           case "$IMPLEMENTATION" in
-            avalonia|electron) ;;
+            avalonia) ;;
             *) echo "Unsupported implementation: $IMPLEMENTATION" >&2; exit 1 ;;
           esac
           case "$RUNTIME" in
@@ -107,17 +107,15 @@ jobs:
           [[ "$DESKTOP_VERSION" =~ $semver_re ]] || { echo "Invalid desktop_version: $DESKTOP_VERSION" >&2; exit 1; }
           [[ -f "$ICON_PATH" ]] || { echo "Installer icon missing: $ICON_PATH" >&2; exit 1; }
           jq -e --arg implementation "$IMPLEMENTATION" '
-            .components.desktop.implementation == $implementation and
-            (.components.desktop.bundles | type == "array" and length > 0) and
             (
-              . as $root |
-              $root.components.desktop.bundles |
-              all(
-                . as $bundle |
-                ($root.components[$bundle] != null) and
-                ($root.components[$bundle].artifact["windows-x64"] | type == "string" and length > 0)
-              )
-            )
+              .components.desktop
+              | type == "object" and
+                (keys | length) == 1 and
+                has($implementation) and
+                (.[$implementation] | type == "object")
+            ) and
+            (.components.agents.artifact["windows-x64"] | type == "string" and length > 0) and
+            (.components.agents.modules | type == "object" and length > 0)
           ' release-manifest.json >/dev/null
 
       - name: Download desktop publish artifact
@@ -126,49 +124,54 @@ jobs:
           name: ${{ inputs.desktop_artifact_name }}
           path: _desktop_publish
 
-      - name: Download bundled agent artifacts
+      - name: Resolve Agents artifact name
+        id: agents_artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(jq -r '.components.agents.version' release-manifest.json)"
+          name="PacToolkits-Agents-${AGENTS_RUNTIME}-${version}"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          echo "dir=_agents_artifacts/${name}" >> "$GITHUB_OUTPUT"
+
+      - name: Download bundled Agents artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: pactoolkits-*-${{ env.AGENT_RUNTIME }}-*
-          path: _agent_artifacts
+          name: ${{ steps.agents_artifact.outputs.name }}
+          path: ${{ steps.agents_artifact.outputs.dir }}
 
       - name: Bundle agents into desktop publish output
         shell: bash
         run: |
           set -euo pipefail
-          resolve_bundled_agent_source() {
-            local exe_name="$1"
-            local version="$2"
-            local found=""
-            found="$(
-              find "_agent_artifacts" -path "*-${AGENT_RUNTIME}-${version}*" -name "$exe_name" -type f -print -quit 2>/dev/null || true
-            )"
-            if [[ -z "$found" ]]; then
-              found="$(find "_agent_artifacts" -name "$exe_name" -type f -print -quit 2>/dev/null || true)"
-            fi
-            if [[ -n "$found" ]]; then
-              printf '%s\n' "$found"
-              return 0
-            fi
-            return 1
-          }
+          # shellcheck source=scripts/lib/resolve-bundled-agents-source.sh
+          source scripts/lib/resolve-bundled-agents-source.sh
           while IFS=$'\t' read -r bundle_id version exe_name install_dir; do
             [[ -n "$install_dir" ]] || { echo "Missing artifact.installDir for component $bundle_id" >&2; exit 1; }
-            agent_target_dir="_desktop_publish/Agents/${install_dir}"
-            source="$(resolve_bundled_agent_source "$exe_name" "$version" || true)"
+            if [[ "$install_dir" == "." ]]; then
+              agents_target_dir="_desktop_publish/Agents"
+            else
+              agents_target_dir="_desktop_publish/Agents/${install_dir}"
+            fi
+            source="$(resolve_bundled_agents_source "$exe_name" "$version" || true)"
             [[ -n "$source" ]] || {
-              echo "Bundled agent source missing for $bundle_id ($exe_name, version=$version, runtime=$AGENT_RUNTIME)" >&2
-              echo "Downloaded agent artifact tree:" >&2
-              find "_agent_artifacts" -type f 2>/dev/null | sed 's/^/  /' || echo "  (empty)" >&2
+              echo "Bundled Agents source missing for $bundle_id ($exe_name, version=$version, runtime=$AGENTS_RUNTIME)" >&2
+              echo "Downloaded Agents artifact tree:" >&2
+              find "_agents_artifacts" -type f 2>/dev/null | sed 's/^/  /' || echo "  (empty)" >&2
               exit 1
             }
-            mkdir -p "$agent_target_dir"
-            cp "$source" "$agent_target_dir/$exe_name"
-            echo "Bundled $bundle_id -> Agents/$install_dir/$exe_name (from $source)"
+            mkdir -p "$agents_target_dir"
+            cp "$source" "$agents_target_dir/$exe_name"
+            source_dir="$(dirname "$source")"
+            if [[ -d "$source_dir/Modules" ]]; then
+              mkdir -p "$agents_target_dir/Modules"
+              cp -R "$source_dir/Modules/." "$agents_target_dir/Modules/"
+              echo "Bundled $bundle_id modules -> Agents/Modules (from $source_dir/Modules)"
+            fi
+            echo "Bundled $bundle_id -> ${agents_target_dir#"_desktop_publish/"}/$exe_name (from $source)"
           done < <(jq -r '
-            .components.desktop.bundles[] as $id |
-            .components[$id] |
-            [$id, .version, .artifact["windows-x64"], (.artifact.installDir // "")] |
+            .components.agents as $agents |
+            ["agents", $agents.version, $agents.artifact["windows-x64"], ($agents.artifact.installDir // ".")] |
             @tsv
           ' release-manifest.json)
 
@@ -176,6 +179,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # shellcheck source=scripts/manifest-v2.sh
+          source scripts/manifest-v2.sh
           mkdir -p "$RELEASES_DIR"
           [[ -f "_desktop_publish/$MAIN_EXE" ]] || {
             echo "Main executable missing in publish output: $MAIN_EXE" >&2
@@ -198,35 +203,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          resolve_bundled_agent_source() {
-            local exe_name="$1"
-            local version="$2"
-            local found=""
-            found="$(
-              find "_agent_artifacts" -path "*-${AGENT_RUNTIME}-${version}*" -name "$exe_name" -type f -print -quit 2>/dev/null || true
-            )"
-            if [[ -z "$found" ]]; then
-              found="$(find "_agent_artifacts" -name "$exe_name" -type f -print -quit 2>/dev/null || true)"
-            fi
-            if [[ -n "$found" ]]; then
-              printf '%s\n' "$found"
-              return 0
-            fi
-            return 1
-          }
+          # shellcheck source=scripts/lib/resolve-bundled-agents-source.sh
+          source scripts/lib/resolve-bundled-agents-source.sh
           dist="_desktop_release"
           mkdir -p "$dist"
           cp -R "$RELEASES_DIR"/. "$dist"/
           while IFS=$'\t' read -r version exe_name; do
-            source="$(resolve_bundled_agent_source "$exe_name" "$version" || true)"
+            source="$(resolve_bundled_agents_source "$exe_name" "$version" || true)"
             [[ -n "$source" ]] || {
-              echo "Bundled agent source missing for collect step ($exe_name, version=$version)" >&2
+              echo "Bundled Agents source missing for collect step ($exe_name, version=$version)" >&2
               exit 1
             }
-            cp "$source" "$dist/$exe_name"
+            # Host alone is not runnable; ship the same Agents/ layout as a zip (gh release upload is file-only).
+            agents_dist="$dist/Agents"
+            mkdir -p "$agents_dist"
+            cp "$source" "$agents_dist/$exe_name"
+            source_dir="$(dirname "$source")"
+            if [[ -d "$source_dir/Modules" ]]; then
+              mkdir -p "$agents_dist/Modules"
+              cp -R "$source_dir/Modules/." "$agents_dist/Modules/"
+            fi
+            agents_zip="$dist/PacToolkits-Agents-${AGENTS_RUNTIME}-${version}.zip"
+            (cd "$dist" && zip -r "$(basename "$agents_zip")" Agents)
+            rm -rf "$agents_dist"
+            echo "Collected Agents zip -> $agents_zip"
           done < <(jq -r '
-            .components.desktop.bundles[] as $id |
-            .components[$id] |
+            .components.agents |
             [.version, .artifact["windows-x64"]] |
             @tsv
           ' release-manifest.json)

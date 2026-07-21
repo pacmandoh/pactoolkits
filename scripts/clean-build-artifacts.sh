@@ -16,7 +16,7 @@ Removes local build/package outputs produced by release and test-package workflo
 Default scope:
   - artifacts/agents
   - artifacts/desktop
-  - desktop/agent Releases directories
+  - desktop + Agents Releases directories
   - Avalonia publish output for win-x64 and win-arm64
 
 Options:
@@ -90,8 +90,7 @@ declare -a paths=(
   "artifacts/agents"
   "artifacts/desktop"
   "apps/desktop-avalonia/src/Releases"
-  "apps/desktop-electron/Releases"
-  "runtime/agents/injector-ahk/Releases"
+  "runtime/agents/modules/injector/Releases"
 )
 
 if [[ -n "$RUNTIME_FILTER" ]]; then

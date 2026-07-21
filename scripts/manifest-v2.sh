@@ -4,66 +4,132 @@ set -euo pipefail
 # Shared jq helpers for release-manifest.json schema v2.
 
 manifest_schema_version() {
-  jq -r '.schemaVersion // 1' "$1"
+  jq -r '.schemaVersion // empty' "$1"
 }
 
 manifest_product_version() {
-  jq -r '.product.version // .suiteVersion // empty' "$1"
-}
-
-manifest_desktop_version() {
-  jq -r '.components.desktop.version // .uiVersion // empty' "$1"
+  jq -r '.product.version // empty' "$1"
 }
 
 manifest_desktop_implementation() {
-  jq -r '.components.desktop.implementation // "avalonia"' "$1"
+  # Exactly one desktop implementation object under components.desktop.
+  jq -r '
+    .components.desktop
+    | to_entries
+    | map(select(.value | type == "object"))
+    | if length == 1 then .[0].key else empty end
+  ' "$1"
+}
+
+manifest_desktop_version() {
+  local impl
+  impl="$(manifest_desktop_implementation "$1")"
+  [[ -n "$impl" ]] || {
+    printf ''
+    return 0
+  }
+  jq -r --arg impl "$impl" '.components.desktop[$impl].version // empty' "$1"
 }
 
 manifest_desktop_min_db() {
-  jq -r '.components.desktop.minDbSchema // .compat.uiMinDbSchema // empty' "$1"
+  local impl
+  impl="$(manifest_desktop_implementation "$1")"
+  [[ -n "$impl" ]] || {
+    printf ''
+    return 0
+  }
+  jq -r --arg impl "$impl" '.components.desktop[$impl].minDbSchema // empty' "$1"
 }
 
 manifest_desktop_max_db() {
-  jq -r '.components.desktop.maxDbSchema // empty' "$1"
+  local impl
+  impl="$(manifest_desktop_implementation "$1")"
+  [[ -n "$impl" ]] || {
+    printf ''
+    return 0
+  }
+  jq -r --arg impl "$impl" '.components.desktop[$impl].maxDbSchema // empty' "$1"
 }
 
-manifest_agent_injector_ahk_version() {
-  jq -r '.components["agent-injector-ahk"].version // .agentVersion // empty' "$1"
+manifest_desktop_package_id() {
+  local impl
+  impl="$(manifest_desktop_implementation "$1")"
+  [[ -n "$impl" ]] || {
+    printf ''
+    return 0
+  }
+  jq -r --arg impl "$impl" '.components.desktop[$impl].packageId // empty' "$1"
 }
 
-manifest_agent_injector_ahk_min_db() {
-  jq -r '.components["agent-injector-ahk"].minDbSchema // .compat.agentMinDbSchema // empty' "$1"
+manifest_agents_version() {
+  jq -r '.components["agents"].version // empty' "$1"
+}
+
+manifest_agents_min_db() {
+  jq -r '.components["agents"].minDbSchema // empty' "$1"
+}
+
+manifest_agents_module_ids() {
+  jq -r '.components.agents.modules // {} | keys[]' "$1"
+}
+
+manifest_agents_module_version() {
+  local manifest="$1"
+  local module_id="$2"
+  jq -r --arg id "$module_id" \
+    '.components.agents.modules[$id].version // empty' "$manifest"
+}
+
+manifest_agents_module_source_dir() {
+  local module_id="${1:-}"
+  case "$module_id" in
+    Injector)
+      printf 'runtime/agents/modules/injector\n'
+      ;;
+    *)
+      echo "ERROR: unsupported agents module source id: ${module_id:-<empty>}" >&2
+      return 1
+      ;;
+  esac
 }
 
 manifest_database_postgres_version() {
-  jq -r '.components["database-postgres"].version // .dbSchemaVersion // empty' "$1"
+  jq -r '.components.database.postgres.version // empty' "$1"
 }
 
 manifest_database_migration_policy() {
-  jq -r '.components["database-postgres"].migrationPolicy // "stable-only"' "$1"
+  jq -r '.components.database.postgres.migrationPolicy // "stable-only"' "$1"
 }
 
 manifest_release_channel() {
-  jq -r '.release.channel // .build.channel // empty' "$1"
+  jq -r '.release.channel // empty' "$1"
 }
 
 manifest_release_date() {
-  jq -r '.release.date // .build.date // empty' "$1"
+  jq -r '.release.date // empty' "$1"
 }
 
-manifest_agent_component_ids() {
+manifest_agents_component_ids() {
+  # Host package only — modules live under components.agents.modules.
   jq -r '
     .components
     | to_entries[]
-    | select(.value.artifact["windows-x64"] != null)
+    | select(.key == "agents" and .value.artifact["windows-x64"] != null)
     | .key
   ' "$1"
 }
 
-manifest_agent_source_dir() {
+manifest_agents_source_dir() {
   local component_id="$1"
-  local suffix="${component_id#agent-}"
-  printf 'runtime/agents/%s\n' "$suffix"
+  case "$component_id" in
+    agents)
+      printf 'runtime/agents/host\n'
+      ;;
+    *)
+      echo "ERROR: unknown agents component id: $component_id" >&2
+      return 1
+      ;;
+  esac
 }
 
 is_stable_semver() {
@@ -164,8 +230,16 @@ validate_component_db_bounds() {
   local manifest="$1"
   local component_id="$2"
   local min_db max_db
-  min_db="$(jq -r --arg id "$component_id" '.components[$id].minDbSchema // empty' "$manifest")"
-  max_db="$(jq -r --arg id "$component_id" '.components[$id].maxDbSchema // empty' "$manifest")"
+  case "$component_id" in
+    desktop)
+      min_db="$(manifest_desktop_min_db "$manifest")"
+      max_db="$(manifest_desktop_max_db "$manifest")"
+      ;;
+    *)
+      min_db="$(jq -r --arg id "$component_id" '.components[$id].minDbSchema // empty' "$manifest")"
+      max_db="$(jq -r --arg id "$component_id" '.components[$id].maxDbSchema // empty' "$manifest")"
+      ;;
+  esac
   [[ -n "$min_db" && -n "$max_db" ]] || {
     echo "ERROR: $component_id requires minDbSchema and maxDbSchema" >&2
     return 1
@@ -189,7 +263,7 @@ validate_database_postgres_component_compat() {
   local db_version
   db_version="$(manifest_database_postgres_version "$manifest")"
   is_stable_semver "$db_version" || {
-    echo "ERROR: invalid database-postgres.version: $db_version" >&2
+    echo "ERROR: invalid database.postgres.version: $db_version" >&2
     return 1
   }
 
@@ -198,11 +272,11 @@ validate_database_postgres_component_compat() {
   min_db="$(manifest_desktop_min_db "$manifest")"
   max_db="$(manifest_desktop_max_db "$manifest")"
   semver_lte_stable "$min_db" "$db_version" || {
-    echo "ERROR: database-postgres.version ($db_version) must be >= desktop.minDbSchema ($min_db)" >&2
+    echo "ERROR: database.postgres.version ($db_version) must be >= desktop.minDbSchema ($min_db)" >&2
     return 1
   }
   semver_lte_stable "$db_version" "$max_db" || {
-    echo "ERROR: database-postgres.version ($db_version) must be <= desktop.maxDbSchema ($max_db)" >&2
+    echo "ERROR: database.postgres.version ($db_version) must be <= desktop.maxDbSchema ($max_db)" >&2
     return 1
   }
 
@@ -213,14 +287,14 @@ validate_database_postgres_component_compat() {
     min_db="$(jq -r --arg id "$component_id" '.components[$id].minDbSchema' "$manifest")"
     max_db="$(jq -r --arg id "$component_id" '.components[$id].maxDbSchema' "$manifest")"
     semver_lte_stable "$min_db" "$db_version" || {
-      echo "ERROR: database-postgres.version ($db_version) must be >= $component_id.minDbSchema ($min_db)" >&2
+      echo "ERROR: database.postgres.version ($db_version) must be >= $component_id.minDbSchema ($min_db)" >&2
       return 1
     }
     semver_lte_stable "$db_version" "$max_db" || {
-      echo "ERROR: database-postgres.version ($db_version) must be <= $component_id.maxDbSchema ($max_db)" >&2
+      echo "ERROR: database.postgres.version ($db_version) must be <= $component_id.maxDbSchema ($max_db)" >&2
       return 1
     }
-  done < <(manifest_agent_component_ids "$manifest")
+  done < <(manifest_agents_component_ids "$manifest")
 }
 
 validate_desktop_version_matches_channel() {
@@ -229,7 +303,7 @@ validate_desktop_version_matches_channel() {
   channel="$(manifest_release_channel "$manifest")"
   desktop_version="$(manifest_desktop_version "$manifest")"
   [[ -n "$channel" && -n "$desktop_version" ]] || {
-    echo "ERROR: manifest release.channel and components.desktop.version are required" >&2
+    echo "ERROR: manifest release.channel and components.desktop.<impl>.version are required" >&2
     return 1
   }
   if is_desktop_semver_for_channel "$channel" "$desktop_version"; then
@@ -237,10 +311,10 @@ validate_desktop_version_matches_channel() {
   fi
   case "$channel" in
     stable)
-      echo "ERROR: stable channel requires components.desktop.version X.Y.Z, got: $desktop_version" >&2
+      echo "ERROR: stable channel requires components.desktop.<impl>.version X.Y.Z, got: $desktop_version" >&2
       ;;
     beta)
-      echo "ERROR: beta channel requires components.desktop.version X.Y.Z-beta.N, got: $desktop_version" >&2
+      echo "ERROR: beta channel requires components.desktop.<impl>.version X.Y.Z-beta.N, got: $desktop_version" >&2
       ;;
     *)
       echo "ERROR: unsupported release.channel: $channel" >&2
@@ -344,40 +418,51 @@ validate_manifest_v2() {
   jq -e '
     def semver: test("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$");
     def date: test("^[0-9]{4}-[0-9]{2}-[0-9]{2}$");
+    def desktop_impls:
+      .components.desktop
+      | to_entries
+      | map(select(.value | type == "object"));
     . as $root |
     $root.schemaVersion == 2 and
     $root.product.id == "pactoolkits" and
     ($root.product.version | type == "string" and length > 0) and
-    $root.components.desktop.version and
-    ($root.components.desktop.version | type == "string" and length > 0) and
-    ($root.components.desktop.implementation | IN("avalonia", "electron")) and
-    $root.components.desktop.packageId == "pactoolkits" and
-    ($root.components.desktop.minDbSchema | semver) and
-    ($root.components.desktop.maxDbSchema | semver) and
-    ($root.components.desktop.bundles | type == "array") and
-    ($root.components.desktop.bundles | length > 0) and
-    ($root.components["database-postgres"].version | semver) and
-    ($root.components["database-postgres"].migrationPolicy | IN("stable-only", "manual", "isolated-beta")) and
-    ($root.release.channel | IN("stable", "beta")) and
-    ($root.release.date | date) and
+    ($root.components.desktop | type == "object") and
+    ($root.components.desktop | has("implementation") | not) and
+    ($root.components.desktop | has("version") | not) and
+    ($root.components.desktop | has("bundles") | not) and
+    (($root.components.desktop | keys | length) == 1) and
+    (desktop_impls | length) == 1 and
+    (desktop_impls[0].key | type == "string" and length > 0) and
+    (desktop_impls[0].value.version | type == "string" and length > 0) and
+    desktop_impls[0].value.packageId == "PacToolkits" and
+    (desktop_impls[0].value.minDbSchema | semver) and
+    (desktop_impls[0].value.maxDbSchema | semver) and
+    ($root.components.agents.version | semver) and
+    ($root.components.agents.minDbSchema | semver) and
+    ($root.components.agents.maxDbSchema | semver) and
+    ($root.components.agents.artifact["windows-x64"] | type == "string" and length > 0) and
+    (($root.components.agents.artifact.installDir? // ".") | type == "string" and length > 0) and
+    ($root.components.agents.modules | type == "object") and
+    ($root.components.agents.modules | length > 0) and
     (
-      $root.components.desktop.bundles
+      $root.components.agents.modules
+      | to_entries
       | all(
-          . as $bundle |
-          $root.components[$bundle] as $component |
-          ($component != null) and
-          ($component.version | semver) and
-          ($component.minDbSchema | semver) and
-          ($component.maxDbSchema | semver) and
-          ($component.artifact["windows-x64"] | type == "string" and length > 0) and
-          (($component.artifact.installDir? // $bundle) | type == "string" and length > 0)
+          (.key | type == "string" and length > 0) and
+          (.value.version | semver)
         )
     ) and
+    ($root.components.database.postgres.version | semver) and
+    ($root.components.database.postgres.migrationPolicy | IN("stable-only", "manual", "isolated-beta")) and
+    ($root.components | has("database-postgres") | not) and
+    ($root.release.channel | IN("stable", "beta")) and
+    ($root.release.date | date) and
     (
       $root.components
       | to_entries
       | all(
           .key == "desktop"
+          or .key == "database"
           or (.value.version? // null) == null
           or (.value.version | semver)
         )

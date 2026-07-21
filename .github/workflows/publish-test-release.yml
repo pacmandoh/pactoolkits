@@ -57,7 +57,15 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          assets=(dist/*)
+          assets=()
+          for path in dist/*; do
+            if [[ -d "$path" ]]; then
+              echo "Release assets must be files; found directory: $path" >&2
+              exit 1
+            fi
+            [[ -f "$path" ]] || continue
+            assets+=("$path")
+          done
           if ((${#assets[@]} == 0)); then
             echo "No release assets found." >&2
             exit 1
