@@ -94,11 +94,13 @@ manifest_agents_module_source_dir() {
 }
 
 manifest_database_postgres_version() {
-  jq -r '.components.database.postgres.version // empty' "$1"
+  # Baseline refs may still be Manifest V1 (`dbSchemaVersion`) or pre-nest
+  # `components["database-postgres"]`; candidate manifests must use the nested path.
+  jq -r '.components.database.postgres.version // .components["database-postgres"].version // .dbSchemaVersion // empty' "$1"
 }
 
 manifest_database_migration_policy() {
-  jq -r '.components.database.postgres.migrationPolicy // "stable-only"' "$1"
+  jq -r '.components.database.postgres.migrationPolicy // .components["database-postgres"].migrationPolicy // "stable-only"' "$1"
 }
 
 manifest_release_channel() {

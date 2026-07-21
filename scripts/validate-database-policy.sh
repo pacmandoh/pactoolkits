@@ -93,12 +93,17 @@ policy="$(manifest_database_migration_policy "$MANIFEST")"
 candidate_db_version="$(manifest_database_postgres_version "$MANIFEST")"
 
 LEGACY_MIGRATION_DIR="pactoolkits-db/sql/migrations"
+NESTED_SQL_MIGRATION_DIR="database/postgres/sql/migrations"
 CURRENT_MIGRATION_DIR="database/postgres/migrations"
 
 migration_dir_at_ref() {
   local ref="$1"
   if git ls-tree -r --name-only "$ref" -- "$CURRENT_MIGRATION_DIR" 2> /dev/null | grep -q .; then
     printf '%s' "$CURRENT_MIGRATION_DIR"
+    return 0
+  fi
+  if git ls-tree -r --name-only "$ref" -- "$NESTED_SQL_MIGRATION_DIR" 2> /dev/null | grep -q .; then
+    printf '%s' "$NESTED_SQL_MIGRATION_DIR"
     return 0
   fi
   if git ls-tree -r --name-only "$ref" -- "$LEGACY_MIGRATION_DIR" 2> /dev/null | grep -q .; then

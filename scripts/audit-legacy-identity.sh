@@ -106,8 +106,17 @@ scan "legacy injector-ahk source path" 'runtime/agents/injector-ahk' \
 scan "legacy AhkInjector type" 'AhkInjector' \
   apps packages scripts .github docs tests
 
-scan "legacy postgres/sql source path" 'database/postgres/sql' \
-  apps packages scripts .github docs tests database
+postgres_sql_hits="$(search 'database/postgres/sql' \
+  apps packages scripts .github docs tests database \
+  | grep -Ev 'scripts/validate-database-policy\.sh:' || true)"
+if [[ -n "$postgres_sql_hits" ]]; then
+  echo "FAIL: legacy postgres/sql source path"
+  echo "$postgres_sql_hits"
+  echo
+  fail=1
+else
+  echo "OK:   legacy postgres/sql source path"
+fi
 
 scan "legacy Sql publish link" 'Link="Sql\\' \
   packages
@@ -119,6 +128,9 @@ allow "legacy config compatibility constant" 'pactoolkits-ui\.config\.json' \
   apps/desktop-avalonia/src/Services/Infrastructure/AppConfigStore.cs
 
 allow "git history legacy migration dir constant" 'LEGACY_MIGRATION_DIR="pactoolkits-db/sql/migrations"' \
+  scripts/validate-database-policy.sh
+
+allow "git history nested sql migration dir constant" 'NESTED_SQL_MIGRATION_DIR="database/postgres/sql/migrations"' \
   scripts/validate-database-policy.sh
 
 allow "Main Tools pacinjector migration" 'pacinjector' \
