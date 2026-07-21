@@ -2,10 +2,10 @@
   "suiteVersion": "0.17.1",
   "agentVersion": "0.6.1",
   "uiVersion": "0.16.1",
-  "dbSchemaVersion": "1.2.22",
+  "dbSchemaVersion": "1.2.23",
   "compat": {
-    "uiMinDbSchema": "1.2.22",
-    "agentMinDbSchema": "1.2.22"
+    "uiMinDbSchema": "1.2.23",
+    "agentMinDbSchema": "1.2.23"
   },
   "build": {
     "channel": "stable",
