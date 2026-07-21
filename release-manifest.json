@@ -2,19 +2,19 @@
   "schemaVersion": 2,
   "product": {
     "id": "pactoolkits",
-    "version": "1.0.2-beta.5"
+    "version": "1.0.2-beta.6"
   },
   "components": {
     "desktop": {
       "avalonia": {
-        "version": "1.0.2-beta.5",
+        "version": "1.0.2-beta.6",
         "packageId": "PacToolkits",
         "minDbSchema": "1.2.23",
         "maxDbSchema": "1.2.23"
       }
     },
     "agents": {
-      "version": "0.1.0",
+      "version": "0.1.1",
       "minDbSchema": "1.2.23",
       "maxDbSchema": "1.2.23",
       "artifact": {
@@ -23,7 +23,7 @@
       },
       "modules": {
         "Injector": {
-          "version": "0.6.1"
+          "version": "0.7.0"
         }
       }
     },
@@ -36,6 +36,6 @@
   },
   "release": {
     "channel": "beta",
-    "date": "2026-06-19"
+    "date": "2026-07-21"
   }
 }

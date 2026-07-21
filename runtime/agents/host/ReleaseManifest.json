@@ -9,10 +9,10 @@
       "minDbSchema": "1.2.23",
       "modules": {
         "Injector": {
-          "version": "0.6.1"
+          "version": "0.7.0"
         }
       },
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     "database": {
       "postgres": {
@@ -25,17 +25,17 @@
         "maxDbSchema": "1.2.23",
         "minDbSchema": "1.2.23",
         "packageId": "PacToolkits",
-        "version": "1.0.2-beta.5"
+        "version": "1.0.2-beta.6"
       }
     }
   },
   "product": {
     "id": "pactoolkits",
-    "version": "1.0.2-beta.5"
+    "version": "1.0.2-beta.6"
   },
   "release": {
     "channel": "beta",
-    "date": "2026-06-19"
+    "date": "2026-07-21"
   },
   "schemaVersion": 2
 }
