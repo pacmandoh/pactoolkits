@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Shared by package-desktop.yml steps. Expects AGENTS_RUNTIME in env.
-# download-artifact may nest as PacToolkits-Agents-<runtime>-<version>/ or flatten into _agents_artifacts/.
+# 供 package-desktop.yml 步骤共用；依赖环境变量 AGENTS_RUNTIME
+# download-artifact 可能嵌套 PacToolkits-Agents-<runtime>-<version>/，也可能平铺在 _agents_artifacts/
 
 resolve_bundled_agents_source() {
   local exe_name="$1"

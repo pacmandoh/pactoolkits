@@ -46,7 +46,7 @@ eval "$(./scripts/resolve-release-plan.sh "$ROOT_DIR/release-manifest.json" | se
   exit 1
 }
 
-# Exactly one desktop implementation key is required; resolve currently supports avalonia.
+# Desktop 实现键必须恰好一个；当前 resolve 仅支持 avalonia
 unknown_impl_manifest="$(mktemp)"
 jq '.components.desktop = {other: .components.desktop.avalonia}' "$ROOT_DIR/release-manifest.json" > "$unknown_impl_manifest"
 validate_manifest_v2 "$unknown_impl_manifest"

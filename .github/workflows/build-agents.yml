@@ -260,8 +260,8 @@ jobs:
           $moduleDir = Join-Path $stagingDir "Modules/Injector"
           New-Item -ItemType Directory -Path $moduleDir -Force | Out-Null
           Copy-Item "runtime/agents/modules/injector/module.json" (Join-Path $moduleDir "module.json") -Force
-          # Framework-dependent like Desktop: Host is a thin module launcher, not a second runtime bundle.
-          # (EnableCompressionInSingleFile requires self-contained — keep it off for FDD.)
+          # 与 Desktop 一样走 FDD：Host 只是薄模块管理器，不是第二套运行时捆绑
+          # EnableCompressionInSingleFile 要求 self-contained，FDD 下须关闭
           dotnet publish "runtime/agents/host/PacToolkits.Agents.Host.csproj" `
             -c Release `
             -r $env:RUNTIME `

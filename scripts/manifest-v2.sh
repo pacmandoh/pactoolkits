@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Shared jq helpers for release-manifest.json schema v2.
+# release-manifest.json schema v2 的共用 jq 辅助
 
 manifest_schema_version() {
   jq -r '.schemaVersion // empty' "$1"
@@ -12,7 +12,7 @@ manifest_product_version() {
 }
 
 manifest_desktop_implementation() {
-  # Exactly one desktop implementation object under components.desktop.
+  # components.desktop 下恰好一个 Desktop 实现对象
   jq -r '
     .components.desktop
     | to_entries
@@ -94,8 +94,7 @@ manifest_agents_module_source_dir() {
 }
 
 manifest_database_postgres_version() {
-  # Baseline refs may still be Manifest V1 (`dbSchemaVersion`) or pre-nest
-  # `components["database-postgres"]`; candidate manifests must use the nested path.
+  # 基线可能仍是 Manifest V1（`dbSchemaVersion`）或旧扁平 `database-postgres`；候选清单必须用嵌套路径
   jq -r '.components.database.postgres.version // .components["database-postgres"].version // .dbSchemaVersion // empty' "$1"
 }
 
@@ -112,7 +111,7 @@ manifest_release_date() {
 }
 
 manifest_agents_component_ids() {
-  # Host package only — modules live under components.agents.modules.
+  # 仅 Host 包；模块在 components.agents.modules 下
   jq -r '
     .components
     | to_entries[]

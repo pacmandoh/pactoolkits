@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Resolve formal desktop release parameters from release-manifest.json (schema v2).
+# 从 release-manifest.json（schema v2）解析正式 Desktop 发布参数
 # Usage:
 #   resolve-release-plan.sh [--runtime RID] [manifest-path]
 #   resolve-release-plan.sh --github-output [--runtime RID] [manifest-path]
