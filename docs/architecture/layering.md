@@ -10,8 +10,9 @@ flowchart TB
     APP["packages/application\n用例 + 抽象"]
     INF["packages/infrastructure\nPostgreSQL 实现"]
     CORE["packages/core\n纯领域"]
-    AGENT["packages/agent-contracts\nAgent 协议"]
-    AHK["runtime/agents/injector-ahk\n(AHK 运行时)"]
+    AGENT["packages/agents-contracts\nAgents 协议"]
+    AHK["runtime/agents/modules/injector\n(AHK Injector 模块)"]
+    HOST["runtime/agents/host\n(Agents.exe)"]
 
     DESKTOP --> APP
     DESKTOP --> INF
@@ -19,13 +20,14 @@ flowchart TB
     INF --> APP
     INF --> CORE
     APP --> CORE
+    DESKTOP -.->|启动 Host（Agents 入口）| HOST
+    HOST -.->|拉起模块| AHK
     AHK -.->|读共享 JSON 配置| DESKTOP
-    DESKTOP -.->|启动/停止进程| AHK
 ```
 
 **允许：**
 
-- Desktop → Application / Infrastructure / Agent.Contracts
+- Desktop → Application / Infrastructure / Agents.Contracts
 - Infrastructure → Application / Core
 - Application → Core
 
@@ -46,7 +48,7 @@ flowchart TB
 ### `packages/application`
 
 - **Abstractions/**：仓储与服务接口（`IDashboardService`、`IDashboardRepo` 等）
-- **DTOs/**：跨层传输模型（Dashboard、Msfx、ScanCode、Automation 等）
+- **DTOs/**：跨层传输模型（Dashboard、Msfx、ScanCode、Agents 等）
 - **Services/**：用例实现（`DashboardService`、`ScanCodeService`、`SyncService` 等）
 - 注册入口：`AddPacToolkitsApplication()`（`ServiceCollectionExtensions.cs`）
 
@@ -59,11 +61,11 @@ flowchart TB
 - 注册入口：`AddPacToolkitsInfrastructure()`
 - 引用 Npgsql；SQL 集中在此层
 
-### `packages/agent-contracts`
+### `packages/agents-contracts`
 
-- Desktop 与 AHK Agent 共享的配置与协议类型
-- `AutomationToolsOptions`、`AgentConfigValidator`、`IAgentRuntime` / `IAgentManager`（底层契约）等
-- 桌面 `AhkInjectorAgentRuntime` / `AgentManager` 实现运行时控制；AHK 源码在 `runtime/agents/injector-ahk`
+- Desktop 与 Agents 容器 / Injector 模块共享的配置与协议类型
+- `AgentsOptions` / `InjectorOptions`、`AgentsConfigValidator`、`IAgentsRuntime` / `IAgentsManager`（底层契约）等
+- 桌面 `AgentsRuntime` / `AgentsManager` 实现运行时控制；Host（Agents 入口进程）在 `runtime/agents/host`，AHK 模块在 `runtime/agents/modules/injector`
 
 ### `apps/desktop-avalonia`
 
@@ -84,13 +86,13 @@ DashboardViewModel
         → PgDb / Npgsql
 ```
 
-**自动化套件启停：**
+**Agents 启停：**
 
 ```text
 SettingsViewModel / MainWindowViewModel
-  → IAgentManager.GetRequired(AgentIds.InjectorAhk)
-    → IAgentRuntime (AhkInjectorAgentRuntime 实现)
-      → 进程启停 + AgentConfigValidator (agent-contracts)
+  → IAgentsManager.GetRequired(AgentsIds.Agents)
+    → IAgentsRuntime (AgentsRuntime 实现)
+      → 进程启停 + AgentsConfigValidator (agents-contracts)
 ```
 
 ## 敏感操作与解锁
@@ -100,5 +102,4 @@ SettingsViewModel / MainWindowViewModel
 ## 演进约束
 
 1. 新业务能力优先落在 Application（接口 + 服务），Infrastructure 补实现
-2. Agent 相关共享类型进 `agent-contracts`，避免 Desktop 与 AHK 各写一份 JSON 模型
-3. Electron preview（`apps/desktop-electron`）未来也只能消费 Application / Agent.Contracts，不得绕过层直接访问数据库
+2. Agents 相关共享类型进 `agents-contracts`，避免 Desktop 与 AHK 各写一份 JSON 模型

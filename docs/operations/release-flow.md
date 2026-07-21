@@ -1,6 +1,6 @@
 # 发布流程
 
-PacToolkits 的 Desktop、Agent、DB Schema 版本由 **`release-manifest.json`（schema v2）** 统一驱动。
+PacToolkits 的 Desktop、Agents、DB Schema 版本由 **`release-manifest.json`（schema v2）** 统一驱动。
 
 ## 版本源（Manifest V2）
 
@@ -9,18 +9,17 @@ PacToolkits 的 Desktop、Agent、DB Schema 版本由 **`release-manifest.json`�
 | 字段                                           | 用途                                                       |
 | ---------------------------------------------- | ---------------------------------------------------------- |
 | `product.version`                              | 产品总版本；Velopack `packVersion`                         |
-| `components.desktop.version`                   | Desktop 组件版本                                           |
-| `components.desktop.implementation`            | `avalonia` / `electron`                                    |
-| `components.desktop.bundles`                   | 随 Desktop 发布的 Agent 组件 ID 列表                       |
-| `components.agent-injector-ahk.version`        | AHK Agent 版本                                             |
-| `components.database-postgres.version`         | PostgreSQL migration 目标版本                              |
-| `components.database-postgres.migrationPolicy` | 数据库迁移策略：`stable-only` / `manual` / `isolated-beta` |
+| `components.desktop.<impl>.version`            | Desktop 组件版本（当前 `<impl>` = `avalonia`）             |
+| `components.agents.version`                    | Agents 容器版本                                            |
+| `components.agents.modules.<Id>.version`       | 各 Agents 模块版本（如 `Injector`）                        |
+| `components.database.postgres.version`         | PostgreSQL migration 目标版本                              |
+| `components.database.postgres.migrationPolicy` | 数据库迁移策略：`stable-only` / `manual` / `isolated-beta` |
 | `release.channel`                              | 发布通道：`stable` / `beta`                                |
 
 同步到各子项目：
 
 ```bash
-./scripts/export-version.sh   # 生成 Version.g.props、version.generated.json 等
+./scripts/export-version.sh   # 生成 Version.g.props、ReleaseManifest.json 等
 ./scripts/check-version.sh    # 校验 manifest v2 与生成文件一致
 ./scripts/bump-version.sh     # 按规则 bump 版本
 ```
@@ -37,9 +36,8 @@ tag、version、channel 或 GitHub prerelease 标志不一致时，验证工作�
 release.yml
   ├─ validate-release.yml              校验 tag / channel / prerelease / Feed / DB policy
   ├─ resolve-release-plan.yml          读取 manifest，输出 implementation / artifact / mainExe / icon 等
-  ├─ build-agent-injector-ahk.yml      所有 agent 组件（按 bundles）
-  ├─ build-desktop-avalonia.yml        仅当 implementation=avalonia
-  ├─ build-desktop-electron.yml        仅当 implementation=electron（需 npm run build:desktop）
+  ├─ build-agents.yml      Agents 容器 + modules
+  ├─ build-desktop-avalonia.yml        implementation=avalonia 时构建
   ├─ package-desktop.yml               接收 resolve 参数，动态打包
   ├─ generate-release-notes.yml
   └─ publish-release.yml
@@ -53,37 +51,39 @@ release.yml
 
 **路径约定（monorepo）：**
 
-| 产物             | 路径                                                                                         |
-| ---------------- | -------------------------------------------------------------------------------------------- |
-| Desktop 项目     | `apps/desktop-avalonia/src/`                                                                 |
-| Agent 源码       | `runtime/agents/injector-ahk/`                                                               |
-| Agent CI staging | `artifacts/agents/agent-injector-ahk/win-x64/pactoolkits-injector.exe`                       |
-| 安装包内 Agent   | `Agents/injector/pactoolkits-injector.exe`（manifest `artifact.installDir` + `windows-x64`） |
-| DB 脚本          | `database/postgres/`                                                                         |
+| 产物              | 路径                                                                        |
+| ----------------- | --------------------------------------------------------------------------- |
+| Desktop 项目      | `apps/desktop-avalonia/src/`                                                |
+| Agents 源码       | `runtime/agents/modules/injector/` + `runtime/agents/host/`                 |
+| Agents CI staging | `artifacts/agents/win-x64/`（`Agents.exe` + `Modules/Injector/`）           |
+| Host 发布方式     | framework-dependent + single-file（与 Desktop 一致，不嵌 .NET runtime）     |
+| 安装包内 Agents   | `Agents/Agents.exe` + `Agents/Modules/Injector/`（manifest `installDir=.`） |
+| DB 脚本           | `database/postgres/`                                                        |
 
 **Artifact 命名：**
 
 - 正式 Desktop：`pactoolkits-desktop-win-x64-<product.version>`
 - Avalonia 内部构建：`pactoolkits-desktop-avalonia-win-x64-<desktop.version>`
-- Agent：`pactoolkits-injector-win-x64-<agent.version>`
+- Agents CI artifact：`PacToolkits-Agents-<runtime>-<agents.version>`（无 channel）
+- Agents 发布 zip：`PacToolkits-Agents-win-x64-<agents.version>-<channel>.zip`
 
 **命名分层（原则）：**
 
-| 层级               | 规则                                              | 当前示例                                          |
-| ------------------ | ------------------------------------------------- | ------------------------------------------------- |
-| 用户主程序         | 短名；**不带** Avalonia / Electron / AHK 等技术栈 | `pactoolkits-desktop.exe`                         |
-| 安装包             | 通道 + Setup，长度适中                            | `pactoolkits-stable-Setup.exe`                    |
-| CI Artifact        | 结构化、可较长；implementation 仅用于 CI/内部区分 | `pactoolkits-desktop-avalonia-win-x64-0.17.1.zip` |
-| 代码项目 / 程序集  | 保持完整语义                                      | `PacToolkits.Desktop.Avalonia`                    |
-| Manifest 组件 ID   | 内部标识，可含实现细节                            | `agent-injector-ahk`                              |
-| Agent 用户可见 exe | 短名、无技术栈                                    | `pactoolkits-injector.exe`                        |
-| 安装目录           | 目录与 exe 不重复堆叠                             | `Agents/injector/pactoolkits-injector.exe`        |
+| 层级              | 规则                                                               | 当前示例                                                         |
+| ----------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| 用户主程序        | 与 `AssemblyName` 一致；**不带** 技术栈后缀                        | `PacToolkits.Desktop.exe`                                        |
+| 安装包            | 通道 + Setup，长度适中                                             | `PacToolkits-beta-Setup.exe` / `PacToolkits-stable-Setup.exe`    |
+| CI Artifact       | 结构化、可较长；implementation 仅用于 CI/内部区分                  | `pactoolkits-desktop-avalonia-win-x64-1.0.2-beta.5.zip`          |
+| 代码项目 / 程序集 | 项目文件可含实现后缀；输出程序集用 Desktop 短名                    | 项目 `PacToolkits.Desktop.Avalonia` / 输出 `PacToolkits.Desktop` |
+| Manifest 组件 ID  | 内部标识，可含实现细节                                             | `agents`                                                         |
+| Host 用户可见 exe | 与 Agents 容器同名的入口短名（Host=`Agents.exe`）；容器只指 Agents | `Agents.exe`                                                     |
+| 安装目录          | Host 在 Agents 容器根；模块在 `Modules/<id>/`                      | `Agents/Agents.exe`                                              |
 
-同一发布中，除非需要用户主动区分两种实现（例如并存 Avalonia 与 Electron），否则不要把实现技术名写进最终用户程序名。CI Artifact 与 manifest 组件 ID 可以继续保留 implementation 信息。
+不要把实现技术名写进最终用户程序名。CI Artifact 可继续保留 `avalonia` 标识。
 
 ## 本地发布命令
 
-### Desktop（含 Agent 聚合）
+### Desktop（含 Agents 聚合）
 
 ```bash
 ./scripts/release-desktop.sh \
@@ -92,16 +92,20 @@ release.yml
   --upload-target user@host:/var/www/updates/pactoolkits
 ```
 
-需先将 Agent 二进制放入 `artifacts/agents/agent-injector-ahk/win-x64/`。
+需先将 Agents 二进制放入 `artifacts/agents/win-x64/`。
 
-Feed 按通道分子目录：`.../stable/`、`.../beta/`（`packId=pactoolkits` 不变）。
+Feed 按通道分子目录：`.../stable/`、`.../beta/`（小写；与 Velopack `--channel` / Setup 文件名一致，如 `PacToolkits-beta-Setup.exe`）。
 Stable 和 Beta Feed 必须完全隔离；Beta GitHub Release 必须标记为 prerelease。
 
-### Agent（独立 artifact）
+### Agents（独立 artifact）
+
+先由 Windows CI/`build-agents.yml` 产出 staging 布局，再打包：
 
 ```bash
-./scripts/release-agent-injector-ahk.sh --artifact-dir artifacts/agents/agent-injector-ahk/win-x64 --skip-upload
+./scripts/release-agents.sh --artifact-dir artifacts/agents/win-x64 --skip-upload
 ```
+
+要求目录含 `Agents.exe` 与 `Modules/Injector/`（含 `Injector.exe`、`module.json`）。
 
 ### 数据库
 
@@ -170,14 +174,15 @@ Windows PowerShell：
 - [Beta 发布政策](beta-release-policy.md)
 - [数据库兼容与回退政策](database-compatibility-policy.md)
 
-## Agent 路径解析
+## Agents 路径解析
 
-启动时 `AgentPath` 按以下顺序解析（相对路径基于 Desktop 安装目录）：
+启动时 `AgentsPath` 按以下顺序解析（相对路径基于 Desktop 安装目录）：
 
-1. **Legacy / 旧标准路径升级**：配置为 `Tools\pacinjector.exe` 或旧版 `Agents\agent-injector-ahk\pactoolkits-agent-injector-ahk.exe`，且 bundled 新标准 exe 存在 → 使用 `.\Agents\injector\pactoolkits-injector.exe` 并写回配置
-2. **Configured**：其它配置路径且文件存在 → 使用配置路径（含用户自定义路径）
-3. **Standard**：配置无效/文件不存在，但 bundled 标准 exe 存在 → 使用标准路径并按需写回配置
-4. **Missing**：均不可用 → 启动失败
+1. **配置 Schema v2**：读入时将 Main/`SchemaVersion=1` 的 `AutomationTools`（`Ahk` 路径 + `Agent` 注入参数）收敛为单一 `Agents`（容器路径 + `Injector`），写回 `SchemaVersion=2`
+2. **Main 路径升级**：配置为 Main 已发布的 `Tools\pacinjector.exe` → 写回 `.\Agents\Agents.exe`（不依赖本机是否已有新 Host 二进制）
+3. **Configured**：其它配置路径且文件存在 → 使用配置路径（含用户自定义路径）
+4. **Standard**：配置无效/文件不存在，但 bundled 标准 exe 存在 → 使用标准路径并按需写回配置
+5. **Missing**：均不可用 → 启动失败
 
 不再扫描磁盘上的 `Tools\pacinjector.exe` 作为兜底。停止/重启时仍会识别进程名 `pacinjector` 以结束旧进程。
 
