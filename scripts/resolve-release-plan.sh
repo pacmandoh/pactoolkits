@@ -64,29 +64,19 @@ validate_release_tag_matches_product_version "$release_tag" "$MANIFEST" || exit 
 implementation="$(manifest_desktop_implementation "$MANIFEST")"
 desktop_version="$(manifest_desktop_version "$MANIFEST")"
 product_version="$(manifest_product_version "$MANIFEST")"
-pack_id="$(jq -r '.components.desktop.packageId' "$MANIFEST")"
+pack_id="$(manifest_desktop_package_id "$MANIFEST")"
 channel="$(manifest_release_channel "$MANIFEST")"
 
 case "$implementation" in
   avalonia)
     desktop_artifact_name="pactoolkits-desktop-avalonia-${RUNTIME}-${desktop_version}"
-    main_exe="pactoolkits-desktop.exe"
+    main_exe="PacToolkits.Desktop.exe"
     icon_path="apps/desktop-avalonia/src/Assets/app.ico"
     releases_dir="apps/desktop-avalonia/src/Releases"
     publish_subdir="apps/desktop-avalonia/src/bin/Release/net10.0/${RUNTIME}/publish"
     ;;
-  electron)
-    desktop_artifact_name="pactoolkits-desktop-electron-${RUNTIME}-${desktop_version}"
-    main_exe="pactoolkits-desktop.exe"
-    icon_path="apps/desktop-electron/build/icon.ico"
-    if [[ ! -f "$ROOT_DIR/$icon_path" ]]; then
-      icon_path="apps/desktop-avalonia/src/Assets/app.ico"
-    fi
-    releases_dir="apps/desktop-electron/Releases"
-    publish_subdir="apps/desktop-electron/dist/${RUNTIME}"
-    ;;
   *)
-    echo "ERROR: unsupported components.desktop.implementation: $implementation" >&2
+    echo "ERROR: unsupported components.desktop implementation key: $implementation" >&2
     exit 1
     ;;
 esac

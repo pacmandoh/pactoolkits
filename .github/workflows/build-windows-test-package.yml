@@ -4,8 +4,21 @@ on:
   push:
     branches:
       - beta
+      # Feature-branch smoke: any push builds a Windows test package (no manifest bump required).
+      - 'refactor/**'
     paths:
       - 'release-manifest.json'
+      - 'apps/desktop-avalonia/**'
+      - 'packages/**'
+      - 'runtime/agents/**'
+      - 'database/postgres/**'
+      - '.github/workflows/build-windows-test-package.yml'
+      - '.github/workflows/build-agents.yml'
+      - '.github/workflows/build-desktop-avalonia.yml'
+      - '.github/workflows/package-desktop.yml'
+      - '.github/workflows/resolve-release-plan.yml'
+      - 'PacToolkits.sln'
+      - 'scripts/**'
   workflow_dispatch:
     inputs:
       runtime:
@@ -30,10 +43,10 @@ jobs:
     with:
       runtime: ${{ inputs.runtime || 'win-arm64' }}
 
-  build_agent_injector_ahk:
+  build_agents:
     needs:
       - resolve_release_plan
-    uses: ./.github/workflows/build-agent-injector-ahk.yml
+    uses: ./.github/workflows/build-agents.yml
     with:
       runtime: win-x64
       artifact_retention_days: 1
@@ -52,12 +65,12 @@ jobs:
   package_desktop:
     needs:
       - resolve_release_plan
-      - build_agent_injector_ahk
+      - build_agents
       - build_desktop_avalonia
     if: |
       always() &&
       needs.resolve_release_plan.result == 'success' &&
-      needs.build_agent_injector_ahk.result == 'success' &&
+      needs.build_agents.result == 'success' &&
       needs.resolve_release_plan.outputs.implementation == 'avalonia' &&
       needs.build_desktop_avalonia.result == 'success'
     uses: ./.github/workflows/package-desktop.yml

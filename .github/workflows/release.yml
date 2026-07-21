@@ -59,7 +59,7 @@ jobs:
               +refs/heads/beta:refs/remotes/origin/beta
             branches="$(git branch -r --contains HEAD || true)"
             channel="$(jq -r '.release.channel // empty' release-manifest.json)"
-            migration_policy="$(jq -r '.components["database-postgres"].migrationPolicy // "stable-only"' release-manifest.json)"
+            migration_policy="$(jq -r '.components.database.postgres.migrationPolicy // "stable-only"' release-manifest.json)"
 
             if grep -q 'origin/main' <<< "$branches"; then
               should_run=true
@@ -96,12 +96,12 @@ jobs:
     if: needs.release_gate.outputs.should_run == 'true'
     uses: ./.github/workflows/resolve-release-plan.yml
 
-  build_agent_injector_ahk:
+  build_agents:
     needs:
       - release_gate
       - resolve_release_plan
     if: needs.release_gate.outputs.should_run == 'true'
-    uses: ./.github/workflows/build-agent-injector-ahk.yml
+    uses: ./.github/workflows/build-agents.yml
     secrets: inherit
 
   build_desktop_avalonia:
@@ -112,30 +112,19 @@ jobs:
     uses: ./.github/workflows/build-desktop-avalonia.yml
     secrets: inherit
 
-  build_desktop_electron:
-    needs:
-      - release_gate
-      - resolve_release_plan
-    if: needs.release_gate.outputs.should_run == 'true' && needs.resolve_release_plan.outputs.implementation == 'electron'
-    uses: ./.github/workflows/build-desktop-electron.yml
-    secrets: inherit
-
   package_desktop:
     needs:
       - release_gate
       - resolve_release_plan
-      - build_agent_injector_ahk
+      - build_agents
       - build_desktop_avalonia
-      - build_desktop_electron
     if: |
       always() &&
       needs.release_gate.outputs.should_run == 'true' &&
       needs.resolve_release_plan.result == 'success' &&
-      needs.build_agent_injector_ahk.result == 'success' &&
-      (
-        (needs.resolve_release_plan.outputs.implementation == 'avalonia' && needs.build_desktop_avalonia.result == 'success') ||
-        (needs.resolve_release_plan.outputs.implementation == 'electron' && needs.build_desktop_electron.result == 'success')
-      )
+      needs.build_agents.result == 'success' &&
+      needs.resolve_release_plan.outputs.implementation == 'avalonia' &&
+      needs.build_desktop_avalonia.result == 'success'
     uses: ./.github/workflows/package-desktop.yml
     with:
       implementation: ${{ needs.resolve_release_plan.outputs.implementation }}

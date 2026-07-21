@@ -7,7 +7,7 @@ source "$ROOT_DIR/scripts/manifest-v2.sh"
 
 MANIFEST="$ROOT_DIR/release-manifest.json"
 DESKTOP_VERSION_PROPS="$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props"
-DESKTOP_VERSION_JSON="$ROOT_DIR/apps/desktop-avalonia/src/version.generated.json"
+DESKTOP_VERSION_JSON="$ROOT_DIR/apps/desktop-avalonia/src/ReleaseManifest.json"
 
 require_cmd() {
   command -v "$1" > /dev/null 2>&1 || {
@@ -37,7 +37,7 @@ manifest_canonical="$(jq -S . "$MANIFEST")"
 export_canonical="$(jq -S . "$DESKTOP_VERSION_JSON")"
 
 if [[ "$manifest_canonical" != "$export_canonical" ]]; then
-  echo "ERROR: version.generated.json does not match release-manifest.json" >&2
+  echo "ERROR: ReleaseManifest.json does not match release-manifest.json" >&2
   echo "Run scripts/export-version.sh to regenerate exports." >&2
   exit 1
 fi
@@ -57,25 +57,56 @@ fi
 
 while IFS= read -r component_id; do
   [[ -n "$component_id" ]] || continue
-  agent_json="$ROOT_DIR/$(manifest_agent_source_dir "$component_id")/version.generated.json"
-  [[ -f "$agent_json" ]] || {
-    echo "ERROR: missing $agent_json (run scripts/export-version.sh)" >&2
+  agents_json="$ROOT_DIR/$(manifest_agents_source_dir "$component_id")/ReleaseManifest.json"
+  [[ -f "$agents_json" ]] || {
+    echo "ERROR: missing $agents_json (run scripts/export-version.sh)" >&2
     exit 1
   }
-  agent_canonical="$(jq -S . "$agent_json")"
-  if [[ "$manifest_canonical" != "$agent_canonical" ]]; then
-    echo "ERROR: $agent_json does not match release-manifest.json" >&2
+  agents_canonical="$(jq -S . "$agents_json")"
+  if [[ "$manifest_canonical" != "$agents_canonical" ]]; then
+    echo "ERROR: $agents_json does not match release-manifest.json" >&2
     exit 1
   fi
-done < <(manifest_agent_component_ids "$MANIFEST")
+done < <(manifest_agents_component_ids "$MANIFEST")
+
+while IFS= read -r module_id; do
+  [[ -n "$module_id" ]] || continue
+  module_dir="$ROOT_DIR/$(manifest_agents_module_source_dir "$module_id")"
+  module_json="$module_dir/ReleaseManifest.json"
+  [[ -f "$module_json" ]] || {
+    echo "ERROR: missing $module_json (run scripts/export-version.sh)" >&2
+    exit 1
+  }
+  module_canonical="$(jq -S . "$module_json")"
+  if [[ "$manifest_canonical" != "$module_canonical" ]]; then
+    echo "ERROR: $module_json does not match release-manifest.json" >&2
+    exit 1
+  fi
+
+  declared_version="$(manifest_agents_module_version "$MANIFEST" "$module_id")"
+  module_meta="$module_dir/module.json"
+  [[ -f "$module_meta" ]] || {
+    echo "ERROR: missing $module_meta (run scripts/export-version.sh)" >&2
+    exit 1
+  }
+  meta_version="$(jq -r '.version // empty' "$module_meta")"
+  [[ "$meta_version" == "$declared_version" ]] || {
+    echo "ERROR: $module_meta version=$meta_version != agents.modules.$module_id.version=$declared_version" >&2
+    exit 1
+  }
+done < <(manifest_agents_module_ids "$MANIFEST")
 
 echo "Version check passed."
 echo "- product.version: $(manifest_product_version "$MANIFEST")"
-echo "- desktop.version: $manifest_desktop"
+echo "- desktop.<impl>.version: $manifest_desktop"
 echo "- desktop.implementation: $(manifest_desktop_implementation "$MANIFEST")"
-echo "- database-postgres.version: $(manifest_database_postgres_version "$MANIFEST")"
+echo "- database.postgres.version: $(manifest_database_postgres_version "$MANIFEST")"
 while IFS= read -r component_id; do
   [[ -n "$component_id" ]] || continue
   version="$(jq -r --arg id "$component_id" '.components[$id].version' "$MANIFEST")"
   echo "- ${component_id}.version: $version"
-done < <(manifest_agent_component_ids "$MANIFEST")
+done < <(manifest_agents_component_ids "$MANIFEST")
+while IFS= read -r module_id; do
+  [[ -n "$module_id" ]] || continue
+  echo "- agents.modules.${module_id}.version: $(manifest_agents_module_version "$MANIFEST" "$module_id")"
+done < <(manifest_agents_module_ids "$MANIFEST")
