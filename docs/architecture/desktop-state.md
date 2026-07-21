@@ -2,7 +2,7 @@
 
 Avalonia Desktop（`apps/desktop-avalonia`）将**全局连接**、**页面数据可用性**、**区块空态**拆成三层，避免单一 `IsBusy` 或重复 toast/banner 表达同一事件。
 
-相关实现：`apps/desktop-avalonia/src/ViewModels/AppPageBase.cs`、`Controls/PageDataShell.axaml`、`Services/Application/ConnectivityBanner.cs`。
+相关实现：`apps/desktop-avalonia/src/ViewModels/AppPageBase.cs`、`Controls/PageDataShell.axaml`、`Services/Presentation/ConnectivityBanner.cs`、`Services/Presentation/PageReconnectPolicy.cs`。
 
 ## 三层职责
 
