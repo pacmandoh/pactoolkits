@@ -1,11 +1,8 @@
-; ================== UI 模块 ==================
-;
+; 门诊/住院窗口注入与验证：粘贴策略与失败弹窗处理
 global __UI_FAST_CTRL_CACHE := Map()
-; 只在指定场景才粘贴
-; 规则：
-; 1) 校验 ahk_exe = 互慧软件.exe
-; 2) 住院：class 命中 + 标题包含“追溯码录入” -> 粘贴到配置化住院输入控件
-; 3) 门诊：class 命中 + 页面文本包含“门诊处方发药” -> 粘贴到配置化门诊输入控件
+; 仅在允许的门诊/住院录入场景粘贴，避免误注入无关窗口
+; 互慧 exe 已由 HotIf 限定；此处再按 class/标题分流到配置化输入框
+; 住院还需标题含“追溯码录入”；门诊仅按 class 命中
 UI_Paste_ByPolicy(
 	text,
 	opt,
@@ -18,7 +15,6 @@ UI_Paste_ByPolicy(
     cls := WinGetClass(win)
     ttl := WinGetTitle(win)
 
-    ; ===== 住院：追溯码录入 =====
     if (cls = ipt && InStr(ttl, "追溯码录入")) {
         return Ui_Paste_Impl(win, iptInputClassNN, text, false)
     } else if (cls = opt) {
@@ -29,7 +25,7 @@ UI_Paste_ByPolicy(
 }
 
 UI_Paste_Warehouse(text, inputClassNN, win := "A") {
-    ; 仓库极速通道：缓存控件句柄 + 直写输入框 + Enter keydown
+    ; 仓库极速通道：缓存 HWND + WM_SETTEXT 直写 + 仅 keydown
     return UI_Paste_WarehouseFast(text, inputClassNN, win)
 }
 
@@ -42,10 +38,10 @@ UI_Paste_WarehouseFast(text, inputClassNN, win := "A") {
     if !hwndCtrl
         return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "获取当前窗口 hwnd 失败", "reason", "control not found", "ctrl", inputClassNN)
 
-    ; 直写控件文本（比剪贴板粘贴更快）
+    ; 直写比剪贴板粘贴更快，适合高吞吐仓库注入
     okSet := false
     try {
-        ; WM_SETTEXT
+        ; WM_SETTEXT = 0x000C
         SendMessage(0x000C, 0, StrPtr(text), , "ahk_id " hwndCtrl)
         okSet := true
     } catch {
@@ -58,15 +54,15 @@ UI_Paste_WarehouseFast(text, inputClassNN, win := "A") {
     if !okSet
         return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "写入输入框失败")
 
-    ; 仓库高速通道固定节拍（硬编码）
+    ; 仓库高速通道固定 keydown 前延迟；乱改易致首尾错位
     keydownDelay := 8
     if (keydownDelay > 0)
         Sleep(keydownDelay)
 
-    ; 按既有住院行为，仅发 keydown（该窗口链路实际仅 PostMessage 可稳定生效）
-    ; lParam 传 1（repeat=1），避免部分控件把 0 视为异常键消息
+    ; 与住院一致仅发 keydown；该窗口链路只有 PostMessage 可稳定生效
+    ; lParam=1（repeat=1），避免部分控件把 0 当异常键消息
     PostMessage(0x0100, 0x0D, 1, , "ahk_id " hwndCtrl)
-    ; 极短提交让步：降低高吞吐下 UI 消息拥挤导致的首尾错位概率
+    ; 极短 Sleep 让步，降低高吞吐下消息拥挤导致的首尾错位
     Sleep(1)
     return Map("ok", true, "ctrl", inputClassNN, "enter", false)
 }
@@ -104,7 +100,7 @@ UI_GetCachedCtrlHwnd(classNN, win := "A") {
     key := hwndWin "|" classNN
     if (__UI_FAST_CTRL_CACHE.Has(key)) {
         h := __UI_FAST_CTRL_CACHE[key]
-        ; IsWindow(h)
+        ; 缓存 HWND 可能已失效，先 IsWindow 校验
         if (DllCall("IsWindow", "Ptr", h, "Int"))
             return h
         __UI_FAST_CTRL_CACHE.Delete(key)
@@ -147,7 +143,6 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 				"reason", "ClipWait timeout"
 			)
 
-		; 1) 粘贴
 		SendMessage(0x0302, 0, 0, , "ahk_id " hwndCtrl)
 
 		if (doEnter) {
@@ -168,7 +163,7 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 
 UI_DetectAndHandleFailDialog() {
 
-    ; ========= 信息确认：按 Y =========
+    ; “信息确认”：不符仍继续 → 回 Y
     if (hwnd := WinExist("信息确认")) {
         win := "ahk_id " hwnd
         txt := WinGetText(win)
@@ -188,12 +183,12 @@ UI_DetectAndHandleFailDialog() {
         }
     }
 
-    ; ========= 提示：Enter / Esc =========
+    ; “提示”窗：按文案分流 Enter / Esc
     if (hwnd := WinExist("提示")) {
         win := "ahk_id " hwnd
         txt := WinGetText(win)
 
-        ; ---- 重复追溯码：Enter ----
+        ; 重复追溯码：Enter 关闭
         if InStr(txt, "重复的追溯码")
         && InStr(txt, "不能录入") {
 
@@ -207,7 +202,7 @@ UI_DetectAndHandleFailDialog() {
             return true
         }
 
-        ; ---- 数量不符：Esc ----
+        ; 数量不符：Esc 取消继续新增
         if InStr(txt, "物资")
         && InStr(txt, "追溯码扫码数量")
         && InStr(txt, "是否继续新增") {
@@ -243,21 +238,21 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
     win := Util_NormalizeWin(win)
     cls := WinGetClass(win)
 
-	; ========= 门诊 =========
+	; 门诊：解析“已扫 N 码”做强验证
 	if (cls = opt) {
 		needN := codes.Length
 
 		colSpecs := ["追溯码"]
 		intCols  := []
 
-		; memoCtl := "TMemo1"  ; 门诊软区/提示区
-		; lastMemo := ""       ; 避免每次都提示相同内容
+		; memoCtl := "TMemo1"  ; 门诊软区/提示区（旧逻辑，暂禁用）
+		; lastMemo := ""       ; 避免重复弹相同提示（旧逻辑，暂禁用）
 
 		while (A_TickCount - t0 < timeoutMs) {	
             txt := UI_TryCopyGridClassNNText(optVerifyGridClassNN, win)
 			p := Parse_TargetInfo(colSpecs, ipt, intCols, txt, win, iptParseGridClassNN)
 
-			; 0) 强验证：解析“追溯码”列，判断已扫N码
+			; 解析“追溯码”列的已扫 N 码，达到 needN 才算成功
 			if (IsObject(p) && p.Has("ok") && p["ok"]) {
 				v := p["bySpec"].Has("追溯码") ? Trim(p["bySpec"]["追溯码"]) : ""
 				if (v != "") {
@@ -279,7 +274,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 		return Map("ok", false, "level", "ERR", "type", "[录入验证错误]", "why", "门诊窗口录入追溯码验证失败，未实际扫码成功")
 	}
 
-    ; ========= 住院 =========
+    ; 住院：验证区需出现全部已注入码；并处理失败弹窗
     if (cls = ipt) {	
 		ipt := Map("codes", codes, "gridN", 1)
 
@@ -338,13 +333,13 @@ UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
 }
 
 UI_PostClick(hwndCtrl, x := 30, y := 40) {
-    ; x,y 是控件客户区坐标
+    ; x,y 为控件客户区坐标（非屏幕坐标）
     static WM_LBUTTONDOWN := 0x0201
     static WM_LBUTTONUP   := 0x0202
     static MK_LBUTTON     := 0x0001
     lParam := (y << 16) | (x & 0xFFFF)
 
-    ; 让控件认为自己被点了（不移动鼠标）
+    ; 合成点击让控件获焦，但不移动真实鼠标
     PostMessage(WM_LBUTTONDOWN, MK_LBUTTON, lParam, , "ahk_id " hwndCtrl)
     PostMessage(WM_LBUTTONUP, 0, lParam, , "ahk_id " hwndCtrl)
 }
@@ -564,17 +559,17 @@ UI_MouseOnClassNN(targetNN, win := "A") {
     win := Util_NormalizeWin(win)
     MouseGetPos &sx, &sy, &winHwnd, &ctrlHwnd, 2
 
-    ; 1) 优先从 ctrlHwnd 起步（最贴近真实命中）
+    ; 优先 AHK ctrlHwnd（最贴近真实命中）
     h0 := ctrlHwnd
     if !h0 {
-        ; 兜底：WindowFromPoint
+        ; 无 ctrlHwnd 时用 WindowFromPoint 兜底
         h0 := DllCall("user32\WindowFromPoint"
             , "Int64", (sy<<32)|sx, "Ptr")
     }
     if !h0
         return false
 
-    ; 2) 按旧版语义：由完整 ClassNN 拆出基类，再向上找基类父控件
+    ; 旧版语义：ClassNN 去序号得基类，再向上找基类父控件
     nnTarget := Trim("" targetNN)
     baseClass := RegExReplace(nnTarget, "\d+$", "")
     if (baseClass = "")
@@ -586,7 +581,7 @@ UI_MouseOnClassNN(targetNN, win := "A") {
     if !hSite
         return false
 
-    ; 3) 拿这个基类控件的 ClassNN 做最终比对
+    ; 最终用基类控件的完整 ClassNN 与目标比对
     nn := ""
     try nn := ControlGetClassNN(hSite)
     catch

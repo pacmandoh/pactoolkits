@@ -4,12 +4,14 @@ using PacToolkits.Agents.Contracts.Agents;
 namespace PacToolkits.Agents.Host;
 
 /// <summary>
-/// Resident Host: keeps Agents.exe alive while modules start/stop under Modules/&lt;Id&gt;.
-/// Does not auto-mount; Desktop writes <see cref="AgentsPaths.ModuleControlFileName"/>
-/// (<c>start</c>, <c>stop</c>, or <c>quit</c>).
+/// 常驻 Host：保持 Agents.exe 存活，按 Modules/&lt;Id&gt; 启停模块
+///
+/// 不自动挂载；由 Desktop 写入 <see cref="AgentsPaths.ModuleControlFileName"/>
+///（<c>start</c> / <c>stop</c> / <c>quit</c>）
 /// </summary>
 internal static class Program
 {
+    // Desktop↔Host 控制文件轮询；读后即删，避免重复执行
     private static readonly TimeSpan ControlPoll = TimeSpan.FromMilliseconds(250);
 
     private static int Main(string[] args)
@@ -55,7 +57,7 @@ internal static class Program
             quit.Set();
         };
 
-        // Do not auto-mount: Desktop writes start/stop/quit after Host is up.
+        // 不自动挂载：等 Desktop 在 Host 起来后写入 start/stop/quit
         while (!quit.IsSet)
         {
             if (module is not null && module.HasExited)
@@ -176,7 +178,7 @@ internal static class Program
         }
         catch
         {
-            // best-effort
+            // 控制文件删除失败可忽略（下一轮轮询会再试）
         }
     }
 
@@ -200,7 +202,7 @@ internal static class Program
         return null;
     }
 
-    /// <summary>Strip Host-only flags so the module process does not see them.</summary>
+    // 去掉 Host 专用参数，避免传给模块进程
     private static IReadOnlyList<string> FilterHostArgs(string[] args)
     {
         var result = new List<string>(args.Length);
@@ -230,7 +232,7 @@ internal static class Program
         }
         catch
         {
-            // best-effort shutdown
+            // 强制结束失败可忽略（进程可能已退出）
         }
     }
 }

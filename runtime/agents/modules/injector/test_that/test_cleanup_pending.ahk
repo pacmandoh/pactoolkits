@@ -11,8 +11,8 @@ global TEST_DRUG   := "盐酸氨基葡萄糖胶囊"
 global TEST_SPEC   := "0.75g*60粒"
 global TEST_CLIENT := A_ComputerName "\" A_UserName
 
-global TIMEOUT_MIN := 1    ; 自愈阈值（分钟），脚本会制造 5 分钟前的 txn，必然超时
-global LIMIT_N      := 200 ; 一次最多清理多少条 PENDING
+global TIMEOUT_MIN := 1    ; 自愈阈值（分钟）；脚本会伪造 5 分钟前 txn 以必超时
+global LIMIT_N      := 200 ; 单次最多清理的 PENDING 条数
 
 Main()
 
@@ -39,11 +39,11 @@ Main() {
         ExitApp 1
     }
 
-    ; 2) 测试前库存概况（sum(remain>0)）
+    ; 2) 记录测试前 avail remain 基线
     beforeSum := GetAvailRemainSum()
     ShowPoolSummary("[信息] 测试前库存概况")
 
-    ; 3) 制造“超时 PENDING”
+    ; 3) 用过去时间戳伪造超时 PENDING，供自愈命中
     oldTs := DateAdd(A_Now, -5, "Minutes")
     txnId := FormatTime(oldTs, "yyyyMMddHHmmss") "_" Random(1000, 9999)
 
@@ -73,10 +73,10 @@ Main() {
         ExitApp 1
     }
 
-    ; 4) 执行自愈清理
+    ; 4) 执行 Txn_CleanupPending
     rr := Txn_CleanupPending(TIMEOUT_MIN, LIMIT_N)
 
-    ; rr 可能是 void 或 Map，这里不强制检查 rr["ok"]，只看最终库状态
+    ; 不强制看 rr["ok"]，以最终 txn/库存状态为准
     AssertTxnStatus(txnId, "ROLLED_BACK", "[信息] 自愈后状态校验(ROLLED_BACK)")
 
     afterCleanupSum := GetAvailRemainSum()

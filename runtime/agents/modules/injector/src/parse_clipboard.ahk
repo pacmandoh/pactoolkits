@@ -1,4 +1,4 @@
-; ================== 解析模块 ==================
+; 从目标窗口网格剪贴板文本解析药品行（Tab 表头 + 首条有效数据行）
 
 Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridClassNN := "") {
     if !IsObject(intCols)
@@ -6,7 +6,6 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 
     win := Util_NormalizeWin(win)
 
-    ; --- 内联小工具 ---
     IsOpt(spec) => (SubStr(spec, 1, 1) = "?")
     Norm(spec)  => IsOpt(spec) ? Trim(SubStr(spec, 2)) : spec
 
@@ -26,10 +25,10 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
         return false
     }
 
-    ; --- 获取待解析文本：优先用传入 text，否则走复制 ---
+    ; 优先用调用方已抓到的 text，避免重复 Ctrl+C 抢剪贴板
     copied := false
 	if (Trim(text) = "") {
-		; FEAT: 住院窗口自动选中，不用双击
+		; 住院网格可自动聚焦选中，无需用户双击
 		if (WinGetClass(win) = ipt) {
             if (Trim(parseGridClassNN) != "")
 			    UI_FocusGridClassNN(parseGridClassNN, win)
@@ -66,11 +65,10 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 
     lines := StrSplit(txt, "`n")
 
-    ; hit: specExpr -> Map("idx", colIndex, "hdr", actualHeader)
+    ; hit：specExpr → Map("idx", colIndex, "hdr", actualHeader)
     hit := Map()
     hdrIdx := 0
 
-    ; 1) 找表头（Tab 分隔）
     for i, line in lines {
         line := Trim(line, "`r")
         if (line = "")
@@ -93,7 +91,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
             }
         }
 
-        ; 必选列（没有 ? 前缀）必须都命中
+        ; 无 ? 前缀的列为必选；缺任一则继续找下一候选表头行
         allFound := true
         for _, rawSpec in colSpecs {
             if IsOpt(rawSpec)
@@ -118,10 +116,9 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 		)
     }
 
-    ; 2) 找数据行
     data  := Map()  ; key=实际表头名
-    bySpec := Map() ; key=spec表达式（去掉 ? 后的规范形式）
-    k := hdrIdx + 1 ; 表头后一行起，找第一条有效
+    bySpec := Map() ; key=去掉 ? 后的规范 spec（可含 || 别名）
+    k := hdrIdx + 1 ; 表头后第一行起找首条有效数据
 
     while (k <= lines.Length) {
         line := Trim(lines[k], "`r")
@@ -169,7 +166,6 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 		)
     }
 
-    ; 3) 返回解析结果
     msg := ""
     for hdr, v in data
         msg .= "`n" hdr "=" v

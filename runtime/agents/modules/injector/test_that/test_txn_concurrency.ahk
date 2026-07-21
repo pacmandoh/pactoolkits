@@ -16,7 +16,7 @@ global LOOPS     := 80
 global MAX_NEED  := 5
 global JITTER_MS := 40
 global MODE      := "COMMIT"   ; COMMIT / ROLLBACK
-global START_BARRIER_MS := 300   ; 让子进程尽量同时开跑
+global START_BARRIER_MS := 300   ; 启动栅栏：让子进程尽量同时开跑
 
 Main()
 
