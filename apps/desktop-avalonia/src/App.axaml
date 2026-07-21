@@ -8,9 +8,9 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <ResourceInclude Source="avares://pactoolkits-desktop/Styles/PacTheme.axaml" />
-        <ResourceInclude Source="avares://pactoolkits-desktop/Resources/Converters/CommonConverters.axaml" />
-        <ResourceInclude Source="avares://pactoolkits-desktop/Resources/Converters/TraceConverters.axaml" />
+        <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/PacTheme.axaml" />
+        <ResourceInclude Source="avares://PacToolkits.Desktop/Resources/Converters/CommonConverters.axaml" />
+        <ResourceInclude Source="avares://PacToolkits.Desktop/Resources/Converters/TraceConverters.axaml" />
       </ResourceDictionary.MergedDictionaries>
 
       <NativeMenu x:Key="TrayMenu">
@@ -26,6 +26,6 @@
 
   <Application.Styles>
     <shad:ShadTheme />
-    <StyleInclude Source="avares://pactoolkits-desktop/Styles/PacTheme.Styles.axaml" />
+    <StyleInclude Source="avares://PacToolkits.Desktop/Styles/PacTheme.Styles.axaml" />
   </Application.Styles>
 </Application>

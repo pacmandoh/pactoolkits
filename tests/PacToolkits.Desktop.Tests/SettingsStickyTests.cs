@@ -93,7 +93,21 @@ public sealed class SettingsStickyTests
     }
 
     [Fact]
-    public void New_h2_replaces_peer_and_clears_old_h3()
+    public void Next_h2_touching_sticky_h3_clears_h3_but_keeps_current_h2()
+    {
+        // Inside H3 band (peerEdge < Top <= fullEdge): dismiss H3 only — do not swap H2.
+        var active = SettingsScroll.SelectActive([
+            new SettingsScroll.HeaderPosition(1, -300),
+            new SettingsScroll.HeaderPosition(2, -200),
+            new SettingsScroll.HeaderPosition(3, -100),
+            new SettingsScroll.HeaderPosition(2, 100)
+        ], [52, 44, 36]);
+
+        Assert.Equal([0, 1], active);
+    }
+
+    [Fact]
+    public void Next_h2_at_full_stack_bottom_still_keeps_current_h2_while_above_peer_slot()
     {
         var active = SettingsScroll.SelectActive([
             new SettingsScroll.HeaderPosition(1, -300),
@@ -102,11 +116,49 @@ public sealed class SettingsStickyTests
             new SettingsScroll.HeaderPosition(2, 132)
         ], [52, 44, 36]);
 
+        Assert.Equal([0, 1], active);
+    }
+
+    [Fact]
+    public void Next_h2_peer_push_works_while_old_h3_header_is_still_in_document()
+    {
+        // Old H3 would re-activate in the same pass; peer push at h1+h2 must still win.
+        var active = SettingsScroll.SelectActive([
+            new SettingsScroll.HeaderPosition(1, -300),
+            new SettingsScroll.HeaderPosition(2, -200),
+            new SettingsScroll.HeaderPosition(3, -100),
+            new SettingsScroll.HeaderPosition(2, 96)
+        ], [52, 44, 36]);
+
         Assert.Equal([0, 3], active);
     }
 
     [Fact]
-    public void New_h2_waits_below_old_h3_stack_bottom()
+    public void Next_h2_still_waits_above_h2_slot_after_h3_was_cleared()
+    {
+        var active = SettingsScroll.SelectActive([
+            new SettingsScroll.HeaderPosition(1, -300),
+            new SettingsScroll.HeaderPosition(2, -200),
+            new SettingsScroll.HeaderPosition(2, 97)
+        ], [52, 44, 36]);
+
+        Assert.Equal([0, 1], active);
+    }
+
+    [Fact]
+    public void Next_h2_replaces_current_h2_at_normal_peer_push_after_h3_cleared()
+    {
+        var active = SettingsScroll.SelectActive([
+            new SettingsScroll.HeaderPosition(1, -300),
+            new SettingsScroll.HeaderPosition(2, -200),
+            new SettingsScroll.HeaderPosition(2, 96)
+        ], [52, 44, 36]);
+
+        Assert.Equal([0, 2], active);
+    }
+
+    [Fact]
+    public void Next_h2_above_full_stack_keeps_h2_and_h3()
     {
         var active = SettingsScroll.SelectActive([
             new SettingsScroll.HeaderPosition(1, -300),
@@ -119,15 +171,55 @@ public sealed class SettingsStickyTests
     }
 
     [Fact]
-    public void New_h1_replaces_entire_previous_stack()
+    public void New_h1_in_child_band_clears_children_but_keeps_current_h1()
     {
         var active = SettingsScroll.SelectActive([
             new SettingsScroll.HeaderPosition(1, -300),
             new SettingsScroll.HeaderPosition(2, -200),
             new SettingsScroll.HeaderPosition(3, -100),
-            new SettingsScroll.HeaderPosition(1, 132)
+            new SettingsScroll.HeaderPosition(1, 80)
+        ], [52, 44, 36]);
+
+        Assert.Equal([0], active);
+    }
+
+    [Fact]
+    public void New_h1_peer_push_works_while_old_children_headers_are_still_in_document()
+    {
+        var active = SettingsScroll.SelectActive([
+            new SettingsScroll.HeaderPosition(1, -300),
+            new SettingsScroll.HeaderPosition(2, -200),
+            new SettingsScroll.HeaderPosition(3, -100),
+            new SettingsScroll.HeaderPosition(1, 52)
         ], [52, 44, 36]);
 
         Assert.Equal([3], active);
+    }
+
+    [Fact]
+    public void New_h1_replaces_at_normal_peer_push_after_children_cleared()
+    {
+        var active = SettingsScroll.SelectActive([
+            new SettingsScroll.HeaderPosition(1, -300),
+            new SettingsScroll.HeaderPosition(1, 52)
+        ], [52, 44, 36]);
+
+        Assert.Equal([1], active);
+    }
+
+    [Fact]
+    public void Merge_slot_heights_keeps_last_h3_when_row_is_temporarily_gone()
+    {
+        var merged = SettingsScroll.MergeSlotHeights([52, 44, 0], [52, 44, 36]);
+
+        Assert.Equal([52, 44, 36], merged);
+    }
+
+    [Fact]
+    public void Merge_slot_heights_does_not_shrink_when_shorter_header_is_measured()
+    {
+        var merged = SettingsScroll.MergeSlotHeights([52, 44, 36], [52, 60, 36]);
+
+        Assert.Equal([52, 60, 36], merged);
     }
 }

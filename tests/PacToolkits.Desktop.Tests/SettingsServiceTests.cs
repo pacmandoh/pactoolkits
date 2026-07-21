@@ -25,10 +25,10 @@ public sealed class SettingsServiceTests
         var result = await service.ValidateDbConnectionAsync(
             new PgOptions(),
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.21",
-                UiMaxDbSchema: "1.2.22",
-                AgentMinDbSchema: "1.2.21",
-                AgentMaxDbSchema: "1.2.22",
+                DesktopMinDbSchema: "1.2.21",
+                DesktopMaxDbSchema: "1.2.22",
+                AgentsMinDbSchema: "1.2.21",
+                AgentsMaxDbSchema: "1.2.22",
                 TargetDbSchemaVersion: "1.2.22",
                 ReleaseChannel: "beta",
                 MigrationPolicy: DbMigrationPolicies.StableOnly),
@@ -52,10 +52,10 @@ public sealed class SettingsServiceTests
         var result = await service.ValidateDbConnectionAsync(
             new PgOptions(),
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.20",
-                UiMaxDbSchema: "1.2.22",
-                AgentMinDbSchema: "1.2.20",
-                AgentMaxDbSchema: "1.2.25",
+                DesktopMinDbSchema: "1.2.20",
+                DesktopMaxDbSchema: "1.2.22",
+                AgentsMinDbSchema: "1.2.20",
+                AgentsMaxDbSchema: "1.2.25",
                 TargetDbSchemaVersion: "1.2.22"),
             CancellationToken.None);
 
@@ -78,10 +78,10 @@ public sealed class SettingsServiceTests
 
         var snapshot = await service.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.20",
-                UiMaxDbSchema: "1.2.22",
-                AgentMinDbSchema: "1.2.20",
-                AgentMaxDbSchema: "1.2.25",
+                DesktopMinDbSchema: "1.2.20",
+                DesktopMaxDbSchema: "1.2.22",
+                AgentsMinDbSchema: "1.2.20",
+                AgentsMaxDbSchema: "1.2.25",
                 TargetDbSchemaVersion: "1.2.22"),
             CancellationToken.None);
 
@@ -97,10 +97,10 @@ public sealed class SettingsServiceTests
 
         var result = await service.MigrateSchemaAsync(
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.21",
-                UiMaxDbSchema: "1.2.22",
-                AgentMinDbSchema: "1.2.21",
-                AgentMaxDbSchema: "1.2.22",
+                DesktopMinDbSchema: "1.2.21",
+                DesktopMaxDbSchema: "1.2.22",
+                AgentsMinDbSchema: "1.2.21",
+                AgentsMaxDbSchema: "1.2.22",
                 TargetDbSchemaVersion: "1.2.22",
                 ReleaseChannel: "beta",
                 MigrationPolicy: DbMigrationPolicies.StableOnly),
@@ -135,10 +135,10 @@ public sealed class SettingsServiceTests
         await service.ValidateDbConnectionAsync(
             explicitOptions,
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.20",
-                UiMaxDbSchema: "1.2.22",
-                AgentMinDbSchema: "1.2.20",
-                AgentMaxDbSchema: "1.2.22",
+                DesktopMinDbSchema: "1.2.20",
+                DesktopMaxDbSchema: "1.2.22",
+                AgentsMinDbSchema: "1.2.20",
+                AgentsMaxDbSchema: "1.2.22",
                 TargetDbSchemaVersion: "1.2.22"),
             CancellationToken.None);
 
@@ -164,10 +164,10 @@ public sealed class SettingsServiceTests
 
         var plan = await service.GetSchemaMigrationPlanAsync(
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.20",
-                UiMaxDbSchema: "1.2.22",
-                AgentMinDbSchema: "1.2.20",
-                AgentMaxDbSchema: "1.2.22",
+                DesktopMinDbSchema: "1.2.20",
+                DesktopMaxDbSchema: "1.2.22",
+                AgentsMinDbSchema: "1.2.20",
+                AgentsMaxDbSchema: "1.2.22",
                 TargetDbSchemaVersion: "1.2.22",
                 ReleaseChannel: "beta",
                 MigrationPolicy: DbMigrationPolicies.StableOnly),
@@ -195,10 +195,10 @@ public sealed class SettingsServiceTests
 
         var result = await service.MigrateSchemaAsync(
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.20",
-                UiMaxDbSchema: "1.2.22",
-                AgentMinDbSchema: "1.2.20",
-                AgentMaxDbSchema: "1.2.22",
+                DesktopMinDbSchema: "1.2.20",
+                DesktopMaxDbSchema: "1.2.22",
+                AgentsMinDbSchema: "1.2.20",
+                AgentsMaxDbSchema: "1.2.22",
                 TargetDbSchemaVersion: "1.2.22",
                 ReleaseChannel: "stable",
                 MigrationPolicy: DbMigrationPolicies.StableOnly),
@@ -225,10 +225,10 @@ public sealed class SettingsServiceTests
 
         var snapshot = await service.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.20",
-                UiMaxDbSchema: "1.2.22",
-                AgentMinDbSchema: "1.2.20",
-                AgentMaxDbSchema: "1.2.22",
+                DesktopMinDbSchema: "1.2.20",
+                DesktopMaxDbSchema: "1.2.22",
+                AgentsMinDbSchema: "1.2.20",
+                AgentsMaxDbSchema: "1.2.22",
                 TargetDbSchemaVersion: "1.2.22",
                 ReleaseChannel: "stable",
                 MigrationPolicy: DbMigrationPolicies.StableOnly),

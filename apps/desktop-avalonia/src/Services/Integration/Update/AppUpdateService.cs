@@ -551,11 +551,11 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
 
     private static UpdateManager CreateUpdateManager(PacToolkits.Application.Abstractions.UpdateOptions options)
     {
-        var explicitChannel = AppUpdatePolicy.NormalizeFeedChannel(options.Channel);
-        var feed = AppUpdatePolicy.ResolveFeedUrl(options.FeedUrl, explicitChannel);
+        var feedChannel = AppUpdatePolicy.NormalizeFeedChannel(options.Channel);
+        var feed = AppUpdatePolicy.ResolveFeedUrl(options.FeedUrl, feedChannel);
         var updateOptions = new Velopack.UpdateOptions
         {
-            ExplicitChannel = explicitChannel
+            ExplicitChannel = feedChannel
         };
 
         return new UpdateManager(feed, updateOptions);

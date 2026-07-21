@@ -1,6 +1,6 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <FontFamily x:Key="StatusPillFontFamily">avares://pactoolkits-desktop/Assets/Fonts#Quicksand</FontFamily>
-  <FontFamily x:Key="ShadBodyFontFamily">avares://pactoolkits-desktop/Assets/Fonts#Manrope</FontFamily>
+  <FontFamily x:Key="StatusPillFontFamily">avares://PacToolkits.Desktop/Assets/Fonts#Quicksand</FontFamily>
+  <FontFamily x:Key="ShadBodyFontFamily">avares://PacToolkits.Desktop/Assets/Fonts#Manrope</FontFamily>
 
   <x:Double x:Key="SectionTitleSize">16</x:Double>
   <x:Double x:Key="DgIndexFontSize">10</x:Double>

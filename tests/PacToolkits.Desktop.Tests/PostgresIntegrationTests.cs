@@ -61,10 +61,10 @@ public sealed class PostgresIntegrationTests
         var service = CreateLiveSettingsService(options);
         var snapshot = await service.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.20",
-                UiMaxDbSchema: "1.2.23",
-                AgentMinDbSchema: "1.2.20",
-                AgentMaxDbSchema: "1.2.23",
+                DesktopMinDbSchema: "1.2.20",
+                DesktopMaxDbSchema: "1.2.23",
+                AgentsMinDbSchema: "1.2.20",
+                AgentsMaxDbSchema: "1.2.23",
                 TargetDbSchemaVersion: "1.2.23",
                 ReleaseChannel: "stable",
                 MigrationPolicy: DbMigrationPolicies.StableOnly),
@@ -86,10 +86,10 @@ public sealed class PostgresIntegrationTests
         var service = CreateLiveSettingsService(options);
         var snapshot = await service.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.24",
-                UiMaxDbSchema: "1.2.25",
-                AgentMinDbSchema: "1.2.24",
-                AgentMaxDbSchema: "1.2.25",
+                DesktopMinDbSchema: "1.2.24",
+                DesktopMaxDbSchema: "1.2.25",
+                AgentsMinDbSchema: "1.2.24",
+                AgentsMaxDbSchema: "1.2.25",
                 TargetDbSchemaVersion: "1.2.25",
                 ReleaseChannel: "beta",
                 MigrationPolicy: DbMigrationPolicies.StableOnly),
@@ -112,10 +112,10 @@ public sealed class PostgresIntegrationTests
         var service = CreateLiveSettingsService(options);
         var snapshot = await service.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.20",
-                UiMaxDbSchema: "1.2.23",
-                AgentMinDbSchema: "1.2.20",
-                AgentMaxDbSchema: "1.2.23",
+                DesktopMinDbSchema: "1.2.20",
+                DesktopMaxDbSchema: "1.2.23",
+                AgentsMinDbSchema: "1.2.20",
+                AgentsMaxDbSchema: "1.2.23",
                 TargetDbSchemaVersion: "1.2.23",
                 ReleaseChannel: "beta",
                 MigrationPolicy: DbMigrationPolicies.IsolatedBeta),
@@ -139,10 +139,10 @@ public sealed class PostgresIntegrationTests
         var service = CreateLiveSettingsService(options);
         var plan = await service.GetSchemaMigrationPlanAsync(
             new DbSchemaVersionContext(
-                UiMinDbSchema: "1.2.20",
-                UiMaxDbSchema: "1.2.23",
-                AgentMinDbSchema: "1.2.20",
-                AgentMaxDbSchema: "1.2.23",
+                DesktopMinDbSchema: "1.2.20",
+                DesktopMaxDbSchema: "1.2.23",
+                AgentsMinDbSchema: "1.2.20",
+                AgentsMaxDbSchema: "1.2.23",
                 TargetDbSchemaVersion: "1.2.23"),
             options,
             CancellationToken.None);

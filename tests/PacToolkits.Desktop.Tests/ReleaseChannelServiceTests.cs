@@ -148,11 +148,12 @@ public sealed class ReleaseChannelServiceTests
                "release": { "channel": "{{channel}}" },
                "components": {
                  "desktop": {
-                   "minDbSchema": "{{min}}",
-                   "maxDbSchema": "{{max}}",
-                   "bundles": ["agent-injector-ahk"]
+                   "avalonia": {
+                     "minDbSchema": "{{min}}",
+                     "maxDbSchema": "{{max}}"
+                   }
                  },
-                 "agent-injector-ahk": {
+                 "agents": {
                    "minDbSchema": "{{min}}",
                    "maxDbSchema": "{{max}}"
                  }

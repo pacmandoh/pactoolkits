@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using PacToolkits.Agent.Contracts.Abstractions;
+using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
@@ -172,8 +172,8 @@ public partial class Settings : AppPageBase, ISettingsPage
         IAppLogger logger,
         IClipboardService clipboard,
         ISyncService msfxSync,
-        IInjectorAgentRuntime injector,
-        IAutomationConfigService automationConfig)
+        IAgentsRuntime agents,
+        IAgentsConfigService agentsConfig)
     {
         _appConfigStore = appConfigStore;
         _settings = settings;
@@ -191,9 +191,9 @@ public partial class Settings : AppPageBase, ISettingsPage
         _logger = logger;
         _clipboard = clipboard;
         _msfxSync = msfxSync;
-        _injector = injector;
-        _automationConfig = automationConfig;
-        InitializeAutomation();
+        _agents = agents;
+        _agentsConfig = agentsConfig;
+        InitializeAgents();
         ClientAliases.CollectionChanged += OnClientAliasesChanged;
         var c = settings.AppliedDb;
         _host = c.Host;
@@ -246,10 +246,15 @@ public partial class Settings : AppPageBase, ISettingsPage
     {
         SyncPageAvailability();
         _pageWorkCancelled = false;
-        ReloadAutomationRuntime();
+        ReloadAgentsRuntime();
         RefreshUnsaved();
         ReloadClientAliasesIfVisible("client_alias.reload.activate_fail");
-        RunDetached(RefreshMsfxCursorCoreAsync, "msfx.cursor.refresh.activate_fail");
+        // MSFX cursor is DB-backed; shell owns disconnect messaging — skip when DB unavailable.
+        if (CanPageFromDb)
+        {
+            RunDetached(RefreshMsfxCursorCoreAsync, "msfx.cursor.refresh.activate_fail");
+        }
+
         return Task.CompletedTask;
     }
 
@@ -283,6 +288,12 @@ public partial class Settings : AppPageBase, ISettingsPage
         }
         catch (Exception ex)
         {
+            if (!CanToastError(ex))
+            {
+                _logger.Warn("SettingsVM", eventName, "Settings background operation skipped toast (DB unavailable)", ex);
+                return;
+            }
+
             _logger.Error("SettingsVM", eventName, "Settings background operation failed", ex);
             await RunOnUiAsync(() => _toast.Error("设置后台任务失败", ex.Message));
         }
@@ -539,7 +550,7 @@ public partial class Settings : AppPageBase, ISettingsPage
             _logger.Warn("SettingsVM", "dispose.trace_rule_unsub_fail", "Failed to unsubscribe TraceCodeRule", ex);
         }
         ClientAliases.CollectionChanged -= OnClientAliasesChanged;
-        DisposeAutomation();
+        DisposeAgents();
         _pageWorkCts.Dispose();
         base.Dispose();
     }

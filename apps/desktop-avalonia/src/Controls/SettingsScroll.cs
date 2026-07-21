@@ -24,6 +24,10 @@ public static class SettingsScroll
     private static readonly AttachedProperty<bool> RefreshQueuedProperty =
         AvaloniaProperty.RegisterAttached<ScrollViewer, bool>("RefreshQueued", typeof(SettingsScroll));
 
+    // Keep last measured slot heights so H3→next H2 does not thrash when the H3 row is removed mid-pass.
+    private static readonly AttachedProperty<double[]> LastSlotHeightsProperty =
+        AvaloniaProperty.RegisterAttached<Panel, double[]>("LastSlotHeights", typeof(SettingsScroll));
+
     static SettingsScroll()
     {
         StickyHostProperty.Changed.AddClassHandler<ScrollViewer>(OnStickyHostChanged);
@@ -59,6 +63,10 @@ public static class SettingsScroll
         {
             scrollViewer.SetValue(LastStickyKeyProperty, null);
             scrollViewer.SetValue(RefreshQueuedProperty, false);
+            if (GetStickyHost(scrollViewer) is Panel stickyHost)
+            {
+                stickyHost.ClearValue(LastSlotHeightsProperty);
+            }
         }
     }
 
@@ -77,6 +85,7 @@ public static class SettingsScroll
 
         if (GetStickyHost(scrollViewer) is Panel stickyHost)
         {
+            stickyHost.ClearValue(LastSlotHeightsProperty);
             stickyHost.Children.Clear();
             SetStickyChromeVisible(stickyHost, false, false);
         }
@@ -181,15 +190,59 @@ public static class SettingsScroll
                 continue;
             }
 
-            var edge = 0d;
-            for (var slot = 0; slot < active.Length; slot++)
+            var parentEdge = 0d;
+            for (var slot = 0; slot < level; slot++)
             {
                 if (active[slot] is not null)
                 {
-                    edge += stickyHeights[slot];
+                    parentEdge += stickyHeights[slot];
                 }
             }
 
+            var peerEdge = parentEdge;
+            if (active[level] is not null)
+            {
+                peerEdge += stickyHeights[level];
+            }
+
+            var fullEdge = peerEdge;
+            var hasStickyChildren = false;
+            for (var child = level + 1; child < active.Length; child++)
+            {
+                if (active[child] is null)
+                {
+                    continue;
+                }
+
+                hasStickyChildren = true;
+                fullEdge += stickyHeights[child];
+            }
+
+            // Next peer reached sticky children (H3):
+            // - still above peer slot bottom → dismiss H3 only, keep current H2
+            // - at/above peer slot bottom → normal peer push (replace H2, clear H3)
+            if (active[level] is not null && hasStickyChildren)
+            {
+                if (header.Top > fullEdge + edgeTolerance)
+                {
+                    continue;
+                }
+
+                for (var child = level + 1; child < active.Length; child++)
+                {
+                    active[child] = null;
+                }
+
+                if (header.Top > peerEdge + edgeTolerance)
+                {
+                    continue;
+                }
+
+                active[level] = i;
+                continue;
+            }
+
+            var edge = active[level] is not null ? peerEdge : parentEdge;
             if (header.Top > edge + edgeTolerance)
             {
                 continue;
@@ -207,7 +260,7 @@ public static class SettingsScroll
 
     private static IReadOnlyList<double> GetStickyHeights(Panel stickyHost)
     {
-        var heights = new double[3];
+        var measured = new double[3];
         foreach (var row in stickyHost.Children.OfType<Border>())
         {
             var level = ResolveHeaderLevel(row);
@@ -216,10 +269,38 @@ public static class SettingsScroll
                 continue;
             }
 
-            heights[value - 1] = row.Bounds.Height;
+            measured[value - 1] = row.Bounds.Height;
         }
 
-        return heights;
+        var last = stickyHost.GetValue(LastSlotHeightsProperty) ?? new double[3];
+        var merged = MergeSlotHeights(measured, last);
+        stickyHost.SetValue(LastSlotHeightsProperty, merged);
+        return merged;
+    }
+
+    internal static double[] MergeSlotHeights(IReadOnlyList<double> measured, IReadOnlyList<double> lastKnown)
+    {
+        if (measured.Count != 3)
+        {
+            throw new ArgumentException("Measured heights must contain H1, H2, and H3 slots.", nameof(measured));
+        }
+
+        if (lastKnown.Count != 3)
+        {
+            throw new ArgumentException("Last-known heights must contain H1, H2, and H3 slots.", nameof(lastKnown));
+        }
+
+        var merged = new double[3];
+        for (var i = 0; i < 3; i++)
+        {
+            // Never shrink: H2/H3 rows with StatusPills are taller than plain titles. Shrinking when
+            // the active header swaps makes SelectActive flip forever (edge thrash → UI freeze).
+            merged[i] = measured[i] > 0
+                ? Math.Max(measured[i], lastKnown[i])
+                : lastKnown[i];
+        }
+
+        return merged;
     }
 
     private static void ApplyStickyState(
@@ -258,8 +339,12 @@ public static class SettingsScroll
         SetStickyChromeVisible(stickyHost, true, interactive);
         SyncStickyChildren(stickyHost, active);
 
-        // Sticky rows need one layout pass before descendant trigger slots can use their rendered heights.
-        Dispatcher.UIThread.Post(() => RefreshSticky(scrollViewer), DispatcherPriority.Render);
+        // New/empty rows need one layout pass; skip re-post when heights already known so an
+        // alternating stickyKey cannot spin RefreshSticky on every Render tick.
+        if (stickyHost.Children.OfType<Border>().Any(static row => row.Bounds.Height <= 0))
+        {
+            Dispatcher.UIThread.Post(() => RefreshSticky(scrollViewer), DispatcherPriority.Render);
+        }
     }
 
     private static bool GetStickyHostInteractive(Panel stickyHost)
@@ -354,15 +439,88 @@ public static class SettingsScroll
         return grid;
     }
 
-    private static TextBlock CreateStickyTitle(HeaderSnapshot header)
+    private static Control CreateStickyTitle(HeaderSnapshot header)
     {
-        var title = new TextBlock { Text = header.Title };
+        var title = new TextBlock
+        {
+            Text = header.Title,
+            VerticalAlignment = VerticalAlignment.Center
+        };
         foreach (var @class in header.TitleClasses)
         {
             title.Classes.Add(@class);
         }
 
-        return title;
+        var pills = GetHeaderStatusPills(header.Source)
+            .Select(CloneStatusPill)
+            .ToList();
+        if (header.Level is not (2 or 3) && pills.Count == 0)
+        {
+            return title;
+        }
+
+        var row = new StackPanel
+        {
+            Classes = { header.Level == 2 ? "H2Title" : "H3Title" }
+        };
+        if (header.Level == 2)
+        {
+            row.Children.Add(CreateH2HashIcon());
+        }
+        else if (header.Level == 3)
+        {
+            row.Children.Add(CreateH3HashIcon());
+        }
+
+        row.Children.Add(title);
+        foreach (var pill in pills)
+        {
+            row.Children.Add(pill);
+        }
+
+        return row;
+    }
+
+    private static AppIcon CreateH2HashIcon()
+        => new()
+        {
+            Kind = "Hash",
+            Classes = { "H2Hash" },
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+    private static AppIcon CreateH3HashIcon()
+        => new()
+        {
+            Kind = "Hash",
+            Classes = { "H3Hash" },
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+    private static IEnumerable<StatusPill> GetHeaderStatusPills(Control header)
+        => header.GetVisualDescendants().OfType<StatusPill>();
+
+    private static StatusPill CloneStatusPill(StatusPill source)
+    {
+        var pill = new StatusPill
+        {
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        foreach (var @class in source.Classes)
+        {
+            if (@class.Length > 0 && @class[0] == ':')
+            {
+                continue;
+            }
+
+            pill.Classes.Add(@class);
+        }
+
+        CopyBind(pill, source, StatusPill.IconProperty);
+        CopyBind(pill, source, StatusPill.TextProperty);
+        CopyBind(pill, source, Visual.IsVisibleProperty);
+        return pill;
     }
 
     private static Button CloneActionButton(Button source)

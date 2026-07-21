@@ -610,7 +610,21 @@
           "xunit.v3.runner.common": "[3.2.2]"
         }
       },
-      "pactoolkits-desktop": {
+      "pactoolkits.agents.contracts": {
+        "type": "Project"
+      },
+      "pactoolkits.application": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.9, )",
+          "PacToolkits.Core": "[1.0.0, )",
+          "ToolGood.Words.Pinyin": "[3.1.0.4, )"
+        }
+      },
+      "pactoolkits.core": {
+        "type": "Project"
+      },
+      "PacToolkits.Desktop": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.0.2, )",
@@ -624,26 +638,12 @@
           "Microsoft.Extensions.Configuration.Json": "[10.0.10, )",
           "Microsoft.Extensions.DependencyInjection": "[10.0.10, )",
           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.10, )",
-          "PacToolkits.Agent.Contracts": "[1.0.0, )",
+          "PacToolkits.Agents.Contracts": "[1.0.0, )",
           "PacToolkits.Application": "[1.0.0, )",
           "PacToolkits.Infrastructure": "[1.0.0, )",
           "ShadUI": "[0.2.3, )",
           "Velopack": "[1.2.0, )"
         }
-      },
-      "pactoolkits.agent.contracts": {
-        "type": "Project"
-      },
-      "pactoolkits.application": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.9, )",
-          "PacToolkits.Core": "[1.0.0, )",
-          "ToolGood.Words.Pinyin": "[3.1.0.4, )"
-        }
-      },
-      "pactoolkits.core": {
-        "type": "Project"
       },
       "pactoolkits.infrastructure": {
         "type": "Project",

@@ -367,10 +367,10 @@ public partial class Settings : AppPageBase, ISettingsPage
     {
         var version = _releaseVersion.Current;
         return new DbSchemaVersionContext(
-            version.UiMinDbSchema,
-            version.UiMaxDbSchema,
-            version.AgentMinDbSchema,
-            version.AgentMaxDbSchema,
+            version.DesktopMinDbSchema,
+            version.DesktopMaxDbSchema,
+            version.AgentsMinDbSchema,
+            version.AgentsMaxDbSchema,
             version.DbSchemaVersion,
             version.BuildChannel,
             version.DbMigrationPolicy);

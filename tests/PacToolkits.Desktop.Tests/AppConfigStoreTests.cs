@@ -1,307 +1,145 @@
-using PacToolkits.Agent.Contracts.Agents;
-using PacToolkits.Agent.Contracts.Models;
+using System.Text.Json;
+using PacToolkits.Agents.Contracts.Agents;
+using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Tests;
 
 public sealed class AppConfigStoreTests
 {
-    public sealed class Normalize
+    [Fact]
+    public void Normalize_sets_schema_version_2()
     {
-        [Fact]
-        public void Keeps_disabled_flag()
+        var normalized = AppConfigStore.Normalize(new AppConfigRoot { SchemaVersion = 1 });
+
+        Assert.Equal(2, normalized.SchemaVersion);
+        Assert.NotNull(normalized.Agents.Injector);
+        Assert.True(normalized.Agents.Injector.Enabled);
+    }
+
+    [Fact]
+    public void Keeps_injector_disabled_flag()
+    {
+        var root = new AppConfigRoot
         {
-            var root = new AppConfigRoot
+            Agents = new AgentsOptions
             {
-                AutomationTools =
-                {
-                    Ahk = new AhkToolOptions
-                    {
-                        ExecutablePath = @"C:\Apps\Agents\injector\pactoolkits-injector.exe",
-                        ProcessName = "pactoolkits-injector",
-                    },
-                },
-                Agents =
-                {
-                    [AgentIds.InjectorAhk] = new AgentInstanceConfig
-                    {
-                        Enabled = false,
-                        ExecutablePath = @"C:\Apps\Agents\injector\pactoolkits-injector.exe",
-                        ProcessName = "pactoolkits-injector",
-                    },
-                },
-            };
+                ExecutablePath = @"C:\Apps\Agents\Agents.exe",
+                ProcessName = "Agents",
+                Injector = new InjectorOptions { Enabled = false },
+            },
+        };
 
-            var normalized = AppConfigStore.Normalize(root);
+        var normalized = AppConfigStore.Normalize(root);
 
-            Assert.False(normalized.Agents[AgentIds.InjectorAhk].Enabled);
-        }
+        Assert.False(normalized.Agents.Injector.Enabled);
+    }
 
-        [Fact]
-        public void Migrates_legacy_settings()
+    [Fact]
+    public void Migrates_main_tools_host_path()
+    {
+        var root = new AppConfigRoot
         {
-            var root = new AppConfigRoot
+            Agents = new AgentsOptions
             {
-                AutomationTools =
-                {
-                    Ahk = new AhkToolOptions
-                    {
-                        ExecutablePath = @"C:\Apps\Agents\injector\pactoolkits-injector.exe",
-                        ProcessName = "pactoolkits-injector",
-                    },
-                    Agent = new AgentToolOptions
-                    {
-                        PgDriver = "{PostgreSQL ODBC Driver}",
-                        PgSsl = "require",
-                    },
-                },
-            };
+                ExecutablePath = AgentsPaths.MainToolsExecutable,
+                ProcessName = AgentsPaths.MainToolsProcessName,
+            },
+        };
 
-            var normalized = AppConfigStore.Normalize(root);
-            var agent = normalized.Agents[AgentIds.InjectorAhk];
+        var normalized = AppConfigStore.Normalize(root);
 
-            Assert.NotEmpty(agent.Settings);
-            Assert.Equal("{PostgreSQL ODBC Driver}", normalized.AutomationTools.Agent.PgDriver);
-            Assert.Equal("require", normalized.AutomationTools.Agent.PgSsl);
-        }
+        Assert.Equal(AgentsPaths.HostExecutable, normalized.Agents.ExecutablePath);
+        Assert.Equal(AgentsPaths.HostProcessName, normalized.Agents.ProcessName);
+    }
 
-        [Fact]
-        public void Tools_save_wins()
-        {
-            var legacyAgent = new AgentToolOptions
-            {
-                PgDriver = "Legacy Driver",
-                PgSsl = "disable",
-            };
-            var savedAgent = new AgentToolOptions
-            {
-                PgDriver = "{PostgreSQL ODBC Driver}",
-                PgSsl = "require",
-            };
-            var root = new AppConfigRoot
-            {
-                AutomationTools =
-                {
-                    Ahk = new AhkToolOptions
-                    {
-                        ExecutablePath = @"D:\Agents\pactoolkits-injector.exe",
-                        ProcessName = "pactoolkits-injector",
-                    },
-                    Agent = savedAgent,
-                },
-                Agents =
-                {
-                    [AgentIds.InjectorAhk] = new AgentInstanceConfig
-                    {
-                        ExecutablePath = @"C:\Legacy\pacinjector.exe",
-                        ProcessName = "pacinjector",
-                        Settings = AgentSettingsSync.ToSettings(legacyAgent),
-                    },
-                },
-            };
+    [Fact]
+    public void Migrates_v1_json_to_v2_from_main_automation_tools()
+    {
+        var v1 = """
+                 {
+                   "SchemaVersion": 1,
+                   "AutomationTools": {
+                     "Ahk": {
+                       "ExecutablePath": ".\\Tools\\pacinjector.exe",
+                       "ProcessName": "pacinjector"
+                     },
+                     "Agent": {
+                       "Enabled": true,
+                       "PgDriver": "{PostgreSQL ODBC Driver}",
+                       "PgSsl": "require"
+                     }
+                   },
+                   "Agents": {
+                     "agents": {
+                       "Enabled": false,
+                       "ExecutablePath": ".\\Agents\\Agents.exe",
+                       "ProcessName": "Agents",
+                       "Settings": {
+                         "PgDriver": "Stale Companion Driver",
+                         "PgSsl": "disable"
+                       }
+                     }
+                   },
+                   "MsfxApi": { "RefEntId": "x" },
+                   "Postgres": { "Host": "localhost", "Port": 5432, "Database": "db", "Username": "u" }
+                 }
+                 """;
 
-            AppConfigStore.SyncInjectorFromTools(root, root.AutomationTools);
+        var normalized = MigrateAndNormalize(v1);
 
-            var normalized = AppConfigStore.Normalize(root);
-            var agent = normalized.Agents[AgentIds.InjectorAhk];
+        Assert.Equal(2, normalized.SchemaVersion);
+        Assert.Equal(AgentsPaths.HostExecutable, normalized.Agents.ExecutablePath);
+        Assert.Equal(AgentsPaths.HostProcessName, normalized.Agents.ProcessName);
+        Assert.True(normalized.Agents.Injector.Enabled);
+        Assert.Equal("{PostgreSQL ODBC Driver}", normalized.Agents.Injector.PgDriver);
+        Assert.Equal("require", normalized.Agents.Injector.PgSsl);
 
-            Assert.Equal("{PostgreSQL ODBC Driver}", normalized.AutomationTools.Agent.PgDriver);
-            Assert.Equal("require", normalized.AutomationTools.Agent.PgSsl);
-            Assert.Equal("{PostgreSQL ODBC Driver}", AgentSettingsSync.FromSettings(agent.Settings!).PgDriver);
-            Assert.Equal(@"D:\Agents\pactoolkits-injector.exe", agent.ExecutablePath);
-            Assert.Equal("pactoolkits-injector", agent.ProcessName);
-        }
+        var migratedJson = AppConfigStore.MigrateConfigJsonToV2(v1);
+        using var doc = JsonDocument.Parse(migratedJson);
+        Assert.False(doc.RootElement.TryGetProperty("AutomationTools", out _));
+        var agents = doc.RootElement.GetProperty("Agents");
+        Assert.False(agents.TryGetProperty("Enabled", out _));
+        Assert.False(agents.TryGetProperty("agents", out _));
+        Assert.True(agents.GetProperty("Injector").GetProperty("Enabled").GetBoolean());
+    }
 
-        [Fact]
-        public void Tools_path_wins_on_save()
-        {
-            var root = new AppConfigRoot
-            {
-                AutomationTools =
-                {
-                    Ahk = new AhkToolOptions
-                    {
-                        ExecutablePath = AgentPaths.InjectorAhkExecutable,
-                        ProcessName = "pactoolkits-injector",
-                    },
-                    Agent = new AgentToolOptions
-                    {
-                        PgDriver = "{PostgreSQL ODBC Driver}",
-                        PgSsl = "require",
-                    },
-                },
-                Agents =
-                {
-                    [AgentIds.InjectorAhk] = new AgentInstanceConfig
-                    {
-                        ExecutablePath = @"C:\Apps\Agents\injector\pactoolkits-injector.exe",
-                        ProcessName = "pactoolkits-injector",
-                        Settings = AgentSettingsSync.ToSettings(new AgentToolOptions
-                        {
-                            PgDriver = "{PostgreSQL ODBC Driver}",
-                            PgSsl = "require",
-                        }),
-                    },
-                },
-            };
+    [Fact]
+    public void Already_v2_json_stays_single_tree()
+    {
+        var v2 = """
+                 {
+                   "SchemaVersion": 2,
+                   "Agents": {
+                     "ExecutablePath": ".\\Agents\\Agents.exe",
+                     "ProcessName": "Agents",
+                     "Enabled": false,
+                     "Injector": {
+                       "Enabled": true,
+                       "PgDriver": "PostgreSQL Unicode(x64)",
+                       "PgSsl": "disable"
+                     }
+                   }
+                 }
+                 """;
 
-            AppConfigStore.SyncInjectorFromTools(root, root.AutomationTools);
+        var migrated = AppConfigStore.MigrateConfigJsonToV2(v2);
+        using var doc = JsonDocument.Parse(migrated);
+        Assert.Equal(2, doc.RootElement.GetProperty("SchemaVersion").GetInt32());
+        Assert.False(doc.RootElement.TryGetProperty("AutomationTools", out _));
+        var agents = doc.RootElement.GetProperty("Agents");
+        Assert.False(agents.TryGetProperty("Enabled", out _));
+        Assert.False(agents.TryGetProperty("agents", out _));
+        Assert.True(agents.GetProperty("Injector").GetProperty("Enabled").GetBoolean());
+        Assert.Equal(
+            "PostgreSQL Unicode(x64)",
+            agents.GetProperty("Injector").GetProperty("PgDriver").GetString());
+    }
 
-            var normalized = AppConfigStore.Normalize(root);
-            var agent = normalized.Agents[AgentIds.InjectorAhk];
-
-            Assert.Equal(AgentPaths.InjectorAhkExecutable, agent.ExecutablePath);
-            Assert.Equal(AgentPaths.InjectorAhkExecutable, normalized.AutomationTools.Ahk.ExecutablePath);
-        }
-
-        [Fact]
-        public void Prefers_agent_settings()
-        {
-            var agentsSettings = new AgentToolOptions
-            {
-                PgDriver = "Agents Driver",
-                PgSsl = "require",
-            };
-            var root = new AppConfigRoot
-            {
-                AutomationTools =
-                {
-                    Ahk = new AhkToolOptions
-                    {
-                        ExecutablePath = AgentPaths.InjectorAhkExecutable,
-                        ProcessName = "pactoolkits-injector",
-                    },
-                    Agent = new AgentToolOptions
-                    {
-                        PgDriver = "Legacy Automation Driver",
-                        PgSsl = "disable",
-                    },
-                },
-                Agents =
-                {
-                    [AgentIds.InjectorAhk] = new AgentInstanceConfig
-                    {
-                        ExecutablePath = @"C:\Custom\agent.exe",
-                        ProcessName = "custom-agent",
-                        Settings = AgentSettingsSync.ToSettings(agentsSettings),
-                    },
-                },
-            };
-
-            var normalized = AppConfigStore.Normalize(root);
-            var agent = normalized.Agents[AgentIds.InjectorAhk];
-
-            Assert.Equal("Agents Driver", normalized.AutomationTools.Agent.PgDriver);
-            Assert.Equal("require", normalized.AutomationTools.Agent.PgSsl);
-            Assert.Equal(@"C:\Custom\agent.exe", agent.ExecutablePath);
-            Assert.Equal(@"C:\Custom\agent.exe", normalized.AutomationTools.Ahk.ExecutablePath);
-        }
-
-        [Fact]
-        public void Prefers_agent_path()
-        {
-            var sharedSettings = new AgentToolOptions
-            {
-                PgDriver = "{PostgreSQL ODBC Driver}",
-                PgSsl = "require",
-            };
-            var root = new AppConfigRoot
-            {
-                AutomationTools =
-                {
-                    Ahk = new AhkToolOptions
-                    {
-                        ExecutablePath = @"C:\Legacy\pacinjector.exe",
-                        ProcessName = "pacinjector",
-                    },
-                    Agent = sharedSettings,
-                },
-                Agents =
-                {
-                    [AgentIds.InjectorAhk] = new AgentInstanceConfig
-                    {
-                        ExecutablePath = @"D:\Agents\pactoolkits-injector.exe",
-                        ProcessName = "pactoolkits-injector",
-                        Settings = AgentSettingsSync.ToSettings(sharedSettings),
-                    },
-                },
-            };
-
-            var normalized = AppConfigStore.Normalize(root);
-            var agent = normalized.Agents[AgentIds.InjectorAhk];
-
-            Assert.Equal("{PostgreSQL ODBC Driver}", normalized.AutomationTools.Agent.PgDriver);
-            Assert.Equal(@"D:\Agents\pactoolkits-injector.exe", agent.ExecutablePath);
-            Assert.Equal("pactoolkits-injector", agent.ProcessName);
-            Assert.Equal(@"D:\Agents\pactoolkits-injector.exe", normalized.AutomationTools.Ahk.ExecutablePath);
-            Assert.Equal("pactoolkits-injector", normalized.AutomationTools.Ahk.ProcessName);
-        }
-
-        [Fact]
-        public void Invalid_settings_fallback()
-        {
-            var root = new AppConfigRoot
-            {
-                AutomationTools =
-                {
-                    Ahk = new AhkToolOptions
-                    {
-                        ExecutablePath = AgentPaths.InjectorAhkExecutable,
-                        ProcessName = "pactoolkits-injector",
-                    },
-                    Agent = new AgentToolOptions
-                    {
-                        PgDriver = "{PostgreSQL ODBC Driver}",
-                        PgSsl = "require",
-                    },
-                },
-                Agents =
-                {
-                    [AgentIds.InjectorAhk] = new AgentInstanceConfig
-                    {
-                        ExecutablePath = AgentPaths.InjectorAhkExecutable,
-                        ProcessName = "pactoolkits-injector",
-                        Settings = new Dictionary<string, object?>(StringComparer.Ordinal)
-                        {
-                            ["PgDriver"] = 123,
-                        },
-                    },
-                },
-            };
-
-            var normalized = AppConfigStore.Normalize(root);
-            var agent = normalized.Agents[AgentIds.InjectorAhk];
-
-            Assert.Equal("{PostgreSQL ODBC Driver}", normalized.AutomationTools.Agent.PgDriver);
-            Assert.Equal("require", normalized.AutomationTools.Agent.PgSsl);
-            Assert.Equal("{PostgreSQL ODBC Driver}", AgentSettingsSync.FromSettings(agent.Settings!).PgDriver);
-        }
-
-        [Fact]
-        public void Replaces_null_agent()
-        {
-            var root = new AppConfigRoot
-            {
-                AutomationTools =
-                {
-                    Ahk = new AhkToolOptions
-                    {
-                        ExecutablePath = AgentPaths.InjectorAhkExecutable,
-                        ProcessName = "pactoolkits-injector",
-                    },
-                },
-                Agents =
-                {
-                    [AgentIds.InjectorAhk] = null!,
-                },
-            };
-
-            var normalized = AppConfigStore.Normalize(root);
-            var agent = normalized.Agents[AgentIds.InjectorAhk];
-
-            Assert.NotNull(agent);
-            Assert.NotNull(agent.Runtime);
-            Assert.NotNull(agent.Settings);
-        }
+    private static AppConfigRoot MigrateAndNormalize(string json)
+    {
+        var migrated = AppConfigStore.MigrateConfigJsonToV2(json);
+        var root = JsonSerializer.Deserialize<AppConfigRoot>(migrated) ?? new AppConfigRoot();
+        return AppConfigStore.Normalize(root);
     }
 }

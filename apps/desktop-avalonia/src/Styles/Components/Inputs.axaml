@@ -8,6 +8,12 @@
     <Setter Property="IsEnabled" Value="False" />
   </Style>
 
+  <Style Selector="ToggleSwitch">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
+  </Style>
+
   <Style Selector="NumericUpDown.MsfxInput">
     <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
   </Style>

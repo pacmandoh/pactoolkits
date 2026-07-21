@@ -20,7 +20,7 @@ public partial class Settings
         Updates = 4,
         Logging = 5,
         MsfxApi = 6,
-        Automation = 7
+        Agents = 7
     }
 
     private static readonly string[] TabTitles =
@@ -136,7 +136,7 @@ public partial class Settings
             Tab.TraceCodeRule => await ApplyTraceCodeRuleAsync(),
             Tab.Updates => await ApplyUpdateOptionsAsync(),
             Tab.MsfxApi => await ApplyMsfxApiConfigAsync(),
-            Tab.Automation => await ApplyAutomationSettingsAsync(showSuccessToast: false),
+            Tab.Agents => await ApplyAgentsSettingsAsync(showSuccessToast: false),
             Tab.UiBehavior or Tab.Logging => true,
             _ => true
         };
@@ -163,8 +163,8 @@ public partial class Settings
             case Tab.MsfxApi:
                 SyncMsfxApi();
                 break;
-            case Tab.Automation:
-                SyncAgentConfig();
+            case Tab.Agents:
+                SyncAgentsConfig();
                 break;
             case Tab.UiBehavior:
                 SyncUiBehavior();
@@ -221,7 +221,7 @@ public partial class Settings
 
         if (HasPendingChanges)
         {
-            nextMask |= 1 << (int)Tab.Automation;
+            nextMask |= 1 << (int)Tab.Agents;
         }
 
         if (nextMask == _unsavedMask)

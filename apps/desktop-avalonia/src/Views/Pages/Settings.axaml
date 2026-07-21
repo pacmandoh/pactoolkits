@@ -47,7 +47,13 @@
 
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="Large H2Text" Text="连接信息" />
+                <StackPanel Classes="H2Title">
+                  <icons:AppIcon
+                    VerticalAlignment="Center"
+                    Classes="H2Hash"
+                    Kind="Hash" />
+                  <TextBlock Classes="Large H2Text" Text="连接信息" />
+                </StackPanel>
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Outline"
@@ -154,7 +160,11 @@
 
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                <StackPanel Classes="H2Title">
+                  <icons:AppIcon
+                    VerticalAlignment="Center"
+                    Classes="H2Hash"
+                    Kind="Hash" />
                   <TextBlock
                     VerticalAlignment="Center"
                     Classes="Large H2Text"
@@ -206,7 +216,13 @@
             </Border>
 
             <Border Classes="H3">
-              <TextBlock Classes="Small H3Text" Text="结构信息" />
+              <StackPanel Classes="H3Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H3Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Small H3Text" Text="结构信息" />
+              </StackPanel>
             </Border>
 
             <Border Classes="Field">
@@ -270,7 +286,13 @@
             </Border>
 
             <Border Classes="H3">
-              <TextBlock Classes="Small H3Text" Text="运行信息" />
+              <StackPanel Classes="H3Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H3Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Small H3Text" Text="运行信息" />
+              </StackPanel>
             </Border>
 
             <Border Classes="Field">
@@ -346,7 +368,13 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Classes="Large H2Text" Text="别名列表" />
+                  <StackPanel Classes="H2Title">
+                    <icons:AppIcon
+                      VerticalAlignment="Center"
+                      Classes="H2Hash"
+                      Kind="Hash" />
+                    <TextBlock Classes="Large H2Text" Text="别名列表" />
+                  </StackPanel>
                   <TextBlock Classes="Caption Muted FieldDesc" Text="为每台客户端机器设置显示别名" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Classes="H2Actions">
@@ -417,7 +445,13 @@
 
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="Large H2Text" Text="单条追溯码合法性" />
+                <StackPanel Classes="H2Title">
+                  <icons:AppIcon
+                    VerticalAlignment="Center"
+                    Classes="H2Hash"
+                    Kind="Hash" />
+                  <TextBlock Classes="Large H2Text" Text="单条追溯码合法性" />
+                </StackPanel>
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Primary"
@@ -488,7 +522,13 @@
             </Border>
 
             <Border Classes="H2">
-              <TextBlock Classes="Large H2Text" Text="托盘模式" />
+              <StackPanel Classes="H2Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H2Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Large H2Text" Text="托盘模式" />
+              </StackPanel>
             </Border>
 
             <Border Classes="Field">
@@ -503,7 +543,9 @@
                 <ToggleSwitch
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  IsChecked="{Binding MinimizeToTrayOnClose}" />
+                  IsChecked="{Binding MinimizeToTrayOnClose}"
+                  OffContent="关闭"
+                  OnContent="开启" />
               </Grid>
             </Border>
           </StackPanel>
@@ -532,7 +574,13 @@
 
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="Large H2Text" Text="更新源与策略" />
+                <StackPanel Classes="H2Title">
+                  <icons:AppIcon
+                    VerticalAlignment="Center"
+                    Classes="H2Hash"
+                    Kind="Hash" />
+                  <TextBlock Classes="Large H2Text" Text="更新源与策略" />
+                </StackPanel>
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     shad:ButtonAssist.ShowProgress="{Binding IsUpdateChecking}"
@@ -603,7 +651,9 @@
                 <ToggleSwitch
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  IsChecked="{Binding AutoCheckUpdateOnStartup}" />
+                  IsChecked="{Binding AutoCheckUpdateOnStartup}"
+                  OffContent="关闭"
+                  OnContent="开启" />
               </Grid>
             </Border>
 
@@ -713,7 +763,13 @@
 
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <TextBlock Classes="Large H2Text" Text="日志策略与操作" />
+                <StackPanel Classes="H2Title">
+                  <icons:AppIcon
+                    VerticalAlignment="Center"
+                    Classes="H2Hash"
+                    Kind="Hash" />
+                  <TextBlock Classes="Large H2Text" Text="日志策略与操作" />
+                </StackPanel>
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Outline"
@@ -751,7 +807,9 @@
                 <ToggleSwitch
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  IsChecked="{Binding LoggingEnabled}" />
+                  IsChecked="{Binding LoggingEnabled}"
+                  OffContent="关闭"
+                  OnContent="开启" />
               </Grid>
             </Border>
 
@@ -855,7 +913,11 @@
 
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                <StackPanel Classes="H2Title">
+                  <icons:AppIcon
+                    VerticalAlignment="Center"
+                    Classes="H2Hash"
+                    Kind="Hash" />
                   <TextBlock
                     VerticalAlignment="Center"
                     Classes="Large H2Text"
@@ -991,7 +1053,11 @@
 
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+                <StackPanel Classes="H2Title">
+                  <icons:AppIcon
+                    VerticalAlignment="Center"
+                    Classes="H2Hash"
+                    Kind="Hash" />
                   <TextBlock
                     VerticalAlignment="Center"
                     Classes="Large H2Text"
@@ -1055,12 +1121,12 @@
 
       <!--  自动化集成  -->
       <Grid
-        x:Name="TabAutomationPage"
+        x:Name="TabAgentsPage"
         Classes="TabPage"
         IsVisible="False">
         <ScrollViewer
-          x:Name="AutomationScrollViewer"
-          controls:SettingsScroll.StickyHost="{Binding #AutomationStickyHost}"
+          x:Name="AgentsScrollViewer"
+          controls:SettingsScroll.StickyHost="{Binding #AgentsStickyHost}"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
           <StackPanel Classes="Body">
@@ -1073,13 +1139,13 @@
                 <StackPanel Grid.Column="1" Classes="H2Actions">
                   <Button
                     Classes="Outline"
-                    Command="{Binding RestartAhkCommand}"
-                    Content="重启 Agent"
-                    IsEnabled="{Binding !IsAhkToggling}" />
+                    Command="{Binding RestartAgentsCommand}"
+                    Content="重启 Agents"
+                    IsEnabled="{Binding !IsAgentsToggling}" />
                   <Button
                     shad:ButtonAssist.ShowProgress="{Binding IsSavingSettings}"
                     Classes="Primary"
-                    Command="{Binding SaveAhkSettingsCommand}"
+                    Command="{Binding SaveAgentsSettingsCommand}"
                     Content="保存配置"
                     IsEnabled="{Binding !IsSavingSettings}" />
                 </StackPanel>
@@ -1087,29 +1153,45 @@
             </Border>
 
             <Border Classes="H2">
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineMd}">
+              <StackPanel Classes="H2Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H2Hash"
+                  Kind="Hash" />
                 <TextBlock
                   VerticalAlignment="Center"
                   Classes="Large H2Text"
-                  Text="Agent-Injector 运行" />
+                  Text="Agents 运行" />
                 <controls:StatusPill
                   VerticalAlignment="Center"
                   Classes="ToneInfo15"
                   Icon="BadgeQuestionMark"
-                  IsVisible="{Binding IsAhkStatusUnknown}"
-                  Text="{Binding AhkStatusText}" />
+                  IsVisible="{Binding IsHostStatusUnknown}"
+                  Text="{Binding HostStatusText}" />
+                <controls:StatusPill
+                  VerticalAlignment="Center"
+                  Classes="ToneWarning15"
+                  Icon="LoaderCircle"
+                  IsVisible="{Binding IsHostStatusStarting}"
+                  Text="{Binding HostStatusText}" />
                 <controls:StatusPill
                   VerticalAlignment="Center"
                   Classes="ToneDone25"
                   Icon="CircleCheck"
-                  IsVisible="{Binding IsAhkStatusRunning}"
-                  Text="{Binding AhkStatusText}" />
+                  IsVisible="{Binding IsHostStatusRunning}"
+                  Text="{Binding HostStatusText}" />
                 <controls:StatusPill
                   VerticalAlignment="Center"
                   Classes="ToneDanger15"
                   Icon="CircleAlert"
-                  IsVisible="{Binding IsAhkStatusStopped}"
-                  Text="{Binding AhkStatusText}" />
+                  IsVisible="{Binding IsHostStatusFailed}"
+                  Text="{Binding HostStatusText}" />
+                <controls:StatusPill
+                  VerticalAlignment="Center"
+                  Classes="ToneDanger15"
+                  Icon="CircleAlert"
+                  IsVisible="{Binding IsHostStatusStopped}"
+                  Text="{Binding HostStatusText}" />
               </StackPanel>
             </Border>
 
@@ -1119,14 +1201,16 @@
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="启动 Injector" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="开启后自动拉起 pactoolkits-injector 进程" />
+                  <TextBlock Classes="FieldTitle" Text="运行 Agents" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="启动或停止 Agents 进程管理器" />
                 </StackPanel>
                 <ToggleSwitch
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  IsChecked="{Binding IsAhkEnabled, Mode=TwoWay}"
-                  IsEnabled="{Binding !IsAhkToggling}" />
+                  IsChecked="{Binding IsHostRunningSwitch, Mode=TwoWay}"
+                  IsEnabled="{Binding !IsAgentsToggling}"
+                  OffContent="停止"
+                  OnContent="启动" />
               </Grid>
             </Border>
 
@@ -1137,19 +1221,124 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="运行说明" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="当前进程状态与操作建议" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="当前 Agents 状态与操作建议" />
                 </StackPanel>
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   Classes="FieldValue"
-                  Text="{Binding AhkStatusDetail}"
+                  Text="{Binding HostStatusDetail}"
+                  TextWrapping="Wrap" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H3">
+              <StackPanel Classes="H3Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H3Hash"
+                  Kind="Hash" />
+                <TextBlock
+                  VerticalAlignment="Center"
+                  Classes="Small H3Text"
+                  Text="Injector" />
+                <controls:StatusPill
+                  VerticalAlignment="Center"
+                  Classes="ToneInfo15"
+                  Icon="BadgeQuestionMark"
+                  IsVisible="{Binding IsInjectorStatusUnknown}"
+                  Text="{Binding InjectorStatusText}" />
+                <controls:StatusPill
+                  VerticalAlignment="Center"
+                  Classes="ToneWarning15"
+                  Icon="LoaderCircle"
+                  IsVisible="{Binding IsInjectorStatusStarting}"
+                  Text="{Binding InjectorStatusText}" />
+                <controls:StatusPill
+                  VerticalAlignment="Center"
+                  Classes="ToneDone25"
+                  Icon="CircleCheck"
+                  IsVisible="{Binding IsInjectorStatusRunning}"
+                  Text="{Binding InjectorStatusText}" />
+                <controls:StatusPill
+                  VerticalAlignment="Center"
+                  Classes="ToneDanger15"
+                  Icon="CircleAlert"
+                  IsVisible="{Binding IsInjectorStatusFailed}"
+                  Text="{Binding InjectorStatusText}" />
+                <controls:StatusPill
+                  VerticalAlignment="Center"
+                  Classes="ToneDanger15"
+                  Icon="CircleAlert"
+                  IsVisible="{Binding IsInjectorStatusStopped}"
+                  Text="{Binding InjectorStatusText}" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="启用 Injector" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="Agents 启动时是否挂载此模块" />
+                </StackPanel>
+                <ToggleSwitch
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding IsInjectorEnabled, Mode=TwoWay}"
+                  IsEnabled="{Binding !IsAgentsToggling}"
+                  OffContent="否"
+                  OnContent="是" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="运行 Injector" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="启动或停止 Injector 模块（不停止 Agents）" />
+                </StackPanel>
+                <ToggleSwitch
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding IsInjectorRunningSwitch, Mode=TwoWay}"
+                  IsEnabled="{Binding !IsAgentsToggling}"
+                  OffContent="停止"
+                  OnContent="启动" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <StackPanel
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Spacing="2">
+                  <TextBlock Classes="FieldTitle" Text="运行说明" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="当前模块状态与操作建议" />
+                </StackPanel>
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding InjectorStatusDetail}"
                   TextWrapping="Wrap" />
               </Grid>
             </Border>
 
             <Border Classes="H2">
-              <TextBlock Classes="Large H2Text" Text="版本与运行信息" />
+              <StackPanel Classes="H2Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H2Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Large H2Text" Text="版本与运行信息" />
+              </StackPanel>
             </Border>
 
             <Border Classes="Field">
@@ -1158,27 +1347,12 @@
                   Grid.Column="0"
                   VerticalAlignment="Center"
                   Classes="FieldTitle"
-                  Text="程序版本" />
+                  Text="Agents 版本" />
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   Classes="FieldValue"
-                  Text="{Binding ProgramVersionText}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <TextBlock
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Classes="FieldTitle"
-                  Text="工具版本" />
-                <TextBlock
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Classes="FieldValue"
-                  Text="{Binding AhkVersionText}" />
+                  Text="{Binding HostVersionText}" />
               </Grid>
             </Border>
 
@@ -1193,7 +1367,7 @@
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   Classes="FieldValue"
-                  Text="{Binding LastLaunchText}" />
+                  Text="{Binding HostLastLaunchText}" />
               </Grid>
             </Border>
 
@@ -1208,13 +1382,75 @@
                   Grid.Column="1"
                   VerticalAlignment="Center"
                   Classes="FieldValue"
-                  Text="{Binding LastErrorText}"
+                  Text="{Binding HostLastErrorText}"
+                  TextWrapping="Wrap" />
+              </Grid>
+            </Border>
+
+            <Border Classes="H3">
+              <StackPanel Classes="H3Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H3Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Small H3Text" Text="Injector" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="FieldTitle"
+                  Text="版本" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding InjectorVersionText}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="FieldTitle"
+                  Text="最近拉起" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding InjectorLastLaunchText}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="Field">
+              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                <TextBlock
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  Classes="FieldTitle"
+                  Text="最近错误" />
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Classes="FieldValue"
+                  Text="{Binding InjectorLastErrorText}"
                   TextWrapping="Wrap" />
               </Grid>
             </Border>
 
             <Border Classes="H2">
-              <TextBlock Classes="Large H2Text" Text="基础配置" />
+              <StackPanel Classes="H2Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H2Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Large H2Text" Text="基础配置" />
+              </StackPanel>
             </Border>
 
             <Border Classes="Field">
@@ -1224,13 +1460,13 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="可执行路径" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="pactoolkits-injector 可执行文件路径" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="Agents 可执行文件路径" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  PlaceholderText="例如：.\Agents\injector\pactoolkits-injector.exe"
-                  Text="{Binding AhkExecutablePath}" />
+                  PlaceholderText="例如：.\Agents\Agents.exe"
+                  Text="{Binding AgentsExecutablePath}" />
               </Grid>
             </Border>
 
@@ -1241,14 +1477,34 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="进程名" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="可选，用于检测进程（不带 .exe）" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="可选，用于检测 Agents 进程（不带 .exe）" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  PlaceholderText="例如：pactoolkits-injector"
-                  Text="{Binding AhkProcessName}" />
+                  PlaceholderText="例如：Agents"
+                  Text="{Binding AgentsProcessName}" />
               </Grid>
+            </Border>
+
+            <Border Classes="H2">
+              <StackPanel Classes="H2Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H2Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Large H2Text" Text="Injector 配置" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="H3">
+              <StackPanel Classes="H3Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H3Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Small H3Text" Text="基础配置" />
+              </StackPanel>
             </Border>
 
             <Border Classes="Field">
@@ -1258,12 +1514,12 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="PG 驱动" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="Agent 连接 PostgreSQL 使用的 ODBC 驱动名" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="Injector 连接 PostgreSQL 使用的 ODBC 驱动名" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Text="{Binding AgentPgDriver}" />
+                  Text="{Binding InjectorPgDriver}" />
               </Grid>
             </Border>
 
@@ -1274,12 +1530,14 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="PG SSL" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="Agent 连接数据库时是否启用 SSL" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="Injector 连接数据库时是否启用 SSL" />
                 </StackPanel>
                 <ToggleSwitch
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  IsChecked="{Binding AgentPgSslEnabled, Mode=TwoWay}" />
+                  IsChecked="{Binding InjectorPgSslEnabled, Mode=TwoWay}"
+                  OffContent="否"
+                  OnContent="是" />
               </Grid>
             </Border>
 
@@ -1299,22 +1557,28 @@
                   Increment="100"
                   Maximum="10000"
                   Minimum="100"
-                  Value="{Binding AgentConfirmTimeoutMs}" />
+                  Value="{Binding InjectorConfirmTimeoutMs}" />
               </Grid>
             </Border>
 
-            <Border Classes="H2">
+            <Border Classes="H3">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Classes="Large H2Text" Text="目标进程" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="Agent 可注入的目标可执行文件，每行一个" />
+                  <StackPanel Classes="H3Title">
+                    <icons:AppIcon
+                      VerticalAlignment="Center"
+                      Classes="H3Hash"
+                      Kind="Hash" />
+                    <TextBlock Classes="Small H3Text" Text="目标进程" />
+                  </StackPanel>
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="Injector 模块可注入的目标可执行文件，每行一个" />
                 </StackPanel>
                 <Button
                   Grid.Column="1"
                   Classes="Outline"
-                  Click="OnAutomationAddLineClicked"
-                  Command="{Binding AddAgentAppWinItemCommand}"
-                  Tag="AgentAppWinItemsControl">
+                  Click="OnAgentsAddLineClicked"
+                  Command="{Binding AddInjectorAppWinItemCommand}"
+                  Tag="InjectorAppWinItemsControl">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeSmall}"
@@ -1326,9 +1590,9 @@
               </Grid>
             </Border>
 
-            <ItemsControl x:Name="AgentAppWinItemsControl" ItemsSource="{Binding AgentAppWinItems}">
+            <ItemsControl x:Name="InjectorAppWinItemsControl" ItemsSource="{Binding InjectorAppWinItems}">
               <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:AgentLineItem">
+                <DataTemplate x:DataType="vm:InjectorLineItem">
                   <Border Classes="Field">
                     <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
                       <TextBox
@@ -1339,7 +1603,7 @@
                       <Button
                         Grid.Column="1"
                         Classes="Ghost"
-                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveAgentAppWinItemCommand}"
+                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveInjectorAppWinItemCommand}"
                         CommandParameter="{Binding .}">
                         <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                           <icons:AppIcon
@@ -1355,8 +1619,14 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <Border Classes="H2">
-              <TextBlock Classes="Large H2Text" Text="门诊配置" />
+            <Border Classes="H3">
+              <StackPanel Classes="H3Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H3Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Small H3Text" Text="门诊配置" />
+              </StackPanel>
             </Border>
 
             <Border Classes="Field">
@@ -1371,7 +1641,7 @@
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Text="{Binding AgentOptWindowClass}" />
+                  Text="{Binding InjectorOptWindowClass}" />
               </Grid>
             </Border>
 
@@ -1387,7 +1657,7 @@
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Text="{Binding AgentOptParseGridClassNN}" />
+                  Text="{Binding InjectorOptParseGridClassNN}" />
               </Grid>
             </Border>
 
@@ -1403,7 +1673,7 @@
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Text="{Binding AgentOptVerifyGridClassNN}" />
+                  Text="{Binding InjectorOptVerifyGridClassNN}" />
               </Grid>
             </Border>
 
@@ -1419,12 +1689,18 @@
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Text="{Binding AgentOptInputClassNN}" />
+                  Text="{Binding InjectorOptInputClassNN}" />
               </Grid>
             </Border>
 
-            <Border Classes="H2">
-              <TextBlock Classes="Large H2Text" Text="住院配置" />
+            <Border Classes="H3">
+              <StackPanel Classes="H3Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H3Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Small H3Text" Text="住院配置" />
+              </StackPanel>
             </Border>
 
             <Border Classes="Field">
@@ -1439,7 +1715,7 @@
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Text="{Binding AgentIptWindowClass}" />
+                  Text="{Binding InjectorIptWindowClass}" />
               </Grid>
             </Border>
 
@@ -1455,7 +1731,7 @@
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Text="{Binding AgentIptParseGridClassNN}" />
+                  Text="{Binding InjectorIptParseGridClassNN}" />
               </Grid>
             </Border>
 
@@ -1471,7 +1747,7 @@
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Text="{Binding AgentIptVerifyGridClassNN}" />
+                  Text="{Binding InjectorIptVerifyGridClassNN}" />
               </Grid>
             </Border>
 
@@ -1487,12 +1763,18 @@
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Text="{Binding AgentIptInputClassNN}" />
+                  Text="{Binding InjectorIptInputClassNN}" />
               </Grid>
             </Border>
 
-            <Border Classes="H2">
-              <TextBlock Classes="Large H2Text" Text="仓库配置" />
+            <Border Classes="H3">
+              <StackPanel Classes="H3Title">
+                <icons:AppIcon
+                  VerticalAlignment="Center"
+                  Classes="H3Hash"
+                  Kind="Hash" />
+                <TextBlock Classes="Small H3Text" Text="仓库配置" />
+              </StackPanel>
             </Border>
 
             <Border Classes="Field">
@@ -1507,7 +1789,9 @@
                 <ToggleSwitch
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  IsChecked="{Binding AgentWarehouseEnabled, Mode=TwoWay}" />
+                  IsChecked="{Binding InjectorWarehouseEnabled, Mode=TwoWay}"
+                  OffContent="正常模式"
+                  OnContent="仓库模式" />
               </Grid>
             </Border>
 
@@ -1523,7 +1807,7 @@
                 <TextBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  Text="{Binding AgentWarehouseTaskIdentifier}" />
+                  Text="{Binding InjectorWarehouseTaskIdentifier}" />
               </Grid>
             </Border>
 
@@ -1539,15 +1823,21 @@
                 <ComboBox
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  ItemsSource="{Binding AgentCodePickPolicyOptions}"
-                  SelectedItem="{Binding SelectedAgentCodePickPolicyOption, Mode=TwoWay}" />
+                  ItemsSource="{Binding InjectorCodePickPolicyOptions}"
+                  SelectedItem="{Binding SelectedInjectorCodePickPolicyOption, Mode=TwoWay}" />
               </Grid>
             </Border>
 
-            <Border Classes="H2">
+            <Border Classes="H3">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Classes="Large H2Text" Text="仓库列特征" />
+                  <StackPanel Classes="H3Title">
+                    <icons:AppIcon
+                      VerticalAlignment="Center"
+                      Classes="H3Hash"
+                      Kind="Hash" />
+                    <TextBlock Classes="Small H3Text" Text="仓库列特征" />
+                  </StackPanel>
                   <TextBlock
                     Classes="Caption Muted FieldDesc"
                     Text="表头命中任一列名则判定为住院；均未命中则判定为仓库（默认：患者姓名、应扫次数）"
@@ -1556,9 +1846,9 @@
                 <Button
                   Grid.Column="1"
                   Classes="Outline"
-                  Click="OnAutomationAddLineClicked"
-                  Command="{Binding AddAgentWarehouseAnchorItemCommand}"
-                  Tag="AgentWarehouseAnchorItemsControl">
+                  Click="OnAgentsAddLineClicked"
+                  Command="{Binding AddInjectorWarehouseAnchorItemCommand}"
+                  Tag="InjectorWarehouseAnchorItemsControl">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeSmall}"
@@ -1570,9 +1860,9 @@
               </Grid>
             </Border>
 
-            <ItemsControl x:Name="AgentWarehouseAnchorItemsControl" ItemsSource="{Binding AgentWarehouseAnchorItems}">
+            <ItemsControl x:Name="InjectorWarehouseAnchorItemsControl" ItemsSource="{Binding InjectorWarehouseAnchorItems}">
               <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:AgentLineItem">
+                <DataTemplate x:DataType="vm:InjectorLineItem">
                   <Border Classes="Field">
                     <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
                       <TextBox
@@ -1583,7 +1873,7 @@
                       <Button
                         Grid.Column="1"
                         Classes="Ghost"
-                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveAgentWarehouseAnchorItemCommand}"
+                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveInjectorWarehouseAnchorItemCommand}"
                         CommandParameter="{Binding .}">
                         <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                           <icons:AppIcon
@@ -1599,18 +1889,24 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <Border Classes="H2">
+            <Border Classes="H3">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Classes="Large H2Text" Text="解析规则" />
+                  <StackPanel Classes="H3Title">
+                    <icons:AppIcon
+                      VerticalAlignment="Center"
+                      Classes="H3Hash"
+                      Kind="Hash" />
+                    <TextBlock Classes="Small H3Text" Text="解析规则" />
+                  </StackPanel>
                   <TextBlock Classes="Caption Muted FieldDesc" Text="表格列解析规则（ColSpecs），每行一条" />
                 </StackPanel>
                 <Button
                   Grid.Column="1"
                   Classes="Outline"
-                  Click="OnAutomationAddLineClicked"
-                  Command="{Binding AddAgentColSpecsItemCommand}"
-                  Tag="AgentColSpecsItemsControl">
+                  Click="OnAgentsAddLineClicked"
+                  Command="{Binding AddInjectorColSpecsItemCommand}"
+                  Tag="InjectorColSpecsItemsControl">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeSmall}"
@@ -1622,9 +1918,9 @@
               </Grid>
             </Border>
 
-            <ItemsControl x:Name="AgentColSpecsItemsControl" ItemsSource="{Binding AgentColSpecsItems}">
+            <ItemsControl x:Name="InjectorColSpecsItemsControl" ItemsSource="{Binding InjectorColSpecsItems}">
               <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:AgentLineItem">
+                <DataTemplate x:DataType="vm:InjectorLineItem">
                   <Border Classes="Field">
                     <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
                       <TextBox
@@ -1635,7 +1931,7 @@
                       <Button
                         Grid.Column="1"
                         Classes="Ghost"
-                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveAgentColSpecsItemCommand}"
+                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveInjectorColSpecsItemCommand}"
                         CommandParameter="{Binding .}">
                         <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                           <icons:AppIcon
@@ -1651,18 +1947,24 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <Border Classes="H2">
+            <Border Classes="H3">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Classes="Large H2Text" Text="整数列" />
+                  <StackPanel Classes="H3Title">
+                    <icons:AppIcon
+                      VerticalAlignment="Center"
+                      Classes="H3Hash"
+                      Kind="Hash" />
+                    <TextBlock Classes="Small H3Text" Text="整数列" />
+                  </StackPanel>
                   <TextBlock Classes="Caption Muted FieldDesc" Text="需要按整数解析的列名，每行一个" />
                 </StackPanel>
                 <Button
                   Grid.Column="1"
                   Classes="Outline"
-                  Click="OnAutomationAddLineClicked"
-                  Command="{Binding AddAgentIntColsItemCommand}"
-                  Tag="AgentIntColsItemsControl">
+                  Click="OnAgentsAddLineClicked"
+                  Command="{Binding AddInjectorIntColsItemCommand}"
+                  Tag="InjectorIntColsItemsControl">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                     <icons:AppIcon
                       Width="{DynamicResource IconSizeSmall}"
@@ -1674,9 +1976,9 @@
               </Grid>
             </Border>
 
-            <ItemsControl x:Name="AgentIntColsItemsControl" ItemsSource="{Binding AgentIntColsItems}">
+            <ItemsControl x:Name="InjectorIntColsItemsControl" ItemsSource="{Binding InjectorIntColsItems}">
               <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:AgentLineItem">
+                <DataTemplate x:DataType="vm:InjectorLineItem">
                   <Border Classes="Field">
                     <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
                       <TextBox
@@ -1687,7 +1989,7 @@
                       <Button
                         Grid.Column="1"
                         Classes="Ghost"
-                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveAgentIntColsItemCommand}"
+                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveInjectorIntColsItemCommand}"
                         CommandParameter="{Binding .}">
                         <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
                           <icons:AppIcon
@@ -1708,7 +2010,7 @@
           VerticalAlignment="Top"
           Classes="StickyHost"
           IsHitTestVisible="False">
-          <StackPanel x:Name="AutomationStickyHost" Spacing="0" />
+          <StackPanel x:Name="AgentsStickyHost" Spacing="0" />
         </Border>
       </Grid>
 

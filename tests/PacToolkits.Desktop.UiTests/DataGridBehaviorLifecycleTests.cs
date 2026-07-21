@@ -45,12 +45,23 @@ public sealed class DataGridBehaviorLifecycleTests
         Assert.False(DataGridVisualLifecycle.HasHooks(grid));
     }
 
-    [AvaloniaTheory]
-    [InlineData(typeof(DataGridIndexColumn), nameof(DataGridIndexColumn.SetEnabled))]
-    [InlineData(typeof(DataGridRowSelection), nameof(DataGridRowSelection.SetEnabled))]
-    [InlineData(typeof(DataGridSortReset), nameof(DataGridSortReset.SetEnabled))]
-    [InlineData(typeof(DataGridSortSupport), nameof(DataGridSortSupport.SetEnabled))]
-    public void Visual_detach_drops_behavior_state(Type behaviorType, string setEnabledName)
+    [AvaloniaFact]
+    public void Visual_detach_drops_index_column_state()
+        => AssertVisualDetachDropsBehaviorState(typeof(DataGridIndexColumn), nameof(DataGridIndexColumn.SetEnabled));
+
+    [AvaloniaFact]
+    public void Visual_detach_drops_row_selection_state()
+        => AssertVisualDetachDropsBehaviorState(typeof(DataGridRowSelection), nameof(DataGridRowSelection.SetEnabled));
+
+    [AvaloniaFact]
+    public void Visual_detach_drops_sort_reset_state()
+        => AssertVisualDetachDropsBehaviorState(typeof(DataGridSortReset), nameof(DataGridSortReset.SetEnabled));
+
+    [AvaloniaFact]
+    public void Visual_detach_drops_sort_support_state()
+        => AssertVisualDetachDropsBehaviorState(typeof(DataGridSortSupport), nameof(DataGridSortSupport.SetEnabled));
+
+    private static void AssertVisualDetachDropsBehaviorState(Type behaviorType, string setEnabledName)
     {
         var grid = new DataGrid();
         var setEnabled = behaviorType.GetMethod(

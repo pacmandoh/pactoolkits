@@ -2,7 +2,7 @@
     <Import Project="Version.g.props" Condition="Exists('Version.g.props')" />
 
     <PropertyGroup>
-        <AssemblyName>pactoolkits-desktop</AssemblyName>
+        <AssemblyName>PacToolkits.Desktop</AssemblyName>
         <RootNamespace>PacToolkits.Desktop.Avalonia</RootNamespace>
         <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
         <AppVersion Condition="'$(AppVersion)' == ''">0.0.0-local</AppVersion>
@@ -32,7 +32,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="version.generated.json" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="ReleaseManifest.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <ItemGroup>
@@ -55,6 +55,6 @@
     <ItemGroup>
       <ProjectReference Include="..\..\..\packages\application\PacToolkits.Application.csproj" />
       <ProjectReference Include="..\..\..\packages\infrastructure\PacToolkits.Infrastructure.csproj" />
-      <ProjectReference Include="..\..\..\packages\agent-contracts\PacToolkits.Agent.Contracts.csproj" />
+      <ProjectReference Include="..\..\..\packages\agents-contracts\PacToolkits.Agents.Contracts.csproj" />
     </ItemGroup>
 </Project>

@@ -3,10 +3,10 @@ using PacToolkits.Core;
 namespace PacToolkits.Application.DTOs;
 
 public sealed record DbSchemaVersionContext(
-    string UiMinDbSchema,
-    string UiMaxDbSchema,
-    string AgentMinDbSchema,
-    string AgentMaxDbSchema,
+    string DesktopMinDbSchema,
+    string DesktopMaxDbSchema,
+    string AgentsMinDbSchema,
+    string AgentsMaxDbSchema,
     string TargetDbSchemaVersion,
     string ReleaseChannel = "stable",
     string MigrationPolicy = DbMigrationPolicies.StableOnly);

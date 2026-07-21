@@ -4,10 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
-using PacToolkits.Agent.Contracts.Agents;
-using PacToolkits.Agent.Contracts.Models;
+using PacToolkits.Agents.Contracts.Agents;
+using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Common;
@@ -16,14 +17,12 @@ namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 public sealed class AppConfigRoot
 {
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
     public string LastDbMigrationAppVersion { get; set; } = string.Empty;
     public PgOptions Postgres { get; set; } = new();
     public Dictionary<string, string> ClientAliases { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public TraceCodeValidationOptions TraceCodeValidation { get; set; } = new();
-    public AutomationToolsOptions AutomationTools { get; set; } = new();
-    public Dictionary<string, AgentInstanceConfig> Agents { get; set; } =
-        new(StringComparer.Ordinal);
+    public AgentsOptions Agents { get; set; } = new();
     public MsfxApiOptions MsfxApi { get; set; } = new();
     public UiBehaviorOptions UiBehavior { get; set; } = new();
     public UpdateOptions Update { get; set; } = new();
@@ -204,6 +203,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             }
 
             var json = File.ReadAllText(readablePath);
+            json = MigrateConfigJsonToV2(json);
             return JsonSerializer.Deserialize<AppConfigRoot>(json) ?? new AppConfigRoot();
         }
         catch
@@ -244,6 +244,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
                 if (File.Exists(readablePath))
                 {
                     existingJson = File.ReadAllText(readablePath);
+                    existingJson = MigrateConfigJsonToV2(existingJson);
                     raw = JsonSerializer.Deserialize<AppConfigRoot>(existingJson) ?? new AppConfigRoot();
                 }
                 else
@@ -258,19 +259,22 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             }
 
             var normalized = Normalize(raw);
+            var json = JsonSerializer.Serialize(normalized, _writeOptions);
             if (File.Exists(readablePath)
                 && HasPersistedDefaults(raw)
                 && HasRequiredConfigKeys(existingJson))
             {
-                if (!string.Equals(readablePath, ConfigPath, StringComparison.OrdinalIgnoreCase))
+                // Persist schema v2 / Main Tools→Agents host rewrites even when the unified
+                // file already exists (InitConfig used to return without writing).
+                if (!string.Equals(readablePath, ConfigPath, StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(existingJson, json, StringComparison.Ordinal))
                 {
-                    WriteAllTextAtomic(ConfigPath, JsonSerializer.Serialize(normalized, _writeOptions));
+                    WriteAllTextAtomic(ConfigPath, json);
                 }
 
                 return;
             }
 
-            var json = JsonSerializer.Serialize(normalized, _writeOptions);
             WriteAllTextAtomic(ConfigPath, json);
         }
     }
@@ -282,7 +286,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             return false;
         }
 
-        if (root.AutomationTools?.Agent is not { } a)
+        if (root.Agents?.Injector is not { } a)
         {
             return false;
         }
@@ -391,72 +395,72 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
                 return false;
             }
 
-            if (!root.TryGetProperty("AutomationTools", out var automationTools) || automationTools.ValueKind != JsonValueKind.Object)
+            if (!root.TryGetProperty("Agents", out var agents) || agents.ValueKind != JsonValueKind.Object)
             {
                 return false;
             }
 
-            if (!automationTools.TryGetProperty("Agent", out var agent) || agent.ValueKind != JsonValueKind.Object)
+            if (!agents.TryGetProperty("Injector", out var injector) || injector.ValueKind != JsonValueKind.Object)
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("WarehouseEnabled", out _))
+            if (!injector.TryGetProperty("WarehouseEnabled", out _))
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("WarehouseAnchorTexts", out _))
+            if (!injector.TryGetProperty("WarehouseAnchorTexts", out _))
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("CodePickPolicy", out _))
+            if (!injector.TryGetProperty("CodePickPolicy", out _))
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("WarehouseTaskIdentifier", out _))
+            if (!injector.TryGetProperty("WarehouseTaskIdentifier", out _))
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("OptWindowClass", out _))
+            if (!injector.TryGetProperty("OptWindowClass", out _))
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("IptWindowClass", out _))
+            if (!injector.TryGetProperty("IptWindowClass", out _))
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("OptParseGridClassNN", out _))
+            if (!injector.TryGetProperty("OptParseGridClassNN", out _))
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("OptVerifyGridClassNN", out _))
+            if (!injector.TryGetProperty("OptVerifyGridClassNN", out _))
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("IptParseGridClassNN", out _))
+            if (!injector.TryGetProperty("IptParseGridClassNN", out _))
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("IptVerifyGridClassNN", out _))
+            if (!injector.TryGetProperty("IptVerifyGridClassNN", out _))
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("OptInputClassNN", out _))
+            if (!injector.TryGetProperty("OptInputClassNN", out _))
             {
                 return false;
             }
 
-            if (!agent.TryGetProperty("IptInputClassNN", out _))
+            if (!injector.TryGetProperty("IptInputClassNN", out _))
             {
                 return false;
             }
@@ -469,18 +473,97 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         }
     }
 
+    /// <summary>Main SchemaVersion=1 AutomationTools → schema-2 Agents + Injector.</summary>
+    internal static string MigrateConfigJsonToV2(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return json;
+        }
+
+        try
+        {
+            if (JsonNode.Parse(json) is not JsonObject root)
+            {
+                return json;
+            }
+
+            var schema = root["SchemaVersion"]?.GetValue<int>() ?? 0;
+            var agentsNode = root["Agents"] as JsonObject;
+
+            // Schema ≥2: strip leftovers only — never re-merge Main AutomationTools.
+            if (schema >= 2)
+            {
+                root["SchemaVersion"] = 2;
+                root.Remove("AutomationTools");
+                if (agentsNode is null)
+                {
+                    root["Agents"] = new JsonObject
+                    {
+                        ["ExecutablePath"] = AgentsPaths.HostExecutable,
+                        ["ProcessName"] = string.Empty,
+                        ["Injector"] = new JsonObject(),
+                    };
+                }
+                else
+                {
+                    agentsNode.Remove("Enabled");
+                    agentsNode.Remove("agents");
+                    if (agentsNode["Injector"] is null)
+                    {
+                        agentsNode["Injector"] = new JsonObject();
+                    }
+                }
+
+                return root.ToJsonString(_writeOptions);
+            }
+
+            // Main only (schema < 2): AutomationTools.Ahk + AutomationTools.Agent → Agents.
+            string? path = null;
+            string? processName = null;
+            JsonNode? injector = new JsonObject();
+
+            if (root["AutomationTools"] is JsonObject tools)
+            {
+                if (tools["Ahk"] is JsonObject host)
+                {
+                    path = host["ExecutablePath"]?.GetValue<string>();
+                    processName = host["ProcessName"]?.GetValue<string>();
+                }
+
+                if (tools["Agent"] is JsonNode mainInjectorSection)
+                {
+                    injector = mainInjectorSection.DeepClone();
+                }
+            }
+
+            root["Agents"] = new JsonObject
+            {
+                ["ExecutablePath"] = string.IsNullOrWhiteSpace(path)
+                    ? AgentsPaths.HostExecutable
+                    : path.Trim(),
+                ["ProcessName"] = (processName ?? string.Empty).Trim(),
+                ["Injector"] = injector.DeepClone(),
+            };
+            root.Remove("AutomationTools");
+            root["SchemaVersion"] = 2;
+            return root.ToJsonString(_writeOptions);
+        }
+        catch
+        {
+            return json;
+        }
+    }
+
     internal static AppConfigRoot Normalize(AppConfigRoot? source)
     {
         var root = source ?? new AppConfigRoot();
-        root.SchemaVersion = 1;
+        root.SchemaVersion = 2;
         root.LastDbMigrationAppVersion = (root.LastDbMigrationAppVersion ?? string.Empty).Trim();
         root.Postgres ??= new PgOptions();
         root.TraceCodeValidation ??= new TraceCodeValidationOptions();
-        root.AutomationTools ??= new AutomationToolsOptions();
-        root.Agents ??= new Dictionary<string, AgentInstanceConfig>(StringComparer.Ordinal);
+        root.Agents ??= new AgentsOptions();
         root.MsfxApi ??= new MsfxApiOptions();
-        root.AutomationTools.Ahk ??= new AhkToolOptions();
-        root.AutomationTools.Agent ??= new AgentToolOptions();
         root.UiBehavior ??= new UiBehaviorOptions();
         root.Update ??= new UpdateOptions();
         root.Logging ??= new LoggingOptions();
@@ -495,15 +578,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             root.TraceCodeValidation.Pattern = "^8\\d+$";
         }
 
-        var ahkDefaults = new AhkToolOptions();
-        root.AutomationTools.Ahk.ExecutablePath = string.IsNullOrWhiteSpace(root.AutomationTools.Ahk.ExecutablePath)
-            ? ahkDefaults.ExecutablePath
-            : root.AutomationTools.Ahk.ExecutablePath.Trim();
-        root.AutomationTools.Ahk.ProcessName = string.IsNullOrWhiteSpace(root.AutomationTools.Ahk.ProcessName)
-            ? ahkDefaults.ProcessName
-            : root.AutomationTools.Ahk.ProcessName.Trim();
-        root.AutomationTools.Agent = NormalizeAgent(root.AutomationTools.Agent);
-        root.Agents = NormalizeAgents(root);
+        root.Agents = NormalizeAgents(root.Agents);
         root.MsfxApi = NormalizeMsfxApi(root.MsfxApi);
         root.Update = NormalizeUpdate(root.Update);
         root.Logging = NormalizeLogging(root.Logging);
@@ -519,137 +594,49 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         return root;
     }
 
-    private static Dictionary<string, AgentInstanceConfig> NormalizeAgents(AppConfigRoot root)
+    private static AgentsOptions NormalizeAgents(AgentsOptions? source)
     {
-        var agents = root.Agents ?? new Dictionary<string, AgentInstanceConfig>(StringComparer.Ordinal);
-        if (agents.TryGetValue(AgentIds.InjectorAhk, out var existingInjector) && existingInjector is null)
-        {
-            agents.Remove(AgentIds.InjectorAhk);
-        }
-
-        if (!agents.TryGetValue(AgentIds.InjectorAhk, out var injector) || injector is null)
-        {
-            injector = new AgentInstanceConfig
-            {
-                Enabled = true,
-                ExecutablePath = root.AutomationTools.Ahk.ExecutablePath,
-                ProcessName = root.AutomationTools.Ahk.ProcessName,
-            };
-            agents[AgentIds.InjectorAhk] = injector;
-        }
-
-        injector.Runtime ??= new Dictionary<string, object?>(StringComparer.Ordinal);
-        injector.Settings ??= new Dictionary<string, object?>(StringComparer.Ordinal);
-
-        var toolsAgent = NormalizeAgent(root.AutomationTools.Agent);
-        var settingsEmpty = injector.Settings.Count == 0;
-        var parsedSettings = new AgentToolOptions();
-        var settingsValid = settingsEmpty
-            || AgentSettingsSync.TryFromSettings(injector.Settings, out parsedSettings);
-        AgentToolOptions? agentSettings = null;
-        if (!settingsEmpty && settingsValid)
-        {
-            agentSettings = NormalizeAgent(parsedSettings);
-        }
-
-        var preferAgentSettings = !settingsEmpty
-                                  && settingsValid
-                                  && !AgentSettingsSync.SettingsMatch(injector.Settings, toolsAgent);
-
-        AgentToolOptions agentToolOptions;
-        if (!settingsValid)
-        {
-            agentToolOptions = toolsAgent;
-            injector.Settings = AgentSettingsSync.HasData(agentToolOptions)
-                ? AgentSettingsSync.ToSettings(agentToolOptions)
-                : new Dictionary<string, object?>(StringComparer.Ordinal);
-        }
-        else if (settingsEmpty)
-        {
-            agentToolOptions = toolsAgent;
-            if (AgentSettingsSync.HasData(agentToolOptions))
-            {
-                injector.Settings = AgentSettingsSync.ToSettings(agentToolOptions);
-            }
-        }
-        else if (preferAgentSettings)
-        {
-            agentToolOptions = agentSettings!;
-        }
-        else
-        {
-            agentToolOptions = agentSettings!;
-        }
-
-        root.AutomationTools.Agent = NormalizeAgent(agentToolOptions);
-
-        var toolsPath = (root.AutomationTools.Ahk.ExecutablePath ?? string.Empty).Trim();
-        var toolsProcess = (root.AutomationTools.Ahk.ProcessName ?? string.Empty).Trim();
-        var agentPath = (injector.ExecutablePath ?? string.Empty).Trim();
-        var agentProcess = (injector.ProcessName ?? string.Empty).Trim();
-        var preferAgentPath = !string.IsNullOrWhiteSpace(agentPath)
-                              && (!string.Equals(agentPath, toolsPath, StringComparison.Ordinal)
-                                  || !string.Equals(agentProcess, toolsProcess, StringComparison.Ordinal));
-
-        SyncInjectorPaths(root, injector, toolsPathWins: !preferAgentPath);
-
+        var defaults = new AgentsOptions();
+        var agents = source ?? new AgentsOptions();
+        agents.ExecutablePath = string.IsNullOrWhiteSpace(agents.ExecutablePath)
+            ? defaults.ExecutablePath
+            : agents.ExecutablePath.Trim();
+        agents.ProcessName = string.IsNullOrWhiteSpace(agents.ProcessName)
+            ? defaults.ProcessName
+            : agents.ProcessName.Trim();
+        MigrateMainToolsHost(agents);
+        agents.Injector = NormalizeInjector(agents.Injector);
         return agents;
     }
 
-    internal static void SyncInjectorFromTools(AppConfigRoot cfg, AutomationToolsOptions tools)
+    private static void MigrateMainToolsHost(AgentsOptions agents)
     {
-        cfg.Agents ??= new Dictionary<string, AgentInstanceConfig>(StringComparer.Ordinal);
-        if (!cfg.Agents.TryGetValue(AgentIds.InjectorAhk, out var agent) || agent is null)
+        var path = agents.ExecutablePath ?? string.Empty;
+        var processName = agents.ProcessName ?? string.Empty;
+        if (!TryMigrateMainToolsHost(ref path, ref processName))
         {
-            agent = new AgentInstanceConfig();
-            cfg.Agents[AgentIds.InjectorAhk] = agent;
+            return;
         }
 
-        agent.ExecutablePath = tools.Ahk.ExecutablePath;
-        agent.ProcessName = tools.Ahk.ProcessName;
-        agent.Settings = AgentSettingsSync.ToSettings(NormalizeAgent(tools.Agent));
-        agent.Runtime ??= new Dictionary<string, object?>(StringComparer.Ordinal);
+        agents.ExecutablePath = path;
+        agents.ProcessName = processName;
     }
 
-    private static void SyncInjectorPaths(
-        AppConfigRoot root,
-        AgentInstanceConfig injector,
-        bool toolsPathWins)
+    private static bool TryMigrateMainToolsHost(ref string path, ref string processName)
     {
-        var toolsPath = (root.AutomationTools.Ahk.ExecutablePath ?? string.Empty).Trim();
-        var toolsProcess = (root.AutomationTools.Ahk.ProcessName ?? string.Empty).Trim();
-        var agentPath = (injector.ExecutablePath ?? string.Empty).Trim();
-        var agentProcess = (injector.ProcessName ?? string.Empty).Trim();
-
-        if (string.IsNullOrWhiteSpace(agentPath) && !string.IsNullOrWhiteSpace(toolsPath))
+        if (!AgentsPath.IsMainToolsStoredPath(path))
         {
-            injector.ExecutablePath = toolsPath;
-            injector.ProcessName = toolsProcess;
-        }
-        else
-        {
-            var pathsDiffer = !string.Equals(agentPath, toolsPath, StringComparison.Ordinal)
-                              || !string.Equals(agentProcess, toolsProcess, StringComparison.Ordinal);
-            if (pathsDiffer)
-            {
-                if (toolsPathWins)
-                {
-                    injector.ExecutablePath = toolsPath;
-                    injector.ProcessName = toolsProcess;
-                }
-                else
-                {
-                    root.AutomationTools.Ahk.ExecutablePath = agentPath;
-                    if (!string.IsNullOrWhiteSpace(agentProcess))
-                    {
-                        root.AutomationTools.Ahk.ProcessName = agentProcess;
-                    }
-                }
-            }
+            return false;
         }
 
-        root.AutomationTools.Ahk.ExecutablePath = injector.ExecutablePath ?? string.Empty;
-        root.AutomationTools.Ahk.ProcessName = injector.ProcessName ?? string.Empty;
+        path = AgentsPaths.HostExecutable;
+        if (string.IsNullOrWhiteSpace(processName)
+            || string.Equals(processName, AgentsPaths.MainToolsProcessName, StringComparison.OrdinalIgnoreCase))
+        {
+            processName = AgentsPaths.HostProcessName;
+        }
+
+        return true;
     }
 
     private static MsfxApiOptions NormalizeMsfxApi(MsfxApiOptions? source)
@@ -719,42 +706,42 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         };
     }
 
-    private static AgentToolOptions NormalizeAgent(AgentToolOptions? source)
+    private static InjectorOptions NormalizeInjector(InjectorOptions? source)
     {
-        var defaults = new AgentToolOptions();
-        var agent = source ?? new AgentToolOptions();
+        var defaults = new InjectorOptions();
+        var injector = source ?? new InjectorOptions();
 
-        agent.PgDriver = string.IsNullOrWhiteSpace(agent.PgDriver) ? defaults.PgDriver : agent.PgDriver.Trim();
-        agent.PgSsl = NormalizePgSsl(agent.PgSsl, defaults.PgSsl);
-        agent.OptWindowClass = string.IsNullOrWhiteSpace(agent.OptWindowClass) ? defaults.OptWindowClass : agent.OptWindowClass.Trim();
-        agent.IptWindowClass = string.IsNullOrWhiteSpace(agent.IptWindowClass) ? defaults.IptWindowClass : agent.IptWindowClass.Trim();
-        agent.OptParseGridClassNN = string.IsNullOrWhiteSpace(agent.OptParseGridClassNN) ? defaults.OptParseGridClassNN : agent.OptParseGridClassNN.Trim();
-        agent.OptVerifyGridClassNN = string.IsNullOrWhiteSpace(agent.OptVerifyGridClassNN) ? defaults.OptVerifyGridClassNN : agent.OptVerifyGridClassNN.Trim();
-        agent.IptParseGridClassNN = string.IsNullOrWhiteSpace(agent.IptParseGridClassNN) ? defaults.IptParseGridClassNN : agent.IptParseGridClassNN.Trim();
-        agent.IptVerifyGridClassNN = string.IsNullOrWhiteSpace(agent.IptVerifyGridClassNN) ? defaults.IptVerifyGridClassNN : agent.IptVerifyGridClassNN.Trim();
-        agent.OptInputClassNN = string.IsNullOrWhiteSpace(agent.OptInputClassNN) ? defaults.OptInputClassNN : agent.OptInputClassNN.Trim();
-        agent.IptInputClassNN = string.IsNullOrWhiteSpace(agent.IptInputClassNN) ? defaults.IptInputClassNN : agent.IptInputClassNN.Trim();
-        agent.ConfirmTimeoutMs = agent.ConfirmTimeoutMs <= 0 ? defaults.ConfirmTimeoutMs : agent.ConfirmTimeoutMs;
+        injector.PgDriver = string.IsNullOrWhiteSpace(injector.PgDriver) ? defaults.PgDriver : injector.PgDriver.Trim();
+        injector.PgSsl = NormalizePgSsl(injector.PgSsl, defaults.PgSsl);
+        injector.OptWindowClass = string.IsNullOrWhiteSpace(injector.OptWindowClass) ? defaults.OptWindowClass : injector.OptWindowClass.Trim();
+        injector.IptWindowClass = string.IsNullOrWhiteSpace(injector.IptWindowClass) ? defaults.IptWindowClass : injector.IptWindowClass.Trim();
+        injector.OptParseGridClassNN = string.IsNullOrWhiteSpace(injector.OptParseGridClassNN) ? defaults.OptParseGridClassNN : injector.OptParseGridClassNN.Trim();
+        injector.OptVerifyGridClassNN = string.IsNullOrWhiteSpace(injector.OptVerifyGridClassNN) ? defaults.OptVerifyGridClassNN : injector.OptVerifyGridClassNN.Trim();
+        injector.IptParseGridClassNN = string.IsNullOrWhiteSpace(injector.IptParseGridClassNN) ? defaults.IptParseGridClassNN : injector.IptParseGridClassNN.Trim();
+        injector.IptVerifyGridClassNN = string.IsNullOrWhiteSpace(injector.IptVerifyGridClassNN) ? defaults.IptVerifyGridClassNN : injector.IptVerifyGridClassNN.Trim();
+        injector.OptInputClassNN = string.IsNullOrWhiteSpace(injector.OptInputClassNN) ? defaults.OptInputClassNN : injector.OptInputClassNN.Trim();
+        injector.IptInputClassNN = string.IsNullOrWhiteSpace(injector.IptInputClassNN) ? defaults.IptInputClassNN : injector.IptInputClassNN.Trim();
+        injector.ConfirmTimeoutMs = injector.ConfirmTimeoutMs <= 0 ? defaults.ConfirmTimeoutMs : injector.ConfirmTimeoutMs;
 
-        var appWin = (agent.AppWin ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase))
+        var appWin = (injector.AppWin ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase))
             .Where(kv => !string.IsNullOrWhiteSpace(kv.Key))
             .ToDictionary(
                 kv => kv.Key.Trim(),
                 kv => kv.Value == 0 ? 0 : 1,
                 StringComparer.OrdinalIgnoreCase);
-        agent.AppWin = appWin.Count > 0
+        injector.AppWin = appWin.Count > 0
             ? appWin
             : new Dictionary<string, int>(defaults.AppWin, StringComparer.OrdinalIgnoreCase);
 
-        agent.ColSpecs = NormalizeStringList(agent.ColSpecs, defaults.ColSpecs, requireNonEmpty: true);
-        agent.IntCols = NormalizeStringList(agent.IntCols, defaults.IntCols, requireNonEmpty: false);
-        agent.WarehouseAnchorTexts = NormalizeStringList(agent.WarehouseAnchorTexts, defaults.WarehouseAnchorTexts, requireNonEmpty: true);
-        agent.CodePickPolicy = NormalizeCodePickPolicy(agent.CodePickPolicy, defaults.CodePickPolicy);
-        agent.WarehouseTaskIdentifier = string.IsNullOrWhiteSpace(agent.WarehouseTaskIdentifier)
+        injector.ColSpecs = NormalizeStringList(injector.ColSpecs, defaults.ColSpecs, requireNonEmpty: true);
+        injector.IntCols = NormalizeStringList(injector.IntCols, defaults.IntCols, requireNonEmpty: false);
+        injector.WarehouseAnchorTexts = NormalizeStringList(injector.WarehouseAnchorTexts, defaults.WarehouseAnchorTexts, requireNonEmpty: true);
+        injector.CodePickPolicy = NormalizeCodePickPolicy(injector.CodePickPolicy, defaults.CodePickPolicy);
+        injector.WarehouseTaskIdentifier = string.IsNullOrWhiteSpace(injector.WarehouseTaskIdentifier)
             ? defaults.WarehouseTaskIdentifier
-            : agent.WarehouseTaskIdentifier.Trim();
+            : injector.WarehouseTaskIdentifier.Trim();
 
-        return agent;
+        return injector;
     }
 
     private static string NormalizeCodePickPolicy(string? value, string fallback)

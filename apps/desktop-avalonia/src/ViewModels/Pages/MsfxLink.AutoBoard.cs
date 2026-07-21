@@ -493,7 +493,7 @@ public sealed partial class MsfxLink : AppPageBase
 
         var ok = await _dialog.ConfirmDestructive(
             "弃用注入任务",
-            $"将弃用选中的 {selectedRows.Count} 条任务，弃用后 Agent 将不再执行这些任务，确认继续？").ConfigureAwait(false);
+            $"将弃用选中的 {selectedRows.Count} 条任务，弃用后 Injector 将不再执行这些任务，确认继续？").ConfigureAwait(false);
         if (!ok)
         {
             return;
@@ -926,7 +926,7 @@ public sealed partial class MsfxLink : AppPageBase
             new("错误信息", string.IsNullOrWhiteSpace(row.ErrMsg) ? "--" : row.ErrMsg)
         };
         return _dialog.ShowMsfxStateDetail(new MsfxStateDetailArgs(
-            Header: "Agent 任务详情",
+            Header: "Injector 任务详情",
             SubHeader: "注入执行状态与错误信息",
             State: row.State,
             HighlightTitle: $"任务 #{row.TaskId} / {row.Status}",
