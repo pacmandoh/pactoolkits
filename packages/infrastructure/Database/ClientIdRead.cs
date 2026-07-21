@@ -3,6 +3,12 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Infrastructure.Database;
 
+/// <summary>
+/// 设置页探测用的 client_id 去重读取
+///
+/// 负责：按显式 <c>PgOptions</c> 直连查询候选表并合并结果
+/// 不走 <c>IDb</c>（探测连接串与运行时池隔离）
+/// </summary>
 public sealed class ClientIdReadRepo : IClientIdReadRepo
 {
     private readonly IAppLogger _logger;
@@ -16,7 +22,7 @@ public sealed class ClientIdReadRepo : IClientIdReadRepo
 
     public async Task<HashSet<string>> GetDistinctClientIdsAsync(PgOptions opt, CancellationToken ct)
     {
-        // Uses an explicit connection string for settings-page probes, so it cannot go through IDb.
+        // 设置页探测使用显式连接串，不能走 IDb 运行时池
         _accessGuard.ThrowIfBlocked();
 
         await using var conn = await PgConnectionFactory.OpenAsync(

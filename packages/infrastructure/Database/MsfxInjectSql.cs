@@ -1,5 +1,9 @@
 namespace PacToolkits.Infrastructure.Database;
 
+/// <summary>
+/// MSFX 注入任务相关 JOIN / 父码聚类表达式
+/// 集中维护 staging→relation→upout_item 联查路径
+/// </summary>
 internal static class MsfxInjectSql
 {
     public const string TaskCodeStagingJoin = """
@@ -15,6 +19,7 @@ internal static class MsfxInjectSql
         left join msfx_upout_item i on i.id = r.upout_item_id
         """;
 
+    // 父码优先 L5→L1，缺失才用 leaf；改序会拆错簇
     public const string ParentClusterKeyExpr = """
         coalesce(
           nullif(btrim(coalesce(s.source_code_level_5, '')), ''),

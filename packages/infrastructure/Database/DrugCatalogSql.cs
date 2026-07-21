@@ -1,5 +1,9 @@
 namespace PacToolkits.Infrastructure.Database;
 
+/// <summary>
+/// 药品目录 SQL 片段：活跃/弃用口径（note 含「弃用」）及存在性探测
+/// 供多 Repo 复用，避免口径漂移
+/// </summary>
 internal static class DrugCatalogSql
 {
     public const string ActiveNotePredicate = "coalesce(d.note,'') not ilike '%弃用%'";

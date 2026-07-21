@@ -5,6 +5,11 @@ using PacToolkits.Infrastructure.Repositories;
 
 namespace PacToolkits.Infrastructure.Database;
 
+/// <summary>
+/// Infrastructure 层 DI 注册入口
+///
+/// 负责：Postgres 选项、数据库服务与各 Repo 的 Singleton 绑定
+/// </summary>
 public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddPacToolkitsInfrastructure(this IServiceCollection services, IConfiguration config)

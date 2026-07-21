@@ -3,6 +3,12 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Infrastructure.Database;
 
+/// <summary>
+/// PostgreSQL 连接配置的加载、探测与热应用
+///
+/// 负责：与 <c>IDbOptionsStore</c> 同步、重建 <c>IPgDataSourceFactory</c>、广播 <c>Applied</c>
+/// 不负责后台存活监控（见 <c>DbConnectionMonitorService</c>）
+/// </summary>
 public sealed class DbConfigService : IDbConfigService
 {
     private readonly IPgDataSourceFactory _factory;

@@ -6,8 +6,12 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Infrastructure.Database;
 
-// All business database access should go through IDb. Compatibility blocking is enforced
-// here via IDbAccessGuard so Application services do not need per-call checks.
+/// <summary>
+/// PostgreSQL 业务库访问入口（<c>IDb</c> 实现）
+///
+/// 负责：连接/事务、会话级 advisory lock、瞬时断线单次重试
+/// 兼容阻断由 <c>IDbAccessGuard</c> 在此统一执行，Application 无需逐调用检查
+/// </summary>
 public sealed class PgDb : IDb
 {
     private readonly IPgDataSourceFactory _factory;
@@ -137,7 +141,7 @@ public sealed class PgDb : IDb
         catch (Exception ex) when (IsTransientDisconnect(ex, ct))
         {
             _logger.Warn("PgDb", "conn.open.transient_disconnect.retry", "Transient disconnect detected while opening connection, retrying once", ex);
-            // Clear stale pooled connectors before a single open retry.
+            // 重试前清掉池中可能已失效的 connector，避免立刻再次踩到坏连接
             SafeClearPools();
             return await _factory.Get().OpenConnectionAsync(ct).ConfigureAwait(false);
         }

@@ -5,6 +5,12 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Infrastructure.Database;
 
+/// <summary>
+/// 库内环境开关读取（production / beta migration 等）
+///
+/// 负责：从 <c>app_environment_settings</c> 解析 JSON 标量；表缺失时回退 production 默认
+/// 不写入、不缓存
+/// </summary>
 public sealed class DbEnvSettingsService : IDbEnvSettingsService
 {
     private readonly IDbConfigService _dbConfig;
