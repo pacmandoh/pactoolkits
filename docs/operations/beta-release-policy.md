@@ -9,9 +9,9 @@ Beta 用于提前验证应用与数据库变更，不代表生产可用性承诺
 - `product.version` 与 Desktop 版本必须使用严格的 `X.Y.Z-beta.N`
 - Git tag 必须为 `vX.Y.Z-beta.N`，并与 `product.version` 完全一致
 - GitHub Release 必须标记为 prerelease
-- `packId` 必须继续使用 `pactoolkits`，不得通过更换 package ID 绕过兼容检查
+- `packId` 必须继续使用 `PacToolkits`，不得通过更换 package ID 绕过兼容检查
 - Beta 产物只能发布到 `.../beta/` Feed，禁止写入 `.../stable/`
-- 正式 Desktop 只能选择一个 `components.desktop.implementation`
+- 正式 Desktop 只能选择一个 `components.desktop.<impl>` (key)
 
 CI 会通过 `validate-release.yml`、`validate-release-channel.sh` 和
 `validate-database-policy.sh` 拒绝 tag、版本、通道、prerelease、Feed 或数据库策略不一致的发布。
@@ -21,12 +21,11 @@ CI 会通过 `validate-release.yml`、`validate-release-channel.sh` 和
 Beta 应用默认不能迁移共享生产数据库。普通 Beta 应继续使用
 `migrationPolicy=stable-only`，并只连接处于其兼容范围内的数据库。
 CI 会始终使用 `origin/main` 作为稳定数据库基线：`stable-only` Beta 可以等于
-main 的 `database-postgres.version`，但不能高于 main，也不能新增、修改、删除或重命名
+main 的 `database.postgres.version`，但不能高于 main，也不能新增、修改、删除或重命名
 SQL migration。
-重构过渡期内，如果 main 仍使用 legacy manifest，CI 会用 legacy `dbSchemaVersion`
-作为稳定基线；缺少可解析 DB 版本时才失败。Migration 对比会按 **文件名**
-（`V*__*.sql`）跨 legacy 路径 `pactoolkits-db/sql/migrations/` 与新路径
-`database/postgres/sql/migrations/` 匹配，monorepo 目录搬迁不计为 schema 变更。
+Migration 对比按 **文件名**（`V*__*.sql`）匹配；若基线仍在历史路径
+`pactoolkits-db/sql/migrations/`，会与当前 `database/postgres/migrations/`
+按同名对齐（目录搬迁本身不计为 schema 变更）。
 
 需要验证新的 Beta 专用数据库 migration 时，必须同时满足：
 

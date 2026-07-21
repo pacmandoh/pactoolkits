@@ -22,9 +22,9 @@
       <img src="https://img.shields.io/badge/架构-MVVM-475569?style=flat-square&logo=dotnet&logoColor=white" alt="架构 MVVM" />
     </td>
     <td align="center" width="260" valign="top">
-      <img src="./runtime/agents/injector-ahk/assets/pactoolkits-agent-injector-ahk.ico" alt="PacToolkits Agent Icon" width="72" />
+      <img src="./runtime/agents/host/assets/pactoolkits-agents.ico" alt="PacToolkits Agents Icon" width="72" />
       <br />
-      <strong>PacToolkits Agent</strong>
+      <strong>PacToolkits Agents</strong>
       <br />
       <sub>AutoHotkey 自动化运行时</sub>
       <br />
@@ -39,7 +39,7 @@
 
 <br />
 
-<sub><strong>Desktop</strong> 负责业务交互 · <strong>Agent</strong> 负责自动化执行 · <strong>DB</strong> 负责任务编排与持久化</sub>
+<sub><strong>Desktop</strong> 负责业务交互 · <strong>Agents</strong> 负责自动化执行 · <strong>DB</strong> 负责任务编排与持久化</sub>
 
 <br />
 <br />
@@ -57,7 +57,7 @@
 **PacToolkits** 是一个围绕药品追溯码业务构建的单仓库项目，统一管理三类核心能力：
 
 - PacToolkits Desktop 业务客户端
-- 基于 AutoHotkey 的自动化 Agent
+- 基于 AutoHotkey 的自动化 Agents（Host + 模块）
 - 负责落库、映射、建任务、执行状态管理的 PostgreSQL 数据库体系
 
 它面向的不是单一页面或单一工具，而是一个需要 **Desktop、自动化执行、数据库状态** 保持一致的完整系统。
@@ -67,21 +67,20 @@
 - `apps/desktop-avalonia`：业务交互、配置管理、更新能力、审计与诊断（**当前正式 Desktop，Avalonia 实现**）
 - `packages/application`：用例层服务与抽象
 - `packages/infrastructure`：PostgreSQL 仓储与 DB 实现
-- `runtime/agents/injector-ahk`：解析、注入、验证、任务执行（**Win7 / 旧机器兼容 runtime**）
+- `runtime/agents/modules/injector`：解析、注入、验证、任务执行（**Win7 / 旧机器兼容 runtime**）
 - `database/postgres`：入库、映射、任务生成、执行状态与迁移治理
-- `apps/desktop-electron`：未来 Nuxt + Electron Preview（**空壳占位，不参与 release**）
 
 ---
 
 ## 核心特性
 
-- Desktop、Agent、DB 一体化单仓库设计
+- Desktop、Agents、DB 一体化单仓库设计
 - 基于 Avalonia 的桌面业务客户端
 - 基于 Lucide 的图标体系与轻量级状态 / 忙碌控件
 - 基于 AutoHotkey v2 的自动化执行引擎
-- Agent 运行目标已切换为完整 `ClassNN` 配置模型
+- Agents 运行目标已切换为完整 `ClassNN` 配置模型
 - 基于 PostgreSQL Migration 的数据库演进体系
-- Desktop / Agent / DB 版本统一由 Manifest 管控
+- Desktop / Agents / DB 版本统一由 Manifest 管控
 - 支持库存、追溯码录入、联调映射、任务队列、重开与审计
 - 支持 `MSFX` bill watch 补偿重查与任务手动弃用
 
@@ -93,7 +92,7 @@
 flowchart LR
     DESKTOP["apps/desktop-avalonia\nAvalonia Desktop"]
     PKG["packages/\napplication · infrastructure · core"]
-    AGENT["runtime/agents/injector-ahk\nAutoHotkey v2 执行层"]
+    AGENT["runtime/agents/modules/injector\nAutoHotkey v2 执行层"]
     DB["database/postgres\nPostgreSQL Schema + Migrations"]
     SCRIPTS["scripts/\n版本与发布工具"]
     CI[".github/workflows\n构建与发布自动化"]
@@ -115,13 +114,12 @@ flowchart LR
 ```text
 pactoolkits/
   apps/desktop-avalonia/src/  当前正式 Desktop（Avalonia）
-  apps/desktop-electron/      未来 Nuxt + Electron Preview（占位，不参与 release）
   packages/
     core/                     纯业务核心（无 IO）
     application/              用例层：DTO、服务接口与应用服务
     infrastructure/           外部实现：PostgreSQL 仓储
-    agent-contracts/          Desktop ↔ Agent 共享协议
-  runtime/agents/injector-ahk/          AutoHotkey v2 自动化运行时
+    agents-contracts/          Desktop ↔ Agents 共享协议
+  runtime/agents/modules/injector/          AutoHotkey v2 自动化运行时
   database/postgres/          PostgreSQL bootstrap / migration / verify / deploy
   docs/                       架构与运维文档
   scripts/                    版本、打包、发布辅助脚本
@@ -175,7 +173,7 @@ pactoolkits/
 - `InventoryOverviewViewModel.cs`
 - `ScanCodeViewModel.cs`
 - `MsfxLinkViewModel.cs`
-- `SettingsViewModel.cs`（含 `Settings.Automation` 自动化集成 Tab）
+- `SettingsViewModel.cs`（含 `Settings.Agents` 自动化集成 Tab）
 
 **技术栈**
 
@@ -184,15 +182,15 @@ pactoolkits/
 - Lucide.Avalonia
 - SukiUI
 - Velopack
-- 项目引用：`PacToolkits.Application`、`PacToolkits.Infrastructure`、`PacToolkits.Agent.Contracts`
+- 项目引用：`PacToolkits.Application`、`PacToolkits.Infrastructure`、`PacToolkits.Agents.Contracts`
 
 ---
 
-## 2. `runtime/agents/injector-ahk`
+## 2. `runtime/agents/modules/injector`
 
 **定位**
 
-Agent 是自动化执行层，负责对目标窗口进行解析、注入、验证，以及与数据库任务队列进行同步。
+Agents（Host + 模块）是自动化执行层，负责对目标窗口进行解析、注入、验证，以及与数据库任务队列进行同步。
 
 **主要职责**
 
@@ -222,13 +220,13 @@ Agent 是自动化执行层，负责对目标窗口进行解析、注入、验�
 - 仓库重复注入防护与任务状态以数据库为准
 - 窗口类、解析区、验证区、输入控件都以完整 `ClassNN` 配置为准，不再依赖代码内拼接推导
 - 仅在真正启用仓库模式时才做仓库列特征软校验，住院普通链路不再被误拦截
-- agent 运行时元信息会在启动时初始化一次，并复用于版本标识与客户端身份日志
+- Agents 运行时元信息会在启动时初始化一次，并复用于版本标识与客户端身份日志
 - 完整 `ClassNN` 目标的聚焦/复制逻辑减少了不必要的窗口激活，网格控件命中更稳定
 - 仓库任务执行会记录点击行锚点与行指纹，成功防重可以更精确地区分同单据内的不同行
 
-**Agent 关键配置字段**
+**Agents 关键配置字段**
 
-桌面端现在会将 agent 的运行目标显式写入配置。当前关键字段包括：
+桌面端现在会将 Agents/Injector 的运行目标显式写入配置。当前关键字段包括：
 
 - `OptWindowClass`：门诊窗口顶层类
 - `IptWindowClass`：住院窗口顶层类
@@ -268,9 +266,9 @@ Agent 是自动化执行层，负责对目标窗口进行解析、注入、验�
 
 ```text
 database/postgres/
-  sql/bootstrap/
-  sql/migrations/
-  sql/verify/
+  bootstrap/
+  migrations/
+  verify/
   scripts/
 ```
 
@@ -291,20 +289,20 @@ database/postgres/
 
 **定位**
 
-统一管理版本号、构建发布、资源审计以及 Windows 侧部署同步任务，保证 Desktop、Agent、DB 三端协同演进。
+统一管理版本号、构建发布、资源审计以及 Windows 侧部署同步任务，保证 Desktop、Agents、DB 三端协同演进。
 
 **版本与发布脚本**
 
 - `bump-version.sh`
-  - 统一提升 product / desktop / agent / DB schema 版本
+  - 统一提升 product / desktop / Agents / DB schema 版本
 - `check-version.sh`
   - 校验仓库内版本一致性
 - `export-version.sh`
   - 将 manifest 中的版本导出到生成文件
 - `release-desktop.sh`
   - 打包并发布 Desktop（Velopack）产物
-- `release-agent-injector-ahk.sh`
-  - 打包并发布 agent-injector-ahk 产物
+- `release-agents.sh`
+  - 打包并发布 agents 产物
 
 **仓库维护脚本**
 
@@ -326,8 +324,8 @@ database/postgres/
 
 **当前职责补充**
 
-- Desktop 保存 Agent 配置时会自动补全和收敛必要字段
-- Agent 运行时按配置中的完整窗口 / 解析区 / 验证区 / 输入控件目标执行
+- Desktop 保存 Agents 配置时会自动补全和收敛必要字段
+- Agents 运行时按配置中的完整窗口 / 解析区 / 验证区 / 输入控件目标执行
 - Windows 同步任务适合库房双网环境下的静默后台执行
 
 ---
@@ -341,9 +339,9 @@ database/postgres/
 **当前工作流**
 
 - `release.yml` — 编排 tag / 手动发布
-- `build-agent-injector-ahk.yml` — 编译 AHK Agent
-- `build-desktop-avalonia.yml` — 发布 Avalonia Desktop（不含 Agent）
-- `package-desktop.yml` — 按 `desktop.bundles` 聚合 Agent 并 Velopack 打包
+- `build-agents.yml` — 构建 Agents 容器 + Injector 模块
+- `build-desktop-avalonia.yml` — 发布 Avalonia Desktop（不含 Agents）
+- `package-desktop.yml` — 将 `agents` 容器（含 modules）打进 Desktop，Velopack 打包
 - `generate-release-notes.yml` — 生成 Release Notes（仅 tag）
 - `publish-release.yml` — 上传 GitHub Release + 更新 Feed（仅 tag）
 
@@ -359,16 +357,16 @@ database/postgres/
 - 统一读取 [release-manifest.json](./release-manifest.json)（`schemaVersion: 2`）
 - `product.version` 作为 Velopack `packVersion`
 - `release.channel` 作为当前发布通道
-- `components.desktop.bundles` 声明随 Desktop 安装的 Agent 组件 ID
+- `components.agents` 为随 Desktop 安装的容器包；各模块版本在 `components.agents.modules.<Id>.version`
 
 1. Desktop 打包
 
 - [build-desktop-avalonia.yml](./.github/workflows/build-desktop-avalonia.yml) 发布 Desktop 程序
-- [package-desktop.yml](./.github/workflows/package-desktop.yml) 下载各 bundle Agent 并执行 Velopack
-- `packId` 固定为 `pactoolkits`
+- [package-desktop.yml](./.github/workflows/package-desktop.yml) 下载各 bundle Agents 并执行 Velopack
+- `packId` 固定为 `PacToolkits`
 - `packVersion` 使用 `product.version`
 - `channel` 使用 `release.channel`
-- 主程序：`pactoolkits-desktop.exe`
+- 主程序：`PacToolkits.Desktop.exe`
 
 1. 产物推送
 
@@ -384,7 +382,7 @@ database/postgres/
   - `FeedUrl/stable`
   - `FeedUrl/beta`
 - 更新判断所用的当前版本只认 Velopack 已安装版本
-- `version.generated.json` 不再参与“当前更新版本”的判断
+- `ReleaseManifest.json` 不再参与“当前更新版本”的判断
 
 1. 通道切换策略
 
@@ -429,14 +427,15 @@ PacToolkits 当前覆盖的业务场景包括：
 
 当前版本清单：
 
-- `product.version`: `0.17.1`
-- `components.desktop.version`: `0.16.1`
-- `components.agent-injector-ahk.version`: `0.6.1`
-- `components.database-postgres.version`: `1.2.23`
-- `components.desktop.minDbSchema`: `1.2.23`
-- `components.desktop.maxDbSchema`: `1.2.23`
-- `components.agent-injector-ahk.minDbSchema`: `1.2.23`
-- `components.agent-injector-ahk.maxDbSchema`: `1.2.23`
+- `product.version`: `1.0.2-beta.5`
+- `components.desktop.<impl>.version`: `1.0.2-beta.5`
+- `components.agents.version`: `0.1.0`
+- `components.agents.modules.Injector.version`: `0.6.1`
+- `components.database.postgres.version`: `1.2.23`
+- `components.desktop.<impl>.minDbSchema`: `1.2.23`
+- `components.desktop.<impl>.maxDbSchema`: `1.2.23`
+- `components.agents.minDbSchema`: `1.2.23`
+- `components.agents.maxDbSchema`: `1.2.23`
 
 常用命令：
 
@@ -469,11 +468,11 @@ cd apps/desktop-avalonia/src
 dotnet build -c Release
 ```
 
-## 打包 Agent
+## 打包 Agents
 
 ```bash
 cd pactoolkits
-./scripts/release-agent-injector-ahk.sh --skip-upload --dry-run
+./scripts/release-agents.sh --skip-upload --dry-run
 ```
 
 ## 部署数据库
@@ -501,11 +500,11 @@ cp scripts/config.example.json scripts/config.json
 
 `release-desktop.sh` 会在该根路径下自动追加所选通道子目录，并且只支持 `stable` / `beta`。
 
-## Agent 发布
+## Agents 发布
 
 ```bash
-./scripts/release-agent-injector-ahk.sh \
-  --upload-target user@host:/var/www/updates/pactoolkits-agent/
+./scripts/release-agents.sh \
+  --upload-target user@host:/var/www/updates/pactoolkits-agents/
 ```
 
 ---
@@ -513,7 +512,7 @@ cp scripts/config.example.json scripts/config.json
 ## 设计原则
 
 - 一个仓库，一个版本事实来源
-- Desktop、Agent、DB 协同演进
+- Desktop、Agents、DB 协同演进
 - 业务流程可观察、可追溯
 - 自动化能力可配置，不塞入页面逻辑
 - 数据库拥有任务状态真相
