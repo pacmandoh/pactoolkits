@@ -4,11 +4,12 @@ using System.Collections.ObjectModel;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>ObservableCollection 安全替换扩展（避免 DataGrid Reset）</summary>
 public static class ObservableCollectionExtensions
 {
     /// <summary>
-    /// Replaces collection contents without calling Clear (Reset notification),
-    /// so Avalonia DataGrid does not receive Reset and auto-select the first current cell.
+    /// 替换集合内容且不调用 Clear（避免 Reset 通知），
+    /// 防止 Avalonia DataGrid 收到 Reset 后自动选中首个当前单元格
     /// </summary>
     public static void ReplaceAll<T>(this IList<T> target, IReadOnlyList<T> items)
     {
@@ -34,7 +35,7 @@ public static class ObservableCollectionExtensions
     }
 
     /// <summary>
-    /// Replaces the entire collection in one pass without issuing a collection Reset notification.
+    /// 一次性替换整集合，且不发出 collection Reset 通知
     /// </summary>
     public static void ReplaceAll<T>(this ObservableCollection<T> target, IReadOnlyList<T> items)
         => ((IList<T>)target).ReplaceAll(items);

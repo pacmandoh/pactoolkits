@@ -19,6 +19,13 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
+/// <summary>
+/// 追溯码录入页 ViewModel
+///
+/// 负责：
+/// - 扫码录入与池内去重校验
+/// - 自动拉取任务/重试队列展示
+/// </summary>
 public sealed partial class ScanCode : AppPageBase
 {
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
@@ -49,6 +56,7 @@ public sealed partial class ScanCode : AppPageBase
     private CancellationTokenSource? _poolCheckCts;
     private string _poolCheckInFlightKey = string.Empty;
     private string _lastCompletedPoolCheckKey = string.Empty;
+    // 输入抖动时合并 pool 查询；同 key 在途/刚完成则跳过
     private static readonly TimeSpan PoolCheckDebounce = TimeSpan.FromMilliseconds(450);
     private readonly SearchInputDebouncer _statsDebouncer = new(300);
     private TraceCodeLineKind[] _lineKinds = [];
@@ -1090,6 +1098,7 @@ public sealed partial class ScanCode : AppPageBase
 
     private void SchedulePoolCheck(IReadOnlyList<string> candidateCodes)
     {
+        // 同码集合去重：避免连打字重复打库
         var key = BuildPoolCheckKey(candidateCodes);
         if (string.Equals(key, _poolCheckInFlightKey, StringComparison.Ordinal)
             || string.Equals(key, _lastCompletedPoolCheckKey, StringComparison.Ordinal))

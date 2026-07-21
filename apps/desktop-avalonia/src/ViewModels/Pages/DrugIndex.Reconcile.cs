@@ -73,7 +73,7 @@ public sealed partial class DrugIndex
     {
         if (Items.Count != desired.Count)
         {
-            // ReplaceAll avoids collection Reset (DataGrid selection) when order/content differs.
+            // ReplaceAll：顺序/内容变化时避免 ObservableCollection Reset 打掉 DataGrid 选中
             Items.ReplaceAll(desired);
             return;
         }
@@ -119,7 +119,7 @@ public sealed partial class DrugIndex
 
     private void ApplySilentReconcile(IReadOnlyList<DrugRow> serverRows)
     {
-        // Watermark refresh while editing: merge server rows without discarding the local draft.
+        // 编辑中的 watermark 刷新：合并服务端行，不丢本地草稿
         var serverByKey = serverRows.ToDictionary(KeyOf);
         var selectedKey = ResolveSelectedKey();
 
@@ -229,7 +229,7 @@ public sealed partial class DrugIndex
         var row = FindRow(drugId, spec);
         if (row is null)
         {
-            // Not in the current result set — keep the editor rather than ClearListFocus.
+            // 不在当前结果集：保留编辑器，勿 ClearListFocus
             return;
         }
 

@@ -3,6 +3,7 @@ using Avalonia.Media;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>Toast 内容模型</summary>
 public static class ToastContent
 {
     public const double MaxWidth = 420;

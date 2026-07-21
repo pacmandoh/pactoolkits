@@ -7,6 +7,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>AutoCompleteBox 过滤与集合替换安全辅助</summary>
 public static class AutoCompleteFilter
 {
     public static void AttachDrugOptionFilter(AutoCompleteBox box)
@@ -25,10 +26,9 @@ public static class AutoCompleteFilter
     {
         if (IsCurrentCandidateText(target, searchText))
         {
-            // AutoCompleteBox writes the highlighted candidate back to Text
-            // while its SelectionModel transaction is still active. Replacing
-            // the bound collection at that point leaves Avalonia 12.0.2 with a
-            // selected index from the old view and can crash on commit/close.
+            // AutoCompleteBox 会在 SelectionModel 事务未结束时把高亮候选项写回 Text
+            // 此时替换绑定集合会让 Avalonia 12.0.2 残留旧视图的 selected index，
+            // commit/close 时可能崩溃
             return;
         }
 

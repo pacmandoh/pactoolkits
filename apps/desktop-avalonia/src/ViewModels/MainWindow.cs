@@ -28,6 +28,14 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
+/// <summary>
+/// 主窗口 ViewModel
+///
+/// 负责：
+/// - 侧栏/功能区导航与页面生命周期切换
+/// - DB 连接失败/恢复 toast 汇总
+/// - 配置热重载与更新轮询壳层
+/// </summary>
 public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private sealed record NavigationLocation(AppPageBase Page, int? TabIndex);
@@ -84,6 +92,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private DateTimeOffset _lastDbErrorToastAt = DateTimeOffset.MinValue;
     private DateTimeOffset _lastDbOkToastAt = DateTimeOffset.MinValue;
     private DateTimeOffset _lastAgentsTopToastAt = DateTimeOffset.MinValue;
+    // 与 AgentsRuntime.CommandCooldown 对齐，避免顶栏 toast 连刷
     private static readonly TimeSpan AgentsTopToastDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan TopActionDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(8);
@@ -1001,7 +1010,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _pageLifecycleCts?.Cancel();
             _pageLifecycleCts?.Dispose();
             _pageLifecycleCts = new CancellationTokenSource();
-            // Superseded sidebar switches must not finish lifecycle on the wrong page.
+            // 被更快侧栏切换顶替的生命周期不得在错误页面上收尾
             var generation = ++_pageLifecycleGeneration;
             ObserveDetached(
                 RunPageLifecycleTransitionAsync(previous, value, generation, _pageLifecycleCts.Token),
@@ -1489,7 +1498,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            // Host is up but Injector is down — remount without killing Host.
+            // Host 已起但 Injector 未起：只补挂 Injector，不拆 Host
             await RunAgentsCommandAsync(() => Agents.StartInjectorAsync()).ConfigureAwait(false);
         }
         catch (Exception ex)

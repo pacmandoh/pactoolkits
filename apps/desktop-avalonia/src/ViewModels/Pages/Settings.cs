@@ -18,12 +18,22 @@ using PacToolkits.Desktop.Avalonia.Services.Presentation;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
+/// <summary>
+/// 设置页未保存变更门禁；离开页前须先保存或丢弃
+/// </summary>
 public interface ISettingsPage
 {
     bool HasUnsavedChanges { get; }
     Task<bool> TrySaveOrDiscardAllAsync();
 }
 
+/// <summary>
+/// 设置页 ViewModel
+///
+/// 负责：
+/// - DB / Agents / MSFX / 更新 / 别名等配置表单
+/// - 未保存变更门禁与热应用边界
+/// </summary>
 public partial class Settings : AppPageBase, ISettingsPage
 {
     public override string Icon => "Settings";
@@ -249,7 +259,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         ReloadAgentsRuntime();
         RefreshUnsaved();
         ReloadClientAliasesIfVisible("client_alias.reload.activate_fail");
-        // MSFX cursor is DB-backed; shell owns disconnect messaging — skip when DB unavailable.
+        // MSFX cursor 落在 DB；断连提示由 shell 统一发，DB 不可用时跳过
         if (CanPageFromDb)
         {
             RunDetached(RefreshMsfxCursorCoreAsync, "msfx.cursor.refresh.activate_fail");

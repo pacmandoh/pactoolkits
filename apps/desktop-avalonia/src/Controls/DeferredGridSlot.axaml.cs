@@ -8,7 +8,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
 /// <summary>
-/// Placeholder that shows a skeleton until <see cref="MountGrid"/> materializes the grid template.
+/// 占位骨架：直到 <see cref="MountGrid"/> 物化 grid 模板前显示 skeleton
 /// </summary>
 public partial class DeferredGridSlot : UserControl
 {

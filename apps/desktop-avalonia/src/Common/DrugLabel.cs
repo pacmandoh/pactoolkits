@@ -1,5 +1,6 @@
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>药品展示标签格式化</summary>
 public static class DrugLabel
 {
     public static string Format(string drugId, string spec)

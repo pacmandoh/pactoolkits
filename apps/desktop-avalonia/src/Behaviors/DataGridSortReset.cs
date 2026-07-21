@@ -11,7 +11,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
-/// <summary>Reuses the index column header button for clear-sort / clear-filter.</summary>
+/// <summary>复用序号列表头按钮，实现 clear-sort / clear-filter</summary>
 public class DataGridSortReset
 {
     public static readonly AttachedProperty<bool> EnabledProperty =
@@ -163,6 +163,7 @@ public class DataGridSortReset
                 DataGridSortSupport.Apply(_grid);
                 AttachSortDescriptions(_grid.CollectionView?.SortDescriptions);
                 InstallHeaderButton();
+                // 等列结构稳定后再刷表头脸，避免 Loaded 中途空刷
                 Dispatcher.UIThread.Post(UpdateHeaderFace, DispatcherPriority.Background);
             }
         }
@@ -231,7 +232,7 @@ public class DataGridSortReset
             }
             catch
             {
-                // Keep silent; UI helper should never interrupt page logic.
+                // 静默失败；UI helper 不得打断页面逻辑
             }
         }
 
@@ -256,7 +257,7 @@ public class DataGridSortReset
             }
 
             TryInstall();
-            // Index header button is not ready on first attach.
+            // 首次 attach 时序号列表头按钮可能尚未就绪
             Dispatcher.UIThread.Post(TryInstall, DispatcherPriority.Loaded);
             Dispatcher.UIThread.Post(TryInstall, DispatcherPriority.ContextIdle);
         }

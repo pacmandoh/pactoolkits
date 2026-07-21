@@ -8,6 +8,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>药品目录缓存失效/刷新协调</summary>
 public static class DrugCatalogRefresh
 {
     public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(8);

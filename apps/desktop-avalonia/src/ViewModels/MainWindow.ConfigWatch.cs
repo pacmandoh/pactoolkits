@@ -34,8 +34,8 @@ public partial class MainWindowViewModel
         {
             Directory.CreateDirectory(_configDir);
 
-            // Watch AppData unified config (not the install directory).
-            // Path: %AppData%/PacToolkits/PacToolkits.Desktop.config.json
+            // 监视 AppData 统一配置（非安装目录）
+            // 路径：%AppData%/PacToolkits/PacToolkits.Desktop.config.json
             _configWatcher = new FileSystemWatcher(_configDir, _configFile)
             {
                 NotifyFilter = NotifyFilters.LastWrite
@@ -68,7 +68,7 @@ public partial class MainWindowViewModel
             return;
         }
 
-        // Debounce file watcher bursts from editor write patterns.
+        // 编辑器连写会触发 watcher 连发，先 debounce
         await Task.Delay(350).ConfigureAwait(false);
 
         if (!File.Exists(_configPath))
@@ -112,7 +112,7 @@ public partial class MainWindowViewModel
 
         _lastSeenConfigJson = json;
 
-        // Postgres target switches stay manual-apply only; other safe sections still hot-reload.
+        // Postgres 目标切换仅手动应用；其余安全段落仍可热重载
         if (loaded.Postgres is not null)
         {
             var postgresChanged = !IsSamePgOptions(_settings.AppliedDb, loaded.Postgres);
@@ -152,7 +152,7 @@ public partial class MainWindowViewModel
     {
         try
         {
-            // One deserialized snapshot → section Apply; unchanged sections skip Changed.
+            // 一次反序列化快照按段 Apply；未变更段落跳过 Changed
             _clientAlias.Apply(cfg.ClientAliases ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
             _loggingSettings.Apply(cfg.Logging ?? new LoggingOptions());
             _uiBehavior.Apply(cfg.UiBehavior ?? new UiBehaviorOptions());

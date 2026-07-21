@@ -4,6 +4,9 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
+/// <summary>
+/// 药品主键修复预览确认对话框 ViewModel
+/// </summary>
 public sealed partial class DrugKeyFixPreview(DialogManager dialogManager)
     : FormBase(dialogManager)
 {

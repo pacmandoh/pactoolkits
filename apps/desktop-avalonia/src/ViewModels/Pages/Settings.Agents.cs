@@ -175,8 +175,8 @@ public partial class Settings
 
     private void OnAgentsRuntimeChanged()
     {
-        // While a start/stop is in flight, keep the optimistic switch; settle in the toggle finally.
-        // External config edits Reload() then raise StatusChanged — rebind form when no local draft.
+        // start/stop 进行中保留乐观开关态，在 toggle finally 落定
+        // 外部改配置会 Reload() 再 StatusChanged——无本地草稿时重绑表单
         Dispatcher.UIThread.Post(() =>
         {
             ApplyRuntimeSnapshot(syncRunSwitches: !IsAgentsToggling);
@@ -276,7 +276,7 @@ public partial class Settings
                 _toast.Success("自动化集成", restarted ? "配置已保存，Agents 已重启" : "配置已保存");
             }
 
-            // Save path uses ConfigureAwait(false); status binds + RestartAgentsCommand must update on UI.
+            // Save 路径用了 ConfigureAwait(false)；状态绑定与 RestartAgentsCommand 须回 UI
             await RunOnUiAsync(() =>
             {
                 ApplyRuntimeSnapshot();
@@ -436,7 +436,7 @@ public partial class Settings
         {
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                // Snapshot before re-enabling so ToggleSwitch cannot push a stale On checked state.
+                // 重新启用前先快照，避免 ToggleSwitch 推回过期的 On 勾选态
                 ApplyRuntimeSnapshot(syncRunSwitches: true);
                 IsAgentsToggling = false;
             });
@@ -634,7 +634,7 @@ public partial class Settings
         try
         {
             IsInjectorEnabled = _agents.IsInjectorEnabled;
-            // Switches mirror Running only — Starting/Failed must not look "activated".
+            // 开关只镜像 Running；Starting/Failed 不得显示成“已激活”
             if (syncRunSwitches)
             {
                 IsHostRunningSwitch = _agents.HostState == AgentsRunState.Running;

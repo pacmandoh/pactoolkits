@@ -2,6 +2,7 @@ using System;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>规格行展示格式化</summary>
 public static class SpecLine
 {
     public static string Format(string? drugName, string? spec)

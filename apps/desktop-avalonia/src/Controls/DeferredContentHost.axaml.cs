@@ -5,7 +5,7 @@ using Avalonia.Controls;
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
 /// <summary>
-/// Instantiates <see cref="ContentControl.ContentTemplate"/> only after <see cref="IsActive"/> becomes true once.
+/// 仅在 <see cref="IsActive"/> 首次变为 true 后实例化 <see cref="ContentControl.ContentTemplate"/>
 /// </summary>
 public class DeferredContentHost : ContentControl
 {

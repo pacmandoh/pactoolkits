@@ -62,7 +62,7 @@ public static class DataGridInteractionHelper
     }
 
     /// <summary>
-    /// Clears DataGrid row highlight/focus only. Does not touch <see cref="ISelectableRow.IsSelected"/>.
+    /// 仅清除 DataGrid 行高亮/焦点，不改 <see cref="ISelectableRow.IsSelected"/>
     /// </summary>
     public static void ClearNativeRowHighlight(DataGrid? grid)
     {

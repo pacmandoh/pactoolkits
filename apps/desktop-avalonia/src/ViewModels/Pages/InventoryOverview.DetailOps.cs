@@ -52,7 +52,7 @@ public sealed partial class InventoryOverview : AppPageBase
             return;
         }
 
-        // Same context repeated by Enter should not rebuild options and trigger qty flicker.
+        // 同一上下文被 Enter 重复提交时勿重建选项，避免数量闪烁
         if (string.Equals(drug, NormalizeInput(TargetDrugId), StringComparison.OrdinalIgnoreCase) &&
             SpecOptions.Count > 0 &&
             SelectedSpec is not null)
@@ -284,8 +284,7 @@ public sealed partial class InventoryOverview : AppPageBase
 
             if (savedCount > 0)
             {
-                // Keep current viewport/scroll stable after row-level edits:
-                // defer watermark-driven full reload, then reconcile silently.
+                // 行级编辑后保持视口/滚动：推迟 watermark 全量 reload，再静默对账
                 PauseAutoRefresh(TimeSpan.FromSeconds(7));
                 ReconcilePageLater(TimeSpan.FromSeconds(5));
             }
@@ -1158,7 +1157,7 @@ public sealed partial class InventoryOverview : AppPageBase
                         continue;
                     }
 
-                    // Keep semantics aligned with backend update predicate.
+                    // 与后端 update 谓词语义对齐
                     if (string.Equals(NormalizeInput(row.DrugId), targetDrug, StringComparison.Ordinal) &&
                         string.Equals(NormalizeInput(row.Spec), targetSpec, StringComparison.Ordinal))
                     {
@@ -1533,8 +1532,7 @@ public sealed partial class InventoryOverview : AppPageBase
                     return;
                 }
 
-                // Silent reconcile: in-place field updates only when trace codes still align by index.
-                // Rebuild when count or row order changes to avoid writing server data onto the wrong row.
+                // 静默对账：追溯码按索引仍对齐时原地改字段；条数或行序变了则重建，避免写到错行
                 if (HasSameTraceCodeOrder(StockRows, rebuiltRows))
                 {
                     for (var i = 0; i < StockRows.Count; i++)

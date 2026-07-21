@@ -1,6 +1,6 @@
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>Row contract for <c>DataGridRowSelection</c>.</summary>
+/// <summary><c>DataGridRowSelection</c> 的行契约</summary>
 public interface ISelectableRow
 {
     bool IsSelected { get; set; }

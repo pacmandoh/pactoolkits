@@ -2,7 +2,9 @@ using PacToolkits.Desktop.Avalonia.Contracts;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
-/// <summary>Stale-while-reconnect and reload busy rules shared by pages.</summary>
+/// <summary>
+/// 页面共用的断连后 stale 展示与 reload busy 抑制规则
+/// </summary>
 public static class PageReconnectPolicy
 {
     public static PageDataAvailability DisconnectedAvailability(bool hasLoadedOnce, bool supportsStaleWhileReconnect)

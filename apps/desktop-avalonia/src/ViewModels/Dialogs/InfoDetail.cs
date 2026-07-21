@@ -4,6 +4,9 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
+/// <summary>
+/// 通用信息详情对话框 ViewModel
+/// </summary>
 public sealed partial class InfoDetail(DialogManager dialogManager)
     : FormBase(dialogManager)
 {

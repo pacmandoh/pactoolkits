@@ -13,13 +13,13 @@ namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 public enum DataGridIndexColumnMode
 {
-    /// <summary>1-based position in the current view (follows sort/filter).</summary>
+    // 当前视图中的 1-based 位置（随 sort/filter 变化）
     DisplayOrder,
 
-    /// <summary><c>DisplayIndex</c> on row item (stable business index).</summary>
+    // 行项上的 DisplayIndex（稳定业务序号）
     DisplayIndex,
 
-    /// <summary><c>RowNo</c> on row item.</summary>
+    // 行项上的 RowNo
     RowNo,
 }
 
@@ -31,8 +31,8 @@ public enum DataGridIndexHeaderFace
 }
 
 /// <summary>
-/// Seeds a fixed first-column row index (#) once per grid instance.
-/// Does not subscribe to column collection changes.
+/// 为每个 DataGrid 实例一次性植入固定首列行号（#）
+/// 不订阅列集合变更
 /// </summary>
 public class DataGridIndexColumn
 {
@@ -273,7 +273,7 @@ public class DataGridIndexColumn
             }
             catch
             {
-                // Never interrupt navigation if seed fails; grid remains usable without index column.
+                // seed 失败不得打断导航；无序号列时 grid 仍可用
             }
         }
 

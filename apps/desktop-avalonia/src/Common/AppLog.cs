@@ -3,6 +3,7 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>应用日志静态入口</summary>
 public static class AppLog
 {
     public static IAppLogger? TryGetLogger()
@@ -16,7 +17,7 @@ public static class AppLog
         }
         catch
         {
-            // ignored
+            // 忽略
         }
 
         return null;

@@ -12,11 +12,13 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
+/// <summary>桌面侧结构化日志封装；无界 Channel 写盘，不阻塞 UI</summary>
 public sealed class AppLogger : IAppLogger, IDisposable
 {
     private readonly ILoggingSettingsService _settings;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly SemaphoreSlim _ioGate = new(1, 1);
+    // SingleReader 后台刷盘；写失败只 Debug，不拖垮业务
     private readonly Channel<PendingLog> _queue = Channel.CreateUnbounded<PendingLog>(
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
     private readonly CancellationTokenSource _workerCts = new();
@@ -161,6 +163,7 @@ public sealed class AppLogger : IAppLogger, IDisposable
 
         if (!_queue.Writer.TryWrite(new PendingLog(record, settings)))
         {
+            // Channel 已关闭时丢弃，只 Debug 不抛
             System.Diagnostics.Debug.WriteLine("Log queue write failed: channel is closed");
         }
     }

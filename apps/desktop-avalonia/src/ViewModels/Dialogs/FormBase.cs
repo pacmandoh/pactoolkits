@@ -5,8 +5,10 @@ using ShadUI;
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
 /// <summary>
-/// ShadUI custom dialog VM base. <see cref="BindSessionCompletion"/> completes
-/// <c>FormDialogSession</c> awaiters when ShadUI clears callback slots before Close.
+/// ShadUI 自定义对话框 ViewModel 基类
+///
+/// 负责：关闭对话框，并在 ShadUI 清空回调槽位早于 Close 时，
+/// 通过 <see cref="BindSessionCompletion"/> 完成 <c>FormDialogSession</c> 等待方
 /// </summary>
 public abstract class FormBase(DialogManager dialogManager) : ViewModelBase
 {

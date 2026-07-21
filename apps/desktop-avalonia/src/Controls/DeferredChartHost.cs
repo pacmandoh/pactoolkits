@@ -4,7 +4,7 @@ using Avalonia.Controls;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
-/// <summary>Creates chart content only after the host is visible and has completed layout.</summary>
+/// <summary>仅在 host 可见且完成 layout 后创建图表内容</summary>
 public sealed class DeferredChartHost : ContentControl
 {
     private bool _wasActive;

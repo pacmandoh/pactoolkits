@@ -7,9 +7,12 @@ using Avalonia.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
+/// <summary>
+/// 环形进度条：按百分比绘制弧段，支持 indeterminate 与 0→value 回放动画
+/// </summary>
 public partial class CircleProgressRing : UserControl
 {
-    /// <summary>12 o'clock origin — matches legacy circle progress behavior.</summary>
+    // 12 点方向为起点，与旧版环形进度一致
     private const double ProgressOriginAngle = 270;
 
     private const double IndeterminateSweepAngle = 90;
@@ -69,14 +72,14 @@ public partial class CircleProgressRing : UserControl
         set => SetValue(ValueProperty, value);
     }
 
-    /// <summary>Animated label value (0–100); arc uses <see cref="ProgressSweepAngle"/>.</summary>
+    // 动画中的标签数值（0–100）；弧段走 ProgressSweepAngle
     public double DisplayValue
     {
         get => GetValue(DisplayValueProperty);
         private set => SetValue(DisplayValueProperty, value);
     }
 
-    /// <summary>Bump to replay the 0→value animation without changing <see cref="Value"/>.</summary>
+    // 递增以回放 0→value 动画，无需改 Value
     public int ReplayTrigger
     {
         get => GetValue(ReplayTriggerProperty);

@@ -7,6 +7,7 @@ using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
+/// <summary>应用更新 UI 流程入口</summary>
 public interface IUpdateFlowService
 {
     bool IsApplying { get; }
@@ -22,6 +23,7 @@ public interface IUpdateFlowService
     Task ApplyUpdateFlowAsync();
 }
 
+/// <summary>编排更新检查提示与用户确认流程</summary>
 public sealed class UpdateFlowService : IUpdateFlowService
 {
     private sealed class ProgressSink(Action<int> report) : IProgress<int>

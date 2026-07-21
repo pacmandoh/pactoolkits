@@ -5,6 +5,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
+/// <summary>客户别名本地存储</summary>
 public sealed class ClientAliasStore : IClientAliasStore
 {
     private static readonly object _lock = new();

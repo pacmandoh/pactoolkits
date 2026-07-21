@@ -7,12 +7,14 @@ using global::Avalonia.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
+/// <summary>剪贴板读写入口</summary>
 public interface IClipboardService
 {
     Task SetTextAsync(string text);
     Task<string?> GetTextAsync();
 }
 
+/// <summary>系统剪贴板读写实现</summary>
 public sealed class ClipboardService : IClipboardService
 {
     public Task SetTextAsync(string? text)

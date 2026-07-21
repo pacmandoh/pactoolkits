@@ -15,6 +15,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
+/// <summary>行选中变更事件参数</summary>
 public sealed class DataGridRowSelectionChangedEventArgs : EventArgs
 {
     public DataGridRowSelectionChangedEventArgs(int selectedCount, int totalCount)
@@ -28,8 +29,8 @@ public sealed class DataGridRowSelectionChangedEventArgs : EventArgs
 }
 
 /// <summary>
-/// Seeds a checkbox column for row <c>IsSelected</c> toggles (Shad BasicDataTable pattern).
-/// Coexists with <see cref="DataGridIndexColumn"/> by inserting after the index column.
+/// 植入行 <c>IsSelected</c> 勾选列（Shad BasicDataTable 模式）
+/// 与 <see cref="DataGridIndexColumn"/> 共存：插在序号列之后
 /// </summary>
 public class DataGridRowSelection
 {
@@ -250,7 +251,7 @@ public class DataGridRowSelection
             }
             catch
             {
-                // Grid remains usable without selection column.
+                // 无选中列时 grid 仍可用
             }
         }
 
@@ -417,6 +418,7 @@ public class DataGridRowSelection
 
         public void ApplySelectAllFromBinding()
         {
+            // 绑定环 / 半选(null) 时直接返回，避免误清或重入
             if (_disposed || _syncingSelectAll)
             {
                 return;
@@ -439,6 +441,7 @@ public class DataGridRowSelection
             }
 
             var isChecked = _headerCheckBox.IsChecked;
+            // 半选态不回写全选，避免把 indeterminate 当成 false
             if (isChecked is null)
             {
                 return;

@@ -11,6 +11,11 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
+/// <summary>
+/// 点击空白处时清理焦点/弹层相关状态
+///
+/// 需避开 grid 内点击与对话框按钮的首次按下
+/// </summary>
 public class FocusClear
 {
     private static WeakReference<TextBox>? _lastFocusedTextBox;
@@ -62,9 +67,8 @@ public class FocusClear
             && TopLevel.GetTopLevel(sourceVisual) is { } sourceTopLevel
             && !ReferenceEquals(sourceTopLevel, topLevel))
         {
-            // Native popup content lives in its own TopLevel. Let the popup's
-            // control process the pointer event before any owner-level focus or
-            // dismiss behavior runs.
+            // Native popup 内容在独立 TopLevel。先让 popup 内控件处理指针事件，
+            // 再跑 owner 级 focus / dismiss
             return;
         }
 
@@ -114,8 +118,7 @@ public class FocusClear
 
         TryClearDataGridSelections(scope, e.Source);
 
-        // Clicking inside a grid should not trigger force-unfocus.
-        // Otherwise the first click is often consumed by focus transfer.
+        // 点在 grid 内不应强制失焦，否则首次点击常被 focus 转移吃掉
         if (insideDataGrid)
         {
             return;
@@ -126,8 +129,8 @@ public class FocusClear
             return;
         }
 
-        // Buttons and other click targets keep focus for Command/Click; deferring host
-        // focus here consumed the first press on dialog submit buttons.
+        // 按钮等点击目标需保留 focus 以跑 Command/Click；此处若抢 host focus
+        // 会吃掉对话框提交按钮的首次按下
         if (IsInteractiveClickTarget(e.Source))
         {
             return;
@@ -135,7 +138,7 @@ public class FocusClear
 
         if (scope is Control host)
         {
-            // Defer focus transfer so popup light-dismiss and the clicked control can process first.
+            // 推迟 focus 转移，让 popup light-dismiss 与被点控件先处理
             Dispatcher.UIThread.Post(() => host.Focus(), DispatcherPriority.Input);
         }
     }
@@ -230,8 +233,8 @@ public class FocusClear
             return;
         }
 
-        // MainWindow-level behavior should not clear all grid selections globally.
-        // Otherwise dialog action button click may clear dialog grid selection before command executes.
+        // MainWindow 级行为不应全局清掉所有 grid 选中，
+        // 否则对话框操作按钮点击可能在 Command 执行前清掉对话框内 grid 选中
         if (scope is TopLevel)
         {
             return;

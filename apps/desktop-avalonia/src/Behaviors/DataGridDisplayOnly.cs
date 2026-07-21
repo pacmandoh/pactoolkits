@@ -8,7 +8,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 /// <summary>
-/// Display-only DataGrid: no row/cell selection, scroll and scrollbar remain usable.
+/// 只读展示 DataGrid：禁止行/单元格选中，滚动与滚动条仍可用
 /// </summary>
 public class DataGridDisplayOnly
 {
@@ -53,6 +53,7 @@ public class DataGridDisplayOnly
 
         var state = new State();
         state.SelectionChanged = (_, _) => ClearSelection(grid, state);
+        // Background Post：避开选中事件重入
         state.CellPointerPressed = (_, _) =>
             Dispatcher.UIThread.Post(() => ClearSelection(grid, state), DispatcherPriority.Background);
 

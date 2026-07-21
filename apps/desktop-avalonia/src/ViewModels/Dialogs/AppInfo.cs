@@ -5,6 +5,9 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
+/// <summary>
+/// 关于 PacToolkits 应用信息对话框 ViewModel
+/// </summary>
 public sealed class AppInfo(DialogManager dialogManager)
     : FormBase(dialogManager)
 {

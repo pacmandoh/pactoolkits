@@ -11,8 +11,8 @@ using PacToolkits.Desktop.Avalonia.Controls;
 namespace PacToolkits.Desktop.Avalonia.Common;
 
 /// <summary>
-/// Mounts registered <see cref="DeferredGridSlot"/> instances one Dispatcher frame at a time
-/// after the host page completes its first layout pass. Pauses while the host is hidden.
+/// 宿主页首次 layout 完成后，按 Dispatcher 帧逐个挂载已注册的 <see cref="DeferredGridSlot"/>
+/// 宿主隐藏时暂停
 /// </summary>
 public sealed class PageGridMountScheduler
 {
@@ -206,7 +206,7 @@ public sealed class PageGridMountScheduler
         }
         catch (OperationCanceledException)
         {
-            // Host hidden or page left before all slots mounted.
+            // 全部 slot 挂载前宿主已隐藏或页面已离开
         }
         finally
         {

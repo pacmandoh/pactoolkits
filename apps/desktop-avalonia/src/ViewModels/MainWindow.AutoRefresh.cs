@@ -32,7 +32,7 @@ public partial class MainWindowViewModel
             return;
         }
 
-        // Page refresh commands touch bindings; schedule on the UI thread.
+        // 页面刷新会碰绑定，放到 UI 线程执行
         PostOnUi(() => ObserveDetached(RunWorkspaceRefreshAsync(), "workspace.refresh.detached.fail"));
     }
 

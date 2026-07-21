@@ -4,6 +4,7 @@ using System.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>日志关联 Trace 标识辅助</summary>
 public static class LogTrace
 {
     private static readonly AsyncLocal<Stack<string>?> Traces = new();

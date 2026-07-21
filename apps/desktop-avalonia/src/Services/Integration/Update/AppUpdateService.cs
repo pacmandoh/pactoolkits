@@ -28,6 +28,7 @@ public sealed record AppUpdateApplyResult(
     string Message,
     string TargetVersion);
 
+/// <summary>应用更新检查与应用入口</summary>
 public interface IAppUpdateService
 {
     string CurrentVersion { get; }
@@ -44,6 +45,11 @@ public interface IAppUpdateService
     Task<bool> RestartToApplyAsync(CancellationToken ct = default);
 }
 
+/// <summary>
+/// 应用更新服务
+///
+/// 负责检查远端版本并应用安装包；不含 UI 流程编排
+/// </summary>
 public sealed class AppUpdateService : IAppUpdateService, IDisposable
 {
     private const string SimulationVersionVariable = "PACTOOLKITS_SIMULATE_UPDATE_VERSION";

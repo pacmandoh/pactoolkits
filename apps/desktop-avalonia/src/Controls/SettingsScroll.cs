@@ -10,6 +10,11 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
+/// <summary>
+/// 设置页滚动与 sticky 标题行为
+///
+/// 处理 H2/H3 sticky 顶替与高度抖动抑制
+/// </summary>
 public static class SettingsScroll
 {
     public static readonly AttachedProperty<Panel?> StickyHostProperty =
@@ -24,7 +29,7 @@ public static class SettingsScroll
     private static readonly AttachedProperty<bool> RefreshQueuedProperty =
         AvaloniaProperty.RegisterAttached<ScrollViewer, bool>("RefreshQueued", typeof(SettingsScroll));
 
-    // Keep last measured slot heights so H3→next H2 does not thrash when the H3 row is removed mid-pass.
+    // 记住上次测得的 slot 高度，避免 H3→下一 H2 时中途移除 H3 行导致抖动
     private static readonly AttachedProperty<double[]> LastSlotHeightsProperty =
         AvaloniaProperty.RegisterAttached<Panel, double[]>("LastSlotHeights", typeof(SettingsScroll));
 
@@ -218,9 +223,9 @@ public static class SettingsScroll
                 fullEdge += stickyHeights[child];
             }
 
-            // Next peer reached sticky children (H3):
-            // - still above peer slot bottom → dismiss H3 only, keep current H2
-            // - at/above peer slot bottom → normal peer push (replace H2, clear H3)
+            // 下一 peer 碰到 sticky 子级（H3）时：
+            // - 仍在 peer slot 底之上 → 只收起 H3，保留当前 H2
+            // - 已到/超过 peer slot 底 → 正常 peer 顶替（换 H2、清 H3）
             if (active[level] is not null && hasStickyChildren)
             {
                 if (header.Top > fullEdge + edgeTolerance)
@@ -293,8 +298,8 @@ public static class SettingsScroll
         var merged = new double[3];
         for (var i = 0; i < 3; i++)
         {
-            // Never shrink: H2/H3 rows with StatusPills are taller than plain titles. Shrinking when
-            // the active header swaps makes SelectActive flip forever (edge thrash → UI freeze).
+            // 禁止缩小：带 StatusPill 的 H2/H3 行高于纯标题。活动头切换时若缩小高度，
+            // SelectActive 会在边界来回翻转（抖动 → UI 卡死）
             merged[i] = measured[i] > 0
                 ? Math.Max(measured[i], lastKnown[i])
                 : lastKnown[i];
@@ -339,8 +344,8 @@ public static class SettingsScroll
         SetStickyChromeVisible(stickyHost, true, interactive);
         SyncStickyChildren(stickyHost, active);
 
-        // New/empty rows need one layout pass; skip re-post when heights already known so an
-        // alternating stickyKey cannot spin RefreshSticky on every Render tick.
+        // 新/空行需要一次 layout；高度已知时跳过再 post，避免 stickyKey 交替
+        // 在每个 Render tick 空转 RefreshSticky
         if (stickyHost.Children.OfType<Border>().Any(static row => row.Bounds.Height <= 0))
         {
             Dispatcher.UIThread.Post(() => RefreshSticky(scrollViewer), DispatcherPriority.Render);

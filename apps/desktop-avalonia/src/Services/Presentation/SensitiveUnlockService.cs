@@ -7,6 +7,11 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
+/// <summary>
+/// 敏感操作解锁服务
+///
+/// 负责解锁会话与 View 订阅通知；不含权限策略本身
+/// </summary>
 public sealed class SensitiveUnlockService : ISensitiveUnlockService
 {
     private readonly SensitiveUnlockSession _session;
@@ -172,7 +177,7 @@ public sealed class SensitiveUnlockService : ISensitiveUnlockService
             }
             catch
             {
-                // One view subscriber must not abort the unlock workflow for the remaining listeners.
+                // 单个 View 订阅失败不得中断其余监听方的解锁流程
             }
         }
     }

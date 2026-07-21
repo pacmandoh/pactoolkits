@@ -79,7 +79,7 @@ internal sealed class TitleBarCentering : IDisposable
         var arrangedCenter = renderedCenter - currentOffset;
         var rawOffset = (_surface.Bounds.Width / 2) - arrangedCenter;
         var renderScaling = TopLevel.GetTopLevel(_surface)?.RenderScaling ?? 1;
-        // Keep the offset on the physical pixel grid even before layout rounding runs.
+        // 布局舍入前也要把偏移钉在物理像素网格上
         var nextOffset = Math.Round(rawOffset * renderScaling) / renderScaling;
         if (Math.Abs(currentOffset - nextOffset) * renderScaling < 0.5)
         {

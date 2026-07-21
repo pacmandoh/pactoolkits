@@ -7,6 +7,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Dialogs;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>按类型解析 View 实例</summary>
 public sealed class AppViews
 {
     private readonly Dictionary<string, Type> _viewTypesByName;

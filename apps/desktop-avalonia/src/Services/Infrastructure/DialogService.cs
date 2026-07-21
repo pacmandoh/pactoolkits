@@ -8,6 +8,7 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
+/// <summary>桌面对话框展示入口</summary>
 public interface IDialogService
 {
     Task Info(string title, string message);
@@ -40,6 +41,11 @@ public interface IDialogService
     Task<MsfxTaskSplitResult> ShowMsfxTaskSplit(MsfxTaskSplitArgs model);
 }
 
+/// <summary>
+/// 对话框服务
+///
+/// 负责 Alert/表单对话框编排；不含业务校验
+/// </summary>
 public sealed class DialogService(
     DialogManager dialogManager,
     SensitiveUnlock unlockDialog) : IDialogService
@@ -136,7 +142,7 @@ public sealed class DialogService(
         }
         finally
         {
-            // Singleton unlock VM retains its input unless every session clears it here.
+            // 单例解锁 VM 会保留输入，除非每次 session 在此清空
             unlockDialog.ClearSensitiveState();
         }
     }
