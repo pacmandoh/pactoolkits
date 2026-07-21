@@ -3,7 +3,7 @@
 # ------------------------------
 .cursor/
 .agent/
-AGENTS.md
+/AGENTS.md
 
 # ------------------------------
 # OS / editor noise
