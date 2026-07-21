@@ -145,23 +145,14 @@ public sealed class ReleaseChannelService : IReleaseChannelService
         var root = document.RootElement;
         var channel = ReadRequiredString(root.GetProperty("release"), "channel");
         var components = root.GetProperty("components");
-        var desktop = components.GetProperty("desktop");
+        var desktop = ReleaseManifestDesktop.GetRequiredImplementation(components);
 
         var minimums = new List<string> { ReadRequiredString(desktop, "minDbSchema") };
         var maximums = new List<string> { ReadRequiredString(desktop, "maxDbSchema") };
-        if (desktop.TryGetProperty("bundles", out var bundles))
+        if (components.TryGetProperty("agents", out var agents))
         {
-            foreach (var bundle in bundles.EnumerateArray())
-            {
-                var id = bundle.GetString();
-                if (string.IsNullOrWhiteSpace(id) || !components.TryGetProperty(id, out var component))
-                {
-                    throw new InvalidOperationException($"更新清单引用了不存在的组件：{id}");
-                }
-
-                minimums.Add(ReadRequiredString(component, "minDbSchema"));
-                maximums.Add(ReadRequiredString(component, "maxDbSchema"));
-            }
+            minimums.Add(ReadRequiredString(agents, "minDbSchema"));
+            maximums.Add(ReadRequiredString(agents, "maxDbSchema"));
         }
 
         var requiredMin = minimums[0];

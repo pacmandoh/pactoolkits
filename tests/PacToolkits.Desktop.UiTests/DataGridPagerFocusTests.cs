@@ -76,15 +76,15 @@ public sealed class DataGridPagerFocusTests
     {
         var app = global::Avalonia.Application.Current
             ?? throw new InvalidOperationException("Headless Application was not created.");
-        var baseUri = new Uri("avares://pactoolkits-desktop/");
+        var baseUri = new Uri("avares://PacToolkits.Desktop/");
         var resources = new ResourceInclude(baseUri)
         {
-            Source = new Uri("avares://pactoolkits-desktop/Styles/PacTheme.axaml"),
+            Source = new Uri("avares://PacToolkits.Desktop/Styles/PacTheme.axaml"),
         };
         var shadTheme = new ShadUI.ShadTheme();
         var pacStyles = new StyleInclude(baseUri)
         {
-            Source = new Uri("avares://pactoolkits-desktop/Styles/PacTheme.Styles.axaml"),
+            Source = new Uri("avares://PacToolkits.Desktop/Styles/PacTheme.Styles.axaml"),
         };
 
         app.Resources.MergedDictionaries.Add(resources);

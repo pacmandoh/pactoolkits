@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Agents</AssemblyName>
+    <RootNamespace>PacToolkits.Agents.Host</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Product>PacToolkits Agents</Product>
+    <Authors>PacmanDoh</Authors>
+    <Company>PacDocs</Company>
+    <Description>PacToolkits Agents entry process that hosts modules</Description>
+    <ApplicationIcon>assets\pactoolkits-agents.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\packages\agents-contracts\PacToolkits.Agents.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

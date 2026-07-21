@@ -10,8 +10,9 @@ using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Collections;
 using global::Avalonia.Styling;
 using global::Avalonia.Threading;
-using PacToolkits.Agent.Contracts.Abstractions;
-using PacToolkits.Agent.Contracts.Agents;
+using PacToolkits.Agents.Contracts.Abstractions;
+using PacToolkits.Agents.Contracts.Agents;
+using PacToolkits.Agents.Contracts.Commands;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
@@ -62,8 +63,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly ILookupCatalogService _lookup;
     private readonly ISettingsService _settings;
     private readonly IChangeWatermarkService _changeWatermark;
-    private readonly IAgentManager _agentManager;
-    private IAgentRuntime Injector => _agentManager.GetRequired(AgentIds.InjectorAhk);
+    private readonly IAgentsManager _agentsManager;
+    private IAgentsRuntime Agents => _agentsManager.GetRequired(AgentsIds.Agents);
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IAppStartupStateService _startupState;
     private readonly IAppUpdateService _updates;
@@ -82,8 +83,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private volatile bool _isApplyingConfig;
     private DateTimeOffset _lastDbErrorToastAt = DateTimeOffset.MinValue;
     private DateTimeOffset _lastDbOkToastAt = DateTimeOffset.MinValue;
-    private DateTimeOffset _lastAhkTopToastAt = DateTimeOffset.MinValue;
-    private static readonly TimeSpan AhkTopToastDebounce = TimeSpan.FromMilliseconds(1200);
+    private DateTimeOffset _lastAgentsTopToastAt = DateTimeOffset.MinValue;
+    private static readonly TimeSpan AgentsTopToastDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan TopActionDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan StartupDbMigrationTimeout = TimeSpan.FromSeconds(120);
@@ -197,13 +198,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
     [ObservableProperty] private string? _activePageRoute;
     [ObservableProperty] private bool _isDbProbeRunning;
-    [ObservableProperty] private bool _isAhkActionRunning;
+    [ObservableProperty] private bool _isAgentsActionRunning;
     [ObservableProperty] private bool _isUpdateChecking;
     [ObservableProperty] private bool _hasUpdateAvailable;
     [ObservableProperty] private string _currentProductVersion = "unknown";
     [ObservableProperty] private string _latestProductVersion = "unknown";
     public bool CanProbeDb() => !IsDbProbeRunning;
-    public bool CanControlAhk() => !IsAhkActionRunning;
+    public bool CanControlAgents() => !IsAgentsActionRunning;
 
     public bool IsDbConnected => _dbMonitor.IsConnected;
 
@@ -212,7 +213,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         : IsDbConnected ? "数据库：已连接"
         : "数据库：未连接";
 
-    public string AgentItemText => $"Agent：{AhkStatusText}";
+    public string HostItemText => $"Host：{HostStatusText}";
+
+    public string InjectorItemText => $"Injector：{InjectorStatusText}";
 
     public string ActivePageText => ActivePage?.DisplayName ?? "就绪";
 
@@ -272,10 +275,37 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsSettingsPageActive => ActivePage is ISettingsPage;
 
-    public bool IsAhkRunning => Injector.IsRunning;
+    public bool IsHostRunning => Agents.IsHostRunning;
 
-    public string AhkStatusText
-        => IsAhkRunning ? "运行中" : "未启动";
+    public bool IsHostStarting => Agents.HostState == AgentsRunState.Starting;
+
+    public bool IsHostInactive => !Agents.HostState.IsActive();
+
+    public string HostStatusText
+        => Agents.HostState switch
+        {
+            AgentsRunState.Running => "运行中",
+            AgentsRunState.Starting => "启动中",
+            AgentsRunState.Failed => "启动失败",
+            AgentsRunState.Stopped => "未启动",
+            _ => "未知",
+        };
+
+    public bool IsInjectorRunning => Agents.IsInjectorRunning;
+
+    public bool IsInjectorStarting => Agents.InjectorState == AgentsRunState.Starting;
+
+    public bool IsInjectorInactive => !Agents.InjectorState.IsActive();
+
+    public string InjectorStatusText
+        => Agents.InjectorState switch
+        {
+            AgentsRunState.Running => "运行中",
+            AgentsRunState.Starting => "启动中",
+            AgentsRunState.Failed => "启动失败",
+            AgentsRunState.Stopped => "未启动",
+            _ => "未知",
+        };
 
     public string AppBuildChannelText
     {
@@ -320,7 +350,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void RaiseStatusItemsChanged()
     {
         OnPropertyChanged(nameof(DbItemText));
-        OnPropertyChanged(nameof(AgentItemText));
+        OnPropertyChanged(nameof(HostItemText));
+        OnPropertyChanged(nameof(InjectorItemText));
         OnPropertyChanged(nameof(ActivePageText));
         OnPropertyChanged(nameof(ShowAccessGuardItem));
         OnPropertyChanged(nameof(AccessGuardItemText));
@@ -427,16 +458,24 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(DbItemText));
     }
 
-    partial void OnIsAhkActionRunningChanged(bool value)
+    partial void OnIsAgentsActionRunningChanged(bool value)
     {
-        StartOrRestartAhkCommand.NotifyCanExecuteChanged();
+        StartOrRestartHostCommand.NotifyCanExecuteChanged();
+        StartOrRestartInjectorCommand.NotifyCanExecuteChanged();
     }
 
-    private void RaiseAhkStateChanged()
+    private void RaiseAgentsStateChanged()
     {
-        OnPropertyChanged(nameof(IsAhkRunning));
-        OnPropertyChanged(nameof(AhkStatusText));
-        OnPropertyChanged(nameof(AgentItemText));
+        OnPropertyChanged(nameof(IsHostRunning));
+        OnPropertyChanged(nameof(IsHostStarting));
+        OnPropertyChanged(nameof(IsHostInactive));
+        OnPropertyChanged(nameof(HostStatusText));
+        OnPropertyChanged(nameof(HostItemText));
+        OnPropertyChanged(nameof(IsInjectorRunning));
+        OnPropertyChanged(nameof(IsInjectorStarting));
+        OnPropertyChanged(nameof(IsInjectorInactive));
+        OnPropertyChanged(nameof(InjectorStatusText));
+        OnPropertyChanged(nameof(InjectorItemText));
     }
 
     private void LogPageInfo(string eventName, string message, object? context = null)
@@ -538,7 +577,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         ILookupCatalogService lookup,
         ISettingsService settings,
         IChangeWatermarkService changeWatermark,
-        IAgentManager agentManager,
+        IAgentsManager agentsManager,
         IReleaseVersionService releaseVersion,
         IAppStartupStateService startupState,
         IAppUpdateService updates,
@@ -561,7 +600,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _lookup = lookup ?? throw new ArgumentNullException(nameof(lookup));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _changeWatermark = changeWatermark ?? throw new ArgumentNullException(nameof(changeWatermark));
-        _agentManager = agentManager ?? throw new ArgumentNullException(nameof(agentManager));
+        _agentsManager = agentsManager ?? throw new ArgumentNullException(nameof(agentsManager));
         _releaseVersion = releaseVersion ?? throw new ArgumentNullException(nameof(releaseVersion));
         _startupState = startupState ?? throw new ArgumentNullException(nameof(startupState));
         _updates = updates ?? throw new ArgumentNullException(nameof(updates));
@@ -623,7 +662,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         _dbMonitor.Reconnected += ScheduleAutoRefresh;
         _dbMonitor.Disconnected += ScheduleAutoRefresh;
-        Injector.StatusChanged += OnAhkStatusChanged;
+        Agents.StatusChanged += OnAgentsStatusChanged;
         _updates.Changed += OnUpdateChanged;
         _updateFlow.StateChanged += OnUpdateFlowStateChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
@@ -635,7 +674,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         ObserveDetached(CheckConfigOnStartupAsync(), "startup.config.detached.fail");
         StartConfigWatcher();
-        RaiseAhkStateChanged();
+        RaiseAgentsStateChanged();
         _wasAccessGuardBlocked = _accessGuard.IsBlocked;
         RaiseConnectivityChanged();
         ObserveDetached(InitializeAfterStartupChecksAsync(), "startup.init.detached.fail");
@@ -663,7 +702,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             _startupState.MarkDbInitCompleted();
 
-            await StartAhkOnStartupAsync().ConfigureAwait(false);
+            await StartAgentsOnStartupAsync().ConfigureAwait(false);
             await CheckUpdatesOnStartupAsync().ConfigureAwait(false);
             RestartUpdatePolling();
         }
@@ -673,33 +712,33 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private async Task StartAhkOnStartupAsync()
+    private async Task StartAgentsOnStartupAsync()
     {
-        if (!Injector.IsEnabled || Injector.IsRunning)
+        if (Agents.IsHostRunning)
         {
             return;
         }
 
         try
         {
-            var result = await Injector.StartOrRestartAsync().ConfigureAwait(false);
+            var result = await Agents.StartOrRestartAsync().ConfigureAwait(false);
             if (!result.Ok && !result.SuppressToast)
             {
                 _logger.Warn(
                     "MainWindowVM",
-                    "ahk.startup_autostart.fail",
-                    "Failed to auto-start automation toolkit on startup",
+                    "agents.startup_autostart.fail",
+                    "Failed to auto-start Agents host on startup",
                     null,
                     new { result.Message });
             }
         }
         catch (Exception ex)
         {
-            _logger.Warn("MainWindowVM", "ahk.startup_autostart.exception", "Startup auto-start threw exception", ex);
+            _logger.Warn("MainWindowVM", "agents.startup_autostart.exception", "Startup auto-start threw exception", ex);
         }
         finally
         {
-            PostOnUi(RaiseAhkStateChanged);
+            PostOnUi(RaiseAgentsStateChanged);
         }
     }
 
@@ -1364,75 +1403,144 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanControlAhk))]
-    private async Task StartOrRestartAhk()
+    [RelayCommand(CanExecute = nameof(CanControlAgents))]
+    private async Task StartOrRestartHost()
     {
-        if (SkipTrigger("top.ahk.action", (int)TopActionDebounce.TotalMilliseconds))
+        if (SkipTrigger("top.agents.host", (int)TopActionDebounce.TotalMilliseconds))
         {
             return;
         }
 
-        IsAhkActionRunning = true;
-        StartOrRestartAhkCommand.NotifyCanExecuteChanged();
-
         try
         {
-            if (Injector.IsRunning)
+            if (Agents.IsHostRunning)
             {
-                Injector.Reload();
-                var running = Injector.IsRunning;
-                if (running)
+                IsAgentsActionRunning = true;
+                NotifyAgentsCommands();
+
+                Agents.Reload();
+                if (Agents.IsHostRunning)
                 {
-                    TryShowAhkTopToast(() => _toasts.Success("自动化套件", "健康检查通过：进程运行中"));
+                    TryShowAgentsTopToast(() => _toasts.Success("Agents", "健康检查通过：Host 进程运行中"));
                 }
                 else
                 {
-                    TryShowAhkTopToast(() => _toasts.Error("自动化套件", "健康检查失败：未检测到进程运行"));
+                    TryShowAgentsTopToast(() => _toasts.Error("Agents", "健康检查失败：未检测到 Host 进程"));
                 }
             }
             else
             {
-                var result = await Injector.StartOrRestartAsync().ConfigureAwait(false);
-                if (result.SuppressToast)
-                {
-                    return;
-                }
-
-                if (result.Ok)
-                {
-                    TryShowAhkTopToast(() => _toasts.Success("自动化套件", result.Message));
-                }
-                else
-                {
-                    TryShowAhkTopToast(() => _toasts.Error("自动化套件", result.Message));
-                }
+                await RunAgentsCommandAsync(() => Agents.StartOrRestartAsync()).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
         {
-            _logger.Error("MainWindowVM", "ahk.top_action.error", "AHK top action failed", ex);
-            TryShowAhkTopToast(() => _toasts.Error("自动化套件", ex.Message));
+            _logger.Error("MainWindowVM", "agents.host_top_action.error", "Agents Host top action failed", ex);
+            TryShowAgentsTopToast(() => _toasts.Error("Agents", ex.Message));
         }
         finally
         {
             await RunOnUiAsync(() =>
             {
-                IsAhkActionRunning = false;
-                StartOrRestartAhkCommand.NotifyCanExecuteChanged();
-                RaiseAhkStateChanged();
+                IsAgentsActionRunning = false;
+                NotifyAgentsCommands();
+                RaiseAgentsStateChanged();
             });
         }
     }
 
-    private void TryShowAhkTopToast(Action show)
+    [RelayCommand(CanExecute = nameof(CanControlAgents))]
+    private async Task StartOrRestartInjector()
     {
-        var now = DateTimeOffset.UtcNow;
-        if (now - _lastAhkTopToastAt < AhkTopToastDebounce)
+        if (SkipTrigger("top.agents.injector", (int)TopActionDebounce.TotalMilliseconds))
         {
             return;
         }
 
-        _lastAhkTopToastAt = now;
+        try
+        {
+            if (!Agents.IsInjectorEnabled)
+            {
+                TryShowAgentsTopToast(() => _toasts.Error("Agents", "Injector 未启用"));
+                return;
+            }
+
+            if (!Agents.IsHostRunning)
+            {
+                await RunAgentsCommandAsync(() => Agents.StartOrRestartAsync()).ConfigureAwait(false);
+                return;
+            }
+
+            if (Agents.IsInjectorRunning)
+            {
+                IsAgentsActionRunning = true;
+                NotifyAgentsCommands();
+
+                Agents.Reload();
+                if (Agents.IsInjectorRunning)
+                {
+                    TryShowAgentsTopToast(() => _toasts.Success("Agents", "健康检查通过：Injector 已就绪"));
+                }
+                else
+                {
+                    TryShowAgentsTopToast(() => _toasts.Error("Agents", "健康检查失败：Injector 未运行"));
+                }
+
+                return;
+            }
+
+            // Host is up but Injector is down — remount without killing Host.
+            await RunAgentsCommandAsync(() => Agents.StartInjectorAsync()).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("MainWindowVM", "agents.injector_top_action.error", "Agents Injector top action failed", ex);
+            TryShowAgentsTopToast(() => _toasts.Error("Agents", ex.Message));
+        }
+        finally
+        {
+            await RunOnUiAsync(() =>
+            {
+                IsAgentsActionRunning = false;
+                NotifyAgentsCommands();
+                RaiseAgentsStateChanged();
+            });
+        }
+    }
+
+    private async Task RunAgentsCommandAsync(Func<Task<AgentsCommandResult>> run)
+    {
+        var result = await run().ConfigureAwait(false);
+        if (result.SuppressToast)
+        {
+            return;
+        }
+
+        if (result.Ok)
+        {
+            TryShowAgentsTopToast(() => _toasts.Success("Agents", result.Message));
+        }
+        else
+        {
+            TryShowAgentsTopToast(() => _toasts.Error("Agents", result.Message));
+        }
+    }
+
+    private void NotifyAgentsCommands()
+    {
+        StartOrRestartHostCommand.NotifyCanExecuteChanged();
+        StartOrRestartInjectorCommand.NotifyCanExecuteChanged();
+    }
+
+    private void TryShowAgentsTopToast(Action show)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (now - _lastAgentsTopToastAt < AgentsTopToastDebounce)
+        {
+            return;
+        }
+
+        _lastAgentsTopToastAt = now;
         show();
     }
 
@@ -1488,8 +1596,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 {
                     desktopMin = state.DesktopMin,
                     desktopMax = state.DesktopMax,
-                    agentMin = state.AgentMin,
-                    agentMax = state.AgentMax,
+                    agentsMin = state.AgentsMin,
+                    agentsMax = state.AgentsMax,
                     target = state.Target,
                     dbVersion = state.DbVersion,
                     schemaOk = state.SchemaOk,
@@ -1577,10 +1685,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         var version = _releaseVersion.Current;
         return new DbSchemaVersionContext(
-            version.UiMinDbSchema,
-            version.UiMaxDbSchema,
-            version.AgentMinDbSchema,
-            version.AgentMaxDbSchema,
+            version.DesktopMinDbSchema,
+            version.DesktopMaxDbSchema,
+            version.AgentsMinDbSchema,
+            version.AgentsMaxDbSchema,
             version.DbSchemaVersion,
             version.BuildChannel,
             version.DbMigrationPolicy);
@@ -1611,10 +1719,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         var version = _releaseVersion.Current;
         var context = BuildSchemaContext();
-        var uiMin = DbSchemaCompat.NormalizeBound(version.UiMinDbSchema, version.DbSchemaVersion);
-        var uiMax = DbSchemaCompat.NormalizeBound(version.UiMaxDbSchema, version.DbSchemaVersion);
-        var agentMin = DbSchemaCompat.NormalizeBound(version.AgentMinDbSchema, version.DbSchemaVersion);
-        var agentMax = DbSchemaCompat.NormalizeBound(version.AgentMaxDbSchema, version.DbSchemaVersion);
+        var uiMin = DbSchemaCompat.NormalizeBound(version.DesktopMinDbSchema, version.DbSchemaVersion);
+        var uiMax = DbSchemaCompat.NormalizeBound(version.DesktopMaxDbSchema, version.DbSchemaVersion);
+        var agentsMin = DbSchemaCompat.NormalizeBound(version.AgentsMinDbSchema, version.DbSchemaVersion);
+        var agentsMax = DbSchemaCompat.NormalizeBound(version.AgentsMaxDbSchema, version.DbSchemaVersion);
         var target = DbSchemaCompat.NormalizeBound(version.DbSchemaVersion, version.DbSchemaVersion);
 
         var snapshot = await _settings
@@ -1629,8 +1737,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 target,
                 desktopMin = uiMin,
                 desktopMax = uiMax,
-                agentMin,
-                agentMax
+                agentsMin,
+                agentsMax
             });
         }
         else
@@ -1640,8 +1748,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 target,
                 desktopMin = uiMin,
                 desktopMax = uiMax,
-                agentMin,
-                agentMax,
+                agentsMin,
+                agentsMax,
                 schemaOk = snapshot.SchemaOk,
                 schemaValue = snapshot.CurrentVersion,
                 schemaReason = snapshot.Reason,
@@ -1656,8 +1764,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             Target: snapshot.TargetVersion,
             DesktopMin: uiMin,
             DesktopMax: uiMax,
-            AgentMin: agentMin,
-            AgentMax: agentMax,
+            AgentsMin: agentsMin,
+            AgentsMax: agentsMax,
             SchemaOk: snapshot.SchemaOk,
             DbVersion: snapshot.CurrentVersion,
             Compatibility: snapshot.Compatibility.ToString(),
@@ -1671,8 +1779,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         string Target,
         string DesktopMin,
         string DesktopMax,
-        string AgentMin,
-        string AgentMax,
+        string AgentsMin,
+        string AgentsMax,
         bool SchemaOk,
         string? DbVersion,
         string Compatibility,
@@ -1845,12 +1953,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void OnAhkStatusChanged()
+    private void OnAgentsStatusChanged()
     {
         PostOnUi(() =>
         {
-            RaiseAhkStateChanged();
-            StartOrRestartAhkCommand.NotifyCanExecuteChanged();
+            RaiseAgentsStateChanged();
+            NotifyAgentsCommands();
         });
     }
 
@@ -1898,7 +2006,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _dbMonitor.Reconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _dbMonitor.Disconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _changeWatermark.TopicChanged -= OnTopicChanged);
-        SafeExecute(() => Injector.StatusChanged -= OnAhkStatusChanged);
+        SafeExecute(() => Agents.StatusChanged -= OnAgentsStatusChanged);
         SafeExecute(() => _updates.Changed -= OnUpdateChanged);
         SafeExecute(() => _updateFlow.StateChanged -= OnUpdateFlowStateChanged);
         SafeExecute(() => _updateSettings.Changed -= OnUpdateSettingsChanged);

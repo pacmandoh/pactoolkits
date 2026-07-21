@@ -7,7 +7,7 @@ using global::Avalonia.Platform;
 using global::Avalonia.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using PacToolkits.Agent.Contracts.Abstractions;
+using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -22,7 +22,7 @@ public partial class App : global::Avalonia.Application
     private MainWindow? _mainWindow;
     private TrayIcon? _trayIcon;
     private IUiBehaviorService? _uiBehavior;
-    private IAgentManager? _agentManager;
+    private IAgentsManager? _agentsManager;
     private IAppLogger? _logger;
     private bool _forceExit;
     private UnhandledExceptionEventHandler? _appDomainUnhandledHandler;
@@ -57,14 +57,14 @@ public partial class App : global::Avalonia.Application
         DataTemplates.Add(new ViewLocator(Services.GetRequiredService<AppViews>()));
 
         _uiBehavior = Services.GetRequiredService<IUiBehaviorService>();
-        _agentManager = Services.GetRequiredService<IAgentManager>();
+        _agentsManager = Services.GetRequiredService<IAgentsManager>();
         _logger = Services.GetRequiredService<IAppLogger>();
         var releaseVersion = Services.GetRequiredService<IReleaseVersionService>().Current;
         _logger.Info("App", "app.start", "Application startup", new
         {
             releaseVersion.DesktopVersion,
             releaseVersion.ProductVersion,
-            releaseVersion.AgentInjectorAhkVersion,
+            releaseVersion.AgentsVersion,
             releaseVersion.BuildChannel,
             releaseVersion.BuildDate
         });
@@ -142,7 +142,7 @@ public partial class App : global::Avalonia.Application
         _trayIcon = new TrayIcon
         {
             ToolTipText = "PacToolkits",
-            Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://pactoolkits-desktop/Assets/app.ico"))),
+            Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://PacToolkits.Desktop/Assets/app.ico"))),
             Menu = menu,
             IsVisible = true
         };
@@ -254,16 +254,16 @@ public partial class App : global::Avalonia.Application
 
         UnregisterGlobalExceptionHandlers();
 
-        // Real app exit: ensure every registered external Agent process is stopped.
-        if (_agentManager is not null)
+        // Real app exit: ensure every registered Host process is stopped.
+        if (_agentsManager is not null)
         {
             try
             {
-                _agentManager.StopAllAsync().GetAwaiter().GetResult();
+                _agentsManager.StopAllAsync().GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
-                _logger?.Warn("App", "shutdown.agents_stop_fail", "Failed to stop registered Agent runtimes during shutdown", ex);
+                _logger?.Warn("App", "shutdown.agents_stop_fail", "Failed to stop registered Agents runtimes during shutdown", ex);
             }
         }
 

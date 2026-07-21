@@ -49,7 +49,7 @@ public sealed partial class MsfxLink : AppPageBase
     public override string DisplayName => "码上放心联调";
     public override string Icon => "CloudCog";
     public override int Index => 5;
-    public override string FunctionAreaId => ShellFunctionAreas.AutomationId;
+    public override string FunctionAreaId => ShellFunctionAreas.IntegrationId;
     public override ICommand? RefreshCommand => SelectedTabIndex switch
     {
         0 => RefreshAutoBoardCommand,

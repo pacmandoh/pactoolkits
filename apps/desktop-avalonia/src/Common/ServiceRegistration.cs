@@ -1,11 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using PacToolkits.Agent.Contracts.Abstractions;
+using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.Services;
-using PacToolkits.Desktop.Avalonia.Services.Agent;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agent;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 using PacToolkits.Desktop.Avalonia.Services.Integration;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 using PacToolkits.Desktop.Avalonia.Services.Presentation;
@@ -27,10 +26,10 @@ public static class ServiceRegistration
         services.AddPacToolkitsInfrastructure(config);
         services.AddPacToolkitsApplication();
         services.AddUiShell();
-        services.AddDesktopIntegrations();
+        services.AddDesktopMsfxUpdate();
         services.AddDesktopWorkspace();
         services.AddDesktopPresentation();
-        services.AddDesktopAgent();
+        services.AddDesktopAgents();
         services.AddPageViewModels();
         return services;
     }
@@ -54,10 +53,6 @@ public static class ServiceRegistration
         services.AddSingleton<IAppStartupStateService, AppStartupStateService>();
         services.AddSingleton<IToastService, ToastService>();
         services.AddSingleton<IDialogService, DialogService>();
-        services.AddSingleton<AhkInjectorAgentRuntime>();
-        services.AddSingleton<IInjectorAgentRuntime>(sp => sp.GetRequiredService<AhkInjectorAgentRuntime>());
-        services.AddSingleton<IAgentRuntime>(sp => sp.GetRequiredService<AhkInjectorAgentRuntime>());
-        services.AddSingleton<IAutomationConfigService, AutomationConfigService>();
         return services;
     }
 
@@ -84,7 +79,7 @@ public static class ServiceRegistration
         return services;
     }
 
-    private static IServiceCollection AddDesktopIntegrations(this IServiceCollection services)
+    private static IServiceCollection AddDesktopMsfxUpdate(this IServiceCollection services)
     {
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
         services.AddSingleton<IMsfxApiClient, MsfxApiClient>();
@@ -105,9 +100,12 @@ public static class ServiceRegistration
         return services;
     }
 
-    private static IServiceCollection AddDesktopAgent(this IServiceCollection services)
+    private static IServiceCollection AddDesktopAgents(this IServiceCollection services)
     {
-        services.AddSingleton<IAgentManager, AgentManager>();
+        services.AddSingleton<AgentsRuntime>();
+        services.AddSingleton<IAgentsRuntime>(sp => sp.GetRequiredService<AgentsRuntime>());
+        services.AddSingleton<IAgentsConfigService, AgentsConfigService>();
+        services.AddSingleton<IAgentsManager, AgentsManager>();
         return services;
     }
 

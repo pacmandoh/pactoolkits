@@ -326,12 +326,12 @@ public sealed class SettingsService : ISettingsService
         PgOptions? connectionOptions,
         CancellationToken ct)
     {
-        var uiMin = DbSchemaCompat.NormalizeBound(schemaContext.UiMinDbSchema, schemaContext.TargetDbSchemaVersion);
-        var uiMax = DbSchemaCompat.NormalizeBound(schemaContext.UiMaxDbSchema, schemaContext.TargetDbSchemaVersion);
-        var agentMin = DbSchemaCompat.NormalizeBound(schemaContext.AgentMinDbSchema, schemaContext.TargetDbSchemaVersion);
-        var agentMax = DbSchemaCompat.NormalizeBound(schemaContext.AgentMaxDbSchema, schemaContext.TargetDbSchemaVersion);
-        var requiredMin = DbSchemaCompat.GetRequiredMin(uiMin, agentMin);
-        var requiredMax = DbSchemaCompat.GetRequiredMax(uiMax, agentMax);
+        var uiMin = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMinDbSchema, schemaContext.TargetDbSchemaVersion);
+        var uiMax = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMaxDbSchema, schemaContext.TargetDbSchemaVersion);
+        var agentsMin = DbSchemaCompat.NormalizeBound(schemaContext.AgentsMinDbSchema, schemaContext.TargetDbSchemaVersion);
+        var agentsMax = DbSchemaCompat.NormalizeBound(schemaContext.AgentsMaxDbSchema, schemaContext.TargetDbSchemaVersion);
+        var requiredMin = DbSchemaCompat.GetRequiredMin(uiMin, agentsMin);
+        var requiredMax = DbSchemaCompat.GetRequiredMax(uiMax, agentsMax);
         var localTarget = DbSchemaCompat.NormalizeBound(
             schemaContext.TargetDbSchemaVersion,
             schemaContext.TargetDbSchemaVersion);
@@ -502,18 +502,18 @@ public sealed class SettingsService : ISettingsService
         DbSchemaVersionContext schemaContext,
         DbSchemaStatusSnapshot snapshot)
     {
-        var uiMin = DbSchemaCompat.NormalizeBound(schemaContext.UiMinDbSchema, schemaContext.TargetDbSchemaVersion);
-        var uiMax = DbSchemaCompat.NormalizeBound(schemaContext.UiMaxDbSchema, schemaContext.TargetDbSchemaVersion);
-        var agentMin = DbSchemaCompat.NormalizeBound(schemaContext.AgentMinDbSchema, schemaContext.TargetDbSchemaVersion);
-        var agentMax = DbSchemaCompat.NormalizeBound(schemaContext.AgentMaxDbSchema, schemaContext.TargetDbSchemaVersion);
+        var uiMin = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMinDbSchema, schemaContext.TargetDbSchemaVersion);
+        var uiMax = DbSchemaCompat.NormalizeBound(schemaContext.DesktopMaxDbSchema, schemaContext.TargetDbSchemaVersion);
+        var agentsMin = DbSchemaCompat.NormalizeBound(schemaContext.AgentsMinDbSchema, schemaContext.TargetDbSchemaVersion);
+        var agentsMax = DbSchemaCompat.NormalizeBound(schemaContext.AgentsMaxDbSchema, schemaContext.TargetDbSchemaVersion);
         return DbSchemaCompat.BuildIncompatibleMessage(
             snapshot.SchemaOk,
             snapshot.CurrentVersion,
             snapshot.Reason,
             uiMin,
-            agentMin,
+            agentsMin,
             uiMax,
-            agentMax,
+            agentsMax,
             snapshot.RequiredMinVersion,
             snapshot.RequiredMaxVersion);
     }

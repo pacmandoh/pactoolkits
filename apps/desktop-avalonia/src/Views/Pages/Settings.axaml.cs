@@ -36,7 +36,7 @@ public partial class Settings : UserControl
         ("TabUpdatePage", "应用更新", "CloudDownload"),
         ("TabLoggingPage", "日志与诊断", "TextCursorInput"),
         ("TabMsfxPage", "码上放心 API", "Webhook"),
-        ("TabAutomationPage", "自动化集成", "AudioWaveform")
+        ("TabAgentsPage", "自动化集成", "AudioWaveform")
     ];
 
     private SettingsViewModel? _vm;
@@ -147,9 +147,9 @@ public partial class Settings : UserControl
     private IEnumerable<Control> EnumerateTabInputs() =>
         InputFocusHelper.EnumerateInputs(this, typeof(TextBox), typeof(NumericUpDown), typeof(ComboBox));
 
-    private void OnAutomationAddLineClicked(object? sender, RoutedEventArgs e)
+    private void OnAgentsAddLineClicked(object? sender, RoutedEventArgs e)
     {
-        var scroller = this.FindControl<ScrollViewer>("AutomationScrollViewer");
+        var scroller = this.FindControl<ScrollViewer>("AgentsScrollViewer");
         var shouldAutoFollow = false;
         if (scroller is not null)
         {

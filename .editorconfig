@@ -12,7 +12,7 @@ insert_final_newline = unset
 trim_trailing_whitespace = unset
 end_of_line = unset
 
-[{**/Version.g.props,**/version.generated.json}]
+[{**/Version.g.props,**/ReleaseManifest.json}]
 generated_code = true
 
 [*.{cs,csx}]

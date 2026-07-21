@@ -47,7 +47,7 @@
 
 - 更新链路: `update.*.error`, `update.*.fail`
 - 数据库链路: `db.*.fail`, `dashboard.*.reload_fail`, `drug_index.*.fail`, `scan.submit.fail`, `inventory.reassign.*.fail`
-- 自动化集成: `settings.automation.*.fail`, `ahk.*.fail`
+- Agents 设置: `settings.agents.*.fail`, `agents.*.fail`
 - 配置链路: `*.save.fail`, `config.external_apply_fail`
 
 含义:
@@ -82,7 +82,7 @@
 
 - 生命周期: `app.start`, `app.ready`, `app.shutdown`
 - 更新轨迹: `update.check.result`, `update.prompt.*`
-- 配置操作: `logging.settings.saved`, `ahk.options.saved`
+- 配置操作: `logging.settings.saved`, `agents.reload`, `agents.path.migrate`
 
 含义:
 
@@ -141,7 +141,7 @@
 - `unhandled.desktop`
 - `unobserved.task`
 - `unhandled.appdomain`
-- `shutdown.ahk_stop_fail`
+- `shutdown.agents_stop_fail`
 - `shutdown.services_dispose_fail`
 
 ## MainWindowVM
@@ -163,9 +163,10 @@
 - `db.startup_check.migrate.stamp.saved`
 - `db.startup_check.fail`
 - `db.reconnected.migrate.fail`
-- `ahk.startup_autostart.fail`
-- `ahk.startup_autostart.exception`
-- `ahk.top_action.error`
+- `agents.startup_autostart.fail`
+- `agents.startup_autostart.exception`
+- `agents.host_top_action.error`
+- `agents.injector_top_action.error`
 - `update.check.startup`
 - `update.check.start`
 - `update.check.channel_mismatch`
@@ -248,25 +249,28 @@
 
 ## Settings（自动化集成）
 
-- `settings.automation.save.fail`
-- `settings.automation.restart.fail`
-- `settings.automation.toggle.fail`
-- `settings.automation.save_options.silent_fail`
-- `settings.automation.save_options.fail`
-- `settings.automation.agent_options.parse_fail`
-- `settings.automation.dispose.runtime_unsub_fail`
-- `settings.automation.dispose.appwin_collection_unsub_fail`
-- `settings.automation.dispose.colspecs_collection_unsub_fail`
-- `settings.automation.dispose.intcols_collection_unsub_fail`
-- `settings.automation.dispose.warehouse_anchors_collection_unsub_fail`
-- `settings.automation.dispose.appwin_item_unsub_fail`
-- `settings.automation.dispose.colspecs_item_unsub_fail`
-- `settings.automation.dispose.intcols_item_unsub_fail`
-- `settings.automation.dispose.warehouse_anchor_item_unsub_fail`
+- `settings.agents.save.fail`
+- `settings.agents.restart.fail`
+- `settings.agents.host_run.fail`
+- `settings.agents.host_run.detached.fail`
+- `settings.agents.injector_run.fail`
+- `settings.agents.injector_run.detached.fail`
+- `settings.agents.save_options.silent_fail`
+- `settings.agents.save_options.fail`
+- `settings.agents.injector_options.parse_fail`
+- `settings.agents.dispose.runtime_unsub_fail`
+- `settings.agents.dispose.appwin_collection_unsub_fail`
+- `settings.agents.dispose.colspecs_collection_unsub_fail`
+- `settings.agents.dispose.intcols_collection_unsub_fail`
+- `settings.agents.dispose.warehouse_anchors_collection_unsub_fail`
+- `settings.agents.dispose.appwin_item_unsub_fail`
+- `settings.agents.dispose.colspecs_item_unsub_fail`
+- `settings.agents.dispose.intcols_item_unsub_fail`
+- `settings.agents.dispose.warehouse_anchor_item_unsub_fail`
 
 说明:
 
-- 模块名为 `Settings`；事件前缀 `settings.automation.*`（设置页「自动化集成」Tab）
+- 模块名为 `Settings`；事件前缀 `settings.agents.*`（设置页 Agents Tab；UI 文案仍为「自动化集成」）
 
 ## MsfxLink
 
@@ -326,17 +330,19 @@
 - `drug_index.reload.fail`
 - `drug_index.delete.fail`
 
-## AhkRuntime
+## AgentsRuntime
 
-- `ahk.reload`
-- `ahk.options.saved`
-- `ahk.start_or_restart.fail`
-- `ahk.stop.fail`
-- `ahk.terminate.fail`
-- `ahk.close_window.fail`
-- `ahk.kill.fail`
-- `ahk.dispose.timer_fail`
-- `ahk.dispose.gate_fail`
+- `agents.reload`
+- `agents.path.migrate`
+- `agents.path.migrate.fail`
+- `agents.start_or_restart.fail`
+- `agents.stop.fail`
+- `agents.terminate.fail`
+- `agents.close_window.fail`
+- `agents.kill.fail`
+- `agents.status_changed.fail`
+- `agents.dispose.timer_fail`
+- `agents.dispose.gate_fail`
 
 ## DbConnectionMonitor
 

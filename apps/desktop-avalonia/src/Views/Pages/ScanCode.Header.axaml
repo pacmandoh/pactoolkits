@@ -47,7 +47,7 @@
         <TextBlock
           VerticalAlignment="Center"
           Classes="Caption Muted"
-          Text="启用调度" />
+          Text="调度" />
         <ToggleSwitch
           Grid.Column="1"
           HorizontalAlignment="Center"

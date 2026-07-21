@@ -14,7 +14,7 @@
       Width="80"
       Height="80"
       HorizontalAlignment="Center"
-      Source="avares://pactoolkits-desktop/Assets/icon-128.png"
+      Source="avares://PacToolkits.Desktop/Assets/icon-128.png"
       Stretch="Uniform" />
 
     <TextBlock
@@ -77,7 +77,7 @@
         Height="42"
         Fallback="PD"
         RenderOptions.BitmapInterpolationMode="HighQuality"
-        Source="avares://pactoolkits-desktop/Assets/pacmandoh.jpg"
+        Source="avares://PacToolkits.Desktop/Assets/pacmandoh.jpg"
         UseLayoutRounding="True" />
       <StackPanel
         Grid.Column="1"

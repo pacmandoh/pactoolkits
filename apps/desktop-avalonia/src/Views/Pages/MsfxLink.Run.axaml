@@ -23,7 +23,9 @@
             <ToggleSwitch
               Grid.Column="1"
               VerticalAlignment="Center"
-              IsChecked="{Binding IsAutoEnabled, Mode=TwoWay}" />
+              IsChecked="{Binding IsAutoEnabled, Mode=TwoWay}"
+              OffContent="停止"
+              OnContent="启动" />
           </Grid>
           <Border Grid.Column="1" Classes="FilterBarDivider" />
           <Grid

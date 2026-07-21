@@ -216,7 +216,6 @@
                     Icon="CircleCheck"
                     IconSize="12"
                     IsVisible="{Binding ShowValidRate}"
-                    PillPadding="8,4"
                     Text="{Binding ValidRatePct, StringFormat=有效率 {0:F0}%}"
                     TextSize="12" />
                 </StackPanel>
@@ -329,7 +328,6 @@
                     Classes="ToneInfo15"
                     Icon="ListOrdered"
                     IconSize="12"
-                    PillPadding="8,4"
                     Text="{Binding TraceCodeRuleLength, StringFormat=固定长度 {0} 位}"
                     TextSize="12" />
                   <TextBlock

@@ -39,12 +39,12 @@ _ReSharper*/
 # UI local packaging artifacts
 apps/desktop-avalonia/src/Publish/
 apps/desktop-avalonia/src/Releases/
-apps/desktop-avalonia/src/Sql/
+apps/desktop-avalonia/src/Postgres/
 
 # ------------------------------
 # Agent local packaging artifacts
 # ------------------------------
-runtime/agents/injector-ahk/Releases/
+runtime/agents/modules/**/Releases/
 artifacts/agents/**/*
 !artifacts/agents/**/.gitkeep
 artifacts/desktop/**/*
@@ -76,7 +76,7 @@ database/postgres/scripts/config.json
 .tools/
 
 # ------------------------------
-# Node / Electron (desktop-electron preview shell)
+# Node (if any tooling uses npm)
 # ------------------------------
 **/node_modules/
 

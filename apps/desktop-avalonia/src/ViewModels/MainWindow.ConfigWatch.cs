@@ -34,10 +34,15 @@ public partial class MainWindowViewModel
         {
             Directory.CreateDirectory(_configDir);
 
-            // Watch the unified app config and react to external edits.
+            // Watch AppData unified config (not the install directory).
+            // Path: %AppData%/PacToolkits/PacToolkits.Desktop.config.json
             _configWatcher = new FileSystemWatcher(_configDir, _configFile)
             {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.CreationTime
+                NotifyFilter = NotifyFilters.LastWrite
+                    | NotifyFilters.Size
+                    | NotifyFilters.FileName
+                    | NotifyFilters.CreationTime
+                    | NotifyFilters.Attributes
             };
 
             _configWatcher.Changed += OnConfigWatcherChanged;
@@ -73,7 +78,7 @@ public partial class MainWindowViewModel
 
         try
         {
-            await _agentManager.SyncConfigAsync().ConfigureAwait(false);
+            await _agentsManager.SyncConfigAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -93,48 +98,51 @@ public partial class MainWindowViewModel
 
             loaded = JsonSerializer.Deserialize<AppConfigRoot>(json);
         }
-        catch
+        catch (Exception ex)
         {
-            loaded = null;
-            json = null;
+            _logger.Warn("MainWindowVM", "config.watch.read_fail", "Failed to read or parse config for hot-reload", ex);
+            return;
         }
 
-        if (loaded?.Postgres is null)
+        if (loaded is null)
         {
+            _logger.Warn("MainWindowVM", "config.watch.parse_null", "Config deserialize returned null; hot-reload skipped");
             return;
         }
 
         _lastSeenConfigJson = json;
 
-        var postgresChanged = !IsSamePgOptions(_settings.AppliedDb, loaded.Postgres);
-        if (postgresChanged)
+        // Postgres target switches stay manual-apply only; other safe sections still hot-reload.
+        if (loaded.Postgres is not null)
         {
-            // Do not hot-apply external DB target changes during runtime.
-            // Runtime datasource switches can cause cross-DB read/write inconsistency.
-            try
+            var postgresChanged = !IsSamePgOptions(_settings.AppliedDb, loaded.Postgres);
+            if (postgresChanged)
             {
-                _isApplyingConfig = true;
-                _logger.Warn("MainWindowVM", "config.external_db_change_ignored",
-                    "Detected external DB config change, ignored until manual apply in Settings", null, new
-                    {
-                        loaded.Postgres.Host,
-                        loaded.Postgres.Port,
-                        loaded.Postgres.Database
-                    });
-                await RunOnUiAsync(() => _toasts.Warn(
-                    "配置文件",
-                    "检测到外部数据库配置变更，请在设置页手动保存并测试连接后生效"));
-            }
-            catch (Exception ex)
-            {
-                _logger.Warn("MainWindowVM", "config.external_apply_fail", "Failed to handle external DB config change", ex);
-            }
-            finally
-            {
-                _isApplyingConfig = false;
-            }
+                try
+                {
+                    _isApplyingConfig = true;
+                    _logger.Warn("MainWindowVM", "config.external_db_change_ignored",
+                        "Detected external DB config change, ignored until manual apply in Settings", null, new
+                        {
+                            loaded.Postgres.Host,
+                            loaded.Postgres.Port,
+                            loaded.Postgres.Database
+                        });
+                    await RunOnUiAsync(() => _toasts.Warn(
+                        "配置文件",
+                        "检测到外部数据库配置变更，请在设置页手动保存并测试连接后生效"));
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn("MainWindowVM", "config.external_apply_fail", "Failed to handle external DB config change", ex);
+                }
+                finally
+                {
+                    _isApplyingConfig = false;
+                }
 
-            _dbMonitor.Signal();
+                _dbMonitor.Signal();
+            }
         }
 
         ApplySafeConfigHotReload(loaded);

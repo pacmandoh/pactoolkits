@@ -5,12 +5,9 @@
 **/node_modules/**
 
 # sql migrations (formatting excluded by policy)
-**/sql/migrations/**
+**/database/postgres/migrations/**
 
 # json key order deferred to a dedicated sort strategy
 release-manifest.json
-**/version.generated.json
+**/ReleaseManifest.json
 **/Version.g.props
-
-# app-local toolchains
-apps/desktop-electron/**

@@ -33,32 +33,26 @@ public sealed record DbProbeReport(DbProbeKind Kind, bool Success, string? Reaso
 public sealed record ReleaseVersionInfo(
     string ProductVersion,
     string DesktopVersion,
-    string AgentInjectorAhkVersion,
+    string AgentsVersion,
     string DbSchemaVersion,
     string BuildChannel,
     string BuildDate,
     string DesktopMinDbSchema,
     string DesktopMaxDbSchema,
-    string AgentInjectorAhkMinDbSchema,
-    string AgentInjectorAhkMaxDbSchema,
+    string AgentsMinDbSchema,
+    string AgentsMaxDbSchema,
     string DbMigrationPolicy = DbMigrationPolicies.StableOnly)
 {
-    public string AgentVersion => AgentInjectorAhkVersion;
-    public string UiMinDbSchema => DesktopMinDbSchema;
-    public string UiMaxDbSchema => DesktopMaxDbSchema;
-    public string AgentMinDbSchema => AgentInjectorAhkMinDbSchema;
-    public string AgentMaxDbSchema => AgentInjectorAhkMaxDbSchema;
-
     public static ReleaseVersionInfo Unknown { get; } = new(
         ProductVersion: "unknown",
         DesktopVersion: "unknown",
-        AgentInjectorAhkVersion: "unknown",
+        AgentsVersion: "unknown",
         DbSchemaVersion: "unknown",
         BuildChannel: "unknown",
         BuildDate: "unknown",
         DesktopMinDbSchema: "unknown",
         DesktopMaxDbSchema: "unknown",
-        AgentInjectorAhkMinDbSchema: "unknown",
-        AgentInjectorAhkMaxDbSchema: "unknown",
+        AgentsMinDbSchema: "unknown",
+        AgentsMaxDbSchema: "unknown",
         DbMigrationPolicy: DbMigrationPolicies.StableOnly);
 }

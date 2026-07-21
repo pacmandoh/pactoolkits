@@ -461,7 +461,7 @@
                   IsBusy="{Binding IsTaskPanelBusy}">
                   <controls:EmptyStatePanel
                     EmptyHint="仅 MAPPED + NEW 的码会创建任务"
-                    EmptyText="暂无 Agent 任务队列"
+                    EmptyText="暂无 Injector 任务队列"
                     IsEmpty="{Binding IsAutoTaskQueueEmpty}">
                     <DataGrid
                       x:Name="AutoTaskQueueGrid"

@@ -18,7 +18,7 @@
   MinHeight="800"
   behaviors:FocusClear.Enable="True"
   x:DataType="vm:MainWindowViewModel"
-  Icon="avares://pactoolkits-desktop/Assets/app.ico"
+  Icon="avares://PacToolkits.Desktop/Assets/app.ico"
   RootCornerRadius="{DynamicResource XlCornerRadius}"
   ShowBottomBorder="False"
   TitleBarAnimationEnabled="False"
@@ -32,7 +32,7 @@
         Spacing="8">
         <Image
           RenderOptions.BitmapInterpolationMode="HighQuality"
-          Source="avares://pactoolkits-desktop/Assets/app.ico"
+          Source="avares://PacToolkits.Desktop/Assets/app.ico"
           UseLayoutRounding="True" />
         <Button
           Classes="TitleBarBrandMenu"
@@ -220,22 +220,54 @@
         </Button>
 
         <Button
-          shad:ButtonAssist.ShowProgress="{Binding IsAhkActionRunning}"
           Classes="WindowControlsButton"
-          Command="{Binding StartOrRestartAhkCommand}"
-          ToolTip.Tip="{Binding AgentItemText}">
+          Command="{Binding StartOrRestartHostCommand}"
+          ToolTip.Tip="{Binding HostItemText}">
           <Panel>
             <icons:AppIcon
               Width="{DynamicResource IconSizeDefault}"
               Height="{DynamicResource IconSizeDefault}"
               Foreground="{DynamicResource SuccessColor}"
-              IsVisible="{Binding IsAhkRunning}"
+              IsVisible="{Binding IsHostRunning}"
+              Kind="Cpu" />
+            <icons:AppIcon
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              Foreground="{DynamicResource WarningColor}"
+              IsVisible="{Binding IsHostStarting}"
+              Kind="Cpu" />
+            <icons:AppIcon
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              Foreground="{DynamicResource ErrorColor}"
+              IsVisible="{Binding IsHostInactive}"
+              Kind="Cpu" />
+          </Panel>
+        </Button>
+
+        <Button
+          shad:ButtonAssist.ShowProgress="{Binding IsAgentsActionRunning}"
+          Classes="WindowControlsButton"
+          Command="{Binding StartOrRestartInjectorCommand}"
+          ToolTip.Tip="{Binding InjectorItemText}">
+          <Panel>
+            <icons:AppIcon
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              Foreground="{DynamicResource SuccessColor}"
+              IsVisible="{Binding IsInjectorRunning}"
+              Kind="Bone" />
+            <icons:AppIcon
+              Width="{DynamicResource IconSizeDefault}"
+              Height="{DynamicResource IconSizeDefault}"
+              Foreground="{DynamicResource WarningColor}"
+              IsVisible="{Binding IsInjectorStarting}"
               Kind="Bone" />
             <icons:AppIcon
               Width="{DynamicResource IconSizeDefault}"
               Height="{DynamicResource IconSizeDefault}"
               Foreground="{DynamicResource ErrorColor}"
-              IsVisible="{Binding !IsAhkRunning}"
+              IsVisible="{Binding IsInjectorInactive}"
               Kind="BoneFracture" />
           </Panel>
         </Button>
@@ -331,8 +363,8 @@
                 </MenuItem>
                 <MenuItem
                   Command="{Binding SelectFunctionAreaCommand}"
-                  CommandParameter="{x:Static vm:ShellFunctionAreas.Automation}"
-                  Header="{x:Static vm:ShellFunctionAreas.AutomationName}">
+                  CommandParameter="{x:Static vm:ShellFunctionAreas.Integration}"
+                  Header="{x:Static vm:ShellFunctionAreas.IntegrationName}">
                   <MenuItem.Icon>
                     <Border
                       Width="24"
@@ -342,7 +374,7 @@
                       BorderThickness="1"
                       CornerRadius="{DynamicResource LgCornerRadius}">
                       <Viewbox>
-                        <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="{x:Static vm:ShellFunctionAreas.AutomationIcon}" />
+                        <icons:AppIcon Foreground="{DynamicResource MutedColor}" Kind="{x:Static vm:ShellFunctionAreas.IntegrationIcon}" />
                       </Viewbox>
                     </Border>
                   </MenuItem.Icon>
@@ -454,7 +486,7 @@
                   Width="220"
                   ColumnDefinitions="Auto,*"
                   ColumnSpacing="12">
-                  <Image Classes="SidebarBrandIcon" Source="avares://pactoolkits-desktop/Assets/app.ico" />
+                  <Image Classes="SidebarBrandIcon" Source="avares://PacToolkits.Desktop/Assets/app.ico" />
                   <StackPanel Grid.Column="1" Classes="SidebarAccountText">
                     <TextBlock Classes="Small" Text="PacToolkits" />
                     <TextBlock
@@ -691,23 +723,49 @@
 
             <Border Classes="StatusBarDivider" />
 
-            <Button
-              shad:ButtonAssist.ShowProgress="{Binding IsAhkActionRunning}"
-              Classes="StatusBarItem StatusBarAgentItem"
-              Command="{Binding StartOrRestartAhkCommand}">
+            <Button Classes="StatusBarItem StatusBarAgentsItem" Command="{Binding StartOrRestartHostCommand}">
               <shad:ButtonAssist.Icon>
                 <Panel>
                   <icons:AppIcon
                     Foreground="{DynamicResource SuccessColor}"
-                    IsVisible="{Binding IsAhkRunning}"
+                    IsVisible="{Binding IsHostRunning}"
+                    Kind="Cpu" />
+                  <icons:AppIcon
+                    Foreground="{DynamicResource WarningColor}"
+                    IsVisible="{Binding IsHostStarting}"
+                    Kind="Cpu" />
+                  <icons:AppIcon
+                    Foreground="{DynamicResource ErrorColor}"
+                    IsVisible="{Binding IsHostInactive}"
+                    Kind="Cpu" />
+                </Panel>
+              </shad:ButtonAssist.Icon>
+              <TextBlock Classes="Caption Muted" Text="{Binding HostItemText}" />
+            </Button>
+
+            <Border Classes="StatusBarDivider" />
+
+            <Button
+              shad:ButtonAssist.ShowProgress="{Binding IsAgentsActionRunning}"
+              Classes="StatusBarItem StatusBarAgentsItem"
+              Command="{Binding StartOrRestartInjectorCommand}">
+              <shad:ButtonAssist.Icon>
+                <Panel>
+                  <icons:AppIcon
+                    Foreground="{DynamicResource SuccessColor}"
+                    IsVisible="{Binding IsInjectorRunning}"
+                    Kind="Bone" />
+                  <icons:AppIcon
+                    Foreground="{DynamicResource WarningColor}"
+                    IsVisible="{Binding IsInjectorStarting}"
                     Kind="Bone" />
                   <icons:AppIcon
                     Foreground="{DynamicResource ErrorColor}"
-                    IsVisible="{Binding !IsAhkRunning}"
+                    IsVisible="{Binding IsInjectorInactive}"
                     Kind="BoneFracture" />
                 </Panel>
               </shad:ButtonAssist.Icon>
-              <TextBlock Classes="Caption Muted" Text="{Binding AgentItemText}" />
+              <TextBlock Classes="Caption Muted" Text="{Binding InjectorItemText}" />
             </Button>
 
             <Border Classes="StatusBarDivider" IsVisible="{Binding ShowAccessGuardItem}" />

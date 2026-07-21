@@ -77,7 +77,7 @@ jobs:
       - name: Unit tests
         run: |
           set -euo pipefail
-          dotnet test tests/PacToolkits.Agent.Contracts.Tests/PacToolkits.Agent.Contracts.Tests.csproj -c Release --no-restore --verbosity minimal
+          dotnet test tests/PacToolkits.Agents.Contracts.Tests/PacToolkits.Agents.Contracts.Tests.csproj -c Release --no-restore --verbosity minimal
           dotnet test tests/PacToolkits.Desktop.Tests/PacToolkits.Desktop.Tests.csproj -c Release --no-restore --verbosity minimal --filter "Category!=PostgresIntegration"
 
   ui_headless_tests:

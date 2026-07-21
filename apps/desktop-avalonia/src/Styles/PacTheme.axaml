@@ -1,10 +1,10 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.MergedDictionaries>
-    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/Typography.axaml" />
-    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/Layout.axaml" />
-    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/NavigationResources.axaml" />
-    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/ShellOverrides.axaml" />
-    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/PurpleColors.axaml" />
-    <ResourceInclude Source="avares://pactoolkits-desktop/Styles/Theme/ChartColors.axaml" />
+    <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/Theme/Typography.axaml" />
+    <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/Theme/Layout.axaml" />
+    <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/Theme/NavigationResources.axaml" />
+    <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/Theme/ShellOverrides.axaml" />
+    <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/Theme/PurpleColors.axaml" />
+    <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/Theme/ChartColors.axaml" />
   </ResourceDictionary.MergedDictionaries>
 </ResourceDictionary>
