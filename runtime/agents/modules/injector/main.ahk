@@ -17,9 +17,9 @@
 #Include "%A_ScriptDir%\src\main_semi_auto.ahk"
 #Include "%A_ScriptDir%\src\msfx_task.ahk"
 
-; 录入药物追溯码程序主入口 v0.2.1beta
+; Injector 追溯码录入主入口（v0.2.1beta）
 
-; ! 强制 64-bit !
+; ODBC/Postgres 与打包基底要求 64 位；32 位进程无法正确连接
 if (A_PtrSize = 4) {
     if (A_IsCompiled) {
         UI_Err("当前为 32 位打包程序，无法运行`n请使用 64 位 AutoHotkey 基底重新打包后再启动", "追溯码自动化 - 启动自检")
@@ -49,7 +49,7 @@ global VersionInfo := Util_ReadVersionFile()
 global RuntimeInfo := Util_InitRuntimeInfo(VersionInfo)
 UI_Tip("Injector v" VersionInfo["moduleVersion"], 1600)
 
-; ===== 启动自检：关键配置缺失直接报错退出 =====
+; 关键配置缺失时直接报错退出，避免半残运行
 _missing := []
 for _, k in ["PG_HOST","PG_PORT","PG_DB","PG_USER","PG_PASS","PG_DRIVER","PG_SSL","OPT_WINDOW_CLASS","IPT_WINDOW_CLASS","OPT_PARSE_GRID_CLASSNN","OPT_VERIFY_GRID_CLASSNN","IPT_PARSE_GRID_CLASSNN","IPT_VERIFY_GRID_CLASSNN","OPT_INPUT_CLASSNN","IPT_INPUT_CLASSNN","COL_SPECS","INT_COLS","CONFIRM_TIMEOUT_MS","APP_WIN"] {
     if !Cfg.Has(k) {
@@ -70,7 +70,7 @@ if (_missing.Length > 0) {
 
 Util_MarkModuleReady()
 
-; ===== 启动自愈：清理超时 PENDING（避免异常退出导致库存被“扣住”）=====
+; 启动时清理超时 PENDING，避免异常退出导致库存被扣住
 global _CLEANUP_BUSY := false
 try {
     rr := Txn_CleanupPending(10, 200)
@@ -78,7 +78,7 @@ try {
         UI_Tip("已自动回滚超时预留事务：" rr["cleaned"] " 条", 1500)
 }
 
-; 每 5 分钟扫一次（低频、低性能占用）
+; 低频定时扫 PENDING，降低对注入热路径的性能干扰
 Cleanup_PendingTimer(*) {
     global _CLEANUP_BUSY
     if (_CLEANUP_BUSY)
@@ -93,7 +93,6 @@ SetTimer(Cleanup_PendingTimer, 300000)
 global _BUSY := false
 global _LAST_RUN := 0
 
-; 热键
 #HotIf Util_HotIf_TargetApp()
 ~RButton::
 {

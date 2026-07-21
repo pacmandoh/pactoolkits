@@ -1,4 +1,4 @@
-; ================== Minimal JSON parser (AHK v2, no throw) ==================
+; 最小 JSON 解析器（AHK v2）；失败返回 Map，避免 throw 打断注入热路径
 
 Json_Parse(jsonText) {
     pos := 1
@@ -58,7 +58,7 @@ Json__ParseValue(s, &pos) {
 
 Json__ParseObject(s, &pos) {
     obj := Map()
-    pos++ ; {
+    pos++ ; 消费 '{'
 
     ws := Json__SkipWs(s, pos)
     pos := ws["pos"]
@@ -106,7 +106,7 @@ Json__ParseObject(s, &pos) {
 
 Json__ParseArray(s, &pos) {
     arr := []
-    pos++ ; [
+    pos++ ; 消费 '['
 
     ws := Json__SkipWs(s, pos)
     pos := ws["pos"]

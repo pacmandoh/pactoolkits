@@ -1,4 +1,4 @@
-; ================== 工具模块 ==================
+; Injector 通用工具：配置加载、窗口场景、剪贴板与日志
 
 UI_Tip(msg, ms := 1200) {
     ToolTip(msg)
@@ -19,7 +19,7 @@ Util_ToInt(v, default := 0) {
     return RegExMatch(s, "^-?\d+$") ? (s + 0) : default
 }
 
-; 防止错误信息刷屏：截断长 SQL
+; 截断长 SQL，避免错误弹窗/日志刷屏
 Util_ShortSQL(sql, maxLen := 1200) {
     if (StrLen(sql) <= maxLen)
         return sql
@@ -27,7 +27,7 @@ Util_ShortSQL(sql, maxLen := 1200) {
 }
 
 Util_PathFull(p) {
-    ; 把 ..\ 路径展开成绝对路径
+    ; 相对路径展开为绝对路径，供后续文件读写
     buf := Buffer(32768 * 2, 0)
     len := DllCall("Kernel32\GetFullPathNameW", "str", p, "uint", 32768, "ptr", buf, "ptr", 0, "uint")
     return len ? StrGet(buf, len, "UTF-16") : p
@@ -42,7 +42,7 @@ Util_ReadVersionFile() {
         "moduleVersion", "unknown"
     )
 
-    ; Tip/version identity comes only from this module's module.json.
+    ; Tip/版本身份只来自本模块 module.json，避免误读宿主版本
     moduleMetaPath := Util_PathFull(A_ScriptDir "\module.json")
     if FileExist(moduleMetaPath) {
         meta := Json_ReadFile(moduleMetaPath)
@@ -97,7 +97,7 @@ Util_LoadDotEnv(path) {
 
     txt := FileRead(full, "UTF-8")
 
-    ; 去 UTF-8 BOM
+    ; 去掉 UTF-8 BOM，避免首 key 解析异常
     if (SubStr(txt, 1, 1) = Chr(0xFEFF))
         txt := SubStr(txt, 2)
 
@@ -110,18 +110,18 @@ Util_LoadDotEnv(path) {
         if (line = "" || SubStr(line, 1, 1) = "#")
             continue
 
-        ; 兼容：export KEY=VAL
+        ; 兼容 shell 风格 export KEY=VAL
         if (SubStr(line, 1, 7) = "export ")
             line := Trim(SubStr(line, 8))
 
-        ; 分割 KEY=VAL（允许 VAL 为空）
+        ; KEY=VAL 分割允许 VAL 为空
         if !RegExMatch(line, "^\s*([^=]+?)\s*=\s*(.*)\s*$", &m)
             continue
 
         key := Trim(m[1])
         val := Trim(m[2])
 
-        ; 处理行尾注释：KEY=VAL # comment（仅当不在引号内）
+        ; 行尾 # 注释仅在引号外剥离
         if (val != "") {
             inQ := ""
             out := ""
@@ -145,7 +145,6 @@ Util_LoadDotEnv(path) {
             val := Trim(out)
         }
 
-        ; 去掉包裹引号（整个 VAL 外层）
         if ((SubStr(val, 1, 1) = dq && SubStr(val, -1) = dq)
          || (SubStr(val, 1, 1) = sq && SubStr(val, -1) = sq)) {
             val := SubStr(val, 2, -1)
@@ -167,7 +166,7 @@ Util_LoadDotEnv(path) {
 }
 
 Util_TryParseArray(val) {
-    ; 成功返回 Array，失败返回空字符串（表示不处理）
+    ; 成功返回 Array；失败返回 "" 表示交由后续标量/集合解析
     v := Trim(val)
     if (v = "")
         return ""
@@ -225,7 +224,6 @@ Util_ArrayItemNormalize(token) {
     dq := Chr(34)
     sq := "'"
 
-    ; 去掉数组元素外层引号（允许 "xx" 或 'xx'）
     if ((SubStr(item, 1, 1) = dq && SubStr(item, -1) = dq)
      || (SubStr(item, 1, 1) = sq && SubStr(item, -1) = sq)) {
         item := SubStr(item, 2, -1)
@@ -234,8 +232,8 @@ Util_ArrayItemNormalize(token) {
     return item
 }
 
-; 解析集合（Map 当 Set）
-; 支持：
+; 解析类 JSON 对象为 Map-as-Set（APP_WIN 等）
+; 例：
 ;   {"互慧软件.exe":1,"ProjectMain.exe":1}
 ;   {'互慧软件.exe':true, 'ProjectMain.exe':true}
 Util_TryParseSet(val) {
@@ -258,7 +256,7 @@ Util_TryParseSet(val) {
     token := ""
     inQ := ""
 
-    ; 逐字符扫描，按“顶层逗号”切 token（忽略引号内的逗号）
+    ; 按顶层逗号切 token，忽略引号内逗号
     Loop Parse inner {
         ch := A_LoopField
 
@@ -283,20 +281,19 @@ Util_TryParseSet(val) {
         }
     }
 
-    ; 最后一个 token
     Util_SetConsumeToken(set, token)
 
     return set
 }
 
-; 从一个 token 中提取 key，写入 set
-; token 形如：  "xxx":1   或   'xxx':true
+; 从 "key":value token 提取 key 写入 set
+; token 形如 "xxx":1 或 'xxx':true
 Util_SetConsumeToken(set, token) {
     t := Trim(token, "`r`t ")
     if (t = "")
         return
 
-    ; 找到第一个“顶层冒号”（忽略引号内的冒号）
+    ; 找顶层冒号（忽略引号内）
     dq := Chr(34)
     sq := "'"
 
@@ -327,7 +324,7 @@ Util_SetConsumeToken(set, token) {
 
     k := Trim(SubStr(t, 1, colonPos - 1), "`r`t ")
 
-    ; key 必须是 "..." 或 '...'
+    ; key 必须带引号，否则丢弃该 token
     if (StrLen(k) < 2)
         return
 
@@ -342,7 +339,7 @@ Util_SetConsumeToken(set, token) {
 
 
 Util_NormalizeWin(win := "A") {
-    ; 将 "A" 尽早冻结为 ahk_id hwnd，避免后续 MsgBox/切窗导致 "A" 指向变化
+    ; 尽早把 "A" 冻成 ahk_id HWND，避免 MsgBox/切窗后 "A" 漂移
     if (win = "A") {
         try hwnd := WinGetID("A")
         catch
@@ -378,18 +375,18 @@ Util_CaptureWin(win := "A") {
 Util_HotIf_TargetApp() {
     global Cfg
 
-    ; 1) Cfg 没加载好
+    ; Cfg 未就绪时不启用热键
     if !IsSet(Cfg) || (Type(Cfg) != "Map")
         return false
     if !Cfg.Has("OPT_WINDOW_CLASS") || !Cfg.Has("IPT_WINDOW_CLASS") || !Cfg.Has("APP_WIN")
         return false
 
-    ; 2) 冻结当前活动窗口（避免后续 "A" 指向变化）
+    ; 冻结当前活动窗口，避免判定中途 "A" 漂移
     ctx := Util_CaptureWin("A")
     if (!ctx["hwnd"])
         return false
 
-    ; 3) 先用 exe 限定
+    ; 先按 APP_WIN exe 白名单过滤
     try exe := WinGetProcessName(ctx["win"])
     catch
         return false
@@ -399,7 +396,7 @@ Util_HotIf_TargetApp() {
         return false
     }
 
-    ; 4) 再判断窗口 class（仓库模式下仅允许住院/仓库窗口类）
+    ; 再按窗口 class；仓库模式仅允许住院/仓库类
     cls := ctx["cls"]
     if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
         return (cls = Cfg["IPT_WINDOW_CLASS"])
@@ -416,7 +413,7 @@ Util_DetectScene(win := "A") {
     if (cls = Cfg["OPT_WINDOW_CLASS"])
         return "OPT"
 
-    ; 住院/仓库共用窗口类：只在该分支再按锚点区分仓库
+    ; 住院与仓库共用窗口类，仅在此分支用表头锚点区分
     if (cls = Cfg["IPT_WINDOW_CLASS"]) {
         if Util_IsWarehouseWindow(winId)
             return "WAREHOUSE"
@@ -436,13 +433,13 @@ Util_IsWarehouseWindow(win := "A") {
     if (anchors.Length = 0)
         return false
 
-    ; 主判定：通过当前点击数据所在网格的表头特征区分
-    ; 仓库入库窗口通常不含“患者姓名”“应扫次数”两列
+    ; 主判定：用当前网格表头特征区分住院/仓库
+    ; 仓库入库表头通常不含“患者姓名”“应扫次数”
     hdrLine := Util_TryGetGridHeaderLine(win)
     if (hdrLine = "")
         return false
 
-    ; 命中任一锚点列则判定为住院；否则判定为仓库
+    ; 命中任一住院锚点列 → 非仓库；否则视为仓库
     for _, a in anchors {
         t := Trim(a)
         if (t != "" && InStr(hdrLine, t))
@@ -575,9 +572,8 @@ Util_GetCtrlHwndByClassNN(classNN, win := "A") {
 
 
 
-; ================== Clipboard helpers ==================
 Util_WithClipboard(tempText, fn) {
-    ; 临时覆盖剪贴板执行 fn，结束后无条件恢复（避免弄丢用户剪贴板）
+    ; 临时覆盖剪贴板执行 fn，finally 无条件恢复用户内容
     old := ClipboardAll()
     try {
         A_Clipboard := tempText
@@ -588,9 +584,8 @@ Util_WithClipboard(tempText, fn) {
     }
 }
 
-; ================== Simple log ==================
 Util_LogLine(line, logDir := "") {
-    ; 仅用于 ERR 级别：追加到 logs\YYYYMMDD.log
+    ; ERR 级追加到 logs\YYYYMMDD.log，避免热路径噪音
     if (logDir = "")
         logDir := A_ScriptDir "\logs"
     try DirCreate(logDir)
@@ -600,7 +595,7 @@ Util_LogLine(line, logDir := "") {
 }
 
 Util_GetPrimaryIPv4() {
-    ; 取首个可用 IPv4；失败时返回空字符串
+    ; 取首个可用 IPv4；失败返回空串（写入 clientId）
     try {
         q := "SELECT IPAddress FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled=True"
         for nic in ComObjGet("winmgmts:").ExecQuery(q) {
@@ -618,7 +613,7 @@ Util_GetPrimaryIPv4() {
 }
 
 Util_GetOSName() {
-    ; 取操作系统名称（如 Windows 11 Pro），失败时回退版本号
+    ; 读 ProductName；失败回退 A_OSVersion
     try {
         key := "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
         name := RegRead(key, "ProductName", "")

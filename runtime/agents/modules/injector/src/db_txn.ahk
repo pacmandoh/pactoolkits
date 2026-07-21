@@ -1,4 +1,4 @@
-; ================== DB 模块（PostgreSQL / COM + ODBC + ADODB） ==================
+; DB_* 薄封装转 PG_*：统一事务/查询入口，业务脚本不直连驱动细节
 
 DB_Exec(sql) {
     return PG_Exec(sql)

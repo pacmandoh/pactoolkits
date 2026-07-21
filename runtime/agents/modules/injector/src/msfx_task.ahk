@@ -1,4 +1,4 @@
-; ================== 码上放心仓库任务执行模块 ==================
+; 码上放心仓库任务：按策略取码并注入目标窗口，含防重与首条稳验证
 global __MSFX_COL := Map()
 
 Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputClassNN, colSpecs, intCols, iptCls, win := "A", clickAnchor := "") {
@@ -337,7 +337,7 @@ Msfx_ApplyWarehouseBurstPacing(groupIndex, totalGroups) {
     if (groupIndex >= totalGroups)
         return
 
-    ; 固定节拍（硬编码）
+    ; burst 节拍常量；改吞吐时优先调这里而非散落 Sleep
     burstN := 40
     pauseMs := 2
 

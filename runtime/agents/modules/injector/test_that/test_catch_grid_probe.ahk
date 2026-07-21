@@ -4,10 +4,9 @@
 Persistent
 CoordMode "Mouse", "Screen"
 
-; 热键
 ~RButton::Probe_Win32()
 F2::Probe_UIA()
-; 枚举窗口下所有子控件
+; 枚举活动窗口子控件 Class，便于对照网格 HWND
 F3::
 {
     hwnd := WinGetID("A")
@@ -20,18 +19,16 @@ F3::
 }
 Esc::ExitApp
 
-; -----------------------
-; Win32 级别：从坐标反查 HWND / Class / Text
-; -----------------------
+; Win32：从坐标反查 HWND / Class / Text
 Probe_Win32() {
     MouseGetPos &sx, &sy, &winHwnd, &ctrlHwnd, 2
 
-    hwndPt := HwndFromPoint(sx, sy) ; 不依赖 ctrlHwnd
+    hwndPt := HwndFromPoint(sx, sy) ; 不依赖 AHK ctrlHwnd，直接 WindowFromPoint
     clsPt  := GetClass(hwndPt)
     txtPt  := GetWndText(hwndPt)
     pidPt  := GetPid(hwndPt)
-	try { 
-		clsnnPt := ControlGetClassNN(hwndPt) 
+	try {
+		clsnnPt := ControlGetClassNN(hwndPt)
 	} catch {
 		clsnnPt := ""
 	}
@@ -61,9 +58,7 @@ Probe_Win32() {
     MsgBox out
 }
 
-; -----------------------
-; UIA 级别：用坐标抓 UIA 元素（ProgID失败则CLSID兜底）
-; -----------------------
+; UIA：坐标抓元素；ProgID 失败则 CLSID 兜底
 Probe_UIA() {
     MouseGetPos &sx, &sy
     try {
@@ -106,18 +101,15 @@ Probe_UIA() {
     }
 }
 
-; 创建 UIAutomation：ProgID 失败 -> CLSID 兜底
+; 创建 UIA：ProgID 失败则用 CUIAutomation CLSID 兜底
 UIA_Create() {
     try return ComObject("UIAutomationClient.CUIAutomation")
     catch {
-        ; CUIAutomation CLSID
         return ComObject("{FF48DBA4-60EF-4201-AA87-54103EEF594E}")
     }
 }
 
-; -----------------------
 ; Win32 helpers
-; -----------------------
 HwndFromPoint(x, y) {
     pt := Buffer(8, 0)
     NumPut("Int", x, pt, 0)
@@ -153,10 +145,10 @@ GetPid(hwnd) {
 }
 
 SafeGet(fn, fallback := "") {
-    try { 
-		return fn.Call() 
-	} catch { 
-		return fallback 
+    try {
+		return fn.Call()
+	} catch {
+		return fallback
 	}
 }
 
