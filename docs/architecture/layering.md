@@ -1,6 +1,6 @@
 # 分层与依赖规则
 
-重构后的 PacToolkits 将业务逻辑从 Avalonia Desktop 中逐步抽到 `packages/`，形成清晰依赖方向。
+重构后的 PacToolkits 将业务逻辑从 Avalonia Desktop 抽到 `packages/`，形成清晰依赖方向。Agents 运行时（Host + Modules）在 `runtime/agents/`，通过 `agents-contracts` 与 Desktop 共享协议。
 
 ## 依赖方向
 
@@ -11,23 +11,25 @@ flowchart TB
     INF["packages/infrastructure\nPostgreSQL 实现"]
     CORE["packages/core\n纯领域"]
     AGENT["packages/agents-contracts\nAgents 协议"]
-    AHK["runtime/agents/modules/injector\n(AHK Injector 模块)"]
-    HOST["runtime/agents/host\n(Agents.exe)"]
+    HOST["runtime/agents/host\nAgents.exe Host"]
+    INJ["runtime/agents/modules/injector\nInjector 模块 AHK"]
 
     DESKTOP --> APP
     DESKTOP --> INF
     DESKTOP --> AGENT
+    HOST --> AGENT
     INF --> APP
     INF --> CORE
     APP --> CORE
-    DESKTOP -.->|启动 Host（Agents 入口）| HOST
-    HOST -.->|拉起模块| AHK
-    AHK -.->|读共享 JSON 配置| DESKTOP
+    DESKTOP -.->|启停 Host / module.control| HOST
+    HOST -.->|启动子进程| INJ
+    INJ -.->|读 --config JSON| DESKTOP
 ```
 
 **允许：**
 
 - Desktop → Application / Infrastructure / Agents.Contracts
+- Host → Agents.Contracts
 - Infrastructure → Application / Core
 - Application → Core
 
@@ -63,15 +65,18 @@ flowchart TB
 
 ### `packages/agents-contracts`
 
-- Desktop 与 Agents 容器 / Injector 模块共享的配置与协议类型
-- `AgentsOptions` / `InjectorOptions`、`AgentsConfigValidator`、`IAgentsRuntime` / `IAgentsManager`（底层契约）等
-- 桌面 `AgentsRuntime` / `AgentsManager` 实现运行时控制；Host（Agents 入口进程）在 `runtime/agents/host`，AHK 模块在 `runtime/agents/modules/injector`
+- Desktop 与 Agents（Host + Modules）共享的配置、路径与运行时抽象
+- `AgentsOptions` / `InjectorOptions`、`AgentsConfigValidator`、`AgentsPaths` / `AgentsPath`
+- `IAgentsRuntime` / `IAgentsManager`（桌面实现启停；Host 只消费路径/契约常量）
+- **不是**「仅 AHK 协议」：Host 是 .NET；Injector 读同一份 JSON，不引用该 C# 包
+
+进程模型见 [Agents 运行时架构](./agents.md)。
 
 ### `apps/desktop-avalonia`
 
-- Views / ViewModels / Avalonia 样式与行为
-- **桌面专属**服务：Toast、Dialog、更新流程、剪贴板、桌面行为（UiBehavior）等（`Services/Application`、`Services/Infrastructure`）
-- 通过 DI 组装 Application + Infrastructure 层
+- Views / ViewModels / Avalonia 样式与行为（ShadUI）
+- **桌面专属**服务：Toast、Dialog、更新、剪贴板、UiBehavior 等
+- 通过 DI 组装 Application + Infrastructure；`AgentsRuntime` 控制 Host / Injector
 - 页面连接/可用性/空态三层模型见 [desktop-state.md](./desktop-state.md)
 
 ## 典型请求路径（示例）
@@ -89,10 +94,11 @@ DashboardViewModel
 **Agents 启停：**
 
 ```text
-SettingsViewModel / MainWindowViewModel
+Settings / MainWindow
   → IAgentsManager.GetRequired(AgentsIds.Agents)
-    → IAgentsRuntime (AgentsRuntime 实现)
-      → 进程启停 + AgentsConfigValidator (agents-contracts)
+    → AgentsRuntime
+      → Process.Start(Agents.exe) + module.control / module.ready
+      → AgentsConfigValidator (agents-contracts)
 ```
 
 ## 敏感操作与解锁
@@ -102,4 +108,5 @@ SettingsViewModel / MainWindowViewModel
 ## 演进约束
 
 1. 新业务能力优先落在 Application（接口 + 服务），Infrastructure 补实现
-2. Agents 相关共享类型进 `agents-contracts`，避免 Desktop 与 AHK 各写一份 JSON 模型
+2. Agents 共享类型进 `agents-contracts`，避免 Desktop 与 Injector 各写一份互不兼容的配置形状
+3. 新模块优先 `Modules/<Id>/<Id>.exe` + `module.json`；不要把 UI 自动化塞进 Desktop 进程

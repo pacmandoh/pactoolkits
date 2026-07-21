@@ -19,10 +19,12 @@ PacToolkits 的 Desktop、Agents、DB Schema 版本由 **`release-manifest.json`
 同步到各子项目：
 
 ```bash
-./scripts/export-version.sh   # 生成 Version.g.props、ReleaseManifest.json 等
+./scripts/export-version.sh   # Version.g.props、各处 ReleaseManifest.json、module.json 版本等
 ./scripts/check-version.sh    # 校验 manifest v2 与生成文件一致
 ./scripts/bump-version.sh     # 按规则 bump 版本
 ```
+
+`export-version.sh` **不再**生成 Agents `ReleaseVersion.json`。Desktop 运行时版本服务读取的是安装目录下的 `ReleaseManifest.json`。`runtime/agents/host/ReleaseManifest.json` 只用于源码树与 `check-version` 对齐，Host 进程不读取。
 
 ## CI 工作流（GitHub Actions）
 
@@ -174,9 +176,11 @@ Windows PowerShell：
 - [Beta 发布政策](beta-release-policy.md)
 - [数据库兼容与回退政策](database-compatibility-policy.md)
 
-## Agents 路径解析
+## Agents 路径解析与运行时
 
-启动时 `AgentsPath` 按以下顺序解析（相对路径基于 Desktop 安装目录）：
+进程模型（Desktop → Host → Injector、`module.control` / `module.ready`）见 [Agents 运行时架构](../architecture/agents.md)。
+
+启动时 `AgentsPath` 按以下顺序解析 Host 可执行文件（相对路径基于 Desktop 安装目录）：
 
 1. **配置 Schema v2**：读入时将 Main/`SchemaVersion=1` 的 `AutomationTools`（`Ahk` 路径 + `Agent` 注入参数）收敛为单一 `Agents`（容器路径 + `Injector`），写回 `SchemaVersion=2`
 2. **Main 路径升级**：配置为 Main 已发布的 `Tools\pacinjector.exe` → 写回 `.\Agents\Agents.exe`（不依赖本机是否已有新 Host 二进制）
@@ -186,9 +190,15 @@ Windows PowerShell：
 
 不再扫描磁盘上的 `Tools\pacinjector.exe` 作为兜底。停止/重启时仍会识别进程名 `pacinjector` 以结束旧进程。
 
+Desktop 启动 Host 时附带 `--config <AppConfig 绝对路径>`；Host 转发给模块，自身不解析该文件。
+
 ## 相关文档
 
 - [Monorepo 布局](../architecture/monorepo-layout.md)
+- [Agents 运行时架构](../architecture/agents.md)
 - [Beta 发布政策](beta-release-policy.md)
 - [数据库兼容与回退政策](database-compatibility-policy.md)
-- [根目录 README 发布章节](../../README.zh-CN.md)
+- [脚本工具](../../scripts/docs/tooling.md)
+- [Desktop](../../apps/desktop-avalonia/README.md)
+- [Agents](../../runtime/agents/README.md)
+- [PostgreSQL 运维](../../database/postgres/README.md)
