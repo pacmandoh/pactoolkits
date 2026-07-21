@@ -1,8 +1,11 @@
 namespace PacToolkits.Application.DTOs;
 
+/// <summary>
+/// Desktop 侧 Agents 配置根（可执行路径 + Injector 选项）
+/// </summary>
 public sealed class AgentsConfigDto
 {
-    /// <summary>Must stay aligned with <c>AgentsPaths.HostExecutable</c> in agents-contracts.</summary>
+    /// <summary>须与 agents-contracts 中 <c>AgentsPaths.HostExecutable</c> 保持一致</summary>
     public const string DefaultHostExecutable = @".\Agents\Agents.exe";
 
     public string ExecutablePath { get; set; } = DefaultHostExecutable;
@@ -12,6 +15,9 @@ public sealed class AgentsConfigDto
     public InjectorOptionsDto Injector { get; set; } = new();
 }
 
+/// <summary>
+/// Injector 运行参数（门诊/住院窗口类名、列规格等）
+/// </summary>
 public sealed class InjectorOptionsDto
 {
     public bool Enabled { get; set; } = true;

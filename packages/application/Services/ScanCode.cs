@@ -3,6 +3,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 扫码入库业务入口
+/// </summary>
 public interface IScanCodeService
 {
     Task<ScanCodeSubmitResult> SubmitAsync(ScanCodeSubmitRequest request, CancellationToken ct);
@@ -10,6 +13,9 @@ public interface IScanCodeService
     Task<IReadOnlyList<string>> FindExistingTraceCodesAsync(IReadOnlyList<string> traceCodes, CancellationToken ct);
 }
 
+/// <summary>
+/// 扫码入库：校验药品索引、写追溯池并记录入流水
+/// </summary>
 public sealed class ScanCodeService : IScanCodeService
 {
     private readonly IDrugIndexRepo _drugIndexRepo;

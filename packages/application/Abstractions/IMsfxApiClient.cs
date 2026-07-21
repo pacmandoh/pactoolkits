@@ -2,6 +2,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// 码上放心（MSFX）HTTP API 客户端抽象
+/// </summary>
 public interface IMsfxApiClient
 {
     Task<MsfxApiCallResult> ExecuteRawAsync(

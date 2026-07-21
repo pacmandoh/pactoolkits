@@ -1,5 +1,8 @@
 namespace PacToolkits.Application.DTOs;
 
+/// <summary>
+/// 追溯码明细分析结果（含池内重复等）
+/// </summary>
 public sealed record TraceCodeDetailedAnalysis(
     int Total,
     int Invalid,
@@ -31,6 +34,9 @@ public sealed record ScanCodeSubmitRequest(
     string ClientRaw,
     string Source = "manual");
 
+/// <summary>
+/// 扫码提交结果（含录入流水字段）
+/// </summary>
 public sealed record ScanCodeSubmitResult(
     bool DrugFound,
     ScanCodeInsertResult Insert,

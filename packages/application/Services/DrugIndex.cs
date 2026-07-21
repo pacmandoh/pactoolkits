@@ -4,6 +4,9 @@ using PacToolkits.Application.TextSearch;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 药品索引业务入口（检索、保存规则、主键修复）
+/// </summary>
 public interface IDrugIndexService
 {
     Task<DrugIndexSearchResult> SearchAsync(string? keyword, int limit, CancellationToken ct);
@@ -24,6 +27,9 @@ public interface IDrugIndexService
     Task<DrugKeyFixCommitResult> ApplyKeyFixAsync(DrugKeyFixRequest request, CancellationToken ct);
 }
 
+/// <summary>
+/// 药品索引业务：拼音扩展检索、保存门禁与主键修复编排
+/// </summary>
 public sealed class DrugIndexService : IDrugIndexService
 {
     private readonly IDrugIndexRepo _repo;

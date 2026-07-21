@@ -4,6 +4,9 @@ using PacToolkits.Core;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 按通道、策略与环境评估是否允许 Schema 迁移
+/// </summary>
 public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
 {
     private readonly IDbEnvSettingsService _envSettings;
@@ -69,6 +72,7 @@ public sealed class DbMigrationPolicyService : IDbMigrationPolicyService
 
         var isBeta = channel == "beta";
 
+        // StableOnly / Manual / IsolatedBeta：保护共享生产库不被 Beta 误迁
         return policy switch
         {
             DbMigrationPolicies.StableOnly when !isBeta

@@ -4,6 +4,9 @@ using ToolGood.Words.Pinyin;
 
 namespace PacToolkits.Application.TextSearch;
 
+/// <summary>
+/// 拼音首字母匹配与分档打分（供自动完成排序）
+/// </summary>
 public static class PinyinInitialMatcher
 {
     private sealed record InitialProfile(string Primary, char[][] Options);
@@ -21,8 +24,8 @@ public static class PinyinInitialMatcher
         => Score(searchText, candidate) >= 0;
 
     /// <summary>
-    /// Pinyin tier scores: exact 490, prefix 480, continuous contain 470, subsequence 460.
-    /// Text tiers are handled separately in <see cref="DrugAutoCompleteRanker"/>.
+    /// 拼音档分值：精确 490、前缀 480、连续包含 470、子序列 460
+    /// 文本档由 <see cref="DrugAutoCompleteRanker"/> 单独处理
     /// </summary>
     public static int ScorePinyin(string? searchText, string? candidate)
     {

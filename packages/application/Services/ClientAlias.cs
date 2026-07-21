@@ -2,6 +2,9 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 客户端别名内存缓存与解析；持久化委托 Store
+/// </summary>
 public sealed class ClientAliasService : IClientAliasService
 {
     private readonly IClientAliasStore _store;

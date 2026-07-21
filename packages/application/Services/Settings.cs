@@ -4,6 +4,9 @@ using PacToolkits.Core;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 设置页数据库配置、迁移与 Schema 兼容编排入口
+/// </summary>
 public interface ISettingsService
 {
     PgOptions AppliedDb { get; }
@@ -65,6 +68,9 @@ public interface ISettingsService
         CancellationToken ct);
 }
 
+/// <summary>
+/// 设置业务：连接校验、迁移策略门禁与 Schema 状态快照
+/// </summary>
 public sealed class SettingsService : ISettingsService
 {
     private readonly IDbConfigService _dbConfig;

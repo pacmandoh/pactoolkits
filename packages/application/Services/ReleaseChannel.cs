@@ -4,6 +4,9 @@ using PacToolkits.Core;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 探测发布通道 Feed 与本地 Schema 是否满足切换门槛
+/// </summary>
 public sealed class ReleaseChannelService : IReleaseChannelService
 {
     private static readonly HttpClient SharedHttp = new()

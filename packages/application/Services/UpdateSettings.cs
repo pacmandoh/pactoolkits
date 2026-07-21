@@ -2,6 +2,9 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 更新设置内存态、通道归一与变更通知
+/// </summary>
 public sealed class UpdateSettingsService : IUpdateSettingsService
 {
     private static readonly string[] SupportedChannels = ["stable", "beta"];

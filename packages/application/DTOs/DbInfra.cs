@@ -13,6 +13,9 @@ public sealed record DbSchemaMigrationPlanItem(
     string FileName,
     bool Applied);
 
+/// <summary>
+/// Schema 迁移计划（含待执行数）
+/// </summary>
 public sealed record DbSchemaMigrationPlan(
     string? CurrentVersion,
     string TargetVersion,

@@ -1,5 +1,8 @@
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 安装通道与已校验通道是否允许检查/切换目标通道
+/// </summary>
 public static class ReleaseChannelAuth
 {
     public static bool IsAuthorized(string targetChannel, string installedChannel, string? validatedChannel)

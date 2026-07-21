@@ -2,6 +2,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// 连接存活监控与断连/重连信号；ProbeAsync 供健康检查
+/// </summary>
 public interface IDbConnectionMonitorService : IDisposable
 {
     bool IsConnected { get; }

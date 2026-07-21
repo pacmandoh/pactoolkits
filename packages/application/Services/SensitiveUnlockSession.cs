@@ -3,6 +3,9 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 敏感操作按 scope 的会话态（解锁窗口、失败冷却、提示互斥）
+/// </summary>
 public sealed class SensitiveUnlockSession
 {
     public enum PromptStatus
@@ -26,6 +29,9 @@ public sealed class SensitiveUnlockSession
         public bool IsPromptActive { get; set; }
     }
 
+    /// <summary>
+    /// 敏感 scope 访问判定结果（含提示是否占用）
+    /// </summary>
     public readonly record struct Access(string ScopeKey, bool IsGranted, bool IsPromptActive, bool StateChanged);
 
     public readonly record struct Prompt(
@@ -95,6 +101,7 @@ public sealed class SensitiveUnlockSession
         {
             var state = GetOrCreateState(key);
             var changed = Refresh(state, now);
+            // 已解锁只续期，不再弹第二层口令框
             if (state.IsUnlocked)
             {
                 state.ExpiresAtUtc = now + _sessionDuration;
@@ -106,6 +113,7 @@ public sealed class SensitiveUnlockSession
                     changed);
             }
 
+            // 同 scope 已有进行中的提示：互斥，避免叠框
             if (state.IsPromptActive)
             {
                 return new Prompt(

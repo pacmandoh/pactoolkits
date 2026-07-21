@@ -3,6 +3,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.TextSearch;
 
+/// <summary>
+/// 拼音检索药品目录缓存（短 TTL，受 DbAccessGuard 阻断）
+/// </summary>
 public sealed class PinyinSearchCatalogCache : IPinyinSearchCatalogCache
 {
     private const int CatalogLimit = 10_000;

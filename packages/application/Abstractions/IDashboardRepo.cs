@@ -2,6 +2,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Abstractions;
 
+/// <summary>
+/// Dashboard 查询数据访问；仅 SQL/分页，不含展示聚合口径
+/// </summary>
 public interface IDashboardRepo
 {
     Task<IReadOnlyList<string>> GetClientNamesAsync(CancellationToken ct);

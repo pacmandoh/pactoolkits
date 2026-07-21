@@ -2,8 +2,14 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// 应用更新通道归一与 FeedUrl 解析；比较是否有可提示更新
+/// </summary>
 public static class AppUpdatePolicy
 {
+    /// <summary>
+    /// 是否存在可提示的产品/组件更新及说明文案
+    /// </summary>
     public readonly record struct ReleaseDecision(
         bool HasUpdate,
         bool HasProductUpdate,

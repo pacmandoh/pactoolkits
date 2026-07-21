@@ -2,6 +2,9 @@ using PacToolkits.Core;
 
 namespace PacToolkits.Application.DTOs;
 
+/// <summary>
+/// Schema 兼容检查所需的版本门槛上下文
+/// </summary>
 public sealed record DbSchemaVersionContext(
     string DesktopMinDbSchema,
     string DesktopMaxDbSchema,
@@ -11,6 +14,9 @@ public sealed record DbSchemaVersionContext(
     string ReleaseChannel = "stable",
     string MigrationPolicy = DbMigrationPolicies.StableOnly);
 
+/// <summary>
+/// 连接 + Schema 迁移/兼容综合校验结果
+/// </summary>
 public sealed record DbConnectionValidation(
     bool ConnectionOk,
     string? ConnectionSummary,
@@ -32,6 +38,9 @@ public sealed record DbSchemaStatusSnapshot(
     DbMigrationOutcome ManualMigrationPolicy,
     string? IncompatibleMessage);
 
+/// <summary>
+/// 别名编辑可用的机器名来源
+/// </summary>
 public sealed record ClientAliasSources(
     bool IsDbConnected,
     IReadOnlyList<string> ClientMachines);

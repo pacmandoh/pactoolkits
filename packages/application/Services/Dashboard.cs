@@ -3,6 +3,9 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Services;
 
+/// <summary>
+/// Dashboard 业务编排：规范化筛选并聚合仓储结果为快照/分页
+/// </summary>
 public sealed class DashboardService : IDashboardService
 {
     private const int ChartPageSize = 200;

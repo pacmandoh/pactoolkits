@@ -4,6 +4,9 @@ using PacToolkits.Application.TextSearch;
 
 namespace PacToolkits.Application.Services.Msfx;
 
+/// <summary>
+/// MSFX 同步业务门面（拉窗、映射、注入任务运维）
+/// </summary>
 public interface ISyncService
 {
     Task<MsfxPullWindow> GetPullWindowAsync(string sourceApi, CancellationToken ct);
@@ -42,6 +45,9 @@ public interface ISyncService
     Task<MsfxMappingBatchApplyResult> ApplyMappingBatchByGroupAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, string? groupSourceDrugNameRaw, string? groupSourceSpecRaw, string? groupSourceNameNorm, string? groupSourceSpecNorm, string action, string? drugId, string? spec, CancellationToken ct);
 }
 
+/// <summary>
+/// MSFX 同步实现：委托 Repo，并兼任自动跑批 Store
+/// </summary>
 public sealed class SyncService : ISyncService, IMsfxAutoRunStore
 {
     private readonly IMsfxSyncRepo _repo;
