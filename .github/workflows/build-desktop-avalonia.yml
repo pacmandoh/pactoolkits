@@ -74,7 +74,9 @@ jobs:
             win-x64|win-arm64) ;;
             *) echo "Unsupported runtime: $RUNTIME" >&2; exit 1 ;;
           esac
-          dotnet publish apps/desktop-avalonia/src/PacToolkits.Desktop.Avalonia.csproj -c Release -f net10.0 -r "$RUNTIME" --self-contained false
+          project="apps/desktop-avalonia/src/PacToolkits.Desktop.Avalonia.csproj"
+          dotnet restore "$project" --locked-mode -r "$RUNTIME"
+          dotnet publish "$project" -c Release -f net10.0 -r "$RUNTIME" --no-restore --self-contained false
 
       - name: Validate publish output
         shell: bash
@@ -83,10 +85,6 @@ jobs:
           publish_dir="apps/desktop-avalonia/src/bin/Release/net10.0/$RUNTIME/publish"
           required_files=(
             "PacToolkits.Desktop.exe"
-            "Postgres/Bootstrap/000_init_meta.sql"
-            "Postgres/Verify/01_structure.sql"
-            "Postgres/Verify/02_constraints.sql"
-            "Postgres/Verify/03_schema_version.sql"
           )
           for file in "${required_files[@]}"; do
             path="$publish_dir/$file"

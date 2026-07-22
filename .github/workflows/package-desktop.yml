@@ -3,9 +3,6 @@ name: Package Desktop
 on:
   workflow_call:
     inputs:
-      implementation:
-        required: true
-        type: string
       desktop_artifact_name:
         required: true
         type: string
@@ -38,18 +35,15 @@ on:
         required: false
         type: number
         default: 3
-  workflow_dispatch:
-
 permissions:
   contents: read
 
 jobs:
   package_desktop:
-    name: Package Desktop (${{ inputs.implementation }})
+    name: Package Desktop
     runs-on: ubuntu-latest
     env:
-      VPK_CACHE_KEY: vpk-global-tool-v1
-      IMPLEMENTATION: ${{ inputs.implementation }}
+      VPK_VERSION: 1.2.0
       DESKTOP_ARTIFACT_NAME: ${{ inputs.desktop_artifact_name }}
       MAIN_EXE: ${{ inputs.main_exe }}
       ICON_PATH: ${{ inputs.icon_path }}
@@ -80,24 +74,23 @@ jobs:
           path: |
             ~/.dotnet/tools
             ~/.dotnet/toolResolverCache
-          key: ${{ runner.os }}-${{ env.VPK_CACHE_KEY }}-${{ hashFiles('.github/workflows/package-desktop.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.VPK_CACHE_KEY }}-
+          key: ${{ runner.os }}-vpk-${{ env.VPK_VERSION }}
 
       - name: Install vpk
         shell: bash
         run: |
           set -euo pipefail
-          command -v vpk >/dev/null 2>&1 || dotnet tool install -g vpk
+          installed_version="$(dotnet tool list -g | awk '$1 == "vpk" { print $2 }')"
+          if [[ -z "$installed_version" ]]; then
+            dotnet tool install -g vpk --version "$VPK_VERSION"
+          elif [[ "$installed_version" != "$VPK_VERSION" ]]; then
+            dotnet tool update -g vpk --version "$VPK_VERSION"
+          fi
 
       - name: Validate release plan inputs
         shell: bash
         run: |
           set -euo pipefail
-          case "$IMPLEMENTATION" in
-            avalonia) ;;
-            *) echo "Unsupported implementation: $IMPLEMENTATION" >&2; exit 1 ;;
-          esac
           case "$RUNTIME" in
             win-x64|win-arm64) ;;
             *) echo "Unsupported runtime: $RUNTIME" >&2; exit 1 ;;
@@ -106,14 +99,9 @@ jobs:
           [[ "$PRODUCT_VERSION" =~ $semver_re ]] || { echo "Invalid product_version: $PRODUCT_VERSION" >&2; exit 1; }
           [[ "$DESKTOP_VERSION" =~ $semver_re ]] || { echo "Invalid desktop_version: $DESKTOP_VERSION" >&2; exit 1; }
           [[ -f "$ICON_PATH" ]] || { echo "Installer icon missing: $ICON_PATH" >&2; exit 1; }
-          jq -e --arg implementation "$IMPLEMENTATION" '
-            (
-              .components.desktop
-              | type == "object" and
-                (keys | length) == 1 and
-                has($implementation) and
-                (.[$implementation] | type == "object")
-            ) and
+          jq -e '
+            ((.components.desktop | keys) == ["avalonia"]) and
+            (.components.desktop.avalonia | type == "object") and
             (.components.agents.artifact["windows-x64"] | type == "string" and length > 0) and
             (.components.agents.modules | type == "object" and length > 0)
           ' release-manifest.json >/dev/null

@@ -2,7 +2,6 @@ name: Publish Release
 
 on:
   workflow_call:
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -23,7 +22,6 @@ jobs:
           validate_manifest_v2 release-manifest.json
           channel="$(manifest_release_channel release-manifest.json)"
           product_version="$(manifest_product_version release-manifest.json)"
-          migration_policy="$(manifest_database_migration_policy release-manifest.json)"
           prerelease="$(expected_release_prerelease release-manifest.json)"
           if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
             validate_release_tag_matches_product_version "${GITHUB_REF_NAME:-}" release-manifest.json
@@ -34,9 +32,8 @@ jobs:
           esac
           echo "RELEASE_CHANNEL=$channel" >> "$GITHUB_ENV"
           echo "PRODUCT_VERSION=$product_version" >> "$GITHUB_ENV"
-          echo "MIGRATION_POLICY=$migration_policy" >> "$GITHUB_ENV"
           echo "EXPECTED_PRERELEASE=$prerelease" >> "$GITHUB_ENV"
-          echo "Release plan: channel=$channel version=$product_version migrationPolicy=$migration_policy desktop=$(manifest_desktop_implementation release-manifest.json)"
+          echo "Release plan: channel=$channel version=$product_version desktop=avalonia"
 
       - name: Download desktop release artifact
         uses: actions/download-artifact@v8

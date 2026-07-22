@@ -11,7 +11,6 @@ on:
       - 'apps/desktop-avalonia/**'
       - 'packages/**'
       - 'runtime/agents/**'
-      - 'database/postgres/**'
       - '.github/workflows/build-windows-test-package.yml'
       - '.github/workflows/build-agents.yml'
       - '.github/workflows/build-desktop-avalonia.yml'
@@ -55,7 +54,6 @@ jobs:
   build_desktop_avalonia:
     needs:
       - resolve_release_plan
-    if: needs.resolve_release_plan.outputs.implementation == 'avalonia'
     uses: ./.github/workflows/build-desktop-avalonia.yml
     with:
       runtime: ${{ inputs.runtime || 'win-arm64' }}
@@ -71,11 +69,9 @@ jobs:
       always() &&
       needs.resolve_release_plan.result == 'success' &&
       needs.build_agents.result == 'success' &&
-      needs.resolve_release_plan.outputs.implementation == 'avalonia' &&
       needs.build_desktop_avalonia.result == 'success'
     uses: ./.github/workflows/package-desktop.yml
     with:
-      implementation: ${{ needs.resolve_release_plan.outputs.implementation }}
       desktop_artifact_name: ${{ needs.resolve_release_plan.outputs.desktop_artifact_name }}
       main_exe: ${{ needs.resolve_release_plan.outputs.main_exe }}
       icon_path: ${{ needs.resolve_release_plan.outputs.icon_path }}

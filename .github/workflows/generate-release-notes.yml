@@ -10,7 +10,10 @@ permissions:
 jobs:
   generate_release_notes:
     name: Generate Release Notes
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    env:
+      CHANGELOGITHUB_VERSION: 14.0.0
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -20,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: '24'
 
       - name: Generate or update release notes
         run: |
@@ -31,7 +34,7 @@ jobs:
           if [[ -n "$PREV_V_TAG" ]]; then
             ARGS+=(--from "$PREV_V_TAG")
           fi
-          npx changelogithub "${ARGS[@]}"
+          npx --yes "changelogithub@${CHANGELOGITHUB_VERSION}" "${ARGS[@]}"
         env:
           GITHUB_TOKEN: ${{ github.token }}
 

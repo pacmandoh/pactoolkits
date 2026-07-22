@@ -8,11 +8,8 @@ on:
         type: string
         default: win-x64
     outputs:
-      implementation:
-        description: Formal desktop implementation from manifest (avalonia)
-        value: ${{ jobs.resolve_release_plan.outputs.implementation }}
       desktop_version:
-        description: components.desktop.<impl>.version
+        description: components.desktop.avalonia.version
         value: ${{ jobs.resolve_release_plan.outputs.desktop_version }}
       product_version:
         description: product.version
@@ -50,7 +47,6 @@ jobs:
     name: Resolve Release Plan
     runs-on: ubuntu-latest
     outputs:
-      implementation: ${{ steps.plan.outputs.implementation }}
       desktop_version: ${{ steps.plan.outputs.desktop_version }}
       product_version: ${{ steps.plan.outputs.product_version }}
       pack_id: ${{ steps.plan.outputs.pack_id }}

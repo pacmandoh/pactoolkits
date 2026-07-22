@@ -22,6 +22,10 @@ jobs:
     runs-on: windows-latest
     env:
       RUNTIME: ${{ inputs.runtime || 'win-x64' }}
+      AUTOHOTKEY_VERSION: 2.0.19
+      AHK2EXE_TAG: Ahk2Exe1.1.37.02a2
+      AHK2EXE_ZIP_SHA256: c29b8c3a5124850d79fc9e66e2ca79677c377d7f31631ad3022ba159c5d9e3be
+      AHK2EXE_EXE_SHA256: e54a599b19baa5c1688849bbae7a9cf049eefccd4f704c67941b40da13a625b2
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -29,9 +33,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - name: Read manifest agents version
+        id: versions
         shell: pwsh
         run: |
           $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
@@ -45,6 +50,7 @@ jobs:
           }
           "AGENTS_VERSION=$agentsVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "INJECTOR_MODULE_VERSION=$injectorVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "injector_module_version=$injectorVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Sync Injector module.json version from manifest
         shell: pwsh
@@ -63,7 +69,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~\PacToolkits-Agents-cache\${{ env.RUNTIME }}\Injector.exe
-          key: ${{ runner.os }}-pactoolkits-agents-injector-module-${{ env.RUNTIME }}-${{ hashFiles('release-manifest.json', 'runtime/agents/modules/injector/main.ahk', 'runtime/agents/modules/injector/src/**/*.ahk', '.github/workflows/build-agents.yml') }}
+          key: ${{ runner.os }}-injector-${{ env.RUNTIME }}-${{ steps.versions.outputs.injector_module_version }}-ahk${{ env.AUTOHOTKEY_VERSION }}-${{ env.AHK2EXE_TAG }}-${{ env.AHK2EXE_EXE_SHA256 }}-${{ hashFiles('runtime/agents/modules/injector/main.ahk', 'runtime/agents/modules/injector/src/**/*.ahk') }}
 
       - name: Report Injector cache status
         shell: pwsh
@@ -78,8 +84,15 @@ jobs:
             "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe",
             "C:\Program Files\AutoHotkey\AutoHotkey64.exe"
           )
-          if (-not ($baseCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1)) {
-            choco install autohotkey --version=2.0.19 --no-progress -y
+          $baseExe = $baseCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          [string]$actualVersion = if ($baseExe) { (Get-Item $baseExe).VersionInfo.ProductVersion } else { "" }
+          if (-not $actualVersion.StartsWith($env:AUTOHOTKEY_VERSION, [System.StringComparison]::Ordinal)) {
+            choco install autohotkey --version=$env:AUTOHOTKEY_VERSION --allow-downgrade --force --no-progress -y
+            $baseExe = $baseCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+            [string]$actualVersion = if ($baseExe) { (Get-Item $baseExe).VersionInfo.ProductVersion } else { "" }
+          }
+          if (-not $baseExe -or -not $actualVersion.StartsWith($env:AUTOHOTKEY_VERSION, [System.StringComparison]::Ordinal)) {
+            throw "AutoHotkey version mismatch: expected=$env:AUTOHOTKEY_VERSION actual=$actualVersion"
           }
 
       - name: Cache Ahk2Exe asset
@@ -88,9 +101,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~\ahk2exe-cache
-          key: ${{ runner.os }}-ahk2exe-asset-v1-${{ hashFiles('.github/workflows/build-agents.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-ahk2exe-asset-v1-
+          key: ${{ runner.os }}-ahk2exe-${{ env.AHK2EXE_TAG }}-${{ env.AHK2EXE_EXE_SHA256 }}
 
       - name: Resolve Ahk2Exe compiler
         if: steps.cache_injector_module.outputs.cache-hit != 'true'
@@ -128,23 +139,21 @@ jobs:
               Select-Object -First 1 -ExpandProperty FullName
           }
 
-          $compilerPath = Join-Path (Join-Path $ahkBase "Compiler") "Ahk2Exe.exe"
           $cacheRoot = Join-Path $env:USERPROFILE "ahk2exe-cache"
           $cachedCompiler = Join-Path $cacheRoot "Ahk2Exe.exe"
-          if (-not (Test-Path $compilerPath) -and (Test-Path $cachedCompiler)) {
-            $compilerTargetDir = Join-Path $ahkBase "Compiler"
-            New-Item -ItemType Directory -Force -Path $compilerTargetDir | Out-Null
-            Copy-Item -Path (Join-Path $cacheRoot "*") -Destination $compilerTargetDir -Recurse -Force
-          }
-          if (Test-Path $compilerPath) {
-            $baseExe = Find-AhkBase
-            if (-not $baseExe) { throw "AutoHotkey base executable not found for runtime=$env:RUNTIME." }
-            "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            "AHK_BASE_PATH=$baseExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            exit 0
+          if (Test-Path $cachedCompiler) {
+            $cachedHash = (Get-FileHash -Path $cachedCompiler -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($cachedHash -eq $env:AHK2EXE_EXE_SHA256) {
+              $baseExe = Find-AhkBase
+              if (-not $baseExe) { throw "AutoHotkey base executable not found for runtime=$env:RUNTIME." }
+              "AHK2EXE_PATH=$cachedCompiler" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              "AHK_BASE_PATH=$baseExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              exit 0
+            }
+            Remove-Item -Path $cacheRoot -Recurse -Force
           }
 
-          $api = "https://api.github.com/repos/AutoHotkey/Ahk2Exe/releases/latest"
+          $api = "https://api.github.com/repos/AutoHotkey/Ahk2Exe/releases/tags/$env:AHK2EXE_TAG"
           $headers = @{
             "Authorization" = "Bearer $env:GITHUB_TOKEN"
             "Accept" = "application/vnd.github+json"
@@ -163,6 +172,10 @@ jobs:
             "Authorization" = "Bearer $env:GITHUB_TOKEN"
             "Accept" = "application/octet-stream"
           } -OutFile $zipPath
+          $actualHash = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualHash -ne $env:AHK2EXE_ZIP_SHA256) {
+            throw "Ahk2Exe archive hash mismatch: expected=$env:AHK2EXE_ZIP_SHA256 actual=$actualHash"
+          }
           Expand-Archive -Path $zipPath -DestinationPath $extractRoot -Force
 
           $compilerSource = Get-ChildItem -Path $extractRoot -Recurse -File -Filter Ahk2Exe.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
@@ -170,14 +183,15 @@ jobs:
             throw "Downloaded Ahk2Exe asset but Ahk2Exe.exe was not found in extracted contents."
           }
 
-          $compilerTargetDir = Join-Path $ahkBase "Compiler"
-          if (Test-Path $compilerTargetDir) { Remove-Item -Path $compilerTargetDir -Recurse -Force }
-          New-Item -ItemType Directory -Force -Path $compilerTargetDir | Out-Null
-          Copy-Item -Path (Join-Path $extractRoot "*") -Destination $compilerTargetDir -Recurse -Force
-          $compilerPath = Join-Path $compilerTargetDir "Ahk2Exe.exe"
-          if (-not (Test-Path $compilerPath)) { throw "Ahk2Exe deploy failed: $compilerPath not found after copy." }
+          if (Test-Path $cacheRoot) { Remove-Item -Path $cacheRoot -Recurse -Force }
           New-Item -ItemType Directory -Force -Path $cacheRoot | Out-Null
-          Copy-Item -Path (Join-Path $compilerTargetDir "*") -Destination $cacheRoot -Recurse -Force
+          Copy-Item -Path (Join-Path $extractRoot "*") -Destination $cacheRoot -Recurse -Force
+          $compilerPath = $cachedCompiler
+          if (-not (Test-Path $compilerPath)) { throw "Ahk2Exe deploy failed: $compilerPath not found after copy." }
+          $compilerHash = (Get-FileHash -Path $compilerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($compilerHash -ne $env:AHK2EXE_EXE_SHA256) {
+            throw "Ahk2Exe executable hash mismatch: expected=$env:AHK2EXE_EXE_SHA256 actual=$compilerHash"
+          }
           $baseExe = Find-AhkBase
           if (-not $baseExe) { throw "AutoHotkey base executable not found for runtime=$env:RUNTIME." }
           "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -262,9 +276,13 @@ jobs:
           Copy-Item "runtime/agents/modules/injector/module.json" (Join-Path $moduleDir "module.json") -Force
           # 与 Desktop 一样走 FDD：Host 只是薄模块管理器，不是第二套运行时捆绑
           # EnableCompressionInSingleFile 要求 self-contained，FDD 下须关闭
+          dotnet restore "runtime/agents/host/PacToolkits.Agents.Host.csproj" `
+            --locked-mode `
+            -r $env:RUNTIME
           dotnet publish "runtime/agents/host/PacToolkits.Agents.Host.csproj" `
             -c Release `
             -r $env:RUNTIME `
+            --no-restore `
             --self-contained false `
             -p:PublishSingleFile=true `
             -o $stagingDir `

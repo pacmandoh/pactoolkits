@@ -6,8 +6,6 @@ on:
     branches:
       - main
       - beta
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -20,8 +18,8 @@ on:
         required: true
         type: boolean
         default: false
-      allow_beta_db_migration:
-        description: Explicitly authorize isolated Beta database migrations
+      allow_beta_db_change:
+        description: Explicitly authorize Beta database changes
         required: true
         type: boolean
         default: false
@@ -35,7 +33,7 @@ on:
         required: false
         type: boolean
         default: false
-      allow_beta_db_migration:
+      allow_beta_db_change:
         required: false
         type: boolean
         default: false
@@ -56,42 +54,17 @@ jobs:
         id: inputs
         shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
           INPUT_CONFIRM: ${{ inputs.confirm }}
-          INPUT_ALLOW_BETA_DB_MIGRATION: ${{ inputs.allow_beta_db_migration }}
+          INPUT_ALLOW_BETA_DB_CHANGE: ${{ inputs.allow_beta_db_change }}
         run: |
           set -euo pipefail
           dry_run="${INPUT_DRY_RUN:-true}"
           confirm="${INPUT_CONFIRM:-false}"
-          allow_beta_db_migration="${INPUT_ALLOW_BETA_DB_MIGRATION:-false}"
-          if [[ "$EVENT_NAME" == "push" && "${GITHUB_REF:-}" == refs/tags/v* ]]; then
-            dry_run=false
-            confirm=true
-          fi
-          # Beta 分支 CI：相对 origin/main 的 isolated-beta migration 需显式授权
-          # tag/release 的授权由 workflow_dispatch 输入与 release.yml 的 release_gate 强制
-          if [[ "$allow_beta_db_migration" != "true" ]]; then
-            channel="$(jq -r '.release.channel // empty' release-manifest.json)"
-            policy="$(jq -r '.components.database.postgres.migrationPolicy // "stable-only"' release-manifest.json)"
-            if [[ "$channel" == "beta" && "$policy" == "isolated-beta" ]]; then
-              case "$EVENT_NAME" in
-                push)
-                  if [[ "${GITHUB_REF:-}" == refs/heads/beta ]]; then
-                    allow_beta_db_migration=true
-                  fi
-                  ;;
-                pull_request)
-                  if [[ "${GITHUB_BASE_REF:-}" == "beta" ]]; then
-                    allow_beta_db_migration=true
-                  fi
-                  ;;
-              esac
-            fi
-          fi
+          allow_beta_db_change="${INPUT_ALLOW_BETA_DB_CHANGE:-false}"
           echo "dry_run=$dry_run" >> "$GITHUB_OUTPUT"
           echo "confirm=$confirm" >> "$GITHUB_OUTPUT"
-          echo "allow_beta_db_migration=$allow_beta_db_migration" >> "$GITHUB_OUTPUT"
+          echo "allow_beta_db_change=$allow_beta_db_change" >> "$GITHUB_OUTPUT"
 
       - name: Validate release channel
         shell: bash
@@ -119,10 +92,7 @@ jobs:
       - name: Validate database policy
         shell: bash
         env:
-          ALLOW_BETA_DB_MIGRATION: ${{ steps.inputs.outputs.allow_beta_db_migration }}
-          GITHUB_BASE_REF: ${{ github.base_ref }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
+          ALLOW_BETA_DB_CHANGE: ${{ steps.inputs.outputs.allow_beta_db_change }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin \
@@ -132,4 +102,4 @@ jobs:
           scripts/validate-database-policy.sh \
             --manifest release-manifest.json \
             --base-ref "$base_ref" \
-            --allow-beta-migration "$ALLOW_BETA_DB_MIGRATION"
+            --allow-beta-db-change "$ALLOW_BETA_DB_CHANGE"
