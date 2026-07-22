@@ -57,7 +57,8 @@ fi
 
 while IFS= read -r component_id; do
   [[ -n "$component_id" ]] || continue
-  agents_json="$ROOT_DIR/$(manifest_agents_source_dir "$component_id")/ReleaseManifest.json"
+  agents_dir="$ROOT_DIR/$(manifest_agents_source_dir "$component_id")"
+  agents_json="$agents_dir/ReleaseManifest.json"
   [[ -f "$agents_json" ]] || {
     echo "ERROR: missing $agents_json (run scripts/export-version.sh)" >&2
     exit 1
@@ -67,6 +68,22 @@ while IFS= read -r component_id; do
     echo "ERROR: $agents_json does not match release-manifest.json" >&2
     exit 1
   fi
+
+  agents_props="$agents_dir/Version.g.props"
+  [[ -f "$agents_props" ]] || {
+    echo "ERROR: missing $agents_props (run scripts/export-version.sh)" >&2
+    exit 1
+  }
+  if command -v rg > /dev/null 2>&1; then
+    agents_props_app="$(rg -o "<AppVersion>[^<]+</AppVersion>" "$agents_props" | sed -E 's#<AppVersion>([^<]+)</AppVersion>#\1#')"
+  else
+    agents_props_app="$(grep -oE "<AppVersion>[^<]+</AppVersion>" "$agents_props" | sed -E 's#<AppVersion>([^<]+)</AppVersion>#\1#')"
+  fi
+  agents_manifest_ver="$(manifest_agents_version "$MANIFEST")"
+  [[ "$agents_props_app" == "$agents_manifest_ver" ]] || {
+    echo "ERROR: $agents_props AppVersion=$agents_props_app != agents.version=$agents_manifest_ver" >&2
+    exit 1
+  }
 done < <(manifest_agents_component_ids "$MANIFEST")
 
 while IFS= read -r module_id; do

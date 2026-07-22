@@ -274,6 +274,7 @@ jobs:
           $moduleDir = Join-Path $stagingDir "Modules/Injector"
           New-Item -ItemType Directory -Path $moduleDir -Force | Out-Null
           Copy-Item "runtime/agents/modules/injector/module.json" (Join-Path $moduleDir "module.json") -Force
+          Copy-Item "runtime/agents/host/ReleaseManifest.json" (Join-Path $stagingDir "ReleaseManifest.json") -Force
           # 与 Desktop 一样走 FDD：Host 只是薄模块管理器，不是第二套运行时捆绑
           # EnableCompressionInSingleFile 要求 self-contained，FDD 下须关闭
           dotnet restore "runtime/agents/host/PacToolkits.Agents.Host.csproj" `
@@ -322,6 +323,19 @@ jobs:
           }
           if (-not (Test-Path "artifacts/agents/$env:RUNTIME/Modules/Injector/module.json")) {
             throw "module.json missing in staging output"
+          }
+
+          $hostFileVersion = (Get-Item $hostExe).VersionInfo.FileVersion
+          $hostProductVersion = (Get-Item $hostExe).VersionInfo.ProductVersion
+          $agentsVersion4 = "$env:AGENTS_VERSION.0"
+          if ($hostFileVersion -ne $agentsVersion4) {
+            throw "Host FileVersion mismatch. expected=$agentsVersion4 actual=$hostFileVersion"
+          }
+          if ($hostProductVersion -ne $agentsVersion4 -and $hostProductVersion -notlike "$env:AGENTS_VERSION*") {
+            throw "Host ProductVersion mismatch. expected prefix=$env:AGENTS_VERSION actual=$hostProductVersion"
+          }
+          if (-not (Test-Path "artifacts/agents/$env:RUNTIME/ReleaseManifest.json")) {
+            throw "ReleaseManifest.json missing in Agents staging output"
           }
 
       - name: Upload Agents artifact

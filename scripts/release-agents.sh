@@ -128,6 +128,10 @@ validate_agents_artifact_layout() {
     echo "ERROR: missing module.json: $module_dir/module.json" >&2
     return 1
   }
+  [[ -f "$dir/ReleaseManifest.json" ]] || {
+    echo "ERROR: missing Agents ReleaseManifest.json: $dir/ReleaseManifest.json" >&2
+    return 1
+  }
 }
 
 DRY_RUN="false"

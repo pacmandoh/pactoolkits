@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="Version.g.props" Condition="Exists('Version.g.props')" />
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -13,9 +15,15 @@
     <Company>PacDocs</Company>
     <Description>PacToolkits Agents entry process that hosts modules</Description>
     <ApplicationIcon>assets\pactoolkits-agents.ico</ApplicationIcon>
+    <AppVersion Condition="'$(AppVersion)' == ''">0.0.0-local</AppVersion>
+    <Version Condition="'$(Version)' == ''">$(AppVersion)</Version>
+    <AssemblyVersion Condition="'$(AssemblyVersion)' == ''">0.0.0.0</AssemblyVersion>
+    <FileVersion Condition="'$(FileVersion)' == ''">0.0.0.0</FileVersion>
+    <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(AppVersion)+local</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="ReleaseManifest.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('ReleaseManifest.json')" />
     <ProjectReference Include="..\..\..\packages\agents-contracts\PacToolkits.Agents.Contracts.csproj" />
   </ItemGroup>
 

@@ -332,6 +332,7 @@ AGENT_MIN_BYTES=4096
 if [[ "$DRY_RUN" == "true" ]]; then
   printf '[dry-run] mkdir -p %q\n' "$AGENT_DST_DIR/Modules/Injector"
   printf '[dry-run] cp -f %q %q\n' "$AGENT_HOST_SRC" "$AGENT_HOST_DST"
+  printf '[dry-run] cp -f %q %q\n' "$AGENT_SRC_DIR/ReleaseManifest.json" "$AGENT_DST_DIR/ReleaseManifest.json"
   printf '[dry-run] cp -R %q/. %q/\n' "$AGENT_MODULE_SRC" "$AGENT_MODULE_DST"
 else
   [[ -f "$AGENT_HOST_SRC" ]] || {
@@ -353,6 +354,12 @@ else
   }
   mkdir -p "$AGENT_MODULE_DST"
   cp -f "$AGENT_HOST_SRC" "$AGENT_HOST_DST"
+  if [[ -f "$AGENT_SRC_DIR/ReleaseManifest.json" ]]; then
+    cp -f "$AGENT_SRC_DIR/ReleaseManifest.json" "$AGENT_DST_DIR/ReleaseManifest.json"
+  else
+    echo "ERROR: missing Agents ReleaseManifest.json: $AGENT_SRC_DIR/ReleaseManifest.json" >&2
+    exit 1
+  fi
   cp -R "$AGENT_MODULE_SRC/." "$AGENT_MODULE_DST/"
   [[ -f "$AGENT_HOST_DST" ]] || {
     echo "ERROR: failed to copy Host binary to publish output" >&2

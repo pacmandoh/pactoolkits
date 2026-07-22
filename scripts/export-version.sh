@@ -46,11 +46,26 @@ XML
 manifest_snapshot="$DESKTOP_AVALONIA_DIR/ReleaseManifest.json"
 jq -S . "$MANIFEST" > "$manifest_snapshot"
 
+agents_version="$(manifest_agents_version "$MANIFEST")"
+agents_assembly_version="$(semver_stable_base "$agents_version")"
+
 while IFS= read -r component_id; do
   [[ -n "$component_id" ]] || continue
   agents_dir="$ROOT_DIR/$(manifest_agents_source_dir "$component_id")"
   mkdir -p "$agents_dir"
   cp "$manifest_snapshot" "$agents_dir/ReleaseManifest.json"
+
+  cat > "$agents_dir/Version.g.props" << XML
+<Project>
+  <PropertyGroup>
+    <AppVersion>$agents_version</AppVersion>
+    <Version>$agents_version</Version>
+    <AssemblyVersion>${agents_assembly_version}.0</AssemblyVersion>
+    <FileVersion>${agents_assembly_version}.0</FileVersion>
+    <InformationalVersion>${agents_version}+${build_channel}.${build_date}</InformationalVersion>
+  </PropertyGroup>
+</Project>
+XML
 done < <(manifest_agents_component_ids "$MANIFEST")
 
 while IFS= read -r module_id; do
@@ -82,6 +97,7 @@ echo "- $manifest_snapshot"
 while IFS= read -r component_id; do
   [[ -n "$component_id" ]] || continue
   echo "- $ROOT_DIR/$(manifest_agents_source_dir "$component_id")/ReleaseManifest.json"
+  echo "- $ROOT_DIR/$(manifest_agents_source_dir "$component_id")/Version.g.props"
 done < <(manifest_agents_component_ids "$MANIFEST")
 while IFS= read -r module_id; do
   [[ -n "$module_id" ]] || continue
