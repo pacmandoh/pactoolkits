@@ -26,7 +26,7 @@ public sealed class AgentsPathTests : IDisposable
     {
         var toolsDirectory = Path.Combine(_baseDirectory, "Tools");
         Directory.CreateDirectory(toolsDirectory);
-        File.WriteAllText(Path.Combine(toolsDirectory, AgentsPaths.MainToolsFileName), string.Empty);
+        File.WriteAllText(Path.Combine(toolsDirectory, AgentsPaths.LegacyToolsFileName), string.Empty);
 
         var resolution = AgentsPath.ResolveHost(null, _baseDirectory);
 
@@ -53,10 +53,10 @@ public sealed class AgentsPathTests : IDisposable
     public void ResolveHost_main_tools_config_rewrites_to_host()
     {
         CreateHostExecutable();
-        CreateMainToolsExecutable();
+        CreateLegacyToolsExecutable();
 
         var resolution = AgentsPath.ResolveHost(
-            AgentsPaths.MainToolsExecutable,
+            AgentsPaths.LegacyToolsExecutable,
             _baseDirectory);
 
         Assert.Equal(HostExecutableResolutionSource.Standard, resolution.Source);
@@ -68,10 +68,10 @@ public sealed class AgentsPathTests : IDisposable
     [Fact]
     public void ResolveHost_main_tools_rewrites_without_host_binary()
     {
-        CreateMainToolsExecutable();
+        CreateLegacyToolsExecutable();
 
         var resolution = AgentsPath.ResolveHost(
-            AgentsPaths.MainToolsExecutable,
+            AgentsPaths.LegacyToolsExecutable,
             _baseDirectory);
 
         Assert.Equal(HostExecutableResolutionSource.Missing, resolution.Source);
@@ -113,18 +113,18 @@ public sealed class AgentsPathTests : IDisposable
     [InlineData(@".\Tools\pacinjector.exe")]
     [InlineData(@"Tools/pacinjector.exe")]
     [InlineData(@"C:\Apps\PacToolkits\Tools\pacinjector.exe")]
-    public void IsMainTools_accepts(string storedPath)
+    public void IsLegacyTools_accepts(string storedPath)
     {
-        Assert.True(AgentsPath.IsMainToolsStoredPath(storedPath));
+        Assert.True(AgentsPath.IsLegacyToolsStoredPath(storedPath));
     }
 
     [Theory]
     [InlineData(@".\Agents\Agents.exe")]
     [InlineData(@".\Agents\Modules\Injector\Injector.exe")]
     [InlineData(@"D:\Other\pacinjector.exe")]
-    public void IsMainTools_rejects(string storedPath)
+    public void IsLegacyTools_rejects(string storedPath)
     {
-        Assert.False(AgentsPath.IsMainToolsStoredPath(storedPath));
+        Assert.False(AgentsPath.IsLegacyToolsStoredPath(storedPath));
     }
 
     [Fact]
@@ -154,10 +154,10 @@ public sealed class AgentsPathTests : IDisposable
         File.WriteAllText(Path.Combine(standardDirectory, AgentsPaths.HostExecutableFileName), string.Empty);
     }
 
-    private void CreateMainToolsExecutable()
+    private void CreateLegacyToolsExecutable()
     {
         var toolsDirectory = Path.Combine(_baseDirectory, "Tools");
         Directory.CreateDirectory(toolsDirectory);
-        File.WriteAllText(Path.Combine(toolsDirectory, AgentsPaths.MainToolsFileName), string.Empty);
+        File.WriteAllText(Path.Combine(toolsDirectory, AgentsPaths.LegacyToolsFileName), string.Empty);
     }
 }

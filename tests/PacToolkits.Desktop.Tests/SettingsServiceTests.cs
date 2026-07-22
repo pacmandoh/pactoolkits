@@ -10,79 +10,53 @@ public sealed class SettingsServiceTests
     [Fact]
     public void AppliedDb_returns_config_service_current()
     {
-        var service = CreateService(new FakeMigrationService(), new DbAccessGuard(), schemaVersion: "1.2.22");
+        var service = CreateService(new DbAccessGuard(), schemaVersion: "1.2.22");
 
         Assert.Equal("current-host", service.AppliedDb.Host);
         Assert.Equal("current-db", service.AppliedDb.Database);
     }
 
     [Fact]
-    public async Task Validate_connection_reports_schema_incompatibility_for_beta_below_minimum()
+    public async Task Validate_connection_reports_schema_below_minimum_without_migrating()
     {
-        var migration = new FakeMigrationService();
-        var service = CreateService(migration, new DbAccessGuard(), schemaVersion: "1.2.20");
+        var service = CreateService(new DbAccessGuard(), schemaVersion: "1.2.20");
 
         var result = await service.ValidateDbConnectionAsync(
             new PgOptions(),
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.21",
-                DesktopMaxDbSchema: "1.2.22",
-                AgentsMinDbSchema: "1.2.21",
-                AgentsMaxDbSchema: "1.2.22",
-                TargetDbSchemaVersion: "1.2.22",
-                ReleaseChannel: "beta",
-                MigrationPolicy: DbMigrationPolicies.StableOnly),
+            Context("1.2.21", "1.2.22"),
             CancellationToken.None);
 
         Assert.True(result.ConnectionOk);
-        Assert.True(result.SchemaMigrationOk);
         Assert.False(result.SchemaCompatible);
-        Assert.Equal(0, migration.CallCount);
         Assert.Contains("不兼容", result.IncompatibleMessage ?? string.Empty, StringComparison.Ordinal);
-        Assert.DoesNotContain("Beta 应用禁止迁移", result.IncompatibleMessage ?? string.Empty, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Validate_candidate_connection_skips_migration_without_blocking_current_database()
+    public async Task Validate_candidate_connection_does_not_block_current_database()
     {
-        var migration = new FakeMigrationService();
         var guard = new DbAccessGuard();
-        var service = CreateService(migration, guard, schemaVersion: "1.2.23");
+        var service = CreateService(guard, schemaVersion: "1.2.23");
 
         var result = await service.ValidateDbConnectionAsync(
             new PgOptions(),
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.20",
-                DesktopMaxDbSchema: "1.2.22",
-                AgentsMinDbSchema: "1.2.20",
-                AgentsMaxDbSchema: "1.2.25",
-                TargetDbSchemaVersion: "1.2.22"),
+            Context("1.2.20", "1.2.22"),
             CancellationToken.None);
 
         Assert.True(result.ConnectionOk);
         Assert.False(result.SchemaCompatible);
-        Assert.Equal(0, migration.CallCount);
         Assert.False(guard.IsBlocked);
-        Assert.Contains(
-            "数据库版本高于当前程序支持范围",
-            result.IncompatibleMessage ?? string.Empty,
+        Assert.Contains("数据库版本高于当前程序支持范围", result.IncompatibleMessage ?? string.Empty,
             StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task Read_current_connection_status_blocks_database_when_schema_is_above_maximum()
     {
-        var migration = new FakeMigrationService();
         var guard = new DbAccessGuard();
-        var service = CreateService(migration, guard, schemaVersion: "1.2.23");
+        var service = CreateService(guard, schemaVersion: "1.2.23");
 
         var snapshot = await service.GetSchemaStatusAsync(
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.20",
-                DesktopMaxDbSchema: "1.2.22",
-                AgentsMinDbSchema: "1.2.20",
-                AgentsMaxDbSchema: "1.2.25",
-                TargetDbSchemaVersion: "1.2.22"),
+            Context("1.2.20", "1.2.22"),
             CancellationToken.None);
 
         Assert.Equal(DbSchemaCompatibility.AboveMaximum, snapshot.Compatibility);
@@ -90,132 +64,32 @@ public sealed class SettingsServiceTests
     }
 
     [Fact]
-    public async Task Ensure_schema_up_to_date_blocks_beta_channel_migration()
-    {
-        var migration = new FakeMigrationService();
-        var service = CreateService(migration, new DbAccessGuard(), schemaVersion: "1.2.20");
-
-        var result = await service.MigrateSchemaAsync(
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.21",
-                DesktopMaxDbSchema: "1.2.22",
-                AgentsMinDbSchema: "1.2.21",
-                AgentsMaxDbSchema: "1.2.22",
-                TargetDbSchemaVersion: "1.2.22",
-                ReleaseChannel: "beta",
-                MigrationPolicy: DbMigrationPolicies.StableOnly),
-            DbMigrationTrigger.SettingsManual,
-            userConfirmed: false,
-            ciMigrationAuthorized: false,
-            ct: CancellationToken.None);
-
-        Assert.False(result.Ok);
-        Assert.Equal(0, migration.CallCount);
-        Assert.Contains("Beta 应用禁止迁移", result.Summary, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task Validate_connection_uses_explicit_options_not_current_config()
     {
-        var migration = new FakeMigrationService();
         var schemaService = new TrackingSchemaVersionService();
-        var environmentService = new TrackingDbEnvSettingsService();
         var currentConfig = new FakeDbConfigService();
         var explicitOptions = new PgOptions { Host = "explicit-host", Database = "explicit-db" };
         var service = new SettingsService(
             currentConfig,
             new FakeConnectionTester(),
             schemaService,
-            migration,
             new FakeClientIdReadRepo(),
-            new DbAccessGuard(),
-            new DbMigrationPolicyService(environmentService),
-            environmentService);
+            new DbAccessGuard());
 
         await service.ValidateDbConnectionAsync(
             explicitOptions,
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.20",
-                DesktopMaxDbSchema: "1.2.22",
-                AgentsMinDbSchema: "1.2.20",
-                AgentsMaxDbSchema: "1.2.22",
-                TargetDbSchemaVersion: "1.2.22"),
+            Context("1.2.20", "1.2.22"),
             CancellationToken.None);
 
         Assert.Equal(explicitOptions.Host, schemaService.LastOptions?.Host);
         Assert.Equal(explicitOptions.Database, schemaService.LastOptions?.Database);
-        Assert.Equal(explicitOptions.Host, environmentService.LastOptions?.Host);
-        Assert.Equal(explicitOptions.Database, environmentService.LastOptions?.Database);
-        Assert.Equal(explicitOptions.Host, migration.LastOptions?.Host);
-        Assert.Equal(explicitOptions.Database, migration.LastOptions?.Database);
         Assert.NotEqual(explicitOptions.Host, currentConfig.Current.Host);
     }
 
     [Fact]
-    public async Task Migration_plan_uses_explicit_options_without_executing_migration()
-    {
-        var migration = new FakeMigrationService();
-        var service = CreateService(migration, new DbAccessGuard());
-        var explicitOptions = new PgOptions
-        {
-            Host = "beta-db",
-            Database = "pactoolkits_beta",
-        };
-
-        var plan = await service.GetSchemaMigrationPlanAsync(
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.20",
-                DesktopMaxDbSchema: "1.2.22",
-                AgentsMinDbSchema: "1.2.20",
-                AgentsMaxDbSchema: "1.2.22",
-                TargetDbSchemaVersion: "1.2.22",
-                ReleaseChannel: "beta",
-                MigrationPolicy: DbMigrationPolicies.StableOnly),
-            explicitOptions,
-            CancellationToken.None);
-
-        Assert.Equal(2, plan.PendingCount);
-        Assert.Equal(0, migration.CallCount);
-        Assert.Equal(explicitOptions.Host, migration.LastOptions?.Host);
-        Assert.Equal(explicitOptions.Database, migration.LastOptions?.Database);
-    }
-
-    [Fact]
-    public async Task Ensure_schema_up_to_date_allows_bootstrap_when_metadata_missing_on_stable()
-    {
-        var migration = new FakeMigrationService();
-        var service = CreateService(
-            migration,
-            new DbAccessGuard(),
-            schemaReadResult: new DbSchemaVersionRead(
-                false,
-                null,
-                "schema_version 表不存在",
-                IsMetadataMissing: true));
-
-        var result = await service.MigrateSchemaAsync(
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.20",
-                DesktopMaxDbSchema: "1.2.22",
-                AgentsMinDbSchema: "1.2.20",
-                AgentsMaxDbSchema: "1.2.22",
-                TargetDbSchemaVersion: "1.2.22",
-                ReleaseChannel: "stable",
-                MigrationPolicy: DbMigrationPolicies.StableOnly),
-            DbMigrationTrigger.Startup,
-            userConfirmed: false,
-            ciMigrationAuthorized: false,
-            ct: CancellationToken.None);
-
-        Assert.True(result.Ok);
-        Assert.Equal(1, migration.CallCount);
-    }
-
-    [Fact]
-    public async Task Metadata_missing_status_allows_stable_manual_bootstrap()
+    public async Task Metadata_missing_status_is_incompatible_and_read_only()
     {
         var service = CreateService(
-            new FakeMigrationService(),
             new DbAccessGuard(),
             schemaReadResult: new DbSchemaVersionRead(
                 false,
@@ -224,25 +98,23 @@ public sealed class SettingsServiceTests
                 IsMetadataMissing: true));
 
         var snapshot = await service.GetSchemaStatusAsync(
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.20",
-                DesktopMaxDbSchema: "1.2.22",
-                AgentsMinDbSchema: "1.2.20",
-                AgentsMaxDbSchema: "1.2.22",
-                TargetDbSchemaVersion: "1.2.22",
-                ReleaseChannel: "stable",
-                MigrationPolicy: DbMigrationPolicies.StableOnly),
+            Context("1.2.20", "1.2.22"),
             new PgOptions(),
             CancellationToken.None);
 
         Assert.Equal(DbSchemaCompatibility.MetadataMissing, snapshot.Compatibility);
-        Assert.True(snapshot.Updatable);
-        Assert.Equal(DbMigrationDecision.Allowed, snapshot.ManualMigrationPolicy.Decision);
-        Assert.True(snapshot.ManualMigrationPolicy.RunMigration);
+        Assert.False(snapshot.Satisfied);
     }
 
+    private static DbSchemaVersionContext Context(string minimum, string maximum)
+        => new(
+            DesktopMinDbSchema: minimum,
+            DesktopMaxDbSchema: maximum,
+            AgentsMinDbSchema: minimum,
+            AgentsMaxDbSchema: maximum,
+            TargetDbSchemaVersion: maximum);
+
     private static SettingsService CreateService(
-        FakeMigrationService migration,
         DbAccessGuard guard,
         string schemaVersion = "1.2.20",
         DbSchemaVersionRead? schemaReadResult = null)
@@ -250,34 +122,8 @@ public sealed class SettingsServiceTests
             new FakeDbConfigService(),
             new FakeConnectionTester(),
             new FakeSchemaVersionService(schemaReadResult ?? new DbSchemaVersionRead(true, schemaVersion, null)),
-            migration,
             new FakeClientIdReadRepo(),
-            guard,
-            new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
-            new FakeDbEnvSettingsService());
-
-    private sealed class FakeDbEnvSettingsService : IDbEnvSettingsService
-    {
-        public Task<DbEnvSettings> TryReadAsync(CancellationToken ct)
-            => Task.FromResult(DbEnvSettings.ProductionDefaults);
-
-        public Task<DbEnvSettings> TryReadAsync(PgOptions options, CancellationToken ct)
-            => Task.FromResult(DbEnvSettings.ProductionDefaults);
-    }
-
-    private sealed class TrackingDbEnvSettingsService : IDbEnvSettingsService
-    {
-        public PgOptions? LastOptions { get; private set; }
-
-        public Task<DbEnvSettings> TryReadAsync(CancellationToken ct)
-            => Task.FromResult(DbEnvSettings.ProductionDefaults);
-
-        public Task<DbEnvSettings> TryReadAsync(PgOptions options, CancellationToken ct)
-        {
-            LastOptions = options;
-            return Task.FromResult(DbEnvSettings.ProductionDefaults);
-        }
-    }
+            guard);
 
     private sealed class FakeDbConfigService : IDbConfigService
     {
@@ -322,63 +168,6 @@ public sealed class SettingsServiceTests
             LastOptions = options;
             return Task.FromResult(new DbSchemaVersionRead(true, "1.2.19", null));
         }
-    }
-
-    private sealed class FakeMigrationService : IDbSchemaMigrationService
-    {
-        public int CallCount { get; private set; }
-        public PgOptions? LastOptions { get; private set; }
-
-        public Task<DbSchemaMigrationPlan> GetPlanAsync(
-            CancellationToken ct,
-            string? targetVersion = null)
-            => Task.FromResult(CreatePlan(targetVersion));
-
-        public Task<DbSchemaMigrationPlan> GetPlanAsync(
-            PgOptions options,
-            CancellationToken ct,
-            string? targetVersion = null)
-        {
-            LastOptions = options;
-            return Task.FromResult(CreatePlan(targetVersion));
-        }
-
-        public Task<DbSchemaMigrationResult> MigrateUpToDateAsync(
-            CancellationToken ct,
-            string? targetVersion = null)
-        {
-            CallCount++;
-            return Task.FromResult(new DbSchemaMigrationResult(
-                BeforeVersion: "1.2.20",
-                AfterVersion: targetVersion,
-                AppliedCount: 1,
-                SkippedCount: 0));
-        }
-
-        public Task<DbSchemaMigrationResult> MigrateUpToDateAsync(
-            PgOptions options,
-            CancellationToken ct,
-            string? targetVersion = null)
-        {
-            CallCount++;
-            LastOptions = options;
-            return Task.FromResult(new DbSchemaMigrationResult(
-                BeforeVersion: null,
-                AfterVersion: targetVersion,
-                AppliedCount: 1,
-                SkippedCount: 0));
-        }
-
-        private static DbSchemaMigrationPlan CreatePlan(string? targetVersion)
-            => new(
-                CurrentVersion: "1.2.20",
-                TargetVersion: targetVersion ?? "1.2.22",
-                BootstrapRequired: false,
-                Items:
-                [
-                    new DbSchemaMigrationPlanItem("1.2.21", "V1_2_21__test.sql", Applied: false),
-                    new DbSchemaMigrationPlanItem("1.2.22", "V1_2_22__test.sql", Applied: false),
-                ]);
     }
 
     private sealed class FakeClientIdReadRepo : IClientIdReadRepo

@@ -102,7 +102,6 @@ Windows PowerShell 策略相同：
 生成库名形如 `pactoolkits_beta_0_18_0_beta_1`。已存在同名库时不会覆盖或删除。克隆成功后写入：
 
 - `Database.Environment=isolated`
-- `Database.AllowBetaMigrations=true`
 - `Database.Source=production-clone`
 - `Database.BetaVersion=<version>`
 

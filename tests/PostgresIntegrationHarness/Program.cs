@@ -24,11 +24,8 @@ static SettingsService CreateService(PgOptions options, DbAccessGuard guard)
         config,
         new DbConnectionTester(logger),
         new DbSchemaVersionService(config, logger),
-        new DbSchemaMigrationService(config, logger),
         new ClientIdReadRepo(logger, guard),
-        guard,
-        new DbMigrationPolicyService(new DbEnvSettingsService(config, logger)),
-        new DbEnvSettingsService(config, logger));
+        guard);
 }
 
 static PgDb CreatePgDb(PgOptions options, DbAccessGuard guard, NullLogger logger)
@@ -39,7 +36,6 @@ static PgDb CreatePgDb(PgOptions options, DbAccessGuard guard, NullLogger logger
 }
 
 var options = LoadOptions();
-var betaDatabase = Environment.GetEnvironmentVariable("PG_ITEST_BETA_DATABASE");
 var failures = 0;
 
 void Pass(string name) => Console.WriteLine($"[app-itest][pass] {name}");
@@ -59,44 +55,27 @@ try
     else
         Pass($"schema_version_read={read.Value}");
 
-    var env = new DbEnvSettingsService(new FixedDbConfig(options), logger);
-    var productionEnv = await env.TryReadAsync(options, CancellationToken.None);
-    if (!string.Equals(productionEnv.Environment, "production", StringComparison.OrdinalIgnoreCase) || productionEnv.AllowBetaMigrations)
-        Fail("production_env_defaults", $"{productionEnv.Environment}/{productionEnv.AllowBetaMigrations}");
-    else
-        Pass("production_env_defaults=production/false");
-
     var guard = new DbAccessGuard();
     var clients = new ClientIdReadRepo(logger, guard);
     var machines = await clients.GetDistinctClientIdsAsync(options, CancellationToken.None);
     Pass($"client_alias_read count={machines.Count}");
 
     var service = CreateService(options, guard);
-    var stableContext = new DbSchemaVersionContext(
-        "1.2.20", "1.2.23", "1.2.20", "1.2.23", "1.2.23", "stable", DbMigrationPolicies.StableOnly);
-    var snapshot = await service.GetSchemaStatusAsync(stableContext, options, CancellationToken.None);
+    var compatibleContext = new DbSchemaVersionContext(
+        "1.2.20", "1.2.23", "1.2.20", "1.2.23", "1.2.23");
+    var snapshot = await service.GetSchemaStatusAsync(compatibleContext, options, CancellationToken.None);
     if (!snapshot.SchemaOk || snapshot.Compatibility != DbSchemaCompatibility.Compatible)
-        Fail("stable_schema_status", $"{snapshot.Compatibility} {snapshot.Reason}");
+        Fail("schema_status", $"{snapshot.Compatibility} {snapshot.Reason}");
     else
-        Pass("stable_schema_status=compatible");
+        Pass("schema_status=compatible");
 
     var belowMinContext = new DbSchemaVersionContext(
-        "1.2.24", "1.2.25", "1.2.24", "1.2.25", "1.2.25",
-        "beta", DbMigrationPolicies.StableOnly);
+        "1.2.24", "1.2.25", "1.2.24", "1.2.25", "1.2.25");
     var belowSnapshot = await service.GetSchemaStatusAsync(belowMinContext, options, CancellationToken.None);
-    if (belowSnapshot.ManualMigrationPolicy.Decision != DbMigrationDecision.ReadOnlyRequired
-        || !belowSnapshot.ManualMigrationPolicy.Reason.Contains("Beta 应用禁止迁移", StringComparison.Ordinal))
-        Fail("beta_policy_block", belowSnapshot.ManualMigrationPolicy.Reason);
+    if (belowSnapshot.Compatibility != DbSchemaCompatibility.BelowMinimum || belowSnapshot.Satisfied)
+        Fail("below_minimum_block", belowSnapshot.IncompatibleMessage ?? belowSnapshot.Compatibility.ToString());
     else
-        Pass("beta_policy_block");
-
-    var before = await schema.TryReadSchemaVersionAsync(options, CancellationToken.None);
-    var plan = await service.GetSchemaMigrationPlanAsync(stableContext, options, CancellationToken.None);
-    var after = await schema.TryReadSchemaVersionAsync(options, CancellationToken.None);
-    if (!string.Equals(before.Value, after.Value, StringComparison.Ordinal))
-        Fail("migration_plan_no_mutation", $"{before.Value} -> {after.Value}");
-    else
-        Pass($"migration_plan_no_mutation pending={plan.PendingCount}");
+        Pass("below_minimum_block");
 
     var pgDb = CreatePgDb(options, guard, logger);
     guard.Block("integration-test block");
@@ -146,33 +125,6 @@ try
             Pass("guard_rollback_write");
     }
 
-    if (!string.IsNullOrWhiteSpace(betaDatabase))
-    {
-        var betaOptions = LoadOptions(betaDatabase);
-        var betaEnv = await new DbEnvSettingsService(new FixedDbConfig(betaOptions), logger)
-            .TryReadAsync(betaOptions, CancellationToken.None);
-        if (!betaEnv.IsIsolated || !betaEnv.AllowBetaMigrations)
-            Fail("beta_env_markers", $"{betaEnv.Environment}/{betaEnv.AllowBetaMigrations}");
-        else
-            Pass("beta_env_markers=isolated/true");
-
-        var betaService = CreateService(betaOptions, new DbAccessGuard());
-        var betaSnapshot = await betaService.GetSchemaStatusAsync(
-            new DbSchemaVersionContext(
-                "1.2.20", "1.2.23", "1.2.20", "1.2.23", "1.2.23",
-                "beta", DbMigrationPolicies.IsolatedBeta),
-            betaOptions,
-            CancellationToken.None);
-        if (betaSnapshot.ManualMigrationPolicy.Decision != DbMigrationDecision.RequiresConfirmation
-            && betaSnapshot.ManualMigrationPolicy.Decision != DbMigrationDecision.Allowed)
-            Fail("isolated_beta_policy", betaSnapshot.ManualMigrationPolicy.Reason);
-        else
-            Pass($"isolated_beta_policy={betaSnapshot.ManualMigrationPolicy.Decision}");
-    }
-    else
-    {
-        Console.WriteLine("[app-itest][skip] beta database checks (PG_ITEST_BETA_DATABASE not set)");
-    }
 }
 catch (Exception ex)
 {

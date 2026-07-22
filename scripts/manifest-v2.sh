@@ -11,54 +11,20 @@ manifest_product_version() {
   jq -r '.product.version // empty' "$1"
 }
 
-manifest_desktop_implementation() {
-  # components.desktop 下恰好一个 Desktop 实现对象
-  jq -r '
-    .components.desktop
-    | to_entries
-    | map(select(.value | type == "object"))
-    | if length == 1 then .[0].key else empty end
-  ' "$1"
-}
-
 manifest_desktop_version() {
-  local impl
-  impl="$(manifest_desktop_implementation "$1")"
-  [[ -n "$impl" ]] || {
-    printf ''
-    return 0
-  }
-  jq -r --arg impl "$impl" '.components.desktop[$impl].version // empty' "$1"
+  jq -r '.components.desktop.avalonia.version // empty' "$1"
 }
 
 manifest_desktop_min_db() {
-  local impl
-  impl="$(manifest_desktop_implementation "$1")"
-  [[ -n "$impl" ]] || {
-    printf ''
-    return 0
-  }
-  jq -r --arg impl "$impl" '.components.desktop[$impl].minDbSchema // empty' "$1"
+  jq -r '.components.desktop.avalonia.minDbSchema // empty' "$1"
 }
 
 manifest_desktop_max_db() {
-  local impl
-  impl="$(manifest_desktop_implementation "$1")"
-  [[ -n "$impl" ]] || {
-    printf ''
-    return 0
-  }
-  jq -r --arg impl "$impl" '.components.desktop[$impl].maxDbSchema // empty' "$1"
+  jq -r '.components.desktop.avalonia.maxDbSchema // empty' "$1"
 }
 
 manifest_desktop_package_id() {
-  local impl
-  impl="$(manifest_desktop_implementation "$1")"
-  [[ -n "$impl" ]] || {
-    printf ''
-    return 0
-  }
-  jq -r --arg impl "$impl" '.components.desktop[$impl].packageId // empty' "$1"
+  jq -r '.components.desktop.avalonia.packageId // empty' "$1"
 }
 
 manifest_agents_version() {
@@ -94,12 +60,8 @@ manifest_agents_module_source_dir() {
 }
 
 manifest_database_postgres_version() {
-  # 基线可能仍是 Manifest V1（`dbSchemaVersion`）或旧扁平 `database-postgres`；候选清单必须用嵌套路径
-  jq -r '.components.database.postgres.version // .components["database-postgres"].version // .dbSchemaVersion // empty' "$1"
-}
-
-manifest_database_migration_policy() {
-  jq -r '.components.database.postgres.migrationPolicy // .components["database-postgres"].migrationPolicy // "stable-only"' "$1"
+  # 仅 legacy 清单兼容 V1；候选清单必须使用 V2 嵌套路径
+  jq -r '.components.database.postgres.version // .dbSchemaVersion // empty' "$1"
 }
 
 manifest_release_channel() {
@@ -304,7 +266,7 @@ validate_desktop_version_matches_channel() {
   channel="$(manifest_release_channel "$manifest")"
   desktop_version="$(manifest_desktop_version "$manifest")"
   [[ -n "$channel" && -n "$desktop_version" ]] || {
-    echo "ERROR: manifest release.channel and components.desktop.<impl>.version are required" >&2
+    echo "ERROR: manifest release.channel and components.desktop.avalonia.version are required" >&2
     return 1
   }
   if is_desktop_semver_for_channel "$channel" "$desktop_version"; then
@@ -312,10 +274,10 @@ validate_desktop_version_matches_channel() {
   fi
   case "$channel" in
     stable)
-      echo "ERROR: stable channel requires components.desktop.<impl>.version X.Y.Z, got: $desktop_version" >&2
+      echo "ERROR: stable channel requires components.desktop.avalonia.version X.Y.Z, got: $desktop_version" >&2
       ;;
     beta)
-      echo "ERROR: beta channel requires components.desktop.<impl>.version X.Y.Z-beta.N, got: $desktop_version" >&2
+      echo "ERROR: beta channel requires components.desktop.avalonia.version X.Y.Z-beta.N, got: $desktop_version" >&2
       ;;
     *)
       echo "ERROR: unsupported release.channel: $channel" >&2
@@ -419,25 +381,17 @@ validate_manifest_v2() {
   jq -e '
     def semver: test("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$");
     def date: test("^[0-9]{4}-[0-9]{2}-[0-9]{2}$");
-    def desktop_impls:
-      .components.desktop
-      | to_entries
-      | map(select(.value | type == "object"));
     . as $root |
     $root.schemaVersion == 2 and
     $root.product.id == "pactoolkits" and
     ($root.product.version | type == "string" and length > 0) and
+    (($root.components | keys) == ["agents", "database", "desktop"]) and
     ($root.components.desktop | type == "object") and
-    ($root.components.desktop | has("implementation") | not) and
-    ($root.components.desktop | has("version") | not) and
-    ($root.components.desktop | has("bundles") | not) and
-    (($root.components.desktop | keys | length) == 1) and
-    (desktop_impls | length) == 1 and
-    (desktop_impls[0].key | type == "string" and length > 0) and
-    (desktop_impls[0].value.version | type == "string" and length > 0) and
-    desktop_impls[0].value.packageId == "PacToolkits" and
-    (desktop_impls[0].value.minDbSchema | semver) and
-    (desktop_impls[0].value.maxDbSchema | semver) and
+    (($root.components.desktop | keys) == ["avalonia"]) and
+    ($root.components.desktop.avalonia.version | type == "string" and length > 0) and
+    $root.components.desktop.avalonia.packageId == "PacToolkits" and
+    ($root.components.desktop.avalonia.minDbSchema | semver) and
+    ($root.components.desktop.avalonia.maxDbSchema | semver) and
     ($root.components.agents.version | semver) and
     ($root.components.agents.minDbSchema | semver) and
     ($root.components.agents.maxDbSchema | semver) and
@@ -454,33 +408,14 @@ validate_manifest_v2() {
         )
     ) and
     ($root.components.database.postgres.version | semver) and
-    ($root.components.database.postgres.migrationPolicy | IN("stable-only", "manual", "isolated-beta")) and
-    ($root.components | has("database-postgres") | not) and
     ($root.release.channel | IN("stable", "beta")) and
-    ($root.release.date | date) and
-    (
-      $root.components
-      | to_entries
-      | all(
-          .key == "desktop"
-          or .key == "database"
-          or (.value.version? // null) == null
-          or (.value.version | semver)
-        )
-    )
+    ($root.release.date | date)
   ' "$manifest" > /dev/null || {
     echo "ERROR: manifest validation failed for $manifest" >&2
     return 1
   }
 
   validate_product_version_matches_channel "$manifest" || return 1
-  local channel migration_policy
-  channel="$(manifest_release_channel "$manifest")"
-  migration_policy="$(manifest_database_migration_policy "$manifest")"
-  if [[ "$channel" != "beta" && "$migration_policy" == "isolated-beta" ]]; then
-    echo "ERROR: isolated-beta migrationPolicy requires release.channel=beta" >&2
-    return 1
-  fi
   validate_desktop_version_matches_channel "$manifest" || return 1
   validate_database_postgres_component_compat "$manifest" || return 1
 }

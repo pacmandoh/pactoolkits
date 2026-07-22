@@ -6,7 +6,7 @@ using PacToolkits.Application.Services;
 
 namespace PacToolkits.Desktop.Tests;
 
-public sealed class ReleaseChannelServiceTests
+public sealed class ReleaseManifestProbeServiceTests
 {
     [Fact]
     public async Task Probe_allows_compatible_beta_feed()
@@ -25,6 +25,7 @@ public sealed class ReleaseChannelServiceTests
             result.FeedManifestUrl);
         Assert.Equal("1.2.22", result.RequiredMinDbSchema);
         Assert.Equal("1.2.24", result.RequiredMaxDbSchema);
+        Assert.Equal("1.0.0-beta.1", result.ManifestProductVersion);
         Assert.Equal("1.2.23", schema.Version);
         Assert.Equal(1, schema.ReadCount);
     }
@@ -96,7 +97,7 @@ public sealed class ReleaseChannelServiceTests
     [InlineData("beta", "https://updates.example/feed/pactoolkits/beta/release-manifest.json")]
     public void ResolveChannelManifestUrl_accepts_supported_channels(string channel, string expected)
     {
-        var url = ReleaseChannelService.ResolveChannelManifestUrl(
+        var url = ReleaseManifestProbeService.ResolveChannelManifestUrl(
             "https://updates.example/feed/pactoolkits/stable",
             channel);
 
@@ -106,7 +107,7 @@ public sealed class ReleaseChannelServiceTests
     [Fact]
     public void ResolveChannelManifestUrl_returns_empty_for_unsupported_channel()
     {
-        var url = ReleaseChannelService.ResolveChannelManifestUrl(
+        var url = ReleaseManifestProbeService.ResolveChannelManifestUrl(
             "https://updates.example/feed/pactoolkits",
             "preview");
 
@@ -128,15 +129,15 @@ public sealed class ReleaseChannelServiceTests
         Assert.Contains("通道不匹配", result.Message, StringComparison.Ordinal);
     }
 
-    private static ReleaseChannelService CreateService(string dbVersion, string manifest)
+    private static ReleaseManifestProbeService CreateService(string dbVersion, string manifest)
         => CreateService(new FakeDbSchemaVersionService(dbVersion), manifest);
 
-    private static ReleaseChannelService CreateService(
+    private static ReleaseManifestProbeService CreateService(
         FakeDbSchemaVersionService schema,
         string manifest)
     {
         var http = new HttpClient(new StaticResponseHandler(manifest));
-        return new ReleaseChannelService(
+        return new ReleaseManifestProbeService(
             schema,
             new NullLogger(),
             http);
@@ -145,6 +146,7 @@ public sealed class ReleaseChannelServiceTests
     private static string Manifest(string channel, string min, string max)
         => $$"""
              {
+               "product": { "version": "1.0.0-{{channel}}.1" },
                "release": { "channel": "{{channel}}" },
                "components": {
                  "desktop": {
@@ -194,7 +196,7 @@ public sealed class ReleaseChannelServiceTests
     private sealed class NullLogger : IAppLogger
     {
         public string LogDirectory => "/tmp";
-        public string CurrentLogPath => "/tmp/pactoolkits-channel-switch-test.log";
+        public string CurrentLogPath => "/tmp/pactoolkits-release-manifest-probe-test.log";
         public void Debug(string module, string eventName, string message, object? context = null, string? traceId = null) { }
         public void Info(string module, string eventName, string message, object? context = null, string? traceId = null) { }
         public void Warn(string module, string eventName, string message, Exception? ex = null, object? context = null, string? traceId = null) { }

@@ -15,11 +15,11 @@ using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Commands;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Application.Services;
 using PacToolkits.Core;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 using PacToolkits.Desktop.Avalonia.Services.Presentation;
 using PacToolkits.Desktop.Avalonia.Services.Workspace;
@@ -96,12 +96,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private static readonly TimeSpan AgentsTopToastDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan TopActionDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(8);
-    private static readonly TimeSpan StartupDbMigrationTimeout = TimeSpan.FromSeconds(120);
     private string? _lastDbFailReason;
     private string? _lastSeenConfigJson;
     private bool _dbEverDisconnected;
     private bool _isDbConnectivityKnown;
-    private int _dbReconnectMigrationRunning;
     private bool _wasAccessGuardBlocked;
     private CancellationTokenSource? _schemaRecoveryCts;
 
@@ -532,7 +530,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (!CanWorkspaceRefresh())
         {
-            _toasts.Info("刷新", "数据库初始化进行中，请稍候");
+            _toasts.Info("刷新", "数据库检查进行中，请稍候");
             return;
         }
 
@@ -614,6 +612,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _startupState = startupState ?? throw new ArgumentNullException(nameof(startupState));
         _updates = updates ?? throw new ArgumentNullException(nameof(updates));
         _updateSettings = updateSettings ?? throw new ArgumentNullException(nameof(updateSettings));
+        _observedUpdateOptions = _updateSettings.Current;
         _updateFlow = updateFlow ?? throw new ArgumentNullException(nameof(updateFlow));
         _clientAlias = clientAlias ?? throw new ArgumentNullException(nameof(clientAlias));
         _loggingSettings = loggingSettings ?? throw new ArgumentNullException(nameof(loggingSettings));
@@ -666,7 +665,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _dbMonitor.Disconnected += ShowDbDisconnected;
         _dbMonitor.Reconnected += ShowDbReconnectedInfo;
         _dbMonitor.Reconnected += OnDbReconnectedRefreshSchema;
-        _dbMonitor.Reconnected += OnDbReconnectedMigrateSchema;
         _changeWatermark.TopicChanged += OnTopicChanged;
 
         _dbMonitor.Reconnected += ScheduleAutoRefresh;
@@ -1574,30 +1572,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         try
         {
             await RunOnUiAsync(() => IsDbProbeRunning = true);
-            var currentAppVersion = NormalizeVersionForStamp(_releaseVersion.Current.ProductVersion);
             var state = await GetDbSchemaStartupStateAsync().ConfigureAwait(false);
-            if (state.RunMigration)
-            {
-                using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
-                var (migrationOk, summary) = await _settings
-                    .MigrateSchemaAsync(
-                        BuildSchemaContext(),
-                        DbMigrationTrigger.Startup,
-                        ct: cts.Token)
-                    .ConfigureAwait(false);
-                if (!migrationOk)
-                {
-                    _logger.Warn("MainWindowVM", "db.startup_check.migrate.blocked",
-                        "Startup migration blocked by policy", null, new { summary });
-                }
-                else if (TryParseAppliedCount(summary, out var applied) && applied > 0)
-                {
-                    _toasts.Success("数据库结构更新", $"已应用 {applied} 个迁移");
-                }
-
-                state = await GetDbSchemaStartupStateAsync().ConfigureAwait(false);
-            }
-
             if (!state.Compatible)
             {
                 _toasts.Error("数据库版本不兼容", state.Message);
@@ -1616,8 +1591,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
                 if (state.SchemaOk && string.Equals(state.Compatibility, "BelowMinimum", StringComparison.Ordinal))
                 {
-                    _logger.Warn("MainWindowVM", "db.schema.pending_migration.startup",
-                        "Database schema below app minimum during startup; migration required before business access",
+                    _logger.Warn("MainWindowVM", "db.schema.external_update_required.startup",
+                        "Database schema below app minimum; external update required before business access",
                         null,
                         logContext);
                 }
@@ -1632,16 +1607,14 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 return false;
             }
 
-            await SaveDbMigrationStampAsync(currentAppVersion).ConfigureAwait(false);
-
             return true;
         }
         catch (Exception ex)
         {
-            _logger.Error("MainWindowVM", "db.startup_check.fail", "Database startup migration/check failed", ex);
+            _logger.Error("MainWindowVM", "db.startup_check.fail", "Database startup check failed", ex);
             var openSettings = await _dialogs.Confirm(
-                    "数据库初始化失败",
-                    $"数据库初始化或结构升级失败：{ex.Message}\n请前往 [设置] 检查连接与权限后重试")
+                    "数据库检查失败",
+                    $"数据库连接或结构检查失败：{ex.Message}\n请前往 [设置] 检查连接后重试")
                 .ConfigureAwait(false);
 
             if (openSettings)
@@ -1657,39 +1630,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private async Task SaveDbMigrationStampAsync(string currentAppVersion)
-    {
-        if (string.IsNullOrWhiteSpace(currentAppVersion) ||
-            string.Equals(currentAppVersion, "unknown", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        var existingStamp = NormalizeVersionForStamp(_appConfigStore.Load().LastDbMigrationAppVersion);
-        if (string.Equals(existingStamp, currentAppVersion, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        await _appConfigStore.UpdateAsync(cfg =>
-        {
-            var currentStamp = NormalizeVersionForStamp(cfg.LastDbMigrationAppVersion);
-            if (string.Equals(currentStamp, currentAppVersion, StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            cfg.LastDbMigrationAppVersion = currentAppVersion;
-        }, CancellationToken.None).ConfigureAwait(false);
-        _logger.Info("MainWindowVM", "db.startup_check.migrate.stamp.saved", "Saved DB migration app-version stamp", new
-        {
-            appVersion = currentAppVersion
-        });
-    }
-
-    private static string NormalizeVersionForStamp(string? value)
-        => (value ?? string.Empty).Trim();
-
     private DbSchemaVersionContext BuildSchemaContext()
     {
         var version = _releaseVersion.Current;
@@ -1698,33 +1638,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             version.DesktopMaxDbSchema,
             version.AgentsMinDbSchema,
             version.AgentsMaxDbSchema,
-            version.DbSchemaVersion,
-            version.BuildChannel,
-            version.DbMigrationPolicy);
+            version.DbSchemaVersion);
     }
 
-    private static bool TryParseAppliedCount(string summary, out int applied)
-    {
-        applied = 0;
-        const string marker = "applied=";
-        var idx = summary.IndexOf(marker, StringComparison.Ordinal);
-        if (idx < 0)
-        {
-            return false;
-        }
-
-        var start = idx + marker.Length;
-        var end = start;
-        while (end < summary.Length && char.IsDigit(summary[end]))
-        {
-            end++;
-        }
-
-        return end > start && int.TryParse(summary[start..end], out applied);
-    }
-
-    private async Task<DbSchemaStartupState> GetDbSchemaStartupStateAsync(
-        DbMigrationTrigger trigger = DbMigrationTrigger.Startup)
+    private async Task<DbSchemaStartupState> GetDbSchemaStartupStateAsync()
     {
         var version = _releaseVersion.Current;
         var context = BuildSchemaContext();
@@ -1735,7 +1652,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         var target = DbSchemaCompat.NormalizeBound(version.DbSchemaVersion, version.DbSchemaVersion);
 
         var snapshot = await _settings
-            .GetSchemaStatusAsync(context, trigger, CancellationToken.None)
+            .GetSchemaStatusAsync(context, CancellationToken.None)
             .ConfigureAwait(false);
 
         if (snapshot.Satisfied)
@@ -1768,7 +1685,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         return new DbSchemaStartupState(
             Compatible: snapshot.Satisfied,
-            RunMigration: snapshot.ManualMigrationPolicy.RunMigration,
             Message: snapshot.IncompatibleMessage ?? "数据库版本不兼容",
             Target: snapshot.TargetVersion,
             DesktopMin: uiMin,
@@ -1783,7 +1699,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private sealed record DbSchemaStartupState(
         bool Compatible,
-        bool RunMigration,
         string Message,
         string Target,
         string DesktopMin,
@@ -1885,59 +1800,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void OnDbReconnectedRefreshSchema()
         => ObserveDetached(RefreshSchemaStatusAsync("db_reconnected"), "schema.refresh.detached.fail");
 
-    private void OnDbReconnectedMigrateSchema()
-        => ObserveDetached(MigrateSchemaOnReconnectAsync(), "schema.migrate.detached.fail");
-
-    private async Task MigrateSchemaOnReconnectAsync()
-    {
-        if (Interlocked.Exchange(ref _dbReconnectMigrationRunning, 1) == 1)
-        {
-            return;
-        }
-
-        try
-        {
-            var state = await GetDbSchemaStartupStateAsync(DbMigrationTrigger.Reconnect).ConfigureAwait(false);
-            if (!state.RunMigration)
-            {
-                await RefreshSchemaStatusAsync("db_reconnected").ConfigureAwait(false);
-                return;
-            }
-
-            using var cts = new CancellationTokenSource(StartupDbMigrationTimeout);
-            var (migrationOk, summary) = await _settings
-                .MigrateSchemaAsync(
-                    BuildSchemaContext(),
-                    DbMigrationTrigger.Reconnect,
-                    ct: cts.Token)
-                .ConfigureAwait(false);
-            if (!migrationOk)
-            {
-                _logger.Warn("MainWindowVM", "db.reconnect.migrate.blocked",
-                    "Reconnect migration blocked by policy", null, new { summary });
-            }
-            else if (TryParseAppliedCount(summary, out var applied) && applied > 0)
-            {
-                PostOnUi(() =>
-                {
-                    _toasts.Success("数据库结构更新", $"连接恢复后已自动应用 {applied} 个迁移");
-                });
-            }
-
-            var currentAppVersion = NormalizeVersionForStamp(_releaseVersion.Current.ProductVersion);
-            await SaveDbMigrationStampAsync(currentAppVersion).ConfigureAwait(false);
-            await RefreshSchemaStatusAsync("db_reconnected_migrate").ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.Warn("MainWindowVM", "db.reconnected.migrate.fail", "Auto migration on DB reconnect failed", ex);
-        }
-        finally
-        {
-            Interlocked.Exchange(ref _dbReconnectMigrationRunning, 0);
-        }
-    }
-
     private async Task RefreshSchemaStatusAsync(string source)
     {
         if (_settingsPage is not Settings settingsPage)
@@ -2011,7 +1873,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SafeExecute(() => _dbMonitor.Disconnected -= ShowDbDisconnected);
         SafeExecute(() => _dbMonitor.Reconnected -= ShowDbReconnectedInfo);
         SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedRefreshSchema);
-        SafeExecute(() => _dbMonitor.Reconnected -= OnDbReconnectedMigrateSchema);
         SafeExecute(() => _dbMonitor.Reconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _dbMonitor.Disconnected -= ScheduleAutoRefresh);
         SafeExecute(() => _changeWatermark.TopicChanged -= OnTopicChanged);

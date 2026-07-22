@@ -11,37 +11,10 @@ using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
-
-public sealed class AppConfigRoot
-{
-    public int SchemaVersion { get; set; } = 2;
-    public string LastDbMigrationAppVersion { get; set; } = string.Empty;
-    public PgOptions Postgres { get; set; } = new();
-    public Dictionary<string, string> ClientAliases { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-    public TraceCodeValidationOptions TraceCodeValidation { get; set; } = new();
-    public AgentsOptions Agents { get; set; } = new();
-    public MsfxApiOptions MsfxApi { get; set; } = new();
-    public UiBehaviorOptions UiBehavior { get; set; } = new();
-    public UpdateOptions Update { get; set; } = new();
-    public LoggingOptions Logging { get; set; } = new();
-}
-
-public sealed class UiBehaviorOptions
-{
-    public bool MinimizeToTrayOnClose { get; set; } = true;
-}
-
-public sealed class LoggingOptions
-{
-    public bool Enabled { get; set; } = true;
-    public string MinimumLevel { get; set; } = "Error";
-    public int RetentionDays { get; set; } = 14;
-    public int MaxFileSizeMb { get; set; } = 20;
-    public string LogDirectory { get; set; } = string.Empty;
-}
 
 /// <summary>应用配置读写与 schema 迁移入口</summary>
 public interface IAppConfigStore
@@ -62,12 +35,7 @@ public interface IAppConfigStore
 public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
 {
     private const string UnifiedConfigFileName = "PacToolkits.Desktop.config.json";
-    private static readonly string[] LegacyConfigFileNames =
-    [
-        "PacToolkits.Desktop.Avalonia.config.json",
-        "pactoolkits-ui.config.json",
-    ];
-    private static readonly string[] SupportedUpdateChannels = ["stable", "beta"];
+    private const string LegacyConfigFileName = "pactoolkits-ui.config.json";
     private static readonly JsonSerializerOptions _writeOptions = new()
     {
         WriteIndented = true,
@@ -226,16 +194,8 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             return primaryPath;
         }
 
-        foreach (var legacyName in LegacyConfigFileNames)
-        {
-            var legacyPath = Path.Combine(_configDir, legacyName);
-            if (File.Exists(legacyPath))
-            {
-                return legacyPath;
-            }
-        }
-
-        return primaryPath;
+        var legacyPath = Path.Combine(_configDir, LegacyConfigFileName);
+        return File.Exists(legacyPath) ? legacyPath : primaryPath;
     }
 
     private void InitConfig()
@@ -270,7 +230,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
                 && HasPersistedDefaults(raw)
                 && HasRequiredConfigKeys(existingJson))
             {
-                // 即便统一配置文件已存在，仍要落盘 schema v2 / Main Tools→Agents host 改写
+                // 即便统一配置文件已存在，仍要落盘 schema v2 / Legacy Tools→Agents host 改写
                 //（旧 InitConfig 曾直接 return 不写）
                 if (!string.Equals(readablePath, ConfigPath, StringComparison.OrdinalIgnoreCase)
                     || !string.Equals(existingJson, json, StringComparison.Ordinal))
@@ -497,7 +457,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             var schema = root["SchemaVersion"]?.GetValue<int>() ?? 0;
             var agentsNode = root["Agents"] as JsonObject;
 
-            // Schema ≥2：只清残留，绝不回并 Main AutomationTools
+            // Schema ≥2：只清残留，绝不回并 Legacy AutomationTools
             if (schema >= 2)
             {
                 root["SchemaVersion"] = 2;
@@ -524,7 +484,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
                 return root.ToJsonString(_writeOptions);
             }
 
-            // 仅 Main（schema < 2）：AutomationTools.Ahk + AutomationTools.Agent → Agents
+            // 仅 Legacy（schema < 2）：AutomationTools.Ahk + AutomationTools.Agent → Agents
             string? path = null;
             string? processName = null;
             JsonNode? injector = new JsonObject();
@@ -565,7 +525,6 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
     {
         var root = source ?? new AppConfigRoot();
         root.SchemaVersion = 2;
-        root.LastDbMigrationAppVersion = (root.LastDbMigrationAppVersion ?? string.Empty).Trim();
         root.Postgres ??= new PgOptions();
         root.TraceCodeValidation ??= new TraceCodeValidationOptions();
         root.Agents ??= new AgentsOptions();
@@ -610,16 +569,16 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         agents.ProcessName = string.IsNullOrWhiteSpace(agents.ProcessName)
             ? defaults.ProcessName
             : agents.ProcessName.Trim();
-        MigrateMainToolsHost(agents);
+        MigrateLegacyToolsHost(agents);
         agents.Injector = NormalizeInjector(agents.Injector);
         return agents;
     }
 
-    private static void MigrateMainToolsHost(AgentsOptions agents)
+    private static void MigrateLegacyToolsHost(AgentsOptions agents)
     {
         var path = agents.ExecutablePath ?? string.Empty;
         var processName = agents.ProcessName ?? string.Empty;
-        if (!TryMigrateMainToolsHost(ref path, ref processName))
+        if (!TryMigrateLegacyToolsHost(ref path, ref processName))
         {
             return;
         }
@@ -628,16 +587,16 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         agents.ProcessName = processName;
     }
 
-    private static bool TryMigrateMainToolsHost(ref string path, ref string processName)
+    private static bool TryMigrateLegacyToolsHost(ref string path, ref string processName)
     {
-        if (!AgentsPath.IsMainToolsStoredPath(path))
+        if (!AgentsPath.IsLegacyToolsStoredPath(path))
         {
             return false;
         }
 
         path = AgentsPaths.HostExecutable;
         if (string.IsNullOrWhiteSpace(processName)
-            || string.Equals(processName, AgentsPaths.MainToolsProcessName, StringComparison.OrdinalIgnoreCase))
+            || string.Equals(processName, AgentsPaths.LegacyToolsProcessName, StringComparison.OrdinalIgnoreCase))
         {
             processName = AgentsPaths.HostProcessName;
         }
@@ -676,8 +635,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         var defaults = new UpdateOptions();
         var options = source ?? new UpdateOptions();
 
-        options.Channel = NormalizeUpdateChannel(options.Channel, defaults.Channel);
-        options.ValidatedChannel = NormalizeValidatedChannel(options.ValidatedChannel);
+        options.Channel = AppUpdatePolicy.NormalizeChannel(options.Channel);
         options.FeedUrl = string.IsNullOrWhiteSpace(options.FeedUrl) ? defaults.FeedUrl : options.FeedUrl.Trim();
         options.AutoCheckIntervalMinutes = options.AutoCheckIntervalMinutes < 0
             ? defaults.AutoCheckIntervalMinutes
@@ -785,27 +743,6 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         return normalized;
     }
 
-    private static string NormalizeUpdateChannel(string? channel, string fallback)
-    {
-        var normalized = string.IsNullOrWhiteSpace(channel) ? fallback : channel.Trim().ToLowerInvariant();
-        return SupportedUpdateChannels.Contains(normalized, StringComparer.Ordinal)
-            ? normalized
-            : fallback;
-    }
-
-    private static string NormalizeValidatedChannel(string? channel)
-    {
-        if (string.IsNullOrWhiteSpace(channel))
-        {
-            return string.Empty;
-        }
-
-        var normalized = channel.Trim().ToLowerInvariant();
-        return SupportedUpdateChannels.Contains(normalized, StringComparer.Ordinal)
-            ? normalized
-            : string.Empty;
-    }
-
     private void PersistIfChanged(AppConfigRoot normalized)
     {
         var json = JsonSerializer.Serialize(normalized, _writeOptions);
@@ -908,25 +845,21 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
             return;
         }
 
-        foreach (var legacyName in LegacyConfigFileNames)
+        var legacyPath = Path.Combine(configDir, LegacyConfigFileName);
+        if (!File.Exists(legacyPath))
         {
-            var legacyPath = Path.Combine(configDir, legacyName);
-            if (!File.Exists(legacyPath))
-            {
-                continue;
-            }
+            return;
+        }
 
-            try
-            {
-                File.Copy(legacyPath, newPath);
-                return;
-            }
-            catch (Exception ex)
-            {
-                AppLog.Warn("AppConfigStore", "config.legacy_migrate.fail",
-                    "Failed to migrate legacy config file", ex,
-                    new { legacyPath, newPath });
-            }
+        try
+        {
+            File.Copy(legacyPath, newPath);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("AppConfigStore", "config.legacy_migrate.fail",
+                "Failed to migrate legacy config file", ex,
+                new { legacyPath, newPath });
         }
     }
 

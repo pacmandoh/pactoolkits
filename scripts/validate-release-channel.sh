@@ -99,8 +99,6 @@ validate_manifest_v2 "$MANIFEST"
 
 channel="$(manifest_release_channel "$MANIFEST")"
 version="$(manifest_product_version "$MANIFEST")"
-migration_policy="$(manifest_database_migration_policy "$MANIFEST")"
-implementation="$(manifest_desktop_implementation "$MANIFEST")"
 expected_prerelease="$(expected_release_prerelease "$MANIFEST")"
 expected_feed_target="$(resolve_feed_target "$FEED_ROOT" "$channel")"
 
@@ -133,8 +131,6 @@ fi
 printf 'channel=%s\n' "$channel"
 printf 'version=%s\n' "$version"
 printf 'feed=%s\n' "$expected_feed_target"
-printf 'migrationPolicy=%s\n' "$migration_policy"
-printf 'desktopImplementation=%s\n' "$implementation"
 printf 'prerelease=%s\n' "$expected_prerelease"
 printf 'dryRun=%s\n' "$DRY_RUN"
 printf 'confirmed=%s\n' "$CONFIRM"

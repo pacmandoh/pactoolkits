@@ -138,7 +138,6 @@ beta_env="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$BETA_DB" \
       where environment = 'isolated'
       order by setting_key")"
 echo "$beta_env" | grep -Fq 'Database.Environment=isolated' || die "beta env marker missing"
-echo "$beta_env" | grep -Fq 'Database.AllowBetaMigrations=true' || die "beta migration marker missing"
 echo "$beta_env" | grep -Fq 'Database.Source=production-clone' || die "beta source marker missing"
 echo "$beta_env" | grep -Fq "Database.BetaVersion=$BETA_VERSION" || die "beta version marker missing"
 pass "beta clone markers written"

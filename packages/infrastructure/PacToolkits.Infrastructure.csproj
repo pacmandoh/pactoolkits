@@ -12,12 +12,6 @@
     <PackageReference Include="Npgsql" Version="10.0.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\..\database\postgres\bootstrap\*.sql" Link="Postgres\Bootstrap\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Include="..\..\database\postgres\migrations\*.sql" Link="Postgres\Migrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Include="..\..\database\postgres\verify\*.sql" Link="Postgres\Verify\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>

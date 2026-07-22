@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
@@ -16,7 +15,6 @@ public sealed class AgentsRuntimeTests
             new FakeAppConfigStore(),
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService(),
-            new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
             new NullAppLogger());
 
         Assert.True(runtime.IsInjectorEnabled);
@@ -32,7 +30,6 @@ public sealed class AgentsRuntimeTests
             config,
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService("1.2.20"),
-            new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
             new NullAppLogger());
 
         var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
@@ -49,7 +46,6 @@ public sealed class AgentsRuntimeTests
             config,
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService("1.2.23"),
-            new DbMigrationPolicyService(new FakeDbEnvSettingsService()),
             new NullAppLogger());
 
         var result = await runtime.StartOrRestartAsync(TestContext.Current.CancellationToken);
@@ -115,8 +111,7 @@ public sealed class AgentsRuntimeTests
             DesktopMinDbSchema: "1.2.22",
             DesktopMaxDbSchema: "1.2.22",
             AgentsMinDbSchema: "1.2.22",
-            AgentsMaxDbSchema: "1.2.22",
-            DbMigrationPolicy: DbMigrationPolicies.StableOnly);
+            AgentsMaxDbSchema: "1.2.22");
     }
 
     private sealed class FakeDbSchemaVersionService(string version = "1.2.22") : IDbSchemaVersionService
@@ -126,15 +121,6 @@ public sealed class AgentsRuntimeTests
 
         public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
             => Task.FromResult(new DbSchemaVersionRead(true, version, null));
-    }
-
-    private sealed class FakeDbEnvSettingsService : IDbEnvSettingsService
-    {
-        public Task<DbEnvSettings> TryReadAsync(CancellationToken ct)
-            => Task.FromResult(DbEnvSettings.ProductionDefaults);
-
-        public Task<DbEnvSettings> TryReadAsync(PgOptions options, CancellationToken ct)
-            => Task.FromResult(DbEnvSettings.ProductionDefaults);
     }
 
     private sealed class NullAppLogger : IAppLogger

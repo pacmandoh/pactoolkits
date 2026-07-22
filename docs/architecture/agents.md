@@ -49,11 +49,11 @@ flowchart LR
 
 ## Desktop 控制面
 
-| 类型                               | 职责                                                                           |
-| ---------------------------------- | ------------------------------------------------------------------------------ |
-| `IAgentsManager` / `AgentsManager` | 按 id 注册 runtime；`Reload` / `StopAll`                                       |
-| `IAgentsRuntime` / `AgentsRuntime` | Host / Injector 状态、启停、版本与错误字段                                     |
-| `AgentsPath`                       | 解析 `.\Agents\Agents.exe`；Main 时代 `Tools\pacinjector.exe` 仅迁移与停旧进程 |
+| 类型                               | 职责                                                                        |
+| ---------------------------------- | --------------------------------------------------------------------------- |
+| `IAgentsManager` / `AgentsManager` | 按 id 注册 runtime；`Reload` / `StopAll`                                    |
+| `IAgentsRuntime` / `AgentsRuntime` | Host / Injector 状态、启停、版本与错误字段                                  |
+| `AgentsPath`                       | 解析 `.\Agents\Agents.exe`；Legacy `Tools\pacinjector.exe` 仅迁移与停旧进程 |
 
 启停主路径：`StartOrRestartAsync`（Host）→ 可选写入 `module.control` 的 `start` → 等待 `module.ready`；`StopAsync` 写入 `quit`；`StopInjectorAsync` 写入 `stop`。
 

@@ -1,7 +1,7 @@
 namespace PacToolkits.Agents.Contracts.Agents;
 
 /// <summary>
-/// Agents 布局与进程名常量（Host 入口、Modules 目录、Main Tools 迁移源）
+/// Agents 布局与进程名常量（Host 入口、Modules 目录、Legacy Tools 迁移源）
 /// </summary>
 public static class AgentsPaths
 {
@@ -25,17 +25,17 @@ public static class AgentsPaths
     public const string ModulesDirectoryName = "Modules";
 
     // Main 已发布布局；仅作配置迁移源，不是运行时兜底扫描路径
-    public const string MainToolsExecutable = @".\Tools\pacinjector.exe";
+    public const string LegacyToolsExecutable = @".\Tools\pacinjector.exe";
 
-    public const string MainToolsFileName = "pacinjector.exe";
+    public const string LegacyToolsFileName = "pacinjector.exe";
 
-    public const string MainToolsProcessName = "pacinjector";
+    public const string LegacyToolsProcessName = "pacinjector";
 
-    // 状态探测 / 停止时包含 Main Tools 进程名，便于迁移后清掉旧 pacinjector
+    // 状态探测 / 停止时包含 Legacy Tools 进程名，便于迁移后清掉旧 pacinjector
     public static readonly string[] HostProcessNameCandidates =
     [
         HostProcessName,
-        MainToolsProcessName,
+        LegacyToolsProcessName,
     ];
 
     public static string ModuleDir(string agentsDir, string moduleId)

@@ -18,7 +18,7 @@ Options:
   --bump-agents X.Y.Z         Optional: bump components.agents.version before packaging.
   --bump-component ID=X.Y.Z  Optional: bump a manifest component (e.g. agents=0.3.1).
   --bump-product X.Y.Z       Optional: bump product.version.
-  --bump-desktop X.Y.Z       Optional: bump components.desktop.<impl>.version.
+  --bump-desktop X.Y.Z       Optional: bump components.desktop.avalonia.version.
   --bump-db X.Y.Z            Optional: bump components.database.postgres.version.
   --bump-channel C           Optional: bump release.channel (stable|beta).
   --artifact-dir DIR         Prebuilt host+modules dir (default: artifacts/agents/win-x64).

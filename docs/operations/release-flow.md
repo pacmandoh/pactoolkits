@@ -6,15 +6,14 @@ PacToolkits 的 Desktop、Agents、DB Schema 版本由 **`release-manifest.json`
 
 文件：[release-manifest.json](../../release-manifest.json)
 
-| 字段                                           | 用途                                                       |
-| ---------------------------------------------- | ---------------------------------------------------------- |
-| `product.version`                              | 产品总版本；Velopack `packVersion`                         |
-| `components.desktop.<impl>.version`            | Desktop 组件版本（当前 `<impl>` = `avalonia`）             |
-| `components.agents.version`                    | Agents 容器版本                                            |
-| `components.agents.modules.<Id>.version`       | 各 Agents 模块版本（如 `Injector`）                        |
-| `components.database.postgres.version`         | PostgreSQL migration 目标版本                              |
-| `components.database.postgres.migrationPolicy` | 数据库迁移策略：`stable-only` / `manual` / `isolated-beta` |
-| `release.channel`                              | 发布通道：`stable` / `beta`                                |
+| 字段                                     | 用途                                |
+| ---------------------------------------- | ----------------------------------- |
+| `product.version`                        | 产品总版本；Velopack `packVersion`  |
+| `components.desktop.avalonia.version`    | Avalonia Desktop 组件版本           |
+| `components.agents.version`              | Agents 容器版本                     |
+| `components.agents.modules.<Id>.version` | 各 Agents 模块版本（如 `Injector`） |
+| `components.database.postgres.version`   | PostgreSQL migration 目标版本       |
+| `release.channel`                        | 发布通道：`stable` / `beta`         |
 
 同步到各子项目：
 
@@ -37,9 +36,9 @@ tag、version、channel 或 GitHub prerelease 标志不一致时，验证工作�
 ```text
 release.yml
   ├─ validate-release.yml              校验 tag / channel / prerelease / Feed / DB policy
-  ├─ resolve-release-plan.yml          读取 manifest，输出 implementation / artifact / mainExe / icon 等
+  ├─ resolve-release-plan.yml          读取 manifest，输出 artifact / mainExe / icon 等
   ├─ build-agents.yml      Agents 容器 + modules
-  ├─ build-desktop-avalonia.yml        implementation=avalonia 时构建
+  ├─ build-desktop-avalonia.yml        构建唯一的 Avalonia Desktop
   ├─ package-desktop.yml               接收 resolve 参数，动态打包
   ├─ generate-release-notes.yml
   └─ publish-release.yml
@@ -75,7 +74,7 @@ release.yml
 | ----------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------- |
 | 用户主程序        | 与 `AssemblyName` 一致；**不带** 技术栈后缀                        | `PacToolkits.Desktop.exe`                                        |
 | 安装包            | 通道 + Setup，长度适中                                             | `PacToolkits-beta-Setup.exe` / `PacToolkits-stable-Setup.exe`    |
-| CI Artifact       | 结构化、可较长；implementation 仅用于 CI/内部区分                  | `pactoolkits-desktop-avalonia-win-x64-1.0.2-beta.5.zip`          |
+| CI Artifact       | 结构化、可较长；保留 Avalonia 技术标识                             | `pactoolkits-desktop-avalonia-win-x64-1.0.2-beta.5.zip`          |
 | 代码项目 / 程序集 | 项目文件可含实现后缀；输出程序集用 Desktop 短名                    | 项目 `PacToolkits.Desktop.Avalonia` / 输出 `PacToolkits.Desktop` |
 | Manifest 组件 ID  | 内部标识，可含实现细节                                             | `agents`                                                         |
 | Host 用户可见 exe | 与 Agents 容器同名的入口短名（Host=`Agents.exe`）；容器只指 Agents | `Agents.exe`                                                     |
@@ -145,8 +144,8 @@ Windows PowerShell：
 
 目标库按 `pactoolkits_beta_<版本>` 命名，`.`、`-`、`+` 转换为 `_`。同名库存在时
 脚本立即失败且不会覆盖或删除。使用模板库时，创建前必须断开模板库的全部活跃连接。
-创建成功后脚本写入 `Database.Environment=isolated`、
-`Database.AllowBetaMigrations=true`、克隆来源和 Beta 版本标记，并输出不含密码的连接串。
+创建成功后脚本写入 `Database.Environment=isolated`、克隆来源和 Beta 版本标记，
+并输出不含密码的连接串。
 
 详细参数见 [PostgreSQL 运维说明](../../database/postgres/README.md)。
 
@@ -154,18 +153,24 @@ Windows PowerShell：
 
 - `AppUpdateService` 使用 Velopack 已安装版本作为当前版本
 - Feed URL 解析为 `{FeedUrl}/stable` 或 `{FeedUrl}/beta`
-- 每个通道目录发布 `release-manifest.json`，客户端切换前读取目标通道的 DB 兼容范围
-- Stable → Beta 需要风险确认、目标 Feed 可用且当前 DB 位于 Beta min/max 范围
-- Beta → Stable 需要当前 DB 位于 Stable min/max 范围；高于 Stable max 时阻止切换
-- 通道切换只保存更新源选择，不触发数据库迁移或降级
+- 每个通道目录发布 `release-manifest.json`，客户端每次发现具体更新版本时读取目标通道的 DB 兼容范围
+- Stable → Beta 保存设置前需要风险确认；实际下载前会重新读取 Feed、目标版本与当前 DB 状态
+- Beta → Stable 在检查、下载和重启前都会验证当前 DB；高于 Stable max 时阻止更新
+- 通道切换只保存更新源选择，不触发数据库迁移或降级；兼容授权不作为长期配置保存
+- `release-manifest.json` 的 `product.version` 必须与 Velopack 候选版本一致，否则客户端拒绝下载
+- 已下载待安装包不保存长期授权；重启前重新读取当前通道 Manifest 并检查数据库 Schema
+- 通道选择和自动检查开关即时保存；通道变化立即静默检查，自动检查开关只启停调度
+- 用户点击立即更新时始终实时复验，并直接下载此刻最新的兼容版本，不因候选变化要求再次确认
+- 应用不会预下载更新；只有用户点击顶部更新入口或设置页立即更新后才会下载，并在下载完成后直接重启安装
+- 设置页只读显示待更新版本、通道、Feed、数据库与 Schema 范围，安装包生命周期由更新服务管理
 
 ## 发布与数据库安全边界
 
-- Beta 应用默认不能迁移共享生产数据库
+- Desktop 只检查数据库兼容性，不执行初始化、迁移或降级
+- 数据库变更必须通过服务器或受控运维节点上的 PostgreSQL 部署脚本执行
 - Beta 数据库测试必须使用隔离数据库
-- `isolated-beta` 需要 `Database.Environment=isolated`、
-  `Database.AllowBetaMigrations=true` 与对应的用户或 CI 显式授权
-- `isolated-beta` 是开发/测试通道，不是生产升级通道
+- Beta 数据库部署需要 `Database.Environment=isolated` 与对应的用户或 CI 显式授权
+- Beta 隔离数据库仅用于开发和测试，不是生产升级通道
 - 应用可以回退，数据库默认只前向演进
 - 数据库高于 Stable `maxDbSchema` 时，Stable 必须停止写入，且不能切回该 Stable
 - 禁止把数据库备份恢复当作普通版本回退；恢复备份仅用于经过审批的灾难恢复
@@ -182,8 +187,8 @@ Windows PowerShell：
 
 启动时 `AgentsPath` 按以下顺序解析 Host 可执行文件（相对路径基于 Desktop 安装目录）：
 
-1. **配置 Schema v2**：读入时将 Main/`SchemaVersion=1` 的 `AutomationTools`（`Ahk` 路径 + `Agent` 注入参数）收敛为单一 `Agents`（容器路径 + `Injector`），写回 `SchemaVersion=2`
-2. **Main 路径升级**：配置为 Main 已发布的 `Tools\pacinjector.exe` → 写回 `.\Agents\Agents.exe`（不依赖本机是否已有新 Host 二进制）
+1. **配置 Schema v2**：读入时将 Legacy/`SchemaVersion=1` 的 `AutomationTools`（`Ahk` 路径 + `Agent` 注入参数）收敛为单一 `Agents`（容器路径 + `Injector`），写回 `SchemaVersion=2`
+2. **Legacy 路径升级**：配置为历史 `Tools\pacinjector.exe` → 写回 `.\Agents\Agents.exe`（不依赖本机是否已有新 Host 二进制）
 3. **Configured**：其它配置路径且文件存在 → 使用配置路径（含用户自定义路径）
 4. **Standard**：配置无效/文件不存在，但 bundled 标准 exe 存在 → 使用标准路径并按需写回配置
 5. **Missing**：均不可用 → 启动失败

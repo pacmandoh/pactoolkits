@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 \pset pager off
 
--- Structural checks for migration policy metadata (read-only).
+-- Structural checks for environment metadata (read-only).
 do $$
 declare
   has_primary_key boolean;

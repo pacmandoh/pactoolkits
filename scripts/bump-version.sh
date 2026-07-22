@@ -416,12 +416,7 @@ for item in "${COMPONENT_MIN_DB_UPDATES[@]}"; do
   }
   case "$component_id" in
     desktop)
-      desktop_impl="$(manifest_desktop_implementation "$MANIFEST")"
-      [[ -n "$desktop_impl" ]] || {
-        echo "ERROR: unknown manifest component for minDbSchema: $component_id" >&2
-        exit 1
-      }
-      jq -e --arg impl "$desktop_impl" '.components.desktop[$impl].minDbSchema' "$MANIFEST" > /dev/null || {
+      jq -e '.components.desktop.avalonia.minDbSchema' "$MANIFEST" > /dev/null || {
         echo "ERROR: unknown manifest component for minDbSchema: $component_id" >&2
         exit 1
       }
@@ -507,17 +502,12 @@ jq \
   --argjson module_updates "$module_updates_json" \
   --argjson component_min_db_updates "$component_min_db_json" \
   '
-  def desktop_impl:
-    .components.desktop
-    | to_entries
-    | map(select(.value | type == "object"))
-    | .[0].key;
   .product.version = (if $product == "" then .product.version else $product end) |
   reduce ($component_updates | to_entries[]) as $item (.;
     if $item.key == "database.postgres" then
       .components.database.postgres.version = $item.value
     elif $item.key == "desktop" then
-      .components.desktop[desktop_impl].version = $item.value
+      .components.desktop.avalonia.version = $item.value
     else
       .components[$item.key].version = $item.value
     end
@@ -527,17 +517,17 @@ jq \
   ) |
   reduce ($component_min_db_updates | to_entries[]) as $item (.;
     if $item.key == "desktop" then
-      .components.desktop[desktop_impl].minDbSchema = $item.value
+      .components.desktop.avalonia.minDbSchema = $item.value
     else
       .components[$item.key].minDbSchema = $item.value
     end
   ) |
-  .components.desktop[desktop_impl].version = (
-    if $desktop == "" then .components.desktop[desktop_impl].version else $desktop end
+  .components.desktop.avalonia.version = (
+    if $desktop == "" then .components.desktop.avalonia.version else $desktop end
   ) |
   .components.database.postgres.version = (if $db == "" then .components.database.postgres.version else $db end) |
-  .components.desktop[desktop_impl].minDbSchema = (
-    if $desktop_min_db == "" then .components.desktop[desktop_impl].minDbSchema else $desktop_min_db end
+  .components.desktop.avalonia.minDbSchema = (
+    if $desktop_min_db == "" then .components.desktop.avalonia.minDbSchema else $desktop_min_db end
   ) |
   .release.channel = (if $channel == "" then .release.channel else $channel end) |
   .release.date = $date

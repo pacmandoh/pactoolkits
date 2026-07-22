@@ -38,21 +38,6 @@ public sealed class PostgresIntegrationTests
     }
 
     [Fact]
-    public async Task Production_database_without_env_rows_fails_closed_to_production_defaults()
-    {
-        RequireEnabled();
-
-        var options = LoadPgOptions();
-        var logger = new NullInfraLogger();
-        var env = new DbEnvSettingsService(new FixedDbConfig(options), logger);
-        var settings = await env.TryReadAsync(options, CancellationToken.None);
-
-        Assert.Equal("production", settings.Environment, ignoreCase: true);
-        Assert.False(settings.AllowBetaMigrations);
-        Assert.False(settings.IsIsolated);
-    }
-
-    [Fact]
     public async Task Settings_service_reports_compatible_schema_on_live_database()
     {
         RequireEnabled();
@@ -65,92 +50,13 @@ public sealed class PostgresIntegrationTests
                 DesktopMaxDbSchema: "1.2.23",
                 AgentsMinDbSchema: "1.2.20",
                 AgentsMaxDbSchema: "1.2.23",
-                TargetDbSchemaVersion: "1.2.23",
-                ReleaseChannel: "stable",
-                MigrationPolicy: DbMigrationPolicies.StableOnly),
+                TargetDbSchemaVersion: "1.2.23"),
             options,
             CancellationToken.None);
 
         Assert.True(snapshot.SchemaOk, snapshot.Reason);
         Assert.Equal(DbSchemaCompatibility.Compatible, snapshot.Compatibility);
         Assert.True(snapshot.Satisfied);
-        Assert.False(snapshot.ManualMigrationPolicy.RunMigration);
-    }
-
-    [Fact]
-    public async Task Beta_policy_blocks_in_app_migration_when_below_minimum()
-    {
-        RequireEnabled();
-
-        var options = LoadPgOptions();
-        var service = CreateLiveSettingsService(options);
-        var snapshot = await service.GetSchemaStatusAsync(
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.24",
-                DesktopMaxDbSchema: "1.2.25",
-                AgentsMinDbSchema: "1.2.24",
-                AgentsMaxDbSchema: "1.2.25",
-                TargetDbSchemaVersion: "1.2.25",
-                ReleaseChannel: "beta",
-                MigrationPolicy: DbMigrationPolicies.StableOnly),
-            options,
-            CancellationToken.None);
-
-        Assert.Equal(DbMigrationDecision.ReadOnlyRequired, snapshot.ManualMigrationPolicy.Decision);
-        Assert.Contains("Beta 应用禁止迁移", snapshot.ManualMigrationPolicy.Reason, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task Isolated_beta_database_allows_manual_migration_confirmation_path()
-    {
-        RequireEnabled();
-
-        var betaDatabase = Environment.GetEnvironmentVariable("PG_ITEST_BETA_DATABASE");
-        Assert.False(string.IsNullOrWhiteSpace(betaDatabase));
-
-        var options = LoadPgOptions(betaDatabase);
-        var service = CreateLiveSettingsService(options);
-        var snapshot = await service.GetSchemaStatusAsync(
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.20",
-                DesktopMaxDbSchema: "1.2.23",
-                AgentsMinDbSchema: "1.2.20",
-                AgentsMaxDbSchema: "1.2.23",
-                TargetDbSchemaVersion: "1.2.23",
-                ReleaseChannel: "beta",
-                MigrationPolicy: DbMigrationPolicies.IsolatedBeta),
-            options,
-            CancellationToken.None);
-
-        Assert.True(snapshot.ManualMigrationPolicy.Decision is
-            DbMigrationDecision.RequiresConfirmation
-            or DbMigrationDecision.Allowed);
-    }
-
-    [Fact]
-    public async Task Migration_plan_reads_live_database_without_applying_changes()
-    {
-        RequireEnabled();
-
-        var options = LoadPgOptions();
-        var logger = new NullInfraLogger();
-        var before = await new DbSchemaVersionService(new FixedDbConfig(options), logger)
-            .TryReadSchemaVersionAsync(options, CancellationToken.None);
-        var service = CreateLiveSettingsService(options);
-        var plan = await service.GetSchemaMigrationPlanAsync(
-            new DbSchemaVersionContext(
-                DesktopMinDbSchema: "1.2.20",
-                DesktopMaxDbSchema: "1.2.23",
-                AgentsMinDbSchema: "1.2.20",
-                AgentsMaxDbSchema: "1.2.23",
-                TargetDbSchemaVersion: "1.2.23"),
-            options,
-            CancellationToken.None);
-        var after = await new DbSchemaVersionService(new FixedDbConfig(options), logger)
-            .TryReadSchemaVersionAsync(options, CancellationToken.None);
-
-        Assert.Equal(before.Value, after.Value);
-        Assert.True(plan.PendingCount >= 0);
     }
 
     private static SettingsService CreateLiveSettingsService(PgOptions options)
@@ -162,11 +68,8 @@ public sealed class PostgresIntegrationTests
             config,
             new DbConnectionTester(logger),
             new DbSchemaVersionService(config, logger),
-            new DbSchemaMigrationService(config, logger),
             new ClientIdReadRepo(logger, guard),
-            guard,
-            new DbMigrationPolicyService(new DbEnvSettingsService(config, logger)),
-            new DbEnvSettingsService(config, logger));
+            guard);
     }
 
     private static PgOptions LoadPgOptions(string? database = null)

@@ -7,7 +7,6 @@ namespace PacToolkits.Application.Services;
 /// </summary>
 public sealed class UpdateSettingsService : IUpdateSettingsService
 {
-    private static readonly string[] SupportedChannels = ["stable", "beta"];
     private readonly IUpdateSettingsStore _store;
     private UpdateOptions _current = new();
 
@@ -25,15 +24,13 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
         var normalized = Normalize(options);
         await _store.SaveAsync(Clone(normalized), ct).ConfigureAwait(false);
 
+        if (Equals(_current, normalized))
+        {
+            return;
+        }
+
         _current = normalized;
         Changed?.Invoke();
-    }
-
-    public async Task SaveIgnoredVersionAsync(string version, CancellationToken ct = default)
-    {
-        var next = Current;
-        next.IgnoredVersion = (version ?? string.Empty).Trim();
-        await SaveAsync(next, ct).ConfigureAwait(false);
     }
 
     public void Apply(UpdateOptions options)
@@ -53,7 +50,6 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
     private static bool Equals(UpdateOptions left, UpdateOptions right)
         => left.AutoCheckOnStartup == right.AutoCheckOnStartup
            && string.Equals(left.Channel, right.Channel, StringComparison.Ordinal)
-           && string.Equals(left.ValidatedChannel, right.ValidatedChannel, StringComparison.Ordinal)
            && string.Equals(left.FeedUrl, right.FeedUrl, StringComparison.Ordinal)
            && left.AutoCheckIntervalMinutes == right.AutoCheckIntervalMinutes
            && string.Equals(left.IgnoredVersion, right.IgnoredVersion, StringComparison.Ordinal);
@@ -66,8 +62,7 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
         return new UpdateOptions
         {
             AutoCheckOnStartup = options.AutoCheckOnStartup,
-            Channel = NormalizeChannel(options.Channel, defaults.Channel),
-            ValidatedChannel = NormalizeValidatedChannel(options.ValidatedChannel),
+            Channel = AppUpdatePolicy.NormalizeChannel(options.Channel),
             FeedUrl = string.IsNullOrWhiteSpace(options.FeedUrl) ? defaults.FeedUrl : options.FeedUrl.Trim(),
             AutoCheckIntervalMinutes = options.AutoCheckIntervalMinutes < 0
                 ? defaults.AutoCheckIntervalMinutes
@@ -80,30 +75,9 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
     {
         AutoCheckOnStartup = source.AutoCheckOnStartup,
         Channel = source.Channel,
-        ValidatedChannel = source.ValidatedChannel,
         FeedUrl = source.FeedUrl,
         AutoCheckIntervalMinutes = source.AutoCheckIntervalMinutes,
         IgnoredVersion = source.IgnoredVersion
     };
 
-    private static string NormalizeChannel(string? channel, string fallback)
-    {
-        var normalized = string.IsNullOrWhiteSpace(channel) ? fallback : channel.Trim().ToLowerInvariant();
-        return Array.Exists(SupportedChannels, x => string.Equals(x, normalized, StringComparison.Ordinal))
-            ? normalized
-            : fallback;
-    }
-
-    private static string NormalizeValidatedChannel(string? channel)
-    {
-        if (string.IsNullOrWhiteSpace(channel))
-        {
-            return string.Empty;
-        }
-
-        var normalized = channel.Trim().ToLowerInvariant();
-        return Array.Exists(SupportedChannels, x => string.Equals(x, normalized, StringComparison.Ordinal))
-            ? normalized
-            : string.Empty;
-    }
 }

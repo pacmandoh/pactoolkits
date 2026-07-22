@@ -110,7 +110,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     public string? PageUnavailableHint => _pageDataAvailability switch
     {
-        PageDataAvailability.AccessBlocked => "请前往设置检查数据库版本与迁移状态",
+        PageDataAvailability.AccessBlocked => "请前往设置检查数据库版本，必要时由服务器端部署工具更新",
         PageDataAvailability.LoadFailed => _loadFailedMessage ?? "请稍后重试，或使用顶部菜单刷新",
         PageDataAvailability.AwaitingDatabase => "连接恢复后将自动加载",
         PageDataAvailability.NotLoaded => "连接恢复后将自动加载",

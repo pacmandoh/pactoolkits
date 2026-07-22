@@ -13,7 +13,6 @@ using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Contracts;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -1086,6 +1085,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             }, DispatcherPriority.Normal);
 
             NotifyDrugCatalogChanged();
+            Dispatcher.UIThread.Post(() => _toast.Success("已保存", DrugLabel.Format(drugId, spec)));
 
             return true;
         }

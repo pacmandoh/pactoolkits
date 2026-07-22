@@ -16,7 +16,6 @@ public interface IUpdateFlowService
 
     Task<AppUpdateCheckResult?> CheckAndHandleAsync(
         bool silent = false,
-        Action<AppUpdateCheckResult>? syncState = null,
         string logScope = "UpdateDesktopFlow",
         CancellationToken ct = default);
 
@@ -36,7 +35,6 @@ public sealed class UpdateFlowService : IUpdateFlowService
 
     private readonly IAppUpdateService _updates;
     private readonly IToastService _toasts;
-    private readonly Func<string, string, Task<bool>> _confirmRestart;
     private readonly IAppLogger _logger;
     private bool _isApplying;
     private int _applyProgress;
@@ -68,31 +66,15 @@ public sealed class UpdateFlowService : IUpdateFlowService
     public UpdateFlowService(
         IAppUpdateService updates,
         IToastService toasts,
-        IDialogService dialogs,
-        IAppLogger logger)
-        : this(
-            updates,
-            toasts,
-            (dialogs ?? throw new ArgumentNullException(nameof(dialogs))).Confirm,
-            logger)
-    {
-    }
-
-    internal UpdateFlowService(
-        IAppUpdateService updates,
-        IToastService toasts,
-        Func<string, string, Task<bool>> confirmRestart,
         IAppLogger logger)
     {
         _updates = updates ?? throw new ArgumentNullException(nameof(updates));
         _toasts = toasts ?? throw new ArgumentNullException(nameof(toasts));
-        _confirmRestart = confirmRestart ?? throw new ArgumentNullException(nameof(confirmRestart));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<AppUpdateCheckResult?> CheckAndHandleAsync(
         bool silent = false,
-        Action<AppUpdateCheckResult>? syncState = null,
         string logScope = "UpdateDesktopFlow",
         CancellationToken ct = default)
     {
@@ -101,7 +83,6 @@ public sealed class UpdateFlowService : IUpdateFlowService
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeoutCts.CancelAfter(UpdateCheckTimeout);
             var result = await _updates.CheckAsync(timeoutCts.Token).ConfigureAwait(false);
-            syncState?.Invoke(result);
 
             _logger.Info(logScope, "update.check.result", "Update check finished", new
             {
@@ -117,7 +98,7 @@ public sealed class UpdateFlowService : IUpdateFlowService
                 return result;
             }
 
-            if (!result.Success || result.ChannelSwitchRequired)
+            if (!result.Success)
             {
                 _toasts.Warn("应用更新", result.Message);
                 return result;
@@ -125,7 +106,7 @@ public sealed class UpdateFlowService : IUpdateFlowService
 
             if (!result.HasUpdate)
             {
-                _toasts.Info("应用更新", "当前已是最新版本");
+                _toasts.Info("应用更新", result.Message);
             }
 
             return result;
@@ -182,22 +163,10 @@ public sealed class UpdateFlowService : IUpdateFlowService
                 return;
             }
 
-            var restartNow = await _confirmRestart(
-                    "更新包已准备完成",
-                    $"目标版本：{result.TargetVersion}\n是否立即重启应用以完成更新？")
-                .ConfigureAwait(false);
-
-            if (restartNow)
+            var started = await _updates.RestartToApplyAsync().ConfigureAwait(false);
+            if (!started)
             {
-                var started = await _updates.RestartToApplyAsync().ConfigureAwait(false);
-                if (!started)
-                {
-                    _toasts.Warn("应用更新", "未检测到待应用更新包，请重新检查更新后再试");
-                }
-            }
-            else
-            {
-                _toasts.Success("应用更新", $"已准备版本 {result.TargetVersion}，可稍后重启生效");
+                _toasts.Warn("应用更新", _updates.LastMessage);
             }
         }
         catch (Exception ex)

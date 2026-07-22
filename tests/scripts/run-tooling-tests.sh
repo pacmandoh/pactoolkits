@@ -21,7 +21,6 @@ bash -n ./scripts/clean-build-artifacts.sh
 stable_fixture_manifest="$(mktemp)"
 jq '
   .release.channel = "stable" |
-  .components.database.postgres.migrationPolicy = "stable-only" |
   .product.version = (
     if (.product.version | test("-beta\\.")) then
       (.product.version | sub("-beta\\.[0-9]+$"; ""))
@@ -37,32 +36,19 @@ validate_manifest_v2 "$stable_fixture_manifest"
 live_release_channel="$(manifest_release_channel "$ROOT_DIR/release-manifest.json")"
 
 eval "$(./scripts/resolve-release-plan.sh "$ROOT_DIR/release-manifest.json" | sed 's/^\([^=]*\)=\(.*\)$/export \1=\2/')"
-[[ "${implementation:-}" == "avalonia" ]] || {
-  echo "ERROR: expected default implementation=avalonia, got: ${implementation:-<empty>}" >&2
-  exit 1
-}
 [[ "${desktop_artifact_name:-}" == pactoolkits-desktop-avalonia-win-x64-* ]] || {
   echo "ERROR: unexpected avalonia artifact name: ${desktop_artifact_name:-<empty>}" >&2
   exit 1
 }
 
-# Desktop 实现键必须恰好一个；当前 resolve 仅支持 avalonia
+# Desktop 只支持 Avalonia，未知实现必须在 manifest 校验阶段直接拒绝
 unknown_impl_manifest="$(mktemp)"
 jq '.components.desktop = {other: .components.desktop.avalonia}' "$ROOT_DIR/release-manifest.json" > "$unknown_impl_manifest"
-validate_manifest_v2 "$unknown_impl_manifest"
-if ./scripts/resolve-release-plan.sh "$unknown_impl_manifest" >/dev/null 2>&1; then
-  echo "ERROR: resolve-release-plan should reject unknown desktop implementation keys" >&2
+if validate_manifest_v2 "$unknown_impl_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should require components.desktop.avalonia" >&2
   exit 1
 fi
 rm -f "$unknown_impl_manifest"
-
-invalid_implementation_manifest="$(mktemp)"
-jq '.components.desktop.other = .components.desktop.avalonia' "$ROOT_DIR/release-manifest.json" > "$invalid_implementation_manifest"
-if validate_manifest_v2 "$invalid_implementation_manifest" >/dev/null 2>&1; then
-  echo "ERROR: manifest validation should reject multiple desktop implementations" >&2
-  exit 1
-fi
-rm -f "$invalid_implementation_manifest"
 
 invalid_package_id_manifest="$(mktemp)"
 jq '.components.desktop.avalonia.packageId = "pactoolkits-beta"' "$ROOT_DIR/release-manifest.json" > "$invalid_package_id_manifest"
@@ -164,20 +150,7 @@ if validate_manifest_v2 "$invalid_db_compat_manifest" >/dev/null 2>&1; then
   exit 1
 fi
 
-invalid_migration_policy_manifest="$(mktemp)"
-jq '.components.database.postgres.migrationPolicy = "auto"' "$ROOT_DIR/release-manifest.json" > "$invalid_migration_policy_manifest"
-if validate_manifest_v2 "$invalid_migration_policy_manifest" >/dev/null 2>&1; then
-  echo "ERROR: manifest validation should reject invalid migrationPolicy" >&2
-  exit 1
-fi
-
-stable_isolated_beta_manifest="$(mktemp)"
-trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$invalid_migration_policy_manifest" "$stable_isolated_beta_manifest"' EXIT
-jq '.components.database.postgres.migrationPolicy = "isolated-beta"' "$stable_fixture_manifest" > "$stable_isolated_beta_manifest"
-if validate_manifest_v2 "$stable_isolated_beta_manifest" >/dev/null 2>&1; then
-  echo "ERROR: stable channel should reject isolated-beta migrationPolicy" >&2
-  exit 1
-fi
+trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest"' EXIT
 
 [[ "$(expected_release_prerelease "$stable_fixture_manifest")" == "false" ]] || {
   echo "ERROR: stable channel should require GitHub prerelease=false" >&2
@@ -226,29 +199,19 @@ cp "$stable_fixture_manifest" "$database_policy_base_manifest"
   --manifest "$stable_fixture_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
   --base-manifest "$database_policy_base_manifest" \
-  --allow-beta-migration false >/dev/null
+  --allow-beta-db-change false >/dev/null
 
-beta_db_follow_main_manifest="$(mktemp)"
+beta_db_follow_legacy_manifest="$(mktemp)"
 jq '
   .release.channel = "beta" |
   .product.version = "0.18.0-beta.1" |
-  .components.desktop.avalonia.version = "0.18.0-beta.1" |
-  .components.database.postgres.migrationPolicy = "stable-only"
-' "$stable_fixture_manifest" > "$beta_db_follow_main_manifest"
+  .components.desktop.avalonia.version = "0.18.0-beta.1"
+' "$stable_fixture_manifest" > "$beta_db_follow_legacy_manifest"
 ./scripts/validate-database-policy.sh \
-  --manifest "$beta_db_follow_main_manifest" \
+  --manifest "$beta_db_follow_legacy_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
   --base-manifest "$database_policy_base_manifest" \
-  --allow-beta-migration false >/dev/null
-
-beta_db_isolated_follow_main_manifest="$(mktemp)"
-jq '.components.database.postgres.migrationPolicy = "isolated-beta"' \
-  "$beta_db_follow_main_manifest" > "$beta_db_isolated_follow_main_manifest"
-./scripts/validate-database-policy.sh \
-  --manifest "$beta_db_isolated_follow_main_manifest" \
-  --base-ref refs/heads/pactoolkits-missing-test-ref \
-  --base-manifest "$database_policy_base_manifest" \
-  --allow-beta-migration false >/dev/null
+  --allow-beta-db-change false >/dev/null
 
 beta_db_upgrade_manifest="$(mktemp)"
 jq '
@@ -265,17 +228,15 @@ if ./scripts/validate-database-policy.sh \
   --manifest "$beta_db_upgrade_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
   --base-manifest "$database_policy_base_manifest" \
-  --allow-beta-migration false >/dev/null 2>&1; then
+  --allow-beta-db-change false >/dev/null 2>&1; then
   echo "ERROR: ordinary Beta must not raise database.postgres.version above Stable" >&2
   exit 1
 fi
-jq '.components.database.postgres.migrationPolicy = "isolated-beta"' \
-  "$beta_db_upgrade_manifest" > "${beta_db_upgrade_manifest}.authorized"
 ./scripts/validate-database-policy.sh \
-  --manifest "${beta_db_upgrade_manifest}.authorized" \
+  --manifest "$beta_db_upgrade_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
   --base-manifest "$database_policy_base_manifest" \
-  --allow-beta-migration true >/dev/null
+  --allow-beta-db-change true >/dev/null
 
 legacy_baseline_manifest="$(mktemp)"
 cp "$stable_fixture_manifest" "$legacy_baseline_manifest"
@@ -284,7 +245,7 @@ if [[ "$live_release_channel" == "beta" ]]; then
     --manifest "$ROOT_DIR/release-manifest.json" \
     --base-ref refs/heads/pactoolkits-missing-test-ref \
     --base-manifest "$legacy_baseline_manifest" \
-    --allow-beta-migration false >/dev/null
+    --allow-beta-db-change false >/dev/null
   jq '
     .components.desktop.avalonia.minDbSchema = "1.2.24" |
     .components.desktop.avalonia.maxDbSchema = "1.2.24" |
@@ -296,8 +257,8 @@ if [[ "$live_release_channel" == "beta" ]]; then
     --manifest "${legacy_baseline_manifest}.candidate" \
     --base-ref refs/heads/pactoolkits-missing-test-ref \
     --base-manifest "$legacy_baseline_manifest" \
-    --allow-beta-migration false >/dev/null 2>&1; then
-    echo "ERROR: beta database policy should reject DB versions above the stable/main baseline" >&2
+    --allow-beta-db-change false >/dev/null 2>&1; then
+    echo "ERROR: beta database policy should reject DB versions above the legacy baseline" >&2
     exit 1
   fi
 fi
@@ -325,7 +286,7 @@ if (
   "$ROOT_DIR/scripts/validate-database-policy.sh" \
     --manifest release-manifest.json \
     --base-ref "$policy_base_ref" \
-    --allow-beta-migration false
+    --allow-beta-db-change false
 ) >/dev/null 2>&1; then
   echo "ERROR: database policy should reject modification of an existing migration" >&2
   exit 1
@@ -340,7 +301,7 @@ mkdir -p "$legacy_reloc_git_dir/pactoolkits-db/sql/migrations"
 cp "$ROOT_DIR/database/postgres/migrations/V1_2_0__baseline.sql" \
   "$legacy_reloc_git_dir/pactoolkits-db/sql/migrations/V1_2_0__baseline.sql"
 git -C "$legacy_reloc_git_dir" add .
-git -C "$legacy_reloc_git_dir" commit -qm legacy-main
+git -C "$legacy_reloc_git_dir" commit -qm legacy-baseline
 legacy_reloc_base_ref="$(git -C "$legacy_reloc_git_dir" rev-parse HEAD)"
 mkdir -p "$legacy_reloc_git_dir/database/postgres/migrations"
 git -C "$legacy_reloc_git_dir" mv pactoolkits-db/sql/migrations/V1_2_0__baseline.sql \
@@ -348,8 +309,7 @@ git -C "$legacy_reloc_git_dir" mv pactoolkits-db/sql/migrations/V1_2_0__baseline
 jq '
   .release.channel = "beta" |
   .product.version = "1.0.0-beta.1" |
-  .components.desktop.avalonia.version = "1.0.0-beta.1" |
-  .components.database.postgres.migrationPolicy = "stable-only"
+  .components.desktop.avalonia.version = "1.0.0-beta.1"
 ' "$stable_fixture_manifest" > "$legacy_reloc_git_dir/release-manifest.json"
 git -C "$legacy_reloc_git_dir" add .
 git -C "$legacy_reloc_git_dir" commit -qm monorepo-reloc
@@ -358,7 +318,7 @@ git -C "$legacy_reloc_git_dir" commit -qm monorepo-reloc
   "$ROOT_DIR/scripts/validate-database-policy.sh" \
     --manifest release-manifest.json \
     --base-ref "$legacy_reloc_base_ref" \
-    --allow-beta-migration false
+    --allow-beta-db-change false
 ) >/dev/null
 rm -rf "$legacy_reloc_git_dir"
 
@@ -394,23 +354,21 @@ if (
   "$ROOT_DIR/scripts/validate-database-policy.sh" \
     --manifest release-manifest.json \
     --base-ref "$beta_new_migration_base_ref" \
-    --allow-beta-migration false
+    --allow-beta-db-change false
 ) >/dev/null 2>&1; then
   echo "ERROR: beta channel should reject new SQL migration without explicit authorization" >&2
   exit 1
 fi
-jq '.components.database.postgres.migrationPolicy = "isolated-beta"' \
-  "$beta_new_migration_git_dir/release-manifest.json" > "$beta_new_migration_git_dir/release-manifest.authorized.json"
 (
   cd "$beta_new_migration_git_dir"
   "$ROOT_DIR/scripts/validate-database-policy.sh" \
-    --manifest release-manifest.authorized.json \
+    --manifest release-manifest.json \
     --base-ref "$beta_new_migration_base_ref" \
-    --allow-beta-migration true
+    --allow-beta-db-change true
 ) >/dev/null
 rm -rf "$beta_new_migration_git_dir"
 rm -rf "$policy_git_dir"
-rm -f "$database_policy_base_manifest" "$beta_db_follow_main_manifest" "$beta_db_isolated_follow_main_manifest" "$beta_db_upgrade_manifest" "${beta_db_upgrade_manifest}.authorized" "$legacy_baseline_manifest" "${legacy_baseline_manifest}.candidate"
+rm -f "$database_policy_base_manifest" "$beta_db_follow_legacy_manifest" "$beta_db_upgrade_manifest" "$legacy_baseline_manifest" "${legacy_baseline_manifest}.candidate"
 
 target_beta_manifest="$(mktemp)"
 jq '
@@ -489,33 +447,8 @@ if validate_manifest_v2 "$invalid_manifest" >/dev/null 2>&1; then
   exit 1
 fi
 
-invalid_bundles_manifest="$(mktemp)"
-jq '.components.desktop.bundles = ["agents"]' "$ROOT_DIR/release-manifest.json" > "$invalid_bundles_manifest"
-if validate_manifest_v2 "$invalid_bundles_manifest" >/dev/null 2>&1; then
-  echo "ERROR: manifest validation should reject legacy desktop.bundles" >&2
-  exit 1
-fi
-
-invalid_legacy_db_manifest="$(mktemp)"
-jq '
-  .components["database-postgres"] = .components.database.postgres |
-  del(.components.database)
-' "$ROOT_DIR/release-manifest.json" > "$invalid_legacy_db_manifest"
-if validate_manifest_v2 "$invalid_legacy_db_manifest" >/dev/null 2>&1; then
-  echo "ERROR: manifest validation should reject legacy database-postgres key" >&2
-  exit 1
-fi
-
-invalid_component_manifest="$(mktemp)"
-trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$invalid_migration_policy_manifest" "$stable_isolated_beta_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_bundles_manifest" "$invalid_legacy_db_manifest" "$invalid_component_manifest"' EXIT
-jq '.components = ({"bad-component": {"version": "not-semver"}} + .components)' "$ROOT_DIR/release-manifest.json" > "$invalid_component_manifest"
-if validate_manifest_v2 "$invalid_component_manifest" >/dev/null 2>&1; then
-  echo "ERROR: manifest validation should reject invalid component semver anywhere in components" >&2
-  exit 1
-fi
-
 invalid_bundle_version_manifest="$(mktemp)"
-trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$invalid_migration_policy_manifest" "$stable_isolated_beta_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_bundles_manifest" "$invalid_legacy_db_manifest" "$invalid_component_manifest" "$invalid_bundle_version_manifest"' EXIT
+trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_bundle_version_manifest"' EXIT
 jq '.components["agents"].version = "not-semver"' "$ROOT_DIR/release-manifest.json" > "$invalid_bundle_version_manifest"
 if validate_manifest_v2 "$invalid_bundle_version_manifest" >/dev/null 2>&1; then
   echo "ERROR: manifest validation should reject invalid agents host versions" >&2
@@ -541,7 +474,7 @@ cp "$stable_fixture_manifest" "$ROOT_DIR/release-manifest.json"
 desktop_plan_out="$(./scripts/release-desktop.sh --bump-desktop 9.9.9 --dry-run --skip-upload 2>&1)"
 cp "$manifest_backup" "$ROOT_DIR/release-manifest.json"
 rm -f "$manifest_backup"
-echo "$desktop_plan_out" | grep -Fq "desktop.<impl>.version: 9.9.9" || {
+echo "$desktop_plan_out" | grep -Fq "desktop.avalonia.version: 9.9.9" || {
   echo "ERROR: dry-run desktop release plan should reflect bumped desktop version (9.9.9)" >&2
   exit 1
 }
@@ -644,11 +577,6 @@ grep -Fq "('isolated', 'Database.Environment'" scripts/create-beta-database.sql 
   echo "ERROR: isolated Beta database SQL is missing the environment marker" >&2
   exit 1
 }
-grep -Fq "('isolated', 'Database.AllowBetaMigrations'" scripts/create-beta-database.sql || {
-  echo "ERROR: isolated Beta database SQL is missing the migration authorization marker" >&2
-  exit 1
-}
-
 grep -Fq '04_environment_settings.sql' database/postgres/scripts/lib/verify.sh || {
   echo "ERROR: Bash verify suite is missing environment settings verification" >&2
   exit 1
@@ -673,6 +601,53 @@ grep -Fq 'cp release-manifest.json dist/release-manifest.json' .github/workflows
   echo "ERROR: release feed must publish channel release-manifest.json" >&2
   exit 1
 }
+dry_run_publish_guards="$(grep -Fc "github.event_name != 'workflow_dispatch' || inputs.dry_run == false" .github/workflows/release.yml)"
+[[ "$dry_run_publish_guards" -eq 2 ]] || {
+  echo "ERROR: dry-run release must guard both release-note generation and publishing" >&2
+  exit 1
+}
+velopack_package_version="$(sed -n 's/.*PackageReference Include="Velopack" Version="\([^"]*\)".*/\1/p' apps/desktop-avalonia/src/PacToolkits.Desktop.Avalonia.csproj)"
+vpk_tool_version="$(sed -n 's/^[[:space:]]*VPK_VERSION:[[:space:]]*//p' .github/workflows/package-desktop.yml)"
+[[ -n "$velopack_package_version" && "$vpk_tool_version" == "$velopack_package_version" ]] || {
+  echo "ERROR: vpk tool version must match the Desktop Velopack package version" >&2
+  exit 1
+}
+grep -Fq 'key: ${{ runner.os }}-vpk-${{ env.VPK_VERSION }}' .github/workflows/package-desktop.yml || {
+  echo "ERROR: VPK cache identity must use its pinned tool version" >&2
+  exit 1
+}
+if sed -n '/name: Cache dotnet global tools/,/name: Install vpk/p' .github/workflows/package-desktop.yml \
+  | grep -Fq 'hashFiles('; then
+  echo "ERROR: unrelated workflow changes must not invalidate the VPK cache" >&2
+  exit 1
+fi
+grep -Fq 'key: ${{ runner.os }}-ahk2exe-${{ env.AHK2EXE_TAG }}-${{ env.AHK2EXE_EXE_SHA256 }}' .github/workflows/build-agents.yml || {
+  echo "ERROR: Ahk2Exe cache identity must use the pinned tag and executable SHA256" >&2
+  exit 1
+}
+if sed -n '/name: Cache Ahk2Exe asset/,/name: Resolve Ahk2Exe compiler/p' .github/workflows/build-agents.yml \
+  | grep -Fq 'hashFiles('; then
+  echo "ERROR: unrelated workflow changes must not invalidate the Ahk2Exe cache" >&2
+  exit 1
+fi
+injector_cache_block="$(sed -n '/name: Cache injector module binary/,/name: Report Injector cache status/p' .github/workflows/build-agents.yml)"
+for identity in \
+  '${{ env.RUNTIME }}' \
+  '${{ steps.versions.outputs.injector_module_version }}' \
+  '${{ env.AUTOHOTKEY_VERSION }}' \
+  '${{ env.AHK2EXE_TAG }}' \
+  '${{ env.AHK2EXE_EXE_SHA256 }}' \
+  "runtime/agents/modules/injector/main.ahk" \
+  "runtime/agents/modules/injector/src/**/*.ahk"; do
+  grep -Fq "$identity" <<< "$injector_cache_block" || {
+    echo "ERROR: Injector cache identity is missing $identity" >&2
+    exit 1
+  }
+done
+if grep -Eq "release-manifest.json|build-agents.yml" <<< "$injector_cache_block"; then
+  echo "ERROR: unrelated manifest or workflow changes must not invalidate the Injector cache" >&2
+  exit 1
+fi
 
 run ./scripts/audit-legacy-identity.sh
 

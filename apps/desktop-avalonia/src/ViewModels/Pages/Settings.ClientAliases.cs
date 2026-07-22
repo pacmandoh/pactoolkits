@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PacToolkits.Application.Abstractions;
-using PacToolkits.Application.DTOs;
 using PacToolkits.Core;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -97,14 +96,6 @@ public partial class Settings : AppPageBase, ISettingsPage
                 return;
             }
 
-            if (!validation.SchemaMigrationOk)
-            {
-                var reason = validation.MigrationSummary ?? "数据库结构更新失败";
-                IsDbConnected = false;
-                _toast.Warn("数据库迁移策略", reason);
-                return;
-            }
-
             if (!validation.SchemaCompatible)
             {
                 IsDbConnected = false;
@@ -141,13 +132,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         try
         {
             await _settings.SaveDbConfigAsync(ToOptions(), _pageWorkCts.Token);
-            if (!await MigrateDbSchemaAsync())
-            {
-                IsDbConnected = false;
-                _toast.Warn("数据库配置", "配置已保存，但迁移失败，当前不可用");
-                return false;
-            }
-
             if (!await CheckDbSchemaAsync())
             {
                 IsDbConnected = false;
@@ -190,68 +174,6 @@ public partial class Settings : AppPageBase, ISettingsPage
     }
 
     [RelayCommand]
-    private async Task ViewDbSchemaMigrationPlanAsync()
-    {
-        if (SkipTrigger() || IsDbSchemaChecking)
-        {
-            return;
-        }
-
-        SetDbSchemaStatus("读取计划", checking: true, failed: false, error: null);
-        try
-        {
-            using var cts = CreatePageOperationCts(TimeSpan.FromSeconds(30));
-            var plan = await _settings.GetSchemaMigrationPlanAsync(
-                BuildSchemaContext(),
-                ToOptions(),
-                cts.Token);
-            DbSchemaMigrationPlanText = FormatMigrationPlan(plan);
-            _toast.Info("数据库迁移计划", DbSchemaMigrationPlanText);
-            await UpdateSchemaStatusAsync(
-                "migration_plan",
-                manualProbe: false,
-                connectionOptions: ToOptions(),
-                operationCt: cts.Token);
-        }
-        catch (Exception ex)
-        {
-            DbSchemaMigrationPlanText = $"读取迁移计划失败：{ex.Message}";
-            SetDbSchemaStatus("计划失败", checking: false, failed: true, error: ex.Message);
-            _toast.Error("数据库迁移计划", ex.Message);
-        }
-    }
-
-    [RelayCommand]
-    private async Task ApplyDbSchemaUpdateAsync()
-    {
-        if (SkipTrigger() || IsDbSchemaChecking)
-        {
-            return;
-        }
-
-        var options = ToOptions();
-        var snapshot = await _settings.GetSchemaStatusAsync(
-            BuildSchemaContext(),
-            options,
-            _pageWorkCts.Token);
-        if (snapshot.ManualMigrationPolicy.Decision == DbMigrationDecision.RequiresConfirmation)
-        {
-            var confirmed = await _dialog.ConfirmDestructive(
-                "确认更新数据库",
-                $"{snapshot.ManualMigrationPolicy.Reason}\n\n此操作将修改 Beta 隔离测试库结构，是否继续？");
-            if (!confirmed)
-            {
-                return;
-            }
-
-            await MigrateDbSchemaAsync(options, userConfirmed: true);
-            return;
-        }
-
-        await MigrateDbSchemaAsync(options);
-    }
-
-    [RelayCommand]
     private async Task CopyDbSchemaDiagnosticsAsync()
     {
         if (SkipTrigger())
@@ -262,12 +184,12 @@ public partial class Settings : AppPageBase, ISettingsPage
         var text = BuildDbSchemaDiagnosticsText();
         if (string.IsNullOrWhiteSpace(text))
         {
-            _toast.Warn("数据库结构更新", "当前无可复制的诊断信息");
+            _toast.Warn("数据库结构", "当前无可复制的诊断信息");
             return;
         }
 
         await _clipboard.SetTextAsync(text);
-        _toast.Success("数据库结构更新", "已复制诊断信息");
+        _toast.Success("数据库结构", "已复制诊断信息");
     }
 
     private PgOptions ToOptions() => new()
@@ -352,7 +274,15 @@ public partial class Settings : AppPageBase, ISettingsPage
             var items = ClientAliases
                 .Where(x => !string.IsNullOrWhiteSpace(x.Alias))
                 .Select(x => new KeyValuePair<string, string>(x.Machine, x.Alias));
-            _alias.ReplaceAll(items);
+            Interlocked.Increment(ref _localClientAliasSaveCount);
+            try
+            {
+                _alias.ReplaceAll(items);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _localClientAliasSaveCount);
+            }
 
             _clientAliasEditBaseline = null;
             IsClientAliasEditMode = false;
@@ -425,6 +355,7 @@ public partial class Settings : AppPageBase, ISettingsPage
 
 }
 
+/// <summary>设置页客户端别名编辑行</summary>
 public sealed partial class ClientAliasRow : ObservableObject
 {
     public ClientAliasRow(string machine, string alias)

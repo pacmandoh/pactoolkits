@@ -2,11 +2,14 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
+using PacToolkits.Application.Services;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
 public partial class MainWindowViewModel
 {
+    private UpdateOptions _observedUpdateOptions = new();
+
     private void RestartUpdatePolling()
     {
         _updatePollCts?.Cancel();
@@ -66,5 +69,13 @@ public partial class MainWindowViewModel
     }
 
     private void OnUpdateSettingsChanged()
-        => RestartUpdatePolling();
+    {
+        var current = _updateSettings.Current;
+        var changes = AppUpdatePolicy.GetChanges(_observedUpdateOptions, current);
+        _observedUpdateOptions = current;
+        if (AppUpdatePolicy.RequiresPollRestart(changes))
+        {
+            RestartUpdatePolling();
+        }
+    }
 }

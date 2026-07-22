@@ -42,8 +42,8 @@ public sealed class AppConfigStoreTests
         {
             Agents = new AgentsOptions
             {
-                ExecutablePath = AgentsPaths.MainToolsExecutable,
-                ProcessName = AgentsPaths.MainToolsProcessName,
+                ExecutablePath = AgentsPaths.LegacyToolsExecutable,
+                ProcessName = AgentsPaths.LegacyToolsProcessName,
             },
         };
 

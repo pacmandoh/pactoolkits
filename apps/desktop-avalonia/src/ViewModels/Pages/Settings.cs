@@ -9,8 +9,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
-using PacToolkits.Application.Services;
-using PacToolkits.Application.Services.Msfx;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 using PacToolkits.Desktop.Avalonia.Services.Integration.Update;
@@ -51,7 +49,6 @@ public partial class Settings : AppPageBase, ISettingsPage
     private readonly IUiBehaviorService _uiBehavior;
     private readonly IUpdateSettingsService _updateSettings;
     private readonly IAppUpdateService _updates;
-    private readonly IReleaseChannelService _releaseChannelService;
     private readonly IUpdateFlowService _updateFlow;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IDialogService _dialog;
@@ -65,7 +62,10 @@ public partial class Settings : AppPageBase, ISettingsPage
     private bool _pageWorkCancelled;
     private bool _syncingUiBehavior;
     private bool _syncingUpdateOptions;
+    private int _localUpdateSaveCount;
     private bool _syncingLoggingOptions;
+    private int _localLoggingSaveCount;
+    private int _localClientAliasSaveCount;
     private const string MsfxDefaultGatewayUrl = "https://eco.taobao.com/router/rest";
     private const string MsfxPullSourceApi = "listupout";
 
@@ -87,11 +87,22 @@ public partial class Settings : AppPageBase, ISettingsPage
     [ObservableProperty] private string _updatePollIntervalHint = "0=通道默认";
     [ObservableProperty] private string _ignoredProductVersion = string.Empty;
     [ObservableProperty] private string _currentProductVersion = "unknown";
-    [ObservableProperty] private bool? _productUpdateAvailable;
+    [ObservableProperty] private bool? _updateAvailability;
     [ObservableProperty] private string _latestProductVersion = "unknown";
-    [ObservableProperty] private string _updateChannelSwitchHint = "切换通道前会检查目标 Feed 与数据库兼容范围";
+    [ObservableProperty] private string _updateChannelSwitchHint = "检查具体更新版本时会验证目标 Feed 与数据库兼容范围";
     [ObservableProperty] private bool _isUpdateChecking;
     [ObservableProperty] private bool _hasUpdateAvailable;
+    [ObservableProperty] private bool _hasUpdateTarget;
+    [ObservableProperty] private bool _hasCheckedUpdate;
+    [ObservableProperty] private bool _hasDownloadedUpdate;
+    [ObservableProperty] private string _updateTargetVersion = "--";
+    [ObservableProperty] private string _updateTargetSource = "--";
+    [ObservableProperty] private string _updateTargetDatabase = "--";
+    [ObservableProperty] private string _updateTargetSchemaRange = "--";
+    [ObservableProperty] private string _updateTargetCheckedAt = "--";
+    [ObservableProperty] private string _updateTargetDownloadedAt = "--";
+    [ObservableProperty] private string _updateTargetStatus = "--";
+    [ObservableProperty] private string _updateTargetMessage = "--";
     [ObservableProperty] private bool _loggingEnabled = true;
     [ObservableProperty] private string _loggingMinimumLevel = "Error";
     [ObservableProperty] private int _loggingRetentionDays = 14;
@@ -109,13 +120,8 @@ public partial class Settings : AppPageBase, ISettingsPage
     [ObservableProperty] private string _dbSchemaBadgeLabel = "未检查";
     [ObservableProperty] private string _dbSchemaLastCheckedAtText = "--";
     [ObservableProperty] private string _dbSchemaLastCheckSourceText = "--";
-    [ObservableProperty] private string _dbSchemaLastMigrationText = "尚无迁移记录";
-    [ObservableProperty] private string _dbSchemaMigrationPlanText = "尚未查看迁移计划";
-    [ObservableProperty] private string _dbSchemaPolicyText = DbMigrationPolicies.StableOnly;
-    public string DbSchemaBetaConceptText
-        => string.Equals(_releaseVersion.Current.BuildChannel, "beta", StringComparison.OrdinalIgnoreCase)
-            ? "当前是 Beta 应用，Beta 应用与 Beta 数据库是两个独立概念；默认不会升级共享生产数据库"
-            : "应用发布通道与数据库环境相互独立；数据库迁移始终受清单策略和环境授权约束";
+    public string DbSchemaManagementText
+        => "Desktop 仅检查数据库兼容性，不会初始化或迁移数据库；请使用服务器端数据库部署工具更新结构。";
     [ObservableProperty] private string _msfxGatewayUrl = "https://eco.taobao.com/router/rest";
     [ObservableProperty] private string _msfxAppKey = string.Empty;
     [ObservableProperty] private string _msfxAppSecret = string.Empty;
@@ -132,11 +138,6 @@ public partial class Settings : AppPageBase, ISettingsPage
     [ObservableProperty] private bool _isClientAliasEditMode;
     [ObservableProperty] private bool _isClientAliasReadOnly = true;
     public bool CanCopyDbSchemaDiagnostics => !string.IsNullOrWhiteSpace(BuildDbSchemaDiagnosticsText());
-    public bool CanApplyDbSchemaUpdate => !IsDbSchemaChecking
-        && !string.Equals(DbSchemaStatusText, "更新中", StringComparison.Ordinal)
-        && !string.Equals(DbSchemaStatusText, "版本过高", StringComparison.Ordinal)
-        && CanApplyDbSchemaUpdateByPolicy;
-    [ObservableProperty] private bool _canApplyDbSchemaUpdateByPolicy;
     public ObservableCollection<string> LoggingLevelOptions { get; } = new()
     {
         "Debug",
@@ -153,9 +154,11 @@ public partial class Settings : AppPageBase, ISettingsPage
 
     public ObservableCollection<ClientAliasRow> ClientAliases { get; } = new();
     public bool IsClientAliasesEmpty => ClientAliases.Count == 0;
-    public string ProductUpdateAvailabilityLabel => GetAvailabilityLabel(ProductUpdateAvailable);
+    public string UpdateAvailabilityLabel => GetAvailabilityLabel(UpdateAvailability);
     public bool IsUpdateApplying => _updateFlow.IsApplying;
-    public bool CanApplyProductUpdateNow => HasUpdateAvailable && !IsUpdateChecking && !IsUpdateApplying;
+    public bool CanApplyProductUpdateNow => HasUpdateAvailable
+        && !IsUpdateChecking
+        && !IsUpdateApplying;
     public string LoggingMinimumLevelHint => LoggingMinimumLevel switch
     {
         "Debug" => "记录最详细调试信息，适合临时排障",
@@ -174,7 +177,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         IUiBehaviorService uiBehavior,
         IUpdateSettingsService updateSettings,
         IAppUpdateService updates,
-        IReleaseChannelService releaseChannelService,
         IUpdateFlowService updateFlow,
         IReleaseVersionService releaseVersion,
         IDialogService dialog,
@@ -193,7 +195,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         _uiBehavior = uiBehavior;
         _updateSettings = updateSettings;
         _updates = updates;
-        _releaseChannelService = releaseChannelService;
         _updateFlow = updateFlow;
         _releaseVersion = releaseVersion;
         _dialog = dialog;
@@ -220,7 +221,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         SyncUiBehavior();
         SyncUpdateOptions();
         SyncLogging();
-        DbSchemaPolicyText = _releaseVersion.Current.DbMigrationPolicy;
         RunDetached(RefreshSchemaStatusOnStartupAsync, "db.schema.startup_refresh.fire_and_forget_fail");
         _uiBehavior.Changed += OnUiBehaviorChanged;
         _updateSettings.Changed += OnUpdateSettingsChanged;
@@ -271,8 +271,6 @@ public partial class Settings : AppPageBase, ISettingsPage
     public override Task OnPageDeactivatedAsync(CancellationToken ct = default)
     {
         CancelPageWork();
-        _loggingAutoSaveCts?.Cancel();
-        _updateAutoSaveCts?.Cancel();
         return Task.CompletedTask;
     }
 
@@ -391,8 +389,15 @@ public partial class Settings : AppPageBase, ISettingsPage
 
     private void OnUpdateSettingsChanged()
     {
+        var isLocalSave = Volatile.Read(ref _localUpdateSaveCount) > 0;
         PostUi(() =>
         {
+            if (isLocalSave)
+            {
+                RefreshUnsaved();
+                return;
+            }
+
             if (IsTabDirty((int)Tab.Updates))
             {
                 _toast.Warn("应用更新", "配置文件已更新，当前未保存的更新设置未同步");
@@ -422,13 +427,35 @@ public partial class Settings : AppPageBase, ISettingsPage
 
     private void OnLoggingSettingsChanged()
     {
-        PostUi(SyncLogging, "logging_settings.changed.fail");
+        var isLocalSave = Volatile.Read(ref _localLoggingSaveCount) > 0;
+        PostUi(() =>
+        {
+            if (isLocalSave)
+            {
+                RefreshUnsaved();
+                return;
+            }
+
+            if (IsTabDirty((int)Tab.Logging))
+            {
+                _toast.Warn("日志设置", "配置文件已更新，当前未保存的日志输入未同步");
+                return;
+            }
+
+            SyncLogging();
+        }, "logging_settings.changed.fail");
     }
 
     private void OnClientAliasMapChanged()
     {
+        var isLocalSave = Volatile.Read(ref _localClientAliasSaveCount) > 0;
         PostUi(() =>
         {
+            if (isLocalSave)
+            {
+                return;
+            }
+
             if (IsClientAliasEditMode)
             {
                 _toast.Warn(
@@ -459,9 +486,9 @@ public partial class Settings : AppPageBase, ISettingsPage
         }, "trace_rule.changed.ui_fail");
     }
 
-    partial void OnProductUpdateAvailableChanged(bool? value)
+    partial void OnUpdateAvailabilityChanged(bool? value)
     {
-        OnPropertyChanged(nameof(ProductUpdateAvailabilityLabel));
+        OnPropertyChanged(nameof(UpdateAvailabilityLabel));
         OnPropertyChanged(nameof(CanApplyProductUpdateNow));
     }
 
@@ -482,10 +509,33 @@ public partial class Settings : AppPageBase, ISettingsPage
     {
         CurrentProductVersion = _updates.CurrentVersion;
         LatestProductVersion = _updates.LatestVersion;
-        ProductUpdateAvailable = _updates.HasProductUpdateAvailable;
+        UpdateAvailability = _updates.UpdateAvailability;
         HasUpdateAvailable = _updates.HasUpdateAvailable;
         IsUpdateChecking = _updates.IsChecking;
+        var target = _updates.Target;
+        HasUpdateTarget = target is not null;
+        HasCheckedUpdate = target?.CheckedAt is not null;
+        HasDownloadedUpdate = target?.DownloadedAt is not null;
+        UpdateTargetVersion = target?.Version ?? "--";
+        UpdateTargetSource = target is null ? "--" : $"{target.Channel} · {target.FeedUrl}";
+        UpdateTargetDatabase = target?.DatabaseLabel ?? "--";
+        UpdateTargetSchemaRange = target is null
+            ? "--"
+            : $"{target.RequiredMinDbSchema} - {target.RequiredMaxDbSchema}";
+        UpdateTargetCheckedAt = target?.CheckedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--";
+        UpdateTargetDownloadedAt = target?.DownloadedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "--";
+        UpdateTargetStatus = target is null ? "--" : GetUpdateTargetStatus(target.Stage);
+        UpdateTargetMessage = target?.Message ?? "--";
     }
+
+    private static string GetUpdateTargetStatus(UpdateTargetStage stage) => stage switch
+    {
+        UpdateTargetStage.Available => "可更新",
+        UpdateTargetStage.Downloading => "正在更新",
+        UpdateTargetStage.ReadyToInstall => "等待安装",
+        UpdateTargetStage.Blocked => "无法安装",
+        _ => "未知"
+    };
 
     partial void OnMinimizeToTrayOnCloseChanged(bool value)
     {
@@ -523,6 +573,15 @@ public partial class Settings : AppPageBase, ISettingsPage
     {
         _disposed = true;
         _pageWorkCancelled = true;
+        _loggingAutoSaveCts?.Cancel();
+        _loggingAutoSaveCts?.Dispose();
+        _loggingAutoSaveCts = null;
+        _updateAutoCheckSaveCts?.Cancel();
+        _updateAutoCheckSaveCts?.Dispose();
+        _updateAutoCheckSaveCts = null;
+        _updateChannelSaveCts?.Cancel();
+        _updateChannelSaveCts?.Dispose();
+        _updateChannelSaveCts = null;
         CancelPageWork();
         try { _uiBehavior.Changed -= OnUiBehaviorChanged; }
         catch (System.Exception ex)

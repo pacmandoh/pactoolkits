@@ -29,8 +29,7 @@
     },
     "database": {
       "postgres": {
-        "version": "1.2.23",
-        "migrationPolicy": "stable-only"
+        "version": "1.2.23"
       }
     }
   },

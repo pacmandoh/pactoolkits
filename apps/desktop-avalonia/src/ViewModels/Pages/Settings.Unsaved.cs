@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -39,7 +40,8 @@ public partial class Settings
     private int _activeTabIndex = -1;
     private Dictionary<string, string>? _clientAliasEditBaseline;
     private CancellationTokenSource? _loggingAutoSaveCts;
-    private CancellationTokenSource? _updateAutoSaveCts;
+    private CancellationTokenSource? _updateAutoCheckSaveCts;
+    private CancellationTokenSource? _updateChannelSaveCts;
 
     public event Action? UnsavedChanged;
 
@@ -137,7 +139,8 @@ public partial class Settings
             Tab.Updates => await ApplyUpdateOptionsAsync(),
             Tab.MsfxApi => await ApplyMsfxApiConfigAsync(),
             Tab.Agents => await ApplyAgentsSettingsAsync(showSuccessToast: false),
-            Tab.UiBehavior or Tab.Logging => true,
+            Tab.Logging => await ApplyLoggingOptionsAsync(silent: false),
+            Tab.UiBehavior => true,
             _ => true
         };
 
@@ -214,6 +217,11 @@ public partial class Settings
             nextMask |= 1 << (int)Tab.Updates;
         }
 
+        if (IsLoggingDraftDirty())
+        {
+            nextMask |= 1 << (int)Tab.Logging;
+        }
+
         if (IsMsfxApiDirty())
         {
             nextMask |= 1 << (int)Tab.MsfxApi;
@@ -264,9 +272,17 @@ public partial class Settings
     private bool IsUpdateDraftDirty()
     {
         var options = _updateSettings.Current;
-        return !string.Equals(NormalizeUpdateChannel(UpdateChannel), options.Channel, StringComparison.Ordinal)
-               || !string.Equals(UpdateFeedUrl ?? string.Empty, options.FeedUrl ?? string.Empty, StringComparison.Ordinal)
+        return !string.Equals(UpdateFeedUrl ?? string.Empty, options.FeedUrl ?? string.Empty, StringComparison.Ordinal)
+               || UpdatePollIntervalMinutes != options.AutoCheckIntervalMinutes
                || !string.Equals(IgnoredProductVersion ?? string.Empty, options.IgnoredVersion ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    private bool IsLoggingDraftDirty()
+    {
+        var options = _loggingSettings.Current;
+        return LoggingRetentionDays != options.RetentionDays
+               || LoggingMaxFileSizeMb != options.MaxFileSizeMb
+               || !string.Equals(LoggingDirectory ?? string.Empty, _logger.LogDirectory, StringComparison.Ordinal);
     }
 
     private bool IsMsfxApiDirty()
@@ -346,52 +362,72 @@ public partial class Settings
         _loggingAutoSaveCts?.Dispose();
         _loggingAutoSaveCts = new CancellationTokenSource();
         var token = _loggingAutoSaveCts.Token;
-        RunDetached(async ct =>
+        TaskObserve.Observe(ApplyLoggingAfterDelayAsync(token), "SettingsVM", "logging.autosave.fail");
+    }
+
+    private async Task ApplyLoggingAfterDelayAsync(CancellationToken ct)
+    {
+        try
         {
-            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, token);
-            try
+            await Task.Delay(400, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!_disposed)
+        {
+            while (IsLoggingBusy)
             {
-                await Task.Delay(400, linked.Token);
-            }
-            catch (OperationCanceledException) when (linked.Token.IsCancellationRequested)
-            {
-                return;
+                try
+                {
+                    await Task.Delay(50, ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    return;
+                }
             }
 
             await ApplyLoggingOptionsAsync(silent: true);
-        }, "logging.autosave.fail");
+        }
     }
 
-    private void ScheduleUpdateAutoSave()
+    private void ScheduleAutoCheckSave()
     {
         if (_syncingUpdateOptions)
         {
             return;
         }
 
-        _updateAutoSaveCts?.Cancel();
-        _updateAutoSaveCts?.Dispose();
-        _updateAutoSaveCts = new CancellationTokenSource();
-        var token = _updateAutoSaveCts.Token;
-        RunDetached(async ct =>
-        {
-            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, token);
-            try
-            {
-                await Task.Delay(400, linked.Token);
-            }
-            catch (OperationCanceledException) when (linked.Token.IsCancellationRequested)
-            {
-                return;
-            }
-
-            await ApplyUpdateAutoFieldsAsync();
-        }, "update.autosave.fail");
+        _updateAutoCheckSaveCts?.Cancel();
+        _updateAutoCheckSaveCts?.Dispose();
+        _updateAutoCheckSaveCts = new CancellationTokenSource();
+        var token = _updateAutoCheckSaveCts.Token;
+        TaskObserve.Observe(ApplyAutoCheckAfterDelayAsync(token), "SettingsVM", "update.autosave.fail");
     }
 
-    private async Task ApplyUpdateAutoFieldsAsync()
+    private async Task ApplyAutoCheckAfterDelayAsync(CancellationToken ct)
     {
-        if (_syncingUpdateOptions || SkipTrigger())
+        try
+        {
+            await Task.Delay(400, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!_disposed)
+        {
+            await ApplyAutoCheckImmediateAsync();
+        }
+    }
+
+    private async Task ApplyAutoCheckImmediateAsync()
+    {
+        if (_syncingUpdateOptions)
         {
             return;
         }
@@ -403,18 +439,23 @@ public partial class Settings
             {
                 AutoCheckOnStartup = AutoCheckUpdateOnStartup,
                 Channel = previous.Channel,
-                ValidatedChannel = previous.ValidatedChannel,
                 FeedUrl = previous.FeedUrl,
-                AutoCheckIntervalMinutes = Math.Clamp(UpdatePollIntervalMinutes, 0, 720),
+                AutoCheckIntervalMinutes = previous.AutoCheckIntervalMinutes,
                 IgnoredVersion = previous.IgnoredVersion
             };
 
-            await _updateSettings.SaveAsync(options);
+            await SaveUpdateOptionsLocalAsync(options);
         }
         catch (Exception ex)
         {
             _logger.Error("SettingsVM", "update.autosave.fail", "Failed to auto-save update preferences", ex);
-            await RunOnUiAsync(() => _toast.Error("更新设置", $"自动保存失败：{ex.Message}"));
+            await RunOnUiAsync(() =>
+            {
+                _syncingUpdateOptions = true;
+                AutoCheckUpdateOnStartup = _updateSettings.Current.AutoCheckOnStartup;
+                _syncingUpdateOptions = false;
+                _toast.Error("更新设置", $"自动保存失败：{ex.Message}");
+            });
         }
         finally
         {
@@ -432,7 +473,16 @@ public partial class Settings
     partial void OnUpdateChannelChanged(string value)
     {
         SyncPollHint();
-        RefreshUnsaved();
+        if (!_syncingUpdateOptions)
+        {
+            _updateChannelSaveCts?.Cancel();
+            _updateChannelSaveCts?.Dispose();
+            _updateChannelSaveCts = new CancellationTokenSource();
+            TaskObserve.Observe(
+                ApplyUpdateChannelImmediateAsync(value, _updateChannelSaveCts.Token),
+                "SettingsVM",
+                "update.channel.save.fail");
+        }
     }
 
     partial void OnUpdateFeedUrlChanged(string value) => RefreshUnsaved();
@@ -446,13 +496,13 @@ public partial class Settings
 
     partial void OnAutoCheckUpdateOnStartupChanged(bool value)
     {
-        ScheduleUpdateAutoSave();
+        ScheduleAutoCheckSave();
     }
 
     partial void OnUpdatePollIntervalMinutesChanged(int value)
     {
         SyncPollHint();
-        ScheduleUpdateAutoSave();
+        RefreshUnsaved();
     }
 
     partial void OnLoggingEnabledChanged(bool value)
@@ -476,7 +526,7 @@ public partial class Settings
     {
         if (!_syncingLoggingOptions)
         {
-            ScheduleLoggingAutoSave();
+            RefreshUnsaved();
         }
     }
 
@@ -484,7 +534,7 @@ public partial class Settings
     {
         if (!_syncingLoggingOptions)
         {
-            ScheduleLoggingAutoSave();
+            RefreshUnsaved();
         }
     }
 
@@ -492,7 +542,7 @@ public partial class Settings
     {
         if (!_syncingLoggingOptions)
         {
-            ScheduleLoggingAutoSave();
+            RefreshUnsaved();
         }
     }
 

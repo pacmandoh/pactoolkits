@@ -98,8 +98,7 @@ done < <(manifest_agents_module_ids "$MANIFEST")
 
 echo "Version check passed."
 echo "- product.version: $(manifest_product_version "$MANIFEST")"
-echo "- desktop.<impl>.version: $manifest_desktop"
-echo "- desktop.implementation: $(manifest_desktop_implementation "$MANIFEST")"
+echo "- desktop.avalonia.version: $manifest_desktop"
 echo "- database.postgres.version: $(manifest_database_postgres_version "$MANIFEST")"
 while IFS= read -r component_id; do
   [[ -n "$component_id" ]] || continue

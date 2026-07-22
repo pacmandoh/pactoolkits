@@ -14,7 +14,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<IPinyinSearchCatalogCache, PinyinSearchCatalogCache>();
         services.AddSingleton<IDbAccessGuard, DbAccessGuard>();
-        services.AddSingleton<IDbMigrationPolicyService, DbMigrationPolicyService>();
         services.AddSingleton<IDashboardService, DashboardService>();
         services.AddSingleton<IInventoryOverviewService, InventoryOverviewService>();
         services.AddSingleton<IScanCodeService, ScanCodeService>();
@@ -28,7 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IClientAliasService, ClientAliasService>();
         services.AddSingleton<ITraceCodeRuleService, TraceCodeRuleService>();
         services.AddSingleton<IUpdateSettingsService, UpdateSettingsService>();
-        services.AddSingleton<IReleaseChannelService, ReleaseChannelService>();
+        services.AddSingleton<IReleaseManifestProbeService, ReleaseManifestProbeService>();
         services.AddSingleton<SensitiveUnlockSession>();
         return services;
     }

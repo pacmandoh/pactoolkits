@@ -55,7 +55,7 @@ public sealed class ReleaseVersionService : IReleaseVersionService
         var product = root.TryGetProperty("product", out var productElem) ? productElem : default;
         var components = root.TryGetProperty("components", out var componentsElem) ? componentsElem : default;
         var desktop = components.ValueKind == JsonValueKind.Object
-            && ReleaseManifestDesktop.TryGetImplementation(components, out var desktopElem)
+            && ReleaseManifestDesktop.TryGetAvalonia(components, out var desktopElem)
             ? desktopElem
             : default;
         var agents = components.ValueKind == JsonValueKind.Object
@@ -79,8 +79,7 @@ public sealed class ReleaseVersionService : IReleaseVersionService
             DesktopMinDbSchema: ReadString(desktop, "minDbSchema"),
             DesktopMaxDbSchema: ReadString(desktop, "maxDbSchema"),
             AgentsMinDbSchema: ReadString(agents, "minDbSchema"),
-            AgentsMaxDbSchema: ReadString(agents, "maxDbSchema"),
-            DbMigrationPolicy: ReadString(database, "migrationPolicy"));
+            AgentsMaxDbSchema: ReadString(agents, "maxDbSchema"));
     }
 
     private static string ReadString(JsonElement elem, string name)

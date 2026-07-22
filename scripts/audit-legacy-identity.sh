@@ -70,9 +70,6 @@ else
   echo "OK:   repo filesystem old root dirs"
 fi
 
-allow "remote update feed paths (not repo layout)" 'updates/pactoolkits-(ui|agent|db)/' \
-  scripts README.md README.zh-CN.md
-
 scan "avares old assembly uri" 'avares://pactoolkits-ui/' \
   apps/desktop-avalonia/src
 
@@ -106,17 +103,8 @@ scan "legacy injector-ahk source path" 'runtime/agents/injector-ahk' \
 scan "legacy AhkInjector type" 'AhkInjector' \
   apps packages scripts .github docs tests
 
-postgres_sql_hits="$(search 'database/postgres/sql' \
-  apps packages scripts .github docs tests database \
-  | grep -Ev 'scripts/validate-database-policy\.sh:' || true)"
-if [[ -n "$postgres_sql_hits" ]]; then
-  echo "FAIL: legacy postgres/sql source path"
-  echo "$postgres_sql_hits"
-  echo
-  fail=1
-else
-  echo "OK:   legacy postgres/sql source path"
-fi
+scan "legacy postgres/sql source path" 'database/postgres/sql' \
+  apps packages scripts .github docs tests database
 
 scan "legacy Sql publish link" 'Link="Sql\\' \
   packages
@@ -127,16 +115,13 @@ scan "legacy PacToolkits.Agents.exe host name" 'PacToolkits\.Agents\.exe' \
 allow "legacy config compatibility constant" 'pactoolkits-ui\.config\.json' \
   apps/desktop-avalonia/src/Services/Infrastructure/AppConfigStore.cs
 
-allow "git history legacy migration dir constant" 'LEGACY_MIGRATION_DIR="pactoolkits-db/sql/migrations"' \
+allow "legacy migration dir constant" 'LEGACY_MIGRATION_DIR="pactoolkits-db/sql/migrations"' \
   scripts/validate-database-policy.sh
 
-allow "git history nested sql migration dir constant" 'NESTED_SQL_MIGRATION_DIR="database/postgres/sql/migrations"' \
-  scripts/validate-database-policy.sh
-
-allow "Main Tools pacinjector migration" 'pacinjector' \
+allow "legacy Tools pacinjector migration" 'pacinjector' \
   packages/agents-contracts apps/desktop-avalonia/src tests/PacToolkits.Agents.Contracts.Tests tests/PacToolkits.Desktop.Tests docs
 
-allow "Main AutomationTools.Ahk migration" '"Ahk"' \
+allow "legacy AutomationTools.Ahk migration" '"Ahk"' \
   apps/desktop-avalonia/src/Services/Infrastructure/AppConfigStore.cs
 
 if [[ "$fail" -ne 0 ]]; then

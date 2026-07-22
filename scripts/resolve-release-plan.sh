@@ -61,25 +61,16 @@ if [[ -z "$release_tag" && "${GITHUB_REF:-}" == refs/tags/v* ]]; then
 fi
 validate_release_tag_matches_product_version "$release_tag" "$MANIFEST" || exit 1
 
-implementation="$(manifest_desktop_implementation "$MANIFEST")"
 desktop_version="$(manifest_desktop_version "$MANIFEST")"
 product_version="$(manifest_product_version "$MANIFEST")"
 pack_id="$(manifest_desktop_package_id "$MANIFEST")"
 channel="$(manifest_release_channel "$MANIFEST")"
 
-case "$implementation" in
-  avalonia)
-    desktop_artifact_name="pactoolkits-desktop-avalonia-${RUNTIME}-${desktop_version}"
-    main_exe="PacToolkits.Desktop.exe"
-    icon_path="apps/desktop-avalonia/src/Assets/app.ico"
-    releases_dir="apps/desktop-avalonia/src/Releases"
-    publish_subdir="apps/desktop-avalonia/src/bin/Release/net10.0/${RUNTIME}/publish"
-    ;;
-  *)
-    echo "ERROR: unsupported components.desktop implementation key: $implementation" >&2
-    exit 1
-    ;;
-esac
+desktop_artifact_name="pactoolkits-desktop-avalonia-${RUNTIME}-${desktop_version}"
+main_exe="PacToolkits.Desktop.exe"
+icon_path="apps/desktop-avalonia/src/Assets/app.ico"
+releases_dir="apps/desktop-avalonia/src/Releases"
+publish_subdir="apps/desktop-avalonia/src/bin/Release/net10.0/${RUNTIME}/publish"
 
 emit() {
   local key="$1"
@@ -95,7 +86,6 @@ emit() {
   fi
 }
 
-emit implementation "$implementation"
 emit desktop_version "$desktop_version"
 emit product_version "$product_version"
 emit pack_id "$pack_id"

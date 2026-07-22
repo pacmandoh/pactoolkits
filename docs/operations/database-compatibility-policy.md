@@ -5,23 +5,21 @@ PacToolkits 使用 `release-manifest.json` 中 Desktop 与 Agents 的
 
 ## 兼容性决策
 
-| 当前数据库状态       | 应用行为                                                                |
-| -------------------- | ----------------------------------------------------------------------- |
-| 低于 `minDbSchema`   | 仅在当前通道与 `migrationPolicy` 明确允许时执行前向 migration，否则只读 |
-| 位于 min/max 范围内  | 允许正常运行，不执行 migration                                          |
-| 高于 `maxDbSchema`   | 禁止 migration 与写入；Agents 不得启动                                  |
-| 无法读取 Schema 版本 | 失败关闭，禁止 migration 与写入                                         |
+| 当前数据库状态       | Desktop 行为                         |
+| -------------------- | ------------------------------------ |
+| 低于 `minDbSchema`   | 阻止业务访问，等待外部数据库部署完成 |
+| 位于 min/max 范围内  | 允许正常运行                         |
+| 高于 `maxDbSchema`   | 阻止业务访问；Agents 不得启动        |
+| 无法读取 Schema 版本 | 失败关闭，阻止业务访问               |
 
 Stable 遇到高于其 `maxDbSchema` 的数据库时，必须停止写入。此时不能通过安装旧版 Stable
 恢复业务写入，应升级到兼容版本或按正式事故流程处理。
 
-## 迁移策略
+## 迁移职责
 
-- `stable-only`：Stable 可按应用入口执行前向迁移；Beta 只能跟随 main 已有 DB 版本，禁止迁移
-- `manual`：应用内入口全部禁止，仅允许外部受控部署
-- `isolated-beta`：只允许 Beta 对显式授权的隔离数据库执行迁移
-
-启动、重连、设置页手动操作和外部部署都必须经过相同策略服务判断，任何入口不得绕过。
+Desktop 不包含数据库迁移执行器，也不随安装包分发 migration SQL。所有数据库初始化、计划、
+升级与验证必须通过 `database/postgres/scripts/deploy.sh` 或 `deploy.ps1` 在服务器或受控运维节点执行。
+发布 manifest 只描述目标 Schema 版本与组件兼容范围；数据库变更授权由服务器部署流程独立管理。
 已执行的 SQL migration 不得修改、删除、重命名或覆盖；数据库演进只能追加新 migration。
 
 ## 回退原则
@@ -42,8 +40,8 @@ min/max 范围内。数据库高于目标 Stable `maxDbSchema` 时，禁止切�
 1. 校验 Manifest 的 DB 版本及所有组件 min/max 范围
 2. 确认 Stable/Beta Feed 隔离且目标 manifest 来自正确通道
 3. 确认没有修改或删除已执行 migration
-4. Beta `stable-only` 必须以 main 为 DB 基线且不得包含 migration diff
-5. Beta DB 变更必须使用 `isolated-beta` 和隔离数据库授权
+4. Beta 必须以 Main 为 DB 基线；存在数据库版本或 migration 变化时必须显式授权
+5. Beta DB 变更只能部署到隔离数据库
 6. 验证 Desktop 与所有启用 Agents 对当前 Schema 均兼容
 7. 验证目标版本失败时保持只读或阻止 Agents 启动
 

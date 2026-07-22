@@ -12,9 +12,9 @@ Usage:
 
 Options:
   --manifest PATH          Candidate Manifest V2 file.
-  --base-ref REF           Stable/main Git baseline (default: origin/main).
+  --base-ref REF           Legacy Git baseline (default: origin/main).
   --base-manifest PATH     Optional extracted baseline manifest.
-  --allow-beta-migration BOOL
+  --allow-beta-db-change BOOL
                            Explicit CI authorization (default: false).
   -h, --help               Show this help.
 USAGE
@@ -35,7 +35,7 @@ normalize_bool() {
 MANIFEST="$ROOT_DIR/release-manifest.json"
 BASE_REF="origin/main"
 BASE_MANIFEST=""
-ALLOW_BETA_MIGRATION="false"
+ALLOW_BETA_DB_CHANGE="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -51,8 +51,8 @@ while [[ $# -gt 0 ]]; do
       BASE_MANIFEST="$2"
       shift 2
       ;;
-    --allow-beta-migration)
-      ALLOW_BETA_MIGRATION="$2"
+    --allow-beta-db-change)
+      ALLOW_BETA_DB_CHANGE="$2"
       shift 2
       ;;
     -h | --help)
@@ -63,7 +63,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-ALLOW_BETA_MIGRATION="$(normalize_bool "$ALLOW_BETA_MIGRATION")"
+ALLOW_BETA_DB_CHANGE="$(normalize_bool "$ALLOW_BETA_DB_CHANGE")"
 [[ -f "$MANIFEST" ]] || die "manifest not found: $MANIFEST"
 validate_manifest_v2 "$MANIFEST"
 
@@ -83,27 +83,20 @@ if [[ -z "$BASE_MANIFEST" ]]; then
 fi
 
 [[ -f "$BASE_MANIFEST" ]] || die "base manifest not found: $BASE_MANIFEST"
-base_schema_version="$(manifest_schema_version "$BASE_MANIFEST")"
 base_db_version="$(manifest_database_postgres_version "$BASE_MANIFEST")"
 is_stable_semver "$base_db_version" \
-  || die "stable/main baseline release-manifest.json must expose components.database.postgres.version"
+  || die "legacy baseline release-manifest.json must expose a database schema version"
 
 channel="$(manifest_release_channel "$MANIFEST")"
-policy="$(manifest_database_migration_policy "$MANIFEST")"
 candidate_db_version="$(manifest_database_postgres_version "$MANIFEST")"
 
 LEGACY_MIGRATION_DIR="pactoolkits-db/sql/migrations"
-NESTED_SQL_MIGRATION_DIR="database/postgres/sql/migrations"
 CURRENT_MIGRATION_DIR="database/postgres/migrations"
 
 migration_dir_at_ref() {
   local ref="$1"
   if git ls-tree -r --name-only "$ref" -- "$CURRENT_MIGRATION_DIR" 2> /dev/null | grep -q .; then
     printf '%s' "$CURRENT_MIGRATION_DIR"
-    return 0
-  fi
-  if git ls-tree -r --name-only "$ref" -- "$NESTED_SQL_MIGRATION_DIR" 2> /dev/null | grep -q .; then
-    printf '%s' "$NESTED_SQL_MIGRATION_DIR"
     return 0
   fi
   if git ls-tree -r --name-only "$ref" -- "$LEGACY_MIGRATION_DIR" 2> /dev/null | grep -q .; then
@@ -177,32 +170,15 @@ changed_migrations="$(
 )"
 
 if [[ "$channel" == "beta" ]]; then
-  case "$policy" in
-    stable-only)
-      semver_lte_stable "$candidate_db_version" "$base_db_version" \
-        || die "stable-only beta DB version cannot exceed stable/main baseline ($base_db_version): $candidate_db_version"
-      [[ -z "$changed_migrations" ]] \
-        || die "stable-only beta cannot change SQL migrations relative to $BASE_REF"
-      ;;
-    isolated-beta)
-      if [[ -n "$changed_migrations" ]] \
-        || ! semver_lte_stable "$candidate_db_version" "$base_db_version"; then
-        [[ "$ALLOW_BETA_MIGRATION" == "true" ]] \
-          || die "isolated beta migration requires explicit CI authorization"
-      fi
-      ;;
-    manual)
-      die "manual database migration policy is not allowed in automated beta release validation"
-      ;;
-    *)
-      die "unsupported migrationPolicy for beta: $policy"
-      ;;
-  esac
+  if [[ -n "$changed_migrations" ]] \
+    || ! semver_lte_stable "$candidate_db_version" "$base_db_version"; then
+    [[ "$ALLOW_BETA_DB_CHANGE" == "true" ]] \
+      || die "beta database changes require explicit CI authorization"
+  fi
 fi
 
 printf 'channel=%s\n' "$channel"
-printf 'migrationPolicy=%s\n' "$policy"
 printf 'databaseVersion=%s\n' "$candidate_db_version"
-printf 'stableBaselineDatabaseVersion=%s\n' "$base_db_version"
-printf 'betaMigrationAuthorized=%s\n' "$ALLOW_BETA_MIGRATION"
+printf 'legacyBaselineDatabaseVersion=%s\n' "$base_db_version"
+printf 'betaDatabaseChangeAuthorized=%s\n' "$ALLOW_BETA_DB_CHANGE"
 printf 'migrationChanges=%s\n' "$([[ -n "$changed_migrations" ]] && printf true || printf false)"

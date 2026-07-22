@@ -14,7 +14,7 @@ Usage:
   release-desktop.sh [options]
 
 Options:
-  --bump-desktop X.Y.Z       Optional: bump components.desktop.<impl>.version before release.
+  --bump-desktop X.Y.Z       Optional: bump components.desktop.avalonia.version before release.
   --bump-product X.Y.Z       Optional: bump product.version.
   --bump-agents X.Y.Z         Optional: bump components.agents.version.
   --bump-db X.Y.Z            Optional: bump components.database.postgres.version.
@@ -307,7 +307,7 @@ fi
 
 echo "Release plan:"
 echo "- product.version: $PACK_VERSION"
-echo "- desktop.<impl>.version: $manifest_desktop"
+echo "- desktop.avalonia.version: $manifest_desktop"
 echo "- packId: $manifest_pack_id"
 echo "- channel: $CHANNEL"
 echo "- runtime: $RUNTIME"
@@ -389,18 +389,6 @@ if [[ "$DRY_RUN" != "true" ]]; then
   }
   [[ -f "$AGENT_MODULE_DST/Injector.exe" ]] || {
     echo "ERROR: injector module binary not found in publish output: $AGENT_MODULE_DST/Injector.exe" >&2
-    exit 1
-  }
-  [[ -f "$PACK_DIR/Postgres/Bootstrap/000_init_meta.sql" ]] || {
-    echo "ERROR: bootstrap SQL not found in publish output" >&2
-    exit 1
-  }
-  [[ -d "$PACK_DIR/Postgres/Migrations" ]] || {
-    echo "ERROR: migrations SQL directory not found in publish output" >&2
-    exit 1
-  }
-  [[ -d "$PACK_DIR/Postgres/Verify" ]] || {
-    echo "ERROR: verify SQL directory not found in publish output" >&2
     exit 1
   }
 fi

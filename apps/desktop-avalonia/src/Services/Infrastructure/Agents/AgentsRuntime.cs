@@ -13,8 +13,6 @@ using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Agents.Contracts.Validation;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Core;
-using DbMigrationDecision = PacToolkits.Application.DTOs.DbMigrationDecision;
-using DbMigrationTrigger = PacToolkits.Application.DTOs.DbMigrationTrigger;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
@@ -28,7 +26,6 @@ public sealed class AgentsRuntime : IAgentsRuntime
     private readonly IAppConfigStore _configStore;
     private readonly IReleaseVersionService _releaseVersion;
     private readonly IDbSchemaVersionService _dbSchemaVersion;
-    private readonly IDbMigrationPolicyService _migrationPolicy;
     private readonly IAppLogger _logger;
     private readonly object _gate = new();
     private readonly SemaphoreSlim _commandGate = new(1, 1);
@@ -182,13 +179,11 @@ public sealed class AgentsRuntime : IAgentsRuntime
         IAppConfigStore configStore,
         IReleaseVersionService releaseVersion,
         IDbSchemaVersionService dbSchemaVersion,
-        IDbMigrationPolicyService migrationPolicy,
         IAppLogger logger)
     {
         _configStore = configStore;
         _releaseVersion = releaseVersion;
         _dbSchemaVersion = dbSchemaVersion;
-        _migrationPolicy = migrationPolicy;
         _logger = logger;
         Reload();
 
@@ -958,8 +953,8 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return true;
             }
 
-            // 仅 Main：配置迁到 Host 后仍需停掉 Tools\pacinjector.exe
-            return AgentsPath.IsMainToolsStoredPath(normalizedModulePath);
+            // 仅 Legacy：配置迁到 Host 后仍需停掉 Tools\pacinjector.exe
+            return AgentsPath.IsLegacyToolsStoredPath(normalizedModulePath);
         }
         catch
         {
@@ -1489,16 +1484,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
             return new AgentsCommandResult(false, compatibility.Message);
         }
 
-        var policy = await _migrationPolicy.EvaluateAsync(
-            DbMigrationTrigger.Startup,
-            compatibility.Status,
-            version.BuildChannel,
-            version.DbMigrationPolicy,
-            ct: ct).ConfigureAwait(false);
-
-        return policy.Decision == DbMigrationDecision.Allowed
-            ? new AgentsCommandResult(true, policy.Reason)
-            : new AgentsCommandResult(false, policy.Reason);
+        return new AgentsCommandResult(true, "数据库版本兼容");
     }
 
     private static string BuildConfigArguments(string configPath)

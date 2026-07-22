@@ -31,7 +31,6 @@
 ### Warn（降级 / 可恢复）
 
 - 瞬断重试: `conn.open.transient_disconnect.retry`、`reload.transport_retry`
-- 通道门禁: `update.check.channel_unauthorized`、`update.apply.channel_unauthorized`
 - 局部失败继续: `client_id.query.partial_fail`、多数 `*.dispose.*_fail`
 - MSFX 审计成功类也记 Warn（如 `msfx.task.reopen.success`）便于检索
 
@@ -79,17 +78,13 @@
 - `db.probe.error` (Error) — Database probe failed
 - `db.probe.timeout` (Warn) — Database probe timed out
 - `db.probe.unsuccessful` (Warn) — Database probe finished with unsuccessful result
-- `db.reconnect.migrate.blocked` (Warn) — Reconnect migration blocked by policy
-- `db.reconnected.migrate.fail` (Warn) — Auto migration on DB reconnect failed
 - `db.schema.incompatible` (Warn) — Database schema incompatible
 - `db.schema.incompatible.startup` (Error) — Database schema incompatible during startup
 - `db.schema.ok` (Info) — Database schema version compatible
-- `db.schema.pending_migration.startup` (Warn) — Database schema below app minimum during startup; migration required before business ac...
+- `db.schema.external_update_required.startup` (Warn) — Database schema below app minimum; external update required before business access
 - `db.schema.recovery_poll.fail` (Warn) — Schema recovery polling failed
 - `db.schema.status.refresh.fail` (Warn) — Failed to refresh DB schema status for Settings page
 - `db.startup_check.fail` (Error/Warn) — Database connection test failed on startup; shell banner will show status
-- `db.startup_check.migrate.blocked` (Warn) — Startup migration blocked by policy
-- `db.startup_check.migrate.stamp.saved` (Info) — Saved DB migration app-version stamp
 - `db.startup_check.start` (Info) — Checking database connectivity on startup
 - `dispose.safe_execute_fail` (Warn) — Dispose cleanup action failed
 - `drug_index.watermark.refresh_fail` (Warn) — Drug index watermark refresh failed
@@ -161,7 +156,6 @@
 - `trace_rule.regex_invalid` (Warn) — Invalid trace regex pattern
 - `trace_rule.save.fail` (Error) — Failed to save trace code rule
 - `update.autosave.fail` (Error) — Failed to auto-save update preferences
-- `update.channel.switch.validated` (Info) — Release channel switch validated without database migration
 - `update.clear_ignored.fail` (Error) — Failed to clear ignored version
 - `update.settings.save.fail` (Error) — Failed to save update settings
 
@@ -191,26 +185,23 @@
 
 ### AppUpdateService
 
-- `update.apply.channel_switch` (Info) — Applying update from selected channel after validated channel switch
-- `update.apply.channel_unauthorized` (Warn) — Update apply blocked because release channel switch was not validated
 - `update.apply.downloaded` (Info) — Update package downloaded and pending restart
 - `update.apply.none` (Info) — Apply requested but no updates were available
 - `update.apply.pending` (Info) — Update already pending restart
-- `update.apply.simulated` (Info) — Blocked update download in simulation mode
+- `update.pending.load_fail` (Warn) — Failed to load pending update state
 - `update.check.available` (Info) — Update check found release
-- `update.check.channel_switch` (Info) — Checking selected channel after validated channel switch
-- `update.check.channel_unauthorized` (Warn) — Update check blocked because release channel switch was not validated
+- `update.check.compatibility_blocked` (Warn) — Update check blocked by release or database compatibility
 - `update.check.fail` (Error) — Update check failed
-- `update.check.simulated` (Info) — Simulated update check found release
 - `update.check.start` (Info) — Starting update check
 - `update.check.uptodate` (Info) — No updates available
 - `update.restart.apply` (Info) — Applying pending update and restarting
+- `update.restart.compatibility_blocked` (Warn) — Pending update restart blocked by current compatibility check
 
 ### UpdateDesktopFlow
 
 - `update.apply.flow_fail` (Error) — Update apply flow failed
 
-### ReleaseChannelSwitch
+### ReleaseManifestProbe
 
 - `update.channel.feed_probe_fail` (Warn) — Failed probing target release channel feed
 
@@ -346,11 +337,6 @@
 
 - `schema_version.read_fail` (Warn) — Failed reading schema_version
 
-### DatabaseEnvironment
-
-- `environment_settings.missing` (Info) — app_environment_settings table not found; using production defaults
-- `environment_settings.read_fail` (Warn) — Failed reading app_environment_settings; using production defaults
-
 ### ChangeWatermark
 
 - `watermark.dispatch.fail` (Warn) — Watermark dispatch failed
@@ -404,7 +390,6 @@
 - `reconcile.detached.fail` (Error) — Detached task failed
 - `reload.detached.fail` (Error) — Detached task failed
 - `reload.quiet.detached.fail` (Error) — Detached task failed
-- `schema.migrate.detached.fail` (Error) — Detached task failed
 - `schema.recovery.detached.fail` (Error) — Detached task failed
 - `schema.refresh.detached.fail` (Error) — Detached task failed
 - `selection.change.detached.fail` (Error) — Detached task failed
