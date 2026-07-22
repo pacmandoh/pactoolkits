@@ -95,6 +95,36 @@ public static class AgentsPath
         }
     }
 
+    public static string? TryReadHostVersion(string releaseManifestPath)
+    {
+        if (string.IsNullOrWhiteSpace(releaseManifestPath) || !File.Exists(releaseManifestPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(releaseManifestPath);
+            using var doc = JsonDocument.Parse(stream);
+            if (!doc.RootElement.TryGetProperty("components", out var components)
+                || components.ValueKind != JsonValueKind.Object
+                || !components.TryGetProperty("agents", out var agents)
+                || agents.ValueKind != JsonValueKind.Object
+                || !agents.TryGetProperty("version", out var version)
+                || version.ValueKind != JsonValueKind.String)
+            {
+                return null;
+            }
+
+            var text = version.GetString();
+            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public static HostExecutableResolution ResolveHost(string? configuredPath, string baseDirectory)
     {
         var configured = NormalizeStoredPath(configuredPath);

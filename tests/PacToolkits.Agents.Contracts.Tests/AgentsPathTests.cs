@@ -147,6 +147,22 @@ public sealed class AgentsPathTests : IDisposable
         Assert.Equal("1.2.3", version);
     }
 
+    [Fact]
+    public void TryReadHostVersion_reads_agents_component_version()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "Agents");
+        Directory.CreateDirectory(agentsDir);
+        File.WriteAllText(
+            Path.Combine(agentsDir, "ReleaseManifest.json"),
+            """
+            {"components":{"agents":{"version":"0.1.1","modules":{"Injector":{"version":"0.7.0"}}}}}
+            """);
+
+        var version = AgentsPath.TryReadHostVersion(Path.Combine(agentsDir, "ReleaseManifest.json"));
+
+        Assert.Equal("0.1.1", version);
+    }
+
     private void CreateHostExecutable()
     {
         var standardDirectory = Path.Combine(_baseDirectory, "Agents");

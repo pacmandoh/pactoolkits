@@ -205,7 +205,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         {
             changed = !Same(_options, normalized);
             _options = Clone(normalized);
-            _hostVersion = ReadFileVersion(_options.ExecutablePath);
+            _hostVersion = ReadHostVersion(_options.ExecutablePath);
             _injectorVersion = ReadInjectorVersion(_options.ExecutablePath);
         }
 
@@ -338,7 +338,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 _hostLastLaunchAt = launchedAt;
                 _hostLastError = null;
                 _injectorLastError = null;
-                _hostVersion = ReadFileVersion(_options.ExecutablePath);
+                _hostVersion = ReadHostVersion(_options.ExecutablePath);
                 _injectorVersion = ReadInjectorVersion(_options.ExecutablePath);
             }
 
@@ -383,7 +383,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                         _injectorLastLaunchAt = DateTimeOffset.Now;
                         _injectorLastError = null;
                         _hostLastError = null;
-                        _hostVersion = ReadFileVersion(_options.ExecutablePath);
+                        _hostVersion = ReadHostVersion(_options.ExecutablePath);
                         _injectorVersion = ReadInjectorVersion(_options.ExecutablePath);
                     }
                 }
@@ -1514,7 +1514,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                JsonSerializer.Serialize(b.Injector),
                StringComparison.Ordinal);
 
-    private static string ReadFileVersion(string executablePath)
+    private static string ReadHostVersion(string executablePath)
     {
         var resolvedPath = ResolveExecutablePath(executablePath);
         if (resolvedPath is null || !File.Exists(resolvedPath))
@@ -1522,9 +1522,25 @@ public sealed class AgentsRuntime : IAgentsRuntime
             return "未配置";
         }
 
+        var agentsDir = Path.GetDirectoryName(resolvedPath);
+        if (!string.IsNullOrWhiteSpace(agentsDir))
+        {
+            var fromManifest = AgentsPath.TryReadHostVersion(
+                Path.Combine(agentsDir, "ReleaseManifest.json"));
+            if (!string.IsNullOrWhiteSpace(fromManifest))
+            {
+                return fromManifest;
+            }
+        }
+
+        return ReadFileVersion(resolvedPath);
+    }
+
+    private static string ReadFileVersion(string executablePath)
+    {
         try
         {
-            var info = FileVersionInfo.GetVersionInfo(resolvedPath);
+            var info = FileVersionInfo.GetVersionInfo(executablePath);
             return string.IsNullOrWhiteSpace(info.FileVersion) ? "未知" : info.FileVersion;
         }
         catch
