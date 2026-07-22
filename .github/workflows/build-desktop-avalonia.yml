@@ -75,8 +75,8 @@ jobs:
             *) echo "Unsupported runtime: $RUNTIME" >&2; exit 1 ;;
           esac
           project="apps/desktop-avalonia/src/PacToolkits.Desktop.Avalonia.csproj"
-          dotnet restore "$project" --locked-mode -r "$RUNTIME"
-          dotnet publish "$project" -c Release -f net10.0 -r "$RUNTIME" --no-restore --self-contained false
+          dotnet restore "$project" --locked-mode
+          dotnet publish "$project" -c Release -f net10.0 -r "$RUNTIME" --self-contained false
 
       - name: Validate publish output
         shell: bash

@@ -278,12 +278,10 @@ jobs:
           # 与 Desktop 一样走 FDD：Host 只是薄模块管理器，不是第二套运行时捆绑
           # EnableCompressionInSingleFile 要求 self-contained，FDD 下须关闭
           dotnet restore "runtime/agents/host/PacToolkits.Agents.Host.csproj" `
-            --locked-mode `
-            -r $env:RUNTIME
+            --locked-mode
           dotnet publish "runtime/agents/host/PacToolkits.Agents.Host.csproj" `
             -c Release `
             -r $env:RUNTIME `
-            --no-restore `
             --self-contained false `
             -p:PublishSingleFile=true `
             -o $stagingDir `
