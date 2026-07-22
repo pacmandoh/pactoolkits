@@ -1,0 +1,25 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/Typography.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/Buttons.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/Cards.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/OverviewCard.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/StatusPill.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/CircleProgressRing.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/Inputs.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/CellValidation.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/AppIcon.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/BusyArea.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/EmptyStatePanel.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/DataGrid.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/DataGridPager.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/Navigation.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/Shell.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/TitleBar.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/StatusBar.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/CardPanel.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Components/DeferredContentHost.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Pages/Layout.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Pages/Settings.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Pages/ScanCode.axaml" />
+  <StyleInclude Source="avares://PacToolkits.Desktop/Styles/Pages/Shared.axaml" />
+</Styles>

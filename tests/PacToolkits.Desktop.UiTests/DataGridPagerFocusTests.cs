@@ -84,7 +84,7 @@ public sealed class DataGridPagerFocusTests
         var shadTheme = new ShadUI.ShadTheme();
         var pacStyles = new StyleInclude(baseUri)
         {
-            Source = new Uri("avares://PacToolkits.Desktop/Styles/PacTheme.Styles.axaml"),
+            Source = new Uri("avares://PacToolkits.Desktop/Styles/App.axaml"),
         };
 
         app.Resources.MergedDictionaries.Add(resources);

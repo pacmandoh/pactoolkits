@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using PacToolkits.Application.DTOs;
 
-namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 
 public enum MsfxTaskSplitAction
 {

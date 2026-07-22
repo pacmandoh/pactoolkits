@@ -1,39 +1,53 @@
 ﻿<UserControl
-  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.InfoDetailView"
+  x:Class="PacToolkits.Desktop.Avalonia.Views.Dialogs.MsfxStateDetailView"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:dialogModels="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs"
   xmlns:dialogs="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Dialogs"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
-  xmlns:infra="clr-namespace:PacToolkits.Desktop.Avalonia.Services.Infrastructure"
-  x:DataType="dialogs:InfoDetail">
+  x:DataType="dialogs:MsfxStateDetail">
   <StackPanel
-    MinWidth="460"
-    MaxWidth="720"
+    MinWidth="560"
+    MaxWidth="920"
     Margin="24"
     Spacing="16">
     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource PageColumnSpacing}">
       <Border
-        Width="40"
-        Height="40"
-        CornerRadius="20">
+        Width="44"
+        Height="44"
+        Background="{Binding Detail.State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+        CornerRadius="22">
         <icons:AppIcon
-          Width="{DynamicResource IconSizeDialog}"
-          Height="{DynamicResource IconSizeDialog}"
+          Width="24"
+          Height="24"
           HorizontalAlignment="Center"
           VerticalAlignment="Center"
-          Kind="Info" />
+          Foreground="{Binding Detail.State, Converter={StaticResource TraceEntryStateToFgBrush}}"
+          Kind="{Binding Detail.State, Converter={StaticResource TraceEntryStateToIconKind}}" />
       </Border>
       <StackPanel
         Grid.Column="1"
         VerticalAlignment="Center"
         Spacing="2">
         <TextBlock Classes="h4" Text="{Binding Detail.Header}" />
-        <TextBlock
-          Classes="Caption Muted"
-          Text="{Binding Detail.SubHeader}"
-          TextWrapping="Wrap" />
+        <TextBlock Classes="Caption Muted" Text="{Binding Detail.SubHeader}" />
       </StackPanel>
     </Grid>
+
+    <Border
+      Padding="12"
+      Background="{Binding Detail.State, Converter={StaticResource TraceEntryStateToBgBrush}}"
+      CornerRadius="{DynamicResource XlCornerRadius}">
+      <Grid>
+        <StackPanel Spacing="{DynamicResource SpacingInlineSm}">
+          <TextBlock FontWeight="SemiBold" Text="{Binding Detail.HighlightTitle}" />
+          <TextBlock
+            MaxHeight="220"
+            Text="{Binding Detail.HighlightMessage}"
+            TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+    </Border>
 
     <ScrollViewer
       MaxHeight="420"
@@ -44,12 +58,12 @@
           <ItemsPanelTemplate>
             <WrapPanel
               ItemSpacing="{DynamicResource SpacingInlineMd}"
-              ItemWidth="320"
+              ItemWidth="280"
               LineSpacing="{DynamicResource SpacingInlineMd}" />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="infra:InfoDetailItem">
+          <DataTemplate x:DataType="dialogModels:InfoDetailItem">
             <Border Padding="10,8" CornerRadius="{DynamicResource LgCornerRadius}">
               <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
                 <TextBlock Classes="Caption Muted" Text="{Binding Label}" />
@@ -64,10 +78,5 @@
       </ItemsControl>
     </ScrollViewer>
 
-    <Button
-      Classes="Primary"
-      Command="{Binding CloseCommand}"
-      Content="关闭"
-      HotKey="Escape" />
   </StackPanel>
 </UserControl>
