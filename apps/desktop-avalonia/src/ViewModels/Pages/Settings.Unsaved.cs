@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
+using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 
@@ -435,14 +436,8 @@ public partial class Settings
         try
         {
             var previous = _updateSettings.Current;
-            var options = new UpdateOptions
-            {
-                AutoCheckOnStartup = AutoCheckUpdateOnStartup,
-                Channel = previous.Channel,
-                FeedUrl = previous.FeedUrl,
-                AutoCheckIntervalMinutes = previous.AutoCheckIntervalMinutes,
-                IgnoredVersion = previous.IgnoredVersion
-            };
+            var options = AppUpdatePolicy.NormalizeOptions(previous);
+            options.AutoCheckOnStartup = AutoCheckUpdateOnStartup;
 
             await SaveUpdateOptionsLocalAsync(options);
         }

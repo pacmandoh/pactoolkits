@@ -56,6 +56,94 @@ public sealed class AppUpdateService : IAppUpdateService, IDisposable
         _settings.Changed += OnSettingsChanged;
     }
 
+    public async Task AlignChannelAsync(
+        Func<string, string, CancellationToken, Task<bool>>? confirmMismatchAsync = null,
+        CancellationToken ct = default)
+    {
+        var current = _settings.Current;
+        var installed = ResolveInstalledChannel();
+        var decision = AppUpdatePolicy.EvaluateChannelAlign(
+            current.Channel,
+            installed,
+            current.SeenInstalledChannel);
+
+        var nextChannel = decision.Channel;
+        var nextSeen = decision.SeenInstalledChannel;
+        switch (decision.Action)
+        {
+            case ChannelAlignAction.None:
+                return;
+            case ChannelAlignAction.PersistSeenOnly:
+                break;
+            case ChannelAlignAction.AlignToInstalled:
+                nextChannel = decision.InstalledChannel;
+                nextSeen = decision.InstalledChannel;
+                break;
+            case ChannelAlignAction.ConfirmMismatch:
+                if (confirmMismatchAsync is null)
+                {
+                    nextSeen = decision.InstalledChannel;
+                    break;
+                }
+
+                var confirmed = await confirmMismatchAsync(
+                        decision.Channel,
+                        decision.InstalledChannel,
+                        ct)
+                    .ConfigureAwait(false);
+                if (confirmed)
+                {
+                    nextChannel = decision.InstalledChannel;
+                    nextSeen = decision.InstalledChannel;
+                }
+                else
+                {
+                    nextSeen = decision.InstalledChannel;
+                }
+
+                break;
+            default:
+                return;
+        }
+
+        if (string.Equals(
+                AppUpdatePolicy.NormalizeChannel(current.Channel),
+                AppUpdatePolicy.NormalizeChannel(nextChannel),
+                StringComparison.Ordinal)
+            && string.Equals(current.SeenInstalledChannel, nextSeen, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var aligned = AppUpdatePolicy.WithChannelState(current, nextChannel, nextSeen);
+        try
+        {
+            await _settings.SaveAsync(aligned, ct).ConfigureAwait(false);
+            _observedOptions = _settings.Current;
+            _logger.Info("AppUpdateService", "update.channel.align_installed",
+                "Aligned configured update channel with Velopack installed channel", new
+                {
+                    Action = decision.Action.ToString(),
+                    PreviousChannel = current.Channel,
+                    Channel = nextChannel,
+                    PreviousSeenInstalledChannel = current.SeenInstalledChannel,
+                    SeenInstalledChannel = nextSeen,
+                    InstalledChannel = decision.InstalledChannel
+                });
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn("AppUpdateService", "update.channel.align_installed.fail",
+                "Failed aligning configured update channel with installed channel", ex, new
+                {
+                    Action = decision.Action.ToString(),
+                    PreviousChannel = current.Channel,
+                    Channel = nextChannel,
+                    InstalledChannel = decision.InstalledChannel
+                });
+        }
+    }
+
     private void LoadPendingState()
     {
         try

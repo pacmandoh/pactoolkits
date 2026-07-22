@@ -20,6 +20,13 @@ public interface IAppUpdateService
     Task<AppUpdateCheckResult> CheckAsync(CancellationToken ct = default);
     Task<AppUpdateApplyResult> ApplyAsync(IProgress<int>? progress = null, CancellationToken ct = default);
     Task<bool> RestartToApplyAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// 将配置通道与 Velopack 安装通道对齐；空 stamp 且不一致时经 <paramref name="confirmMismatchAsync"/> 确认
+    /// </summary>
+    Task AlignChannelAsync(
+        Func<string, string, CancellationToken, Task<bool>>? confirmMismatchAsync = null,
+        CancellationToken ct = default);
 }
 
 /// <summary>应用更新检查结果</summary>

@@ -111,4 +111,72 @@ public sealed class AppUpdatePolicyTests
         Assert.False(AppUpdatePolicy.RequiresSourceCheck(UpdateSettingsChange.IgnoredVersion));
         Assert.False(AppUpdatePolicy.RequiresPollRestart(UpdateSettingsChange.IgnoredVersion));
     }
+
+    [Fact]
+    public void Aligns_when_installed_channel_changes_against_non_empty_stamp()
+    {
+        var decision = AppUpdatePolicy.EvaluateChannelAlign(
+            configuredChannel: "stable",
+            installedChannel: "beta",
+            seenInstalledChannel: "stable");
+
+        Assert.Equal(ChannelAlignAction.AlignToInstalled, decision.Action);
+        Assert.Equal("beta", decision.Channel);
+        Assert.Equal("beta", decision.SeenInstalledChannel);
+        Assert.Equal("beta", decision.InstalledChannel);
+    }
+
+    [Fact]
+    public void Skips_align_when_installed_channel_matches_seen_stamp()
+    {
+        var decision = AppUpdatePolicy.EvaluateChannelAlign(
+            configuredChannel: "stable",
+            installedChannel: "beta",
+            seenInstalledChannel: "beta");
+
+        Assert.Equal(ChannelAlignAction.None, decision.Action);
+        Assert.Equal("stable", decision.Channel);
+        Assert.Equal("beta", decision.SeenInstalledChannel);
+    }
+
+    [Fact]
+    public void Seeds_seen_stamp_without_align_when_channels_already_match()
+    {
+        var decision = AppUpdatePolicy.EvaluateChannelAlign(
+            configuredChannel: "beta",
+            installedChannel: "beta",
+            seenInstalledChannel: string.Empty);
+
+        Assert.Equal(ChannelAlignAction.PersistSeenOnly, decision.Action);
+        Assert.Equal("beta", decision.Channel);
+        Assert.Equal("beta", decision.SeenInstalledChannel);
+    }
+
+    [Fact]
+    public void Asks_to_confirm_when_empty_stamp_and_channels_mismatch()
+    {
+        var decision = AppUpdatePolicy.EvaluateChannelAlign(
+            configuredChannel: "stable",
+            installedChannel: "beta",
+            seenInstalledChannel: string.Empty);
+
+        Assert.Equal(ChannelAlignAction.ConfirmMismatch, decision.Action);
+        Assert.Equal("stable", decision.Channel);
+        Assert.Equal("beta", decision.SeenInstalledChannel);
+        Assert.Equal("beta", decision.InstalledChannel);
+    }
+
+    [Fact]
+    public void Skips_align_when_installed_channel_unavailable()
+    {
+        var decision = AppUpdatePolicy.EvaluateChannelAlign(
+            configuredChannel: "beta",
+            installedChannel: string.Empty,
+            seenInstalledChannel: "beta");
+
+        Assert.Equal(ChannelAlignAction.None, decision.Action);
+        Assert.Equal("beta", decision.Channel);
+        Assert.Equal("beta", decision.SeenInstalledChannel);
+        Assert.Equal(string.Empty, decision.InstalledChannel);
+    }
 }

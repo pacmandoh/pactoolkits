@@ -60,6 +60,11 @@ public sealed class UpdateFlowServiceTests
 
         public Task<bool> RestartToApplyAsync(CancellationToken ct = default)
             => Task.FromResult(true);
+
+        public Task AlignChannelAsync(
+            Func<string, string, CancellationToken, Task<bool>>? confirmMismatchAsync = null,
+            CancellationToken ct = default)
+            => Task.CompletedTask;
     }
 
     private sealed class NoOpToast : IToastService

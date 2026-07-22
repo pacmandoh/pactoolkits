@@ -710,6 +710,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _startupState.MarkDbInitCompleted();
 
             await StartAgentsOnStartupAsync().ConfigureAwait(false);
+            await AlignUpdateChannelOnStartupAsync().ConfigureAwait(false);
             await CheckUpdatesOnStartupAsync().ConfigureAwait(false);
             RestartUpdatePolling();
         }
@@ -1709,6 +1710,20 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         string? DbVersion,
         string Compatibility,
         string? Reason);
+
+    private async Task AlignUpdateChannelOnStartupAsync()
+    {
+        await _updates.AlignChannelAsync(
+            async (configured, installed, ct) =>
+            {
+                ct.ThrowIfCancellationRequested();
+                return await _dialogs.Confirm(
+                    "更新通道与安装包不一致",
+                    $"当前配置为 {configured} 通道，但安装包为 {installed}。\n\n" +
+                    $"是否将更新通道同步为 {installed}？\n" +
+                    "选择「取消」将保留当前配置，并记住本次安装包通道，避免反复询问。");
+            }).ConfigureAwait(false);
+    }
 
     private async Task CheckUpdatesOnStartupAsync()
     {

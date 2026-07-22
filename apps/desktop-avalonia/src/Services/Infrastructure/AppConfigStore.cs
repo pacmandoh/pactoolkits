@@ -631,18 +631,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
     }
 
     private static UpdateOptions NormalizeUpdate(UpdateOptions? source)
-    {
-        var defaults = new UpdateOptions();
-        var options = source ?? new UpdateOptions();
-
-        options.Channel = AppUpdatePolicy.NormalizeChannel(options.Channel);
-        options.FeedUrl = string.IsNullOrWhiteSpace(options.FeedUrl) ? defaults.FeedUrl : options.FeedUrl.Trim();
-        options.AutoCheckIntervalMinutes = options.AutoCheckIntervalMinutes < 0
-            ? defaults.AutoCheckIntervalMinutes
-            : Math.Clamp(options.AutoCheckIntervalMinutes, 0, 720);
-        options.IgnoredVersion = (options.IgnoredVersion ?? string.Empty).Trim();
-        return options;
-    }
+        => AppUpdatePolicy.NormalizeOptions(source);
 
     private static LoggingOptions NormalizeLogging(LoggingOptions? source)
     {

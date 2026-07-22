@@ -31,14 +31,10 @@ public partial class Settings : AppPageBase, ISettingsPage
         {
             var previous = _updateSettings.Current;
 
-            var options = new UpdateOptions
-            {
-                AutoCheckOnStartup = previous.AutoCheckOnStartup,
-                Channel = previous.Channel,
-                FeedUrl = UpdateFeedUrl,
-                AutoCheckIntervalMinutes = Math.Clamp(UpdatePollIntervalMinutes, 0, 720),
-                IgnoredVersion = IgnoredProductVersion
-            };
+            var options = AppUpdatePolicy.NormalizeOptions(previous);
+            options.FeedUrl = UpdateFeedUrl;
+            options.AutoCheckIntervalMinutes = Math.Clamp(UpdatePollIntervalMinutes, 0, 720);
+            options.IgnoredVersion = IgnoredProductVersion;
 
             await SaveUpdateOptionsLocalAsync(options);
             SyncUpdateOptions();
@@ -93,14 +89,9 @@ public partial class Settings : AppPageBase, ISettingsPage
         var current = _updateSettings.Current;
         try
         {
-            await SaveUpdateOptionsLocalAsync(new UpdateOptions
-            {
-                AutoCheckOnStartup = AutoCheckUpdateOnStartup,
-                Channel = targetChannel,
-                FeedUrl = current.FeedUrl,
-                AutoCheckIntervalMinutes = current.AutoCheckIntervalMinutes,
-                IgnoredVersion = current.IgnoredVersion
-            }, ct);
+            await SaveUpdateOptionsLocalAsync(
+                AppUpdatePolicy.WithChannelState(current, targetChannel, current.SeenInstalledChannel),
+                ct);
         }
         catch
         {

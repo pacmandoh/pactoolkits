@@ -116,4 +116,83 @@ public static class AppUpdatePolicy
             HasUpdate: !ignored,
             Message: ignored ? $"已忽略版本 {version}" : $"发现新版本 {version}");
     }
+
+    public static UpdateOptions NormalizeOptions(UpdateOptions? source)
+    {
+        var defaults = new UpdateOptions();
+        var options = source ?? new UpdateOptions();
+
+        return new UpdateOptions
+        {
+            AutoCheckOnStartup = options.AutoCheckOnStartup,
+            Channel = NormalizeChannel(options.Channel),
+            FeedUrl = string.IsNullOrWhiteSpace(options.FeedUrl) ? defaults.FeedUrl : options.FeedUrl.Trim(),
+            AutoCheckIntervalMinutes = options.AutoCheckIntervalMinutes < 0
+                ? defaults.AutoCheckIntervalMinutes
+                : Math.Clamp(options.AutoCheckIntervalMinutes, 0, 720),
+            IgnoredVersion = (options.IgnoredVersion ?? string.Empty).Trim(),
+            SeenInstalledChannel = (options.SeenInstalledChannel ?? string.Empty).Trim().ToLowerInvariant()
+        };
+    }
+
+    public static UpdateOptions WithChannelState(
+        UpdateOptions source,
+        string channel,
+        string seenInstalledChannel)
+    {
+        var options = NormalizeOptions(source);
+        options.Channel = NormalizeChannel(channel);
+        options.SeenInstalledChannel = (seenInstalledChannel ?? string.Empty).Trim().ToLowerInvariant();
+        return options;
+    }
+
+    /// <summary>
+    /// 评估配置通道与 Velopack 安装通道的对齐动作
+    /// </summary>
+    /// <remarks>
+    /// - 安装通道相对非空 stamp 变化：自动收敛到安装通道
+    /// - stamp 为空且通道一致：只落 stamp
+    /// - stamp 为空且通道不一致：交给 UI 确认（是→对齐；否→只落 stamp，避免反复弹窗）
+    /// </remarks>
+    public static ChannelAlignDecision EvaluateChannelAlign(
+        string? configuredChannel,
+        string? installedChannel,
+        string? seenInstalledChannel)
+    {
+        var channel = NormalizeChannel(configuredChannel);
+        var seen = (seenInstalledChannel ?? string.Empty).Trim().ToLowerInvariant();
+        if (!TryNormalizeChannel(installedChannel, out var installed))
+        {
+            return new ChannelAlignDecision(ChannelAlignAction.None, channel, seen, string.Empty);
+        }
+
+        if (string.Equals(seen, installed, StringComparison.Ordinal))
+        {
+            return new ChannelAlignDecision(ChannelAlignAction.None, channel, seen, installed);
+        }
+
+        if (string.IsNullOrEmpty(seen))
+        {
+            if (string.Equals(channel, installed, StringComparison.Ordinal))
+            {
+                return new ChannelAlignDecision(
+                    ChannelAlignAction.PersistSeenOnly,
+                    channel,
+                    installed,
+                    installed);
+            }
+
+            return new ChannelAlignDecision(
+                ChannelAlignAction.ConfirmMismatch,
+                channel,
+                installed,
+                installed);
+        }
+
+        return new ChannelAlignDecision(
+            ChannelAlignAction.AlignToInstalled,
+            installed,
+            installed,
+            installed);
+    }
 }

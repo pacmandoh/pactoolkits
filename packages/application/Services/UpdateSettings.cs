@@ -10,7 +10,7 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
     private readonly IUpdateSettingsStore _store;
     private UpdateOptions _current = new();
 
-    public UpdateOptions Current => Clone(_current);
+    public UpdateOptions Current => AppUpdatePolicy.NormalizeOptions(_current);
     public event Action? Changed;
 
     public UpdateSettingsService(IUpdateSettingsStore store)
@@ -21,8 +21,8 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
 
     public async Task SaveAsync(UpdateOptions options, CancellationToken ct = default)
     {
-        var normalized = Normalize(options);
-        await _store.SaveAsync(Clone(normalized), ct).ConfigureAwait(false);
+        var normalized = AppUpdatePolicy.NormalizeOptions(options);
+        await _store.SaveAsync(normalized, ct).ConfigureAwait(false);
 
         if (Equals(_current, normalized))
         {
@@ -35,7 +35,7 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
 
     public void Apply(UpdateOptions options)
     {
-        var normalized = Normalize(options);
+        var normalized = AppUpdatePolicy.NormalizeOptions(options);
         if (Equals(_current, normalized))
         {
             return;
@@ -52,32 +52,6 @@ public sealed class UpdateSettingsService : IUpdateSettingsService
            && string.Equals(left.Channel, right.Channel, StringComparison.Ordinal)
            && string.Equals(left.FeedUrl, right.FeedUrl, StringComparison.Ordinal)
            && left.AutoCheckIntervalMinutes == right.AutoCheckIntervalMinutes
-           && string.Equals(left.IgnoredVersion, right.IgnoredVersion, StringComparison.Ordinal);
-
-    private static UpdateOptions Normalize(UpdateOptions? source)
-    {
-        var defaults = new UpdateOptions();
-        var options = source ?? new UpdateOptions();
-
-        return new UpdateOptions
-        {
-            AutoCheckOnStartup = options.AutoCheckOnStartup,
-            Channel = AppUpdatePolicy.NormalizeChannel(options.Channel),
-            FeedUrl = string.IsNullOrWhiteSpace(options.FeedUrl) ? defaults.FeedUrl : options.FeedUrl.Trim(),
-            AutoCheckIntervalMinutes = options.AutoCheckIntervalMinutes < 0
-                ? defaults.AutoCheckIntervalMinutes
-                : Math.Clamp(options.AutoCheckIntervalMinutes, 0, 720),
-            IgnoredVersion = (options.IgnoredVersion ?? string.Empty).Trim()
-        };
-    }
-
-    private static UpdateOptions Clone(UpdateOptions source) => new()
-    {
-        AutoCheckOnStartup = source.AutoCheckOnStartup,
-        Channel = source.Channel,
-        FeedUrl = source.FeedUrl,
-        AutoCheckIntervalMinutes = source.AutoCheckIntervalMinutes,
-        IgnoredVersion = source.IgnoredVersion
-    };
-
+           && string.Equals(left.IgnoredVersion, right.IgnoredVersion, StringComparison.Ordinal)
+           && string.Equals(left.SeenInstalledChannel, right.SeenInstalledChannel, StringComparison.Ordinal);
 }
