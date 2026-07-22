@@ -58,7 +58,7 @@ flowchart TB
 
 ### `packages/infrastructure`
 
-- **Database/**：`PgDb`、连接监控、schema 迁移、DI 扩展
+- **Database/**：`PgDb`、连接监控、schema 版本读取、DI 扩展
 - **Repositories/**：各 `I*Repo` 的 PostgreSQL 实现
 - 注册入口：`AddPacToolkitsInfrastructure()`
 - 引用 Npgsql；SQL 集中在此层

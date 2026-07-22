@@ -38,7 +38,7 @@ pactoolkits/
 | `database/postgres`               | **数据库**           | SQL 与部署脚本；schema 演进与校验                                     |
 | `packages/core`                   | **纯业务核心**       | 无数据库、文件、日志、配置、桌面端依赖                                |
 | `packages/application`            | **用例层**           | 页面/功能对应的应用服务与抽象                                         |
-| `packages/infrastructure`         | **基础设施**         | Npgsql、仓储、DB 连接与迁移实现                                       |
+| `packages/infrastructure`         | **基础设施**         | Npgsql、仓储、DB 连接与 schema 版本读取                               |
 | `packages/agents-contracts`       | **Agents 协议**      | 配置模型、路径、运行时抽象；Host 与 Desktop 共用                      |
 
 ## .NET 解决方案

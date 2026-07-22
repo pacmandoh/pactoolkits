@@ -152,6 +152,7 @@ Windows PowerShell：
 ## 客户端更新策略
 
 - `AppUpdateService` 使用 Velopack 已安装版本作为当前版本
+- 启动时对齐配置通道与 Velopack 安装通道：安装通道相对已记录 stamp 变化则自动收敛；stamp 为空且不一致时询问用户（确认则同步，取消则只落 stamp，保留手动通道选择）
 - Feed URL 解析为 `{FeedUrl}/stable` 或 `{FeedUrl}/beta`
 - 每个通道目录发布 `release-manifest.json`，客户端每次发现具体更新版本时读取目标通道的 DB 兼容范围
 - Stable → Beta 保存设置前需要风险确认；实际下载前会重新读取 Feed、目标版本与当前 DB 状态

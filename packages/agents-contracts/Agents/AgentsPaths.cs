@@ -24,7 +24,7 @@ public static class AgentsPaths
 
     public const string ModulesDirectoryName = "Modules";
 
-    // Main 已发布布局；仅作配置迁移源，不是运行时兜底扫描路径
+    // Legacy Tools 已发布布局；仅作配置迁移源，不是运行时兜底扫描路径
     public const string LegacyToolsExecutable = @".\Tools\pacinjector.exe";
 
     public const string LegacyToolsFileName = "pacinjector.exe";

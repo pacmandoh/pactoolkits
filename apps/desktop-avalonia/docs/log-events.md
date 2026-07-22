@@ -189,6 +189,8 @@
 - `update.apply.none` (Info) — Apply requested but no updates were available
 - `update.apply.pending` (Info) — Update already pending restart
 - `update.pending.load_fail` (Warn) — Failed to load pending update state
+- `update.channel.align_installed` (Info) — Aligned configured update channel with Velopack installed channel
+- `update.channel.align_installed.fail` (Warn) — Failed aligning configured update channel with installed channel
 - `update.check.available` (Info) — Update check found release
 - `update.check.compatibility_blocked` (Warn) — Update check blocked by release or database compatibility
 - `update.check.fail` (Error) — Update check failed
