@@ -121,7 +121,7 @@ public partial class Settings : AppPageBase, ISettingsPage
     [ObservableProperty] private string _dbSchemaLastCheckedAtText = "--";
     [ObservableProperty] private string _dbSchemaLastCheckSourceText = "--";
     public string DbSchemaManagementText
-        => "Desktop 仅检查数据库兼容性，不会初始化或迁移数据库；请使用服务器端数据库部署工具更新结构。";
+        => "仅检查数据库兼容性；请使用服务器端数据库部署工具更新结构";
     [ObservableProperty] private string _msfxGatewayUrl = "https://eco.taobao.com/router/rest";
     [ObservableProperty] private string _msfxAppKey = string.Empty;
     [ObservableProperty] private string _msfxAppSecret = string.Empty;

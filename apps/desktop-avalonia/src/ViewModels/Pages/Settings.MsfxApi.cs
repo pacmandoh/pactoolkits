@@ -32,7 +32,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         var target = ResolveCursorTarget(selectedDate);
         var confirmed = await _dialog.ConfirmDestructive(
             "确认前移拉取游标",
-            $"游标将前移至 {target.LocalDateTime:yyyy-MM-dd HH:mm:ss}，下次巡检从其前 10 分钟开始。\n\n" +
+            $"游标将前移至 {target.LocalDateTime:yyyy-MM-dd HH:mm:ss}，下次巡检从其前 10 分钟开始\n\n" +
             "更早的上游数据将被跳过，已入库数据不会删除。是否继续？");
         if (!confirmed)
         {

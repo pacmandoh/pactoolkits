@@ -1719,9 +1719,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 ct.ThrowIfCancellationRequested();
                 return await _dialogs.Confirm(
                     "更新通道与安装包不一致",
-                    $"当前配置为 {configured} 通道，但安装包为 {installed}。\n\n" +
+                    $"当前配置为 {configured} 通道，但安装包为 {installed}\n\n" +
                     $"是否将更新通道同步为 {installed}？\n" +
-                    "选择「取消」将保留当前配置，并记住本次安装包通道，避免反复询问。");
+                    "选择「取消」将保留当前配置，并记住本次安装包通道，避免反复询问");
             }).ConfigureAwait(false);
     }
 
