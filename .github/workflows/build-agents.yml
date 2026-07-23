@@ -69,7 +69,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~\PacToolkits-Agents-cache\${{ env.RUNTIME }}\Injector.exe
-          key: ${{ runner.os }}-injector-${{ env.RUNTIME }}-${{ steps.versions.outputs.injector_module_version }}-ahk${{ env.AUTOHOTKEY_VERSION }}-${{ env.AHK2EXE_TAG }}-${{ env.AHK2EXE_EXE_SHA256 }}-${{ hashFiles('runtime/agents/modules/injector/main.ahk', 'runtime/agents/modules/injector/src/**/*.ahk') }}
+          key: ${{ runner.os }}-injector-${{ env.RUNTIME }}-${{ steps.versions.outputs.injector_module_version }}-ahk${{ env.AUTOHOTKEY_VERSION }}-${{ env.AHK2EXE_TAG }}-${{ env.AHK2EXE_EXE_SHA256 }}-${{ hashFiles('runtime/agents/modules/injector/main.ahk', 'runtime/agents/modules/injector/src/**/*.ahk', 'runtime/agents/modules/injector/assets/**/*.ico') }}
 
       - name: Report Injector cache status
         shell: pwsh
@@ -213,6 +213,8 @@ jobs:
           $injectorDirPath = (Resolve-Path (Join-Path $workspace "runtime/agents/modules/injector")).Path
           $mainScript = Join-Path $injectorDirPath "main.ahk"
           if (-not (Test-Path $mainScript)) { throw "AHK entry script not found: $mainScript" }
+          $iconPath = Join-Path $injectorDirPath "assets\agents-injector.ico"
+          if (-not (Test-Path $iconPath)) { throw "Injector icon not found: $iconPath" }
           $entryPath = Join-Path $injectorDirPath "__ci_compile_entry__.ahk"
           $moduleDir = Join-Path $workspace "artifacts/agents/$env:RUNTIME/Modules/Injector"
           New-Item -ItemType Directory -Path $moduleDir -Force | Out-Null
@@ -232,6 +234,7 @@ jobs:
               ('/in "{0}"' -f $entryPath),
               ('/out "{0}"' -f $outExe),
               ('/base "{0}"' -f $baseExe),
+              ('/icon "{0}"' -f $iconPath),
               '/silent'
             ) -join " "
             Write-Host ("Ahk2Exe args: " + $argLine)

@@ -4,8 +4,6 @@
 **Host** = Agents 里**启停 Modules 的入口进程**（`Agents.exe`，.NET）。不是产品名，不要叫「宿主」；**容器**只指 Agents。  
 **Injector** = 当前唯一业务模块（AHK v2 → `Injector.exe`）；后续还可有其它模块。
 
-图标：`host/assets/pactoolkits-agents.ico`。
-
 源码：`host/`、`modules/<id>/`（小写）。发布布局：`Modules/<Id>/` + `module.json`。
 
 ```text

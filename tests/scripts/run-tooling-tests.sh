@@ -638,7 +638,8 @@ for identity in \
   '${{ env.AHK2EXE_TAG }}' \
   '${{ env.AHK2EXE_EXE_SHA256 }}' \
   "runtime/agents/modules/injector/main.ahk" \
-  "runtime/agents/modules/injector/src/**/*.ahk"; do
+  "runtime/agents/modules/injector/src/**/*.ahk" \
+  "runtime/agents/modules/injector/assets/**/*.ico"; do
   grep -Fq "$identity" <<< "$injector_cache_block" || {
     echo "ERROR: Injector cache identity is missing $identity" >&2
     exit 1

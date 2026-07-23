@@ -8,6 +8,7 @@
 ;@Ahk2Exe-SetDescription PacToolkits injector automation module
 ;@Ahk2Exe-SetInternalName Injector
 ;@Ahk2Exe-SetOrigFilename Injector.exe
+;@Ahk2Exe-SetMainIcon assets\agents-injector.ico
 #Include "%A_ScriptDir%\src\parse_clipboard.ahk"
 #Include "%A_ScriptDir%\src\db_txn.ahk"
 #Include "%A_ScriptDir%\src\pg_exec.ahk"
