@@ -4,7 +4,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// Dashboard 业务编排：规范化筛选并聚合仓储结果为快照/分页
+/// 规范化概览筛选条件，并将仓储结果聚合为页面快照和分页数据
 /// </summary>
 public sealed class DashboardService : IDashboardService
 {

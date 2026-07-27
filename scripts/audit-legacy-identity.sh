@@ -118,7 +118,7 @@ allow "legacy config compatibility constant" 'pactoolkits-ui\.config\.json' \
 allow "legacy migration dir constant" 'LEGACY_MIGRATION_DIR="pactoolkits-db/sql/migrations"' \
   scripts/validate-database-policy.sh
 
-# 已移除的迁移/兼容路径：再引入应失败（勿改回 allow）
+# 已删除的兼容路径不得重新进入产品代码，命中即视为审计失败
 scan "legacy Tools pacinjector migration" 'pacinjector' \
   packages/agents-contracts apps/desktop-avalonia/src tests/PacToolkits.Agents.Contracts.Tests tests/PacToolkits.Desktop.Tests docs
 

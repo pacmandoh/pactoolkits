@@ -4,8 +4,8 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// 将原始 client 串解析为带别名的 ClientInfo / 选项列表
-/// KPI 按 Display（别名）聚合，勿按 Raw 重算
+/// 将原始客户端标识解析为带显示别名的客户端信息和筛选选项
+/// 按显示名称聚合 KPI，避免同一设备别名被重复统计
 /// </summary>
 public static class ClientDisplayResolver
 {

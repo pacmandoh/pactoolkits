@@ -17,14 +17,9 @@ using PacToolkits.Desktop.Avalonia.Services.Presentation;
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
 /// <summary>
-/// 桌面页 ViewModel 基类
+/// 协调 Desktop 页面重载、数据可用性、数据库连接信号和页面生命周期
 ///
-/// 负责：
-/// - 页面 reload 管线（busy / stale / unavailable）
-/// - DB 断连/重连信号与自动刷新
-/// - 顶栏刷新入口与页面生命周期
-///
-/// 不负责具体业务查询与 DataGrid 行模型
+/// 具体业务查询与 DataGrid 行模型由派生页面负责
 /// </summary>
 public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPageLifecycleAware, IDisposable
 {
@@ -72,7 +67,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     private bool _isBusy;
     private bool _reloadFromDbSignal;
 
-    // 当前活跃 reload 是否由 DB 断连/重连信号触发（影响 stale-while-reconnect 等行为）
+    // 标识当前重载是否由数据库连接变化触发，以决定缓存展示等行为
     protected bool IsDbSignalReload => _reloadFromDbSignal;
 
     protected bool IsPageReloadActive => _reload.IsActive;
@@ -83,7 +78,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     public bool IsShowingStaleData => _pageDataAvailability == PageDataAvailability.Stale;
 
-    // DB 分页 DataGridPager 绑定 CanPageFromDb；纯本地分页勿绑此属性
+    // 数据库分页控件绑定 CanPageFromDb；本地分页不受数据库访问状态限制
     public bool CanPageFromDb => IsDbConnected && !IsDbAccessBlocked(out _);
 
     public string PageStaleHint => SectionEmptyCopy.StaleHint;
@@ -138,7 +133,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             _accessBlockedReason,
             _loadFailedMessage);
 
-    // 仅表示正在拉数；等待 DB 连通时不应为 true（否则会盖住 unavailable/stale 壳）
+    // 仅表示正在读取数据；等待数据库连接时保持为 false，以保留不可用或缓存状态展示
     public bool IsBusy
     {
         get => _isBusy;
@@ -165,7 +160,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             execute: ExecuteRefreshAsync,
             canExecute: CanRefresh);
 
-        // 在 UI 线程尽早挂上 DB monitor，避免首次手动刷新前漏掉断连/重连信号
+        // 尽早在界面线程订阅数据库连接状态，避免首次手动刷新前遗漏连接变化
         PostOnUi(() =>
         {
             _ = GetDbMonitor();
@@ -568,7 +563,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         _pageDataAvailability = availability;
         if (ShowPageUnavailable || availability == PageDataAvailability.Stale)
         {
-            // stale/unavailable 壳展示时清掉 busy，避免遮罩叠在空态上
+            // 陈旧数据或不可用状态优先于加载状态，避免同时显示相互冲突的反馈
             IsBusy = false;
         }
 
@@ -605,7 +600,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     }
 
     /// <summary>
-    /// 按当前 guard / DB monitor 同步页面可用性，不触发数据拉取
+    /// 按当前访问限制和数据库监视状态同步页面可用性，不读取业务数据
     /// </summary>
     public void SyncPageAvailability()
     {
@@ -625,7 +620,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             or PageDataAvailability.AwaitingDatabase
             or PageDataAvailability.NotLoaded)
         {
-            // 已有缓存行时重连直接升回 Ready，避免多余一次 fetch
+            // 已有缓存数据时可直接恢复可用状态，避免不必要的重复查询
             SetPageAvailability(_hasLoadedOnce ? PageDataAvailability.Ready : PageDataAvailability.NotLoaded);
         }
     }
@@ -768,7 +763,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
     }
 
     /// <summary>
-    /// DB 传输失败或已断连时页面操作错误不 toast；连接失败/恢复提示由 MainWindow 统一负责
+    /// 数据库传输失败或断开连接时不显示页面级提示，由主窗口统一报告连接状态
     /// </summary>
     protected bool CanToastError(Exception ex)
     {
@@ -785,7 +780,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
         if (DateTimeOffset.UtcNow < _reconnectToastSuppressUntil)
         {
-            // 重连 toast 由 MainWindow 统一发；冷却期内页面保持静默
+            // 主窗口统一报告重新连接结果，页面在冷却期内保持静默
             return false;
         }
 
@@ -853,7 +848,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
         monitor.Reconnected += StartReconnectToastCooldown;
         _dbMonitorEventsHooked = true;
 
-        // 页面初始化时若 DB 已断，先展示 unavailable 并排队自动刷新
+        // 页面初始化时数据库已断开，应先显示不可用状态并等待自动刷新
         if (!monitor.IsConnected)
         {
             PostOnUi(SyncPageAvailability);
@@ -888,7 +883,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
             return;
         }
 
-        // 已有 reload 在等 DB，重连后会继续；勿再排队一次自动刷新
+        // 等待数据库的现有重载会在连接恢复后继续，无需重复安排自动刷新
         if (_reload.IsActive)
         {
             return;
@@ -899,7 +894,7 @@ public abstract partial class AppPageBase : ViewModelBase, ITopBarActions, IPage
 
     private void ScheduleAutoRefreshFromDbSignal()
     {
-        // 合并 DB 断连/重连连发信号，只触发一次自动刷新
+        // 合并连续的数据库断开与恢复信号，只触发一次自动刷新
         if (Interlocked.Exchange(ref _dbSignalRefreshQueued, 1) == 1)
         {
             return;

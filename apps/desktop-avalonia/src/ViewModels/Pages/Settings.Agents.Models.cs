@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 /// <summary>
-/// Schema 表单中 stringList / stringFlagMap 的可编辑行
+/// 模块集合字段中的单个可编辑值
 /// </summary>
 public sealed partial class SettingsLineItem : ObservableObject
 {
@@ -20,7 +20,7 @@ public sealed partial class SettingsLineItem : ObservableObject
 }
 
 /// <summary>
-/// Settings Agents 页：按发现模块动态生成的运行控制 / 版本信息行
+/// 模块运行控制、状态和版本信息的设置页展示模型
 /// </summary>
 public sealed partial class ModuleRunRow : ObservableObject
 {
@@ -50,6 +50,6 @@ public sealed partial class ModuleRunRow : ObservableObject
 }
 
 /// <summary>
-/// 无法生成模块设置表单时展示的显式错误态
+/// 模块设置表单加载失败时的展示信息
 /// </summary>
 public sealed record ModuleSettingsLoadIssue(string DisplayName, string Message);

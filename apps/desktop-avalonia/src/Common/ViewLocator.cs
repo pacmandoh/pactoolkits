@@ -4,7 +4,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>ViewModel → View 定位器（Avalonia DataTemplates）</summary>
+/// <summary>按照 ViewModel 类型解析 Avalonia DataTemplate 对应的 View</summary>
 public class ViewLocator(AppViews views) : IDataTemplate
 {
     public Control Build(object? param)

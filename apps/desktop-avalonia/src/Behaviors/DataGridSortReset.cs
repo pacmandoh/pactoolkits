@@ -11,7 +11,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
-/// <summary>复用序号列表头按钮，实现 clear-sort / clear-filter</summary>
+/// <summary>通过序号列表头提供清除 DataGrid 排序和筛选的统一交互</summary>
 public class DataGridSortReset
 {
     public static readonly AttachedProperty<bool> EnabledProperty =
@@ -232,7 +232,7 @@ public class DataGridSortReset
             }
             catch
             {
-                // 静默失败；UI helper 不得打断页面逻辑
+                // 排序辅助行为失败不得中断页面业务流程
             }
         }
 

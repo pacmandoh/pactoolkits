@@ -18,12 +18,7 @@ using PacToolkits.Desktop.Avalonia.Services.Workspace;
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 /// <summary>
-/// 概览页 ViewModel
-///
-/// 负责：
-/// - KPI / 趋势 / 录入 / 事务 / 异常 Tab
-/// - 日期与客户筛选驱动的 reload
-/// - 跳转库存等跨页导航入口
+/// 协调概览页 KPI、趋势、录入、事务和异常数据，以及日期、客户筛选与跨页导航
 /// </summary>
 public sealed partial class Dashboard : AppPageBase
 {
@@ -767,7 +762,7 @@ public sealed partial class Dashboard : AppPageBase
         ApplyDateRangeFromBoundary(value, updateFromBoundary: false);
     }
 
-    // 保证日期区间合法，起止边界共用同一条 reload 路径
+    // 统一校正日期区间并通过同一重载路径应用起止边界变化
     private void ApplyDateRangeFromBoundary(DateTime? value, bool updateFromBoundary)
     {
         var today = DateTime.Today;
@@ -885,7 +880,7 @@ public sealed partial class Dashboard : AppPageBase
 
     private void RequestReloadWithPagingReset()
     {
-        // 筛选与日期变更一律回到第一页再 reload
+        // 筛选条件或日期变化后从第一页重新加载
         ResetPagedIndexes();
         RequestReload();
     }
@@ -1227,7 +1222,7 @@ public sealed partial class Dashboard : AppPageBase
             PostOnUi(() => _toast.Error(toastTitle, ex.Message));
         }
 
-        // 不 rethrow：Tab 翻页在 RelayCommand / ObserveDetached 下已记录日志
+        // 分页命令已通过后台任务观察器记录异常，此处仅更新失败状态
     }
 
     private bool ShowTxnBusy()
@@ -1714,7 +1709,7 @@ public sealed partial class Dashboard : AppPageBase
             return;
         }
 
-        // 与侧栏导航一致：先露出缓存页。库存页自管刷新/dirty，概览跳转不得在 UI 导航路径上强制 DB reload
+        // 导航时先展示缓存内容；库存页自行处理待刷新状态，避免阻塞界面切换
         _inventoryOverview.OpenMode(0, forceReload: false);
         _nav.Navigate<InventoryOverview>();
     }
@@ -1821,7 +1816,7 @@ public sealed partial class Dashboard : AppPageBase
 
     private void OnClientAliasChanged()
     {
-        // 别名合并会改筛选机台与图表聚合，以一次 reload 为准
+        // 别名合并会同时影响设备筛选和图表聚合，因此统一执行一次重载
         PostOnUi(RequestReload);
     }
 }

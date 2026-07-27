@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>观察未 await Task 的异常，避免静默丢失</summary>
+/// <summary>观察未等待任务的异常，避免异常静默丢失</summary>
 public static class TaskObserve
 {
     public static void Observe(

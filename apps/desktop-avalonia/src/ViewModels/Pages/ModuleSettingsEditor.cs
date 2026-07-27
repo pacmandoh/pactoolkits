@@ -12,7 +12,7 @@ using PacToolkits.Agents.Contracts.Validation;
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 /// <summary>
-/// 单个模块的 schema 驱动设置表单
+/// 将模块设置 schema 和用户配置转换为可编辑字段，并保留 schema 未声明的配置项
 /// </summary>
 public sealed partial class ModuleSettingsEditor : ObservableObject
 {
@@ -212,7 +212,7 @@ public sealed partial class ModuleSettingsFieldViewModel : ObservableObject
                 {
                     foreach (var kv in map)
                     {
-                        // 仅启用项进入表单，避免 Save 把 0/false 写成 1
+                        // 表单只编辑启用项，保留关闭项会在序列化时错误地改写为启用
                         if (!string.IsNullOrWhiteSpace(kv.Key)
                             && ModuleSettingsFlag.TryRead(kv.Value, out var enabled)
                             && enabled)

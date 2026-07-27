@@ -50,7 +50,7 @@ eval "$(./scripts/resolve-release-plan.sh "$ROOT_DIR/release-manifest.json" | se
   exit 1
 }
 
-# Desktop 只支持 Avalonia，未知实现必须在 manifest 校验阶段直接拒绝
+# Desktop 实现标识属于发布协议，未知实现必须在生成发布计划前拒绝
 unknown_impl_manifest="$(mktemp)"
 jq '.components.desktop = {other: .components.desktop.avalonia}' "$ROOT_DIR/release-manifest.json" > "$unknown_impl_manifest"
 if validate_manifest_v2 "$unknown_impl_manifest" >/dev/null 2>&1; then
@@ -473,7 +473,7 @@ if validate_manifest_v2 "$invalid_module_id_manifest" >/dev/null 2>&1; then
   exit 1
 fi
 
-# Host + Modules staging：manifest 中每个 module 都需 settings + schema
+# staging 契约要求发布清单、模块目录和模块配置文件形成精确集合
 : > "$agents_staging_fixture/Agents.exe"
 printf '%s\n' '{"schemaVersion":2}' > "$agents_staging_fixture/ReleaseManifest.json"
 while IFS= read -r module_id; do

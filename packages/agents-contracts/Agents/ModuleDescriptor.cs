@@ -1,12 +1,12 @@
 namespace PacToolkits.Agents.Contracts.Agents;
 
 /// <summary>
-/// Desktop 双态 Lucide 名（active=运行/启动中；inactive=未运行；供 <c>AppIcon.Kind</c>）
+/// 模块运行态与非运行态对应的 Desktop 图标名称
 /// </summary>
 public sealed record ModuleDesktopIcons(string Active, string Inactive);
 
 /// <summary>
-/// Desktop 壳层展示（底栏 / 顶栏状态胶囊）
+/// 模块在 Desktop 顶栏和状态栏中的展示策略
 /// </summary>
 public sealed record ModuleDesktop(
     ModuleDesktopIcons Icons,
@@ -15,19 +15,19 @@ public sealed record ModuleDesktop(
     int Order);
 
 /// <summary>
-/// Ahk2Exe 工具参数（相对模块目录）
+/// Ahk2Exe 构建参数；路径均相对模块目录
 /// </summary>
 public sealed record ModuleAhk2Exe(string Icon);
 
 /// <summary>
-/// win-x64 打包配方：平台固定为 win-x64；<see cref="Builder"/> 选工具，同名对象承载参数
+/// 模块的 win-x64 构建配方
 /// </summary>
 public sealed record ModulePackage(
     string Builder,
     ModuleAhk2Exe Ahk2Exe);
 
 /// <summary>
-/// 已解析的 <c>module.json</c>（含模块目录，供 Host / Desktop / CI 发现）
+/// 已验证的模块描述及其源码或安装目录
 /// </summary>
 public sealed record ModuleDescriptor(
     string Id,
@@ -41,7 +41,7 @@ public sealed record ModuleDescriptor(
     ModulePackage Package);
 
 /// <summary>
-/// <c>module.json</c> 的 <c>runtime</c> 取值（进程怎么跑）
+/// <c>module.json</c> 支持的运行时标识
 /// </summary>
 public static class ModuleRuntimes
 {
@@ -49,7 +49,7 @@ public static class ModuleRuntimes
 }
 
 /// <summary>
-/// <c>package.builder</c> 取值（CI 用什么工具打 win-x64 制品）
+/// <c>package.builder</c> 支持的构建器标识
 /// </summary>
 public static class ModuleBuilders
 {
@@ -57,7 +57,7 @@ public static class ModuleBuilders
 }
 
 /// <summary>
-/// 唯一支持的模块制品 RID（与 Agents CI <c>RUNTIME=win-x64</c> 对齐）
+/// Agents 模块发布支持的 RID
 /// </summary>
 public static class ModuleRids
 {

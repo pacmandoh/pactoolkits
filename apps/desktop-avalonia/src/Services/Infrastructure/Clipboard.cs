@@ -7,14 +7,14 @@ using global::Avalonia.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-/// <summary>剪贴板读写入口</summary>
+/// <summary>定义 Desktop 剪贴板文本访问契约</summary>
 public interface IClipboardService
 {
     Task SetTextAsync(string text);
     Task<string?> GetTextAsync();
 }
 
-/// <summary>系统剪贴板读写实现</summary>
+/// <summary>通过 Avalonia TopLevel 访问系统剪贴板</summary>
 public sealed class ClipboardService : IClipboardService
 {
     public Task SetTextAsync(string? text)

@@ -3,7 +3,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// 扫码入库业务入口
+/// 定义追溯码扫描入库的业务用例契约
 /// </summary>
 public interface IScanCodeService
 {

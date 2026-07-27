@@ -1,7 +1,7 @@
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// 客户端别名持久化读写（不含业务解析）
+/// 定义客户端别名持久化契约，不负责解析客户端标识
 /// </summary>
 public interface IClientAliasStore
 {

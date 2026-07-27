@@ -1,4 +1,4 @@
-; 从目标窗口网格剪贴板文本解析药品行（Tab 表头 + 首条有效数据行）
+; 从目标窗口网格的剪贴板文本解析表头和首条有效药品数据
 
 Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridClassNN := "") {
     if !IsObject(intCols)
@@ -25,10 +25,10 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
         return false
     }
 
-    ; 优先用调用方已抓到的 text，避免重复 Ctrl+C 抢剪贴板
+    ; 优先使用调用方提供的文本，避免重复复制操作覆盖用户剪贴板
     copied := false
 	if (Trim(text) = "") {
-		; 住院网格可自动聚焦选中，无需用户双击
+		; 住院网格支持自动聚焦选中，不要求用户预先双击
 		if (WinGetClass(win) = ipt) {
             if (Trim(parseGridClassNN) != "")
 			    UI_FocusGridClassNN(parseGridClassNN, win)
@@ -65,7 +65,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 
     lines := StrSplit(txt, "`n")
 
-    ; hit：specExpr → Map("idx", colIndex, "hdr", actualHeader)
+    ; 命中结果保留列索引和实际表头，供后续错误信息定位
     hit := Map()
     hdrIdx := 0
 
@@ -91,7 +91,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
             }
         }
 
-        ; 无 ? 前缀的列为必选；缺任一则继续找下一候选表头行
+        ; 未使用问号前缀的列为必填列，缺少任一列时继续检查下一候选表头
         allFound := true
         for _, rawSpec in colSpecs {
             if IsOpt(rawSpec)
@@ -169,7 +169,6 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
     msg := ""
     for hdr, v in data
         msg .= "`n" hdr "=" v
-    ; UI_Tip(msg, 1500)
 
     return Map(
         "ok", true,

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>按 key 的 UI 触发防抖门控</summary>
+/// <summary>按业务键抑制指定时间窗口内的重复 UI 操作</summary>
 public sealed class TriggerDebounceGate
 {
     private readonly object _lock = new();

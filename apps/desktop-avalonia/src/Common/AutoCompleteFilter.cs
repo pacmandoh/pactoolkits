@@ -7,7 +7,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>AutoCompleteBox 过滤与集合替换安全辅助</summary>
+/// <summary>统一 AutoCompleteBox 候选过滤，并在控件回调期间安全替换候选集合</summary>
 public static class AutoCompleteFilter
 {
     public static void AttachDrugOptionFilter(AutoCompleteBox box)

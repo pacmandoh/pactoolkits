@@ -3,7 +3,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// 解析 client_id 原始串（machine|user|key=value…）为 ClientInfo
+/// 将 <c>client_id</c> 原始值解析为结构化客户端信息，并保留扩展键值
 /// </summary>
 public static class ClientParser
 {

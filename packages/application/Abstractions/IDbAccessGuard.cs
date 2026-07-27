@@ -1,7 +1,7 @@
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// Schema 不兼容时的共享阻断门；绕过 IDb 的路径也须 ThrowIfBlocked()
+/// 数据库结构不兼容时的共享访问限制；独立连接路径也必须调用 <c>ThrowIfBlocked</c>
 /// </summary>
 public interface IDbAccessGuard
 {

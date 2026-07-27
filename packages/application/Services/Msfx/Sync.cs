@@ -4,7 +4,7 @@ using PacToolkits.Application.TextSearch;
 namespace PacToolkits.Application.Services.Msfx;
 
 /// <summary>
-/// MSFX 同步实现：委托 Repo，并兼任自动跑批 Store
+/// 协调 MSFX 同步仓储，并提供自动任务所需的持久化能力
 /// </summary>
 public sealed partial class SyncService : ISyncService, IMsfxAutoRunStore
 {

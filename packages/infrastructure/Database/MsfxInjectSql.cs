@@ -1,7 +1,7 @@
 namespace PacToolkits.Infrastructure.Database;
 
 /// <summary>
-/// MSFX 注入任务相关 JOIN / 父码聚类表达式
+/// 集中定义 MSFX 注入任务联查和父码聚类使用的 SQL 表达式
 /// 集中维护 staging→relation→upout_item 联查路径
 /// </summary>
 internal static class MsfxInjectSql

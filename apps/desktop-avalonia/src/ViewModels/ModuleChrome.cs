@@ -4,7 +4,7 @@ using PacToolkits.Agents.Contracts.Agents;
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
 /// <summary>
-/// Desktop 壳层模块项（顶栏 pills / 底栏 status bar）；图标与显隐来自 module.json desktop
+/// 将模块描述和运行状态投影为 Desktop 顶栏与状态栏展示模型
 /// </summary>
 public sealed partial class ModuleChrome : ObservableObject
 {

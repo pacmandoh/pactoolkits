@@ -7,7 +7,7 @@ namespace PacToolkits.Infrastructure.Database;
 /// <summary>
 /// 业务变更水位监听与分发
 ///
-/// 负责：LISTEN/NOTIFY + 轮询 <c>app_change_watermark</c>，按 topic 触发 <c>TopicChanged</c>
+/// 结合 PostgreSQL 通知与 <c>app_change_watermark</c> 轮询，按主题发布可靠的变更通知
 /// 不负责具体页面刷新逻辑
 /// </summary>
 public sealed class ChangeWatermarkService : IChangeWatermarkService
@@ -237,7 +237,7 @@ public sealed class ChangeWatermarkService : IChangeWatermarkService
             timeoutSeconds: Math.Max(3, opt.ConnectTimeoutSeconds)))
         {
             KeepAlive = Math.Max(5, opt.KeepAliveSeconds),
-            // LISTEN/NOTIFY 会话不能走连接池，否则通知会丢到别的连接
+            // PostgreSQL 通知会话必须独占连接，否则通知可能由其他池化连接接收
             Pooling = false
         };
         return csb.ConnectionString;

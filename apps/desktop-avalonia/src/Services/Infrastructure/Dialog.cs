@@ -8,7 +8,7 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-/// <summary>桌面对话框展示入口</summary>
+/// <summary>定义 Desktop 对话框展示与关闭结果契约</summary>
 public interface IDialogService
 {
     Task Info(string title, string message);
@@ -44,7 +44,7 @@ public interface IDialogService
 /// <summary>
 /// 对话框服务
 ///
-/// 负责 Alert/表单对话框编排；不含业务校验
+/// 编排警告和表单对话框，不执行具体业务校验
 /// </summary>
 public sealed class DialogService(
     DialogManager dialogManager,

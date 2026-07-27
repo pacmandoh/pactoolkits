@@ -152,7 +152,7 @@ public partial class MainWindowViewModel
     {
         try
         {
-            // 一次反序列化快照按段 Apply；未变更段落跳过 Changed
+            // 同一次反序列化结果按配置区域应用，未变化区域不发布 Changed 事件
             _clientAlias.Apply(cfg.ClientAliases ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
             _loggingSettings.Apply(cfg.Logging ?? new LoggingOptions());
             _uiBehavior.Apply(cfg.UiBehavior ?? new UiBehaviorOptions());

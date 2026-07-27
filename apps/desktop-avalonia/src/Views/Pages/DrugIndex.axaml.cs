@@ -84,7 +84,7 @@ public partial class DrugIndex : UserControl
             return;
         }
 
-        // ReplaceAll 后槽位可能仍在落定；等下一轮 layout 再滚动
+        // 集合替换后容器布局尚未稳定，应在下一轮布局完成后再滚动
         Dispatcher.UIThread.Post(
             () => DataGridInteractionHelper.TryScrollIntoView(grid, item),
             DispatcherPriority.Loaded);

@@ -7,7 +7,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 /// <summary>
-/// 同目录临时文件写入与原子替换
+/// 通过同目录临时文件提供原子写入，避免配置读取方观察到部分内容
 /// </summary>
 internal static class AtomicFile
 {

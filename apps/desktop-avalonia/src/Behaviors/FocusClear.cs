@@ -12,9 +12,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 /// <summary>
-/// 点击空白处时清理焦点/弹层相关状态
-///
-/// 需避开 grid 内点击与对话框按钮的首次按下
+/// 在空白区域点击时关闭编辑焦点和临时弹层，同时保留 DataGrid 与对话框按钮的正常交互
 /// </summary>
 public class FocusClear
 {
@@ -233,8 +231,7 @@ public class FocusClear
             return;
         }
 
-        // MainWindow 级行为不应全局清掉所有 grid 选中，
-        // 否则对话框操作按钮点击可能在 Command 执行前清掉对话框内 grid 选中
+        // MainWindow 级行为不得清除所有 DataGrid 选择，否则对话框命令执行前可能丢失目标行
         if (scope is TopLevel)
         {
             return;

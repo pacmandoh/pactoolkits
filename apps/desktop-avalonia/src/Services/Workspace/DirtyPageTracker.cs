@@ -3,7 +3,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Workspace;
 
-/// <summary>工作区页面 dirty 标记集合</summary>
+/// <summary>跟踪存在待处理数据变更的工作区页面</summary>
 public sealed class DirtyPageTracker
 {
     private readonly object _gate = new();

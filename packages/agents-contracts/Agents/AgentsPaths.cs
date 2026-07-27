@@ -1,31 +1,31 @@
 namespace PacToolkits.Agents.Contracts.Agents;
 
 /// <summary>
-/// Agents 布局与进程名常量（Host 入口、Modules 目录、用户 settings 路径）
+/// 定义 Desktop、Host 和模块共同使用的 Agents 文件布局与命令行参数
 /// </summary>
 public static class AgentsPaths
 {
-    // Host = Agents 入口进程（Agents.exe）；Agents 是容器，业务进程按模块挂载
+    // Host 文件名是发布协议的一部分，Desktop 默认路径和构建产物必须保持一致
     public const string HostExecutableFileName = "Agents.exe";
 
     public const string HostExecutable = @".\Agents\Agents.exe";
 
     public const string HostProcessName = "Agents";
 
-    // 模块启动自检通过后写入，供 Desktop / Host 判定模块就绪
+    // 模块仅在自检完成后创建该文件，Desktop 将其与进程状态共同作为就绪条件
     public const string ModuleReadyFileName = "module.ready";
 
     public const string ModuleManifestFileName = "module.json";
 
-    // Desktop ↔ Host 控制文件（Modules/<Id>/）；每次写入一条命令：start / stop（quit 见 host.control）
+    // 模块控制文件一次承载一条 start 或 stop 命令，Host 读取后删除
     public const string ModuleControlFileName = "module.control";
 
-    // Desktop ↔ Host 全局控制（Agents/ 根）；命令：quit
+    // Host 控制文件当前仅支持 quit，独立于模块控制文件
     public const string HostControlFileName = "host.control";
 
     public const string ModulesDirectoryName = "Modules";
 
-    // Desktop 用户配置：{ConfigDir}/agents/modules/<Id>/settings.json（与安装目录分离）
+    // 用户配置位于可写配置目录，避免模块升级覆盖业务配置
     public const string UserAgentsDirectoryName = "agents";
 
     public const string UserModulesDirectoryName = "modules";
@@ -34,7 +34,7 @@ public static class AgentsPaths
 
     public const string ModuleSettingsSchemaFileName = "settings.schema.json";
 
-    // Host → Module：模块业务配置路径参数
+    // Host 通过该参数向模块传递独立业务配置路径
     public const string ModuleSettingsArgName = "--module-settings";
 
     public static string ModulesDir(string agentsDir)

@@ -3,7 +3,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// 药品索引业务入口（检索、保存规则、主键修复）
+/// 定义药品索引检索、保存规则和主键修复的业务用例契约
 /// </summary>
 public interface IDrugIndexService
 {

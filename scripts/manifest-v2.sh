@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# release-manifest.json schema v2 的共用 jq 辅助
+# Manifest V2 查询和校验函数由本地发布脚本与 CI 共同使用
 
 manifest_schema_version() {
   jq -r '.schemaVersion // empty' "$1"
@@ -46,7 +46,7 @@ manifest_agents_module_version() {
     '.components.agents.modules[$id].version // empty' "$manifest"
 }
 
-# 按 module.json 的 id 解析源码目录（相对仓库根），不写死具体模块
+# 以 module.json 的 ID 解析源码目录，使新增模块无需修改脚本
 manifest_agents_module_source_dir() {
   local module_id="${1:-}"
   if [[ -z "$module_id" ]]; then
@@ -94,7 +94,7 @@ agents_module_json_entry_win_x64() {
   jq -r '.entry["win-x64"] // empty' "$1"
 }
 
-# 校验 staging/安装树中的单个 Modules/<Id> 目录
+# 单模块校验同时约束描述文件、默认配置、schema 和入口文件
 validate_agents_module_dir() {
   local module_dir="$1"
   local expected_id="$2"
@@ -157,7 +157,7 @@ validate_agents_module_dir() {
   fi
 }
 
-# 校验 Agents CI staging：Host + ReleaseManifest + manifest 中全部 modules
+# Agents staging 必须与发布清单形成精确模块集合，禁止缺失或残留目录
 validate_agents_staging_layout() {
   local dir="$1"
   local manifest="$2"
@@ -207,7 +207,7 @@ validate_agents_staging_layout() {
 }
 
 manifest_database_postgres_version() {
-  # 仅 legacy 清单兼容 V1；候选清单必须使用 V2 嵌套路径
+  # V1 仅用于读取历史清单，待发布候选必须使用 V2 结构
   jq -r '.components.database.postgres.version // .dbSchemaVersion // empty' "$1"
 }
 
@@ -220,7 +220,7 @@ manifest_release_date() {
 }
 
 manifest_agents_component_ids() {
-  # 仅 Host 包；模块在 components.agents.modules 下
+  # Host 版本独立于 modules 映射，避免模块版本变化隐式修改 Host 版本
   jq -r '
     .components
     | to_entries[]

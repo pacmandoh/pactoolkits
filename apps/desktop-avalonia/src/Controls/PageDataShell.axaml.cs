@@ -6,7 +6,7 @@ using PacToolkits.Desktop.Avalonia.Services.Presentation;
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
 /// <summary>
-/// 页面数据壳：统一 empty / busy / stale / content 切换
+/// 统一呈现页面不可用、加载、陈旧数据和正常内容状态
 /// </summary>
 public partial class PageDataShell : UserControl
 {

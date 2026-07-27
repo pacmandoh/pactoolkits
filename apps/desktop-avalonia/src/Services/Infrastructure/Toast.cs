@@ -5,7 +5,7 @@ using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-/// <summary>Toast 通知入口</summary>
+/// <summary>定义 Desktop Toast 通知契约</summary>
 public interface IToastService
 {
     void Success(string title, string message);

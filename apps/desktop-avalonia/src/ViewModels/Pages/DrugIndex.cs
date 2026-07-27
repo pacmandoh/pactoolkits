@@ -21,12 +21,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 /// <summary>
-/// 药品信息维护页 ViewModel
-///
-/// 负责：
-/// - 药典检索与编辑器草稿
-/// - watermark 刷新与本地草稿对账
-/// - 导入导出与敏感操作解锁
+/// 协调药品索引检索、编辑草稿、变更水位刷新、导入导出和敏感操作授权
 /// </summary>
 public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 {
@@ -507,7 +502,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             }
         }
 
-        // 新 key 靠 watermark reload + QueueReselect 进 DataGrid
+        // 新增键由数据变更刷新后重新选中，以进入表格当前结果集
     }
 
     private async Task<bool> TryConfirmDirtyBeforeActionAsync(string actionHint)
@@ -546,7 +541,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                 return;
             }
 
-            // reload 期间 ReplaceAll 抖动不得在 QueueReselect 落地前翻转 HasEditor
+            // 重载替换集合期间保持编辑器状态，直至待选行完成定位
             if (!HasPendingChanges && !_pendingReselectKey.HasValue)
             {
                 ApplySelection(value);
@@ -560,7 +555,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         var nextDrugId = next?.DrugId;
         var nextSpec = next?.Spec;
 
-        // 保存/丢弃对话框不得在 selection-changed 回调内同步跑（防重入）
+        // 保存或丢弃对话框异步调度，避免在选中项变更回调中重入
         Dispatcher.UIThread.Post(() => ObserveDetached(
             OnSelectionChangedAsync(prev, next, nextDrugId, nextSpec),
             "selection.change.detached.fail"));
@@ -699,8 +694,8 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
     private void SyncEditorFrom(DrugRow row)
     {
-        // 同 key 且编辑器干净：字段已一致时只抬 snapshot
-        // 远端 watermark 可能先 ApplySaved 进行，再回写 Edit*，避免 HasChanges() 误报
+        // 同一键且编辑器无修改时，仅在字段一致后更新已加载快照
+        // 远端变更可能先更新保存状态再回写编辑字段，此顺序可避免误判未保存修改
         if (!HasPendingChanges && IsEditingRow(row) && EditorMatchesRow(row))
         {
             row.NotePreview = null;
@@ -1079,7 +1074,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                         FocusSavedRow(drugId, spec);
                     }
 
-                    // 本地选中后经得起后续 watermark ReplaceAll
+                    // 记录待选键，使后续远端变更替换集合后仍能恢复当前选择
                     QueueReselect(drugId, spec);
                 }
             }, DispatcherPriority.Normal);
@@ -1312,12 +1307,12 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
     protected override async Task ReloadCoreAsync(CancellationToken ct)
     {
-        // epoch 标记本轮 reload，用于抑制过期错误 toast
+        // 以递增序号标识本轮重载，避免较早任务显示过期错误
         var epoch = Interlocked.Increment(ref _reloadEpoch);
 
         try
         {
-            // 异步前先拍查询快照，避免读到半途变更
+            // 异步查询使用不可变条件，避免执行期间的输入变化影响结果归属
             var query = _query;
             var result = await _drugIndex.SearchAsync(query.Keyword, limit: SearchLimit, ct);
             var newRows = result.Items.Select(dto => new DrugRow(dto)).ToList();

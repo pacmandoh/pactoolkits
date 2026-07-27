@@ -6,7 +6,7 @@ public static class AgentsIds
 }
 
 /// <summary>
-/// Agents 运行时描述（当前仅 Id；扩展字段放此处以免散落）
+/// 标识 Agents 运行时实例，并作为后续运行时元数据的稳定扩展边界
 /// </summary>
 public sealed record AgentsDescriptor(string Id);
 

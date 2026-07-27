@@ -7,11 +7,11 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 namespace PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 /// <summary>
-/// 将 change-watermark topic 映射到应标记 dirty 的工作区页面
+/// 将数据变更主题映射到需要刷新的工作区页面
 /// </summary>
 public static class WorkspaceTopicRefresh
 {
-    /// <summary>按 topic 算出的 dirty 标记计划</summary>
+    /// <summary>描述一次数据变更需要失效或刷新的页面范围</summary>
     public readonly record struct DirtyPlan(
         bool InvalidateDrugCatalog,
         bool MarkInventory,

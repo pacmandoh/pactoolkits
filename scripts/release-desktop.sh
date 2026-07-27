@@ -372,7 +372,7 @@ else
     echo "ERROR: Host binary too small to be valid ($AGENT_HOST_DST, ${agent_size} bytes)" >&2
     exit 1
   fi
-  # 拷贝后复验：防 cp 漏文件；SRC 已在上方 validate 过
+  # 聚合后重新校验目标目录，防止复制过程破坏已验证的 Agents 布局
   validate_agents_staging_layout "$AGENT_DST_DIR" "$MANIFEST_FOR_PLAN" "$AGENT_MIN_BYTES" || exit 1
 fi
 

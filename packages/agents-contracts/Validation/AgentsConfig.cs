@@ -3,7 +3,7 @@ using PacToolkits.Agents.Contracts.Commands;
 namespace PacToolkits.Agents.Contracts.Validation;
 
 /// <summary>
-/// Agents Host 启动前配置校验（SchemaVersion、Postgres；模块业务走 ModuleSettingsValidator）
+/// 校验 Host 启动所需的 Desktop 配置和数据库连接参数，不校验模块业务配置
 /// </summary>
 public static class AgentsConfigValidator
 {
@@ -15,7 +15,6 @@ public static class AgentsConfigValidator
         string PostgresUsername,
         string PostgresPassword);
 
-    /// <summary>Host 启动：SchemaVersion + Postgres（不含模块业务 settings）</summary>
     public static AgentsCommandResult ValidateForLaunch(LaunchContext context)
     {
         if (context.SchemaVersion != 2)
@@ -33,7 +32,7 @@ public static class AgentsConfigValidator
             return new AgentsCommandResult(false, "统一配置校验失败：Postgres 连接字段不完整");
         }
 
-        // 模块拒绝空 PG_PASS；Desktop 在 trust/空密码下仍可能连上，故此处单独拦住
+        // Injector 不支持依赖 PostgreSQL trust 的空密码连接，Host 启动前必须单独约束
         if (string.IsNullOrWhiteSpace(context.PostgresPassword))
         {
             return new AgentsCommandResult(

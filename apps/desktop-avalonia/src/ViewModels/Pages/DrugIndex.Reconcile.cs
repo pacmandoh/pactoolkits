@@ -119,7 +119,7 @@ public sealed partial class DrugIndex
 
     private void ApplySilentReconcile(IReadOnlyList<DrugRow> serverRows)
     {
-        // 编辑中的 watermark 刷新：合并服务端行，不丢本地草稿
+        // 编辑期间收到远端变更时合并服务端数据，同时保留本地草稿
         var serverByKey = serverRows.ToDictionary(KeyOf);
         var selectedKey = ResolveSelectedKey();
 
@@ -229,7 +229,7 @@ public sealed partial class DrugIndex
         var row = FindRow(drugId, spec);
         if (row is null)
         {
-            // 不在当前结果集：保留编辑器，勿 ClearListFocus
+            // 当前结果集未包含目标行时仍保留编辑器和列表焦点
             return;
         }
 

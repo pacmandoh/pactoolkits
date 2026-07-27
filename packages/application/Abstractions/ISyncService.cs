@@ -3,7 +3,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// MSFX 同步业务门面（拉窗、映射、注入任务运维）
+/// 定义 MSFX 增量拉取、映射和注入任务维护的业务契约
 /// </summary>
 public interface ISyncService
 {

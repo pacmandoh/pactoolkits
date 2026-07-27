@@ -15,7 +15,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-/// <summary>应用配置读写入口</summary>
+/// <summary>应用配置持久化契约</summary>
 public interface IAppConfigStore
 {
     string ConfigPath { get; }
@@ -29,7 +29,7 @@ public interface IAppConfigStore
 /// <summary>
 /// 应用配置存储
 ///
-/// 负责统一配置文件读写与规范化；不含业务查询
+/// 统一读取、写入并规范化应用配置，不执行业务查询
 /// </summary>
 public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
 {
@@ -234,7 +234,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
                 && HasPersistedDefaults(raw)
                 && HasRequiredConfigKeys(existingJson))
             {
-                // 配置已存在时仍按 Normalize 结果回写（模块扫描默认、路径规范化）
+                // 已有配置仍需持久化规范化结果，使模块发现和路径修正跨进程重启生效
                 if (!string.Equals(readablePath, ConfigPath, StringComparison.OrdinalIgnoreCase)
                     || !string.Equals(existingJson, json, StringComparison.Ordinal))
                 {
@@ -355,9 +355,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         return agents;
     }
 
-    /// <summary>
-    /// 非空磁盘清单为真相：新模块默认 Enabled、已有开关保留、孤儿丢弃；空清单保留现状
-    /// </summary>
+    // 仅以稳定非空目录清单收敛模块开关，避免部署替换窗口将全部模块误判为已删除
     private static Dictionary<string, ModuleOptions> NormalizeModules(
         Dictionary<string, ModuleOptions>? source,
         string executablePath)
@@ -388,7 +386,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         var scanned = AgentsPath.ScanModules(agentsDir);
         if (scanned.Count == 0)
         {
-            // 安装或热更新期间 Modules 可能短暂为空，保留开关避免恢复后全部重新启用
+            // 安装或模块更新期间目录可能短暂为空，此时保留用户已有启用状态
             return existing;
         }
 

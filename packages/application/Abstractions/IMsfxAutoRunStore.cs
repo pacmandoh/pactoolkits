@@ -3,7 +3,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// 自动跑批持久化：拉窗游标、批次、重试与观察队列
+/// 持久化 MSFX 自动任务的拉取游标、批次、重试记录和观察队列
 /// </summary>
 public interface IMsfxAutoRunStore
 {

@@ -4,7 +4,7 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// 敏感操作按 scope 的会话态（解锁窗口、失败冷却、提示互斥）
+/// 按操作范围管理敏感操作的解锁期限、失败冷却和提示互斥
 /// </summary>
 public sealed class SensitiveUnlockSession
 {
@@ -30,7 +30,7 @@ public sealed class SensitiveUnlockSession
     }
 
     /// <summary>
-    /// 敏感 scope 访问判定结果（含提示是否占用）
+    /// 敏感操作范围的访问判定结果，包括提示是否已占用
     /// </summary>
     public readonly record struct Access(string ScopeKey, bool IsGranted, bool IsPromptActive, bool StateChanged);
 
@@ -101,7 +101,7 @@ public sealed class SensitiveUnlockSession
         {
             var state = GetOrCreateState(key);
             var changed = Refresh(state, now);
-            // 已解锁只续期，不再弹第二层口令框
+            // 已解锁范围仅延长有效期，避免重复显示口令框
             if (state.IsUnlocked)
             {
                 state.ExpiresAtUtc = now + _sessionDuration;
@@ -113,7 +113,7 @@ public sealed class SensitiveUnlockSession
                     changed);
             }
 
-            // 同 scope 已有进行中的提示：互斥，避免叠框
+            // 同一操作范围只允许一个提示，避免对话框重叠
             if (state.IsPromptActive)
             {
                 return new Prompt(

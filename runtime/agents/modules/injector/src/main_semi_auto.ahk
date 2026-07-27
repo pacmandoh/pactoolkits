@@ -1,5 +1,5 @@
-; 拆零药追溯码半自动注入：手动点选目标行后由热键驱动
-; 预留成功后若 UI 注入/验证失败必须 Rollback，避免库存被扣住
+; 半自动流程在用户选定目标行后由热键执行拆零药追溯码注入
+; 预留成功后若 UI 注入或验证失败必须回滚，避免库存长期占用
 
 Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optVerifyGridClassNN, iptParseGridClassNN, iptVerifyGridClassNN, optInputClassNN, iptInputClassNN, win := "A") {
     global RuntimeInfo
@@ -44,7 +44,7 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optV
         return r
     }
 	if (r["skip"]) {
-		; skip 提示与聚焦由 main 统一处理，避免双层 Tip
+		; 跳过原因和焦点恢复由模块入口统一处理，避免重复提示
 		return Map("ok", true, "skip", true, "type", r["type"], "why", r["why"], "focusClassNN", inputClassNN)
 	}
 
@@ -92,7 +92,7 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optV
                     . " | why=" StrReplace(pr["why"], "`n", " | ")
                 )
             }
-            ; 已预留扣库，注入失败必须业务 Rollback
+            ; 库存已经预留，注入失败时必须执行事务回滚
             Txn_Rollback(txnId)
             return Map("ok", false, "level", "ERR", "type", pr["type"], "why", "注入失败（第" i "条）：`n" pr["why"])
         }

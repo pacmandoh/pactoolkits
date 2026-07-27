@@ -1,7 +1,7 @@
 namespace PacToolkits.Agents.Contracts.Agents;
 
 /// <summary>
-/// Host / Module 运行态（含 Starting，便于 UI 区分“进程在但未就绪”）
+/// 表示 Host 或模块的运行状态；<see cref="AgentsRunState.Starting"/> 用于区分进程已创建但尚未就绪的阶段
 /// </summary>
 public enum AgentsRunState
 {
@@ -13,7 +13,7 @@ public enum AgentsRunState
 }
 
 /// <summary>
-/// AgentsRunState 便捷判定
+/// 提供 <see cref="AgentsRunState"/> 的状态分类操作
 /// </summary>
 public static class AgentsRunStateExtensions
 {

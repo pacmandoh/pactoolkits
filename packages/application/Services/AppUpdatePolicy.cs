@@ -150,9 +150,9 @@ public static class AppUpdatePolicy
     /// 评估配置通道与 Velopack 安装通道的对齐动作
     /// </summary>
     /// <remarks>
-    /// - 安装通道相对非空 stamp 变化：自动收敛到安装通道
-    /// - stamp 为空且通道一致：只落 stamp
-    /// - stamp 为空且通道不一致：交给 UI 确认（是→对齐；否→只落 stamp，避免反复弹窗）
+    /// 当安装通道与已确认通道不一致时，配置自动跟随安装通道
+    /// 尚未记录已确认通道且配置已经一致时，仅补充确认记录
+    /// 尚未记录已确认通道且配置不一致时，由界面确认是否同步，并始终记录本次确认以避免重复提示
     /// </remarks>
     public static ChannelAlignDecision EvaluateChannelAlign(
         string? configuredChannel,

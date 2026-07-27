@@ -7,7 +7,7 @@ namespace PacToolkits.Infrastructure.Database;
 /// <summary>
 /// 追溯入库操作日志写入
 ///
-/// 负责：向 <c>trace_entry_log</c> 插入规范化后的一行；不查询、不汇总
+/// 向 <c>trace_entry_log</c> 写入规范化记录，不负责查询或汇总
 /// </summary>
 public sealed class TraceEntryLogService : ITraceEntryLogService
 {

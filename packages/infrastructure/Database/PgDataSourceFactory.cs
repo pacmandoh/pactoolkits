@@ -13,9 +13,9 @@ public interface IPgDataSourceFactory
 }
 
 /// <summary>
-/// <c>NpgsqlDataSource</c> 的创建 / 释放实现
+/// 管理 <c>NpgsqlDataSource</c> 的创建、替换和释放
 ///
-/// 负责：按 <c>PgOptions</c> 重建池；未配置时拒绝 <c>Get</c>
+/// 按 <c>PgOptions</c> 重建连接池；配置不可用时拒绝提供数据源
 /// 不打开业务会话（由 <c>PgDb</c> 使用）
 /// </summary>
 public sealed class PgDataSourceFactory : IPgDataSourceFactory, IDisposable

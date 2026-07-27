@@ -6,10 +6,9 @@ using Avalonia.Layout;
 namespace PacToolkits.Desktop.Avalonia.Views;
 
 /// <summary>
-/// Keeps the title-path anchor horizontally centered inside the title-bar surface by adjusting
-/// the host content's layout margin.
-/// Prefer margin over a render-time translate transform: render transforms skip layout rounding
-/// and land on fractional device pixels, which blurs title-bar text/icons.
+/// 通过调整内容布局边距保持标题路径在标题栏内水平居中
+///
+/// 使用布局边距可保留像素舍入；渲染变换可能落在非整数设备像素上，导致文字和图标模糊
 /// </summary>
 internal sealed class TitleBarCentering : IDisposable
 {
@@ -79,7 +78,7 @@ internal sealed class TitleBarCentering : IDisposable
         var arrangedCenter = renderedCenter - currentOffset;
         var rawOffset = (_surface.Bounds.Width / 2) - arrangedCenter;
         var renderScaling = TopLevel.GetTopLevel(_surface)?.RenderScaling ?? 1;
-        // 布局舍入前也要把偏移钉在物理像素网格上
+        // 偏移量必须在布局舍入前对齐物理像素，避免标题内容模糊
         var nextOffset = Math.Round(rawOffset * renderScaling) / renderScaling;
         if (Math.Abs(currentOffset - nextOffset) * renderScaling < 0.5)
         {

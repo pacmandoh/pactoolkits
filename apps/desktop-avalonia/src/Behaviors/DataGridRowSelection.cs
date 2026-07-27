@@ -418,7 +418,7 @@ public class DataGridRowSelection
 
         public void ApplySelectAllFromBinding()
         {
-            // 绑定环 / 半选(null) 时直接返回，避免误清或重入
+            // 绑定回写或不确定选择状态下不再更新，避免误清选择和回调重入
             if (_disposed || _syncingSelectAll)
             {
                 return;

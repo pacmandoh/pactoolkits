@@ -6,11 +6,11 @@ using PacToolkits.Desktop.Avalonia.Common;
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 /// <summary>
-/// 页面 reload 的延迟 busy：短查询不闪 busy，超过阈值才亮
+/// 延迟显示页面加载状态，避免短时查询造成视觉闪烁
 /// </summary>
 internal static class PageReloadBusyDelay
 {
-    // 快路径不打扰 UI；慢查询才显示 busy
+    // 仅在操作超过阈值时显示加载状态，避免干扰快速交互
     private static readonly TimeSpan BusyDelay = TimeSpan.FromMilliseconds(300);
 
     public static async Task RunAsync(

@@ -148,7 +148,7 @@ public partial class Settings : AppPageBase, ISettingsPage
                 return false;
             }
 
-            // 静默自动保存可能尚未结束；稍等再让手动保存 toast
+            // 等待可能仍在执行的自动保存，避免手动保存提示先于实际写入完成
             for (var i = 0; i < 20 && IsLoggingBusy; i++)
             {
                 await Task.Delay(50).ConfigureAwait(false);

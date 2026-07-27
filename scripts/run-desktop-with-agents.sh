@@ -78,7 +78,7 @@ dotnet build "$host_project" -c "$CONFIGURATION" --no-restore -v minimal
   exit 1
 }
 
-# 每次重建模拟安装树，避免已删除模块残留在 Desktop 输出中
+# 重建目标目录，使本地布局与发布包保持完全一致的模块集合
 case "$agents_out" in
   "$ROOT_DIR/apps/desktop-avalonia/src/bin/"*/net10.0/Agents) ;;
   *)
@@ -93,7 +93,7 @@ cp -R "$host_out/." "$agents_out/"
 if [[ -f "$host_out/Agents.exe" ]]; then
   cp "$host_out/Agents.exe" "$agents_out/Agents.exe"
 elif [[ -f "$host_out/Agents" ]]; then
-  # Unix apphost 改名为默认路径 Agents.exe 后仍可执行，便于复用正式路径解析
+  # Unix apphost 保留可执行格式，仅统一文件名以复用发布环境的 Host 路径解析
   cp "$host_out/Agents" "$agents_out/Agents.exe"
   chmod +x "$agents_out/Agents.exe"
   rm -f "$agents_out/Agents"

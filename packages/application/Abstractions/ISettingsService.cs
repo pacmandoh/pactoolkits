@@ -2,7 +2,7 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Application.Abstractions;
 
-/// <summary>设置页数据库配置与 Schema 兼容检查入口</summary>
+/// <summary>定义设置页数据库配置保存、连接测试和 schema 兼容性检查契约</summary>
 public interface ISettingsService
 {
     PgOptions AppliedDb { get; }

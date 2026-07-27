@@ -5,7 +5,7 @@ using ShadUI;
 namespace PacToolkits.Desktop.Tests;
 
 /// <summary>
-/// Guards <c>DialogSessionStack</c> reflection against silent breakage when ShadUI is upgraded.
+/// 防止 ShadUI 升级后 <c>DialogSessionStack</c> 反射契约静默失效
 /// </summary>
 public sealed class DialogSessionStackContractTests
 {

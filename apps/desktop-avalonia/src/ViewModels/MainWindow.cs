@@ -30,12 +30,7 @@ using ShadUI;
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
 /// <summary>
-/// 主窗口 ViewModel
-///
-/// 负责：
-/// - 侧栏/功能区导航与页面生命周期切换
-/// - DB 连接失败/恢复 toast 汇总
-/// - 配置热重载与更新轮询壳层
+/// 协调主窗口导航、页面生命周期、数据库连接反馈、配置重载和更新轮询
 /// </summary>
 public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
@@ -93,7 +88,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private DateTimeOffset _lastDbErrorToastAt = DateTimeOffset.MinValue;
     private DateTimeOffset _lastDbOkToastAt = DateTimeOffset.MinValue;
     private DateTimeOffset _lastAgentsTopToastAt = DateTimeOffset.MinValue;
-    // 与 Agents Host 命令冷却窗口对齐，避免顶栏 toast 连刷
+    // 顶栏操作节流与 Host 命令冷却保持一致，避免同一请求产生重复反馈
     private static readonly TimeSpan AgentsTopToastDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan TopActionDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(8);
@@ -1564,7 +1559,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            // Host 已起但模块未起：只补挂模块，不拆 Host
+            // Host 已运行时仅启动目标模块，保持其他模块和 Host 会话不变
             await RunAgentsCommandAsync(() => Agents.StartModuleAsync(moduleId)).ConfigureAwait(false);
         }
         catch (Exception ex)

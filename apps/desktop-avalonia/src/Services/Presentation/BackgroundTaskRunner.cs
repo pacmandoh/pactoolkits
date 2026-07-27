@@ -7,7 +7,7 @@ using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
-/// <summary>后台 fire-and-forget Task 运行器实现</summary>
+/// <summary>执行无需调用方等待的后台任务，并统一记录异常</summary>
 public sealed class BackgroundTaskRunner(IAppLogger logger, IToastService toast) : IBackgroundTaskRunner
 {
     public void RunDetached(

@@ -46,7 +46,7 @@ public partial class Settings
     private bool _suppressModuleAutoSave;
     private bool _agentsDisposed;
     private string _modulesSyncKey = string.Empty;
-    // 清单已变但因未保存编辑、自动保存或启停操作推迟重绑；解除门闩后再 SyncAgentsConfig
+    // 编辑或控制操作期间延迟表单重建，避免模块发现覆盖尚未提交的 UI 状态
     private bool _moduleEditorsStale;
 
     public ObservableCollection<ModuleRunRow> ModuleRunRows { get; } = new();
@@ -130,8 +130,8 @@ public partial class Settings
 
     private void OnAgentsRuntimeChanged()
     {
-        // start/stop 进行中保留乐观开关态，在 toggle finally 落定
-        // 模块清单变化：无编辑任务时重绑表单；否则只刷启停行，且不推进 syncKey（避免漏绑编辑器）
+        // 启停期间保留用户刚设置的开关值，命令结束后再以运行时状态校准
+        // 存在编辑任务时只更新运行状态，不更新同步键，确保后续仍会重建模块表单
         Dispatcher.UIThread.Post(() =>
         {
             var syncRunSwitches = !IsAgentsToggling;
@@ -218,7 +218,7 @@ public partial class Settings
                 _toast.Success("自动化集成", message);
             }
 
-            // Save 路径用了 ConfigureAwait(false)；状态绑定与 RestartAgentsCommand 须回 UI
+            // 保存流程不保留同步上下文，绑定状态和命令通知必须返回 UI 线程
             await RunOnUiAsync(() =>
             {
                 ApplyRuntimeSnapshot();
@@ -393,7 +393,7 @@ public partial class Settings
         {
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                // 重新启用前先快照，避免 ToggleSwitch 推回过期的 On 勾选态
+                // 启用前先同步运行时状态，避免 ToggleSwitch 的旧绑定值覆盖本次操作
                 ApplyRuntimeSnapshot(syncRunSwitches: true);
                 IsAgentsToggling = false;
             });
@@ -720,7 +720,7 @@ public partial class Settings
         }
         catch
         {
-            // 非法 JSON 时退回规范化文本比较，避免误判为未变更而跳过落盘
+            // 无法解析时仍比较规范化文本，避免错误地将不同配置视为相同
             return string.Equals(
                 (left ?? string.Empty).Replace("\r\n", "\n", StringComparison.Ordinal).Trim(),
                 (right ?? string.Empty).Replace("\r\n", "\n", StringComparison.Ordinal).Trim(),
@@ -739,7 +739,7 @@ public partial class Settings
         _syncingFromRuntime = true;
         try
         {
-            // 开关只镜像 Running；Starting/Failed 不得显示成“已激活”
+            // 运行开关仅表示已完成启动，Starting 和 Failed 通过独立状态组件展示
             if (syncRunSwitches)
             {
                 IsHostRunningSwitch = _agents.HostState == AgentsRunState.Running;
@@ -941,7 +941,7 @@ public partial class Settings
                 .Select(m =>
                     $"{m.Id}:{m.Version}:{m.Runtime}:{m.DisplayName}:{m.EntryWinX64}:{m.Desktop.Order}")
                 .OrderBy(part => part, StringComparer.Ordinal));
-        // 含磁盘 Host 路径/进程名：外部热重载改路径时也要重绑
+        // 同步键包含磁盘 Host 配置，确保外部配置更新也能触发表单重建
         return string.Join(
             '\n',
             catalog,

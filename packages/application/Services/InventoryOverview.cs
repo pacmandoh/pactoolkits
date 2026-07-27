@@ -5,7 +5,7 @@ using PacToolkits.Application.TextSearch;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// 库存总览：关键字拼音扩展、单元格编辑与改派门槛
+/// 实现库存关键字拼音扩展、单元格编辑和改派限制
 /// </summary>
 public sealed class InventoryOverviewService : IInventoryOverviewService
 {

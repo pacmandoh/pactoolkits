@@ -52,7 +52,7 @@ public sealed partial class InventoryOverview : AppPageBase
             return;
         }
 
-        // 同一上下文被 Enter 重复提交时勿重建选项，避免数量闪烁
+        // 同一上下文重复提交时复用现有选项，避免数量显示闪烁
         if (string.Equals(drug, NormalizeInput(TargetDrugId), StringComparison.OrdinalIgnoreCase) &&
             SpecOptions.Count > 0 &&
             SelectedSpec is not null)
@@ -284,7 +284,7 @@ public sealed partial class InventoryOverview : AppPageBase
 
             if (savedCount > 0)
             {
-                // 行级编辑后保持视口/滚动：推迟 watermark 全量 reload，再静默对账
+                // 行级编辑后延后全量刷新并执行静默对账，以保持当前视口和滚动位置
                 PauseAutoRefresh(TimeSpan.FromSeconds(7));
                 ReconcilePageLater(TimeSpan.FromSeconds(5));
             }

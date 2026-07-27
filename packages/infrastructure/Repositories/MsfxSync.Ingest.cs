@@ -97,7 +97,7 @@ public sealed partial class MsfxSyncRepo
         cmd.AddParam("bill_id", billId);
         cmd.AddParam("source_row_key", sourceRowKey);
         AddNullableParam(cmd, "physic_name", NullIfWhiteSpace(drug.DrugName));
-        // package_spec 与 pkg_spec 同写：兼容历史双列，勿删其一
+        // 同时写入 package_spec 和 pkg_spec，以兼容仍使用历史列名的数据结构
         AddNullableParam(cmd, "package_spec", NullIfWhiteSpace(drug.PackageSpec));
         AddNullableParam(cmd, "pkg_spec", NullIfWhiteSpace(drug.PackageSpec));
         AddNullableParam(cmd, "prepn_spec", NullIfWhiteSpace(drug.PrepnSpec));

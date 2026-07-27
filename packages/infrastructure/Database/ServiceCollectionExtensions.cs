@@ -6,9 +6,9 @@ using PacToolkits.Infrastructure.Repositories;
 namespace PacToolkits.Infrastructure.Database;
 
 /// <summary>
-/// Infrastructure 层 DI 注册入口
+/// 注册 Infrastructure 层 PostgreSQL 服务和仓储实现
 ///
-/// 负责：Postgres 选项、数据库服务与各 Repo 的 Singleton 绑定
+/// 所有注册由 Desktop composition root 统一调用
 /// </summary>
 public static class ServiceCollectionExtensions
 {

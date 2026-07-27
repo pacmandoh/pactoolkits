@@ -4,15 +4,13 @@ using PacToolkits.Agents.Contracts.Agents;
 namespace PacToolkits.Agents.Host;
 
 /// <summary>
-/// 常驻 Host：保持 Agents.exe 存活，监管 Modules/* 启停
+/// Agents 常驻进程，负责模块发现、控制文件消费和子进程监管
 ///
-/// 不自动挂载；由 Desktop 写入各模块 <see cref="AgentsPaths.ModuleControlFileName"/>
-///（start / stop）与根目录 <see cref="AgentsPaths.HostControlFileName"/>（quit）
-/// 每轮控制轮询 reconcile 磁盘清单，运行中增删 Modules 目录即可热发现
+/// 模块仅响应 Desktop 写入的 start 或 stop 命令；Host 退出由根目录 quit 命令控制
 /// </summary>
 internal static class Program
 {
-    // Desktop↔Host 控制文件轮询；读后即删，避免重复执行
+    // 控制文件无确认通道，消费后立即删除以保证命令至多执行一次
     private static readonly TimeSpan ControlPoll = TimeSpan.FromMilliseconds(250);
 
     private sealed class ModuleSlot
@@ -53,10 +51,10 @@ internal static class Program
             quit.Set();
         };
 
-        // 不自动挂载：等 Desktop 写入 start/stop 或 host.control quit
+        // Host 不根据 Enabled 推断启动意图，模块生命周期仅由 Desktop 控制命令驱动
         while (!quit.IsSet)
         {
-            // 先对齐磁盘清单，再读 control，避免新模块的 start 落在未知 slot 上
+            // 先更新模块槽位，确保新部署模块的首条控制命令可以在同一轮处理
             ReconcileSlots(slots, baseDir);
 
             foreach (var slot in slots)
@@ -94,7 +92,7 @@ internal static class Program
                         StopModule(slot);
                         break;
                     case "start":
-                        // 单模块启动失败不得拖垮 Host（settings 缺失 / 落盘竞态）
+                        // 单模块配置或部署失败不得中断其他模块的控制循环
                         try
                         {
                             if (slot.Process is null || slot.Process.HasExited)
@@ -120,9 +118,6 @@ internal static class Program
         return 0;
     }
 
-    /// <summary>
-    /// 按 ScanModules 增补/刷新/移除 slot；移除前先停进程；entry 缺失的清单项不挂 slot
-    /// </summary>
     private static void ReconcileSlots(List<ModuleSlot> slots, string agentsDir)
     {
         var desired = AgentsPath.ScanModules(agentsDir);
@@ -152,7 +147,7 @@ internal static class Program
             var controlPath = AgentsPaths.ModuleControlPath(agentsDir, module.Id);
             if (byId.TryGetValue(module.Id, out var existing))
             {
-                // 进程在跑时不改 EntryPath，避免与存活进程脱节；停后再对齐
+                // 运行中槽位保留原入口，确保进程引用和后续停止操作保持一致
                 if (existing.Process is null || existing.Process.HasExited)
                 {
                     existing.EntryPath = entryPath;
@@ -208,7 +203,7 @@ internal static class Program
             startInfo.ArgumentList.Add(arg);
         }
 
-        // 从 --config 旁路推导 {ConfigDir}/agents/modules/<Id>/settings.json
+        // 用户模块配置与 Desktop 配置共享父目录，避免 Host 读取或复制 Desktop 配置内容
         var settingsPath = TryResolveModuleSettingsPath(childArgs, slot.Id)
             ?? throw new InvalidOperationException(
                 $"Cannot resolve --module-settings for module {slot.Id} (missing --config)");
@@ -314,7 +309,7 @@ internal static class Program
         }
         catch
         {
-            // 控制文件删除失败可忽略（下一轮轮询会再试）
+            // 删除失败时保留命令供下一轮重试，避免错误标记为已消费
         }
     }
 
@@ -338,7 +333,7 @@ internal static class Program
         return null;
     }
 
-    // 去掉 Host 专用 / 模块专用参数，避免原样转发给模块后再重复追加
+    // 过滤 Host 自有参数，保证每个模块只接收一份由 Host 生成的模块配置参数
     private static IReadOnlyList<string> FilterHostArgs(string[] args)
     {
         var result = new List<string>(args.Length);
@@ -368,7 +363,7 @@ internal static class Program
         }
         catch
         {
-            // 强制结束失败可忽略（进程可能已退出）
+            // 终止请求与进程自然退出可能并发，失败不代表仍有存活进程
         }
     }
 }

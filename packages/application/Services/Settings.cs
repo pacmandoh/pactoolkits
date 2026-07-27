@@ -4,7 +4,7 @@ using PacToolkits.Core;
 
 namespace PacToolkits.Application.Services;
 
-/// <summary>设置业务：连接校验与 Schema 状态快照</summary>
+/// <summary>执行设置页数据库连接校验和结构兼容状态查询</summary>
 public sealed class SettingsService : ISettingsService
 {
     private readonly IDbConfigService _dbConfig;

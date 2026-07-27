@@ -7,8 +7,8 @@ using Avalonia.VisualTree;
 namespace PacToolkits.Desktop.Avalonia.Common.Diagnostics;
 
 /// <summary>
-/// 导航、首次 layout、已实现 DataGrid 行的 UI 性能计数
-/// 附加调试器或设 PACTOOLKITS_UI_PERF=1 启用（环境变量开启时打 stderr）
+/// 记录导航、首次布局和已实例化表格行数等界面性能指标
+/// 附加调试器或将 PACTOOLKITS_UI_PERF 设为 1 时启用；环境变量模式同时写入标准错误流
 /// </summary>
 public static class NavPerfDiagnostics
 {

@@ -3,7 +3,7 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// Schema 不兼容共享阻断门实现；PgDb 与直连路径共用
+/// 实现数据库结构不兼容时的共享访问限制，供 PgDb 与独立连接路径共同使用
 /// </summary>
 public sealed class DbAccessGuard : IDbAccessGuard
 {

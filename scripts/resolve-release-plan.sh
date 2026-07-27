@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 从 release-manifest.json（schema v2）解析正式 Desktop 发布参数
+# 从 release-manifest.json（schema v2）解析 Desktop 发布参数
 # Usage:
 #   resolve-release-plan.sh [--runtime RID] [manifest-path]
 #   resolve-release-plan.sh --github-output [--runtime RID] [manifest-path]

@@ -9,7 +9,7 @@ namespace PacToolkits.Infrastructure.Repositories;
 /// <summary>
 /// 药品索引表（<c>drug_index</c>）数据访问
 ///
-/// 负责：检索/计数/目录、增删改、主键修正与关联池/流水同步
+/// 实现药品索引检索、计数、写入、主键修正以及关联数据同步
 /// 仅数据访问，不含业务口径计算
 /// </summary>
 public sealed class DrugIndexRepo : IDrugIndexRepo
@@ -520,7 +520,7 @@ public sealed class DrugIndexRepo : IDrugIndexRepo
             }
             else if (!targetExisted)
             {
-                // 目标主键不存在：直接改源 PK，依赖 FK ON UPDATE CASCADE 同步子表
+                // 目标主键不存在时更新源主键，由外键级联规则同步关联表
                 const string movePkSql = """
                     update drug_index
                     set drug_id = @dst_drug,

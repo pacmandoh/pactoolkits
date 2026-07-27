@@ -1,7 +1,7 @@
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// 将空白输入规范为 null，避免空串参与查询
+/// 将空白输入规范化为 <see langword="null"/>，避免空字符串改变查询语义
 /// </summary>
 public static class InputNormalizer
 {

@@ -6,7 +6,7 @@ namespace PacToolkits.Infrastructure.Database;
 /// <summary>
 /// 一次性数据库连接测试（设置页等）
 ///
-/// 负责：按给定 <c>PgOptions</c> 直连并返回可读失败原因
+/// 使用给定 <c>PgOptions</c> 独立测试连接，并返回可展示的失败原因
 /// 不改动运行时连接池
 /// </summary>
 public sealed class DbConnectionTester : IDbConnectionTester

@@ -10,7 +10,7 @@ public enum AppLogLevel
 }
 
 /// <summary>
-/// 应用结构化日志入口（按模块/事件写入，支持导出近期日志）
+/// 定义按模块和事件写入结构化日志及导出近期日志的契约
 /// </summary>
 public interface IAppLogger
 {

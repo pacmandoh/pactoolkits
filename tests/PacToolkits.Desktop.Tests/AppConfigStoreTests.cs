@@ -21,7 +21,7 @@ public sealed class AppConfigStoreTests
     [Fact]
     public void Keeps_modules_enabled_flag_when_scan_unavailable()
     {
-        // 无法解析 Agents 目录时不写死模块 id，保留配置中的 Modules 原样
+        // 模块目录不可用时保留已有启用状态，避免部署窗口造成配置丢失
         var root = new AppConfigRoot
         {
             Agents = new AgentsOptions
@@ -169,7 +169,7 @@ public sealed class AppConfigStoreTests
             }
             catch
             {
-                // 共享 CI runner 上的临时目录清理失败不影响断言
+                // 共享 CI 运行器可能延迟释放临时文件，清理失败不影响测试结论
             }
         }
     }

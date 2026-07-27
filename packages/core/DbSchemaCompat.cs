@@ -1,7 +1,7 @@
 namespace PacToolkits.Core;
 
 /// <summary>
-/// 数据库 Schema 与 Desktop / Agents 声明范围的兼容状态
+/// 表示数据库 schema 与 Desktop、Agents 声明范围的兼容状态
 /// </summary>
 public enum DbSchemaCompatibility
 {
@@ -28,9 +28,9 @@ public sealed record DbSchemaCompatibilityResult(
 }
 
 /// <summary>
-/// 按 SemVer 判定数据库 Schema 是否落在 Desktop / Agents 交集范围内
+/// 按 SemVer 判断数据库 schema 是否位于 Desktop 与 Agents 兼容范围的交集内
 ///
-/// 负责：兼容枚举、门槛合并、不兼容提示文案。不访问数据库
+/// 合并组件版本边界并生成不兼容说明，不访问数据库
 /// </summary>
 public static class DbSchemaCompat
 {

@@ -5,7 +5,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-/// <summary>日志设置读写入口</summary>
+/// <summary>定义日志设置持久化与变更通知契约</summary>
 public interface ILoggingSettingsService
 {
     LoggingOptions Current { get; }

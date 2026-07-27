@@ -6,7 +6,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
 /// <summary>
-/// MVVM 基类：ObservableObject + 命令触发防抖
+/// 为 Desktop ViewModel 提供属性通知和统一的命令重复触发抑制
 /// </summary>
 public abstract class ViewModelBase : ObservableObject
 {

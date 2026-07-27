@@ -6,9 +6,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# -----------------------------
-# 自动提权到 Administrator
-# -----------------------------
+# 计划任务注册需要管理员权限，非管理员会话必须重新提升
 $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
 $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -53,9 +51,7 @@ if ([string]::IsNullOrWhiteSpace($plainPassword)) {
     throw "Password cannot be empty for Password logon type."
 }
 
-# -----------------------------
-# 若已存在则先删除旧任务
-# -----------------------------
+# 注册前移除同名任务，避免保留旧触发器和凭据设置
 $existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($existing) {
     Write-Host "Existing task found. Removing..."
@@ -74,18 +70,14 @@ try {
         -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ScriptPath`""
 }
 
-# -----------------------------
-# Trigger 1：首次注册后每隔 N 分钟
-# -----------------------------
+# 周期触发器从注册时开始，按配置的分钟间隔重复执行
 $trigger1 = New-ScheduledTaskTrigger `
     -Once `
     -At $startAt `
     -RepetitionInterval (New-TimeSpan -Minutes $RepeatMinutes) `
     -RepetitionDuration (New-TimeSpan -Days 3650)
 
-# -----------------------------
-# Trigger 2：登录时
-# -----------------------------
+# 登录触发器用于在用户会话开始后立即同步一次
 try {
     $trigger2 = New-ScheduledTaskTrigger -AtLogOn -User $userId
 } catch {
@@ -93,9 +85,7 @@ try {
     $trigger2 = New-ScheduledTaskTrigger -AtLogOn
 }
 
-# -----------------------------
-# 任务设置
-# -----------------------------
+# 允许计划任务错过触发时间后补执行，并限制并发实例
 $settings = New-ScheduledTaskSettingsSet `
     -MultipleInstances IgnoreNew `
     -StartWhenAvailable `
@@ -103,10 +93,7 @@ $settings = New-ScheduledTaskSettingsSet `
     -DontStopIfGoingOnBatteries `
     -Hidden
 
-# -----------------------------
-# 以当前用户、最高权限运行
-# Password 登录才能后台跑且比 S4U 更易保留网络访问
-# -----------------------------
+# 使用当前用户和最高权限运行；Password 登录类型可在后台保留网络访问能力
 $taskPrincipal = New-ScheduledTaskPrincipal `
     -UserId $userId `
     -RunLevel Highest `

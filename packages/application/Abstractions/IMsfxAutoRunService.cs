@@ -3,7 +3,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// 自动跑批进度观察者（进度上报与数据变更回调）
+/// 接收 MSFX 自动任务的进度和数据变更通知
 /// </summary>
 public interface IMsfxAutoRunObserver
 {
@@ -13,7 +13,7 @@ public interface IMsfxAutoRunObserver
 }
 
 /// <summary>
-/// MSFX 自动跑批编排（拉单、映射、任务生成）；可恢复中断批次
+/// 编排 MSFX 单据拉取、映射和任务生成，并支持恢复中断批次
 /// </summary>
 public interface IMsfxAutoRunService
 {

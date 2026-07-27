@@ -1,7 +1,7 @@
 namespace PacToolkits.Agents.Contracts.Settings;
 
 /// <summary>
-/// 模块 settings.schema.json（schemaVersion=1）
+/// 模块设置页结构和业务配置校验规则
 /// </summary>
 public sealed class ModuleSettingsSchema
 {
@@ -23,7 +23,6 @@ public sealed class ModuleSettingsField
 {
     public string Key { get; set; } = string.Empty;
 
-    /// <summary>string | bool | int | enum | stringList | stringFlagMap</summary>
     public string Type { get; set; } = "string";
 
     public string Label { get; set; } = string.Empty;
@@ -36,7 +35,6 @@ public sealed class ModuleSettingsField
 
     public int? Max { get; set; }
 
-    /// <summary>stringList / stringFlagMap 允许空集合；键本身仍必须存在</summary>
     public bool AllowEmpty { get; set; }
 }
 

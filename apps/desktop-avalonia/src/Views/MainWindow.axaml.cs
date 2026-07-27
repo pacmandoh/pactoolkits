@@ -69,7 +69,7 @@ public partial class MainWindow : ShadWindow
             return;
         }
 
-        // ShadUI 没有独立左侧标题栏槽；背景层用于保持居中路径不被挤乱
+        // ShadUI 没有独立的左侧标题栏槽位，背景层用于保持居中路径不受两侧内容影响
         if (Resources["WindowsTitleBarMarkTemplate"] is IDataTemplate template)
         {
             titleBarBackground.Child = template.Build(null);
@@ -132,7 +132,7 @@ public partial class MainWindow : ShadWindow
             if (OperatingSystem.IsWindows())
             {
                 // Avalonia 12 将 OffScreenMargin 置零；ShadUI SnapLayout 接管 WM_NCCALCSIZE 后
-                // 跳过 Avalonia BorderOnly 最大化客户区收缩，内容会画进屏外边框
+                // 跳过 Avalonia BorderOnly 的最大化客户区收缩，避免内容延伸到屏幕外边框
                 Margin = WindowsMaximizedFrameInset(DesktopScaling);
             }
 
@@ -197,7 +197,7 @@ public partial class MainWindow : ShadWindow
             return;
         }
 
-        // Avalonia 在 AppKit 完成程序化退出前会先恢复装饰；走红绿灯关闭路径
+        // AppKit 程序化退出前会恢复窗口装饰，因此复用 macOS 窗口关闭按钮的退出路径
         var selector = GetMacSelector("toggleFullScreen:");
         SendMacMessage(handle, selector, 0);
     }

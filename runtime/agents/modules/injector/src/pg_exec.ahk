@@ -1,4 +1,4 @@
-; 追溯码预留/提交/回滚：拆零只扣余数，整包装跳过
+; 追溯码事务支持预留、提交和回滚；拆零仅扣减余数，完整包装不占用追溯码
 
 global __PG := Map(
     "conn", 0,
@@ -10,12 +10,12 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
     codes := []
     items := []
 
-    ; 前置：只处理拆零=是，且只扣相对单盒量的余数
+    ; 仅拆零业务需要预留追溯码，扣减量按单盒数量的余数计算
     if IsObject(bySpec) {
         splitFlag := bySpec.Has("拆零标签||拆零") ? Trim(bySpec["拆零标签||拆零"]) : ""
         qtyVal    := bySpec.Has("数量") ? bySpec["数量"] : ""
 
-        ; 拆零=否不取码，避免整盒场景误扣池
+        ; 非拆零业务不得从追溯池预留记录
         if (splitFlag = "否") {
             return Map("ok", true, "skip", true, "type", "[跳过取码]", "why", "未拆零药物", "need", 0, "codes", [], "items", [])
         }
@@ -30,7 +30,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
             return Map("ok", false, "level", "WARN", "type", "[解析错误]", "why", "数量无效：" qtyVal)
         }
 
-        ; 单盒量来自 drug_index.qty，用于算拆零余数
+        ; 单盒数量以 drug_index.qty 为准，用于计算拆零余数
         qDbQty := ""
             . "SELECT qty FROM drug_index "
             . "WHERE drug_id='" Util_EscapeSQL(drugId) "' "
@@ -54,19 +54,18 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 
         rem := Mod(qtyN, dbQty)
 
-        ; 余数=0 视为整包装：不取码不扣库
+        ; 余数为零表示完整包装，不预留追溯码
         if (rem = 0) {
-            ; UI_Tip("跳过取码：整包装（数量为整包整数倍，单盒数量=" dbQty "）", 1200)
             return Map("ok", true, "skip", true, "type", "[跳过取码]", "why", "整包装（数量为整包整数倍，单盒数量=" dbQty "）"
                 , "need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty)
         }
 
-        ; 拆零场景 need 改为余数，而非整行数量
+        ; 拆零业务的需求量必须使用余数，不能使用原始行数量
         need := rem
         reqQty := need
     }
 
-    ; 单条 CTE 锁行挑选：SKIP LOCKED + 与索引同序，降低并发冲突
+    ; 单条 CTE 使用 SKIP LOCKED 并保持索引顺序，降低并发预留冲突
     rOpen := PG_EnsureOpen()
     if !rOpen["ok"] {
         return Map("ok", false, "level", "ERR", "type", rOpen["type"], "why", "数据库链接失败：`n" rOpen["err"])
@@ -90,7 +89,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "    " (need+0) "::int     AS need"
 		. "), "
 
-		; 只扫一次 trace_pool 做可用性统计
+		; 可用性统计与候选选择共用一次 trace_pool 扫描
 		. "stats AS ("
 		. "  SELECT "
 		. "    count(*)::int AS cnt_any, "
@@ -101,7 +100,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "    AND tp.spec    = p.spec "
 		. "), "
 
-		; ORDER BY 必须与 idx_trace_pick_ultra 完全一致，否则无法吃到索引
+		; ORDER BY 必须与 idx_trace_pick_ultra 完全一致，确保查询计划使用该索引
 		. "locked AS MATERIALIZED ("
 		. "  SELECT tp.id "
 		. "  FROM trace_pool tp, params p "
@@ -118,7 +117,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "  LIMIT LEAST(GREATEST((SELECT need FROM params)*2, 50), 5000)"
 		. "), "
 
-		; WINDOW 只定义一次，避免重复排序开销
+		; 共用 WINDOW 定义以避免重复排序
 		. "picked AS ("
 		. "  SELECT "
 		. "    tp.id, tp.trace_code, tp.remain, tp.qty, "
@@ -135,7 +134,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "  )"
 		. "), "
 
-		; 按 need 与 cum_remain 切分当前行 take_qty
+		; 当前行扣减量由需求量和累计可用量共同确定
 		. "alloc AS ("
 		. "  SELECT "
 		. "    id, trace_code, seq, remain, "
@@ -153,7 +152,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "  SELECT COALESCE(sum(take_qty),0)::int AS sum_take FROM alloc"
 		. "), "
 
-		; guard：凑够 need 才写库；否则细分失败原因供上层提示
+		; 仅在总可用量满足需求时写入，并为不足场景返回可区分的失败原因
 		. "guard AS ("
 		. "  SELECT "
 		. "    CASE WHEN ts.sum_take = (SELECT need FROM params) THEN 1 ELSE 0 END AS ok, "
@@ -167,7 +166,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "  FROM stats s, take_sum ts"
 		. "), "
 
-		; 仅 guard.ok=1 时扣 remain
+		; 只有完整满足需求时才扣减剩余数量
 		. "upd AS ("
 		. "  UPDATE trace_pool tp "
 		. "  SET remain = tp.remain - a.take_qty "
@@ -178,7 +177,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "  RETURNING a.seq, tp.id AS pool_id, a.trace_code, a.take_qty"
 		. "), "
 
-		; 仅成功路径写 PENDING txn（upsert）
+		; PENDING 事务仅在预留成功后写入，并通过 upsert 保证幂等
 		. "ins_txn AS ("
 		. "  INSERT INTO trace_txn(txn_id, client_id, drug_id, spec, req_qty, status) "
 		. "  SELECT txn_id, client_id, drug_id, spec, need, 'PENDING' "
@@ -195,7 +194,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "  RETURNING txn_id"
 		. "), "
 
-		; 仅成功路径重写 txn items，避免失败半写入
+		; 事务明细仅在成功路径重写，避免失败时留下不完整记录
 		. "del_items AS ("
 		. "  DELETE FROM trace_txn_item "
 		. "  WHERE (SELECT ok FROM guard)=1 "
@@ -219,7 +218,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		. "LEFT JOIN upd u ON g.ok=1 "
 		. "ORDER BY u.seq NULLS FIRST;"
 
-    ; ADO 显式事务：失败统一 Rollback，成功再 Commit
+    ; 使用 ADO 显式事务保证预留数据与事务记录同时提交或回滚
     try {
         if !__PG["in_txn"] {
             conn.BeginTrans()
@@ -243,16 +242,16 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
             return Map("ok", false, "level", "ERR", "type", "[预留错误]", "why", "未返回任何结果行", "reason", "NO_RESULT")
         }
 
-        ; 行布局：[status, reason, seq, pool_id, trace_code, take_qty]
+        ; 查询列顺序是跨 ADO 读取的固定契约，修改 SQL 时必须同步此处索引
         status := r["rows"][1][1]
         reason := r["rows"][1][2]
 
         if (status = "FAIL") {
-            ; 业务 FAIL 虽无写入，仍 Rollback，保持“失败即回滚”语义
+            ; 业务失败即使没有写入也显式回滚，保持统一事务语义
             conn.RollbackTrans()
             __PG["in_txn"] := false
 
-            ; 业务 reason：NO_ENTRY / NO_AVAILABLE / INSUFFICIENT_TOTAL / CONCURRENCY_OR_LIMIT
+            ; 失败原因区分无索引、无可用码、总量不足以及并发或限制冲突
             msg := ""
             switch reason {
                 case "NO_ENTRY":
@@ -283,9 +282,9 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
         return Map("ok", false, "level", "ERR", "type", "[预留错误]", "why", "`n" e.Message, "reason", "EXCEPTION", "err", e.Message)
     }
 
-    ; 组装 codes/items；住院与门诊返回码策略不同
+    ; 住院与门诊使用不同的返回码集合策略
 	if (cls = "") {
-		; 未传 cls 时退化为当前活动窗口，兼容旧调用
+		; 未提供窗口类时使用当前活动窗口，以保持现有调用兼容
 		ctx := Util_CaptureWin("A")
 		cls := ctx["cls"]
 	}
@@ -293,7 +292,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 
     lastCode := ""
     for _, row in r["rows"] {
-        ; 行布局：[status, reason, seq, pool_id, trace_code, take_qty]
+        ; 查询列顺序是跨 ADO 读取的固定契约，修改 SQL 时必须同步此处索引
         poolId := Util_ToInt(row[4])
         code   := row[5]
         take   := Util_ToInt(row[6])
@@ -303,7 +302,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 
         items.Push(Map("pool_id", poolId, "take", take, "code", code))
 
-		; 住院只回最后一码；门诊回全部 codes
+		; 住院流程仅使用最后一个码，门诊流程使用全部预留码
         if (cls = ipt) {
             lastCode := code
         } else {
@@ -314,7 +313,6 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
     if (cls = ipt && lastCode != "")
         codes := [ lastCode ]
 
-    ; UI_Tip("[预留成功] 需扣=" reqQty "，码数=" codes.Length, 1200)
     return Map(
 		"ok", true, "type", "[预留成功]", 
 		"why", "需扣=" reqQty "，码数=" codes.Length, 
@@ -324,7 +322,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 }
 
 
-; Commit：PENDING → COMMITTED
+; 提交操作将任务状态从 PENDING 转换为 COMMITTED
 Txn_Commit(txnId) {
     rOpen := PG_EnsureOpen()
     if !rOpen["ok"] {
@@ -369,7 +367,7 @@ Txn_Commit(txnId) {
     }
 }
 
-; Rollback：仅 PENDING 回补 remain
+; 回滚仅恢复仍处于 PENDING 状态的事务
 Txn_Rollback(txnId) {
     rOpen := PG_EnsureOpen()
     if !rOpen["ok"] {
@@ -379,7 +377,7 @@ Txn_Rollback(txnId) {
     conn := __PG["conn"]
     escTxn := Util_EscapeSQL(txnId)
 
-    ; 先 PENDING→ROLLED_BACK 占住 txn，再回补库存，避免并发双回补
+    ; 先以状态转换取得回滚权，再恢复库存，避免并发重复回补
     sql := ""
         . "WITH tx AS ("
         . "  UPDATE trace_txn "
@@ -428,9 +426,9 @@ Txn_Rollback(txnId) {
     }
 }
 
-; 超时 PENDING 自愈：异常退出后自动回补被扣库存
+; 超时 PENDING 恢复用于回补异常退出前已预留的库存
 Txn_CleanupPending(timeoutMinutes := 10, maxBatch := 200) {
-    ; 无 created_at 时用 txn_id 前缀时间（yyyyMMddHHmmss_XXXXX）判超时
+    ; 缺少 created_at 时使用 txn_id 的时间前缀判断超时，以兼容旧表结构
     rOpen := PG_EnsureOpen()
     if !rOpen["ok"]
         return rOpen
@@ -441,7 +439,7 @@ Txn_CleanupPending(timeoutMinutes := 10, maxBatch := 200) {
 
     cutoff := FormatTime(DateAdd(A_Now, -mins, "Minutes"), "yyyyMMddHHmmss")
 
-    ; 优先 created_at；旧表无该列时回退 txn_id 前缀时间
+    ; 优先使用 created_at，旧表缺少该列时改用 txn_id 时间前缀
     hasCreatedAt := false
     qCol := ""
         . "SELECT 1 "

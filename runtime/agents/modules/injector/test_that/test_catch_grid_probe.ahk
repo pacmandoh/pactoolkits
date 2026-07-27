@@ -58,7 +58,7 @@ Probe_Win32() {
     MsgBox out
 }
 
-; UIA：坐标抓元素；ProgID 失败则 CLSID 兜底
+; UIA 通过坐标定位元素；ProgID 不可用时改用 CLSID 创建实例
 Probe_UIA() {
     MouseGetPos &sx, &sy
     try {
@@ -101,7 +101,7 @@ Probe_UIA() {
     }
 }
 
-; 创建 UIA：ProgID 失败则用 CUIAutomation CLSID 兜底
+; 优先通过 ProgID 创建 UIA，失败时改用 CUIAutomation CLSID
 UIA_Create() {
     try return ComObject("UIAutomationClient.CUIAutomation")
     catch {
@@ -109,7 +109,7 @@ UIA_Create() {
     }
 }
 
-; Win32 helpers
+; Win32 调用封装用于构造独立的 UIA 探测环境
 HwndFromPoint(x, y) {
     pt := Buffer(8, 0)
     NumPut("Int", x, pt, 0)

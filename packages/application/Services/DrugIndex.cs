@@ -5,7 +5,7 @@ using PacToolkits.Application.TextSearch;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// 药品索引业务：拼音扩展检索、保存门禁与主键修复编排
+/// 实现药品索引的拼音扩展检索、保存限制和主键修复编排
 /// </summary>
 public sealed class DrugIndexService : IDrugIndexService
 {

@@ -4,9 +4,9 @@ using Npgsql;
 namespace PacToolkits.Infrastructure.Database;
 
 /// <summary>
-/// Npgsql 命令/参数构造辅助
+/// 统一 Npgsql 命令超时和参数构造规则
 ///
-/// 负责：统一 CommandTimeout 与参数附加；不打开连接、不执行业务 SQL
+/// 不负责打开连接或执行业务 SQL
 /// </summary>
 public static class DbCmd
 {

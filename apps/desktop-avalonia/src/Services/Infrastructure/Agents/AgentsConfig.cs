@@ -9,7 +9,7 @@ using PacToolkits.Application.DTOs;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
-/// <summary>Agents Host/模块相关配置读写</summary>
+/// <summary>持久化 Agents 全局配置与模块启用状态，并将变更同步到运行时</summary>
 public sealed class AgentsConfigService : IAgentsConfigService
 {
     private readonly IAppConfigStore _configStore;

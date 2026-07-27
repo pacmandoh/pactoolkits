@@ -5,7 +5,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.TextSearch;
 
 /// <summary>
-/// 将拼音首字母查询展开为匹配的药品 ID / 规格集合
+/// 将拼音首字母查询展开为匹配的药品 ID 和规格集合
 /// </summary>
 public static class PinyinExpansion
 {

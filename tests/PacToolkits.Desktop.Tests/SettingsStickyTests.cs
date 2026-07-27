@@ -95,7 +95,7 @@ public sealed class SettingsStickyTests
     [Fact]
     public void Next_h2_touching_sticky_h3_clears_h3_but_keeps_current_h2()
     {
-        // Inside H3 band (peerEdge < Top <= fullEdge): dismiss H3 only — do not swap H2.
+        // 位于 H3 区间时只应取消 H3，不得切换 H2
         var active = SettingsScroll.SelectActive([
             new SettingsScroll.HeaderPosition(1, -300),
             new SettingsScroll.HeaderPosition(2, -200),
@@ -122,7 +122,7 @@ public sealed class SettingsStickyTests
     [Fact]
     public void Next_h2_peer_push_works_while_old_h3_header_is_still_in_document()
     {
-        // Old H3 would re-activate in the same pass; peer push at h1+h2 must still win.
+        // 旧 H3 可能在同一轮重新激活，但相邻标题在 H1 与 H2 边界处仍应优先推出它
         var active = SettingsScroll.SelectActive([
             new SettingsScroll.HeaderPosition(1, -300),
             new SettingsScroll.HeaderPosition(2, -200),

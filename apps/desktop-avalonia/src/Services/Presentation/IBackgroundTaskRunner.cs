@@ -4,12 +4,12 @@ using System.Threading.Tasks;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 
-/// <summary>后台 Task 运行器入口</summary>
+/// <summary>定义可记录异常的后台任务调度契约</summary>
 public interface IBackgroundTaskRunner
 {
     /// <summary>
-    /// 在调用方同步上下文上启动 fire-and-forget Task
-    /// 异常记日志；取消静默忽略
+    /// 在调用方同步上下文中启动无需等待的任务
+    /// 记录执行异常，正常取消不作为错误报告
     /// </summary>
     void RunDetached(
         Func<CancellationToken, Task> work,

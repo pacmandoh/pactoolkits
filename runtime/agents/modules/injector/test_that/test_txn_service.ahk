@@ -17,7 +17,7 @@ Main() {
     MsgBox "[信息] AHK 版本: " A_AhkVersion "`n"
         . "[信息] AHK 位数: " (A_PtrSize=8 ? "64-bit" : "32-bit")
 
-    ; 0) 连接自检（走 PG_EnsureOpen + DB_Query）
+    ; 前置条件：通过正式数据库访问路径建立连接
     ping := Ping_DB()
     if !ping["ok"] {
         MsgBox "[连接错误] 连接失败`n`n" ping["err"]
@@ -25,7 +25,7 @@ Main() {
     }
     MsgBox "[信息] 连接成功`n`n" ping["text"]
 
-    ; 1) 基础检查：drug_index 是否存在
+    ; 前置条件：drug_index 中存在可测试记录
     chk := DB_Query("SELECT qty FROM drug_index WHERE drug_id='" Util_EscapeSQL(TEST_DRUG) "' AND spec='" Util_EscapeSQL(TEST_SPEC) "' LIMIT 1;")
     if !chk["ok"] {
         MsgBox "[SQL 错误] 查询 drug_index 失败`n" chk["err"]
@@ -38,7 +38,7 @@ Main() {
 
     ShowPoolSummary("[信息] 测试前库存概况")
 
-    ; 2) 测试 A：Reserve + Commit
+    ; 场景 A：预留后提交
     txnA := Util_TxnId()
     needA := 7
 
@@ -63,7 +63,7 @@ Main() {
     AssertTxnStatus(txnA, "COMMITTED", "[信息] 测试A Commit 状态校验")
     ShowPoolSummary("[信息] 测试A Commit 后库存概况")
 
-    ; 3) 测试 B：Reserve + Rollback（验证回补）
+    ; 场景 B：预留后回滚并验证库存恢复
     txnB := Util_TxnId()
     needB := 5
 
@@ -88,7 +88,7 @@ Main() {
 
     ShowPoolSummary("[信息] 测试B Rollback 后库存概况")
 
-    ; 4) 测试 C：bySpec 拆零（拆零=是，只扣余数），完成后回滚避免污染
+    ; 场景 C：按规格执行拆零预留，仅扣余数并在验证后回滚
     txnC := Util_TxnId()
     bySpec := Map("拆零标签||拆零", "是", "数量", "125")
     rC := Txn_ReservePick(txnC, TEST_CLIENT, TEST_DRUG, TEST_SPEC, 999999, "", "", bySpec)
@@ -117,7 +117,6 @@ Main() {
     ExitApp 0
 }
 
-; ----------------- DB ping -----------------
 
 Ping_DB() {
     rOpen := PG_EnsureOpen()
@@ -139,7 +138,6 @@ Ping_DB() {
     return Map("ok", true, "text", out)
 }
 
-; ----------------- helpers -----------------
 
 ShowPoolSummary(title) {
     sql := ""

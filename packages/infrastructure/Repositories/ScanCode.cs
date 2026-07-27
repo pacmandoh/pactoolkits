@@ -9,7 +9,7 @@ namespace PacToolkits.Infrastructure.Repositories;
 /// <summary>
 /// 扫码入库（追溯码写入 <c>trace_pool</c>）
 ///
-/// 负责：批量插入、唯一冲突时序列校准后重试
+/// 实现追溯码批量写入，并在序列导致唯一冲突时校准后重试
 /// 不解析扫码设备协议
 /// </summary>
 public sealed class ScanCodeRepo : IScanCodeRepo

@@ -1,6 +1,6 @@
 namespace PacToolkits.Application.Abstractions;
 
-/// <summary>应用更新偏好（通道、Feed URL、忽略版本等）</summary>
+/// <summary>应用更新通道、源地址、检查周期和忽略版本等偏好</summary>
 public sealed class UpdateOptions
 {
     public bool AutoCheckOnStartup { get; set; } = true;
@@ -9,9 +9,6 @@ public sealed class UpdateOptions
     public int AutoCheckIntervalMinutes { get; set; }
     public string IgnoredVersion { get; set; } = string.Empty;
 
-    /// <summary>
-    /// 上次对齐过的 Velopack 安装通道；安装通道相对 stamp 变化时自动收敛，空 stamp 且不一致时询问用户
-    /// </summary>
     public string SeenInstalledChannel { get; set; } = string.Empty;
 }
 

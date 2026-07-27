@@ -33,7 +33,7 @@ public sealed partial class MsfxAutoRunService
         TraceEntryState state)
         => observer.Report(new MsfxAutoRunUpdate(Stage: stage, Message: message, State: state));
 
-    /// <summary>包装观察者：Progress 单调不减，避免 UI 回跳</summary>
+    /// <summary>保证上报进度单调递增，避免界面进度回退</summary>
     private sealed class MonotonicObserver(IMsfxAutoRunObserver inner) : IMsfxAutoRunObserver
     {
         private double _progress;

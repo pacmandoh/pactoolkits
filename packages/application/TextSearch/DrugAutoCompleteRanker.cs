@@ -1,7 +1,7 @@
 namespace PacToolkits.Application.TextSearch;
 
 /// <summary>
-/// 药品自动完成候选过滤与排序（文本档 + 拼音档）
+/// 按文本匹配和拼音匹配分档过滤并排序药品自动完成候选
 /// </summary>
 public static class DrugAutoCompleteRanker
 {

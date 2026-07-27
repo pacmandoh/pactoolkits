@@ -84,7 +84,7 @@ internal sealed class StableBinaryChange
 /// <summary>
 /// Agents 运行时
 ///
-/// 负责 Host/模块启停、状态观测与进程兜底；不含业务注入逻辑
+/// 管理 Host 与模块的运行、状态观测和异常终止，不包含模块业务逻辑
 /// </summary>
 public sealed class AgentsRuntime : IAgentsRuntime
 {
@@ -96,7 +96,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
     private readonly object _gate = new();
     private readonly SemaphoreSlim _commandGate = new(1, 1);
     private readonly Timer _pollTimer;
-    // Host 连点启停冷却；模块命令由闸门串行化，批量重挂不参与冷却
+    // Host 命令保留冷却窗口以抑制重复操作；模块命令仅串行化，避免批量重启被冷却策略丢弃
     private static readonly TimeSpan HostCommandCooldown = TimeSpan.FromMilliseconds(1200);
 
     private AgentsOptions _options = new();
@@ -216,7 +216,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         _logger = logger;
         Reload();
 
-        // 启停态先快扫 300ms，稳态再 1s，兼顾及时性与负载
+        // 启停期间缩短轮询间隔以尽快收敛 UI，稳定运行后降低轮询频率
         _pollTimer = new Timer(_ => PollStatus(), null, TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(1));
     }
 
@@ -292,7 +292,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return module.Enabled;
             }
 
-            // 已发现但配置尚未写回时沿用新模块默认启用规则
+            // 模块发现早于配置规范化时按新模块默认策略处理，避免首次启动被短暂配置延迟阻断
             return _modules.Any(m => string.Equals(m.Id, moduleId, StringComparison.Ordinal));
         }
     }
@@ -355,7 +355,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
     public async Task<AgentsCommandResult> StartOrRestartAsync(CancellationToken ct = default)
     {
-        // WaitAsync(0)：已有命令在跑则立刻拒绝，避免排队叠启停
+        // Host 启停不排队，避免用户的过期操作在当前长任务结束后再次执行
         var entered = await _commandGate.WaitAsync(0, ct).ConfigureAwait(false);
         if (!entered)
         {
@@ -395,7 +395,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
             lock (_gate)
             {
                 options = Clone(_options);
-                // 启停前再 reconcile，避免刚落盘的模块仍卡在上一轮 poll 缓存
+                // 启动前重新扫描模块目录，确保刚完成部署的模块不受轮询缓存影响
                 modulesChanged = RediscoverModulesUnlocked(options);
             }
 
@@ -431,7 +431,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return SetHostError(validate.Message);
             }
 
-            // 重启判定看进程是否仍在，而非 State——Failed 时 Host 仍可能存活
+            // Failed 仅表示启动流程失败，Host 进程仍可能存活，因此重启依据实际进程判断
             var wasActive = GetTargetProcesses(options).Any();
             if (wasActive)
             {
@@ -453,7 +453,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 ClearHostControl(options);
                 ClearAllModuleControl(options);
 
-                // 给 shell 托盘一点时间移除图标，再重新拉起
+                // 预留托盘图标注销时间，避免重启后保留失效图标
                 await Task.Delay(250, ct).ConfigureAwait(false);
             }
 
@@ -498,7 +498,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
             startCts = new CancellationTokenSource();
             _startCts = startCts;
-            // 闸门保持到挂载结束：避免冷却窗口内叠启；Stop 先 CancelStart 再抢闸
+            // 启动闸门覆盖全部模块挂载，防止 Host 尚未就绪时插入其他控制命令
 
             IReadOnlyList<ModuleDescriptor> modules;
             lock (_gate)
@@ -584,7 +584,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
     public async Task<AgentsCommandResult> StopAsync(CancellationToken ct = default)
     {
-        // 先取消在途启动，避免 Start 占闸导致 Stop 无法进入
+        // 停止操作优先取消在途启动，避免等待完整挂载流程后才生效
         CancelStart();
 
         await _commandGate.WaitAsync(ct).ConfigureAwait(false);
@@ -592,7 +592,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         AgentsOptions options;
         try
         {
-            // Stop 在取消在途启动后必须落地，不能再被启动命令的冷却窗口吞掉
+            // 停止命令不受启动冷却限制，确保取消请求最终作用于进程
             NoteHostCommandIssued();
 
             lock (_gate)
@@ -622,7 +622,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return new AgentsCommandResult(true, "已停止");
             }
 
-            // 请常驻 Host 卸载全部模块并退出；kill 仍作兜底
+            // 优先请求 Host 卸载模块并退出，强制终止仅用于控制命令失效的情况
             WriteHostControl(options, "quit");
             ClearAllModuleReady(options);
 
@@ -664,7 +664,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
             ClearHostControl(options);
             ClearAllModuleControl(options);
 
-            // 进程退出后给 shell 清理托盘图标缓存的时间
+            // 进程退出后预留托盘图标缓存清理时间
             await Task.Delay(250, ct).ConfigureAwait(false);
 
             lock (_gate)
@@ -722,7 +722,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
             lock (_gate)
             {
-                // Host 仍在但尚无 module.ready 时，先不要标成 Starting
+                // 显式停止状态优先于 Host 存活状态，避免未收到启动命令的模块显示为 Starting
                 _stoppedModules.Add(moduleId);
                 _startingModules.Remove(moduleId);
                 _moduleLastErrors.Remove(moduleId);
@@ -796,7 +796,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return SetModuleError(moduleId, validate.Message);
             }
 
-            // Host 未挂时在同一闸门内完成全量启动，避免释放再抢占造成启停穿插
+            // Host 未运行时在当前命令内完成启动和挂载，保持控制序列原子性
             if (!GetTargetProcesses(options).Any())
             {
                 return await ExecuteStartOrRestartAsync(ct).ConfigureAwait(false);
@@ -823,9 +823,6 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
     }
 
-    /// <summary>
-    /// 在 Host 已运行前提下挂载模块（先 stop 再 start，等 ready）
-    /// </summary>
     private async Task<AgentsCommandResult> MountModuleAsync(
         AgentsOptions options,
         string moduleId,
@@ -910,7 +907,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
         try
         {
-            // 与观测同周期 reconcile 磁盘 Modules；清单变化才写回配置 Normalized 开关
+            // 发现与状态观测使用同一轮磁盘快照，避免 UI 同时展示不同版本的模块清单
             bool modulesChanged;
             lock (_gate)
             {
@@ -944,7 +941,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
     {
         try
         {
-            // Load → NormalizeModules → PersistIfChanged：稳定非空清单才增补新 id 并清理孤儿
+            // 复用配置加载的规范化路径，确保模块增删与持久化规则只有一个实现
             _ = _configStore.Load();
         }
         catch (Exception ex)
@@ -1314,7 +1311,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
             var ready = ModuleReadyExists(options, moduleId);
             if (ready && !alive)
             {
-                // Host 常驻下 crash/kill 后可能残留过期 marker
+                // 模块异常退出后可能残留就绪文件，进程状态优先于该文件
                 ClearModuleReady(options, moduleId);
                 ready = false;
             }
@@ -1340,7 +1337,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                     return AgentsRunState.Failed;
                 }
 
-                // 仅在 start/remount 进行中，或进程已起但尚未 ready 时标 Starting
+                // Starting 仅表示已下发启动命令或进程尚未完成自检
                 if (_startingModules.Contains(moduleId) || (alive && !ready))
                 {
                     return AgentsRunState.Starting;
@@ -1516,7 +1513,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         {
             _moduleLastErrors[moduleId] = message;
             _starting = false;
-            // 全量启动失败时 sibling 也不得留在 Starting
+            // 全量启动失败后清除所有临时状态，避免未处理模块长期显示为 Starting
             _startingModules.Clear();
             _moduleStates[moduleId] = AgentsRunState.Failed;
         }
@@ -1531,7 +1528,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         var now = DateTimeOffset.UtcNow;
         lock (_gate)
         {
-            // 与顶栏 toast debounce 同窗口，防连点叠启停
+            // 与顶栏操作节流窗口保持一致，避免不同入口产生重复启停请求
             return now - _lastHostCommandAt < HostCommandCooldown;
         }
     }
@@ -1556,7 +1553,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 _hostLastError = null;
             }
 
-            // 模块 Starting 由 MountModuleAsync 在真正发 start 时写入，避免 Host 未起就显示「模块启动中」
+            // 模块状态在实际下发 start 时进入 Starting，避免 Host 启动阶段提前展示模块进度
         }
     }
 
@@ -1679,7 +1676,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
     private static string? ResolveAgentsDir(AgentsOptions options)
     {
-        // 与 AppConfigStore.NormalizeModules 同一 ResolveHost，避免扫描目录与开关写回漂移
+        // 运行时扫描与配置规范化共用 Host 路径解析，确保模块目录来源一致
         var resolution = AgentsPath.ResolveHost(options.ExecutablePath, AppContext.BaseDirectory);
         if (resolution.ResolvedPath is null)
         {
@@ -1714,7 +1711,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
         catch
         {
-            // Host 仍可能走进程 kill 兜底停止
+            // Host 控制协议失败时仍需识别并终止模块进程
         }
     }
 
@@ -1750,7 +1747,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
         catch
         {
-            // Host 仍可能走进程 kill 兜底停止
+            // Host 控制协议失败时仍需识别并终止模块进程
         }
     }
 
@@ -1934,7 +1931,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
         catch
         {
-            // 就绪标记清理失败不阻断停止兜底
+            // 就绪文件不是停止成功的判据，删除失败不应阻断进程终止
         }
     }
 
@@ -1947,7 +1944,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
         try
         {
-            // 优先优雅结束，让托盘图标有机会干净 dispose
+            // 优先关闭窗口，使模块有机会释放托盘图标和就绪文件
             if (p.CloseMainWindow())
             {
                 if (p.WaitForExit(2200))
@@ -2079,7 +2076,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         var schemaJson = _moduleSettings.TryLoadSchemaJson(moduleId, agentsDir);
         if (schemaJson is null)
         {
-            // 无 schema 的模块：只要求合法 JSON 对象
+            // schema 是设置页能力而非运行时强制项；无 schema 模块仍须提供 JSON 对象配置
             try
             {
                 if (System.Text.Json.Nodes.JsonNode.Parse(json) is not System.Text.Json.Nodes.JsonObject)
@@ -2252,6 +2249,6 @@ public sealed class AgentsRuntime : IAgentsRuntime
             _logger.Warn("Agents", "agents.dispose.timer_fail", "Failed to dispose poll timer", ex);
         }
 
-        // 二进制变更重挂是脱离 Timer 回调执行的；进程退出时保留托管闸门，避免在途任务访问已释放对象
+        // 二进制重启任务可能晚于 Timer 回调结束，保留命令闸门以避免在途任务访问已释放对象
     }
 }

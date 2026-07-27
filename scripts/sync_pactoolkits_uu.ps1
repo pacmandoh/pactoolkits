@@ -1,5 +1,4 @@
-# `sync_pactoolkits_uu.ps1` by pacmandoh, 2026-03-05
-# 从 updates.pacdocs.com 同步 pactoolkits feed 到本地目录（变更检测 + 并行下载）
+# 从 updates.pacdocs.com 将 PacToolkits Feed 同步到本地目录，并执行变更检测和并行下载
 
 $Base="https://updates.pacdocs.com/feed/pactoolkits/stable"; $Dest="F:\PacDocs\feed\pactoolkits\stable"; $Sync="F:\PacDocs\sync"
 $Man="releases.stable.json"; $Rel="RELEASES-stable"; $Ast="assets.stable.json"; $Setup="pactoolkits-stable-Setup.exe"
@@ -55,7 +54,7 @@ try{
     catch{ L "ERROR: pointer failed $n :: $($_.Exception.Message)"; exit 21 }
   }
 
-  # 可选清理：只保留最新 6 个 nupkg*
+  # 可选清理仅保留最新六个 NuGet 包，限制同步目录增长
   Get-ChildItem $Dest -Filter "*.nupkg*" -File | Sort-Object LastWriteTime -Descending | Select-Object -Skip 6 | Remove-Item -Force -ErrorAction SilentlyContinue
 
   Set-Content -LiteralPath $Tag -Value $t -Encoding ascii; L "OK: done ($t)"

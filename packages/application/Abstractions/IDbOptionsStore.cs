@@ -1,7 +1,7 @@
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// PgOptions 本地文件读写
+/// 定义 PostgreSQL 连接选项的本地持久化契约
 /// </summary>
 public interface IDbOptionsStore
 {

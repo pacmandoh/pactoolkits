@@ -399,8 +399,8 @@ jobs:
         run: |
           $stagingDir = "artifacts/agents/$env:RUNTIME"
           Copy-Item "runtime/agents/host/ReleaseManifest.json" (Join-Path $stagingDir "ReleaseManifest.json") -Force
-          # 与 Desktop 一样走 FDD：Host 只是薄模块管理器，不是第二套运行时捆绑
-          # EnableCompressionInSingleFile 要求 self-contained，FDD 下须关闭
+          # Host 与 Desktop 共用目标机 .NET Runtime，避免在同一安装包重复携带运行时
+          # FDD 不支持单文件压缩，因此显式关闭 EnableCompressionInSingleFile
           dotnet restore "runtime/agents/host/PacToolkits.Agents.Host.csproj" `
             --locked-mode
           dotnet publish "runtime/agents/host/PacToolkits.Agents.Host.csproj" `
@@ -423,7 +423,7 @@ jobs:
           Copy-Item (Join-Path $cacheModulesRoot "*") $stagingModulesRoot -Recurse -Force
           Write-Host "Restored AHK module outputs into staging after Host publish"
 
-          # settings 不参与 EXE 缓存身份，每次从源树覆盖
+          # 配置与 schema 不影响二进制编译，缓存恢复后从当前源码覆盖以避免陈旧配置
           Get-ChildItem -Path $stagingModulesRoot -Directory | ForEach-Object {
             $moduleId = $_.Name
             $srcDir = Get-ChildItem -Path "runtime/agents/modules" -Directory |
@@ -486,7 +486,7 @@ jobs:
             throw "Modules staging directory missing: $modulesRoot"
           }
 
-          # 与 scripts/manifest-v2.sh validate_agents_staging_layout 对齐：manifest 每个 id 都必须落盘
+          # CI 与发布脚本执行同一精确集合约束，避免缓存残留模块进入产物
           $manifestModuleIds = @($manifestModules.PSObject.Properties | ForEach-Object { $_.Name })
           if ($manifestModuleIds.Count -eq 0) {
             throw "release-manifest.json components.agents.modules has no entries"

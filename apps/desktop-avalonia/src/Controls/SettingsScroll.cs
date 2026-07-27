@@ -11,9 +11,7 @@ using ShadUI;
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
 /// <summary>
-/// 设置页滚动与 sticky 标题行为
-///
-/// 处理 H2/H3 sticky 顶替与高度抖动抑制
+/// 管理设置页 H2/H3 粘性标题替换，并抑制标题高度变化造成的布局抖动
 /// </summary>
 public static class SettingsScroll
 {
@@ -29,7 +27,7 @@ public static class SettingsScroll
     private static readonly AttachedProperty<bool> RefreshQueuedProperty =
         AvaloniaProperty.RegisterAttached<ScrollViewer, bool>("RefreshQueued", typeof(SettingsScroll));
 
-    // 记住上次测得的 slot 高度，避免 H3→下一 H2 时中途移除 H3 行导致抖动
+    // 保留最近测量的标题槽位高度，避免三级标题跨越二级标题时发生布局跳动
     private static readonly AttachedProperty<double[]> LastSlotHeightsProperty =
         AvaloniaProperty.RegisterAttached<Panel, double[]>("LastSlotHeights", typeof(SettingsScroll));
 
@@ -299,7 +297,7 @@ public static class SettingsScroll
         for (var i = 0; i < 3; i++)
         {
             // 禁止缩小：带 StatusPill 的 H2/H3 行高于纯标题。活动头切换时若缩小高度，
-            // SelectActive 会在边界来回翻转（抖动 → UI 卡死）
+            // 边界附近反复切换活动标题会持续触发布局计算并阻塞界面线程
             merged[i] = measured[i] > 0
                 ? Math.Max(measured[i], lastKnown[i])
                 : lastKnown[i];
@@ -345,7 +343,7 @@ public static class SettingsScroll
         SyncStickyChildren(stickyHost, active);
 
         // 新/空行需要一次 layout；高度已知时跳过再 post，避免 stickyKey 交替
-        // 在每个 Render tick 空转 RefreshSticky
+        // 将同一渲染周期内的多次请求合并为一次粘性标题刷新
         if (stickyHost.Children.OfType<Border>().Any(static row => row.Bounds.Height <= 0))
         {
             Dispatcher.UIThread.Post(() => RefreshSticky(scrollViewer), DispatcherPriority.Render);

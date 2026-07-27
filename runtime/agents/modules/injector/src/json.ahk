@@ -1,4 +1,4 @@
-; 最小 JSON 解析器（AHK v2）；失败返回 Map，避免 throw 打断注入热路径
+; 最小 JSON 解析器；失败时返回空 Map，避免异常中断注入主流程
 
 Json_Parse(jsonText) {
     pos := 1

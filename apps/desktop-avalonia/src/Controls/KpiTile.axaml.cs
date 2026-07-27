@@ -94,7 +94,6 @@ public partial class KpiTile : UserControl
     }
 
     // 决定徽章色调/图标与进度环颜色的 KPI 百分比口径：
-    // RemainHealth、UsageIntensity、AbnormalShare、LowStockShare
     public string? PctMetric
     {
         get => GetValue(PctMetricProperty);

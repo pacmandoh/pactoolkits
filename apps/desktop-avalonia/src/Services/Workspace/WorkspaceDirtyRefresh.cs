@@ -6,7 +6,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels;
 namespace PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 /// <summary>
-/// 工作区 dirty 页跟踪：切回非活动页时再触发刷新
+/// 跟踪工作区页面的待刷新状态，并在页面重新激活时执行刷新
 /// </summary>
 public sealed class WorkspaceDirtyRefresh
 {

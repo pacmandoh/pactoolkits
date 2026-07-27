@@ -5,7 +5,7 @@ using global::Avalonia.Data.Converters;
 
 namespace PacToolkits.Desktop.Avalonia.Converters;
 
-/// <summary>DataGrid 行索引 0-based → 1-based 展示</summary>
+/// <summary>将 DataGrid 的零基行索引转换为面向用户的一基序号</summary>
 public sealed class RowIndexConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)

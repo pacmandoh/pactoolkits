@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 namespace PacToolkits.Agents.Contracts.Settings;
 
 /// <summary>
-/// stringFlagMap 值解析；对齐 AHK Util_ToBool 的真值规则
+/// 按 Injector 的布尔兼容规则解析 stringFlagMap 值，保持 Desktop 校验与模块读取一致
 /// </summary>
 public static class ModuleSettingsFlag
 {

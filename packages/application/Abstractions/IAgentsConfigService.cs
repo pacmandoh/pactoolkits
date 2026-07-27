@@ -3,7 +3,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// Agents 配置的加载/保存与模块启停开关
+/// 提供 Desktop Agents 全局配置和模块启用状态的持久化操作
 /// </summary>
 public interface IAgentsConfigService
 {

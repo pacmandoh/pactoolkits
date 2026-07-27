@@ -5,7 +5,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Services.Msfx;
 
 /// <summary>
-/// MSFX 自动跑批：拉单→入库→映射→建任务；可恢复中断批次
+/// 执行 MSFX 单据拉取、入库、映射和任务创建，并支持恢复中断批次
 /// </summary>
 public sealed partial class MsfxAutoRunService : IMsfxAutoRunService
 {
@@ -49,9 +49,9 @@ public sealed partial class MsfxAutoRunService : IMsfxAutoRunService
             throw new InvalidOperationException("请先在设置页面配置接收企业 RefEntId");
         }
 
-        // 进度只增不减，避免补扫/重试时 UI 回跳
+        // 进度保持单调递增，避免补扫或重试造成界面进度回退
         observer = new MonotonicObserver(observer);
-        // 单飞行跑批：同 SourceApi 不允许并行第二趟
+        // 同一来源接口仅允许一个任务运行，避免重复生成批次
         await using var runLock =
             await _store.TryAcquireRunLockAsync(SourceApi, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException("另一个 MSFX 自动巡检正在运行，请等待其完成");

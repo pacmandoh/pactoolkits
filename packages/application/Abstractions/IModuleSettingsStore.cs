@@ -1,13 +1,11 @@
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// 模块业务配置：默认文件在 Agents/Modules/&lt;Id&gt;/；用户真相在 ConfigDir/agents/modules/&lt;Id&gt;/settings.json
+/// 管理模块默认配置、用户配置和设置 schema 的存储边界
 /// </summary>
 public interface IModuleSettingsStore
 {
-    /// <summary>
-    /// 用户 settings 不存在时从模块默认文件整文件复制；默认文件缺失则抛错
-    /// </summary>
+    /// <summary>仅在用户配置不存在时复制模块默认配置</summary>
     void EnsureUserSettings(string moduleId, string agentsDir);
 
     string LoadSettingsJson(string moduleId);

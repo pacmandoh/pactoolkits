@@ -7,7 +7,7 @@ namespace PacToolkits.Infrastructure.Database;
 /// <summary>
 /// 当前 Schema 版本只读查询
 ///
-/// 负责：读取 <c>schema_version</c> 并区分元数据缺失与其它失败
+/// 读取 <c>schema_version</c>，并区分元数据缺失与其他读取失败
 /// 不执行迁移
 /// </summary>
 public sealed class DbSchemaVersionService : IDbSchemaVersionService

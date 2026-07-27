@@ -2,7 +2,7 @@ using PacToolkits.Core;
 
 namespace PacToolkits.Application.DTOs;
 
-/// <summary>Schema 兼容检查所需的版本门槛上下文</summary>
+/// <summary>数据库结构兼容检查所需的版本范围</summary>
 public sealed record DbSchemaVersionContext(
     string DesktopMinDbSchema,
     string DesktopMaxDbSchema,
@@ -17,7 +17,7 @@ public sealed record DbSchemaVersionRead(
     string? Reason,
     bool IsMetadataMissing = false);
 
-/// <summary>数据库 Schema 兼容状态快照</summary>
+/// <summary>数据库结构兼容状态</summary>
 public sealed record DbSchemaStatusSnapshot(
     bool SchemaOk,
     string? CurrentVersion,

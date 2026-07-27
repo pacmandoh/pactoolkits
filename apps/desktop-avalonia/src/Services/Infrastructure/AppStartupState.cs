@@ -2,7 +2,7 @@ using System;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-/// <summary>应用启动阶段状态入口</summary>
+/// <summary>定义应用启动阶段状态的读取与通知契约</summary>
 public interface IAppStartupStateService
 {
     bool IsDbInitCompleted { get; }
@@ -28,4 +28,3 @@ public sealed class AppStartupStateService : IAppStartupStateService
         DbInitCompleted?.Invoke();
     }
 }
-

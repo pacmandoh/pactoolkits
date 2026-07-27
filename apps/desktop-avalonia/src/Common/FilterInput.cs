@@ -2,7 +2,7 @@ using System;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>筛选输入规范化辅助</summary>
+/// <summary>统一筛选文本的空白处理和比较形式</summary>
 public static class FilterInput
 {
     public static string? Norm(string? value)

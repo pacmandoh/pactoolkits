@@ -1,7 +1,7 @@
 namespace PacToolkits.Application.TextSearch;
 
 /// <summary>
-/// 关键字检索上下文（原文 + 拼音展开出的药品/规格）
+/// 保存原始关键字及其拼音展开得到的药品和规格检索范围
 /// </summary>
 public sealed record KeywordSearchContext(
     string Keyword,

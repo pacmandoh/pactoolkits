@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 
-/// <summary>应用更新检查与应用入口</summary>
+/// <summary>定义应用更新检查、下载准备和重启安装契约</summary>
 public interface IAppUpdateService
 {
     string CurrentVersion { get; }

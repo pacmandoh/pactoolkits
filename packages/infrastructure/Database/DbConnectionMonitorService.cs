@@ -9,7 +9,7 @@ namespace PacToolkits.Infrastructure.Database;
 /// <summary>
 /// 数据库连接存活监控与探测
 ///
-/// 负责：后台探测循环、断线/重连事件、按需 <c>ProbeAsync</c>
+/// 管理后台连接探测、断线与恢复事件，并提供按需探测能力
 /// 不修改连接配置；连接串来自 <c>IDbConfigService</c>
 /// </summary>
 public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
@@ -226,7 +226,7 @@ public sealed class DbConnectionMonitorService : IDbConnectionMonitorService
                     var nextSignalTask = _signals.Reader.ReadAsync(waitCts.Token).AsTask();
                     var completed = await Task.WhenAny(dropped.Task, nextSignalTask).ConfigureAwait(false);
 
-                    // 取消挂起的 ReadAsync，避免它吞掉下一次 Signal
+                    // 取消待处理的 ReadAsync，确保下一次 Signal 不会被旧读取请求消费
                     try { waitCts.Cancel(); }
                     catch (System.Exception ex)
                     {

@@ -4,7 +4,7 @@ using PacToolkits.Agents.Contracts.Commands;
 namespace PacToolkits.Agents.Contracts.Abstractions;
 
 /// <summary>
-/// 单个 Agents 运行时：常驻 Host + 可热插拔 Modules 的启停与状态
+/// 定义单个 Agents Host 及其模块的生命周期控制与状态查询契约
 /// </summary>
 public interface IAgentsRuntime : IDisposable
 {
@@ -12,7 +12,6 @@ public interface IAgentsRuntime : IDisposable
 
     AgentsDescriptor Descriptor { get; }
 
-    /// <summary>缓存的模块清单（Reload / poll reconcile；发现 ≠ 自动挂载）</summary>
     IReadOnlyList<ModuleDescriptor> Modules { get; }
 
     string MinDbSchema { get; }
@@ -32,22 +31,22 @@ public interface IAgentsRuntime : IDisposable
     void Reload();
 
     /// <summary>
-    /// 按模块 id 取运行态（入口进程 + module.ready；不读 Enabled）
+    /// 根据入口进程和 <c>module.ready</c> 获取模块运行状态，不考虑模块启用配置
     /// </summary>
     AgentsRunState GetModuleState(string moduleId);
 
     /// <summary>
-    /// 模块是否允许 Start / 自动挂载（读 <c>Agents.Modules[id].Enabled</c>）
+    /// 获取模块是否获准启动或在 Host 启动后自动挂载
     /// </summary>
     bool IsModuleEnabled(string moduleId);
 
-    /// <summary>模块最近一次成功挂载时间（本会话）</summary>
+    /// <summary>获取当前 Desktop 会话中模块最近一次成功启动的时间</summary>
     DateTimeOffset? GetModuleLastLaunchAt(string moduleId);
 
-    /// <summary>模块最近一次启停错误（无则 null）</summary>
+    /// <summary>获取模块最近一次生命周期操作错误；没有错误时返回 <see langword="null"/></summary>
     string? GetModuleLastError(string moduleId);
 
-    /// <summary>读 Modules/&lt;id&gt;/module.json 的 version；缺失为「未配置」/「未知」</summary>
+    /// <summary>获取模块描述文件声明的版本；无法解析时返回对应的状态文本</summary>
     string GetModuleVersion(string moduleId);
 
     Task<AgentsCommandResult> StartOrRestartAsync(CancellationToken ct = default);
@@ -55,12 +54,12 @@ public interface IAgentsRuntime : IDisposable
     Task<AgentsCommandResult> StopAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// 启动或重挂指定模块；Host 已在运行时保持不杀进程
+    /// 启动指定模块；模块已经运行时仅重启该模块并保持 Host 进程不变
     /// </summary>
     Task<AgentsCommandResult> StartModuleAsync(string moduleId, CancellationToken ct = default);
 
     /// <summary>
-    /// 硬停指定模块进程；不退出 Host
+    /// 停止指定模块进程并保持 Host 进程不变
     /// </summary>
     Task<AgentsCommandResult> StopModuleAsync(string moduleId, CancellationToken ct = default);
 }

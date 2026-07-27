@@ -25,11 +25,11 @@ public static class KpiPctToneHelper
     }
 
     /// <summary>
-    /// Scheme A 阈值：
-    /// RemainHealth ≥45 / 20–44 / &lt;20；
-    /// UsageIntensity ≤55 / 56–80 / &gt;80（镜像）；
-    /// AbnormalShare ≤3 / 4–10 / &gt;10；
-    /// LowStockShare ≤5 / 6–15 / &gt;15
+    /// 各指标的色调阈值：
+    /// <c>RemainHealth</c>：≥45、20–44、&lt;20
+    /// <c>UsageIntensity</c>：≤55、56–80、&gt;80，色调方向与剩余健康度相反
+    /// <c>AbnormalShare</c>：≤3、4–10、&gt;10
+    /// <c>LowStockShare</c>：≤5、6–15、&gt;15
     /// </summary>
     public static Tone ResolveTone(double pct, string? metric)
     {
@@ -73,7 +73,7 @@ public static class KpiPctToneHelper
         _ => "ToneDanger25",
     };
 
-    /// <summary>色调前景/进度弧的主题资源键（与 <c>StatusPill</c> 对齐）</summary>
+    /// <summary>获取与 <c>StatusPill</c> 一致的前景色和进度弧主题资源键</summary>
     public static string ProgressBrushResourceKey(Tone tone) => tone switch
     {
         Tone.Done => "SuccessColor",

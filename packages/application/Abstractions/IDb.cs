@@ -3,7 +3,7 @@ using System.Data;
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// 应用层数据库会话入口（连接/事务/会话锁）；具体驱动由 Infrastructure 实现
+/// 定义应用层连接、事务和会话锁契约，具体数据库驱动由 Infrastructure 实现
 /// </summary>
 public interface IDb
 {

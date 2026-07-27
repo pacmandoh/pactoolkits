@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace PacToolkits.Agents.Contracts.Agents;
 
 /// <summary>
-/// Host 可执行路径解析结果来源（配置路径 / 标准布局 / 缺失）
+/// Host 可执行路径的解析来源
 /// </summary>
 public enum HostExecutableResolutionSource
 {
@@ -13,7 +13,7 @@ public enum HostExecutableResolutionSource
 }
 
 /// <summary>
-/// Host 路径解析结果（含写入配置时应使用的存储路径）
+/// Host 路径解析结果，同时提供运行路径和规范化配置值
 /// </summary>
 public sealed record HostExecutableResolution(
     string? ResolvedPath,
@@ -21,7 +21,7 @@ public sealed record HostExecutableResolution(
     HostExecutableResolutionSource Source);
 
 /// <summary>
-/// Host / module.json 路径解析与清单读取
+/// 解析 Agents 安装布局和模块描述文件，不执行文件写入或进程控制
 /// </summary>
 public static class AgentsPath
 {
@@ -78,7 +78,7 @@ public static class AgentsPath
     }
 
     /// <summary>
-    /// 解析完整 <c>module.json</c>（desktop / package 必填）；缺字段或 JSON 无效时返回 null
+    /// 读取完整模块描述；缺少运行、桌面或构建元数据时返回 <see langword="null"/>
     /// </summary>
     public static ModuleDescriptor? TryReadModule(string manifestPath)
     {
@@ -100,7 +100,7 @@ public static class AgentsPath
     }
 
     /// <summary>
-    /// 扫描 <c>Modules/*/module.json</c>；跳过无效清单与 id≠目录名 的项，按 <see cref="ModuleDesktop.Order"/> 再 Id 排序
+    /// 扫描模块目录，忽略无效描述和 ID 不匹配项，并按桌面顺序及 ID 返回稳定结果
     /// </summary>
     public static IReadOnlyList<ModuleDescriptor> ScanModules(string agentsDir)
     {
@@ -150,7 +150,7 @@ public static class AgentsPath
                 continue;
             }
 
-            // 目录名即 ModuleId，与 Host 控制路径约定一致
+            // 控制文件路径以目录名为模块 ID，因此描述文件 ID 必须完全匹配目录名
             if (!string.Equals(module.Id, folderName, StringComparison.Ordinal))
             {
                 continue;
@@ -169,7 +169,7 @@ public static class AgentsPath
         return results;
     }
 
-    /// <summary>两份 ScanModules 结果是否同一清单（含 version / entry / desktop 字段）</summary>
+    /// <summary>比较影响发现、启动和桌面展示的模块元数据</summary>
     public static bool CatalogEquals(
         IReadOnlyList<ModuleDescriptor>? left,
         IReadOnlyList<ModuleDescriptor>? right)
@@ -201,7 +201,7 @@ public static class AgentsPath
     }
 
     /// <summary>
-    /// Ahk2Exe <c>/icon</c>：来自 <c>package.ahk2exe.icon</c>（相对模块目录），无兜底
+    /// 解析模块目录内的 Ahk2Exe 图标路径；绝对路径或目录外路径返回 <see langword="null"/>
     /// </summary>
     public static string? TryResolveAhk2ExeIconPath(ModuleDescriptor module)
     {
@@ -430,7 +430,7 @@ public static class AgentsPath
             return null;
         }
 
-        // 平台固定 win-x64；今日仅 ahk + ahk2exe
+        // 当前发布协议仅接受 win-x64 AHK 模块，未知运行时或构建器必须在发现阶段拒绝
         if (!string.Equals(runtime, ModuleRuntimes.Ahk, StringComparison.OrdinalIgnoreCase)
             || !string.Equals(builder, ModuleBuilders.Ahk2Exe, StringComparison.OrdinalIgnoreCase))
         {

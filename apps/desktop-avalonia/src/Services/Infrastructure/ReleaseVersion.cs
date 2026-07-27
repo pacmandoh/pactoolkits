@@ -6,7 +6,7 @@ using PacToolkits.Application.Services;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
-/// <summary>当前发布版本信息入口</summary>
+/// <summary>定义当前发布版本和组件版本的查询契约</summary>
 public interface IReleaseVersionService
 {
     ReleaseVersionInfo Current { get; }

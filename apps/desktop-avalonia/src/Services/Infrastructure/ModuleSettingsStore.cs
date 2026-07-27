@@ -11,7 +11,7 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 /// <summary>
-/// 模块业务配置：用户文件缺省时从 Agents/Modules/&lt;Id&gt;/settings.json 复制
+/// 管理模块默认配置与用户配置的复制和持久化，不修改安装目录中的默认配置
 /// </summary>
 public sealed class ModuleSettingsStore : IModuleSettingsStore
 {

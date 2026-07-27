@@ -1,4 +1,4 @@
-; Injector 通用工具：配置加载、窗口场景、剪贴板与日志
+; Injector 的配置加载、目标窗口识别、剪贴板访问和日志支持
 
 UI_Tip(msg, ms := 1200) {
     ToolTip(msg)
@@ -19,7 +19,7 @@ Util_ToInt(v, default := 0) {
     return RegExMatch(s, "^-?\d+$") ? (s + 0) : default
 }
 
-; 截断长 SQL，避免错误弹窗/日志刷屏
+; 限制 SQL 文本长度，避免诊断信息遮蔽主要错误
 Util_ShortSQL(sql, maxLen := 1200) {
     if (StrLen(sql) <= maxLen)
         return sql
@@ -27,7 +27,7 @@ Util_ShortSQL(sql, maxLen := 1200) {
 }
 
 Util_PathFull(p) {
-    ; 相对路径展开为绝对路径，供后续文件读写
+    ; 统一为绝对路径，避免工作目录变化影响文件访问
     buf := Buffer(32768 * 2, 0)
     len := DllCall("Kernel32\GetFullPathNameW", "str", p, "uint", 32768, "ptr", buf, "ptr", 0, "uint")
     return len ? StrGet(buf, len, "UTF-16") : p
@@ -42,7 +42,7 @@ Util_ReadVersionFile() {
         "moduleVersion", "unknown"
     )
 
-    ; Tip/版本身份只来自本模块 module.json，避免误读宿主版本
+    ; 版本信息仅来自当前模块描述文件，避免错误显示 Host 版本
     moduleMetaPath := Util_PathFull(A_ScriptDir "\module.json")
     if FileExist(moduleMetaPath) {
         meta := Json_ReadFile(moduleMetaPath)
@@ -97,7 +97,7 @@ Util_LoadDotEnv(path) {
 
     txt := FileRead(full, "UTF-8")
 
-    ; 去掉 UTF-8 BOM，避免首 key 解析异常
+    ; 移除 UTF-8 BOM，避免首个配置键解析失败
     if (SubStr(txt, 1, 1) = Chr(0xFEFF))
         txt := SubStr(txt, 2)
 
@@ -110,18 +110,18 @@ Util_LoadDotEnv(path) {
         if (line = "" || SubStr(line, 1, 1) = "#")
             continue
 
-        ; 兼容 shell 风格 export KEY=VAL
+        ; 接受 shell 使用的 export KEY=VALUE 形式
         if (SubStr(line, 1, 7) = "export ")
             line := Trim(SubStr(line, 8))
 
-        ; KEY=VAL 分割允许 VAL 为空
+        ; 空值仍属于有效配置，因此仅按第一个等号分隔
         if !RegExMatch(line, "^\s*([^=]+?)\s*=\s*(.*)\s*$", &m)
             continue
 
         key := Trim(m[1])
         val := Trim(m[2])
 
-        ; 行尾 # 注释仅在引号外剥离
+        ; 仅移除引号外的行尾注释，保留值内部的井号
         if (val != "") {
             inQ := ""
             out := ""
@@ -166,7 +166,7 @@ Util_LoadDotEnv(path) {
 }
 
 Util_TryParseArray(val) {
-    ; 成功返回 Array；失败返回 "" 表示交由后续标量/集合解析
+    ; 无法解析为数组时返回空字符串，由调用方继续尝试其他配置类型
     v := Trim(val)
     if (v = "")
         return ""
@@ -232,7 +232,7 @@ Util_ArrayItemNormalize(token) {
     return item
 }
 
-; 解析类 JSON 对象为 Map-as-Set（APP_WIN 等）
+; 将类 JSON 对象解析为以键表示成员的 Map，例如 APP_WIN
 ; 例：
 ;   {"互慧软件.exe":1,"ProjectMain.exe":1}
 ;   {'互慧软件.exe':true, 'ProjectMain.exe':true}
@@ -256,7 +256,7 @@ Util_TryParseSet(val) {
     token := ""
     inQ := ""
 
-    ; 按顶层逗号切 token，忽略引号内逗号
+    ; 仅按顶层逗号分隔，避免拆分引号内的内容
     Loop Parse inner {
         ch := A_LoopField
 
@@ -286,14 +286,13 @@ Util_TryParseSet(val) {
     return set
 }
 
-; 从 "key":value token 提取 key 写入 set
-; token 形如 "xxx":1 或 'xxx':true
+; 从形如 "key":1 或 'key':true 的成员中提取键
 Util_SetConsumeToken(set, token) {
     t := Trim(token, "`r`t ")
     if (t = "")
         return
 
-    ; 找顶层冒号（忽略引号内）
+    ; 仅识别顶层冒号，避免误用引号内的字符
     dq := Chr(34)
     sq := "'"
 
@@ -324,7 +323,7 @@ Util_SetConsumeToken(set, token) {
 
     k := Trim(SubStr(t, 1, colonPos - 1), "`r`t ")
 
-    ; key 必须带引号，否则丢弃该 token
+    ; 为保持与 JSON 键规则一致，忽略未使用引号的键
     if (StrLen(k) < 2)
         return
 
@@ -339,7 +338,7 @@ Util_SetConsumeToken(set, token) {
 
 
 Util_NormalizeWin(win := "A") {
-    ; 尽早把 "A" 冻成 ahk_id HWND，避免 MsgBox/切窗后 "A" 漂移
+    ; 立即捕获活动窗口句柄，避免弹窗或窗口切换改变后续操作目标
     if (win = "A") {
         try hwnd := WinGetID("A")
         catch
@@ -375,18 +374,18 @@ Util_CaptureWin(win := "A") {
 Util_HotIf_TargetApp() {
     global Cfg
 
-    ; Cfg 未就绪时不启用热键
+    ; 配置完成加载前禁止响应自动化热键
     if !IsSet(Cfg) || (Type(Cfg) != "Map")
         return false
     if !Cfg.Has("OPT_WINDOW_CLASS") || !Cfg.Has("IPT_WINDOW_CLASS") || !Cfg.Has("APP_WIN")
         return false
 
-    ; 冻结当前活动窗口，避免判定中途 "A" 漂移
+    ; 使用固定窗口句柄完成整次判断，避免中途切换活动窗口
     ctx := Util_CaptureWin("A")
     if (!ctx["hwnd"])
         return false
 
-    ; 先按 APP_WIN exe 白名单过滤
+    ; 进程白名单是窗口识别的第一层安全边界
     try exe := WinGetProcessName(ctx["win"])
     catch
         return false
@@ -396,7 +395,7 @@ Util_HotIf_TargetApp() {
         return false
     }
 
-    ; 再按窗口 class；仓库模式仅允许住院/仓库类
+    ; 窗口类是第二层安全边界，仓库模式仅适用于住院或仓库窗口
     cls := ctx["cls"]
     if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
         return (cls = Cfg["IPT_WINDOW_CLASS"])
@@ -413,7 +412,7 @@ Util_DetectScene(win := "A") {
     if (cls = Cfg["OPT_WINDOW_CLASS"])
         return "OPT"
 
-    ; 住院与仓库共用窗口类，仅在此分支用表头锚点区分
+    ; 住院与仓库界面共用窗口类，需要通过表头特征进一步区分
     if (cls = Cfg["IPT_WINDOW_CLASS"]) {
         if Util_IsWarehouseWindow(winId)
             return "WAREHOUSE"
@@ -433,13 +432,12 @@ Util_IsWarehouseWindow(win := "A") {
     if (anchors.Length = 0)
         return false
 
-    ; 主判定：用当前网格表头特征区分住院/仓库
-    ; 仓库入库表头通常不含“患者姓名”“应扫次数”
+    ; 仓库入库网格通常不包含“患者姓名”和“应扫次数”列
     hdrLine := Util_TryGetGridHeaderLine(win)
     if (hdrLine = "")
         return false
 
-    ; 命中任一住院锚点列 → 非仓库；否则视为仓库
+    ; 任一住院特征列存在时均按住院界面处理
     for _, a in anchors {
         t := Trim(a)
         if (t != "" && InStr(hdrLine, t))
@@ -573,7 +571,7 @@ Util_GetCtrlHwndByClassNN(classNN, win := "A") {
 
 
 Util_WithClipboard(tempText, fn) {
-    ; 临时覆盖剪贴板执行 fn，finally 无条件恢复用户内容
+    ; 临时使用剪贴板后必须恢复原内容，避免自动化修改用户数据
     old := ClipboardAll()
     try {
         A_Clipboard := tempText
@@ -585,7 +583,7 @@ Util_WithClipboard(tempText, fn) {
 }
 
 Util_LogLine(line, logDir := "") {
-    ; ERR 级追加到 logs\YYYYMMDD.log，避免热路径噪音
+    ; 仅持久化错误级别事件，控制高频自动化路径的日志量
     if (logDir = "")
         logDir := A_ScriptDir "\logs"
     try DirCreate(logDir)
@@ -595,7 +593,7 @@ Util_LogLine(line, logDir := "") {
 }
 
 Util_GetPrimaryIPv4() {
-    ; 取首个可用 IPv4；失败返回空串（写入 clientId）
+    ; 使用首个可用 IPv4 生成客户端标识；无法获取时保留空值
     try {
         q := "SELECT IPAddress FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled=True"
         for nic in ComObjGet("winmgmts:").ExecQuery(q) {
@@ -613,7 +611,7 @@ Util_GetPrimaryIPv4() {
 }
 
 Util_GetOSName() {
-    ; 读 ProductName；失败回退 A_OSVersion
+    ; 优先使用系统产品名称，读取失败时使用 AutoHotkey 提供的系统版本
     try {
         key := "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
         name := RegRead(key, "ProductName", "")
@@ -684,7 +682,7 @@ Util_LoadUnifiedConfig(configPath) {
     pg := Util_CfgGetMap(root, "Postgres", &ok, &err)
     if !ok
         return Util_CfgFail(err, "INVALID_POSTGRES")
-    ; 业务配置必须来自 --module-settings（Host 启动时追加）
+    ; 模块配置必须由 Host 显式传入，禁止回退到安装目录默认文件而绕过用户配置
     moduleSettingsPath := Util_GetArgValue("--module-settings")
     if (moduleSettingsPath = "")
         return Util_CfgFail("缺少 --module-settings（模块业务配置路径）", "MISSING_MODULE_SETTINGS")

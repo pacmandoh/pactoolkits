@@ -3,7 +3,7 @@ using PacToolkits.Application.Abstractions;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>应用日志静态入口</summary>
+/// <summary>向当前应用日志服务转发无需实例依赖的诊断事件</summary>
 public static class AppLog
 {
     public static IAppLogger? TryGetLogger()
@@ -17,7 +17,7 @@ public static class AppLog
         }
         catch
         {
-            // 忽略
+            // 日志服务不可用时保持诊断调用不影响业务流程
         }
 
         return null;

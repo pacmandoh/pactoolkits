@@ -6,7 +6,7 @@ namespace PacToolkits.Infrastructure.Database;
 /// <summary>
 /// 设置页探测用的 client_id 去重读取
 ///
-/// 负责：按显式 <c>PgOptions</c> 直连查询候选表并合并结果
+/// 使用显式 <c>PgOptions</c> 直接查询客户端标识候选表并合并结果
 /// 不走 <c>IDb</c>（探测连接串与运行时池隔离）
 /// </summary>
 public sealed class ClientIdReadRepo : IClientIdReadRepo
@@ -22,7 +22,7 @@ public sealed class ClientIdReadRepo : IClientIdReadRepo
 
     public async Task<HashSet<string>> GetDistinctClientIdsAsync(PgOptions opt, CancellationToken ct)
     {
-        // 设置页探测使用显式连接串，不能走 IDb 运行时池
+        // 设置页探测使用独立连接参数，避免复用尚未更新的运行时连接池
         _accessGuard.ThrowIfBlocked();
 
         await using var conn = await PgConnectionFactory.OpenAsync(

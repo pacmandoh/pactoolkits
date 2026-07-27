@@ -16,7 +16,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Integration;
 /// <summary>
 /// 码上放心（MSFX）HTTP API 客户端
 ///
-/// 负责请求拼装与响应解析；不含业务落库
+/// 封装请求签名、传输与响应解析，不参与业务数据持久化
 /// </summary>
 public sealed class MsfxApiClient : IMsfxApiClient
 {
@@ -364,7 +364,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
             seen.Add(c.Code);
             if (level == 1)
             {
-                // item 直接返回 1 级码时，直接作为最小包装码使用，不依赖 relation 再下钻
+                // 接口直接返回一级码时即可确定最小包装，无需继续查询关联关系
                 minimalCodes.Add(c.Code);
                 levelOneCodes.Add(c.Code);
             }
@@ -384,7 +384,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
             .DefaultIfEmpty(0)
             .Max();
         var expectedDepth = Math.Max(1, maxSeedLevel - 1);
-        // 防止无意义深层迭代导致巡检耗时放大
+        // 限制异常关系数据的遍历深度，避免巡检耗时失控
         var maxDepth = Math.Clamp(expectedDepth + 2, 1, 6);
         for (var depth = 0; depth < maxDepth && frontier.Count > 0; depth++)
         {
@@ -571,7 +571,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
                 new HashSet<string>(StringComparer.Ordinal));
         }
 
-        // query.relation：与已验证的 API-tool 请求模板对齐
+        // 参数结构与已验证的 query.relation 请求契约保持一致
         var des = refEntId;
         var joined = string.Join(",", codes);
         var bizParams = new Dictionary<string, string?>
@@ -633,7 +633,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }
         catch
         {
-            // 忽略
+            // 无法解析的关联响应按空结果处理，由上层汇总业务错误
         }
         return map;
     }
@@ -648,7 +648,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }
         catch
         {
-            // 忽略
+            // 无法解析的层级信息不应中断其他关联结果处理
         }
 
         return levels;
@@ -664,7 +664,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
         }
         catch
         {
-            // 忽略
+            // 无法解析的一级码集合按空结果处理
         }
 
         return set;
@@ -699,7 +699,7 @@ public sealed class MsfxApiClient : IMsfxApiClient
                 "source_code");
             var code = GetStringAny(node, "code", "Code", "trace_code", "traceCode");
             var c1 = GetStringAny(node, "child_code", "childCode", "ChildCode", "sub_code", "to_code", "des_code", "target_code");
-            // query.relation 常见返回：code_relation_list.code_info[].{ parent_code, code, code_level }
+            // 兼容 query.relation 的 code_relation_list.code_info 响应结构
             if (parentSet.Contains(parent) &&
                 IsCandidateTraceCode(code) &&
                 !string.Equals(parent, code, StringComparison.Ordinal))

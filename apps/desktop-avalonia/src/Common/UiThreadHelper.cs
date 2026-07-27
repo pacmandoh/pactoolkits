@@ -4,7 +4,7 @@ using global::Avalonia.Threading;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>UI 线程切换辅助</summary>
+/// <summary>保证绑定状态更新在 Avalonia UI 线程执行</summary>
 public static class UiThreadHelper
 {
     public static Task RunOnUiAsync(Action action)

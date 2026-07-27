@@ -8,7 +8,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
 
 /// <summary>
-/// Separates Dashboard row activation from DataGrid selection changes raised during layout.
+/// 将用户触发的 Dashboard 行激活与 DataGrid 布局期间产生的选择变更区分开
 /// </summary>
 internal sealed class DashboardGridActivation
 {

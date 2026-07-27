@@ -27,7 +27,7 @@ public sealed record SensitiveOpRequest(
     string? Reason = null);
 
 /// <summary>
-/// 某 scope 当前解锁态快照（过期、失败次数、冷却）
+/// 指定操作范围的解锁状态、到期时间、失败次数和冷却时间
 /// </summary>
 public sealed record UnlockScopeSnapshot(
     bool IsUnlocked,
@@ -36,7 +36,7 @@ public sealed record UnlockScopeSnapshot(
     DateTimeOffset CooldownUntilUtc);
 
 /// <summary>
-/// 敏感操作按 scope 解锁会话（提示、校验、锁定与状态通知）
+/// 按操作范围管理敏感操作的提示、校验、锁定和状态通知
 /// </summary>
 public interface ISensitiveUnlockService
 {

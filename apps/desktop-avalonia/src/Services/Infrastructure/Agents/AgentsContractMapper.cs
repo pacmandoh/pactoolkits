@@ -6,7 +6,7 @@ using AppDtos = PacToolkits.Application.DTOs;
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure.Agents;
 
 /// <summary>
-/// contracts ↔ Application DTO 映射边界，不含业务逻辑
+/// 在 Agents 持久化模型与 Application DTO 之间执行无业务规则的类型映射
 /// </summary>
 internal static class AgentsContractMapper
 {

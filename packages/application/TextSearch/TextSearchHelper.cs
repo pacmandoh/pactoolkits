@@ -1,7 +1,7 @@
 namespace PacToolkits.Application.TextSearch;
 
 /// <summary>
-/// 文本/拼音检索辅助（匹配判定与拼音查询形态识别）
+/// 统一文本与拼音检索的匹配判定和查询形式识别
 /// </summary>
 public static class TextSearchHelper
 {

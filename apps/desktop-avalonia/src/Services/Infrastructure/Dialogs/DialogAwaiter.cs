@@ -58,7 +58,7 @@ internal static class DialogAwaiter
 /// <summary>
 /// ShadUI 按 VM 类型用 TryAdd 注册对话框回调（不会覆盖）。单例表单 VM
 /// 每次 Show 前需重绑 slot 并清理孤儿控件。<see cref="FormBase"/> session
-/// 完成时仍会完成 awaiter，即使 ShadUI 在 Close 前已清掉 slot
+/// 即使 ShadUI 在关闭前移除回调槽位，也必须完成等待任务
 /// </summary>
 internal static class DialogSessionStack
 {
@@ -322,7 +322,7 @@ internal static class FormDialogSession
             return;
         }
 
-        // Show() 必须同步注册回调，否则 awaiter 会永久挂起
+        // 展示对话框时必须同步注册回调，否则等待任务可能永远无法完成
         throw new InvalidOperationException(
             $"Custom dialog for {contextType.FullName} did not register an open control after Show.");
     }

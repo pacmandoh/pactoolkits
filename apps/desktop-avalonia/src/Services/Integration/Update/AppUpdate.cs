@@ -12,7 +12,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Integration.Update;
 /// <summary>
 /// 应用更新服务
 ///
-/// 负责把 manifest、Velopack 候选与数据库状态绑定后下载并应用安装包；不含 UI 流程编排
+/// 结合发布清单、Velopack 更新候选和数据库状态下载并应用安装包，不参与界面流程编排
 /// </summary>
 public sealed class AppUpdateService : IAppUpdateService, IDisposable
 {

@@ -8,7 +8,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 /// <summary>
-/// 页面 reload 的单飞门控。Busy/loading UI 由调用方负责
+/// 保证同一页面最多执行一个有效重载任务；加载状态由调用方管理
 /// </summary>
 public sealed class PageReload : IDisposable
 {
@@ -50,7 +50,7 @@ public sealed class PageReload : IDisposable
         }
         finally
         {
-            // 被顶替的旧 run 不得再收尾 UI（避免错页/错态）
+            // 已被替换的任务不得更新界面，以免覆盖当前页面状态
             if (onFinished is not null && IsCurrentRun(runId, cts))
             {
                 await Dispatcher.UIThread.InvokeAsync(onFinished);

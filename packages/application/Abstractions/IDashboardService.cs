@@ -3,7 +3,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// Dashboard 业务编排：快照与分页查询入口
+/// 定义 Dashboard 快照与分页查询的业务用例契约
 /// </summary>
 public interface IDashboardService
 {

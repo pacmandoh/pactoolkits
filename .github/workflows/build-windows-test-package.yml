@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - beta
-      # 功能分支冒烟：任意 push 打 Windows 测试包（无需 bump manifest）
+      # 功能分支推送时生成 Windows 冒烟测试包，不要求更新发布清单版本
       - 'refactor/**'
     paths:
       - 'release-manifest.json'

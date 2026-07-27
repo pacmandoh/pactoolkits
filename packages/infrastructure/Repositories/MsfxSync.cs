@@ -8,7 +8,7 @@ namespace PacToolkits.Infrastructure.Repositories;
 /// <summary>
 /// 码上放心（MSFX）同步相关数据访问
 ///
-/// 负责：拉取批次、入库明细、映射队列、注入任务等表读写
+/// 实现 MSFX 拉取批次、入库明细、映射队列和注入任务的数据访问
 /// 不调用外部 MSFX API；仅持久化与查询
 /// </summary>
 public sealed partial class MsfxSyncRepo : IMsfxSyncRepo
@@ -24,7 +24,7 @@ public sealed partial class MsfxSyncRepo : IMsfxSyncRepo
         and (@code_status::text is null or s.code_status = @code_status::text)
         """;
 
-    // 手工映射回填 norm：已有 > 入参 > 函数归一 > '-' 占位（勿把空串当有效）
+    // 手工映射按现有值、输入值、归一化结果和占位符的顺序回填，空字符串不视为有效值
     private const string ManualMapNormBackfillSetClause = """
         source_name_norm = coalesce(
           nullif(trim(s.source_name_norm), ''),

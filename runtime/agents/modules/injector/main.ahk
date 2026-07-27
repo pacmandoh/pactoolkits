@@ -18,7 +18,7 @@
 #Include "%A_ScriptDir%\src\main_semi_auto.ahk"
 #Include "%A_ScriptDir%\src\msfx_task.ahk"
 
-; Injector 追溯码录入主入口（v0.2.1beta）
+; Injector 追溯码录入模块入口
 
 ; ODBC/Postgres 与打包基底要求 64 位；32 位进程无法正确连接
 if (A_PtrSize = 4) {
@@ -50,7 +50,7 @@ global VersionInfo := Util_ReadVersionFile()
 global RuntimeInfo := Util_InitRuntimeInfo(VersionInfo)
 UI_Tip("Injector v" VersionInfo["moduleVersion"], 1600)
 
-; 关键配置缺失时直接报错退出，避免半残运行
+; 关键配置缺失时终止启动，避免模块在配置不完整的状态下执行自动化
 _missing := []
 for _, k in ["PG_HOST","PG_PORT","PG_DB","PG_USER","PG_PASS","PG_DRIVER","PG_SSL","OPT_WINDOW_CLASS","IPT_WINDOW_CLASS","OPT_PARSE_GRID_CLASSNN","OPT_VERIFY_GRID_CLASSNN","IPT_PARSE_GRID_CLASSNN","IPT_VERIFY_GRID_CLASSNN","OPT_INPUT_CLASSNN","IPT_INPUT_CLASSNN","COL_SPECS","INT_COLS","CONFIRM_TIMEOUT_MS","APP_WIN"] {
     if !Cfg.Has(k) {
@@ -71,7 +71,7 @@ if (_missing.Length > 0) {
 
 Util_MarkModuleReady()
 
-; 启动时清理超时 PENDING，避免异常退出导致库存被扣住
+; 启动时恢复超时的 PENDING 事务，避免异常退出后库存长期占用
 global _CLEANUP_BUSY := false
 try {
     rr := Txn_CleanupPending(10, 200)
@@ -79,7 +79,7 @@ try {
         UI_Tip("已自动回滚超时预留事务：" rr["cleaned"] " 条", 1500)
 }
 
-; 低频定时扫 PENDING，降低对注入热路径的性能干扰
+; 以低频周期检查 PENDING 事务，降低恢复任务对注入主流程的性能影响
 Cleanup_PendingTimer(*) {
     global _CLEANUP_BUSY
     if (_CLEANUP_BUSY)

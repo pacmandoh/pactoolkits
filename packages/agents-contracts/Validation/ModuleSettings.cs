@@ -6,7 +6,7 @@ using PacToolkits.Agents.Contracts.Settings;
 namespace PacToolkits.Agents.Contracts.Validation;
 
 /// <summary>
-/// 按 settings.schema.json 校验模块业务 settings（与 Settings 表单字段规则对齐）
+/// 按模块 schema 校验用户配置，作为 Desktop 保存与模块启动的共同规则
 /// </summary>
 public static class ModuleSettingsValidator
 {
@@ -147,7 +147,7 @@ public static class ModuleSettingsValidator
                 return null;
 
             case ModuleSettingsFieldTypes.StringList:
-                // AllowEmpty 只允许空数组，不允许缺 key（与 AHK Util_CfgGetStringArray 对齐）
+                // AllowEmpty 允许集合为空但不允许字段缺失，与模块配置读取契约保持一致
                 if (node is null)
                 {
                     return $"{label} 不能为空";

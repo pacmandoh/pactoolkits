@@ -20,7 +20,7 @@ Main() {
     MsgBox "[信息] AHK 版本: " A_AhkVersion "`n"
         . "[信息] AHK 位数: " (A_PtrSize=8 ? "64-bit" : "32-bit")
 
-    ; 0) 连接自检
+    ; 前置条件：数据库连接可用
     ping := Ping_DB()
     if !ping["ok"] {
         MsgBox "[连接错误] 连接失败`n`n" ping["err"]
@@ -28,7 +28,7 @@ Main() {
     }
     MsgBox "[信息] 连接成功`n`n" ping["text"]
 
-    ; 1) 基础检查：drug_index 是否存在
+    ; 前置条件：drug_index 中存在可测试记录
     chk := DB_Query("SELECT qty FROM drug_index WHERE drug_id='" Util_EscapeSQL(TEST_DRUG) "' AND spec='" Util_EscapeSQL(TEST_SPEC) "' LIMIT 1;")
     if !chk["ok"] {
         MsgBox "[SQL 错误] 查询 drug_index 失败`n" chk["err"]
@@ -39,11 +39,11 @@ Main() {
         ExitApp 1
     }
 
-    ; 2) 记录测试前 avail remain 基线
+    ; 记录恢复前的可用库存基线
     beforeSum := GetAvailRemainSum()
     ShowPoolSummary("[信息] 测试前库存概况")
 
-    ; 3) 用过去时间戳伪造超时 PENDING，供自愈命中
+    ; 构造已超时的 PENDING 事务以触发恢复流程
     oldTs := DateAdd(A_Now, -5, "Minutes")
     txnId := FormatTime(oldTs, "yyyyMMddHHmmss") "_" Random(1000, 9999)
 
@@ -73,10 +73,10 @@ Main() {
         ExitApp 1
     }
 
-    ; 4) 执行 Txn_CleanupPending
+    ; 执行恢复后以事务和库存的最终状态作为判定依据
     rr := Txn_CleanupPending(TIMEOUT_MIN, LIMIT_N)
 
-    ; 不强制看 rr["ok"]，以最终 txn/库存状态为准
+    ; 返回标志不是恢复完成的充分条件，测试以事务和库存状态为准
     AssertTxnStatus(txnId, "ROLLED_BACK", "[信息] 自愈后状态校验(ROLLED_BACK)")
 
     afterCleanupSum := GetAvailRemainSum()
@@ -98,7 +98,6 @@ Main() {
     ExitApp 0
 }
 
-; ----------------- DB ping -----------------
 
 Ping_DB() {
     rOpen := PG_EnsureOpen()
@@ -120,7 +119,6 @@ Ping_DB() {
     return Map("ok", true, "text", out)
 }
 
-; ----------------- helpers -----------------
 
 GetAvailRemainSum() {
     sql := ""

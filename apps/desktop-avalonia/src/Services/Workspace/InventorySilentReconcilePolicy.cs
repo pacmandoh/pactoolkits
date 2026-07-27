@@ -3,7 +3,7 @@ using System;
 namespace PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 /// <summary>
-/// 库存页静默对账门禁：epoch/reload/编辑/详情页/关键词任一不对齐则丢弃结果，避免写错行
+/// 验证库存静默对账结果是否仍适用于当前页面上下文，避免过期结果覆盖当前数据
 /// </summary>
 public static class InventorySilentReconcilePolicy
 {

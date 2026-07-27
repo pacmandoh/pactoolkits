@@ -10,7 +10,7 @@ namespace PacToolkits.Desktop.Avalonia.Services.Presentation;
 /// <summary>
 /// 敏感操作解锁服务
 ///
-/// 负责解锁会话与 View 订阅通知；不含权限策略本身
+/// 协调解锁会话与视图状态通知，不定义权限策略
 /// </summary>
 public sealed class SensitiveUnlockService : ISensitiveUnlockService
 {

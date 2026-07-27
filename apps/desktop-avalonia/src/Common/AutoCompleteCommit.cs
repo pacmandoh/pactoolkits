@@ -15,7 +15,7 @@ using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>AutoCompleteBox 提交/确认辅助</summary>
+/// <summary>统一 AutoCompleteBox 的候选确认与文本提交语义</summary>
 public static class AutoCompleteCommit
 {
     private static readonly ConditionalWeakTable<AutoCompleteBox, CommitState> CommitStates = new();

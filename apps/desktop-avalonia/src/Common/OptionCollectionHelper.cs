@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
-/// <summary>选项集合填充辅助</summary>
+/// <summary>在保留选中项语义的前提下同步可绑定选项集合</summary>
 public static class OptionCollectionHelper
 {
     public static bool ReplaceRaw(

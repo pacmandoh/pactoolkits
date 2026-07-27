@@ -1,7 +1,7 @@
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// 订阅变更水位；TopicChanged 驱动相关页面脏刷新
+/// 订阅数据变更水位，并通知相关页面更新待刷新状态
 /// </summary>
 public interface IChangeWatermarkService : IDisposable
 {

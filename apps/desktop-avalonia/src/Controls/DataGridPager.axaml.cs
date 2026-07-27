@@ -479,7 +479,7 @@ public partial class DataGridPager : UserControl
 
         var hasPrev = safePageIndex > 1;
         var hasNext = safePageIndex < safeTotalPages;
-        // Button.IsEnabled 已显式设置；必须再 AND CanExecute，否则 busy/guard 门控无法显示禁用
+        // 显式设置 IsEnabled 后仍需合并命令状态，确保加载和访问限制能够禁用按钮
         SetAndRaise(CanGoFirstPageProperty, ref _canGoFirstPage, hasPrev && CanExecute(FirstPageCommand));
         SetAndRaise(CanGoPrevPageProperty, ref _canGoPrevPage, hasPrev && CanExecute(PrevPageCommand));
         SetAndRaise(CanGoNextPageProperty, ref _canGoNextPage, hasNext && CanExecute(NextPageCommand));
