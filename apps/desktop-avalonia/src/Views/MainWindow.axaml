@@ -1,4 +1,4 @@
-<shad:Window
+﻿<shad:Window
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -199,50 +199,27 @@
           Background="{DynamicResource BorderColor}" />
 
         <Button
-          shad:ButtonAssist.ShowProgress="{Binding IsDbProbeRunning}"
           Classes="WindowControlsButton"
           Command="{Binding TryReconnectDbCommand}"
           ToolTip.Tip="{Binding DbItemText}">
-          <Panel>
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeDefault}"
-              Height="{DynamicResource IconSizeDefault}"
-              Foreground="{DynamicResource SuccessColor}"
-              IsVisible="{Binding IsDbConnected}"
-              Kind="Link" />
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeDefault}"
-              Height="{DynamicResource IconSizeDefault}"
-              Foreground="{DynamicResource ErrorColor}"
-              IsVisible="{Binding !IsDbConnected}"
-              Kind="Unlink" />
-          </Panel>
+          <controls:RuntimeStateIcon
+            Width="{DynamicResource IconSizeDefault}"
+            Height="{DynamicResource IconSizeDefault}"
+            ActiveIcon="Link"
+            InactiveIcon="Unlink"
+            State="{Binding DbVisualState}" />
         </Button>
 
         <Button
           Classes="WindowControlsButton"
           Command="{Binding StartOrRestartHostCommand}"
           ToolTip.Tip="{Binding HostItemText}">
-          <Panel>
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeDefault}"
-              Height="{DynamicResource IconSizeDefault}"
-              Foreground="{DynamicResource SuccessColor}"
-              IsVisible="{Binding IsHostRunning}"
-              Kind="Cpu" />
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeDefault}"
-              Height="{DynamicResource IconSizeDefault}"
-              Foreground="{DynamicResource WarningColor}"
-              IsVisible="{Binding IsHostStarting}"
-              Kind="Cpu" />
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeDefault}"
-              Height="{DynamicResource IconSizeDefault}"
-              Foreground="{DynamicResource ErrorColor}"
-              IsVisible="{Binding IsHostInactive}"
-              Kind="Cpu" />
-          </Panel>
+          <controls:RuntimeStateIcon
+            Width="{DynamicResource IconSizeDefault}"
+            Height="{DynamicResource IconSizeDefault}"
+            ActiveIcon="Cpu"
+            InactiveIcon="Cpu"
+            State="{Binding HostVisualState}" />
         </Button>
 
         <ItemsControl ItemsSource="{Binding TopStatusPills}">
@@ -254,31 +231,16 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ModuleChrome">
               <Button
-                shad:ButtonAssist.ShowProgress="{Binding #Root.((vm:MainWindowViewModel)DataContext).IsAgentsActionRunning}"
                 Classes="WindowControlsButton"
                 Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).StartOrRestartModuleCommand}"
                 CommandParameter="{Binding Id}"
                 ToolTip.Tip="{Binding ItemText}">
-                <Panel>
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Foreground="{DynamicResource SuccessColor}"
-                    IsVisible="{Binding IsRunning}"
-                    Kind="{Binding ActiveIcon}" />
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Foreground="{DynamicResource WarningColor}"
-                    IsVisible="{Binding IsStarting}"
-                    Kind="{Binding ActiveIcon}" />
-                  <icons:AppIcon
-                    Width="{DynamicResource IconSizeDefault}"
-                    Height="{DynamicResource IconSizeDefault}"
-                    Foreground="{DynamicResource ErrorColor}"
-                    IsVisible="{Binding IsInactive}"
-                    Kind="{Binding InactiveIcon}" />
-                </Panel>
+                <controls:RuntimeStateIcon
+                  Width="{DynamicResource IconSizeDefault}"
+                  Height="{DynamicResource IconSizeDefault}"
+                  ActiveIcon="{Binding ActiveIcon}"
+                  InactiveIcon="{Binding InactiveIcon}"
+                  State="{Binding VisualState}" />
               </Button>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
@@ -711,24 +673,12 @@
           HorizontalScrollBarVisibility="Auto"
           VerticalScrollBarVisibility="Disabled">
           <StackPanel Orientation="Horizontal" Spacing="0">
-            <Button
-              shad:ButtonAssist.ShowProgress="{Binding IsDbProbeRunning}"
-              Classes="StatusBarItem StatusBarDbItem"
-              Command="{Binding TryReconnectDbCommand}">
+            <Button Classes="StatusBarItem StatusBarDbItem" Command="{Binding TryReconnectDbCommand}">
               <shad:ButtonAssist.Icon>
-                <Panel
-                  Width="{DynamicResource IconSizeSmall}"
-                  Height="{DynamicResource IconSizeSmall}"
-                  VerticalAlignment="Center">
-                  <icons:AppIcon
-                    Foreground="{DynamicResource SuccessColor}"
-                    IsVisible="{Binding IsDbConnected}"
-                    Kind="Link" />
-                  <icons:AppIcon
-                    Foreground="{DynamicResource ErrorColor}"
-                    IsVisible="{Binding !IsDbConnected}"
-                    Kind="Unlink" />
-                </Panel>
+                <controls:RuntimeStateIcon
+                  ActiveIcon="Link"
+                  InactiveIcon="Unlink"
+                  State="{Binding DbVisualState}" />
               </shad:ButtonAssist.Icon>
               <TextBlock Classes="Caption Muted" Text="{Binding DbItemText}" />
             </Button>
@@ -737,20 +687,10 @@
 
             <Button Classes="StatusBarItem StatusBarAgentsItem" Command="{Binding StartOrRestartHostCommand}">
               <shad:ButtonAssist.Icon>
-                <Panel>
-                  <icons:AppIcon
-                    Foreground="{DynamicResource SuccessColor}"
-                    IsVisible="{Binding IsHostRunning}"
-                    Kind="Cpu" />
-                  <icons:AppIcon
-                    Foreground="{DynamicResource WarningColor}"
-                    IsVisible="{Binding IsHostStarting}"
-                    Kind="Cpu" />
-                  <icons:AppIcon
-                    Foreground="{DynamicResource ErrorColor}"
-                    IsVisible="{Binding IsHostInactive}"
-                    Kind="Cpu" />
-                </Panel>
+                <controls:RuntimeStateIcon
+                  ActiveIcon="Cpu"
+                  InactiveIcon="Cpu"
+                  State="{Binding HostVisualState}" />
               </shad:ButtonAssist.Icon>
               <TextBlock Classes="Caption Muted" Text="{Binding HostItemText}" />
             </Button>
@@ -766,25 +706,14 @@
                   <StackPanel Orientation="Horizontal" Spacing="0">
                     <Border Classes="StatusBarDivider" />
                     <Button
-                      shad:ButtonAssist.ShowProgress="{Binding #Root.((vm:MainWindowViewModel)DataContext).IsAgentsActionRunning}"
                       Classes="StatusBarItem StatusBarAgentsItem"
                       Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).StartOrRestartModuleCommand}"
                       CommandParameter="{Binding Id}">
                       <shad:ButtonAssist.Icon>
-                        <Panel>
-                          <icons:AppIcon
-                            Foreground="{DynamicResource SuccessColor}"
-                            IsVisible="{Binding IsRunning}"
-                            Kind="{Binding ActiveIcon}" />
-                          <icons:AppIcon
-                            Foreground="{DynamicResource WarningColor}"
-                            IsVisible="{Binding IsStarting}"
-                            Kind="{Binding ActiveIcon}" />
-                          <icons:AppIcon
-                            Foreground="{DynamicResource ErrorColor}"
-                            IsVisible="{Binding IsInactive}"
-                            Kind="{Binding InactiveIcon}" />
-                        </Panel>
+                        <controls:RuntimeStateIcon
+                          ActiveIcon="{Binding ActiveIcon}"
+                          InactiveIcon="{Binding InactiveIcon}"
+                          State="{Binding VisualState}" />
                       </shad:ButtonAssist.Icon>
                       <TextBlock Classes="Caption Muted" Text="{Binding ItemText}" />
                     </Button>

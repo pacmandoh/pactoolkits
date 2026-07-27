@@ -1,0 +1,29 @@
+<UserControl
+  x:Class="PacToolkits.Desktop.Avalonia.Controls.RuntimeStateIcon"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  x:Name="Root"
+  HorizontalAlignment="Center"
+  VerticalAlignment="Center">
+  <Panel>
+    <icons:AppIcon
+      Width="{Binding Width, ElementName=Root}"
+      Height="{Binding Height, ElementName=Root}"
+      Foreground="{DynamicResource SuccessColor}"
+      IsVisible="{Binding IsActive, ElementName=Root}"
+      Kind="{Binding ActiveIcon, ElementName=Root}" />
+    <icons:AppIcon
+      Width="{Binding Width, ElementName=Root}"
+      Height="{Binding Height, ElementName=Root}"
+      Foreground="{DynamicResource WarningColor}"
+      IsVisible="{Binding IsTransitioning, ElementName=Root}"
+      Kind="{Binding ActiveIcon, ElementName=Root}" />
+    <icons:AppIcon
+      Width="{Binding Width, ElementName=Root}"
+      Height="{Binding Height, ElementName=Root}"
+      Foreground="{DynamicResource ErrorColor}"
+      IsVisible="{Binding IsInactive, ElementName=Root}"
+      Kind="{Binding InactiveIcon, ElementName=Root}" />
+  </Panel>
+</UserControl>

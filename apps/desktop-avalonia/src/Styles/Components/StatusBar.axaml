@@ -29,24 +29,11 @@
             Orientation="Horizontal"
             Spacing="{DynamicResource SpacingInlineSm}">
             <Viewbox
-              Width="{TemplateBinding shad:ButtonAssist.ShowProgress,
-                                      Converter={x:Static shad:BooleanConverters.ToZeroOrDouble},
-                                      ConverterParameter=16}"
-              Height="{DynamicResource IconSizeSmall}"
-              VerticalAlignment="Center"
-              IsVisible="{TemplateBinding shad:ButtonAssist.ShowProgress}">
-              <ContentPresenter Content="{TemplateBinding shad:ButtonAssist.ShowProgress, Converter={x:Static shad:BooleanConverters.ToLoading}}" />
-            </Viewbox>
-            <Viewbox
-              Width="{TemplateBinding shad:ButtonAssist.ShowProgress,
-                                      Converter={x:Static shad:BooleanConverters.ToDoubleOrZero},
-                                      ConverterParameter=16}"
+              Width="{DynamicResource IconSizeSmall}"
               Height="{DynamicResource IconSizeSmall}"
               VerticalAlignment="Center"
               IsVisible="{TemplateBinding shad:ButtonAssist.Icon,
-                                          Converter={x:Static ObjectConverters.IsNotNull}}"
-              Opacity="{TemplateBinding shad:ButtonAssist.ShowProgress,
-                                        Converter={x:Static shad:BooleanConverters.ToInverseOpacity}}">
+                                          Converter={x:Static ObjectConverters.IsNotNull}}">
               <ContentPresenter Content="{TemplateBinding shad:ButtonAssist.Icon}" />
             </Viewbox>
             <ContentPresenter

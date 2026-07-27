@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using PacToolkits.Agents.Contracts.Agents;
+using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels;
 
@@ -22,13 +23,7 @@ public sealed partial class ModuleChrome : ObservableObject
     public string InactiveIcon { get; private set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _isRunning;
-
-    [ObservableProperty]
-    private bool _isStarting;
-
-    [ObservableProperty]
-    private bool _isInactive = true;
+    private RuntimeVisualState _visualState = RuntimeVisualState.Inactive;
 
     [ObservableProperty]
     private string _statusText = "未知";
@@ -50,9 +45,12 @@ public sealed partial class ModuleChrome : ObservableObject
 
     public void Apply(AgentsRunState state)
     {
-        IsRunning = state == AgentsRunState.Running;
-        IsStarting = state == AgentsRunState.Starting;
-        IsInactive = !state.IsActive();
+        VisualState = state switch
+        {
+            AgentsRunState.Running => RuntimeVisualState.Active,
+            AgentsRunState.Starting => RuntimeVisualState.Transitioning,
+            _ => RuntimeVisualState.Inactive,
+        };
         StatusText = state switch
         {
             AgentsRunState.Running => "运行中",

@@ -217,6 +217,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsDbConnected => _dbMonitor.IsConnected;
 
+    public RuntimeVisualState DbVisualState
+        => IsDbProbeRunning
+            ? RuntimeVisualState.Transitioning
+            : IsDbConnected
+                ? RuntimeVisualState.Active
+                : RuntimeVisualState.Inactive;
+
     public string DbItemText
         => IsDbProbeRunning ? "数据库：检测中…"
         : IsDbConnected ? "数据库：已连接"
@@ -282,11 +289,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsSettingsPageActive => ActivePage is ISettingsPage;
 
-    public bool IsHostRunning => Agents.IsHostRunning;
-
-    public bool IsHostStarting => Agents.HostState == AgentsRunState.Starting;
-
-    public bool IsHostInactive => !Agents.HostState.IsActive();
+    public RuntimeVisualState HostVisualState
+        => Agents.HostState switch
+        {
+            AgentsRunState.Running => RuntimeVisualState.Active,
+            AgentsRunState.Starting => RuntimeVisualState.Transitioning,
+            _ => RuntimeVisualState.Inactive,
+        };
 
     public string HostStatusText
         => Agents.HostState switch
@@ -334,6 +343,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void RaiseDbStateChanged()
     {
         OnPropertyChanged(nameof(IsDbConnected));
+        OnPropertyChanged(nameof(DbVisualState));
         OnPropertyChanged(nameof(DbItemText));
         RaiseConnectivityChanged();
     }
@@ -445,6 +455,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     partial void OnIsDbProbeRunningChanged(bool value)
     {
         TryReconnectDbCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(DbVisualState));
         OnPropertyChanged(nameof(DbItemText));
     }
 
@@ -456,9 +467,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void RaiseAgentsStateChanged()
     {
-        OnPropertyChanged(nameof(IsHostRunning));
-        OnPropertyChanged(nameof(IsHostStarting));
-        OnPropertyChanged(nameof(IsHostInactive));
+        OnPropertyChanged(nameof(HostVisualState));
         OnPropertyChanged(nameof(HostStatusText));
         OnPropertyChanged(nameof(HostItemText));
         SyncModuleChrome();
