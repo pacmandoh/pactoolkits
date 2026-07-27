@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
-    <AppVersion>1.0.2-beta.7</AppVersion>
-    <Version>1.0.2-beta.7</Version>
+    <AppVersion>1.0.2-beta.8</AppVersion>
+    <Version>1.0.2-beta.8</Version>
     <AssemblyVersion>1.0.2.0</AssemblyVersion>
     <FileVersion>1.0.2.0</FileVersion>
-    <InformationalVersion>1.0.2-beta.7+beta.2026-07-22</InformationalVersion>
+    <InformationalVersion>1.0.2-beta.8+beta.2026-07-27</InformationalVersion>
   </PropertyGroup>
 </Project>

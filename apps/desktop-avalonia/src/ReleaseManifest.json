@@ -15,7 +15,7 @@
           "version": "0.1.0"
         }
       },
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     "database": {
       "postgres": {
@@ -27,17 +27,17 @@
         "maxDbSchema": "1.2.23",
         "minDbSchema": "1.2.23",
         "packageId": "PacToolkits",
-        "version": "1.0.2-beta.7"
+        "version": "1.0.2-beta.8"
       }
     }
   },
   "product": {
     "id": "pactoolkits",
-    "version": "1.0.2-beta.7"
+    "version": "1.0.2-beta.8"
   },
   "release": {
     "channel": "beta",
-    "date": "2026-07-22"
+    "date": "2026-07-27"
   },
   "schemaVersion": 2
 }
