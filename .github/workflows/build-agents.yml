@@ -398,6 +398,7 @@ jobs:
         shell: pwsh
         run: |
           $stagingDir = "artifacts/agents/$env:RUNTIME"
+          New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
           Copy-Item "runtime/agents/host/ReleaseManifest.json" (Join-Path $stagingDir "ReleaseManifest.json") -Force
           # Host 与 Desktop 共用目标机 .NET Runtime，避免在同一安装包重复携带运行时
           # FDD 不支持单文件压缩，因此显式关闭 EnableCompressionInSingleFile

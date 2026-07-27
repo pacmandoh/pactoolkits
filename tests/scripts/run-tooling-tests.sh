@@ -676,6 +676,14 @@ if grep -Eq "release-manifest.json|build-agents.yml" <<< "$ahk_modules_cache_blo
   exit 1
 fi
 
+publish_host_block="$(sed -n '/name: Publish Host/,/name: Validate Agents binaries/p' .github/workflows/build-agents.yml)"
+staging_create_line="$(grep -nF 'New-Item -ItemType Directory -Path $stagingDir -Force' <<< "$publish_host_block" | cut -d: -f1)"
+manifest_copy_line="$(grep -nF 'Copy-Item "runtime/agents/host/ReleaseManifest.json"' <<< "$publish_host_block" | cut -d: -f1)"
+if [[ -z "$staging_create_line" || -z "$manifest_copy_line" || "$staging_create_line" -ge "$manifest_copy_line" ]]; then
+  echo "ERROR: Agents staging directory must exist before copying the Host release manifest" >&2
+  exit 1
+fi
+
 grep -Fq '$Channels = @('\''stable'\'', '\''beta'\'')' scripts/sync_pactoolkits_uu.ps1 || {
   echo "ERROR: update sync must include Stable and Beta channels" >&2
   exit 1
