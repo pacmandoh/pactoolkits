@@ -32,7 +32,7 @@ pactoolkits/
 
 | 路径                              | 角色                 | 说明                                                                  |
 | --------------------------------- | -------------------- | --------------------------------------------------------------------- |
-| `apps/desktop-avalonia`           | **当前正式 Desktop** | 业务 UI、配置、更新、诊断；控制 Agents Host / Injector                |
+| `apps/desktop-avalonia`           | **当前正式 Desktop** | 业务 UI、配置、更新、诊断；控制 Agents Host / Modules                 |
 | `runtime/agents/host`             | **Host（入口进程）** | `Agents.exe`；常驻；按 `module.control` 启停 Modules；Agents 才是容器 |
 | `runtime/agents/modules/injector` | **Injector 模块**    | AutoHotkey v2；解析、录入、验证、仓库任务；发布为 `Modules/Injector`  |
 | `database/postgres`               | **数据库**           | SQL 与部署脚本；schema 演进与校验                                     |

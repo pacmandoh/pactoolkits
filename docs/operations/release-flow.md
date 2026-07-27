@@ -52,14 +52,14 @@ release.yml
 
 **路径约定（monorepo）：**
 
-| 产物              | 路径                                                                        |
-| ----------------- | --------------------------------------------------------------------------- |
-| Desktop 项目      | `apps/desktop-avalonia/src/`                                                |
-| Agents 源码       | `runtime/agents/modules/injector/` + `runtime/agents/host/`                 |
-| Agents CI staging | `artifacts/agents/win-x64/`（`Agents.exe` + `Modules/Injector/`）           |
-| Host 发布方式     | framework-dependent + single-file（与 Desktop 一致，不嵌 .NET runtime）     |
-| 安装包内 Agents   | `Agents/Agents.exe` + `Agents/Modules/Injector/`（manifest `installDir=.`） |
-| DB 脚本           | `database/postgres/`                                                        |
+| 产物              | 路径                                                                            |
+| ----------------- | ------------------------------------------------------------------------------- |
+| Desktop 项目      | `apps/desktop-avalonia/src/`                                                    |
+| Agents 源码       | `runtime/agents/host/` + `runtime/agents/modules/*/`（按 `module.json` id）     |
+| Agents CI staging | `artifacts/agents/win-x64/`（`Agents.exe` + `Modules/<Id>/`，与 manifest 对齐） |
+| Host 发布方式     | framework-dependent + single-file（与 Desktop 一致，不嵌 .NET runtime）         |
+| 安装包内 Agents   | `Agents/Agents.exe` + `Agents/Modules/<Id>/`（manifest 中全部 modules）         |
+| DB 脚本           | `database/postgres/`                                                            |
 
 **Artifact 命名：**
 
@@ -106,7 +106,7 @@ Stable 和 Beta Feed 必须完全隔离；Beta GitHub Release 必须标记为 pr
 ./scripts/release-agents.sh --artifact-dir artifacts/agents/win-x64 --skip-upload
 ```
 
-要求目录含 `Agents.exe` 与 `Modules/Injector/`（含 `Injector.exe`、`module.json`）。
+要求目录含 `Agents.exe` 与 `Modules/<Id>/`（`module.json`、`settings.json`、`settings.schema.json`、`entry.win-x64`）；`<Id>` 须覆盖 `release-manifest.json` 的 `components.agents.modules` 全部键。
 
 ### 数据库
 
@@ -184,17 +184,14 @@ Windows PowerShell：
 
 ## Agents 路径解析与运行时
 
-进程模型（Desktop → Host → Injector、`module.control` / `module.ready`）见 [Agents 运行时架构](../architecture/agents.md)。
+进程模型（Desktop → Host → Modules（如 Injector）、`module.control` / `module.ready`）见 [Agents 运行时架构](../architecture/agents.md)。
 
 启动时 `AgentsPath` 按以下顺序解析 Host 可执行文件（相对路径基于 Desktop 安装目录）：
 
-1. **配置 Schema v2**：读入时将 Legacy/`SchemaVersion=1` 的 `AutomationTools`（`Ahk` 路径 + `Agent` 注入参数）收敛为单一 `Agents`（容器路径 + `Injector`），写回 `SchemaVersion=2`
-2. **Legacy 路径升级**：配置为历史 `Tools\pacinjector.exe` → 写回 `.\Agents\Agents.exe`（不依赖本机是否已有新 Host 二进制）
-3. **Configured**：其它配置路径且文件存在 → 使用配置路径（含用户自定义路径）
-4. **Standard**：配置无效/文件不存在，但 bundled 标准 exe 存在 → 使用标准路径并按需写回配置
-5. **Missing**：均不可用 → 启动失败
-
-不再扫描磁盘上的 `Tools\pacinjector.exe` 作为兜底。停止/重启时仍会识别进程名 `pacinjector` 以结束旧进程。
+1. **配置 Schema v2**：读入后规范化为 `SchemaVersion=2`。模块开关以磁盘 `Agents/Modules/*/module.json` 扫描为准（新发现默认 Enabled；已有开关保留）。模块业务以安装树 `settings.json` 模板为准，首次复制到 `{ConfigDir}/agents/modules/<Id>/settings.json`。
+2. **Configured**：配置路径且文件存在 → 使用配置路径（含用户自定义路径）
+3. **Standard**：配置无效/文件不存在，但 bundled 标准 exe 存在 → 使用标准路径并按需写回配置
+4. **Missing**：均不可用 → 启动失败
 
 Desktop 启动 Host 时附带 `--config <AppConfig 绝对路径>`；Host 转发给模块，自身不解析该文件。
 

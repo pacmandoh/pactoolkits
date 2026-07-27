@@ -13,7 +13,7 @@
 - 日志文件: `desktop-YYYY-MM-DD.log`（同日滚动为 `desktop-YYYY-MM-DD.N.log`）
 - 升级迁移：旧默认目录 `.../logs/ui` 在加载配置时会改写为 `.../logs/desktop`（事件 `logging.directory.migrate`）；历史文件不自动搬迁
 - 格式: JSON Line；关键字段 `ts` / `level` / `module` / `event` / `message` / `exception`（可选）/ `version` / `context`
-- Agents：Desktop 控制 **Host + Injector**（不是单一 AHK 进程）；相关 `module` 多为 `Agents` / `MainWindowVM` / `Settings.Agents`
+- Agents：Desktop 控制 **Host + Modules**（如 Injector）；相关 `module` 多为 `Agents` / `MainWindowVM` / `Settings.Agents`
 
 ## 2. 按严重度分层（排障优先级）
 
@@ -25,7 +25,7 @@
 
 - 更新: `update.check.fail`、`update.apply.flow_fail`、`update.*.fail`
 - DB / 页面加载: `db.startup_check.fail`、`db.schema.incompatible.startup`、`*.reload_fail`、`*.save.fail`、`scan.submit.fail`
-- Agents: `agents.start_or_restart.fail`、`agents.injector_*.fail`、`settings.agents.*.fail`
+- Agents: `agents.start_or_restart.fail`、`agents.module_*.fail`、`settings.agents.*.fail`
 - 后台未等待任务: `*.detached.fail`（`ObserveDetached` / `TaskObserve` 接住未 await 任务的异常）
 
 ### Warn（降级 / 可恢复）
@@ -65,7 +65,7 @@
 ### MainWindowVM
 
 - `agents.host_top_action.error` (Error) — Agents Host top action failed
-- `agents.injector_top_action.error` (Error) — Agents Injector top action failed
+- `agents.module_top_action.error` (Error) — Agents module top action failed
 - `agents.startup_autostart.exception` (Warn) — Startup auto-start threw exception
 - `agents.startup_autostart.fail` (Warn) — Failed to auto-start Agents host on startup
 - `config.agent_sync_fail` (Warn) — Failed to synchronize agent configuration
@@ -120,9 +120,11 @@
 - `agents.close_window.fail` (Warn) — Failed to close Agents process window gracefully
 - `agents.dispose.gate_fail` (Warn) — Failed to dispose command gate
 - `agents.dispose.timer_fail` (Warn) — Failed to dispose poll timer
-- `agents.injector_start.fail` (Error) — Injector start failed
-- `agents.injector_stop.fail` (Error) — Injector stop failed
-- `agents.injector_terminate.fail` (Warn) — Failed to terminate Injector process
+- `agents.module_start.fail` (Error) — Module start failed
+- `agents.module_stop.fail` (Error) — Module stop failed
+- `agents.module_terminate.fail` (Warn) — Failed to terminate module process
+- `agents.modules.normalize_fail` (Warn) — Failed to normalize Agents.Modules after rediscovery
+- `agents.modules.rediscover` (Info) — Agents modules catalog changed
 - `agents.kill.fail` (Warn) — Failed to kill Agents process
 - `agents.reload` (Info) — Agents runtime config reloaded
 - `agents.start_or_restart.fail` (Error) — Agents start/restart failed
@@ -161,20 +163,18 @@
 
 ### Settings.Agents
 
-- `settings.agents.dispose.appwin_collection_unsub_fail` (Warn) — Failed to unsubscribe InjectorAppWinItems
-- `settings.agents.dispose.appwin_item_unsub_fail` (Warn) — Failed to unsubscribe InjectorAppWin item
-- `settings.agents.dispose.colspecs_collection_unsub_fail` (Warn) — Failed to unsubscribe InjectorColSpecsItems
-- `settings.agents.dispose.colspecs_item_unsub_fail` (Warn) — Failed to unsubscribe InjectorColSpecs item
-- `settings.agents.dispose.intcols_collection_unsub_fail` (Warn) — Failed to unsubscribe InjectorIntColsItems
-- `settings.agents.dispose.intcols_item_unsub_fail` (Warn) — Failed to unsubscribe InjectorIntCols item
+- `settings.agents.dispose.module_editors_unsub_fail` (Warn) — Failed to unsubscribe module editors
+- `settings.agents.dispose.module_run_unsub_fail` (Warn) — Failed to unsubscribe module run rows
 - `settings.agents.dispose.runtime_unsub_fail` (Warn) — Failed to unsubscribe runtime status
-- `settings.agents.dispose.warehouse_anchor_item_unsub_fail` (Warn) — Failed to unsubscribe InjectorWarehouseAnchor item
-- `settings.agents.dispose.warehouse_anchors_collection_unsub_fail` (Warn) — Failed to unsubscribe InjectorWarehouseAnchorItems
 - `settings.agents.host_run.fail` (Error) — Failed to toggle Host running
-- `settings.agents.injector_enable.fail` (Error) — Failed to save Injector enabled
-- `settings.agents.injector_options.parse_fail` (Error) — Failed to parse Injector options
-- `settings.agents.injector_run.fail` (Error) — Failed to toggle Injector running
+- `settings.agents.module_editor.load_fail` (Warn) — Failed to load module settings editor
+- `settings.agents.module_enable.fail` (Error) — Failed to save module enabled
+- `settings.agents.module_run.fail` (Error) — Failed to toggle module running
 - `settings.agents.restart.fail` (Error) — Failed to restart Agents runtime
+- `agents.host_binary.reloaded` (Info) — Restarted Agents after Host binary changed
+- `agents.host_binary.reload_fail` (Warn) — Failed to restart Agents after Host binary changed
+- `agents.module_binary.reloaded` (Info) — Reloaded module after binary changed
+- `agents.module_binary.reload_fail` (Warn) — Failed to reload module after binary changed
 - `settings.agents.save.fail` (Error) — Failed to save Agents settings
 - `settings.agents.save_options.fail` (Error) — Failed to save Agents options to config
 - `settings.agents.save_options.silent_fail` (Error) — Silent save options failed
@@ -396,8 +396,8 @@
 - `schema.refresh.detached.fail` (Error) — Detached task failed
 - `selection.change.detached.fail` (Error) — Detached task failed
 - `settings.agents.host_run.detached.fail` (Error) — Detached task failed
-- `settings.agents.injector_enable.detached.fail` (Error) — Detached task failed
-- `settings.agents.injector_run.detached.fail` (Error) — Detached task failed
+- `settings.agents.module_enable.detached.fail` (Error) — Detached task failed
+- `settings.agents.module_run.detached.fail` (Error) — Detached task failed
 - `settings.tab_switch.detached.fail` (Error) — Detached task failed
 - `startup.config.detached.fail` (Error) — Detached task failed
 - `startup.init.detached.fail` (Error) — Detached task failed
@@ -415,7 +415,7 @@
 # 今日 Error/Fatal
 jq -c 'select(.level=="Error" or .level=="Fatal")' ~/Library/Application\ Support/PacToolkits/logs/desktop/desktop-$(date +%F).log
 
-# Agents / Injector
+# Agents / Modules
 jq -c 'select(.event|startswith("agents.") or startswith("settings.agents."))' .../desktop-YYYY-MM-DD.log
 
 # 更新通道

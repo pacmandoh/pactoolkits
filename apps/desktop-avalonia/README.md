@@ -1,6 +1,6 @@
 # PacToolkits Desktop（Avalonia）
 
-当前正式桌面客户端。业务页面、配置、更新与诊断入口；通过 `packages/application` 调用用例，数据库实现在 `packages/infrastructure`。Agents 启停由 `AgentsRuntime` 控制（Host + Injector），见 [Agents 运行时架构](../../docs/architecture/agents.md)。
+当前正式桌面客户端。业务页面、配置、更新与诊断入口；通过 `packages/application` 调用用例，数据库实现在 `packages/infrastructure`。Agents 启停由 `AgentsRuntime` 控制（Host + Modules），见 [Agents 运行时架构](../../docs/architecture/agents.md)。
 
 ## 构建
 

@@ -66,9 +66,9 @@ flowchart TB
 ### `packages/agents-contracts`
 
 - Desktop 与 Agents（Host + Modules）共享的配置、路径与运行时抽象
-- `AgentsOptions` / `InjectorOptions`、`AgentsConfigValidator`、`AgentsPaths` / `AgentsPath`
+- `AgentsOptions` / `ModuleOptions`、`AgentsConfigValidator`、`ModuleSettingsValidator`、`AgentsPaths` / `AgentsPath`
 - `IAgentsRuntime` / `IAgentsManager`（桌面实现启停；Host 只消费路径/契约常量）
-- **不是**「仅 AHK 协议」：Host 是 .NET；Injector 读同一份 JSON，不引用该 C# 包
+- **不是**「仅 AHK 协议」：Host 是 .NET；模块读 `--module-settings` 用户文件，不引用该 C# 包
 
 进程模型见 [Agents 运行时架构](./agents.md)。
 
@@ -76,7 +76,7 @@ flowchart TB
 
 - Views / ViewModels / Avalonia 样式与行为（ShadUI）
 - **桌面专属**服务：Toast、Dialog、更新、剪贴板、UiBehavior 等
-- 通过 DI 组装 Application + Infrastructure；`AgentsRuntime` 控制 Host / Injector
+- 通过 DI 组装 Application + Infrastructure；`AgentsRuntime` 控制 Host / Modules
 - 页面连接/可用性/空态三层模型见 [desktop-state.md](./desktop-state.md)
 
 ## 典型请求路径（示例）

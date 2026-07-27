@@ -65,7 +65,7 @@ PacToolkits Desktop、Agents（Host + 模块）与 PostgreSQL 任务编排。
 - [`apps/desktop-avalonia`](./apps/desktop-avalonia/)：业务交互、配置、更新与诊断
 - `packages/application`：用例层服务与抽象
 - `packages/infrastructure`：PostgreSQL 仓储与 DB 实现
-- [`runtime/agents`](./runtime/agents/)：Host + Injector 等模块
+- [`runtime/agents`](./runtime/agents/)：Host + Modules
 - [`database/postgres`](./database/postgres/)：入库、映射、任务与迁移治理
 
 ---
@@ -74,7 +74,7 @@ PacToolkits Desktop、Agents（Host + 模块）与 PostgreSQL 任务编排。
 
 - Desktop、Agents、DB 一体化单仓库设计
 - 基于 Avalonia 的桌面业务客户端
-- Agents 容器：.NET Host + AutoHotkey Injector 模块（解析 / 注入 / 验证）
+- Agents 容器：.NET Host + Modules
 - 基于 PostgreSQL Migration 的数据库演进与兼容门禁
 - Desktop / Agents / DB 版本由 Manifest 统一管控
 - 支持库存、追溯码录入、联调映射、任务队列与审计
