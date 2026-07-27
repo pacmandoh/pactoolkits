@@ -690,6 +690,10 @@ grep -Fq 'tests/PacToolkits.Agents.Contracts.Tests/PacToolkits.Agents.Contracts.
   echo "ERROR: Agents build must validate contracts and every module default settings file" >&2
   exit 1
 }
+grep -Fq '$entryPath = Join-Path $moduleDirPath "__ci_compile_entry__.ahk"' .github/workflows/build-agents.yml || {
+  echo "ERROR: AHK compile entry must stay in the module source directory so A_ScriptDir includes resolve" >&2
+  exit 1
+}
 if sed -n '/name: Cache Ahk2Exe asset/,/name: Resolve Ahk2Exe compiler/p' .github/workflows/build-agents.yml \
   | grep -Fq 'hashFiles('; then
   echo "ERROR: unrelated workflow changes must not invalidate the Ahk2Exe cache" >&2

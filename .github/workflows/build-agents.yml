@@ -346,7 +346,7 @@ jobs:
             }
 
             $outExe = Join-Path $moduleStagingDir $entryExeName
-            $entryPath = Join-Path $moduleStagingDir "__ci_compile_entry__.ahk"
+            $entryPath = Join-Path $moduleDirPath "__ci_compile_entry__.ahk"
             $entryLines = @(
               "; CI 专用：把 release-manifest 模块版本写入 PE 元数据",
               ";@Ahk2Exe-Set Version, $moduleVersion4",
