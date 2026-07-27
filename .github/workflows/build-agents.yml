@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build_agents:
-    name: Build Agents host and Injector
+    name: Build Agents host and AHK modules
     runs-on: windows-latest
     env:
       RUNTIME: ${{ inputs.runtime || 'win-x64' }}
@@ -35,49 +35,99 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Validate Agents contracts and module settings
+        shell: pwsh
+        run: |
+          dotnet restore "tests/PacToolkits.Agents.Contracts.Tests/PacToolkits.Agents.Contracts.Tests.csproj" `
+            --locked-mode
+          dotnet test "tests/PacToolkits.Agents.Contracts.Tests/PacToolkits.Agents.Contracts.Tests.csproj" `
+            -c Release `
+            --no-restore `
+            --verbosity minimal
+
       - name: Read manifest agents version
         id: versions
         shell: pwsh
         run: |
+          if ($env:RUNTIME -ne "win-x64") {
+            throw "Agents currently supports runtime=win-x64 only; got $env:RUNTIME"
+          }
           $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
           $agentsVersion = $manifest.components.'agents'.version
           if ($agentsVersion -notmatch '^\d+\.\d+\.\d+$') {
             throw "Invalid agents version in release-manifest.json: $agentsVersion"
           }
-          $injectorVersion = $manifest.components.'agents'.modules.Injector.version
-          if ($injectorVersion -notmatch '^\d+\.\d+\.\d+$') {
-            throw "Invalid agents.modules.Injector.version in release-manifest.json: $injectorVersion"
+          $manifestModules = $manifest.components.'agents'.modules
+          if ($null -eq $manifestModules) {
+            throw "release-manifest.json missing components.agents.modules"
+          }
+          $moduleVersions = @{}
+          foreach ($prop in $manifestModules.PSObject.Properties) {
+            $moduleId = $prop.Name
+            if ($moduleId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
+              throw "Invalid agents module id in release-manifest.json: $moduleId"
+            }
+            $moduleVersion = $prop.Value.version
+            if ($moduleVersion -notmatch '^\d+\.\d+\.\d+$') {
+              throw "Invalid agents.modules.$moduleId.version in release-manifest.json: $moduleVersion"
+            }
+            $moduleVersions[$moduleId] = $moduleVersion
+          }
+          if ($moduleVersions.Count -eq 0) {
+            throw "release-manifest.json components.agents.modules has no entries"
           }
           "AGENTS_VERSION=$agentsVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "INJECTOR_MODULE_VERSION=$injectorVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "injector_module_version=$injectorVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "Validated $($moduleVersions.Count) agent module version(s) from release-manifest.json"
 
-      - name: Sync Injector module.json version from manifest
+      - name: Sync module.json versions from manifest
         shell: pwsh
         run: |
-          $moduleJsonPath = "runtime/agents/modules/injector/module.json"
-          if (-not (Test-Path $moduleJsonPath)) {
-            throw "missing module.json: $moduleJsonPath"
+          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
+          $manifestModules = $manifest.components.'agents'.modules
+          $modulesRoot = "runtime/agents/modules"
+          if (-not (Test-Path $modulesRoot)) {
+            throw "missing agents modules root: $modulesRoot"
           }
-          $module = Get-Content $moduleJsonPath -Raw | ConvertFrom-Json
-          $module.version = $env:INJECTOR_MODULE_VERSION
-          $module | ConvertTo-Json -Depth 20 | Set-Content -Path $moduleJsonPath -Encoding utf8
-          Write-Host "Synced module.json version=$($module.version)"
+          Get-ChildItem -Path $modulesRoot -Directory | ForEach-Object {
+            $moduleJsonPath = Join-Path $_.FullName "module.json"
+            if (-not (Test-Path $moduleJsonPath)) {
+              return
+            }
+            $module = Get-Content $moduleJsonPath -Raw | ConvertFrom-Json
+            $moduleId = [string]$module.id
+            if ([string]::IsNullOrWhiteSpace($moduleId)) {
+              throw "module.json missing id: $moduleJsonPath"
+            }
+            if ($moduleId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
+              throw "Invalid module.json id: $moduleId ($moduleJsonPath)"
+            }
+            $manifestEntry = $manifestModules.$moduleId
+            if ($null -eq $manifestEntry) {
+              throw "release-manifest.json missing components.agents.modules.$moduleId (module.json at $moduleJsonPath)"
+            }
+            $manifestVersion = [string]$manifestEntry.version
+            if ($manifestVersion -notmatch '^\d+\.\d+\.\d+$') {
+              throw "Invalid agents.modules.$moduleId.version in release-manifest.json: $manifestVersion"
+            }
+            $module.version = $manifestVersion
+            $module | ConvertTo-Json -Depth 20 | Set-Content -Path $moduleJsonPath -Encoding utf8
+            Write-Host "Synced $moduleId module.json version=$manifestVersion"
+          }
 
-      - name: Cache injector module binary
-        id: cache_injector_module
+      - name: Cache AHK module binaries
+        id: cache_ahk_modules
         uses: actions/cache@v5
         with:
-          path: ~\PacToolkits-Agents-cache\${{ env.RUNTIME }}\Injector.exe
-          key: ${{ runner.os }}-injector-${{ env.RUNTIME }}-${{ steps.versions.outputs.injector_module_version }}-ahk${{ env.AUTOHOTKEY_VERSION }}-${{ env.AHK2EXE_TAG }}-${{ env.AHK2EXE_EXE_SHA256 }}-${{ hashFiles('runtime/agents/modules/injector/main.ahk', 'runtime/agents/modules/injector/src/**/*.ahk', 'runtime/agents/modules/injector/assets/**/*.ico') }}
+          path: ~\PacToolkits-Agents-cache\${{ env.RUNTIME }}\modules\
+          key: ${{ runner.os }}-ahk-modules-${{ env.RUNTIME }}-ahk${{ env.AUTOHOTKEY_VERSION }}-${{ env.AHK2EXE_TAG }}-${{ env.AHK2EXE_EXE_SHA256 }}-${{ hashFiles('runtime/agents/modules/**/main.ahk', 'runtime/agents/modules/**/src/**/*.ahk', 'runtime/agents/modules/**/assets/**/*.ico', 'runtime/agents/modules/**/module.json') }}
 
-      - name: Report Injector cache status
+      - name: Report AHK modules cache status
         shell: pwsh
         run: |
-          Write-Host "cache.injector.hit=${{ steps.cache_injector_module.outputs.cache-hit }}"
+          Write-Host "cache.ahk_modules.hit=${{ steps.cache_ahk_modules.outputs.cache-hit }}"
 
       - name: Install AutoHotkey
-        if: steps.cache_injector_module.outputs.cache-hit != 'true'
+        if: steps.cache_ahk_modules.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $baseCandidates = @(
@@ -96,7 +146,7 @@ jobs:
           }
 
       - name: Cache Ahk2Exe asset
-        if: steps.cache_injector_module.outputs.cache-hit != 'true'
+        if: steps.cache_ahk_modules.outputs.cache-hit != 'true'
         id: cache_ahk2exe
         uses: actions/cache@v5
         with:
@@ -104,7 +154,7 @@ jobs:
           key: ${{ runner.os }}-ahk2exe-${{ env.AHK2EXE_TAG }}-${{ env.AHK2EXE_EXE_SHA256 }}
 
       - name: Resolve Ahk2Exe compiler
-        if: steps.cache_injector_module.outputs.cache-hit != 'true'
+        if: steps.cache_ahk_modules.outputs.cache-hit != 'true'
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -197,86 +247,157 @@ jobs:
           "AHK2EXE_PATH=$compilerPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "AHK_BASE_PATH=$baseExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Compile injector AHK module
-        if: steps.cache_injector_module.outputs.cache-hit != 'true'
+      - name: Compile AHK modules
+        if: steps.cache_ahk_modules.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          Write-Host "Compiling Injector.exe from agents.modules.Injector.version=$env:INJECTOR_MODULE_VERSION"
-
-          $moduleVersion4 = "$env:INJECTOR_MODULE_VERSION.0"
+          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
+          $manifestModules = $manifest.components.'agents'.modules
           $compiler = $env:AHK2EXE_PATH
           $baseExe = $env:AHK_BASE_PATH
           if (-not (Test-Path $compiler)) { throw "Ahk2Exe.exe not found: $compiler" }
           if (-not $baseExe) { throw "AutoHotkey base executable not found under C:\Program Files\AutoHotkey." }
 
           $workspace = $env:GITHUB_WORKSPACE
-          $injectorDirPath = (Resolve-Path (Join-Path $workspace "runtime/agents/modules/injector")).Path
-          $mainScript = Join-Path $injectorDirPath "main.ahk"
-          if (-not (Test-Path $mainScript)) { throw "AHK entry script not found: $mainScript" }
-          $iconPath = Join-Path $injectorDirPath "assets\agents-injector.ico"
-          if (-not (Test-Path $iconPath)) { throw "Injector icon not found: $iconPath" }
-          $entryPath = Join-Path $injectorDirPath "__ci_compile_entry__.ahk"
-          $moduleDir = Join-Path $workspace "artifacts/agents/$env:RUNTIME/Modules/Injector"
-          New-Item -ItemType Directory -Path $moduleDir -Force | Out-Null
-          $outExe = Join-Path $moduleDir "Injector.exe"
-          $entryLines = @(
-            "; CI-only: inject release-manifest module version into PE metadata.",
-            ";@Ahk2Exe-Set Version, $moduleVersion4",
-            ";@Ahk2Exe-Set FileVersion, $moduleVersion4",
-            ";@Ahk2Exe-Set ProductVersion, $moduleVersion4",
-            ('#Include "{0}"' -f $mainScript)
-          )
-          Set-Content -Path $entryPath -Value $entryLines -Encoding utf8
-          $compilerDir = Split-Path -Path $compiler -Parent
-          try {
-            Remove-Item -Path $outExe -Force -ErrorAction SilentlyContinue
-            $argLine = @(
-              ('/in "{0}"' -f $entryPath),
-              ('/out "{0}"' -f $outExe),
-              ('/base "{0}"' -f $baseExe),
-              ('/icon "{0}"' -f $iconPath),
-              '/silent'
-            ) -join " "
-            Write-Host ("Ahk2Exe args: " + $argLine)
-            Write-Host ("Ahk2Exe working directory: " + $compilerDir)
-            Write-Host ("Expected output: " + $outExe)
-            $proc = Start-Process -FilePath $compiler -ArgumentList $argLine -WorkingDirectory $compilerDir -PassThru -Wait
-            if ($null -ne $proc.ExitCode -and $proc.ExitCode -ne 0) {
-              throw "Ahk2Exe exited with code $($proc.ExitCode)"
-            }
-          }
-          finally {
-            if (Test-Path $entryPath) { Remove-Item $entryPath -Force }
-          }
-          if (-not (Test-Path $outExe)) {
-            Write-Host "Compiler directory contents for diagnosis:"
-            Get-ChildItem -Path $compilerDir -Force | Select-Object Name, Length, Mode | Format-Table -AutoSize | Out-String | Write-Host
-            throw "Injector compile output missing: $outExe"
-          }
-          $cacheDir = Join-Path $env:USERPROFILE "PacToolkits-Agents-cache\$env:RUNTIME"
-          New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
-          Copy-Item $outExe (Join-Path $cacheDir "Injector.exe") -Force
-          Write-Host "Cached Injector.exe for future runs."
+          $modulesRoot = Join-Path $workspace "runtime/agents/modules"
+          $stagingModulesRoot = Join-Path $workspace "artifacts/agents/$env:RUNTIME/Modules"
+          $cacheModulesRoot = Join-Path $env:USERPROFILE "PacToolkits-Agents-cache\$env:RUNTIME\modules"
+          New-Item -ItemType Directory -Path $stagingModulesRoot -Force | Out-Null
+          New-Item -ItemType Directory -Path $cacheModulesRoot -Force | Out-Null
 
-      - name: Restore cached injector module
-        if: steps.cache_injector_module.outputs.cache-hit == 'true'
-        shell: pwsh
-        run: |
-          $cachedExe = Join-Path $env:USERPROFILE "PacToolkits-Agents-cache\$env:RUNTIME\Injector.exe"
-          if (-not (Test-Path $cachedExe)) {
-            throw "cache-hit=true but cached injector binary is missing: $cachedExe"
+          $compilerDir = Split-Path -Path $compiler -Parent
+          $compiledAny = $false
+
+          Get-ChildItem -Path $modulesRoot -Directory | ForEach-Object {
+            $moduleDirPath = $_.FullName
+            $moduleJsonPath = Join-Path $moduleDirPath "module.json"
+            if (-not (Test-Path $moduleJsonPath)) {
+              return
+            }
+
+            $moduleMeta = Get-Content $moduleJsonPath -Raw | ConvertFrom-Json
+            $moduleId = [string]$moduleMeta.id
+            if ([string]::IsNullOrWhiteSpace($moduleId)) {
+              throw "module.json missing id: $moduleJsonPath"
+            }
+
+            $runtimeKind = [string]$moduleMeta.runtime
+            $hasBuilder = $null -ne $moduleMeta.package -and $null -ne $moduleMeta.package.builder
+            if ($runtimeKind -ne "ahk") {
+              if ($hasBuilder) {
+                throw "Unsupported module package builder for runtime=$runtimeKind module=$moduleId (only ahk + ahk2exe is supported today)"
+              }
+              Write-Host "Skipping non-AHK module (no package.builder): $moduleId"
+              return
+            }
+
+            if (-not $hasBuilder -or [string]$moduleMeta.package.builder -ne "ahk2exe") {
+              throw "AHK module $moduleId must set package.builder to ahk2exe; got '$($moduleMeta.package.builder)'"
+            }
+
+            $manifestEntry = $manifestModules.$moduleId
+            if ($null -eq $manifestEntry) {
+              throw "release-manifest.json missing components.agents.modules.$moduleId"
+            }
+            $manifestVersion = [string]$manifestEntry.version
+            $moduleVersion4 = "$manifestVersion.0"
+
+            $iconRel = [string]$moduleMeta.package.ahk2exe.icon
+            if ([string]::IsNullOrWhiteSpace($iconRel)) {
+              throw "module.json missing package.ahk2exe.icon for module=$moduleId"
+            }
+            if ([IO.Path]::IsPathRooted($iconRel)) {
+              throw "module.json package.ahk2exe.icon must be relative for module=$moduleId : $iconRel"
+            }
+            $moduleRoot = [IO.Path]::GetFullPath($moduleDirPath).TrimEnd('\') + '\'
+            $iconPath = [IO.Path]::GetFullPath(
+              (Join-Path $moduleDirPath (($iconRel -replace '/', [IO.Path]::DirectorySeparatorChar))))
+            if (-not $iconPath.StartsWith($moduleRoot, [StringComparison]::OrdinalIgnoreCase)) {
+              throw "module.json package.ahk2exe.icon escapes module dir for module=$moduleId : $iconRel"
+            }
+            if (-not (Test-Path $iconPath)) {
+              throw "Module icon not found: $iconPath (from package.ahk2exe.icon) module=$moduleId"
+            }
+
+            $entryExeName = [string]$moduleMeta.entry.'win-x64'
+            if ([string]::IsNullOrWhiteSpace($entryExeName)) {
+              throw "module.json missing entry.win-x64 for module=$moduleId"
+            }
+            if ([IO.Path]::GetFileName($entryExeName) -ne $entryExeName) {
+              throw "module.json entry.win-x64 must be a file name for module=$moduleId : $entryExeName"
+            }
+
+            $mainScript = Join-Path $moduleDirPath "main.ahk"
+            if (-not (Test-Path $mainScript)) {
+              throw "AHK entry script not found: $mainScript (module=$moduleId)"
+            }
+
+            Write-Host "Compiling $entryExeName for module=$moduleId manifestVersion=$manifestVersion"
+
+            $moduleStagingDir = Join-Path $stagingModulesRoot $moduleId
+            New-Item -ItemType Directory -Path $moduleStagingDir -Force | Out-Null
+            Copy-Item $moduleJsonPath (Join-Path $moduleStagingDir "module.json") -Force
+            foreach ($settingsName in @("settings.json", "settings.schema.json")) {
+              $settingsSrc = Join-Path $moduleDirPath $settingsName
+              if (-not (Test-Path $settingsSrc)) {
+                throw "Missing $settingsName for module=$moduleId (required next to module.json)"
+              }
+              Copy-Item $settingsSrc (Join-Path $moduleStagingDir $settingsName) -Force
+            }
+
+            $outExe = Join-Path $moduleStagingDir $entryExeName
+            $entryPath = Join-Path $moduleStagingDir "__ci_compile_entry__.ahk"
+            $entryLines = @(
+              "; CI 专用：把 release-manifest 模块版本写入 PE 元数据",
+              ";@Ahk2Exe-Set Version, $moduleVersion4",
+              ";@Ahk2Exe-Set FileVersion, $moduleVersion4",
+              ";@Ahk2Exe-Set ProductVersion, $moduleVersion4",
+              ('#Include "{0}"' -f $mainScript)
+            )
+            Set-Content -Path $entryPath -Value $entryLines -Encoding utf8
+            try {
+              Remove-Item -Path $outExe -Force -ErrorAction SilentlyContinue
+              $argLine = @(
+                ('/in "{0}"' -f $entryPath),
+                ('/out "{0}"' -f $outExe),
+                ('/base "{0}"' -f $baseExe),
+                ('/icon "{0}"' -f $iconPath),
+                '/silent'
+              ) -join " "
+              Write-Host ("Ahk2Exe args: " + $argLine)
+              Write-Host ("Ahk2Exe working directory: " + $compilerDir)
+              Write-Host ("Expected output: " + $outExe)
+              $proc = Start-Process -FilePath $compiler -ArgumentList $argLine -WorkingDirectory $compilerDir -PassThru -Wait
+              if ($null -ne $proc.ExitCode -and $proc.ExitCode -ne 0) {
+                throw "Ahk2Exe exited with code $($proc.ExitCode) for module=$moduleId"
+              }
+            }
+            finally {
+              if (Test-Path $entryPath) { Remove-Item $entryPath -Force }
+            }
+
+            if (-not (Test-Path $outExe)) {
+              Write-Host "Compiler directory contents for diagnosis:"
+              Get-ChildItem -Path $compilerDir -Force | Select-Object Name, Length, Mode | Format-Table -AutoSize | Out-String | Write-Host
+              throw "AHK compile output missing: $outExe (module=$moduleId)"
+            }
+
+            $moduleCacheDir = Join-Path $cacheModulesRoot $moduleId
+            if (Test-Path $moduleCacheDir) { Remove-Item -Path $moduleCacheDir -Recurse -Force }
+            New-Item -ItemType Directory -Path $moduleCacheDir -Force | Out-Null
+            Copy-Item (Join-Path $moduleStagingDir "*") $moduleCacheDir -Recurse -Force
+            Write-Host "Cached module output for $moduleId"
+            $compiledAny = $true
           }
-          $moduleDir = "artifacts/agents/$env:RUNTIME/Modules/Injector"
-          New-Item -ItemType Directory -Path $moduleDir -Force | Out-Null
-          Copy-Item $cachedExe (Join-Path $moduleDir "Injector.exe") -Force
+
+          if (-not $compiledAny) {
+            throw "No AHK modules were compiled under $modulesRoot"
+          }
 
       - name: Publish Host
         shell: pwsh
         run: |
           $stagingDir = "artifacts/agents/$env:RUNTIME"
-          $moduleDir = Join-Path $stagingDir "Modules/Injector"
-          New-Item -ItemType Directory -Path $moduleDir -Force | Out-Null
-          Copy-Item "runtime/agents/modules/injector/module.json" (Join-Path $moduleDir "module.json") -Force
           Copy-Item "runtime/agents/host/ReleaseManifest.json" (Join-Path $stagingDir "ReleaseManifest.json") -Force
           # 与 Desktop 一样走 FDD：Host 只是薄模块管理器，不是第二套运行时捆绑
           # EnableCompressionInSingleFile 要求 self-contained，FDD 下须关闭
@@ -292,39 +413,63 @@ jobs:
           $hostExe = Join-Path $stagingDir "Agents.exe"
           if (-not (Test-Path $hostExe)) { throw "Host binary missing: $hostExe" }
 
+          $cacheModulesRoot = Join-Path $env:USERPROFILE "PacToolkits-Agents-cache\$env:RUNTIME\modules"
+          $stagingModulesRoot = Join-Path $stagingDir "Modules"
+          if (-not (Test-Path $cacheModulesRoot)) {
+            throw "AHK modules cache directory is missing after cache/compile: $cacheModulesRoot"
+          }
+          if (Test-Path $stagingModulesRoot) { Remove-Item -Path $stagingModulesRoot -Recurse -Force }
+          New-Item -ItemType Directory -Path $stagingModulesRoot -Force | Out-Null
+          Copy-Item (Join-Path $cacheModulesRoot "*") $stagingModulesRoot -Recurse -Force
+          Write-Host "Restored AHK module outputs into staging after Host publish"
+
+          # settings 不参与 EXE 缓存身份，每次从源树覆盖
+          Get-ChildItem -Path $stagingModulesRoot -Directory | ForEach-Object {
+            $moduleId = $_.Name
+            $srcDir = Get-ChildItem -Path "runtime/agents/modules" -Directory |
+              Where-Object {
+                $mj = Join-Path $_.FullName "module.json"
+                (Test-Path $mj) -and ((Get-Content $mj -Raw | ConvertFrom-Json).id -eq $moduleId)
+              } |
+              Select-Object -First 1 -ExpandProperty FullName
+            if ([string]::IsNullOrWhiteSpace($srcDir)) {
+              throw "Cannot resolve source dir for staging module=$moduleId"
+            }
+            foreach ($settingsName in @("settings.json", "settings.schema.json", "module.json")) {
+              $src = Join-Path $srcDir $settingsName
+              if (-not (Test-Path $src)) {
+                throw "Missing $settingsName for module=$moduleId at $src"
+              }
+              Copy-Item $src (Join-Path $_.FullName $settingsName) -Force
+            }
+          }
+          Write-Host "Overlaid module settings/module.json from source into staging"
+
       - name: Validate Agents binaries
         shell: pwsh
         run: |
-          $hostExe = "artifacts/agents/$env:RUNTIME/Agents.exe"
-          $moduleExe = "artifacts/agents/$env:RUNTIME/Modules/Injector/Injector.exe"
-          foreach ($outExe in @($hostExe, $moduleExe)) {
-            if (-not (Test-Path $outExe)) { throw "Agents binary missing: $outExe" }
-            $bytes = [System.IO.File]::ReadAllBytes($outExe)
+          function Test-PeX64 {
+            param([string]$Path)
+            if (-not (Test-Path $Path)) { throw "Agents binary missing: $Path" }
+            $bytes = [System.IO.File]::ReadAllBytes($Path)
             if ($bytes.Length -lt 0x40) {
-              throw "Agents binary too small to be a valid PE file: $outExe"
+              throw "Agents binary too small to be a valid PE file: $Path"
             }
             $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
             if ($peOffset -le 0 -or ($peOffset + 6) -ge $bytes.Length) {
-              throw "Invalid PE header offset in Agents binary: $outExe"
+              throw "Invalid PE header offset in Agents binary: $Path"
             }
             $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
             if ($machine -ne 0x8664) {
-              throw ("Agents binary is not x64. PE Machine=0x{0:X4} path=$outExe" -f $machine)
+              throw ("Agents binary is not x64. PE Machine=0x{0:X4} path=$Path" -f $machine)
             }
           }
 
-          $fileVersion = (Get-Item $moduleExe).VersionInfo.FileVersion
-          $productVersion = (Get-Item $moduleExe).VersionInfo.ProductVersion
-          $moduleVersion4 = "$env:INJECTOR_MODULE_VERSION.0"
-          if ($fileVersion -ne $moduleVersion4) {
-            throw "Injector FileVersion mismatch. expected=$moduleVersion4 actual=$fileVersion"
-          }
-          if ($productVersion -ne $moduleVersion4) {
-            throw "Injector ProductVersion mismatch. expected=$moduleVersion4 actual=$productVersion"
-          }
-          if (-not (Test-Path "artifacts/agents/$env:RUNTIME/Modules/Injector/module.json")) {
-            throw "module.json missing in staging output"
-          }
+          $manifest = Get-Content release-manifest.json -Raw | ConvertFrom-Json
+          $manifestModules = $manifest.components.'agents'.modules
+
+          $hostExe = "artifacts/agents/$env:RUNTIME/Agents.exe"
+          Test-PeX64 -Path $hostExe
 
           $hostFileVersion = (Get-Item $hostExe).VersionInfo.FileVersion
           $hostProductVersion = (Get-Item $hostExe).VersionInfo.ProductVersion
@@ -335,6 +480,69 @@ jobs:
           if ($hostProductVersion -ne $agentsVersion4 -and $hostProductVersion -notlike "$env:AGENTS_VERSION*") {
             throw "Host ProductVersion mismatch. expected prefix=$env:AGENTS_VERSION actual=$hostProductVersion"
           }
+
+          $modulesRoot = "artifacts/agents/$env:RUNTIME/Modules"
+          if (-not (Test-Path $modulesRoot)) {
+            throw "Modules staging directory missing: $modulesRoot"
+          }
+
+          # 与 scripts/manifest-v2.sh validate_agents_staging_layout 对齐：manifest 每个 id 都必须落盘
+          $manifestModuleIds = @($manifestModules.PSObject.Properties | ForEach-Object { $_.Name })
+          if ($manifestModuleIds.Count -eq 0) {
+            throw "release-manifest.json components.agents.modules has no entries"
+          }
+
+          foreach ($moduleId in $manifestModuleIds) {
+            $moduleDir = Join-Path $modulesRoot $moduleId
+            if (-not (Test-Path $moduleDir)) {
+              throw "Missing staging module dir for manifest id=$moduleId : $moduleDir"
+            }
+
+            foreach ($requiredName in @("module.json", "settings.json", "settings.schema.json")) {
+              $requiredPath = Join-Path $moduleDir $requiredName
+              if (-not (Test-Path $requiredPath)) {
+                throw "Missing $requiredName for module=$moduleId : $requiredPath"
+              }
+            }
+
+            $moduleJsonPath = Join-Path $moduleDir "module.json"
+            $moduleMeta = Get-Content $moduleJsonPath -Raw | ConvertFrom-Json
+            $jsonId = [string]$moduleMeta.id
+            if ($jsonId -ne $moduleId) {
+              throw "module.json id=$jsonId != directory/manifest id=$moduleId ($moduleJsonPath)"
+            }
+            $entryExeName = [string]$moduleMeta.entry.'win-x64'
+            if ([string]::IsNullOrWhiteSpace($entryExeName)) {
+              throw "module.json missing entry.win-x64: $moduleJsonPath"
+            }
+            if ([IO.Path]::GetFileName($entryExeName) -ne $entryExeName) {
+              throw "module.json entry.win-x64 must be a file name for module=$moduleId : $entryExeName"
+            }
+            $moduleExe = Join-Path $moduleDir $entryExeName
+            Test-PeX64 -Path $moduleExe
+
+            $manifestVersion = [string]$manifestModules.$moduleId.version
+            $jsonVersion = [string]$moduleMeta.version
+            if ($jsonVersion -ne $manifestVersion) {
+              throw "module.json version=$jsonVersion != release-manifest modules.$moduleId.version=$manifestVersion ($moduleJsonPath)"
+            }
+            $moduleVersion4 = "$manifestVersion.0"
+            $fileVersion = (Get-Item $moduleExe).VersionInfo.FileVersion
+            $productVersion = (Get-Item $moduleExe).VersionInfo.ProductVersion
+            if ($fileVersion -ne $moduleVersion4) {
+              throw "Module $moduleId FileVersion mismatch. expected=$moduleVersion4 actual=$fileVersion"
+            }
+            if ($productVersion -ne $moduleVersion4) {
+              throw "Module $moduleId ProductVersion mismatch. expected=$moduleVersion4 actual=$productVersion"
+            }
+            Write-Host "Validated module=$moduleId exe=$entryExeName version=$manifestVersion"
+          }
+
+          $extraDirs = Get-ChildItem -Path $modulesRoot -Directory | Where-Object { $manifestModuleIds -notcontains $_.Name }
+          foreach ($extra in $extraDirs) {
+            throw "Staging has module dir not listed in release-manifest.json: $($extra.FullName)"
+          }
+
           if (-not (Test-Path "artifacts/agents/$env:RUNTIME/ReleaseManifest.json")) {
             throw "ReleaseManifest.json missing in Agents staging output"
           }

@@ -32,7 +32,7 @@ Options:
 Notes:
   - Packages the CI staging layout only:
       <artifact-dir>/Agents.exe
-      <artifact-dir>/Modules/Injector/...
+      <artifact-dir>/Modules/<Id>/...  (every id in components.agents.modules)
   - Build on Windows via .github/workflows/build-agents.yml (or equivalent), then pass --artifact-dir.
   - With --dry-run and a bump flag, release plan uses a preview manifest so
     artifact names reflect the bumped version.
@@ -104,34 +104,6 @@ validate_bump_conflicts() {
     fi
     exit 1
   fi
-}
-
-validate_agents_artifact_layout() {
-  local dir="$1"
-  local host_exe="$dir/Agents.exe"
-  local module_dir="$dir/Modules/Injector"
-  local module_exe="$module_dir/Injector.exe"
-  [[ -f "$host_exe" ]] || {
-    echo "ERROR: missing Host binary: $host_exe" >&2
-    echo "Build via CI (build-agents.yml) or publish host + module into --artifact-dir." >&2
-    return 1
-  }
-  [[ -d "$module_dir" ]] || {
-    echo "ERROR: missing injector module dir: $module_dir" >&2
-    return 1
-  }
-  [[ -f "$module_exe" ]] || {
-    echo "ERROR: missing injector module binary: $module_exe" >&2
-    return 1
-  }
-  [[ -f "$module_dir/module.json" ]] || {
-    echo "ERROR: missing module.json: $module_dir/module.json" >&2
-    return 1
-  }
-  [[ -f "$dir/ReleaseManifest.json" ]] || {
-    echo "ERROR: missing Agents ReleaseManifest.json: $dir/ReleaseManifest.json" >&2
-    return 1
-  }
 }
 
 DRY_RUN="false"
@@ -275,22 +247,31 @@ artifact_path="$OUTPUT_DIR/$artifact_name"
 
 echo "Release plan:"
 echo "- agents.version: $agent_version"
-injector_module_version="$(manifest_agents_module_version "$MANIFEST_FOR_PLAN" "Injector")"
-[[ -n "$injector_module_version" ]] || {
-  echo "ERROR: missing agents.modules.Injector.version" >&2
+module_count=0
+while IFS= read -r module_id; do
+  [[ -n "$module_id" ]] || continue
+  module_count=$((module_count + 1))
+  module_version="$(manifest_agents_module_version "$MANIFEST_FOR_PLAN" "$module_id")"
+  [[ -n "$module_version" ]] || {
+    echo "ERROR: missing agents.modules.$module_id.version" >&2
+    exit 1
+  }
+  echo "- agents.modules.$module_id.version: $module_version"
+done < <(manifest_agents_module_ids "$MANIFEST_FOR_PLAN")
+[[ "$module_count" -gt 0 ]] || {
+  echo "ERROR: release-manifest.json has no components.agents.modules entries" >&2
   exit 1
 }
-echo "- agents.modules.Injector.version: $injector_module_version"
 echo "- channel: $CHANNEL"
 echo "- artifact-dir: $ARTIFACT_DIR"
 echo "- output: $artifact_path"
 
 if [[ "$DRY_RUN" == "true" ]]; then
-  printf '[dry-run] validate layout %q\n' "$ARTIFACT_DIR"
+  printf '[dry-run] validate layout %q (manifest modules)\n' "$ARTIFACT_DIR"
   printf '[dry-run] rsync -a %q/ %q/\n' "$ARTIFACT_DIR" "$(mktemp -u)/stage"
   printf '[dry-run] zip -> %q\n' "$artifact_path"
 else
-  validate_agents_artifact_layout "$ARTIFACT_DIR" || exit 1
+  validate_agents_staging_layout "$ARTIFACT_DIR" "$MANIFEST_FOR_PLAN" || exit 1
   mkdir -p "$OUTPUT_DIR"
   stage_dir="$(mktemp -d)"
   trap 'rm -rf "$stage_dir"' EXIT

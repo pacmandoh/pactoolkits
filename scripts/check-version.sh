@@ -113,6 +113,20 @@ while IFS= read -r module_id; do
   }
 done < <(manifest_agents_module_ids "$MANIFEST")
 
+modules_root="$ROOT_DIR/runtime/agents/modules"
+for module_meta in "$modules_root"/*/module.json; do
+  [[ -f "$module_meta" ]] || continue
+  module_id="$(jq -r '.id // empty' "$module_meta")"
+  [[ -n "$module_id" ]] || {
+    echo "ERROR: module.json missing id: $module_meta" >&2
+    exit 1
+  }
+  if ! jq -e --arg id "$module_id" '.components.agents.modules[$id] != null' "$MANIFEST" > /dev/null; then
+    echo "ERROR: source module id=$module_id is not listed in release-manifest.json ($module_meta)" >&2
+    exit 1
+  fi
+done
+
 echo "Version check passed."
 echo "- product.version: $(manifest_product_version "$MANIFEST")"
 echo "- desktop.avalonia.version: $manifest_desktop"

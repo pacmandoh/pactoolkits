@@ -90,8 +90,12 @@ declare -a paths=(
   "artifacts/agents"
   "artifacts/desktop"
   "apps/desktop-avalonia/src/Releases"
-  "runtime/agents/modules/injector/Releases"
 )
+
+for module_dir in "$ROOT_DIR/runtime/agents/modules"/*; do
+  [[ -d "$module_dir" && -f "$module_dir/module.json" ]] || continue
+  paths+=("${module_dir#"$ROOT_DIR/"}/Releases")
+done
 
 if [[ -n "$RUNTIME_FILTER" ]]; then
   paths+=(

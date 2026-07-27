@@ -323,44 +323,46 @@ run_cmd dotnet publish "$DESKTOP_PROJECT_DIR/PacToolkits.Desktop.Avalonia.csproj
 
 AGENT_SRC_DIR="${ARTIFACT_DIR:-$ROOT_DIR/artifacts/agents/win-x64}"
 AGENT_HOST_SRC="$AGENT_SRC_DIR/Agents.exe"
-AGENT_MODULE_SRC="$AGENT_SRC_DIR/Modules/Injector"
 AGENT_DST_DIR="$PACK_DIR/Agents"
 AGENT_HOST_DST="$AGENT_DST_DIR/Agents.exe"
-AGENT_MODULE_DST="$AGENT_DST_DIR/Modules/Injector"
 AGENT_MIN_BYTES=4096
 
 if [[ "$DRY_RUN" == "true" ]]; then
-  printf '[dry-run] mkdir -p %q\n' "$AGENT_DST_DIR/Modules/Injector"
+  printf '[dry-run] mkdir -p %q\n' "$AGENT_DST_DIR/Modules"
   printf '[dry-run] cp -f %q %q\n' "$AGENT_HOST_SRC" "$AGENT_HOST_DST"
   printf '[dry-run] cp -f %q %q\n' "$AGENT_SRC_DIR/ReleaseManifest.json" "$AGENT_DST_DIR/ReleaseManifest.json"
-  printf '[dry-run] cp -R %q/. %q/\n' "$AGENT_MODULE_SRC" "$AGENT_MODULE_DST"
+  while IFS= read -r module_id; do
+    [[ -n "$module_id" ]] || continue
+    printf '[dry-run] cp -R %q/. %q/\n' \
+      "$AGENT_SRC_DIR/Modules/$module_id" \
+      "$AGENT_DST_DIR/Modules/$module_id"
+  done < <(manifest_agents_module_ids "$MANIFEST_FOR_PLAN")
 else
-  [[ -f "$AGENT_HOST_SRC" ]] || {
-    echo "ERROR: missing Host binary: $AGENT_HOST_SRC" >&2
+  validate_agents_staging_layout "$AGENT_SRC_DIR" "$MANIFEST_FOR_PLAN" "$AGENT_MIN_BYTES" || {
     echo "Build agent first, e.g.: ./scripts/release-agents.sh --artifact-dir ... --skip-upload" >&2
     exit 1
   }
-  [[ -d "$AGENT_MODULE_SRC" ]] || {
-    echo "ERROR: missing agent module dir: $AGENT_MODULE_SRC" >&2
-    exit 1
-  }
-  [[ -f "$AGENT_MODULE_SRC/Injector.exe" ]] || {
-    echo "ERROR: missing injector module binary: $AGENT_MODULE_SRC/Injector.exe" >&2
-    exit 1
-  }
-  [[ -f "$AGENT_MODULE_SRC/module.json" ]] || {
-    echo "ERROR: missing module.json: $AGENT_MODULE_SRC/module.json" >&2
-    exit 1
-  }
-  mkdir -p "$AGENT_MODULE_DST"
+
+  case "$AGENT_DST_DIR" in
+    "$PACK_DIR/Agents") ;;
+    *)
+      echo "ERROR: refusing to replace unexpected Agents destination: $AGENT_DST_DIR" >&2
+      exit 1
+      ;;
+  esac
+  rm -rf "$AGENT_DST_DIR"
+  mkdir -p "$AGENT_DST_DIR/Modules"
   cp -f "$AGENT_HOST_SRC" "$AGENT_HOST_DST"
-  if [[ -f "$AGENT_SRC_DIR/ReleaseManifest.json" ]]; then
-    cp -f "$AGENT_SRC_DIR/ReleaseManifest.json" "$AGENT_DST_DIR/ReleaseManifest.json"
-  else
-    echo "ERROR: missing Agents ReleaseManifest.json: $AGENT_SRC_DIR/ReleaseManifest.json" >&2
-    exit 1
-  fi
-  cp -R "$AGENT_MODULE_SRC/." "$AGENT_MODULE_DST/"
+  cp -f "$AGENT_SRC_DIR/ReleaseManifest.json" "$AGENT_DST_DIR/ReleaseManifest.json"
+
+  while IFS= read -r module_id; do
+    [[ -n "$module_id" ]] || continue
+    module_src="$AGENT_SRC_DIR/Modules/$module_id"
+    module_dst="$AGENT_DST_DIR/Modules/$module_id"
+    mkdir -p "$module_dst"
+    cp -R "$module_src/." "$module_dst/"
+  done < <(manifest_agents_module_ids "$MANIFEST_FOR_PLAN")
+
   [[ -f "$AGENT_HOST_DST" ]] || {
     echo "ERROR: failed to copy Host binary to publish output" >&2
     exit 1
@@ -370,11 +372,8 @@ else
     echo "ERROR: Host binary too small to be valid ($AGENT_HOST_DST, ${agent_size} bytes)" >&2
     exit 1
   fi
-  module_size="$(wc -c < "$AGENT_MODULE_DST/Injector.exe" | tr -d ' ')"
-  if [[ "${module_size:-0}" -le "$AGENT_MIN_BYTES" ]]; then
-    echo "ERROR: injector module binary too small to be valid ($AGENT_MODULE_DST/Injector.exe, ${module_size} bytes)" >&2
-    exit 1
-  fi
+  # 拷贝后复验：防 cp 漏文件；SRC 已在上方 validate 过
+  validate_agents_staging_layout "$AGENT_DST_DIR" "$MANIFEST_FOR_PLAN" "$AGENT_MIN_BYTES" || exit 1
 fi
 
 if [[ "$DRY_RUN" != "true" ]]; then
@@ -392,10 +391,6 @@ if [[ "$DRY_RUN" != "true" ]]; then
   }
   [[ -f "$AGENT_HOST_DST" ]] || {
     echo "ERROR: Host binary not found in publish output: $AGENT_HOST_DST" >&2
-    exit 1
-  }
-  [[ -f "$AGENT_MODULE_DST/Injector.exe" ]] || {
-    echo "ERROR: injector module binary not found in publish output: $AGENT_MODULE_DST/Injector.exe" >&2
     exit 1
   }
 fi

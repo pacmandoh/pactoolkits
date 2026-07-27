@@ -118,11 +118,18 @@ allow "legacy config compatibility constant" 'pactoolkits-ui\.config\.json' \
 allow "legacy migration dir constant" 'LEGACY_MIGRATION_DIR="pactoolkits-db/sql/migrations"' \
   scripts/validate-database-policy.sh
 
-allow "legacy Tools pacinjector migration" 'pacinjector' \
+# 已移除的迁移/兼容路径：再引入应失败（勿改回 allow）
+scan "legacy Tools pacinjector migration" 'pacinjector' \
   packages/agents-contracts apps/desktop-avalonia/src tests/PacToolkits.Agents.Contracts.Tests tests/PacToolkits.Desktop.Tests docs
 
-allow "legacy AutomationTools.Ahk migration" '"Ahk"' \
-  apps/desktop-avalonia/src/Services/Infrastructure/AppConfigStore.cs
+scan "legacy AutomationTools migration" 'AutomationTools' \
+  packages/agents-contracts apps/desktop-avalonia/src tests docs
+
+scan "legacy Agents.Injector config path" 'Agents\.Injector' \
+  packages/agents-contracts apps/desktop-avalonia/src tests docs
+
+scan "legacy ValidateInjector / InjectorOptions" 'ValidateInjector|InjectorOptions' \
+  packages/agents-contracts apps/desktop-avalonia/src tests docs
 
 if [[ "$fail" -ne 0 ]]; then
   echo "Legacy identity audit failed."

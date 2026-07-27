@@ -46,17 +46,164 @@ manifest_agents_module_version() {
     '.components.agents.modules[$id].version // empty' "$manifest"
 }
 
+# 按 module.json 的 id 解析源码目录（相对仓库根），不写死具体模块
 manifest_agents_module_source_dir() {
   local module_id="${1:-}"
-  case "$module_id" in
-    Injector)
-      printf 'runtime/agents/modules/injector\n'
-      ;;
-    *)
-      echo "ERROR: unsupported agents module source id: ${module_id:-<empty>}" >&2
+  if [[ -z "$module_id" ]]; then
+    echo "ERROR: agents module id is required" >&2
+    return 1
+  fi
+
+  local root="${ROOT_DIR:-}"
+  if [[ -z "$root" ]]; then
+    root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+
+  local modules_root="$root/runtime/agents/modules"
+  if [[ ! -d "$modules_root" ]]; then
+    echo "ERROR: missing agents modules root: $modules_root" >&2
+    return 1
+  fi
+
+  local found=""
+  local dir meta id
+  for dir in "$modules_root"/*/; do
+    [[ -d "$dir" ]] || continue
+    meta="${dir}module.json"
+    [[ -f "$meta" ]] || continue
+    id="$(jq -r '.id // empty' "$meta")"
+    if [[ "$id" != "$module_id" ]]; then
+      continue
+    fi
+    if [[ -n "$found" ]]; then
+      echo "ERROR: duplicate module.json id=$module_id under $modules_root" >&2
       return 1
-      ;;
-  esac
+    fi
+    found="${dir%/}"
+  done
+
+  if [[ -z "$found" ]]; then
+    echo "ERROR: no runtime/agents/modules/*/module.json with id=$module_id" >&2
+    return 1
+  fi
+
+  printf '%s\n' "${found#"$root"/}"
+}
+
+agents_module_json_entry_win_x64() {
+  jq -r '.entry["win-x64"] // empty' "$1"
+}
+
+# 校验 staging/安装树中的单个 Modules/<Id> 目录
+validate_agents_module_dir() {
+  local module_dir="$1"
+  local expected_id="$2"
+  local min_bytes="${3:-0}"
+  local expected_version="${4:-}"
+
+  [[ -d "$module_dir" ]] || {
+    echo "ERROR: missing agent module dir: $module_dir" >&2
+    return 1
+  }
+  [[ -f "$module_dir/module.json" ]] || {
+    echo "ERROR: missing module.json: $module_dir/module.json" >&2
+    return 1
+  }
+
+  local id entry version
+  id="$(jq -r '.id // empty' "$module_dir/module.json")"
+  [[ "$id" == "$expected_id" ]] || {
+    echo "ERROR: module.json id=$id != directory id=$expected_id ($module_dir)" >&2
+    return 1
+  }
+
+  if [[ -n "$expected_version" ]]; then
+    version="$(jq -r '.version // empty' "$module_dir/module.json")"
+    [[ "$version" == "$expected_version" ]] || {
+      echo "ERROR: module.json version=$version != manifest version=$expected_version ($module_dir)" >&2
+      return 1
+    }
+  fi
+
+  entry="$(agents_module_json_entry_win_x64 "$module_dir/module.json")"
+  [[ -n "$entry" ]] || {
+    echo "ERROR: module.json missing entry.win-x64: $module_dir/module.json" >&2
+    return 1
+  }
+  [[ "$entry" != *\\* && "$entry" == "$(basename "$entry")" ]] || {
+    echo "ERROR: module.json entry.win-x64 must be a file name: $entry ($module_dir/module.json)" >&2
+    return 1
+  }
+  [[ -f "$module_dir/$entry" ]] || {
+    echo "ERROR: missing module entry binary: $module_dir/$entry" >&2
+    return 1
+  }
+  [[ -f "$module_dir/settings.json" ]] || {
+    echo "ERROR: missing settings.json: $module_dir/settings.json" >&2
+    return 1
+  }
+  [[ -f "$module_dir/settings.schema.json" ]] || {
+    echo "ERROR: missing settings.schema.json: $module_dir/settings.schema.json" >&2
+    return 1
+  }
+
+  if [[ "${min_bytes:-0}" -gt 0 ]]; then
+    local size
+    size="$(wc -c < "$module_dir/$entry" | tr -d ' ')"
+    if [[ "${size:-0}" -le "$min_bytes" ]]; then
+      echo "ERROR: module entry too small to be valid ($module_dir/$entry, ${size} bytes)" >&2
+      return 1
+    fi
+  fi
+}
+
+# 校验 Agents CI staging：Host + ReleaseManifest + manifest 中全部 modules
+validate_agents_staging_layout() {
+  local dir="$1"
+  local manifest="$2"
+  local min_bytes="${3:-4096}"
+
+  [[ -f "$dir/Agents.exe" ]] || {
+    echo "ERROR: missing Host binary: $dir/Agents.exe" >&2
+    echo "Build via CI (build-agents.yml) or publish host + modules into --artifact-dir." >&2
+    return 1
+  }
+  [[ -f "$dir/ReleaseManifest.json" ]] || {
+    echo "ERROR: missing Agents ReleaseManifest.json: $dir/ReleaseManifest.json" >&2
+    return 1
+  }
+
+  local module_count=0
+  local module_id module_version
+  while IFS= read -r module_id; do
+    [[ -n "$module_id" ]] || continue
+    module_count=$((module_count + 1))
+    module_version="$(manifest_agents_module_version "$manifest" "$module_id")"
+    [[ -n "$module_version" ]] || {
+      echo "ERROR: release-manifest.json missing version for module=$module_id" >&2
+      return 1
+    }
+    validate_agents_module_dir \
+      "$dir/Modules/$module_id" \
+      "$module_id" \
+      "$min_bytes" \
+      "$module_version" || return 1
+  done < <(manifest_agents_module_ids "$manifest")
+
+  if [[ "$module_count" -eq 0 ]]; then
+    echo "ERROR: release-manifest.json has no components.agents.modules entries" >&2
+    return 1
+  fi
+
+  local staged_dir staged_id
+  for staged_dir in "$dir/Modules"/*/; do
+    [[ -d "$staged_dir" ]] || continue
+    staged_id="$(basename "${staged_dir%/}")"
+    if ! jq -e --arg id "$staged_id" '.components.agents.modules[$id] != null' "$manifest" > /dev/null; then
+      echo "ERROR: staging has module dir not listed in release-manifest.json: $staged_dir" >&2
+      return 1
+    fi
+  done
 }
 
 manifest_database_postgres_version() {
@@ -403,7 +550,7 @@ validate_manifest_v2() {
       $root.components.agents.modules
       | to_entries
       | all(
-          (.key | type == "string" and length > 0) and
+          (.key | type == "string" and test("^[A-Za-z0-9][A-Za-z0-9._-]*$")) and
           (.value.version | semver)
         )
     ) and

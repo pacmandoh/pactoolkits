@@ -15,6 +15,15 @@ chmod +x scripts/*.sh tests/scripts/*.sh
 
 run ./scripts/export-version.sh
 run ./scripts/check-version.sh
+(
+  extra_module_dir="$(mktemp -d "$ROOT_DIR/runtime/agents/modules/tooling-extra.XXXXXX")"
+  trap 'rm -rf "$extra_module_dir"' EXIT
+  printf '%s\n' '{"id":"ToolingExtra","version":"0.1.0"}' > "$extra_module_dir/module.json"
+  if ./scripts/check-version.sh >/dev/null 2>&1; then
+    echo "ERROR: check-version should reject source modules absent from release-manifest.json" >&2
+    exit 1
+  fi
+)
 bash -n ./scripts/clean-build-artifacts.sh
 ./scripts/clean-build-artifacts.sh --dry-run >/dev/null
 
@@ -448,10 +457,71 @@ if validate_manifest_v2 "$invalid_manifest" >/dev/null 2>&1; then
 fi
 
 invalid_bundle_version_manifest="$(mktemp)"
-trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_bundle_version_manifest"' EXIT
+invalid_module_id_manifest="$(mktemp)"
+agents_staging_fixture="$(mktemp -d)"
+trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest" "$target_beta_manifest" "$beta_desktop_on_stable_manifest" "$stable_desktop_on_beta_manifest" "$leading_zero_manifest" "$invalid_manifest" "$invalid_bundle_version_manifest" "$invalid_module_id_manifest"; rm -rf "$agents_staging_fixture"' EXIT
 jq '.components["agents"].version = "not-semver"' "$ROOT_DIR/release-manifest.json" > "$invalid_bundle_version_manifest"
 if validate_manifest_v2 "$invalid_bundle_version_manifest" >/dev/null 2>&1; then
   echo "ERROR: manifest validation should reject invalid agents host versions" >&2
+  exit 1
+fi
+
+jq '.components.agents.modules["../Probe"] = {"version":"1.0.0"}' \
+  "$ROOT_DIR/release-manifest.json" > "$invalid_module_id_manifest"
+if validate_manifest_v2 "$invalid_module_id_manifest" >/dev/null 2>&1; then
+  echo "ERROR: manifest validation should reject non-portable module ids" >&2
+  exit 1
+fi
+
+# Host + Modules staging：manifest 中每个 module 都需 settings + schema
+: > "$agents_staging_fixture/Agents.exe"
+printf '%s\n' '{"schemaVersion":2}' > "$agents_staging_fixture/ReleaseManifest.json"
+while IFS= read -r module_id; do
+  [[ -n "$module_id" ]] || continue
+  module_dir="$agents_staging_fixture/Modules/$module_id"
+  mkdir -p "$module_dir"
+  module_version="$(manifest_agents_module_version "$ROOT_DIR/release-manifest.json" "$module_id")"
+  printf '%s\n' "{\"id\":\"$module_id\",\"version\":\"$module_version\",\"entry\":{\"win-x64\":\"$module_id.exe\"}}" > "$module_dir/module.json"
+  : > "$module_dir/$module_id.exe"
+  printf '%s\n' '{"Enabled":true}' > "$module_dir/settings.json"
+  printf '%s\n' '{"schemaVersion":1,"sections":[{"fields":[{"key":"Enabled","type":"bool"}]}]}' > "$module_dir/settings.schema.json"
+done < <(manifest_agents_module_ids "$ROOT_DIR/release-manifest.json")
+validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 || {
+  echo "ERROR: validate_agents_staging_layout should accept fixture with settings + schema" >&2
+  exit 1
+}
+first_module_id="$(manifest_agents_module_ids "$ROOT_DIR/release-manifest.json" | head -n1)"
+cp "$agents_staging_fixture/Modules/$first_module_id/module.json" \
+  "$agents_staging_fixture/Modules/$first_module_id/module.json.valid-version"
+jq '.version = "0.0.0"' \
+  "$agents_staging_fixture/Modules/$first_module_id/module.json.valid-version" \
+  > "$agents_staging_fixture/Modules/$first_module_id/module.json"
+if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 >/dev/null 2>&1; then
+  echo "ERROR: validate_agents_staging_layout should reject module version drift" >&2
+  exit 1
+fi
+mv "$agents_staging_fixture/Modules/$first_module_id/module.json.valid-version" \
+  "$agents_staging_fixture/Modules/$first_module_id/module.json"
+cp "$agents_staging_fixture/Modules/$first_module_id/module.json" \
+  "$agents_staging_fixture/Modules/$first_module_id/module.json.valid"
+jq '.entry["win-x64"] = "../Agents.exe"' \
+  "$agents_staging_fixture/Modules/$first_module_id/module.json.valid" \
+  > "$agents_staging_fixture/Modules/$first_module_id/module.json"
+if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 >/dev/null 2>&1; then
+  echo "ERROR: validate_agents_staging_layout should reject entry path traversal" >&2
+  exit 1
+fi
+mv "$agents_staging_fixture/Modules/$first_module_id/module.json.valid" \
+  "$agents_staging_fixture/Modules/$first_module_id/module.json"
+mkdir -p "$agents_staging_fixture/Modules/StaleModule"
+if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 >/dev/null 2>&1; then
+  echo "ERROR: validate_agents_staging_layout should reject module dirs absent from manifest" >&2
+  exit 1
+fi
+rm -rf "$agents_staging_fixture/Modules/StaleModule"
+rm -f "$agents_staging_fixture/Modules/$first_module_id/settings.json"
+if validate_agents_staging_layout "$agents_staging_fixture" "$ROOT_DIR/release-manifest.json" 0 >/dev/null 2>&1; then
+  echo "ERROR: validate_agents_staging_layout should reject missing settings.json" >&2
   exit 1
 fi
 
@@ -494,15 +564,6 @@ bump_conflict_out="$(./scripts/bump-version.sh --component agents=0.6.2 --compon
 }
 echo "$bump_conflict_out" | grep -Fq "conflicting component version for agents" || {
   echo "ERROR: expected bump-version duplicate agents component error message" >&2
-  exit 1
-}
-
-bump_duplicate_out="$(./scripts/bump-version.sh --component agents=0.6.2 --component agents=0.6.3 --dry-run 2>&1)" && {
-  echo "ERROR: bump-version.sh should reject repeated --component for the same id" >&2
-  exit 1
-}
-echo "$bump_duplicate_out" | grep -Fq "conflicting component version for agents" || {
-  echo "ERROR: expected bump-version repeated --component error message" >&2
   exit 1
 }
 
@@ -625,28 +686,38 @@ grep -Fq 'key: ${{ runner.os }}-ahk2exe-${{ env.AHK2EXE_TAG }}-${{ env.AHK2EXE_E
   echo "ERROR: Ahk2Exe cache identity must use the pinned tag and executable SHA256" >&2
   exit 1
 }
+grep -Fq 'tests/PacToolkits.Agents.Contracts.Tests/PacToolkits.Agents.Contracts.Tests.csproj' .github/workflows/build-agents.yml || {
+  echo "ERROR: Agents build must validate contracts and every module default settings file" >&2
+  exit 1
+}
 if sed -n '/name: Cache Ahk2Exe asset/,/name: Resolve Ahk2Exe compiler/p' .github/workflows/build-agents.yml \
   | grep -Fq 'hashFiles('; then
   echo "ERROR: unrelated workflow changes must not invalidate the Ahk2Exe cache" >&2
   exit 1
 fi
-injector_cache_block="$(sed -n '/name: Cache injector module binary/,/name: Report Injector cache status/p' .github/workflows/build-agents.yml)"
+ahk_modules_cache_block="$(sed -n '/name: Cache AHK module binaries/,/name: Report AHK modules cache status/p' .github/workflows/build-agents.yml)"
 for identity in \
   '${{ env.RUNTIME }}' \
-  '${{ steps.versions.outputs.injector_module_version }}' \
   '${{ env.AUTOHOTKEY_VERSION }}' \
   '${{ env.AHK2EXE_TAG }}' \
   '${{ env.AHK2EXE_EXE_SHA256 }}' \
-  "runtime/agents/modules/injector/main.ahk" \
-  "runtime/agents/modules/injector/src/**/*.ahk" \
-  "runtime/agents/modules/injector/assets/**/*.ico"; do
-  grep -Fq "$identity" <<< "$injector_cache_block" || {
-    echo "ERROR: Injector cache identity is missing $identity" >&2
+  "runtime/agents/modules/**/main.ahk" \
+  "runtime/agents/modules/**/src/**/*.ahk" \
+  "runtime/agents/modules/**/assets/**/*.ico" \
+  "runtime/agents/modules/**/module.json"; do
+  grep -Fq "$identity" <<< "$ahk_modules_cache_block" || {
+    echo "ERROR: AHK modules cache identity is missing $identity" >&2
     exit 1
   }
 done
-if grep -Eq "release-manifest.json|build-agents.yml" <<< "$injector_cache_block"; then
-  echo "ERROR: unrelated manifest or workflow changes must not invalidate the Injector cache" >&2
+for unrelated_input in "settings.json" "settings.schema.json" "ReleaseManifest.json"; do
+  if grep -Fq "$unrelated_input" <<< "$ahk_modules_cache_block"; then
+    echo "ERROR: $unrelated_input must not invalidate the AHK EXE cache" >&2
+    exit 1
+  fi
+done
+if grep -Eq "release-manifest.json|build-agents.yml" <<< "$ahk_modules_cache_block"; then
+  echo "ERROR: unrelated manifest or workflow changes must not invalidate the AHK modules cache" >&2
   exit 1
 fi
 
