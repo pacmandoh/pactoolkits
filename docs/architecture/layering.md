@@ -1,18 +1,18 @@
 # 分层与依赖规则
 
-重构后的 PacToolkits 将业务逻辑从 Avalonia Desktop 抽到 `packages/`，形成清晰依赖方向。Agents 运行时（Host + Modules）在 `runtime/agents/`，通过 `agents-contracts` 与 Desktop 共享协议。
+PacToolkits 按 Desktop、Application、Infrastructure、Core 和 Agents.Contracts 划分职责。Agents Host 与模块位于 `runtime/agents/`，通过 `packages/agents-contracts` 与 Desktop 共享文件布局和模块描述协议。
 
 ## 依赖方向
 
 ```mermaid
 flowchart TB
     DESKTOP["apps/desktop-avalonia\n(Avalonia Desktop)"]
-    APP["packages/application\n用例 + 抽象"]
+    APP["packages/application\n用例与抽象"]
     INF["packages/infrastructure\nPostgreSQL 实现"]
     CORE["packages/core\n纯领域"]
     AGENT["packages/agents-contracts\nAgents 协议"]
     HOST["runtime/agents/host\nAgents.exe Host"]
-    INJ["runtime/agents/modules/injector\nInjector 模块 AHK"]
+    MODULE["runtime/agents/modules/*\n独立模块进程"]
 
     DESKTOP --> APP
     DESKTOP --> INF
@@ -22,22 +22,21 @@ flowchart TB
     INF --> CORE
     APP --> CORE
     DESKTOP -.->|启停 Host / module.control| HOST
-    HOST -.->|启动子进程| INJ
-    INJ -.->|读 --config JSON| DESKTOP
+    HOST -.->|启动和停止| MODULE
 ```
 
 **允许：**
 
-- Desktop → Application / Infrastructure / Agents.Contracts
+- Desktop → Application、Infrastructure、Agents.Contracts
 - Host → Agents.Contracts
-- Infrastructure → Application / Core
+- Infrastructure → Application、Core
 - Application → Core
 
 **禁止：**
 
 - Application → Infrastructure
-- Core → 任意 IO（数据库、文件系统、日志框架、配置、桌面端）
-- Application / Core → Avalonia
+- Core → 任意 I/O（数据库、文件系统、日志框架、配置、桌面端）
+- Application、Core → Avalonia
 - ViewModel 直接引用 Npgsql 或编写 SQL
 
 ## 各层职责
@@ -65,19 +64,20 @@ flowchart TB
 
 ### `packages/agents-contracts`
 
-- Desktop 与 Agents（Host + Modules）共享的配置、路径与运行时抽象
-- `AgentsOptions` / `ModuleOptions`、`AgentsConfigValidator`、`ModuleSettingsValidator`、`AgentsPaths` / `AgentsPath`
-- `IAgentsRuntime` / `IAgentsManager`（桌面实现启停；Host 只消费路径/契约常量）
-- **不是**「仅 AHK 协议」：Host 是 .NET；模块读 `--module-settings` 用户文件，不引用该 C# 包
+- Desktop 与 Agents（Host 和模块）共享的配置、路径与运行时抽象
+- `AgentsOptions`、`ModuleOptions`、`AgentsConfigValidator`、`ModuleSettingsValidator`、`AgentsPaths`、`AgentsPath`
+- `IAgentsRuntime` 和 `IAgentsManager`；Desktop 提供实现，Host 仅使用路径与协议常量
+- 该包描述跨进程文件布局和模块元数据，不限定模块实现语言
+- 模块通过命令行参数和文件协议参与运行时，不直接引用该 C# 包
 
 进程模型见 [Agents 运行时架构](./agents.md)。
 
 ### `apps/desktop-avalonia`
 
-- Views / ViewModels / Avalonia 样式与行为（ShadUI）
+- Views、ViewModels、Avalonia 样式与行为（ShadUI）
 - **桌面专属**服务：Toast、Dialog、更新、剪贴板、UiBehavior 等
-- 通过 DI 组装 Application + Infrastructure；`AgentsRuntime` 控制 Host / Modules
-- 页面连接/可用性/空态三层模型见 [desktop-state.md](./desktop-state.md)
+- 通过 DI 组装 Application 与 Infrastructure；`AgentsRuntime` 控制 Host 和模块
+- 页面连接、可用性和空状态的分层模型见 [desktop-state.md](./desktop-state.md)
 
 ## 典型请求路径（示例）
 
@@ -103,10 +103,10 @@ Settings / MainWindow
 
 ## 敏感操作与解锁
 
-`ISensitiveUnlockService` 定义在 Application 层；实现在桌面 `SensitiveUnlockService`（依赖 Dialog / Toast 等桌面交互能力）。
+`ISensitiveUnlockService` 定义在 Application 层；Desktop 的 `SensitiveUnlockService` 提供实现，并依赖 Dialog、Toast 等桌面交互能力。
 
 ## 演进约束
 
-1. 新业务能力优先落在 Application（接口 + 服务），Infrastructure 补实现
-2. Agents 共享类型进 `agents-contracts`，避免 Desktop 与 Injector 各写一份互不兼容的配置形状
-3. 新模块优先 `Modules/<Id>/<Id>.exe` + `module.json`；不要把 UI 自动化塞进 Desktop 进程
+1. 新业务能力优先在 Application 定义接口和服务，由 Infrastructure 提供外部系统实现
+2. Desktop 与 Host 共享的 Agents 类型放入 `agents-contracts`，模块业务配置不进入 Desktop 全局配置模型
+3. 新模块通过 `module.json` 声明入口、桌面元数据和构建方式，业务自动化保持在独立模块进程

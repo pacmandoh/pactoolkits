@@ -1,19 +1,20 @@
 # PacToolkits Desktop 日志事件对照与分级
 
-更新时间: 2026-07-21
-适用范围: `PacToolkits.Desktop.Avalonia`（JSON Line 文件日志）
-生成方式: 从 `apps/desktop-avalonia/src` + `packages/infrastructure` + `packages/application` 源码扫描；与代码不一致时以代码为准。
+更新时间：2026-07-27
+
+适用范围：`PacToolkits.Desktop.Avalonia` JSON Lines 文件日志
+生成方式：扫描 `apps/desktop-avalonia/src`、`packages/infrastructure` 和 `packages/application`；事件定义以源码为准
 
 ## 1. 使用说明
 
-- 日志目录默认:
-  - macOS: `~/Library/Application Support/PacToolkits/logs/desktop`
-  - Linux: `~/.config/PacToolkits/logs/desktop`
-  - Windows: `%AppData%\PacToolkits\logs\desktop`
-- 日志文件: `desktop-YYYY-MM-DD.log`（同日滚动为 `desktop-YYYY-MM-DD.N.log`）
+- 默认日志目录：
+  - macOS：`~/Library/Application Support/PacToolkits/logs/desktop`
+  - Linux：`~/.config/PacToolkits/logs/desktop`
+  - Windows：`%AppData%\PacToolkits\logs\desktop`
+- 日志文件：`desktop-YYYY-MM-DD.log`（同日滚动为 `desktop-YYYY-MM-DD.N.log`）
 - 升级迁移：旧默认目录 `.../logs/ui` 在加载配置时会改写为 `.../logs/desktop`（事件 `logging.directory.migrate`）；历史文件不自动搬迁
-- 格式: JSON Line；关键字段 `ts` / `level` / `module` / `event` / `message` / `exception`（可选）/ `version` / `context`
-- Agents：Desktop 控制 **Host + Modules**（如 Injector）；相关 `module` 多为 `Agents` / `MainWindowVM` / `Settings.Agents`
+- 格式：JSON Lines；关键字段包括 `ts`、`level`、`module`、`event`、`message`、`exception`（可选）、`version` 和 `context`
+- Agents 事件主要由 `Agents`、`MainWindowVM` 和 `Settings.Agents` 模块记录
 
 ## 2. 按严重度分层（排障优先级）
 
@@ -23,33 +24,33 @@
 
 ### Error（用户可感知失败）
 
-- 更新: `update.check.fail`、`update.apply.flow_fail`、`update.*.fail`
-- DB / 页面加载: `db.startup_check.fail`、`db.schema.incompatible.startup`、`*.reload_fail`、`*.save.fail`、`scan.submit.fail`
-- Agents: `agents.start_or_restart.fail`、`agents.module_*.fail`、`settings.agents.*.fail`
-- 后台未等待任务: `*.detached.fail`（`ObserveDetached` / `TaskObserve` 接住未 await 任务的异常）
+- 更新：`update.check.fail`、`update.apply.flow_fail`、`update.*.fail`
+- 数据库与页面加载：`db.startup_check.fail`、`db.schema.incompatible.startup`、`*.reload_fail`、`*.save.fail`、`scan.submit.fail`
+- Agents：`agents.start_or_restart.fail`、`agents.module_*.fail`、`settings.agents.*.fail`
+- 未等待的后台任务：`*.detached.fail`（`ObserveDetached` 或 `TaskObserve` 记录未 `await` 任务的异常）
 
-### Warn（降级 / 可恢复）
+### Warn（降级或可恢复）
 
-- 瞬断重试: `conn.open.transient_disconnect.retry`、`reload.transport_retry`
-- 局部失败继续: `client_id.query.partial_fail`、多数 `*.dispose.*_fail`
+- 瞬断重试：`conn.open.transient_disconnect.retry`、`reload.transport_retry`
+- 局部失败继续：`client_id.query.partial_fail`、多数 `*.dispose.*_fail`
 - MSFX 审计成功类也记 Warn（如 `msfx.task.reopen.success`）便于检索
 
 ### Info（轨迹）
 
-- 生命周期: `app.start` / `app.ready` / `app.shutdown`
-- 更新: `update.check.*`、`update.apply.*`（非 fail）
-- 重载: `reload.started` / `reload.skipped` / `reload.finished`
-- Agents: `agents.reload`
+- 生命周期：`app.start`、`app.ready`、`app.shutdown`
+- 更新：`update.check.*`、`update.apply.*`（不含失败事件）
+- 重载：`reload.started`、`reload.skipped`、`reload.finished`
+- Agents：`agents.reload`
 
 ### MSFX 页面审计（非本文件 JSON）
 
-`码上放心联调` 页内「运行日志详情」由 `MsfxLink.AddAutoLog` 维护，**不**写入 Desktop 日志文件。部分关键节点另写 JSON（见下方 Msfx 节）。联调排障优先看页面审计；程序异常 / 保存失败看本表。
+“码上放心联调”页面中的“运行日志详情”由 `MsfxLink.AddAutoLog` 维护，不写入 Desktop 日志文件。部分关键节点会同时写入 JSON 日志。联调问题应优先检查页面审计记录；程序异常和保存失败应检查本文列出的文件日志。
 
 ---
 
-## 3. 事件名总表（按 module / 来源）
+## 3. 事件名总表（按模块和来源）
 
-表项格式: `` `event` ``（Level）— message 摘要。同一 event 多 Level 时并列。
+条目格式为 `` `event` ``（Level）— message 摘要。同一事件存在多个级别时并列展示。
 
 ### App
 
@@ -118,14 +119,19 @@
 ### Agents
 
 - `agents.close_window.fail` (Warn) — Failed to close Agents process window gracefully
-- `agents.dispose.gate_fail` (Warn) — Failed to dispose command gate
+- `agents.binary_change.detached.fail` (Error) — Detached binary reload task failed
 - `agents.dispose.timer_fail` (Warn) — Failed to dispose poll timer
+- `agents.host_binary.reload_fail` (Warn) — Failed to restart Agents after Host binary changed
+- `agents.host_binary.reloaded` (Info) — Restarted Agents after Host binary changed
+- `agents.kill.fail` (Warn) — Failed to kill Agents process
+- `agents.module_binary.reload_fail` (Warn) — Failed to reload module after binary changed
+- `agents.module_binary.reloaded` (Info) — Reloaded module after binary changed
 - `agents.module_start.fail` (Error) — Module start failed
 - `agents.module_stop.fail` (Error) — Module stop failed
 - `agents.module_terminate.fail` (Warn) — Failed to terminate module process
 - `agents.modules.normalize_fail` (Warn) — Failed to normalize Agents.Modules after rediscovery
 - `agents.modules.rediscover` (Info) — Agents modules catalog changed
-- `agents.kill.fail` (Warn) — Failed to kill Agents process
+- `agents.poll.fail` (Warn) — Agents status poll failed
 - `agents.reload` (Info) — Agents runtime config reloaded
 - `agents.start_or_restart.fail` (Error) — Agents start/restart failed
 - `agents.status_changed.fail` (Warn) — Agents status change handler failed
@@ -166,18 +172,22 @@
 - `settings.agents.dispose.module_editors_unsub_fail` (Warn) — Failed to unsubscribe module editors
 - `settings.agents.dispose.module_run_unsub_fail` (Warn) — Failed to unsubscribe module run rows
 - `settings.agents.dispose.runtime_unsub_fail` (Warn) — Failed to unsubscribe runtime status
+- `settings.agents.host.start` (Info) — Starting Agents Host from Settings
+- `settings.agents.host.stop` (Info) — Stopping Agents Host from Settings
 - `settings.agents.host_run.fail` (Error) — Failed to toggle Host running
 - `settings.agents.module_editor.load_fail` (Warn) — Failed to load module settings editor
 - `settings.agents.module_enable.fail` (Error) — Failed to save module enabled
+- `settings.agents.module_field.autosave.detached.fail` (Error) — Detached module field auto-save failed
+- `settings.agents.module_field.autosave.fail` (Error) — Failed to auto-save module fields
+- `settings.agents.module_field.flush_fail` (Error) — Failed to flush module fields during disposal
+- `settings.agents.module_field.restore.fail` (Error) — Failed to restore module fields after auto-save failure
 - `settings.agents.module_run.fail` (Error) — Failed to toggle module running
+- `settings.agents.restart` (Info) — Restarting Agents runtime from Settings
 - `settings.agents.restart.fail` (Error) — Failed to restart Agents runtime
-- `agents.host_binary.reloaded` (Info) — Restarted Agents after Host binary changed
-- `agents.host_binary.reload_fail` (Warn) — Failed to restart Agents after Host binary changed
-- `agents.module_binary.reloaded` (Info) — Reloaded module after binary changed
-- `agents.module_binary.reload_fail` (Warn) — Failed to reload module after binary changed
 - `settings.agents.save.fail` (Error) — Failed to save Agents settings
 - `settings.agents.save_options.fail` (Error) — Failed to save Agents options to config
 - `settings.agents.save_options.silent_fail` (Error) — Silent save options failed
+- `settings.agents.save_options.verify_fail` (Error) — Failed to verify persisted Host configuration after save failure
 
 ### Settings
 
@@ -362,9 +372,9 @@
 - `grid.scroll_into_view.fail` (Warn) — Failed to scroll row into view
 - `grid.set_current_column.fail` (Warn) — Failed to set current column
 
-### ObserveDetached / TaskObserve
+### ObserveDetached 与 TaskObserve
 
-启动后未 `await` 的后台任务若失败，由此写入日志；`module` 为调用方类型名（或 `TaskObserve` 显式传入的 module）。下列按 event 汇总。
+未 `await` 的后台任务失败时由这两个入口记录日志。`module` 默认使用调用方类型名，也可以由 `TaskObserve` 显式指定。以下条目按事件名汇总。
 
 - `abnormal.reload.detached.fail` (Error) — Detached task failed
 - `auto_refresh.detached.fail` (Error) — Detached task failed
@@ -412,10 +422,10 @@
 ## 4. 检索建议
 
 ```bash
-# 今日 Error/Fatal
+# 当天的 Error/Fatal 事件
 jq -c 'select(.level=="Error" or .level=="Fatal")' ~/Library/Application\ Support/PacToolkits/logs/desktop/desktop-$(date +%F).log
 
-# Agents / Modules
+# Agents 与模块事件
 jq -c 'select(.event|startswith("agents.") or startswith("settings.agents."))' .../desktop-YYYY-MM-DD.log
 
 # 更新通道

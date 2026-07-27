@@ -1,6 +1,6 @@
 # Desktop（Avalonia）概览
 
-桌面端是业务操作中心：页面交互、配置、审计、更新与 Agents 运行时联动。ViewModel 经 `packages/application` 访问业务；数据库实现在 `packages/infrastructure`。
+Desktop 承载业务交互、配置、审计、更新和 Agents 运行控制。ViewModel 通过 `packages/application` 调用业务用例，PostgreSQL 实现位于 `packages/infrastructure`。
 
 ## 主要职责
 
@@ -9,8 +9,8 @@
 - 追溯码录入与扫描
 - 库存总览与库存调整
 - 码上放心联调、拉取、映射、任务审计
-- 码上放心 bill watch 补偿、任务弃用 / 回退映射 / 合并 / 拆分
-- **Agents Host + Modules** 的配置与启停（非「单独 AHK 进程」）
+- 码上放心账单监视补偿，以及任务弃用、映射回退、合并和拆分
+- Agents Host 与模块的配置、启停和状态展示
 - 设置、更新、日志与诊断
 
 ## 主要目录
@@ -21,7 +21,7 @@
 - `Services/Application/`、`Services/Infrastructure/`、`Services/Presentation/`、`Services/Integration/`
 - `Styles/`、`Controls/`、`Behaviors/`、`Converters/`
 
-## 代表页面 / 入口
+## 代表页面与入口
 
 - `Dashboard`、`DrugIndex`、`InventoryOverview`、`ScanCode`、`MsfxLink`
 - `Settings`（含 `Settings.Agents` 自动化集成）
@@ -38,7 +38,7 @@
 
 ## UI 状态
 
-连接 / 页面可用性 / 区块空态三层模型见 [Desktop 状态模型](../../../docs/architecture/desktop-state.md)。
+连接状态、页面可用性和区块空状态的分层模型见 [Desktop 状态模型](../../../docs/architecture/desktop-state.md)。
 
 ## 相关文档
 

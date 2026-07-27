@@ -57,10 +57,10 @@ PacToolkits Desktop, Agents (Host + modules), and PostgreSQL orchestration for d
 **PacToolkits** is a monorepo for drug trace-code operations, combining:
 
 - PacToolkits Desktop for business workflows and diagnostics
-- Agents runtime: .NET **Host** (`Agents.exe`) plus pluggable **Modules** (Injector is AHK v2 today)
+- Agents runtime: .NET **Host** (`Agents.exe`) with independently managed automation **Modules**
 - a PostgreSQL schema and migration system for ingestion, mapping, tasking, and execution state
 
-Main lines in this repository:
+Primary repository areas:
 
 - business-facing interaction in [`apps/desktop-avalonia`](./apps/desktop-avalonia/)
 - shared use cases in `packages/application`
@@ -74,7 +74,7 @@ Main lines in this repository:
 
 - Unified desktop + automation + database architecture in one repository
 - Avalonia-based business client with update and diagnostics capabilities
-- Agents container with .NET Host and AutoHotkey Injector module (parse / inject / verify)
+- Agents runtime with a resident .NET Host and independently controlled module processes
 - PostgreSQL migration-based schema lifecycle with compatibility gates
 - Versioned release pipeline for Desktop, Agents, and DB schema compatibility
 - Operational visibility for inventory, mapping, MSFX linkage, and execution queues
@@ -110,19 +110,19 @@ flowchart LR
 
 ```text
 pactoolkits/
-  apps/desktop-avalonia/      Current production Desktop (Avalonia)
+  apps/desktop-avalonia/      Desktop client (Avalonia)
   packages/
     core/                     Pure domain helpers (no IO)
     application/              Use cases, DTOs, service abstractions
     infrastructure/           PostgreSQL repos and DB services
     agents-contracts/         Shared Desktop ↔ Agents protocol
-  runtime/agents/             Agents container (Host + modules)
+  runtime/agents/             Agents runtime (Host and modules)
   database/postgres/          PostgreSQL bootstrap, migration, verify, deploy
   docs/                       Cross-cutting architecture and operations docs
   scripts/                    Versioning, packaging, release helpers
   .github/workflows/          CI/CD and release workflows
   PacToolkits.sln             .NET solution entry point
-  release-manifest.json       Unified version source of truth
+  release-manifest.json       Authoritative version and compatibility manifest
 ```
 
 ---
@@ -176,7 +176,7 @@ Release, packaging, and channel policy: [Release flow](./docs/operations/release
 
 ## Getting Started
 
-**Prerequisites:** .NET SDK 10.x, `psql`, `bash` / `jq` / `zip`, `vpk` for Velopack packaging.
+**Prerequisites:** .NET SDK 10.x, `psql`, `bash`, `jq`, and `zip`. Velopack packaging also requires `vpk`.
 
 ```bash
 dotnet build PacToolkits.sln
@@ -190,11 +190,11 @@ dotnet build PacToolkits.sln
 
 ## Design Principles
 
-- One repository, one version source of truth
+- A single release manifest is authoritative for versioning
 - Desktop, Agents, and DB evolve together
 - Business-facing flows stay observable
 - Automation remains configurable, not page-hardcoded
-- Database owns task state and execution truth
+- Database is authoritative for task and execution state
 - Runtime, Desktop, and persistence boundaries stay explicit
 
 ---

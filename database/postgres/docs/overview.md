@@ -1,14 +1,14 @@
 # PostgreSQL 数据库概览
 
-数据库模块负责整个系统的持久化建模与任务编排，是联调、映射、建任务、执行状态回写的事实来源。
+PostgreSQL 组件负责系统的持久化模型和任务编排，是联调数据、映射关系、任务及执行状态的权威数据源。
 
 ## 主要职责
 
-- bootstrap 初始化
-- 增量 migration
-- verify 校验
+- schema 初始化
+- 增量 migration 管理
+- 结构与约束验证
 - 部署计划与执行
-- staging / mapping / inject task / audit event 相关模型维护
+- staging、mapping、inject task 和 audit event 相关模型维护
 
 ## 目录结构
 
@@ -24,7 +24,7 @@ database/postgres/
 
 - 上游单据与明细入库
 - 追溯码 staging
-- 药品 / 规格映射
+- 药品与规格映射
 - 注入任务生成与队列顺序
 - 仓库模式重复注入防护
 - 任务重开、重试与结算

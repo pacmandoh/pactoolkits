@@ -57,15 +57,15 @@ PacToolkits Desktop、Agents（Host + 模块）与 PostgreSQL 任务编排。
 **PacToolkits** 是一个围绕药品追溯码业务构建的单仓库项目，统一管理三类核心能力：
 
 - PacToolkits Desktop 业务客户端
-- Agents 运行时：.NET **Host**（`Agents.exe`）+ 可插拔 **Modules**（当前 Injector 为 AHK v2）
-- 负责落库、映射、建任务、执行状态管理的 PostgreSQL 数据库体系
+- Agents 运行时：.NET **Host**（`Agents.exe`）与独立自动化 **Modules**
+- 负责数据持久化、业务映射、任务创建和执行状态管理的 PostgreSQL 数据库体系
 
-当前仓库主线：
+仓库主要目录：
 
 - [`apps/desktop-avalonia`](./apps/desktop-avalonia/)：业务交互、配置、更新与诊断
 - `packages/application`：用例层服务与抽象
 - `packages/infrastructure`：PostgreSQL 仓储与 DB 实现
-- [`runtime/agents`](./runtime/agents/)：Host + Modules
+- [`runtime/agents`](./runtime/agents/)：Host、自动化模块与模块模板
 - [`database/postgres`](./database/postgres/)：入库、映射、任务与迁移治理
 
 ---
@@ -74,9 +74,9 @@ PacToolkits Desktop、Agents（Host + 模块）与 PostgreSQL 任务编排。
 
 - Desktop、Agents、DB 一体化单仓库设计
 - 基于 Avalonia 的桌面业务客户端
-- Agents 容器：.NET Host + Modules
+- Agents 运行时：常驻 .NET Host + 可独立启停的模块进程
 - 基于 PostgreSQL Migration 的数据库演进与兼容门禁
-- Desktop / Agents / DB 版本由 Manifest 统一管控
+- Desktop、Agents 和数据库版本由 Manifest 统一管理
 - 支持库存、追溯码录入、联调映射、任务队列与审计
 
 ---
@@ -110,17 +110,17 @@ flowchart LR
 
 ```text
 pactoolkits/
-  apps/desktop-avalonia/      当前正式 Desktop（Avalonia）
+  apps/desktop-avalonia/      Desktop 客户端（Avalonia）
   packages/
     core/                     纯业务核心（无 IO）
     application/              用例层：DTO、服务接口与应用服务
     infrastructure/           外部实现：PostgreSQL 仓储
     agents-contracts/         Desktop ↔ Agents 共享协议
-  runtime/agents/             Agents 容器（Host + 模块）
-  database/postgres/          PostgreSQL bootstrap / migration / verify / deploy
+  runtime/agents/             Agents 运行时（Host 与模块）
+  database/postgres/          PostgreSQL 初始化、迁移、验证与部署
   docs/                       跨模块架构与运维文档
   scripts/                    版本、打包、发布辅助脚本
-  .github/workflows/          CI / 发布流程
+  .github/workflows/          持续集成与发布流程
   PacToolkits.sln             .NET 解决方案入口
   release-manifest.json       全局版本与兼容性清单
 ```
@@ -155,7 +155,7 @@ pactoolkits/
 - 库存总览与低库存处理
 - 药品信息维护
 - 客户端别名管理
-- 码上放心联调、bill watch 补偿与审计
+- 码上放心联调、账单监视补偿与审计
 - 仓库任务注入、重开、弃用与诊断
 - 自动化运行时配置管理
 
@@ -176,7 +176,7 @@ pactoolkits/
 
 ## 快速开始
 
-**环境要求：** .NET SDK 10.x、`psql`、`bash` / `jq` / `zip`，Velopack 打包需 `vpk`。
+**环境要求：** .NET SDK 10.x、`psql`、`bash`、`jq` 和 `zip`；Velopack 打包还需要 `vpk`。
 
 ```bash
 dotnet build PacToolkits.sln
@@ -190,11 +190,11 @@ dotnet build PacToolkits.sln
 
 ## 设计原则
 
-- 一个仓库，一个版本事实来源
+- 使用单一发布清单作为版本权威来源
 - Desktop、Agents、DB 协同演进
 - 业务流程可观察、可追溯
-- 自动化能力可配置，不塞入页面逻辑
-- 数据库拥有任务状态真相
+- 自动化能力通过独立配置管理，不与页面逻辑耦合
+- 数据库是任务状态和执行状态的权威来源
 - Desktop、运行时、持久化边界清晰
 
 ---

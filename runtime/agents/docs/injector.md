@@ -1,42 +1,56 @@
 # Injector 模块
 
-Injector 是 Agents 容器下的一个 **Module**（`runtime: ahk`），由 Host 按 `module.json` 的 `entry.win-x64` 启动。负责对目标窗口解析 / 注入 / 验证，以及与 PostgreSQL 任务队列同步。
+Injector 是 Agents 的生产业务模块，由 Host 根据 `module.json` 中的 `entry.win-x64` 启动。模块使用 AutoHotkey v2 实现，负责目标系统界面解析、追溯码注入、结果验证以及 PostgreSQL 任务同步。
 
-进程关系与控制文件见 [Agents 运行时架构](../../../docs/architecture/agents.md)。
+## 职责
 
-## 主要职责
+- 识别目标应用和业务窗口
+- 解析 Grid 或剪贴板中的业务数据
+- 执行门诊、住院和仓库场景的追溯码录入
+- 验证录入结果并记录异常
+- 领取仓库任务并回写任务状态与事件
 
-- 解析目标窗口 Grid / 剪贴板内容
-- 向目标系统执行追溯码注入
-- 注入后验证结果
-- 领取并执行仓库注入任务
-- 将执行结果与事件回写 PostgreSQL
-- 读取 `--config`（Postgres）与 `--module-settings`（业务字段）
+## 启动参数
 
-## 启动与就绪
+Host 启动 Injector 时传入两类配置：
 
-1. 必须带 `--config "<绝对路径>"`。
-2. Host 追加 `--module-settings <ConfigDir>/agents/modules/Injector/settings.json`（必填）。
-3. 用户 settings 由 Desktop 在首次需要时从模块模板 `Modules/Injector/settings.json` Copy-once。
-4. 自检通过后写入 `module.ready`。
+| 参数                | 内容                                                    |
+| ------------------- | ------------------------------------------------------- |
+| `--config`          | Desktop 配置文件绝对路径，提供 PostgreSQL 连接配置      |
+| `--module-settings` | Injector 用户配置绝对路径，提供窗口、控件和业务策略配置 |
 
-## 配置
+缺少任一参数、配置文件无法读取或关键配置无效时，Injector 自检失败且不会创建 `module.ready`。
 
-| 文件 | 位置 | 作用 |
-| ---- | ---- | ---- |
-| `settings.json` | 模块包内（模板） | 默认业务字段 |
-| `settings.schema.json` | 模块包内 | Desktop Settings 自动表单 |
-| `settings.json` | `{ConfigDir}/agents/modules/Injector/` | 用户真相（Settings 编辑） |
+## 配置文件
 
-业务字段由 `settings.schema.json` 描述；Desktop 启动校验走通用 `ModuleSettingsValidator`。
+| 文件        | 位置                                                | 用途                               |
+| ----------- | --------------------------------------------------- | ---------------------------------- |
+| 默认配置    | `Agents/Modules/Injector/settings.json`             | 新用户配置的初始值                 |
+| 设置 schema | `Agents/Modules/Injector/settings.schema.json`      | Desktop 设置页的字段定义和校验规则 |
+| 用户配置    | `{ConfigDir}/agents/modules/Injector/settings.json` | 运行时实际读取的业务配置           |
 
-## 核心源码
+Desktop 仅在用户配置不存在时复制默认配置，不会在模块升级时覆盖已有用户配置。`ModuleSettingsValidator` 在保存和启动前按 schema 校验用户配置。
+
+## 运行门控
+
+全局热键由 `Util_HotIf_TargetApp()` 限制。执行自动化前必须同时满足：
+
+- 当前前台进程存在于 `AppWin`
+- 当前窗口类匹配 `OptWindowClass` 或 `IptWindowClass`
+- 仓库模式仅在住院窗口类下启用
+
+窗口类、ClassNN、仓库识别文本和字段策略均由用户配置提供。运行时不会提供绕过目标应用检查的全局模式。
+
+## 源码结构
 
 相对 `runtime/agents/modules/injector/`：
 
-- `main.ahk`、`module.json`、`settings.json`、`settings.schema.json`
-- `src/utils.ahk`、`src/main_semi_auto.ahk`、`src/msfx_task.ahk` 等
+- `main.ahk`：启动、自检和模块入口
+- `module.json`：模块发现、桌面展示和构建元数据
+- `settings.json`、`settings.schema.json`：默认业务配置与设置页定义
+- `src/main_semi_auto.ahk`：半自动录入流程
+- `src/msfx_task.ahk`：仓库任务处理
+- `src/ui_txn.ahk`：目标窗口交互与结果验证
+- `src/utils.ahk`：配置、窗口识别和通用辅助逻辑
 
-## 热键门控
-
-`#HotIf Util_HotIf_TargetApp()`：前台进程 ∈ `AppWin`，窗口类 = `OptWindowClass` 或 `IptWindowClass`（仓库模式仅住院类）。详见源码与 Settings schema 字段说明。
+进程控制、配置生效和二进制更新行为见 [Agents 运行时架构](../../../docs/architecture/agents.md)。

@@ -1,11 +1,11 @@
 # PostgreSQL（database/postgres）
 
-统一部署模型：
+数据库部署采用统一入口和可审计迁移模型：
 
 - 单一命令入口
-- migration 账本（`schema_migrations`）
-- schema 版本门禁（`schema_version` vs manifest）
-- 对非空库安全的只读 verify
+- migration 执行记录（`schema_migrations`）
+- schema 版本兼容校验（`schema_version` 与发布清单）
+- 可安全用于非空数据库的只读验证
 
 ## 布局
 
@@ -61,10 +61,10 @@ Copy-Item scripts/config.example.json scripts/config.json
 
 ## 规则
 
-1. 目标 DB 版本来源：`../../release-manifest.json` → `components.database.postgres.version`。
-2. 每次 schema 变更必须新增 migration 文件：`Vx_y_z__description.sql`。
-3. 已应用的 migration 文件不可变（校验和保护）。
-4. `verify` 只读，对非空生产库安全。
+1. 目标数据库版本由 `../../release-manifest.json` 的 `components.database.postgres.version` 定义
+2. 每次 schema 变更必须新增 `Vx_y_z__description.sql` migration 文件
+3. 已应用的 migration 文件受校验和保护，不得修改
+4. `verify` 仅执行只读检查，可用于非空生产数据库
 
 ## 隔离 Beta 数据库
 
@@ -105,7 +105,7 @@ Windows PowerShell 策略相同：
 - `Database.Source=production-clone`
 - `Database.BetaVersion=<version>`
 
-完成时打印的连接串故意不含密码。
+脚本输出的连接字符串不包含密码，避免凭据进入终端记录或日志。
 
 ## 文档
 
