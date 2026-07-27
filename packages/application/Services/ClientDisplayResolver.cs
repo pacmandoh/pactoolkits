@@ -58,10 +58,10 @@ public static class ClientDisplayResolver
         ArgumentNullException.ThrowIfNull(rows);
         ArgumentNullException.ThrowIfNull(aliasService);
 
+        // 同 Display 合并；pickBestByValue 决定代表机与 KPI 口径
         return rows
             .Select(row => (Client: Resolve(row.ClientRaw, aliasService), row.Value))
             .Where(row => !string.IsNullOrWhiteSpace(row.Client.Display))
-            // 同 Display 合并；pickBestByValue 决定代表机与 KPI 口径
             .GroupBy(row => row.Client.Display, StringComparer.OrdinalIgnoreCase)
             .Select(group =>
             {
