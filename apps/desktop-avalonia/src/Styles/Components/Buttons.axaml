@@ -22,18 +22,6 @@
     <Setter Property="Background" Value="{DynamicResource GhostColor}" />
   </Style>
 
-  <Style Selector="Button.Action">
-    <Setter Property="Height" Value="{DynamicResource ControlHeightCompact}" />
-    <Setter Property="MinWidth" Value="{DynamicResource MinWAction}" />
-    <Setter Property="Padding" Value="{DynamicResource ButtonPaddingHorizontal}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
-  </Style>
-
-  <Style Selector="Button.ActionWide">
-    <Setter Property="MinWidth" Value="{DynamicResource ButtonWideMinWidth}" />
-  </Style>
-
   <Style Selector="Button.MicroClear">
     <Setter Property="Width" Value="{DynamicResource DgSortResetButtonSize}" />
     <Setter Property="Height" Value="{DynamicResource DgSortResetButtonSize}" />

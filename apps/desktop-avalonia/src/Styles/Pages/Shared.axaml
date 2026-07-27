@@ -13,13 +13,4 @@
     <Setter Property="TextTrimming" Value="None" />
   </Style>
 
-  <Style Selector="Button.MsfxMiniIconBtn">
-    <Setter Property="Width" Value="{DynamicResource MsfxIconBtnSize}" />
-    <Setter Property="Height" Value="{DynamicResource MsfxIconBtnSize}" />
-    <Setter Property="MinWidth" Value="{DynamicResource MsfxIconBtnSize}" />
-    <Setter Property="MinHeight" Value="{DynamicResource MsfxIconBtnSize}" />
-    <Setter Property="Padding" Value="{DynamicResource MsfxIconBtnPadding}" />
-    <Setter Property="HorizontalAlignment" Value="Right" />
-    <Setter Property="VerticalAlignment" Value="Top" />
-  </Style>
 </Styles>

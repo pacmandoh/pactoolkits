@@ -13,8 +13,6 @@
   <x:Double x:Key="ControlHeightCompact">38</x:Double>
   <Thickness x:Key="RowPadding">10,8</Thickness>
 
-  <x:Double x:Key="ButtonWideMinWidth">136</x:Double>
-
   <x:Double x:Key="RowMinHeight">48</x:Double>
   <x:Double x:Key="InventoryRowHeight">52</x:Double>
   <x:Double x:Key="ReassignPreviewRowHeight">36</x:Double>
@@ -32,8 +30,6 @@
   <DataGridLength x:Key="DgWRightSmall">110</DataGridLength>
   <DataGridLength x:Key="DgWQtyCompact">56</DataGridLength>
   <DataGridLength x:Key="DgWTimeCompact">96</DataGridLength>
-  <x:Double x:Key="MinWAction">104</x:Double>
-
   <x:Double x:Key="ButtonPrimaryMinHeight">40</x:Double>
   <Thickness x:Key="ButtonPaddingHorizontal">14,0</Thickness>
 
@@ -43,9 +39,6 @@
   <Thickness x:Key="EmptyStatePadding">24</Thickness>
   <x:Double x:Key="EmptyStateSpacing">10</x:Double>
   <x:Double x:Key="EmptyStateIconSize">40</x:Double>
-
-  <x:Double x:Key="MsfxIconBtnSize">28</x:Double>
-  <Thickness x:Key="MsfxIconBtnPadding">2</Thickness>
 
   <Thickness x:Key="PageRootMargin">6</Thickness>
   <x:Double x:Key="StatusBarHeight">28</x:Double>

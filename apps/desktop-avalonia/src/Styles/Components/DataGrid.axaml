@@ -116,12 +116,6 @@
     <Setter Property="CanUserResizeColumns" Value="False" />
   </Style>
 
-  <Style Selector="DataGrid.NonInteractive">
-    <Setter Property="IsHitTestVisible" Value="False" />
-    <Setter Property="Focusable" Value="False" />
-    <Setter Property="IsTabStop" Value="False" />
-  </Style>
-
   <Style Selector="DataGrid.InventoryGrid">
     <Setter Property="RowHeight" Value="{DynamicResource InventoryRowHeight}" />
   </Style>
