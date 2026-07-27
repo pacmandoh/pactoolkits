@@ -58,6 +58,7 @@ public partial class Settings
     [ObservableProperty] private bool _isHostRunningSwitch;
     [ObservableProperty] private bool _isAgentsToggling;
     [ObservableProperty] private bool _isSavingSettings;
+    [ObservableProperty] private ModuleSettingsEditor? _selectedModuleEditor;
     [ObservableProperty] private string _agentsExecutablePath = string.Empty;
     [ObservableProperty] private string _agentsProcessName = string.Empty;
     [ObservableProperty] private string _hostStatusText = "检测中";
@@ -102,7 +103,7 @@ public partial class Settings
     {
         HostVersionText = _agents.HostVersion;
         ApplyRuntimeSnapshot();
-        SyncAgentsConfig();
+        SyncAgentsConfig(syncHost: true, syncModules: true);
         RefreshPendingChanges();
 
         _agents.StatusChanged += OnAgentsRuntimeChanged;
@@ -119,7 +120,7 @@ public partial class Settings
             return;
         }
 
-        SyncAgentsConfig();
+        SyncAgentsConfig(syncHost: true, syncModules: ModulesSyncKeyChanged());
     }
 
     partial void OnAgentsExecutablePathChanged(string value) => RefreshPendingChanges();
@@ -143,7 +144,7 @@ public partial class Settings
 
             if (!IsAgentsToggling && !HasPendingChanges && !HasModuleAutoSaves)
             {
-                SyncAgentsConfig();
+                SyncAgentsConfig(syncHost: true, syncModules: true);
                 return;
             }
 
@@ -224,7 +225,7 @@ public partial class Settings
                 ApplyRuntimeSnapshot();
                 if (result.Saved)
                 {
-                    SyncAgentsConfig();
+                    SyncAgentsConfig(syncHost: true, syncModules: _moduleEditorsStale);
                 }
             });
             return result.Saved && !HasPendingChanges;
@@ -828,7 +829,7 @@ public partial class Settings
         row.IsStatusStopped = state == AgentsRunState.Stopped;
     }
 
-    private void SyncAgentsConfig()
+    private void SyncAgentsConfig(bool syncHost, bool syncModules)
     {
         var cfg = _agentsConfig.Load();
 
@@ -837,61 +838,80 @@ public partial class Settings
             lock (_snapshotGate)
             {
                 _suppressPendingRecalc = true;
-                UnwireModuleEditors();
-                ModuleEditors.Clear();
-                ModuleSettingsLoadIssues.Clear();
-
-                AgentsExecutablePath = cfg.ExecutablePath;
-                AgentsProcessName = cfg.ProcessName;
+                if (syncHost)
+                {
+                    AgentsExecutablePath = cfg.ExecutablePath;
+                    AgentsProcessName = cfg.ProcessName;
+                }
 
                 var agentsDir = TryResolveAgentsDir();
                 RefreshModuleRunRows();
                 _modulesSyncKey = BuildModulesSyncKey(agentsDir);
-                _moduleEditorsStale = false;
 
-                if (agentsDir is not null)
+                if (syncModules)
                 {
-                    foreach (var module in _agents.Modules)
+                    var selectedModuleId = SelectedModuleEditor?.ModuleId;
+                    UnwireModuleEditors();
+                    ModuleEditors.Clear();
+                    ModuleSettingsLoadIssues.Clear();
+
+                    if (agentsDir is not null)
                     {
-                        try
+                        foreach (var module in _agents.Modules)
                         {
-                            var schemaJson = _moduleSettings.TryLoadSchemaJson(module.Id, agentsDir);
-                            var schema = ModuleSettingsEditor.ParseSchema(schemaJson);
-                            if (schema is null)
+                            try
+                            {
+                                var schemaJson = _moduleSettings.TryLoadSchemaJson(module.Id, agentsDir);
+                                var schema = ModuleSettingsEditor.ParseSchema(schemaJson);
+                                if (schema is null)
+                                {
+                                    ModuleSettingsLoadIssues.Add(new ModuleSettingsLoadIssue(
+                                        module.DisplayName,
+                                        "settings.schema.json 无效或缺失"));
+                                    continue;
+                                }
+
+                                _moduleSettings.EnsureUserSettings(module.Id, agentsDir);
+                                var settingsJson = _moduleSettings.LoadSettingsJson(module.Id);
+                                var settings = ModuleSettingsEditor.ParseSettings(settingsJson);
+                                var editor = new ModuleSettingsEditor(
+                                    module.Id,
+                                    module.DisplayName,
+                                    schema,
+                                    settings);
+                                ModuleEditors.Add(editor);
+                                WireModuleEditor(editor);
+                            }
+                            catch (Exception ex)
                             {
                                 ModuleSettingsLoadIssues.Add(new ModuleSettingsLoadIssue(
                                     module.DisplayName,
-                                    "settings.schema.json 无效或缺失"));
-                                continue;
+                                    $"设置加载失败：{ex.Message}"));
+                                LogWarn(
+                                    "settings.agents.module_editor.load_fail",
+                                    "Failed to load module settings editor",
+                                    ex,
+                                    new { moduleId = module.Id });
                             }
-
-                            _moduleSettings.EnsureUserSettings(module.Id, agentsDir);
-                            var settingsJson = _moduleSettings.LoadSettingsJson(module.Id);
-                            var settings = ModuleSettingsEditor.ParseSettings(settingsJson);
-                            var editor = new ModuleSettingsEditor(
-                                module.Id,
-                                module.DisplayName,
-                                schema,
-                                settings);
-                            ModuleEditors.Add(editor);
-                            WireModuleEditor(editor);
-                        }
-                        catch (Exception ex)
-                        {
-                            ModuleSettingsLoadIssues.Add(new ModuleSettingsLoadIssue(
-                                module.DisplayName,
-                                $"设置加载失败：{ex.Message}"));
-                            LogWarn(
-                                "settings.agents.module_editor.load_fail",
-                                "Failed to load module settings editor",
-                                ex,
-                                new { moduleId = module.Id });
                         }
                     }
+
+                    SelectedModuleEditor = ModuleEditors.FirstOrDefault(editor =>
+                                               string.Equals(editor.ModuleId, selectedModuleId, StringComparison.Ordinal))
+                                           ?? ModuleEditors.FirstOrDefault();
+                    _moduleEditorsStale = false;
                 }
 
-                _savedSnapshot = BuildCurrentSnapshot();
-                _baselineReady = _savedSnapshot is not null;
+                var current = BuildCurrentSnapshot();
+                if (current is not null)
+                {
+                    var baseline = _savedSnapshot ?? current;
+                    _savedSnapshot = new AgentsEditorSnapshot(
+                        syncHost ? current.AgentsExecutablePath : baseline.AgentsExecutablePath,
+                        syncHost ? current.AgentsProcessName : baseline.AgentsProcessName,
+                        syncModules ? current.ModuleSettingsJson : baseline.ModuleSettingsJson);
+                    _baselineReady = true;
+                }
                 _suppressPendingRecalc = false;
                 RefreshPendingChanges();
             }
@@ -935,11 +955,29 @@ public partial class Settings
 
     private string BuildModulesSyncKey(string? agentsDir, string executablePath, string processName)
     {
+        var configDir = Path.GetDirectoryName(_appConfigStore.ConfigPath);
         var catalog = string.Join(
             '|',
             _agents.Modules
-                .Select(m =>
-                    $"{m.Id}:{m.Version}:{m.Runtime}:{m.DisplayName}:{m.EntryWinX64}:{m.Desktop.Order}")
+                .Select(module =>
+                {
+                    var schemaPath = agentsDir is null
+                        ? null
+                        : AgentsPaths.ModuleSettingsSchemaPath(agentsDir, module.Id);
+                    var settingsPath = configDir is null
+                        ? null
+                        : AgentsPaths.ModuleSettingsPath(configDir, module.Id);
+                    return string.Join(
+                        ':',
+                        module.Id,
+                        module.Version,
+                        module.Runtime,
+                        module.DisplayName,
+                        module.EntryWinX64,
+                        module.Desktop.Order,
+                        GetFileSyncToken(schemaPath),
+                        GetFileSyncToken(settingsPath));
+                })
                 .OrderBy(part => part, StringComparer.Ordinal));
         // 同步键包含磁盘 Host 配置，确保外部配置更新也能触发表单重建
         return string.Join(
@@ -948,6 +986,30 @@ public partial class Settings
             agentsDir ?? string.Empty,
             (executablePath ?? string.Empty).Trim(),
             (processName ?? string.Empty).Trim());
+    }
+
+    private static string GetFileSyncToken(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "missing";
+        }
+
+        try
+        {
+            var info = new FileInfo(path);
+            return info.Exists
+                ? $"{info.Length}@{info.LastWriteTimeUtc.Ticks}"
+                : "missing";
+        }
+        catch (IOException)
+        {
+            return "unavailable";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return "unavailable";
+        }
     }
 
     private void TryFlushStaleModuleEditors()
@@ -961,7 +1023,7 @@ public partial class Settings
             return;
         }
 
-        SyncAgentsConfig();
+        SyncAgentsConfig(syncHost: true, syncModules: true);
     }
 
     private void RefreshModuleRunRows(bool syncRunSwitches = true)
@@ -1479,8 +1541,9 @@ public partial class Settings
             {
                 _hasPendingChanges = pending;
                 OnPropertyChanged(nameof(HasPendingChanges));
-                RefreshUnsaved();
             }
+
+            RefreshUnsaved();
 
             if (!pending)
             {
@@ -1518,18 +1581,36 @@ public partial class Settings
         }
     }
 
-    private static bool SnapshotEquals(AgentsEditorSnapshot left, AgentsEditorSnapshot right)
+    private bool IsAgentsHostDirty()
     {
-        if (!string.Equals(left.AgentsExecutablePath, right.AgentsExecutablePath, StringComparison.Ordinal))
+        if (!_baselineReady || _savedSnapshot is null)
         {
             return false;
         }
 
-        if (!string.Equals(left.AgentsProcessName, right.AgentsProcessName, StringComparison.Ordinal))
+        return !string.Equals(
+                   AgentsExecutablePath.Trim(),
+                   _savedSnapshot.AgentsExecutablePath,
+                   StringComparison.Ordinal)
+               || !string.Equals(
+                   AgentsProcessName.Trim(),
+                   _savedSnapshot.AgentsProcessName,
+                   StringComparison.Ordinal);
+    }
+
+    private bool IsModuleSettingsDirty()
+    {
+        if (!_baselineReady || _savedSnapshot is null)
         {
             return false;
         }
 
+        var current = BuildCurrentSnapshot();
+        return current is null || !ModuleSettingsEqual(_savedSnapshot, current);
+    }
+
+    private static bool ModuleSettingsEqual(AgentsEditorSnapshot left, AgentsEditorSnapshot right)
+    {
         if (left.ModuleSettingsJson.Count != right.ModuleSettingsJson.Count)
         {
             return false;
@@ -1545,6 +1626,21 @@ public partial class Settings
         }
 
         return true;
+    }
+
+    private static bool SnapshotEquals(AgentsEditorSnapshot left, AgentsEditorSnapshot right)
+    {
+        if (!string.Equals(left.AgentsExecutablePath, right.AgentsExecutablePath, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (!string.Equals(left.AgentsProcessName, right.AgentsProcessName, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return ModuleSettingsEqual(left, right);
     }
 
     private void DisposeAgents()

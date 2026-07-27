@@ -37,7 +37,8 @@ public partial class Settings : UserControl
         ("TabUpdatePage", "应用更新", "CloudDownload"),
         ("TabLoggingPage", "日志与诊断", "TextCursorInput"),
         ("TabMsfxPage", "码上放心 API", "Webhook"),
-        ("TabAgentsPage", "自动化集成", "AudioWaveform")
+        ("TabAgentsPage", "自动化集成", "AudioWaveform"),
+        ("TabModuleSettingsPage", "模块配置", "SlidersHorizontal")
     ];
 
     private SettingsViewModel? _vm;
@@ -95,6 +96,11 @@ public partial class Settings : UserControl
         if (e.PropertyName == nameof(SettingsViewModel.HasUpdateAvailable))
         {
             RefreshNavDots();
+        }
+
+        if (e.PropertyName == nameof(SettingsViewModel.SelectedModuleEditor))
+        {
+            Dispatcher.UIThread.Post(ResetModuleSettingsScroll, DispatcherPriority.Background);
         }
     }
 
@@ -156,7 +162,7 @@ public partial class Settings : UserControl
             return;
         }
 
-        var scroller = this.FindControl<ScrollViewer>("AgentsScrollViewer");
+        var scroller = this.FindControl<ScrollViewer>("ModuleSettingsScrollViewer");
         var shouldAutoFollow = scroller is not null
                                && scroller.Extent.Height - (scroller.Offset.Y + scroller.Viewport.Height) <= 28;
 
@@ -180,6 +186,19 @@ public partial class Settings : UserControl
             targetBox.Focus();
             targetBox.CaretIndex = targetBox.Text?.Length ?? 0;
         }, DispatcherPriority.Background);
+    }
+
+    private void ResetModuleSettingsScroll()
+    {
+        var scroller = this.FindControl<ScrollViewer>("ModuleSettingsScrollViewer");
+        if (scroller is null)
+        {
+            return;
+        }
+
+        scroller.Offset = new Vector(scroller.Offset.X, 0);
+        SettingsScroll.ResetSticky(scroller);
+        SettingsScroll.ScheduleRefresh(scroller);
     }
 
     private void OnNavButtonClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)

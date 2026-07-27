@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -26,6 +27,12 @@ public static class SettingsScroll
 
     private static readonly AttachedProperty<bool> RefreshQueuedProperty =
         AvaloniaProperty.RegisterAttached<ScrollViewer, bool>("RefreshQueued", typeof(SettingsScroll));
+
+    private static readonly AttachedProperty<Control?> StickyRowSourceProperty =
+        AvaloniaProperty.RegisterAttached<Border, Control?>("StickyRowSource", typeof(SettingsScroll));
+
+    private static readonly AttachedProperty<string?> StickyRowContentKeyProperty =
+        AvaloniaProperty.RegisterAttached<Border, string?>("StickyRowContentKey", typeof(SettingsScroll));
 
     // 保留最近测量的标题槽位高度，避免三级标题跨越二级标题时发生布局跳动
     private static readonly AttachedProperty<double[]> LastSlotHeightsProperty =
@@ -314,8 +321,7 @@ public static class SettingsScroll
         bool interactive)
     {
         var stickyKey = showSticky
-            ? string.Join('|', active.Select(static header =>
-                $"{header.Level}:{header.Title}:{header.HasActions}:{string.Join(',', header.TitleClasses)}"))
+            ? string.Join('|', active.Select(CreateStickyContentKey))
             : string.Empty;
 
         if (string.Equals(scrollViewer.GetValue(LastStickyKeyProperty), stickyKey, StringComparison.Ordinal)
@@ -366,7 +372,7 @@ public static class SettingsScroll
         stickyHost.IsVisible = visible;
     }
 
-    private static void SyncStickyChildren(Panel stickyHost, IReadOnlyList<HeaderSnapshot> active)
+    internal static void SyncStickyChildren(Panel stickyHost, IReadOnlyList<HeaderSnapshot> active)
     {
         while (stickyHost.Children.Count > active.Count)
         {
@@ -399,9 +405,22 @@ public static class SettingsScroll
                 row.Classes.Add("StickyRow");
             }
 
-            row.Child = BuildStickyContent(active[i]);
+            var contentKey = CreateStickyContentKey(active[i]);
+            if (!ReferenceEquals(row.GetValue(StickyRowSourceProperty), active[i].Source)
+                || !string.Equals(
+                    row.GetValue(StickyRowContentKeyProperty),
+                    contentKey,
+                    StringComparison.Ordinal))
+            {
+                row.Child = BuildStickyContent(active[i]);
+                row.SetValue(StickyRowSourceProperty, active[i].Source);
+                row.SetValue(StickyRowContentKeyProperty, contentKey);
+            }
         }
     }
+
+    private static string CreateStickyContentKey(HeaderSnapshot header)
+        => $"{header.Level}:{header.Title}:{header.HasActions}:{string.Join(',', header.TitleClasses)}";
 
     private static Control BuildStickyContent(HeaderSnapshot header)
     {
@@ -459,7 +478,7 @@ public static class SettingsScroll
             .ToList();
         if (header.Level is not (2 or 3) && pills.Count == 0)
         {
-            return title;
+            return CreateStickyTitleRail(header.Source, title);
         }
 
         var row = new StackPanel
@@ -481,7 +500,56 @@ public static class SettingsScroll
             row.Children.Add(pill);
         }
 
-        return row;
+        return CreateStickyTitleRail(header.Source, row);
+    }
+
+    private static Control CreateStickyTitleRail(Control source, Control title)
+    {
+        var sourceTabs = GetHeaderTabs(source);
+        if (sourceTabs is null)
+        {
+            return title;
+        }
+
+        var rail = new StackPanel
+        {
+            Classes = { "HeaderTitleRail" },
+            Orientation = Orientation.Horizontal
+        };
+        rail.Children.Add(title);
+        rail.Children.Add(new AppIcon
+        {
+            Classes = { "HeaderTitleChevron" },
+            Kind = "ChevronRight"
+        });
+        rail.Children.Add(CloneHeaderTabs(sourceTabs));
+        return rail;
+    }
+
+    internal static TabControl CloneHeaderTabs(TabControl source)
+    {
+        var tabs = new TabControl
+        {
+            DataContext = source.DataContext,
+            ItemTemplate = source.ItemTemplate
+        };
+
+        foreach (var @class in source.Classes)
+        {
+            if (@class.Length > 0 && @class[0] != ':')
+            {
+                tabs.Classes.Add(@class);
+            }
+        }
+
+        tabs.Bind(ItemsControl.ItemsSourceProperty, new Binding("ModuleEditors"));
+        tabs.Bind(TabControl.SelectedItemProperty, new Binding("SelectedModuleEditor")
+        {
+            Mode = BindingMode.TwoWay
+        });
+        CopyBind(tabs, source, Visual.IsVisibleProperty);
+        CopyBind(tabs, source, TabControlBehaviors.UseSlidingPillProperty);
+        return tabs;
     }
 
     private static AppIcon CreateH2HashIcon()
@@ -574,6 +642,11 @@ public static class SettingsScroll
 
     private static bool HasActions(Control header)
         => GetActionButtons(header).Any();
+
+    private static TabControl? GetHeaderTabs(Control header)
+        => header.GetVisualDescendants()
+            .OfType<TabControl>()
+            .FirstOrDefault(static tabs => tabs.Classes.Contains("SettingsHeaderTabs"));
 
     private static Border CreateStickyRow()
         => new()
@@ -675,7 +748,7 @@ public static class SettingsScroll
 
     internal readonly record struct HeaderPosition(int Level, double Top);
 
-    private sealed record HeaderSnapshot(
+    internal sealed record HeaderSnapshot(
         int Level,
         string Title,
         IReadOnlyList<string> TitleClasses,

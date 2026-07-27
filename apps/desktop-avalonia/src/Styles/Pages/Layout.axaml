@@ -4,35 +4,6 @@
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
-  <Style Selector="Grid.PageRoot">
-    <Setter Property="Margin" Value="{DynamicResource PageRootMargin}" />
-  </Style>
-
-  <Style Selector="Grid.PageRootLayout">
-    <Setter Property="Margin" Value="{DynamicResource PageRootMargin}" />
-    <Setter Property="RowSpacing" Value="{DynamicResource PageRowSpacing}" />
-  </Style>
-
-  <Style Selector="Grid.FormFieldLayout">
-    <Setter Property="ColumnSpacing" Value="{DynamicResource FormColumnSpacing}" />
-    <Setter Property="RowSpacing" Value="{DynamicResource FormRowSpacing}" />
-  </Style>
-
-  <Style Selector="Grid.FormFieldReadonlyRow">
-    <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacing}" />
-  </Style>
-
-  <!--  Pair a left field/summary with right actions; ColumnDefinitions="*,Auto" must be set inline on the Grid.  -->
-  <Style Selector="Grid.ToolbarPairRow">
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="ColumnSpacing" Value="{DynamicResource PageColumnSpacing}" />
-  </Style>
-
-  <Style Selector="StackPanel.SectionHeaderStack">
-    <Setter Property="Orientation" Value="Horizontal" />
-    <Setter Property="Spacing" Value="{DynamicResource SpacingInlineMd}" />
-  </Style>
-
   <Style Selector="Grid.DashboardLayout">
     <Setter Property="RowSpacing" Value="0" />
     <Setter Property="Margin" Value="0" />
@@ -42,12 +13,12 @@
     <Setter Property="Margin" Value="{DynamicResource PageRootMargin}" />
   </Style>
 
-  <!--  Dashboard tabs in content header: layout only (center in header, hide empty content host).  -->
-  <Style Selector="TabControl.DashboardTabHeaders">
+  <!--  Content header tabs only render their headers; page content is owned by the surrounding view.  -->
+  <Style Selector="TabControl.ContentHeaderTabs">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="TabControl.DashboardTabHeaders /template/ ContentPresenter#PART_SelectedContentHost">
+  <Style Selector="TabControl.ContentHeaderTabs /template/ ContentPresenter#PART_SelectedContentHost">
     <Setter Property="Height" Value="0" />
     <Setter Property="IsVisible" Value="False" />
     <Setter Property="Margin" Value="0" />

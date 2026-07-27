@@ -17,7 +17,7 @@
       <icons:AppIcon Classes="HeaderTitleChevron" Kind="ChevronRight" />
       <TabControl
         shad:TabControlBehaviors.UseSlidingPill="True"
-        Classes="DashboardTabHeaders"
+        Classes="ContentHeaderTabs"
         SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
         <TabItem>
           <TabItem.Header>

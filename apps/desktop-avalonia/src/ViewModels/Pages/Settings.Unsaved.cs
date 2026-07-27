@@ -22,7 +22,8 @@ public partial class Settings
         Updates = 4,
         Logging = 5,
         MsfxApi = 6,
-        Agents = 7
+        Agents = 7,
+        ModuleSettings = 8
     }
 
     private static readonly string[] TabTitles =
@@ -34,7 +35,8 @@ public partial class Settings
         "应用更新",
         "日志与诊断",
         "码上放心 API",
-        "自动化集成"
+        "自动化集成",
+        "模块配置"
     ];
 
     private int _unsavedMask;
@@ -140,6 +142,7 @@ public partial class Settings
             Tab.Updates => await ApplyUpdateOptionsAsync(),
             Tab.MsfxApi => await ApplyMsfxApiConfigAsync(),
             Tab.Agents => await ApplyAgentsSettingsAsync(showSuccessToast: false),
+            Tab.ModuleSettings => await ApplyAgentsSettingsAsync(showSuccessToast: false),
             Tab.Logging => await ApplyLoggingOptionsAsync(silent: false),
             Tab.UiBehavior => true,
             _ => true
@@ -168,8 +171,11 @@ public partial class Settings
                 SyncMsfxApi();
                 break;
             case Tab.Agents:
+                SyncAgentsConfig(syncHost: true, syncModules: false);
+                break;
+            case Tab.ModuleSettings:
                 CancelModuleAutoSaves();
-                SyncAgentsConfig();
+                SyncAgentsConfig(syncHost: false, syncModules: true);
                 break;
             case Tab.UiBehavior:
                 SyncUiBehavior();
@@ -229,9 +235,14 @@ public partial class Settings
             nextMask |= 1 << (int)Tab.MsfxApi;
         }
 
-        if (HasPendingChanges)
+        if (IsAgentsHostDirty())
         {
             nextMask |= 1 << (int)Tab.Agents;
+        }
+
+        if (IsModuleSettingsDirty())
+        {
+            nextMask |= 1 << (int)Tab.ModuleSettings;
         }
 
         if (nextMask == _unsavedMask)

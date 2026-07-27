@@ -31,10 +31,9 @@ public sealed partial class ModuleSettingsEditor : ObservableObject
         _schema = schema;
         _source = (JsonObject)settings.DeepClone();
         Title = string.IsNullOrWhiteSpace(schema.Title) ? displayName : schema.Title;
-        foreach (var section in schema.Sections)
-        {
-            Sections.Add(ModuleSettingsSectionViewModel.From(section, settings));
-        }
+        Sections = schema.Sections
+            .Select(section => ModuleSettingsSectionViewModel.From(section, settings))
+            .ToArray();
     }
 
     public string ModuleId { get; }
@@ -43,7 +42,7 @@ public sealed partial class ModuleSettingsEditor : ObservableObject
 
     public string Title { get; }
 
-    public ObservableCollection<ModuleSettingsSectionViewModel> Sections { get; } = new();
+    public IReadOnlyList<ModuleSettingsSectionViewModel> Sections { get; }
 
     public JsonObject ToJsonObject()
     {
@@ -115,17 +114,17 @@ public sealed class ModuleSettingsSectionViewModel
 
     public bool HasTitle => !string.IsNullOrWhiteSpace(Title);
 
-    public ObservableCollection<ModuleSettingsFieldViewModel> Fields { get; } = new();
+    public required IReadOnlyList<ModuleSettingsFieldViewModel> Fields { get; init; }
 
     public static ModuleSettingsSectionViewModel From(ModuleSettingsSection section, JsonObject settings)
     {
-        var viewModel = new ModuleSettingsSectionViewModel { Title = section.Title };
-        foreach (var field in section.Fields)
+        return new ModuleSettingsSectionViewModel
         {
-            viewModel.Fields.Add(ModuleSettingsFieldViewModel.From(field, settings));
-        }
-
-        return viewModel;
+            Title = section.Title,
+            Fields = section.Fields
+                .Select(field => ModuleSettingsFieldViewModel.From(field, settings))
+                .ToArray(),
+        };
     }
 }
 

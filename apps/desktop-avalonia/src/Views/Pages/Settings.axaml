@@ -1502,6 +1502,59 @@
                   Text="{Binding AgentsProcessName}" />
               </Grid>
             </Border>
+          </StackPanel>
+        </ScrollViewer>
+        <Border
+          VerticalAlignment="Top"
+          Classes="StickyHost"
+          IsHitTestVisible="False">
+          <StackPanel x:Name="AgentsStickyHost" Spacing="0" />
+        </Border>
+      </Grid>
+
+      <!--  模块配置  -->
+      <Grid
+        x:Name="TabModuleSettingsPage"
+        Classes="TabPage"
+        IsVisible="False">
+        <ScrollViewer
+          x:Name="ModuleSettingsScrollViewer"
+          controls:SettingsScroll.StickyHost="{Binding #ModuleSettingsStickyHost}"
+          HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto">
+          <StackPanel Classes="Body">
+            <Border Classes="H1">
+              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                <StackPanel Classes="HeaderTitleRail" Orientation="Horizontal">
+                  <TextBlock
+                    VerticalAlignment="Center"
+                    Classes="H1Text"
+                    Text="模块配置" />
+                  <icons:AppIcon Classes="HeaderTitleChevron" Kind="ChevronRight" />
+                  <TabControl
+                    shad:TabControlBehaviors.UseSlidingPill="True"
+                    Classes="ContentHeaderTabs SettingsHeaderTabs"
+                    ItemsSource="{Binding ModuleEditors}"
+                    SelectedItem="{Binding SelectedModuleEditor, Mode=TwoWay}">
+                    <TabControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ModuleSettingsEditor">
+                        <StackPanel Classes="TabItemHeader">
+                          <TextBlock Text="{Binding Title}" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </TabControl.ItemTemplate>
+                  </TabControl>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Classes="H2Actions">
+                  <Button
+                    shad:ButtonAssist.ShowProgress="{Binding IsSavingSettings}"
+                    Classes="Primary"
+                    Command="{Binding SaveAgentsSettingsCommand}"
+                    Content="保存配置"
+                    IsEnabled="{Binding CanSaveAgentsSettings}" />
+                </StackPanel>
+              </Grid>
+            </Border>
 
             <ItemsControl ItemsSource="{Binding ModuleSettingsLoadIssues}">
               <ItemsControl.ItemTemplate>
@@ -1528,8 +1581,8 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <ItemsControl ItemsSource="{Binding ModuleEditors}">
-              <ItemsControl.ItemTemplate>
+            <ContentControl Content="{Binding SelectedModuleEditor}">
+              <ContentControl.ContentTemplate>
                 <DataTemplate x:DataType="vm:ModuleSettingsEditor">
                   <StackPanel>
                     <Border Classes="H2">
@@ -1776,15 +1829,15 @@
                     </ItemsControl>
                   </StackPanel>
                 </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+              </ContentControl.ContentTemplate>
+            </ContentControl>
           </StackPanel>
         </ScrollViewer>
         <Border
           VerticalAlignment="Top"
           Classes="StickyHost"
           IsHitTestVisible="False">
-          <StackPanel x:Name="AgentsStickyHost" Spacing="0" />
+          <StackPanel x:Name="ModuleSettingsStickyHost" Spacing="0" />
         </Border>
       </Grid>
 
