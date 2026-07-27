@@ -14,7 +14,6 @@
 
 ## 仓库维护
 
-- `audit-legacy-identity.sh` — 检测单仓库改造前的路径（`pactoolkits-ui`、`pactoolkits-db` 等）是否重新出现
 - `audit-unused-desktop-avalonia-resources.sh` — 扫描 Desktop 中未引用的样式和资源
 
 ## 本地开发
@@ -24,7 +23,9 @@
 ## Windows 部署与同步
 
 - `create_sync_task.ps1` — 双网环境下的静默更新同步计划任务
-- `sync_pactoolkits_uu.ps1` — 使用 BITS 将远端更新源同步到本地目录；失败时改用 `Invoke-WebRequest`
+- `sync_pactoolkits_uu.ps1` — 使用 BITS 将 Stable 与 Beta 更新源同步到本地目录；失败时改用 `Invoke-WebRequest`
+
+同步任务直接执行 `ScriptPath` 指向的文件，不复制脚本。同名任务重复创建时会先注销旧任务再注册新任务；脚本路径不变时，只需替换 `sync_pactoolkits_uu.ps1`，无需重新创建计划任务。Stable 与 Beta 分别同步到 `feed\pactoolkits\stable` 和 `feed\pactoolkits\beta`。
 
 ## Agents 运行约束
 

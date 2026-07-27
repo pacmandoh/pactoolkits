@@ -34,6 +34,6 @@ database/postgres/
 ## 相关文档
 
 - [运维入口 README](../README.md)
-- [数据库兼容与回退政策](../../../docs/operations/database-compatibility-policy.md)
-- [Beta 发布政策](../../../docs/operations/beta-release-policy.md)
+- [数据库兼容与回退规则](../../../docs/operations/database-compatibility-policy.md)
+- [Beta 发布规则](../../../docs/operations/beta-release-policy.md)
 - [发布流程](../../../docs/operations/release-flow.md)

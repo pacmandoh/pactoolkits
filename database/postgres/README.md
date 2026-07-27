@@ -66,50 +66,9 @@ Copy-Item scripts/config.example.json scripts/config.json
 3. 已应用的 migration 文件受校验和保护，不得修改
 4. `verify` 仅执行只读检查，可用于非空生产数据库
 
-## 隔离 Beta 数据库
-
-Beta 库仅由运维显式命令创建；Desktop 应用不会执行这些脚本。
-
-在 macOS/Linux 上从 Stable 库克隆：
-
-```bash
-./scripts/create-beta-database.sh \
-  --version 0.18.0-beta.1 \
-  --template pactoolkits_production \
-  --config database/postgres/scripts/config.json
-```
-
-模板库不得有活跃连接。脚本会在克隆前检查；请先断开应用与管理会话。
-
-从 Stable 备份恢复：
-
-```bash
-./scripts/create-beta-database.sh \
-  --version 0.18.0-beta.1 \
-  --backup /secure/backups/pactoolkits.dump \
-  --config database/postgres/scripts/config.json
-```
-
-Windows PowerShell 策略相同：
-
-```powershell
-./scripts/create-beta-database.ps1 `
-  -Version 0.18.0-beta.1 `
-  -TemplateDatabase pactoolkits_production `
-  -ConfigPath database/postgres/scripts/config.json
-```
-
-生成库名形如 `pactoolkits_beta_0_18_0_beta_1`。已存在同名库时不会覆盖或删除。克隆成功后写入：
-
-- `Database.Environment=isolated`
-- `Database.Source=production-clone`
-- `Database.BetaVersion=<version>`
-
-脚本输出的连接字符串不包含密码，避免凭据进入终端记录或日志。
-
 ## 文档
 
 - [业务主题与职责](./docs/overview.md)
-- [数据库兼容与回退政策](../../docs/operations/database-compatibility-policy.md)
-- [Beta 发布政策](../../docs/operations/beta-release-policy.md)
+- [数据库兼容与回退规则](../../docs/operations/database-compatibility-policy.md)
+- [Beta 发布规则](../../docs/operations/beta-release-policy.md)
 - [发布流程](../../docs/operations/release-flow.md)

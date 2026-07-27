@@ -123,36 +123,6 @@ cp scripts/config.example.json scripts/config.json
 ./scripts/deploy.sh verify
 ```
 
-### Beta 隔离数据库
-
-Beta 迁移不得直接作用于共享生产库。发布 Beta 前，由运维人员显式克隆 Stable
-数据库或恢复 Stable 备份；Desktop 不会自动执行这些脚本。
-
-macOS 和 Linux：
-
-```bash
-./scripts/create-beta-database.sh \
-  --version 0.18.0-beta.1 \
-  --template pactoolkits_production \
-  --config database/postgres/scripts/config.json
-```
-
-Windows PowerShell：
-
-```powershell
-./scripts/create-beta-database.ps1 `
-  -Version 0.18.0-beta.1 `
-  -TemplateDatabase pactoolkits_production `
-  -ConfigPath database/postgres/scripts/config.json
-```
-
-目标库按 `pactoolkits_beta_<版本>` 命名，`.`、`-`、`+` 转换为 `_`。同名库存在时
-脚本立即失败且不会覆盖或删除。使用模板库时，创建前必须断开模板库的全部活跃连接。
-创建成功后脚本写入 `Database.Environment=isolated`、克隆来源和 Beta 版本标记，
-并输出不含密码的连接串。
-
-详细参数见 [PostgreSQL 运维说明](../../database/postgres/README.md)。
-
 ## 客户端更新策略
 
 - `AppUpdateService` 使用 Velopack 已安装版本作为当前版本
@@ -183,8 +153,8 @@ Windows PowerShell：
 
 完整决策与操作要求见：
 
-- [Beta 发布政策](beta-release-policy.md)
-- [数据库兼容与回退政策](database-compatibility-policy.md)
+- [Beta 发布规则](beta-release-policy.md)
+- [数据库兼容与回退规则](database-compatibility-policy.md)
 
 ## Agents 路径解析与运行时
 
@@ -206,8 +176,8 @@ Desktop 启动 Host 时附带 `--config <AppConfig 绝对路径>`；Host 转发�
 
 - [Monorepo 布局](../architecture/monorepo-layout.md)
 - [Agents 运行时架构](../architecture/agents.md)
-- [Beta 发布政策](beta-release-policy.md)
-- [数据库兼容与回退政策](database-compatibility-policy.md)
+- [Beta 发布规则](beta-release-policy.md)
+- [数据库兼容与回退规则](database-compatibility-policy.md)
 - [脚本工具](../../scripts/docs/tooling.md)
 - [Desktop](../../apps/desktop-avalonia/README.md)
 - [Agents](../../runtime/agents/README.md)

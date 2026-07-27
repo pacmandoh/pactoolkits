@@ -593,51 +593,6 @@ echo "$desktop_min_db_conflict_out" | grep -Fq "conflicting desktop minDbSchema"
   exit 1
 }
 
-beta_db_name="$(./scripts/create-beta-database.sh --version 0.18.0-beta.1 --name-only)"
-[[ "$beta_db_name" == "pactoolkits_beta_0_18_0_beta_1" ]] || {
-  echo "ERROR: unexpected isolated Beta database name: $beta_db_name" >&2
-  exit 1
-}
-
-beta_build_db_name="$(./scripts/create-beta-database.sh --version 0.18.0-beta.1+sha.7 --name-only)"
-[[ "$beta_build_db_name" == "pactoolkits_beta_0_18_0_beta_1_sha_7" ]] || {
-  echo "ERROR: unexpected isolated Beta database name with build metadata: $beta_build_db_name" >&2
-  exit 1
-}
-
-if ./scripts/create-beta-database.sh --version 0.18.0 --name-only >/dev/null 2>&1; then
-  echo "ERROR: isolated Beta database script should reject a Stable version" >&2
-  exit 1
-fi
-
-beta_db_plan="$(./scripts/create-beta-database.sh --version 0.18.0-beta.1 --template pactoolkits_production --dry-run)"
-echo "$beta_db_plan" | grep -Fq "createdb" || {
-  echo "ERROR: isolated Beta database dry-run should include createdb" >&2
-  exit 1
-}
-echo "$beta_db_plan" | grep -Fq "production-clone" || {
-  echo "ERROR: isolated Beta database dry-run should write the production-clone marker" >&2
-  exit 1
-}
-
-plain_sql_backup_dir="$(mktemp -d)"
-plain_sql_backup="$plain_sql_backup_dir/pactoolkits-beta-backup.SQL"
-touch "$plain_sql_backup"
-beta_sql_restore_plan="$(./scripts/create-beta-database.sh --version 0.18.0-beta.2 --backup "$plain_sql_backup" --dry-run)"
-rm -rf "$plain_sql_backup_dir"
-echo "$beta_sql_restore_plan" | grep -Fq "psql" || {
-  echo "ERROR: uppercase .SQL backup should use psql restore" >&2
-  exit 1
-}
-if echo "$beta_sql_restore_plan" | grep -Fq "pg_restore"; then
-  echo "ERROR: uppercase .SQL backup should not use pg_restore" >&2
-  exit 1
-fi
-
-grep -Fq "('isolated', 'Database.Environment'" scripts/create-beta-database.sql || {
-  echo "ERROR: isolated Beta database SQL is missing the environment marker" >&2
-  exit 1
-}
 grep -Fq '04_environment_settings.sql' database/postgres/scripts/lib/verify.sh || {
   echo "ERROR: Bash verify suite is missing environment settings verification" >&2
   exit 1
@@ -652,10 +607,6 @@ grep -Fq "current_setting('pactoolkits.expected_schema_version'" database/postgr
 }
 if grep -Fq "pg_try_advisory_lock" database/postgres/scripts/lib/common.sh; then
   echo "ERROR: Bash deploy lock must survive separate psql processes" >&2
-  exit 1
-fi
-if grep -Fq "datname = :'database_name'" scripts/create-beta-database.sh scripts/create-beta-database.ps1; then
-  echo "ERROR: psql -c database lookups must not rely on psql variable interpolation" >&2
   exit 1
 fi
 grep -Fq 'cp release-manifest.json dist/release-manifest.json' .github/workflows/publish-release.yml || {
@@ -725,6 +676,21 @@ if grep -Eq "release-manifest.json|build-agents.yml" <<< "$ahk_modules_cache_blo
   exit 1
 fi
 
-run ./scripts/audit-legacy-identity.sh
+grep -Fq '$Channels = @('\''stable'\'', '\''beta'\'')' scripts/sync_pactoolkits_uu.ps1 || {
+  echo "ERROR: update sync must include Stable and Beta channels" >&2
+  exit 1
+}
+grep -Fq '$destination = Join-Path $FeedDestRoot $Channel' scripts/sync_pactoolkits_uu.ps1 || {
+  echo "ERROR: update sync channels must use separate destination directories" >&2
+  exit 1
+}
+grep -Fq 'Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false' scripts/create_sync_task.ps1 || {
+  echo "ERROR: sync task recreation must remove the previous same-name task" >&2
+  exit 1
+}
+grep -Fq -- '-File `"$ScriptPath`"' scripts/create_sync_task.ps1 || {
+  echo "ERROR: sync task must execute the configured script path directly" >&2
+  exit 1
+}
 
 echo "Tooling tests passed."

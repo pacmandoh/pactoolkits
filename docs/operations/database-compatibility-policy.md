@@ -1,4 +1,4 @@
-# 数据库兼容与回退政策
+# 数据库兼容与回退规则
 
 PacToolkits 使用 `release-manifest.json` 中 Desktop 与 Agents 的 `minDbSchema` 和 `maxDbSchema` 定义闭区间兼容范围。系统的有效兼容范围是所有已启用组件兼容范围的交集。
 
@@ -40,4 +40,4 @@ Desktop 不包含数据库迁移执行器，安装包也不分发 migration SQL�
 6. 验证 Desktop 与所有启用 Agents 对当前 Schema 均兼容
 7. 验证目标版本失败时保持只读或阻止 Agents 启动
 
-Beta 的具体发布要求见 [Beta 发布政策](beta-release-policy.md)。
+Beta 的具体发布要求见 [Beta 发布规则](beta-release-policy.md)。

@@ -1,61 +1,191 @@
-# 从 updates.pacdocs.com 将 PacToolkits Feed 同步到本地目录，并执行变更检测和并行下载
+# 将 PacToolkits Stable 与 Beta Feed 同步到本地目录
 
-$Base="https://updates.pacdocs.com/feed/pactoolkits/stable"; $Dest="F:\PacDocs\feed\pactoolkits\stable"; $Sync="F:\PacDocs\sync"
-$Man="releases.stable.json"; $Rel="RELEASES-stable"; $Ast="assets.stable.json"; $Setup="pactoolkits-stable-Setup.exe"
-$Tag="$Sync\tag_manifest.txt"; $Log="$Sync\logs\sync_uu.log"; New-Item -Force -ItemType Directory $Dest,("$Sync\logs")|Out-Null
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 
-function L($m){Add-Content -LiteralPath $Log -Value ("[{0}] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"),$m)}
-$mx=New-Object Threading.Mutex($false,"Global\PacDocsSyncUU"); $lockTaken=$false; if(-not ($lockTaken=$mx.WaitOne(0))){L "Skip: running"; exit 0}
+$FeedRoot = 'https://updates.pacdocs.com/feed/pactoolkits'
+$FeedDestRoot = 'F:\PacDocs\feed\pactoolkits'
+$SyncRoot = 'F:\PacDocs\sync'
+$LogPath = Join-Path $SyncRoot 'logs\sync_uu.log'
+$Channels = @('stable', 'beta')
 
-try{
-  $mu="$Base/$Man"; $h=Invoke-WebRequest -Method Head -UseBasicParsing -Uri $mu -TimeoutSec 15
-  $t=$h.Headers.ETag; if(!$t){$t=$h.Headers.'Last-Modified'}; if(!$t){$t=$h.Headers.'Content-Length'}; if(!$t){$t="no-tag"}
-  if(Test-Path $Tag){if((Get-Content $Tag|Select -First 1) -eq $t){L "Skip: no change ($t)"; exit 0}} else {L "First run ($t)"}
+New-Item -Force -ItemType Directory $FeedDestRoot, (Split-Path $LogPath -Parent) | Out-Null
 
-  $j=(Invoke-WebRequest -UseBasicParsing -Uri $mu -TimeoutSec 30).Content
-  $rx='[A-Za-z0-9\.\-_]+\.nupkg(?:\.(?:full|delta))?'; $arts=[regex]::Matches($j,$rx)|%{$_.Value}|sort -Unique
-  if(!$arts -or $arts.Count -eq 0){L "Skip: no artifacts"; exit 0}
+function Write-SyncLog([string]$Message) {
+    Add-Content -LiteralPath $LogPath -Value ('[{0}] {1}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Message)
+}
 
-  foreach($f in $arts){try{Invoke-WebRequest -Method Head -UseBasicParsing -Uri "$Base/$f" -TimeoutSec 15|Out-Null}catch{L "Skip: not ready $f"; exit 0}}
-  $payload=@($Setup,$Ast)+$arts | sort -Unique
-  L ("Ready. Download {0} files..." -f $payload.Count)
+function Get-RemoteTag([string]$ManifestUrl) {
+    $head = Invoke-WebRequest -Method Head -UseBasicParsing -Uri $ManifestUrl -TimeoutSec 15
+    $tag = $head.Headers['ETag']
+    if (-not $tag) { $tag = $head.Headers['Last-Modified'] }
+    if (-not $tag) { $tag = $head.Headers['Content-Length'] }
+    if (-not $tag) { $tag = 'no-tag' }
+    "$tag"
+}
 
-  $jobs=@()
-  foreach($n in $payload){
-    $u="$Base/$n"; $o=Join-Path $Dest $n; $tmp="$o.tmp"
-    $jobs += Start-Job -ArgumentList $u,$tmp,$o -ScriptBlock {
-      param($u,$tmp,$o)
-      try{
-        $usedBits = $false
-        if(Get-Command Start-BitsTransfer -ErrorAction SilentlyContinue){
-          try{
-            Start-BitsTransfer -Source $u -Destination $tmp -TransferType Download -ErrorAction Stop
+function Receive-SyncFile([string]$Url, [string]$Destination, [int]$TimeoutSeconds) {
+    $temporaryPath = "$Destination.tmp"
+    Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
+
+    $usedBits = $false
+    if (Get-Command Start-BitsTransfer -ErrorAction SilentlyContinue) {
+        try {
+            Start-BitsTransfer -Source $Url -Destination $temporaryPath -TransferType Download -ErrorAction Stop | Out-Null
             $usedBits = $true
-          } catch {
-            if(Test-Path $tmp){ Remove-Item -Force $tmp -ErrorAction SilentlyContinue }
-          }
+        } catch {
+            Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
         }
-        if(-not $usedBits){
-          Invoke-WebRequest -UseBasicParsing -Uri $u -OutFile $tmp -TimeoutSec 300 -ErrorAction Stop
-        }
-        Move-Item -Force $tmp $o
-        "OK $o"
-      } catch {
-        "ERR $u :: $($_.Exception.Message)"
-      }
     }
-  }
-  $res=Receive-Job -Job $jobs -Wait -AutoRemoveJob
-  $err=$res | ?{$_ -like "ERR *"}; if($err){$err | % { L $_ }; L "ERROR: download failed"; exit 20}
 
-  foreach($n in @($Man,$Rel)){
-    $u="$Base/$n"; $o=Join-Path $Dest $n; $tmp="$o.tmp"
-    try{ Invoke-WebRequest -UseBasicParsing -Uri $u -OutFile $tmp -TimeoutSec 120 -ErrorAction Stop; Move-Item -Force $tmp $o; L "Ptr OK $n" }
-    catch{ L "ERROR: pointer failed $n :: $($_.Exception.Message)"; exit 21 }
-  }
+    if (-not $usedBits) {
+        Invoke-WebRequest `
+            -UseBasicParsing `
+            -Uri $Url `
+            -OutFile $temporaryPath `
+            -TimeoutSec $TimeoutSeconds `
+            -ErrorAction Stop
+    }
 
-  # 可选清理仅保留最新六个 NuGet 包，限制同步目录增长
-  Get-ChildItem $Dest -Filter "*.nupkg*" -File | Sort-Object LastWriteTime -Descending | Select-Object -Skip 6 | Remove-Item -Force -ErrorAction SilentlyContinue
+    Move-Item -LiteralPath $temporaryPath -Destination $Destination -Force
+}
 
-  Set-Content -LiteralPath $Tag -Value $t -Encoding ascii; L "OK: done ($t)"
-} finally { if($lockTaken){ $mx.ReleaseMutex()|Out-Null } }
+function Sync-Channel([string]$Channel) {
+    $baseUrl = "$FeedRoot/$Channel"
+    $destination = Join-Path $FeedDestRoot $Channel
+    $manifestName = "releases.$Channel.json"
+    $releasesName = "RELEASES-$Channel"
+    $assetsName = "assets.$Channel.json"
+    $setupName = "pactoolkits-$Channel-Setup.exe"
+    $tagName = "tag_manifest.$Channel.txt"
+    if ($Channel -eq 'stable') {
+        $tagName = 'tag_manifest.txt'
+    }
+    $tagPath = Join-Path $SyncRoot $tagName
+    $manifestUrl = "$baseUrl/$manifestName"
+
+    New-Item -Force -ItemType Directory $destination | Out-Null
+
+    try {
+        $remoteTag = Get-RemoteTag $manifestUrl
+        if (Test-Path -LiteralPath $tagPath) {
+            $savedTag = Get-Content -LiteralPath $tagPath | Select-Object -First 1
+            if ($savedTag -eq $remoteTag) {
+                Write-SyncLog "$Channel skip: no change ($remoteTag)"
+                return $true
+            }
+        } else {
+            Write-SyncLog "$Channel first run ($remoteTag)"
+        }
+
+        $manifestJson = (Invoke-WebRequest -UseBasicParsing -Uri $manifestUrl -TimeoutSec 30).Content
+        $packagePattern = '[A-Za-z0-9\.\-_]+\.nupkg(?:\.(?:full|delta))?'
+        $packages = @(
+            [regex]::Matches($manifestJson, $packagePattern) |
+                ForEach-Object { $_.Value } |
+                Sort-Object -Unique
+        )
+        if ($packages.Count -eq 0) {
+            Write-SyncLog "$Channel error: manifest contains no packages"
+            return $false
+        }
+
+        foreach ($package in $packages) {
+            try {
+                Invoke-WebRequest -Method Head -UseBasicParsing -Uri "$baseUrl/$package" -TimeoutSec 15 | Out-Null
+            } catch {
+                Write-SyncLog "$Channel skip: package not ready $package"
+                return $true
+            }
+        }
+
+        $payload = @($setupName, $assetsName) + $packages | Sort-Object -Unique
+        Write-SyncLog ("$Channel ready: downloading {0} files" -f $payload.Count)
+
+        $jobs = foreach ($name in $payload) {
+            $url = "$baseUrl/$name"
+            $output = Join-Path $destination $name
+            Start-Job -ArgumentList $url, $output -ScriptBlock {
+                param($Url, $Output)
+
+                $temporaryPath = "$Output.tmp"
+                try {
+                    Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
+                    $usedBits = $false
+                    if (Get-Command Start-BitsTransfer -ErrorAction SilentlyContinue) {
+                        try {
+                            Start-BitsTransfer -Source $Url -Destination $temporaryPath -TransferType Download -ErrorAction Stop | Out-Null
+                            $usedBits = $true
+                        } catch {
+                            Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
+                        }
+                    }
+                    if (-not $usedBits) {
+                        Invoke-WebRequest -UseBasicParsing -Uri $Url -OutFile $temporaryPath -TimeoutSec 300 -ErrorAction Stop
+                    }
+                    Move-Item -LiteralPath $temporaryPath -Destination $Output -Force
+                    "OK $Output"
+                } catch {
+                    Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
+                    "ERR $Url :: $($_.Exception.Message)"
+                }
+            }
+        }
+
+        $results = Receive-Job -Job $jobs -Wait -AutoRemoveJob
+        $errors = @($results | Where-Object { $_ -like 'ERR *' })
+        if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-SyncLog "$Channel $_" }
+            return $false
+        }
+
+        foreach ($pointerName in @($manifestName, $releasesName)) {
+            Receive-SyncFile `
+                -Url "$baseUrl/$pointerName" `
+                -Destination (Join-Path $destination $pointerName) `
+                -TimeoutSeconds 120
+            Write-SyncLog "$Channel pointer ready: $pointerName"
+        }
+
+        Get-ChildItem -LiteralPath $destination -Filter '*.nupkg*' -File |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -Skip 6 |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+
+        Set-Content -LiteralPath $tagPath -Value $remoteTag -Encoding ascii
+        Write-SyncLog "$Channel done ($remoteTag)"
+        return $true
+    } catch {
+        Write-SyncLog "$Channel error: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+$mutex = New-Object Threading.Mutex($false, 'Global\PacDocsSyncUU')
+$lockTaken = $false
+try {
+    $lockTaken = $mutex.WaitOne(0)
+    if (-not $lockTaken) {
+        Write-SyncLog 'Skip: another sync is running'
+        exit 0
+    }
+
+    $failedChannels = @()
+    foreach ($channel in $Channels) {
+        if (-not (Sync-Channel $channel)) {
+            $failedChannels += $channel
+        }
+    }
+
+    if ($failedChannels.Count -gt 0) {
+        Write-SyncLog ("Sync failed: {0}" -f ($failedChannels -join ', '))
+        exit 20
+    }
+
+    Write-SyncLog 'All channels synchronized'
+} finally {
+    if ($lockTaken) {
+        $mutex.ReleaseMutex() | Out-Null
+    }
+    $mutex.Dispose()
+}

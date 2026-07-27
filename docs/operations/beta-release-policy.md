@@ -1,4 +1,4 @@
-# Beta 发布政策
+# Beta 发布规则
 
 本文规定 PacToolkits Beta 构建、发布、更新源和数据库验证的强制边界。Beta 版本用于在隔离环境提前验证应用与数据库变更，不构成生产可用性承诺。
 
@@ -32,20 +32,6 @@ Migration 差异按文件名（`V*__*.sql`）匹配。基线仍使用历史路�
 
 隔离 Beta 数据库仅用于开发和测试，不得作为生产升级通道，也不得将生产数据库连接标记为 `isolated`。
 
-## 隔离数据库操作
-
-使用以下脚本创建隔离库：
-
-```bash
-./scripts/create-beta-database.sh \
-  --version 0.18.0-beta.1 \
-  --template pactoolkits_production \
-  --config database/postgres/scripts/config.json
-```
-
-脚本不会覆盖同名数据库，并会写入隔离环境、克隆来源和 Beta 版本标记。
-数据库凭据不得写入 release manifest、日志或发布产物。
-
 ## 升级与退出
 
 - Stable 切换至 Beta 时，保存设置前必须确认风险；检查和下载具体版本时必须验证目标 Feed 与当前数据库的兼容范围
@@ -55,4 +41,4 @@ Migration 差异按文件名（`V*__*.sql`）匹配。基线仍使用历史路�
 - 通道验证不得作为永久授权保存；检查、下载与重启必须按当前 Feed 和数据库状态重新验证
 - Beta 验证结束后，隔离库按测试数据管理规则保留或销毁，不得替换生产库
 
-数据库回退规则见 [数据库兼容与回退政策](database-compatibility-policy.md)。
+数据库回退规则见 [数据库兼容与回退规则](database-compatibility-policy.md)。
