@@ -106,6 +106,7 @@ public static class ServiceRegistration
         services.AddSingleton<AgentsRuntime>();
         services.AddSingleton<IAgentsRuntime>(sp => sp.GetRequiredService<AgentsRuntime>());
         services.AddSingleton<IAgentsConfigService, AgentsConfigService>();
+        services.AddSingleton<IModuleSettingsStore, ModuleSettingsStore>();
         services.AddSingleton<IAgentsManager, AgentsManager>();
         return services;
     }

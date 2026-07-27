@@ -10,6 +10,9 @@
       "modules": {
         "Injector": {
           "version": "0.7.0"
+        },
+        "Scanner": {
+          "version": "0.1.0"
         }
       },
       "version": "0.1.1"

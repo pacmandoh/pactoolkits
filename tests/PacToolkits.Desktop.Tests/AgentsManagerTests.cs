@@ -74,9 +74,13 @@ public sealed class AgentsManagerTests
 
     private sealed class FakeAgentsRuntime(AgentsDescriptor descriptor) : IAgentsRuntime
     {
-        public bool IsInjectorEnabledValue { get; set; } = true;
+        private readonly HashSet<string> _enabledModules = new(StringComparer.Ordinal)
+        {
+            "module-a",
+        };
+        private readonly HashSet<string> _runningModules = new(StringComparer.Ordinal);
+
         public bool IsHostRunningValue { get; set; }
-        public bool IsInjectorRunningValue { get; set; }
         public int ReloadCount { get; private set; }
         public int StopCount { get; private set; }
 
@@ -88,7 +92,7 @@ public sealed class AgentsManagerTests
 
         public AgentsDescriptor Descriptor { get; } = descriptor;
 
-        public bool IsInjectorEnabled => IsInjectorEnabledValue;
+        public IReadOnlyList<ModuleDescriptor> Modules => [];
 
         public string MinDbSchema => "1.0.0";
 
@@ -97,24 +101,13 @@ public sealed class AgentsManagerTests
         public AgentsRunState HostState
             => IsHostRunningValue ? AgentsRunState.Running : AgentsRunState.Stopped;
 
-        public AgentsRunState InjectorState
-            => IsInjectorRunningValue ? AgentsRunState.Running : AgentsRunState.Stopped;
-
         public bool IsHostRunning => IsHostRunningValue;
-
-        public bool IsInjectorRunning => IsInjectorRunningValue;
 
         public DateTimeOffset? HostLastLaunchAt => null;
 
-        public DateTimeOffset? InjectorLastLaunchAt => null;
-
         public string? HostLastError => null;
 
-        public string? InjectorLastError => null;
-
         public string HostVersion => "0.0.0";
-
-        public string InjectorVersion => "0.0.0";
 
         public void Dispose()
         {
@@ -125,12 +118,24 @@ public sealed class AgentsManagerTests
             ReloadCount++;
         }
 
+        public AgentsRunState GetModuleState(string moduleId)
+            => _runningModules.Contains(moduleId) ? AgentsRunState.Running : AgentsRunState.Stopped;
+
+        public bool IsModuleEnabled(string moduleId)
+            => _enabledModules.Contains(moduleId);
+
+        public DateTimeOffset? GetModuleLastLaunchAt(string moduleId) => null;
+
+        public string? GetModuleLastError(string moduleId) => null;
+
+        public string GetModuleVersion(string moduleId) => "0.0.0";
+
         public Task<AgentsCommandResult> StartOrRestartAsync(CancellationToken ct = default)
             => Task.FromResult(new AgentsCommandResult(true, "ok"));
 
-        public Task<AgentsCommandResult> StartInjectorAsync(CancellationToken ct = default)
+        public Task<AgentsCommandResult> StartModuleAsync(string moduleId, CancellationToken ct = default)
         {
-            IsInjectorRunningValue = true;
+            _runningModules.Add(moduleId);
             return Task.FromResult(new AgentsCommandResult(true, "ok"));
         }
 
@@ -138,13 +143,13 @@ public sealed class AgentsManagerTests
         {
             StopCount++;
             IsHostRunningValue = false;
-            IsInjectorRunningValue = false;
+            _runningModules.Clear();
             return Task.FromResult(new AgentsCommandResult(true, "ok"));
         }
 
-        public Task<AgentsCommandResult> StopInjectorAsync(CancellationToken ct = default)
+        public Task<AgentsCommandResult> StopModuleAsync(string moduleId, CancellationToken ct = default)
         {
-            IsInjectorRunningValue = false;
+            _runningModules.Remove(moduleId);
             return Task.FromResult(new AgentsCommandResult(true, "ok"));
         }
     }

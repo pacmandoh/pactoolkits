@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "title": "模块模板",
+  "sections": [
+    {
+      "title": "基础配置",
+      "fields": [
+        {
+          "key": "Message",
+          "type": "string",
+          "label": "测试消息",
+          "description": "按测试热键时显示的消息"
+        },
+        {
+          "key": "Enabled",
+          "type": "bool",
+          "label": "启用功能",
+          "description": "示例布尔开关"
+        },
+        {
+          "key": "IntervalMs",
+          "type": "int",
+          "label": "运行间隔",
+          "description": "示例定时间隔（毫秒）",
+          "min": 1000,
+          "max": 60000
+        },
+        {
+          "key": "Mode",
+          "type": "enum",
+          "label": "运行模式",
+          "options": [
+            "notification",
+            "silent"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "集合配置",
+      "fields": [
+        {
+          "key": "Targets",
+          "type": "stringList",
+          "label": "目标列表",
+          "description": "示例字符串列表，每行一项",
+          "allowEmpty": true
+        },
+        {
+          "key": "Features",
+          "type": "stringFlagMap",
+          "label": "功能开关",
+          "description": "示例名称与启用状态映射",
+          "allowEmpty": true
+        }
+      ]
+    }
+  ]
+}

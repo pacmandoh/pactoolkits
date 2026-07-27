@@ -684,12 +684,14 @@ Util_LoadUnifiedConfig(configPath) {
     pg := Util_CfgGetMap(root, "Postgres", &ok, &err)
     if !ok
         return Util_CfgFail(err, "INVALID_POSTGRES")
-    agents := Util_CfgGetMap(root, "Agents", &ok, &err)
+    ; 业务配置必须来自 --module-settings（Host 启动时追加）
+    moduleSettingsPath := Util_GetArgValue("--module-settings")
+    if (moduleSettingsPath = "")
+        return Util_CfgFail("缺少 --module-settings（模块业务配置路径）", "MISSING_MODULE_SETTINGS")
+    moduleSettingsPath := Util_PathFull(moduleSettingsPath)
+    agent := Util_LoadModuleSettingsMap(moduleSettingsPath, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_AGENTS")
-    agent := Util_CfgGetMap(agents, "Injector", &ok, &err)
-    if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
 
     cfg := Map()
 
@@ -711,62 +713,89 @@ Util_LoadUnifiedConfig(configPath) {
 
     cfg["PG_DRIVER"] := Util_CfgGetString(agent, "PgDriver", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["PG_SSL"] := Util_CfgGetOneOf(agent, "PgSsl", ["disable", "allow", "prefer", "require", "verify-ca", "verify-full"], &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["OPT_WINDOW_CLASS"] := Util_CfgGetString(agent, "OptWindowClass", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["IPT_WINDOW_CLASS"] := Util_CfgGetString(agent, "IptWindowClass", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["OPT_PARSE_GRID_CLASSNN"] := Util_CfgGetString(agent, "OptParseGridClassNN", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["OPT_VERIFY_GRID_CLASSNN"] := Util_CfgGetString(agent, "OptVerifyGridClassNN", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["IPT_PARSE_GRID_CLASSNN"] := Util_CfgGetString(agent, "IptParseGridClassNN", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["IPT_VERIFY_GRID_CLASSNN"] := Util_CfgGetString(agent, "IptVerifyGridClassNN", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["OPT_INPUT_CLASSNN"] := Util_CfgGetString(agent, "OptInputClassNN", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["IPT_INPUT_CLASSNN"] := Util_CfgGetString(agent, "IptInputClassNN", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["CONFIRM_TIMEOUT_MS"] := Util_CfgGetRangeInt(agent, "ConfirmTimeoutMs", 100, 10000, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["APP_WIN"] := Util_CfgGetAppWin(agent, "AppWin", &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["COL_SPECS"] := Util_CfgGetStringArray(agent, "ColSpecs", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["INT_COLS"] := Util_CfgGetStringArray(agent, "IntCols", false, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
 
     cfg["WAREHOUSE_ENABLED"] := Util_CfgGetBool(agent, "WarehouseEnabled", &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["WAREHOUSE_ANCHORS"] := Util_CfgGetStringArray(agent, "WarehouseAnchorTexts", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["CODE_PICK_POLICY"] := Util_CfgGetOneOf(agent, "CodePickPolicy", ["max_level", "min_level"], &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
     cfg["CODE_PICK_POLICY"] := StrUpper(cfg["CODE_PICK_POLICY"])
     cfg["WAREHOUSE_TASK_IDENTIFIER"] := Util_CfgGetString(agent, "WarehouseTaskIdentifier", true, &ok, &err)
     if !ok
-        return Util_CfgFail(err, "INVALID_INJECTOR")
+        return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
 
     return Map("ok", true, "cfg", cfg)
+}
+
+Util_LoadModuleSettingsMap(path, &ok, &err) {
+    path := Trim("" path)
+    if (path = "") {
+        ok := false, err := "module-settings 路径为空"
+        return ""
+    }
+    if !FileExist(path) {
+        ok := false, err := "module-settings 不存在：`n" path
+        return ""
+    }
+
+    parsed := Json_ReadFile(path)
+    if !(parsed.Has("ok") && parsed["ok"]) {
+        msg := parsed.Has("err") ? parsed["err"] : "未知解析错误"
+        ok := false, err := "module-settings JSON 解析失败：`n" msg
+        return ""
+    }
+    root := parsed["val"]
+    if (Type(root) != "Map") {
+        ok := false, err := "module-settings 根节点必须是 JSON 对象"
+        return ""
+    }
+
+    ok := true, err := ""
+    return root
 }
 
 Util_CfgFail(why, reason := "CONFIG_INVALID") {

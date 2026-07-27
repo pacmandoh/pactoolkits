@@ -1144,7 +1144,7 @@
                     Classes="Primary"
                     Command="{Binding SaveAgentsSettingsCommand}"
                     Content="保存配置"
-                    IsEnabled="{Binding !IsSavingSettings}" />
+                    IsEnabled="{Binding CanSaveAgentsSettings}" />
                 </StackPanel>
               </Grid>
             </Border>
@@ -1229,104 +1229,112 @@
               </Grid>
             </Border>
 
-            <Border Classes="H3">
-              <StackPanel Classes="H3Title">
-                <icons:AppIcon
-                  VerticalAlignment="Center"
-                  Classes="H3Hash"
-                  Kind="Hash" />
-                <TextBlock
-                  VerticalAlignment="Center"
-                  Classes="Small H3Text"
-                  Text="Injector" />
-                <controls:StatusPill
-                  VerticalAlignment="Center"
-                  Classes="ToneInfo15"
-                  Icon="BadgeQuestionMark"
-                  IsVisible="{Binding IsInjectorStatusUnknown}"
-                  Text="{Binding InjectorStatusText}" />
-                <controls:StatusPill
-                  VerticalAlignment="Center"
-                  Classes="ToneWarning15"
-                  Icon="LoaderCircle"
-                  IsVisible="{Binding IsInjectorStatusStarting}"
-                  Text="{Binding InjectorStatusText}" />
-                <controls:StatusPill
-                  VerticalAlignment="Center"
-                  Classes="ToneDone25"
-                  Icon="CircleCheck"
-                  IsVisible="{Binding IsInjectorStatusRunning}"
-                  Text="{Binding InjectorStatusText}" />
-                <controls:StatusPill
-                  VerticalAlignment="Center"
-                  Classes="ToneDanger15"
-                  Icon="CircleAlert"
-                  IsVisible="{Binding IsInjectorStatusFailed}"
-                  Text="{Binding InjectorStatusText}" />
-                <controls:StatusPill
-                  VerticalAlignment="Center"
-                  Classes="ToneDanger15"
-                  Icon="CircleAlert"
-                  IsVisible="{Binding IsInjectorStatusStopped}"
-                  Text="{Binding InjectorStatusText}" />
-              </StackPanel>
-            </Border>
+            <ItemsControl ItemsSource="{Binding ModuleRunRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ModuleRunRow">
+                  <StackPanel>
+                    <Border Classes="H3">
+                      <StackPanel Classes="H3Title">
+                        <icons:AppIcon
+                          VerticalAlignment="Center"
+                          Classes="H3Hash"
+                          Kind="Hash" />
+                        <TextBlock
+                          VerticalAlignment="Center"
+                          Classes="Small H3Text"
+                          Text="{Binding DisplayName}" />
+                        <controls:StatusPill
+                          VerticalAlignment="Center"
+                          Classes="ToneInfo15"
+                          Icon="BadgeQuestionMark"
+                          IsVisible="{Binding IsStatusUnknown}"
+                          Text="{Binding StatusText}" />
+                        <controls:StatusPill
+                          VerticalAlignment="Center"
+                          Classes="ToneWarning15"
+                          Icon="LoaderCircle"
+                          IsVisible="{Binding IsStatusStarting}"
+                          Text="{Binding StatusText}" />
+                        <controls:StatusPill
+                          VerticalAlignment="Center"
+                          Classes="ToneDone25"
+                          Icon="CircleCheck"
+                          IsVisible="{Binding IsStatusRunning}"
+                          Text="{Binding StatusText}" />
+                        <controls:StatusPill
+                          VerticalAlignment="Center"
+                          Classes="ToneDanger15"
+                          Icon="CircleAlert"
+                          IsVisible="{Binding IsStatusFailed}"
+                          Text="{Binding StatusText}" />
+                        <controls:StatusPill
+                          VerticalAlignment="Center"
+                          Classes="ToneDanger15"
+                          Icon="CircleAlert"
+                          IsVisible="{Binding IsStatusStopped}"
+                          Text="{Binding StatusText}" />
+                      </StackPanel>
+                    </Border>
 
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="启用 Injector" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="Agents 启动时是否挂载此模块" />
-                </StackPanel>
-                <ToggleSwitch
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  IsChecked="{Binding IsInjectorEnabled, Mode=TwoWay}"
-                  IsEnabled="{Binding !IsAgentsToggling}"
-                  OffContent="否"
-                  OnContent="是" />
-              </Grid>
-            </Border>
+                    <Border Classes="Field">
+                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                        <StackPanel
+                          Grid.Column="0"
+                          VerticalAlignment="Center"
+                          Spacing="2">
+                          <TextBlock Classes="FieldTitle" Text="{Binding DisplayName, StringFormat=启用 {0}}" />
+                          <TextBlock Classes="Caption Muted FieldDesc" Text="Agents 启动时是否挂载此模块" />
+                        </StackPanel>
+                        <ToggleSwitch
+                          Grid.Column="1"
+                          VerticalAlignment="Center"
+                          IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                          IsEnabled="{Binding CanToggle}"
+                          OffContent="否"
+                          OnContent="是" />
+                      </Grid>
+                    </Border>
 
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="运行 Injector" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="启动或停止 Injector 模块（不停止 Agents）" />
-                </StackPanel>
-                <ToggleSwitch
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  IsChecked="{Binding IsInjectorRunningSwitch, Mode=TwoWay}"
-                  IsEnabled="{Binding !IsAgentsToggling}"
-                  OffContent="停止"
-                  OnContent="启动" />
-              </Grid>
-            </Border>
+                    <Border Classes="Field">
+                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                        <StackPanel
+                          Grid.Column="0"
+                          VerticalAlignment="Center"
+                          Spacing="2">
+                          <TextBlock Classes="FieldTitle" Text="{Binding DisplayName, StringFormat=运行 {0}}" />
+                          <TextBlock Classes="Caption Muted FieldDesc" Text="启动或停止此模块（不停止 Agents）" />
+                        </StackPanel>
+                        <ToggleSwitch
+                          Grid.Column="1"
+                          VerticalAlignment="Center"
+                          IsChecked="{Binding IsRunningSwitch, Mode=TwoWay}"
+                          IsEnabled="{Binding CanToggle}"
+                          OffContent="停止"
+                          OnContent="启动" />
+                      </Grid>
+                    </Border>
 
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="运行说明" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="当前模块状态与操作建议" />
-                </StackPanel>
-                <TextBlock
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Classes="FieldValue"
-                  Text="{Binding InjectorStatusDetail}"
-                  TextWrapping="Wrap" />
-              </Grid>
-            </Border>
+                    <Border Classes="Field">
+                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                        <StackPanel
+                          Grid.Column="0"
+                          VerticalAlignment="Center"
+                          Spacing="2">
+                          <TextBlock Classes="FieldTitle" Text="运行说明" />
+                          <TextBlock Classes="Caption Muted FieldDesc" Text="当前模块状态与操作建议" />
+                        </StackPanel>
+                        <TextBlock
+                          Grid.Column="1"
+                          VerticalAlignment="Center"
+                          Classes="FieldValue"
+                          Text="{Binding StatusDetail}"
+                          TextWrapping="Wrap" />
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
             <Border Classes="H2">
               <StackPanel Classes="H2Title">
@@ -1384,61 +1392,72 @@
               </Grid>
             </Border>
 
-            <Border Classes="H3">
-              <StackPanel Classes="H3Title">
-                <icons:AppIcon
-                  VerticalAlignment="Center"
-                  Classes="H3Hash"
-                  Kind="Hash" />
-                <TextBlock Classes="Small H3Text" Text="Injector" />
-              </StackPanel>
-            </Border>
+            <ItemsControl ItemsSource="{Binding ModuleRunRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ModuleRunRow">
+                  <StackPanel>
+                    <Border Classes="H3">
+                      <StackPanel Classes="H3Title">
+                        <icons:AppIcon
+                          VerticalAlignment="Center"
+                          Classes="H3Hash"
+                          Kind="Hash" />
+                        <TextBlock
+                          VerticalAlignment="Center"
+                          Classes="Small H3Text"
+                          Text="{Binding DisplayName}" />
+                      </StackPanel>
+                    </Border>
 
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <TextBlock
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Classes="FieldTitle"
-                  Text="版本" />
-                <TextBlock
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Classes="FieldValue"
-                  Text="{Binding InjectorVersionText}" />
-              </Grid>
-            </Border>
+                    <Border Classes="Field">
+                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                        <TextBlock
+                          Grid.Column="0"
+                          VerticalAlignment="Center"
+                          Classes="FieldTitle"
+                          Text="版本" />
+                        <TextBlock
+                          Grid.Column="1"
+                          VerticalAlignment="Center"
+                          Classes="FieldValue"
+                          Text="{Binding VersionText}" />
+                      </Grid>
+                    </Border>
 
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <TextBlock
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Classes="FieldTitle"
-                  Text="最近拉起" />
-                <TextBlock
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Classes="FieldValue"
-                  Text="{Binding InjectorLastLaunchText}" />
-              </Grid>
-            </Border>
+                    <Border Classes="Field">
+                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                        <TextBlock
+                          Grid.Column="0"
+                          VerticalAlignment="Center"
+                          Classes="FieldTitle"
+                          Text="最近拉起" />
+                        <TextBlock
+                          Grid.Column="1"
+                          VerticalAlignment="Center"
+                          Classes="FieldValue"
+                          Text="{Binding LastLaunchText}" />
+                      </Grid>
+                    </Border>
 
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <TextBlock
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Classes="FieldTitle"
-                  Text="最近错误" />
-                <TextBlock
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Classes="FieldValue"
-                  Text="{Binding InjectorLastErrorText}"
-                  TextWrapping="Wrap" />
-              </Grid>
-            </Border>
+                    <Border Classes="Field">
+                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                        <TextBlock
+                          Grid.Column="0"
+                          VerticalAlignment="Center"
+                          Classes="FieldTitle"
+                          Text="最近错误" />
+                        <TextBlock
+                          Grid.Column="1"
+                          VerticalAlignment="Center"
+                          Classes="FieldValue"
+                          Text="{Binding LastErrorText}"
+                          TextWrapping="Wrap" />
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
             <Border Classes="H2">
               <StackPanel Classes="H2Title">
@@ -1484,520 +1503,278 @@
               </Grid>
             </Border>
 
-            <Border Classes="H2">
-              <StackPanel Classes="H2Title">
-                <icons:AppIcon
-                  VerticalAlignment="Center"
-                  Classes="H2Hash"
-                  Kind="Hash" />
-                <TextBlock Classes="Large H2Text" Text="Injector 配置" />
-              </StackPanel>
-            </Border>
-
-            <Border Classes="H3">
-              <StackPanel Classes="H3Title">
-                <icons:AppIcon
-                  VerticalAlignment="Center"
-                  Classes="H3Hash"
-                  Kind="Hash" />
-                <TextBlock Classes="Small H3Text" Text="基础配置" />
-              </StackPanel>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="PG 驱动" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="Injector 连接 PostgreSQL 使用的 ODBC 驱动名" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Text="{Binding InjectorPgDriver}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="PG SSL" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="Injector 连接数据库时是否启用 SSL" />
-                </StackPanel>
-                <ToggleSwitch
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  IsChecked="{Binding InjectorPgSslEnabled, Mode=TwoWay}"
-                  OffContent="否"
-                  OnContent="是" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="确认超时" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="UI 操作确认等待时间（毫秒，100–10000）" />
-                </StackPanel>
-                <NumericUpDown
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  FormatString="0"
-                  Increment="100"
-                  Maximum="10000"
-                  Minimum="100"
-                  Value="{Binding InjectorConfirmTimeoutMs}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="H3">
-              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <StackPanel Classes="H3Title">
-                    <icons:AppIcon
-                      VerticalAlignment="Center"
-                      Classes="H3Hash"
-                      Kind="Hash" />
-                    <TextBlock Classes="Small H3Text" Text="目标进程" />
-                  </StackPanel>
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="Injector 模块可注入的目标可执行文件，每行一个" />
-                </StackPanel>
-                <Button
-                  Grid.Column="1"
-                  Classes="Outline"
-                  Click="OnAgentsAddLineClicked"
-                  Command="{Binding AddInjectorAppWinItemCommand}"
-                  Tag="InjectorAppWinItemsControl">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeSmall}"
-                      Height="{DynamicResource IconSizeSmall}"
-                      Kind="Plus" />
-                    <TextBlock VerticalAlignment="Center" Text="新增" />
-                  </StackPanel>
-                </Button>
-              </Grid>
-            </Border>
-
-            <ItemsControl x:Name="InjectorAppWinItemsControl" ItemsSource="{Binding InjectorAppWinItems}">
+            <ItemsControl ItemsSource="{Binding ModuleSettingsLoadIssues}">
               <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:InjectorLineItem">
+                <DataTemplate x:DataType="vm:ModuleSettingsLoadIssue">
                   <Border Classes="Field">
-                    <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
-                      <TextBox
+                    <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                      <StackPanel
                         Grid.Column="0"
                         VerticalAlignment="Center"
-                        PlaceholderText="例如：his-client.exe"
-                        Text="{Binding Value}" />
-                      <Button
+                        Spacing="2">
+                        <TextBlock Classes="FieldTitle" Text="{Binding DisplayName}" />
+                        <TextBlock Classes="Caption Muted FieldDesc" Text="模块设置不可用" />
+                      </StackPanel>
+                      <TextBlock
                         Grid.Column="1"
-                        Classes="Ghost"
-                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveInjectorAppWinItemCommand}"
-                        CommandParameter="{Binding .}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}"
-                            Kind="X" />
-                          <TextBlock VerticalAlignment="Center" Text="移除" />
-                        </StackPanel>
-                      </Button>
+                        VerticalAlignment="Center"
+                        Classes="Caption"
+                        Foreground="{DynamicResource ErrorColor}"
+                        Text="{Binding Message}"
+                        TextWrapping="Wrap" />
                     </Grid>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <Border Classes="H3">
-              <StackPanel Classes="H3Title">
-                <icons:AppIcon
-                  VerticalAlignment="Center"
-                  Classes="H3Hash"
-                  Kind="Hash" />
-                <TextBlock Classes="Small H3Text" Text="门诊配置" />
-              </StackPanel>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="窗口类" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="门诊窗口 Class 名称" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Text="{Binding InjectorOptWindowClass}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="解析区 ClassNN" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="门诊表格解析区域控件标识" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Text="{Binding InjectorOptParseGridClassNN}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="验证区 ClassNN" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="门诊表格验证区域控件标识" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Text="{Binding InjectorOptVerifyGridClassNN}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="输入控件 ClassNN" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="门诊追溯码输入框控件标识" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Text="{Binding InjectorOptInputClassNN}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="H3">
-              <StackPanel Classes="H3Title">
-                <icons:AppIcon
-                  VerticalAlignment="Center"
-                  Classes="H3Hash"
-                  Kind="Hash" />
-                <TextBlock Classes="Small H3Text" Text="住院配置" />
-              </StackPanel>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="窗口类" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="住院窗口 Class 名称" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Text="{Binding InjectorIptWindowClass}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="解析区 ClassNN" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="住院表格解析区域控件标识" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Text="{Binding InjectorIptParseGridClassNN}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="验证区 ClassNN" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="住院表格验证区域控件标识" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Text="{Binding InjectorIptVerifyGridClassNN}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="输入控件 ClassNN" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="住院追溯码输入框控件标识" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Text="{Binding InjectorIptInputClassNN}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="H3">
-              <StackPanel Classes="H3Title">
-                <icons:AppIcon
-                  VerticalAlignment="Center"
-                  Classes="H3Hash"
-                  Kind="Hash" />
-                <TextBlock Classes="Small H3Text" Text="仓库配置" />
-              </StackPanel>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="仓库模式" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="开启后从数据库任务队列取单注入" />
-                </StackPanel>
-                <ToggleSwitch
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  IsChecked="{Binding InjectorWarehouseEnabled, Mode=TwoWay}"
-                  OffContent="正常模式"
-                  OnContent="仓库模式" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="任务标识" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="默认可填：单据号||当前编号" />
-                </StackPanel>
-                <TextBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Text="{Binding InjectorWarehouseTaskIdentifier}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="Field">
-              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
-                <StackPanel
-                  Grid.Column="0"
-                  VerticalAlignment="Center"
-                  Spacing="2">
-                  <TextBlock Classes="FieldTitle" Text="取码策略" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="多层级追溯码选取规则" />
-                </StackPanel>
-                <ComboBox
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  ItemsSource="{Binding InjectorCodePickPolicyOptions}"
-                  SelectedItem="{Binding SelectedInjectorCodePickPolicyOption, Mode=TwoWay}" />
-              </Grid>
-            </Border>
-
-            <Border Classes="H3">
-              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <StackPanel Classes="H3Title">
-                    <icons:AppIcon
-                      VerticalAlignment="Center"
-                      Classes="H3Hash"
-                      Kind="Hash" />
-                    <TextBlock Classes="Small H3Text" Text="仓库列特征" />
-                  </StackPanel>
-                  <TextBlock
-                    Classes="Caption Muted FieldDesc"
-                    Text="表头命中任一列名则判定为住院；均未命中则判定为仓库（默认：患者姓名、应扫次数）"
-                    TextWrapping="Wrap" />
-                </StackPanel>
-                <Button
-                  Grid.Column="1"
-                  Classes="Outline"
-                  Click="OnAgentsAddLineClicked"
-                  Command="{Binding AddInjectorWarehouseAnchorItemCommand}"
-                  Tag="InjectorWarehouseAnchorItemsControl">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeSmall}"
-                      Height="{DynamicResource IconSizeSmall}"
-                      Kind="Plus" />
-                    <TextBlock VerticalAlignment="Center" Text="新增" />
-                  </StackPanel>
-                </Button>
-              </Grid>
-            </Border>
-
-            <ItemsControl x:Name="InjectorWarehouseAnchorItemsControl" ItemsSource="{Binding InjectorWarehouseAnchorItems}">
+            <ItemsControl ItemsSource="{Binding ModuleEditors}">
               <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:InjectorLineItem">
-                  <Border Classes="Field">
-                    <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
-                      <TextBox
-                        Grid.Column="0"
-                        VerticalAlignment="Center"
-                        PlaceholderText="列名"
-                        Text="{Binding Value}" />
-                      <Button
-                        Grid.Column="1"
-                        Classes="Ghost"
-                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveInjectorWarehouseAnchorItemCommand}"
-                        CommandParameter="{Binding .}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}"
-                            Kind="X" />
-                          <TextBlock VerticalAlignment="Center" Text="移除" />
-                        </StackPanel>
-                      </Button>
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                <DataTemplate x:DataType="vm:ModuleSettingsEditor">
+                  <StackPanel>
+                    <Border Classes="H2">
+                      <StackPanel Classes="H2Title">
+                        <icons:AppIcon
+                          VerticalAlignment="Center"
+                          Classes="H2Hash"
+                          Kind="Hash" />
+                        <TextBlock Classes="Large H2Text" Text="{Binding Title}" />
+                      </StackPanel>
+                    </Border>
 
-            <Border Classes="H3">
-              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <StackPanel Classes="H3Title">
-                    <icons:AppIcon
-                      VerticalAlignment="Center"
-                      Classes="H3Hash"
-                      Kind="Hash" />
-                    <TextBlock Classes="Small H3Text" Text="解析规则" />
-                  </StackPanel>
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="表格列解析规则（ColSpecs），每行一条" />
-                </StackPanel>
-                <Button
-                  Grid.Column="1"
-                  Classes="Outline"
-                  Click="OnAgentsAddLineClicked"
-                  Command="{Binding AddInjectorColSpecsItemCommand}"
-                  Tag="InjectorColSpecsItemsControl">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeSmall}"
-                      Height="{DynamicResource IconSizeSmall}"
-                      Kind="Plus" />
-                    <TextBlock VerticalAlignment="Center" Text="新增" />
-                  </StackPanel>
-                </Button>
-              </Grid>
-            </Border>
+                    <ItemsControl ItemsSource="{Binding Sections}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ModuleSettingsSectionViewModel">
+                          <StackPanel>
+                            <Border Classes="H3" IsVisible="{Binding HasTitle}">
+                              <StackPanel Classes="H3Title">
+                                <icons:AppIcon
+                                  VerticalAlignment="Center"
+                                  Classes="H3Hash"
+                                  Kind="Hash" />
+                                <TextBlock Classes="Small H3Text" Text="{Binding Title}" />
+                              </StackPanel>
+                            </Border>
 
-            <ItemsControl x:Name="InjectorColSpecsItemsControl" ItemsSource="{Binding InjectorColSpecsItems}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:InjectorLineItem">
-                  <Border Classes="Field">
-                    <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
-                      <TextBox
-                        Grid.Column="0"
-                        VerticalAlignment="Center"
-                        PlaceholderText="列规则"
-                        Text="{Binding Value}" />
-                      <Button
-                        Grid.Column="1"
-                        Classes="Ghost"
-                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveInjectorColSpecsItemCommand}"
-                        CommandParameter="{Binding .}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}"
-                            Kind="X" />
-                          <TextBlock VerticalAlignment="Center" Text="移除" />
-                        </StackPanel>
-                      </Button>
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                            <ItemsControl ItemsSource="{Binding Fields}">
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ModuleSettingsFieldViewModel">
+                                  <StackPanel>
+                                    <Border Classes="Field" IsVisible="{Binding IsString}">
+                                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                                        <StackPanel
+                                          Grid.Column="0"
+                                          VerticalAlignment="Center"
+                                          Spacing="2">
+                                          <TextBlock Classes="FieldTitle" Text="{Binding Label}" />
+                                          <TextBlock
+                                            Classes="Caption Muted FieldDesc"
+                                            IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                            Text="{Binding Description}" />
+                                        </StackPanel>
+                                        <TextBox
+                                          Grid.Column="1"
+                                          VerticalAlignment="Center"
+                                          Text="{Binding StringValue}" />
+                                      </Grid>
+                                    </Border>
 
-            <Border Classes="H3">
-              <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
-                <StackPanel VerticalAlignment="Center" Spacing="2">
-                  <StackPanel Classes="H3Title">
-                    <icons:AppIcon
-                      VerticalAlignment="Center"
-                      Classes="H3Hash"
-                      Kind="Hash" />
-                    <TextBlock Classes="Small H3Text" Text="整数列" />
-                  </StackPanel>
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="需要按整数解析的列名，每行一个" />
-                </StackPanel>
-                <Button
-                  Grid.Column="1"
-                  Classes="Outline"
-                  Click="OnAgentsAddLineClicked"
-                  Command="{Binding AddInjectorIntColsItemCommand}"
-                  Tag="InjectorIntColsItemsControl">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                    <icons:AppIcon
-                      Width="{DynamicResource IconSizeSmall}"
-                      Height="{DynamicResource IconSizeSmall}"
-                      Kind="Plus" />
-                    <TextBlock VerticalAlignment="Center" Text="新增" />
-                  </StackPanel>
-                </Button>
-              </Grid>
-            </Border>
+                                    <Border Classes="Field" IsVisible="{Binding IsBool}">
+                                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                                        <StackPanel
+                                          Grid.Column="0"
+                                          VerticalAlignment="Center"
+                                          Spacing="2">
+                                          <TextBlock Classes="FieldTitle" Text="{Binding Label}" />
+                                          <TextBlock
+                                            Classes="Caption Muted FieldDesc"
+                                            IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                            Text="{Binding Description}" />
+                                        </StackPanel>
+                                        <ToggleSwitch
+                                          Grid.Column="1"
+                                          VerticalAlignment="Center"
+                                          IsChecked="{Binding BoolValue, Mode=TwoWay}"
+                                          OffContent="关闭"
+                                          OnContent="开启" />
+                                      </Grid>
+                                    </Border>
 
-            <ItemsControl x:Name="InjectorIntColsItemsControl" ItemsSource="{Binding InjectorIntColsItems}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:InjectorLineItem">
-                  <Border Classes="Field">
-                    <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
-                      <TextBox
-                        Grid.Column="0"
-                        VerticalAlignment="Center"
-                        PlaceholderText="列名"
-                        Text="{Binding Value}" />
-                      <Button
-                        Grid.Column="1"
-                        Classes="Ghost"
-                        Command="{Binding #Root.((vm:Settings)DataContext).RemoveInjectorIntColsItemCommand}"
-                        CommandParameter="{Binding .}">
-                        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                          <icons:AppIcon
-                            Width="{DynamicResource IconSizeSmall}"
-                            Height="{DynamicResource IconSizeSmall}"
-                            Kind="X" />
-                          <TextBlock VerticalAlignment="Center" Text="移除" />
-                        </StackPanel>
-                      </Button>
-                    </Grid>
-                  </Border>
+                                    <Border Classes="Field" IsVisible="{Binding IsInt}">
+                                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                                        <StackPanel
+                                          Grid.Column="0"
+                                          VerticalAlignment="Center"
+                                          Spacing="2">
+                                          <TextBlock Classes="FieldTitle" Text="{Binding Label}" />
+                                          <TextBlock
+                                            Classes="Caption Muted FieldDesc"
+                                            IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                            Text="{Binding Description}" />
+                                        </StackPanel>
+                                        <NumericUpDown
+                                          Grid.Column="1"
+                                          VerticalAlignment="Center"
+                                          FormatString="0"
+                                          Increment="1"
+                                          Maximum="{Binding Max}"
+                                          Minimum="{Binding Min}"
+                                          Value="{Binding IntValue}" />
+                                      </Grid>
+                                    </Border>
+
+                                    <Border Classes="Field" IsVisible="{Binding IsEnum}">
+                                      <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,1*">
+                                        <StackPanel
+                                          Grid.Column="0"
+                                          VerticalAlignment="Center"
+                                          Spacing="2">
+                                          <TextBlock Classes="FieldTitle" Text="{Binding Label}" />
+                                          <TextBlock
+                                            Classes="Caption Muted FieldDesc"
+                                            IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                            Text="{Binding Description}" />
+                                        </StackPanel>
+                                        <ComboBox
+                                          Grid.Column="1"
+                                          VerticalAlignment="Center"
+                                          ItemsSource="{Binding Options}"
+                                          SelectedItem="{Binding SelectedOption, Mode=TwoWay}" />
+                                      </Grid>
+                                    </Border>
+
+                                    <StackPanel IsVisible="{Binding IsStringList}">
+                                      <Border Classes="H3">
+                                        <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                                          <StackPanel VerticalAlignment="Center" Spacing="2">
+                                            <StackPanel Classes="H3Title">
+                                              <icons:AppIcon
+                                                VerticalAlignment="Center"
+                                                Classes="H3Hash"
+                                                Kind="Hash" />
+                                              <TextBlock Classes="Small H3Text" Text="{Binding Label}" />
+                                            </StackPanel>
+                                            <TextBlock
+                                              Classes="Caption Muted FieldDesc"
+                                              IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                              Text="{Binding Description}"
+                                              TextWrapping="Wrap" />
+                                          </StackPanel>
+                                          <Button
+                                            Grid.Column="1"
+                                            Classes="Outline"
+                                            Click="OnModuleAddLineClicked"
+                                            Command="{Binding AddListItemCommand}">
+                                            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                                              <icons:AppIcon
+                                                Width="{DynamicResource IconSizeSmall}"
+                                                Height="{DynamicResource IconSizeSmall}"
+                                                Kind="Plus" />
+                                              <TextBlock VerticalAlignment="Center" Text="新增" />
+                                            </StackPanel>
+                                          </Button>
+                                        </Grid>
+                                      </Border>
+
+                                      <ItemsControl ItemsSource="{Binding ListItems}">
+                                        <ItemsControl.ItemTemplate>
+                                          <DataTemplate x:DataType="vm:SettingsLineItem">
+                                            <Border Classes="Field">
+                                              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
+                                                <TextBox
+                                                  Grid.Column="0"
+                                                  VerticalAlignment="Center"
+                                                  Text="{Binding Value}" />
+                                                <Button
+                                                  Grid.Column="1"
+                                                  Classes="Ghost"
+                                                  Command="{Binding $parent[ItemsControl].((vm:ModuleSettingsFieldViewModel)DataContext).RemoveListItemCommand}"
+                                                  CommandParameter="{Binding .}">
+                                                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                                                    <icons:AppIcon
+                                                      Width="{DynamicResource IconSizeSmall}"
+                                                      Height="{DynamicResource IconSizeSmall}"
+                                                      Kind="X" />
+                                                    <TextBlock VerticalAlignment="Center" Text="移除" />
+                                                  </StackPanel>
+                                                </Button>
+                                              </Grid>
+                                            </Border>
+                                          </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                      </ItemsControl>
+                                    </StackPanel>
+
+                                    <StackPanel IsVisible="{Binding IsStringFlagMap}">
+                                      <Border Classes="H3">
+                                        <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                                          <StackPanel VerticalAlignment="Center" Spacing="2">
+                                            <StackPanel Classes="H3Title">
+                                              <icons:AppIcon
+                                                VerticalAlignment="Center"
+                                                Classes="H3Hash"
+                                                Kind="Hash" />
+                                              <TextBlock Classes="Small H3Text" Text="{Binding Label}" />
+                                            </StackPanel>
+                                            <TextBlock
+                                              Classes="Caption Muted FieldDesc"
+                                              IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                              Text="{Binding Description}"
+                                              TextWrapping="Wrap" />
+                                          </StackPanel>
+                                          <Button
+                                            Grid.Column="1"
+                                            Classes="Outline"
+                                            Click="OnModuleAddLineClicked"
+                                            Command="{Binding AddListItemCommand}">
+                                            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                                              <icons:AppIcon
+                                                Width="{DynamicResource IconSizeSmall}"
+                                                Height="{DynamicResource IconSizeSmall}"
+                                                Kind="Plus" />
+                                              <TextBlock VerticalAlignment="Center" Text="新增" />
+                                            </StackPanel>
+                                          </Button>
+                                        </Grid>
+                                      </Border>
+
+                                      <ItemsControl ItemsSource="{Binding ListItems}">
+                                        <ItemsControl.ItemTemplate>
+                                          <DataTemplate x:DataType="vm:SettingsLineItem">
+                                            <Border Classes="Field">
+                                              <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
+                                                <TextBox
+                                                  Grid.Column="0"
+                                                  VerticalAlignment="Center"
+                                                  Text="{Binding Value}" />
+                                                <Button
+                                                  Grid.Column="1"
+                                                  Classes="Ghost"
+                                                  Command="{Binding $parent[ItemsControl].((vm:ModuleSettingsFieldViewModel)DataContext).RemoveListItemCommand}"
+                                                  CommandParameter="{Binding .}">
+                                                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
+                                                    <icons:AppIcon
+                                                      Width="{DynamicResource IconSizeSmall}"
+                                                      Height="{DynamicResource IconSizeSmall}"
+                                                      Kind="X" />
+                                                    <TextBlock VerticalAlignment="Center" Text="移除" />
+                                                  </StackPanel>
+                                                </Button>
+                                              </Grid>
+                                            </Border>
+                                          </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                      </ItemsControl>
+                                    </StackPanel>
+                                  </StackPanel>
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                          </StackPanel>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>

@@ -15,31 +15,7 @@ internal static class AgentsContractMapper
         {
             ExecutablePath = source.ExecutablePath,
             ProcessName = source.ProcessName,
-            Injector = ToApplication(source.Injector),
-        };
-
-    public static AppDtos.InjectorOptionsDto ToApplication(InjectorOptions source)
-        => new()
-        {
-            Enabled = source.Enabled,
-            PgDriver = source.PgDriver,
-            PgSsl = source.PgSsl,
-            OptWindowClass = source.OptWindowClass,
-            IptWindowClass = source.IptWindowClass,
-            AppWin = new Dictionary<string, int>(source.AppWin, StringComparer.OrdinalIgnoreCase),
-            ConfirmTimeoutMs = source.ConfirmTimeoutMs,
-            ColSpecs = [.. source.ColSpecs],
-            IntCols = [.. source.IntCols],
-            OptParseGridClassNN = source.OptParseGridClassNN,
-            OptVerifyGridClassNN = source.OptVerifyGridClassNN,
-            IptParseGridClassNN = source.IptParseGridClassNN,
-            IptVerifyGridClassNN = source.IptVerifyGridClassNN,
-            OptInputClassNN = source.OptInputClassNN,
-            IptInputClassNN = source.IptInputClassNN,
-            WarehouseEnabled = source.WarehouseEnabled,
-            WarehouseAnchorTexts = [.. source.WarehouseAnchorTexts],
-            CodePickPolicy = source.CodePickPolicy,
-            WarehouseTaskIdentifier = source.WarehouseTaskIdentifier,
+            Modules = ToApplicationModules(source.Modules),
         };
 
     public static AgentsOptions ToContract(AppDtos.AgentsConfigDto source)
@@ -47,30 +23,30 @@ internal static class AgentsContractMapper
         {
             ExecutablePath = source.ExecutablePath,
             ProcessName = source.ProcessName,
-            Injector = ToContract(source.Injector),
+            Modules = ToContractModules(source.Modules),
         };
 
-    public static InjectorOptions ToContract(AppDtos.InjectorOptionsDto source)
-        => new()
+    private static Dictionary<string, AppDtos.ModuleOptionsDto> ToApplicationModules(
+        Dictionary<string, ModuleOptions> source)
+    {
+        var result = new Dictionary<string, AppDtos.ModuleOptionsDto>(StringComparer.Ordinal);
+        foreach (var (id, options) in source)
         {
-            Enabled = source.Enabled,
-            PgDriver = source.PgDriver,
-            PgSsl = source.PgSsl,
-            OptWindowClass = source.OptWindowClass,
-            IptWindowClass = source.IptWindowClass,
-            AppWin = new Dictionary<string, int>(source.AppWin, StringComparer.OrdinalIgnoreCase),
-            ConfirmTimeoutMs = source.ConfirmTimeoutMs,
-            ColSpecs = [.. source.ColSpecs],
-            IntCols = [.. source.IntCols],
-            OptParseGridClassNN = source.OptParseGridClassNN,
-            OptVerifyGridClassNN = source.OptVerifyGridClassNN,
-            IptParseGridClassNN = source.IptParseGridClassNN,
-            IptVerifyGridClassNN = source.IptVerifyGridClassNN,
-            OptInputClassNN = source.OptInputClassNN,
-            IptInputClassNN = source.IptInputClassNN,
-            WarehouseEnabled = source.WarehouseEnabled,
-            WarehouseAnchorTexts = [.. source.WarehouseAnchorTexts],
-            CodePickPolicy = source.CodePickPolicy,
-            WarehouseTaskIdentifier = source.WarehouseTaskIdentifier,
-        };
+            result[id] = new AppDtos.ModuleOptionsDto { Enabled = options.Enabled };
+        }
+
+        return result;
+    }
+
+    private static Dictionary<string, ModuleOptions> ToContractModules(
+        Dictionary<string, AppDtos.ModuleOptionsDto> source)
+    {
+        var result = new Dictionary<string, ModuleOptions>(StringComparer.Ordinal);
+        foreach (var (id, options) in source)
+        {
+            result[id] = new ModuleOptions { Enabled = options.Enabled };
+        }
+
+        return result;
+    }
 }

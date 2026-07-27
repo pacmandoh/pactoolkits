@@ -1,0 +1,35 @@
+{
+  "PgDriver": "PostgreSQL Unicode(x64)",
+  "PgSsl": "disable",
+  "OptWindowClass": "TFrm_mzcffy",
+  "IptWindowClass": "Tfrm_wzzsm",
+  "AppWin": {
+    "互慧软件.exe": 1,
+    "ProjectMain.exe": 1
+  },
+  "ConfirmTimeoutMs": 2500,
+  "ColSpecs": [
+    "?追溯码",
+    "物资名称||药品名称",
+    "规格||药品规格",
+    "数量",
+    "?单位",
+    "?拆零标签||拆零"
+  ],
+  "IntCols": [
+    "数量"
+  ],
+  "OptParseGridClassNN": "TcxGridSite2",
+  "OptVerifyGridClassNN": "TcxGridSite2",
+  "IptParseGridClassNN": "TcxGridSite2",
+  "IptVerifyGridClassNN": "TcxGridSite1",
+  "OptInputClassNN": "TMemo2",
+  "IptInputClassNN": "TEdit1",
+  "WarehouseEnabled": false,
+  "WarehouseAnchorTexts": [
+    "患者姓名",
+    "应扫次数"
+  ],
+  "CodePickPolicy": "MAX_LEVEL",
+  "WarehouseTaskIdentifier": "单据号||当前编号"
+}

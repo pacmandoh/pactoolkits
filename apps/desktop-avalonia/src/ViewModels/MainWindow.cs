@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -92,7 +93,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private DateTimeOffset _lastDbErrorToastAt = DateTimeOffset.MinValue;
     private DateTimeOffset _lastDbOkToastAt = DateTimeOffset.MinValue;
     private DateTimeOffset _lastAgentsTopToastAt = DateTimeOffset.MinValue;
-    // 与 AgentsRuntime.CommandCooldown 对齐，避免顶栏 toast 连刷
+    // 与 Agents Host 命令冷却窗口对齐，避免顶栏 toast 连刷
     private static readonly TimeSpan AgentsTopToastDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan TopActionDebounce = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(8);
@@ -126,6 +127,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly Dictionary<Type, AppPageBase> _pageByType;
     private readonly AppPageBase? _settingsPage;
     private readonly PageHistory<NavigationLocation> _pageHistory = new();
+    private readonly Dictionary<string, ModuleChrome> _moduleChromeById = new(StringComparer.Ordinal);
+
+    public ObservableCollection<ModuleChrome> TopStatusPills { get; } = new();
+
+    public ObservableCollection<ModuleChrome> BottomStatusBar { get; } = new();
     private NavigationLocation? _currentLocation;
     private AppPageBase? _activeLifecyclePage;
     private bool _isHistoryNavigation;
@@ -211,7 +217,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string _currentProductVersion = "unknown";
     [ObservableProperty] private string _latestProductVersion = "unknown";
     public bool CanProbeDb() => !IsDbProbeRunning;
-    public bool CanControlAgents() => !IsAgentsActionRunning;
+    public bool CanControlAgents()
+        => !IsAgentsActionRunning && Agents.HostState != AgentsRunState.Starting;
 
     public bool IsDbConnected => _dbMonitor.IsConnected;
 
@@ -221,8 +228,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         : "数据库：未连接";
 
     public string HostItemText => $"Host：{HostStatusText}";
-
-    public string InjectorItemText => $"Injector：{InjectorStatusText}";
 
     public string ActivePageText => ActivePage?.DisplayName ?? "就绪";
 
@@ -298,22 +303,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _ => "未知",
         };
 
-    public bool IsInjectorRunning => Agents.IsInjectorRunning;
-
-    public bool IsInjectorStarting => Agents.InjectorState == AgentsRunState.Starting;
-
-    public bool IsInjectorInactive => !Agents.InjectorState.IsActive();
-
-    public string InjectorStatusText
-        => Agents.InjectorState switch
-        {
-            AgentsRunState.Running => "运行中",
-            AgentsRunState.Starting => "启动中",
-            AgentsRunState.Failed => "启动失败",
-            AgentsRunState.Stopped => "未启动",
-            _ => "未知",
-        };
-
     public string AppBuildChannelText
     {
         get
@@ -358,7 +347,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(DbItemText));
         OnPropertyChanged(nameof(HostItemText));
-        OnPropertyChanged(nameof(InjectorItemText));
         OnPropertyChanged(nameof(ActivePageText));
         OnPropertyChanged(nameof(ShowAccessGuardItem));
         OnPropertyChanged(nameof(AccessGuardItemText));
@@ -468,7 +456,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     partial void OnIsAgentsActionRunningChanged(bool value)
     {
         StartOrRestartHostCommand.NotifyCanExecuteChanged();
-        StartOrRestartInjectorCommand.NotifyCanExecuteChanged();
+        StartOrRestartModuleCommand.NotifyCanExecuteChanged();
     }
 
     private void RaiseAgentsStateChanged()
@@ -478,11 +466,77 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsHostInactive));
         OnPropertyChanged(nameof(HostStatusText));
         OnPropertyChanged(nameof(HostItemText));
-        OnPropertyChanged(nameof(IsInjectorRunning));
-        OnPropertyChanged(nameof(IsInjectorStarting));
-        OnPropertyChanged(nameof(IsInjectorInactive));
-        OnPropertyChanged(nameof(InjectorStatusText));
-        OnPropertyChanged(nameof(InjectorItemText));
+        SyncModuleChrome();
+    }
+
+    private void SyncModuleChrome()
+    {
+        var scanned = Agents.Modules;
+        var wanted = scanned
+            .Where(m => m.Desktop.TopStatusPills || m.Desktop.BottomStatusBar)
+            .ToList();
+
+        foreach (var staleId in _moduleChromeById.Keys.Except(wanted.Select(m => m.Id), StringComparer.Ordinal).ToList())
+        {
+            _moduleChromeById.Remove(staleId);
+        }
+
+        foreach (var module in wanted)
+        {
+            if (!_moduleChromeById.TryGetValue(module.Id, out var chrome))
+            {
+                chrome = new ModuleChrome(module);
+                _moduleChromeById[module.Id] = chrome;
+            }
+            else
+            {
+                chrome.ApplyDescriptor(module);
+            }
+
+            chrome.Apply(Agents.GetModuleState(module.Id));
+        }
+
+        ReplaceModuleChrome(TopStatusPills, wanted.Where(m => m.Desktop.TopStatusPills));
+        ReplaceModuleChrome(BottomStatusBar, wanted.Where(m => m.Desktop.BottomStatusBar));
+    }
+
+    private void ReplaceModuleChrome(
+        ObservableCollection<ModuleChrome> target,
+        IEnumerable<ModuleDescriptor> modules)
+    {
+        var next = modules
+            .Select(m => _moduleChromeById[m.Id])
+            .ToList();
+
+        if (target.Count == next.Count &&
+            target.Zip(next, (a, b) => ReferenceEquals(a, b)).All(same => same))
+        {
+            return;
+        }
+
+        for (var index = 0; index < next.Count; index++)
+        {
+            var item = next[index];
+            if (index < target.Count && ReferenceEquals(target[index], item))
+            {
+                continue;
+            }
+
+            var currentIndex = target.IndexOf(item);
+            if (currentIndex >= 0)
+            {
+                target.Move(currentIndex, index);
+            }
+            else
+            {
+                target.Insert(index, item);
+            }
+        }
+
+        while (target.Count > next.Count)
+        {
+            target.RemoveAt(target.Count - 1);
+        }
     }
 
     private void LogPageInfo(string eventName, string message, object? context = null)
@@ -1458,18 +1512,31 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand(CanExecute = nameof(CanControlAgents))]
-    private async Task StartOrRestartInjector()
+    private async Task StartOrRestartModule(string? moduleId)
     {
-        if (SkipTrigger("top.agents.injector", (int)TopActionDebounce.TotalMilliseconds))
+        if (string.IsNullOrWhiteSpace(moduleId))
+        {
+            return;
+        }
+
+        if (SkipTrigger($"top.agents.module:{moduleId}", (int)TopActionDebounce.TotalMilliseconds))
         {
             return;
         }
 
         try
         {
-            if (!Agents.IsInjectorEnabled)
+            var moduleLabel = Agents.Modules
+                .FirstOrDefault(m => string.Equals(m.Id, moduleId, StringComparison.Ordinal))
+                ?.DisplayName;
+            if (string.IsNullOrWhiteSpace(moduleLabel))
             {
-                TryShowAgentsTopToast(() => _toasts.Error("Agents", "Injector 未启用"));
+                moduleLabel = moduleId;
+            }
+
+            if (!Agents.IsModuleEnabled(moduleId))
+            {
+                TryShowAgentsTopToast(() => _toasts.Error("Agents", $"{moduleLabel} 未启用"));
                 return;
             }
 
@@ -1479,30 +1546,30 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            if (Agents.IsInjectorRunning)
+            if (Agents.GetModuleState(moduleId) == AgentsRunState.Running)
             {
                 IsAgentsActionRunning = true;
                 NotifyAgentsCommands();
 
                 Agents.Reload();
-                if (Agents.IsInjectorRunning)
+                if (Agents.GetModuleState(moduleId) == AgentsRunState.Running)
                 {
-                    TryShowAgentsTopToast(() => _toasts.Success("Agents", "健康检查通过：Injector 已就绪"));
+                    TryShowAgentsTopToast(() => _toasts.Success("Agents", $"健康检查通过：{moduleLabel} 已就绪"));
                 }
                 else
                 {
-                    TryShowAgentsTopToast(() => _toasts.Error("Agents", "健康检查失败：Injector 未运行"));
+                    TryShowAgentsTopToast(() => _toasts.Error("Agents", $"健康检查失败：{moduleLabel} 未运行"));
                 }
 
                 return;
             }
 
-            // Host 已起但 Injector 未起：只补挂 Injector，不拆 Host
-            await RunAgentsCommandAsync(() => Agents.StartInjectorAsync()).ConfigureAwait(false);
+            // Host 已起但模块未起：只补挂模块，不拆 Host
+            await RunAgentsCommandAsync(() => Agents.StartModuleAsync(moduleId)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.Error("MainWindowVM", "agents.injector_top_action.error", "Agents Injector top action failed", ex);
+            _logger.Error("MainWindowVM", "agents.module_top_action.error", "Agents module top action failed", ex, new { moduleId });
             TryShowAgentsTopToast(() => _toasts.Error("Agents", ex.Message));
         }
         finally
@@ -1518,6 +1585,12 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private async Task RunAgentsCommandAsync(Func<Task<AgentsCommandResult>> run)
     {
+        await RunOnUiAsync(() =>
+        {
+            IsAgentsActionRunning = true;
+            NotifyAgentsCommands();
+        });
+
         var result = await run().ConfigureAwait(false);
         if (result.SuppressToast)
         {
@@ -1537,7 +1610,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private void NotifyAgentsCommands()
     {
         StartOrRestartHostCommand.NotifyCanExecuteChanged();
-        StartOrRestartInjectorCommand.NotifyCanExecuteChanged();
+        StartOrRestartModuleCommand.NotifyCanExecuteChanged();
     }
 
     private void TryShowAgentsTopToast(Action show)

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -11,6 +13,7 @@ using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
 using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Agents.Contracts.Agents;
+using PacToolkits.Agents.Contracts.Commands;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 
@@ -18,59 +21,50 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 public partial class Settings
 {
-    private readonly record struct SaveOptionsResult(bool Saved, bool Changed);
+    private readonly record struct SaveOptionsResult(
+        bool Saved,
+        bool HostChanged,
+        IReadOnlyList<string> ChangedModuleIds);
+
+    private readonly record struct RuntimeApplyResult(
+        bool Applied,
+        bool HostRestarted,
+        int ReloadedModuleCount);
 
     private readonly IAgentsRuntime _agents;
     private readonly IAgentsConfigService _agentsConfig;
+    private readonly IModuleSettingsStore _moduleSettings;
     private readonly object _snapshotGate = new();
+    private readonly object _moduleAutoSaveSync = new();
+    private readonly SemaphoreSlim _moduleSaveGate = new(1, 1);
+    private readonly Dictionary<string, CancellationTokenSource> _moduleAutoSaveCts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HashSet<ModuleSettingsFieldViewModel>> _moduleAutoSaveFields = new(StringComparer.Ordinal);
     private AgentsEditorSnapshot? _savedSnapshot;
     private bool _hasPendingChanges;
     private bool _baselineReady;
     private bool _suppressPendingRecalc;
+    private bool _suppressModuleAutoSave;
+    private bool _agentsDisposed;
+    private string _modulesSyncKey = string.Empty;
+    // 清单已变但因未保存编辑、自动保存或启停操作推迟重绑；解除门闩后再 SyncAgentsConfig
+    private bool _moduleEditorsStale;
+
+    public ObservableCollection<ModuleRunRow> ModuleRunRows { get; } = new();
+    public ObservableCollection<ModuleSettingsEditor> ModuleEditors { get; } = new();
+    public ObservableCollection<ModuleSettingsLoadIssue> ModuleSettingsLoadIssues { get; } = new();
 
     private bool _syncingFromRuntime;
 
-    [ObservableProperty] private bool _isInjectorEnabled;
     [ObservableProperty] private bool _isHostRunningSwitch;
-    [ObservableProperty] private bool _isInjectorRunningSwitch;
     [ObservableProperty] private bool _isAgentsToggling;
     [ObservableProperty] private bool _isSavingSettings;
     [ObservableProperty] private string _agentsExecutablePath = string.Empty;
     [ObservableProperty] private string _agentsProcessName = string.Empty;
     [ObservableProperty] private string _hostStatusText = "检测中";
     [ObservableProperty] private string _hostStatusDetail = "等待 Agents 状态刷新";
-    [ObservableProperty] private string _injectorStatusText = "检测中";
-    [ObservableProperty] private string _injectorStatusDetail = "等待模块状态刷新";
     [ObservableProperty] private string _hostVersionText = "未知";
-    [ObservableProperty] private string _injectorVersionText = "未知";
     [ObservableProperty] private string _hostLastLaunchText = "-";
-    [ObservableProperty] private string _injectorLastLaunchText = "-";
     [ObservableProperty] private string _hostLastErrorText = "-";
-    [ObservableProperty] private string _injectorLastErrorText = "-";
-    [ObservableProperty] private string _injectorPgDriver = "PostgreSQL Unicode(x64)";
-    [ObservableProperty] private string _injectorPgSsl = "disable";
-    [ObservableProperty] private string _injectorOptWindowClass = "TFrm_mzcffy";
-    [ObservableProperty] private string _injectorIptWindowClass = "Tfrm_wzzsm";
-    [ObservableProperty] private int _injectorConfirmTimeoutMs = 2500;
-    [ObservableProperty] private string _injectorOptParseGridClassNN = "TcxGridSite2";
-    [ObservableProperty] private string _injectorOptVerifyGridClassNN = "TcxGridSite2";
-    [ObservableProperty] private string _injectorIptParseGridClassNN = "TcxGridSite2";
-    [ObservableProperty] private string _injectorIptVerifyGridClassNN = "TcxGridSite1";
-    [ObservableProperty] private string _injectorOptInputClassNN = "TMemo2";
-    [ObservableProperty] private string _injectorIptInputClassNN = "TEdit1";
-    [ObservableProperty] private bool _injectorWarehouseEnabled;
-    [ObservableProperty] private string _injectorCodePickPolicy = "MAX_LEVEL";
-    [ObservableProperty] private string _injectorWarehouseTaskIdentifier = "单据号||当前编号";
-    [ObservableProperty] private CodePickPolicyOption? _selectedInjectorCodePickPolicyOption;
-    public ObservableCollection<InjectorLineItem> InjectorAppWinItems { get; } = [];
-    public ObservableCollection<InjectorLineItem> InjectorColSpecsItems { get; } = [];
-    public ObservableCollection<InjectorLineItem> InjectorIntColsItems { get; } = [];
-    public ObservableCollection<InjectorLineItem> InjectorWarehouseAnchorItems { get; } = [];
-    public IReadOnlyList<CodePickPolicyOption> InjectorCodePickPolicyOptions { get; } =
-    [
-        new() { Value = "MAX_LEVEL", Label = "按最大码" },
-        new() { Value = "MIN_LEVEL", Label = "按最小码" },
-    ];
 
     public bool IsHostStatusRunning => _agents.HostState == AgentsRunState.Running;
     public bool IsHostStatusStarting => _agents.HostState == AgentsRunState.Starting;
@@ -78,24 +72,35 @@ public partial class Settings
     public bool IsHostStatusStopped => _agents.HostState == AgentsRunState.Stopped;
     public bool IsHostStatusUnknown => _agents.HostState == AgentsRunState.Unknown;
 
-    public bool IsInjectorStatusRunning => _agents.InjectorState == AgentsRunState.Running;
-    public bool IsInjectorStatusStarting => _agents.InjectorState == AgentsRunState.Starting;
-    public bool IsInjectorStatusFailed => _agents.InjectorState == AgentsRunState.Failed;
-    public bool IsInjectorStatusStopped => _agents.InjectorState == AgentsRunState.Stopped;
-    public bool IsInjectorStatusUnknown => _agents.InjectorState == AgentsRunState.Unknown;
-
     private bool CanRestartAgents() => !IsAgentsToggling && IsHostStatusRunning;
-    partial void OnIsAgentsTogglingChanged(bool value) => RestartAgentsCommand.NotifyCanExecuteChanged();
+
+    public bool CanSaveAgentsSettings => !IsSavingSettings && !IsAgentsToggling;
+
+    partial void OnIsAgentsTogglingChanged(bool value)
+    {
+        RestartAgentsCommand.NotifyCanExecuteChanged();
+        SaveAgentsSettingsCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(CanSaveAgentsSettings));
+        foreach (var row in ModuleRunRows)
+        {
+            row.CanToggle = !value;
+        }
+
+        if (!value)
+        {
+            TryFlushStaleModuleEditors();
+        }
+    }
+
+    partial void OnIsSavingSettingsChanged(bool value)
+    {
+        SaveAgentsSettingsCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(CanSaveAgentsSettings));
+    }
 
     private void InitializeAgents()
     {
-        WireLineCollection(InjectorAppWinItems);
-        WireLineCollection(InjectorColSpecsItems);
-        WireLineCollection(InjectorIntColsItems);
-        WireLineCollection(InjectorWarehouseAnchorItems);
-
         HostVersionText = _agents.HostVersion;
-        InjectorVersionText = _agents.InjectorVersion;
         ApplyRuntimeSnapshot();
         SyncAgentsConfig();
         RefreshPendingChanges();
@@ -107,68 +112,18 @@ public partial class Settings
     {
         _agents.Reload();
         ApplyRuntimeSnapshot();
+        if (HasModuleAutoSaves)
+        {
+            RefreshModuleRunRows();
+            _moduleEditorsStale = true;
+            return;
+        }
+
         SyncAgentsConfig();
     }
 
     partial void OnAgentsExecutablePathChanged(string value) => RefreshPendingChanges();
     partial void OnAgentsProcessNameChanged(string value) => RefreshPendingChanges();
-    partial void OnInjectorPgDriverChanged(string value) => RefreshPendingChanges();
-    public bool InjectorPgSslEnabled
-    {
-        get => !string.Equals(InjectorPgSsl, "disable", StringComparison.OrdinalIgnoreCase);
-        set
-        {
-            var mapped = value ? "require" : "disable";
-            if (string.Equals(InjectorPgSsl, mapped, StringComparison.OrdinalIgnoreCase))
-            {
-                OnPropertyChanged(nameof(InjectorPgSslEnabled));
-                return;
-            }
-
-            InjectorPgSsl = mapped;
-        }
-    }
-
-    partial void OnInjectorPgSslChanged(string value)
-    {
-        OnPropertyChanged(nameof(InjectorPgSslEnabled));
-        RefreshPendingChanges();
-    }
-    partial void OnInjectorOptWindowClassChanged(string value) => RefreshPendingChanges();
-    partial void OnInjectorIptWindowClassChanged(string value) => RefreshPendingChanges();
-    partial void OnInjectorConfirmTimeoutMsChanged(int value) => RefreshPendingChanges();
-    partial void OnInjectorOptParseGridClassNNChanged(string value) => RefreshPendingChanges();
-    partial void OnInjectorOptVerifyGridClassNNChanged(string value) => RefreshPendingChanges();
-    partial void OnInjectorIptParseGridClassNNChanged(string value) => RefreshPendingChanges();
-    partial void OnInjectorIptVerifyGridClassNNChanged(string value) => RefreshPendingChanges();
-    partial void OnInjectorOptInputClassNNChanged(string value) => RefreshPendingChanges();
-    partial void OnInjectorIptInputClassNNChanged(string value) => RefreshPendingChanges();
-    partial void OnInjectorWarehouseEnabledChanged(bool value) => RefreshPendingChanges();
-    partial void OnInjectorWarehouseTaskIdentifierChanged(string value) => RefreshPendingChanges();
-    partial void OnInjectorCodePickPolicyChanged(string value)
-    {
-        var normalized = NormCodePickPolicy(value);
-        if (!string.Equals(normalized, value, StringComparison.Ordinal))
-        {
-            InjectorCodePickPolicy = normalized;
-            return;
-        }
-
-        var selected = InjectorCodePickPolicyOptions.FirstOrDefault(x => string.Equals(x.Value, normalized, StringComparison.Ordinal));
-        if (!ReferenceEquals(selected, SelectedInjectorCodePickPolicyOption))
-            SelectedInjectorCodePickPolicyOption = selected;
-
-        RefreshPendingChanges();
-    }
-
-    partial void OnSelectedInjectorCodePickPolicyOptionChanged(CodePickPolicyOption? value)
-    {
-        var selectedValue = NormCodePickPolicy(value?.Value ?? "MAX_LEVEL");
-        if (!string.Equals(InjectorCodePickPolicy, selectedValue, StringComparison.Ordinal))
-            InjectorCodePickPolicy = selectedValue;
-        else
-            RefreshPendingChanges();
-    }
 
     public bool HasPendingChanges
         => _baselineReady && _hasPendingChanges;
@@ -176,25 +131,25 @@ public partial class Settings
     private void OnAgentsRuntimeChanged()
     {
         // start/stop 进行中保留乐观开关态，在 toggle finally 落定
-        // 外部改配置会 Reload() 再 StatusChanged——无本地草稿时重绑表单
+        // 模块清单变化：无编辑任务时重绑表单；否则只刷启停行，且不推进 syncKey（避免漏绑编辑器）
         Dispatcher.UIThread.Post(() =>
         {
-            ApplyRuntimeSnapshot(syncRunSwitches: !IsAgentsToggling);
-            if (!IsAgentsToggling && !HasPendingChanges)
+            var syncRunSwitches = !IsAgentsToggling;
+            ApplyRuntimeSnapshot(syncRunSwitches: syncRunSwitches);
+            if (!ModulesSyncKeyChanged())
+            {
+                return;
+            }
+
+            if (!IsAgentsToggling && !HasPendingChanges && !HasModuleAutoSaves)
             {
                 SyncAgentsConfig();
+                return;
             }
+
+            RefreshModuleRunRows(syncRunSwitches);
+            _moduleEditorsStale = true;
         });
-    }
-
-    partial void OnIsInjectorEnabledChanged(bool value)
-    {
-        RefreshPendingChanges();
-
-        if (_syncingFromRuntime)
-            return;
-
-        ObserveDetached(SaveInjectorEnabledAsync(value), "settings.agents.injector_enable.detached.fail");
     }
 
     partial void OnIsHostRunningSwitchChanged(bool value)
@@ -203,14 +158,6 @@ public partial class Settings
             return;
 
         ObserveDetached(ToggleHostRunningAsync(value), "settings.agents.host_run.detached.fail");
-    }
-
-    partial void OnIsInjectorRunningSwitchChanged(bool value)
-    {
-        if (_syncingFromRuntime)
-            return;
-
-        ObserveDetached(ToggleInjectorRunningAsync(value), "settings.agents.injector_run.detached.fail");
     }
 
     partial void OnHostStatusTextChanged(string value)
@@ -223,16 +170,7 @@ public partial class Settings
         RestartAgentsCommand.NotifyCanExecuteChanged();
     }
 
-    partial void OnInjectorStatusTextChanged(string value)
-    {
-        OnPropertyChanged(nameof(IsInjectorStatusRunning));
-        OnPropertyChanged(nameof(IsInjectorStatusStarting));
-        OnPropertyChanged(nameof(IsInjectorStatusFailed));
-        OnPropertyChanged(nameof(IsInjectorStatusStopped));
-        OnPropertyChanged(nameof(IsInjectorStatusUnknown));
-    }
-
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanSaveAgentsSettings))]
     private async Task SaveAgentsSettingsAsync()
     {
         await ApplyAgentsSettingsAsync(showSuccessToast: true);
@@ -246,43 +184,50 @@ public partial class Settings
         }
 
         IsSavingSettings = true;
+        var togglingForRestart = false;
         try
         {
-            var result = await SaveOptionsToConfigAsync(showToastOnError: true).ConfigureAwait(false);
-            if (!result.Saved)
+            var result = await SaveOptionsAsync(showToastOnError: true).ConfigureAwait(false);
+            if (!result.Saved && !result.HostChanged && result.ChangedModuleIds.Count == 0)
             {
                 return false;
             }
 
-            var restarted = false;
-            if (result.Changed && _agents.IsHostRunning)
+            var requiresRuntimeApply = result.HostChanged && _agents.IsHostRunning
+                || result.ChangedModuleIds.Any(moduleId =>
+                    _agents.GetModuleState(moduleId) is AgentsRunState.Running or AgentsRunState.Starting);
+            if (requiresRuntimeApply)
             {
-                var restart = await _agents.StartOrRestartAsync().ConfigureAwait(false);
-                if (!restart.Ok)
-                {
-                    if (!restart.SuppressToast)
-                    {
-                        _toast.Error("自动化集成", restart.Message);
-                    }
-
-                    return false;
-                }
-
-                restarted = true;
+                togglingForRestart = true;
+                await RunOnUiAsync(() => IsAgentsToggling = true);
             }
 
-            if (showSuccessToast)
+            var runtimeApply = await ApplyPersistedRuntimeChangesAsync(result).ConfigureAwait(false);
+            if (!runtimeApply.Applied)
             {
-                _toast.Success("自动化集成", restarted ? "配置已保存，Agents 已重启" : "配置已保存");
+                return false;
+            }
+
+            if (result.Saved && showSuccessToast)
+            {
+                var message = runtimeApply.HostRestarted
+                    ? "配置已保存，Agents 已重启"
+                    : runtimeApply.ReloadedModuleCount > 0
+                        ? $"配置已保存，已重载 {runtimeApply.ReloadedModuleCount} 个模块"
+                        : "配置已保存";
+                _toast.Success("自动化集成", message);
             }
 
             // Save 路径用了 ConfigureAwait(false)；状态绑定与 RestartAgentsCommand 须回 UI
             await RunOnUiAsync(() =>
             {
                 ApplyRuntimeSnapshot();
-                SyncAgentsConfig();
+                if (result.Saved)
+                {
+                    SyncAgentsConfig();
+                }
             });
-            return !HasPendingChanges;
+            return result.Saved && !HasPendingChanges;
         }
         catch (Exception ex)
         {
@@ -292,7 +237,15 @@ public partial class Settings
         }
         finally
         {
-            await RunOnUiAsync(() => IsSavingSettings = false);
+            await RunOnUiAsync(() =>
+            {
+                if (togglingForRestart)
+                {
+                    IsAgentsToggling = false;
+                }
+
+                IsSavingSettings = false;
+            });
         }
     }
 
@@ -317,20 +270,14 @@ public partial class Settings
         IsAgentsToggling = true;
         try
         {
-            var saved = await SaveCurrentOptionsSilentlyAsync().ConfigureAwait(false);
+            var saved = await SaveCurrentOptionsSilentlyAsync(applyRuntimeChanges: false).ConfigureAwait(false);
             if (!saved)
             {
                 return;
             }
-        }
-        finally
-        {
-            await Dispatcher.UIThread.InvokeAsync(() => IsAgentsToggling = false);
-        }
 
-        try
-        {
-            var result = await _agents.StartOrRestartAsync().ConfigureAwait(false);
+            var result = await ExecuteRuntimeCommandAsync(() => _agents.StartOrRestartAsync())
+                .ConfigureAwait(false);
             if (result.SuppressToast)
             {
                 return;
@@ -352,11 +299,15 @@ public partial class Settings
         }
         finally
         {
-            await Dispatcher.UIThread.InvokeAsync(() => ApplyRuntimeSnapshot());
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                IsAgentsToggling = false;
+                ApplyRuntimeSnapshot();
+            });
         }
     }
 
-    private async Task SaveInjectorEnabledAsync(bool enabled)
+    private async Task SaveModuleEnabledAsync(string moduleId, bool enabled)
     {
         if (IsAgentsToggling)
         {
@@ -364,7 +315,8 @@ public partial class Settings
             return;
         }
 
-        if (SkipTrigger(enabled ? "settings.agents.injector.enable" : "settings.agents.injector.disable"))
+        if (SkipTrigger(
+                enabled ? $"settings.agents.module.enable:{moduleId}" : $"settings.agents.module.disable:{moduleId}"))
         {
             ApplyRuntimeSnapshot();
             return;
@@ -373,12 +325,16 @@ public partial class Settings
         try
         {
             await _agentsConfig
-                .SetInjectorEnabledAsync(enabled, CancellationToken.None)
+                .SetModuleEnabledAsync(moduleId, enabled, CancellationToken.None)
                 .ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            LogError("settings.agents.injector_enable.fail", "Failed to save Injector enabled", ex, new { enabled });
+            LogError(
+                "settings.agents.module_enable.fail",
+                "Failed to save module enabled",
+                ex,
+                new { moduleId, enabled });
             _toast.Error("自动化集成", ex.Message);
         }
         finally
@@ -406,13 +362,14 @@ public partial class Settings
         {
             if (running)
             {
-                var saved = await SaveCurrentOptionsSilentlyAsync().ConfigureAwait(false);
+                var saved = await SaveCurrentOptionsSilentlyAsync(applyRuntimeChanges: false).ConfigureAwait(false);
                 if (!saved)
                 {
                     return;
                 }
 
-                var result = await _agents.StartOrRestartAsync().ConfigureAwait(false);
+                var result = await ExecuteRuntimeCommandAsync(() => _agents.StartOrRestartAsync())
+                    .ConfigureAwait(false);
                 if (!result.Ok && !result.SuppressToast)
                 {
                     _toast.Error("自动化集成", result.Message);
@@ -443,7 +400,7 @@ public partial class Settings
         }
     }
 
-    private async Task ToggleInjectorRunningAsync(bool running)
+    private async Task ToggleModuleRunningAsync(string moduleId, bool running)
     {
         if (IsAgentsToggling)
         {
@@ -451,15 +408,15 @@ public partial class Settings
             return;
         }
 
-        if (SkipTrigger(running ? "settings.agents.injector.start" : "settings.agents.injector.stop"))
+        if (SkipTrigger(running ? $"settings.agents.module.start:{moduleId}" : $"settings.agents.module.stop:{moduleId}"))
         {
             await RevertRunSwitchesAsync().ConfigureAwait(false);
             return;
         }
 
-        if (running && !IsInjectorEnabled)
+        if (running && !_agents.IsModuleEnabled(moduleId))
         {
-            _toast.Error("自动化集成", "请先勾选启用 Injector");
+            _toast.Error("自动化集成", $"请先勾选启用 {moduleId}");
             await RevertRunSwitchesAsync().ConfigureAwait(false);
             return;
         }
@@ -469,13 +426,19 @@ public partial class Settings
         {
             if (running)
             {
-                var saved = await SaveCurrentOptionsSilentlyAsync().ConfigureAwait(false);
+                var saved = await SaveCurrentOptionsSilentlyAsync(
+                        applyRuntimeChanges: true,
+                        skippedModuleId: moduleId)
+                    .ConfigureAwait(false);
                 if (!saved)
                 {
                     return;
                 }
 
-                var result = await _agents.StartInjectorAsync().ConfigureAwait(false);
+                var result = _agents.GetModuleState(moduleId) == AgentsRunState.Running
+                    ? new AgentsCommandResult(true, $"{moduleId} 已启动")
+                    : await ExecuteRuntimeCommandAsync(() => _agents.StartModuleAsync(moduleId))
+                        .ConfigureAwait(false);
                 if (!result.Ok && !result.SuppressToast)
                 {
                     _toast.Error("自动化集成", result.Message);
@@ -483,7 +446,7 @@ public partial class Settings
             }
             else
             {
-                var result = await _agents.StopInjectorAsync().ConfigureAwait(false);
+                var result = await _agents.StopModuleAsync(moduleId).ConfigureAwait(false);
                 if (!result.Ok && !result.SuppressToast)
                 {
                     _toast.Error("自动化集成", result.Message);
@@ -492,7 +455,11 @@ public partial class Settings
         }
         catch (Exception ex)
         {
-            LogError("settings.agents.injector_run.fail", "Failed to toggle Injector running", ex, new { running });
+            LogError(
+                "settings.agents.module_run.fail",
+                "Failed to toggle module running",
+                ex,
+                new { moduleId, running });
             _toast.Error("自动化集成", ex.Message);
         }
         finally
@@ -510,11 +477,24 @@ public partial class Settings
         await Dispatcher.UIThread.InvokeAsync(() => ApplyRuntimeSnapshot(syncRunSwitches: true));
     }
 
-    private async Task<bool> SaveCurrentOptionsSilentlyAsync()
+    private async Task<bool> SaveCurrentOptionsSilentlyAsync(
+        bool applyRuntimeChanges,
+        string? skippedModuleId = null)
     {
         try
         {
-            var result = await SaveOptionsToConfigAsync(showToastOnError: true).ConfigureAwait(false);
+            var result = await SaveOptionsAsync(showToastOnError: true).ConfigureAwait(false);
+            if (applyRuntimeChanges
+                && (result.Saved || result.HostChanged || result.ChangedModuleIds.Count > 0))
+            {
+                var applied = await ApplyPersistedRuntimeChangesAsync(result, skippedModuleId)
+                    .ConfigureAwait(false);
+                if (!applied.Applied)
+                {
+                    return false;
+                }
+            }
+
             return result.Saved;
         }
         catch (Exception ex)
@@ -525,101 +505,227 @@ public partial class Settings
         }
     }
 
-    private async Task<SaveOptionsResult> SaveOptionsToConfigAsync(bool showToastOnError)
+    private async Task<RuntimeApplyResult> ApplyPersistedRuntimeChangesAsync(
+        SaveOptionsResult result,
+        string? skippedModuleId = null)
     {
-        var parsedInjector = ParseInjectorOptionsForSave();
-        if (parsedInjector is null)
+        if (result.HostChanged && _agents.IsHostRunning)
         {
-            return new SaveOptionsResult(false, false);
+            var restart = await ExecuteRuntimeCommandAsync(() => _agents.StartOrRestartAsync())
+                .ConfigureAwait(false);
+            if (!restart.Ok)
+            {
+                _toast.Error("自动化集成", $"配置已保存，但 Agents 重启失败：{restart.Message}");
+                return new RuntimeApplyResult(false, false, 0);
+            }
+
+            return new RuntimeApplyResult(true, true, 0);
         }
 
+        var reloadedModuleCount = 0;
+        foreach (var moduleId in result.ChangedModuleIds)
+        {
+            if (string.Equals(moduleId, skippedModuleId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var state = _agents.GetModuleState(moduleId);
+            if (state is not (AgentsRunState.Running or AgentsRunState.Starting))
+            {
+                continue;
+            }
+
+            var reload = await ExecuteRuntimeCommandAsync(() => _agents.StartModuleAsync(moduleId))
+                .ConfigureAwait(false);
+            if (!reload.Ok)
+            {
+                _toast.Error("自动化集成", $"配置已保存，但模块重载失败：{reload.Message}");
+                return new RuntimeApplyResult(false, false, reloadedModuleCount);
+            }
+
+            reloadedModuleCount++;
+        }
+
+        return new RuntimeApplyResult(true, false, reloadedModuleCount);
+    }
+
+    private static async Task<AgentsCommandResult> ExecuteRuntimeCommandAsync(
+        Func<Task<AgentsCommandResult>> command)
+    {
+        const int maxAttempts = 9;
+        AgentsCommandResult result = default;
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            result = await command().ConfigureAwait(false);
+            if (result.Ok || !result.SuppressToast)
+            {
+                return result;
+            }
+
+            if (attempt == maxAttempts - 1)
+            {
+                break;
+            }
+
+            await Task.Delay(250).ConfigureAwait(false);
+        }
+
+        return result;
+    }
+
+    private async Task<SaveOptionsResult> SaveOptionsAsync(bool showToastOnError)
+    {
+        CancelModuleAutoSaves();
+        await _moduleSaveGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            return await PersistOptionsAsync(showToastOnError).ConfigureAwait(false);
+        }
+        finally
+        {
+            _moduleSaveGate.Release();
+        }
+    }
+
+    private async Task<SaveOptionsResult> PersistOptionsAsync(bool showToastOnError)
+    {
+        foreach (var editor in ModuleEditors)
+        {
+            var error = editor.Validate();
+            if (error is not null)
+            {
+                _toast.Error("自动化集成", error);
+                return new SaveOptionsResult(false, false, []);
+            }
+        }
+
+        var currentSnapshot = BuildCurrentSnapshot();
+        if (currentSnapshot is null)
+        {
+            if (showToastOnError)
+            {
+                _toast.Error("自动化集成", "无法读取当前模块配置");
+            }
+
+            return new SaveOptionsResult(false, false, []);
+        }
+
+        var persistedModuleIds = new List<string>();
+        var hostPersisted = false;
+        var hostChanged = false;
+        var desiredHost = new AgentsConfigDto
+        {
+            ExecutablePath = currentSnapshot.AgentsExecutablePath,
+            ProcessName = currentSnapshot.AgentsProcessName,
+        };
         try
         {
             var cfg = _agentsConfig.Load();
-            parsedInjector.Enabled = cfg.Injector.Enabled;
-            var next = new AgentsConfigDto
-            {
-                ExecutablePath = AgentsExecutablePath,
-                ProcessName = AgentsProcessName,
-                Injector = parsedInjector,
-            };
-            var changed = !SameAgentsHost(cfg, next)
-                || !SameInjectorOptions(cfg.Injector, parsedInjector);
+            hostChanged = !SameAgentsHost(cfg, desiredHost);
 
-            if (!changed)
+            var changedModules = new List<(string ModuleId, string Json)>();
+            foreach (var (moduleId, json) in currentSnapshot.ModuleSettingsJson)
             {
-                _savedSnapshot = BuildCurrentSnapshot();
-                _baselineReady = _savedSnapshot is not null;
-                RefreshPendingChanges();
-                return new SaveOptionsResult(true, false);
+                var savedJson = _moduleSettings.LoadSettingsJson(moduleId);
+                if (!SameJson(savedJson, json))
+                {
+                    changedModules.Add((moduleId, json));
+                }
             }
 
-            await _agentsConfig.SaveAsync(next, CancellationToken.None).ConfigureAwait(false);
-            _savedSnapshot = BuildCurrentSnapshot();
-            _baselineReady = _savedSnapshot is not null;
-            RefreshPendingChanges();
-            return new SaveOptionsResult(true, true);
+            var moduleChanged = changedModules.Count > 0;
+
+            if (!hostChanged && !moduleChanged)
+            {
+                await CommitSavedSnapshotAsync(currentSnapshot).ConfigureAwait(false);
+                return new SaveOptionsResult(true, false, []);
+            }
+
+            if (moduleChanged)
+            {
+                foreach (var (moduleId, json) in changedModules)
+                {
+                    await _moduleSettings
+                        .SaveSettingsJsonAsync(moduleId, json, CancellationToken.None)
+                        .ConfigureAwait(false);
+                    persistedModuleIds.Add(moduleId);
+                }
+            }
+
+            if (hostChanged)
+            {
+                var next = new AgentsConfigDto
+                {
+                    ExecutablePath = currentSnapshot.AgentsExecutablePath,
+                    ProcessName = currentSnapshot.AgentsProcessName,
+                    Modules = cfg.Modules,
+                };
+                await _agentsConfig.SaveAsync(next, CancellationToken.None).ConfigureAwait(false);
+                hostPersisted = true;
+            }
+
+            await CommitSavedSnapshotAsync(currentSnapshot).ConfigureAwait(false);
+            return new SaveOptionsResult(
+                true,
+                hostChanged,
+                persistedModuleIds);
         }
         catch (Exception ex)
         {
+            if (hostChanged && !hostPersisted)
+            {
+                try
+                {
+                    hostPersisted = SameAgentsHost(_agentsConfig.Load(), desiredHost);
+                }
+                catch (Exception verifyEx)
+                {
+                    LogError(
+                        "settings.agents.save_options.verify_fail",
+                        "Failed to verify Agents host config after save failure",
+                        verifyEx);
+                }
+            }
+
             LogError("settings.agents.save_options.fail", "Failed to save Agents options to config", ex);
             if (showToastOnError)
             {
                 _toast.Error("自动化集成", $"配置保存失败：{ex.Message}");
             }
 
-            return new SaveOptionsResult(false, false);
+            return new SaveOptionsResult(false, hostPersisted, persistedModuleIds);
         }
     }
+
+    private Task CommitSavedSnapshotAsync(AgentsEditorSnapshot snapshot)
+        => RunOnUiAsync(() =>
+        {
+            _savedSnapshot = snapshot;
+            _baselineReady = true;
+            RefreshPendingChanges();
+        });
 
     private static bool SameAgentsHost(AgentsConfigDto left, AgentsConfigDto right)
         => string.Equals(left.ExecutablePath?.Trim(), right.ExecutablePath?.Trim(), StringComparison.Ordinal)
            && string.Equals(left.ProcessName?.Trim(), right.ProcessName?.Trim(), StringComparison.Ordinal);
 
-    private static bool SameInjectorOptions(InjectorOptionsDto left, InjectorOptionsDto right)
+    private static bool SameJson(string left, string right)
     {
-        static string Norm(string? value) => (value ?? string.Empty).Trim();
-
-        static bool SameList(IReadOnlyList<string> a, IReadOnlyList<string> b)
-            => a.Count == b.Count && a.Select(Norm).SequenceEqual(b.Select(Norm), StringComparer.Ordinal);
-
-        static bool SameAppWin(IReadOnlyDictionary<string, int> a, IReadOnlyDictionary<string, int> b)
+        try
         {
-            if (a.Count != b.Count)
-            {
-                return false;
-            }
-
-            foreach (var kv in a)
-            {
-                if (!b.TryGetValue(kv.Key, out var value) || value != kv.Value)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            var a = JsonNode.Parse(string.IsNullOrWhiteSpace(left) ? "{}" : left);
+            var b = JsonNode.Parse(string.IsNullOrWhiteSpace(right) ? "{}" : right);
+            return JsonNode.DeepEquals(a, b);
         }
-
-        return left.Enabled == right.Enabled
-               && string.Equals(Norm(left.PgDriver), Norm(right.PgDriver), StringComparison.Ordinal)
-               && string.Equals(Norm(left.PgSsl), Norm(right.PgSsl), StringComparison.OrdinalIgnoreCase)
-               && string.Equals(Norm(left.OptWindowClass), Norm(right.OptWindowClass), StringComparison.Ordinal)
-               && string.Equals(Norm(left.IptWindowClass), Norm(right.IptWindowClass), StringComparison.Ordinal)
-               && left.ConfirmTimeoutMs == right.ConfirmTimeoutMs
-               && string.Equals(Norm(left.OptParseGridClassNN), Norm(right.OptParseGridClassNN), StringComparison.Ordinal)
-               && string.Equals(Norm(left.OptVerifyGridClassNN), Norm(right.OptVerifyGridClassNN), StringComparison.Ordinal)
-               && string.Equals(Norm(left.IptParseGridClassNN), Norm(right.IptParseGridClassNN), StringComparison.Ordinal)
-               && string.Equals(Norm(left.IptVerifyGridClassNN), Norm(right.IptVerifyGridClassNN), StringComparison.Ordinal)
-               && string.Equals(Norm(left.OptInputClassNN), Norm(right.OptInputClassNN), StringComparison.Ordinal)
-               && string.Equals(Norm(left.IptInputClassNN), Norm(right.IptInputClassNN), StringComparison.Ordinal)
-               && left.WarehouseEnabled == right.WarehouseEnabled
-               && string.Equals(Norm(left.CodePickPolicy), Norm(right.CodePickPolicy), StringComparison.Ordinal)
-               && string.Equals(Norm(left.WarehouseTaskIdentifier), Norm(right.WarehouseTaskIdentifier), StringComparison.Ordinal)
-               && SameList(left.ColSpecs, right.ColSpecs)
-               && SameList(left.IntCols, right.IntCols)
-               && SameList(left.WarehouseAnchorTexts, right.WarehouseAnchorTexts)
-               && SameAppWin(left.AppWin, right.AppWin);
+        catch
+        {
+            // 非法 JSON 时退回规范化文本比较，避免误判为未变更而跳过落盘
+            return string.Equals(
+                (left ?? string.Empty).Replace("\r\n", "\n", StringComparison.Ordinal).Trim(),
+                (right ?? string.Empty).Replace("\r\n", "\n", StringComparison.Ordinal).Trim(),
+                StringComparison.Ordinal);
+        }
     }
 
     private void ApplyRuntimeSnapshot(bool syncRunSwitches = true)
@@ -633,20 +739,15 @@ public partial class Settings
         _syncingFromRuntime = true;
         try
         {
-            IsInjectorEnabled = _agents.IsInjectorEnabled;
             // 开关只镜像 Running；Starting/Failed 不得显示成“已激活”
             if (syncRunSwitches)
             {
                 IsHostRunningSwitch = _agents.HostState == AgentsRunState.Running;
-                IsInjectorRunningSwitch = _agents.InjectorState == AgentsRunState.Running;
             }
 
             HostVersionText = string.IsNullOrWhiteSpace(_agents.HostVersion) ? "未知" : _agents.HostVersion;
-            InjectorVersionText = string.IsNullOrWhiteSpace(_agents.InjectorVersion) ? "未知" : _agents.InjectorVersion;
             HostLastLaunchText = _agents.HostLastLaunchAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
-            InjectorLastLaunchText = _agents.InjectorLastLaunchAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
             HostLastErrorText = string.IsNullOrWhiteSpace(_agents.HostLastError) ? "-" : _agents.HostLastError!;
-            InjectorLastErrorText = string.IsNullOrWhiteSpace(_agents.InjectorLastError) ? "-" : _agents.InjectorLastError!;
 
             var hostState = _agents.HostState;
             HostStatusText = hostState switch
@@ -668,29 +769,10 @@ public partial class Settings
                 _ => "Agents 状态检测异常，请检查进程名和可执行路径",
             };
 
-            var injectorState = _agents.InjectorState;
-            InjectorStatusText = injectorState switch
+            foreach (var row in ModuleRunRows)
             {
-                AgentsRunState.Running => "运行中",
-                AgentsRunState.Starting => "启动中",
-                AgentsRunState.Failed => "启动失败",
-                AgentsRunState.Stopped => "未启动",
-                _ => "未知",
-            };
-            InjectorStatusDetail = injectorState switch
-            {
-                AgentsRunState.Running => "Injector 已就绪",
-                AgentsRunState.Starting => "Agents 已拉起，正在等待 Injector 自检完成",
-                AgentsRunState.Failed => string.IsNullOrWhiteSpace(_agents.InjectorLastError)
-                    ? "Injector 启动未完成，请检查模块配置后重试"
-                    : _agents.InjectorLastError!,
-                AgentsRunState.Stopped => !IsInjectorEnabled
-                    ? "Injector 未启用"
-                    : hostState is not AgentsRunState.Running
-                        ? "Agents 未运行，模块随 Agents 停止"
-                        : "Injector 未运行",
-                _ => "Injector 状态检测异常",
-            };
+                ApplyModuleRunRow(row, hostState, syncRunSwitches);
+            }
         }
         finally
         {
@@ -698,146 +780,652 @@ public partial class Settings
         }
     }
 
+    private void ApplyModuleRunRow(ModuleRunRow row, AgentsRunState hostState, bool syncRunSwitches)
+    {
+        var enabled = _agents.IsModuleEnabled(row.Id);
+        var state = _agents.GetModuleState(row.Id);
+        var lastError = _agents.GetModuleLastError(row.Id);
+        var version = _agents.GetModuleVersion(row.Id);
+
+        row.IsEnabled = enabled;
+        if (syncRunSwitches)
+        {
+            row.IsRunningSwitch = state == AgentsRunState.Running;
+        }
+
+        row.CanToggle = !IsAgentsToggling;
+        row.VersionText = string.IsNullOrWhiteSpace(version) ? "未知" : version;
+        row.LastLaunchText = _agents.GetModuleLastLaunchAt(row.Id)?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
+        row.LastErrorText = string.IsNullOrWhiteSpace(lastError) ? "-" : lastError!;
+
+        row.StatusText = state switch
+        {
+            AgentsRunState.Running => "运行中",
+            AgentsRunState.Starting => "启动中",
+            AgentsRunState.Failed => "启动失败",
+            AgentsRunState.Stopped => "未启动",
+            _ => "未知",
+        };
+        row.StatusDetail = state switch
+        {
+            AgentsRunState.Running => $"{row.DisplayName} 已就绪",
+            AgentsRunState.Starting => $"正在等待 {row.DisplayName} 自检完成",
+            AgentsRunState.Failed => string.IsNullOrWhiteSpace(lastError)
+                ? $"{row.DisplayName} 启动未完成，请检查模块配置后重试"
+                : lastError!,
+            AgentsRunState.Stopped => !enabled
+                ? $"{row.DisplayName} 未启用"
+                : hostState is not AgentsRunState.Running
+                    ? "Agents 未运行，模块随 Agents 停止"
+                    : $"{row.DisplayName} 未运行",
+            _ => $"{row.DisplayName} 状态检测异常",
+        };
+
+        row.IsStatusUnknown = state == AgentsRunState.Unknown;
+        row.IsStatusStarting = state == AgentsRunState.Starting;
+        row.IsStatusRunning = state == AgentsRunState.Running;
+        row.IsStatusFailed = state == AgentsRunState.Failed;
+        row.IsStatusStopped = state == AgentsRunState.Stopped;
+    }
+
     private void SyncAgentsConfig()
     {
         var cfg = _agentsConfig.Load();
-        var injector = cfg.Injector;
-        var appWin = injector.AppWin.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
-        var colSpecs = injector.ColSpecs.ToList();
-        var intCols = injector.IntCols.ToList();
-        var warehouseAnchors = injector.WarehouseAnchorTexts.ToList();
-        var warehouseTaskIdentifier = injector.WarehouseTaskIdentifier;
 
-        if (!Dispatcher.UIThread.CheckAccess())
+        void Apply()
         {
-            Dispatcher.UIThread.Post(() => ApplyAgentsSnapshot(
-                cfg.ExecutablePath,
-                cfg.ProcessName,
-                injector.PgDriver,
-                injector.PgSsl,
-                injector.OptWindowClass,
-                injector.IptWindowClass,
-                injector.ConfirmTimeoutMs,
-                injector.OptParseGridClassNN,
-                injector.OptVerifyGridClassNN,
-                injector.IptParseGridClassNN,
-                injector.IptVerifyGridClassNN,
-                injector.OptInputClassNN,
-                injector.IptInputClassNN,
-                injector.WarehouseEnabled,
-                warehouseTaskIdentifier,
-                injector.CodePickPolicy,
-                appWin,
-                colSpecs,
-                intCols,
-                warehouseAnchors));
+            lock (_snapshotGate)
+            {
+                _suppressPendingRecalc = true;
+                UnwireModuleEditors();
+                ModuleEditors.Clear();
+                ModuleSettingsLoadIssues.Clear();
+
+                AgentsExecutablePath = cfg.ExecutablePath;
+                AgentsProcessName = cfg.ProcessName;
+
+                var agentsDir = TryResolveAgentsDir();
+                RefreshModuleRunRows();
+                _modulesSyncKey = BuildModulesSyncKey(agentsDir);
+                _moduleEditorsStale = false;
+
+                if (agentsDir is not null)
+                {
+                    foreach (var module in _agents.Modules)
+                    {
+                        try
+                        {
+                            var schemaJson = _moduleSettings.TryLoadSchemaJson(module.Id, agentsDir);
+                            var schema = ModuleSettingsEditor.ParseSchema(schemaJson);
+                            if (schema is null)
+                            {
+                                ModuleSettingsLoadIssues.Add(new ModuleSettingsLoadIssue(
+                                    module.DisplayName,
+                                    "settings.schema.json 无效或缺失"));
+                                continue;
+                            }
+
+                            _moduleSettings.EnsureUserSettings(module.Id, agentsDir);
+                            var settingsJson = _moduleSettings.LoadSettingsJson(module.Id);
+                            var settings = ModuleSettingsEditor.ParseSettings(settingsJson);
+                            var editor = new ModuleSettingsEditor(
+                                module.Id,
+                                module.DisplayName,
+                                schema,
+                                settings);
+                            ModuleEditors.Add(editor);
+                            WireModuleEditor(editor);
+                        }
+                        catch (Exception ex)
+                        {
+                            ModuleSettingsLoadIssues.Add(new ModuleSettingsLoadIssue(
+                                module.DisplayName,
+                                $"设置加载失败：{ex.Message}"));
+                            LogWarn(
+                                "settings.agents.module_editor.load_fail",
+                                "Failed to load module settings editor",
+                                ex,
+                                new { moduleId = module.Id });
+                        }
+                    }
+                }
+
+                _savedSnapshot = BuildCurrentSnapshot();
+                _baselineReady = _savedSnapshot is not null;
+                _suppressPendingRecalc = false;
+                RefreshPendingChanges();
+            }
+        }
+
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            Apply();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(Apply);
+        }
+    }
+
+    private string? TryResolveAgentsDir()
+    {
+        var resolution = AgentsPath.ResolveHost(AgentsExecutablePath, AppContext.BaseDirectory);
+        var exe = resolution.ResolvedPath;
+        return exe is null ? null : Path.GetDirectoryName(exe);
+    }
+
+    private bool ModulesSyncKeyChanged()
+    {
+        var cfg = _agentsConfig.Load();
+        var resolution = AgentsPath.ResolveHost(cfg.ExecutablePath, AppContext.BaseDirectory);
+        var agentsDir = resolution.ResolvedPath is null
+            ? null
+            : Path.GetDirectoryName(resolution.ResolvedPath);
+        return !string.Equals(
+            _modulesSyncKey,
+            BuildModulesSyncKey(agentsDir, cfg.ExecutablePath, cfg.ProcessName),
+            StringComparison.Ordinal);
+    }
+
+    private string BuildModulesSyncKey(string? agentsDir)
+    {
+        var cfg = _agentsConfig.Load();
+        return BuildModulesSyncKey(agentsDir, cfg.ExecutablePath, cfg.ProcessName);
+    }
+
+    private string BuildModulesSyncKey(string? agentsDir, string executablePath, string processName)
+    {
+        var catalog = string.Join(
+            '|',
+            _agents.Modules
+                .Select(m =>
+                    $"{m.Id}:{m.Version}:{m.Runtime}:{m.DisplayName}:{m.EntryWinX64}:{m.Desktop.Order}")
+                .OrderBy(part => part, StringComparer.Ordinal));
+        // 含磁盘 Host 路径/进程名：外部热重载改路径时也要重绑
+        return string.Join(
+            '\n',
+            catalog,
+            agentsDir ?? string.Empty,
+            (executablePath ?? string.Empty).Trim(),
+            (processName ?? string.Empty).Trim());
+    }
+
+    private void TryFlushStaleModuleEditors()
+    {
+        if (_agentsDisposed
+            || !_moduleEditorsStale
+            || IsAgentsToggling
+            || HasPendingChanges
+            || HasModuleAutoSaves)
+        {
             return;
         }
 
-        ApplyAgentsSnapshot(
-            cfg.ExecutablePath,
-            cfg.ProcessName,
-            injector.PgDriver,
-            injector.PgSsl,
-            injector.OptWindowClass,
-            injector.IptWindowClass,
-            injector.ConfirmTimeoutMs,
-            injector.OptParseGridClassNN,
-            injector.OptVerifyGridClassNN,
-            injector.IptParseGridClassNN,
-            injector.IptVerifyGridClassNN,
-            injector.OptInputClassNN,
-            injector.IptInputClassNN,
-            injector.WarehouseEnabled,
-            warehouseTaskIdentifier,
-            injector.CodePickPolicy,
-            appWin,
-            colSpecs,
-            intCols,
-            warehouseAnchors);
+        SyncAgentsConfig();
     }
 
-    private void ApplyAgentsSnapshot(
-        string agentsExecutablePath,
-        string agentsProcessName,
-        string pgDriver,
-        string pgSsl,
-        string optWindowClass,
-        string iptWindowClass,
-        int confirmTimeoutMs,
-        string optParseGridClassNn,
-        string optVerifyGridClassNn,
-        string iptParseGridClassNn,
-        string iptVerifyGridClassNn,
-        string optInputClassNn,
-        string iptInputClassNn,
-        bool warehouseEnabled,
-        string warehouseTaskIdentifier,
-        string codePickPolicy,
-        IReadOnlyCollection<string> appWin,
-        IReadOnlyCollection<string> colSpecs,
-        IReadOnlyCollection<string> intCols,
-        IReadOnlyCollection<string> warehouseAnchors)
+    private void RefreshModuleRunRows(bool syncRunSwitches = true)
     {
-        lock (_snapshotGate)
+        var modules = _agents.Modules;
+        var hostState = _agents.HostState;
+
+        void ApplyList()
         {
-            _suppressPendingRecalc = true;
-            AgentsExecutablePath = agentsExecutablePath;
-            AgentsProcessName = agentsProcessName;
-            InjectorPgDriver = pgDriver;
-            InjectorPgSsl = pgSsl;
-            InjectorOptWindowClass = optWindowClass;
-            InjectorIptWindowClass = iptWindowClass;
-            InjectorConfirmTimeoutMs = confirmTimeoutMs;
-            InjectorOptParseGridClassNN = optParseGridClassNn;
-            InjectorOptVerifyGridClassNN = optVerifyGridClassNn;
-            InjectorIptParseGridClassNN = iptParseGridClassNn;
-            InjectorIptVerifyGridClassNN = iptVerifyGridClassNn;
-            InjectorOptInputClassNN = optInputClassNn;
-            InjectorIptInputClassNN = iptInputClassNn;
-            InjectorWarehouseEnabled = warehouseEnabled;
-            InjectorWarehouseTaskIdentifier = warehouseTaskIdentifier;
-            InjectorCodePickPolicy = codePickPolicy;
-            SelectedInjectorCodePickPolicyOption = InjectorCodePickPolicyOptions
-                .FirstOrDefault(x => string.Equals(x.Value, NormCodePickPolicy(codePickPolicy), StringComparison.Ordinal));
-            ResetLineItems(InjectorAppWinItems, appWin);
-            ResetLineItems(InjectorColSpecsItems, colSpecs);
-            ResetLineItems(InjectorIntColsItems, intCols);
-            ResetLineItems(InjectorWarehouseAnchorItems, warehouseAnchors);
-            _savedSnapshot = BuildCurrentSnapshot();
-            _baselineReady = _savedSnapshot is not null;
-            _suppressPendingRecalc = false;
+            var byId = ModuleRunRows.ToDictionary(r => r.Id, StringComparer.Ordinal);
+            var nextIds = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var module in modules)
+            {
+                nextIds.Add(module.Id);
+                if (!byId.TryGetValue(module.Id, out var row))
+                {
+                    row = new ModuleRunRow(module.Id, module.DisplayName);
+                    WireModuleRunRow(row);
+                    ModuleRunRows.Add(row);
+                }
+                else if (!string.Equals(row.DisplayName, module.DisplayName, StringComparison.Ordinal))
+                {
+                    row.DisplayName = module.DisplayName;
+                }
+
+                _syncingFromRuntime = true;
+                try
+                {
+                    ApplyModuleRunRow(row, hostState, syncRunSwitches);
+                }
+                finally
+                {
+                    _syncingFromRuntime = false;
+                }
+            }
+
+            for (var i = ModuleRunRows.Count - 1; i >= 0; i--)
+            {
+                var row = ModuleRunRows[i];
+                if (nextIds.Contains(row.Id))
+                {
+                    continue;
+                }
+
+                UnwireModuleRunRow(row);
+                ModuleRunRows.RemoveAt(i);
+            }
+        }
+
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            ApplyList();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(ApplyList);
+        }
+    }
+
+    private void WireModuleRunRow(ModuleRunRow row)
+        => row.PropertyChanged += OnModuleRunRowChanged;
+
+    private void UnwireModuleRunRow(ModuleRunRow row)
+        => row.PropertyChanged -= OnModuleRunRowChanged;
+
+    private void UnwireModuleRunRows()
+    {
+        foreach (var row in ModuleRunRows)
+        {
+            UnwireModuleRunRow(row);
+        }
+    }
+
+    private void OnModuleRunRowChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_syncingFromRuntime || sender is not ModuleRunRow row)
+        {
+            return;
+        }
+
+        if (e.PropertyName == nameof(ModuleRunRow.IsEnabled))
+        {
+            ObserveDetached(
+                SaveModuleEnabledAsync(row.Id, row.IsEnabled),
+                "settings.agents.module_enable.detached.fail");
+            return;
+        }
+
+        if (e.PropertyName == nameof(ModuleRunRow.IsRunningSwitch))
+        {
+            ObserveDetached(
+                ToggleModuleRunningAsync(row.Id, row.IsRunningSwitch),
+                "settings.agents.module_run.detached.fail");
+        }
+    }
+
+    private void WireModuleEditor(ModuleSettingsEditor editor)
+    {
+        foreach (var section in editor.Sections)
+        {
+            foreach (var field in section.Fields)
+            {
+                field.PropertyChanged += OnModuleFieldChanged;
+                field.ListItems.CollectionChanged += OnModuleFieldListChanged;
+                foreach (var item in field.ListItems)
+                {
+                    item.PropertyChanged += OnModuleFieldListItemChanged;
+                }
+            }
+        }
+    }
+
+    private void UnwireModuleEditors()
+    {
+        foreach (var editor in ModuleEditors)
+        {
+            foreach (var section in editor.Sections)
+            {
+                foreach (var field in section.Fields)
+                {
+                    field.PropertyChanged -= OnModuleFieldChanged;
+                    field.ListItems.CollectionChanged -= OnModuleFieldListChanged;
+                    foreach (var item in field.ListItems)
+                    {
+                        item.PropertyChanged -= OnModuleFieldListItemChanged;
+                    }
+                }
+            }
+        }
+    }
+
+    private void OnModuleFieldChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_suppressModuleAutoSave || sender is not ModuleSettingsFieldViewModel field)
+        {
             RefreshPendingChanges();
+            return;
         }
-    }
 
-    private static string NormCodePickPolicy(string? value)
-    {
-        var policy = (value ?? string.Empty).Trim().ToUpperInvariant();
-        return policy is "MAX_LEVEL" or "MIN_LEVEL" ? policy : "MAX_LEVEL";
-    }
-
-    private static string NormTaskId(string? value)
-        => string.IsNullOrWhiteSpace(value) ? "单据号||当前编号" : value.Trim();
-
-    private void WireLineCollection(ObservableCollection<InjectorLineItem> collection)
-    {
-        collection.CollectionChanged += OnInjectorLineCollectionChanged;
-        foreach (var item in collection)
+        var isAutoSaveChange = field.IsBool && e.PropertyName == nameof(ModuleSettingsFieldViewModel.BoolValue)
+            || field.IsEnum && e.PropertyName == nameof(ModuleSettingsFieldViewModel.SelectedOption);
+        if (!isAutoSaveChange)
         {
-            item.PropertyChanged += OnInjectorLineItemPropertyChanged;
+            RefreshPendingChanges();
+            return;
+        }
+
+        var editor = ModuleEditors.FirstOrDefault(candidate =>
+            candidate.Sections.Any(section => section.Fields.Contains(field)));
+        if (editor is not null)
+        {
+            AcceptModuleFieldValue(editor, field);
+            ScheduleModuleFieldSave(editor, field);
         }
     }
 
-    private void OnInjectorLineCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    private void AcceptModuleFieldValue(
+        ModuleSettingsEditor editor,
+        ModuleSettingsFieldViewModel field)
+    {
+        if (_savedSnapshot is null
+            || !_savedSnapshot.ModuleSettingsJson.TryGetValue(editor.ModuleId, out var savedJson))
+        {
+            RefreshPendingChanges();
+            return;
+        }
+
+        try
+        {
+            SetSavedModuleJson(editor.ModuleId, editor.ApplyField(savedJson, field));
+        }
+        catch
+        {
+            RefreshPendingChanges();
+            return;
+        }
+
+        RefreshPendingChanges();
+    }
+
+    private void ScheduleModuleFieldSave(
+        ModuleSettingsEditor editor,
+        ModuleSettingsFieldViewModel field)
+    {
+        CancellationTokenSource cts;
+        lock (_moduleAutoSaveSync)
+        {
+            if (_moduleAutoSaveCts.Remove(editor.ModuleId, out var previous))
+            {
+                previous.Cancel();
+                previous.Dispose();
+            }
+
+            if (!_moduleAutoSaveFields.TryGetValue(editor.ModuleId, out var fields))
+            {
+                fields = [];
+                _moduleAutoSaveFields[editor.ModuleId] = fields;
+            }
+
+            fields.Add(field);
+            cts = new CancellationTokenSource();
+            _moduleAutoSaveCts[editor.ModuleId] = cts;
+        }
+
+        ObserveDetached(
+            SaveModuleFieldsAfterDelayAsync(editor, cts),
+            "settings.agents.module_field.autosave.detached.fail");
+    }
+
+    private bool HasModuleAutoSaves
+    {
+        get
+        {
+            lock (_moduleAutoSaveSync)
+            {
+                return _moduleAutoSaveCts.Count > 0;
+            }
+        }
+    }
+
+    private async Task SaveModuleFieldsAfterDelayAsync(
+        ModuleSettingsEditor editor,
+        CancellationTokenSource autoSaveCts)
+    {
+        var ct = autoSaveCts.Token;
+        var gateEntered = false;
+        string? savedJson = null;
+        var persisted = false;
+        ModuleSettingsFieldViewModel[] fields = [];
+        try
+        {
+            await Task.Delay(400, ct).ConfigureAwait(false);
+            lock (_moduleAutoSaveSync)
+            {
+                if (!_moduleAutoSaveCts.TryGetValue(editor.ModuleId, out var current)
+                    || !ReferenceEquals(current, autoSaveCts)
+                    || !_moduleAutoSaveFields.TryGetValue(editor.ModuleId, out var pendingFields))
+                {
+                    return;
+                }
+
+                fields = [.. pendingFields];
+            }
+
+            await _moduleSaveGate.WaitAsync(ct).ConfigureAwait(false);
+            gateEntered = true;
+            savedJson = _moduleSettings.LoadSettingsJson(editor.ModuleId);
+            var nextJson = fields.Aggregate(savedJson, editor.ApplyField);
+            if (!SameJson(savedJson, nextJson))
+            {
+                await _moduleSettings
+                    .SaveSettingsJsonAsync(editor.ModuleId, nextJson, CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+
+            persisted = true;
+            _moduleSaveGate.Release();
+            gateEntered = false;
+            if (_agentsDisposed || !IsCurrentModuleAutoSave(editor.ModuleId, autoSaveCts))
+            {
+                return;
+            }
+
+            var moduleState = _agents.GetModuleState(editor.ModuleId);
+            if (moduleState is AgentsRunState.Running or AgentsRunState.Starting)
+            {
+                var result = await ExecuteRuntimeCommandAsync(
+                        () => _agents.StartModuleAsync(editor.ModuleId, CancellationToken.None))
+                    .ConfigureAwait(false);
+                if (!result.Ok && IsCurrentModuleAutoSave(editor.ModuleId, autoSaveCts))
+                {
+                    _toast.Error("自动化集成", $"配置已保存，但模块重载失败：{result.Message}");
+                }
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            LogError(
+                "settings.agents.module_field.autosave.fail",
+                "Failed to auto-save module fields",
+                ex,
+                new { editor.ModuleId, FieldKeys = fields.Select(field => field.Key).ToArray() });
+            if (persisted && IsCurrentModuleAutoSave(editor.ModuleId, autoSaveCts))
+            {
+                _toast.Error("自动化集成", $"配置已保存，但模块重载失败：{ex.Message}");
+            }
+            else if (IsCurrentModuleAutoSave(editor.ModuleId, autoSaveCts))
+            {
+                await RestoreModuleFieldsAsync(editor, fields, savedJson, ex.Message).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            if (gateEntered)
+            {
+                _moduleSaveGate.Release();
+            }
+
+            var removed = false;
+            lock (_moduleAutoSaveSync)
+            {
+                if (_moduleAutoSaveCts.TryGetValue(editor.ModuleId, out var current)
+                    && ReferenceEquals(current, autoSaveCts))
+                {
+                    _moduleAutoSaveCts.Remove(editor.ModuleId);
+                    _moduleAutoSaveFields.Remove(editor.ModuleId);
+                    autoSaveCts.Dispose();
+                    removed = true;
+                }
+            }
+
+            if (removed)
+            {
+                await RunOnUiAsync(TryFlushStaleModuleEditors);
+            }
+        }
+    }
+
+    private bool IsCurrentModuleAutoSave(string moduleId, CancellationTokenSource autoSaveCts)
+    {
+        lock (_moduleAutoSaveSync)
+        {
+            return _moduleAutoSaveCts.TryGetValue(moduleId, out var current)
+                   && ReferenceEquals(current, autoSaveCts);
+        }
+    }
+
+    private void SetSavedModuleJson(string moduleId, string json)
+    {
+        if (_savedSnapshot is null)
+        {
+            return;
+        }
+
+        var moduleJson = new Dictionary<string, string>(_savedSnapshot.ModuleSettingsJson, StringComparer.Ordinal)
+        {
+            [moduleId] = json,
+        };
+        _savedSnapshot = _savedSnapshot with { ModuleSettingsJson = moduleJson };
+    }
+
+    private Task RestoreModuleFieldsAsync(
+        ModuleSettingsEditor editor,
+        IReadOnlyList<ModuleSettingsFieldViewModel> fields,
+        string? savedJson,
+        string error)
+        => RunOnUiAsync(() =>
+        {
+            try
+            {
+                var json = savedJson ?? _moduleSettings.LoadSettingsJson(editor.ModuleId);
+                _suppressModuleAutoSave = true;
+                _suppressPendingRecalc = true;
+                SetSavedModuleJson(editor.ModuleId, json);
+                foreach (var field in fields)
+                {
+                    editor.RestoreField(json, field);
+                }
+            }
+            catch (Exception restoreEx)
+            {
+                LogError(
+                    "settings.agents.module_field.restore.fail",
+                    "Failed to restore module fields after auto-save failure",
+                    restoreEx,
+                    new { editor.ModuleId, FieldKeys = fields.Select(field => field.Key).ToArray() });
+            }
+            finally
+            {
+                _suppressModuleAutoSave = false;
+                _suppressPendingRecalc = false;
+                RefreshPendingChanges();
+            }
+
+            _toast.Error("自动化集成", $"自动保存失败：{error}");
+        });
+
+    private void CancelModuleAutoSaves()
+    {
+        lock (_moduleAutoSaveSync)
+        {
+            foreach (var cts in _moduleAutoSaveCts.Values)
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+
+            _moduleAutoSaveCts.Clear();
+            _moduleAutoSaveFields.Clear();
+        }
+    }
+
+    private void FlushModuleAutoSaves()
+    {
+        _moduleSaveGate.Wait();
+        try
+        {
+            List<(ModuleSettingsEditor Editor, ModuleSettingsFieldViewModel[] Fields)> pending = [];
+            lock (_moduleAutoSaveSync)
+            {
+                foreach (var (moduleId, fields) in _moduleAutoSaveFields)
+                {
+                    var editor = ModuleEditors.FirstOrDefault(candidate =>
+                        string.Equals(candidate.ModuleId, moduleId, StringComparison.Ordinal));
+                    if (editor is not null && fields.Count > 0)
+                    {
+                        pending.Add((editor, [.. fields]));
+                    }
+                }
+
+                foreach (var cts in _moduleAutoSaveCts.Values)
+                {
+                    cts.Cancel();
+                    cts.Dispose();
+                }
+
+                _moduleAutoSaveCts.Clear();
+                _moduleAutoSaveFields.Clear();
+            }
+
+            foreach (var (editor, fields) in pending)
+            {
+                try
+                {
+                    var savedJson = _moduleSettings.LoadSettingsJson(editor.ModuleId);
+                    var nextJson = fields.Aggregate(savedJson, editor.ApplyField);
+                    if (!SameJson(savedJson, nextJson))
+                    {
+                        _moduleSettings
+                            .SaveSettingsJsonAsync(editor.ModuleId, nextJson, CancellationToken.None)
+                            .GetAwaiter()
+                            .GetResult();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError(
+                        "settings.agents.module_field.flush_fail",
+                        "Failed to flush module fields while disposing settings",
+                        ex,
+                        new { editor.ModuleId, FieldKeys = fields.Select(field => field.Key).ToArray() });
+                }
+            }
+        }
+        finally
+        {
+            _moduleSaveGate.Release();
+        }
+    }
+
+    private void OnModuleFieldListChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (e.OldItems is not null)
         {
             foreach (var item in e.OldItems)
             {
-                if (item is InjectorLineItem line)
+                if (item is SettingsLineItem line)
                 {
-                    line.PropertyChanged -= OnInjectorLineItemPropertyChanged;
+                    line.PropertyChanged -= OnModuleFieldListItemChanged;
                 }
             }
         }
@@ -846,9 +1434,9 @@ public partial class Settings
         {
             foreach (var item in e.NewItems)
             {
-                if (item is InjectorLineItem line)
+                if (item is SettingsLineItem line)
                 {
-                    line.PropertyChanged += OnInjectorLineItemPropertyChanged;
+                    line.PropertyChanged += OnModuleFieldListItemChanged;
                 }
             }
         }
@@ -856,9 +1444,9 @@ public partial class Settings
         RefreshPendingChanges();
     }
 
-    private void OnInjectorLineItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnModuleFieldListItemChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(InjectorLineItem.Value) or null or "")
+        if (e.PropertyName is nameof(SettingsLineItem.Value) or null or "")
         {
             RefreshPendingChanges();
         }
@@ -887,14 +1475,17 @@ public partial class Settings
 
             var current = BuildCurrentSnapshot();
             var pending = current is null || !SnapshotEquals(_savedSnapshot, current);
-            if (_hasPendingChanges == pending)
+            if (_hasPendingChanges != pending)
             {
-                return;
+                _hasPendingChanges = pending;
+                OnPropertyChanged(nameof(HasPendingChanges));
+                RefreshUnsaved();
             }
 
-            _hasPendingChanges = pending;
-            OnPropertyChanged(nameof(HasPendingChanges));
-            RefreshUnsaved();
+            if (!pending)
+            {
+                TryFlushStaleModuleEditors();
+            }
         }
 
         if (Dispatcher.UIThread.CheckAccess())
@@ -906,182 +1497,20 @@ public partial class Settings
         Dispatcher.UIThread.Post(Apply);
     }
 
-    private InjectorOptionsDto? ParseInjectorOptionsForSave()
-    {
-        try
-        {
-            var appWin = ParseAppWinItems(InjectorAppWinItems);
-            if (appWin.Count == 0)
-            {
-                _toast.Error("自动化集成", "AppWin 至少需要一个可执行文件");
-                return null;
-            }
-
-            var colSpecs = ParseLineItems(InjectorColSpecsItems);
-            if (colSpecs.Count == 0)
-            {
-                _toast.Error("自动化集成", "ColSpecs 不能为空");
-                return null;
-            }
-
-            var intCols = ParseLineItems(InjectorIntColsItems);
-
-            if (InjectorConfirmTimeoutMs is < 100 or > 10000)
-            {
-                _toast.Error("自动化集成", "ConfirmTimeoutMs 范围应为 100-10000");
-                return null;
-            }
-
-            var codePickPolicy = InjectorCodePickPolicy.Trim().ToUpperInvariant();
-            if (codePickPolicy is not ("MAX_LEVEL" or "MIN_LEVEL"))
-            {
-                _toast.Error("自动化集成", "CodePickPolicy 仅支持 MAX_LEVEL 或 MIN_LEVEL");
-                return null;
-            }
-
-            var warehouseAnchors = ParseLineItems(InjectorWarehouseAnchorItems);
-            var warehouseTaskIdentifier = NormTaskId(InjectorWarehouseTaskIdentifier);
-
-            return new InjectorOptionsDto
-            {
-                PgDriver = InjectorPgDriver.Trim(),
-                PgSsl = InjectorPgSsl.Trim(),
-                OptWindowClass = InjectorOptWindowClass.Trim(),
-                IptWindowClass = InjectorIptWindowClass.Trim(),
-                ConfirmTimeoutMs = InjectorConfirmTimeoutMs,
-                OptParseGridClassNN = InjectorOptParseGridClassNN.Trim(),
-                OptVerifyGridClassNN = InjectorOptVerifyGridClassNN.Trim(),
-                IptParseGridClassNN = InjectorIptParseGridClassNN.Trim(),
-                IptVerifyGridClassNN = InjectorIptVerifyGridClassNN.Trim(),
-                OptInputClassNN = InjectorOptInputClassNN.Trim(),
-                IptInputClassNN = InjectorIptInputClassNN.Trim(),
-                WarehouseEnabled = InjectorWarehouseEnabled,
-                AppWin = appWin,
-                ColSpecs = colSpecs,
-                IntCols = intCols,
-                CodePickPolicy = codePickPolicy,
-                WarehouseAnchorTexts = warehouseAnchors,
-                WarehouseTaskIdentifier = warehouseTaskIdentifier,
-            };
-        }
-        catch (Exception ex)
-        {
-            LogError("settings.agents.injector_options.parse_fail", "Failed to parse Injector options", ex);
-            _toast.Error("自动化集成", $"Injector 配置格式错误：{ex.Message}");
-            return null;
-        }
-    }
-
-    [RelayCommand]
-    private void AddInjectorAppWinItem() => InjectorAppWinItems.Add(new InjectorLineItem());
-
-    [RelayCommand]
-    private void RemoveInjectorAppWinItem(InjectorLineItem? item)
-    {
-        if (item is null)
-        {
-            return;
-        }
-
-        InjectorAppWinItems.Remove(item);
-    }
-
-    [RelayCommand]
-    private void AddInjectorColSpecsItem() => InjectorColSpecsItems.Add(new InjectorLineItem());
-
-    [RelayCommand]
-    private void RemoveInjectorColSpecsItem(InjectorLineItem? item)
-    {
-        if (item is null)
-        {
-            return;
-        }
-
-        InjectorColSpecsItems.Remove(item);
-    }
-
-    [RelayCommand]
-    private void AddInjectorIntColsItem() => InjectorIntColsItems.Add(new InjectorLineItem());
-
-    [RelayCommand]
-    private void RemoveInjectorIntColsItem(InjectorLineItem? item)
-    {
-        if (item is null)
-        {
-            return;
-        }
-
-        InjectorIntColsItems.Remove(item);
-    }
-
-    [RelayCommand]
-    private void AddInjectorWarehouseAnchorItem() => InjectorWarehouseAnchorItems.Add(new InjectorLineItem());
-
-    [RelayCommand]
-    private void RemoveInjectorWarehouseAnchorItem(InjectorLineItem? item)
-    {
-        if (item is null)
-        {
-            return;
-        }
-
-        InjectorWarehouseAnchorItems.Remove(item);
-    }
-
-    private static Dictionary<string, int> ParseAppWinItems(IEnumerable<InjectorLineItem> items)
-    {
-        var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var v in ParseLineItems(items))
-        {
-            result[v] = 1;
-        }
-
-        return result;
-    }
-
-    private static List<string> ParseLineItems(IEnumerable<InjectorLineItem> items)
-        => items.Select(x => (x.Value).Trim()).Where(x => x != "").Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-
-    private static List<string> SnapshotLineItems(IEnumerable<InjectorLineItem> items)
-        => items.Select(x => (x.Value).Trim()).ToList();
-
-    private static void ResetLineItems(ObservableCollection<InjectorLineItem> target, IEnumerable<string> values)
-    {
-        target.Clear();
-        foreach (var value in values
-                     .Select(x => x.Trim())
-                     .Where(x => x != "")
-                     .Distinct(StringComparer.OrdinalIgnoreCase))
-        {
-            target.Add(new InjectorLineItem(value));
-        }
-    }
-
     private AgentsEditorSnapshot? BuildCurrentSnapshot()
     {
         try
         {
+            var moduleJson = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var editor in ModuleEditors)
+            {
+                moduleJson[editor.ModuleId] = editor.ToJsonString();
+            }
+
             return new AgentsEditorSnapshot(
                 AgentsExecutablePath.Trim(),
                 AgentsProcessName.Trim(),
-                InjectorPgDriver.Trim(),
-                InjectorPgSsl.Trim(),
-                InjectorOptWindowClass.Trim(),
-                InjectorIptWindowClass.Trim(),
-                InjectorConfirmTimeoutMs,
-                InjectorOptParseGridClassNN.Trim(),
-                InjectorOptVerifyGridClassNN.Trim(),
-                InjectorIptParseGridClassNN.Trim(),
-                InjectorIptVerifyGridClassNN.Trim(),
-                InjectorOptInputClassNN.Trim(),
-                InjectorIptInputClassNN.Trim(),
-                InjectorWarehouseEnabled,
-                NormTaskId(InjectorWarehouseTaskIdentifier),
-                InjectorCodePickPolicy.Trim().ToUpperInvariant(),
-                SnapshotLineItems(InjectorAppWinItems),
-                SnapshotLineItems(InjectorColSpecsItems),
-                SnapshotLineItems(InjectorIntColsItems),
-                SnapshotLineItems(InjectorWarehouseAnchorItems));
+                moduleJson);
         }
         catch
         {
@@ -1101,94 +1530,18 @@ public partial class Settings
             return false;
         }
 
-        if (!string.Equals(left.InjectorPgDriver, right.InjectorPgDriver, StringComparison.Ordinal))
+        if (left.ModuleSettingsJson.Count != right.ModuleSettingsJson.Count)
         {
             return false;
         }
 
-        if (!string.Equals(left.InjectorPgSsl, right.InjectorPgSsl, StringComparison.Ordinal))
+        foreach (var (moduleId, json) in left.ModuleSettingsJson)
         {
-            return false;
-        }
-
-        if (!string.Equals(left.InjectorOptWindowClass, right.InjectorOptWindowClass, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (!string.Equals(left.InjectorIptWindowClass, right.InjectorIptWindowClass, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (left.InjectorConfirmTimeoutMs != right.InjectorConfirmTimeoutMs)
-        {
-            return false;
-        }
-
-        if (!string.Equals(left.InjectorOptParseGridClassNN, right.InjectorOptParseGridClassNN, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (!string.Equals(left.InjectorOptVerifyGridClassNN, right.InjectorOptVerifyGridClassNN, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (!string.Equals(left.InjectorIptParseGridClassNN, right.InjectorIptParseGridClassNN, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (!string.Equals(left.InjectorIptVerifyGridClassNN, right.InjectorIptVerifyGridClassNN, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (!string.Equals(left.InjectorOptInputClassNN, right.InjectorOptInputClassNN, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (!string.Equals(left.InjectorIptInputClassNN, right.InjectorIptInputClassNN, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (left.InjectorWarehouseEnabled != right.InjectorWarehouseEnabled)
-        {
-            return false;
-        }
-
-        if (!string.Equals(left.InjectorWarehouseTaskIdentifier, right.InjectorWarehouseTaskIdentifier, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (!string.Equals(left.InjectorCodePickPolicy, right.InjectorCodePickPolicy, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (!left.InjectorAppWinItems.SequenceEqual(right.InjectorAppWinItems, StringComparer.Ordinal))
-        {
-            return false;
-        }
-
-        if (!left.InjectorColSpecsItems.SequenceEqual(right.InjectorColSpecsItems, StringComparer.Ordinal))
-        {
-            return false;
-        }
-
-        if (!left.InjectorIntColsItems.SequenceEqual(right.InjectorIntColsItems, StringComparer.Ordinal))
-        {
-            return false;
-        }
-
-        if (!left.InjectorWarehouseAnchorItems.SequenceEqual(right.InjectorWarehouseAnchorItems, StringComparer.Ordinal))
-        {
-            return false;
+            if (!right.ModuleSettingsJson.TryGetValue(moduleId, out var otherJson)
+                || !SameJson(json, otherJson))
+            {
+                return false;
+            }
         }
 
         return true;
@@ -1196,92 +1549,29 @@ public partial class Settings
 
     private void DisposeAgents()
     {
+        _agentsDisposed = true;
+        FlushModuleAutoSaves();
         try { _agents.StatusChanged -= OnAgentsRuntimeChanged; }
         catch (Exception ex)
         {
             LogWarn("settings.agents.dispose.runtime_unsub_fail", "Failed to unsubscribe runtime status", ex);
         }
 
-        try { InjectorAppWinItems.CollectionChanged -= OnInjectorLineCollectionChanged; }
+        try { UnwireModuleRunRows(); }
         catch (Exception ex)
         {
-            LogWarn("settings.agents.dispose.appwin_collection_unsub_fail", "Failed to unsubscribe InjectorAppWinItems", ex);
+            LogWarn("settings.agents.dispose.module_run_unsub_fail", "Failed to unsubscribe module run rows", ex);
         }
 
-        try { InjectorColSpecsItems.CollectionChanged -= OnInjectorLineCollectionChanged; }
+        try { UnwireModuleEditors(); }
         catch (Exception ex)
         {
-            LogWarn("settings.agents.dispose.colspecs_collection_unsub_fail", "Failed to unsubscribe InjectorColSpecsItems", ex);
-        }
-
-        try { InjectorIntColsItems.CollectionChanged -= OnInjectorLineCollectionChanged; }
-        catch (Exception ex)
-        {
-            LogWarn("settings.agents.dispose.intcols_collection_unsub_fail", "Failed to unsubscribe InjectorIntColsItems", ex);
-        }
-
-        try { InjectorWarehouseAnchorItems.CollectionChanged -= OnInjectorLineCollectionChanged; }
-        catch (Exception ex)
-        {
-            LogWarn("settings.agents.dispose.warehouse_anchors_collection_unsub_fail", "Failed to unsubscribe InjectorWarehouseAnchorItems", ex);
-        }
-
-        foreach (var item in InjectorAppWinItems)
-        {
-            try { item.PropertyChanged -= OnInjectorLineItemPropertyChanged; }
-            catch (Exception ex)
-            {
-                LogWarn("settings.agents.dispose.appwin_item_unsub_fail", "Failed to unsubscribe InjectorAppWin item", ex);
-            }
-        }
-
-        foreach (var item in InjectorColSpecsItems)
-        {
-            try { item.PropertyChanged -= OnInjectorLineItemPropertyChanged; }
-            catch (Exception ex)
-            {
-                LogWarn("settings.agents.dispose.colspecs_item_unsub_fail", "Failed to unsubscribe InjectorColSpecs item", ex);
-            }
-        }
-
-        foreach (var item in InjectorIntColsItems)
-        {
-            try { item.PropertyChanged -= OnInjectorLineItemPropertyChanged; }
-            catch (Exception ex)
-            {
-                LogWarn("settings.agents.dispose.intcols_item_unsub_fail", "Failed to unsubscribe InjectorIntCols item", ex);
-            }
-        }
-
-        foreach (var item in InjectorWarehouseAnchorItems)
-        {
-            try { item.PropertyChanged -= OnInjectorLineItemPropertyChanged; }
-            catch (Exception ex)
-            {
-                LogWarn("settings.agents.dispose.warehouse_anchor_item_unsub_fail", "Failed to unsubscribe InjectorWarehouseAnchor item", ex);
-            }
+            LogWarn("settings.agents.dispose.module_editors_unsub_fail", "Failed to unsubscribe module editors", ex);
         }
     }
 
     private sealed record AgentsEditorSnapshot(
         string AgentsExecutablePath,
         string AgentsProcessName,
-        string InjectorPgDriver,
-        string InjectorPgSsl,
-        string InjectorOptWindowClass,
-        string InjectorIptWindowClass,
-        int InjectorConfirmTimeoutMs,
-        string InjectorOptParseGridClassNN,
-        string InjectorOptVerifyGridClassNN,
-        string InjectorIptParseGridClassNN,
-        string InjectorIptVerifyGridClassNN,
-        string InjectorOptInputClassNN,
-        string InjectorIptInputClassNN,
-        bool InjectorWarehouseEnabled,
-        string InjectorWarehouseTaskIdentifier,
-        string InjectorCodePickPolicy,
-        IReadOnlyList<string> InjectorAppWinItems,
-        IReadOnlyList<string> InjectorColSpecsItems,
-        IReadOnlyList<string> InjectorIntColsItems,
-        IReadOnlyList<string> InjectorWarehouseAnchorItems);
+        IReadOnlyDictionary<string, string> ModuleSettingsJson);
 }

@@ -1,10 +1,10 @@
 {
-  "id": "Injector",
-  "version": "0.7.0",
+  "id": "ModuleTemplate",
+  "version": "0.1.0",
   "runtime": "ahk",
-  "displayName": "Injector",
+  "displayName": "模块模板",
   "entry": {
-    "win-x64": "Injector.exe"
+    "win-x64": "ModuleTemplate.exe"
   },
   "desktop": {
     "icons": {
@@ -13,12 +13,12 @@
     },
     "bottomStatusBar": true,
     "topStatusPills": true,
-    "order": 10
+    "order": 100
   },
   "package": {
     "builder": "ahk2exe",
     "ahk2exe": {
-      "icon": "assets/agents-injector.ico"
+      "icon": "assets/module.ico"
     }
   }
 }

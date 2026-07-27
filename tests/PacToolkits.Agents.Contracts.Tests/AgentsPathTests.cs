@@ -5,6 +5,7 @@ namespace PacToolkits.Agents.Contracts.Tests;
 
 public sealed class AgentsPathTests : IDisposable
 {
+    private const string TestModuleId = "Sample";
     private readonly string _baseDirectory;
 
     public AgentsPathTests()
@@ -22,12 +23,8 @@ public sealed class AgentsPathTests : IDisposable
     }
 
     [Fact]
-    public void ResolveHost_null_config_ignores_main_tools_on_disk()
+    public void ResolveHost_null_config_is_missing_without_standard_binary()
     {
-        var toolsDirectory = Path.Combine(_baseDirectory, "Tools");
-        Directory.CreateDirectory(toolsDirectory);
-        File.WriteAllText(Path.Combine(toolsDirectory, AgentsPaths.LegacyToolsFileName), string.Empty);
-
         var resolution = AgentsPath.ResolveHost(null, _baseDirectory);
 
         Assert.Equal(HostExecutableResolutionSource.Missing, resolution.Source);
@@ -47,36 +44,6 @@ public sealed class AgentsPathTests : IDisposable
         Assert.True(File.Exists(resolution.ResolvedPath));
         Assert.EndsWith(AgentsPaths.HostExecutableFileName, resolution.ResolvedPath);
         Assert.Equal(HostExecutableResolutionSource.Standard, resolution.Source);
-    }
-
-    [Fact]
-    public void ResolveHost_main_tools_config_rewrites_to_host()
-    {
-        CreateHostExecutable();
-        CreateLegacyToolsExecutable();
-
-        var resolution = AgentsPath.ResolveHost(
-            AgentsPaths.LegacyToolsExecutable,
-            _baseDirectory);
-
-        Assert.Equal(HostExecutableResolutionSource.Standard, resolution.Source);
-        Assert.Equal(AgentsPaths.HostExecutable, resolution.StoredPath);
-        Assert.NotNull(resolution.ResolvedPath);
-        Assert.EndsWith(AgentsPaths.HostExecutableFileName, resolution.ResolvedPath);
-    }
-
-    [Fact]
-    public void ResolveHost_main_tools_rewrites_without_host_binary()
-    {
-        CreateLegacyToolsExecutable();
-
-        var resolution = AgentsPath.ResolveHost(
-            AgentsPaths.LegacyToolsExecutable,
-            _baseDirectory);
-
-        Assert.Equal(HostExecutableResolutionSource.Missing, resolution.Source);
-        Assert.Equal(AgentsPaths.HostExecutable, resolution.StoredPath);
-        Assert.Null(resolution.ResolvedPath);
     }
 
     [Fact]
@@ -109,42 +76,146 @@ public sealed class AgentsPathTests : IDisposable
         Assert.Equal(configured, resolution.StoredPath);
     }
 
-    [Theory]
-    [InlineData(@".\Tools\pacinjector.exe")]
-    [InlineData(@"Tools/pacinjector.exe")]
-    [InlineData(@"C:\Apps\PacToolkits\Tools\pacinjector.exe")]
-    public void IsLegacyTools_accepts(string storedPath)
-    {
-        Assert.True(AgentsPath.IsLegacyToolsStoredPath(storedPath));
-    }
-
-    [Theory]
-    [InlineData(@".\Agents\Agents.exe")]
-    [InlineData(@".\Agents\Modules\Injector\Injector.exe")]
-    [InlineData(@"D:\Other\pacinjector.exe")]
-    public void IsLegacyTools_rejects(string storedPath)
-    {
-        Assert.False(AgentsPath.IsLegacyToolsStoredPath(storedPath));
-    }
-
     [Fact]
     public void TryResolveModuleEntry_reads_windows_x64()
     {
         var agentsDir = Path.Combine(_baseDirectory, "Agents");
-        var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, AgentsPaths.InjectorModuleId);
+        var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, TestModuleId);
         Directory.CreateDirectory(moduleDir);
         File.WriteAllText(
             Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName),
             """
-            {"id":"Injector","version":"1.2.3","entry":{"windows-x64":"Injector.exe"}}
+            {"id":"Sample","version":"1.2.3","entry":{"win-x64":"Sample.exe"}}
             """);
 
-        var entry = AgentsPath.TryResolveModuleEntryPath(agentsDir, AgentsPaths.InjectorModuleId);
+        var entry = AgentsPath.TryResolveModuleEntryPath(agentsDir, TestModuleId);
         var version = AgentsPath.TryReadModuleVersion(
-            AgentsPaths.ModuleManifestPath(agentsDir, AgentsPaths.InjectorModuleId));
+            AgentsPaths.ModuleManifestPath(agentsDir, TestModuleId));
 
-        Assert.Equal(Path.Combine(moduleDir, "Injector.exe"), entry);
+        Assert.Equal(Path.Combine(moduleDir, "Sample.exe"), entry);
         Assert.Equal("1.2.3", version);
+    }
+
+    [Fact]
+    public void TryReadModule_requires_desktop_dual_icons_and_ahk2exe_package()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "Agents");
+        var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, TestModuleId);
+        Directory.CreateDirectory(moduleDir);
+        var assetsDir = Path.Combine(moduleDir, "assets");
+        Directory.CreateDirectory(assetsDir);
+        var iconPath = Path.Combine(assetsDir, "agents-sample.ico");
+        File.WriteAllText(iconPath, string.Empty);
+        var manifestPath = Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName);
+        File.WriteAllText(manifestPath, FullModuleManifestJson());
+
+        var module = AgentsPath.TryReadModule(manifestPath);
+
+        Assert.NotNull(module);
+        Assert.Equal(TestModuleId, module.Id);
+        Assert.Equal(ModuleRuntimes.Ahk, module.Runtime);
+        Assert.Equal("追溯码录入", module.DisplayName);
+        Assert.Equal("Bone", module.Desktop.Icons.Active);
+        Assert.Equal("BoneFracture", module.Desktop.Icons.Inactive);
+        Assert.True(module.Desktop.BottomStatusBar);
+        Assert.True(module.Desktop.TopStatusPills);
+        Assert.Equal(10, module.Desktop.Order);
+        Assert.Equal("Sample.exe", module.EntryWinX64);
+        Assert.Equal(ModuleBuilders.Ahk2Exe, module.Package.Builder);
+        Assert.Equal("assets/agents-sample.ico", module.Package.Ahk2Exe.Icon);
+        Assert.Equal(
+            Path.GetFullPath(iconPath),
+            AgentsPath.TryResolveAhk2ExeIconPath(module));
+    }
+
+    [Fact]
+    public void TryReadModule_rejects_missing_required_desktop_or_package_fields()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "Agents");
+        var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, "Plain");
+        Directory.CreateDirectory(moduleDir);
+        var manifestPath = Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName);
+        File.WriteAllText(
+            manifestPath,
+            """
+            {"id":"Plain","version":"1.0.0","runtime":"ahk","displayName":"Plain","entry":{"win-x64":"Plain.exe"}}
+            """);
+
+        Assert.Null(AgentsPath.TryReadModule(manifestPath));
+    }
+
+    [Fact]
+    public void Module_paths_reject_parent_traversal()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "Agents");
+        var moduleDir = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName, TestModuleId);
+        Directory.CreateDirectory(moduleDir);
+        var manifestPath = Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName);
+        File.WriteAllText(
+            manifestPath,
+            FullManifestJson(
+                TestModuleId,
+                "../Outside.exe",
+                order: 10));
+
+        Assert.Null(AgentsPath.TryReadModule(manifestPath));
+        Assert.Null(AgentsPath.TryResolveModuleEntryPath(agentsDir, TestModuleId));
+
+        File.WriteAllText(
+            manifestPath,
+            FullManifestJson(
+                TestModuleId,
+                "Sample.exe",
+                order: 10,
+                icon: "../outside.ico"));
+
+        Assert.Null(AgentsPath.TryReadModule(manifestPath));
+    }
+
+    [Theory]
+    [InlineData("../Probe")]
+    [InlineData("Probe/Child")]
+    [InlineData(" Probe")]
+    [InlineData("探针")]
+    public void Module_id_rejects_non_portable_path_tokens(string moduleId)
+    {
+        Assert.False(AgentsPath.IsValidModuleId(moduleId));
+    }
+
+    [Fact]
+    public void ScanModules_orders_by_desktop_order_and_skips_id_mismatch()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "Agents");
+        var modulesRoot = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName);
+        WriteModule(modulesRoot, "Beta", FullManifestJson("Beta", "Beta.exe", order: 20));
+        WriteModule(modulesRoot, "Alpha", FullManifestJson("Alpha", "Alpha.exe", order: 5));
+        WriteModule(modulesRoot, "Wrong", FullManifestJson("Other", "Wrong.exe", order: 1));
+        WriteModule(modulesRoot, "Case", FullManifestJson("case", "Case.exe", order: 2));
+        WriteModule(modulesRoot, "Broken", """{"id":"Broken"}""");
+
+        var scanned = AgentsPath.ScanModules(agentsDir);
+
+        Assert.Equal(["Alpha", "Beta"], scanned.Select(m => m.Id).ToArray());
+        Assert.Equal([5, 20], scanned.Select(m => m.Desktop.Order).ToArray());
+    }
+
+    [Fact]
+    public void CatalogEquals_detects_add_and_version_change()
+    {
+        var agentsDir = Path.Combine(_baseDirectory, "Agents");
+        var modulesRoot = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName);
+        WriteModule(modulesRoot, "Alpha", FullManifestJson("Alpha", "Alpha.exe", order: 5));
+
+        var first = AgentsPath.ScanModules(agentsDir);
+        Assert.True(AgentsPath.CatalogEquals(first, AgentsPath.ScanModules(agentsDir)));
+
+        WriteModule(modulesRoot, "Beta", FullManifestJson("Beta", "Beta.exe", order: 20));
+        var withBeta = AgentsPath.ScanModules(agentsDir);
+        Assert.False(AgentsPath.CatalogEquals(first, withBeta));
+
+        WriteModule(modulesRoot, "Alpha", FullManifestJson("Alpha", "Alpha.exe", order: 5, version: "9.9.9"));
+        var bumped = AgentsPath.ScanModules(agentsDir);
+        Assert.False(AgentsPath.CatalogEquals(withBeta, bumped));
     }
 
     [Fact]
@@ -163,17 +234,56 @@ public sealed class AgentsPathTests : IDisposable
         Assert.Equal("0.1.1", version);
     }
 
+    private static string FullModuleManifestJson()
+        => FullManifestJson(
+            TestModuleId,
+            "Sample.exe",
+            order: 10,
+            displayName: "追溯码录入",
+            active: "Bone",
+            inactive: "BoneFracture",
+            icon: "assets/agents-sample.ico");
+
+    private static string FullManifestJson(
+        string id,
+        string entry,
+        int order,
+        string? displayName = null,
+        string active = "Puzzle",
+        string inactive = "Box",
+        string version = "1.0.0",
+        string icon = "assets/agents-injector.ico")
+    {
+        var name = displayName ?? id;
+        return
+            "{"
+            + $"\"id\":\"{id}\","
+            + $"\"version\":\"{version}\","
+            + "\"runtime\":\"ahk\","
+            + $"\"displayName\":\"{name}\","
+            + $"\"entry\":{{\"win-x64\":\"{entry}\"}},"
+            + "\"desktop\":{"
+            + $"\"icons\":{{\"active\":\"{active}\",\"inactive\":\"{inactive}\"}},"
+            + "\"bottomStatusBar\":true,"
+            + "\"topStatusPills\":true,"
+            + $"\"order\":{order}"
+            + "},"
+            + $"\"package\":{{\"builder\":\"ahk2exe\",\"ahk2exe\":{{\"icon\":\"{icon}\"}}}}"
+            + "}";
+    }
+
+
+    private static void WriteModule(string modulesRoot, string folderName, string json)
+    {
+        var moduleDir = Path.Combine(modulesRoot, folderName);
+        Directory.CreateDirectory(moduleDir);
+        File.WriteAllText(Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName), json);
+    }
+
     private void CreateHostExecutable()
     {
         var standardDirectory = Path.Combine(_baseDirectory, "Agents");
         Directory.CreateDirectory(standardDirectory);
         File.WriteAllText(Path.Combine(standardDirectory, AgentsPaths.HostExecutableFileName), string.Empty);
-    }
-
-    private void CreateLegacyToolsExecutable()
-    {
-        var toolsDirectory = Path.Combine(_baseDirectory, "Tools");
-        Directory.CreateDirectory(toolsDirectory);
-        File.WriteAllText(Path.Combine(toolsDirectory, AgentsPaths.LegacyToolsFileName), string.Empty);
     }
 }

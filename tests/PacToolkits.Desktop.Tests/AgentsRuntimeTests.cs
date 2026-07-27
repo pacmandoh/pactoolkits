@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
@@ -8,16 +9,19 @@ namespace PacToolkits.Desktop.Tests;
 
 public sealed class AgentsRuntimeTests
 {
+    private const string TestModuleId = "ModuleA";
+
     [Fact]
     public void Declares_independent_database_compatibility_range()
     {
         using var runtime = new AgentsRuntime(
             new FakeAppConfigStore(),
+            new FakeModuleSettingsStore(),
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService(),
             new NullAppLogger());
 
-        Assert.True(runtime.IsInjectorEnabled);
+        Assert.True(runtime.IsModuleEnabled(TestModuleId));
         Assert.Equal("1.2.22", runtime.MinDbSchema);
         Assert.Equal("1.2.22", runtime.MaxDbSchema);
     }
@@ -28,6 +32,7 @@ public sealed class AgentsRuntimeTests
         var config = new FakeAppConfigStore();
         using var runtime = new AgentsRuntime(
             config,
+            new FakeModuleSettingsStore(),
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService("1.2.20"),
             new NullAppLogger());
@@ -44,6 +49,7 @@ public sealed class AgentsRuntimeTests
         var config = new FakeAppConfigStore();
         using var runtime = new AgentsRuntime(
             config,
+            new FakeModuleSettingsStore(),
             new FakeReleaseVersionService(),
             new FakeDbSchemaVersionService("1.2.23"),
             new NullAppLogger());
@@ -71,9 +77,60 @@ public sealed class AgentsRuntimeTests
             permissiveOnAccessDenied: false));
     }
 
+    [Fact]
+    public void Binary_change_requires_two_stable_active_observations()
+    {
+        var change = new StableBinaryChange();
+        var original = new BinaryStamp(100, 10);
+        var updated = new BinaryStamp(120, 20);
+
+        Assert.False(change.Observe(original, active: false, out _));
+        Assert.False(change.Observe(updated, active: true, out _));
+        Assert.True(change.Observe(updated, active: true, out var detected));
+        Assert.Equal(updated, detected);
+        Assert.True(change.Accept(detected));
+        Assert.False(change.Observe(updated, active: true, out _));
+    }
+
+    [Fact]
+    public void Inactive_binary_change_advances_baseline_without_reload()
+    {
+        var change = new StableBinaryChange();
+        var original = new BinaryStamp(100, 10);
+        var updated = new BinaryStamp(120, 20);
+
+        Assert.False(change.Observe(original, active: false, out _));
+        Assert.False(change.Observe(updated, active: false, out _));
+        Assert.False(change.Observe(updated, active: true, out _));
+    }
+
+    [Fact]
+    public void Missing_binary_does_not_replace_accepted_baseline()
+    {
+        var change = new StableBinaryChange();
+        var original = new BinaryStamp(100, 10);
+        var updated = new BinaryStamp(120, 20);
+
+        Assert.False(change.Observe(original, active: false, out _));
+        Assert.False(change.Observe(null, active: true, out _));
+        Assert.False(change.Observe(updated, active: true, out _));
+        Assert.True(change.Observe(updated, active: true, out _));
+    }
+
+    [Theory]
+    [InlineData(AgentsRunState.Starting, true)]
+    [InlineData(AgentsRunState.Running, true)]
+    [InlineData(AgentsRunState.Stopped, false)]
+    [InlineData(AgentsRunState.Failed, false)]
+    [InlineData(AgentsRunState.Unknown, false)]
+    public void Binary_reload_activity_matches_runtime_lifecycle(AgentsRunState state, bool expected)
+    {
+        Assert.Equal(expected, AgentsRuntime.IsBinaryReloadActive(state));
+    }
+
     private sealed class FakeAppConfigStore : IAppConfigStore
     {
-        public AppConfigRoot Root { get; set; } = new();
+        public AppConfigRoot Root { get; set; } = CreateRoot();
 
         public string ConfigPath { get; } = "/tmp/pactoolkits-test.config.json";
 
@@ -96,6 +153,14 @@ public sealed class AgentsRuntimeTests
         {
             mutator(Root);
             return Task.CompletedTask;
+        }
+
+        private static AppConfigRoot CreateRoot()
+        {
+            var root = new AppConfigRoot();
+            root.Agents.Modules[TestModuleId] =
+                new PacToolkits.Agents.Contracts.Models.ModuleOptions { Enabled = true };
+            return root;
         }
     }
 
@@ -121,6 +186,20 @@ public sealed class AgentsRuntimeTests
 
         public Task<DbSchemaVersionRead> TryReadSchemaVersionAsync(PgOptions options, CancellationToken ct)
             => Task.FromResult(new DbSchemaVersionRead(true, version, null));
+    }
+
+    private sealed class FakeModuleSettingsStore : IModuleSettingsStore
+    {
+        public void EnsureUserSettings(string moduleId, string agentsDir)
+        {
+        }
+
+        public string LoadSettingsJson(string moduleId) => "{}";
+
+        public Task SaveSettingsJsonAsync(string moduleId, string json, CancellationToken ct = default)
+            => Task.CompletedTask;
+
+        public string? TryLoadSchemaJson(string moduleId, string agentsDir) => null;
     }
 
     private sealed class NullAppLogger : IAppLogger

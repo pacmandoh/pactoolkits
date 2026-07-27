@@ -1,4 +1,4 @@
-﻿<shad:Window
+<shad:Window
   x:Class="PacToolkits.Desktop.Avalonia.Views.MainWindow"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -245,32 +245,44 @@
           </Panel>
         </Button>
 
-        <Button
-          shad:ButtonAssist.ShowProgress="{Binding IsAgentsActionRunning}"
-          Classes="WindowControlsButton"
-          Command="{Binding StartOrRestartInjectorCommand}"
-          ToolTip.Tip="{Binding InjectorItemText}">
-          <Panel>
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeDefault}"
-              Height="{DynamicResource IconSizeDefault}"
-              Foreground="{DynamicResource SuccessColor}"
-              IsVisible="{Binding IsInjectorRunning}"
-              Kind="Bone" />
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeDefault}"
-              Height="{DynamicResource IconSizeDefault}"
-              Foreground="{DynamicResource WarningColor}"
-              IsVisible="{Binding IsInjectorStarting}"
-              Kind="Bone" />
-            <icons:AppIcon
-              Width="{DynamicResource IconSizeDefault}"
-              Height="{DynamicResource IconSizeDefault}"
-              Foreground="{DynamicResource ErrorColor}"
-              IsVisible="{Binding IsInjectorInactive}"
-              Kind="BoneFracture" />
-          </Panel>
-        </Button>
+        <ItemsControl ItemsSource="{Binding TopStatusPills}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="0" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ModuleChrome">
+              <Button
+                shad:ButtonAssist.ShowProgress="{Binding #Root.((vm:MainWindowViewModel)DataContext).IsAgentsActionRunning}"
+                Classes="WindowControlsButton"
+                Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).StartOrRestartModuleCommand}"
+                CommandParameter="{Binding Id}"
+                ToolTip.Tip="{Binding ItemText}">
+                <Panel>
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeDefault}"
+                    Height="{DynamicResource IconSizeDefault}"
+                    Foreground="{DynamicResource SuccessColor}"
+                    IsVisible="{Binding IsRunning}"
+                    Kind="{Binding ActiveIcon}" />
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeDefault}"
+                    Height="{DynamicResource IconSizeDefault}"
+                    Foreground="{DynamicResource WarningColor}"
+                    IsVisible="{Binding IsStarting}"
+                    Kind="{Binding ActiveIcon}" />
+                  <icons:AppIcon
+                    Width="{DynamicResource IconSizeDefault}"
+                    Height="{DynamicResource IconSizeDefault}"
+                    Foreground="{DynamicResource ErrorColor}"
+                    IsVisible="{Binding IsInactive}"
+                    Kind="{Binding InactiveIcon}" />
+                </Panel>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </StackPanel>
     </Border>
   </shad:Window.RightWindowTitleBarContent>
@@ -743,30 +755,43 @@
               <TextBlock Classes="Caption Muted" Text="{Binding HostItemText}" />
             </Button>
 
-            <Border Classes="StatusBarDivider" />
-
-            <Button
-              shad:ButtonAssist.ShowProgress="{Binding IsAgentsActionRunning}"
-              Classes="StatusBarItem StatusBarAgentsItem"
-              Command="{Binding StartOrRestartInjectorCommand}">
-              <shad:ButtonAssist.Icon>
-                <Panel>
-                  <icons:AppIcon
-                    Foreground="{DynamicResource SuccessColor}"
-                    IsVisible="{Binding IsInjectorRunning}"
-                    Kind="Bone" />
-                  <icons:AppIcon
-                    Foreground="{DynamicResource WarningColor}"
-                    IsVisible="{Binding IsInjectorStarting}"
-                    Kind="Bone" />
-                  <icons:AppIcon
-                    Foreground="{DynamicResource ErrorColor}"
-                    IsVisible="{Binding IsInjectorInactive}"
-                    Kind="BoneFracture" />
-                </Panel>
-              </shad:ButtonAssist.Icon>
-              <TextBlock Classes="Caption Muted" Text="{Binding InjectorItemText}" />
-            </Button>
+            <ItemsControl ItemsSource="{Binding BottomStatusBar}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="0" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ModuleChrome">
+                  <StackPanel Orientation="Horizontal" Spacing="0">
+                    <Border Classes="StatusBarDivider" />
+                    <Button
+                      shad:ButtonAssist.ShowProgress="{Binding #Root.((vm:MainWindowViewModel)DataContext).IsAgentsActionRunning}"
+                      Classes="StatusBarItem StatusBarAgentsItem"
+                      Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).StartOrRestartModuleCommand}"
+                      CommandParameter="{Binding Id}">
+                      <shad:ButtonAssist.Icon>
+                        <Panel>
+                          <icons:AppIcon
+                            Foreground="{DynamicResource SuccessColor}"
+                            IsVisible="{Binding IsRunning}"
+                            Kind="{Binding ActiveIcon}" />
+                          <icons:AppIcon
+                            Foreground="{DynamicResource WarningColor}"
+                            IsVisible="{Binding IsStarting}"
+                            Kind="{Binding ActiveIcon}" />
+                          <icons:AppIcon
+                            Foreground="{DynamicResource ErrorColor}"
+                            IsVisible="{Binding IsInactive}"
+                            Kind="{Binding InactiveIcon}" />
+                        </Panel>
+                      </shad:ButtonAssist.Icon>
+                      <TextBlock Classes="Caption Muted" Text="{Binding ItemText}" />
+                    </Button>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
             <Border Classes="StatusBarDivider" IsVisible="{Binding ShowAccessGuardItem}" />
 

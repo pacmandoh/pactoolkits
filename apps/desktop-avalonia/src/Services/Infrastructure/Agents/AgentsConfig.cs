@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Agents.Contracts.Abstractions;
+using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 
@@ -34,11 +36,24 @@ public sealed class AgentsConfigService : IAgentsConfigService
         await SyncOrThrowAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task SetInjectorEnabledAsync(bool enabled, CancellationToken ct)
+    public async Task SetModuleEnabledAsync(string moduleId, bool enabled, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(moduleId))
+        {
+            throw new ArgumentException("moduleId is required", nameof(moduleId));
+        }
+
         await _configStore.UpdateAsync(cfg =>
         {
-            cfg.Agents.Injector.Enabled = enabled;
+            cfg.Agents.Modules ??= new Dictionary<string, ModuleOptions>(
+                StringComparer.Ordinal);
+            if (!cfg.Agents.Modules.TryGetValue(moduleId, out var module))
+            {
+                module = new ModuleOptions();
+                cfg.Agents.Modules[moduleId] = module;
+            }
+
+            module.Enabled = enabled;
         }, ct).ConfigureAwait(false);
 
         await SyncOrThrowAsync(ct).ConfigureAwait(false);

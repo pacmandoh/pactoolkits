@@ -1,0 +1,13 @@
+{
+  "Message": "AHK 模块模板运行正常",
+  "Enabled": true,
+  "IntervalMs": 5000,
+  "Mode": "notification",
+  "Targets": [
+    "示例窗口"
+  ],
+  "Features": {
+    "Heartbeat": 1,
+    "Debug": 0
+  }
+}

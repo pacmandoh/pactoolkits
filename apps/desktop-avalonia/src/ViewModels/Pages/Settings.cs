@@ -185,7 +185,8 @@ public partial class Settings : AppPageBase, ISettingsPage
         IClipboardService clipboard,
         ISyncService msfxSync,
         IAgentsRuntime agents,
-        IAgentsConfigService agentsConfig)
+        IAgentsConfigService agentsConfig,
+        IModuleSettingsStore moduleSettings)
     {
         _appConfigStore = appConfigStore;
         _settings = settings;
@@ -204,6 +205,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         _msfxSync = msfxSync;
         _agents = agents;
         _agentsConfig = agentsConfig;
+        _moduleSettings = moduleSettings ?? throw new ArgumentNullException(nameof(moduleSettings));
         InitializeAgents();
         ClientAliases.CollectionChanged += OnClientAliasesChanged;
         var c = settings.AppliedDb;

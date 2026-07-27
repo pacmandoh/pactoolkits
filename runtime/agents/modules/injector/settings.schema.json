@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "title": "Injector 设置",
+  "sections": [
+    {
+      "title": "基础配置",
+      "fields": [
+        {
+          "key": "PgDriver",
+          "type": "string",
+          "label": "PG 驱动",
+          "description": "Injector 连接 PostgreSQL 使用的 ODBC 驱动名"
+        },
+        {
+          "key": "PgSsl",
+          "type": "enum",
+          "label": "PG SSL",
+          "description": "Injector 连接数据库时的 SSL 模式",
+          "options": [
+            "disable",
+            "allow",
+            "prefer",
+            "require",
+            "verify-ca",
+            "verify-full"
+          ]
+        },
+        {
+          "key": "ConfirmTimeoutMs",
+          "type": "int",
+          "label": "确认超时",
+          "description": "UI 操作确认等待时间（毫秒）",
+          "min": 100,
+          "max": 10000
+        }
+      ]
+    },
+    {
+      "title": "目标进程",
+      "fields": [
+        {
+          "key": "AppWin",
+          "type": "stringFlagMap",
+          "label": "目标进程",
+          "description": "Injector 模块可注入的目标可执行文件，每行一个"
+        }
+      ]
+    },
+    {
+      "title": "门诊窗口",
+      "fields": [
+        {
+          "key": "OptWindowClass",
+          "type": "string",
+          "label": "门诊窗口类",
+          "description": "门诊顶层窗口 Class"
+        },
+        {
+          "key": "OptParseGridClassNN",
+          "type": "string",
+          "label": "门诊解析网格",
+          "description": "门诊解析区 ClassNN"
+        },
+        {
+          "key": "OptVerifyGridClassNN",
+          "type": "string",
+          "label": "门诊验证网格",
+          "description": "门诊验证区 ClassNN"
+        },
+        {
+          "key": "OptInputClassNN",
+          "type": "string",
+          "label": "门诊输入控件",
+          "description": "门诊输入 ClassNN"
+        }
+      ]
+    },
+    {
+      "title": "住院窗口",
+      "fields": [
+        {
+          "key": "IptWindowClass",
+          "type": "string",
+          "label": "住院窗口类",
+          "description": "住院顶层窗口 Class"
+        },
+        {
+          "key": "IptParseGridClassNN",
+          "type": "string",
+          "label": "住院解析网格",
+          "description": "住院解析区 ClassNN"
+        },
+        {
+          "key": "IptVerifyGridClassNN",
+          "type": "string",
+          "label": "住院验证网格",
+          "description": "住院验证区 ClassNN"
+        },
+        {
+          "key": "IptInputClassNN",
+          "type": "string",
+          "label": "住院输入控件",
+          "description": "住院输入 ClassNN"
+        }
+      ]
+    },
+    {
+      "title": "仓库任务",
+      "fields": [
+        {
+          "key": "WarehouseEnabled",
+          "type": "bool",
+          "label": "启用仓库",
+          "description": "是否启用仓库注入任务"
+        },
+        {
+          "key": "WarehouseTaskIdentifier",
+          "type": "string",
+          "label": "任务标识列",
+          "description": "仓库任务单据标识列名（可用 || 备选）"
+        },
+        {
+          "key": "CodePickPolicy",
+          "type": "enum",
+          "label": "选码策略",
+          "options": [
+            "MAX_LEVEL",
+            "MIN_LEVEL"
+          ]
+        },
+        {
+          "key": "WarehouseAnchorTexts",
+          "type": "stringList",
+          "label": "仓库锚点文案",
+          "description": "仓库界面特征文案，每行一条"
+        }
+      ]
+    },
+    {
+      "title": "列规格",
+      "fields": [
+        {
+          "key": "ColSpecs",
+          "type": "stringList",
+          "label": "ColSpecs",
+          "description": "解析列规格，每行一条"
+        },
+        {
+          "key": "IntCols",
+          "type": "stringList",
+          "label": "IntCols",
+          "description": "按整数解析的列名，每行一条",
+          "allowEmpty": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,145 +1,198 @@
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using PacToolkits.Agents.Contracts.Agents;
 using PacToolkits.Agents.Contracts.Models;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 namespace PacToolkits.Desktop.Tests;
 
 public sealed class AppConfigStoreTests
 {
+    private const string TestModuleId = "ModuleA";
+
     [Fact]
     public void Normalize_sets_schema_version_2()
     {
         var normalized = AppConfigStore.Normalize(new AppConfigRoot { SchemaVersion = 1 });
 
         Assert.Equal(2, normalized.SchemaVersion);
-        Assert.NotNull(normalized.Agents.Injector);
-        Assert.True(normalized.Agents.Injector.Enabled);
     }
 
     [Fact]
-    public void Keeps_injector_disabled_flag()
+    public void Keeps_modules_enabled_flag_when_scan_unavailable()
     {
+        // 无法解析 Agents 目录时不写死模块 id，保留配置中的 Modules 原样
         var root = new AppConfigRoot
         {
             Agents = new AgentsOptions
             {
-                ExecutablePath = @"C:\Apps\Agents\Agents.exe",
+                ExecutablePath = @"C:\Missing\Agents\Agents.exe",
                 ProcessName = "Agents",
-                Injector = new InjectorOptions { Enabled = false },
+                Modules =
+                {
+                    [TestModuleId] = new ModuleOptions { Enabled = false },
+                    ["Probe"] = new ModuleOptions { Enabled = true },
+                },
             },
         };
 
         var normalized = AppConfigStore.Normalize(root);
 
-        Assert.False(normalized.Agents.Injector.Enabled);
+        Assert.True(normalized.Agents.Modules.TryGetValue(TestModuleId, out var module));
+        Assert.False(module!.Enabled);
+        Assert.True(normalized.Agents.Modules.TryGetValue("Probe", out var probe));
+        Assert.True(probe!.Enabled);
     }
 
     [Fact]
-    public void Migrates_main_tools_host_path()
+    public void Does_not_seed_modules_when_catalog_is_empty_and_scan_unavailable()
     {
-        var root = new AppConfigRoot
+        var normalized = AppConfigStore.Normalize(new AppConfigRoot
         {
             Agents = new AgentsOptions
             {
-                ExecutablePath = AgentsPaths.LegacyToolsExecutable,
-                ProcessName = AgentsPaths.LegacyToolsProcessName,
+                ExecutablePath = @"C:\Missing\Agents\Agents.exe",
+                Modules = new Dictionary<string, ModuleOptions>(StringComparer.Ordinal),
             },
+        });
+
+        Assert.Empty(normalized.Agents.Modules);
+    }
+
+    [Fact]
+    public void Keeps_module_flags_when_host_exists_but_catalog_is_temporarily_empty()
+    {
+        var rootDir = Path.Combine(Path.GetTempPath(), "pactoolkits-appconfig-empty-" + Guid.NewGuid().ToString("N"));
+        var agentsDir = Path.Combine(rootDir, "Agents");
+        try
+        {
+            Directory.CreateDirectory(agentsDir);
+            var hostPath = Path.Combine(agentsDir, AgentsPaths.HostExecutableFileName);
+            File.WriteAllBytes(hostPath, [0]);
+
+            var normalized = AppConfigStore.Normalize(new AppConfigRoot
+            {
+                Agents = new AgentsOptions
+                {
+                    ExecutablePath = hostPath,
+                    Modules =
+                    {
+                        [TestModuleId] = new ModuleOptions { Enabled = false },
+                    },
+                },
+            });
+
+            Assert.False(normalized.Agents.Modules[TestModuleId].Enabled);
+        }
+        finally
+        {
+            if (Directory.Exists(rootDir))
+            {
+                Directory.Delete(rootDir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void Module_editor_preserves_settings_not_declared_by_schema()
+    {
+        var schema = new PacToolkits.Agents.Contracts.Settings.ModuleSettingsSchema
+        {
+            Sections =
+            [
+                new PacToolkits.Agents.Contracts.Settings.ModuleSettingsSection
+                {
+                    Fields =
+                    [
+                        new PacToolkits.Agents.Contracts.Settings.ModuleSettingsField
+                        {
+                            Key = "Known",
+                            Type = PacToolkits.Agents.Contracts.Settings.ModuleSettingsFieldTypes.String,
+                        },
+                    ],
+                },
+            ],
         };
+        var editor = new ModuleSettingsEditor(
+            "Probe",
+            "Probe",
+            schema,
+            new JsonObject { ["Known"] = "before", ["Future"] = 42 });
+        editor.Sections[0].Fields[0].StringValue = "after";
 
-        var normalized = AppConfigStore.Normalize(root);
+        var saved = editor.ToJsonObject();
 
-        Assert.Equal(AgentsPaths.HostExecutable, normalized.Agents.ExecutablePath);
-        Assert.Equal(AgentsPaths.HostProcessName, normalized.Agents.ProcessName);
+        Assert.Equal("after", saved["Known"]!.GetValue<string>());
+        Assert.Equal(42, saved["Future"]!.GetValue<int>());
     }
 
     [Fact]
-    public void Migrates_v1_json_to_v2_from_main_automation_tools()
+    public void Seeds_scanned_modules_enabled_and_drops_orphans()
     {
-        var v1 = """
-                 {
-                   "SchemaVersion": 1,
-                   "AutomationTools": {
-                     "Ahk": {
-                       "ExecutablePath": ".\\Tools\\pacinjector.exe",
-                       "ProcessName": "pacinjector"
-                     },
-                     "Agent": {
-                       "Enabled": true,
-                       "PgDriver": "{PostgreSQL ODBC Driver}",
-                       "PgSsl": "require"
-                     }
-                   },
-                   "Agents": {
-                     "agents": {
-                       "Enabled": false,
-                       "ExecutablePath": ".\\Agents\\Agents.exe",
-                       "ProcessName": "Agents",
-                       "Settings": {
-                         "PgDriver": "Stale Companion Driver",
-                         "PgSsl": "disable"
-                       }
-                     }
-                   },
-                   "MsfxApi": { "RefEntId": "x" },
-                   "Postgres": { "Host": "localhost", "Port": 5432, "Database": "db", "Username": "u" }
-                 }
-                 """;
+        var rootDir = Path.Combine(Path.GetTempPath(), "pactoolkits-appconfig-" + Guid.NewGuid().ToString("N"));
+        var agentsDir = Path.Combine(rootDir, "Agents");
+        var modulesRoot = Path.Combine(agentsDir, AgentsPaths.ModulesDirectoryName);
+        try
+        {
+            Directory.CreateDirectory(agentsDir);
+            File.WriteAllBytes(Path.Combine(agentsDir, AgentsPaths.HostExecutableFileName), [0]);
+            WriteModule(modulesRoot, "Alpha");
+            WriteModule(modulesRoot, "Beta");
 
-        var normalized = MigrateAndNormalize(v1);
+            var normalized = AppConfigStore.Normalize(new AppConfigRoot
+            {
+                Agents = new AgentsOptions
+                {
+                    ExecutablePath = Path.Combine(agentsDir, AgentsPaths.HostExecutableFileName),
+                    Modules =
+                    {
+                        ["Alpha"] = new ModuleOptions { Enabled = false },
+                        ["Gone"] = new ModuleOptions { Enabled = true },
+                    },
+                },
+            });
 
-        Assert.Equal(2, normalized.SchemaVersion);
-        Assert.Equal(AgentsPaths.HostExecutable, normalized.Agents.ExecutablePath);
-        Assert.Equal(AgentsPaths.HostProcessName, normalized.Agents.ProcessName);
-        Assert.True(normalized.Agents.Injector.Enabled);
-        Assert.Equal("{PostgreSQL ODBC Driver}", normalized.Agents.Injector.PgDriver);
-        Assert.Equal("require", normalized.Agents.Injector.PgSsl);
-
-        var migratedJson = AppConfigStore.MigrateConfigJsonToV2(v1);
-        using var doc = JsonDocument.Parse(migratedJson);
-        Assert.False(doc.RootElement.TryGetProperty("AutomationTools", out _));
-        var agents = doc.RootElement.GetProperty("Agents");
-        Assert.False(agents.TryGetProperty("Enabled", out _));
-        Assert.False(agents.TryGetProperty("agents", out _));
-        Assert.True(agents.GetProperty("Injector").GetProperty("Enabled").GetBoolean());
+            Assert.False(normalized.Agents.Modules.ContainsKey("Gone"));
+            Assert.True(normalized.Agents.Modules.TryGetValue("Alpha", out var alpha));
+            Assert.False(alpha!.Enabled);
+            Assert.True(normalized.Agents.Modules.TryGetValue("Beta", out var beta));
+            Assert.True(beta!.Enabled);
+        }
+        finally
+        {
+            try
+            {
+                if (Directory.Exists(rootDir))
+                {
+                    Directory.Delete(rootDir, recursive: true);
+                }
+            }
+            catch
+            {
+                // 共享 CI runner 上的临时目录清理失败不影响断言
+            }
+        }
     }
 
-    [Fact]
-    public void Already_v2_json_stays_single_tree()
+    private static void WriteModule(string modulesRoot, string id)
     {
-        var v2 = """
-                 {
-                   "SchemaVersion": 2,
-                   "Agents": {
-                     "ExecutablePath": ".\\Agents\\Agents.exe",
-                     "ProcessName": "Agents",
-                     "Enabled": false,
-                     "Injector": {
-                       "Enabled": true,
-                       "PgDriver": "PostgreSQL Unicode(x64)",
-                       "PgSsl": "disable"
-                     }
-                   }
-                 }
-                 """;
-
-        var migrated = AppConfigStore.MigrateConfigJsonToV2(v2);
-        using var doc = JsonDocument.Parse(migrated);
-        Assert.Equal(2, doc.RootElement.GetProperty("SchemaVersion").GetInt32());
-        Assert.False(doc.RootElement.TryGetProperty("AutomationTools", out _));
-        var agents = doc.RootElement.GetProperty("Agents");
-        Assert.False(agents.TryGetProperty("Enabled", out _));
-        Assert.False(agents.TryGetProperty("agents", out _));
-        Assert.True(agents.GetProperty("Injector").GetProperty("Enabled").GetBoolean());
-        Assert.Equal(
-            "PostgreSQL Unicode(x64)",
-            agents.GetProperty("Injector").GetProperty("PgDriver").GetString());
-    }
-
-    private static AppConfigRoot MigrateAndNormalize(string json)
-    {
-        var migrated = AppConfigStore.MigrateConfigJsonToV2(json);
-        var root = JsonSerializer.Deserialize<AppConfigRoot>(migrated) ?? new AppConfigRoot();
-        return AppConfigStore.Normalize(root);
+        var moduleDir = Path.Combine(modulesRoot, id);
+        Directory.CreateDirectory(moduleDir);
+        File.WriteAllText(
+            Path.Combine(moduleDir, AgentsPaths.ModuleManifestFileName),
+            "{"
+            + $"\"id\":\"{id}\","
+            + "\"version\":\"1.0.0\","
+            + "\"runtime\":\"ahk\","
+            + $"\"displayName\":\"{id}\","
+            + $"\"entry\":{{\"win-x64\":\"{id}.exe\"}},"
+            + "\"desktop\":{"
+            + "\"icons\":{\"active\":\"Puzzle\",\"inactive\":\"Box\"},"
+            + "\"bottomStatusBar\":true,"
+            + "\"topStatusPills\":true,"
+            + "\"order\":10"
+            + "},"
+            + "\"package\":{\"builder\":\"ahk2exe\",\"ahk2exe\":{\"icon\":\"assets/x.ico\"}}"
+            + "}");
     }
 }

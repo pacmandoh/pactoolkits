@@ -1,7 +1,7 @@
 namespace PacToolkits.Agents.Contracts.Agents;
 
 /// <summary>
-/// Host / Injector 运行态（含 Starting，便于 UI 区分“进程在但未就绪”）
+/// Host / Module 运行态（含 Starting，便于 UI 区分“进程在但未就绪”）
 /// </summary>
 public enum AgentsRunState
 {

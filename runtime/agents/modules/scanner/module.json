@@ -1,0 +1,24 @@
+{
+  "id": "Scanner",
+  "version": "0.1.0",
+  "runtime": "ahk",
+  "displayName": "Scanner",
+  "entry": {
+    "win-x64": "Scanner.exe"
+  },
+  "desktop": {
+    "icons": {
+      "active": "Wrench",
+      "inactive": "WrenchOff"
+    },
+    "bottomStatusBar": true,
+    "topStatusPills": true,
+    "order": 100
+  },
+  "package": {
+    "builder": "ahk2exe",
+    "ahk2exe": {
+      "icon": "assets/agents-scanner.ico"
+    }
+  }
+}

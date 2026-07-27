@@ -6,12 +6,13 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Controls;
+using ModuleSettingsFieldViewModel = PacToolkits.Desktop.Avalonia.ViewModels.Pages.ModuleSettingsFieldViewModel;
+using SettingsLineItem = PacToolkits.Desktop.Avalonia.ViewModels.Pages.SettingsLineItem;
 using SettingsViewModel = PacToolkits.Desktop.Avalonia.ViewModels.Pages.Settings;
 
 namespace PacToolkits.Desktop.Avalonia.Views.Pages;
@@ -147,17 +148,17 @@ public partial class Settings : UserControl
     private IEnumerable<Control> EnumerateTabInputs() =>
         InputFocusHelper.EnumerateInputs(this, typeof(TextBox), typeof(NumericUpDown), typeof(ComboBox));
 
-    private void OnAgentsAddLineClicked(object? sender, RoutedEventArgs e)
+    private void OnModuleAddLineClicked(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
     {
-        var scroller = this.FindControl<ScrollViewer>("AgentsScrollViewer");
-        var shouldAutoFollow = false;
-        if (scroller is not null)
+        var field = (sender as Button)?.DataContext as ModuleSettingsFieldViewModel;
+        if (field is null)
         {
-            var remain = scroller.Extent.Height - (scroller.Offset.Y + scroller.Viewport.Height);
-            shouldAutoFollow = remain <= 28;
+            return;
         }
 
-        var targetName = (sender as Button)?.Tag as string;
+        var scroller = this.FindControl<ScrollViewer>("AgentsScrollViewer");
+        var shouldAutoFollow = scroller is not null
+                               && scroller.Extent.Height - (scroller.Offset.Y + scroller.Viewport.Height) <= 28;
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -167,18 +168,10 @@ public partial class Settings : UserControl
                 scroller.Offset = new Vector(scroller.Offset.X, maxY);
             }
 
-            if (string.IsNullOrWhiteSpace(targetName))
-            {
-                return;
-            }
-
-            var itemsControl = this.FindControl<ItemsControl>(targetName);
-            if (itemsControl is null)
-            {
-                return;
-            }
-
-            var targetBox = itemsControl.GetVisualDescendants().OfType<TextBox>().LastOrDefault();
+            var targetBox = this.GetVisualDescendants()
+                .OfType<TextBox>()
+                .LastOrDefault(box => box.DataContext is SettingsLineItem item
+                                      && field.ListItems.Contains(item));
             if (targetBox is null)
             {
                 return;

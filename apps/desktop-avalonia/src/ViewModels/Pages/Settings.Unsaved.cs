@@ -168,6 +168,7 @@ public partial class Settings
                 SyncMsfxApi();
                 break;
             case Tab.Agents:
+                CancelModuleAutoSaves();
                 SyncAgentsConfig();
                 break;
             case Tab.UiBehavior:

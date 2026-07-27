@@ -22,7 +22,7 @@
     <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(AppVersion)+local</InformationalVersion>
   </PropertyGroup>
 
-  <ItemGroup>
+    <ItemGroup>
     <None Include="ReleaseManifest.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('ReleaseManifest.json')" />
     <ProjectReference Include="..\..\..\packages\agents-contracts\PacToolkits.Agents.Contracts.csproj" />
   </ItemGroup>

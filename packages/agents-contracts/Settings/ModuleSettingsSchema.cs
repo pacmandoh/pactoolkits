@@ -1,0 +1,54 @@
+namespace PacToolkits.Agents.Contracts.Settings;
+
+/// <summary>
+/// 模块 settings.schema.json（schemaVersion=1）
+/// </summary>
+public sealed class ModuleSettingsSchema
+{
+    public int SchemaVersion { get; set; } = 1;
+
+    public string Title { get; set; } = string.Empty;
+
+    public List<ModuleSettingsSection> Sections { get; set; } = [];
+}
+
+public sealed class ModuleSettingsSection
+{
+    public string Title { get; set; } = string.Empty;
+
+    public List<ModuleSettingsField> Fields { get; set; } = [];
+}
+
+public sealed class ModuleSettingsField
+{
+    public string Key { get; set; } = string.Empty;
+
+    /// <summary>string | bool | int | enum | stringList | stringFlagMap</summary>
+    public string Type { get; set; } = "string";
+
+    public string Label { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
+
+    public List<string>? Options { get; set; }
+
+    public int? Min { get; set; }
+
+    public int? Max { get; set; }
+
+    /// <summary>stringList / stringFlagMap 允许空集合；键本身仍必须存在</summary>
+    public bool AllowEmpty { get; set; }
+}
+
+public static class ModuleSettingsFieldTypes
+{
+    public const string String = "string";
+    public const string Bool = "bool";
+    public const string Int = "int";
+    public const string Enum = "enum";
+    public const string StringList = "stringList";
+    public const string StringFlagMap = "stringFlagMap";
+
+    internal static bool IsSupported(string type)
+        => type is String or Bool or Int or Enum or StringList or StringFlagMap;
+}
