@@ -14,7 +14,7 @@
           MinHeight="{Binding EffectiveSlotMinHeight, RelativeSource={RelativeSource TemplatedParent}}"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
-          ClipToBounds="False">
+          ClipToBounds="True">
           <ContentPresenter
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"

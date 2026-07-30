@@ -72,6 +72,19 @@ public sealed class EmptyStatePanel : ContentControl
     public double EffectiveSlotMinHeight
         => SlotMode == SectionSlotMode.Always || IsPending ? SlotMinHeight : 0;
 
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var size = base.MeasureOverride(availableSize);
+        if (!IsPending)
+        {
+            return size;
+        }
+
+        // pending 时内容仍在树上（opacity 0），不得撑高槽位，否则居中 busy 圈随内容下沉
+        var slot = EffectiveSlotMinHeight;
+        return slot > 0 ? new Size(size.Width, slot) : size;
+    }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -93,6 +106,7 @@ public sealed class EmptyStatePanel : ContentControl
             || change.Property == IsPendingProperty)
         {
             RaisePropertyChanged(EffectiveSlotMinHeightProperty, 0, EffectiveSlotMinHeight);
+            InvalidateMeasure();
         }
     }
 }
