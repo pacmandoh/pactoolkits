@@ -5,6 +5,7 @@
     <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/Theme/NavigationResources.axaml" />
     <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/Theme/ShellOverrides.axaml" />
     <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/Theme/PurpleColors.axaml" />
+    <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/Theme/NotificationColors.axaml" />
     <ResourceInclude Source="avares://PacToolkits.Desktop/Styles/Theme/ChartColors.axaml" />
   </ResourceDictionary.MergedDictionaries>
 </ResourceDictionary>

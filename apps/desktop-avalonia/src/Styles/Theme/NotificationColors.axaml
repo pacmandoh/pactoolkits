@@ -1,0 +1,13 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--  Color30：透明度 ≈0.25，介于 20 与 60 之间；供 DataGrid tone :current 使用  -->
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Dark">
+      <Color x:Key="WarningColor30">#40FFD600</Color>
+      <Color x:Key="ErrorColor30">#40FF1744</Color>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Light">
+      <Color x:Key="WarningColor30">#40ED6C02</Color>
+      <Color x:Key="ErrorColor30">#40D32F2F</Color>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>
