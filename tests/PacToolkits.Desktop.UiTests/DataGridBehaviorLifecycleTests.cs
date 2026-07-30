@@ -61,6 +61,45 @@ public sealed class DataGridBehaviorLifecycleTests
     public void Visual_detach_drops_sort_support_state()
         => AssertVisualDetachDropsBehaviorState(typeof(DataGridSortSupport), nameof(DataGridSortSupport.SetEnabled));
 
+    [AvaloniaFact]
+    public void Multiple_behaviors_share_visual_lifecycle_and_all_detach()
+    {
+        var grid = new DataGrid();
+        DataGridDisplayOnly.SetEnabled(grid, true);
+        DataGridSortSupport.SetEnabled(grid, true);
+
+        Assert.True(DataGridVisualLifecycle.HasHooks(grid));
+        Assert.True(HasBehaviorState<DataGridDisplayOnly>(grid));
+        Assert.True(HasBehaviorState(typeof(DataGridSortSupport), grid));
+
+        DataGridVisualLifecycle.InvokeDetached(grid);
+
+        Assert.False(HasBehaviorState<DataGridDisplayOnly>(grid));
+        Assert.False(HasBehaviorState(typeof(DataGridSortSupport), grid));
+        Assert.True(DataGridVisualLifecycle.HasHooks(grid));
+
+        DataGridVisualLifecycle.InvokeAttached(grid);
+
+        Assert.True(HasBehaviorState<DataGridDisplayOnly>(grid));
+        Assert.True(HasBehaviorState(typeof(DataGridSortSupport), grid));
+    }
+
+    [AvaloniaFact]
+    public void Visual_detach_keeps_row_selection_column()
+    {
+        var grid = new DataGrid();
+        grid.Columns.Add(new DataGridTextColumn { Header = "Name", Width = new DataGridLength(120) });
+        DataGridRowSelection.SetEnabled(grid, true);
+
+        var before = grid.Columns.Count;
+        Assert.True(before >= 2);
+
+        DataGridVisualLifecycle.InvokeDetached(grid);
+
+        Assert.Equal(before, grid.Columns.Count);
+        Assert.Contains(grid.Columns, DataGridRowSelection.IsSelectionColumn);
+    }
+
     private static void AssertVisualDetachDropsBehaviorState(Type behaviorType, string setEnabledName)
     {
         var grid = new DataGrid();

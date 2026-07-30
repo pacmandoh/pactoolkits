@@ -85,7 +85,7 @@ public class DataGridDisplayOnly
     private static void DetachFully(DataGrid grid)
     {
         DetachState(grid);
-        DataGridVisualLifecycle.Unregister(grid);
+        DataGridVisualLifecycle.Unregister(grid, DetachState);
     }
 
     private static void ClearSelection(DataGrid grid, State state)

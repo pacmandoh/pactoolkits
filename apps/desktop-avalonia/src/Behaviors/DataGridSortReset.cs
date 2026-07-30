@@ -102,7 +102,7 @@ public class DataGridSortReset
     private static void DetachFully(DataGrid grid)
     {
         DetachState(grid);
-        DataGridVisualLifecycle.Unregister(grid);
+        DataGridVisualLifecycle.Unregister(grid, DetachState);
     }
 
     private sealed class BehaviorState : IDisposable

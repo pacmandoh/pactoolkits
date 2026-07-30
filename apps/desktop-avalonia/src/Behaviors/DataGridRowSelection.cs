@@ -138,22 +138,25 @@ public class DataGridRowSelection
     }
 
     private static void DetachState(DataGrid grid)
+        => DetachState(grid, removeColumn: false);
+
+    private static void DetachState(DataGrid grid, bool removeColumn)
     {
         if (!States.TryRemove(grid, out var state))
         {
             return;
         }
 
-        state.Dispose();
+        state.Dispose(removeColumn);
     }
 
     private static void DetachFully(DataGrid grid)
     {
-        DetachState(grid);
-        DataGridVisualLifecycle.Unregister(grid);
+        DetachState(grid, removeColumn: true);
+        DataGridVisualLifecycle.Unregister(grid, DetachState);
     }
 
-    private sealed class BehaviorState : IDisposable
+    private sealed class BehaviorState
     {
         private readonly DataGrid _grid;
         private DataGridTemplateColumn? _column;
@@ -183,7 +186,7 @@ public class DataGridRowSelection
             AttachItemsSource(_grid.ItemsSource);
         }
 
-        public void Dispose()
+        public void Dispose(bool removeColumn)
         {
             if (_disposed)
             {
@@ -197,7 +200,8 @@ public class DataGridRowSelection
             DetachItemsSource();
             _headerCheckBox?.IsCheckedChanged -= OnHeaderCheckBoxChanged;
 
-            if (_column is not null && _grid.Columns.Contains(_column))
+            // visual detach 期间改 Columns 会撞 Avalonia 逻辑树枚举（#13497）；禁用时再移除勾选列
+            if (removeColumn && _column is not null && _grid.Columns.Contains(_column))
             {
                 _grid.Columns.Remove(_column);
             }
