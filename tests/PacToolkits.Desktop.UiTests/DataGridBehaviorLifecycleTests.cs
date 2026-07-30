@@ -66,6 +66,10 @@ public sealed class DataGridBehaviorLifecycleTests
         => AssertVisualDetachDropsBehaviorState(typeof(DataGridRowTone), nameof(DataGridRowTone.SetEnabled));
 
     [AvaloniaFact]
+    public void Visual_detach_drops_cell_select_state()
+        => AssertVisualDetachDropsBehaviorState(typeof(DataGridCellSelect), nameof(DataGridCellSelect.SetEnabled));
+
+    [AvaloniaFact]
     public void Multiple_behaviors_share_visual_lifecycle_and_all_detach()
     {
         var grid = new DataGrid();

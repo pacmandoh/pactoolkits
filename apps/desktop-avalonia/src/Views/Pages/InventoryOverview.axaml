@@ -366,6 +366,7 @@
                         <DataGrid
                           MinHeight="0"
                           HorizontalAlignment="Stretch"
+                          behaviors:DataGridCellSelect.Enabled="True"
                           behaviors:DataGridRowSelection.Enabled="{Binding ShowReassignRowSelection}"
                           behaviors:DataGridRowSelection.IsVisible="{Binding ShowReassignRowSelection}"
                           behaviors:DataGridRowTone.Enabled="True"

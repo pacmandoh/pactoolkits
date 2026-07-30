@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -12,6 +13,14 @@ namespace PacToolkits.Desktop.Avalonia.Common;
 
 public static class DataGridInteractionHelper
 {
+    private static readonly MethodInfo? SetCurrentCellCoreMethod =
+        typeof(DataGrid).GetMethod(
+            "SetCurrentCellCore",
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            types: [typeof(int), typeof(int)],
+            modifiers: null);
+
     public static void ClearSelection(DataGrid? grid)
     {
         if (grid is null)
@@ -47,6 +56,28 @@ public static class DataGridInteractionHelper
             {
                 AppLog.Warn("DataGridInteraction", "grid.clear_selection_items.fail", "Failed to clear selected items", ex);
             }
+        }
+
+        ClearCurrency(grid);
+    }
+
+    /// <summary>
+    /// 清掉 CurrentSlot/CurrentColumn，避免 :current 伪类残留着色
+    /// </summary>
+    public static void ClearCurrency(DataGrid? grid)
+    {
+        if (grid is null || SetCurrentCellCoreMethod is null)
+        {
+            return;
+        }
+
+        try
+        {
+            SetCurrentCellCoreMethod.Invoke(grid, [-1, -1]);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("DataGridInteraction", "grid.clear_currency.fail", "Failed to clear current cell", ex);
         }
     }
 

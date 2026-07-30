@@ -199,8 +199,15 @@
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
 
+  <!--
+    Avalonia DataGrid 只有行选中：行 :selected 时各 Cell 也带 :selected，当前格另带 :current
+    DataGridCellSelect 保留行选中/hover；:current 再深一档，并支持 Cmd/Ctrl+C 复制格文本
+    Tone* 行 hover/selected → Color20；CellSelect :current → Color30
+  -->
+  <Style Selector="DataGrid.CellSelect DataGridCell:current">
+    <Setter Property="Background" Value="{DynamicResource SelectionColor}" />
+  </Style>
 
-  <!-- Tone* 行 hover/selected → Color20 -->
   <Style Selector="DataGridRow.ToneWarning10">
     <Setter Property="Background" Value="{DynamicResource WarningColor10}" />
   </Style>
@@ -209,6 +216,9 @@
   </Style>
   <Style Selector="DataGridRow.ToneWarning10:pointerover, DataGridRow.ToneWarning10:selected">
     <Setter Property="Background" Value="{DynamicResource WarningColor20}" />
+  </Style>
+  <Style Selector="DataGrid.CellSelect DataGridRow.ToneWarning10 DataGridCell:current">
+    <Setter Property="Background" Value="{DynamicResource WarningColor30}" />
   </Style>
 
   <Style Selector="DataGridRow.ToneDanger10">
@@ -219,6 +229,9 @@
   </Style>
   <Style Selector="DataGridRow.ToneDanger10:pointerover, DataGridRow.ToneDanger10:selected">
     <Setter Property="Background" Value="{DynamicResource ErrorColor20}" />
+  </Style>
+  <Style Selector="DataGrid.CellSelect DataGridRow.ToneDanger10 DataGridCell:current">
+    <Setter Property="Background" Value="{DynamicResource ErrorColor30}" />
   </Style>
 
 </Styles>

@@ -199,6 +199,7 @@
                 IsEmpty="{Binding IsUpoutEmpty}">
                 <DataGrid
                   x:Name="UpoutGrid"
+                  behaviors:DataGridCellSelect.Enabled="True"
                   behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearActiveUpstreamSearchCommand}"
                   behaviors:DataGridSortReset.FilterActive="{Binding HasActiveUpstreamSearch}"
                   Classes="SectionGrid InventoryGrid IndexedGrid StickyIndexDisplayIndex MsfxStickyColumns"
@@ -339,6 +340,7 @@
                 IsEmpty="{Binding IsSubCodeEmpty}">
                 <DataGrid
                   x:Name="SubcodeGrid"
+                  behaviors:DataGridCellSelect.Enabled="True"
                   behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearActiveUpstreamSearchCommand}"
                   behaviors:DataGridSortReset.FilterActive="{Binding HasActiveUpstreamSearch}"
                   Classes="SectionGrid InventoryGrid IndexedGrid StickyIndexDisplayIndex MsfxStickyColumns"

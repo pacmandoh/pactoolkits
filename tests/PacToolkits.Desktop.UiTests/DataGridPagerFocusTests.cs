@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using Avalonia.Data;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -69,6 +70,30 @@ public sealed class DataGridPagerFocusTests
 
         Assert.Null(grid.SelectedItem);
         Assert.Equal(-1, grid.SelectedIndex);
+    }
+
+    [AvaloniaFact]
+    public void ClearSelection_clears_current_column()
+    {
+        var nameColumn = new DataGridTextColumn
+        {
+            Header = "Name",
+            Binding = new Binding("."),
+            Width = new DataGridLength(120),
+        };
+        var grid = new DataGrid
+        {
+            ItemsSource = new[] { "alpha", "beta" },
+            Columns = { nameColumn },
+            SelectedIndex = 0,
+            CurrentColumn = nameColumn,
+        };
+        Assert.NotNull(grid.CurrentColumn);
+
+        DataGridInteractionHelper.ClearSelection(grid);
+
+        Assert.Null(grid.SelectedItem);
+        Assert.Null(grid.CurrentColumn);
     }
 
     [AvaloniaFact]

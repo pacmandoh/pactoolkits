@@ -210,6 +210,7 @@ public partial class InventoryOverview : UserControl
             {
                 if (DataGridInteractionHelper.IsLeftClick(e.PointerPressedEventArgs, grid)
                     && !DataGridRowSelection.IsSelectionColumn(e.Column)
+                    && !DataGridIndexColumn.IsIndexColumn(e.Column)
                     && e.PointerPressedEventArgs.Source is not CheckBox and not ToggleButton)
                 {
                     var column = e.Column;

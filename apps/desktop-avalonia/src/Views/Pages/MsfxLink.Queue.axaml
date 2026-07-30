@@ -235,6 +235,7 @@
                       x:Name="AutoMapQueueGrid"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
+                      behaviors:DataGridCellSelect.Enabled="True"
                       behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearMapQueueFiltersCommand}"
                       behaviors:DataGridSortReset.FilterActive="{Binding HasActiveMapQueueFilter}"
                       Classes="SectionGrid InventoryGrid IndexedGrid MapIndexedGrid MsfxStickyColumns"
