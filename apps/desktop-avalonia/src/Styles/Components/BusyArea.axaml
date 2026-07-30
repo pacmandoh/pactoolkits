@@ -1,17 +1,18 @@
 <Styles
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI">
   <!--
-    ShadUI default uses BusyAreaOverlayColor (third-tone gray mask). Pac uses a stronger dim overlay:
-    content stays on the host background; busy dims ContentPresenter and shows a centered spinner.
-    No AreaBackground — avoids gray-on-black clash with CardPanel Inner (WindowBackgroundColor).
+    不用 Shad 灰蒙层：内容留在宿主底上，busy 时压暗 ContentPresenter 并居中 Loading
+    BusyHostPanel 在 IsBusy 时冻结高度，避免 Auto 增高宿主带动 Loading 下沉
   -->
   <Style Selector="shad|BusyArea">
     <Setter Property="LoadingSize" Value="32" />
+    <Setter Property="ClipToBounds" Value="True" />
     <Setter Property="Template">
       <ControlTemplate>
-        <Panel>
+        <controls:BusyHostPanel IsBusy="{TemplateBinding IsBusy}">
           <ContentPresenter
             Name="PART_ContentPresenter"
             HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
@@ -42,7 +43,7 @@
             <ContentPresenter Content="{TemplateBinding IsBusy, Converter={x:Static shad:BooleanConverters.ToLoading}}" />
           </Viewbox>
 
-          <Panel.Styles>
+          <controls:BusyHostPanel.Styles>
             <Style Selector="shad|BusyArea[IsBusy=True] /template/ ContentPresenter#PART_ContentPresenter">
               <Setter Property="Opacity" Value="0.1" />
             </Style>
@@ -57,8 +58,8 @@
               <Setter Property="IsVisible" Value="False" />
               <Setter Property="IsHitTestVisible" Value="False" />
             </Style>
-          </Panel.Styles>
-        </Panel>
+          </controls:BusyHostPanel.Styles>
+        </controls:BusyHostPanel>
       </ControlTemplate>
     </Setter>
   </Style>
