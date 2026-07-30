@@ -320,31 +320,16 @@
           </TextBox>
         </controls:CardPanel.Title>
         <controls:CardPanel.HeaderContent>
-          <WrapPanel
+          <controls:StatusPill
             VerticalAlignment="Center"
-            ItemSpacing="{DynamicResource PageSectionSpacing}"
-            Orientation="Horizontal">
-            <controls:StatusPill
-              Classes.ToneDone25="{Binding !HasPendingChanges}"
-              Classes.ToneWarning25="{Binding HasPendingChanges}"
-              Icon="SaveAll"
-              IconSize="14"
-              IsVisible="{Binding ShowEditState}"
-              PillPadding="8,4"
-              Text="{Binding EditStateText}"
-              TextSize="12" />
-
-            <ComboBox
-              x:Name="InventoryModeBox"
-              MinWidth="180"
-              IsEnabled="{Binding !IsUiBusy}"
-              SelectedIndex="{Binding ModeIndex}">
-              <ComboBoxItem Content="库存明细" />
-              <ComboBoxItem Content="按药品汇总" />
-              <ComboBoxItem Content="低库存" />
-              <ComboBoxItem Content="缺失" />
-            </ComboBox>
-          </WrapPanel>
+            Classes.ToneDone25="{Binding !HasPendingChanges}"
+            Classes.ToneWarning25="{Binding HasPendingChanges}"
+            Icon="SaveAll"
+            IconSize="14"
+            IsVisible="{Binding ShowEditState}"
+            PillPadding="8,4"
+            Text="{Binding EditStateText}"
+            TextSize="12" />
         </controls:CardPanel.HeaderContent>
 
         <Grid

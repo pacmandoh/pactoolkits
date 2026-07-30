@@ -3,6 +3,7 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
+  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="using:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
   x:DataType="vm:InventoryOverview"
   Classes="PageHeaderContent">
@@ -27,11 +28,50 @@
       </Button>
     </StackPanel>
     <Rectangle Grid.Column="1" Classes="HeaderDivider" />
-    <TextBlock
+    <StackPanel
       Grid.Column="2"
-      VerticalAlignment="Center"
-      Classes="Small Muted"
-      Text="{Binding DisplayName}" />
+      Classes="HeaderTitleRail"
+      Orientation="Horizontal">
+      <TextBlock Classes="Small Muted" Text="{Binding DisplayName}" />
+      <icons:AppIcon Classes="HeaderTitleChevron" Kind="ChevronRight" />
+      <TabControl
+        shad:TabControlBehaviors.UseSlidingPill="True"
+        Classes="ContentHeaderTabs"
+        SelectedIndex="{Binding ModeIndex, Mode=TwoWay}">
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="List" />
+              <TextBlock Text="库存明细" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="Layers" />
+              <TextBlock Text="按药品汇总" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="TriangleAlert" />
+              <TextBlock Text="低库存" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Classes="TabItemHeader">
+              <icons:AppIcon Kind="CircleOff" />
+              <TextBlock Text="缺失" />
+            </StackPanel>
+          </TabItem.Header>
+        </TabItem>
+      </TabControl>
+    </StackPanel>
     <Menu Grid.Column="3" Classes="HeaderMenu">
       <MenuItem Command="{Binding ToggleStockEditCommand}" IsVisible="{Binding CanEnableStockEdit}">
         <MenuItem.Header>
