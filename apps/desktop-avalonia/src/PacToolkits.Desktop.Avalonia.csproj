@@ -36,19 +36,19 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.0.2" />
-        <PackageReference Include="Avalonia.Desktop" Version="12.0.2" />
+        <PackageReference Include="Avalonia" Version="12.1.1" />
+        <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
         <!-- Avalonia 12: `Avalonia.Diagnostics` removed; `AvaloniaUI.DiagnosticsSupport` bridges standalone Developer Tools (Debug only). -->
         <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" Condition="'$(Configuration)' == 'Debug'" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
         <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" Version="2.1.0-dev-292" />
-        <PackageReference Include="Lucide.Avalonia" Version="0.2.13" />
+        <PackageReference Include="Lucide.Avalonia" Version="0.2.15" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.10" />
-        <PackageReference Include="ShadUI" Version="0.2.3" />
+        <PackageReference Include="ShadUI" Version="0.2.4" />
         <PackageReference Include="Velopack" Version="1.2.0" />
     </ItemGroup>
 
