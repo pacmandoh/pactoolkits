@@ -135,7 +135,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         await _dialog.Warn("未实现", "导出功能稍后接入格式选择/保存路径");
     }
 
-    public sealed partial class DrugRow : ObservableObject
+    public sealed partial class DrugRow : ObservableObject, IRowTone
     {
         public DrugRow(DrugIndexDto dto)
         {
@@ -169,6 +169,8 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         [ObservableProperty] private bool _isDeprecated;
         [ObservableProperty] private bool _isNoSplit;
 
+        public GridTone RowTone => NoteTone.Resolve(EffectiveNote);
+
         partial void OnNoteChanged(string? value)
         {
             OnPropertyChanged(nameof(EffectiveNote));
@@ -184,8 +186,9 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         public void RecalcFlags()
         {
             var note = EffectiveNote;
-            IsDeprecated = note.Contains("弃用", StringComparison.Ordinal);
-            IsNoSplit = note.Contains("未拆零", StringComparison.Ordinal);
+            IsDeprecated = NoteTone.IsDeprecated(note);
+            IsNoSplit = NoteTone.IsNoSplit(note);
+            OnPropertyChanged(nameof(RowTone));
         }
 
         public bool ApplySaved(DrugIndexDto dto)
@@ -662,9 +665,8 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
 
     private void RecalcEditorFlags(string? note)
     {
-        var s = note ?? string.Empty;
-        IsDeprecated = s.Contains("弃用", StringComparison.Ordinal);
-        IsNoSplit = s.Contains("未拆零", StringComparison.Ordinal);
+        IsDeprecated = NoteTone.IsDeprecated(note);
+        IsNoSplit = NoteTone.IsNoSplit(note);
     }
 
     private void MarkDirty()

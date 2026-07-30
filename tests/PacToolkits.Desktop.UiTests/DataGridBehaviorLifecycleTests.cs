@@ -62,6 +62,10 @@ public sealed class DataGridBehaviorLifecycleTests
         => AssertVisualDetachDropsBehaviorState(typeof(DataGridSortSupport), nameof(DataGridSortSupport.SetEnabled));
 
     [AvaloniaFact]
+    public void Visual_detach_drops_row_tone_state()
+        => AssertVisualDetachDropsBehaviorState(typeof(DataGridRowTone), nameof(DataGridRowTone.SetEnabled));
+
+    [AvaloniaFact]
     public void Multiple_behaviors_share_visual_lifecycle_and_all_detach()
     {
         var grid = new DataGrid();
@@ -125,16 +129,30 @@ public sealed class DataGridBehaviorLifecycleTests
 
     private static bool HasBehaviorState(Type behaviorType, DataGrid grid)
     {
-        var field = behaviorType.GetField("States", BindingFlags.NonPublic | BindingFlags.Static)
+        if (behaviorType == typeof(DataGridRowTone))
+        {
+            var field = typeof(GridToneHost).GetField("States", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.NotNull(field);
+
+            var dictionary = field!.GetValue(null);
+            Assert.NotNull(dictionary);
+
+            var contains = dictionary!.GetType().GetMethod("ContainsKey", [typeof(DataGrid)]);
+            Assert.NotNull(contains);
+
+            return (bool)contains!.Invoke(dictionary, [grid])!;
+        }
+
+        var statesField = behaviorType.GetField("States", BindingFlags.NonPublic | BindingFlags.Static)
             ?? behaviorType.GetField("ColumnHandlers", BindingFlags.NonPublic | BindingFlags.Static);
-        Assert.NotNull(field);
+        Assert.NotNull(statesField);
 
-        var dictionary = field!.GetValue(null);
-        Assert.NotNull(dictionary);
+        var dictionary2 = statesField!.GetValue(null);
+        Assert.NotNull(dictionary2);
 
-        var contains = dictionary!.GetType().GetMethod("ContainsKey", [typeof(DataGrid)]);
-        Assert.NotNull(contains);
+        var contains2 = dictionary2!.GetType().GetMethod("ContainsKey", [typeof(DataGrid)]);
+        Assert.NotNull(contains2);
 
-        return (bool)contains!.Invoke(dictionary, [grid])!;
+        return (bool)contains2!.Invoke(dictionary2, [grid])!;
     }
 }

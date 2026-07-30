@@ -71,6 +71,7 @@
                   <DataTemplate x:DataType="vm:DrugIndex">
                     <DataGrid
                       MinHeight="{StaticResource DgH10Rows}"
+                      behaviors:DataGridRowTone.Enabled="True"
                       behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearSearchCommand}"
                       behaviors:DataGridSortReset.FilterActive="{Binding HasActiveKeyword}"
                       Classes="SectionGrid IndexedGrid"

@@ -368,6 +368,7 @@
                           HorizontalAlignment="Stretch"
                           behaviors:DataGridRowSelection.Enabled="{Binding ShowReassignRowSelection}"
                           behaviors:DataGridRowSelection.IsVisible="{Binding ShowReassignRowSelection}"
+                          behaviors:DataGridRowTone.Enabled="True"
                           behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearSearchCommand}"
                           behaviors:DataGridSortReset.FilterActive="{Binding HasActiveKeyword}"
                           Classes="SectionGrid IndexedGrid StickyIndexRowNo"
@@ -434,6 +435,7 @@
                         <DataGrid
                           MinHeight="0"
                           HorizontalAlignment="Stretch"
+                          behaviors:DataGridRowTone.Enabled="True"
                           behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearSearchCommand}"
                           behaviors:DataGridSortReset.FilterActive="{Binding HasActiveKeyword}"
                           Classes="SectionGrid IndexedGrid StickyIndexRowNo"
@@ -505,6 +507,7 @@
                         <DataGrid
                           MinHeight="0"
                           HorizontalAlignment="Stretch"
+                          behaviors:DataGridRowTone.Enabled="True"
                           behaviors:DataGridSortReset.ClearFilterCommand="{Binding ClearSearchCommand}"
                           behaviors:DataGridSortReset.FilterActive="{Binding HasActiveKeyword}"
                           Classes="SectionGrid IndexedGrid StickyIndexRowNo"

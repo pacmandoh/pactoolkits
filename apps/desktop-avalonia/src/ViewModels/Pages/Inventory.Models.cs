@@ -10,7 +10,7 @@ using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
-public sealed partial class StockRowItem : ObservableObject, ISelectableRow, INotifyDataErrorInfo
+public sealed partial class StockRowItem : ObservableObject, ISelectableRow, IRowTone, INotifyDataErrorInfo
 {
     private readonly Dictionary<string, List<string>> _errors = new(StringComparer.Ordinal);
     private TraceCodeValidationRule? _traceCodeRule;
@@ -50,6 +50,9 @@ public sealed partial class StockRowItem : ObservableObject, ISelectableRow, INo
     [ObservableProperty] private bool _isDeprecated;
     [ObservableProperty] private bool _isSelected;
 
+    // 明细仅剩余为 0 着 Danger；低于用量阈值不着色
+    public GridTone RowTone => StockTone.Resolve(Remain, threshold: 0);
+
     public bool HasTraceCodeValidationError
         => _traceCodeEditValidationEnabled
            && GetErrors(nameof(TraceCode)).Cast<string>().Any();
@@ -72,6 +75,9 @@ public sealed partial class StockRowItem : ObservableObject, ISelectableRow, INo
 
     partial void OnTraceCodeChanged(string value)
         => ValidateTraceCodeEdit();
+
+    partial void OnRemainChanged(int value)
+        => OnPropertyChanged(nameof(RowTone));
 
     public void EnableTraceCodeEditValidation(TraceCodeValidationRule rule)
     {
@@ -143,7 +149,10 @@ public sealed record DrugSpecAggRowItem(
     decimal Threshold,
     bool IsLow,
     bool IsDeprecated
-);
+) : IRowTone
+{
+    public GridTone RowTone => StockTone.Resolve(RemainSum, Threshold);
+}
 
 public sealed record LowStockRowItem(
     int RowNo,
@@ -152,7 +161,10 @@ public sealed record LowStockRowItem(
     long RemainSum,
     decimal Threshold,
     bool IsLow
-);
+) : IRowTone
+{
+    public GridTone RowTone => StockTone.Resolve(RemainSum, Threshold);
+}
 
 public sealed record MissingStockRowItem(
     int RowNo,

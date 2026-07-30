@@ -199,4 +199,26 @@
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
 
+
+  <!-- Tone* 行 hover/selected → Color20 -->
+  <Style Selector="DataGridRow.ToneWarning10">
+    <Setter Property="Background" Value="{DynamicResource WarningColor10}" />
+  </Style>
+  <Style Selector="DataGridRow.ToneWarning10:pointerover /template/ Rectangle#BackgroundRectangle, DataGridRow.ToneWarning10:selected /template/ Rectangle#BackgroundRectangle">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="DataGridRow.ToneWarning10:pointerover, DataGridRow.ToneWarning10:selected">
+    <Setter Property="Background" Value="{DynamicResource WarningColor20}" />
+  </Style>
+
+  <Style Selector="DataGridRow.ToneDanger10">
+    <Setter Property="Background" Value="{DynamicResource ErrorColor10}" />
+  </Style>
+  <Style Selector="DataGridRow.ToneDanger10:pointerover /template/ Rectangle#BackgroundRectangle, DataGridRow.ToneDanger10:selected /template/ Rectangle#BackgroundRectangle">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="DataGridRow.ToneDanger10:pointerover, DataGridRow.ToneDanger10:selected">
+    <Setter Property="Background" Value="{DynamicResource ErrorColor20}" />
+  </Style>
+
 </Styles>
