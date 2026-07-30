@@ -24,6 +24,12 @@
     <Setter Property="Margin" Value="0" />
   </Style>
 
+  <Style Selector="TabControl.ContentHeaderTabs TabItem:selected /template/ ContentPresenter#ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TabItemSelectedColor}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource MdCornerRadius}" />
+    <Setter Property="BoxShadow" Value="{DynamicResource Shadow}" />
+  </Style>
+
   <Style Selector="ContentControl.FilterBarChrome">
     <Setter Property="Margin" Value="0" />
     <Setter Property="Padding" Value="{DynamicResource FilterBarPadding}" />

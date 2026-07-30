@@ -3,185 +3,82 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Data;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ShadUI;
 
 namespace PacToolkits.Desktop.Avalonia.Controls;
 
 /// <summary>
-/// 管理设置页 H2/H3 粘性标题替换，并抑制标题高度变化造成的布局抖动
+/// 使用独立覆盖层呈现设置页 H1/H2/H3 分级吸顶标题
 /// </summary>
 public static class SettingsScroll
 {
-    public static readonly AttachedProperty<Panel?> StickyHostProperty =
-        AvaloniaProperty.RegisterAttached<ScrollViewer, Panel?>("StickyHost", typeof(SettingsScroll));
+    private const double EdgeTolerance = 0.5;
+
+    public static readonly AttachedProperty<bool> IsEnabledProperty =
+        AvaloniaProperty.RegisterAttached<ScrollViewer, bool>("IsEnabled", typeof(SettingsScroll));
 
     private static readonly AttachedProperty<bool> IsHookedProperty =
         AvaloniaProperty.RegisterAttached<ScrollViewer, bool>("IsHooked", typeof(SettingsScroll));
 
-    private static readonly AttachedProperty<string?> LastStickyKeyProperty =
-        AvaloniaProperty.RegisterAttached<ScrollViewer, string?>("LastStickyKey", typeof(SettingsScroll));
+    private static readonly AttachedProperty<bool> LayoutRefreshPendingProperty =
+        AvaloniaProperty.RegisterAttached<ScrollViewer, bool>("LayoutRefreshPending", typeof(SettingsScroll));
 
-    private static readonly AttachedProperty<bool> RefreshQueuedProperty =
-        AvaloniaProperty.RegisterAttached<ScrollViewer, bool>("RefreshQueued", typeof(SettingsScroll));
+    private static readonly AttachedProperty<Border?> OverlayHostProperty =
+        AvaloniaProperty.RegisterAttached<ScrollViewer, Border?>("OverlayHost", typeof(SettingsScroll));
+
+    private static readonly AttachedProperty<IReadOnlyList<Control>?> ActiveHeadersProperty =
+        AvaloniaProperty.RegisterAttached<ScrollViewer, IReadOnlyList<Control>?>("ActiveHeaders", typeof(SettingsScroll));
 
     private static readonly AttachedProperty<Control?> StickyRowSourceProperty =
         AvaloniaProperty.RegisterAttached<Border, Control?>("StickyRowSource", typeof(SettingsScroll));
 
-    private static readonly AttachedProperty<string?> StickyRowContentKeyProperty =
-        AvaloniaProperty.RegisterAttached<Border, string?>("StickyRowContentKey", typeof(SettingsScroll));
+    private static readonly AttachedProperty<CloneLifetime?> CloneLifetimeProperty =
+        AvaloniaProperty.RegisterAttached<Control, CloneLifetime?>("CloneLifetime", typeof(SettingsScroll));
 
-    // 保留最近测量的标题槽位高度，避免三级标题跨越二级标题时发生布局跳动
     private static readonly AttachedProperty<double[]> LastSlotHeightsProperty =
-        AvaloniaProperty.RegisterAttached<Panel, double[]>("LastSlotHeights", typeof(SettingsScroll));
+        AvaloniaProperty.RegisterAttached<ScrollViewer, double[]>("LastSlotHeights", typeof(SettingsScroll));
 
     static SettingsScroll()
     {
-        StickyHostProperty.Changed.AddClassHandler<ScrollViewer>(OnStickyHostChanged);
+        IsEnabledProperty.Changed.AddClassHandler<ScrollViewer>(OnIsEnabledChanged);
     }
 
-    public static Panel? GetStickyHost(ScrollViewer scrollViewer) => scrollViewer.GetValue(StickyHostProperty);
+    public static bool GetIsEnabled(ScrollViewer scrollViewer) => scrollViewer.GetValue(IsEnabledProperty);
 
-    public static void SetStickyHost(ScrollViewer scrollViewer, Panel? value)
-        => scrollViewer.SetValue(StickyHostProperty, value);
+    public static void SetIsEnabled(ScrollViewer scrollViewer, bool value)
+        => scrollViewer.SetValue(IsEnabledProperty, value);
 
-    private static void OnStickyHostChanged(ScrollViewer scrollViewer, AvaloniaPropertyChangedEventArgs e)
-    {
-        if (scrollViewer.GetValue(IsHookedProperty))
-        {
-            scrollViewer.ScrollChanged -= OnScrollChanged;
-            scrollViewer.DetachedFromVisualTree -= OnDetachedFromVisualTree;
-            scrollViewer.SetValue(IsHookedProperty, false);
-        }
-
-        if (e.NewValue is not Panel)
-        {
-            return;
-        }
-
-        scrollViewer.ScrollChanged += OnScrollChanged;
-        scrollViewer.DetachedFromVisualTree += OnDetachedFromVisualTree;
-        scrollViewer.SetValue(IsHookedProperty, true);
-    }
-
-    private static void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
-    {
-        if (sender is ScrollViewer scrollViewer)
-        {
-            scrollViewer.SetValue(LastStickyKeyProperty, null);
-            scrollViewer.SetValue(RefreshQueuedProperty, false);
-            if (GetStickyHost(scrollViewer) is Panel stickyHost)
-            {
-                stickyHost.ClearValue(LastSlotHeightsProperty);
-            }
-        }
-    }
-
-    private static void OnScrollChanged(object? sender, ScrollChangedEventArgs e)
-    {
-        if (sender is ScrollViewer scrollViewer)
-        {
-            QueueRefresh(scrollViewer);
-        }
-    }
-
-    public static void ResetSticky(ScrollViewer scrollViewer)
-    {
-        scrollViewer.SetValue(LastStickyKeyProperty, null);
-        scrollViewer.SetValue(RefreshQueuedProperty, false);
-
-        if (GetStickyHost(scrollViewer) is Panel stickyHost)
-        {
-            stickyHost.ClearValue(LastSlotHeightsProperty);
-            stickyHost.Children.Clear();
-            SetStickyChromeVisible(stickyHost, false, false);
-        }
-    }
-
-    public static void QueueRefresh(ScrollViewer scrollViewer)
-    {
-        if (scrollViewer.GetValue(RefreshQueuedProperty))
-        {
-            return;
-        }
-
-        scrollViewer.SetValue(RefreshQueuedProperty, true);
-        Dispatcher.UIThread.Post(() =>
-        {
-            scrollViewer.SetValue(RefreshQueuedProperty, false);
-            RefreshSticky(scrollViewer);
-        }, DispatcherPriority.Background);
-    }
+    public static void ResetSticky(ScrollViewer scrollViewer) => ResetOverlay(scrollViewer, detach: false);
 
     public static void ScheduleRefresh(ScrollViewer scrollViewer)
     {
-        QueueRefresh(scrollViewer);
-
-        Dispatcher.UIThread.Post(() => RefreshSticky(scrollViewer), DispatcherPriority.Loaded);
-        Dispatcher.UIThread.Post(() => RefreshSticky(scrollViewer), DispatcherPriority.Render);
-
-        if (FindTabPage(scrollViewer) is not Control page)
+        if (scrollViewer.Content is Control contentRoot
+            && scrollViewer.IsVisible
+            && scrollViewer.Bounds.Height > 0
+            && contentRoot.Bounds.Height > 0)
         {
-            return;
-        }
-
-        EventHandler? layoutHandler = null;
-        layoutHandler = (_, _) =>
-        {
-            if (scrollViewer.Content is not Control contentRoot || !IsLayoutReady(scrollViewer, contentRoot))
-            {
-                return;
-            }
-
-            page.LayoutUpdated -= layoutHandler!;
             RefreshSticky(scrollViewer);
-        };
-        page.LayoutUpdated += layoutHandler;
-    }
-
-    private static void RefreshSticky(ScrollViewer scrollViewer)
-    {
-        if (!IsTabPageVisible(scrollViewer))
-        {
             return;
         }
 
-        if (scrollViewer.GetValue(StickyHostProperty) is not Panel stickyHost)
+        if (!scrollViewer.GetValue(LayoutRefreshPendingProperty))
         {
-            return;
+            scrollViewer.LayoutUpdated += OnLayoutUpdated;
+            scrollViewer.SetValue(LayoutRefreshPendingProperty, true);
         }
-
-        var contentRoot = scrollViewer.Content as Control;
-        if (contentRoot is null || !IsLayoutReady(scrollViewer, contentRoot))
-        {
-            return;
-        }
-
-        var headers = CollectHeaders(contentRoot, scrollViewer)
-            .OrderBy(static header => header.Top)
-            .ToList();
-        var positions = headers
-            .Select(static header => new HeaderPosition(header.Level, header.Top))
-            .ToList();
-        var active = SelectActive(positions, GetStickyHeights(stickyHost))
-            .Select(index => headers[index])
-            .ToList();
-        var interactive = active.Any(static header => header.HasActions);
-        ApplyStickyState(scrollViewer, stickyHost, active, active.Count > 0, interactive);
     }
 
     internal static IReadOnlyList<int> SelectActive(
         IReadOnlyList<HeaderPosition> headers,
-        IReadOnlyList<double> stickyHeights)
+        IReadOnlyList<double> slotHeights)
     {
-        const double edgeTolerance = 0.5;
-
-        if (stickyHeights.Count != 3)
+        if (slotHeights.Count != 3)
         {
-            throw new ArgumentException("Sticky heights must contain H1, H2, and H3 slots.", nameof(stickyHeights));
+            throw new ArgumentException("Slot heights must contain H1, H2, and H3.", nameof(slotHeights));
         }
 
         var active = new int?[3];
@@ -192,7 +89,7 @@ public static class SettingsScroll
             var level = header.Level - 1;
             if ((uint)level >= active.Length)
             {
-                throw new ArgumentOutOfRangeException(nameof(headers), header.Level, "Header level must be between 1 and 3.");
+                throw new ArgumentOutOfRangeException(nameof(headers), header.Level, "Header level must be between H1 and H3.");
             }
 
             if (level > 0 && active[level - 1] is null)
@@ -205,87 +102,61 @@ public static class SettingsScroll
             {
                 if (active[slot] is not null)
                 {
-                    parentEdge += stickyHeights[slot];
+                    parentEdge += slotHeights[slot];
                 }
             }
 
-            var peerEdge = parentEdge;
-            if (active[level] is not null)
+            if (level == 0 && active[level] is not null)
             {
-                peerEdge += stickyHeights[level];
-            }
-
-            var fullEdge = peerEdge;
-            var hasStickyChildren = false;
-            for (var child = level + 1; child < active.Length; child++)
-            {
-                if (active[child] is null)
+                var occupiedEdge = parentEdge;
+                for (var slot = 0; slot < active.Length; slot++)
                 {
-                    continue;
+                    if (active[slot] is not null)
+                    {
+                        occupiedEdge += slotHeights[slot];
+                    }
                 }
 
-                hasStickyChildren = true;
-                fullEdge += stickyHeights[child];
+                if (header.Top <= occupiedEdge + EdgeTolerance)
+                {
+                    active[1] = active[2] = null;
+                }
+            }
+            else if (active[level] is not null)
+            {
+                var childSlotTop = parentEdge + slotHeights[level];
+                for (var child = level + 1; child < active.Length; child++)
+                {
+                    if (active[child] is null)
+                    {
+                        continue;
+                    }
+
+                    var childSlotBottom = childSlotTop + slotHeights[child];
+                    if (header.Top <= childSlotBottom - slotHeights[child] / 2d + EdgeTolerance)
+                    {
+                        active[child] = null;
+                    }
+
+                    childSlotTop = childSlotBottom;
+                }
             }
 
-            // 下一 peer 碰到 sticky 子级（H3）时：
-            // - 仍在 peer slot 底之上 → 只收起 H3，保留当前 H2
-            // - 已到/超过 peer slot 底 → 正常 peer 顶替（换 H2、清 H3）
-            if (active[level] is not null && hasStickyChildren)
-            {
-                if (header.Top > fullEdge + edgeTolerance)
-                {
-                    continue;
-                }
+            var activates = active[level] is not null && level > 0
+                ? header.Top + header.Height / 2d <= parentEdge + slotHeights[level] + EdgeTolerance
+                : header.Top < parentEdge - EdgeTolerance;
 
+            if (activates)
+            {
+                active[level] = i;
                 for (var child = level + 1; child < active.Length; child++)
                 {
                     active[child] = null;
                 }
-
-                if (header.Top > peerEdge + edgeTolerance)
-                {
-                    continue;
-                }
-
-                active[level] = i;
-                continue;
-            }
-
-            var edge = active[level] is not null ? peerEdge : parentEdge;
-            if (header.Top > edge + edgeTolerance)
-            {
-                continue;
-            }
-
-            active[level] = i;
-            for (var child = level + 1; child < active.Length; child++)
-            {
-                active[child] = null;
             }
         }
 
         return active.Where(static index => index is not null).Select(static index => index!.Value).ToList();
-    }
-
-    private static IReadOnlyList<double> GetStickyHeights(Panel stickyHost)
-    {
-        var measured = new double[3];
-        foreach (var row in stickyHost.Children.OfType<Border>())
-        {
-            var level = ResolveHeaderLevel(row);
-            if (level is not { } value || row.Bounds.Height <= 0)
-            {
-                continue;
-            }
-
-            measured[value - 1] = row.Bounds.Height;
-        }
-
-        var last = stickyHost.GetValue(LastSlotHeightsProperty) ?? new double[3];
-        var merged = MergeSlotHeights(measured, last);
-        stickyHost.SetValue(LastSlotHeightsProperty, merged);
-        return merged;
     }
 
     internal static double[] MergeSlotHeights(IReadOnlyList<double> measured, IReadOnlyList<double> lastKnown)
@@ -301,10 +172,8 @@ public static class SettingsScroll
         }
 
         var merged = new double[3];
-        for (var i = 0; i < 3; i++)
+        for (var i = 0; i < merged.Length; i++)
         {
-            // 禁止缩小：带 StatusPill 的 H2/H3 行高于纯标题。活动头切换时若缩小高度，
-            // 边界附近反复切换活动标题会持续触发布局计算并阻塞界面线程
             merged[i] = measured[i] > 0
                 ? Math.Max(measured[i], lastKnown[i])
                 : lastKnown[i];
@@ -313,122 +182,348 @@ public static class SettingsScroll
         return merged;
     }
 
-    private static void ApplyStickyState(
-        ScrollViewer scrollViewer,
-        Panel stickyHost,
-        IReadOnlyList<HeaderSnapshot> active,
-        bool showSticky,
-        bool interactive)
+    internal static void SyncStickyRows(StackPanel rows, IReadOnlyList<Header> active)
     {
-        var stickyKey = showSticky
-            ? string.Join('|', active.Select(CreateStickyContentKey))
-            : string.Empty;
-
-        if (string.Equals(scrollViewer.GetValue(LastStickyKeyProperty), stickyKey, StringComparison.Ordinal)
-            && stickyHost.IsVisible == showSticky
-            && stickyHost.Children.Count == active.Count
-            && GetStickyHostInteractive(stickyHost) == (showSticky && interactive))
+        while (rows.Children.Count > active.Count)
         {
-            return;
+            DisposeRow(rows.Children[^1]);
+            rows.Children.RemoveAt(rows.Children.Count - 1);
         }
 
-        scrollViewer.SetValue(LastStickyKeyProperty, stickyKey);
-
-        if (!showSticky)
+        for (var index = 0; index < active.Count; index++)
         {
-            if (stickyHost.Children.Count > 0)
-            {
-                stickyHost.Children.Clear();
-            }
-
-            SetStickyChromeVisible(stickyHost, false, false);
-            return;
-        }
-
-        SetStickyChromeVisible(stickyHost, true, interactive);
-        SyncStickyChildren(stickyHost, active);
-
-        // 新/空行需要一次 layout；高度已知时跳过再 post，避免 stickyKey 交替
-        // 将同一渲染周期内的多次请求合并为一次粘性标题刷新
-        if (stickyHost.Children.OfType<Border>().Any(static row => row.Bounds.Height <= 0))
-        {
-            Dispatcher.UIThread.Post(() => RefreshSticky(scrollViewer), DispatcherPriority.Render);
-        }
-    }
-
-    private static bool GetStickyHostInteractive(Panel stickyHost)
-        => stickyHost.Parent is Border chrome
-           && chrome.Classes.Contains("StickyHost")
-           && chrome.IsHitTestVisible;
-
-    private static void SetStickyChromeVisible(Panel stickyHost, bool visible, bool interactive)
-    {
-        if (stickyHost.Parent is Border chrome && chrome.Classes.Contains("StickyHost"))
-        {
-            chrome.IsVisible = visible;
-            chrome.IsHitTestVisible = visible && interactive;
-        }
-
-        stickyHost.IsVisible = visible;
-    }
-
-    internal static void SyncStickyChildren(Panel stickyHost, IReadOnlyList<HeaderSnapshot> active)
-    {
-        while (stickyHost.Children.Count > active.Count)
-        {
-            stickyHost.Children.RemoveAt(stickyHost.Children.Count - 1);
-        }
-
-        while (stickyHost.Children.Count < active.Count)
-        {
-            stickyHost.Children.Add(CreateStickyRow());
-        }
-
-        for (var i = 0; i < active.Count; i++)
-        {
-            if (stickyHost.Children[i] is not Border row)
+            var header = active[index];
+            if (index < rows.Children.Count
+                && rows.Children[index] is Border existing
+                && ReferenceEquals(existing.GetValue(StickyRowSourceProperty), header.Source))
             {
                 continue;
             }
 
-            var levelClass = active[i].Level switch
+            var row = new Border { Child = BuildRow(header.Source, header.Level) };
+            row.SetValue(StickyRowSourceProperty, header.Source);
+            row.Classes.Add("StickyRow");
+            row.Classes.Add(header.Level switch
             {
                 1 => "H1",
                 2 => "H2",
                 _ => "H3"
-            };
+            });
 
-            if (!row.Classes.Contains(levelClass) || !row.Classes.Contains("StickyRow"))
+            if (index < rows.Children.Count)
             {
-                row.Classes.Clear();
-                row.Classes.Add(levelClass);
-                row.Classes.Add("StickyRow");
+                DisposeRow(rows.Children[index]);
+                rows.Children[index] = row;
             }
-
-            var contentKey = CreateStickyContentKey(active[i]);
-            if (!ReferenceEquals(row.GetValue(StickyRowSourceProperty), active[i].Source)
-                || !string.Equals(
-                    row.GetValue(StickyRowContentKeyProperty),
-                    contentKey,
-                    StringComparison.Ordinal))
+            else
             {
-                row.Child = BuildStickyContent(active[i]);
-                row.SetValue(StickyRowSourceProperty, active[i].Source);
-                row.SetValue(StickyRowContentKeyProperty, contentKey);
+                rows.Children.Add(row);
             }
         }
     }
 
-    private static string CreateStickyContentKey(HeaderSnapshot header)
-        => $"{header.Level}:{header.Title}:{header.HasActions}:{string.Join(',', header.TitleClasses)}";
-
-    private static Control BuildStickyContent(HeaderSnapshot header)
+    internal static TabControl CloneHeaderTabs(TabControl source)
     {
-        var title = CreateStickyTitle(header);
-
-        if (!header.HasActions)
+        var lifetime = new CloneLifetime();
+        var tabs = new TabControl();
+        tabs.SetValue(CloneLifetimeProperty, lifetime);
+        foreach (var @class in source.Classes.Where(static c => c.Length > 0 && c[0] != ':'))
         {
-            return title;
+            tabs.Classes.Add(@class);
+        }
+
+        Mirror(tabs, source, StyledElement.DataContextProperty, lifetime);
+        Mirror(tabs, source, ItemsControl.ItemsSourceProperty, lifetime);
+        Mirror(tabs, source, ItemsControl.ItemTemplateProperty, lifetime);
+        Mirror(tabs, source, SelectingItemsControl.SelectedItemProperty, lifetime);
+        EventHandler<SelectionChangedEventArgs> selectionChanged = (_, _) =>
+        {
+            if (!ReferenceEquals(source.SelectedItem, tabs.SelectedItem))
+            {
+                source.SelectedItem = tabs.SelectedItem;
+            }
+        };
+        tabs.SelectionChanged += selectionChanged;
+        lifetime.Add(() => tabs.SelectionChanged -= selectionChanged);
+        Mirror(tabs, source, Visual.IsVisibleProperty, lifetime);
+        Mirror(tabs, source, InputElement.IsEnabledProperty, lifetime);
+        tabs.SetValue(TabControlBehaviors.UseSlidingPillProperty, false);
+        return tabs;
+    }
+
+    internal readonly record struct HeaderPosition(int Level, double Top, double Height);
+
+    internal readonly record struct Header(int Level, double Top, Control Source);
+
+    private static void OnIsEnabledChanged(ScrollViewer scrollViewer, AvaloniaPropertyChangedEventArgs e)
+    {
+        SetHooked(scrollViewer, e.NewValue is true);
+        if (e.NewValue is not true)
+        {
+            ResetOverlay(scrollViewer, detach: true);
+        }
+    }
+
+    private static void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        if (sender is ScrollViewer scrollViewer)
+        {
+            SetHooked(scrollViewer, false);
+            ResetOverlay(scrollViewer, detach: true);
+        }
+    }
+
+    private static void SetHooked(ScrollViewer scrollViewer, bool hooked)
+    {
+        if (scrollViewer.GetValue(IsHookedProperty) == hooked)
+        {
+            return;
+        }
+
+        scrollViewer.ScrollChanged -= OnScrollChanged;
+        scrollViewer.DetachedFromVisualTree -= OnDetachedFromVisualTree;
+        if (hooked)
+        {
+            scrollViewer.ScrollChanged += OnScrollChanged;
+            scrollViewer.DetachedFromVisualTree += OnDetachedFromVisualTree;
+        }
+
+        scrollViewer.SetValue(IsHookedProperty, hooked);
+    }
+
+    private static void OnScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        if (sender is ScrollViewer scrollViewer)
+        {
+            RefreshSticky(scrollViewer);
+        }
+    }
+
+    private static void OnLayoutUpdated(object? sender, EventArgs e)
+    {
+        if (sender is not ScrollViewer scrollViewer
+            || scrollViewer.Content is not Control contentRoot
+            || !scrollViewer.IsVisible
+            || scrollViewer.Bounds.Height <= 0
+            || contentRoot.Bounds.Height <= 0)
+        {
+            return;
+        }
+
+        scrollViewer.LayoutUpdated -= OnLayoutUpdated;
+        scrollViewer.SetValue(LayoutRefreshPendingProperty, false);
+        RefreshSticky(scrollViewer);
+    }
+
+    private static void RefreshSticky(ScrollViewer scrollViewer)
+    {
+        if (scrollViewer.Content is not Control contentRoot
+            || !scrollViewer.IsVisible
+            || scrollViewer.Bounds.Height <= 0
+            || contentRoot.Bounds.Height <= 0)
+        {
+            return;
+        }
+
+        var tabPage = scrollViewer.GetVisualAncestors()
+            .OfType<Control>()
+            .FirstOrDefault(static c => c.Classes.Contains("TabPage"));
+        if (!(tabPage?.IsVisible ?? scrollViewer.IsVisible))
+        {
+            return;
+        }
+
+        var headers = CollectHeaders(contentRoot, scrollViewer)
+            .OrderBy(static header => header.Top)
+            .ToList();
+
+        var measured = new double[3];
+        foreach (var header in headers)
+        {
+            measured[header.Level - 1] = Math.Max(measured[header.Level - 1], header.Source.Bounds.Height);
+        }
+
+        var slotHeights = MergeSlotHeights(
+            measured,
+            scrollViewer.GetValue(LastSlotHeightsProperty) ?? new double[3]);
+        scrollViewer.SetValue(LastSlotHeightsProperty, slotHeights);
+
+        var activeIndexes = SelectActive(
+            headers.Select(static h => new HeaderPosition(h.Level, h.Top, h.Source.Bounds.Height)).ToList(),
+            slotHeights);
+        var active = activeIndexes.Select(index => headers[index]).ToList();
+        var previous = scrollViewer.GetValue(ActiveHeadersProperty) ?? [];
+
+        var host = scrollViewer.GetValue(OverlayHostProperty);
+        if (host is { Parent: null })
+        {
+            scrollViewer.ClearValue(OverlayHostProperty);
+            host = null;
+        }
+
+        if (host is null)
+        {
+            if (tabPage is not Grid page)
+            {
+                return;
+            }
+
+            host = new Border
+            {
+                Child = new StackPanel(),
+                IsVisible = false
+            };
+            host.Classes.Add("StickyHost");
+            page.Children.Add(host);
+            scrollViewer.SetValue(OverlayHostProperty, host);
+        }
+
+        if (host.Child is not StackPanel rows)
+        {
+            return;
+        }
+
+        var margin = contentRoot.Margin;
+        host.Margin = new Thickness(margin.Left, 0, margin.Right, 0);
+        host.Padding = new Thickness(0, margin.Top, 0, 0);
+
+        if (active.Count == 0)
+        {
+            foreach (var row in rows.Children)
+            {
+                DisposeRow(row);
+            }
+
+            rows.Children.Clear();
+            scrollViewer.SetValue(ActiveHeadersProperty, []);
+            host.IsVisible = false;
+            host.IsHitTestVisible = false;
+            return;
+        }
+
+        var activeSources = active.Select(static h => h.Source).ToList();
+        var allowHitTest = activeSources.Any(static source =>
+            source.GetVisualDescendants().OfType<StackPanel>().Any(static p => p.Classes.Contains("H2Actions"))
+            || source.GetVisualDescendants().OfType<TabControl>().Any());
+
+        if (previous.SequenceEqual(activeSources))
+        {
+            host.IsVisible = true;
+            host.IsHitTestVisible = allowHitTest;
+            return;
+        }
+
+        scrollViewer.SetValue(ActiveHeadersProperty, activeSources);
+        SyncStickyRows(rows, active);
+        host.IsVisible = true;
+        host.IsHitTestVisible = allowHitTest;
+    }
+
+    private static void ResetOverlay(ScrollViewer scrollViewer, bool detach)
+    {
+        if (scrollViewer.GetValue(LayoutRefreshPendingProperty))
+        {
+            scrollViewer.LayoutUpdated -= OnLayoutUpdated;
+            scrollViewer.SetValue(LayoutRefreshPendingProperty, false);
+        }
+
+        scrollViewer.ClearValue(LastSlotHeightsProperty);
+        scrollViewer.ClearValue(ActiveHeadersProperty);
+
+        if (scrollViewer.GetValue(OverlayHostProperty) is not { } host)
+        {
+            return;
+        }
+
+        if (host.Child is StackPanel rows && rows.Children.Count > 0)
+        {
+            foreach (var row in rows.Children)
+            {
+                DisposeRow(row);
+            }
+
+            rows.Children.Clear();
+        }
+
+        if (detach)
+        {
+            if (host.Parent is Panel parent)
+            {
+                parent.Children.Remove(host);
+            }
+
+            scrollViewer.ClearValue(OverlayHostProperty);
+            return;
+        }
+
+        host.IsVisible = false;
+        host.IsHitTestVisible = false;
+    }
+
+    private static Control BuildRow(Control source, int level)
+    {
+        var nodes = source.GetVisualDescendants().ToList();
+        var titleBlock = nodes
+            .OfType<TextBlock>()
+            .FirstOrDefault(static block =>
+                block.Classes.Contains("H1Text")
+                || block.Classes.Contains("H2Text")
+                || block.Classes.Contains("H3Text"));
+        var title = new TextBlock
+        {
+            Text = titleBlock?.Text,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        foreach (var @class in (titleBlock?.Classes ?? []).Where(static c => c.Length > 0 && c[0] != ':'))
+        {
+            title.Classes.Add(@class);
+        }
+
+        Control titleContent = title;
+        var pills = nodes.OfType<StatusPill>().ToList();
+        if (level is 2 or 3 || pills.Count > 0)
+        {
+            var titleRow = new StackPanel { Classes = { level == 2 ? "H2Title" : "H3Title" } };
+            if (level is 2 or 3)
+            {
+                titleRow.Children.Add(new AppIcon
+                {
+                    Kind = "Hash",
+                    Classes = { level == 2 ? "H2Hash" : "H3Hash" }
+                });
+            }
+
+            titleRow.Children.Add(title);
+            foreach (var pill in pills)
+            {
+                titleRow.Children.Add(ClonePill(pill));
+            }
+
+            titleContent = titleRow;
+        }
+
+        var sourceTabs = nodes.OfType<TabControl>().FirstOrDefault();
+        if (sourceTabs is not null)
+        {
+            var rail = new StackPanel
+            {
+                Classes = { "HeaderTitleRail" },
+                Orientation = Orientation.Horizontal
+            };
+            rail.Children.Add(titleContent);
+            rail.Children.Add(new AppIcon { Classes = { "HeaderTitleChevron" }, Kind = "ChevronRight" });
+            rail.Children.Add(CloneHeaderTabs(sourceTabs));
+            titleContent = rail;
+        }
+
+        var buttons = nodes
+            .OfType<StackPanel>()
+            .Where(static panel => panel.Classes.Contains("H2Actions"))
+            .SelectMany(static panel => panel.Children.OfType<Button>())
+            .ToList();
+        if (buttons.Count == 0)
+        {
+            return titleContent;
         }
 
         var grid = new Grid
@@ -440,319 +535,150 @@ public static class SettingsScroll
                 new ColumnDefinition(GridLength.Auto)
             }
         };
+        Grid.SetColumn(titleContent, 0);
+        grid.Children.Add(titleContent);
 
-        title.VerticalAlignment = VerticalAlignment.Center;
-        Grid.SetColumn(title, 0);
-        grid.Children.Add(title);
-
-        var actions = new StackPanel
-        {
-            Classes = { "H2Actions" },
-            VerticalAlignment = VerticalAlignment.Center
-        };
+        var actions = new StackPanel { Classes = { "H2Actions" } };
         Grid.SetColumn(actions, 1);
-
-        foreach (var sourceButton in GetActionButtons(header.Source))
+        foreach (var button in buttons)
         {
-            actions.Children.Add(CloneActionButton(sourceButton));
+            actions.Children.Add(CloneButton(button));
         }
 
         grid.Children.Add(actions);
         return grid;
     }
 
-    private static Control CreateStickyTitle(HeaderSnapshot header)
+    private static StatusPill ClonePill(StatusPill source)
     {
-        var title = new TextBlock
+        var lifetime = new CloneLifetime();
+        var pill = new StatusPill { VerticalAlignment = VerticalAlignment.Center };
+        pill.SetValue(CloneLifetimeProperty, lifetime);
+        foreach (var @class in source.Classes.Where(static c => c.Length > 0 && c[0] != ':'))
         {
-            Text = header.Title,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        foreach (var @class in header.TitleClasses)
-        {
-            title.Classes.Add(@class);
-        }
-
-        var pills = GetHeaderStatusPills(header.Source)
-            .Select(CloneStatusPill)
-            .ToList();
-        if (header.Level is not (2 or 3) && pills.Count == 0)
-        {
-            return CreateStickyTitleRail(header.Source, title);
-        }
-
-        var row = new StackPanel
-        {
-            Classes = { header.Level == 2 ? "H2Title" : "H3Title" }
-        };
-        if (header.Level == 2)
-        {
-            row.Children.Add(CreateH2HashIcon());
-        }
-        else if (header.Level == 3)
-        {
-            row.Children.Add(CreateH3HashIcon());
-        }
-
-        row.Children.Add(title);
-        foreach (var pill in pills)
-        {
-            row.Children.Add(pill);
-        }
-
-        return CreateStickyTitleRail(header.Source, row);
-    }
-
-    private static Control CreateStickyTitleRail(Control source, Control title)
-    {
-        var sourceTabs = GetHeaderTabs(source);
-        if (sourceTabs is null)
-        {
-            return title;
-        }
-
-        var rail = new StackPanel
-        {
-            Classes = { "HeaderTitleRail" },
-            Orientation = Orientation.Horizontal
-        };
-        rail.Children.Add(title);
-        rail.Children.Add(new AppIcon
-        {
-            Classes = { "HeaderTitleChevron" },
-            Kind = "ChevronRight"
-        });
-        rail.Children.Add(CloneHeaderTabs(sourceTabs));
-        return rail;
-    }
-
-    internal static TabControl CloneHeaderTabs(TabControl source)
-    {
-        var tabs = new TabControl
-        {
-            DataContext = source.DataContext,
-            ItemTemplate = source.ItemTemplate
-        };
-
-        foreach (var @class in source.Classes)
-        {
-            if (@class.Length > 0 && @class[0] != ':')
-            {
-                tabs.Classes.Add(@class);
-            }
-        }
-
-        tabs.Bind(ItemsControl.ItemsSourceProperty, new Binding("ModuleEditors"));
-        tabs.Bind(TabControl.SelectedItemProperty, new Binding("SelectedModuleEditor")
-        {
-            Mode = BindingMode.TwoWay
-        });
-        CopyBind(tabs, source, Visual.IsVisibleProperty);
-        CopyBind(tabs, source, TabControlBehaviors.UseSlidingPillProperty);
-        return tabs;
-    }
-
-    private static AppIcon CreateH2HashIcon()
-        => new()
-        {
-            Kind = "Hash",
-            Classes = { "H2Hash" },
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-    private static AppIcon CreateH3HashIcon()
-        => new()
-        {
-            Kind = "Hash",
-            Classes = { "H3Hash" },
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-    private static IEnumerable<StatusPill> GetHeaderStatusPills(Control header)
-        => header.GetVisualDescendants().OfType<StatusPill>();
-
-    private static StatusPill CloneStatusPill(StatusPill source)
-    {
-        var pill = new StatusPill
-        {
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        foreach (var @class in source.Classes)
-        {
-            if (@class.Length > 0 && @class[0] == ':')
-            {
-                continue;
-            }
-
             pill.Classes.Add(@class);
         }
 
-        CopyBind(pill, source, StatusPill.IconProperty);
-        CopyBind(pill, source, StatusPill.TextProperty);
-        CopyBind(pill, source, Visual.IsVisibleProperty);
+        Mirror(pill, source, StatusPill.IconProperty, lifetime);
+        Mirror(pill, source, StatusPill.TextProperty, lifetime);
+        Mirror(pill, source, Visual.IsVisibleProperty, lifetime);
+        Mirror(pill, source, InputElement.IsEnabledProperty, lifetime);
         return pill;
     }
 
-    private static Button CloneActionButton(Button source)
+    private static Button CloneButton(Button source)
     {
-        var button = new Button
+        var lifetime = new CloneLifetime();
+        var button = new Button();
+        button.SetValue(CloneLifetimeProperty, lifetime);
+        foreach (var @class in source.Classes.Where(static c => c.Length > 0 && c[0] != ':'))
         {
-            Content = source.Content,
-            Command = source.Command,
-            CommandParameter = source.CommandParameter
-        };
-
-        foreach (var @class in source.Classes)
-        {
-            if (@class.Length > 0 && @class[0] == ':')
-            {
-                continue;
-            }
-
             button.Classes.Add(@class);
         }
 
-        CopyBind(button, source, Button.IsEnabledProperty);
-        CopyBind(button, source, ButtonAssist.ShowProgressProperty);
+        Mirror(button, source, ContentControl.ContentProperty, lifetime);
+        Mirror(button, source, Button.CommandProperty, lifetime);
+        Mirror(button, source, Button.CommandParameterProperty, lifetime);
+        Mirror(button, source, Visual.IsVisibleProperty, lifetime);
+        Mirror(button, source, InputElement.IsEnabledProperty, lifetime);
+        Mirror(button, source, ButtonAssist.ShowProgressProperty, lifetime);
         return button;
     }
 
-    private static void CopyBind<T>(AvaloniaObject target, AvaloniaObject source, AvaloniaProperty<T> property)
+    private static void Mirror<T>(
+        AvaloniaObject target,
+        AvaloniaObject source,
+        AvaloniaProperty<T> property,
+        CloneLifetime lifetime)
     {
-        if (!source.IsSet(property))
-        {
-            return;
-        }
-
-        if (source.GetBindingObservable(property) is IObservable<T> observable)
-        {
-            target.Bind(property, observable);
-            return;
-        }
-
-        target.SetValue(property, source.GetValue(property));
+        lifetime.Add(target.Bind(property, source.GetObservable(property)));
     }
 
-    private static IEnumerable<Button> GetActionButtons(Control header)
-        => header.GetVisualDescendants()
-            .OfType<StackPanel>()
-            .Where(panel => panel.Classes.Contains("H2Actions"))
-            .SelectMany(panel => panel.Children.OfType<Button>());
-
-    private static bool HasActions(Control header)
-        => GetActionButtons(header).Any();
-
-    private static TabControl? GetHeaderTabs(Control header)
-        => header.GetVisualDescendants()
-            .OfType<TabControl>()
-            .FirstOrDefault(static tabs => tabs.Classes.Contains("SettingsHeaderTabs"));
-
-    private static Border CreateStickyRow()
-        => new()
-        {
-            Child = new TextBlock()
-        };
-
-    private static Control? FindTabPage(ScrollViewer scrollViewer)
-        => scrollViewer.GetVisualAncestors()
-            .OfType<Control>()
-            .FirstOrDefault(static control => control.Classes.Contains("TabPage"));
-
-    private static bool IsTabPageVisible(ScrollViewer scrollViewer)
+    private static void DisposeRow(Control row)
     {
-        if (FindTabPage(scrollViewer) is Control page)
+        foreach (var control in row.GetVisualDescendants().OfType<Control>().Prepend(row))
         {
-            return page.IsVisible;
-        }
+            if (control.GetValue(CloneLifetimeProperty) is not { } lifetime)
+            {
+                continue;
+            }
 
-        return scrollViewer.IsVisible;
+            lifetime.Dispose();
+            control.ClearValue(CloneLifetimeProperty);
+        }
     }
 
-    private static bool IsLayoutReady(ScrollViewer scrollViewer, Control contentRoot)
-        => scrollViewer.IsVisible
-           && scrollViewer.Bounds.Height > 0
-           && contentRoot.Bounds.Height > 0;
-
-    private static IEnumerable<HeaderSnapshot> CollectHeaders(Control root, ScrollViewer scrollViewer)
+    private static IEnumerable<Header> CollectHeaders(Control root, ScrollViewer scrollViewer)
     {
         foreach (var control in root.GetVisualDescendants().OfType<Control>())
         {
-            if (control.Classes.Contains("StickyRow"))
+            int? level = control.Classes.Contains("H1") ? 1
+                : control.Classes.Contains("H2") ? 2
+                : control.Classes.Contains("H3") ? 3
+                : null;
+            if (level is null || control.Bounds.Height <= 0)
             {
                 continue;
             }
 
-            var level = ResolveHeaderLevel(control);
-            if (level is null)
+            var top = control.Bounds.Y;
+            foreach (var ancestor in control.GetVisualAncestors())
             {
-                continue;
+                if (ReferenceEquals(ancestor, root))
+                {
+                    yield return new Header(level.Value, top - scrollViewer.Offset.Y, control);
+                    break;
+                }
+
+                top += ancestor.Bounds.Y;
             }
-
-            var title = FindHeaderTitle(control);
-            if (string.IsNullOrWhiteSpace(title?.Text))
-            {
-                continue;
-            }
-
-            var topLeft = title.TranslatePoint(new Point(0, 0), scrollViewer);
-            if (topLeft is null)
-            {
-                continue;
-            }
-
-            var titleClasses = SelectTitleClasses(title.Classes);
-
-            yield return new HeaderSnapshot(
-                level.Value,
-                title.Text,
-                titleClasses,
-                topLeft.Value.Y,
-                control,
-                HasActions(control));
         }
     }
 
-    private static int? ResolveHeaderLevel(Control control)
+    private sealed class CloneLifetime : IDisposable
     {
-        if (control.Classes.Contains("H1"))
+        private readonly List<IDisposable> _subscriptions = [];
+        private bool _disposed;
+
+        public void Add(IDisposable subscription)
         {
-            return 1;
+            if (_disposed)
+            {
+                subscription.Dispose();
+                return;
+            }
+
+            _subscriptions.Add(subscription);
         }
 
-        if (control.Classes.Contains("H2"))
-        {
-            return 2;
-        }
+        public void Add(Action dispose) => Add(new CallbackDisposable(dispose));
 
-        if (control.Classes.Contains("H3"))
+        public void Dispose()
         {
-            return 3;
-        }
+            if (_disposed)
+            {
+                return;
+            }
 
-        return null;
+            _disposed = true;
+            for (var index = _subscriptions.Count - 1; index >= 0; index--)
+            {
+                _subscriptions[index].Dispose();
+            }
+
+            _subscriptions.Clear();
+        }
     }
 
-    private static TextBlock? FindHeaderTitle(Control header)
-        => header.GetVisualDescendants()
-            .OfType<TextBlock>()
-            .FirstOrDefault(static block =>
-                block.Classes.Contains("H1Text")
-                || block.Classes.Contains("H2Text")
-                || block.Classes.Contains("H3Text"));
+    private sealed class CallbackDisposable(Action callback) : IDisposable
+    {
+        private Action? _callback = callback;
 
-    internal static IReadOnlyList<string> SelectTitleClasses(IEnumerable<string> classes)
-        => classes
-            .Where(static @class => @class.Length > 0 && @class[0] != ':')
-            .ToArray();
-
-    internal readonly record struct HeaderPosition(int Level, double Top);
-
-    internal sealed record HeaderSnapshot(
-        int Level,
-        string Title,
-        IReadOnlyList<string> TitleClasses,
-        double Top,
-        Control Source,
-        bool HasActions);
+        public void Dispose()
+        {
+            var callbackToRun = _callback;
+            _callback = null;
+            callbackToRun?.Invoke();
+        }
+    }
 }

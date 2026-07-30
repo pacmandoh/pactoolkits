@@ -4,7 +4,6 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-  xmlns:icons="clr-namespace:PacToolkits.Desktop.Avalonia.Controls"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:vm="clr-namespace:PacToolkits.Desktop.Avalonia.ViewModels.Pages"
@@ -36,11 +35,8 @@
         x:Name="TabDbPage"
         Classes="TabPage"
         IsVisible="True">
-        <ScrollViewer
-          controls:SettingsScroll.StickyHost="{Binding #DbStickyHost}"
-          HorizontalScrollBarVisibility="Disabled"
-          VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="Body">
+        <ScrollViewer>
+          <StackPanel>
             <Border Classes="H1">
               <TextBlock Classes="H1Text" Text="PostgreSQL 设置" />
             </Border>
@@ -48,7 +44,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel Classes="H2Title">
-                  <icons:AppIcon
+                  <controls:AppIcon
                     VerticalAlignment="Center"
                     Classes="H2Hash"
                     Kind="Hash" />
@@ -161,7 +157,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel Classes="H2Title">
-                  <icons:AppIcon
+                  <controls:AppIcon
                     VerticalAlignment="Center"
                     Classes="H2Hash"
                     Kind="Hash" />
@@ -202,7 +198,7 @@
 
             <Border Classes="H3">
               <StackPanel Classes="H3Title">
-                <icons:AppIcon
+                <controls:AppIcon
                   VerticalAlignment="Center"
                   Classes="H3Hash"
                   Kind="Hash" />
@@ -272,7 +268,7 @@
 
             <Border Classes="H3">
               <StackPanel Classes="H3Title">
-                <icons:AppIcon
+                <controls:AppIcon
                   VerticalAlignment="Center"
                   Classes="H3Hash"
                   Kind="Hash" />
@@ -312,12 +308,6 @@
 
           </StackPanel>
         </ScrollViewer>
-        <Border
-          VerticalAlignment="Top"
-          Classes="StickyHost"
-          IsHitTestVisible="False">
-          <StackPanel x:Name="DbStickyHost" Spacing="0" />
-        </Border>
       </Grid>
 
       <!--  Client Aliases  -->
@@ -325,11 +315,8 @@
         x:Name="TabAliasPage"
         Classes="TabPage"
         IsVisible="False">
-        <ScrollViewer
-          controls:SettingsScroll.StickyHost="{Binding #AliasStickyHost}"
-          HorizontalScrollBarVisibility="Disabled"
-          VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="Body">
+        <ScrollViewer>
+          <StackPanel>
             <Border Classes="H1">
               <TextBlock Classes="H1Text" Text="客户端别名映射" />
             </Border>
@@ -338,7 +325,7 @@
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
                   <StackPanel Classes="H2Title">
-                    <icons:AppIcon
+                    <controls:AppIcon
                       VerticalAlignment="Center"
                       Classes="H2Hash"
                       Kind="Hash" />
@@ -390,12 +377,6 @@
             </controls:EmptyStatePanel>
           </StackPanel>
         </ScrollViewer>
-        <Border
-          VerticalAlignment="Top"
-          Classes="StickyHost"
-          IsHitTestVisible="False">
-          <StackPanel x:Name="AliasStickyHost" Spacing="0" />
-        </Border>
       </Grid>
 
       <!--  Trace Code Rules  -->
@@ -403,11 +384,8 @@
         x:Name="TabTraceRulePage"
         Classes="TabPage"
         IsVisible="False">
-        <ScrollViewer
-          controls:SettingsScroll.StickyHost="{Binding #TraceStickyHost}"
-          HorizontalScrollBarVisibility="Disabled"
-          VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="Body">
+        <ScrollViewer>
+          <StackPanel>
             <Border Classes="H1">
               <TextBlock Classes="H1Text" Text="追溯码校验规则" />
             </Border>
@@ -415,7 +393,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel Classes="H2Title">
-                  <icons:AppIcon
+                  <controls:AppIcon
                     VerticalAlignment="Center"
                     Classes="H2Hash"
                     Kind="Hash" />
@@ -468,12 +446,6 @@
             </Border>
           </StackPanel>
         </ScrollViewer>
-        <Border
-          VerticalAlignment="Top"
-          Classes="StickyHost"
-          IsHitTestVisible="False">
-          <StackPanel x:Name="TraceStickyHost" Spacing="0" />
-        </Border>
       </Grid>
 
       <!--  UI Behavior  -->
@@ -481,18 +453,15 @@
         x:Name="TabUiBehaviorPage"
         Classes="TabPage"
         IsVisible="False">
-        <ScrollViewer
-          controls:SettingsScroll.StickyHost="{Binding #UiStickyHost}"
-          HorizontalScrollBarVisibility="Disabled"
-          VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="Body">
+        <ScrollViewer>
+          <StackPanel>
             <Border Classes="H1">
               <TextBlock Classes="H1Text" Text="界面行为" />
             </Border>
 
             <Border Classes="H2">
               <StackPanel Classes="H2Title">
-                <icons:AppIcon
+                <controls:AppIcon
                   VerticalAlignment="Center"
                   Classes="H2Hash"
                   Kind="Hash" />
@@ -519,12 +488,6 @@
             </Border>
           </StackPanel>
         </ScrollViewer>
-        <Border
-          VerticalAlignment="Top"
-          Classes="StickyHost"
-          IsHitTestVisible="False">
-          <StackPanel x:Name="UiStickyHost" Spacing="0" />
-        </Border>
       </Grid>
 
       <!--  Updates  -->
@@ -532,11 +495,8 @@
         x:Name="TabUpdatePage"
         Classes="TabPage"
         IsVisible="False">
-        <ScrollViewer
-          controls:SettingsScroll.StickyHost="{Binding #UpdateStickyHost}"
-          HorizontalScrollBarVisibility="Disabled"
-          VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="Body">
+        <ScrollViewer>
+          <StackPanel>
             <Border Classes="H1">
               <TextBlock Classes="H1Text" Text="应用更新" />
             </Border>
@@ -544,7 +504,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel Classes="H2Title">
-                  <icons:AppIcon
+                  <controls:AppIcon
                     VerticalAlignment="Center"
                     Classes="H2Hash"
                     Kind="Hash" />
@@ -736,12 +696,6 @@
             </Border>
           </StackPanel>
         </ScrollViewer>
-        <Border
-          VerticalAlignment="Top"
-          Classes="StickyHost"
-          IsHitTestVisible="False">
-          <StackPanel x:Name="UpdateStickyHost" Spacing="0" />
-        </Border>
       </Grid>
 
       <!--  Logging  -->
@@ -749,11 +703,8 @@
         x:Name="TabLoggingPage"
         Classes="TabPage"
         IsVisible="False">
-        <ScrollViewer
-          controls:SettingsScroll.StickyHost="{Binding #LoggingStickyHost}"
-          HorizontalScrollBarVisibility="Disabled"
-          VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="Body">
+        <ScrollViewer>
+          <StackPanel>
             <Border Classes="H1">
               <TextBlock Classes="H1Text" Text="日志与诊断" />
             </Border>
@@ -761,7 +712,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel Classes="H2Title">
-                  <icons:AppIcon
+                  <controls:AppIcon
                     VerticalAlignment="Center"
                     Classes="H2Hash"
                     Kind="Hash" />
@@ -886,12 +837,6 @@
             </Border>
           </StackPanel>
         </ScrollViewer>
-        <Border
-          VerticalAlignment="Top"
-          Classes="StickyHost"
-          IsHitTestVisible="False">
-          <StackPanel x:Name="LoggingStickyHost" Spacing="0" />
-        </Border>
       </Grid>
 
       <!--  MSFX API  -->
@@ -899,11 +844,8 @@
         x:Name="TabMsfxPage"
         Classes="TabPage"
         IsVisible="False">
-        <ScrollViewer
-          controls:SettingsScroll.StickyHost="{Binding #MsfxStickyHost}"
-          HorizontalScrollBarVisibility="Disabled"
-          VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="Body">
+        <ScrollViewer>
+          <StackPanel>
             <Border Classes="H1">
               <TextBlock Classes="H1Text" Text="码上放心 API" />
             </Border>
@@ -911,7 +853,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel Classes="H2Title">
-                  <icons:AppIcon
+                  <controls:AppIcon
                     VerticalAlignment="Center"
                     Classes="H2Hash"
                     Kind="Hash" />
@@ -923,20 +865,6 @@
                     VerticalAlignment="Center"
                     Label="{Binding MsfxApiBadgeLabel}"
                     Status="{Binding MsfxApiBadgeStatus}" />
-                  <controls:StatusPill
-                    Classes="ToneInfo15"
-                    Icon="Link"
-                    Text="MSFX" />
-                  <controls:StatusPill
-                    Classes="ToneInfo15"
-                    Icon="Cog"
-                    Text="配置中心" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Classes="H2Actions">
-                  <Button
-                    Classes="Primary"
-                    Command="{Binding SaveMsfxApiConfigCommand}"
-                    Content="保存配置" />
                 </StackPanel>
               </Grid>
             </Border>
@@ -1051,7 +979,7 @@
             <Border Classes="H2">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel Classes="H2Title">
-                  <icons:AppIcon
+                  <controls:AppIcon
                     VerticalAlignment="Center"
                     Classes="H2Hash"
                     Kind="Hash" />
@@ -1108,12 +1036,6 @@
             </Border>
           </StackPanel>
         </ScrollViewer>
-        <Border
-          VerticalAlignment="Top"
-          Classes="StickyHost"
-          IsHitTestVisible="False">
-          <StackPanel x:Name="MsfxStickyHost" Spacing="0" />
-        </Border>
       </Grid>
 
       <!--  自动化集成  -->
@@ -1121,12 +1043,8 @@
         x:Name="TabAgentsPage"
         Classes="TabPage"
         IsVisible="False">
-        <ScrollViewer
-          x:Name="AgentsScrollViewer"
-          controls:SettingsScroll.StickyHost="{Binding #AgentsStickyHost}"
-          HorizontalScrollBarVisibility="Disabled"
-          VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="Body">
+        <ScrollViewer x:Name="AgentsScrollViewer">
+          <StackPanel>
             <Border Classes="H1">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <TextBlock
@@ -1151,7 +1069,7 @@
 
             <Border Classes="H2">
               <StackPanel Classes="H2Title">
-                <icons:AppIcon
+                <controls:AppIcon
                   VerticalAlignment="Center"
                   Classes="H2Hash"
                   Kind="Hash" />
@@ -1235,7 +1153,7 @@
                   <StackPanel>
                     <Border Classes="H3">
                       <StackPanel Classes="H3Title">
-                        <icons:AppIcon
+                        <controls:AppIcon
                           VerticalAlignment="Center"
                           Classes="H3Hash"
                           Kind="Hash" />
@@ -1338,7 +1256,7 @@
 
             <Border Classes="H2">
               <StackPanel Classes="H2Title">
-                <icons:AppIcon
+                <controls:AppIcon
                   VerticalAlignment="Center"
                   Classes="H2Hash"
                   Kind="Hash" />
@@ -1398,7 +1316,7 @@
                   <StackPanel>
                     <Border Classes="H3">
                       <StackPanel Classes="H3Title">
-                        <icons:AppIcon
+                        <controls:AppIcon
                           VerticalAlignment="Center"
                           Classes="H3Hash"
                           Kind="Hash" />
@@ -1461,7 +1379,7 @@
 
             <Border Classes="H2">
               <StackPanel Classes="H2Title">
-                <icons:AppIcon
+                <controls:AppIcon
                   VerticalAlignment="Center"
                   Classes="H2Hash"
                   Kind="Hash" />
@@ -1504,12 +1422,6 @@
             </Border>
           </StackPanel>
         </ScrollViewer>
-        <Border
-          VerticalAlignment="Top"
-          Classes="StickyHost"
-          IsHitTestVisible="False">
-          <StackPanel x:Name="AgentsStickyHost" Spacing="0" />
-        </Border>
       </Grid>
 
       <!--  模块配置  -->
@@ -1517,12 +1429,8 @@
         x:Name="TabModuleSettingsPage"
         Classes="TabPage"
         IsVisible="False">
-        <ScrollViewer
-          x:Name="ModuleSettingsScrollViewer"
-          controls:SettingsScroll.StickyHost="{Binding #ModuleSettingsStickyHost}"
-          HorizontalScrollBarVisibility="Disabled"
-          VerticalScrollBarVisibility="Auto">
-          <StackPanel Classes="Body">
+        <ScrollViewer x:Name="ModuleSettingsScrollViewer">
+          <StackPanel>
             <Border Classes="H1">
               <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
                 <StackPanel Classes="HeaderTitleRail" Orientation="Horizontal">
@@ -1530,10 +1438,10 @@
                     VerticalAlignment="Center"
                     Classes="H1Text"
                     Text="模块配置" />
-                  <icons:AppIcon Classes="HeaderTitleChevron" Kind="ChevronRight" />
+                  <controls:AppIcon Classes="HeaderTitleChevron" Kind="ChevronRight" />
                   <TabControl
-                    shad:TabControlBehaviors.UseSlidingPill="True"
-                    Classes="ContentHeaderTabs SettingsHeaderTabs"
+                    shad:TabControlBehaviors.UseSlidingPill="False"
+                    Classes="ContentHeaderTabs"
                     ItemsSource="{Binding ModuleEditors}"
                     SelectedItem="{Binding SelectedModuleEditor, Mode=TwoWay}">
                     <TabControl.ItemTemplate>
@@ -1587,7 +1495,7 @@
                   <StackPanel>
                     <Border Classes="H2">
                       <StackPanel Classes="H2Title">
-                        <icons:AppIcon
+                        <controls:AppIcon
                           VerticalAlignment="Center"
                           Classes="H2Hash"
                           Kind="Hash" />
@@ -1601,7 +1509,7 @@
                           <StackPanel>
                             <Border Classes="H3" IsVisible="{Binding HasTitle}">
                               <StackPanel Classes="H3Title">
-                                <icons:AppIcon
+                                <controls:AppIcon
                                   VerticalAlignment="Center"
                                   Classes="H3Hash"
                                   Kind="Hash" />
@@ -1697,16 +1605,10 @@
                                     </Border>
 
                                     <StackPanel IsVisible="{Binding IsStringList}">
-                                      <Border Classes="H3">
-                                        <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                                      <Border Classes="Field">
+                                        <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
                                           <StackPanel VerticalAlignment="Center" Spacing="2">
-                                            <StackPanel Classes="H3Title">
-                                              <icons:AppIcon
-                                                VerticalAlignment="Center"
-                                                Classes="H3Hash"
-                                                Kind="Hash" />
-                                              <TextBlock Classes="Small H3Text" Text="{Binding Label}" />
-                                            </StackPanel>
+                                            <TextBlock Classes="FieldTitle" Text="{Binding Label}" />
                                             <TextBlock
                                               Classes="Caption Muted FieldDesc"
                                               IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
@@ -1719,7 +1621,7 @@
                                             Click="OnModuleAddLineClicked"
                                             Command="{Binding AddListItemCommand}">
                                             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                                              <icons:AppIcon
+                                              <controls:AppIcon
                                                 Width="{DynamicResource IconSizeSmall}"
                                                 Height="{DynamicResource IconSizeSmall}"
                                                 Kind="Plus" />
@@ -1744,7 +1646,7 @@
                                                   Command="{Binding $parent[ItemsControl].((vm:ModuleSettingsFieldViewModel)DataContext).RemoveListItemCommand}"
                                                   CommandParameter="{Binding .}">
                                                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                                                    <icons:AppIcon
+                                                    <controls:AppIcon
                                                       Width="{DynamicResource IconSizeSmall}"
                                                       Height="{DynamicResource IconSizeSmall}"
                                                       Kind="X" />
@@ -1759,16 +1661,10 @@
                                     </StackPanel>
 
                                     <StackPanel IsVisible="{Binding IsStringFlagMap}">
-                                      <Border Classes="H3">
-                                        <Grid Classes="H2Row" ColumnDefinitions="*,Auto">
+                                      <Border Classes="Field">
+                                        <Grid Classes="FieldSplit" ColumnDefinitions="1.35*,Auto">
                                           <StackPanel VerticalAlignment="Center" Spacing="2">
-                                            <StackPanel Classes="H3Title">
-                                              <icons:AppIcon
-                                                VerticalAlignment="Center"
-                                                Classes="H3Hash"
-                                                Kind="Hash" />
-                                              <TextBlock Classes="Small H3Text" Text="{Binding Label}" />
-                                            </StackPanel>
+                                            <TextBlock Classes="FieldTitle" Text="{Binding Label}" />
                                             <TextBlock
                                               Classes="Caption Muted FieldDesc"
                                               IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
@@ -1781,7 +1677,7 @@
                                             Click="OnModuleAddLineClicked"
                                             Command="{Binding AddListItemCommand}">
                                             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                                              <icons:AppIcon
+                                              <controls:AppIcon
                                                 Width="{DynamicResource IconSizeSmall}"
                                                 Height="{DynamicResource IconSizeSmall}"
                                                 Kind="Plus" />
@@ -1806,7 +1702,7 @@
                                                   Command="{Binding $parent[ItemsControl].((vm:ModuleSettingsFieldViewModel)DataContext).RemoveListItemCommand}"
                                                   CommandParameter="{Binding .}">
                                                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource SpacingInlineSm}">
-                                                    <icons:AppIcon
+                                                    <controls:AppIcon
                                                       Width="{DynamicResource IconSizeSmall}"
                                                       Height="{DynamicResource IconSizeSmall}"
                                                       Kind="X" />
@@ -1833,12 +1729,6 @@
             </ContentControl>
           </StackPanel>
         </ScrollViewer>
-        <Border
-          VerticalAlignment="Top"
-          Classes="StickyHost"
-          IsHitTestVisible="False">
-          <StackPanel x:Name="ModuleSettingsStickyHost" Spacing="0" />
-        </Border>
       </Grid>
 
     </Panel>

@@ -51,7 +51,6 @@
   <Thickness x:Key="H2Padding">0,28,0,10</Thickness>
   <Thickness x:Key="H3Padding">0,18,0,8</Thickness>
   <Thickness x:Key="FieldPadding">12,12,12,12</Thickness>
-  <Thickness x:Key="StickyPadding">26,0,26,0</Thickness>
   <x:Double x:Key="ScanCodeContextWidth">320</x:Double>
   <Thickness x:Key="FilterBarPadding">12,10,12,10</Thickness>
   <x:Double x:Key="FilterBarGroupSpacing">8</x:Double>

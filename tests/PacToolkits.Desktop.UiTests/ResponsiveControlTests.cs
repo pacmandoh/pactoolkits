@@ -1,7 +1,6 @@
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Controls;
 
@@ -89,44 +88,77 @@ public sealed class ResponsiveControlTests
     }
 
     [AvaloniaFact]
-    public void Sticky_module_tabs_share_selected_item_with_the_page_tabs()
+    public void Sticky_module_tabs_share_selection_with_source_tabs()
     {
-        var model = new ModuleTabsModel();
-        var source = new TabControl { DataContext = model };
+        var items = new object[] { new(), new() };
+        var source = new TabControl
+        {
+            ItemsSource = items,
+            SelectedItem = items[0]
+        };
         var sticky = SettingsScroll.CloneHeaderTabs(source);
 
-        sticky.SelectedItem = model.ModuleEditors[1];
-        Assert.Same(model.ModuleEditors[1], model.SelectedModuleEditor);
+        sticky.SelectedItem = items[1];
+        Assert.Same(items[1], source.SelectedItem);
 
-        model.SelectedModuleEditor = model.ModuleEditors[0];
-        Assert.Same(model.ModuleEditors[0], sticky.SelectedItem);
+        source.SelectedItem = items[0];
+        Assert.Same(items[0], sticky.SelectedItem);
     }
 
     [AvaloniaFact]
-    public void Sticky_h1_content_is_reused_when_a_lower_header_changes()
+    public void Removed_sticky_row_releases_tab_synchronization()
     {
-        var model = new ModuleTabsModel();
-        var tabs = new TabControl { DataContext = model };
-        tabs.Classes.Add("SettingsHeaderTabs");
-        var h1Source = new Border { Child = tabs };
-        var firstH2Source = new Border();
-        var secondH2Source = new Border();
-        var stickyHost = new StackPanel();
+        var items = new object[] { new(), new() };
+        var sourceTabs = new TabControl
+        {
+            ItemsSource = items,
+            SelectedItem = items[0]
+        };
+        var sourceHeader = new Border { Child = sourceTabs };
+        var rows = new StackPanel();
 
-        SettingsScroll.SyncStickyChildren(stickyHost,
+        SettingsScroll.SyncStickyRows(rows,
         [
-            new SettingsScroll.HeaderSnapshot(1, "模块配置", ["H1Text"], 0, h1Source, false),
-            new SettingsScroll.HeaderSnapshot(2, "Injector", ["H2Text"], 0, firstH2Source, false)
-        ]);
-        var h1Content = Assert.IsType<Border>(stickyHost.Children[0]).Child;
-
-        SettingsScroll.SyncStickyChildren(stickyHost,
-        [
-            new SettingsScroll.HeaderSnapshot(1, "模块配置", ["H1Text"], 0, h1Source, false),
-            new SettingsScroll.HeaderSnapshot(2, "Scanner", ["H2Text"], 0, secondH2Source, false)
+            new SettingsScroll.Header(1, 0, sourceHeader)
         ]);
 
-        Assert.Same(h1Content, Assert.IsType<Border>(stickyHost.Children[0]).Child);
+        var stickyTabs = Assert.IsType<Border>(rows.Children[0])
+            .GetVisualDescendants()
+            .OfType<TabControl>()
+            .Single();
+        SettingsScroll.SyncStickyRows(rows, []);
+
+        sourceTabs.SelectedItem = items[1];
+        Assert.Null(stickyTabs.SelectedItem);
+
+        sourceTabs.SelectedItem = items[0];
+        stickyTabs.SelectedItem = items[1];
+        Assert.Same(items[0], sourceTabs.SelectedItem);
+    }
+
+    [AvaloniaFact]
+    public void Sticky_parent_row_is_reused_when_child_header_changes()
+    {
+        var h1 = new Border();
+        var firstH2 = new Border();
+        var secondH2 = new Border();
+        var rows = new StackPanel();
+
+        SettingsScroll.SyncStickyRows(rows,
+        [
+            new SettingsScroll.Header(1, 0, h1),
+            new SettingsScroll.Header(2, 0, firstH2)
+        ]);
+        var h1Row = rows.Children[0];
+
+        SettingsScroll.SyncStickyRows(rows,
+        [
+            new SettingsScroll.Header(1, 0, h1),
+            new SettingsScroll.Header(2, 0, secondH2)
+        ]);
+
+        Assert.Same(h1Row, rows.Children[0]);
+        Assert.Equal(2, rows.Children.Count);
     }
 
     private static void Arrange(Control control, double width)
@@ -136,33 +168,4 @@ public sealed class ResponsiveControlTests
         control.Arrange(new Rect(size));
     }
 
-    private sealed class ModuleTabsModel : INotifyPropertyChanged
-    {
-        private object? _selectedModuleEditor;
-
-        public ModuleTabsModel()
-        {
-            ModuleEditors = [new object(), new object()];
-            _selectedModuleEditor = ModuleEditors[0];
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public ObservableCollection<object> ModuleEditors { get; }
-
-        public object? SelectedModuleEditor
-        {
-            get => _selectedModuleEditor;
-            set
-            {
-                if (ReferenceEquals(_selectedModuleEditor, value))
-                {
-                    return;
-                }
-
-                _selectedModuleEditor = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedModuleEditor)));
-            }
-        }
-    }
 }
