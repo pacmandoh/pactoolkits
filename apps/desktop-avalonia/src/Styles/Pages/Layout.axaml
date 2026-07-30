@@ -13,15 +13,20 @@
     <Setter Property="Margin" Value="{DynamicResource PageRootMargin}" />
   </Style>
 
-  <!--  Content header tabs only render their headers; page content is owned by the surrounding view.  -->
+  <!-- 避开 Shad TabControl Auto,8,* 中间缝 -->
   <Style Selector="TabControl.ContentHeaderTabs">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <Style Selector="TabControl.ContentHeaderTabs /template/ ContentPresenter#PART_SelectedContentHost">
     <Setter Property="Height" Value="0" />
+    <Setter Property="MaxHeight" Value="0" />
     <Setter Property="IsVisible" Value="False" />
     <Setter Property="Margin" Value="0" />
+  </Style>
+
+  <Style Selector="TabControl.ContentHeaderTabs /template/ LayoutTransformControl#LayoutTransform">
+    <Setter Property="Margin" Value="0,0,0,-8" />
   </Style>
 
   <Style Selector="TabControl.ContentHeaderTabs TabItem:selected /template/ ContentPresenter#ContentPresenter">
