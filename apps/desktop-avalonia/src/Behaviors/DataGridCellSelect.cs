@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Avalonia;
@@ -7,18 +8,20 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 /// <summary>
-/// 可选单元格选中：保留行背景，:current 格再深一档；Cmd/Ctrl+C 复制当前格文本；默认关闭（原生行选中）
+/// 可选单元格选中：数据格 :current 再深一档；# / 勾选列用 DgChrome 压住 :current；# 点选整行；Cmd/Ctrl+C 复制格或整行；默认关闭
 /// </summary>
 public class DataGridCellSelect
 {
     private const string StyleClass = "CellSelect";
+
+    /// <summary># / 勾选列 CellStyleClasses：CellSelect 下不显示 :current</summary>
+    public const string ChromeCellClass = "DgChrome";
 
     public static readonly AttachedProperty<bool> EnabledProperty =
         AvaloniaProperty.RegisterAttached<DataGridCellSelect, DataGrid, bool>("CellSelectEnabled");
@@ -27,8 +30,6 @@ public class DataGridCellSelect
     {
         public EventHandler<KeyEventArgs>? KeyDown;
         public EventHandler<DataGridCellPointerPressedEventArgs>? CellPointerPressed;
-        public EventHandler<EventArgs>? CurrentCellChanged;
-        public bool ClearingChromeCurrency;
     }
 
     private static readonly ConcurrentDictionary<DataGrid, State> States = new();
@@ -67,7 +68,6 @@ public class DataGridCellSelect
         {
             KeyDown = OnKeyDown,
             CellPointerPressed = OnCellPointerPressed,
-            CurrentCellChanged = (_, _) => ClearCurrencyIfChrome(grid),
         };
         if (!States.TryAdd(grid, state))
         {
@@ -77,8 +77,6 @@ public class DataGridCellSelect
         grid.Classes.Add(StyleClass);
         grid.AddHandler(InputElement.KeyDownEvent, state.KeyDown, RoutingStrategies.Tunnel);
         grid.CellPointerPressed += state.CellPointerPressed;
-        grid.CurrentCellChanged += state.CurrentCellChanged;
-        ClearCurrencyIfChrome(grid);
         DataGridVisualLifecycle.Register(grid, Attach, DetachState, GetEnabled);
     }
 
@@ -102,11 +100,6 @@ public class DataGridCellSelect
             grid.CellPointerPressed -= state.CellPointerPressed;
         }
 
-        if (state.CurrentCellChanged is not null)
-        {
-            grid.CurrentCellChanged -= state.CurrentCellChanged;
-        }
-
         // visual detach 期间改 Classes 可能牵动模板子树；禁用时再去掉 CellSelect
         if (removeStyleClass)
         {
@@ -127,31 +120,29 @@ public class DataGridCellSelect
             return;
         }
 
-        // # / 勾选列不参与单元格选中
-        Dispatcher.UIThread.Post(() => ClearCurrencyIfChrome(grid), DispatcherPriority.Background);
-    }
+        // DataGridCell 在 OnCellPointerPressed 之后才 UpdateStateOnMouse*；Handled 后不会把 :current 落到 chrome
+        e.PointerPressedEventArgs.Handled = true;
 
-    private static void ClearCurrencyIfChrome(DataGrid grid)
-    {
-        if (!GetEnabled(grid) || !States.TryGetValue(grid, out var state) || state.ClearingChromeCurrency)
+        if (!DataGridIndexColumn.IsIndexColumn(e.Column))
         {
             return;
         }
 
-        if (!IsChromeColumn(grid.CurrentColumn))
+        var item = e.Row?.DataContext;
+        if (item is not null)
         {
-            return;
+            try
+            {
+                grid.SelectedItem = item;
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("DataGridCellSelect", "grid.row_select.fail", "Failed to select row from index", ex);
+            }
         }
 
-        state.ClearingChromeCurrency = true;
-        try
-        {
-            DataGridInteractionHelper.ClearCurrency(grid);
-        }
-        finally
-        {
-            state.ClearingChromeCurrency = false;
-        }
+        // 整行选中：清掉数据格 :current（MakeFirst 可能再落到 #，DgChrome 无视觉）
+        DataGridInteractionHelper.ClearCurrency(grid);
     }
 
     private static void OnKeyDown(object? sender, KeyEventArgs e)
@@ -173,20 +164,31 @@ public class DataGridCellSelect
             return;
         }
 
-        if (IsChromeColumn(grid.CurrentColumn))
+        // 数据列 currency → 复制格；否则仅在有 SelectedItem 时复制整行（初始化 # 幽灵 currency 且无行选中 → 不复制）
+        if (grid.CurrentColumn is not null && !IsChromeColumn(grid.CurrentColumn))
+        {
+            e.Handled = true;
+            _ = CopyTextAsync(grid, TryGetCurrentCellText(grid), "grid.cell_copy.fail", "Failed to copy current cell");
+            return;
+        }
+
+        if (grid.SelectedItem is null)
         {
             return;
         }
 
         e.Handled = true;
-        _ = CopyCurrentCellAsync(grid);
+        _ = CopyTextAsync(grid, TryGetSelectedRowText(grid), "grid.row_copy.fail", "Failed to copy selected row");
     }
 
-    private static async System.Threading.Tasks.Task CopyCurrentCellAsync(DataGrid grid)
+    private static async System.Threading.Tasks.Task CopyTextAsync(
+        DataGrid grid,
+        string? text,
+        string eventName,
+        string message)
     {
         try
         {
-            var text = TryGetCurrentCellText(grid);
             if (string.IsNullOrEmpty(text))
             {
                 return;
@@ -202,7 +204,7 @@ public class DataGridCellSelect
         }
         catch (Exception ex)
         {
-            AppLog.Warn("DataGridCellSelect", "grid.cell_copy.fail", "Failed to copy current cell", ex);
+            AppLog.Warn("DataGridCellSelect", eventName, message, ex);
         }
     }
 
@@ -215,6 +217,38 @@ public class DataGridCellSelect
             return null;
         }
 
+        return TryGetCellText(column, item);
+    }
+
+    internal static string? TryGetSelectedRowText(DataGrid grid)
+    {
+        var item = grid.SelectedItem;
+        if (item is null)
+        {
+            return null;
+        }
+
+        return TryGetRowText(grid, item);
+    }
+
+    internal static string? TryGetRowText(DataGrid grid, object item)
+    {
+        var parts = new List<string>();
+        foreach (var column in grid.Columns.OrderBy(static c => c.DisplayIndex))
+        {
+            if (!column.IsVisible || IsChromeColumn(column))
+            {
+                continue;
+            }
+
+            parts.Add(TryGetCellText(column, item) ?? string.Empty);
+        }
+
+        return parts.Count == 0 ? null : string.Join('\t', parts);
+    }
+
+    private static string? TryGetCellText(DataGridColumn column, object item)
+    {
         try
         {
             var content = column.GetCellContent(item);

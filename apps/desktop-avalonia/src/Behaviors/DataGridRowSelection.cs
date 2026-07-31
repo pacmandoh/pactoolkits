@@ -339,6 +339,7 @@ public class DataGridRowSelection
                 Width = new DataGridLength(width),
                 CellTemplate = BuildCellTemplate(),
             };
+            column.CellStyleClasses.Add(DataGridCellSelect.ChromeCellClass);
             DataGridFrozenColumns.SetIsFrozen(column, true);
             return column;
         }

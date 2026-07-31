@@ -200,12 +200,15 @@
   </Style>
 
   <!--
-    Avalonia DataGrid 只有行选中：行 :selected 时各 Cell 也带 :selected，当前格另带 :current
-    DataGridCellSelect 保留行选中/hover；:current 再深一档，并支持 Cmd/Ctrl+C 复制格文本
-    Tone* 行 hover/selected → Color20；CellSelect :current → Color30
+    Avalonia MakeFirstDisplayed 必须留一个 CurrentColumn（清成 -1 会再落回 #），拦不住
+    CellSelect：只给非 DgChrome 数据格画 :current；# / 勾选列带 DgChrome，初始化幽灵 currency 无视觉
+    Tone* 行 hover/selected → Color20；数据格 :current → Color30
   -->
   <Style Selector="DataGrid.CellSelect DataGridCell:current">
     <Setter Property="Background" Value="{DynamicResource SelectionColor}" />
+  </Style>
+  <Style Selector="DataGrid.CellSelect DataGridCell.DgChrome:current">
+    <Setter Property="Background" Value="Transparent" />
   </Style>
 
   <Style Selector="DataGridRow.ToneWarning10">
@@ -220,6 +223,9 @@
   <Style Selector="DataGrid.CellSelect DataGridRow.ToneWarning10 DataGridCell:current">
     <Setter Property="Background" Value="{DynamicResource WarningColor30}" />
   </Style>
+  <Style Selector="DataGrid.CellSelect DataGridRow.ToneWarning10 DataGridCell.DgChrome:current">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
 
   <Style Selector="DataGridRow.ToneDanger10">
     <Setter Property="Background" Value="{DynamicResource ErrorColor10}" />
@@ -232,6 +238,9 @@
   </Style>
   <Style Selector="DataGrid.CellSelect DataGridRow.ToneDanger10 DataGridCell:current">
     <Setter Property="Background" Value="{DynamicResource ErrorColor30}" />
+  </Style>
+  <Style Selector="DataGrid.CellSelect DataGridRow.ToneDanger10 DataGridCell.DgChrome:current">
+    <Setter Property="Background" Value="Transparent" />
   </Style>
 
 </Styles>

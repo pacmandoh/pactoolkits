@@ -362,6 +362,7 @@ public class DataGridIndexColumn
                 CanUserResize = false,
                 IsReadOnly = true,
             };
+            column.CellStyleClasses.Add(DataGridCellSelect.ChromeCellClass);
             DataGridFrozenColumns.SetIsFrozen(column, true);
             return column;
         }
