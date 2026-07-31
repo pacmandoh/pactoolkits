@@ -43,6 +43,8 @@ jq '
 ' "$ROOT_DIR/release-manifest.json" > "$stable_fixture_manifest"
 validate_manifest_v2 "$stable_fixture_manifest"
 live_release_channel="$(manifest_release_channel "$ROOT_DIR/release-manifest.json")"
+stable_db_version="$(manifest_database_postgres_version "$stable_fixture_manifest")"
+beta_db_upgrade_version="$(semver_bump_patch "$stable_db_version")"
 
 eval "$(./scripts/resolve-release-plan.sh "$ROOT_DIR/release-manifest.json" | sed 's/^\([^=]*\)=\(.*\)$/export \1=\2/')"
 [[ "${desktop_artifact_name:-}" == pactoolkits-desktop-avalonia-win-x64-* ]] || {
@@ -223,15 +225,17 @@ jq '
   --allow-beta-db-change false >/dev/null
 
 beta_db_upgrade_manifest="$(mktemp)"
-jq '
+jq \
+  --arg db "$beta_db_upgrade_version" \
+  '
   .release.channel = "beta" |
   .product.version = "0.18.0-beta.1" |
   .components.desktop.avalonia.version = "0.18.0-beta.1" |
-  .components.desktop.avalonia.minDbSchema = "1.2.24" |
-  .components.desktop.avalonia.maxDbSchema = "1.2.24" |
-  .components["agents"].minDbSchema = "1.2.24" |
-  .components["agents"].maxDbSchema = "1.2.24" |
-  .components.database.postgres.version = "1.2.24"
+  .components.desktop.avalonia.minDbSchema = $db |
+  .components.desktop.avalonia.maxDbSchema = $db |
+  .components["agents"].minDbSchema = $db |
+  .components["agents"].maxDbSchema = $db |
+  .components.database.postgres.version = $db
 ' "$stable_fixture_manifest" > "$beta_db_upgrade_manifest"
 if ./scripts/validate-database-policy.sh \
   --manifest "$beta_db_upgrade_manifest" \
@@ -255,12 +259,14 @@ if [[ "$live_release_channel" == "beta" ]]; then
     --base-ref refs/heads/pactoolkits-missing-test-ref \
     --base-manifest "$legacy_baseline_manifest" \
     --allow-beta-db-change false >/dev/null
-  jq '
-    .components.desktop.avalonia.minDbSchema = "1.2.24" |
-    .components.desktop.avalonia.maxDbSchema = "1.2.24" |
-    .components["agents"].minDbSchema = "1.2.24" |
-    .components["agents"].maxDbSchema = "1.2.24" |
-    .components.database.postgres.version = "1.2.24"
+  jq \
+    --arg db "$beta_db_upgrade_version" \
+    '
+    .components.desktop.avalonia.minDbSchema = $db |
+    .components.desktop.avalonia.maxDbSchema = $db |
+    .components["agents"].minDbSchema = $db |
+    .components["agents"].maxDbSchema = $db |
+    .components.database.postgres.version = $db
   ' "$ROOT_DIR/release-manifest.json" > "${legacy_baseline_manifest}.candidate"
   if ./scripts/validate-database-policy.sh \
     --manifest "${legacy_baseline_manifest}.candidate" \
