@@ -12,7 +12,6 @@
   - Linux：`~/.config/PacToolkits/logs/desktop`
   - Windows：`%AppData%\PacToolkits\logs\desktop`
 - 日志文件：`desktop-YYYY-MM-DD.log`（同日滚动为 `desktop-YYYY-MM-DD.N.log`）
-- 升级迁移：旧默认目录 `.../logs/ui` 在加载配置时会改写为 `.../logs/desktop`（事件 `logging.directory.migrate`）；历史文件不自动搬迁
 - 格式：JSON Lines；关键字段包括 `ts`、`level`、`module`、`event`、`message`、`exception`（可选）、`version` 和 `context`
 - Agents 事件主要由 `Agents`、`MainWindowVM` 和 `Settings.Agents` 模块记录
 
@@ -220,8 +219,6 @@
 ### AppConfigStore
 
 - `config.atomic_cleanup.fail` (Warn) — Failed to cleanup temporary config file
-- `config.legacy_migrate.fail` (Warn) — Failed to migrate legacy config file
-- `logging.directory.migrate` (Warn) — Migrating legacy desktop log directory to new standard location
 
 ### AppViews
 

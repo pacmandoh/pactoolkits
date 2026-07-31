@@ -34,7 +34,6 @@ public interface IAppConfigStore
 public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
 {
     private const string UnifiedConfigFileName = "PacToolkits.Desktop.config.json";
-    private const string LegacyConfigFileName = "pactoolkits-ui.config.json";
     private static readonly JsonSerializerOptions _writeOptions = new()
     {
         WriteIndented = true,
@@ -48,55 +47,36 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
     public string ConfigPath { get; }
 
     public AppConfigStore()
+        : this(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "PacToolkits"))
     {
-        var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        _configDir = Path.Combine(baseDir, "PacToolkits");
+    }
+
+    internal AppConfigStore(string configDir)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(configDir);
+        _configDir = configDir;
         Directory.CreateDirectory(_configDir);
         ConfigPath = Path.Combine(_configDir, UnifiedConfigFileName);
-        MigrateLegacyConfig(_configDir);
 
         InitConfig();
     }
 
     public AppConfigRoot Load()
     {
-        string? migratedLogDirectoryFrom = null;
-        string? migratedLogDirectoryTo = null;
-        AppConfigRoot normalized;
-
         _ioGate.Wait();
         try
         {
             var raw = ReadUnifiedOrDefault();
-            var rawLogDirectory = raw.Logging?.LogDirectory ?? string.Empty;
-            normalized = Normalize(raw);
-            if (LogDirectory.IsLegacyLogsDirectory(rawLogDirectory))
-            {
-                migratedLogDirectoryFrom = rawLogDirectory.Trim();
-                migratedLogDirectoryTo = normalized.Logging.LogDirectory;
-            }
-
+            var normalized = Normalize(raw);
             PersistIfChanged(normalized);
+            return normalized;
         }
         finally
         {
             _ioGate.Release();
         }
-
-        if (migratedLogDirectoryFrom is not null)
-        {
-            AppLog.TryGetLogger()?.Info(
-                "AppConfigStore",
-                "logging.directory.migrate",
-                "Migrating legacy desktop log directory to new standard location",
-                context: new
-                {
-                    from = migratedLogDirectoryFrom,
-                    to = migratedLogDirectoryTo
-                });
-        }
-
-        return normalized;
     }
 
     public void Save(AppConfigRoot config)
@@ -173,15 +153,14 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
 
     private AppConfigRoot ReadUnifiedOrDefault()
     {
-        var readablePath = ResolveReadableConfigPath();
         try
         {
-            if (!File.Exists(readablePath))
+            if (!File.Exists(ConfigPath))
             {
                 return new AppConfigRoot();
             }
 
-            var json = File.ReadAllText(readablePath);
+            var json = File.ReadAllText(ConfigPath);
             return JsonSerializer.Deserialize<AppConfigRoot>(json) ?? new AppConfigRoot();
         }
         catch
@@ -190,116 +169,17 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
         }
     }
 
-    private string ResolveReadableConfigPath()
-    {
-        var primaryPath = Path.Combine(_configDir, UnifiedConfigFileName);
-        if (File.Exists(primaryPath))
-        {
-            return primaryPath;
-        }
-
-        var legacyPath = Path.Combine(_configDir, LegacyConfigFileName);
-        return File.Exists(legacyPath) ? legacyPath : primaryPath;
-    }
-
     private void InitConfig()
     {
         _ioGate.Wait();
         try
         {
-            var readablePath = ResolveReadableConfigPath();
-            string? existingJson = null;
-            AppConfigRoot raw;
-            try
-            {
-                if (File.Exists(readablePath))
-                {
-                    existingJson = File.ReadAllText(readablePath);
-                    raw = JsonSerializer.Deserialize<AppConfigRoot>(existingJson) ?? new AppConfigRoot();
-                }
-                else
-                {
-                    raw = new AppConfigRoot();
-                }
-            }
-            catch
-            {
-                raw = new AppConfigRoot();
-                existingJson = null;
-            }
-
-            var normalized = Normalize(raw);
-            var json = SerializeDesktopConfig(normalized);
-            if (File.Exists(readablePath)
-                && HasPersistedDefaults(raw)
-                && HasRequiredConfigKeys(existingJson))
-            {
-                // 已有配置仍需持久化规范化结果，使模块发现和路径修正跨进程重启生效
-                if (!string.Equals(readablePath, ConfigPath, StringComparison.OrdinalIgnoreCase)
-                    || !string.Equals(existingJson, json, StringComparison.Ordinal))
-                {
-                    AtomicFile.WriteAllText(ConfigPath, json);
-                }
-
-                return;
-            }
-
-            AtomicFile.WriteAllText(ConfigPath, json);
+            var normalized = Normalize(ReadUnifiedOrDefault());
+            PersistIfChanged(normalized);
         }
         finally
         {
             _ioGate.Release();
-        }
-    }
-
-    private static bool HasPersistedDefaults(AppConfigRoot? root)
-    {
-        if (root?.Agents is null)
-        {
-            return false;
-        }
-
-        return !string.IsNullOrWhiteSpace(root.Agents.ExecutablePath)
-               || root.Agents.Modules?.Count > 0
-               || !string.IsNullOrWhiteSpace(root.Postgres?.Host);
-    }
-
-    private static bool HasRequiredConfigKeys(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return false;
-        }
-
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            if (root.ValueKind != JsonValueKind.Object)
-            {
-                return false;
-            }
-
-            if (!root.TryGetProperty("MsfxApi", out var msfx) || msfx.ValueKind != JsonValueKind.Object)
-            {
-                return false;
-            }
-
-            if (!msfx.TryGetProperty("RefEntId", out _))
-            {
-                return false;
-            }
-
-            if (!root.TryGetProperty("Agents", out var agents) || agents.ValueKind != JsonValueKind.Object)
-            {
-                return false;
-            }
-
-            return agents.TryGetProperty("ExecutablePath", out _);
-        }
-        catch
-        {
-            return false;
         }
     }
 
@@ -485,32 +365,6 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
 
     private string SerializeDesktopConfig(AppConfigRoot normalized)
         => JsonSerializer.Serialize(normalized, _writeOptions);
-
-    private static void MigrateLegacyConfig(string configDir)
-    {
-        var newPath = Path.Combine(configDir, UnifiedConfigFileName);
-        if (File.Exists(newPath))
-        {
-            return;
-        }
-
-        var legacyPath = Path.Combine(configDir, LegacyConfigFileName);
-        if (!File.Exists(legacyPath))
-        {
-            return;
-        }
-
-        try
-        {
-            File.Copy(legacyPath, newPath);
-        }
-        catch (Exception ex)
-        {
-            AppLog.Warn("AppConfigStore", "config.legacy_migrate.fail",
-                "Failed to migrate legacy config file", ex,
-                new { legacyPath, newPath });
-        }
-    }
 
     public PgOptions LoadPgOptions() => Load().Postgres;
 

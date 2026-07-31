@@ -11,9 +11,35 @@ public sealed class AppConfigStoreTests
     private const string TestModuleId = "ModuleA";
 
     [Fact]
+    public void InitConfig_creates_default_config_on_first_run()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "pactoolkits-config-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(dir);
+
+            var store = new AppConfigStore(dir);
+
+            Assert.True(File.Exists(store.ConfigPath));
+            Assert.Equal("PacToolkits.Desktop.config.json", Path.GetFileName(store.ConfigPath));
+
+            var loaded = store.Load();
+            Assert.Equal(2, loaded.SchemaVersion);
+            Assert.Equal("localhost", loaded.Postgres.Host);
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void Normalize_sets_schema_version_2()
     {
-        var normalized = AppConfigStore.Normalize(new AppConfigRoot { SchemaVersion = 1 });
+        var normalized = AppConfigStore.Normalize(new AppConfigRoot { SchemaVersion = 0 });
 
         Assert.Equal(2, normalized.SchemaVersion);
     }
