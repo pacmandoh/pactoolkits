@@ -35,9 +35,7 @@ Desktop 不包含数据库迁移执行器，安装包也不分发 migration SQL�
 1. 校验 Manifest 的 DB 版本及所有组件 min/max 范围
 2. 确认 Stable 与 Beta Feed 相互隔离，且目标 manifest 来自正确通道
 3. 确认没有修改或删除已执行 migration
-4. Beta 必须以 Main 为 DB 基线；存在数据库版本或 migration 变化时必须显式授权
-5. Beta DB 变更只能部署到隔离数据库
-6. 验证 Desktop 与所有启用 Agents 对当前 Schema 均兼容
-7. 验证目标版本失败时保持只读或阻止 Agents 启动
+4. 验证 Desktop 与所有启用 Agents 对当前 Schema 均兼容
+5. 验证目标版本失败时保持只读或阻止 Agents 启动
 
 Beta 的具体发布要求见 [Beta 发布规则](beta-release-policy.md)。

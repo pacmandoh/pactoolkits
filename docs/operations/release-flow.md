@@ -143,9 +143,7 @@ cp scripts/config.example.json scripts/config.json
 
 - Desktop 只检查数据库兼容性，不执行初始化、迁移或降级
 - 数据库变更必须通过服务器或受控运维节点上的 PostgreSQL 部署脚本执行
-- Beta 数据库测试必须使用隔离数据库
-- Beta 数据库部署需要 `Database.Environment=isolated` 与对应的用户或 CI 显式授权
-- Beta 隔离数据库仅用于开发和测试，不是生产升级通道
+- Beta 数据库测试应使用与生产隔离的环境；实际 deploy 由运维流程控制
 - 应用可以回退，数据库默认只前向演进
 - 数据库高于 Stable `maxDbSchema` 时，Stable 必须停止写入，且不能切回该 Stable
 - 禁止把数据库备份恢复当作普通版本回退；恢复备份仅用于经过审批的灾难恢复

@@ -16,21 +16,13 @@ CI 通过 `validate-release.yml`、`validate-release-channel.sh` 和 `validate-d
 
 ## 数据库限制
 
-Beta 应用不得迁移共享生产数据库，只能连接处于其兼容范围内的数据库。CI 始终使用 `origin/main` 作为稳定数据库基线。普通拉取请求和分支 CI 仅检查 Manifest、目录迁移以及已存在 migration 的不可变性，不授予数据库发布权限。
+Beta 应用不得迁移共享生产数据库，只能连接处于其兼容范围内的数据库。Desktop 不执行 migration；数据库变更必须在服务器或受控运维节点通过 `database/postgres/scripts/deploy.sh` 独立部署。
 
-Beta 发布默认沿用主分支的 `database.postgres.version`。数据库版本高于主分支或新增 SQL migration 时必须显式授权。所有通道中的既有 migration 均不得修改、删除或重命名。
+CI 的 `validate-database-policy.sh` 相对 `origin/main` 只检查 **已存在 migration 的不可变性**（禁止修改、删除或重命名）。允许追加新 migration 或提高 manifest 中的 `database.postgres.version`；实际是否升级生产或共享库由运维流程决定，不由 Desktop 或 CI 授权开关代管。
 
 Migration 差异按文件名（`V*__*.sql`）匹配。基线仍使用历史路径 `pactoolkits-db/sql/migrations/` 时，CI 会按同名文件与当前 `database/postgres/migrations/` 对齐；仅移动目录不视为 schema 变更。
 
-需要验证新的 Beta 专用数据库 migration 时，必须同时满足：
-
-1. 使用从 Stable 环境克隆或由受控备份创建的隔离测试数据库
-2. `Database.Environment=isolated`
-3. 发布流程显式设置 `allow_beta_db_change=true`
-
-普通 Beta 发布不得超出主分支数据库基线或携带 migration 差异。需要发布数据库变更时，必须手动触发 `workflow_dispatch` 并启用 `allow_beta_db_change`。该授权仅对当前部署流程有效，不写入 release manifest。
-
-隔离 Beta 数据库仅用于开发和测试，不得作为生产升级通道，也不得将生产数据库连接标记为 `isolated`。
+Beta 环境应使用与生产隔离的测试库验证 schema 变更；该隔离要求属于运维与测试流程，不由应用内配置或 CI 布尔开关强制执行。
 
 ## 升级与退出
 
