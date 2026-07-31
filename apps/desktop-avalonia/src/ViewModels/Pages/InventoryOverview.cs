@@ -22,6 +22,8 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPage
 {
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
+    // 写库后短暂停住 LISTEN→全量 Reload；静默对账立刻拉
+    private static readonly TimeSpan PostWriteAutoRefreshPause = TimeSpan.FromSeconds(2);
     private const string OpsScope = UnlockScopes.SharedOps;
     private static readonly int[] PageSizeOptionValues = [20, 50, 100];
 
@@ -91,13 +93,18 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     private string? _lastValidatedPreviewTargetDrug;
     private string? _lastValidatedPreviewTargetSpec;
     private CancellationTokenSource? _previewRefreshCts;
-    private readonly Collection<PendingStockEdit> _pendingStockEdits = new();
+    private readonly Collection<StockRowEditRequest> _pendingStockEdits = new();
     private readonly Dictionary<int, StockEditSnapshot> _stockEditSnapshotByRow = new();
     private readonly Dictionary<string, StockRowSelection> _selectedStockRowsByTrace = new(StringComparer.Ordinal);
     private IReadOnlyList<StockRowSelection> _selectedStockRowsSnapshot = Array.Empty<StockRowSelection>();
     private int _lastModeIndex;
     private DateTimeOffset _suppressAutoRefreshUntilUtc = DateTimeOffset.MinValue;
+    private bool _flushRefreshAfterStockEdit;
     private CancellationTokenSource? _silentReconcileCts;
+    private CancellationTokenSource? _stockEditRemoteCts;
+    private readonly Dictionary<string, TracePoolStockRowDto> _remoteStockBaselineByTrace = new(StringComparer.Ordinal);
+    private bool _remoteStockMissingAttention;
+    private bool _stockEditSaveInFlight;
     private int _detailStockEpoch;
     private readonly SearchInputDebouncer _keywordSearchDebouncer = new(450);
     private readonly DispatcherTimer _unlockStatusTimer;
@@ -144,6 +151,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         OnPropertyChanged(nameof(ShowUnlock));
         OnPropertyChanged(nameof(ShowLock));
         OnPropertyChanged(nameof(CanToggleReassign));
+        NotifyEditState();
         RefreshPageCommands();
     }
 
@@ -200,7 +208,11 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         => !IsDetailMode
             ? string.Empty
             : IsStockEditEnabled
-                ? (HasPendingChanges ? "有未提交变更" : "编辑中")
+                ? HasRemoteStockChange
+                    ? "有他端变更"
+                    : HasPendingChanges
+                        ? "有未提交变更"
+                        : "编辑中"
                 : string.Empty;
     public bool HasActiveKeyword => !string.IsNullOrWhiteSpace(NormalizeInput(Keyword));
 
@@ -266,6 +278,10 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     public bool HasPrevPage => IsPagedMode && PageIndex > 1;
     public bool HasNextPage => IsPagedMode && PageIndex < TotalPages;
     public bool HasPendingChanges => IsStockEditEnabled && _pendingStockEdits.Count > 0;
+    public bool HasRemoteStockChange
+        => IsStockEditEnabled
+           && (_remoteStockBaselineByTrace.Count > 0 || _remoteStockMissingAttention);
+    public bool HasEditAttention => HasPendingChanges || HasRemoteStockChange;
     public IReadOnlyList<StockRowSelection> SelectedStockRowsSnapshot => _selectedStockRowsSnapshot;
 
     public InventoryOverview(
@@ -433,6 +449,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
             target.Qty = source.Qty;
             target.Remain = source.Remain;
             target.Status = source.Status;
+            target.Version = source.Version;
             target.IsLow = source.IsLow;
             target.IsDeprecated = source.IsDeprecated;
         }
@@ -595,6 +612,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     public override Task OnPageDeactivatedAsync(CancellationToken ct = default)
     {
         CancelSilentReconcile();
+        CancelStockEditRemoteReconcile();
         return base.OnPageDeactivatedAsync(ct);
     }
 
@@ -605,9 +623,17 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         _silentReconcileCts = null;
     }
 
+    private void CancelStockEditRemoteReconcile()
+    {
+        _stockEditRemoteCts?.Cancel();
+        _stockEditRemoteCts?.Dispose();
+        _stockEditRemoteCts = null;
+    }
+
     private void BeginStockReload()
     {
         CancelSilentReconcile();
+        CancelStockEditRemoteReconcile();
         Interlocked.Increment(ref _detailStockEpoch);
     }
 
@@ -624,6 +650,8 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
 
     private Task ReloadAsync(bool preserveEdit = false)
     {
+        _flushRefreshAfterStockEdit = false;
+
         if (IsStockEditEnabled && !preserveEdit)
         {
             DiscardStockEdits();
@@ -645,6 +673,8 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     // 静默重载不显示区块加载状态，避免筛选刷新中断批量改派操作
     private Task ReloadQuietAsync(bool preserveEdit = false)
     {
+        _flushRefreshAfterStockEdit = false;
+
         if (IsStockEditEnabled && !preserveEdit)
         {
             DiscardStockEdits();
@@ -778,6 +808,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
                 qty: row.Qty,
                 remain: row.Remain,
                 status: row.Status,
+                version: row.Version,
                 isLow: row.IsLow,
                 isDeprecated: row.IsDeprecated));
         }
@@ -885,7 +916,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         RefreshCommandsCoalesced("inventory.refresh_commands", () =>
         {
             RefreshCommands(GetNotifiableCommands());
-            RefreshPendingChanges();
+            NotifyEditState();
         });
     }
 
@@ -1014,9 +1045,11 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         PreviewNoticeText = null;
     }
 
-    private void RefreshPendingChanges()
+    private void NotifyEditState()
     {
         OnPropertyChanged(nameof(HasPendingChanges));
+        OnPropertyChanged(nameof(HasRemoteStockChange));
+        OnPropertyChanged(nameof(HasEditAttention));
         OnPropertyChanged(nameof(EditStateText));
         OnPropertyChanged(nameof(ShowEditState));
     }
@@ -1061,6 +1094,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         _silentReconcileCts?.Cancel();
         _silentReconcileCts?.Dispose();
         _silentReconcileCts = null;
+        CancelStockEditRemoteReconcile();
         _keywordSearchDebouncer.Dispose();
         base.Dispose();
     }

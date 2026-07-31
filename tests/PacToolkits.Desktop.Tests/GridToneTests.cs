@@ -26,8 +26,8 @@ public sealed class GridToneTests
     [Fact]
     public void Detail_row_only_tones_empty_remain()
     {
-        var empty = new StockRowItem(1, "a", "s", "t", qty: 10, remain: 0, status: 0, isLow: true, isDeprecated: false);
-        var partial = new StockRowItem(1, "a", "s", "t", qty: 10, remain: 4, status: 0, isLow: false, isDeprecated: false);
+        var empty = new StockRowItem(1, "a", "s", "t", qty: 10, remain: 0, status: 0, version: 0, isLow: true, isDeprecated: false);
+        var partial = new StockRowItem(1, "a", "s", "t", qty: 10, remain: 4, status: 0, version: 0, isLow: false, isDeprecated: false);
 
         Assert.Equal(GridTone.Danger, empty.RowTone);
         Assert.Equal(GridTone.None, partial.RowTone);

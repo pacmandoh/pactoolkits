@@ -77,47 +77,79 @@ public sealed class InventoryOverviewService : IInventoryOverviewService
         return dto is not null;
     }
 
-    public async Task<StockCellEditBatchResult> ApplyStockCellEditsAsync(
-        IReadOnlyList<StockCellEditRequest> edits,
+    public async Task<StockRowEditBatchResult> ApplyStockRowEditsAsync(
+        IReadOnlyList<StockRowEditRequest> edits,
         TraceCodeValidationRule traceCodeRule,
         CancellationToken ct)
     {
         if (edits.Count == 0)
         {
-            return new StockCellEditBatchResult(0, 0, null);
+            return new StockRowEditBatchResult(
+                0, 0, null, Array.Empty<StockRowEditSaved>(), Array.Empty<StockRowEditConflict>());
         }
 
         var savedCount = 0;
         var failedCount = 0;
         string? lastError = null;
+        List<StockRowEditConflict>? conflicts = null;
+        List<StockRowEditSaved>? saved = null;
 
         foreach (var edit in edits)
         {
             try
             {
-                if (string.Equals(edit.ColumnHeader, "追溯码", StringComparison.Ordinal)
-                    && !TraceCodeAnalyzer.TryValidateFormat(edit.NewValue, traceCodeRule, out var formatError))
+                if (edit.NewTraceCode is null && edit.NewRemain is null)
                 {
-                    failedCount++;
-                    lastError = $"{edit.MatchTraceCode} {edit.ColumnHeader}: {formatError}";
                     continue;
                 }
 
-                await _repo.UpdateStockCellAsync(
+                if (edit.NewTraceCode is not null
+                    && !TraceCodeAnalyzer.TryValidateFormat(edit.NewTraceCode, traceCodeRule, out var formatError))
+                {
+                    failedCount++;
+                    lastError = $"{edit.MatchTraceCode}: {formatError}";
+                    continue;
+                }
+
+                var newVersion = await _repo.UpdateStockRowAsync(
                     edit.MatchTraceCode,
-                    edit.ColumnHeader,
-                    edit.NewValue,
+                    edit.ExpectedVersion,
+                    edit.NewTraceCode,
+                    edit.NewRemain,
                     ct).ConfigureAwait(false);
                 savedCount++;
+                saved ??= new List<StockRowEditSaved>();
+                saved.Add(new StockRowEditSaved(
+                    edit.MatchTraceCode,
+                    newVersion,
+                    edit.NewTraceCode,
+                    edit.NewRemain));
+            }
+            catch (TracePoolConcurrencyException ex)
+            {
+                lastError = $"{edit.MatchTraceCode}: {ex.Message}";
+                conflicts ??= new List<StockRowEditConflict>();
+                conflicts.Add(new StockRowEditConflict(
+                    edit.MatchTraceCode,
+                    edit.NewTraceCode,
+                    edit.NewRemain,
+                    ex.Current));
             }
             catch (Exception ex)
             {
                 failedCount++;
-                lastError = $"{edit.MatchTraceCode} {edit.ColumnHeader}: {ex.Message}";
+                lastError = $"{edit.MatchTraceCode}: {ex.Message}";
             }
         }
 
-        return new StockCellEditBatchResult(savedCount, failedCount, lastError);
+        return new StockRowEditBatchResult(
+            savedCount,
+            failedCount,
+            lastError,
+            saved is { Count: > 0 } ? saved : Array.Empty<StockRowEditSaved>(),
+            conflicts is { Count: > 0 }
+                ? conflicts
+                : Array.Empty<StockRowEditConflict>());
     }
 
     public Task<int> DeleteStockByTraceCodesAsync(IReadOnlyList<string> traceCodes, CancellationToken ct)

@@ -83,10 +83,11 @@ public partial class MainWindowViewModel
     {
         PostOnUi(() =>
         {
-            var (skipInventoryRefresh, skipDrugIndexRefresh) =
+            // defer 只推迟立刻刷新；dirty 仍按 topic 标记，避免库存编辑结束后漏刷
+            var (deferInventoryRefresh, deferDrugIndexRefresh) =
                 WorkspaceTopicRefresh.SkipActiveRefresh(ActivePage, topic);
 
-            ApplyTopicDirtyMarks(topic, skipInventoryRefresh, skipDrugIndexRefresh);
+            ApplyTopicDirtyMarks(topic);
 
             if (ActivePage is DrugIndex drugIndex
                 && IsDrugIndexTopic(topic))
@@ -97,8 +98,19 @@ public partial class MainWindowViewModel
                 return;
             }
 
-            if (!skipInventoryRefresh
-                && !skipDrugIndexRefresh)
+            // 库存编辑中：仍 Mark dirty + defer Reload；另走静默感知，不 Discard
+            if (ActivePage is InventoryOverview inventory
+                && deferInventoryRefresh
+                && inventory.IsStockEditEnabled)
+            {
+                ObserveDetached(
+                    inventory.ReconcileRemoteDuringStockEditAsync(),
+                    "inventory.stock_edit.remote_reconcile_fail");
+                return;
+            }
+
+            if (!deferInventoryRefresh
+                && !deferDrugIndexRefresh)
             {
                 TryRefreshDirtyActivePage();
             }
@@ -137,9 +149,12 @@ public partial class MainWindowViewModel
         }
     }
 
-    private void ApplyTopicDirtyMarks(string? topic, bool skipInventoryPage, bool skipDrugIndexPage)
+    private void ApplyTopicDirtyMarks(string? topic)
     {
-        var plan = WorkspaceTopicRefresh.PlanDirtyMarks(topic, skipInventoryPage, skipDrugIndexPage);
+        var plan = WorkspaceTopicRefresh.PlanDirtyMarks(
+            topic,
+            skipInventoryPage: false,
+            skipDrugIndexPage: false);
         WorkspaceTopicRefresh.ApplyDirtyPlan(
             plan,
             () => _lookup.InvalidateDrugCatalog(),

@@ -32,10 +32,11 @@ public interface IInventoryOverviewRepo
         int pageSize,
         CancellationToken ct);
 
-    Task UpdateStockCellAsync(
-        string traceCode,
-        string columnHeader,
-        string? rawValue,
+    Task<long> UpdateStockRowAsync(
+        string matchTraceCode,
+        long expectedVersion,
+        string? newTraceCode,
+        int? newRemain,
         CancellationToken ct);
 
     Task<int> DeleteStockByTraceCodesAsync(

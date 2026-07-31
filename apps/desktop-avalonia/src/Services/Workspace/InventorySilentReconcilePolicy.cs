@@ -17,7 +17,8 @@ public static class InventorySilentReconcilePolicy
         int currentPageIndex,
         string? capturedKeyword,
         string? currentKeyword,
-        bool isCancelled)
+        bool isCancelled,
+        bool requireStockEditEnabled = false)
     {
         if (isCancelled)
         {
@@ -29,7 +30,7 @@ public static class InventorySilentReconcilePolicy
             return false;
         }
 
-        if (isStockEditEnabled)
+        if (isStockEditEnabled != requireStockEditEnabled)
         {
             return false;
         }

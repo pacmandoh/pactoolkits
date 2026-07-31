@@ -322,8 +322,8 @@
         <controls:CardPanel.HeaderContent>
           <controls:StatusPill
             VerticalAlignment="Center"
-            Classes.ToneDone25="{Binding !HasPendingChanges}"
-            Classes.ToneWarning25="{Binding HasPendingChanges}"
+            Classes.ToneDone25="{Binding !HasEditAttention}"
+            Classes.ToneWarning25="{Binding HasEditAttention}"
             Icon="SaveAll"
             IconSize="14"
             IsVisible="{Binding ShowEditState}"

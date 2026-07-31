@@ -49,6 +49,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                   t.qty,
                   t.remain,
                   t.status,
+                  t.version,
                   (t.remain = 0) as is_low,
                   (dm.drug_id is not null) as is_deprecated
                 from trace_pool t
@@ -83,8 +84,9 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
                     Qty: r.GetInt32(3),
                     Remain: r.GetInt32(4),
                     Status: r.GetInt32(5),
-                    IsLow: r.GetBoolean(6),
-                    IsDeprecated: r.GetBoolean(7)
+                    Version: r.GetInt64(6),
+                    IsLow: r.GetBoolean(7),
+                    IsDeprecated: r.GetBoolean(8)
                 ));
             }
             return new PagedResult<TracePoolStockRowDto>(list, totalCount);
@@ -270,75 +272,128 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             return new PagedResult<LowStockRowDto>(list, totalCount);
         }, ct);
 
-    public Task UpdateStockCellAsync(
-        string traceCode,
-        string columnHeader,
-        string? rawValue,
+    public Task<long> UpdateStockRowAsync(
+        string matchTraceCode,
+        long expectedVersion,
+        string? newTraceCode,
+        int? newRemain,
         CancellationToken ct)
         => _db.WithConnection(async (conn, token) =>
         {
-            if (string.IsNullOrWhiteSpace(traceCode))
+            if (string.IsNullOrWhiteSpace(matchTraceCode))
             {
-                throw new ArgumentException("trace_code 不能为空", nameof(traceCode));
+                throw new ArgumentException("trace_code 不能为空", nameof(matchTraceCode));
             }
 
-            var header = (columnHeader ?? string.Empty).Trim();
-            var value = (rawValue ?? string.Empty).Trim();
-
-            string sql;
-            object param;
-
-            switch (header)
+            if (newTraceCode is null && newRemain is null)
             {
-                case "追溯码":
-                    if (value.Length == 0)
-                    {
-                        throw new ArgumentException("追溯码不能为空", nameof(rawValue));
-                    }
-
-                    sql = "update trace_pool set trace_code = @v where trace_code = @trace_code";
-                    param = value;
-                    break;
-                case "数量":
-                    if (!int.TryParse(value, out var qty) || qty <= 0)
-                    {
-                        throw new ArgumentException("数量必须为大于 0 的整数", nameof(rawValue));
-                    }
-
-                    sql = """
-                          update trace_pool
-                          set qty = @v,
-                              remain = case when remain > @v then @v else remain end
-                          where trace_code = @trace_code
-                          """;
-                    param = qty;
-                    break;
-                case "剩余":
-                    if (!int.TryParse(value, out var remain) || remain < 0)
-                    {
-                        throw new ArgumentException("剩余必须为大于等于 0 的整数", nameof(rawValue));
-                    }
-
-                    sql = """
-                          update trace_pool
-                          set remain = least(@v, greatest(qty, 0))
-                          where trace_code = @trace_code
-                          """;
-                    param = remain;
-                    break;
-                default:
-                    throw new ArgumentException($"不支持编辑列：{header}", nameof(columnHeader));
+                throw new ArgumentException("至少需要更新一列");
             }
+
+            var match = matchTraceCode.Trim();
+            string? normalizedTrace = null;
+            if (newTraceCode is not null)
+            {
+                normalizedTrace = newTraceCode.Trim();
+                if (normalizedTrace.Length == 0)
+                {
+                    throw new ArgumentException("追溯码不能为空", nameof(newTraceCode));
+                }
+            }
+
+            if (newRemain is { } remain && remain < 0)
+            {
+                throw new ArgumentException("剩余必须为大于等于 0 的整数", nameof(newRemain));
+            }
+
+            // version 由 trg_trace_pool_bump_version 自增；WHERE 校验 expected
+            const string sql = """
+                update trace_pool
+                set
+                  trace_code = case when @has_trace then @new_trace else trace_code end,
+                  remain = case
+                    when @has_remain then least(@remain, greatest(qty, 0))
+                    else remain
+                  end
+                where trace_code = @match_trace
+                  and version = @expected_version
+                returning version
+                """;
 
             await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
-            cmd.AddParam("trace_code", traceCode);
-            cmd.AddParam("v", param);
-            var affected = await cmd.ExecuteNonQueryAsync(token);
-            if (affected <= 0)
+            cmd.AddParam("match_trace", match);
+            cmd.AddParam("expected_version", expectedVersion);
+            cmd.AddParam("has_trace", normalizedTrace is not null);
+            cmd.AddParam("new_trace", (object?)normalizedTrace ?? DBNull.Value);
+            cmd.AddParam("has_remain", newRemain.HasValue);
+            cmd.AddParam("remain", (object?)newRemain ?? DBNull.Value);
+
+            await using (var reader = await cmd.ExecuteReaderAsync(token))
+            {
+                if (await reader.ReadAsync(token))
+                {
+                    return reader.GetInt64(0);
+                }
+            }
+
+            var current = await TryGetStockRowByTraceCodeAsync(conn, match, token);
+            if (current is null && normalizedTrace is not null)
+            {
+                current = await TryGetStockRowByTraceCodeAsync(conn, normalizedTrace, token);
+            }
+
+            if (current is null)
             {
                 throw new InvalidOperationException("更新失败：未找到对应追溯码记录");
             }
+
+            throw new TracePoolConcurrencyException("该记录已被其他终端修改，请刷新后重试", current);
         }, ct);
+
+    private async Task<TracePoolStockRowDto?> TryGetStockRowByTraceCodeAsync(
+        IDbConnection conn,
+        string traceCode,
+        CancellationToken token)
+    {
+        var sql = $"""
+            with {DrugCatalogSql.DeprecatedMapCte}
+            select
+              t.drug_id,
+              t.spec,
+              t.trace_code,
+              t.qty,
+              t.remain,
+              t.status,
+              t.version,
+              (t.remain = 0) as is_low,
+              (dm.drug_id is not null) as is_deprecated
+            from trace_pool t
+            left join deprecated_map dm
+              on dm.drug_id = t.drug_id
+             and dm.spec = t.spec
+            where t.trace_code = @trace_code
+            limit 1
+            """;
+
+        await using var cmd = conn.CreateCommand(sql, _opt.CommandTimeoutSeconds);
+        cmd.AddParam("trace_code", traceCode);
+        await using var r = await cmd.ExecuteReaderAsync(token);
+        if (!await r.ReadAsync(token))
+        {
+            return null;
+        }
+
+        return new TracePoolStockRowDto(
+            DrugId: r.GetString(0),
+            Spec: r.GetString(1),
+            TraceCode: r.GetString(2),
+            Qty: r.GetInt32(3),
+            Remain: r.GetInt32(4),
+            Status: r.GetInt32(5),
+            Version: r.GetInt64(6),
+            IsLow: r.GetBoolean(7),
+            IsDeprecated: r.GetBoolean(8));
+    }
 
     public Task<int> DeleteStockByTraceCodesAsync(
         IReadOnlyList<string> traceCodes,

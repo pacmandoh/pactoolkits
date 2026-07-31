@@ -168,6 +168,7 @@ public sealed record TracePoolStockRowDto(
     int Qty,
     int Remain,
     int Status,
+    long Version,
     bool IsLow,
     bool IsDeprecated = false
 );

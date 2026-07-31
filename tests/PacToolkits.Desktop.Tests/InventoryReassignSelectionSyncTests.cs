@@ -81,6 +81,7 @@ public sealed class InventoryReassignSelectionSyncTests
                 qty: 1,
                 remain: 1,
                 status: 0,
+                version: 0,
                 isLow: false,
                 isDeprecated: false)
             {
@@ -104,6 +105,7 @@ public sealed class InventoryReassignSelectionSyncTests
             target.Qty = source.Qty;
             target.Remain = source.Remain;
             target.Status = source.Status;
+            target.Version = source.Version;
             target.IsLow = source.IsLow;
             target.IsDeprecated = source.IsDeprecated;
         }

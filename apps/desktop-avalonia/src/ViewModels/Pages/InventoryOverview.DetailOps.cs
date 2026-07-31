@@ -10,6 +10,7 @@ using PacToolkits.Application.DTOs;
 using PacToolkits.Application.TextSearch;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.Services.Infrastructure.Dialogs;
 using PacToolkits.Desktop.Avalonia.Services.Workspace;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -222,7 +223,7 @@ public sealed partial class InventoryOverview : AppPageBase
     private bool CanOperateUi() => !IsUiBusy;
 
     private bool CanLocalRefresh()
-        => CanOperateUi();
+        => CanOperateUi() && !IsStockEditEnabled;
 
     private bool CanUnlock()
         => CanOperateUi()
@@ -276,28 +277,106 @@ public sealed partial class InventoryOverview : AppPageBase
             }
 
             CollectStockEdits();
-            var (savedCount, failedCount, lastError) = (0, 0, (string?)null);
-            if (_pendingStockEdits.Count > 0)
+            var savedCount = 0;
+            var failedCount = 0;
+            var conflictCount = 0;
+            string? lastError = null;
+
+            _stockEditSaveInFlight = true;
+            CancelStockEditRemoteReconcile();
+            try
             {
-                (savedCount, failedCount, lastError) = await SaveStockEditsAsync();
+                if (_pendingStockEdits.Count > 0)
+                {
+                    var batch = await SaveStockEditsAsync();
+                    savedCount = batch.SavedCount;
+                    failedCount = batch.FailedCount;
+                    conflictCount = batch.Conflicts.Count;
+                    lastError = batch.LastError;
+
+                    if (conflictCount > 0)
+                    {
+                        var choice = await _dialog.Alert(
+                            AlertBuilder<bool?>.Create(
+                                    "保存冲突",
+                                    $"有 {conflictCount.ToString(CultureInfo.InvariantCulture)} 行已被其他终端修改")
+                                .SaveConflict("放弃修改", "强制保存"));
+
+                        if (choice is null)
+                        {
+                            CollectStockEdits();
+                            NotifyEditState();
+                            return;
+                        }
+
+                        if (choice == false)
+                        {
+                            ClearRemoteStockAttention();
+                            IsStockEditEnabled = false;
+                            _flushRefreshAfterStockEdit = false;
+                            await ReloadAsync();
+                            if (savedCount > 0)
+                            {
+                                _toast.Warn(
+                                    "库存明细编辑",
+                                    $"已保存 {savedCount.ToString(CultureInfo.InvariantCulture)} 项；冲突项已加载服务端值");
+                            }
+
+                            return;
+                        }
+
+                        var forced = await ForceSaveConflictsAsync(batch.Conflicts);
+                        savedCount += forced.SavedCount;
+                        failedCount += forced.FailedCount;
+                        conflictCount = forced.Conflicts.Count;
+                        lastError = forced.LastError ?? lastError;
+                        if (forced.FailedCount > 0 || forced.Conflicts.Count > 0)
+                        {
+                            await ReloadAsync(preserveEdit: true);
+                        }
+                    }
+                    else if (failedCount > 0)
+                    {
+                        await ReloadAsync();
+                    }
+                }
+            }
+            finally
+            {
+                _stockEditSaveInFlight = false;
             }
 
+            ClearRemoteStockAttention();
+            IsStockEditEnabled = false;
             if (savedCount > 0)
             {
-                // 行级编辑后延后全量刷新并执行静默对账，以保持当前视口和滚动位置
-                PauseAutoRefresh(TimeSpan.FromSeconds(7));
-                ReconcilePageLater(TimeSpan.FromSeconds(5));
+                _flushRefreshAfterStockEdit = false;
+                PauseAutoRefresh(PostWriteAutoRefreshPause);
+                ReconcilePageLater(TimeSpan.Zero);
+            }
+            else
+            {
+                FlushDeferredStockRefreshIfNeeded();
             }
 
-            IsStockEditEnabled = false;
-            if (failedCount > 0)
+            if (failedCount > 0 || conflictCount > 0)
             {
                 var reason = string.IsNullOrWhiteSpace(lastError) ? "请检查输入值与唯一性约束" : lastError!;
-                _toast.Error("库存明细编辑", $"保存失败 {failedCount} 项，成功 {savedCount} 项：{reason}");
+                var conflictHint = conflictCount > 0
+                    ? $"（含并发冲突 {conflictCount.ToString(CultureInfo.InvariantCulture)} 项）"
+                    : string.Empty;
+                var hardHint = failedCount > 0
+                    ? $"失败 {failedCount.ToString(CultureInfo.InvariantCulture)} 项"
+                    : "未全部保存";
+                _toast.Error(
+                    "库存明细编辑",
+                    $"{hardHint}{conflictHint}，成功 {savedCount.ToString(CultureInfo.InvariantCulture)} 项：{reason}");
             }
             else if (savedCount > 0)
             {
-                _toast.Success("库存明细编辑", $"保存成功 {savedCount} 项");
+                _toast.Success(
+                    "库存明细编辑",
+                    $"保存成功 {savedCount.ToString(CultureInfo.InvariantCulture)} 项");
             }
 
             return;
@@ -313,6 +392,43 @@ public sealed partial class InventoryOverview : AppPageBase
         EnableStockTraceCodeValidation();
         IsStockEditEnabled = true;
         _lastModeIndex = ModeIndex;
+    }
+
+    private async Task<StockRowEditBatchResult> ForceSaveConflictsAsync(
+        IReadOnlyList<StockRowEditConflict> conflicts)
+    {
+        var forceEdits = new List<StockRowEditRequest>(conflicts.Count);
+        foreach (var conflict in conflicts)
+        {
+            if (conflict.Current is null)
+            {
+                continue;
+            }
+
+            forceEdits.Add(new StockRowEditRequest(
+                conflict.MatchTraceCode,
+                conflict.Current.Version,
+                conflict.NewTraceCode,
+                conflict.NewRemain));
+        }
+
+        if (forceEdits.Count == 0)
+        {
+            return new StockRowEditBatchResult(
+                0,
+                conflicts.Count,
+                "冲突行缺少服务端快照，无法强制保存",
+                Array.Empty<StockRowEditSaved>(),
+                conflicts);
+        }
+
+        var forced = await _inventory.ApplyStockRowEditsAsync(
+            forceEdits,
+            CurrentTraceCodeRule(),
+            default).ConfigureAwait(true);
+
+        await RunOnUiAsync(() => AcceptSavedStockEditsLocally(forced.Saved));
+        return forced;
     }
 
     private TraceCodeValidationRule CurrentTraceCodeRule()
@@ -835,8 +951,8 @@ public sealed partial class InventoryOverview : AppPageBase
                     batchKeyword: null);
                 if (updatedRows.Count > 0)
                 {
-                    PauseAutoRefresh(TimeSpan.FromSeconds(7));
-                    ReconcilePageLater(TimeSpan.FromSeconds(5));
+                    PauseAutoRefresh(PostWriteAutoRefreshPause);
+                    ReconcilePageLater(TimeSpan.Zero);
                 }
             }
 
@@ -854,7 +970,7 @@ public sealed partial class InventoryOverview : AppPageBase
         }
     }
 
-    public Task CommitStockCellEditAsync(StockRowItem? row, string? header, string? newValue)
+    public Task CommitStockCellEditAsync(StockRowItem? row)
     {
         if (row is null || !IsStockEditEnabled || !IsDetailMode)
         {
@@ -862,8 +978,7 @@ public sealed partial class InventoryOverview : AppPageBase
         }
 
         CollectStockEdits();
-        RefreshPendingChanges();
-
+        NotifyEditState();
         return Task.CompletedTask;
     }
 
@@ -930,7 +1045,7 @@ public sealed partial class InventoryOverview : AppPageBase
         try
         {
             var wasEditing = IsStockEditEnabled;
-            PauseAutoRefresh(TimeSpan.FromSeconds(8));
+            PauseAutoRefresh(PostWriteAutoRefreshPause);
             await RunOnUiAsync(() => IsDetailBusy = true);
             var affected = await _inventory.DeleteStockByTraceCodesAsync(traceCodes, default);
             await ReloadAsync(preserveEdit: wasEditing);
@@ -959,27 +1074,71 @@ public sealed partial class InventoryOverview : AppPageBase
         }
     }
 
-    private async Task<(int SavedCount, int FailedCount, string? LastError)> SaveStockEditsAsync()
+    private async Task<StockRowEditBatchResult> SaveStockEditsAsync()
     {
-        var edits = new PendingStockEdit[_pendingStockEdits.Count];
+        var edits = new StockRowEditRequest[_pendingStockEdits.Count];
         _pendingStockEdits.CopyTo(edits, 0);
         _pendingStockEdits.Clear();
         if (edits.Length == 0)
         {
-            return (0, 0, null);
+            return new StockRowEditBatchResult(
+                0, 0, null, Array.Empty<StockRowEditSaved>(), Array.Empty<StockRowEditConflict>());
         }
 
-        var batchResult = await _inventory.ApplyStockCellEditsAsync(
-            edits.Select(e => new StockCellEditRequest(e.MatchTraceCode, e.ColumnHeader, e.NewValue)).ToArray(),
+        var batchResult = await _inventory.ApplyStockRowEditsAsync(
+            edits,
             CurrentTraceCodeRule(),
-            default).ConfigureAwait(false);
+            default).ConfigureAwait(true);
 
-        if (batchResult.FailedCount > 0)
+        await RunOnUiAsync(() => AcceptSavedStockEditsLocally(batchResult.Saved));
+        return batchResult;
+    }
+
+    private void AcceptSavedStockEditsLocally(IReadOnlyList<StockRowEditSaved> savedRows)
+    {
+        if (savedRows.Count == 0)
         {
-            await ReloadAsync();
+            return;
         }
 
-        return (batchResult.SavedCount, batchResult.FailedCount, batchResult.LastError);
+        var byTrace = new Dictionary<string, StockRowItem>(StringComparer.Ordinal);
+        foreach (var row in StockRows)
+        {
+            if (_stockEditSnapshotByRow.TryGetValue(row.RowNo, out var snap)
+                && !string.IsNullOrWhiteSpace(snap.TraceCode))
+            {
+                byTrace.TryAdd(snap.TraceCode, row);
+            }
+
+            if (!string.IsNullOrWhiteSpace(row.TraceCode))
+            {
+                byTrace.TryAdd(row.TraceCode, row);
+            }
+        }
+
+        foreach (var saved in savedRows)
+        {
+            if (!byTrace.TryGetValue(saved.MatchTraceCode, out var row))
+            {
+                continue;
+            }
+
+            if (saved.NewTraceCode is not null)
+            {
+                row.TraceCode = saved.NewTraceCode;
+            }
+
+            if (saved.NewRemain is not null)
+            {
+                row.Remain = saved.NewRemain.Value;
+            }
+
+            row.Version = saved.NewVersion;
+            _stockEditSnapshotByRow[row.RowNo] = new StockEditSnapshot(
+                TraceCode: row.TraceCode,
+                Remain: row.Remain,
+                Version: saved.NewVersion);
+        }
     }
 
     private void CollectStockEdits()
@@ -995,47 +1154,32 @@ public sealed partial class InventoryOverview : AppPageBase
             var oldTrace = (snap.TraceCode ?? string.Empty).Trim();
             var newTrace = (row.TraceCode ?? string.Empty).Trim();
             var traceChanged = !string.Equals(oldTrace, newTrace, StringComparison.Ordinal);
-
-            if (traceChanged)
+            var remainChanged = snap.Remain != row.Remain;
+            if (!traceChanged && !remainChanged)
             {
-                _pendingStockEdits.Add(new PendingStockEdit(
-                    MatchTraceCode: oldTrace,
-                    ColumnHeader: "追溯码",
-                    NewValue: newTrace,
-                    DrugId: row.DrugId,
-                    Spec: row.Spec));
+                continue;
             }
 
-            var matchTrace = traceChanged ? newTrace : oldTrace;
-
-            if (snap.Remain != row.Remain)
-            {
-                _pendingStockEdits.Add(new PendingStockEdit(
-                    MatchTraceCode: matchTrace,
-                    ColumnHeader: "剩余",
-                    NewValue: row.Remain.ToString(),
-                    DrugId: row.DrugId,
-                    Spec: row.Spec));
-            }
+            _pendingStockEdits.Add(new StockRowEditRequest(
+                MatchTraceCode: oldTrace,
+                ExpectedVersion: snap.Version,
+                NewTraceCode: traceChanged ? newTrace : null,
+                NewRemain: remainChanged ? row.Remain : null));
         }
     }
 
     private void SnapshotStockRows()
     {
+        ClearRemoteStockAttention();
         _stockEditSnapshotByRow.Clear();
         foreach (var row in StockRows)
         {
             _stockEditSnapshotByRow[row.RowNo] = new StockEditSnapshot(
                 TraceCode: row.TraceCode,
-                Remain: row.Remain);
+                Remain: row.Remain,
+                Version: row.Version);
         }
     }
-
-    private bool HasStockEdits
-        => _pendingStockEdits.Count > 0;
-
-    private int StockEditCount
-        => _pendingStockEdits.Count;
 
     private async Task<bool> RequireUnlockAsync(string scene)
     {
@@ -1062,6 +1206,7 @@ public sealed partial class InventoryOverview : AppPageBase
             if (IsStockEditEnabled)
             {
                 DiscardStockEdits();
+                FlushDeferredStockRefreshIfNeeded();
             }
 
             IsReassignOpen = false;
@@ -1198,16 +1343,77 @@ public sealed partial class InventoryOverview : AppPageBase
         }
 
         CollectStockEdits();
-        if (_pendingStockEdits.Count <= 0)
+        if (_pendingStockEdits.Count > 0)
         {
-            IsStockEditEnabled = false;
+            RevertStockRowsFromSnapshot();
+        }
+
+        if (_remoteStockBaselineByTrace.Count > 0)
+        {
+            ApplyRemoteStockBaselinesToRows();
+        }
+
+        IsStockEditEnabled = false;
+        _pendingStockEdits.Clear();
+        ClearRemoteStockAttention();
+        NotifyEditState();
+    }
+
+    private void ClearRemoteStockAttention()
+    {
+        _remoteStockBaselineByTrace.Clear();
+        _remoteStockMissingAttention = false;
+    }
+
+    private void ApplyRemoteStockBaselinesToRows()
+    {
+        if (_remoteStockBaselineByTrace.Count == 0)
+        {
             return;
         }
 
-        RevertStockRowsFromSnapshot();
-        IsStockEditEnabled = false;
-        _pendingStockEdits.Clear();
-        RefreshPendingChanges();
+        foreach (var row in StockRows)
+        {
+            if (!_stockEditSnapshotByRow.TryGetValue(row.RowNo, out var snap))
+            {
+                continue;
+            }
+
+            if (!_remoteStockBaselineByTrace.TryGetValue(snap.TraceCode, out var remote)
+                && !_remoteStockBaselineByTrace.TryGetValue(row.TraceCode, out remote))
+            {
+                continue;
+            }
+
+            ApplyServerStockRow(row, remote, metaOnly: false);
+            _stockEditSnapshotByRow[row.RowNo] = new StockEditSnapshot(
+                TraceCode: remote.TraceCode,
+                Remain: remote.Remain,
+                Version: remote.Version);
+        }
+
+        _remoteStockBaselineByTrace.Clear();
+        NotifyEditState();
+    }
+
+    private static void ApplyServerStockRow(StockRowItem row, TracePoolStockRowDto server, bool metaOnly)
+    {
+        row.DrugId = server.DrugId;
+        row.Spec = server.Spec;
+        row.Qty = server.Qty;
+        row.Status = server.Status;
+        row.IsDeprecated = server.IsDeprecated;
+        if (metaOnly)
+        {
+            // remain 仍是本地草稿；IsLow 跟本地 remain（明细口径 remain==0）
+            row.IsLow = row.Remain == 0;
+            return;
+        }
+
+        row.TraceCode = server.TraceCode;
+        row.Remain = server.Remain;
+        row.Version = server.Version;
+        row.IsLow = server.IsLow;
     }
 
     private void RevertStockRowsFromSnapshot()
@@ -1226,8 +1432,10 @@ public sealed partial class InventoryOverview : AppPageBase
 
     partial void OnModeIndexChanged(int value)
     {
-        if (value != _lastModeIndex && IsStockEditEnabled && HasStockEdits)
+        if (value != _lastModeIndex && IsStockEditEnabled)
+        {
             DiscardStockEdits();
+        }
 
         if (value != 0)
         {
@@ -1483,8 +1691,186 @@ public sealed partial class InventoryOverview : AppPageBase
     }
 
     public bool DeferRefreshTopic(string? topic)
-        => DateTimeOffset.UtcNow < _suppressAutoRefreshUntilUtc
-           && WorkspaceTopicRefresh.DeferInventory(topic);
+    {
+        if (!WorkspaceTopicRefresh.DeferInventory(topic))
+        {
+            return false;
+        }
+
+        // 编辑中推迟 LISTEN 立刻刷新；记一笔，退出编辑后再补刷
+        if (IsStockEditEnabled)
+        {
+            _flushRefreshAfterStockEdit = true;
+            return true;
+        }
+
+        return DateTimeOffset.UtcNow < _suppressAutoRefreshUntilUtc;
+    }
+
+    private void FlushDeferredStockRefreshIfNeeded()
+    {
+        if (!_flushRefreshAfterStockEdit)
+        {
+            return;
+        }
+
+        _flushRefreshAfterStockEdit = false;
+        ObserveDetached(ReloadAsync(), "reload.deferred_after_edit.fail");
+    }
+
+    /// <summary>
+    /// 编辑中收到 inventory/trace_*：静默拉当前页，标他端变更，不 Discard、不关编辑
+    /// </summary>
+    public Task ReconcileRemoteDuringStockEditAsync()
+    {
+        if (!IsStockEditEnabled || !IsDetailMode || _stockEditSaveInFlight)
+        {
+            return Task.CompletedTask;
+        }
+
+        CancelStockEditRemoteReconcile();
+        _stockEditRemoteCts = new CancellationTokenSource();
+        var page = PageIndex;
+        var keyword = NormalizeInput(Keyword);
+        var epoch = Volatile.Read(ref _detailStockEpoch);
+        return RunStockEditRemoteReconcileAsync(page, keyword, epoch, _stockEditRemoteCts.Token);
+    }
+
+    private async Task RunStockEditRemoteReconcileAsync(
+        int page,
+        string? keyword,
+        int epoch,
+        CancellationToken ct)
+    {
+        try
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(LookupTimeout);
+            var pageResult = await _inventory
+                .GetStockPageAsync(keyword, page, PageSize, timeoutCts.Token)
+                .ConfigureAwait(false);
+
+            await RunOnUiAsync(() =>
+            {
+                if (!InventorySilentReconcilePolicy.CanApply(
+                        epoch,
+                        Volatile.Read(ref _detailStockEpoch),
+                        IsPageReloadActive,
+                        IsStockEditEnabled,
+                        IsDetailMode,
+                        page,
+                        PageIndex,
+                        keyword,
+                        NormalizeInput(Keyword),
+                        ct.IsCancellationRequested,
+                        requireStockEditEnabled: true))
+                {
+                    return;
+                }
+
+                ApplyStockEditRemoteReconcile(pageResult.Rows);
+            }, DispatcherPriority.Background);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            LogWarn(
+                "inventory.stock_edit.remote_reconcile_fail",
+                "Failed to reconcile stock page during edit after remote change",
+                ex);
+        }
+    }
+
+    private void ApplyStockEditRemoteReconcile(IReadOnlyList<TracePoolStockRowDto> serverRows)
+    {
+        _remoteStockMissingAttention = false;
+        var serverByTrace = new Dictionary<string, TracePoolStockRowDto>(serverRows.Count, StringComparer.Ordinal);
+        foreach (var row in serverRows)
+        {
+            if (!string.IsNullOrWhiteSpace(row.TraceCode))
+            {
+                serverByTrace[row.TraceCode] = row;
+            }
+        }
+
+        var toastRemoteChanged = false;
+        var toastRemoteMissing = false;
+
+        foreach (var local in StockRows)
+        {
+            if (!_stockEditSnapshotByRow.TryGetValue(local.RowNo, out var snap))
+            {
+                continue;
+            }
+
+            TracePoolStockRowDto? server = null;
+            if (serverByTrace.TryGetValue(snap.TraceCode, out var bySnap))
+            {
+                server = bySnap;
+            }
+            else if (serverByTrace.TryGetValue(local.TraceCode, out var byCurrent))
+            {
+                server = byCurrent;
+            }
+
+            var action = InventoryStockEditRemotePolicy.Decide(
+                snap.Version,
+                snap.TraceCode,
+                snap.Remain,
+                local.TraceCode,
+                local.Remain,
+                server?.Version);
+
+            switch (action)
+            {
+                case InventoryStockEditRemotePolicy.Action.None:
+                    break;
+
+                case InventoryStockEditRemotePolicy.Action.MissingSilent:
+                    _remoteStockBaselineByTrace.Remove(snap.TraceCode);
+                    break;
+
+                case InventoryStockEditRemotePolicy.Action.MissingNotify:
+                    _remoteStockBaselineByTrace.Remove(snap.TraceCode);
+                    _remoteStockMissingAttention = true;
+                    toastRemoteMissing = true;
+                    break;
+
+                case InventoryStockEditRemotePolicy.Action.KeepDraftBaseline when server is not null:
+                    _remoteStockBaselineByTrace[snap.TraceCode] = server;
+                    ApplyServerStockRow(local, server, metaOnly: true);
+                    toastRemoteChanged = true;
+                    break;
+
+                case InventoryStockEditRemotePolicy.Action.SyncAll when server is not null:
+                    _remoteStockBaselineByTrace.Remove(snap.TraceCode);
+                    if (!string.Equals(local.TraceCode, snap.TraceCode, StringComparison.Ordinal))
+                    {
+                        _remoteStockBaselineByTrace.Remove(local.TraceCode);
+                    }
+
+                    ApplyServerStockRow(local, server, metaOnly: false);
+                    _stockEditSnapshotByRow[local.RowNo] = new StockEditSnapshot(
+                        TraceCode: server.TraceCode,
+                        Remain: server.Remain,
+                        Version: server.Version);
+                    break;
+            }
+        }
+
+        if (toastRemoteMissing)
+        {
+            _toast.Warn("库存明细编辑", "正在编辑的行已在其它终端删除，保存时可能失败");
+        }
+        else if (toastRemoteChanged)
+        {
+            _toast.Warn("库存明细编辑", "正在编辑的行已在其它终端修改，保存时可能冲突");
+        }
+
+        NotifyEditState();
+    }
 
     private void ReconcilePageLater(TimeSpan delay)
     {
@@ -1546,6 +1932,7 @@ public sealed partial class InventoryOverview : AppPageBase
                         dst.Qty = src.Qty;
                         dst.Remain = src.Remain;
                         dst.Status = src.Status;
+                        dst.Version = src.Version;
                         dst.IsLow = src.IsLow;
                         dst.IsDeprecated = src.IsDeprecated;
                     }

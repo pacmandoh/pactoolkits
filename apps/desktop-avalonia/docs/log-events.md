@@ -280,6 +280,7 @@
 ### InventoryOverview.DetailOps
 
 - `inventory.external_refresh.reconcile_fail` (Warn) — Failed to reconcile current detail page after external change
+- `inventory.stock_edit.remote_reconcile_fail` (Warn) — Failed to reconcile stock page during edit after remote change
 - `inventory.reassign.apply_fail` (Error) — Failed to apply reassign operation
 - `inventory.reassign.preview_fail` (Error) — Failed to preview reassign operation
 - `inventory.reassign_context.load_fail` (Error) — Failed to load reassign context

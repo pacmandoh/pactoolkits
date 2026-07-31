@@ -24,6 +24,7 @@ public sealed partial class StockRowItem : ObservableObject, ISelectableRow, IRo
         int qty,
         int remain,
         int status,
+        long version,
         bool isLow,
         bool isDeprecated)
     {
@@ -34,6 +35,7 @@ public sealed partial class StockRowItem : ObservableObject, ISelectableRow, IRo
         Qty = qty;
         Remain = remain;
         Status = status;
+        Version = version;
         IsLow = isLow;
         IsDeprecated = isDeprecated;
     }
@@ -46,6 +48,7 @@ public sealed partial class StockRowItem : ObservableObject, ISelectableRow, IRo
     [ObservableProperty] private int _qty;
     [ObservableProperty] private int _remain;
     [ObservableProperty] private int _status;
+    [ObservableProperty] private long _version;
     [ObservableProperty] private bool _isLow;
     [ObservableProperty] private bool _isDeprecated;
     [ObservableProperty] private bool _isSelected;
@@ -196,11 +199,4 @@ public sealed record StockReassignPreviewRowItem(
     string TraceCode
 );
 
-public sealed record PendingStockEdit(
-    string MatchTraceCode,
-    string ColumnHeader,
-    string NewValue,
-    string DrugId,
-    string Spec);
-
-public sealed record StockEditSnapshot(string TraceCode, int Remain);
+public sealed record StockEditSnapshot(string TraceCode, int Remain, long Version);

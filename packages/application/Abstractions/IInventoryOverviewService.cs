@@ -3,7 +3,7 @@ using PacToolkits.Application.DTOs;
 namespace PacToolkits.Application.Abstractions;
 
 /// <summary>
-/// 提供库存关键字扩展、单元格批量编辑和大批量改派限制
+/// 提供库存关键字扩展、行级批量编辑和大批量改派限制
 /// </summary>
 public interface IInventoryOverviewService
 {
@@ -35,8 +35,8 @@ public interface IInventoryOverviewService
 
     Task<bool> TargetDrugSpecExistsAsync(string drugId, string spec, CancellationToken ct);
 
-    Task<StockCellEditBatchResult> ApplyStockCellEditsAsync(
-        IReadOnlyList<StockCellEditRequest> edits,
+    Task<StockRowEditBatchResult> ApplyStockRowEditsAsync(
+        IReadOnlyList<StockRowEditRequest> edits,
         TraceCodeValidationRule traceCodeRule,
         CancellationToken ct);
 

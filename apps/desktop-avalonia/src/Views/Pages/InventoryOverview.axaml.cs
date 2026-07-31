@@ -187,7 +187,7 @@ public partial class InventoryOverview : UserControl
                 return;
             }
 
-            await vm.CommitStockCellEditAsync(row, header, editor.Text);
+            await vm.CommitStockCellEditAsync(row);
         }
         catch (Exception ex)
         {
