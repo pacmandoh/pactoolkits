@@ -47,10 +47,10 @@ public sealed class PostgresIntegrationTests
         var snapshot = await service.GetSchemaStatusAsync(
             new DbSchemaVersionContext(
                 DesktopMinDbSchema: "1.2.20",
-                DesktopMaxDbSchema: "1.2.23",
+                DesktopMaxDbSchema: "1.2.25",
                 AgentsMinDbSchema: "1.2.20",
-                AgentsMaxDbSchema: "1.2.23",
-                TargetDbSchemaVersion: "1.2.23"),
+                AgentsMaxDbSchema: "1.2.25",
+                TargetDbSchemaVersion: "1.2.25"),
             options,
             CancellationToken.None);
 
