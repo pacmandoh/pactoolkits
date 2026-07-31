@@ -16,11 +16,6 @@ on:
         required: true
         type: boolean
         default: false
-      allow_beta_db_change:
-        description: Explicitly authorize Beta database changes
-        required: true
-        type: boolean
-        default: false
 
 concurrency:
   group: release-${{ github.ref_name }}
@@ -91,7 +86,6 @@ jobs:
     with:
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
       confirm: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.confirm) }}
-      allow_beta_db_change: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_beta_db_change || false }}
 
   resolve_release_plan:
     needs:

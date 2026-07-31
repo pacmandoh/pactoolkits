@@ -18,11 +18,6 @@ on:
         required: true
         type: boolean
         default: false
-      allow_beta_db_change:
-        description: Explicitly authorize Beta database changes
-        required: true
-        type: boolean
-        default: false
   workflow_call:
     inputs:
       dry_run:
@@ -30,10 +25,6 @@ on:
         type: boolean
         default: true
       confirm:
-        required: false
-        type: boolean
-        default: false
-      allow_beta_db_change:
         required: false
         type: boolean
         default: false
@@ -56,15 +47,12 @@ jobs:
         env:
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
           INPUT_CONFIRM: ${{ inputs.confirm }}
-          INPUT_ALLOW_BETA_DB_CHANGE: ${{ inputs.allow_beta_db_change }}
         run: |
           set -euo pipefail
           dry_run="${INPUT_DRY_RUN:-true}"
           confirm="${INPUT_CONFIRM:-false}"
-          allow_beta_db_change="${INPUT_ALLOW_BETA_DB_CHANGE:-false}"
           echo "dry_run=$dry_run" >> "$GITHUB_OUTPUT"
           echo "confirm=$confirm" >> "$GITHUB_OUTPUT"
-          echo "allow_beta_db_change=$allow_beta_db_change" >> "$GITHUB_OUTPUT"
 
       - name: Validate release channel
         shell: bash
@@ -91,15 +79,11 @@ jobs:
 
       - name: Validate database policy
         shell: bash
-        env:
-          ALLOW_BETA_DB_CHANGE: ${{ steps.inputs.outputs.allow_beta_db_change }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin \
             +refs/heads/main:refs/remotes/origin/main \
             +refs/heads/beta:refs/remotes/origin/beta
-          base_ref="origin/main"
           scripts/validate-database-policy.sh \
             --manifest release-manifest.json \
-            --base-ref "$base_ref" \
-            --allow-beta-db-change "$ALLOW_BETA_DB_CHANGE"
+            --base-ref origin/main

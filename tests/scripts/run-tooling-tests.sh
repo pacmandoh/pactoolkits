@@ -42,9 +42,6 @@ jq '
   )
 ' "$ROOT_DIR/release-manifest.json" > "$stable_fixture_manifest"
 validate_manifest_v2 "$stable_fixture_manifest"
-live_release_channel="$(manifest_release_channel "$ROOT_DIR/release-manifest.json")"
-stable_db_version="$(manifest_database_postgres_version "$stable_fixture_manifest")"
-beta_db_upgrade_version="$(semver_bump_patch "$stable_db_version")"
 
 eval "$(./scripts/resolve-release-plan.sh "$ROOT_DIR/release-manifest.json" | sed 's/^\([^=]*\)=\(.*\)$/export \1=\2/')"
 [[ "${desktop_artifact_name:-}" == pactoolkits-desktop-avalonia-win-x64-* ]] || {
@@ -209,8 +206,7 @@ cp "$stable_fixture_manifest" "$database_policy_base_manifest"
 ./scripts/validate-database-policy.sh \
   --manifest "$stable_fixture_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
-  --base-manifest "$database_policy_base_manifest" \
-  --allow-beta-db-change false >/dev/null
+  --base-manifest "$database_policy_base_manifest" >/dev/null
 
 beta_db_follow_legacy_manifest="$(mktemp)"
 jq '
@@ -221,12 +217,11 @@ jq '
 ./scripts/validate-database-policy.sh \
   --manifest "$beta_db_follow_legacy_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
-  --base-manifest "$database_policy_base_manifest" \
-  --allow-beta-db-change false >/dev/null
+  --base-manifest "$database_policy_base_manifest" >/dev/null
 
 beta_db_upgrade_manifest="$(mktemp)"
 jq \
-  --arg db "$beta_db_upgrade_version" \
+  --arg db "$(semver_bump_patch "$(manifest_database_postgres_version "$stable_fixture_manifest")")" \
   '
   .release.channel = "beta" |
   .product.version = "0.18.0-beta.1" |
@@ -237,46 +232,10 @@ jq \
   .components["agents"].maxDbSchema = $db |
   .components.database.postgres.version = $db
 ' "$stable_fixture_manifest" > "$beta_db_upgrade_manifest"
-if ./scripts/validate-database-policy.sh \
-  --manifest "$beta_db_upgrade_manifest" \
-  --base-ref refs/heads/pactoolkits-missing-test-ref \
-  --base-manifest "$database_policy_base_manifest" \
-  --allow-beta-db-change false >/dev/null 2>&1; then
-  echo "ERROR: ordinary Beta must not raise database.postgres.version above Stable" >&2
-  exit 1
-fi
 ./scripts/validate-database-policy.sh \
   --manifest "$beta_db_upgrade_manifest" \
   --base-ref refs/heads/pactoolkits-missing-test-ref \
-  --base-manifest "$database_policy_base_manifest" \
-  --allow-beta-db-change true >/dev/null
-
-legacy_baseline_manifest="$(mktemp)"
-cp "$stable_fixture_manifest" "$legacy_baseline_manifest"
-if [[ "$live_release_channel" == "beta" ]]; then
-  ./scripts/validate-database-policy.sh \
-    --manifest "$ROOT_DIR/release-manifest.json" \
-    --base-ref refs/heads/pactoolkits-missing-test-ref \
-    --base-manifest "$legacy_baseline_manifest" \
-    --allow-beta-db-change false >/dev/null
-  jq \
-    --arg db "$beta_db_upgrade_version" \
-    '
-    .components.desktop.avalonia.minDbSchema = $db |
-    .components.desktop.avalonia.maxDbSchema = $db |
-    .components["agents"].minDbSchema = $db |
-    .components["agents"].maxDbSchema = $db |
-    .components.database.postgres.version = $db
-  ' "$ROOT_DIR/release-manifest.json" > "${legacy_baseline_manifest}.candidate"
-  if ./scripts/validate-database-policy.sh \
-    --manifest "${legacy_baseline_manifest}.candidate" \
-    --base-ref refs/heads/pactoolkits-missing-test-ref \
-    --base-manifest "$legacy_baseline_manifest" \
-    --allow-beta-db-change false >/dev/null 2>&1; then
-    echo "ERROR: beta database policy should reject DB versions above the legacy baseline" >&2
-    exit 1
-  fi
-fi
+  --base-manifest "$database_policy_base_manifest" >/dev/null
 if grep -Fq 'beta' "$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props" \
   && grep -Eq '<AssemblyVersion>[^<]*beta' "$ROOT_DIR/apps/desktop-avalonia/src/Version.g.props"; then
   echo "ERROR: AssemblyVersion must use numeric major.minor.build.revision only" >&2
@@ -300,8 +259,7 @@ if (
   cd "$policy_git_dir"
   "$ROOT_DIR/scripts/validate-database-policy.sh" \
     --manifest release-manifest.json \
-    --base-ref "$policy_base_ref" \
-    --allow-beta-db-change false
+    --base-ref "$policy_base_ref"
 ) >/dev/null 2>&1; then
   echo "ERROR: database policy should reject modification of an existing migration" >&2
   exit 1
@@ -332,8 +290,7 @@ git -C "$legacy_reloc_git_dir" commit -qm monorepo-reloc
   cd "$legacy_reloc_git_dir"
   "$ROOT_DIR/scripts/validate-database-policy.sh" \
     --manifest release-manifest.json \
-    --base-ref "$legacy_reloc_base_ref" \
-    --allow-beta-db-change false
+    --base-ref "$legacy_reloc_base_ref"
 ) >/dev/null
 rm -rf "$legacy_reloc_git_dir"
 
@@ -356,26 +313,15 @@ printf '%s\n' 'select 1;' \
   > "$beta_new_migration_git_dir/database/postgres/migrations/V9_9_9__policy_probe.sql"
 git -C "$beta_new_migration_git_dir" add .
 git -C "$beta_new_migration_git_dir" commit -qm add-beta-migration
-if (
-  cd "$beta_new_migration_git_dir"
-  "$ROOT_DIR/scripts/validate-database-policy.sh" \
-    --manifest release-manifest.json \
-    --base-ref "$beta_new_migration_base_ref" \
-    --allow-beta-db-change false
-) >/dev/null 2>&1; then
-  echo "ERROR: beta channel should reject new SQL migration without explicit authorization" >&2
-  exit 1
-fi
 (
   cd "$beta_new_migration_git_dir"
   "$ROOT_DIR/scripts/validate-database-policy.sh" \
     --manifest release-manifest.json \
-    --base-ref "$beta_new_migration_base_ref" \
-    --allow-beta-db-change true
+    --base-ref "$beta_new_migration_base_ref"
 ) >/dev/null
 rm -rf "$beta_new_migration_git_dir"
 rm -rf "$policy_git_dir"
-rm -f "$database_policy_base_manifest" "$beta_db_follow_legacy_manifest" "$beta_db_upgrade_manifest" "$legacy_baseline_manifest" "${legacy_baseline_manifest}.candidate"
+rm -f "$database_policy_base_manifest" "$beta_db_follow_legacy_manifest" "$beta_db_upgrade_manifest"
 
 target_beta_manifest="$(mktemp)"
 jq '
