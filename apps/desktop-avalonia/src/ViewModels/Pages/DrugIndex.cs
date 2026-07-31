@@ -1225,8 +1225,8 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                     Source: source,
                     Target: target,
                     Reason: reason,
-                    OperatorName: Environment.UserName,
-                    SourceTag: "drug_index_ui"),
+                    OperatorName: $"{Environment.UserName}@{Environment.MachineName}",
+                    SourceTag: "drug_index_desktop"),
                 default);
 
             var result = commit.Apply;

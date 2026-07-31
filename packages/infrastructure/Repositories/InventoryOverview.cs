@@ -446,8 +446,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             var targetSpecSafe = (targetSpec ?? string.Empty).Trim();
             var qty = targetQty;
             var reasonSafe = (reason ?? string.Empty).Trim();
-            var operatorSafe = (operatorName ?? string.Empty).Trim();
-            var sourceSafe = (source ?? string.Empty).Trim();
+            var (operatorSafe, sourceSafe) = NormalizeAuditActor(operatorName, source);
 
             if (trace.Length == 0)
             {
@@ -467,16 +466,6 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             if (reasonSafe.Length == 0)
             {
                 throw new ArgumentException("迁移原因不能为空", nameof(reason));
-            }
-
-            if (operatorSafe.Length == 0)
-            {
-                operatorSafe = "unknown";
-            }
-
-            if (sourceSafe.Length == 0)
-            {
-                sourceSafe = "inventory_ui";
             }
 
             const string targetSql = DrugCatalogSql.DrugSpecExistsSql;
@@ -730,8 +719,7 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             var targetSpecSafe = (targetSpec ?? string.Empty).Trim();
             var qty = targetQty;
             var reasonSafe = (reason ?? string.Empty).Trim();
-            var operatorSafe = (operatorName ?? string.Empty).Trim();
-            var sourceSafe = (source ?? string.Empty).Trim();
+            var (operatorSafe, sourceSafe) = NormalizeAuditActor(operatorName, source);
 
             if (kw.Length == 0)
             {
@@ -751,16 +739,6 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
             if (reasonSafe.Length == 0)
             {
                 throw new ArgumentException("迁移原因不能为空", nameof(reason));
-            }
-
-            if (operatorSafe.Length == 0)
-            {
-                operatorSafe = "unknown";
-            }
-
-            if (sourceSafe.Length == 0)
-            {
-                sourceSafe = "inventory_ui";
             }
 
             const string targetSql = DrugCatalogSql.DrugSpecExistsSql;
@@ -923,5 +901,22 @@ public sealed class InventoryOverviewRepo : IInventoryOverviewRepo
         var safePageSize = Math.Clamp(pageSize, 1, maxPageSize);
         var offset = (safePage - 1) * safePageSize;
         return (safePage, safePageSize, offset);
+    }
+
+    private static (string Operator, string Source) NormalizeAuditActor(string? operatorName, string? source)
+    {
+        var op = (operatorName ?? string.Empty).Trim();
+        var src = (source ?? string.Empty).Trim();
+        if (op.Length == 0)
+        {
+            op = "unknown";
+        }
+
+        if (src.Length == 0)
+        {
+            src = "inventory_desktop";
+        }
+
+        return (op, src);
     }
 }

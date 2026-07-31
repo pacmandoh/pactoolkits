@@ -868,6 +868,7 @@ public sealed partial class InventoryOverview : AppPageBase
         try
         {
             var operatorName = $"{Environment.UserName}@{Environment.MachineName}";
+            const string auditSource = "inventory_desktop";
             StockReassignApplyResultDto result;
             if (isSingleScope)
             {
@@ -890,7 +891,7 @@ public sealed partial class InventoryOverview : AppPageBase
                     targetQty,
                     reason,
                     operatorName,
-                    "inventory_ui");
+                    auditSource);
 
                 result = await _inventory.ReassignByTraceCodesAsync(traceCodes, context, default);
             }
@@ -929,7 +930,7 @@ public sealed partial class InventoryOverview : AppPageBase
                         targetQty,
                         reason,
                         operatorName,
-                        "inventory_ui"),
+                        auditSource),
                     default);
             }
 
