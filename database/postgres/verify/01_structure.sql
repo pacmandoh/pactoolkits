@@ -43,6 +43,11 @@ begin
   if to_regclass('public.drug_key_fix_audit') is null then
     raise exception 'missing table: drug_key_fix_audit';
   end if;
+
+  -- 1.2.23 引入、1.2.25 已删除；防止残留
+  if to_regclass('public.app_environment_settings') is not null then
+    raise exception 'obsolete table present: app_environment_settings';
+  end if;
 end $$;
 
 select 'OK: structure' as verify;

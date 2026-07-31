@@ -242,7 +242,6 @@ function Run-Verify() {
   Psql-File (Join-Path $DbRoot.Path 'verify\02_constraints.sql')
   & psql -v ON_ERROR_STOP=1 -X -v "expected_schema_version=$expected" -f (Join-Path $DbRoot.Path 'verify\03_schema_version.sql')
   if ($LASTEXITCODE -ne 0) { throw '[ERROR] verify failed' }
-  Psql-File (Join-Path $DbRoot.Path 'verify\04_environment_settings.sql')
   Write-Host "[db] verify passed (expected schema_version=$expected)"
 }
 
