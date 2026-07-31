@@ -346,16 +346,8 @@ jq '
   .product.version = "0.18.0-beta.1" |
   .components.desktop.avalonia.version = "0.18.0-beta.1"
 ' "$database_policy_base_manifest" > "$beta_new_migration_git_dir/release-manifest.json"
-printf '%s\n' \
-  'create table if not exists app_environment_settings (' \
-  '  environment text not null,' \
-  '  setting_key text not null,' \
-  '  setting_value jsonb not null default '"'"'{}'"'"'::jsonb,' \
-  '  created_at timestamptz not null default now(),' \
-  '  updated_at timestamptz not null default now(),' \
-  '  primary key (environment, setting_key)' \
-  ');' \
-  > "$beta_new_migration_git_dir/database/postgres/migrations/V1_2_23__app_environment_settings.sql"
+printf '%s\n' 'select 1;' \
+  > "$beta_new_migration_git_dir/database/postgres/migrations/V9_9_9__policy_probe.sql"
 git -C "$beta_new_migration_git_dir" add .
 git -C "$beta_new_migration_git_dir" commit -qm add-beta-migration
 if (
@@ -593,12 +585,20 @@ echo "$desktop_min_db_conflict_out" | grep -Fq "conflicting desktop minDbSchema"
   exit 1
 }
 
-grep -Fq '04_environment_settings.sql' database/postgres/scripts/lib/verify.sh || {
-  echo "ERROR: Bash verify suite is missing environment settings verification" >&2
+[[ ! -f database/postgres/verify/04_environment_settings.sql ]] || {
+  echo "ERROR: environment settings verify should be removed after dropping app_environment_settings" >&2
   exit 1
 }
-grep -Fq '04_environment_settings.sql' database/postgres/scripts/deploy.ps1 || {
-  echo "ERROR: PowerShell verify suite is missing environment settings verification" >&2
+if grep -Fq '04_environment_settings.sql' database/postgres/scripts/lib/verify.sh; then
+  echo "ERROR: Bash verify suite should not reference removed environment settings verification" >&2
+  exit 1
+fi
+if grep -Fq '04_environment_settings.sql' database/postgres/scripts/deploy.ps1; then
+  echo "ERROR: PowerShell verify suite should not reference removed environment settings verification" >&2
+  exit 1
+fi
+grep -Fq 'obsolete table present: app_environment_settings' database/postgres/verify/01_structure.sql || {
+  echo "ERROR: structure verify should reject leftover app_environment_settings" >&2
   exit 1
 }
 grep -Fq "current_setting('pactoolkits.expected_schema_version'" database/postgres/verify/03_schema_version.sql || {

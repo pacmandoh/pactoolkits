@@ -62,7 +62,7 @@ try
 
     var service = CreateService(options, guard);
     var compatibleContext = new DbSchemaVersionContext(
-        "1.2.20", "1.2.23", "1.2.20", "1.2.23", "1.2.23");
+        "1.2.20", "1.2.25", "1.2.20", "1.2.25", "1.2.25");
     var snapshot = await service.GetSchemaStatusAsync(compatibleContext, options, CancellationToken.None);
     if (!snapshot.SchemaOk || snapshot.Compatibility != DbSchemaCompatibility.Compatible)
         Fail("schema_status", $"{snapshot.Compatibility} {snapshot.Reason}");
@@ -70,7 +70,7 @@ try
         Pass("schema_status=compatible");
 
     var belowMinContext = new DbSchemaVersionContext(
-        "1.2.24", "1.2.25", "1.2.24", "1.2.25", "1.2.25");
+        "1.2.26", "1.2.27", "1.2.26", "1.2.27", "1.2.27");
     var belowSnapshot = await service.GetSchemaStatusAsync(belowMinContext, options, CancellationToken.None);
     if (belowSnapshot.Compatibility != DbSchemaCompatibility.BelowMinimum || belowSnapshot.Satisfied)
         Fail("below_minimum_block", belowSnapshot.IncompatibleMessage ?? belowSnapshot.Compatibility.ToString());
@@ -91,7 +91,7 @@ try
 
     guard.Clear();
     var probeKey = $"ITest.Harness.{Guid.NewGuid():N}";
-    var probeCountBefore = await CountEnvSettingAsync(options, probeKey);
+    var probeCountBefore = await CountWatermarkAsync(options, probeKey);
     try
     {
         await pgDb.WithTransaction(async (conn, tx, ct) =>
@@ -100,17 +100,15 @@ try
                 throw new InvalidOperationException("expected NpgsqlConnection");
             await using var cmd = new NpgsqlCommand(
                 """
-                insert into public.app_environment_settings(environment, setting_key, setting_value)
-                values (@env, @k, to_jsonb(@v::text))
-                on conflict (environment, setting_key) do update
-                set setting_value = excluded.setting_value,
+                insert into public.app_change_watermark(topic, version)
+                values (@k, 1)
+                on conflict (topic) do update
+                set version = app_change_watermark.version + 1,
                     updated_at = now()
                 """,
                 npgsqlConn,
                 (NpgsqlTransaction)tx);
-            cmd.Parameters.AddWithValue("env", "integration-test");
             cmd.Parameters.AddWithValue("k", probeKey);
-            cmd.Parameters.AddWithValue("v", "probe");
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
             throw new InvalidOperationException("rollback-probe");
         }, IsolationLevel.ReadCommitted, CancellationToken.None);
@@ -118,7 +116,7 @@ try
     }
     catch (InvalidOperationException ex) when (ex.Message == "rollback-probe")
     {
-        var probeCountAfter = await CountEnvSettingAsync(options, probeKey);
+        var probeCountAfter = await CountWatermarkAsync(options, probeKey);
         if (probeCountAfter != probeCountBefore)
             Fail("guard_rollback_write", $"probe persisted: before={probeCountBefore}, after={probeCountAfter}");
         else
@@ -133,17 +131,16 @@ catch (Exception ex)
 
 return failures == 0 ? 0 : 1;
 
-static async Task<int> CountEnvSettingAsync(PgOptions options, string key)
+static async Task<int> CountWatermarkAsync(PgOptions options, string topic)
 {
     await using var conn = await OpenConnectionAsync(options);
     await using var cmd = conn.CreateCommand();
     cmd.CommandText = """
         select count(*)
-        from public.app_environment_settings
-        where environment = @env and setting_key = @k
+        from public.app_change_watermark
+        where topic = @k
         """;
-    cmd.Parameters.AddWithValue("env", "integration-test");
-    cmd.Parameters.AddWithValue("k", key);
+    cmd.Parameters.AddWithValue("k", topic);
     var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
     return Convert.ToInt32(result);
 }

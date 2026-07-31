@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ENV_FILE="${PG_ITEST_ENV:-/tmp/pactoolkits-itest.env}"
+ENV_FILE="${PG_ITEST_ENV:-$ROOT_DIR/.tmp/pactoolkits-itest.env}"
 
 die() { printf '[pg-itest][error] %s\n' "$*" >&2; exit 1; }
 log() { printf '[pg-itest] %s\n' "$*"; }
@@ -61,14 +61,20 @@ schema_version="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$PGDATABASE" \
 [[ -n "$schema_version" ]] || die "schema_version missing"
 pass "schema_version=$schema_version"
 
-env_table="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$PGDATABASE" \
+obsolete_env_table="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$PGDATABASE" \
   -c "select to_regclass('public.app_environment_settings')")"
-[[ "$env_table" == "app_environment_settings" ]] || die "app_environment_settings table missing"
-pass "app_environment_settings table exists"
+[[ -z "$obsolete_env_table" ]] || die "app_environment_settings should be dropped"
+pass "app_environment_settings dropped"
 
-env_rows="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$PGDATABASE" \
-  -c "select count(*) from public.app_environment_settings")"
-log "production env rows=$env_rows (empty => runtime defaults production/false)"
+drug_source_default="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$PGDATABASE" \
+  -c "select column_default from information_schema.columns where table_schema='public' and table_name='drug_key_fix_audit' and column_name='source'")"
+[[ "$drug_source_default" == *"drug_index_desktop"* ]] || die "drug_key_fix_audit.source default expected drug_index_desktop, got: $drug_source_default"
+pass "drug_key_fix_audit.source default=drug_index_desktop"
+
+inv_source_default="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$PGDATABASE" \
+  -c "select column_default from information_schema.columns where table_schema='public' and table_name='inventory_reassign_audit' and column_name='source'")"
+[[ "$inv_source_default" == *"inventory_desktop"* ]] || die "inventory_reassign_audit.source default expected inventory_desktop, got: $inv_source_default"
+pass "inventory_reassign_audit.source default=inventory_desktop"
 
 trace_count="$(psql -v ON_ERROR_STOP=1 -X -q -t -A -d "$PGDATABASE" \
   -c "select count(*) from public.trace_pool")"
