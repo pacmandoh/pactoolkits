@@ -43,6 +43,7 @@ cp scripts/config.example.json scripts/config.json
 ./scripts/deploy.sh upgrade
 ./scripts/deploy.sh verify
 ./scripts/deploy.sh full
+./scripts/deploy.sh realign-checksums
 ```
 
 ### Windows PowerShell
@@ -65,6 +66,8 @@ Copy-Item scripts/config.example.json scripts/config.json
 2. 每次 schema 变更必须新增 `Vx_y_z__description.sql` migration 文件
 3. 已应用的 migration 文件受校验和保护，不得修改
 4. `verify` 仅执行只读检查，可用于非空生产数据库
+5. `realign-checksums`：校正已应用行的 `checksum` 与/或短 `name` 至当前工作区 `*.sql`（应为 LF），**每次变更都追加 `note`**，不重跑 SQL。checksum 已对齐但 `name` 仍是旧全文件名时也会改名并记 note。生产使用前应确认 checksum 差异为换行问题；脚本会对「既非 LF 也非 CRLF」的 mismatch 打 warn 仍校正
+6. `upgrade` 一次拉取已应用 checksum 后本地校验；已应用的 migration 不再逐条 `psql` / 逐条打 skip 日志
 
 ## 文档
 

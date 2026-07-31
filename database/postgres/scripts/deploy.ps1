@@ -110,9 +110,25 @@ function File-Checksum([string]$path) {
   throw '[ERROR] Get-FileHash unavailable in this PowerShell version'
 }
 
+# version -> checksum（一次拉取，避免每个文件往返 psql）
+$script:AppliedChecksums = @{}
+
+function Load-AppliedChecksums() {
+  $script:AppliedChecksums = @{}
+  $rows = Psql-Scalar "select version || '|' || checksum from schema_migrations where success = true order by version"
+  if ([string]::IsNullOrWhiteSpace($rows)) { return }
+  foreach ($line in ($rows -split "`n")) {
+    $line = $line.Trim()
+    if ([string]::IsNullOrWhiteSpace($line)) { continue }
+    $parts = $line.Split('|', 2)
+    if ($parts.Count -eq 2) {
+      $script:AppliedChecksums[$parts[0]] = $parts[1]
+    }
+  }
+}
+
 function Is-MigrationApplied([string]$version) {
-  $v = Escape-SqlLiteral $version
-  (Psql-Scalar "select exists(select 1 from schema_migrations where version='${v}' and success=true)") -eq 't'
+  $script:AppliedChecksums.ContainsKey($version)
 }
 
 function Record-Migration([string]$version,[string]$name,[string]$checksum) {
@@ -130,6 +146,7 @@ on conflict (version) do update
       note = excluded.note;
 "@
   [void](Psql-Scalar $sql)
+  $script:AppliedChecksums[$version] = $checksum
 }
 
 function Set-SchemaVersion([string]$version,[string]$note) {
@@ -185,19 +202,21 @@ function Release-Lock() {
 
 function Run-Upgrade() {
   Ensure-MetaTables
+  Load-AppliedChecksums
   $files = Get-MigrationFiles
+  $skipped = 0
+  $appliedNow = 0
   foreach ($f in $files) {
     $version = Migration-Version $f.Name
     $title = Migration-Title $f.Name
     $checksum = File-Checksum $f.FullName
 
     if (Is-MigrationApplied $version) {
-      $v = Escape-SqlLiteral $version
-      $existing = Psql-Scalar "select checksum from schema_migrations where version='${v}'"
+      $existing = $script:AppliedChecksums[$version]
       if ($existing.ToLowerInvariant() -ne $checksum) {
-        throw "[ERROR] migration checksum changed after applied: V${version}"
+        throw "[ERROR] migration checksum changed after applied: V${version} (run: ./scripts/deploy.sh realign-checksums)"
       }
-      Write-Host "[db] skip applied migration: V$version ($title)"
+      $skipped++
       continue
     }
 
@@ -207,6 +226,13 @@ function Run-Upgrade() {
     Record-Migration $version $title $checksum
     Set-SchemaVersion $version "migration $title"
     Write-Host "[db] done migration: V$version"
+    $appliedNow++
+  }
+
+  if ($appliedNow -eq 0) {
+    Write-Host "[db] upgrade: no pending migrations (checked $skipped applied)"
+  } else {
+    Write-Host "[db] upgrade: applied $appliedNow pending; skipped $skipped already applied"
   }
 }
 
@@ -238,12 +264,22 @@ switch ($Command) {
   }
   'plan' {
     Ensure-MetaTables
+    Load-AppliedChecksums
     $files = Get-MigrationFiles
+    $applied = 0
+    $pending = 0
     foreach ($f in $files) {
       $v = Migration-Version $f.Name
       $n = Migration-Title $f.Name
-      if (Is-MigrationApplied $v) { Write-Host "APPLIED  V$v  $n" } else { Write-Host "PENDING  V$v  $n" }
+      if (Is-MigrationApplied $v) {
+        Write-Host "APPLIED  V$v  $n"
+        $applied++
+      } else {
+        Write-Host "PENDING  V$v  $n"
+        $pending++
+      }
     }
+    Write-Host "summary: applied=$applied pending=$pending"
   }
   'bootstrap' {
     Acquire-Lock

@@ -18,13 +18,14 @@ Usage:
   deploy.sh <command> [--config path]
 
 Commands:
-  doctor      Check required tools and DB connectivity
-  bootstrap   Initialize meta tables and apply all migrations
-  upgrade     Apply pending migrations only
-  plan        Show migration plan (applied/pending)
-  status      Show DB schema version and expected manifest version
-  verify      Run read-only verification suite
-  full        upgrade + verify
+  doctor             Check required tools and DB connectivity
+  bootstrap          Initialize meta tables and apply all migrations
+  upgrade            Apply pending migrations only
+  plan               Show migration plan (applied/pending)
+  status             Show DB schema version and expected manifest version
+  verify             Run read-only verification suite
+  full               upgrade + verify
+  realign-checksums  Fix applied checksum/name to current *.sql; append note (no SQL rerun)
 USAGE
 }
 
@@ -114,6 +115,12 @@ full() {
   verify
 }
 
+realign_checksums() {
+  require_cmd perl
+  load_db_env_from_json "$DB_CONFIG_JSON"
+  with_advisory_lock "$LOCK_ID" realign_migration_checksums
+}
+
 main() {
   parse_args "$@"
 
@@ -125,6 +132,7 @@ main() {
     status) status ;;
     verify) verify ;;
     full) full ;;
+    realign-checksums) realign_checksums ;;
     *) usage; exit 1 ;;
   esac
 }

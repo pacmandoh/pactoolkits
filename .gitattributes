@@ -1,0 +1,2 @@
+# SQL migrations: checksum is over working-tree bytes; pin Unix LF everywhere.
+*.sql text eol=lf
