@@ -202,10 +202,11 @@
   <!--
     Avalonia MakeFirstDisplayed 必须留一个 CurrentColumn（清成 -1 会再落回 #），拦不住
     CellSelect：只给非 DgChrome 数据格画 :current；# / 勾选列带 DgChrome，初始化幽灵 currency 无视觉
-    Tone* 行 hover/selected → Color20；数据格 :current → Color30
+    默认 :current 用 GhostColor（Shad 行选中 GhostHoverColor 的实色档，Light/Dark 已分色）；Tone* → Color30
+    勿用 SelectionColor：Shad Light/Dark 同值，暗色下几乎看不见
   -->
   <Style Selector="DataGrid.CellSelect DataGridCell:current">
-    <Setter Property="Background" Value="{DynamicResource SelectionColor}" />
+    <Setter Property="Background" Value="{DynamicResource GhostColor}" />
   </Style>
   <Style Selector="DataGrid.CellSelect DataGridCell.DgChrome:current">
     <Setter Property="Background" Value="Transparent" />
