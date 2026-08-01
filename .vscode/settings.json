@@ -12,5 +12,26 @@
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[ahk2]": {
+    "editor.defaultFormatter": "thqby.vscode-autohotkey2-lsp",
+    "editor.insertSpaces": false,
+    "editor.tabSize": 4
+  },
+  "AutoHotkey2.FormatOptions": {
+    "array_style": "none",
+    "break_chained_methods": false,
+    "ignore_comment": false,
+    "indent_string": "\t",
+    "max_preserve_newlines": 2,
+    "brace_style": "One True Brace",
+    "object_style": "none",
+    "preserve_newlines": true,
+    "space_after_double_colon": true,
+    "space_before_conditional": true,
+    "space_in_empty_paren": false,
+    "space_in_other": true,
+    "space_in_paren": false,
+    "wrap_line_length": 0
+  },
   "shfmt.executableArgs": ["-i", "2", "-ci", "-bn", "-sr"]
 }

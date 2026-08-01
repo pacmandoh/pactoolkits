@@ -9,9 +9,12 @@ source "$ROOT_DIR/scripts/lib/format-dotnet.sh"
 source "$ROOT_DIR/scripts/lib/format-text.sh"
 # shellcheck source=lib/format-xaml.sh
 source "$ROOT_DIR/scripts/lib/format-xaml.sh"
+# shellcheck source=lib/format-ahk.sh
+source "$ROOT_DIR/scripts/lib/format-ahk.sh"
 
 cd "$ROOT_DIR"
 
 run_dotnet_format --verify-no-changes
 format_text_check
 format_xaml_check
+format_ahk_check
