@@ -457,12 +457,13 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 await Task.Delay(250, ct).ConfigureAwait(false);
             }
 
+            // CreateProcess 保留 Desktop→Host 父子关系；ShellExecute 冷启动时任务管理器常把 Host/模块摊成顶层项
             var startInfo = new ProcessStartInfo
             {
                 FileName = resolvedExePath,
                 Arguments = BuildConfigArguments(_configStore.ConfigPath),
                 WorkingDirectory = Path.GetDirectoryName(resolvedExePath) ?? Environment.CurrentDirectory,
-                UseShellExecute = true,
+                UseShellExecute = false,
             };
 
             ClearHostControl(options);
