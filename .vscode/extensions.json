@@ -3,6 +3,7 @@
     "editorconfig.editorconfig",
     "ms-dotnettools.csharp",
     "esbenp.prettier-vscode",
-    "mkhl.shfmt"
+    "mkhl.shfmt",
+    "thqby.vscode-autohotkey2-lsp"
   ]
 }
