@@ -4,11 +4,11 @@ namespace PacToolkits.Desktop.Tests;
 
 public sealed class SensitiveUnlockSessionTests
 {
-    private static readonly TimeSpan SessionDuration = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan IdleTimeout = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan CooldownDuration = TimeSpan.FromMinutes(1);
 
     [Fact]
-    public void Successful_validation_unlocks_and_access_extends_session()
+    public void Successful_validation_unlocks_and_access_extends_idle()
     {
         var session = CreateSession();
         var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
@@ -19,6 +19,49 @@ public sealed class SensitiveUnlockSessionTests
         Assert.True(validation.IsSuccess);
         Assert.True(access.IsGranted);
         Assert.Equal(now.AddMinutes(20), session.GetSnapshot("inventory").ExpiresAtUtc);
+    }
+
+    [Fact]
+    public void Note_activity_extends_all_unlocked_scopes()
+    {
+        var session = CreateSession();
+        var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
+        session.Validate("inventory", "secret", "secret", now);
+        session.Validate("msfx", "secret", "secret", now);
+
+        session.NoteActivity(now.AddMinutes(10));
+
+        Assert.Equal(now.AddMinutes(25), session.GetSnapshot("inventory").ExpiresAtUtc);
+        Assert.Equal(now.AddMinutes(25), session.GetSnapshot("msfx").ExpiresAtUtc);
+    }
+
+    [Fact]
+    public void Idle_expires_only_after_timeout_without_activity()
+    {
+        var session = CreateSession();
+        var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
+        session.Validate("inventory", "secret", "secret", now);
+        session.NoteActivity(now.AddMinutes(10));
+
+        Assert.False(session.Refresh("inventory", now.AddMinutes(24)));
+        Assert.True(session.GetSnapshot("inventory").IsUnlocked);
+
+        Assert.True(session.Refresh("inventory", now.AddMinutes(25)));
+        Assert.False(session.GetSnapshot("inventory").IsUnlocked);
+    }
+
+    [Fact]
+    public void Note_activity_does_not_renew_after_idle_deadline()
+    {
+        var session = CreateSession();
+        var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
+        session.Validate("inventory", "secret", "secret", now);
+
+        session.NoteActivity(now + IdleTimeout);
+
+        var snapshot = session.GetSnapshot("inventory");
+        Assert.True(snapshot.IsUnlocked);
+        Assert.Equal(now + IdleTimeout, snapshot.ExpiresAtUtc);
     }
 
     [Fact]
@@ -71,18 +114,18 @@ public sealed class SensitiveUnlockSessionTests
     }
 
     [Fact]
-    public void Refresh_expires_unlock_at_session_deadline()
+    public void Refresh_expires_unlock_at_idle_deadline()
     {
         var session = CreateSession();
         var now = DateTimeOffset.Parse("2026-07-12T00:00:00Z");
         session.Validate("inventory", "secret", "secret", now);
 
-        var changed = session.Refresh("inventory", now + SessionDuration);
+        var changed = session.Refresh("inventory", now + IdleTimeout);
 
         Assert.True(changed);
         Assert.False(session.GetSnapshot("inventory").IsUnlocked);
     }
 
     private static SensitiveUnlockSession CreateSession()
-        => new(SessionDuration, CooldownDuration, failedAttemptThreshold: 5);
+        => new(IdleTimeout, CooldownDuration, failedAttemptThreshold: 5);
 }

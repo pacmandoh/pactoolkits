@@ -103,7 +103,7 @@ Settings / MainWindow
 
 ## 敏感操作与解锁
 
-`ISensitiveUnlockService` 定义在 Application 层；Desktop 的 `SensitiveUnlockService` 提供实现，并依赖 Dialog、Toast 等桌面交互能力。
+`ISensitiveUnlockService` 定义在 Application 层；Desktop 的 `SensitiveUnlockService` 提供实现，并依赖 Dialog、Toast 等桌面交互能力。解锁后按空闲超时（默认 15 分钟）自动锁定：`UnlockActivity` 在主窗前台输入时续期；后台或前台无输入则到期锁定。
 
 ## 演进约束
 

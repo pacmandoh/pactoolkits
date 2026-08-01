@@ -97,6 +97,7 @@ public static class ServiceRegistration
     {
         services.AddSingleton<IBackgroundTaskRunner, BackgroundTaskRunner>();
         services.AddSingleton<ISensitiveUnlockService, SensitiveUnlockService>();
+        services.AddSingleton<UnlockActivity>();
         services.AddSingleton<IUpdateFlowService, UpdateFlowService>();
         return services;
     }

@@ -4,7 +4,9 @@ using PacToolkits.Application.Abstractions;
 namespace PacToolkits.Application.Services;
 
 /// <summary>
-/// 按操作范围管理敏感操作的解锁期限、失败冷却和提示互斥
+/// 按操作范围管理敏感操作解锁：空闲超时、失败冷却和提示互斥
+///
+/// ExpiresAtUtc 是空闲截止时间；解锁态下访问与用户活动会续期，Refresh 只判到期
 /// </summary>
 public sealed class SensitiveUnlockSession
 {
@@ -16,7 +18,7 @@ public sealed class SensitiveUnlockSession
         CoolingDown
     }
 
-    private static readonly TimeSpan DefaultSessionDuration = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan DefaultIdleTimeout = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan DefaultCooldownDuration = TimeSpan.FromMinutes(1);
     private const int DefaultFailedAttemptThreshold = 5;
 
@@ -49,21 +51,21 @@ public sealed class SensitiveUnlockSession
 
     private readonly object _gate = new();
     private readonly Dictionary<string, ScopeState> _states = new(StringComparer.Ordinal);
-    private readonly TimeSpan _sessionDuration;
+    private readonly TimeSpan _idleTimeout;
     private readonly TimeSpan _cooldownDuration;
     private readonly int _failedAttemptThreshold;
 
     public SensitiveUnlockSession()
-        : this(DefaultSessionDuration, DefaultCooldownDuration, DefaultFailedAttemptThreshold)
+        : this(DefaultIdleTimeout, DefaultCooldownDuration, DefaultFailedAttemptThreshold)
     {
     }
 
     internal SensitiveUnlockSession(
-        TimeSpan sessionDuration,
+        TimeSpan idleTimeout,
         TimeSpan cooldownDuration,
         int failedAttemptThreshold)
     {
-        _sessionDuration = sessionDuration;
+        _idleTimeout = idleTimeout;
         _cooldownDuration = cooldownDuration;
         _failedAttemptThreshold = failedAttemptThreshold;
     }
@@ -86,11 +88,28 @@ public sealed class SensitiveUnlockSession
             var changed = Refresh(state, now);
             if (state.IsUnlocked)
             {
-                state.ExpiresAtUtc = now + _sessionDuration;
+                RenewIdle(state, now);
                 return new Access(key, IsGranted: true, IsPromptActive: false, changed);
             }
 
             return new Access(key, IsGranted: false, state.IsPromptActive, changed);
+        }
+    }
+
+    /// <summary>
+    /// 用户活动续期：仅滑动仍有效的解锁范围；到期由 Refresh / CheckAccess 判定
+    /// </summary>
+    public void NoteActivity(DateTimeOffset now)
+    {
+        lock (_gate)
+        {
+            foreach (var state in _states.Values)
+            {
+                if (state.IsUnlocked && state.ExpiresAtUtc > now)
+                {
+                    RenewIdle(state, now);
+                }
+            }
         }
     }
 
@@ -101,10 +120,10 @@ public sealed class SensitiveUnlockSession
         {
             var state = GetOrCreateState(key);
             var changed = Refresh(state, now);
-            // 已解锁范围仅延长有效期，避免重复显示口令框
+            // 已解锁范围仅续期，避免重复显示口令框
             if (state.IsUnlocked)
             {
-                state.ExpiresAtUtc = now + _sessionDuration;
+                RenewIdle(state, now);
                 return new Prompt(
                     key,
                     PromptStatus.Granted,
@@ -195,7 +214,7 @@ public sealed class SensitiveUnlockSession
             state.IsUnlocked = true;
             state.FailedAttempts = 0;
             state.CooldownUntilUtc = DateTimeOffset.MinValue;
-            state.ExpiresAtUtc = now + _sessionDuration;
+            RenewIdle(state, now);
             return new Validation(key, IsSuccess: true, StateChanged: true, Error: null);
         }
     }
@@ -224,6 +243,9 @@ public sealed class SensitiveUnlockSession
 
     public static string NormalizeScope(string? scopeKey)
         => string.IsNullOrWhiteSpace(scopeKey) ? "default" : scopeKey.Trim();
+
+    private void RenewIdle(ScopeState state, DateTimeOffset now)
+        => state.ExpiresAtUtc = now + _idleTimeout;
 
     private static bool Refresh(ScopeState state, DateTimeOffset now)
     {

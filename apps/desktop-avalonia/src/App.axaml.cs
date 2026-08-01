@@ -11,6 +11,7 @@ using PacToolkits.Agents.Contracts.Abstractions;
 using PacToolkits.Application.Abstractions;
 using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
+using PacToolkits.Desktop.Avalonia.Services.Presentation;
 using PacToolkits.Desktop.Avalonia.ViewModels;
 using PacToolkits.Desktop.Avalonia.Views;
 
@@ -24,6 +25,7 @@ public partial class App : global::Avalonia.Application
     private IUiBehaviorService? _uiBehavior;
     private IAgentsManager? _agentsManager;
     private IAppLogger? _logger;
+    private UnlockActivity? _unlockActivity;
     private bool _forceExit;
     private UnhandledExceptionEventHandler? _appDomainUnhandledHandler;
     private EventHandler<UnobservedTaskExceptionEventArgs>? _taskUnhandledHandler;
@@ -74,6 +76,8 @@ public partial class App : global::Avalonia.Application
         {
             DataContext = Services.GetRequiredService<MainWindowViewModel>()
         };
+        _unlockActivity = Services.GetRequiredService<UnlockActivity>();
+        _unlockActivity.Attach(_mainWindow);
         _mainWindow.Closing += OnMainWindowClosing;
 
         desktop.MainWindow = _mainWindow;
@@ -244,6 +248,9 @@ public partial class App : global::Avalonia.Application
         }
 
         _mainWindow?.Closing -= OnMainWindowClosing;
+
+        _unlockActivity?.Dispose();
+        _unlockActivity = null;
 
         if (_trayIcon is not null)
         {
