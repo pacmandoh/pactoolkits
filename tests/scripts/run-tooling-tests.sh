@@ -158,6 +158,12 @@ if validate_manifest_v2 "$invalid_db_compat_manifest" >/dev/null 2>&1; then
   exit 1
 fi
 
+# Windows/MSYS2 jq 输出 CRLF 时，带 CR 的 agents id 曾表现为 " requires minDbSchema..."
+validate_component_db_bounds "$ROOT_DIR/release-manifest.json" $'agents\r' || {
+  echo "ERROR: validate_component_db_bounds should accept agents id with trailing CR" >&2
+  exit 1
+}
+
 trap 'rm -f "$beta_manifest" "$stable_beta_product_manifest" "$beta_stable_product_manifest" "$invalid_min_max_manifest" "$invalid_db_compat_manifest"' EXIT
 
 [[ "$(expected_release_prerelease "$stable_fixture_manifest")" == "false" ]] || {

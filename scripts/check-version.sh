@@ -56,6 +56,7 @@ fi
 }
 
 while IFS= read -r component_id; do
+  component_id="${component_id//$'\r'/}"
   [[ -n "$component_id" ]] || continue
   agents_dir="$ROOT_DIR/$(manifest_agents_source_dir "$component_id")"
   agents_json="$agents_dir/ReleaseManifest.json"
@@ -87,6 +88,7 @@ while IFS= read -r component_id; do
 done < <(manifest_agents_component_ids "$MANIFEST")
 
 while IFS= read -r module_id; do
+  module_id="${module_id//$'\r'/}"
   [[ -n "$module_id" ]] || continue
   module_dir="$ROOT_DIR/$(manifest_agents_module_source_dir "$module_id")"
   module_json="$module_dir/ReleaseManifest.json"
@@ -106,7 +108,7 @@ while IFS= read -r module_id; do
     echo "ERROR: missing $module_meta (run scripts/export-version.sh)" >&2
     exit 1
   }
-  meta_version="$(jq -r '.version // empty' "$module_meta")"
+  meta_version="$(jq_r '.version // empty' "$module_meta")"
   [[ "$meta_version" == "$declared_version" ]] || {
     echo "ERROR: $module_meta version=$meta_version != agents.modules.$module_id.version=$declared_version" >&2
     exit 1
@@ -116,7 +118,7 @@ done < <(manifest_agents_module_ids "$MANIFEST")
 modules_root="$ROOT_DIR/runtime/agents/modules"
 for module_meta in "$modules_root"/*/module.json; do
   [[ -f "$module_meta" ]] || continue
-  module_id="$(jq -r '.id // empty' "$module_meta")"
+  module_id="$(jq_r '.id // empty' "$module_meta")"
   [[ -n "$module_id" ]] || {
     echo "ERROR: module.json missing id: $module_meta" >&2
     exit 1
@@ -132,11 +134,13 @@ echo "- product.version: $(manifest_product_version "$MANIFEST")"
 echo "- desktop.avalonia.version: $manifest_desktop"
 echo "- database.postgres.version: $(manifest_database_postgres_version "$MANIFEST")"
 while IFS= read -r component_id; do
+  component_id="${component_id//$'\r'/}"
   [[ -n "$component_id" ]] || continue
-  version="$(jq -r --arg id "$component_id" '.components[$id].version' "$MANIFEST")"
+  version="$(jq_r --arg id "$component_id" '.components[$id].version' "$MANIFEST")"
   echo "- ${component_id}.version: $version"
 done < <(manifest_agents_component_ids "$MANIFEST")
 while IFS= read -r module_id; do
+  module_id="${module_id//$'\r'/}"
   [[ -n "$module_id" ]] || continue
   echo "- agents.modules.${module_id}.version: $(manifest_agents_module_version "$MANIFEST" "$module_id")"
 done < <(manifest_agents_module_ids "$MANIFEST")

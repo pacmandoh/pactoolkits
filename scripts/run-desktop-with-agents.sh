@@ -50,6 +50,9 @@ case "$CONFIGURATION" in
     ;;
 esac
 
+# shellcheck source=manifest-v2.sh
+source "$ROOT_DIR/scripts/manifest-v2.sh"
+
 for command in dotnet jq; do
   command -v "$command" > /dev/null 2>&1 || {
     echo "ERROR: required command not found: $command" >&2
@@ -106,8 +109,8 @@ module_count=0
 for module_src in "$ROOT_DIR/runtime/agents/modules"/*; do
   [[ -d "$module_src" && -f "$module_src/module.json" ]] || continue
 
-  module_id="$(jq -r '.id // empty' "$module_src/module.json")"
-  entry="$(jq -r '.entry["win-x64"] // empty' "$module_src/module.json")"
+  module_id="$(jq_r '.id // empty' "$module_src/module.json")"
+  entry="$(jq_r '.entry["win-x64"] // empty' "$module_src/module.json")"
   [[ -n "$module_id" && -n "$entry" ]] || {
     echo "ERROR: invalid module manifest: $module_src/module.json" >&2
     exit 1

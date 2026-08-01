@@ -50,6 +50,7 @@ agents_version="$(manifest_agents_version "$MANIFEST")"
 agents_assembly_version="$(semver_stable_base "$agents_version")"
 
 while IFS= read -r component_id; do
+  component_id="${component_id//$'\r'/}"
   [[ -n "$component_id" ]] || continue
   agents_dir="$ROOT_DIR/$(manifest_agents_source_dir "$component_id")"
   mkdir -p "$agents_dir"
@@ -69,6 +70,7 @@ XML
 done < <(manifest_agents_component_ids "$MANIFEST")
 
 while IFS= read -r module_id; do
+  module_id="${module_id//$'\r'/}"
   [[ -n "$module_id" ]] || continue
   module_dir="$ROOT_DIR/$(manifest_agents_module_source_dir "$module_id")"
   mkdir -p "$module_dir"
@@ -95,11 +97,13 @@ echo "Exported version artifacts:"
 echo "- $DESKTOP_AVALONIA_DIR/Version.g.props"
 echo "- $manifest_snapshot"
 while IFS= read -r component_id; do
+  component_id="${component_id//$'\r'/}"
   [[ -n "$component_id" ]] || continue
   echo "- $ROOT_DIR/$(manifest_agents_source_dir "$component_id")/ReleaseManifest.json"
   echo "- $ROOT_DIR/$(manifest_agents_source_dir "$component_id")/Version.g.props"
 done < <(manifest_agents_component_ids "$MANIFEST")
 while IFS= read -r module_id; do
+  module_id="${module_id//$'\r'/}"
   [[ -n "$module_id" ]] || continue
   echo "- $ROOT_DIR/$(manifest_agents_module_source_dir "$module_id")/ReleaseManifest.json"
   echo "- $ROOT_DIR/$(manifest_agents_module_source_dir "$module_id")/module.json (version synced)"

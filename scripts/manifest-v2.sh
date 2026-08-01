@@ -3,46 +3,51 @@ set -euo pipefail
 
 # Manifest V2 查询和校验函数由本地发布脚本与 CI 共同使用
 
+# Windows/MSYS2 原生 jq 常输出 CRLF；去掉 CR，避免 id/版本带 CR 导致查找失败或终端回车覆盖报错行
+jq_r() {
+  jq -r "$@" | tr -d '\r'
+}
+
 manifest_schema_version() {
-  jq -r '.schemaVersion // empty' "$1"
+  jq_r '.schemaVersion // empty' "$1"
 }
 
 manifest_product_version() {
-  jq -r '.product.version // empty' "$1"
+  jq_r '.product.version // empty' "$1"
 }
 
 manifest_desktop_version() {
-  jq -r '.components.desktop.avalonia.version // empty' "$1"
+  jq_r '.components.desktop.avalonia.version // empty' "$1"
 }
 
 manifest_desktop_min_db() {
-  jq -r '.components.desktop.avalonia.minDbSchema // empty' "$1"
+  jq_r '.components.desktop.avalonia.minDbSchema // empty' "$1"
 }
 
 manifest_desktop_max_db() {
-  jq -r '.components.desktop.avalonia.maxDbSchema // empty' "$1"
+  jq_r '.components.desktop.avalonia.maxDbSchema // empty' "$1"
 }
 
 manifest_desktop_package_id() {
-  jq -r '.components.desktop.avalonia.packageId // empty' "$1"
+  jq_r '.components.desktop.avalonia.packageId // empty' "$1"
 }
 
 manifest_agents_version() {
-  jq -r '.components["agents"].version // empty' "$1"
+  jq_r '.components["agents"].version // empty' "$1"
 }
 
 manifest_agents_min_db() {
-  jq -r '.components["agents"].minDbSchema // empty' "$1"
+  jq_r '.components["agents"].minDbSchema // empty' "$1"
 }
 
 manifest_agents_module_ids() {
-  jq -r '.components.agents.modules // {} | keys[]' "$1"
+  jq_r '.components.agents.modules // {} | keys[]' "$1"
 }
 
 manifest_agents_module_version() {
   local manifest="$1"
   local module_id="$2"
-  jq -r --arg id "$module_id" \
+  jq_r --arg id "$module_id" \
     '.components.agents.modules[$id].version // empty' "$manifest"
 }
 
@@ -71,7 +76,7 @@ manifest_agents_module_source_dir() {
     [[ -d "$dir" ]] || continue
     meta="${dir}module.json"
     [[ -f "$meta" ]] || continue
-    id="$(jq -r '.id // empty' "$meta")"
+    id="$(jq_r '.id // empty' "$meta")"
     if [[ "$id" != "$module_id" ]]; then
       continue
     fi
@@ -91,7 +96,7 @@ manifest_agents_module_source_dir() {
 }
 
 agents_module_json_entry_win_x64() {
-  jq -r '.entry["win-x64"] // empty' "$1"
+  jq_r '.entry["win-x64"] // empty' "$1"
 }
 
 # 单模块校验同时约束描述文件、默认配置、schema 和入口文件
@@ -111,14 +116,14 @@ validate_agents_module_dir() {
   }
 
   local id entry version
-  id="$(jq -r '.id // empty' "$module_dir/module.json")"
+  id="$(jq_r '.id // empty' "$module_dir/module.json")"
   [[ "$id" == "$expected_id" ]] || {
     echo "ERROR: module.json id=$id != directory id=$expected_id ($module_dir)" >&2
     return 1
   }
 
   if [[ -n "$expected_version" ]]; then
-    version="$(jq -r '.version // empty' "$module_dir/module.json")"
+    version="$(jq_r '.version // empty' "$module_dir/module.json")"
     [[ "$version" == "$expected_version" ]] || {
       echo "ERROR: module.json version=$version != manifest version=$expected_version ($module_dir)" >&2
       return 1
@@ -176,6 +181,7 @@ validate_agents_staging_layout() {
   local module_count=0
   local module_id module_version
   while IFS= read -r module_id; do
+    module_id="${module_id//$'\r'/}"
     [[ -n "$module_id" ]] || continue
     module_count=$((module_count + 1))
     module_version="$(manifest_agents_module_version "$manifest" "$module_id")"
@@ -208,20 +214,20 @@ validate_agents_staging_layout() {
 
 manifest_database_postgres_version() {
   # V1 仅用于读取历史清单，待发布候选必须使用 V2 结构
-  jq -r '.components.database.postgres.version // .dbSchemaVersion // empty' "$1"
+  jq_r '.components.database.postgres.version // .dbSchemaVersion // empty' "$1"
 }
 
 manifest_release_channel() {
-  jq -r '.release.channel // empty' "$1"
+  jq_r '.release.channel // empty' "$1"
 }
 
 manifest_release_date() {
-  jq -r '.release.date // empty' "$1"
+  jq_r '.release.date // empty' "$1"
 }
 
 manifest_agents_component_ids() {
   # Host 版本独立于 modules 映射，避免模块版本变化隐式修改 Host 版本
-  jq -r '
+  jq_r '
     .components
     | to_entries[]
     | select(.key == "agents" and .value.artifact["windows-x64"] != null)
@@ -338,7 +344,7 @@ semver_lte_stable() {
 
 validate_component_db_bounds() {
   local manifest="$1"
-  local component_id="$2"
+  local component_id="${2//$'\r'/}"
   local min_db max_db
   case "$component_id" in
     desktop)
@@ -346,8 +352,8 @@ validate_component_db_bounds() {
       max_db="$(manifest_desktop_max_db "$manifest")"
       ;;
     *)
-      min_db="$(jq -r --arg id "$component_id" '.components[$id].minDbSchema // empty' "$manifest")"
-      max_db="$(jq -r --arg id "$component_id" '.components[$id].maxDbSchema // empty' "$manifest")"
+      min_db="$(jq_r --arg id "$component_id" '.components[$id].minDbSchema // empty' "$manifest")"
+      max_db="$(jq_r --arg id "$component_id" '.components[$id].maxDbSchema // empty' "$manifest")"
       ;;
   esac
   [[ -n "$min_db" && -n "$max_db" ]] || {
@@ -392,10 +398,11 @@ validate_database_postgres_component_compat() {
 
   local component_id
   while IFS= read -r component_id; do
+    component_id="${component_id//$'\r'/}"
     [[ -n "$component_id" ]] || continue
     validate_component_db_bounds "$manifest" "$component_id" || return 1
-    min_db="$(jq -r --arg id "$component_id" '.components[$id].minDbSchema' "$manifest")"
-    max_db="$(jq -r --arg id "$component_id" '.components[$id].maxDbSchema' "$manifest")"
+    min_db="$(jq_r --arg id "$component_id" '.components[$id].minDbSchema' "$manifest")"
+    max_db="$(jq_r --arg id "$component_id" '.components[$id].maxDbSchema' "$manifest")"
     semver_lte_stable "$min_db" "$db_version" || {
       echo "ERROR: database.postgres.version ($db_version) must be >= $component_id.minDbSchema ($min_db)" >&2
       return 1
