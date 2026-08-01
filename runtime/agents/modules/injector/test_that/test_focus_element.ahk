@@ -6,25 +6,25 @@ Persistent
 SetTitleMatchMode 2
 
 #HotIf WinActive("ahk_exe 互慧软件.exe")
-F1::UI_FocusClassNN("TMemo1")
-F2::UI_FocusClassNN("TMemo2")
-F4::{ 
+F1:: UI_FocusClassNN("TMemo1")
+F2:: UI_FocusClassNN("TMemo2")
+F4:: {
 	i := UI_TryCopyClassNNText("TcxGridSite1")
 	MsgBox i
 }
 F3::
 {
-    hwndWin := WinGetID("A")
-    out := "Active Win: 0x" Format("{:X}", hwndWin) "`n`n"
+	hwndWin := WinGetID("A")
+	out := "Active Win: 0x" Format("{:X}", hwndWin) "`n`n"
 
-    for h in WinGetControlsHwnd("ahk_id " hwndWin) {
-        cls := WinGetClass(h)
-        if (cls = "TcxGridSite") {
-            classnn := ControlGetClassNN(h)
-            out .= Format("hwnd=0x{:X}  ClassNN={}`n", h, classnn)
-        }
-    }
+	for h in WinGetControlsHwnd("ahk_id " hwndWin) {
+		cls := WinGetClass(h)
+		if (cls = "TcxGridSite") {
+			classnn := ControlGetClassNN(h)
+			out .= Format("hwnd=0x{:X}  ClassNN={}`n", h, classnn)
+		}
+	}
 
-    MsgBox out
+	MsgBox out
 }
 #HotIf
