@@ -1,9 +1,7 @@
-; Injector 的配置加载、目标窗口识别、剪贴板访问和日志支持
-
-UI_Tip(msg, ms := 1200) {
-	ToolTip(msg)
-	SetTimer(() => ToolTip(), -ms)
-}
+; Injector 的配置加载、目标窗口识别、剪贴板访问
+; Ahk2Exe 工作目录是编译器目录，不能裸 #Include（会落到 A_WorkingDir）
+; A_LineFile 含文件名，需多一层 .. 才能从 src/ 回到 agents/
+#Include "%A_LineFile%\..\..\..\..\lib\ahk\startup.ahk"
 
 Util_TxnId() {
 	r := Random(10000, 99999)
@@ -26,48 +24,15 @@ Util_ShortSQL(sql, maxLen := 1200) {
 	return SubStr(sql, 1, maxLen) "`n... (truncated, len=" StrLen(sql) ")"
 }
 
-Util_PathFull(p) {
-	; 统一为绝对路径，避免工作目录变化影响文件访问
-	buf := Buffer(32768 * 2, 0)
-	len := DllCall("Kernel32\GetFullPathNameW", "str", p, "uint", 32768, "ptr", buf, "ptr", 0, "uint")
-	return len ? StrGet(buf, len, "UTF-16") : p
-}
-
-Util_ReadVersionFile() {
-	global VersionInfo
-	if (IsSet(VersionInfo) && Type(VersionInfo) = "Map" && VersionInfo.Has("moduleVersion"))
-		return VersionInfo
-
-	info := Map(
-		"moduleVersion", "unknown"
-	)
-
-	; 版本信息仅来自当前模块描述文件，避免错误显示 Host 版本
-	moduleMetaPath := Util_PathFull(A_ScriptDir "\module.json")
-	if FileExist(moduleMetaPath) {
-		meta := Json_ReadFile(moduleMetaPath)
-		if (IsObject(meta) && meta.Has("ok") && meta["ok"] && meta.Has("val")
-			&& IsObject(meta["val"]) && meta["val"].Has("version")) {
-			info["moduleVersion"] := meta["val"]["version"]
-		}
-	}
-
-	return info
-}
-
-Util_ClearModuleReady() {
-	path := Util_PathFull(A_ScriptDir "\module.ready")
-	try FileDelete(path)
-}
-
-Util_MarkModuleReady() {
-	path := Util_PathFull(A_ScriptDir "\module.ready")
-	try FileDelete(path)
-	try FileAppend("ok`n", path, "UTF-8")
+Util_ReadUtf8(path) {
+	txt := FileRead(path, "UTF-8")
+	if (SubStr(txt, 1, 1) = Chr(0xFEFF))
+		txt := SubStr(txt, 2)
+	return txt
 }
 
 Util_InitRuntimeInfo(versionInfo := "") {
-	v := (IsObject(versionInfo) && versionInfo.Has("moduleVersion")) ? versionInfo["moduleVersion"] : Util_ReadVersionFile()["moduleVersion"]
+	v := (IsObject(versionInfo) && versionInfo.Has("moduleVersion")) ? versionInfo["moduleVersion"] : Module_ReadVersion()["moduleVersion"]
 	ip := Util_GetPrimaryIPv4()
 	osName := Util_GetOSName()
 
@@ -84,7 +49,7 @@ Util_GetVersionTag() {
 	global RuntimeInfo
 	if (IsSet(RuntimeInfo) && Type(RuntimeInfo) = "Map" && RuntimeInfo.Has("versionTag"))
 		return RuntimeInfo["versionTag"]
-	v := Util_ReadVersionFile()
+	v := Module_ReadVersion()
 	return "agents-" v["moduleVersion"] "+ahk-" A_AhkVersion
 }
 
@@ -447,24 +412,23 @@ Util_IsWarehouseWindow(win := "A") {
 Util_WarehouseSoftCheck(win := "A") {
 	global Cfg
 	if !(Cfg.Has("WAREHOUSE_ANCHORS") && IsObject(Cfg["WAREHOUSE_ANCHORS"]))
-		return Map("ok", false, "level", "ERR", "type", "[仓库模式校验]", "why", "缺少仓库列特征配置 WarehouseAnchorTexts")
+		return Map("ok", false, "level", "Error", "message", "[仓库模式校验]`n缺少仓库列特征配置 WarehouseAnchorTexts")
 
 	anchors := Cfg["WAREHOUSE_ANCHORS"]
 	if (anchors.Length = 0)
-		return Map("ok", false, "level", "WARN", "type", "[仓库模式校验]", "why", "仓库列特征不能为空")
+		return Map("ok", false, "level", "Warn", "message", "[仓库模式校验]`n仓库列特征不能为空")
 
 	hdrLine := Util_TryGetGridHeaderLine(win)
 	if (hdrLine = "")
-		return Map("ok", false, "level", "WARN", "type", "[仓库模式校验]", "why", "无法抓取表头，请检查当前选中行或剪贴板权限")
+		return Map("ok", false, "level", "Warn", "message", "[仓库模式校验]`n无法抓取表头，请检查当前选中行或剪贴板权限")
 
 	for _, a in anchors {
 		t := Trim(a)
 		if (t != "" && InStr(hdrLine, t))
 			return Map(
 				"ok", false,
-				"level", "ERR",
-				"type", "[仓库模式校验]",
-				"why", "当前表头命中住院列特征：" t "，请关闭仓库模式后再操作",
+				"level", "Error",
+				"message", "[仓库模式校验]`n当前表头命中住院列特征：" t "，请关闭仓库模式后再操作",
 				"header_line", hdrLine
 			)
 	}
@@ -578,29 +542,14 @@ Util_WithClipboard(tempText, fn) {
 	}
 }
 
-Util_LogLine(line, logDir := "") {
-	; 仅持久化错误级别事件，控制高频自动化路径的日志量
-	if (logDir = "")
-		logDir := A_ScriptDir "\logs"
-	try DirCreate(logDir)
-	stamp := FormatTime(, "yyyy-MM-dd HH:mm:ss")
-	file := logDir "\" FormatTime(, "yyyyMMdd") ".log"
-	try FileAppend(stamp " " line "`n", file, "UTF-8")
-}
-
 Util_GetPrimaryIPv4() {
-	; 使用首个可用 IPv4 生成客户端标识；无法获取时保留空值
+	; 使用首个非回环 IPv4 生成客户端标识；无法获取时保留空值
 	try {
-		q := "SELECT IPAddress FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled=True"
-		for nic in ComObjGet("winmgmts:").ExecQuery(q) {
-			ips := nic.IPAddress
-			if !IsObject(ips)
+		for ip in SysGetIPAddresses() {
+			ip := Trim("" ip)
+			if (ip = "" || InStr(ip, "127.") = 1)
 				continue
-			for ip in ips {
-				ip := Trim("" ip)
-				if RegExMatch(ip, "^\d{1,3}(\.\d{1,3}){3}$")
-					return ip
-			}
+			return ip
 		}
 	}
 	return ""
@@ -619,37 +568,8 @@ Util_GetOSName() {
 }
 
 Util_GetConfigArg() {
-	i := 1
-	while (i <= A_Args.Length) {
-		arg := A_Args[i]
-		if (arg = "--config") {
-			if (i + 1 <= A_Args.Length)
-				return Util_PathFull(A_Args[i + 1])
-			return ""
-		}
-		if (SubStr(arg, 1, 9) = "--config=")
-			return Util_PathFull(SubStr(arg, 10))
-		i++
-	}
-	return ""
-}
-
-Util_GetArgValue(flagName) {
-	i := 1
-	while (i <= A_Args.Length) {
-		arg := A_Args[i]
-		if (arg = flagName) {
-			if (i + 1 <= A_Args.Length)
-				return Trim(A_Args[i + 1])
-			return ""
-		}
-
-		prefix := flagName "="
-		if (SubStr(arg, 1, StrLen(prefix)) = prefix)
-			return Trim(SubStr(arg, StrLen(prefix) + 1))
-		i++
-	}
-	return ""
+	path := Args_GetValue("--config")
+	return path = "" ? "" : Util_PathFull(path)
 }
 
 Util_LoadUnifiedConfig(configPath) {
@@ -659,12 +579,11 @@ Util_LoadUnifiedConfig(configPath) {
 	if !FileExist(path)
 		return Util_CfgFail("配置文件不存在：`n" path, "FILE_NOT_FOUND")
 
-	parsed := Json_ReadFile(path)
-	if !(parsed.Has("ok") && parsed["ok"]) {
-		msg := parsed.Has("err") ? parsed["err"] : "未知解析错误"
-		return Util_CfgFail("配置 JSON 解析失败：`n" msg, "JSON_PARSE")
+	try {
+		root := JSON.parse(Util_ReadUtf8(path))
+	} catch as e {
+		return Util_CfgFail("配置 JSON 解析失败：`n" e.Message, "JSON_PARSE")
 	}
-	root := parsed["val"]
 
 	if (Type(root) != "Map")
 		return Util_CfgFail("配置文件根节点必须是 JSON 对象", "ROOT_NOT_OBJECT")
@@ -679,13 +598,15 @@ Util_LoadUnifiedConfig(configPath) {
 	if !ok
 		return Util_CfgFail(err, "INVALID_POSTGRES")
 	; 模块配置必须由 Host 显式传入，禁止回退到安装目录默认文件而绕过用户配置
-	moduleSettingsPath := Util_GetArgValue("--module-settings")
+	moduleSettingsPath := Args_GetValue("--module-settings")
 	if (moduleSettingsPath = "")
 		return Util_CfgFail("缺少 --module-settings（模块业务配置路径）", "MISSING_MODULE_SETTINGS")
 	moduleSettingsPath := Util_PathFull(moduleSettingsPath)
 	agent := Util_LoadModuleSettingsMap(moduleSettingsPath, &ok, &err)
 	if !ok
 		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
+	; 业务字段校验失败前先应用日志门控
+	Log_ApplySettings(agent)
 
 	cfg := Map()
 
@@ -776,13 +697,12 @@ Util_LoadModuleSettingsMap(path, &ok, &err) {
 		return ""
 	}
 
-	parsed := Json_ReadFile(path)
-	if !(parsed.Has("ok") && parsed["ok"]) {
-		msg := parsed.Has("err") ? parsed["err"] : "未知解析错误"
-		ok := false, err := "module-settings JSON 解析失败：`n" msg
+	try {
+		root := JSON.parse(Util_ReadUtf8(path))
+	} catch as e {
+		ok := false, err := "module-settings JSON 解析失败：`n" e.Message
 		return ""
 	}
-	root := parsed["val"]
 	if (Type(root) != "Map") {
 		ok := false, err := "module-settings 根节点必须是 JSON 对象"
 		return ""
@@ -794,7 +714,7 @@ Util_LoadModuleSettingsMap(path, &ok, &err) {
 
 Util_CfgFail(why, reason := "CONFIG_INVALID") {
 	msg := Trim("" why)
-	return Map("ok", false, "level", "ERR", "type", "[配置错误]", "why", msg, "reason", reason, "err", msg)
+	return Map("ok", false, "level", "Error", "message", "[配置错误]`n" msg, "reason", reason, "err", msg)
 }
 
 Util_CfgGetMap(obj, key, &ok, &err) {

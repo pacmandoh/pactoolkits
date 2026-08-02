@@ -1,5 +1,7 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
+#Include "%A_ScriptDir%\..\..\..\lib\ahk\JSON.ahk"
+#Include "%A_ScriptDir%\..\..\..\lib\ahk\path.ahk"
 #Include "%A_ScriptDir%\..\src\pg_exec.ahk"
 #Include "%A_ScriptDir%\..\src\db_txn.ahk"
 #Include "%A_ScriptDir%\..\src\utils.ahk"
@@ -48,7 +50,7 @@ Main() {
 		ExitApp 1
 	}
 	if (rA.Has("skip") && rA["skip"]) {
-		MsgBox "[信息] Reserve 被跳过`nwhy=" (rA.Has("why") ? rA["why"] : "")
+		MsgBox "[信息] Reserve 被跳过`nmessage=" (rA.Has("message") ? rA["message"] : "")
 		ExitApp 1
 	}
 
@@ -73,7 +75,7 @@ Main() {
 		ExitApp 1
 	}
 	if (rB.Has("skip") && rB["skip"]) {
-		MsgBox "[信息] 测试B Reserve 被跳过`nwhy=" (rB.Has("why") ? rB["why"] : "")
+		MsgBox "[信息] 测试B Reserve 被跳过`nmessage=" (rB.Has("message") ? rB["message"] : "")
 		ExitApp 1
 	}
 
@@ -98,7 +100,7 @@ Main() {
 	}
 
 	if (rC.Has("skip") && rC["skip"]) {
-		MsgBox "[信息] 测试C 被跳过`nwhy=" (rC.Has("why") ? rC["why"] : "")
+		MsgBox "[信息] 测试C 被跳过`nmessage=" (rC.Has("message") ? rC["message"] : "")
 	} else {
 		ShowReserveResult("[信息] 测试C Reserve 成功（拆零）", txnC, rC)
 		rbC := Txn_Rollback(txnC)

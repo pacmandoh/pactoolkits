@@ -17,7 +17,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 
 		; 非拆零业务不得从追溯池预留记录
 		if (splitFlag = "否") {
-			return Map("ok", true, "skip", true, "type", "[跳过取码]", "why", "未拆零药物", "need", 0, "codes", [], "items", [])
+			return Map("ok", true, "skip", true, "level", "Info", "message", "[跳过取码]`n未拆零药物", "need", 0, "codes", [], "items", [])
 		}
 
 		qtyN := 0
@@ -27,7 +27,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 			qtyN := Integer(qtyVal)
 
 		if (qtyN <= 0) {
-			return Map("ok", false, "level", "WARN", "type", "[解析错误]", "why", "数量无效：" qtyVal)
+			return Map("ok", false, "level", "Warn", "message", "[解析错误]`n数量无效：" qtyVal)
 		}
 
 		; 单盒数量以 drug_index.qty 为准，用于计算拆零余数
@@ -38,25 +38,24 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 			. "LIMIT 1;"
 		rr := DB_Query(qDbQty)
 		if !rr["ok"] {
-			return Map("ok", false, "level", "ERR", "type", "[查询错误]", "why", "读取药品索引中单盒数量失败：`n" rr["err"])
+			return Map("ok", false, "level", "Error", "message", "[查询错误]`n读取药品索引中单盒数量失败：`n" rr["err"])
 		}
 		if (rr["rows"].Length = 0) {
 			return Map(
-				"ok", false, "level", "WARN", "type", "[查询错误]",
-				"why", "药品索引未配置该药品规格（无法计算拆零余数）：`n" "药品=" drugId "`n规格=" spec
+				"ok", false, "level", "Warn", "message", "[查询错误]`n药品索引未配置该药品规格（无法计算拆零余数）：`n" "药品=" drugId "`n规格=" spec
 			)
 		}
 
 		dbQty := Util_ToInt(rr["rows"][1][1])
 		if (dbQty <= 0) {
-			return Map("ok", false, "level", "ERR", "type", "[查询错误]", "why", "药品索引中单盒数量非法：" dbQty)
+			return Map("ok", false, "level", "Error", "message", "[查询错误]`n药品索引中单盒数量非法：" dbQty)
 		}
 
 		rem := Mod(qtyN, dbQty)
 
 		; 余数为零表示完整包装，不预留追溯码
 		if (rem = 0) {
-			return Map("ok", true, "skip", true, "type", "[跳过取码]", "why", "整包装（数量为整包整数倍，单盒数量=" dbQty "）"
+			return Map("ok", true, "skip", true, "level", "Info", "message", "[跳过取码]`n整包装（数量为整包整数倍，单盒数量=" dbQty "）"
 				, "need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty)
 		}
 
@@ -67,9 +66,8 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 
 	; 单条 CTE 使用 SKIP LOCKED 并保持索引顺序，降低并发预留冲突
 	rOpen := PG_EnsureOpen()
-	if !rOpen["ok"] {
-		return Map("ok", false, "level", "ERR", "type", rOpen["type"], "why", "数据库链接失败：`n" rOpen["err"])
-	}
+	if !rOpen["ok"]
+		return rOpen
 
 	conn := __PG["conn"]
 
@@ -219,16 +217,18 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		if !r["ok"] {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
+			detail := r.Has("message") ? r["message"] : r["err"]
 			return Map(
-				"ok", false, "level", "ERR", "type", r["type"],
-				"why", "预留 SQL 执行异常：`n" r["err"], "reason", "SQL_ERROR", "err", r["err"]
+				"ok", false, "level", r["level"],
+				"message", "[预留错误]`n预留 SQL 执行异常：`n" detail,
+				"reason", "SQL_ERROR", "err", detail
 			)
 		}
 
 		if (r["rows"].Length = 0) {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
-			return Map("ok", false, "level", "ERR", "type", "[预留错误]", "why", "未返回任何结果行", "reason", "NO_RESULT")
+			return Map("ok", false, "level", "Error", "message", "[预留错误]`n未返回任何结果行", "reason", "NO_RESULT")
 		}
 
 		; 查询列顺序是跨 ADO 读取的固定契约，修改 SQL 时必须同步此处索引
@@ -256,8 +256,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 			}
 
 			return Map(
-				"ok", false, "level", "WARN", "type", "[预留错误]",
-				"why", msg "`n预留数量=" need "`n规格=" spec "`n药品=" drugId,
+				"ok", false, "level", "Warn", "message", "[预留错误]`n" msg "`n预留数量=" need "`n规格=" spec "`n药品=" drugId,
 				"reason", reason, "need", need, "codes", [], "items", [],
 				"skip", false)
 		}
@@ -268,7 +267,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 	} catch as e {
 		try conn.RollbackTrans()
 		__PG["in_txn"] := false
-		return Map("ok", false, "level", "ERR", "type", "[预留错误]", "why", "`n" e.Message, "reason", "EXCEPTION", "err", e.Message)
+		return Map("ok", false, "level", "Error", "message", "[预留错误]`n`n" e.Message, "reason", "EXCEPTION", "err", e.Message)
 	}
 
 	; 住院与门诊使用不同的返回码集合策略
@@ -302,8 +301,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		codes := [lastCode]
 
 	return Map(
-		"ok", true, "type", "[预留成功]",
-		"why", "需扣=" reqQty "，码数=" codes.Length,
+		"ok", true, "level", "Info", "message", "[预留成功]`n需扣=" reqQty "，码数=" codes.Length,
 		"skip", false, "codes", codes, "items", items,
 		"req_qty_effective", reqQty
 	)
@@ -312,9 +310,8 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 ; 提交操作将任务状态从 PENDING 转换为 COMMITTED
 Txn_Commit(txnId) {
 	rOpen := PG_EnsureOpen()
-	if !rOpen["ok"] {
-		return Map("ok", false, "type", rOpen["type"], "why", "数据库链接失败：`n" rOpen["err"])
-	}
+	if !rOpen["ok"]
+		return rOpen
 
 	conn := __PG["conn"]
 	escTxn := Util_EscapeSQL(txnId)
@@ -335,31 +332,30 @@ Txn_Commit(txnId) {
 		if !r["ok"] {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
-			return Map("ok", false, "type", r["type"], "why", r["err"])
+			return r
 		}
 		if (r["rows"].Length != 1) {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
-			return Map("ok", false, "type", "[提交错误]", "why", "提交减扣失败：`n没有在 PENDING 状态的预留事务")
+			return Map("ok", false, "level", "Error", "message", "[提交错误]`n提交减扣失败：`n没有在 PENDING 状态的预留事务")
 		}
 
 		conn.CommitTrans()
 		__PG["in_txn"] := false
-		return Map("ok", true, "type", "[提交成功]")
+		return Map("ok", true, "level", "Info", "message", "[提交成功]")
 
 	} catch as e {
 		try conn.RollbackTrans()
 		__PG["in_txn"] := false
-		return Map("ok", false, "type", "[提交错误]", "why", e.Message)
+		return Map("ok", false, "level", "Error", "message", "[提交错误]`n" e.Message, "err", e.Message)
 	}
 }
 
 ; 回滚仅恢复仍处于 PENDING 状态的事务
 Txn_Rollback(txnId) {
 	rOpen := PG_EnsureOpen()
-	if !rOpen["ok"] {
-		return Map("ok", false, "type", rOpen["type"], "why", "数据库链接失败：`n" rOpen["err"])
-	}
+	if !rOpen["ok"]
+		return rOpen
 
 	conn := __PG["conn"]
 	escTxn := Util_EscapeSQL(txnId)
@@ -392,24 +388,24 @@ Txn_Rollback(txnId) {
 		if !r["ok"] {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
-			return Map("ok", false, "type", r["type"], "why", r["err"])
+			return r
 		}
 
 		restored := (r["rows"].Length > 0) ? Util_ToInt(r["rows"][1][1]) : 0
 		if (restored = 0) {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
-			return Map("ok", false, "type", "[回滚错误]", "why", "回滚减扣失败：`n没有在 PENDING 状态的预留事务")
+			return Map("ok", false, "level", "Error", "message", "[回滚错误]`n回滚减扣失败：`n没有在 PENDING 状态的预留事务")
 		}
 
 		conn.CommitTrans()
 		__PG["in_txn"] := false
-		return Map("ok", true, "type", "[回滚成功]", "restored_rows", restored)
+		return Map("ok", true, "level", "Info", "message", "[回滚成功]", "restored_rows", restored)
 
 	} catch as e {
 		try conn.RollbackTrans()
 		__PG["in_txn"] := false
-		return Map("ok", false, "type", "[回滚错误]", "why", e.Message)
+		return Map("ok", false, "level", "Error", "message", "[回滚错误]`n" e.Message, "err", e.Message)
 	}
 }
 

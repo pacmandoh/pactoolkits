@@ -9,67 +9,59 @@
 ;@Ahk2Exe-SetInternalName Injector
 ;@Ahk2Exe-SetOrigFilename Injector.exe
 ;@Ahk2Exe-SetMainIcon assets\agents-injector.ico
+#Include "%A_ScriptDir%\..\..\lib\ahk\args.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\ready.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\log.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\ui.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\path.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\startup.ahk"
 #Include "%A_ScriptDir%\src\parse_clipboard.ahk"
 #Include "%A_ScriptDir%\src\db_txn.ahk"
 #Include "%A_ScriptDir%\src\pg_exec.ahk"
 #Include "%A_ScriptDir%\src\ui_txn.ahk"
-#Include "%A_ScriptDir%\src\json.ahk"
 #Include "%A_ScriptDir%\src\utils.ahk"
 #Include "%A_ScriptDir%\src\main_semi_auto.ahk"
 #Include "%A_ScriptDir%\src\msfx_task.ahk"
 
 ; Injector 追溯码录入模块入口
 
-; ODBC/Postgres 与打包基底要求 64 位；32 位进程无法正确连接
-if (A_PtrSize = 4) {
-	if (A_IsCompiled) {
-		UI_Err("当前为 32 位打包程序，无法运行`n请使用 64 位 AutoHotkey 基底重新打包后再启动", "追溯码自动化 - 启动自检")
-		ExitApp
-	}
-	Run('"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe" "' A_ScriptFullPath '"')
-	ExitApp
-}
-
 global Cfg := IsSet(Cfg) ? Cfg : Map()
-Util_ClearModuleReady()
+global VersionInfo := Module_ReadVersion()
+; 尽早对齐日志根、版本与模块门控，使后续 UI_Fail / Log_Error 也带 version
+Log_Startup("Injector", VersionInfo["moduleVersion"])
+Log_TryApplyModuleSettingsArg()
+Arch_Require64("追溯码自动化 - 启动自检")
+
+Ready_Install()
 cfgPath := Util_GetConfigArg()
 if (cfgPath = "") {
-	UI_Err("启动参数缺失：`n请使用 --config " Chr(34) "<配置文件绝对路径>" Chr(34) " 启动", "追溯码自动化 - 启动自检")
+	UI_Fail(
+		"startup.config_arg_missing",
+		"启动参数缺失：`n请使用 --config " Chr(34) "<配置文件绝对路径>" Chr(34) " 启动",
+		"追溯码自动化 - 启动自检"
+	)
 	ExitApp
 }
 
 cfgLoad := Util_LoadUnifiedConfig(cfgPath)
 if !(cfgLoad.Has("ok") && cfgLoad["ok"]) {
-	t := cfgLoad.Has("type") ? cfgLoad["type"] : "[配置错误]"
-	w := cfgLoad.Has("why") ? cfgLoad["why"] : (cfgLoad.Has("err") ? cfgLoad["err"] : "未知错误")
-	UI_Err(t " " w, "追溯码自动化 - 启动自检")
+	msg := cfgLoad.Has("message") ? cfgLoad["message"] : (cfgLoad.Has("err") ? cfgLoad["err"] : "未知错误")
+	UI_Fail("startup.config_load_fail", msg, "追溯码自动化 - 启动自检")
 	ExitApp
 }
 global Cfg := cfgLoad["cfg"]
-global VersionInfo := Util_ReadVersionFile()
 global RuntimeInfo := Util_InitRuntimeInfo(VersionInfo)
 UI_Tip("Injector v" VersionInfo["moduleVersion"], 1600)
 
-; 关键配置缺失时终止启动，避免模块在配置不完整的状态下执行自动化
-_missing := []
-for _, k in ["PG_HOST", "PG_PORT", "PG_DB", "PG_USER", "PG_PASS", "PG_DRIVER", "PG_SSL", "OPT_WINDOW_CLASS", "IPT_WINDOW_CLASS", "OPT_PARSE_GRID_CLASSNN", "OPT_VERIFY_GRID_CLASSNN", "IPT_PARSE_GRID_CLASSNN", "IPT_VERIFY_GRID_CLASSNN", "OPT_INPUT_CLASSNN", "IPT_INPUT_CLASSNN", "COL_SPECS", "INT_COLS", "CONFIRM_TIMEOUT_MS", "APP_WIN"] {
-	if !Cfg.Has(k) {
-		_missing.Push(k)
-		continue
-	}
-	v := Cfg[k]
-	if (!IsObject(v) && Trim("" v) = "")
-		_missing.Push(k)
-}
-if (_missing.Length > 0) {
-	join := ""
-	for i, kk in _missing
-		join .= (i = 1 ? kk : "`n - " kk)
-	UI_Err("配置缺失：`n - " join "`n`n请检查 --config 指向的统一配置文件", "追溯码自动化 - 启动自检")
-	ExitApp
-}
+Cfg_RequireKeys(Cfg, [
+	"PG_HOST", "PG_PORT", "PG_DB", "PG_USER", "PG_PASS", "PG_DRIVER", "PG_SSL",
+	"OPT_WINDOW_CLASS", "IPT_WINDOW_CLASS", "OPT_PARSE_GRID_CLASSNN", "OPT_VERIFY_GRID_CLASSNN",
+	"IPT_PARSE_GRID_CLASSNN", "IPT_VERIFY_GRID_CLASSNN", "OPT_INPUT_CLASSNN", "IPT_INPUT_CLASSNN",
+	"COL_SPECS", "INT_COLS", "CONFIRM_TIMEOUT_MS", "APP_WIN"
+], "追溯码自动化 - 启动自检")
 
-Util_MarkModuleReady()
+Ready_Mark()
+Log_Info("startup.ready", "Injector 自检通过")
 
 ; 启动时恢复超时的 PENDING 事务，避免异常退出后库存长期占用
 global _CLEANUP_BUSY := false
@@ -105,7 +97,7 @@ global _LAST_RUN := 0
 	if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"]) {
 		ck := Util_WarehouseSoftCheck(ctx["win"])
 		if !ck["ok"] {
-			UI_Err(ck["type"] " " ck["why"])
+			UI_Fail("warehouse.check_fail", ck["message"], "追溯码自动化")
 			return
 		}
 		UI_Tip("[仓库模式] 列特征校验通过")
@@ -114,10 +106,10 @@ global _LAST_RUN := 0
 
 	p := Parse_TargetInfo(Cfg["COL_SPECS"], Cfg["IPT_WINDOW_CLASS"], Cfg["INT_COLS"], "", ctx["win"], parseGridClassNN)
 	if (!p["ok"]) {
-		UI_Err(p["type"] " " p["why"])
+		UI_Fail("parse.fail", p["message"], "追溯码自动化")
 		return
 	}
-	UI_Tip("[解析成功]" p["why"])
+	UI_Tip(p["message"])
 }
 
 ~LButton:: {
@@ -156,13 +148,12 @@ global _LAST_RUN := 0
 	if !warehouseMode {
 		try {
 			if (ctx["cls"] = Cfg["OPT_WINDOW_CLASS"]) {
-				Util_LogLine(
-					"OPT_HOOK"
-					. " | t=" (A_TickCount - hookT0) "ms"
-					. " | activeCls=" activeCls
-					. " | ctxCls=" ctx["cls"]
-					. " | ttl=" StrReplace(ctx["ttl"], "`n", " ")
-				)
+				Log_Info("opt_hook", "门诊热键触发", Map(
+					"elapsedMs", A_TickCount - hookT0,
+					"activeCls", activeCls,
+					"cls", ctx["cls"],
+					"ttl", ctx["ttl"]
+				))
 			}
 		}
 	}
@@ -196,7 +187,7 @@ global _LAST_RUN := 0
 		}
 
 		if (msa.Has("skip") && msa["skip"]) {
-			UI_Tip(msa["type"] " " msa["why"])
+			UI_Tip(msa["message"])
 			if (msa.Has("focusClassNN"))
 				UI_FocusClassNN(msa["focusClassNN"], ctx["win"])
 			return true
@@ -204,12 +195,17 @@ global _LAST_RUN := 0
 
 		if (!msa["ok"]) {
 
-			if (msa["level"] = "WARN") {
-				UI_Tip(msa["type"] " " msa["why"])
+			if (msa["level"] = "Warn") {
+				Log_Warn("semi_auto.warn", msa["message"], Map("cls", cls))
+				UI_Tip(msa["message"])
 			}
-			if (msa["level"] = "ERR") {
-				Util_LogLine("ERR | " msa["type"] " | " StrReplace(msa["why"], "`n", " | ") " | cls=" cls " | ttl=" ctx["ttl"])
-				UI_Err(msa["type"] " " msa["why"])
+			if (msa["level"] = "Error") {
+				UI_Fail(
+					"semi_auto.fail",
+					msa["message"],
+					"追溯码自动化",
+					Map("cls", cls, "ttl", ctx["ttl"])
+				)
 			}
 
 			if (cls = Cfg["IPT_WINDOW_CLASS"]) {
@@ -222,7 +218,7 @@ global _LAST_RUN := 0
 		}
 
 		if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
-			UI_Tip(msa["type"] " " msa["why"], 1500)
+			UI_Tip(msa["message"], 1500)
 
 		if (cls = Cfg["IPT_WINDOW_CLASS"]) {
 			UI_FocusClassNN(Cfg["IPT_INPUT_CLASSNN"], ctx["win"])

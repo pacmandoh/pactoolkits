@@ -20,7 +20,7 @@ UI_Paste_ByPolicy(
 	} else if (cls = opt) {
 		return Ui_Paste_Impl(win, optInputClassNN, text, true)
 	} else {
-		return Map("ok", false, "level", "ERR", "type", "[界面错误]", "why", "请在门诊或住院录入窗口进行操作", "reason", "class mismatch")
+		return Map("ok", false, "level", "Error", "message", "[界面错误]`n请在门诊或住院录入窗口进行操作", "reason", "class mismatch")
 	}
 }
 
@@ -32,11 +32,11 @@ UI_Paste_Warehouse(text, inputClassNN, win := "A") {
 UI_Paste_WarehouseFast(text, inputClassNN, win := "A") {
 	win := Util_NormalizeWin(win)
 	if !WinExist(win)
-		return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口不存在或已关闭")
+		return Map("ok", false, "level", "Error", "message", "[窗口错误]`n目标窗口不存在或已关闭")
 
 	hwndCtrl := UI_GetCachedCtrlHwnd(inputClassNN, win)
 	if !hwndCtrl
-		return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "获取当前窗口 hwnd 失败", "reason", "control not found", "ctrl", inputClassNN)
+		return Map("ok", false, "level", "Error", "message", "[窗口错误]`n获取当前窗口 hwnd 失败", "reason", "control not found", "ctrl", inputClassNN)
 
 	; 直接写入可避免剪贴板竞争，适用于连续仓库任务
 	okSet := false
@@ -52,7 +52,7 @@ UI_Paste_WarehouseFast(text, inputClassNN, win := "A") {
 		}
 	}
 	if !okSet
-		return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "写入输入框失败")
+		return Map("ok", false, "level", "Error", "message", "[窗口错误]`n写入输入框失败")
 
 	; keydown 前延迟是窗口消息时序契约，过短会导致首尾记录错位
 	keydownDelay := 8
@@ -70,20 +70,20 @@ UI_Paste_WarehouseFast(text, inputClassNN, win := "A") {
 UI_PrepareWarehouseFastTarget(inputClassNN, win := "A") {
 	win := Util_NormalizeWin(win)
 	if !WinExist(win)
-		return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口不存在或已关闭")
+		return Map("ok", false, "level", "Error", "message", "[窗口错误]`n目标窗口不存在或已关闭")
 
 	if !WinActive(win) {
 		try WinActivate(win)
 		catch
-			return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "无法激活目标窗口，可能已切换/关闭")
+			return Map("ok", false, "level", "Error", "message", "[窗口错误]`n无法激活目标窗口，可能已切换/关闭")
 		try WinWaitActive(win, , 0.6)
 		catch
-			return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口未就绪，无法注入")
+			return Map("ok", false, "level", "Error", "message", "[窗口错误]`n目标窗口未就绪，无法注入")
 	}
 
 	hwndCtrl := UI_FocusClassNN(inputClassNN, win, true)
 	if !hwndCtrl
-		return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "获取当前窗口 hwnd 失败", "reason", "control not found", "ctrl", inputClassNN)
+		return Map("ok", false, "level", "Error", "message", "[窗口错误]`n获取当前窗口 hwnd 失败", "reason", "control not found", "ctrl", inputClassNN)
 	return Map("ok", true)
 }
 
@@ -117,29 +117,28 @@ UI_GetCachedCtrlHwnd(classNN, win := "A") {
 UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 	winTitle := Util_NormalizeWin(winTitle)
 	if !WinExist(winTitle)
-		return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口不存在或已关闭")
+		return Map("ok", false, "level", "Error", "message", "[窗口错误]`n目标窗口不存在或已关闭")
 
 	hwndCtrl := Util_GetCtrlHwndByClassNN(classNN, winTitle)
 	if !hwndCtrl
 		return Map(
-			"ok", false, "level", "ERR", "type", "[窗口错误]", "why", "获取当前窗口 hwnd 失败",
+			"ok", false, "level", "Error", "message", "[窗口错误]`n获取当前窗口 hwnd 失败",
 			"reason", "control not found", "ctrl", classNN
 		)
 
 	try WinActivate(winTitle)
 	catch
-		return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "无法激活目标窗口，可能已切换/关闭")
+		return Map("ok", false, "level", "Error", "message", "[窗口错误]`n无法激活目标窗口，可能已切换/关闭")
 	try WinWaitActive(winTitle, , 1)
 	catch
-		return Map("ok", false, "level", "ERR", "type", "[窗口错误]", "why", "目标窗口未就绪，无法注入")
+		return Map("ok", false, "level", "Error", "message", "[窗口错误]`n目标窗口未就绪，无法注入")
 
 	oldClip := ClipboardAll()
 	try {
 		A_Clipboard := text
 		if !ClipWait(0.6)
 			return Map(
-				"ok", false, "level", "WARN", "type", "[解析错误]",
-				"why", "等待超时：`n - 请确认是否选中列表中相应药品",
+				"ok", false, "level", "Warn", "message", "[解析错误]`n等待超时：`n - 请确认是否选中列表中相应药品",
 				"reason", "ClipWait timeout"
 			)
 
@@ -267,7 +266,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 			if (delay < 120)
 				delay += 15
 		}
-		return Map("ok", false, "level", "ERR", "type", "[录入验证错误]", "why", "门诊窗口录入追溯码验证失败，未实际扫码成功")
+		return Map("ok", false, "level", "Error", "message", "[录入验证错误]`n门诊窗口录入追溯码验证失败，未实际扫码成功")
 	}
 
 	; 住院流程要求验证区域出现全部注入码，并处理可能的失败弹窗
@@ -276,7 +275,7 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 
 		while (A_TickCount - t0 < timeoutMs) {
 			if UI_RunBurst(UI_DetectAndHandleFailDialog)
-				return Map("ok", false, "level", "WARN", "type", "[录入验证错误]", "why", "重复的追溯码/超过对应需要追溯码条数，将自动回退库存")
+				return Map("ok", false, "level", "Warn", "message", "[录入验证错误]`n重复的追溯码/超过对应需要追溯码条数，将自动回退库存")
 
 			txt := UI_TryCopyGridClassNNText(iptVerifyGridClassNN, win)
 			if (txt != "") {
@@ -295,10 +294,10 @@ UI_WaitConfirm(codes, timeoutMs, opt, ipt, optVerifyGridClassNN, iptVerifyGridCl
 			if (delay < 120)
 				delay += 15
 		}
-		return Map("ok", false, "level", "ERR", "type", "[录入验证错误]", "why", "住院窗口录入追溯码验证失败，未实际扫码成功")
+		return Map("ok", false, "level", "Error", "message", "[录入验证错误]`n住院窗口录入追溯码验证失败，未实际扫码成功")
 	}
 
-	return Map("ok", false, "level", "ERR", "type", "[录入验证错误]", "why", "未知窗口，请一直保持在相应扫码窗口")
+	return Map("ok", false, "level", "Error", "message", "[录入验证错误]`n未知窗口，请一直保持在相应扫码窗口")
 }
 
 UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
@@ -306,15 +305,15 @@ UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
 	delay := 20
 
 	if !IsObject(codes) || (codes.Length = 0)
-		return Map("ok", false, "level", "WARN", "type", "[录入验证错误]", "why", "仓库验证缺少待验证码")
+		return Map("ok", false, "level", "Warn", "message", "[录入验证错误]`n仓库验证缺少待验证码")
 
 	target := Trim(codes[1])
 	if (target = "")
-		return Map("ok", false, "level", "WARN", "type", "[录入验证错误]", "why", "仓库验证目标码为空")
+		return Map("ok", false, "level", "Warn", "message", "[录入验证错误]`n仓库验证目标码为空")
 
 	while (A_TickCount - t0 < timeoutMs) {
 		if UI_RunBurst(UI_DetectAndHandleFailDialog)
-			return Map("ok", false, "level", "WARN", "type", "[录入验证错误]", "why", "仓库窗口出现错误提示，已终止本次注入")
+			return Map("ok", false, "level", "Warn", "message", "[录入验证错误]`n仓库窗口出现错误提示，已终止本次注入")
 
 		txt := UI_TryCopyGridClassNNText(verifyGridClassNN, win)
 		if (txt != "" && InStr(txt, target))
@@ -325,7 +324,7 @@ UI_WaitConfirm_Warehouse(codes, timeoutMs, verifyGridClassNN, win := "A") {
 			delay += 20
 	}
 
-	return Map("ok", false, "level", "ERR", "type", "[录入验证错误]", "why", "仓库窗口首条注入验证失败，未匹配到目标码")
+	return Map("ok", false, "level", "Error", "message", "[录入验证错误]`n仓库窗口首条注入验证失败，未匹配到目标码")
 }
 
 UI_PostClick(hwndCtrl, x := 30, y := 40) {
@@ -584,8 +583,4 @@ UI_MouseOnClassNN(targetNN, win := "A") {
 		nn := ""
 
 	return (nn = targetNN)
-}
-
-UI_Err(text, title := "追溯码自动化") {
-	return MsgBox(text, title, 0x40000 | 0x1000)
 }

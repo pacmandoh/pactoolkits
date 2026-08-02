@@ -17,13 +17,13 @@
 
 模板入口演示以下运行时契约：
 
-- 从 `--module-settings` 读取用户配置
-- 配置读取成功后创建 `module.ready`
-- 进程退出时删除 `module.ready`
+- `Log_Startup` + `Ready_Install` + `Settings_RequireJson`（`lib/ahk/startup.ahk` / `ready.ahk`）
+- 配置读取成功后创建 `module.ready`，退出时删除（`Ready_Mark` / `Ready_Clear`）
+- JSON 日志写入 `%AppData%\PacToolkits\logs\agents\modules\<Id>\`（`lib/ahk/log.ahk`）
+- 提示 / 失败弹窗用 `UI_Tip` / `UI_Fail`（`lib/ahk/ui.ahk`；`UI_Fail` 的 `title` 每次必传）
 - 使用 `Ctrl+Alt+F8` 显示测试信息
 
-模板中的热键和消息仅用于开发验证，创建正式模块时应替换为业务逻辑。
-
+入口通过 `#Include "%A_ScriptDir%\..\..\lib\ahk\..."` 引用公共库；复制到 `modules/<name>/` 后相对路径仍有效。模板中的热键和消息仅用于开发验证，创建正式模块时应替换为业务逻辑。
 ## 构建要求
 
 Windows CI 根据 `module.json` 选择 Ahk2Exe，编译 `main.ahk`，并将下列文件写入 `Agents/Modules/<Id>/`：

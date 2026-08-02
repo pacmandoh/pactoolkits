@@ -9,32 +9,21 @@
 ;@Ahk2Exe-SetInternalName Scanner
 ;@Ahk2Exe-SetOrigFilename Scanner.exe
 ;@Ahk2Exe-SetMainIcon assets\agents-scanner.ico
+#Include "%A_ScriptDir%\..\..\lib\ahk\ready.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\log.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\ui.ahk"
+#Include "%A_ScriptDir%\..\..\lib\ahk\startup.ahk"
 
-global ModuleSettingsPath := GetArgValue("--module-settings")
+global ModuleSettingsPath := ""
 global ModuleSettingsJson := ""
 
-ClearReady()
-OnExit(ClearReady)
+Log_Startup("Scanner", Module_ReadVersion()["moduleVersion"])
+Ready_Install()
+Settings_RequireJson(&ModuleSettingsPath, &ModuleSettingsJson, "Scanner - 启动自检")
 
-if (ModuleSettingsPath = "" || !FileExist(ModuleSettingsPath)) {
-	MsgBox("缺少有效的 --module-settings 参数", "Scanner - 启动自检", "Iconx")
-	ExitApp
-}
-
-try ModuleSettingsJson := FileRead(ModuleSettingsPath, "UTF-8")
-catch as err {
-	MsgBox("读取 Scanner 配置失败：`n" err.Message, "Scanner - 启动自检", "Iconx")
-	ExitApp
-}
-
-if (Trim(ModuleSettingsJson) = "") {
-	MsgBox("Scanner 配置不能为空", "Scanner - 启动自检", "Iconx")
-	ExitApp
-}
-
-MarkReady()
-ToolTip("AHK Scanner 已启动`n按 Ctrl+Alt+F8 测试")
-SetTimer(() => ToolTip(), -1800)
+Ready_Mark()
+UI_Tip("AHK Scanner 已启动`n按 Ctrl+Alt+F8 测试", 1800)
+Log_Info("startup.ready", "Scanner 自检通过")
 
 ^!F8:: {
 	global ModuleSettingsPath, ModuleSettingsJson
@@ -44,27 +33,4 @@ SetTimer(() => ToolTip(), -1800)
 		"Scanner 测试",
 		"Iconi"
 	)
-}
-
-GetArgValue(name) {
-	for index, arg in A_Args {
-		if (arg = name && index < A_Args.Length)
-			return A_Args[index + 1]
-
-		prefix := name "="
-		if (InStr(arg, prefix) = 1)
-			return SubStr(arg, StrLen(prefix) + 1)
-	}
-
-	return ""
-}
-
-MarkReady() {
-	path := A_ScriptDir "\module.ready"
-	try FileDelete(path)
-	FileAppend("ok`n", path, "UTF-8")
-}
-
-ClearReady(*) {
-	try FileDelete(A_ScriptDir "\module.ready")
 }

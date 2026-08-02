@@ -18,7 +18,8 @@ PG_Exec(sql) {
 		conn.Execute(sql)
 		return Map("ok", true)
 	} catch as e {
-		return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "err", e.Message "`nSQL:`n" Util_ShortSQL(sql))
+		detail := e.Message "`nSQL:`n" Util_ShortSQL(sql)
+		return Map("ok", false, "level", "Error", "message", "[SQL 错误]`n" detail, "err", detail)
 	}
 }
 
@@ -67,7 +68,8 @@ PG_Query(sql) {
 			if IsObject(rs)
 				rs.Close()
 		}
-		return Map("ok", false, "level", "ERR", "type", "[SQL 错误]", "err", e.Message "`nSQL:`n" Util_ShortSQL(sql))
+		detail := e.Message "`nSQL:`n" Util_ShortSQL(sql)
+		return Map("ok", false, "level", "Error", "message", "[SQL 错误]`n" detail, "err", detail)
 	}
 }
 
@@ -97,7 +99,8 @@ PG_EnsureOpen() {
 		return Map("ok", true)
 
 	} catch as e {
-		return Map("ok", false, "level", "ERR", "type", "[数据库错误]", "err", "数据库链接失败：`n" e.Message)
+		detail := "数据库链接失败：`n" e.Message
+		return Map("ok", false, "level", "Error", "message", "[数据库错误]`n" detail, "err", detail)
 	}
 }
 

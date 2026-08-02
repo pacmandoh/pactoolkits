@@ -19,7 +19,16 @@ Host 启动 Injector 时传入两类配置：
 | `--config`          | Desktop 配置文件绝对路径，提供 PostgreSQL 连接配置      |
 | `--module-settings` | Injector 用户配置绝对路径，提供窗口、控件和业务策略配置 |
 
-缺少任一参数、配置文件无法读取或关键配置无效时，Injector 自检失败且不会创建 `module.ready`。
+缺少任一参数、配置文件无法读取或关键配置无效时，Injector 自检失败且不会创建 `module.ready`；失败会写入 JSON 日志（`UI_Fail` / `Log_Error`）。
+
+## 日志
+
+- 目录：`%AppData%\PacToolkits\logs\agents\modules\Injector\`
+- 格式：JSON Lines（`lib/ahk/log.ahk`）
+- 约定：与 Desktop 同字段；`level` ∈ `Debug|Info|Warn|Error|Fatal`；`event` = 分类短名（对应旧 `type`）；`message` = 正文（对应旧 `why`）；附加进 `context`
+- API：`Log_Debug` / `Log_Info` / `Log_Warn` / `Log_Error` / `Log_Fatal`（写入 `Debug`…`Fatal` 原文）
+- 门控与滚动：模块 `settings.json` 的 `LogEnabled` / `LogMinimumLevel` / `LogRetentionDays` / `LogMaxFileSizeMb`（默认开启、`Error`、14 天、20MB）；加载配置后 `Log_ApplySettings`
+- 轨迹用 `Log_Debug`（如 `opt_multi.*`），失败弹窗走 `UI_Fail`（内部 `Log_Error`）
 
 ## 配置文件
 
@@ -29,7 +38,7 @@ Host 启动 Injector 时传入两类配置：
 | 设置 schema | `Agents/Modules/Injector/settings.schema.json`      | Desktop 设置页的字段定义和校验规则 |
 | 用户配置    | `{ConfigDir}/agents/modules/Injector/settings.json` | 运行时实际读取的业务配置           |
 
-Desktop 仅在用户配置不存在时复制默认配置，不会在模块升级时覆盖已有用户配置。`ModuleSettingsValidator` 在保存和启动前按 schema 校验用户配置。
+Desktop 仅在用户配置不存在时复制默认配置；升级时若默认配置新增键（如 `LogEnabled`），会合并进已有用户配置而不会覆盖已有值。`ModuleSettingsValidator` 在保存和启动前按 schema 校验用户配置。
 
 ## 运行门控
 

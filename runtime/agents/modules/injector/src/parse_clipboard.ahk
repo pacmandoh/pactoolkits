@@ -43,8 +43,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 			SendInput "^c"
 			if !ClipWait(1) {
 				return Map(
-					"ok", false, "level", "WARN", "type", "[解析错误]",
-					"why", "等待超时：`n - 请确认是否选中列表中相应药品",
+					"ok", false, "level", "Warn", "message", "[解析错误]`n等待超时：`n - 请确认是否选中列表中相应药品",
 					"reason", "ClipWait timeout"
 				)
 			}
@@ -58,7 +57,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 	txt := Trim(text)
 	if (txt = "") {
 		return Map(
-			"ok", false, "level", "WARN", "type", "[解析错误]", "why", "选中内容为空",
+			"ok", false, "level", "Warn", "message", "[解析错误]`n选中内容为空",
 			"reason", "Text is empty", "raw", text, "copied", copied
 		)
 	}
@@ -111,7 +110,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 
 	if (!hdrIdx) {
 		return Map(
-			"ok", false, "level", "WARN", "type", "[解析错误]", "why", "未找到相对应表头",
+			"ok", false, "level", "Warn", "message", "[解析错误]`n未找到相对应表头",
 			"reason", "Header not found", "raw", txt, "copied", copied
 		)
 	}
@@ -161,7 +160,7 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 
 	if (data.Count = 0) {
 		return Map(
-			"ok", false, "level", "WARN", "type", "[解析错误]", "why", "未找到数据行",
+			"ok", false, "level", "Warn", "message", "[解析错误]`n未找到数据行",
 			"reason", "Row not found", "raw", txt, "copied", copied
 		)
 	}
@@ -172,8 +171,8 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 
 	return Map(
 		"ok", true,
-		"type", "[解析成功]",
-		"why", msg,
+		"level", "Info",
+		"message", "[解析成功]" msg,
 		"data", data,
 		"bySpec", bySpec,
 		"raw", txt,
