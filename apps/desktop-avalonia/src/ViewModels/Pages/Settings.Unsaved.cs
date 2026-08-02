@@ -395,6 +395,7 @@ public partial class Settings
 
         if (!_disposed)
         {
+            // 等手动打开/导出结束再写；IsLoggingBusy 不再被静默保存占用
             while (IsLoggingBusy)
             {
                 try
