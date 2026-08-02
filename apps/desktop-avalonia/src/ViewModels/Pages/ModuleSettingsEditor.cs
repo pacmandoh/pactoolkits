@@ -18,7 +18,7 @@ public sealed partial class ModuleSettingsEditor : ObservableObject
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly ModuleSettingsSchema _schema;
-    private readonly JsonObject _source;
+    private JsonObject _source;
 
     public ModuleSettingsEditor(
         string moduleId,
@@ -89,6 +89,17 @@ public sealed partial class ModuleSettingsEditor : ObservableObject
         var root = ParseSettings(json);
         root.TryGetPropertyValue(field.Key, out var node);
         field.RestoreValue(node);
+    }
+
+    // 磁盘热更新：保留编辑器实例，只回写变化字段，避免 ContentControl 重建导致滚动回顶
+    internal void ApplySettings(JsonObject settings)
+    {
+        _source = (JsonObject)settings.DeepClone();
+        foreach (var field in Sections.SelectMany(section => section.Fields))
+        {
+            settings.TryGetPropertyValue(field.Key, out var node);
+            field.RestoreValue(node);
+        }
     }
 
     public string? Validate()
@@ -181,52 +192,7 @@ public sealed partial class ModuleSettingsFieldViewModel : ObservableObject
         };
 
         settings.TryGetPropertyValue(field.Key, out var node);
-        switch (type)
-        {
-            case ModuleSettingsFieldTypes.Bool:
-                viewModel.BoolValue = node?.GetValue<bool>() ?? false;
-                break;
-            case ModuleSettingsFieldTypes.Int:
-                viewModel.IntValue = node?.GetValue<int>() ?? field.Min ?? 0;
-                break;
-            case ModuleSettingsFieldTypes.Enum:
-                viewModel.SelectedOption = ResolveOption(node, viewModel.Options);
-                break;
-            case ModuleSettingsFieldTypes.StringList:
-                if (node is JsonArray list)
-                {
-                    foreach (var item in list)
-                    {
-                        var text = item?.GetValue<string>();
-                        if (!string.IsNullOrWhiteSpace(text))
-                        {
-                            viewModel.ListItems.Add(new SettingsLineItem(text));
-                        }
-                    }
-                }
-
-                break;
-            case ModuleSettingsFieldTypes.StringFlagMap:
-                if (node is JsonObject map)
-                {
-                    foreach (var kv in map)
-                    {
-                        // 表单只编辑启用项，保留关闭项会在序列化时错误地改写为启用
-                        if (!string.IsNullOrWhiteSpace(kv.Key)
-                            && ModuleSettingsFlag.TryRead(kv.Value, out var enabled)
-                            && enabled)
-                        {
-                            viewModel.ListItems.Add(new SettingsLineItem(kv.Key));
-                        }
-                    }
-                }
-
-                break;
-            default:
-                viewModel.StringValue = node?.GetValue<string>() ?? string.Empty;
-                break;
-        }
-
+        viewModel.RestoreValue(node);
         return viewModel;
     }
 
@@ -258,12 +224,113 @@ public sealed partial class ModuleSettingsFieldViewModel : ObservableObject
     {
         if (IsBool)
         {
-            BoolValue = node?.GetValue<bool>() ?? false;
+            var next = node?.GetValue<bool>() ?? false;
+            if (BoolValue != next)
+            {
+                BoolValue = next;
+            }
+
+            return;
         }
-        else if (IsEnum)
+
+        if (IsInt)
         {
-            SelectedOption = ResolveOption(node, Options);
+            var next = node?.GetValue<int>() ?? Min ?? 0;
+            if (IntValue != next)
+            {
+                IntValue = next;
+            }
+
+            return;
         }
+
+        if (IsEnum)
+        {
+            var next = ResolveOption(node, Options);
+            if (!string.Equals(SelectedOption, next, StringComparison.Ordinal))
+            {
+                SelectedOption = next;
+            }
+
+            return;
+        }
+
+        if (IsStringList)
+        {
+            ReplaceListItems(ReadStringList(node as JsonArray));
+            return;
+        }
+
+        if (IsStringFlagMap)
+        {
+            ReplaceListItems(ReadEnabledFlagKeys(node as JsonObject));
+            return;
+        }
+
+        var text = node?.GetValue<string>() ?? string.Empty;
+        if (!string.Equals(StringValue, text, StringComparison.Ordinal))
+        {
+            StringValue = text;
+        }
+    }
+
+    private void ReplaceListItems(IReadOnlyList<string> next)
+    {
+        if (ListItems.Count == next.Count
+            && ListItems
+                .Select(item => item.Value ?? string.Empty)
+                .SequenceEqual(next, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        ListItems.Clear();
+        foreach (var text in next)
+        {
+            ListItems.Add(new SettingsLineItem(text));
+        }
+    }
+
+    private static IReadOnlyList<string> ReadStringList(JsonArray? list)
+    {
+        if (list is null || list.Count == 0)
+        {
+            return [];
+        }
+
+        var values = new List<string>(list.Count);
+        foreach (var item in list)
+        {
+            var text = item?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                values.Add(text);
+            }
+        }
+
+        return values;
+    }
+
+    private static IReadOnlyList<string> ReadEnabledFlagKeys(JsonObject? map)
+    {
+        if (map is null || map.Count == 0)
+        {
+            return [];
+        }
+
+        var values = new List<string>();
+        foreach (var kv in map)
+        {
+            // 表单只编辑启用项，保留关闭项会在序列化时错误地改写为启用
+            if (!string.IsNullOrWhiteSpace(kv.Key)
+                && ModuleSettingsFlag.TryRead(kv.Value, out var enabled)
+                && enabled)
+            {
+                values.Add(kv.Key);
+            }
+        }
+
+        return values;
     }
 
     private static string ResolveOption(JsonNode? node, IReadOnlyList<string> options)
