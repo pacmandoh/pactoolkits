@@ -230,8 +230,8 @@
       },
       "Lucide.Avalonia": {
         "type": "Transitive",
-        "resolved": "0.2.15",
-        "contentHash": "lpn4YbnafcwJerXAu7GlNEV9wKmhGRuSVLy3MYBxpXJCBqlQGhRlXD+Cghwwftu5PYKbtySJfQnSQp6s6KeLtA==",
+        "resolved": "0.2.16",
+        "contentHash": "+Lo68MEzRqL/QXrMaFyYRC0JedMMOEwXDqF42oe3bU8ghacHVjv10uPu2vLXaI7W5BqR5HDBSuKkIN0jseYx7w==",
         "dependencies": {
           "Avalonia": "11.3.17"
         }
@@ -604,7 +604,7 @@
           "AvaloniaUI.DiagnosticsSupport": "[2.2.3, )",
           "CommunityToolkit.Mvvm": "[8.4.2, )",
           "LiveChartsCore.SkiaSharpView.Avalonia": "[2.1.0-dev-292, )",
-          "Lucide.Avalonia": "[0.2.15, )",
+          "Lucide.Avalonia": "[0.2.16, )",
           "Microsoft.Extensions.Configuration": "[10.0.10, )",
           "Microsoft.Extensions.Configuration.EnvironmentVariables": "[10.0.10, )",
           "Microsoft.Extensions.Configuration.Json": "[10.0.10, )",
