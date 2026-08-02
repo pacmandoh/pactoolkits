@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# shellcheck source=lib/format-changed.sh
+source "$ROOT_DIR/scripts/lib/format-changed.sh"
 # shellcheck source=lib/format-dotnet.sh
 source "$ROOT_DIR/scripts/lib/format-dotnet.sh"
 # shellcheck source=lib/format-text.sh
