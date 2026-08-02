@@ -25,6 +25,14 @@ public partial class MainWindow : ShadWindow
         InitializeComponent();
         PopupDismissHelper.AttachTopLevel(this);
 
+        // Avalonia 12.1 起不再对 BorderOnly 自定义框强制 DWM 圆角；显式恢复 Win11 系统圆角
+        if (OperatingSystem.IsWindows())
+        {
+            Win32Properties.SetWindowCornerPreference(
+                this,
+                Win32Properties.WindowCornerPreference.Round);
+        }
+
         FullscreenButton.Click += OnFullScreen;
         SyncExpandButton();
     }
@@ -126,7 +134,7 @@ public partial class MainWindow : ShadWindow
     {
         if (WindowState == WindowState.Maximized)
         {
-            // ShadUI 在 Maximize 时恢复 RootCornerRadius；ClipToBounds 会圆角裁进标题按钮
+            // 最大化时去掉自绘圆角，避免 ClipToBounds 裁进标题按钮
             RootCornerRadius = default;
 
             if (OperatingSystem.IsWindows())
@@ -138,6 +146,9 @@ public partial class MainWindow : ShadWindow
 
             return;
         }
+
+        // 本地赋值会盖住 XAML 绑定；还原时 ClearValue 才能回到 RootCornerRadius 资源
+        ClearValue(RootCornerRadiusProperty);
 
         if (OperatingSystem.IsWindows())
         {
