@@ -59,6 +59,7 @@ public partial class Settings
     {
         _activeTabIndex = tabIndex;
         ReloadClientAliasesIfVisible("client_alias.reload.tab_enter_fail");
+        ReloadModuleSettingsIfVisible();
     }
 
     private void ReloadClientAliasesIfVisible(string failEvent)
@@ -295,7 +296,10 @@ public partial class Settings
         var options = _loggingSettings.Current;
         return LoggingRetentionDays != options.RetentionDays
                || LoggingMaxFileSizeMb != options.MaxFileSizeMb
-               || !string.Equals(LoggingDirectory ?? string.Empty, _logger.LogDirectory, StringComparison.Ordinal);
+               || !string.Equals(
+                   LoggingDirectory ?? string.Empty,
+                   LogDirectory.Resolve(options.LogDirectory).BrowseDirectory,
+                   StringComparison.Ordinal);
     }
 
     private bool IsMsfxApiDirty()

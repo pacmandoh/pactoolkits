@@ -419,7 +419,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         LoggingMinimumLevel = options.MinimumLevel;
         LoggingRetentionDays = options.RetentionDays;
         LoggingMaxFileSizeMb = options.MaxFileSizeMb;
-        LoggingDirectory = _logger.LogDirectory;
+        LoggingDirectory = LogDirectory.Resolve(options.LogDirectory).BrowseDirectory;
         _syncingLoggingOptions = false;
     }
 
@@ -567,7 +567,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         TraceCodePattern = rule.Pattern;
     }
 
-    public override void Dispose()
+    protected override void DisposeCore()
     {
         _disposed = true;
         _pageWorkCancelled = true;
@@ -619,6 +619,6 @@ public partial class Settings : AppPageBase, ISettingsPage
         ClientAliases.CollectionChanged -= OnClientAliasesChanged;
         DisposeAgents();
         _pageWorkCts.Dispose();
-        base.Dispose();
+        base.DisposeCore();
     }
 }
