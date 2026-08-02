@@ -17,6 +17,82 @@ Util_ToInt(v, default := 0) {
 	return RegExMatch(s, "^-?\d+$") ? (s + 0) : default
 }
 
+; 门诊拆零「已注入余数」闩锁（内存+落盘）：成功提交后跳过；半截失败未上闩时允许再预留补码
+global __OptRemDone := Map()
+global __OptRemDoneLoaded := false
+
+Util_OptRemKey(drugId, spec, qtyN) {
+	return Trim("" drugId) "|" Trim("" spec) "|" (Util_ToInt(qtyN, 0) + 0)
+}
+
+Util_OptRemDone_Path() {
+	dir := A_AppData "\PacToolkits\state\injector"
+	try DirCreate(dir)
+	catch {
+	}
+	return dir "\opt-rem.latch"
+}
+
+Util_OptRemDone_EnsureLoaded() {
+	global __OptRemDone, __OptRemDoneLoaded
+	if __OptRemDoneLoaded
+		return
+	__OptRemDoneLoaded := true
+	path := Util_OptRemDone_Path()
+	if !FileExist(path)
+		return
+	try {
+		for line in StrSplit(FileRead(path, "UTF-8"), "`n", "`r") {
+			k := Trim(line)
+			if (k != "")
+				__OptRemDone[k] := 1
+		}
+	} catch {
+	}
+}
+
+Util_OptRemDone_Flush() {
+	global __OptRemDone
+	path := Util_OptRemDone_Path()
+	body := ""
+	for k, _ in __OptRemDone
+		body .= k "`n"
+	try FileDelete(path)
+	catch {
+	}
+	if (body = "")
+		return
+	try FileAppend(body, path, "UTF-8")
+	catch {
+	}
+}
+
+Util_OptRemDone_Has(key) {
+	global __OptRemDone
+	Util_OptRemDone_EnsureLoaded()
+	return (key != "" && __OptRemDone.Has(key))
+}
+
+Util_OptRemDone_Set(key) {
+	global __OptRemDone
+	if (key = "")
+		return
+	Util_OptRemDone_EnsureLoaded()
+	__OptRemDone[key] := A_TickCount
+	Util_OptRemDone_Flush()
+}
+
+Util_OptRemDone_Clear(key) {
+	global __OptRemDone
+	if (key = "")
+		return
+	Util_OptRemDone_EnsureLoaded()
+	if __OptRemDone.Has(key) {
+		__OptRemDone.Delete(key)
+		Util_OptRemDone_Flush()
+	}
+}
+
 ; 限制 SQL 文本长度，避免诊断信息遮蔽主要错误
 Util_ShortSQL(sql, maxLen := 1200) {
 	if (StrLen(sql) <= maxLen)
@@ -355,14 +431,46 @@ Util_HotIf_TargetApp() {
 
 	exeName := Cfg["APP_WIN"]
 	if !exeName.Has(exe) {
+		; 仅键按下时记 Debug，避免 HotIf 轮询刷屏
+		if (GetKeyState("RButton", "P") || GetKeyState("LButton", "P")) {
+			MouseGetPos(, , , &ctrlHwnd, 2)
+			ptrNn := ""
+			try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
+			Log_Debug("hotif.deny", "AppWin 未命中", Map(
+				"exe", exe, "cls", ctx["cls"], "ttl", ctx["ttl"], "ptrNn", ptrNn
+			))
+		}
 		return false
 	}
 
 	; 窗口类是第二层安全边界，仓库模式仅适用于住院或仓库窗口
 	cls := ctx["cls"]
-	if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
-		return (cls = Cfg["IPT_WINDOW_CLASS"])
-	return (cls = Cfg["OPT_WINDOW_CLASS"] || cls = Cfg["IPT_WINDOW_CLASS"])
+	if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"]) {
+		if (cls = Cfg["IPT_WINDOW_CLASS"])
+			return true
+		if (GetKeyState("RButton", "P") || GetKeyState("LButton", "P")) {
+			MouseGetPos(, , , &ctrlHwnd, 2)
+			ptrNn := ""
+			try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
+			Log_Debug("hotif.deny", "窗口类不匹配(仓库)", Map(
+				"exe", exe, "cls", cls, "ttl", ctx["ttl"],
+				"need", Cfg["IPT_WINDOW_CLASS"], "ptrNn", ptrNn
+			))
+		}
+		return false
+	}
+	if (cls = Cfg["OPT_WINDOW_CLASS"] || cls = Cfg["IPT_WINDOW_CLASS"])
+		return true
+	if (GetKeyState("RButton", "P") || GetKeyState("LButton", "P")) {
+		MouseGetPos(, , , &ctrlHwnd, 2)
+		ptrNn := ""
+		try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
+		Log_Debug("hotif.deny", "窗口类不匹配", Map(
+			"exe", exe, "cls", cls, "ttl", ctx["ttl"], "ptrNn", ptrNn,
+			"needOpt", Cfg["OPT_WINDOW_CLASS"], "needIpt", Cfg["IPT_WINDOW_CLASS"]
+		))
+	}
+	return false
 }
 
 Util_DetectScene(win := "A") {
@@ -411,27 +519,38 @@ Util_IsWarehouseWindow(win := "A") {
 
 Util_WarehouseSoftCheck(win := "A") {
 	global Cfg
-	if !(Cfg.Has("WAREHOUSE_ANCHORS") && IsObject(Cfg["WAREHOUSE_ANCHORS"]))
+	if !(Cfg.Has("WAREHOUSE_ANCHORS") && IsObject(Cfg["WAREHOUSE_ANCHORS"])) {
+		Log_Debug("wh.soft.cfg_miss", "缺 WarehouseAnchorTexts")
 		return Map("ok", false, "level", "Error", "message", "[仓库模式校验]`n缺少仓库列特征配置 WarehouseAnchorTexts")
+	}
 
 	anchors := Cfg["WAREHOUSE_ANCHORS"]
-	if (anchors.Length = 0)
+	if (anchors.Length = 0) {
+		Log_Debug("wh.soft.cfg_empty", "仓库列特征为空")
 		return Map("ok", false, "level", "Warn", "message", "[仓库模式校验]`n仓库列特征不能为空")
+	}
 
 	hdrLine := Util_TryGetGridHeaderLine(win)
-	if (hdrLine = "")
+	if (hdrLine = "") {
+		Log_Debug("wh.soft.hdr_empty", "无法抓取表头")
 		return Map("ok", false, "level", "Warn", "message", "[仓库模式校验]`n无法抓取表头，请检查当前选中行或剪贴板权限")
+	}
 
 	for _, a in anchors {
 		t := Trim(a)
-		if (t != "" && InStr(hdrLine, t))
+		if (t != "" && InStr(hdrLine, t)) {
+			Log_Debug("wh.soft.ipt_hit", "表头命中住院特征", Map(
+				"anchor", t, "hdrLen", StrLen(hdrLine)
+			))
 			return Map(
 				"ok", false,
 				"level", "Error",
 				"message", "[仓库模式校验]`n当前表头命中住院列特征：" t "，请关闭仓库模式后再操作",
 				"header_line", hdrLine
 			)
+		}
 	}
+	Log_Debug("wh.soft.ok", "仓库软校验通过", Map("hdrLen", StrLen(hdrLine)))
 	return Map("ok", true, "header_line", hdrLine)
 }
 
@@ -443,7 +562,7 @@ Util_TryGetGridHeaderLine(win := "A") {
 
 	old := ClipboardAll()
 	txt := ""
-	try UI_FocusGridClassNN(Cfg["IPT_PARSE_GRID_CLASSNN"], win)
+	try UI_FocusClassNN(Cfg["IPT_PARSE_GRID_CLASSNN"], win)
 	catch
 		return ""
 	if !WinExist(win)
@@ -486,11 +605,16 @@ UI_FocusClassNN(classNN, win := "A", control := true) {
 		return ""
 
 	win := Util_NormalizeWin(win)
+	if !WinExist(win)
+		return ""
+
 	hwndCtrl := 0
 	try hwndCtrl := ControlGetHwnd(nn, win)
 	catch
 		return ""
 	if !hwndCtrl
+		return ""
+	if !DllCall("IsWindow", "Ptr", hwndCtrl, "Int")
 		return ""
 
 	if !WinActive(win) {
@@ -523,11 +647,18 @@ Util_GetCtrlHwndByClassNN(classNN, win := "A") {
 		return 0
 
 	win := Util_NormalizeWin(win)
+	if !WinExist(win)
+		return 0
+
 	hwndCtrl := 0
 	try hwndCtrl := ControlGetHwnd(nn, win)
 	catch
 		return 0
-	return hwndCtrl ? hwndCtrl : 0
+	if !hwndCtrl
+		return 0
+	if !DllCall("IsWindow", "Ptr", hwndCtrl, "Int")
+		return 0
+	return hwndCtrl
 }
 
 Util_WithClipboard(tempText, fn) {
@@ -638,6 +769,8 @@ Util_LoadUnifiedConfig(configPath) {
 	cfg["IPT_WINDOW_CLASS"] := Util_CfgGetString(agent, "IptWindowClass", true, &ok, &err)
 	if !ok
 		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")
+	if (cfg["OPT_WINDOW_CLASS"] = cfg["IPT_WINDOW_CLASS"])
+		return Util_CfgFail("OptWindowClass 与 IptWindowClass 不能相同（会导致门诊/住院场景串线）", "INVALID_MODULE_SETTINGS")
 	cfg["OPT_PARSE_GRID_CLASSNN"] := Util_CfgGetString(agent, "OptParseGridClassNN", true, &ok, &err)
 	if !ok
 		return Util_CfgFail(err, "INVALID_MODULE_SETTINGS")

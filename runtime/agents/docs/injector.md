@@ -7,7 +7,7 @@ Injector 是 Agents 的生产业务模块，由 Host 根据 `module.json` 中的
 - 识别目标应用和业务窗口
 - 解析 Grid 或剪贴板中的业务数据
 - 执行门诊、住院和仓库场景的追溯码录入
-- 验证录入结果并记录异常
+- 验证录入结果并记录异常（门诊拆零完成靠 rem_done 落盘闩锁；半截未上闩可再预留补码）
 - 领取仓库任务并回写任务状态与事件
 
 ## 启动参数
@@ -28,7 +28,8 @@ Host 启动 Injector 时传入两类配置：
 - 约定：与 Desktop 同字段；`level` ∈ `Debug|Info|Warn|Error|Fatal`；`event` = 分类短名（对应旧 `type`）；`message` = 正文（对应旧 `why`）；附加进 `context`
 - API：`Log_Debug` / `Log_Info` / `Log_Warn` / `Log_Error` / `Log_Fatal`（写入 `Debug`…`Fatal` 原文）
 - 门控与滚动：模块 `settings.json` 的 `LogEnabled` / `LogMinimumLevel` / `LogRetentionDays` / `LogMaxFileSizeMb`（默认开启、`Error`、14 天、20MB）；加载配置后 `Log_ApplySettings`
-- 轨迹用 `Log_Debug`（如 `opt_multi.*`），失败弹窗走 `UI_Fail`（内部 `Log_Error`）
+- 级别：`Debug` = 热键/解析/半自动/事务/贴码/校验/仓库轨迹；`Info` = 启动就绪、清理 PENDING、门诊热键、半自动/仓库完成；`Warn` = 半自动可恢复告警；`Error` = `UI_Fail`
+- 调试：将 `LogMinimumLevel` 设为 `Debug` 并重启模块。热键无反应看 `hotif.deny` / `hot.*.miss_grid`；解析看 `parse.*`；预留看 `txn.reserve.*`；贴码看 `ui.paste*`；校验看 `ui.confirm.*_tick`；仓库看 `msfx.*` / `wh.soft.*`
 
 ## 配置文件
 

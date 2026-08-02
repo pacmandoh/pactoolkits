@@ -5,18 +5,28 @@ global __PG := Map(
 	"in_txn", false
 )
 
-Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cls := "") {
+; alreadyScanned：门诊「已扫 N 码」；拆零进度=max(0,已扫-整盒数)；整盒不挡预留；本机 rem_done 闩锁防重复
+Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cls := "", alreadyScanned := 0) {
 	need := reqQty
 	codes := []
 	items := []
+	t0 := A_TickCount
+	Log_Debug("txn.reserve.begin", "预留开始", Map(
+		"txn", txnId, "drugId", drugId, "spec", spec, "reqQty", reqQty, "cls", cls,
+		"alreadyScanned", alreadyScanned
+	))
 
 	; 仅拆零业务需要预留追溯码，扣减量按单盒数量的余数计算
 	if IsObject(bySpec) {
 		splitFlag := bySpec.Has("拆零标签||拆零") ? Trim(bySpec["拆零标签||拆零"]) : ""
 		qtyVal := bySpec.Has("数量") ? bySpec["数量"] : ""
+		Log_Debug("txn.reserve.split", "拆零字段", Map(
+			"txn", txnId, "split", splitFlag, "qty", qtyVal
+		))
 
 		; 非拆零业务不得从追溯池预留记录
 		if (splitFlag = "否") {
+			Log_Debug("txn.reserve.skip", "未拆零跳过", Map("txn", txnId))
 			return Map("ok", true, "skip", true, "level", "Info", "message", "[跳过取码]`n未拆零药物", "need", 0, "codes", [], "items", [])
 		}
 
@@ -27,6 +37,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 			qtyN := Integer(qtyVal)
 
 		if (qtyN <= 0) {
+			Log_Debug("txn.reserve.qty_bad", "数量无效", Map("txn", txnId, "qty", qtyVal))
 			return Map("ok", false, "level", "Warn", "message", "[解析错误]`n数量无效：" qtyVal)
 		}
 
@@ -38,9 +49,11 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 			. "LIMIT 1;"
 		rr := DB_Query(qDbQty)
 		if !rr["ok"] {
+			Log_Debug("txn.reserve.dbqty_fail", "读单盒数量失败", Map("txn", txnId, "err", rr.Has("err") ? rr["err"] : ""))
 			return Map("ok", false, "level", "Error", "message", "[查询错误]`n读取药品索引中单盒数量失败：`n" rr["err"])
 		}
 		if (rr["rows"].Length = 0) {
+			Log_Debug("txn.reserve.dbqty_miss", "药品索引无此规格", Map("txn", txnId, "drugId", drugId, "spec", spec))
 			return Map(
 				"ok", false, "level", "Warn", "message", "[查询错误]`n药品索引未配置该药品规格（无法计算拆零余数）：`n" "药品=" drugId "`n规格=" spec
 			)
@@ -48,18 +61,53 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 
 		dbQty := Util_ToInt(rr["rows"][1][1])
 		if (dbQty <= 0) {
+			Log_Debug("txn.reserve.dbqty_bad", "单盒数量非法", Map("txn", txnId, "dbQty", dbQty))
 			return Map("ok", false, "level", "Error", "message", "[查询错误]`n药品索引中单盒数量非法：" dbQty)
 		}
 
 		rem := Mod(qtyN, dbQty)
+		wholeN := qtyN // dbQty
+		Log_Debug("txn.reserve.rem", "拆零余数", Map(
+			"txn", txnId, "qty", qtyN, "dbQty", dbQty, "rem", rem, "wholeN", wholeN,
+			"cls", cls, "alreadyScanned", alreadyScanned
+		))
 
-		; 余数为零表示完整包装，不预留追溯码
 		if (rem = 0) {
+			Log_Debug("txn.reserve.skip", "整包装跳过", Map("txn", txnId, "qty", qtyN, "dbQty", dbQty))
 			return Map("ok", true, "skip", true, "level", "Info", "message", "[跳过取码]`n整包装（数量为整包整数倍，单盒数量=" dbQty "）"
 				, "need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty)
 		}
 
-		; 拆零业务的需求量必须使用余数，不能使用原始行数量
+		; 拆零门控仅门诊：完成态靠 rem_done（落盘，重启仍有效）；半截（有拆零码未上闩）允许再预留补码
+		if (Trim("" opt) != "" && cls = opt) {
+			scannedN := Util_ToInt(alreadyScanned, 0)
+			splitScanned := Max(0, scannedN - wholeN)
+			remKey := Util_OptRemKey(drugId, spec, qtyN)
+			if (scannedN = 0)
+				Util_OptRemDone_Clear(remKey)
+
+			Log_Debug("txn.reserve.opt_gate", "门诊拆零门控", Map(
+				"txn", txnId, "alreadyScanned", scannedN, "splitScanned", splitScanned,
+				"remDone", Util_OptRemDone_Has(remKey) ? 1 : 0
+			))
+
+			if Util_OptRemDone_Has(remKey) {
+				Log_Debug("txn.reserve.skip", "拆零闩锁跳过", Map(
+					"txn", txnId, "rem", rem, "wholeN", wholeN, "alreadyScanned", scannedN, "remKey", remKey
+				))
+				return Map("ok", true, "skip", true, "level", "Info",
+					"message", "[跳过取码]`n本机已注入过该行拆零余数（已扫=" scannedN "，整盒=" wholeN "，余数=" rem " 粒）",
+					"need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty,
+					"already_scanned", scannedN, "whole_n", wholeN, "rem", rem)
+			}
+
+			; 界面已有拆零码但未提交成功：继续预留（HIS 拒重码则 abort 回滚）
+			if (splitScanned > 0)
+				Log_Debug("txn.reserve.opt_partial", "拆零半截续预留", Map(
+					"txn", txnId, "alreadyScanned", scannedN, "splitScanned", splitScanned, "rem", rem
+				))
+		}
+
 		need := rem
 		reqQty := need
 	}
@@ -218,6 +266,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
 			detail := r.Has("message") ? r["message"] : r["err"]
+			Log_Debug("txn.reserve.sql_fail", "预留 SQL 异常", Map("txn", txnId, "need", need, "elapsedMs", A_TickCount - t0))
 			return Map(
 				"ok", false, "level", r["level"],
 				"message", "[预留错误]`n预留 SQL 执行异常：`n" detail,
@@ -228,6 +277,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		if (r["rows"].Length = 0) {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
+			Log_Debug("txn.reserve.no_result", "预留无结果行", Map("txn", txnId, "need", need))
 			return Map("ok", false, "level", "Error", "message", "[预留错误]`n未返回任何结果行", "reason", "NO_RESULT")
 		}
 
@@ -255,6 +305,10 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 					msg := "`n" reason
 			}
 
+			Log_Debug("txn.reserve.guard_fail", "预留 guard 失败", Map(
+				"txn", txnId, "reason", reason, "need", need,
+				"drugId", drugId, "spec", spec, "elapsedMs", A_TickCount - t0
+			))
 			return Map(
 				"ok", false, "level", "Warn", "message", "[预留错误]`n" msg "`n预留数量=" need "`n规格=" spec "`n药品=" drugId,
 				"reason", reason, "need", need, "codes", [], "items", [],
@@ -267,12 +321,13 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 	} catch as e {
 		try conn.RollbackTrans()
 		__PG["in_txn"] := false
+		Log_Debug("txn.reserve.exception", "预留异常", Map("txn", txnId, "err", e.Message))
 		return Map("ok", false, "level", "Error", "message", "[预留错误]`n`n" e.Message, "reason", "EXCEPTION", "err", e.Message)
 	}
 
 	; 住院与门诊使用不同的返回码集合策略
 	if (cls = "") {
-		; 未提供窗口类时使用当前活动窗口，以保持现有调用兼容
+		; 未传窗口类时取当前活动窗口补全（测试调用）
 		ctx := Util_CaptureWin("A")
 		cls := ctx["cls"]
 	}
@@ -300,6 +355,13 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 	if (cls = ipt && lastCode != "")
 		codes := [lastCode]
 
+	tails := []
+	for _, c in codes
+		tails.Push((StrLen(c) <= 4) ? c : SubStr(c, -3))
+	Log_Debug("txn.reserve.ok", "预留成功", Map(
+		"txn", txnId, "need", reqQty, "codes", codes.Length, "items", items.Length,
+		"cls", cls, "codeTails", tails, "elapsedMs", A_TickCount - t0
+	))
 	return Map(
 		"ok", true, "level", "Info", "message", "[预留成功]`n需扣=" reqQty "，码数=" codes.Length,
 		"skip", false, "codes", codes, "items", items,
@@ -309,9 +371,12 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 
 ; 提交操作将任务状态从 PENDING 转换为 COMMITTED
 Txn_Commit(txnId) {
+	Log_Debug("txn.commit.begin", "提交开始", Map("txn", txnId))
 	rOpen := PG_EnsureOpen()
-	if !rOpen["ok"]
+	if !rOpen["ok"] {
+		Log_Debug("txn.commit.db_closed", "提交时库未开", Map("txn", txnId))
 		return rOpen
+	}
 
 	conn := __PG["conn"]
 	escTxn := Util_EscapeSQL(txnId)
@@ -332,30 +397,37 @@ Txn_Commit(txnId) {
 		if !r["ok"] {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
+			Log_Debug("txn.commit.sql_fail", "提交 SQL 失败", Map("txn", txnId))
 			return r
 		}
 		if (r["rows"].Length != 1) {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
+			Log_Debug("txn.commit.not_pending", "无 PENDING 可提交", Map("txn", txnId, "rows", r["rows"].Length))
 			return Map("ok", false, "level", "Error", "message", "[提交错误]`n提交减扣失败：`n没有在 PENDING 状态的预留事务")
 		}
 
 		conn.CommitTrans()
 		__PG["in_txn"] := false
+		Log_Debug("txn.commit.ok", "提交成功", Map("txn", txnId))
 		return Map("ok", true, "level", "Info", "message", "[提交成功]")
 
 	} catch as e {
 		try conn.RollbackTrans()
 		__PG["in_txn"] := false
+		Log_Debug("txn.commit.exception", "提交异常", Map("txn", txnId, "err", e.Message))
 		return Map("ok", false, "level", "Error", "message", "[提交错误]`n" e.Message, "err", e.Message)
 	}
 }
 
 ; 回滚仅恢复仍处于 PENDING 状态的事务
 Txn_Rollback(txnId) {
+	Log_Debug("txn.rollback.begin", "回滚开始", Map("txn", txnId))
 	rOpen := PG_EnsureOpen()
-	if !rOpen["ok"]
+	if !rOpen["ok"] {
+		Log_Debug("txn.rollback.db_closed", "回滚时库未开", Map("txn", txnId))
 		return rOpen
+	}
 
 	conn := __PG["conn"]
 	escTxn := Util_EscapeSQL(txnId)
@@ -388,6 +460,7 @@ Txn_Rollback(txnId) {
 		if !r["ok"] {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
+			Log_Debug("txn.rollback.sql_fail", "回滚 SQL 失败", Map("txn", txnId))
 			return r
 		}
 
@@ -395,16 +468,19 @@ Txn_Rollback(txnId) {
 		if (restored = 0) {
 			conn.RollbackTrans()
 			__PG["in_txn"] := false
+			Log_Debug("txn.rollback.not_pending", "无 PENDING 可回滚", Map("txn", txnId))
 			return Map("ok", false, "level", "Error", "message", "[回滚错误]`n回滚减扣失败：`n没有在 PENDING 状态的预留事务")
 		}
 
 		conn.CommitTrans()
 		__PG["in_txn"] := false
+		Log_Debug("txn.rollback.ok", "回滚成功", Map("txn", txnId, "restored", restored))
 		return Map("ok", true, "level", "Info", "message", "[回滚成功]", "restored_rows", restored)
 
 	} catch as e {
 		try conn.RollbackTrans()
 		__PG["in_txn"] := false
+		Log_Debug("txn.rollback.exception", "回滚异常", Map("txn", txnId, "err", e.Message))
 		return Map("ok", false, "level", "Error", "message", "[回滚错误]`n" e.Message, "err", e.Message)
 	}
 }
@@ -455,8 +531,10 @@ Txn_CleanupPending(timeoutMinutes := 10, maxBatch := 200) {
 	}
 
 	r := DB_Query(sql)
-	if !r["ok"]
+	if !r["ok"] {
+		Log_Debug("txn.cleanup.query_fail", "清理 PENDING 查询失败", Map("mins", mins))
 		return r
+	}
 
 	cleaned := 0
 	for _, row in r["rows"] {
@@ -467,5 +545,10 @@ Txn_CleanupPending(timeoutMinutes := 10, maxBatch := 200) {
 		if (IsObject(rr) && rr.Has("ok") && rr["ok"])
 			cleaned++
 	}
+	if (cleaned > 0 || r["rows"].Length > 0)
+		Log_Debug("txn.cleanup.done", "清理 PENDING 完成", Map(
+			"found", r["rows"].Length, "cleaned", cleaned,
+			"hasCreatedAt", hasCreatedAt, "mins", mins
+		))
 	return Map("ok", true, "cleaned", cleaned, "cutoff", cutoff)
 }
