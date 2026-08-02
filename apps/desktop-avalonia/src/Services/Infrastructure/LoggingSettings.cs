@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Logger;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -65,21 +66,10 @@ public sealed class LoggingSettingsService : ILoggingSettingsService
         var defaults = new LoggingOptions();
         var options = source ?? new LoggingOptions();
 
-        var level = (options.MinimumLevel ?? string.Empty).Trim().ToLowerInvariant();
-        var normalizedLevel = level switch
-        {
-            "debug" => "Debug",
-            "info" => "Info",
-            "warn" => "Warn",
-            "error" => "Error",
-            "fatal" => "Fatal",
-            _ => defaults.MinimumLevel
-        };
-
         return new LoggingOptions
         {
             Enabled = options.Enabled,
-            MinimumLevel = normalizedLevel,
+            MinimumLevel = LogLevel.Canonical(options.MinimumLevel, defaults.MinimumLevel),
             RetentionDays = Math.Clamp(options.RetentionDays <= 0 ? defaults.RetentionDays : options.RetentionDays, 1, 180),
             MaxFileSizeMb = Math.Clamp(options.MaxFileSizeMb <= 0 ? defaults.MaxFileSizeMb : options.MaxFileSizeMb, 1, 200),
             LogDirectory = LogDirectory.Resolve(options.LogDirectory).StoredDirectory

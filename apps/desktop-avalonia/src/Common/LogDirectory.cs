@@ -1,50 +1,49 @@
 using System;
-using System.IO;
+using PacToolkits.Agents.Contracts.Agents;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>
+/// Logging.LogDirectory 存的是日志根目录（空 = 默认 …/logs）；Desktop 落盘在根目录下 desktop/
+/// </summary>
 public sealed record LogDirectoryResolution(
     string StoredDirectory,
-    string RuntimeDirectory);
+    string RuntimeDirectory,
+    string BrowseDirectory);
 
 public static class LogDirectory
 {
-    public const string LogsSegment = "logs";
-    public const string CurrentSubdirectory = "desktop";
-
     public static LogDirectoryResolution Resolve(string? configuredDirectory)
     {
         var stored = NormalizeStoredPath(configuredDirectory);
-        if (string.IsNullOrWhiteSpace(stored))
+        if (string.IsNullOrEmpty(stored))
         {
-            var runtime = GetDefaultDirectory();
-            return new LogDirectoryResolution(string.Empty, runtime);
+            return DefaultResolution();
         }
 
-        var configuredRuntime = ResolveRuntimePath(stored);
-        return new LogDirectoryResolution(stored, configuredRuntime);
-    }
-
-    public static string GetDefaultDirectory()
-    {
-        var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        return Path.Combine(baseDir, "PacToolkits", LogsSegment, CurrentSubdirectory);
-    }
-
-    private static string ResolveRuntimePath(string storedDirectory)
-    {
-        try
+        var root = AgentsLogPaths.ResolveRoot(stored);
+        if (IsDefaultRoot(root))
         {
-            return NormalizeFullPath(storedDirectory);
+            return DefaultResolution();
         }
-        catch
-        {
-            return storedDirectory.Trim();
-        }
+
+        return new LogDirectoryResolution(
+            root,
+            AgentsLogPaths.DesktopDir(root),
+            root);
     }
 
-    private static string NormalizeFullPath(string path)
-        => Path.GetFullPath(path.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+    private static LogDirectoryResolution DefaultResolution()
+        => new(
+            string.Empty,
+            AgentsLogPaths.DesktopDir(null),
+            AgentsLogPaths.DefaultLogsRoot());
+
+    private static bool IsDefaultRoot(string root)
+        => string.Equals(
+            root,
+            AgentsLogPaths.DefaultLogsRoot(),
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
     private static string NormalizeStoredPath(string? value)
         => string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();

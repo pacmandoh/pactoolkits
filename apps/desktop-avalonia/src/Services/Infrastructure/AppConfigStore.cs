@@ -12,6 +12,7 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Desktop.Avalonia.Common;
+using PacToolkits.Logger;
 
 namespace PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
@@ -322,18 +323,7 @@ public sealed class AppConfigStore : IAppConfigStore, IDbOptionsStore
     }
 
     private static string NormalizeLevel(string? level)
-    {
-        var raw = (level ?? string.Empty).Trim().ToLowerInvariant();
-        return raw switch
-        {
-            "debug" => "Debug",
-            "info" => "Info",
-            "warn" => "Warn",
-            "error" => "Error",
-            "fatal" => "Fatal",
-            _ => "Error"
-        };
-    }
+        => LogLevel.Canonical(level, LogLevel.Error);
 
     private void PersistIfChanged(AppConfigRoot normalized)
     {

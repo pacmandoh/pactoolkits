@@ -7,13 +7,15 @@
 
 ## 1. 使用说明
 
-- 默认日志目录：
-  - macOS：`~/Library/Application Support/PacToolkits/logs/desktop`
-  - Linux：`~/.config/PacToolkits/logs/desktop`
-  - Windows：`%AppData%\PacToolkits\logs\desktop`
-- 日志文件：`desktop-YYYY-MM-DD.log`（同日滚动为 `desktop-YYYY-MM-DD.N.log`）
+- 默认日志目录（设置页「日志目录」/「打开目录」；可自定义，全部相对此目录）：
+  - macOS：`~/Library/Application Support/PacToolkits/logs`
+  - Linux：`~/.config/PacToolkits/logs`
+  - Windows：`%AppData%\PacToolkits\logs`
+- 相对目录布局：Desktop → `desktop/`；Host → `agents/host/`；模块 → `agents/modules/<Id>/`
+- 日志文件：`YYYY-MM-DD.log`（同日滚动为 `YYYY-MM-DD.N.log`）
 - 格式：JSON Lines；关键字段包括 `ts`、`level`、`module`、`event`、`message`、`exception`（可选）、`version` 和 `context`
-- Agents 事件主要由 `Agents`、`MainWindowVM` 和 `Settings.Agents` 模块记录
+- Agents **控制面**事件仍由 Desktop 的 `Agents`、`MainWindowVM`、`Settings.Agents` 写入 `desktop/`；Host/模块进程内日志写入 `agents/`
+- **控制面**：设置页「日志与诊断」的 `Logging.Enabled` / `MinimumLevel` / `RetentionDays` / `MaxFileSizeMb` / `LogDirectory`（根目录）；模块级别门控在「模块配置」中设置
 
 ## 2. 按严重度分层（排障优先级）
 
@@ -30,6 +32,7 @@
 
 ### Warn（降级或可恢复）
 
+- Agents 门控/状态失败：`agents.host.fail`、`agents.module.fail`（含非 Windows 拒绝启动）
 - 瞬断重试：`conn.open.transient_disconnect.retry`、`reload.transport_retry`
 - 局部失败继续：`client_id.query.partial_fail`、多数 `*.dispose.*_fail`
 - MSFX 审计成功类也记 Warn（如 `msfx.task.reopen.success`）便于检索
@@ -132,6 +135,8 @@
 - `agents.modules.rediscover` (Info) — Agents modules catalog changed
 - `agents.poll.fail` (Warn) — Agents status poll failed
 - `agents.reload` (Info) — Agents runtime config reloaded
+- `agents.host.fail` (Warn) — Host command failed (platform gate, path, schema, etc.)
+- `agents.module.fail` (Warn) — Module command failed
 - `agents.start_or_restart.fail` (Error) — Agents start/restart failed
 - `agents.status_changed.fail` (Warn) — Agents status change handler failed
 - `agents.stop.fail` (Error) — Agents stop failed
@@ -421,16 +426,16 @@
 
 ```bash
 # 当天的 Error/Fatal 事件
-jq -c 'select(.level=="Error" or .level=="Fatal")' ~/Library/Application\ Support/PacToolkits/logs/desktop/desktop-$(date +%F).log
+jq -c 'select(.level=="Error" or .level=="Fatal")' ~/Library/Application\ Support/PacToolkits/logs/desktop/$(date +%F).log
 
 # Agents 与模块事件
-jq -c 'select(.event|startswith("agents.") or startswith("settings.agents."))' .../desktop-YYYY-MM-DD.log
+jq -c 'select(.event|startswith("agents.") or startswith("settings.agents."))' .../YYYY-MM-DD.log
 
 # 更新通道
-jq -c 'select(.event|startswith("update."))' .../desktop-YYYY-MM-DD.log
+jq -c 'select(.event|startswith("update."))' .../YYYY-MM-DD.log
 
 # 页面重载流水线
-jq -c 'select(.event|startswith("reload."))' .../desktop-YYYY-MM-DD.log
+jq -c 'select(.event|startswith("reload."))' .../YYYY-MM-DD.log
 ```
 
 ## 5. 相关文档

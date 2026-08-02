@@ -458,6 +458,9 @@
           "PacToolkits.Application": "[1.0.0, )",
           "PacToolkits.Core": "[1.0.0, )"
         }
+      },
+      "pactoolkits.logger": {
+        "type": "Project"
       }
     }
   }
