@@ -1544,12 +1544,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            if (!Agents.IsHostRunning)
-            {
-                await RunAgentsCommandAsync(() => Agents.StartOrRestartAsync()).ConfigureAwait(false);
-                return;
-            }
-
             if (Agents.GetModuleState(moduleId) == AgentsRunState.Running)
             {
                 IsAgentsActionRunning = true;
@@ -1568,7 +1562,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            // Host 已运行时仅启动目标模块，保持其他模块和 Host 会话不变
+            // Host 未运行时也会只挂载本模块；全量挂载走顶部 Agents / 设置页 StartOrRestart
             await RunAgentsCommandAsync(() => Agents.StartModuleAsync(moduleId)).ConfigureAwait(false);
         }
         catch (Exception ex)
