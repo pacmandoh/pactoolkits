@@ -37,6 +37,23 @@ Agents/
 
 `module.control`、`module.ready` 和 `host.control` 是运行期控制文件，不属于模块发布元数据。
 
+## 日志
+
+Host 与 AHK 模块与 Desktop 共用同一日志根目录（默认 AppData，可由 Desktop `Logging.LogDirectory` 自定义），格式为 JSON Lines：
+
+```text
+{logsRoot}/
+  desktop/YYYY-MM-DD[.N].log
+  agents/host/YYYY-MM-DD[.N].log
+  agents/modules/<Id>/YYYY-MM-DD[.N].log
+```
+
+路径常量见 `AgentsLogPaths`（`ResolveRoot` / `DesktopDir` / `HostDir` / `ModuleDir`）；.NET 落盘见 `packages/logger`；AHK 侧见 `runtime/agents/lib/ahk/log.ahk`（经 `--config` 读日志根目录）。文件名仅日期，靠目录区分来源。
+
+字段与 Desktop 对齐：`ts`、`level`、`module`、`event`、`message`、`version`、`context?`、`exception?`。`level` 仅使用 `Debug` / `Info` / `Warn` / `Error` / `Fatal`。
+
+控制面：Desktop `Logging.Enabled` / `MinimumLevel` / `RetentionDays` / `MaxFileSizeMb` / `LogDirectory`（根目录）作用于 Desktop 落盘与 Agents Host（Host 读 `--config`，可按配置 mtime 热更新根目录）；模块进程在启动时经 `--config` 解析根目录，长驻模块改根后需重启才切换落盘路径。各模块用户 `settings.json` 的 `LogEnabled` 等门控经 `Log_ApplySettings` 应用，在设置页「模块配置」中编辑。
+
 ## 配置所有权
 
 Agents 配置分为三类，生命周期和写入方不同：
