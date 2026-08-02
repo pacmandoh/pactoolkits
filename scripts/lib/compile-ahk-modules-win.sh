@@ -1,6 +1,8 @@
 # Windows 本机 Ahk2Exe 编译 AHK 模块（供 run-desktop-with-agents.sh source）
 # 依赖：jq_r（manifest-v2.sh）、jq、本机 Ahk2Exe.exe + AutoHotkey64.exe
 # 可选：cygpath（Git Bash）；可用 AHK2EXE_PATH / AHK_BASE_PATH 覆盖探测路径
+# 增量：Debug/bin 已有 exe，且旁路 stamp 的 inputs 指纹与当前源码一致 → 跳过
+# 强制重编：COMPILE_AHK_FORCE=1
 
 compile_ahk_is_windows() {
   case "$(uname -s 2> /dev/null || true)" in
@@ -123,7 +125,62 @@ compile_ahk_try_resolve_toolchain() {
   return 0
 }
 
-# 编译单个模块到 out_exe；成功返回 0
+compile_ahk_sha256() {
+  local file="$1"
+  if command -v sha256sum > /dev/null 2>&1; then
+    sha256sum "$file" | awk '{print $1}'
+  else
+    shasum -a 256 "$file" | awk '{print $1}'
+  fi
+}
+
+# 影响 exe 的输入指纹（不含 module.json：export-version 每次重写会误伤缓存）
+compile_ahk_inputs_digest() {
+  local module_src="$1"
+  local root_dir="$2"
+  local module_id="$3"
+  local icon_path="$4"
+  local manifest_version="$5"
+
+  local list tmp path rel
+  list="$(mktemp)"
+  tmp="$(mktemp)"
+  {
+    printf '%s\n' "$module_src/main.ahk"
+    printf '%s\n' "$icon_path"
+    if [[ -d "$module_src/src" ]]; then
+      find "$module_src/src" -type f -name '*.ahk' 2> /dev/null || true
+    fi
+    if [[ -d "$root_dir/runtime/agents/lib/ahk" ]]; then
+      find "$root_dir/runtime/agents/lib/ahk" -type f -name '*.ahk' 2> /dev/null || true
+    fi
+  } | sort -u > "$list"
+
+  {
+    printf 'module=%s\n' "$module_id"
+    printf 'version=%s\n' "$manifest_version"
+    while IFS= read -r path; do
+      [[ -f "$path" ]] || continue
+      rel="${path#"$root_dir"/}"
+      printf '%s %s\n' "$(compile_ahk_sha256 "$path")" "$rel"
+    done < "$list"
+  } > "$tmp"
+
+  compile_ahk_sha256 "$tmp"
+  rm -f "$list" "$tmp"
+}
+
+compile_ahk_read_stamp_field() {
+  local stamp="$1"
+  local key="$2"
+  [[ -f "$stamp" ]] || return 1
+  local line
+  line="$(grep -E "^${key}=" "$stamp" 2> /dev/null | head -n 1 || true)"
+  [[ -n "$line" ]] || return 1
+  printf '%s\n' "${line#"$key"=}"
+}
+
+# 编译单个模块到 out_exe（通常为 Debug/bin/.../Modules/<id>/<entry>）；指纹命中则跳过 Ahk2Exe
 compile_ahk_module() {
   local module_src="$1"
   local module_id="$2"
@@ -171,6 +228,20 @@ compile_ahk_module() {
   }
   module_version4="${manifest_version}.0"
 
+  local stamp inputs_digest stamped_inputs
+  stamp="${out_exe}.ahk2exe.stamp"
+  inputs_digest="$(compile_ahk_inputs_digest "$module_src" "$root_dir" "$module_id" "$icon_path" "$manifest_version")"
+
+  mkdir -p "$(dirname "$out_exe")"
+  # 以 Debug/bin 现有 exe 为缓存：源码/版本指纹未变则不调 Ahk2Exe
+  if [[ "${COMPILE_AHK_FORCE:-}" != "1" && -f "$out_exe" && -f "$stamp" ]]; then
+    stamped_inputs="$(compile_ahk_read_stamp_field "$stamp" inputs || true)"
+    if [[ -n "$stamped_inputs" && "$stamped_inputs" == "$inputs_digest" ]]; then
+      echo "Skipping $entry for module=$module_id (inputs unchanged, version=$manifest_version)"
+      return 0
+    fi
+  fi
+
   local entry_path compiler_dir main_w
   entry_path="$module_src/__local_compile_entry__.ahk"
   compiler_dir="$(dirname "$compiler")"
@@ -184,7 +255,6 @@ compile_ahk_module() {
     printf '#Include "%s"\n' "$main_w"
   } > "$entry_path"
 
-  mkdir -p "$(dirname "$out_exe")"
   rm -f "$out_exe"
 
   local in_w out_w base_w icon_w
@@ -220,5 +290,7 @@ compile_ahk_module() {
     echo "ERROR: Ahk2Exe produced no output: $out_exe (module=$module_id)" >&2
     return 1
   fi
+
+  printf 'inputs=%s\n' "$inputs_digest" > "$stamp"
   return 0
 }
