@@ -3,16 +3,27 @@ global __MSFX_COL := Map()
 
 Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputClassNN, colSpecs, intCols, iptCls, win := "A", clickAnchor := "") {
 	win := Util_NormalizeWin(win)
+	flowT0 := A_TickCount
+	Log_Debug("msfx.flow.start", "仓库流程开始", Map(
+		"parseNn", parseGridClassNN, "verifyNn", verifyGridClassNN, "inputNn", inputClassNN,
+		"timeoutMs", timeoutMs
+	))
 	pre := Util_WarehouseSoftCheck(win)
-	if !pre["ok"]
+	if !pre["ok"] {
+		Log_Debug("msfx.flow.soft_fail", "仓库软校验失败", Map(
+			"message", pre.Has("message") ? pre["message"] : "", "elapsedMs", A_TickCount - flowT0
+		))
 		return pre
+	}
 	headerLine := pre.Has("header_line") ? Trim(pre["header_line"]) : ""
 
 	taskIdentifierSpec := Msfx_GetWarehouseTaskIdentifierSpec()
 	parseSpecs := Msfx_BuildWarehouseParseSpecs(colSpecs, taskIdentifierSpec)
 	p := Parse_TargetInfo(parseSpecs, iptCls, intCols, "", win, parseGridClassNN)
-	if !p["ok"]
+	if !p["ok"] {
+		Log_Debug("msfx.flow.parse_fail", "仓库解析失败", Map("elapsedMs", A_TickCount - flowT0))
 		return p
+	}
 
 	by := p["bySpec"]
 	drugId := by.Has("物资名称||药品名称") ? Trim(by["物资名称||药品名称"]) : ""
@@ -20,6 +31,10 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	warehouseBillNo := Msfx_ResolveWarehouseBillNo(by, taskIdentifierSpec)
 	baseRowFingerprint := Msfx_BuildWarehouseRowFingerprint(by, warehouseBillNo, drugId, spec)
 	rowFingerprint := baseRowFingerprint
+	Log_Debug("msfx.flow.parsed", "仓库行已解析", Map(
+		"drugId", drugId, "spec", spec, "bill", warehouseBillNo,
+		"fp", baseRowFingerprint, "idSpec", taskIdentifierSpec
+	))
 	if (drugId = "" || spec = "") {
 		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n仓库模式解析结果缺少关键字段`n药品名称=" drugId " 规格=" spec)
 	}
@@ -39,9 +54,14 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	if !dup["ok"]
 		return dup
 	if dup["exists"] {
+		Log_Debug("msfx.flow.dup", "命中防重，尝试行槽指纹", Map("bill", warehouseBillNo, "fp", baseRowFingerprint))
 		if (IsObject(clickAnchor) && clickAnchor.Has("ok") && clickAnchor["ok"]) {
 			slotAnchor := UI_CaptureGridClickAnchorFromPoint(parseGridClassNN, clickAnchor, win)
 			slotRowFingerprint := Msfx_BuildWarehouseRowFingerprint(by, warehouseBillNo, drugId, spec, slotAnchor)
+			Log_Debug("msfx.flow.slot_fp", "行槽指纹", Map(
+				"base", baseRowFingerprint, "slot", slotRowFingerprint,
+				"anchorOk", IsObject(slotAnchor) && slotAnchor.Has("ok") && slotAnchor["ok"]
+			))
 			if (slotRowFingerprint != "" && slotRowFingerprint != baseRowFingerprint) {
 				dup2 := Msfx_HasWarehouseSuccessTask(warehouseBillNo, drugId, spec, slotRowFingerprint)
 				if !dup2["ok"]
@@ -55,6 +75,7 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	}
 	if dup["exists"] {
 		fpTip := (rowFingerprint != "") ? ("`n行指纹=" rowFingerprint) : ""
+		Log_Debug("msfx.flow.dup_block", "防重拦截", Map("bill", warehouseBillNo, "fp", rowFingerprint))
 		return Map(
 			"ok", false,
 			"level", "Warn", "message", "[仓库任务校验]`n当前单据该药品规格已存在成功记录，已阻止重复注入`n单据号=" warehouseBillNo "`n药品=" drugId "`n规格=" spec fpTip
@@ -62,10 +83,13 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	}
 
 	claim := Msfx_ClaimInjectTaskByTarget(clientId, drugId, spec)
-	if !claim["ok"]
+	if !claim["ok"] {
+		Log_Debug("msfx.flow.claim_fail", "领取任务失败", Map("drugId", drugId, "spec", spec))
 		return claim
+	}
 
 	tasks := claim["tasks"]
+	Log_Debug("msfx.flow.claim", "领取任务", Map("tasks", tasks.Length, "drugId", drugId, "spec", spec))
 	if (tasks.Length = 0)
 		return Map("ok", true, "skip", true, "level", "Info", "message", "[仓库任务]`n未找到匹配任务：药品=" drugId " 规格=" spec)
 	UI_Tip("[仓库模式] 已匹配任务 1 条，开始注入…", 1000)
@@ -75,23 +99,36 @@ Msfx_RunWarehouseTaskFlow(timeoutMs, parseGridClassNN, verifyGridClassNN, inputC
 	hasErr := false
 	for _, task in tasks {
 		taskId := task["task_id"]
+		Log_Debug("msfx.flow.task", "执行仓库任务", Map("taskId", taskId, "policy", policy, "fp", rowFingerprint))
 		r := Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClassNN, win, headerLine, warehouseBillNo, rowFingerprint)
 		if !r["ok"] {
 			lastErr := r["message"]
 			if (r.Has("level") && r["level"] = "Error")
 				hasErr := true
+			Log_Debug("msfx.flow.task_fail", "仓库任务失败", Map(
+				"taskId", taskId, "level", r.Has("level") ? r["level"] : "",
+				"message", lastErr
+			))
 		}
 	}
 
 	if (lastErr != "")
 		return Map("ok", false, "level", hasErr ? "Error" : "Warn", "message", "[仓库任务]`n" lastErr)
 
+	Log_Info("msfx.flow.done", "仓库流程完成", Map(
+		"tasks", tasks.Length, "bill", warehouseBillNo, "drugId", drugId, "spec", spec,
+		"elapsedMs", A_TickCount - flowT0
+	))
 	return Map(
 		"ok", true, "level", "Info", "message", "[仓库任务完成]`n已处理任务数=" tasks.Length "，单据号=" warehouseBillNo "，药品=" drugId "，规格=" spec
 	)
 }
 
 Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClassNN, win, headerLine := "", warehouseBillNo := "", rowFingerprint := "") {
+	taskT0 := A_TickCount
+	Log_Debug("msfx.task.start", "单任务开始", Map(
+		"taskId", taskId, "policy", policy, "bill", warehouseBillNo, "fp", rowFingerprint
+	))
 	Msfx_InsertEvent(taskId, "PARSE", "INFO", "仓库任务开始执行")
 	if (Trim(headerLine) != "") {
 		line := headerLine
@@ -102,11 +139,13 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 
 	rowsRes := Msfx_GetPendingTaskCodes(taskId)
 	if !rowsRes["ok"] {
+		Log_Debug("msfx.task.codes_fail", "读明细失败", Map("taskId", taskId))
 		Msfx_FinalizeInjectTask(taskId, "读取任务明细失败")
 		return rowsRes
 	}
 
 	codeRows := rowsRes["rows"]
+	Log_Debug("msfx.task.codes", "待注入明细", Map("taskId", taskId, "rows", codeRows.Length))
 	if (codeRows.Length = 0) {
 		Msfx_InsertEvent(taskId, "PARSE", "WARN", "任务无待处理明细")
 		Msfx_FinalizeInjectTask(taskId, "任务无待处理明细")
@@ -165,9 +204,13 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 	}
 
 	totalGroups := groups.Length
+	Log_Debug("msfx.task.groups", "取码分组完成", Map(
+		"taskId", taskId, "groups", totalGroups, "noCode", noCodeLeafs.Length, "policy", policy
+	))
 	prep := UI_PrepareWarehouseFastTarget(inputClassNN, win)
 	if !prep["ok"] {
 		why := prep.Has("message") ? prep["message"] : "仓库窗口准备失败"
+		Log_Debug("msfx.task.prep_fail", why, Map("taskId", taskId))
 		Msfx_FinalizeInjectTask(taskId, "仓库窗口准备失败")
 		return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n" why)
 	}
@@ -179,15 +222,25 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 		leafCodes := Msfx_GroupLeafCodes(items)
 		stagingIds := Msfx_GroupStagingIds(items)
 		injectRuns++
+		codeTail := (StrLen(injectCode) <= 4) ? injectCode : SubStr(injectCode, -3)
 
 		; 首条记录使用完整注入与强验证，确认窗口链路对齐后再进入高吞吐路径
 		useStableInject := !firstVerified
+		if (useStableInject || gIdx <= 2 || Mod(gIdx, 40) = 0)
+			Log_Debug("msfx.task.inject", "注入一组", Map(
+				"taskId", taskId, "gIdx", gIdx, "groups", totalGroups,
+				"items", itemCount, "stable", useStableInject,
+				"codeLen", StrLen(injectCode), "codeTail", codeTail
+			))
 		if useStableInject
 			pr := UI_Paste_Impl(win, inputClassNN, injectCode, false)
 		else
 			pr := UI_Paste_Warehouse(injectCode, inputClassNN, win)
 		if !pr["ok"] {
 			why := pr.Has("message") ? pr["message"] : "仓库窗口注入失败"
+			Log_Debug("msfx.task.inject_fail", why, Map(
+				"taskId", taskId, "gIdx", gIdx, "codeTail", codeTail, "items", itemCount
+			))
 			fail += itemCount
 			u1 := Msfx_BatchUpdateTaskCodes(taskId, leafCodes, "FAILED", "", why)
 			if !u1["ok"] {
@@ -209,9 +262,14 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 		if !firstVerified {
 			; 仓库验证窗口结构与住院一致，沿用 TcxGridSite 第 1 个网格验证首条
 			firstTimeout := (timeoutMs < 3500) ? 3500 : timeoutMs
+			Log_Debug("msfx.task.first_verify", "首条强校验", Map("taskId", taskId, "timeoutMs", firstTimeout, "codeTail", codeTail))
 			wc := UI_WaitConfirm_Warehouse([injectCode], firstTimeout, verifyGridClassNN, win)
 			verifyOk := wc["ok"]
 			verifyResult := verifyOk ? "FIRST_OK" : "FIRST_FAIL"
+			Log_Debug("msfx.task.first_verify_result", verifyOk ? "首条通过" : "首条失败", Map(
+				"taskId", taskId, "result", verifyResult,
+				"message", wc.Has("message") ? wc["message"] : ""
+			))
 			if verifyOk {
 				firstVerified := true
 				; 首条验证会将焦点移至验证区域，进入后续循环前必须恢复输入框焦点
@@ -315,9 +373,15 @@ Msfx_RunOneWarehouseTask(taskId, policy, timeoutMs, verifyGridClassNN, inputClas
 	finalizeBillNo := (fail = 0 && succ > 0) ? warehouseBillNo : ""
 	finalizeRowFingerprint := (fail = 0 && succ > 0) ? rowFingerprint : ""
 	fr := Msfx_FinalizeInjectTask(taskId, finalErr, finalizeBillNo, finalizeRowFingerprint)
-	if !fr["ok"]
+	if !fr["ok"] {
+		Log_Debug("msfx.task.finalize_fail", "任务结算失败", Map("taskId", taskId, "message", fr.Has("message") ? fr["message"] : ""))
 		return Map("ok", false, "level", "Error", "message", "[仓库任务错误]`n任务结算失败：`n" fr["message"])
+	}
 
+	Log_Debug("msfx.task.done", "单任务完成", Map(
+		"taskId", taskId, "runs", injectRuns, "succ", succ, "fail", fail,
+		"elapsedMs", A_TickCount - taskT0
+	))
 	return Map("ok", true, "level", "Info", "message", "[仓库任务完成]`ntask_id=" taskId " 注入次数=" injectRuns " 成功=" succ " 失败=" fail)
 }
 

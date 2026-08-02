@@ -62,13 +62,34 @@ Cfg_RequireKeys(Cfg, [
 
 Ready_Mark()
 Log_Info("startup.ready", Module_UiTitle() " 自检通过")
+apps := []
+for exe, _ in Cfg["APP_WIN"]
+	apps.Push(exe)
+Log_Debug("startup.cfg", "目标门控配置", Map(
+	"appWin", apps,
+	"optClass", Cfg["OPT_WINDOW_CLASS"],
+	"iptClass", Cfg["IPT_WINDOW_CLASS"],
+	"optParseNn", Cfg["OPT_PARSE_GRID_CLASSNN"],
+	"optVerifyNn", Cfg["OPT_VERIFY_GRID_CLASSNN"],
+	"optInputNn", Cfg["OPT_INPUT_CLASSNN"],
+	"iptParseNn", Cfg["IPT_PARSE_GRID_CLASSNN"],
+	"iptVerifyNn", Cfg["IPT_VERIFY_GRID_CLASSNN"],
+	"iptInputNn", Cfg["IPT_INPUT_CLASSNN"],
+	"warehouse", !!Cfg["WAREHOUSE_ENABLED"],
+	"confirmMs", Cfg["CONFIRM_TIMEOUT_MS"],
+	"codePick", Cfg.Has("CODE_PICK_POLICY") ? Cfg["CODE_PICK_POLICY"] : "",
+	"logLevel", Cfg.Has("LogMinimumLevel") ? Cfg["LogMinimumLevel"] : "",
+	"logOn", Cfg.Has("LogEnabled") ? !!Cfg["LogEnabled"] : true
+))
 
 ; 启动时恢复超时的 PENDING 事务，避免异常退出后库存长期占用
 global _CLEANUP_BUSY := false
 try {
 	rr := Txn_CleanupPending(10, 200)
-	if (IsObject(rr) && rr.Has("ok") && rr["ok"] && rr.Has("cleaned") && rr["cleaned"] > 0)
+	if (IsObject(rr) && rr.Has("ok") && rr["ok"] && rr.Has("cleaned") && rr["cleaned"] > 0) {
+		Log_Info("startup.cleanup_pending", "已回滚超时 PENDING", Map("cleaned", rr["cleaned"]))
 		UI_Tip("已自动回滚超时预留事务：" rr["cleaned"] " 条", 1500)
+	}
 }
 
 ; 以低频周期检查 PENDING 事务，降低恢复任务对注入主流程的性能影响
@@ -89,13 +110,28 @@ global _LAST_RUN := 0
 #HotIf Util_HotIf_TargetApp()
 ~RButton::
 {
+	t0 := A_TickCount
 	ctx := Util_CaptureWin("A")
+	MouseGetPos(, , , &ctrlHwnd, 2)
+	ptrNn := ""
+	try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
 	parseGridClassNN := (ctx["cls"] = Cfg["IPT_WINDOW_CLASS"]) ? Cfg["IPT_PARSE_GRID_CLASSNN"] : Cfg["OPT_PARSE_GRID_CLASSNN"]
-	if !UI_MouseOnClassNN(parseGridClassNN)
+	Log_Debug("hot.rbutton", "右键入口", Map(
+		"cls", ctx["cls"], "ttl", ctx["ttl"],
+		"needNn", parseGridClassNN, "ptrNn", ptrNn
+	))
+	if !UI_MouseOnClassNN(parseGridClassNN) {
+		Log_Debug("hot.rbutton.miss_grid", "右键未落在解析网格", Map(
+			"needNn", parseGridClassNN, "ptrNn", ptrNn, "elapsedMs", A_TickCount - t0
+		))
 		return
+	}
 
 	if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"]) {
 		ck := Util_WarehouseSoftCheck(ctx["win"])
+		Log_Debug("hot.rbutton.warehouse_check", ck["ok"] ? "仓库特征通过" : "仓库特征失败", Map(
+			"ok", ck["ok"], "message", ck.Has("message") ? ck["message"] : ""
+		))
 		if !ck["ok"] {
 			UI_Fail("warehouse.check_fail", ck["message"], Module_UiTitle())
 			return
@@ -105,6 +141,13 @@ global _LAST_RUN := 0
 	}
 
 	p := Parse_TargetInfo(Cfg["COL_SPECS"], Cfg["IPT_WINDOW_CLASS"], Cfg["INT_COLS"], "", ctx["win"], parseGridClassNN)
+	Log_Debug("hot.rbutton.parse", p["ok"] ? "解析成功" : "解析失败", Map(
+		"ok", p["ok"],
+		"level", p.Has("level") ? p["level"] : "",
+		"reason", p.Has("reason") ? p["reason"] : "",
+		"elapsedMs", A_TickCount - t0,
+		"rawLen", p.Has("raw") ? StrLen(p["raw"]) : 0
+	))
 	if (!p["ok"]) {
 		UI_Fail("parse.fail", p["message"], Module_UiTitle())
 		return
@@ -121,8 +164,18 @@ global _LAST_RUN := 0
 	catch
 		activeCls := ""
 	parseGridClassNN := (activeCls = Cfg["IPT_WINDOW_CLASS"]) ? Cfg["IPT_PARSE_GRID_CLASSNN"] : Cfg["OPT_PARSE_GRID_CLASSNN"]
-	if !UI_MouseOnClassNN(parseGridClassNN)
+	MouseGetPos(, , , &ctrlHwnd, 2)
+	ptrNn := ""
+	try ptrNn := ctrlHwnd ? ControlGetClassNN(ctrlHwnd) : ""
+	Log_Debug("hot.lbutton", "左键入口", Map(
+		"activeCls", activeCls, "needNn", parseGridClassNN, "ptrNn", ptrNn
+	))
+	if !UI_MouseOnClassNN(parseGridClassNN) {
+		Log_Debug("hot.lbutton.miss_grid", "左键未落在解析网格", Map(
+			"needNn", parseGridClassNN, "ptrNn", ptrNn, "elapsedMs", A_TickCount - hookT0
+		))
 		return
+	}
 	clickAnchor := ""
 	warehouseMode := (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"])
 	if warehouseMode {
@@ -133,18 +186,27 @@ global _LAST_RUN := 0
 	Critical
 	KeyWait("LButton")
 
-	if (_BUSY)
+	if (_BUSY) {
+		Log_Debug("hot.lbutton.busy", "忙碌中忽略", Map("elapsedMs", A_TickCount - hookT0))
 		return UI_Tip("忙碌中…已忽略重复触发", 800)
+	}
 
 	now := A_TickCount
-	if (now - _LAST_RUN < 400)
+	if (now - _LAST_RUN < 400) {
+		Log_Debug("hot.lbutton.throttle", "触发过快忽略", Map("deltaMs", now - _LAST_RUN))
 		return UI_Tip("触发过快，已忽略", 600)
+	}
 
 	_LAST_RUN := now
 
 	_BUSY := true
 
 	ctx := Util_CaptureWin("A")
+	Log_Debug("hot.lbutton.run", "开始半自动/仓库流程", Map(
+		"warehouse", warehouseMode,
+		"cls", ctx["cls"], "ttl", ctx["ttl"],
+		"elapsedMs", A_TickCount - hookT0
+	))
 	if !warehouseMode {
 		try {
 			if (ctx["cls"] = Cfg["OPT_WINDOW_CLASS"]) {
@@ -185,6 +247,14 @@ global _LAST_RUN := 0
 				ctx["win"]
 			)
 		}
+
+		Log_Debug("hot.lbutton.result", msa.Has("ok") && msa["ok"] ? "流程结束-成功" : "流程结束-失败/跳过", Map(
+			"ok", msa.Has("ok") ? msa["ok"] : false,
+			"skip", msa.Has("skip") ? msa["skip"] : false,
+			"level", msa.Has("level") ? msa["level"] : "",
+			"message", msa.Has("message") ? msa["message"] : "",
+			"elapsedMs", A_TickCount - hookT0
+		))
 
 		if (msa.Has("skip") && msa["skip"]) {
 			UI_Tip(msa["message"])

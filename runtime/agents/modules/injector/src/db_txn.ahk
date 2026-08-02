@@ -96,10 +96,14 @@ PG_EnsureOpen() {
 
 		__PG["conn"] := conn
 		__PG["in_txn"] := false
+		Log_Debug("pg.open", "数据库已连接", Map(
+			"host", Cfg["PG_HOST"], "port", Cfg["PG_PORT"], "db", Cfg["PG_DB"]
+		))
 		return Map("ok", true)
 
 	} catch as e {
 		detail := "数据库链接失败：`n" e.Message
+		Log_Debug("pg.open_fail", "数据库连接失败", Map("host", Cfg["PG_HOST"], "err", e.Message))
 		return Map("ok", false, "level", "Error", "message", "[数据库错误]`n" detail, "err", detail)
 	}
 }
