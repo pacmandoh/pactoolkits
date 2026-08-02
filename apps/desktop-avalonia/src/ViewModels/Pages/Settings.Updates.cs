@@ -11,6 +11,7 @@ using PacToolkits.Application.Abstractions;
 using PacToolkits.Application.DTOs;
 using PacToolkits.Application.Services;
 using PacToolkits.Core;
+using PacToolkits.Desktop.Avalonia.Common;
 using PacToolkits.Desktop.Avalonia.Services.Infrastructure;
 
 namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
@@ -181,7 +182,7 @@ public partial class Settings : AppPageBase, ISettingsPage
             await SaveLoggingOptionsLocalAsync(options);
             if (!silent)
             {
-                LoggingDirectory = _logger.LogDirectory;
+                LoggingDirectory = LogDirectory.Resolve(_loggingSettings.Current.LogDirectory).BrowseDirectory;
             }
 
             if (!silent)
@@ -236,7 +237,7 @@ public partial class Settings : AppPageBase, ISettingsPage
         IsLoggingBusy = true;
         try
         {
-            var dir = _logger.LogDirectory;
+            var dir = LogDirectory.Resolve(_loggingSettings.Current.LogDirectory).BrowseDirectory;
             Directory.CreateDirectory(dir);
             OpenDirectory(dir);
             _logger.Info("SettingsVM", "logging.open_dir", "Opened log directory", new { dir });
