@@ -1,5 +1,7 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
+#Include "%A_ScriptDir%\..\..\..\lib\ahk\JSON.ahk"
+#Include "%A_ScriptDir%\..\..\..\lib\ahk\path.ahk"
 #Include "%A_ScriptDir%\..\src\pg_exec.ahk"
 #Include "%A_ScriptDir%\..\src\utils.ahk"
 #Include "%A_ScriptDir%\..\src\db_txn.ahk"
@@ -186,7 +188,7 @@ CollectWorkerResults(outDir) {
 					committed += 1
 				else
 					rolled_back += 1
-			} else if RegExMatch(line, "^FAIL\s+why=([A-Z0-9_]+)", &m2) {
+			} else if RegExMatch(line, "^FAIL\s+message=([A-Z0-9_]+)", &m2) {
 				fail += 1
 				k := m2[1]
 				reason[k] := (reason.Has(k) ? reason[k] : 0) + 1
@@ -225,7 +227,7 @@ WorkerMain() {
 
 	ping := Ping_DB()
 	if !ping["ok"] {
-		fh.WriteLine("FAIL why=PING_FAIL")
+		fh.WriteLine("FAIL message=PING_FAIL")
 		fh.WriteLine("[END]")
 		fh.Close()
 		ExitApp 3
@@ -240,17 +242,14 @@ WorkerMain() {
 
 		r := Txn_ReservePick(txnId, client, drug, spec, need, "", "", 0)
 
+		; 聚合端只认稳定 reason code；完整文案不进 FAIL 行（可含换行/空格）
 		if !IsObject(r) || !r.Has("ok") || !r["ok"] {
-			why := "RESERVE_FAIL"
-			if IsObject(r) && r.Has("why")
-				why := r["why"]
-			fh.WriteLine("FAIL why=" why)
+			fh.WriteLine("FAIL message=RESERVE_FAIL")
 			continue
 		}
 
 		if (r.Has("skip") && r["skip"]) {
-			why := r.Has("why") ? r["why"] : "SKIP"
-			fh.WriteLine("FAIL why=" why)
+			fh.WriteLine("FAIL message=SKIP")
 			continue
 		}
 
@@ -263,14 +262,14 @@ WorkerMain() {
 		if (mode = "COMMIT") {
 			c := Txn_Commit(txnId)
 			if !IsObject(c) || !c.Has("ok") || !c["ok"] {
-				fh.WriteLine("FAIL why=COMMIT_FAIL")
+				fh.WriteLine("FAIL message=COMMIT_FAIL")
 				continue
 			}
 			fh.WriteLine("OK take=" takeSum " mode=COMMIT need=" need)
 		} else {
 			rb := Txn_Rollback(txnId)
 			if !IsObject(rb) || !rb.Has("ok") || !rb["ok"] {
-				fh.WriteLine("FAIL why=ROLLBACK_FAIL")
+				fh.WriteLine("FAIL message=ROLLBACK_FAIL")
 				continue
 			}
 			fh.WriteLine("OK take=" takeSum " mode=ROLLBACK need=" need)
