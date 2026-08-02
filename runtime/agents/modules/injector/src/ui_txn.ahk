@@ -263,7 +263,7 @@ UI_Paste_Impl(winTitle, classNN, text, doEnter := true) {
 
 		if !written {
 			got := ""
-			try got := ControlGetText(, "ahk_id " hwndCtrl)
+			try got := ControlGetText(hwndCtrl)
 			catch {
 				try got := ControlGetText(classNN, winTitle)
 				catch
@@ -659,7 +659,7 @@ UI_CtrlTextMatches(hwndCtrl, classNN, win, expect) {
 		return false
 	got := ""
 	if (hwndCtrl && DllCall("IsWindow", "Ptr", hwndCtrl, "Int")) {
-		try got := ControlGetText(, "ahk_id " hwndCtrl)
+		try got := ControlGetText(hwndCtrl)
 		catch
 			got := ""
 	}
