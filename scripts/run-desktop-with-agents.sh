@@ -13,6 +13,11 @@ Usage:
 Builds Desktop and Agents Host, stages the packaged Agents/Modules layout next
 to the Desktop executable, then runs Desktop without rebuilding.
 
+On Windows (Git Bash/MSYS), AHK modules are compiled with the local Ahk2Exe
+when Ahk2Exe.exe + AutoHotkey64.exe are found (override with AHK2EXE_PATH /
+AHK_BASE_PATH). Otherwise falls back to artifacts/agents/win-x64 or a
+prebuilt entry under the module source tree.
+
 Options:
   --configuration C    Build configuration: Debug or Release (default: Debug).
   --stage-only         Build and stage files without starting Desktop.
@@ -52,6 +57,8 @@ esac
 
 # shellcheck source=manifest-v2.sh
 source "$ROOT_DIR/scripts/manifest-v2.sh"
+# shellcheck source=lib/compile-ahk-modules-win.sh
+source "$ROOT_DIR/scripts/lib/compile-ahk-modules-win.sh"
 
 for command in dotnet jq; do
   command -v "$command" > /dev/null 2>&1 || {
@@ -59,6 +66,16 @@ for command in dotnet jq; do
     exit 1
   }
 done
+
+COMPILE_AHK_COMPILER=""
+COMPILE_AHK_BASE=""
+if compile_ahk_try_resolve_toolchain; then
+  echo "Windows AHK toolchain: compiler=$COMPILE_AHK_COMPILER"
+  echo "Windows AHK toolchain: base=$COMPILE_AHK_BASE"
+elif compile_ahk_is_windows; then
+  echo "WARN: Windows detected but Ahk2Exe/AutoHotkey64 not found; falling back to artifacts or source entry" >&2
+  echo "WARN: install AutoHotkey v2 + Ahk2Exe, or set AHK2EXE_PATH / AHK_BASE_PATH" >&2
+fi
 
 desktop_project="$ROOT_DIR/apps/desktop-avalonia/src/PacToolkits.Desktop.Avalonia.csproj"
 host_project="$ROOT_DIR/runtime/agents/host/PacToolkits.Agents.Host.csproj"
@@ -126,13 +143,29 @@ for module_src in "$ROOT_DIR/runtime/agents/modules"/*; do
     cp "$module_src/$file" "$module_out/$file"
   done
 
-  compiled="$ROOT_DIR/artifacts/agents/win-x64/Modules/$module_id/$entry"
-  if [[ -f "$compiled" ]]; then
-    cp "$compiled" "$module_out/$entry"
-  elif [[ -f "$module_src/$entry" ]]; then
-    cp "$module_src/$entry" "$module_out/$entry"
+  staged_entry="$module_out/$entry"
+  if [[ -n "$COMPILE_AHK_COMPILER" ]]; then
+    compile_ahk_module \
+      "$module_src" \
+      "$module_id" \
+      "$entry" \
+      "$staged_entry" \
+      "$COMPILE_AHK_COMPILER" \
+      "$COMPILE_AHK_BASE" \
+      "$ROOT_DIR"
+    # 同步到 artifacts，便于非 Windows 机或下次无编译器时复用
+    artifacts_entry="$ROOT_DIR/artifacts/agents/win-x64/Modules/$module_id/$entry"
+    mkdir -p "$(dirname "$artifacts_entry")"
+    cp "$staged_entry" "$artifacts_entry"
   else
-    echo "WARN: module=$module_id has no compiled $entry; discovery/settings work, start is unavailable" >&2
+    compiled="$ROOT_DIR/artifacts/agents/win-x64/Modules/$module_id/$entry"
+    if [[ -f "$compiled" ]]; then
+      cp "$compiled" "$staged_entry"
+    elif [[ -f "$module_src/$entry" ]]; then
+      cp "$module_src/$entry" "$staged_entry"
+    else
+      echo "WARN: module=$module_id has no compiled $entry; discovery/settings work, start is unavailable" >&2
+    fi
   fi
 
   module_count=$((module_count + 1))
