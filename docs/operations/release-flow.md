@@ -127,7 +127,7 @@ cp scripts/config.example.json scripts/config.json
 
 - `AppUpdateService` 使用 Velopack 已安装版本作为当前版本
 - 启动时对齐配置通道与 Velopack 安装通道：检测到安装通道标记变化时自动同步；尚未记录标记且通道不一致时询问用户，确认后同步通道，取消后仅记录当前安装通道并保留手动选择
-- Feed URL 解析为 `{FeedUrl}/stable` 或 `{FeedUrl}/beta`
+- Feed 可为 HTTP(S) 或内网共享/本地目录；解析为 `{FeedUrl}/stable` 或 `{FeedUrl}/beta`（本地路径用目录分隔符拼接），每通道目录含 `release-manifest.json`
 - 每个通道目录发布 `release-manifest.json`，客户端每次发现具体更新版本时读取目标通道的 DB 兼容范围
 - Stable 切换至 Beta 时，保存设置前需要风险确认；下载前重新读取 Feed、目标版本和当前数据库状态
 - Beta 切换至 Stable 时，检查、下载和重启前均验证当前数据库；数据库版本高于 Stable 的 `maxDbSchema` 时阻止更新
