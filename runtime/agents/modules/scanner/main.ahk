@@ -17,20 +17,21 @@
 global ModuleSettingsPath := ""
 global ModuleSettingsJson := ""
 
-Log_Startup("Scanner", Module_ReadVersion()["moduleVersion"])
+global VersionInfo := Module_ReadVersion()
+Log_Startup(Module_LogId(), VersionInfo["moduleVersion"])
 Ready_Install()
-Settings_RequireJson(&ModuleSettingsPath, &ModuleSettingsJson, "Scanner - 启动自检")
+Settings_RequireJson(&ModuleSettingsPath, &ModuleSettingsJson, Module_UiTitle("启动自检"))
 
 Ready_Mark()
-UI_Tip("AHK Scanner 已启动`n按 Ctrl+Alt+F8 测试", 1800)
-Log_Info("startup.ready", "Scanner 自检通过")
+UI_Tip("AHK " Module_UiTitle() " 已启动`n按 Ctrl+Alt+F8 测试", 1800)
+Log_Info("startup.ready", Module_UiTitle() " 自检通过")
 
 ^!F8:: {
 	global ModuleSettingsPath, ModuleSettingsJson
 	summary := SubStr(ModuleSettingsJson, 1, 500)
 	MsgBox(
-		"Scanner 运行正常`n`n配置路径：`n" ModuleSettingsPath "`n`n配置摘要：`n" summary,
-		"Scanner 测试",
+		Module_UiTitle() " 运行正常`n`n配置路径：`n" ModuleSettingsPath "`n`n配置摘要：`n" summary,
+		Module_UiTitle() " 测试",
 		"Iconi"
 	)
 }

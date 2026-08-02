@@ -28,9 +28,9 @@
 global Cfg := IsSet(Cfg) ? Cfg : Map()
 global VersionInfo := Module_ReadVersion()
 ; 尽早对齐日志根、版本与模块门控，使后续 UI_Fail / Log_Error 也带 version
-Log_Startup("Injector", VersionInfo["moduleVersion"])
+Log_Startup(Module_LogId(), VersionInfo["moduleVersion"])
 Log_TryApplyModuleSettingsArg()
-Arch_Require64("追溯码自动化 - 启动自检")
+Arch_Require64(Module_UiTitle("启动自检"))
 
 Ready_Install()
 cfgPath := Util_GetConfigArg()
@@ -38,7 +38,7 @@ if (cfgPath = "") {
 	UI_Fail(
 		"startup.config_arg_missing",
 		"启动参数缺失：`n请使用 --config " Chr(34) "<配置文件绝对路径>" Chr(34) " 启动",
-		"追溯码自动化 - 启动自检"
+		Module_UiTitle("启动自检")
 	)
 	ExitApp
 }
@@ -46,22 +46,22 @@ if (cfgPath = "") {
 cfgLoad := Util_LoadUnifiedConfig(cfgPath)
 if !(cfgLoad.Has("ok") && cfgLoad["ok"]) {
 	msg := cfgLoad.Has("message") ? cfgLoad["message"] : (cfgLoad.Has("err") ? cfgLoad["err"] : "未知错误")
-	UI_Fail("startup.config_load_fail", msg, "追溯码自动化 - 启动自检")
+	UI_Fail("startup.config_load_fail", msg, Module_UiTitle("启动自检"))
 	ExitApp
 }
 global Cfg := cfgLoad["cfg"]
 global RuntimeInfo := Util_InitRuntimeInfo(VersionInfo)
-UI_Tip("Injector v" VersionInfo["moduleVersion"], 1600)
+UI_Tip(Module_UiTitle() " v" VersionInfo["moduleVersion"], 1600)
 
 Cfg_RequireKeys(Cfg, [
 	"PG_HOST", "PG_PORT", "PG_DB", "PG_USER", "PG_PASS", "PG_DRIVER", "PG_SSL",
 	"OPT_WINDOW_CLASS", "IPT_WINDOW_CLASS", "OPT_PARSE_GRID_CLASSNN", "OPT_VERIFY_GRID_CLASSNN",
 	"IPT_PARSE_GRID_CLASSNN", "IPT_VERIFY_GRID_CLASSNN", "OPT_INPUT_CLASSNN", "IPT_INPUT_CLASSNN",
 	"COL_SPECS", "INT_COLS", "CONFIRM_TIMEOUT_MS", "APP_WIN"
-], "追溯码自动化 - 启动自检")
+], Module_UiTitle("启动自检"))
 
 Ready_Mark()
-Log_Info("startup.ready", "Injector 自检通过")
+Log_Info("startup.ready", Module_UiTitle() " 自检通过")
 
 ; 启动时恢复超时的 PENDING 事务，避免异常退出后库存长期占用
 global _CLEANUP_BUSY := false
@@ -97,7 +97,7 @@ global _LAST_RUN := 0
 	if (Cfg.Has("WAREHOUSE_ENABLED") && Cfg["WAREHOUSE_ENABLED"]) {
 		ck := Util_WarehouseSoftCheck(ctx["win"])
 		if !ck["ok"] {
-			UI_Fail("warehouse.check_fail", ck["message"], "追溯码自动化")
+			UI_Fail("warehouse.check_fail", ck["message"], Module_UiTitle())
 			return
 		}
 		UI_Tip("[仓库模式] 列特征校验通过")
@@ -106,7 +106,7 @@ global _LAST_RUN := 0
 
 	p := Parse_TargetInfo(Cfg["COL_SPECS"], Cfg["IPT_WINDOW_CLASS"], Cfg["INT_COLS"], "", ctx["win"], parseGridClassNN)
 	if (!p["ok"]) {
-		UI_Fail("parse.fail", p["message"], "追溯码自动化")
+		UI_Fail("parse.fail", p["message"], Module_UiTitle())
 		return
 	}
 	UI_Tip(p["message"])
@@ -203,7 +203,7 @@ global _LAST_RUN := 0
 				UI_Fail(
 					"semi_auto.fail",
 					msa["message"],
-					"追溯码自动化",
+					Module_UiTitle(),
 					Map("cls", cls, "ttl", ctx["ttl"])
 				)
 			}
