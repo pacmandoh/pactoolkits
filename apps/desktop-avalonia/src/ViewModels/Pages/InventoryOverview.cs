@@ -1081,7 +1081,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         }
     }
 
-    public override void Dispose()
+    protected override void DisposeCore()
     {
         _dbConfigNotifier.Applied -= OnDbApplied;
         _unlockService.StateChanged -= OnUnlockChanged;
@@ -1093,7 +1093,7 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         _silentReconcileCts = null;
         CancelStockEditRemoteReconcile();
         _keywordSearchDebouncer.Dispose();
-        base.Dispose();
+        base.DisposeCore();
     }
 
     public void ReloadAfterDrugIndexChange()

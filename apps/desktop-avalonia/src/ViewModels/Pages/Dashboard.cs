@@ -1782,7 +1782,7 @@ public sealed partial class Dashboard : AppPageBase
         SelectedTabIndex = 0;
     }
 
-    public override void Dispose()
+    protected override void DisposeCore()
     {
         SafeExecute(() => _dateRangeController.Dispose());
         SafeExecute(() => _clientAlias.Changed -= OnClientAliasChanged);
@@ -1799,7 +1799,7 @@ public sealed partial class Dashboard : AppPageBase
             _debounceHooked = false;
         }
 
-        base.Dispose();
+        base.DisposeCore();
     }
 
     private void SafeExecute(Action action)
