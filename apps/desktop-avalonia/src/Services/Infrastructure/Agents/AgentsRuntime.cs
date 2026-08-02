@@ -372,7 +372,9 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
     }
 
-    private async Task<AgentsCommandResult> ExecuteStartOrRestartAsync(CancellationToken ct)
+    private async Task<AgentsCommandResult> ExecuteStartOrRestartAsync(
+        CancellationToken ct,
+        IReadOnlyCollection<string>? mountOnly = null)
     {
         CancellationTokenSource? startCts = null;
         try
@@ -432,22 +434,30 @@ public sealed class AgentsRuntime : IAgentsRuntime
             }
 
             // Failed 仅表示启动流程失败，Host 进程仍可能存活，因此重启依据实际进程判断
+            // 模块孤儿（Host 已死）也必须先清，否则新旧模块进程并存
             var wasActive = GetTargetProcesses(options).Any();
-            if (wasActive)
+            var modulesLingering = AnyModuleProcessRunning(options);
+            if (wasActive || modulesLingering)
             {
                 CancelStart();
                 WriteHostControl(options, "quit");
                 ClearAllModuleReady(options);
-                var stopped = await WaitUntilStoppedAsync(options, TimeSpan.FromSeconds(4), ct).ConfigureAwait(false);
-                if (!stopped)
+                var stopped = !wasActive
+                    || await WaitUntilStoppedAsync(options, TimeSpan.FromSeconds(4), ct).ConfigureAwait(false);
+                if (wasActive && !stopped)
                 {
                     StopTargetProcesses(options);
                     stopped = await WaitUntilStoppedAsync(options, TimeSpan.FromSeconds(3), ct).ConfigureAwait(false);
                 }
 
-                if (!stopped)
+                if (wasActive && !stopped)
                 {
                     return SetHostError("重启失败：检测到进程仍在运行，已取消本次启动");
+                }
+
+                if (!await EnsureAllModulesStoppedAsync(options, ct).ConfigureAwait(false))
+                {
+                    return SetHostError("重启失败：模块进程仍在运行，已取消本次启动");
                 }
 
                 ClearHostControl(options);
@@ -512,6 +522,14 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 .Where(IsModuleEnabled)
                 .ToList();
 
+            // mountOnly：单模块拉起 Host 时只挂载目标，不把其他已启用模块一并带上
+            IReadOnlyList<string> mountIds = enabledIds;
+            if (mountOnly is not null)
+            {
+                var allow = new HashSet<string>(mountOnly, StringComparer.OrdinalIgnoreCase);
+                mountIds = enabledIds.Where(id => allow.Contains(id)).ToList();
+            }
+
             try
             {
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, startCts.Token);
@@ -523,7 +541,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
                     return SetHostError("已触发启动，但未检测到 Agents 进程");
                 }
 
-                foreach (var moduleId in enabledIds)
+                foreach (var moduleId in mountIds)
                 {
                     var mount = await MountModuleAsync(options, moduleId, linked.Token).ConfigureAwait(false);
                     if (!mount.Ok)
@@ -542,7 +560,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
                 RefreshState();
                 RaiseChanged();
-                var mounted = enabledIds.Count > 0;
+                var mounted = mountIds.Count > 0;
                 return new AgentsCommandResult(
                     true,
                     wasActive
@@ -552,6 +570,15 @@ public sealed class AgentsRuntime : IAgentsRuntime
             catch (OperationCanceledException)
             {
                 StopTargetProcesses(options);
+                try
+                {
+                    await EnsureAllModulesStoppedAsync(options, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn("Agents", "agents.cancel.module_stop_fail", "Failed to stop modules after cancel", ex);
+                }
+
                 lock (_gate)
                 {
                     _starting = false;
@@ -566,7 +593,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         catch (Exception ex)
         {
             _logger.Error("Agents", "agents.start_or_restart.fail", "Agents start/restart failed", ex);
-            return SetHostError($"启动失败：{ex.Message}");
+            return SetHostError($"启动失败：{ex.Message}", log: false);
         }
         finally
         {
@@ -601,63 +628,67 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 options = Clone(_options);
             }
 
+            // Host/模块仅 Windows；macOS/Linux 关窗 StopAll 视为无操作成功，不记 Failed
             if (!OperatingSystem.IsWindows())
-            {
-                return SetHostError("当前系统不支持停止 Agents");
-            }
-
-            var processes = GetTargetProcesses(options).ToList();
-            if (processes.Count == 0)
             {
                 lock (_gate)
                 {
                     _hostLastError = null;
                     _moduleLastErrors.Clear();
-                    _lastProcessId = null;
                     _starting = false;
-                    _stoppedModules.Clear();
                     _startingModules.Clear();
                 }
+
                 RefreshState();
                 RaiseChanged();
-                return new AgentsCommandResult(true, "已停止");
+                return new AgentsCommandResult(true, "已停止", SuppressToast: true);
             }
 
-            // 优先请求 Host 卸载模块并退出，强制终止仅用于控制命令失效的情况
+            // 无论 Host 进程是否仍可匹配，都写 quit 并清扫模块，避免 Host 已死后模块孤儿
             WriteHostControl(options, "quit");
             ClearAllModuleReady(options);
 
-            var stopped = await WaitUntilStoppedAsync(options, TimeSpan.FromSeconds(4), ct).ConfigureAwait(false);
-            if (!stopped)
+            var processes = GetTargetProcesses(options).ToList();
+            var hostStopped = processes.Count == 0;
+            if (!hostStopped)
             {
-                foreach (var p in processes)
+                hostStopped = await WaitUntilStoppedAsync(options, TimeSpan.FromSeconds(4), ct)
+                    .ConfigureAwait(false);
+                if (!hostStopped)
                 {
-                    try
+                    foreach (var p in processes)
                     {
-                        TryTerminateProcess(p);
+                        try
+                        {
+                            TryTerminateProcess(p);
+                        }
+                        finally
+                        {
+                            p.Dispose();
+                        }
                     }
-                    finally
+
+                    hostStopped = await WaitUntilStoppedAsync(options, TimeSpan.FromSeconds(3), ct)
+                        .ConfigureAwait(false);
+                    if (!hostStopped)
+                    {
+                        StopTargetProcesses(options);
+                        hostStopped = await WaitUntilStoppedAsync(options, TimeSpan.FromSeconds(3), ct)
+                            .ConfigureAwait(false);
+                    }
+                }
+                else
+                {
+                    foreach (var p in processes)
                     {
                         p.Dispose();
                     }
                 }
-
-                stopped = await WaitUntilStoppedAsync(options, TimeSpan.FromSeconds(3), ct).ConfigureAwait(false);
-                if (!stopped)
-                {
-                    StopTargetProcesses(options);
-                    stopped = await WaitUntilStoppedAsync(options, TimeSpan.FromSeconds(3), ct).ConfigureAwait(false);
-                }
-            }
-            else
-            {
-                foreach (var p in processes)
-                {
-                    p.Dispose();
-                }
             }
 
-            if (!stopped)
+            var modulesStopped = await EnsureAllModulesStoppedAsync(options, ct).ConfigureAwait(false);
+
+            if (!hostStopped || !modulesStopped)
             {
                 return SetHostError("停止失败：检测到进程仍在运行");
             }
@@ -685,7 +716,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         catch (Exception ex)
         {
             _logger.Error("Agents", "agents.stop.fail", "Agents stop failed", ex);
-            return SetHostError($"停止失败：{ex.Message}");
+            return SetHostError($"停止失败：{ex.Message}", log: false);
         }
         finally
         {
@@ -704,9 +735,10 @@ public sealed class AgentsRuntime : IAgentsRuntime
 
         try
         {
+            // 仅 Windows 有模块进程；其它平台停止视为成功
             if (!OperatingSystem.IsWindows())
             {
-                return SetModuleError(moduleId, $"当前系统不支持停止 {moduleId}");
+                return new AgentsCommandResult(true, $"{moduleId} 已停止", SuppressToast: true);
             }
 
             AgentsOptions options;
@@ -736,7 +768,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         catch (Exception ex)
         {
             _logger.Error("Agents", "agents.module_stop.fail", "Module stop failed", ex, new { moduleId });
-            return SetModuleError(moduleId, $"停止失败：{ex.Message}");
+            return SetModuleError(moduleId, $"停止失败：{ex.Message}", log: false);
         }
         finally
         {
@@ -797,10 +829,14 @@ public sealed class AgentsRuntime : IAgentsRuntime
                 return SetModuleError(moduleId, validate.Message);
             }
 
-            // Host 未运行时在当前命令内完成启动和挂载，保持控制序列原子性
+            // Host 未运行时在当前命令内拉起 Host 并只挂载本模块，避免把其他已启用模块一并带上
             if (!GetTargetProcesses(options).Any())
             {
-                return await ExecuteStartOrRestartAsync(ct).ConfigureAwait(false);
+                var boot = await ExecuteStartOrRestartAsync(ct, mountOnly: [moduleId])
+                    .ConfigureAwait(false);
+                return boot.Ok
+                    ? new AgentsCommandResult(true, $"{moduleId} 已启动")
+                    : boot;
             }
 
             var mount = await MountModuleAsync(options, moduleId, ct).ConfigureAwait(false);
@@ -816,7 +852,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         catch (Exception ex)
         {
             _logger.Error("Agents", "agents.module_start.fail", "Module start failed", ex, new { moduleId });
-            return SetModuleError(moduleId, $"启动失败：{ex.Message}");
+            return SetModuleError(moduleId, $"启动失败：{ex.Message}", log: false);
         }
         finally
         {
@@ -1493,7 +1529,7 @@ public sealed class AgentsRuntime : IAgentsRuntime
         return names;
     }
 
-    private AgentsCommandResult SetHostError(string message)
+    private AgentsCommandResult SetHostError(string message, bool log = true)
     {
         lock (_gate)
         {
@@ -1503,12 +1539,18 @@ public sealed class AgentsRuntime : IAgentsRuntime
             _hostState = AgentsRunState.Failed;
         }
 
+        // 门控失败此前仅 Toast；异常路径已有 Error 事件时跳过，避免双记
+        if (log)
+        {
+            _logger.Warn("Agents", "agents.host.fail", message);
+        }
+
         RefreshState();
         RaiseChanged();
         return new AgentsCommandResult(false, message);
     }
 
-    private AgentsCommandResult SetModuleError(string moduleId, string message)
+    private AgentsCommandResult SetModuleError(string moduleId, string message, bool log = true)
     {
         lock (_gate)
         {
@@ -1517,6 +1559,11 @@ public sealed class AgentsRuntime : IAgentsRuntime
             // 全量启动失败后清除所有临时状态，避免未处理模块长期显示为 Starting
             _startingModules.Clear();
             _moduleStates[moduleId] = AgentsRunState.Failed;
+        }
+
+        if (log)
+        {
+            _logger.Warn("Agents", "agents.module.fail", message, context: new { moduleId });
         }
 
         RefreshState();
@@ -1665,6 +1712,39 @@ public sealed class AgentsRuntime : IAgentsRuntime
         }
 
         ClearAllModuleReady(options);
+    }
+
+    private async Task<bool> EnsureAllModulesStoppedAsync(AgentsOptions options, CancellationToken ct)
+    {
+        IReadOnlyList<ModuleDescriptor> modules;
+        lock (_gate)
+        {
+            RediscoverModulesUnlocked(options);
+            modules = _modules;
+        }
+
+        var allStopped = true;
+        foreach (var module in modules)
+        {
+            if (!await EnsureModuleStoppedAsync(options, module.Id, ct).ConfigureAwait(false))
+            {
+                allStopped = false;
+            }
+        }
+
+        return allStopped;
+    }
+
+    private bool AnyModuleProcessRunning(AgentsOptions options)
+    {
+        IReadOnlyList<ModuleDescriptor> modules;
+        lock (_gate)
+        {
+            RediscoverModulesUnlocked(options);
+            modules = _modules;
+        }
+
+        return modules.Any(module => AnyModuleProcess(options, module.Id));
     }
 
     private static string? ResolveModuleReadyPath(AgentsOptions options, string moduleId)
