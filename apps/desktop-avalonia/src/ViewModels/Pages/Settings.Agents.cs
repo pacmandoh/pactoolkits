@@ -48,6 +48,14 @@ public partial class Settings
     private string _modulesSyncKey = string.Empty;
     // 编辑或控制操作期间延迟表单重建，避免模块发现覆盖尚未提交的 UI 状态
     private bool _moduleEditorsStale;
+    private FileSystemWatcher? _moduleSettingsWatcher;
+    private CancellationTokenSource? _moduleSettingsWatchCts;
+    private int _moduleSettingsWatchSilence;
+    // 最近一次已对齐的磁盘原文；与 _savedSnapshot（编辑器投影）分离，避免 flag map 等投影差误判“磁盘变了”
+    private readonly Dictionary<string, string> _moduleSettingsDiskSeen = new(StringComparer.Ordinal);
+    // autosave / silent 期间丢弃的磁盘事件，结束后补一次同步
+    private bool _moduleSettingsDiskPending;
+    private bool _moduleSettingsSyncing;
 
     public ObservableCollection<ModuleRunRow> ModuleRunRows { get; } = new();
     public ObservableCollection<ModuleSettingsEditor> ModuleEditors { get; } = new();
@@ -75,13 +83,11 @@ public partial class Settings
 
     private bool CanRestartAgents() => !IsAgentsToggling && IsHostStatusRunning;
 
-    public bool CanSaveAgentsSettings => !IsSavingSettings && !IsAgentsToggling;
+    public bool CanSaveAgentsSettings => !IsSavingSettings;
 
     partial void OnIsAgentsTogglingChanged(bool value)
     {
         RestartAgentsCommand.NotifyCanExecuteChanged();
-        SaveAgentsSettingsCommand.NotifyCanExecuteChanged();
-        OnPropertyChanged(nameof(CanSaveAgentsSettings));
         foreach (var row in ModuleRunRows)
         {
             row.CanToggle = !value;
@@ -90,6 +96,10 @@ public partial class Settings
         if (!value)
         {
             TryFlushStaleModuleEditors();
+            if (_moduleSettingsDiskPending)
+            {
+                TrySyncModuleSettingsFromDisk();
+            }
         }
     }
 
@@ -107,6 +117,7 @@ public partial class Settings
         RefreshPendingChanges();
 
         _agents.StatusChanged += OnAgentsRuntimeChanged;
+        StartModuleSettingsWatcher();
     }
 
     private void ReloadAgentsRuntime()
@@ -179,6 +190,17 @@ public partial class Settings
 
     private async Task<bool> ApplyAgentsSettingsAsync(bool showSuccessToast)
     {
+        // 启停锁不驱动按钮灰显，避免快速失败时「保存配置」闪烁；此处拒绝并提示
+        if (IsAgentsToggling)
+        {
+            if (showSuccessToast)
+            {
+                _toast.Info("自动化集成", "Agents 启停中，请稍后再保存");
+            }
+
+            return false;
+        }
+
         if (SkipTrigger())
         {
             return !HasPendingChanges;
@@ -650,6 +672,7 @@ public partial class Settings
                     await _moduleSettings
                         .SaveSettingsJsonAsync(moduleId, json, CancellationToken.None)
                         .ConfigureAwait(false);
+                    RememberModuleSettingsDisk(moduleId, _moduleSettings.LoadSettingsJson(moduleId));
                     persistedModuleIds.Add(moduleId);
                 }
             }
@@ -835,85 +858,102 @@ public partial class Settings
 
         void Apply()
         {
-            lock (_snapshotGate)
+            if (syncModules)
             {
-                _suppressPendingRecalc = true;
-                if (syncHost)
+                BeginModuleSettingsWatchSilence();
+            }
+
+            try
+            {
+                lock (_snapshotGate)
                 {
-                    AgentsExecutablePath = cfg.ExecutablePath;
-                    AgentsProcessName = cfg.ProcessName;
-                }
-
-                var agentsDir = TryResolveAgentsDir();
-                RefreshModuleRunRows();
-                _modulesSyncKey = BuildModulesSyncKey(agentsDir);
-
-                if (syncModules)
-                {
-                    var selectedModuleId = SelectedModuleEditor?.ModuleId;
-                    UnwireModuleEditors();
-                    ModuleEditors.Clear();
-                    ModuleSettingsLoadIssues.Clear();
-
-                    if (agentsDir is not null)
+                    _suppressPendingRecalc = true;
+                    if (syncHost)
                     {
-                        foreach (var module in _agents.Modules)
+                        AgentsExecutablePath = cfg.ExecutablePath;
+                        AgentsProcessName = cfg.ProcessName;
+                    }
+
+                    var agentsDir = TryResolveAgentsDir();
+                    RefreshModuleRunRows();
+                    _modulesSyncKey = BuildModulesSyncKey(agentsDir);
+
+                    if (syncModules)
+                    {
+                        var selectedModuleId = SelectedModuleEditor?.ModuleId;
+                        UnwireModuleEditors();
+                        ModuleEditors.Clear();
+                        ModuleSettingsLoadIssues.Clear();
+                        _moduleSettingsDiskSeen.Clear();
+
+                        if (agentsDir is not null)
                         {
-                            try
+                            foreach (var module in _agents.Modules)
                             {
-                                var schemaJson = _moduleSettings.TryLoadSchemaJson(module.Id, agentsDir);
-                                var schema = ModuleSettingsEditor.ParseSchema(schemaJson);
-                                if (schema is null)
+                                try
+                                {
+                                    var schemaJson = _moduleSettings.TryLoadSchemaJson(module.Id, agentsDir);
+                                    var schema = ModuleSettingsEditor.ParseSchema(schemaJson);
+                                    if (schema is null)
+                                    {
+                                        ModuleSettingsLoadIssues.Add(new ModuleSettingsLoadIssue(
+                                            module.DisplayName,
+                                            "settings.schema.json 无效或缺失"));
+                                        continue;
+                                    }
+
+                                    _moduleSettings.EnsureUserSettings(module.Id, agentsDir);
+                                    var settingsJson = _moduleSettings.LoadSettingsJson(module.Id);
+                                    var settings = ModuleSettingsEditor.ParseSettings(settingsJson);
+                                    var editor = new ModuleSettingsEditor(
+                                        module.Id,
+                                        module.DisplayName,
+                                        schema,
+                                        settings);
+                                    ModuleEditors.Add(editor);
+                                    WireModuleEditor(editor);
+                                    RememberModuleSettingsDisk(module.Id, settingsJson);
+                                }
+                                catch (Exception ex)
                                 {
                                     ModuleSettingsLoadIssues.Add(new ModuleSettingsLoadIssue(
                                         module.DisplayName,
-                                        "settings.schema.json 无效或缺失"));
-                                    continue;
+                                        $"设置加载失败：{ex.Message}"));
+                                    LogWarn(
+                                        "settings.agents.module_editor.load_fail",
+                                        "Failed to load module settings editor",
+                                        ex,
+                                        new { moduleId = module.Id });
                                 }
-
-                                _moduleSettings.EnsureUserSettings(module.Id, agentsDir);
-                                var settingsJson = _moduleSettings.LoadSettingsJson(module.Id);
-                                var settings = ModuleSettingsEditor.ParseSettings(settingsJson);
-                                var editor = new ModuleSettingsEditor(
-                                    module.Id,
-                                    module.DisplayName,
-                                    schema,
-                                    settings);
-                                ModuleEditors.Add(editor);
-                                WireModuleEditor(editor);
-                            }
-                            catch (Exception ex)
-                            {
-                                ModuleSettingsLoadIssues.Add(new ModuleSettingsLoadIssue(
-                                    module.DisplayName,
-                                    $"设置加载失败：{ex.Message}"));
-                                LogWarn(
-                                    "settings.agents.module_editor.load_fail",
-                                    "Failed to load module settings editor",
-                                    ex,
-                                    new { moduleId = module.Id });
                             }
                         }
+
+                        SelectedModuleEditor = ModuleEditors.FirstOrDefault(editor =>
+                                                   string.Equals(editor.ModuleId, selectedModuleId, StringComparison.Ordinal))
+                                               ?? ModuleEditors.FirstOrDefault();
+                        _moduleEditorsStale = false;
                     }
 
-                    SelectedModuleEditor = ModuleEditors.FirstOrDefault(editor =>
-                                               string.Equals(editor.ModuleId, selectedModuleId, StringComparison.Ordinal))
-                                           ?? ModuleEditors.FirstOrDefault();
-                    _moduleEditorsStale = false;
+                    var current = BuildCurrentSnapshot();
+                    if (current is not null)
+                    {
+                        var baseline = _savedSnapshot ?? current;
+                        _savedSnapshot = new AgentsEditorSnapshot(
+                            syncHost ? current.AgentsExecutablePath : baseline.AgentsExecutablePath,
+                            syncHost ? current.AgentsProcessName : baseline.AgentsProcessName,
+                            syncModules ? current.ModuleSettingsJson : baseline.ModuleSettingsJson);
+                        _baselineReady = true;
+                    }
+                    _suppressPendingRecalc = false;
+                    RefreshPendingChanges();
                 }
-
-                var current = BuildCurrentSnapshot();
-                if (current is not null)
+            }
+            finally
+            {
+                if (syncModules)
                 {
-                    var baseline = _savedSnapshot ?? current;
-                    _savedSnapshot = new AgentsEditorSnapshot(
-                        syncHost ? current.AgentsExecutablePath : baseline.AgentsExecutablePath,
-                        syncHost ? current.AgentsProcessName : baseline.AgentsProcessName,
-                        syncModules ? current.ModuleSettingsJson : baseline.ModuleSettingsJson);
-                    _baselineReady = true;
+                    EndModuleSettingsWatchSilence();
                 }
-                _suppressPendingRecalc = false;
-                RefreshPendingChanges();
             }
         }
 
@@ -955,7 +995,6 @@ public partial class Settings
 
     private string BuildModulesSyncKey(string? agentsDir, string executablePath, string processName)
     {
-        var configDir = Path.GetDirectoryName(_appConfigStore.ConfigPath);
         var catalog = string.Join(
             '|',
             _agents.Modules
@@ -964,9 +1003,8 @@ public partial class Settings
                     var schemaPath = agentsDir is null
                         ? null
                         : AgentsPaths.ModuleSettingsSchemaPath(agentsDir, module.Id);
-                    var settingsPath = configDir is null
-                        ? null
-                        : AgentsPaths.ModuleSettingsPath(configDir, module.Id);
+                    // 同步键只跟 schema/模块发现走；用户 settings.json 写入会改 mtime，
+                    // 若纳入会在保存/重载后整表重建 SelectedModuleEditor，把滚动顶回顶部
                     return string.Join(
                         ':',
                         module.Id,
@@ -975,8 +1013,7 @@ public partial class Settings
                         module.DisplayName,
                         module.EntryWinX64,
                         module.Desktop.Order,
-                        GetFileSyncToken(schemaPath),
-                        GetFileSyncToken(settingsPath));
+                        GetFileSyncToken(schemaPath));
                 })
                 .OrderBy(part => part, StringComparer.Ordinal));
         // 同步键包含磁盘 Host 配置，确保外部配置更新也能触发表单重建
@@ -1024,6 +1061,325 @@ public partial class Settings
         }
 
         SyncAgentsConfig(syncHost: true, syncModules: true);
+    }
+
+    // 进「模块配置」时从磁盘对齐；settings.json 不进同步键，避免保存后整表重建
+    private void ReloadModuleSettingsIfVisible()
+    {
+        if (_activeTabIndex != (int)Tab.ModuleSettings)
+        {
+            return;
+        }
+
+        TrySyncModuleSettingsFromDisk();
+    }
+
+    private void TrySyncModuleSettingsFromDisk()
+    {
+        if (_agentsDisposed || _moduleSettingsSyncing)
+        {
+            return;
+        }
+
+        if (HasModuleAutoSaves || IsAgentsToggling || _moduleSettingsWatchSilence > 0)
+        {
+            _moduleSettingsDiskPending = true;
+            return;
+        }
+
+        _moduleSettingsSyncing = true;
+        try
+        {
+            // schema / 模块发现变化仍整表重建；仅 settings 值变化则就地回写字段
+            if (_moduleEditorsStale
+                || ModulesSyncKeyChanged()
+                || ModuleEditors.Count == 0
+                || ModuleEditorsCatalogStale())
+            {
+                if (IsModuleSettingsDirty())
+                {
+                    _moduleSettingsDiskPending = true;
+                    return;
+                }
+
+                SyncAgentsConfig(syncHost: false, syncModules: true);
+                _moduleSettingsDiskPending = false;
+                return;
+            }
+
+            _moduleSettingsDiskPending = ApplyModuleSettingsFromDisk();
+        }
+        finally
+        {
+            _moduleSettingsSyncing = false;
+        }
+    }
+
+    /// <returns>仍有磁盘变更因编辑器 dirty 未应用时为 true</returns>
+    private bool ApplyModuleSettingsFromDisk()
+    {
+        if (_savedSnapshot is null)
+        {
+            if (IsModuleSettingsDirty())
+            {
+                return true;
+            }
+
+            SyncAgentsConfig(syncHost: false, syncModules: true);
+            return false;
+        }
+
+        var needsRebuild = false;
+        var deferred = false;
+        _suppressModuleAutoSave = true;
+        _suppressPendingRecalc = true;
+        try
+        {
+            foreach (var editor in ModuleEditors)
+            {
+                if (IsModuleEditorDirty(editor))
+                {
+                    if (ModuleSettingsDiskDrifted(editor.ModuleId))
+                    {
+                        deferred = true;
+                    }
+
+                    continue;
+                }
+
+                string diskJson;
+                try
+                {
+                    diskJson = _moduleSettings.LoadSettingsJson(editor.ModuleId);
+                }
+                catch (Exception ex)
+                {
+                    LogWarn(
+                        "settings.agents.module_settings.disk_load_fail",
+                        "Failed to load module settings from disk for in-place sync",
+                        ex,
+                        new { editor.ModuleId });
+                    needsRebuild = true;
+                    break;
+                }
+
+                if (_moduleSettingsDiskSeen.TryGetValue(editor.ModuleId, out var seenJson)
+                    && SameJson(seenJson, diskJson))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    editor.ApplySettings(ModuleSettingsEditor.ParseSettings(diskJson));
+                    RememberModuleSettingsDisk(editor.ModuleId, diskJson);
+                    SetSavedModuleJson(editor.ModuleId, editor.ToJsonString());
+                }
+                catch (Exception ex)
+                {
+                    LogWarn(
+                        "settings.agents.module_settings.disk_apply_fail",
+                        "Failed to apply module settings from disk in place",
+                        ex,
+                        new { editor.ModuleId });
+                    needsRebuild = true;
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            _suppressModuleAutoSave = false;
+            _suppressPendingRecalc = false;
+            RefreshPendingChanges();
+        }
+
+        if (needsRebuild)
+        {
+            if (IsModuleSettingsDirty())
+            {
+                return true;
+            }
+
+            SyncAgentsConfig(syncHost: false, syncModules: true);
+            return false;
+        }
+
+        return deferred;
+    }
+
+    private bool ModuleSettingsDiskDrifted(string moduleId)
+    {
+        try
+        {
+            var diskJson = _moduleSettings.LoadSettingsJson(moduleId);
+            return !_moduleSettingsDiskSeen.TryGetValue(moduleId, out var seenJson)
+                   || !SameJson(seenJson, diskJson);
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    private bool IsModuleEditorDirty(ModuleSettingsEditor editor)
+    {
+        if (!_baselineReady || _savedSnapshot is null)
+        {
+            return false;
+        }
+
+        if (!_savedSnapshot.ModuleSettingsJson.TryGetValue(editor.ModuleId, out var savedJson))
+        {
+            return true;
+        }
+
+        return !SameJson(savedJson, editor.ToJsonString());
+    }
+
+    private void RememberModuleSettingsDisk(string moduleId, string diskJson)
+        => _moduleSettingsDiskSeen[moduleId] = diskJson;
+
+    private bool ModuleEditorsCatalogStale()
+    {
+        var moduleIds = _agents.Modules
+            .Select(module => module.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        return moduleIds.Count != ModuleEditors.Count
+               || ModuleEditors.Any(editor => !moduleIds.Contains(editor.ModuleId));
+    }
+
+    private void StartModuleSettingsWatcher()
+    {
+        StopModuleSettingsWatcher();
+
+        try
+        {
+            var configDir = Path.GetDirectoryName(_appConfigStore.ConfigPath);
+            if (string.IsNullOrWhiteSpace(configDir))
+            {
+                return;
+            }
+
+            var modulesDir = AgentsPaths.UserModulesDir(configDir);
+            Directory.CreateDirectory(modulesDir);
+
+            // 监视各模块 settings.json；自写后 Remember 磁盘原文，EnsureUserSettings 期间 silent
+            var watcher = new FileSystemWatcher(modulesDir)
+            {
+                Filter = AgentsPaths.ModuleSettingsFileName,
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.LastWrite
+                    | NotifyFilters.Size
+                    | NotifyFilters.FileName
+                    | NotifyFilters.CreationTime,
+            };
+            watcher.Changed += OnModuleSettingsWatchEvent;
+            watcher.Created += OnModuleSettingsWatchEvent;
+            watcher.Deleted += OnModuleSettingsWatchEvent;
+            watcher.Renamed += OnModuleSettingsWatchRenamed;
+            watcher.EnableRaisingEvents = true;
+            _moduleSettingsWatcher = watcher;
+        }
+        catch (Exception ex)
+        {
+            LogWarn(
+                "settings.agents.module_settings.watch_init_fail",
+                "Failed to initialize module settings watcher",
+                ex);
+        }
+    }
+
+    private void StopModuleSettingsWatcher()
+    {
+        _moduleSettingsWatchCts?.Cancel();
+        _moduleSettingsWatchCts?.Dispose();
+        _moduleSettingsWatchCts = null;
+
+        var watcher = _moduleSettingsWatcher;
+        _moduleSettingsWatcher = null;
+        if (watcher is null)
+        {
+            return;
+        }
+
+        try
+        {
+            watcher.EnableRaisingEvents = false;
+            watcher.Changed -= OnModuleSettingsWatchEvent;
+            watcher.Created -= OnModuleSettingsWatchEvent;
+            watcher.Deleted -= OnModuleSettingsWatchEvent;
+            watcher.Renamed -= OnModuleSettingsWatchRenamed;
+            watcher.Dispose();
+        }
+        catch (Exception ex)
+        {
+            LogWarn(
+                "settings.agents.module_settings.watch_stop_fail",
+                "Failed to stop module settings watcher",
+                ex);
+        }
+    }
+
+    private void OnModuleSettingsWatchRenamed(object sender, RenamedEventArgs e)
+        => OnModuleSettingsWatchEvent(sender, e);
+
+    private void OnModuleSettingsWatchEvent(object sender, FileSystemEventArgs e)
+    {
+        if (_agentsDisposed)
+        {
+            return;
+        }
+
+        if (_moduleSettingsWatchSilence > 0)
+        {
+            _moduleSettingsDiskPending = true;
+            return;
+        }
+
+        _moduleSettingsWatchCts?.Cancel();
+        _moduleSettingsWatchCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _moduleSettingsWatchCts = cts;
+        ObserveDetached(
+            DebounceModuleSettingsWatchAsync(cts.Token),
+            "settings.agents.module_settings.watch.detached.fail");
+    }
+
+    private async Task DebounceModuleSettingsWatchAsync(CancellationToken ct)
+    {
+        try
+        {
+            // 编辑器连写会触发 watcher 连发
+            await Task.Delay(350, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (_agentsDisposed)
+        {
+            return;
+        }
+
+        await RunOnUiAsync(TrySyncModuleSettingsFromDisk).ConfigureAwait(false);
+    }
+
+    private void BeginModuleSettingsWatchSilence()
+        => Interlocked.Increment(ref _moduleSettingsWatchSilence);
+
+    private void EndModuleSettingsWatchSilence()
+    {
+        if (Interlocked.Decrement(ref _moduleSettingsWatchSilence) > 0)
+        {
+            return;
+        }
+
+        if (_moduleSettingsDiskPending)
+        {
+            TrySyncModuleSettingsFromDisk();
+        }
     }
 
     private void RefreshModuleRunRows(bool syncRunSwitches = true)
@@ -1278,6 +1634,7 @@ public partial class Settings
                 await _moduleSettings
                     .SaveSettingsJsonAsync(editor.ModuleId, nextJson, CancellationToken.None)
                     .ConfigureAwait(false);
+                RememberModuleSettingsDisk(editor.ModuleId, _moduleSettings.LoadSettingsJson(editor.ModuleId));
             }
 
             persisted = true;
@@ -1342,7 +1699,11 @@ public partial class Settings
 
             if (removed)
             {
-                await RunOnUiAsync(TryFlushStaleModuleEditors);
+                await RunOnUiAsync(() =>
+                {
+                    TryFlushStaleModuleEditors();
+                    TrySyncModuleSettingsFromDisk();
+                });
             }
         }
     }
@@ -1461,6 +1822,7 @@ public partial class Settings
                             .SaveSettingsJsonAsync(editor.ModuleId, nextJson, CancellationToken.None)
                             .GetAwaiter()
                             .GetResult();
+                        RememberModuleSettingsDisk(editor.ModuleId, _moduleSettings.LoadSettingsJson(editor.ModuleId));
                     }
                 }
                 catch (Exception ex)
@@ -1548,6 +1910,10 @@ public partial class Settings
             if (!pending)
             {
                 TryFlushStaleModuleEditors();
+                if (_moduleSettingsDiskPending && !_moduleSettingsSyncing)
+                {
+                    TrySyncModuleSettingsFromDisk();
+                }
             }
         }
 
@@ -1646,6 +2012,7 @@ public partial class Settings
     private void DisposeAgents()
     {
         _agentsDisposed = true;
+        StopModuleSettingsWatcher();
         FlushModuleAutoSaves();
         try { _agents.StatusChanged -= OnAgentsRuntimeChanged; }
         catch (Exception ex)

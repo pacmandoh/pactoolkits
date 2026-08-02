@@ -45,6 +45,7 @@ public partial class Settings : UserControl
     private StackPanel? _navItemsHost;
     private readonly List<TabLink> _tabLinks = new();
     private int _activeTabIndex;
+    private string? _moduleSettingsModuleId;
 
     public Settings()
     {
@@ -69,6 +70,7 @@ public partial class Settings : UserControl
         _vm?.UnsavedChanged -= OnUnsavedChanged;
 
         _vm = vm;
+        _moduleSettingsModuleId = vm?.SelectedModuleEditor?.ModuleId;
 
         if (_vm is not null)
         {
@@ -98,8 +100,33 @@ public partial class Settings : UserControl
 
         if (e.PropertyName == nameof(SettingsViewModel.SelectedModuleEditor))
         {
-            Dispatcher.UIThread.Post(ResetModuleSettingsScroll, DispatcherPriority.Background);
+            OnSelectedModuleEditorChanged();
         }
+    }
+
+    // 仅模块配置内部 Tab 换模块时回顶；同模块重载 / 左侧目录切换不碰 Offset
+    private void OnSelectedModuleEditorChanged()
+    {
+        var nextId = _vm?.SelectedModuleEditor?.ModuleId;
+        if (nextId is null)
+        {
+            _moduleSettingsModuleId = null;
+            return;
+        }
+
+        if (string.Equals(_moduleSettingsModuleId, nextId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var previousId = _moduleSettingsModuleId;
+        _moduleSettingsModuleId = nextId;
+        if (previousId is null)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(ResetModuleSettingsScroll, DispatcherPriority.Background);
     }
 
     private void OnUnsavedChanged()
@@ -129,6 +156,7 @@ public partial class Settings : UserControl
         _contentHost = null;
         _navItemsHost = null;
         _vm = null;
+        _moduleSettingsModuleId = null;
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
