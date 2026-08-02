@@ -72,13 +72,16 @@ Cfg_RequireKeys(cfg, keys, title) {
 	ExitApp
 }
 
-; 版本仅来自当前模块 module.json，避免误用 Host 版本；损坏时为 unknown
+; 版本/身份仅来自当前模块 module.json，避免误用 Host；损坏时为 unknown / 空
 Module_ReadVersion() {
 	global VersionInfo
-	if (IsSet(VersionInfo) && Type(VersionInfo) = "Map" && VersionInfo.Has("moduleVersion"))
+	if (IsSet(VersionInfo) && Type(VersionInfo) = "Map"
+		&& VersionInfo.Has("moduleVersion")
+		&& VersionInfo.Has("id")
+		&& VersionInfo.Has("displayName"))
 		return VersionInfo
 
-	info := Map("moduleVersion", "unknown")
+	info := Map("moduleVersion", "unknown", "id", "", "displayName", "")
 	moduleMetaPath := Util_PathFull(A_ScriptDir "\module.json")
 	if !FileExist(moduleMetaPath)
 		return info
@@ -88,9 +91,42 @@ Module_ReadVersion() {
 		if (SubStr(txt, 1, 1) = Chr(0xFEFF))
 			txt := SubStr(txt, 2)
 		meta := JSON.parse(txt)
-		if (IsObject(meta) && meta.Has("version"))
+		if !IsObject(meta)
+			return info
+		if (meta.Has("version"))
 			info["moduleVersion"] := meta["version"]
+		if (meta.Has("id"))
+			info["id"] := "" meta["id"]
+		if (meta.Has("displayName") && Trim("" meta["displayName"]) != "")
+			info["displayName"] := "" meta["displayName"]
+		else if (info["id"] != "")
+			info["displayName"] := info["id"]
 	} catch {
 	}
 	return info
+}
+
+; 日志 module 字段优先用 module.json id
+Module_LogId() {
+	info := Module_ReadVersion()
+	if (info.Has("id") && Trim(info["id"]) != "")
+		return info["id"]
+	if (info.Has("displayName") && Trim(info["displayName"]) != "")
+		return info["displayName"]
+	return "Module"
+}
+
+; UI 弹窗标题：displayName（缺省回退 id）；suffix 非空则拼「名称 - suffix」
+Module_UiTitle(suffix := "") {
+	info := Module_ReadVersion()
+	name := ""
+	if (info.Has("displayName") && Trim(info["displayName"]) != "")
+		name := info["displayName"]
+	else if (info.Has("id") && Trim(info["id"]) != "")
+		name := info["id"]
+	else
+		name := "Module"
+	if (suffix = "")
+		return name
+	return name " - " suffix
 }
