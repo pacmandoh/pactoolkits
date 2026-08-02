@@ -115,6 +115,24 @@ find_ahk_files() {
   done | LC_ALL=C sort
 }
 
+# FORMAT_CHANGED：相对路径；全量：绝对路径（与历史 find 行为一致）
+collect_ahk_format_files() {
+  local file root
+  if format_changed_enabled; then
+    while IFS= read -r file; do
+      [[ "$file" == *.ahk ]] || continue
+      for root in "${AHK_FORMAT_ROOTS[@]}"; do
+        if [[ "$file" == "$root"/* ]]; then
+          printf '%s\n' "$ROOT_DIR/$file"
+          break
+        fi
+      done
+    done < <(format_collect_changed_files)
+  else
+    find_ahk_files
+  fi
+}
+
 run_ahk_format() {
   local mode="$1"
   require_ahk_format_tools
@@ -124,16 +142,24 @@ run_ahk_format() {
   while IFS= read -r file; do
     [[ -n "$file" ]] || continue
     files+=("$file")
-  done < <(find_ahk_files)
+  done < <(collect_ahk_format_files)
 
   if ((${#files[@]} == 0)); then
-    echo "ahk format: no .ahk files under ${AHK_FORMAT_ROOTS[*]}; skip"
+    if format_changed_enabled; then
+      echo "ahk format: no changed .ahk files (FORMAT_CHANGED=1); skip"
+    else
+      echo "ahk format: no .ahk files under ${AHK_FORMAT_ROOTS[*]}; skip"
+    fi
     return 0
   fi
 
   local server
   server="$(ensure_ahk2_lsp_server)"
-  echo "ahk format (${mode}): ${#files[@]} file(s) via thqby lsp v${AHK2_LSP_VERSION}"
+  if format_changed_enabled; then
+    echo "ahk format (${mode}): ${#files[@]} changed file(s) via thqby lsp v${AHK2_LSP_VERSION} (FORMAT_CHANGED=1)"
+  else
+    echo "ahk format (${mode}): ${#files[@]} file(s) via thqby lsp v${AHK2_LSP_VERSION}"
+  fi
   node "$AHK2_FORMAT_MJS" --server "$server" "--${mode}" -- "${files[@]}"
 }
 
