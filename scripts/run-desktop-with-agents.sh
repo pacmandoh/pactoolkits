@@ -15,8 +15,10 @@ to the Desktop executable, then runs Desktop without rebuilding.
 
 On Windows (Git Bash/MSYS), AHK modules are compiled with the local Ahk2Exe
 when Ahk2Exe.exe + AutoHotkey64.exe are found (override with AHK2EXE_PATH /
-AHK_BASE_PATH). Otherwise falls back to artifacts/agents/win-x64 or a
-prebuilt entry under the module source tree.
+AHK_BASE_PATH). Keeps Debug/bin module exes across staging; skips Ahk2Exe when
+source/version fingerprint matches the sidecar stamp (COMPILE_AHK_FORCE=1
+forces rebuild). Otherwise falls back to artifacts or a prebuilt entry under
+the module source tree.
 
 Options:
   --configuration C    Build configuration: Debug or Release (default: Debug).
@@ -106,8 +108,16 @@ case "$agents_out" in
     exit 1
     ;;
 esac
+
+# 整目录挪走 Modules，避免 rm Agents 时丢掉 Debug/bin 已编好的 exe+stamp
+modules_park=""
+if [[ -d "$agents_out/Modules" ]]; then
+  modules_park="$(mktemp -d "${TMPDIR:-/tmp}/pac-agents-modules.XXXXXX")"
+  mv "$agents_out/Modules" "$modules_park/Modules"
+fi
+
 rm -rf "$agents_out"
-mkdir -p "$agents_out/Modules"
+mkdir -p "$agents_out"
 cp -R "$host_out/." "$agents_out/"
 
 if [[ -f "$host_out/Agents.exe" ]]; then
@@ -119,10 +129,20 @@ elif [[ -f "$host_out/Agents" ]]; then
   rm -f "$agents_out/Agents"
 else
   echo "ERROR: Agents Host executable missing under $host_out" >&2
+  [[ -n "$modules_park" ]] && rm -rf "$modules_park"
   exit 1
 fi
 
+if [[ -n "$modules_park" && -d "$modules_park/Modules" ]]; then
+  rm -rf "$agents_out/Modules"
+  mv "$modules_park/Modules" "$agents_out/Modules"
+  rmdir "$modules_park" 2> /dev/null || rm -rf "$modules_park"
+else
+  mkdir -p "$agents_out/Modules"
+fi
+
 module_count=0
+keep_modules=()
 for module_src in "$ROOT_DIR/runtime/agents/modules"/*; do
   [[ -d "$module_src" && -f "$module_src/module.json" ]] || continue
 
@@ -168,8 +188,25 @@ for module_src in "$ROOT_DIR/runtime/agents/modules"/*; do
     fi
   fi
 
+  keep_modules+=("$module_id")
   module_count=$((module_count + 1))
 done
+
+# 去掉源码树已不存在的模块目录，避免旧 exe 残留
+if [[ -d "$agents_out/Modules" ]]; then
+  for leftover in "$agents_out/Modules"/*; do
+    [[ -d "$leftover" ]] || continue
+    leftover_id="$(basename "$leftover")"
+    keep=false
+    for id in "${keep_modules[@]+"${keep_modules[@]}"}"; do
+      [[ "$id" == "$leftover_id" ]] && {
+        keep=true
+        break
+      }
+    done
+    [[ "$keep" == true ]] || rm -rf "$leftover"
+  done
+fi
 
 [[ "$module_count" -gt 0 ]] || {
   echo "ERROR: no modules found under runtime/agents/modules" >&2
