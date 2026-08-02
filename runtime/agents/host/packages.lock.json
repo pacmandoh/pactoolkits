@@ -4,6 +4,9 @@
     "net10.0": {
       "pactoolkits.agents.contracts": {
         "type": "Project"
+      },
+      "pactoolkits.logger": {
+        "type": "Project"
       }
     }
   }
