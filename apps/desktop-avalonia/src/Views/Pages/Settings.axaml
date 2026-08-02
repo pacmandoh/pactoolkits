@@ -641,7 +641,7 @@
                   VerticalAlignment="Center"
                   Spacing="2">
                   <TextBlock Classes="FieldTitle" Text="更新源地址" />
-                  <TextBlock Classes="Caption Muted FieldDesc" Text="留空使用默认更新源" />
+                  <TextBlock Classes="Caption Muted FieldDesc" Text="HTTP(S) 或内网共享/本地目录；留空使用默认更新源" />
                 </StackPanel>
                 <TextBox
                   Grid.Column="1"

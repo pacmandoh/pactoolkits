@@ -31,27 +31,79 @@ public static class AppUpdatePolicy
         return false;
     }
 
+    /// <summary>
+    /// 识别本地/UNC/`file://` 更新源，并归一为可给 Velopack / File API 的目录路径（不改写配置原文）
+    /// </summary>
+    public static bool TryGetLocalFeedPath(string? baseFeed, out string path)
+    {
+        path = string.Empty;
+        if (string.IsNullOrWhiteSpace(baseFeed))
+        {
+            return false;
+        }
+
+        var trimmed = baseFeed.Trim();
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        {
+            if (uri.Scheme is "http" or "https")
+            {
+                return false;
+            }
+
+            if (uri.IsFile)
+            {
+                path = TrimDirSeparators(uri.LocalPath);
+                return path.Length > 0;
+            }
+
+            return false;
+        }
+
+        if (trimmed.StartsWith(@"\\", StringComparison.Ordinal)
+            || trimmed.StartsWith("//", StringComparison.Ordinal))
+        {
+            var unc = trimmed.StartsWith("//", StringComparison.Ordinal)
+                ? @"\\" + trimmed[2..].Replace('/', '\\')
+                : trimmed;
+            path = TrimDirSeparators(unc);
+            return path.Length > 0;
+        }
+
+        if (trimmed.Contains("://", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (Path.IsPathRooted(trimmed))
+        {
+            path = TrimDirSeparators(trimmed);
+            return path.Length > 0;
+        }
+
+        return false;
+    }
+
     public static string ResolveFeedUrl(string? baseFeedUrl, string channel)
     {
         channel = NormalizeChannel(channel);
-        var normalizedBase = string.IsNullOrWhiteSpace(baseFeedUrl)
-            ? string.Empty
-            : baseFeedUrl.Trim().TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(baseFeedUrl))
+        {
+            return string.Empty;
+        }
+
+        if (TryGetLocalFeedPath(baseFeedUrl, out var localRoot))
+        {
+            localRoot = StripChannelSuffix(localRoot);
+            return localRoot.Length == 0 ? string.Empty : Path.Combine(localRoot, channel);
+        }
+
+        var normalizedBase = baseFeedUrl.Trim().TrimEnd('/');
         if (string.IsNullOrWhiteSpace(normalizedBase))
         {
             return string.Empty;
         }
 
-        if (normalizedBase.EndsWith("/stable", StringComparison.OrdinalIgnoreCase)
-            || normalizedBase.EndsWith("/beta", StringComparison.OrdinalIgnoreCase))
-        {
-            var lastSlash = normalizedBase.LastIndexOf('/');
-            if (lastSlash > 0)
-            {
-                normalizedBase = normalizedBase[..lastSlash];
-            }
-        }
-
+        normalizedBase = StripChannelSuffix(normalizedBase, httpStyle: true);
         return $"{normalizedBase}/{channel}";
     }
 
@@ -195,4 +247,39 @@ public static class AppUpdatePolicy
             installed,
             installed);
     }
+
+    private static string StripChannelSuffix(string feedRoot, bool httpStyle = false)
+    {
+        if (httpStyle)
+        {
+            if (feedRoot.EndsWith("/stable", StringComparison.OrdinalIgnoreCase)
+                || feedRoot.EndsWith("/beta", StringComparison.OrdinalIgnoreCase))
+            {
+                var lastSlash = feedRoot.LastIndexOf('/');
+                if (lastSlash > 0)
+                {
+                    return feedRoot[..lastSlash];
+                }
+            }
+
+            return feedRoot;
+        }
+
+        foreach (var name in new[] { "stable", "beta" })
+        {
+            foreach (var sep in new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, '/', '\\' })
+            {
+                var suffix = sep + name;
+                if (feedRoot.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    return TrimDirSeparators(feedRoot[..^suffix.Length]);
+                }
+            }
+        }
+
+        return feedRoot;
+    }
+
+    private static string TrimDirSeparators(string value)
+        => value.TrimEnd('/', '\\');
 }
