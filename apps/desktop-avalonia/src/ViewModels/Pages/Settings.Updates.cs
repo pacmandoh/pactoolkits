@@ -142,14 +142,14 @@ public partial class Settings : AppPageBase, ISettingsPage
             return false;
         }
 
-        if (IsLoggingBusy)
+        if (!silent && SkipTrigger())
         {
-            if (silent)
-            {
-                return false;
-            }
+            return false;
+        }
 
-            // 等待可能仍在执行的自动保存，避免手动保存提示先于实际写入完成
+        // 静默自动保存不置 IsLoggingBusy，避免 H2 动作按钮闪烁；手动保存仍互斥占用中的打开/导出
+        if (!silent)
+        {
             for (var i = 0; i < 20 && IsLoggingBusy; i++)
             {
                 await Task.Delay(50).ConfigureAwait(false);
@@ -159,14 +159,10 @@ public partial class Settings : AppPageBase, ISettingsPage
             {
                 return false;
             }
+
+            IsLoggingBusy = true;
         }
 
-        if (!silent && SkipTrigger())
-        {
-            return false;
-        }
-
-        IsLoggingBusy = true;
         try
         {
             var persisted = _loggingSettings.Current;
@@ -183,10 +179,6 @@ public partial class Settings : AppPageBase, ISettingsPage
             if (!silent)
             {
                 LoggingDirectory = LogDirectory.Resolve(_loggingSettings.Current.LogDirectory).BrowseDirectory;
-            }
-
-            if (!silent)
-            {
                 _toast.Success("日志设置", "日志配置已保存");
             }
 
@@ -209,7 +201,10 @@ public partial class Settings : AppPageBase, ISettingsPage
         }
         finally
         {
-            IsLoggingBusy = false;
+            if (!silent)
+            {
+                IsLoggingBusy = false;
+            }
         }
     }
 
