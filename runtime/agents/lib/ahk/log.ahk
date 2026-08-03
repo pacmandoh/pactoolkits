@@ -17,7 +17,8 @@ global Log_RetentionDays := 14
 global Log_MaxFileSizeMb := 20
 global Log_LastCleanupTick := 0
 global Log_CleanupIntervalMs := 6 * 3600 * 1000
-global Log_MaxSuffix := 9
+; 与 packages/logger LogFiles.MaxShardsPerDay 对齐：单日分片异常多时停止探测
+global Log_MaxShardsPerDay := 100000
 
 Log_Init(moduleId, version := "") {
 	global Log_ModuleId, Log_Version
@@ -228,11 +229,12 @@ Log_JsonString(value) {
 }
 
 Log_ResolvePath(dir, maxFileSizeMb) {
-	global Log_MaxSuffix
+	; 达 MaxFileSizeMb 后递增 N（无固定 9 封顶），避免末片无限膨胀
+	global Log_MaxShardsPerDay
 	date := FormatTime(, "yyyy-MM-dd")
 	maxBytes := Max(1, Integer(maxFileSizeMb)) * 1024 * 1024
 	i := 0
-	while (i <= Log_MaxSuffix) {
+	while (i < Log_MaxShardsPerDay) {
 		name := i = 0 ? date ".log" : date "." i ".log"
 		path := dir "\" name
 		if !FileExist(path)
@@ -244,7 +246,7 @@ Log_ResolvePath(dir, maxFileSizeMb) {
 			return path
 		i += 1
 	}
-	return dir "\" date "." Log_MaxSuffix ".log"
+	return dir "\" date "." Log_MaxShardsPerDay ".log"
 }
 
 Log_MaybeCleanup(dir) {

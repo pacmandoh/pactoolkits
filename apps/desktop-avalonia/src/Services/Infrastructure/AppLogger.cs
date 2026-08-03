@@ -218,13 +218,9 @@ public sealed class AppLogger : IAppLogger, IDisposable
 
         for (var d = start; d <= end; d = d.AddDays(1))
         {
-            for (var suffix = 0; suffix <= LogFiles.MaxSuffix; suffix++)
+            foreach (var path in LogFiles.EnumerateDailyPaths(dir, d))
             {
-                var path = LogFiles.BuildDailyPath(dir, d, suffix);
-                if (File.Exists(path))
-                {
-                    yield return path;
-                }
+                yield return path;
             }
         }
     }

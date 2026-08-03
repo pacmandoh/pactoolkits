@@ -56,6 +56,52 @@ public sealed class LogFilesTests
     }
 
     [Fact]
+    public void ResolveSuffix_continues_past_former_cap_when_shards_full()
+    {
+        var dir = Directory.CreateTempSubdirectory("pactoolkits-logfiles-").FullName;
+        try
+        {
+            var day = new DateTimeOffset(2026, 8, 2, 12, 0, 0, TimeSpan.Zero);
+            var chunk = new byte[1024 * 1024];
+            for (var i = 0; i <= 9; i++)
+            {
+                File.WriteAllBytes(LogFiles.BuildDailyPath(dir, day, i), chunk);
+            }
+
+            Assert.Equal(10, LogFiles.ResolveSuffix(dir, day, maxFileSizeMb: 1));
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void EnumerateDailyPaths_includes_high_suffixes()
+    {
+        var dir = Directory.CreateTempSubdirectory("pactoolkits-logfiles-").FullName;
+        try
+        {
+            var day = new DateTimeOffset(2026, 8, 2, 12, 0, 0, TimeSpan.Zero);
+            File.WriteAllText(LogFiles.BuildDailyPath(dir, day, 0), "a");
+            File.WriteAllText(LogFiles.BuildDailyPath(dir, day, 10), "b");
+            File.WriteAllText(Path.Combine(dir, "2026-08-02-extra.log"), "x");
+            File.WriteAllText(Path.Combine(dir, "2026-08-03.log"), "y");
+
+            var found = LogFiles.EnumerateDailyPaths(dir, day)
+                .Select(p => Path.GetFileName(p)!)
+                .OrderBy(n => n, StringComparer.Ordinal)
+                .ToArray();
+
+            Assert.Equal(new[] { "2026-08-02.10.log", "2026-08-02.log" }, found);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void CleanupExpired_deletes_old_files()
     {
         var dir = Directory.CreateTempSubdirectory("pactoolkits-logfiles-").FullName;
