@@ -78,6 +78,7 @@ flowchart TB
 - **桌面专属**服务：Toast、Dialog、更新、剪贴板、UiBehavior 等
 - 通过 DI 组装 Application 与 Infrastructure；`AgentsRuntime` 控制 Host 和模块
 - 页面连接、可用性和空状态的分层模型见 [desktop-state.md](./desktop-state.md)
+- 键盘焦点、临时 UI 与业务工作集见 [focus-model.md](../../apps/desktop-avalonia/docs/focus-model.md)
 
 ## 典型请求路径（示例）
 
