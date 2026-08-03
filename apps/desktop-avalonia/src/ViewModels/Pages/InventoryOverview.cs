@@ -168,7 +168,6 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
     public bool IsMissingMode => ModeIndex == 3;
     public bool IsSingleScope => ScopeIndex == 0;
     public bool IsFilterScope => ScopeIndex == 1;
-    public bool SuppressGridClear => IsReassignOpen && IsSingleScope;
     public bool IsPreviewEmpty => PreviewRows.Count == 0;
     public bool HasPreviewStatsText => !string.IsNullOrWhiteSpace(PreviewStatsText);
     public bool HasPreviewNoticeText => !string.IsNullOrWhiteSpace(PreviewNoticeText);
@@ -486,7 +485,6 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
 
         OnPropertyChanged(nameof(ShowReassignRowSelection));
         OnPropertyChanged(nameof(StockPagerSelectedCount));
-        OnPropertyChanged(nameof(SuppressGridClear));
         OnPropertyChanged(nameof(ShowOpenReassign));
         OnPropertyChanged(nameof(ShowCloseReassign));
         RefreshPageCommands();
@@ -597,7 +595,6 @@ public sealed partial class InventoryOverview : AppPageBase, IInventoryRefreshPa
         OnPropertyChanged(nameof(IsFilterScope));
         OnPropertyChanged(nameof(ShowReassignRowSelection));
         OnPropertyChanged(nameof(StockPagerSelectedCount));
-        OnPropertyChanged(nameof(SuppressGridClear));
         SetReassignPreviewLive(false);
         _previewRefreshCts?.Cancel();
         ClearPreviewMessaging();

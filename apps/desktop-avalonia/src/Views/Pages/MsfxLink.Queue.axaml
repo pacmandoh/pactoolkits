@@ -42,7 +42,6 @@
             Orientation="Horizontal"
             Spacing="{DynamicResource SpacingInlineSm}">
             <Button
-              behaviors:FocusClear.SuppressGridClear="True"
               Classes="Outline"
               Command="{Binding BeginMergeTaskSelectionCommand}"
               IsEnabled="{Binding CanMergeTasks}">
@@ -55,7 +54,6 @@
               </StackPanel>
             </Button>
             <Button
-              behaviors:FocusClear.SuppressGridClear="True"
               Classes="Outline"
               Command="{Binding BeginSplitTaskSelectionCommand}"
               IsEnabled="{Binding CanSplitTasks}">
@@ -68,7 +66,6 @@
               </StackPanel>
             </Button>
             <Button
-              behaviors:FocusClear.SuppressGridClear="True"
               Classes="Outline"
               Command="{Binding BeginRemapTaskSelectionCommand}"
               IsEnabled="{Binding CanRemapTasks}">
@@ -81,7 +78,6 @@
               </StackPanel>
             </Button>
             <Button
-              behaviors:FocusClear.SuppressGridClear="True"
               Classes="Outline"
               Command="{Binding BeginDiscardTaskSelectionCommand}"
               IsEnabled="{Binding CanDiscardTasks}">
@@ -94,7 +90,6 @@
               </StackPanel>
             </Button>
             <Button
-              behaviors:FocusClear.SuppressGridClear="True"
               Classes="Outline"
               Command="{Binding BeginReopenTaskSelectionCommand}"
               IsEnabled="{Binding CanReopenTasks}">
