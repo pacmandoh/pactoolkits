@@ -47,8 +47,9 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optV
 	spec := by.Has("规格||药品规格") ? Trim(by["规格||药品规格"]) : ""
 	splitFlag := by.Has("拆零标签||拆零") ? Trim(by["拆零标签||拆零"]) : ""
 	qtyVal := by.Has("数量") ? by["数量"] : ""
+	stockSnap := Util_OptRemStockFromBy(by)
 	Log_Debug("semi_auto.fields", "关键字段", Map(
-		"mode", mode, "drugId", drugId, "spec", spec, "split", splitFlag, "qty", qtyVal
+		"mode", mode, "drugId", drugId, "spec", spec, "split", splitFlag, "qty", qtyVal, "stock", stockSnap
 	))
 	if (drugId = "" || spec = "") {
 		Log_Debug("semi_auto.fields_miss", "缺药品名或规格", Map("drugId", drugId, "spec", spec))
@@ -169,12 +170,12 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, optV
 		return rc
 	}
 
-	; 门诊拆零提交成功后上闩，避免已扫仍≤整盒时二次预留
+	; 门诊拆零提交成功后上闩（药|规|量|库存）；无库存快照则跳过上闩以免三元组误锁
 	if (mode = "门诊")
-		Util_OptRemDone_Set(Util_OptRemKey(drugId, spec, Util_ToInt(qtyVal, 0)))
+		Util_OptRemDone_Set(Util_OptRemKey(drugId, spec, Util_ToInt(qtyVal, 0), stockSnap))
 
 	Log_Info("semi_auto.done", "半自动完成", Map(
-		"txn", txnId, "mode", mode, "drugId", drugId, "spec", spec,
+		"txn", txnId, "mode", mode, "drugId", drugId, "spec", spec, "stock", stockSnap,
 		"codes", codes.Length, "elapsedMs", A_TickCount - flowT0
 	))
 	UI_Tip("[半自动注入完成] " drugId " / " spec "（" mode "）", 1500)

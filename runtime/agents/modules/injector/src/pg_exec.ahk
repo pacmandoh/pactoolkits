@@ -78,25 +78,28 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 				, "need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty)
 		}
 
-		; 拆零门控仅门诊：完成态靠 rem_done（落盘，重启仍有效）；半截（有拆零码未上闩）允许再预留补码
+		; 拆零门控仅门诊：完成态 rem_done（药|规|量|库存快照）；半截未上闩可再预留
 		if (Trim("" opt) != "" && cls = opt) {
 			scannedN := Util_ToInt(alreadyScanned, 0)
 			splitScanned := Max(0, scannedN - wholeN)
-			remKey := Util_OptRemKey(drugId, spec, qtyN)
-			if (scannedN = 0)
+			stockSnap := Util_OptRemStockFromBy(bySpec)
+			remKey := Util_OptRemKey(drugId, spec, qtyN, stockSnap)
+			if (scannedN = 0 && remKey != "")
 				Util_OptRemDone_Clear(remKey)
 
 			Log_Debug("txn.reserve.opt_gate", "门诊拆零门控", Map(
 				"txn", txnId, "alreadyScanned", scannedN, "splitScanned", splitScanned,
+				"stock", stockSnap, "remKey", remKey,
 				"remDone", Util_OptRemDone_Has(remKey) ? 1 : 0
 			))
 
 			if Util_OptRemDone_Has(remKey) {
 				Log_Debug("txn.reserve.skip", "拆零闩锁跳过", Map(
-					"txn", txnId, "rem", rem, "wholeN", wholeN, "alreadyScanned", scannedN, "remKey", remKey
+					"txn", txnId, "rem", rem, "wholeN", wholeN, "alreadyScanned", scannedN,
+					"remKey", remKey, "stock", stockSnap
 				))
 				return Map("ok", true, "skip", true, "level", "Info",
-					"message", "[跳过取码]`n本机已注入过该行拆零余数（已扫=" scannedN "，整盒=" wholeN "，余数=" rem " 粒）",
+					"message", "[跳过取码]`n本机已注入过该库存快照下的拆零余数（已扫=" scannedN "，整盒=" wholeN "，余数=" rem " 粒，库存=" stockSnap "）",
 					"need", 0, "codes", [], "items", [], "qty", qtyN, "dbQty", dbQty,
 					"already_scanned", scannedN, "whole_n", wholeN, "rem", rem)
 			}

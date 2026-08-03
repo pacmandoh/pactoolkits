@@ -29,15 +29,19 @@ Parse_TargetInfo(colSpecs, ipt, intCols := 0, text := "", win := "A", parseGridC
 	; 优先使用调用方提供的文本，避免重复复制操作覆盖用户剪贴板
 	copied := false
 	if (Trim(text) = "") {
-		; 住院网格支持自动聚焦选中，不要求用户预先双击
+		; 解析网格须 FocusGrid（类序 HWND），勿走精确 ClassNN ControlFocus
 		winCls := ""
 		try winCls := WinGetClass(win)
-		if (winCls = ipt) {
-			if (Trim(parseGridClassNN) != "") {
-				if !quiet
-					Log_Debug("parse.focus_grid", "住院解析前聚焦网格", Map("parseNn", parseGridClassNN, "cls", winCls))
-				UI_FocusClassNN(parseGridClassNN, win)
-			}
+		if (Trim(parseGridClassNN) != "") {
+			if !quiet
+				Log_Debug("parse.focus_grid", "解析前聚焦网格", Map(
+					"parseNn", parseGridClassNN, "cls", winCls, "ipt", winCls = ipt
+				))
+			hwndGrid := UI_FocusGridClassNN(parseGridClassNN, win)
+			if !hwndGrid && !quiet
+				Log_Debug("parse.focus_grid_fail", "解析前网格聚焦失败，仍尝试 ^c", Map(
+					"parseNn", parseGridClassNN, "cls", winCls
+				))
 		}
 
 		WinActivate(win)
