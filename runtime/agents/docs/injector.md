@@ -7,7 +7,7 @@ Injector 是 Agents 的生产业务模块，由 Host 根据 `module.json` 中的
 - 识别目标应用和业务窗口
 - 解析 Grid 或剪贴板中的业务数据
 - 执行门诊、住院和仓库场景的追溯码录入
-- 验证录入结果并记录异常（门诊拆零完成靠 rem_done 落盘闩锁；半截未上闩可再预留补码）
+- 验证录入结果并记录异常（门诊拆零完成靠 rem_done 落盘闩锁，key 含库存快照；半截未上闩可再预留补码）
 - 领取仓库任务并回写任务状态与事件
 
 ## 启动参数
@@ -59,8 +59,15 @@ Desktop 仅在用户配置不存在时复制默认配置；升级时若默认配
 - `module.json`：模块发现、桌面展示和构建元数据
 - `settings.json`、`settings.schema.json`：默认业务配置与设置页定义
 - `src/main_semi_auto.ahk`：半自动录入流程
-- `src/msfx_task.ahk`：仓库任务处理
-- `src/ui_txn.ahk`：目标窗口交互与结果验证
-- `src/utils.ahk`：配置、窗口识别和通用辅助逻辑
+- `src/msfx_task.ahk`：仓库任务 Run 流程、行指纹与节拍
+- `src/msfx_sql.ahk`：仓库任务 SQL（领取/防重/回写/事件/结算）
+- `src/msfx_code.ahk`：取码策略与码串分组
+- `src/ui_focus.ahk`：网格/编辑框聚焦、HWND 缓存与网格拷贝
+- `src/ui_paste.ahk`：追溯码贴入策略（门诊/住院/仓库）
+- `src/ui_confirm.ahk`：录入结果等待与弹窗处置
+- `src/util_misc.ahk`：SQL/剪贴板/dotenv 等杂项辅助
+- `src/util_rem.ahk`：门诊拆零 rem_done 闩锁
+- `src/util_config.ahk`：模块配置加载与字段校验
+- `src/util_scene.ahk`：场景识别、HotIf、表头抓取
 
 进程控制、配置生效和二进制更新行为见 [Agents 运行时架构](../../../docs/architecture/agents.md)。

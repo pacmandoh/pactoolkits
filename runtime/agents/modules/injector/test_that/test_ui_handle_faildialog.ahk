@@ -1,7 +1,7 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
-; 手工探针：F8 处置当前相关住院弹窗（语义对齐 ui_txn.ahk，独立可跑）
+; 手工探针：F8 处置当前相关住院弹窗（语义对齐 ui_confirm.ahk，独立可跑）
 F8:: {
 	r := UI_DetectAndHandleFailDialog()
 	MsgBox("结果=" (r = "" ? "(无)" : r))
