@@ -5,20 +5,18 @@ namespace PacToolkits.Application.Services.Msfx;
 
 public sealed partial class SyncService
 {
-    public Task<MsfxMapApplyResult> ApplyMappingAsync(int limit, CancellationToken ct)
-        => _repo.ApplyMappingAsync(NormalizeLimit(limit), ct);
-
-    public Task<MsfxMappingStatusSnapshot> GetMappingStatusSnapshotAsync(CancellationToken ct)
-        => _repo.GetMappingStatusSnapshotAsync(ct);
-
-    public Task<MsfxBuildInject> BuildInjectsAsync(int maxGroups, CancellationToken ct)
-        => _repo.BuildInjectsAsync(NormalizeLimit(maxGroups), ct);
-
-    public Task<MsfxAutoBoardSnapshot> GetAutoBoardSnapshotAsync(CancellationToken ct)
-        => _repo.GetAutoBoardSnapshotAsync(ct);
-
-    public async Task<MsfxMappingQueuePage> GetMappingQueuePageAsync(int pageSize, IReadOnlyCollection<string>? mapStatuses, string? codeStatus, string? searchScope, string? keyword, DateTimeOffset? cursorUpdatedAt, long? cursorId, bool newer, bool seekLastPage, CancellationToken ct)
-        => await _repo.GetMappingQueuePageAsync(
+    public async Task<MsfxMappingQueuePage> GetMappingQueuePageAsync(
+        int pageSize,
+        IReadOnlyCollection<string>? mapStatuses,
+        string? codeStatus,
+        string? searchScope,
+        string? keyword,
+        DateTimeOffset? cursorUpdatedAt,
+        long? cursorId,
+        bool newer,
+        bool seekLastPage,
+        CancellationToken ct)
+        => await _mapping.GetMappingQueuePageAsync(
             NormalizeLimit(pageSize),
             mapStatuses,
             codeStatus,
@@ -31,8 +29,14 @@ public sealed partial class SyncService
             seekLastPage,
             ct).ConfigureAwait(false);
 
-    public async Task<IReadOnlyList<MsfxMappingBatchGroupRow>> GetMappingBatchGroupsAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, int limit, CancellationToken ct)
-        => await _repo.GetMappingBatchGroupsAsync(
+    public async Task<IReadOnlyList<MsfxMappingBatchGroupRow>> GetMappingBatchGroupsAsync(
+        string? mapStatus,
+        string? codeStatus,
+        string? searchScope,
+        string? keyword,
+        int limit,
+        CancellationToken ct)
+        => await _mapping.GetMappingBatchGroupsAsync(
             mapStatus,
             codeStatus,
             searchScope,
@@ -41,10 +45,22 @@ public sealed partial class SyncService
             NormalizeLimit(limit),
             ct).ConfigureAwait(false);
 
-    public async Task<MsfxMappingBatchPreview> PreviewMappingBatchByGroupAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, string? groupSourceDrugNameRaw, string? groupSourceSpecRaw, string? groupSourceNameNorm, string? groupSourceSpecNorm, string action, string? drugId, string? spec, CancellationToken ct)
+    public async Task<MsfxMappingBatchPreview> PreviewMappingBatchByGroupAsync(
+        string? mapStatus,
+        string? codeStatus,
+        string? searchScope,
+        string? keyword,
+        string? groupSourceDrugNameRaw,
+        string? groupSourceSpecRaw,
+        string? groupSourceNameNorm,
+        string? groupSourceSpecNorm,
+        string action,
+        string? drugId,
+        string? spec,
+        CancellationToken ct)
     {
         RequireText(action, nameof(action));
-        return await _repo.PreviewMappingBatchByGroupAsync(
+        return await _mapping.PreviewMappingBatchByGroupAsync(
             mapStatus,
             codeStatus,
             searchScope,
@@ -60,10 +76,22 @@ public sealed partial class SyncService
             ct).ConfigureAwait(false);
     }
 
-    public async Task<MsfxMappingBatchApplyResult> ApplyMappingBatchByGroupAsync(string? mapStatus, string? codeStatus, string? searchScope, string? keyword, string? groupSourceDrugNameRaw, string? groupSourceSpecRaw, string? groupSourceNameNorm, string? groupSourceSpecNorm, string action, string? drugId, string? spec, CancellationToken ct)
+    public async Task<MsfxMappingBatchApplyResult> ApplyMappingBatchByGroupAsync(
+        string? mapStatus,
+        string? codeStatus,
+        string? searchScope,
+        string? keyword,
+        string? groupSourceDrugNameRaw,
+        string? groupSourceSpecRaw,
+        string? groupSourceNameNorm,
+        string? groupSourceSpecNorm,
+        string action,
+        string? drugId,
+        string? spec,
+        CancellationToken ct)
     {
         RequireText(action, nameof(action));
-        return await _repo.ApplyMappingBatchByGroupAsync(
+        return await _mapping.ApplyMappingBatchByGroupAsync(
             mapStatus,
             codeStatus,
             searchScope,

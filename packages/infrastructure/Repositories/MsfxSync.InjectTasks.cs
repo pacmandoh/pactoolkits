@@ -404,4 +404,38 @@ public sealed partial class MsfxSyncRepo
         }, ct);
     }
 
+    public Task<MsfxBuildInject> BuildInjectsAsync(int maxGroups, CancellationToken ct)
+    {
+        const string cleanupSql = """
+            delete from msfx_inject_task_code tc
+            where tc.staging_id in (
+              select s.id
+              from msfx_code_staging s
+              where s.map_status = 'MAPPED'
+                and s.code_status = 'NEW'
+                and s.inject_task_id is null
+            )
+            """;
+        const string buildSql = "select created_tasks, tasked_codes from msfx_build_inject_tasks(@max_groups)";
+        return _db.WithConnection(async (conn, token) =>
+        {
+            await using (var cleanupCmd = conn.CreateCommand(cleanupSql, _opt.CommandTimeoutSeconds))
+            {
+                await cleanupCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            await using var cmd = conn.CreateCommand(buildSql, _opt.CommandTimeoutSeconds);
+            cmd.AddParam("max_groups", Math.Max(0, maxGroups));
+            await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (!await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                return new MsfxBuildInject(0, 0);
+            }
+
+            return new MsfxBuildInject(
+                reader.GetInt32(0),
+                reader.GetInt32(1));
+        }, ct);
+    }
+
 }
