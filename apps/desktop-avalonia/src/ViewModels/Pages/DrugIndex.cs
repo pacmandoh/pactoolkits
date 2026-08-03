@@ -280,7 +280,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     private int _reloadEpoch;
     private int _lastSuccessfulReloadEpoch;
     private bool _forceFullReload;
-    private bool _clearListFocusAfterReload;
+    private WorkingSetReload _workingSetAfterReload = WorkingSetReload.Keep;
 
     public ObservableCollection<DrugRow> Items { get; } = new();
     protected override void OnPageAvailabilityChanged()
@@ -313,7 +313,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         if (string.IsNullOrWhiteSpace(value))
         {
             _keywordSearchDebouncer.Cancel();
-            ObserveDetached(ReloadAsync(confirmIfDirty: true, clearListFocus: true), "reload.detached.fail");
+            ObserveDetached(ReloadAsync(confirmIfDirty: true, workingSet: WorkingSetReload.Clear), "reload.detached.fail");
             return;
         }
 
@@ -324,7 +324,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                 return;
             }
 
-            await ReloadAsync(clearListFocus: true);
+            await ReloadAsync(workingSet: WorkingSetReload.Clear);
         });
     }
     [ObservableProperty] private DrugRow? _selected;
@@ -440,7 +440,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         _msfxLink = msfxLink;
         _lookup = lookup;
         _localRefreshCommand = new AsyncRelayCommand(
-            () => ReloadAsync(confirmIfDirty: true, clearListFocus: true),
+            () => ReloadAsync(confirmIfDirty: true, workingSet: WorkingSetReload.Clear),
             CanRefreshLocal);
         _importCommand = new AsyncRelayCommand(ImportAsync, CanIo);
         _exportCommand = new AsyncRelayCommand(ExportAsync, CanIo);
@@ -1073,7 +1073,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
                 {
                     if (FindRow(drugId, spec) is not null)
                     {
-                        FocusSavedRow(drugId, spec);
+                        ReselectRow(drugId, spec);
                     }
 
                     // 记录待选键，使后续远端变更替换集合后仍能恢复当前选择
@@ -1289,7 +1289,10 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         }
     }
 
-    private async Task ReloadAsync(bool forceFull = false, bool confirmIfDirty = false, bool clearListFocus = false)
+    private async Task ReloadAsync(
+        bool forceFull = false,
+        bool confirmIfDirty = false,
+        WorkingSetReload workingSet = WorkingSetReload.Keep)
     {
         if (confirmIfDirty && !forceFull && HasPendingChanges)
         {
@@ -1300,7 +1303,8 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         }
 
         _forceFullReload = forceFull;
-        _clearListFocusAfterReload = clearListFocus && !forceFull;
+        // forceFull 在 ApplyFullReload 内清空工作集；否则按 workingSet 决定搜索/刷新后是否清空
+        _workingSetAfterReload = forceFull ? WorkingSetReload.Keep : workingSet;
         await RunLocalReloadAsync(
             setBusy: v => IsListBusy = v,
             action: ReloadCoreAsync,
@@ -1384,7 +1388,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
     protected override void OnReloadFinished()
     {
         _forceFullReload = false;
-        _clearListFocusAfterReload = false;
+        _workingSetAfterReload = WorkingSetReload.Keep;
         RefreshPageCommands();
     }
 
@@ -1397,7 +1401,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         }
 
         _keywordSearchDebouncer.Cancel();
-        return ReloadAsync(confirmIfDirty: true, clearListFocus: true);
+        return ReloadAsync(confirmIfDirty: true, workingSet: WorkingSetReload.Clear);
     }
 
     [RelayCommand]
@@ -1436,7 +1440,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
             }
         }
 
-        ClearListFocus(clearOrigin: true, keepEditorVisible: true);
+        ClearWorkingSet(clearOrigin: true, keepEditorVisible: true);
         RefreshCommands(SaveCommand);
     }
 
@@ -1469,7 +1473,7 @@ public sealed partial class DrugIndex : AppPageBase, IDrugIndexRefreshPage
         {
             await _drugIndex.DeleteAsync(deleteDrugId, deleteSpec, default);
             Dispatcher.UIThread.Post(() => _toast.Success("已删除", DrugLabel.Format(deleteDrugId, deleteSpec)));
-            await ReloadAsync(clearListFocus: true);
+            await ReloadAsync(workingSet: WorkingSetReload.Clear);
             NotifyDrugCatalogChanged();
         }
         catch (Exception ex)
