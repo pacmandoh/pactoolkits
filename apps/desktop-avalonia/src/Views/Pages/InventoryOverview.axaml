@@ -34,7 +34,6 @@
         <controls:DeferredContentHost.ContentTemplate>
           <DataTemplate x:DataType="vm:InventoryOverview">
             <Grid
-              behaviors:FocusClear.SuppressGridClear="{Binding SuppressGridClear}"
               ClipToBounds="True"
               RowDefinitions="Auto,Auto"
               RowSpacing="0">

@@ -90,8 +90,7 @@
           Background="Transparent"
           CanUserResizeColumns="True"
           Classes="SectionGrid IndexedGrid"
-          ItemsSource="{Binding AutoTasks}"
-          SelectionChanged="OnBrowsingGridSelectionChanged">
+          ItemsSource="{Binding AutoTasks}">
           <DataGrid.Columns>
             <DataGridTemplateColumn
               Width="{StaticResource DgWIcon}"
@@ -150,13 +149,11 @@
             <shad:Badge Content="{Binding RecentRuns.Count, StringFormat=近 {0} 条}" Variant="Secondary" />
           </controls:CardPanel.HeaderContent>
           <DataGrid
-            x:Name="RecentRunGrid"
             MinHeight="0"
             Background="Transparent"
             CanUserResizeColumns="True"
             Classes="SectionGrid IndexedGrid"
-            ItemsSource="{Binding RecentRuns}"
-            SelectionChanged="OnBrowsingGridSelectionChanged">
+            ItemsSource="{Binding RecentRuns}">
             <DataGrid.Columns>
               <DataGridTemplateColumn
                 Width="{StaticResource DgWIcon}"
@@ -216,13 +213,11 @@
             </StackPanel>
           </controls:CardPanel.HeaderContent>
           <DataGrid
-            x:Name="RetryQueueGrid"
             MinHeight="0"
             Background="Transparent"
             CanUserResizeColumns="True"
             Classes="SectionGrid IndexedGrid"
-            ItemsSource="{Binding RetryQueue}"
-            SelectionChanged="OnBrowsingGridSelectionChanged">
+            ItemsSource="{Binding RetryQueue}">
             <DataGrid.Columns>
               <DataGridTemplateColumn
                 Width="{StaticResource DgWIcon}"
