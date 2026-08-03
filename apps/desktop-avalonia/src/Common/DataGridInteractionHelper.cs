@@ -11,6 +11,10 @@ using PacToolkits.Desktop.Avalonia.Behaviors;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>
+/// DataGrid 原生 selection / currency / 翻页高亮与点选辅助
+/// 操作控件 UI 状态；业务工作集由各页 ViewModel 持有（见 focus-model.md）
+/// </summary>
 public static class DataGridInteractionHelper
 {
     private static readonly MethodInfo? SetCurrentCellCoreMethod =

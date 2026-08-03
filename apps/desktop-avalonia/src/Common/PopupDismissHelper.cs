@@ -8,6 +8,10 @@ using global::Avalonia.VisualTree;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>
+/// TopLevel 内打开中的 Popup / 下拉 light-dismiss
+/// 命中打开中的候选面时不关，避免与选中手势竞态
+/// </summary>
 internal static class PopupDismissHelper
 {
     public static void AttachTopLevel(TopLevel topLevel)
@@ -15,7 +19,7 @@ internal static class PopupDismissHelper
         topLevel.AddHandler(
             InputElement.PointerPressedEvent,
             OnTopLevelPointerPressed,
-            RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
+            RoutingStrategies.Bubble,
             handledEventsToo: true);
     }
 
@@ -41,7 +45,7 @@ internal static class PopupDismissHelper
 
     public static void DismissOpenPopups(TopLevel topLevel)
     {
-        foreach (var control in topLevel.GetVisualDescendants().OfType<Control>())
+        foreach (var control in topLevel.GetVisualDescendants().OfType<Control>().ToList())
         {
             switch (control)
             {
