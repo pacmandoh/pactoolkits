@@ -866,6 +866,12 @@
                     Label="{Binding MsfxApiBadgeLabel}"
                     Status="{Binding MsfxApiBadgeStatus}" />
                 </StackPanel>
+                <StackPanel Grid.Column="1" Classes="H2Actions">
+                  <Button
+                    Classes="Primary"
+                    Command="{Binding SaveMsfxApiConfigCommand}"
+                    Content="保存配置" />
+                </StackPanel>
               </Grid>
             </Border>
 
