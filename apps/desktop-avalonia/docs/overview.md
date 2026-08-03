@@ -40,10 +40,13 @@ Desktop 承载业务交互、配置、审计、更新和 Agents 运行控制。V
 
 连接状态、页面可用性和区块空状态的分层模型见 [Desktop 状态模型](../../../docs/architecture/desktop-state.md)。
 
+键盘焦点、临时浮层与业务工作集（K / T / W）的分工与手势约定见 [焦点与工作集模型](./focus-model.md)。
+
 ## 相关文档
 
 - [分层与依赖规则](../../../docs/architecture/layering.md)
 - [Agents 运行时架构](../../../docs/architecture/agents.md)
 - [Desktop 状态模型](../../../docs/architecture/desktop-state.md)
+- [焦点与工作集模型](./focus-model.md)
 - [日志事件](./log-events.md)
 - [发布与更新](../../../docs/operations/release-flow.md)
