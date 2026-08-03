@@ -48,7 +48,7 @@ Host 与 AHK 模块与 Desktop 共用同一日志根目录（默认 AppData，�
   agents/modules/<Id>/YYYY-MM-DD[.N].log
 ```
 
-路径常量见 `AgentsLogPaths`（`ResolveRoot` / `DesktopDir` / `HostDir` / `ModuleDir`）；.NET 落盘见 `packages/logger`；AHK 侧见 `runtime/agents/lib/ahk/log.ahk`（经 `--config` 读日志根目录）。文件名仅日期，靠目录区分来源。
+路径常量见 `AgentsLogPaths`（`ResolveRoot` / `DesktopDir` / `HostDir` / `ModuleDir`）；.NET 落盘见 `packages/logger`；AHK 侧见 `runtime/agents/lib/ahk/log.ahk`（经 `--config` 读日志根目录）。文件名仅日期，靠目录区分来源。单文件达到 `MaxFileSizeMb` 后递增 `N`（`YYYY-MM-DD.N.log`，无固定上界）；过期由 `RetentionDays` 清理。
 
 字段与 Desktop 对齐：`ts`、`level`、`module`、`event`、`message`、`version`、`context?`、`exception?`。`level` 仅使用 `Debug` / `Info` / `Warn` / `Error` / `Fatal`。
 
