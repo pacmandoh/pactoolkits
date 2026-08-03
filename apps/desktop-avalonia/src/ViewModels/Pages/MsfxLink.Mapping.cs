@@ -59,6 +59,7 @@ public sealed partial class MsfxLink
         OnPropertyChanged(nameof(MappingConfigBarToggleToolTip));
     }
 
+    // 批量映射 / 弃用任务：弃用路径仍会先写 mapped_drug 再建 DISCARDED 任务，与 APPLY_MAP 同门槛
     private bool CanSubmitMappingGroup()
         => !IsMappingBusy
            && MappingSelectedCount > 0
@@ -66,7 +67,7 @@ public sealed partial class MsfxLink
            && !string.IsNullOrWhiteSpace(NormalizeText(MappingSelectedSpec?.Raw));
 
     private bool CanDiscardMappingGroup()
-        => !IsMappingBusy && MappingSelectedCount > 0;
+        => CanSubmitMappingGroup();
 
     [RelayCommand]
     private async Task ToggleQueueWorkspaceAsync()
@@ -463,7 +464,7 @@ public sealed partial class MsfxLink
             return;
         }
 
-        if (!discard && (drug is null || spec is null))
+        if (drug is null || spec is null)
         {
             _toast.Warn(scene, "需要填写需映射的药品信息和规格信息");
             return;
