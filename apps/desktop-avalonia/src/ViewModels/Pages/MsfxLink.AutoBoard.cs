@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Input;
 using CommunityToolkit.Mvvm.Input;
 using global::Avalonia.Threading;
 using PacToolkits.Application.Abstractions;
@@ -876,11 +877,11 @@ public sealed partial class MsfxLink : AppPageBase
     }
 
     [RelayCommand]
-    private Task ShowPullBatchDetailAsync(MsfxAutoPullBatchGridRow? row)
+    private async Task ShowPullBatchDetailAsync(MsfxAutoPullBatchGridRow? row)
     {
         if (row is null)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         var items = new List<InfoDetailItem>
@@ -894,23 +895,30 @@ public sealed partial class MsfxLink : AppPageBase
             new("结束时间", row.FinishedAt),
             new("错误信息", string.IsNullOrWhiteSpace(row.ErrMsg) ? "--" : row.ErrMsg)
         };
-        return _dialog.ShowMsfxStateDetail(new MsfxStateDetailArgs(
-            Header: "拉取批次详情",
-            SubHeader: "批次执行与结果审计",
-            State: row.State,
-            HighlightTitle: $"批次 #{row.BatchId} / {row.Status}",
-            HighlightMessage: string.IsNullOrWhiteSpace(row.ErrMsg)
-                ? "批次已完成，无错误信息"
-                : row.ErrMsg,
-            Items: items));
+        try
+        {
+            await _dialog.ShowMsfxStateDetail(new MsfxStateDetailArgs(
+                Header: "拉取批次详情",
+                SubHeader: "批次执行与结果审计",
+                State: row.State,
+                HighlightTitle: $"批次 #{row.BatchId} / {row.Status}",
+                HighlightMessage: string.IsNullOrWhiteSpace(row.ErrMsg)
+                    ? "批次已完成，无错误信息"
+                    : row.ErrMsg,
+                Items: items)).ConfigureAwait(true);
+        }
+        finally
+        {
+            ClearRunCenterRowSelection();
+        }
     }
 
     [RelayCommand]
-    private Task ShowTaskQueueDetailAsync(MsfxAutoTaskQueueGridRow? row)
+    private async Task ShowTaskQueueDetailAsync(MsfxAutoTaskQueueGridRow? row)
     {
         if (row is null)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         var items = new List<InfoDetailItem>
@@ -926,37 +934,70 @@ public sealed partial class MsfxLink : AppPageBase
             new("完成时间", row.FinishedAt),
             new("错误信息", string.IsNullOrWhiteSpace(row.ErrMsg) ? "--" : row.ErrMsg)
         };
-        return _dialog.ShowMsfxStateDetail(new MsfxStateDetailArgs(
-            Header: "Injector 任务详情",
-            SubHeader: "注入执行状态与错误信息",
-            State: row.State,
-            HighlightTitle: $"任务 #{row.TaskId} / {row.Status}",
-            HighlightMessage: string.IsNullOrWhiteSpace(row.ErrMsg)
-                ? "任务执行中或已完成，无错误信息"
-                : row.ErrMsg,
-            Items: items));
+        try
+        {
+            await _dialog.ShowMsfxStateDetail(new MsfxStateDetailArgs(
+                Header: "Injector 任务详情",
+                SubHeader: "注入执行状态与错误信息",
+                State: row.State,
+                HighlightTitle: $"任务 #{row.TaskId} / {row.Status}",
+                HighlightMessage: string.IsNullOrWhiteSpace(row.ErrMsg)
+                    ? "任务执行中或已完成，无错误信息"
+                    : row.ErrMsg,
+                Items: items)).ConfigureAwait(true);
+        }
+        finally
+        {
+            ReturnFocusToShell();
+        }
     }
 
     [RelayCommand]
-    private Task ShowAutoLogDetailAsync(MsfxAutoLogRow? row)
+    private async Task ShowAutoLogDetailAsync(MsfxAutoLogRow? row)
     {
         if (row is null)
         {
-            return Task.CompletedTask;
+            return;
         }
 
-        return _dialog.ShowMsfxStateDetail(new MsfxStateDetailArgs(
-            Header: "运行日志详情",
-            SubHeader: "自动化执行链路事件",
-            State: row.State,
-            HighlightTitle: row.Stage,
-            HighlightMessage: row.Message,
-            Items: new List<InfoDetailItem>
+        try
+        {
+            await _dialog.ShowMsfxStateDetail(new MsfxStateDetailArgs(
+                Header: "运行日志详情",
+                SubHeader: "自动化执行链路事件",
+                State: row.State,
+                HighlightTitle: row.Stage,
+                HighlightMessage: row.Message,
+                Items: new List<InfoDetailItem>
+                {
+                    new("时间", row.At),
+                    new("阶段", row.Stage),
+                    new("级别", row.State.ToString())
+                })).ConfigureAwait(true);
+        }
+        finally
+        {
+            ClearRunCenterRowSelection();
+        }
+    }
+
+    private void ClearRunCenterRowSelection()
+    {
+        ClearAllDetailSelectionsSilent();
+        ReturnFocusToShell();
+    }
+
+    private static void ReturnFocusToShell()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (global::Avalonia.Application.Current?.ApplicationLifetime
+                is global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                && desktop.MainWindow is InputElement host)
             {
-                new("时间", row.At),
-                new("阶段", row.Stage),
-                new("级别", row.State.ToString())
-            }));
+                host.Focus();
+            }
+        }, DispatcherPriority.Input);
     }
 
     [RelayCommand(CanExecute = nameof(CanRefreshAutoBoard))]

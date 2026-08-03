@@ -673,11 +673,6 @@ public sealed partial class MsfxLink : AppPageBase
         ApplyAutoLogPage();
     }
 
-    partial void OnSelectedAutoPullBatchRowChanged(MsfxAutoPullBatchGridRow? value)
-    {
-        // 详情仅由行头点击触发，单元格点击不弹窗
-    }
-
     partial void OnTaskQueueBatchModeChanged(TaskQueueBatchActionMode value)
     {
         if (value == TaskQueueBatchActionMode.None)
@@ -929,10 +924,5 @@ public sealed partial class MsfxLink : AppPageBase
                || string.Equals(row.Status, "FAILED", StringComparison.OrdinalIgnoreCase)
                || string.Equals(row.Status, "DISCARDED", StringComparison.OrdinalIgnoreCase)
                || string.Equals(row.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase));
-
-    partial void OnSelectedAutoLogRowChanged(MsfxAutoLogRow? value)
-    {
-        // 仅用户显式触发详情时再弹窗，避免“立即巡检”过程中因选中变更自动弹出
-    }
 
 }
