@@ -10,6 +10,12 @@ namespace PacToolkits.Desktop.Avalonia.ViewModels.Pages;
 
 public sealed partial class DrugIndex
 {
+    private enum WorkingSetReload
+    {
+        Keep,
+        Clear,
+    }
+
     private DrugIndexDto? _remoteEditBaseline;
 
     public bool DeferRefreshTopic(string? topic)
@@ -112,7 +118,7 @@ public sealed partial class DrugIndex
 
     private void ApplyFullReload(IReadOnlyList<DrugRow> newRows)
     {
-        ClearListFocus(clearOrigin: true);
+        ClearWorkingSet(clearOrigin: true);
         Items.ReplaceAll(newRows);
         FinalizeItemsReload();
     }
@@ -163,11 +169,11 @@ public sealed partial class DrugIndex
     {
         if (_pendingReselectKey is { } pending)
         {
-            FocusSavedRow(pending.DrugId, pending.Spec);
+            ReselectRow(pending.DrugId, pending.Spec);
         }
-        else if (_clearListFocusAfterReload && !HasPendingChanges)
+        else if (_workingSetAfterReload == WorkingSetReload.Clear && !HasPendingChanges)
         {
-            ClearListFocus(clearOrigin: false);
+            ClearWorkingSet(clearOrigin: false);
         }
         else if (Selected is not null && !HasPendingChanges)
         {
@@ -194,7 +200,7 @@ public sealed partial class DrugIndex
         OnPropertyChanged(nameof(IsResultTruncated));
     }
 
-    private void ClearListFocus(bool clearOrigin, bool keepEditorVisible = false)
+    private void ClearWorkingSet(bool clearOrigin, bool keepEditorVisible = false)
     {
         Selected?.NotePreview = null;
 
@@ -222,14 +228,14 @@ public sealed partial class DrugIndex
 
     public event Action? RevealSelected;
 
-    private void FocusSavedRow(string drugId, string spec)
+    private void ReselectRow(string drugId, string spec)
     {
         _pendingReselectKey = null;
 
         var row = FindRow(drugId, spec);
         if (row is null)
         {
-            // 当前结果集未包含目标行时仍保留编辑器和列表焦点
+            // 当前结果集未包含目标行时仍保留编辑器与选中态
             return;
         }
 
@@ -272,6 +278,6 @@ public sealed partial class DrugIndex
     private async Task ApplyConflictServerBaselineAndReloadAsync(DrugIndexDto? serverRow)
     {
         ApplyConflictServerBaseline(serverRow);
-        await ReloadAsync(forceFull: false, clearListFocus: true);
+        await ReloadAsync(forceFull: false, workingSet: WorkingSetReload.Clear);
     }
 }
