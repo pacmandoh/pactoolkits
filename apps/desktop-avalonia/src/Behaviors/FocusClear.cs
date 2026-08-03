@@ -2,17 +2,17 @@ using System;
 using System.Linq;
 using Avalonia;
 using global::Avalonia.Controls;
-using global::Avalonia.Controls.Primitives;
 using global::Avalonia.Input;
 using global::Avalonia.Interactivity;
-using global::Avalonia.Threading;
 using global::Avalonia.VisualTree;
 using PacToolkits.Desktop.Avalonia.Common;
 
 namespace PacToolkits.Desktop.Avalonia.Behaviors;
 
 /// <summary>
-/// 在空白区域点击时关闭编辑焦点和临时弹层，同时保留 DataGrid 与对话框按钮的正常交互
+/// 主窗壳层指针策略：键盘焦点落点（K）、DataGrid 原生选中；与 PopupDismissHelper 分工处理临时 UI（T）
+///
+/// 子树 <see cref="SuppressGridClearProperty"/> 不参与原生表清选
 /// </summary>
 public class FocusClear
 {
@@ -20,6 +20,7 @@ public class FocusClear
 
     public static readonly AttachedProperty<bool> EnableProperty =
         AvaloniaProperty.RegisterAttached<FocusClear, Control, bool>("Enable");
+
     public static readonly AttachedProperty<bool> SuppressGridClearProperty =
         AvaloniaProperty.RegisterAttached<FocusClear, Control, bool>("SuppressGridClear");
 
@@ -29,7 +30,7 @@ public class FocusClear
         {
             if (e.GetNewValue<bool>())
             {
-                c.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
+                c.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Bubble, true);
                 c.AddHandler(InputElement.GotFocusEvent, OnGotFocus, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
             }
             else
@@ -65,14 +66,7 @@ public class FocusClear
             && TopLevel.GetTopLevel(sourceVisual) is { } sourceTopLevel
             && !ReferenceEquals(sourceTopLevel, topLevel))
         {
-            // Native popup 内容在独立 TopLevel。先让 popup 内控件处理指针事件，
-            // 再跑 owner 级 focus / dismiss
             return;
-        }
-
-        if (topLevel is not null && !PopupDismissHelper.SkipPopupDismiss(e.Source))
-        {
-            PopupDismissHelper.DismissOpenPopups(topLevel);
         }
 
         if (PopupDismissHelper.SkipPopupDismiss(e.Source))
@@ -80,65 +74,77 @@ public class FocusClear
             return;
         }
 
-        var focused = topLevel?.FocusManager?.GetFocusedElement();
-        if (focused is not Control ctrl)
-        {
-            return;
-        }
+        // 关下拉由 PopupDismissHelper.AttachTopLevel 统一处理；此处只做 K / 原生选中 / ACB 提交
 
-        var insideDataGrid = IsInsideDataGrid(e.Source);
-
-        var ownerAutoComplete = InputFocusHelper.FindAncestor<AutoCompleteBox>(ctrl);
-        if (ownerAutoComplete is not null)
+        var focused = topLevel?.FocusManager?.GetFocusedElement() as Control;
+        if (focused is not null)
         {
-            if (IsInsideControl(e.Source, ownerAutoComplete))
+            LeaveAutoCompleteIfNeeded(focused, e.Source);
+
+            // 仅可编辑输入在自身内点击时保留；MainWindow/页 root 不得挡住表外清选与抬 K
+            if (IsEditableFocusTarget(focused) && IsInside(e.Source, focused))
             {
                 return;
             }
 
-            if (!string.IsNullOrWhiteSpace(ownerAutoComplete.Text))
+            if (focused is TextBox tb)
             {
-                AutoCompleteCommit.CommitPendingInput(ownerAutoComplete);
+                tb.ClearSelection();
             }
-
-            ownerAutoComplete.IsDropDownOpen = false;
         }
 
-        if (IsInsideControl(e.Source, ctrl))
+        // 表内清 peer、保留当前表（保证首次点行）；表外清全部无 suppress 表
+        var activeGrid = FindOwningDataGrid(e.Source);
+        if (activeGrid is not null)
+        {
+            ClearNativeGridSelections(scope, activeGrid, keep: activeGrid);
+            return;
+        }
+
+        ClearNativeGridSelections(scope, e.Source, keep: null);
+
+        if (IsProtectedClickTarget(e.Source))
         {
             return;
         }
 
-        if (ctrl is TextBox tb)
-        {
-            tb.ClearSelection();
-        }
+        ClearKeyboardFocus(scope as Control ?? topLevel as Control);
+    }
 
-        TryClearDataGridSelections(scope, e.Source);
+    /// <summary>表内 peer 清选；headless 命中不稳时测试直调</summary>
+    internal static void ClearPeerSelectionsForTests(InputElement scope, DataGrid activeGrid)
+        => ClearNativeGridSelections(scope, activeGrid, keep: activeGrid);
 
-        // 点在 grid 内不应强制失焦，否则首次点击常被 focus 转移吃掉
-        if (insideDataGrid)
-        {
-            return;
-        }
-
-        if (IsNaturalFocusTarget(e.Source))
+    private static void LeaveAutoCompleteIfNeeded(Control focused, object? clickSource)
+    {
+        var owner = InputFocusHelper.FindAncestor<AutoCompleteBox>(focused)
+            ?? focused as AutoCompleteBox;
+        if (owner is null || IsInside(clickSource, owner))
         {
             return;
         }
 
-        // 按钮等点击目标需保留 focus 以跑 Command/Click；此处若抢 host focus
-        // 会吃掉对话框提交按钮的首次按下
-        if (IsInteractiveClickTarget(e.Source))
+        if (!string.IsNullOrWhiteSpace(owner.Text))
+        {
+            // Commit 内会关下拉；空白文本的关闭由 PopupDismissHelper 统一做
+            AutoCompleteCommit.CommitPendingInput(owner);
+        }
+    }
+
+    private static void ClearKeyboardFocus(Control? host)
+    {
+        if (host is null)
         {
             return;
         }
 
-        if (scope is Control host)
+        // 同步 Focus：Post 会被后续 Pointer 盖掉（标题区抬输入焦点需要）
+        if (!host.Focusable)
         {
-            // 推迟 focus 转移，让 popup light-dismiss 与被点控件先处理
-            Dispatcher.UIThread.Post(() => host.Focus(), DispatcherPriority.Input);
+            host.Focusable = true;
         }
+
+        host.Focus();
     }
 
     private static void OnGotFocus(object? sender, FocusChangedEventArgs e)
@@ -158,91 +164,10 @@ public class FocusClear
         _lastFocusedTextBox = new WeakReference<TextBox>(current);
     }
 
-    private static bool IsInsideControl(object? source, Control target)
+    private static void ClearNativeGridSelections(InputElement scope, object? suppressProbe, DataGrid? keep)
     {
-        var current = source;
-        while (current is not null)
-        {
-            if (ReferenceEquals(current, target))
-            {
-                return true;
-            }
-
-            current = (current as StyledElement)?.Parent;
-        }
-
-        return false;
-    }
-
-    private static bool IsInsideDataGrid(object? source)
-    {
-        var current = source;
-        while (current is not null)
-        {
-            if (current is DataGrid or DataGridRow or DataGridCell or DataGridColumnHeader or ScrollBar)
-            {
-                return true;
-            }
-
-            current = (current as StyledElement)?.Parent;
-        }
-
-        return false;
-    }
-
-    private static bool IsNaturalFocusTarget(object? source)
-    {
-        for (var current = source; current is not null; current = (current as StyledElement)?.Parent)
-        {
-            switch (current)
-            {
-                case TextBox:
-                case ComboBox:
-                case AutoCompleteBox:
-                case CalendarDatePicker:
-                case NumericUpDown:
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool IsInteractiveClickTarget(object? source)
-    {
-        for (var current = source; current is not null; current = (current as StyledElement)?.Parent)
-        {
-            switch (current)
-            {
-                case Button:
-                case MenuItem:
-                case TabItem:
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static void TryClearDataGridSelections(InputElement scope, object? source)
-    {
-        if (IsInsideDataGrid(source))
-        {
-            return;
-        }
-
-        // MainWindow 级行为不得清除所有 DataGrid 选择，否则对话框命令执行前可能丢失目标行
-        if (scope is TopLevel)
-        {
-            return;
-        }
-
-        if (scope is Control scopeControl && scopeControl.GetValue(SuppressGridClearProperty))
-        {
-            return;
-        }
-
-        if (HasSuppressedGridClearAncestor(source))
+        // Enable 所在控件是 pointer 祖先时，probe 行走会覆盖；不需再读 scope 上 Suppress
+        if (HasSuppressedGridClearAncestor(suppressProbe))
         {
             return;
         }
@@ -254,24 +179,105 @@ public class FocusClear
 
         foreach (var grid in top.GetVisualDescendants().OfType<DataGrid>())
         {
+            if (keep is not null && ReferenceEquals(grid, keep))
+            {
+                continue;
+            }
+
+            if (HasSuppressedGridClearAncestor(grid))
+            {
+                continue;
+            }
+
             DataGridInteractionHelper.ClearSelection(grid);
         }
     }
 
-    private static bool HasSuppressedGridClearAncestor(object? source)
+    private static DataGrid? FindOwningDataGrid(object? source)
     {
-        var current = source;
-        while (current is not null)
+        if (source is not Visual visual)
         {
-            if (current is Control c && c.GetValue(SuppressGridClearProperty))
+            return null;
+        }
+
+        foreach (var ancestor in visual.GetSelfAndVisualAncestors())
+        {
+            if (ancestor is DataGrid grid)
+            {
+                return grid;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool HasSuppressedGridClearAncestor(object? node)
+    {
+        if (node is not Visual visual)
+        {
+            return false;
+        }
+
+        foreach (var ancestor in visual.GetSelfAndVisualAncestors())
+        {
+            if (ancestor is Control c && c.GetValue(SuppressGridClearProperty))
             {
                 return true;
             }
-
-            current = (current as StyledElement)?.Parent;
         }
 
         return false;
     }
 
+    private static bool IsInside(object? source, Control target)
+    {
+        if (source is not Visual visual)
+        {
+            return false;
+        }
+
+        foreach (var ancestor in visual.GetSelfAndVisualAncestors())
+        {
+            if (ReferenceEquals(ancestor, target))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsEditableFocusTarget(Control focused)
+        => focused is TextBox
+            or ComboBox
+            or AutoCompleteBox
+            or CalendarDatePicker
+            or NumericUpDown;
+
+    // 可编辑 / Button 等：不抢 host Focus，保证首次点击生效
+    private static bool IsProtectedClickTarget(object? source)
+    {
+        if (source is not Visual visual)
+        {
+            return false;
+        }
+
+        foreach (var ancestor in visual.GetSelfAndVisualAncestors())
+        {
+            if (ancestor is Control c && IsEditableFocusTarget(c))
+            {
+                return true;
+            }
+
+            switch (ancestor)
+            {
+                case Button:
+                case MenuItem:
+                case TabItem:
+                    return true;
+            }
+        }
+
+        return false;
+    }
 }

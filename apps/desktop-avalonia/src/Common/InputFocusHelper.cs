@@ -8,6 +8,10 @@ using global::Avalonia.VisualTree;
 
 namespace PacToolkits.Desktop.Avalonia.Common;
 
+/// <summary>
+/// 表单键盘焦点（K）：Tab/Enter 环枚举与步进、按名聚焦、祖先查找
+/// 挂载入口见 TabScope；浮层 dismiss 不在此
+/// </summary>
 public static class InputFocusHelper
 {
     public static T? FindAncestor<T>(object? source) where T : class
