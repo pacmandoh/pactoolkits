@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -51,7 +50,6 @@ public partial class Settings : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
-        AddHandler(KeyDownEvent, OnSettingsKeyDown, global::Avalonia.Interactivity.RoutingStrategies.Tunnel);
         TryAttach(DataContext as SettingsViewModel);
     }
 
@@ -139,20 +137,6 @@ public partial class Settings : UserControl
         TryAttach(DataContext as SettingsViewModel);
         Dispatcher.UIThread.Post(InitTabNav, DispatcherPriority.Loaded);
     }
-
-    private void OnSettingsKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Tab && e.Key != Key.Enter)
-        {
-            return;
-        }
-
-        var inputs = EnumerateTabInputs().ToList();
-        InputFocusHelper.TryHandleTabCycle(this, e, inputs);
-    }
-
-    private IEnumerable<Control> EnumerateTabInputs() =>
-        InputFocusHelper.EnumerateInputs(this, typeof(TextBox), typeof(NumericUpDown), typeof(ComboBox));
 
     private void OnModuleAddLineClicked(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
     {

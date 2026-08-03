@@ -1,11 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using Avalonia;
 using global::Avalonia.Controls;
-using global::Avalonia.Input;
-using global::Avalonia.Interactivity;
 using global::Avalonia.Threading;
 using PacToolkits.Desktop.Avalonia.Common;
 using DrugIndexViewModel = PacToolkits.Desktop.Avalonia.ViewModels.Pages.DrugIndex;
@@ -22,7 +18,6 @@ public partial class DrugIndex : UserControl
         _gridMount = new PageGridMountScheduler(this);
         InitializeComponent();
         DrugGridSlot.GridMounted += OnDrugGridMounted;
-        AddHandler(KeyDownEvent, OnEditorAreaKeyDown, RoutingStrategies.Tunnel);
         _gridMount.StartAfterFirstLayout();
         DataContextChanged += OnDrugIndexDataContextChanged;
     }
@@ -106,23 +101,4 @@ public partial class DrugIndex : UserControl
             _gridMount.RequestMount(DrugGridSlot, 0);
         }
     }
-
-    private void OnEditorAreaKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Tab && e.Key != Key.Enter)
-        {
-            return;
-        }
-
-        if (this.FindControl<Control>("EditorCard") is not { } editorCard)
-        {
-            return;
-        }
-
-        var inputs = EnumerateEditorInputs(editorCard).ToList();
-        InputFocusHelper.TryHandleTabCycle(this, e, inputs);
-    }
-
-    private static IEnumerable<Control> EnumerateEditorInputs(Control root) =>
-        InputFocusHelper.EnumerateInputs(root, typeof(TextBox), typeof(NumericUpDown));
 }
