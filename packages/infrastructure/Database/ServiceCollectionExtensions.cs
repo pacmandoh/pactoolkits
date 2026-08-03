@@ -32,7 +32,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDashboardRepo, DashboardRepo>();
         services.AddSingleton<IInventoryOverviewRepo, InventoryOverviewRepo>();
         services.AddSingleton<IClientIdReadRepo, ClientIdReadRepo>();
-        services.AddSingleton<IMsfxSyncRepo, MsfxSyncRepo>();
+        services.AddSingleton<MsfxSyncRepo>();
+        services.AddSingleton<IMsfxPullRepo>(sp => sp.GetRequiredService<MsfxSyncRepo>());
+        services.AddSingleton<IMsfxIngestRepo>(sp => sp.GetRequiredService<MsfxSyncRepo>());
+        services.AddSingleton<IMsfxMappingRepo>(sp => sp.GetRequiredService<MsfxSyncRepo>());
+        services.AddSingleton<IMsfxInjectRepo>(sp => sp.GetRequiredService<MsfxSyncRepo>());
+        services.AddSingleton<IMsfxQueryRepo>(sp => sp.GetRequiredService<MsfxSyncRepo>());
 
         return services;
     }

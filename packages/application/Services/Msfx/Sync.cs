@@ -4,17 +4,28 @@ using PacToolkits.Application.TextSearch;
 namespace PacToolkits.Application.Services.Msfx;
 
 /// <summary>
-/// 协调 MSFX 同步仓储，并提供自动任务所需的持久化能力
+/// MSFX 同步用例：游标/看板/映射批处理/注入任务（编排走 AutoRun + 窄 Repo）
 /// </summary>
-public sealed partial class SyncService : ISyncService, IMsfxAutoRunStore
+public sealed partial class SyncService : ISyncService
 {
-    private readonly IMsfxSyncRepo _repo;
+    private readonly IMsfxPullRepo _pull;
+    private readonly IMsfxMappingRepo _mapping;
+    private readonly IMsfxInjectRepo _inject;
+    private readonly IMsfxQueryRepo _query;
     private readonly IPinyinSearchCatalogCache _catalogCache;
     private readonly PinyinExpansionCache _expansionCache = new();
 
-    public SyncService(IMsfxSyncRepo repo, IPinyinSearchCatalogCache catalogCache)
+    public SyncService(
+        IMsfxPullRepo pull,
+        IMsfxMappingRepo mapping,
+        IMsfxInjectRepo inject,
+        IMsfxQueryRepo query,
+        IPinyinSearchCatalogCache catalogCache)
     {
-        _repo = repo ?? throw new ArgumentNullException(nameof(repo));
+        _pull = pull ?? throw new ArgumentNullException(nameof(pull));
+        _mapping = mapping ?? throw new ArgumentNullException(nameof(mapping));
+        _inject = inject ?? throw new ArgumentNullException(nameof(inject));
+        _query = query ?? throw new ArgumentNullException(nameof(query));
         _catalogCache = catalogCache ?? throw new ArgumentNullException(nameof(catalogCache));
     }
 

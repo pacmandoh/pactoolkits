@@ -25,7 +25,7 @@ public sealed class MsfxAutoRunServiceTests
         };
         var observer = new FakeObserver();
 
-        var result = await new MsfxAutoRunService(api, store)
+        var result = await Create(api, store)
             .RunAsync(Request(), observer, CancellationToken.None);
 
         Assert.Equal(42, result.BatchId);
@@ -59,7 +59,7 @@ public sealed class MsfxAutoRunServiceTests
             ])
         };
 
-        var result = await new MsfxAutoRunService(new FakeApi(), store)
+        var result = await Create(new FakeApi(), store)
             .RunAsync(Request(), new FakeObserver(), CancellationToken.None);
 
         Assert.Equal(2, store.MappingApplyCount);
@@ -79,7 +79,7 @@ public sealed class MsfxAutoRunServiceTests
         };
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            new MsfxAutoRunService(api, store)
+            Create(api, store)
                 .RunAsync(Request(), new FakeObserver(), CancellationToken.None));
 
         Assert.Contains("list failed", error.Message, StringComparison.Ordinal);
@@ -115,7 +115,7 @@ public sealed class MsfxAutoRunServiceTests
         };
         var observer = new FakeObserver();
 
-        var result = await new MsfxAutoRunService(api, store)
+        var result = await Create(api, store)
             .RunAsync(Request(), observer, CancellationToken.None);
 
         Assert.Equal(1, result.RetrySucceeded);
@@ -139,7 +139,7 @@ public sealed class MsfxAutoRunServiceTests
         };
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            new MsfxAutoRunService(api, store)
+            Create(api, store)
                 .RunAsync(Request(), new FakeObserver(), CancellationToken.None));
 
         Assert.Equal("FAILED", Assert.Single(store.FinishCalls).Status);
@@ -152,7 +152,7 @@ public sealed class MsfxAutoRunServiceTests
         var store = new FakeStore();
         var observer = new FakeObserver { IsManualWriteActive = true };
 
-        var result = await new MsfxAutoRunService(new FakeApi(), store)
+        var result = await Create(new FakeApi(), store)
             .RunAsync(Request(), observer, CancellationToken.None);
 
         Assert.Equal(0, store.MappingApplyCount);
@@ -170,7 +170,7 @@ public sealed class MsfxAutoRunServiceTests
         var store = new FakeStore { MappingPendingCount = 0 };
         var observer = new FakeObserver();
 
-        var result = await new MsfxAutoRunService(new FakeApi(), store)
+        var result = await Create(new FakeApi(), store)
             .RunAsync(Request(), observer, CancellationToken.None);
 
         Assert.Equal(0, store.MappingApplyCount);
@@ -200,7 +200,7 @@ public sealed class MsfxAutoRunServiceTests
         };
         var observer = new FakeObserver();
 
-        await new MsfxAutoRunService(api, store)
+        await Create(api, store)
             .RunAsync(Request(), observer, CancellationToken.None);
 
         Assert.Equal(
@@ -224,7 +224,7 @@ public sealed class MsfxAutoRunServiceTests
         };
         var observer = new FakeObserver();
 
-        await new MsfxAutoRunService(api, new FakeStore())
+        await Create(api, new FakeStore())
             .RunAsync(Request(), observer, CancellationToken.None);
 
         var pullProgress = observer.Updates
@@ -251,7 +251,7 @@ public sealed class MsfxAutoRunServiceTests
             Detail = _ => Task.FromException<MsfxListUpoutDetailResult>(new OperationCanceledException())
         };
 
-        var result = await new MsfxAutoRunService(api, store)
+        var result = await Create(api, store)
             .RunAsync(Request(), new FakeObserver(), CancellationToken.None);
 
         Assert.Equal(1, result.RetryQueued);
@@ -264,7 +264,7 @@ public sealed class MsfxAutoRunServiceTests
     public async Task RecoverInterruptedAsync_fails_batches_left_running_by_a_previous_process()
     {
         var store = new FakeStore { InterruptedBatchCount = 2 };
-        var service = new MsfxAutoRunService(new FakeApi(), store);
+        var service = Create(new FakeApi(), store);
 
         var recovered = await service.RecoverInterruptedAsync(CancellationToken.None);
 
@@ -281,7 +281,7 @@ public sealed class MsfxAutoRunServiceTests
             LockAvailable = false
         };
 
-        var recovered = await new MsfxAutoRunService(new FakeApi(), store)
+        var recovered = await Create(new FakeApi(), store)
             .RecoverInterruptedAsync(CancellationToken.None);
 
         Assert.Equal(0, recovered);
@@ -294,7 +294,7 @@ public sealed class MsfxAutoRunServiceTests
         var store = new FakeStore { LockAvailable = false };
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            new MsfxAutoRunService(new FakeApi(), store)
+            Create(new FakeApi(), store)
                 .RunAsync(Request(), new FakeObserver(), CancellationToken.None));
 
         Assert.Contains("正在运行", error.Message, StringComparison.Ordinal);
@@ -328,7 +328,7 @@ public sealed class MsfxAutoRunServiceTests
         var store = new FakeStore();
         var observer = new FakeObserver();
 
-        var result = await new MsfxAutoRunService(api, store)
+        var result = await Create(api, store)
             .RunAsync(Request(), observer, CancellationToken.None);
 
         Assert.Equal(51, result.Bills);
@@ -341,6 +341,9 @@ public sealed class MsfxAutoRunServiceTests
             .ToArray();
         Assert.Equal(progress.Order(), progress);
     }
+
+    private static MsfxAutoRunService Create(IMsfxApiClient api, FakeStore store)
+        => new(api, store, store, store, store);
 
     private static MsfxAutoRunRequest Request()
         => new(new MsfxApiOptions { RefEntId = "REF", TimeoutSeconds = 20 });
@@ -439,7 +442,11 @@ public sealed class MsfxAutoRunServiceTests
             => Detail(request);
     }
 
-    private sealed class FakeStore : IMsfxAutoRunStore
+    private sealed class FakeStore :
+        IMsfxPullRepo,
+        IMsfxIngestRepo,
+        IMsfxMappingRepo,
+        IMsfxInjectRepo
     {
         public IReadOnlyList<MsfxBillRetryRow> Retries { get; init; } = [];
         public IReadOnlyList<MsfxBillWatchRow> Watches { get; init; } = [];
@@ -482,6 +489,15 @@ public sealed class MsfxAutoRunServiceTests
             => Task.FromResult(new MsfxPullWindow(
                 new DateTimeOffset(2026, 7, 16, 0, 0, 0, TimeSpan.Zero),
                 new DateTimeOffset(2026, 7, 17, 0, 0, 0, TimeSpan.Zero)));
+
+        public Task<MsfxPullCursorState> GetPullCursorAsync(string sourceApi, CancellationToken ct)
+            => Task.FromResult(new MsfxPullCursorState(null, null, null, null));
+
+        public Task<bool> AdvancePullCursorToAsync(
+            string sourceApi,
+            DateTimeOffset target,
+            CancellationToken ct)
+            => Task.FromResult(true);
 
         public Task<MsfxPullBatchStartResult> StartPullBatchAsync(
             string sourceApi,
@@ -587,8 +603,6 @@ public sealed class MsfxAutoRunServiceTests
             string fromRefUserId,
             string fromEntName,
             string toRefUserId,
-            string toUserId,
-            string toUserName,
             string status,
             string rawJson,
             CancellationToken ct)
@@ -626,11 +640,100 @@ public sealed class MsfxAutoRunServiceTests
             return Task.FromResult(MapResults.TryDequeue(out var result) ? result : MapResult);
         }
 
+        public Task<MsfxMappingQueuePage> GetMappingQueuePageAsync(
+            int pageSize,
+            IReadOnlyCollection<string>? mapStatuses,
+            string? codeStatus,
+            string? searchScope,
+            string? keyword,
+            string[][]? pinyinExactPerToken,
+            DateTimeOffset? cursorUpdatedAt,
+            long? cursorId,
+            bool newer,
+            bool seekLastPage,
+            CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<MsfxMappingBatchGroupRow>> GetMappingBatchGroupsAsync(
+            string? mapStatus,
+            string? codeStatus,
+            string? searchScope,
+            string? keyword,
+            string[][]? pinyinExactPerToken,
+            int limit,
+            CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<MsfxMappingBatchPreview> PreviewMappingBatchByGroupAsync(
+            string? mapStatus,
+            string? codeStatus,
+            string? searchScope,
+            string? keyword,
+            string[][]? pinyinExactPerToken,
+            string? groupSourceDrugNameRaw,
+            string? groupSourceSpecRaw,
+            string? groupSourceNameNorm,
+            string? groupSourceSpecNorm,
+            string action,
+            string? drugId,
+            string? spec,
+            CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<MsfxMappingBatchApplyResult> ApplyMappingBatchByGroupAsync(
+            string? mapStatus,
+            string? codeStatus,
+            string? searchScope,
+            string? keyword,
+            string[][]? pinyinExactPerToken,
+            string? groupSourceDrugNameRaw,
+            string? groupSourceSpecRaw,
+            string? groupSourceNameNorm,
+            string? groupSourceSpecNorm,
+            string action,
+            string? drugId,
+            string? spec,
+            CancellationToken ct)
+            => throw new NotSupportedException();
+
         public Task<MsfxBuildInject> BuildInjectsAsync(int maxGroups, CancellationToken ct)
         {
             TaskBuildCount++;
             return Task.FromResult(BuildResult);
         }
+
+        public Task<IReadOnlyList<MsfxInjectQueueRow>> GetInjectQueueAsync(int limit, CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<MsfxInjectReopen> ReopenInjectAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<MsfxInjectDiscard> DiscardInjectAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<MsfxInjectRemap> RemapInjectAsync(long taskId, string? operatorName, string? reason, CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<MsfxInjectMerge> MergeInjectsAsync(IReadOnlyList<long> taskIds, string? operatorName, string? reason, CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<MsfxInjectSplit> SplitInjectAsync(long taskId, string splitMode, string? operatorName, string? reason, CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<MsfxInjectSplitCustom> SplitInjectCustomAsync(
+            long taskId,
+            IReadOnlyList<string> groupKeys,
+            IReadOnlyList<int> bucketIndexes,
+            string? operatorName,
+            string? reason,
+            CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<MsfxInjectSplitUnitRow>> GetInjectSplitUnitsAsync(long taskId, CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<MsfxInjectSplitCodeRow>> GetInjectSplitCodeRowsAsync(long taskId, CancellationToken ct)
+            => throw new NotSupportedException();
     }
 
     private sealed class FakeLock(Action released) : IAsyncDisposable
