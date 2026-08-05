@@ -6,7 +6,7 @@ global __PG := Map(
 )
 
 ; alreadyScanned：门诊「已扫 N 码」
-; 门诊拆零门控（整盒手扫优先）：
+; 门诊整包装/拆零粒数在半自动解析后分流（单位 vs 用量单位）；此处只算余数与已扫门控：
 ;   整盒>0 且 已扫<整盒 → 拒绝（须先扫满整盒再注余数）
 ;   已扫=整盒 → 注入余数（含整盒=0 的纯拆零起扫）
 ;   已扫≥整盒+1 → 跳过（拆零侧已有码）
@@ -15,9 +15,10 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 	codes := []
 	items := []
 	t0 := A_TickCount
+	isOpt := (Trim("" opt) != "" && cls = opt)
 	Log_Debug("txn.reserve.begin", "预留开始", Map(
 		"txn", txnId, "drugId", drugId, "spec", spec, "reqQty", reqQty, "cls", cls,
-		"alreadyScanned", alreadyScanned
+		"alreadyScanned", alreadyScanned, "isOpt", isOpt
 	))
 
 	; 仅拆零业务需要预留追溯码，扣减量按单盒数量的余数计算
@@ -25,10 +26,10 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		splitFlag := bySpec.Has("拆零标签||拆零") ? Trim(bySpec["拆零标签||拆零"]) : ""
 		qtyVal := bySpec.Has("数量") ? bySpec["数量"] : ""
 		Log_Debug("txn.reserve.split", "拆零字段", Map(
-			"txn", txnId, "split", splitFlag, "qty", qtyVal
+			"txn", txnId, "split", splitFlag, "qty", qtyVal, "isOpt", isOpt
 		))
 
-		; 非拆零业务不得从追溯池预留记录
+		; 非拆零业务不得从追溯池预留记录（住院/仓库「拆零」列）
 		if (splitFlag = "否") {
 			Log_Debug("txn.reserve.skip", "未拆零跳过", Map("txn", txnId))
 			return Map("ok", true, "skip", true, "level", "Info", "message", "[跳过取码] 未拆零药物", "need", 0, "codes", [], "items", [])
@@ -83,7 +84,7 @@ Txn_ReservePick(txnId, clientId, drugId, spec, reqQty, opt, ipt, bySpec := 0, cl
 		}
 
 		; 门诊拆零：强制先整盒后余数，且拆零侧有码后不重注
-		if (Trim("" opt) != "" && cls = opt) {
+		if isOpt {
 			scannedN := Util_ToInt(alreadyScanned, 0)
 			splitScanned := Max(0, scannedN - wholeN)
 			Log_Debug("txn.reserve.opt_gate", "门诊拆零已扫门控", Map(

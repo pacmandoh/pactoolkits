@@ -58,12 +58,39 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 	spec := by.Has("规格||药品规格") ? Trim(by["规格||药品规格"]) : ""
 	splitFlag := by.Has("拆零标签||拆零") ? Trim(by["拆零标签||拆零"]) : ""
 	qtyVal := by.Has("数量") ? by["数量"] : ""
+	unit := by.Has("单位") ? Trim("" by["单位"]) : ""
+	doseUnit := by.Has("用量单位") ? Trim("" by["用量单位"]) : ""
 	Log_Debug("semi_auto.fields", "关键字段", Map(
-		"mode", mode, "drugId", drugId, "spec", spec, "split", splitFlag, "qty", qtyVal
+		"mode", mode, "drugId", drugId, "spec", spec, "split", splitFlag, "qty", qtyVal,
+		"unit", unit, "doseUnit", doseUnit
 	))
 	if (drugId = "" || spec = "") {
 		Log_Debug("semi_auto.fields_miss", "缺药品名或规格", Map("drugId", drugId, "spec", spec))
 		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n解析结果缺少关键字段`n药品名称=" drugId "`n规格=" spec)
+	}
+
+	; 门诊无「拆零」列：解析后立刻用单位/用量单位分流（整包装跳过，勿进预留）
+	if (mode = "门诊") {
+		if (unit = "" || doseUnit = "") {
+			Log_Debug("semi_auto.opt_unit_miss", "门诊缺单位字段", Map(
+				"unit", unit, "doseUnit", doseUnit, "elapsedMs", A_TickCount - flowT0
+			))
+			return Map(
+				"ok", false, "level", "Warn",
+				"message", "[解析错误]`n门诊计算整盒/拆零需要「单位」与「用量单位」`n单位=" unit "`n用量单位=" doseUnit
+			)
+		}
+		if (unit != doseUnit) {
+			Log_Debug("semi_auto.opt_whole_pack", "门诊整包装跳过", Map(
+				"qty", qtyVal, "unit", unit, "doseUnit", doseUnit, "elapsedMs", A_TickCount - flowT0
+			))
+			return Map(
+				"ok", true, "skip", true, "level", "Info",
+				"message", "[跳过取码]`n整包装（发药单位与用量单位不同，按整包装发药）`n单位=" unit "`n用量单位=" doseUnit "`n数量=" qtyVal,
+				"focusClassNN", inputClassNN
+			)
+		}
+		; 单位=用量单位：数量按粒/片，预留侧再算整盒与余数
 	}
 
 	txnId := Util_TxnId()
