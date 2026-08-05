@@ -1,7 +1,6 @@
-; 半自动流程在用户选定目标行后由热键执行拆零药追溯码注入
-; 预留成功后若 UI 注入或验证失败必须回滚，避免库存长期占用
+; 半自动：左键 rem 只注拆零；右键 full 整盒+拆零；预留失败必须回滚
 
-Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptParseGridClassNN, iptVerifyGridClassNN, optInputClassNN, iptInputClassNN, win := "A", clickAnchor := "") {
+Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptParseGridClassNN, iptVerifyGridClassNN, optInputClassNN, iptInputClassNN, win := "A", clickAnchor := "", injectMode := "rem") {
 	global RuntimeInfo
 	flowT0 := A_TickCount
 	win := Util_NormalizeWin(win)
@@ -11,6 +10,10 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 	clientId := (IsSet(RuntimeInfo) && Type(RuntimeInfo) = "Map" && RuntimeInfo.Has("clientId"))
 		? RuntimeInfo["clientId"]
 		: A_ComputerName
+
+	injectMode := StrLower(Trim("" injectMode))
+	if (injectMode != "full")
+		injectMode := "rem"
 
 	mode := ""
 	if (cls = ipt) {
@@ -38,7 +41,7 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 	}
 
 	Log_Debug("semi_auto.start", "半自动开始", Map(
-		"mode", mode, "cls", cls, "ttl", ttl,
+		"mode", mode, "injectMode", injectMode, "cls", cls, "ttl", ttl,
 		"parseNn", parseGridClassNN, "inputNn", inputClassNN,
 		"timeoutMs", timeoutMs, "clientId", clientId
 	))
@@ -56,52 +59,21 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 	by := p["bySpec"]
 	drugId := by.Has("物资名称||药品名称") ? Trim(by["物资名称||药品名称"]) : ""
 	spec := by.Has("规格||药品规格") ? Trim(by["规格||药品规格"]) : ""
-	splitFlag := by.Has("拆零标签||拆零") ? Trim(by["拆零标签||拆零"]) : ""
 	qtyVal := by.Has("数量") ? by["数量"] : ""
-	unit := by.Has("单位") ? Trim("" by["单位"]) : ""
-	doseUnit := by.Has("用量单位") ? Trim("" by["用量单位"]) : ""
 	Log_Debug("semi_auto.fields", "关键字段", Map(
-		"mode", mode, "drugId", drugId, "spec", spec, "split", splitFlag, "qty", qtyVal,
-		"unit", unit, "doseUnit", doseUnit
+		"mode", mode, "injectMode", injectMode, "drugId", drugId, "spec", spec, "qty", qtyVal
 	))
 	if (drugId = "" || spec = "") {
 		Log_Debug("semi_auto.fields_miss", "缺药品名或规格", Map("drugId", drugId, "spec", spec))
 		return Map("ok", false, "level", "Warn", "message", "[解析错误]`n解析结果缺少关键字段`n药品名称=" drugId "`n规格=" spec)
 	}
 
-	; 门诊无「拆零」列：解析后立刻用单位/用量单位分流（整包装跳过，勿进预留）
-	if (mode = "门诊") {
-		if (unit = "" || doseUnit = "") {
-			Log_Debug("semi_auto.opt_unit_miss", "门诊缺单位字段", Map(
-				"unit", unit, "doseUnit", doseUnit, "elapsedMs", A_TickCount - flowT0
-			))
-			return Map(
-				"ok", false, "level", "Warn",
-				"message", "[解析错误]`n门诊计算整盒/拆零需要「单位」与「用量单位」`n单位=" unit "`n用量单位=" doseUnit
-			)
-		}
-		if (unit != doseUnit) {
-			Log_Debug("semi_auto.opt_whole_pack", "门诊整包装跳过", Map(
-				"qty", qtyVal, "unit", unit, "doseUnit", doseUnit, "elapsedMs", A_TickCount - flowT0
-			))
-			return Map(
-				"ok", true, "skip", true, "level", "Info",
-				"message", "[跳过取码]`n整包装（发药单位与用量单位不同，按整包装发药）`n单位=" unit "`n用量单位=" doseUnit "`n数量=" qtyVal,
-				"focusClassNN", inputClassNN
-			)
-		}
-		; 单位=用量单位：数量按粒/片，预留侧再算整盒与余数
-	}
-
-	txnId := Util_TxnId()
-	Log_Debug("semi_auto.reserve", "开始预留", Map("txn", txnId, "drugId", drugId, "spec", spec, "mode", mode))
-
-	; 门诊：药品行取已扫（供确认累计）；必须有追溯码列；空/无数字 → 0；已扫 N → N；有数字但非已扫文案 → 拒绝
+	; 门诊：药品行取已扫（供确认累计与减量预留）；必须有追溯码列
 	alreadyScanned := 0
 	if (mode = "门诊") {
 		if !by.Has("追溯码") {
 			Log_Debug("semi_auto.trace_col_miss", "门诊缺少追溯码列", Map(
-				"txn", txnId, "elapsedMs", A_TickCount - flowT0
+				"elapsedMs", A_TickCount - flowT0
 			))
 			return Map("ok", false, "level", "Warn",
 				"message", "[解析错误] 门诊药品行缺少「追溯码」列，已中止")
@@ -111,18 +83,22 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 			alreadyScanned := Integer(mScan[1])
 		} else if (traceCell != "" && RegExMatch(traceCell, "\d")) {
 			Log_Debug("semi_auto.scanned_unread", "追溯码格无法判定已扫", Map(
-				"txn", txnId, "traceLen", StrLen(traceCell),
-				"elapsedMs", A_TickCount - flowT0
+				"traceLen", StrLen(traceCell), "elapsedMs", A_TickCount - flowT0
 			))
 			return Map("ok", false, "level", "Warn",
 				"message", "[界面错误] 无法读取门诊「已扫 N 码」，已中止以免超量注入")
 		}
 		Log_Debug("semi_auto.scanned", "门诊已扫基数", Map(
-			"txn", txnId, "alreadyScanned", alreadyScanned, "traceLen", StrLen(traceCell)
+			"alreadyScanned", alreadyScanned, "traceLen", StrLen(traceCell)
 		))
 	}
 
-	r := Txn_ReservePick(txnId, clientId, drugId, spec, 0, opt, ipt, by, cls, alreadyScanned)
+	txnId := Util_TxnId()
+	Log_Debug("semi_auto.reserve", "开始预留", Map(
+		"txn", txnId, "drugId", drugId, "spec", spec, "mode", mode, "injectMode", injectMode
+	))
+
+	r := Txn_ReservePick(txnId, clientId, drugId, spec, 0, opt, ipt, by, cls, alreadyScanned, injectMode)
 
 	if !r["ok"] {
 		Log_Debug("semi_auto.reserve_fail", r.Has("message") ? r["message"] : "预留失败", Map(
@@ -150,7 +126,7 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 		tails.Push((StrLen(c) <= 4) ? c : SubStr(c, -3))
 	Log_Debug("semi_auto.codes", "预留码就绪", Map(
 		"txn", txnId, "count", codes.Length, "codeTails", tails,
-		"drugId", drugId, "spec", spec
+		"drugId", drugId, "spec", spec, "injectMode", injectMode
 	))
 
 	iptSawForce := false
@@ -189,12 +165,17 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 			"anchor", clickAnchor
 		)
 	}
+	; 多码贴完后拉长确认窗，跟 HIS 刷「已扫」/验证区
+	confirmMs := timeoutMs
+	if (codes.Length > 1)
+		confirmMs := timeoutMs + (codes.Length - 1) * 400
+
 	Log_Debug("semi_auto.confirm_begin", "进入录入校验", Map(
 		"txn", txnId, "codes", codes.Length, "alreadyScanned", alreadyScanned,
-		"iptSawForce", iptSawForce,
-		"timeoutMs", timeoutMs, "parseNn", parseGridClassNN
+		"iptSawForce", iptSawForce, "timeoutMs", confirmMs, "parseNn", parseGridClassNN,
+		"injectMode", injectMode
 	))
-	wc := UI_WaitConfirm(codes, timeoutMs, opt, ipt, parseGridClassNN, iptVerifyGridClassNN, win, iptSawForce, optCtx)
+	wc := UI_WaitConfirm(codes, confirmMs, opt, ipt, parseGridClassNN, iptVerifyGridClassNN, win, iptSawForce, optCtx)
 	Log_Debug("semi_auto.confirm", wc["ok"] ? "校验通过" : "校验失败", Map(
 		"txn", txnId,
 		"ok", wc["ok"],
@@ -222,9 +203,10 @@ Semi_Auto_Fill(opt, ipt, colSpecs, intCols, timeoutMs, optParseGridClassNN, iptP
 	}
 
 	Log_Info("semi_auto.done", "半自动完成", Map(
-		"txn", txnId, "mode", mode, "drugId", drugId, "spec", spec,
+		"txn", txnId, "mode", mode, "injectMode", injectMode, "drugId", drugId, "spec", spec,
 		"codes", codes.Length, "elapsedMs", A_TickCount - flowT0
 	))
-	UI_Tip("[半自动注入完成] " drugId " / " spec "（" mode "）", 1500)
+	modeLabel := (injectMode = "full") ? "全量" : "拆零"
+	UI_Tip("[半自动注入完成] " drugId " / " spec "（" mode " " modeLabel "）", 1500)
 	return Map("ok", true, "focusClassNN", inputClassNN)
 }
